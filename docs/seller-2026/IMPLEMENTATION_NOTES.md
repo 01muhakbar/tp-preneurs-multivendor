@@ -32,6 +32,10 @@
 - `/seller/stores/:storeSlug/catalog/attributes`
 - `/seller/stores/:storeSlug/catalog/attributes/:attributeId/values`
 - `/seller/stores/:storeSlug/catalog/coupons`
+- `/seller/stores/:storeSlug/orders`
+- `/seller/stores/:storeSlug/orders/:suborderId`
+- `/seller/stores/:storeSlug/payment-review`
+- `/seller/stores/:storeSlug/payment-profile`
 
 ## Components Added
 - `client/src/features/seller2026/Seller2026Workspace.jsx`
@@ -55,6 +59,7 @@
 - Live store profile uses existing seller profile/readiness APIs through `useSeller2026Storefront`.
 - Live products use existing seller product APIs through `useSeller2026Products` and `useSeller2026ProductDetail`.
 - Live catalog tools use existing seller categories, attributes, attribute values, and coupons APIs through `useSeller2026Categories`, `useSeller2026Attributes`, `useSeller2026AttributeValues`, and `useSeller2026Coupons`.
+- Live orders and payments use existing seller suborder, payment review, and payment profile APIs through `useSeller2026Orders`, `useSeller2026SuborderDetail`, `useSeller2026PaymentReview`, and `useSeller2026PaymentProfile`.
 - Adapter skeletons are available in `client/src/api/seller2026/`.
 
 ## Pending Backend Work
@@ -63,7 +68,7 @@
 - Preserve backend checks with `requireAuth`, `requireSellerStoreAccess`, and permission guards.
 
 ## Known Limitations
-- Live seller dashboard, store profile, product catalog, and catalog tools routes have been adopted; operations/team/notifications routes are unchanged.
+- Live seller dashboard, store profile, product catalog, catalog tools, orders, and payment routes have been adopted; team/notifications routes are unchanged.
 - Preview pages use shared section wrappers, so several detail routes intentionally render the same domain workspace.
 - Permission-aware action hiding is planned for the live integration phase.
 
@@ -210,6 +215,67 @@
 - Coupon mutation integration.
 - Coupon validation rules.
 - Product-category assignment refinement.
+
+## Live Route Adoption - Orders, Fulfillment & Payments
+
+### Routes Adopted
+- `/seller/stores/:storeSlug/orders`
+- `/seller/stores/:storeSlug/orders/:suborderId`
+- `/seller/stores/:storeSlug/payment-review`
+- `/seller/stores/:storeSlug/payment-profile`
+
+### Files Added
+- `client/src/pages/seller2026/Seller2026LiveOrdersPage.jsx`
+- `client/src/pages/seller2026/Seller2026LiveSuborderDetailPage.jsx`
+- `client/src/pages/seller2026/Seller2026LivePaymentReviewPage.jsx`
+- `client/src/pages/seller2026/Seller2026LivePaymentProfilePage.jsx`
+- `client/src/hooks/seller2026/useSeller2026Orders.ts`
+- `client/src/hooks/seller2026/useSeller2026SuborderDetail.ts`
+- `client/src/hooks/seller2026/useSeller2026PaymentReview.ts`
+- `client/src/hooks/seller2026/useSeller2026PaymentProfile.ts`
+- `client/src/api/seller2026/orders-payments.adapter.ts`
+
+### Files Changed
+- `client/src/App.jsx`
+- `client/src/features/seller2026/Seller2026Workspace.jsx`
+
+### APIs Used
+- `getSellerSuborders`
+- `getSellerSuborderDetail`
+- `getSellerPaymentReviewSuborders`
+- `getSellerPaymentProfile`
+
+### Adapter Mapping
+- `adaptSeller2026Orders` maps store-owned suborders into fulfillment queue rows, summary counters, and pagination.
+- `adaptSeller2026SuborderDetail` maps suborder detail into customer, shipping, items, totals, and timeline sections.
+- `adaptSeller2026PaymentReview` maps payment review suborders into review list rows and selected payment detail.
+- `adaptSeller2026PaymentProfile` maps active snapshot and pending request data into profile status, methods, documents, and verification timeline.
+
+### Still Mocked / Fallback
+- Empty live responses render generic empty states and do not reuse preview order/payment demo rows.
+- Payment risk checks fall back to unknown/manual review states when API risk data is not available.
+- Balances and payout history currently use safe zero fallbacks until a payout ledger API is wired.
+
+### Disabled Unsafe Mutations
+- Pack order.
+- Print label.
+- Mark shipped.
+- Update tracking.
+- Save internal note.
+- Approve payment.
+- Reject payment.
+- Refund payment.
+- Submit payment profile.
+- Upload payment documents.
+- Change payout account.
+
+### Pending Work
+- Fulfillment mutation integration.
+- Shipment label integration.
+- Tracking update integration.
+- Payment proof review lifecycle.
+- Payment profile submit/update flow.
+- Payout history integration.
 
 ## QA Checklist
 - Verify preview pages do not render blank.

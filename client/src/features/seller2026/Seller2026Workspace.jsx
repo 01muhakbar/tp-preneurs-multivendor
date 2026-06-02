@@ -902,7 +902,147 @@ function TaxonomyPage({
   );
 }
 
-function OperationsPage() {
+function OperationsPage({
+  operationsView = "overview",
+  operationsData = null,
+  operationsState = null,
+  operationsQuery = null,
+  onOperationsQueryChange = null,
+  mode,
+  storeContext,
+}) {
+  const { storeSlug } = useParams();
+  const isLive = Boolean(operationsData || operationsState);
+  const basePath = storeSlug ? `/seller/stores/${encodeURIComponent(storeSlug)}` : "/seller-2026";
+  const queryChange = (next) => onOperationsQueryChange?.(next);
+  const searchValue = operationsQuery?.search || "";
+
+  if (isLive && operationsView === "orders") {
+    const rows = operationsData?.suborders || [];
+    const summary = operationsData?.summary || {};
+    const pagination = operationsData?.pagination || { page: 1, totalPages: 0, total: 0 };
+    const tabs = [
+      ["all", `All Orders ${summary.total || 0}`],
+      ["unpaid", `Unpaid ${summary.unpaid || 0}`],
+      ["pending_confirmation", `Pending Confirmation ${summary.pendingConfirmation || 0}`],
+      ["processing", `Processing ${summary.processing || 0}`],
+      ["shipped", `Shipped ${summary.shipped || 0}`],
+      ["delivered", `Delivered ${summary.delivered || 0}`],
+    ];
+
+    return (
+      <Shell section="operations" mode={mode} storeContext={storeContext}>
+        {operationsState?.isError ? <Card title="Orders unavailable" hint="Live orders could not load." actions={<button type="button" className="s26-btn" onClick={operationsState?.refetch}>Retry</button>} /> : null}
+        <Card title="All Orders / Fulfillment Queue" hint="Store-owned suborders, payment state, fulfillment state, and shipping movement." actions={<button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Export</button>}>
+          <div className="s26-tabs">{tabs.map(([value, label]) => <button type="button" className={`s26-tab ${(operationsQuery?.status || "all") === value ? "active" : ""}`} key={value} onClick={() => queryChange({ status: value, page: 1 })}>{label}</button>)}</div>
+          <div className="s26-filter-row">
+            <input className="s26-search" aria-label="Search order, customer, suborder, or invoice" placeholder="Search order, customer, suborder, or invoice" value={searchValue} onChange={(event) => queryChange({ search: event.target.value, page: 1 })} />
+            <select className="s26-control" aria-label="Filter order status" value={operationsQuery?.status || "all"} onChange={(event) => queryChange({ status: event.target.value, page: 1 })}><option value="all">All Status</option><option value="unpaid">Unpaid</option><option value="pending_confirmation">Pending Confirmation</option><option value="processing">Processing</option><option value="shipped">Shipped</option><option value="delivered">Delivered</option></select>
+            <input className="s26-control" type="date" aria-label="Date from" value={operationsQuery?.dateFrom || ""} onChange={(event) => queryChange({ dateFrom: event.target.value, page: 1 })} />
+            <input className="s26-control" type="date" aria-label="Date to" value={operationsQuery?.dateTo || ""} onChange={(event) => queryChange({ dateTo: event.target.value, page: 1 })} />
+            <button type="button" className="s26-btn" disabled title={disabledTodoTitle}>More Filters</button>
+          </div>
+          {operationsState?.isLoading ? <p className="hint">Loading orders...</p> : null}
+          {!operationsState?.isLoading && rows.length === 0 ? <div className="s26-empty"><strong>Belum ada pesanan untuk toko ini.</strong><p>Pesanan store-scoped akan muncul setelah checkout berhasil.</p></div> : null}
+          {rows.length ? <DataTable columns={["Date", "Invoice / Suborder", "Customer", "Phone", "Channel", "Shipping", "Total", "Status", "Actions"]} rows={rows} renderRow={(row) => <tr key={row.id}><td>{row.orderDate || "-"}</td><td><strong>{row.invoiceNo}</strong><div className="s26-sub">{row.suborderNo}</div></td><td>{row.customerName}</td><td>{row.customerPhone || "-"}</td><td>{row.channel || "-"}</td><td>{row.shippingMethod || "-"}</td><td>{formatRupiah(row.total)}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td><Link className="s26-link" to={`${basePath}/orders/${encodeURIComponent(String(row.id))}`}>Detail</Link></td></tr>} /> : null}
+          <div className="s26-pagination">
+            <span>Page {pagination.page} of {pagination.totalPages} - {pagination.total} suborders</span>
+            <div className="s26-filter-row" style={{ marginBottom: 0 }}>
+              <button type="button" className="s26-btn" disabled={pagination.page <= 1} onClick={() => queryChange({ page: pagination.page - 1 })}>Previous</button>
+              <button type="button" className="s26-btn" disabled={pagination.page >= pagination.totalPages} onClick={() => queryChange({ page: pagination.page + 1 })}>Next</button>
+            </div>
+          </div>
+        </Card>
+      </Shell>
+    );
+  }
+
+  if (isLive && operationsView === "suborder-detail") {
+    const detail = operationsData;
+    return (
+      <Shell section="operations" mode={mode} storeContext={storeContext}>
+        {operationsState?.isError ? <Card title="Suborder unavailable" hint="Suborder tidak ditemukan atau tidak tersedia untuk toko ini." actions={<button type="button" className="s26-btn" onClick={operationsState?.refetch}>Retry</button>} /> : null}
+        <Card title="Suborder Detail" hint="Customer, shipping, items, packing status, timeline, and internal notes." actions={<Link className="s26-btn" to={`${basePath}/orders`}>Back to Orders</Link>}>
+          {operationsState?.isLoading ? <p className="hint">Loading suborder...</p> : null}
+          {!operationsState?.isLoading && !detail?.suborder ? <div className="s26-empty"><strong>Suborder tidak ditemukan atau tidak tersedia untuk toko ini.</strong><p>Pastikan suborder masih berada dalam scope toko aktif.</p></div> : null}
+          {detail?.suborder ? (
+            <>
+              <h3>{detail.suborder.suborderNo} <span className={statusClass(detail.suborder.status)}>{detail.suborder.status}</span></h3>
+              <p className="hint">Invoice {detail.suborder.invoiceNo} - {detail.suborder.orderDate || "-"} - {detail.suborder.channel || "Store"}</p>
+              <div className="s26-grid three" style={{ marginTop: 16 }}>
+                <div className="s26-card soft"><h3>Customer & Shipping</h3><p className="hint">{detail.customer?.name || "Customer"}<br />{detail.customer?.phone || "-"}<br />{detail.customer?.address || "-"}</p>{detail.customer?.note ? <p className="hint">Note: {detail.customer.note}</p> : null}</div>
+                <div className="s26-card soft"><h3>Shipping Method</h3><p className="hint">{detail.shipping?.method || "Not assigned"}<br />Tracking: {detail.shipping?.trackingNo || "-"}<br />Estimate: {detail.shipping?.estimate || "-"}</p></div>
+                <div className="s26-card soft"><h3>Cost Summary</h3><p className="hint">Subtotal {formatRupiah(detail.totals.subtotal)}<br />Shipping {formatRupiah(detail.totals.shippingFee)}<br />Service {formatRupiah(detail.totals.serviceFee)}<br />Discount {formatRupiah(detail.totals.discount)}</p><strong>{formatRupiah(detail.totals.total)}</strong></div>
+              </div>
+              <div style={{ marginTop: 16 }}><DataTable columns={["Product", "Variant", "Qty", "Price", "Subtotal"]} rows={detail.items} renderRow={(row) => <tr key={row.id}><td>{row.productName}</td><td>{row.variantLabel || "-"}</td><td>{row.quantity}</td><td>{formatRupiah(row.price)}</td><td>{formatRupiah(row.subtotal)}</td></tr>} /></div>
+              <div className="s26-filter-row" style={{ marginTop: 16 }}><button type="button" className="s26-btn primary" disabled title={disabledTodoTitle}>Pack Order</button><button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Print Label</button><button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Mark Shipped</button><button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Update Tracking</button></div>
+            </>
+          ) : null}
+        </Card>
+        {detail?.suborder ? <div className="s26-grid two"><Card title="Shipment Timeline" hint={detail.timeline.length ? detail.timeline.map((item) => item.label).join(" / ") : "No shipment timeline yet."} /><Card title="Internal Notes" hint="Save internal note integration is pending." /></div> : null}
+      </Shell>
+    );
+  }
+
+  if (isLive && operationsView === "payment-review") {
+    const rows = operationsData?.payments || [];
+    const selected = operationsData?.selectedPayment || null;
+    return (
+      <Shell section="operations" mode={mode} storeContext={storeContext}>
+        {operationsState?.isError ? <Card title="Payment review unavailable" hint="Live payment review data could not load." actions={<button type="button" className="s26-btn" onClick={operationsState?.refetch}>Retry</button>} /> : null}
+        <div className="s26-grid two">
+          <Card title="Payment Review" hint="Proof, customer reference, amount, and review status." actions={<button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Export</button>}>
+            <div className="s26-grid four" style={{ marginBottom: 14 }}>
+              <CatalogKpi label="Pending" value={operationsData?.summary?.totalPending || 0} />
+              <CatalogKpi label="Amount" value={formatRupiah(operationsData?.summary?.totalAmount || 0)} />
+              <CatalogKpi label="Approved" value={operationsData?.summary?.approvedToday || 0} />
+              <CatalogKpi label="Rejected" value={operationsData?.summary?.rejectedToday || 0} />
+            </div>
+            <div className="s26-filter-row"><input className="s26-search" aria-label="Search payments" placeholder="Search payment, invoice, customer" value={searchValue} onChange={(event) => queryChange({ search: event.target.value, page: 1 })} /><select className="s26-control" aria-label="Filter payment status" value={operationsQuery?.status || "all"} onChange={(event) => queryChange({ status: event.target.value, page: 1 })}><option value="all">Pending Confirmation</option><option value="PAID">Paid</option><option value="REJECTED">Rejected</option><option value="UNPAID">Unpaid</option></select></div>
+            {operationsState?.isLoading ? <p className="hint">Loading payment review...</p> : null}
+            {!operationsState?.isLoading && rows.length === 0 ? <div className="s26-empty"><strong>Belum ada pembayaran yang perlu direview.</strong><p>Payment proof akan muncul jika ada pembayaran pending.</p></div> : null}
+            {rows.length ? <DataTable columns={["Payment", "Invoice", "Customer", "Amount", "Method", "Status", "Risk"]} rows={rows} renderRow={(row) => <tr key={row.id}><td><strong>{row.paymentNo}</strong><div className="s26-sub">{row.receivedAt || "-"}</div></td><td>{row.invoiceNo || "-"}</td><td>{row.customerName || "-"}</td><td>{formatRupiah(row.amount)}</td><td>{row.method || "-"}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td>{row.riskLabel || "unknown"}</td></tr>} /> : null}
+          </Card>
+          <Card title="Selected Payment Detail" hint="Transaction breakdown, proof preview, risk checklist, and audit timeline." actions={<><button type="button" className="s26-btn success" disabled title={disabledTodoTitle}>Mark Safe</button><button type="button" className="s26-btn danger" disabled title={disabledTodoTitle}>Reject / Refund</button></>}>
+            {selected ? (
+              <>
+                <div className="s26-card soft"><h3>Payment Proof</h3>{selected.proofUrl ? <img className="s26-logo-preview" src={selected.proofUrl} alt="" /> : <p className="hint">No payment proof image available.</p>}</div>
+                <div className="s26-checklist">{selected.breakdown.map((item) => <div className="s26-check-row" key={item.label}><span>{item.label}</span><strong>{typeof item.value === "number" ? formatRupiah(item.value) : item.value}</strong></div>)}</div>
+                <div className="s26-checklist">{selected.riskChecks.map((item) => <div className="s26-check-row" key={item.label}><span>{item.label}</span><span className={statusClass(item.status)}>{item.status}</span></div>)}</div>
+              </>
+            ) : <div className="s26-empty"><strong>No payment selected.</strong><p>Payment detail appears after pending payment data is available.</p></div>}
+          </Card>
+        </div>
+      </Shell>
+    );
+  }
+
+  if (isLive && operationsView === "payment-profile") {
+    const profile = operationsData;
+    return (
+      <Shell section="operations" mode={mode} storeContext={storeContext}>
+        {operationsState?.isError ? <Card title="Payment profile unavailable" hint="Live payment profile could not load." actions={<button type="button" className="s26-btn" onClick={operationsState?.refetch}>Retry</button>} /> : null}
+        <Card title="Payment Profile" hint="QRIS, payout profile, verification documents, and admin review timeline." actions={<button type="button" className="s26-btn primary" disabled title={disabledTodoTitle}>Submit / Update Profile</button>}>
+          <div className="s26-grid four" style={{ marginBottom: 14 }}>
+            <CatalogKpi label="Status" value={profile?.status || "INACTIVE"} />
+            <CatalogKpi label="Available Balance" value={formatRupiah(profile?.balances?.available || 0)} />
+            <CatalogKpi label="Hold Balance" value={formatRupiah(profile?.balances?.hold || 0)} />
+            <CatalogKpi label="Last Payout" value={formatRupiah(profile?.balances?.lastPayoutAmount || 0)} />
+          </div>
+          {operationsState?.isLoading ? <p className="hint">Loading payment profile...</p> : null}
+          <div className="s26-grid three">
+            {(profile?.methods || []).length ? profile.methods.map((method) => <div className="s26-card soft" key={`${method.type}-${method.label}`}><h3>{method.label}</h3><p className="hint">{method.type}<br />{method.accountName || method.accountNoMasked || "No account detail"}</p><span className={statusClass(method.status)}>{method.status}</span></div>) : <div className="s26-empty"><strong>No payment method configured.</strong><p>QRIS or bank transfer details will appear after setup.</p></div>}
+            <div className="s26-card soft"><h3>Payout Account</h3>{profile?.payoutAccount ? <p className="hint">{profile.payoutAccount.bankName}<br />{profile.payoutAccount.accountNoMasked}<br />{profile.payoutAccount.accountName}</p> : <p className="hint">No payout account configured.</p>}<span className={statusClass(profile?.payoutAccount?.status || "UNKNOWN")}>{profile?.payoutAccount?.status || "UNKNOWN"}</span></div>
+          </div>
+        </Card>
+        <div className="s26-grid two">
+          <Card title="Documents & Verification" hint="KTP/NIK, NPWP, bank or QRIS documents.">{(profile?.documents || []).length ? <div className="s26-checklist">{profile.documents.map((item) => <div className="s26-check-row" key={item.label}><span>{item.label}</span><span className={statusClass(item.status)}>{item.status}</span></div>)}</div> : <div className="s26-empty"><strong>No documents available.</strong><p>Verification documents are not configured yet.</p></div>}</Card>
+          <Card title="Verification Timeline" hint={(profile?.timeline || []).length ? profile.timeline.map((item) => item.label).join(" / ") : "No verification timeline yet."} />
+        </div>
+      </Shell>
+    );
+  }
+
   return (
     <Shell section="operations">
       <div className="s26-grid operations">
@@ -988,6 +1128,11 @@ export function Seller2026Workspace({
   catalogState = null,
   catalogQuery = null,
   onCatalogQueryChange = null,
+  operationsView = "overview",
+  operationsData = null,
+  operationsState = null,
+  operationsQuery = null,
+  onOperationsQueryChange = null,
 }) {
   const Component = useMemo(() => {
     if (section === "storefront") return StorefrontPage;
@@ -1017,6 +1162,11 @@ export function Seller2026Workspace({
       catalogState={catalogState}
       catalogQuery={catalogQuery}
       onCatalogQueryChange={onCatalogQueryChange}
+      operationsView={operationsView}
+      operationsData={operationsData}
+      operationsState={operationsState}
+      operationsQuery={operationsQuery}
+      onOperationsQueryChange={onOperationsQueryChange}
     />
   );
 }

@@ -113,12 +113,6 @@ const AdminStoreApplicationDetailPage = lazy(() =>
   import("./pages/admin/AdminStoreApplicationDetailPage.jsx")
 );
 const SellerLayout = lazy(() => import("./layouts/SellerLayout.jsx"));
-const SellerOrderDetailPage = lazy(() => import("./pages/seller/SellerOrderDetailPage.jsx"));
-const SellerOrdersPage = lazy(() => import("./pages/seller/SellerOrdersPage.jsx"));
-const SellerPaymentReviewPage = lazy(() => import("./pages/seller/SellerPaymentReviewPage.jsx"));
-const SellerPaymentProfilePage = lazy(() =>
-  import("./pages/seller/SellerPaymentProfilePage.jsx")
-);
 const SellerTeamAuditPage = lazy(() => import("./pages/seller/SellerTeamAuditPage.jsx"));
 const SellerMemberLifecyclePage = lazy(() =>
   import("./pages/seller/SellerMemberLifecyclePage.jsx")
@@ -151,6 +145,18 @@ const Seller2026LiveAttributeValuesPage = lazy(() =>
 );
 const Seller2026LiveCouponsPage = lazy(() =>
   import("./pages/seller2026/Seller2026LiveCouponsPage.jsx")
+);
+const Seller2026LiveOrdersPage = lazy(() =>
+  import("./pages/seller2026/Seller2026LiveOrdersPage.jsx")
+);
+const Seller2026LiveSuborderDetailPage = lazy(() =>
+  import("./pages/seller2026/Seller2026LiveSuborderDetailPage.jsx")
+);
+const Seller2026LivePaymentReviewPage = lazy(() =>
+  import("./pages/seller2026/Seller2026LivePaymentReviewPage.jsx")
+);
+const Seller2026LivePaymentProfilePage = lazy(() =>
+  import("./pages/seller2026/Seller2026LivePaymentProfilePage.jsx")
 );
 const AdminPaymentAuditPage = lazy(() =>
   import("./pages/admin/AdminPaymentAuditPage.jsx")
@@ -437,10 +443,10 @@ export default function App() {
             />
             <Route path="catalog/:productId" element={<LegacySellerProductDetailRedirect />} />
             <Route path="catalog/products/:productId" element={<Seller2026LiveProductDetailPage />} />
-            <Route path="orders" element={<SellerOrdersPage />} />
-            <Route path="orders/:suborderId" element={<SellerOrderDetailPage />} />
-            <Route path="payment-review" element={<SellerPaymentReviewPage />} />
-            <Route path="payment-profile" element={<SellerPaymentProfilePage />} />
+            <Route path="orders" element={<Seller2026LiveOrdersPage />} />
+            <Route path="orders/:suborderId" element={<Seller2026LiveSuborderDetailPage />} />
+            <Route path="payment-review" element={<Seller2026LivePaymentReviewPage />} />
+            <Route path="payment-profile" element={<Seller2026LivePaymentProfilePage />} />
             <Route path="coupons" element={<LegacySellerCouponsRedirect />} />
             <Route path="catalog/coupons" element={<Seller2026LiveCouponsPage />} />
           </Route>
