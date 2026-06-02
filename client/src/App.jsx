@@ -119,7 +119,6 @@ const SellerPaymentReviewPage = lazy(() => import("./pages/seller/SellerPaymentR
 const SellerPaymentProfilePage = lazy(() =>
   import("./pages/seller/SellerPaymentProfilePage.jsx")
 );
-const SellerStoreProfilePage = lazy(() => import("./pages/seller/SellerStoreProfilePage.jsx"));
 const SellerCouponsPage = lazy(() => import("./pages/seller/SellerCouponsPage.jsx"));
 const SellerTeamAuditPage = lazy(() => import("./pages/seller/SellerTeamAuditPage.jsx"));
 const SellerMemberLifecyclePage = lazy(() =>
@@ -138,6 +137,9 @@ const SellerTeamPage = lazy(() => import("./pages/seller/SellerTeamPage.jsx"));
 const SellerWorkspaceHome = lazy(() => import("./pages/seller/SellerWorkspaceHome.jsx"));
 const Seller2026LiveDashboardPage = lazy(() =>
   import("./pages/seller2026/Seller2026LiveDashboardPage.jsx")
+);
+const Seller2026LiveStorefrontPage = lazy(() =>
+  import("./pages/seller2026/Seller2026LiveStorefrontPage.jsx")
 );
 const AdminPaymentAuditPage = lazy(() =>
   import("./pages/admin/AdminPaymentAuditPage.jsx")
@@ -396,7 +398,8 @@ export default function App() {
           <Route path="/seller/stores/:storeSlug" element={<SellerLayout />}>
             <Route index element={<SellerWorkspaceHome />} />
             <Route path="dashboard" element={<Seller2026LiveDashboardPage />} />
-            <Route path="store-profile" element={<SellerStoreProfilePage />} />
+            <Route path="store-profile" element={<Seller2026LiveStorefrontPage />} />
+            <Route path="microsite-preview" element={<Seller2026LiveStorefrontPage />} />
             <Route path="team" element={<SellerTeamPage />} />
             <Route path="team/:memberId" element={<SellerMemberLifecyclePage />} />
             <Route path="team/audit" element={<SellerTeamAuditPage />} />

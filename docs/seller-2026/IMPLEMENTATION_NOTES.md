@@ -22,6 +22,8 @@
 - `/seller-2026/team/audit`
 - `/seller-2026/notifications`
 - `/seller/stores/:storeSlug/dashboard`
+- `/seller/stores/:storeSlug/store-profile`
+- `/seller/stores/:storeSlug/microsite-preview`
 
 ## Components Added
 - `client/src/features/seller2026/Seller2026Workspace.jsx`
@@ -42,6 +44,7 @@
 ## API Integrated
 - Preview routes still use mock data from the slicing bundle.
 - Live dashboard uses existing seller workspace APIs through `useSeller2026Dashboard`.
+- Live store profile uses existing seller profile/readiness APIs through `useSeller2026Storefront`.
 - Adapter skeletons are available in `client/src/api/seller2026/`.
 
 ## Pending Backend Work
@@ -50,9 +53,48 @@
 - Preserve backend checks with `requireAuth`, `requireSellerStoreAccess`, and permission guards.
 
 ## Known Limitations
-- Live seller dashboard has been adopted; other live seller routes are unchanged.
+- Live seller dashboard and store profile have been adopted; other live seller routes are unchanged.
 - Preview pages use shared section wrappers, so several detail routes intentionally render the same domain workspace.
 - Permission-aware action hiding is planned for the live integration phase.
+
+## Live Route Adoption - Storefront / Store Profile
+
+### Route Adopted
+- `/seller/stores/:storeSlug/store-profile`
+- `/seller/stores/:storeSlug/microsite-preview`
+
+### Files Added
+- `client/src/pages/seller2026/Seller2026LiveStorefrontPage.jsx`
+- `client/src/hooks/seller2026/useSeller2026Storefront.ts`
+
+### Files Changed
+- `client/src/App.jsx`
+- `client/src/features/seller2026/Seller2026Workspace.jsx`
+- `client/src/features/seller2026/Seller2026DesignSystem.css`
+- `client/src/api/seller2026/storefront.adapter.ts`
+
+### APIs Used
+- `getSellerStoreProfile`
+- `getSellerWorkspaceReadiness`
+- `getStorePublicIdentityBySlug`
+- `getStoreMicrositeRichAboutBySlug`
+
+### Adapter Mapping
+- `adaptSeller2026Storefront` maps store profile, readiness, public identity, and rich-about data into a Seller 2026 storefront view model.
+- Live fallbacks use store context/profile fields and generic labels, not preview brand mock data.
+
+### Still Mocked / Fallback
+- Theme customization is UI-only.
+- Homepage section toggles are UI-only.
+- Featured products fall back to safe placeholder cards until a public-safe product source is wired.
+- Submit review, logo/banner upload, policy management, and save mutation controls are disabled in the 2026 live UI.
+
+### Pending Work
+- Update store profile mutation integration.
+- Logo/banner upload integration.
+- Theme customization persistence.
+- Microsite section persistence.
+- Submit for review integration.
 
 ## QA Checklist
 - Verify preview pages do not render blank.

@@ -218,6 +218,8 @@
 .s26-donut span { width: 98px; height: 98px; border-radius: 50%; background: var(--seller-panel); display: grid; place-items: center; text-align: center; font-size: 13px; font-weight: 850; }
 
 .s26-btn { border: 1px solid var(--seller-border); background: var(--seller-panel); color: var(--seller-text); border-radius: 14px; height: 40px; padding: 0 14px; font-weight: 800; font-size: 13px; cursor: pointer; }
+.s26-btn:disabled,
+.s26-tab:disabled { cursor: not-allowed; opacity: .55; }
 .s26-btn.primary { background: linear-gradient(135deg, var(--seller-primary), var(--seller-primary-2)); border-color: transparent; color: #fff; box-shadow: 0 12px 24px rgba(79, 70, 229, .24); }
 .s26-btn.danger { background: #fff1f2; border-color: #fecdd3; color: #be123c; }
 .s26-btn.success { background: #ecfdf5; border-color: #bbf7d0; color: #047857; }
@@ -239,7 +241,14 @@
 .s26-hero p { color: rgba(255,255,255,.78); max-width: 420px; line-height: 1.55; }
 .s26-product-card-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
 .s26-store-product { border: 1px solid var(--seller-border); border-radius: 18px; overflow: hidden; background: var(--seller-panel); }
-.s26-store-product .image { height: 120px; background: radial-gradient(circle, #bbf7d0, #f8fafc 62%); display: grid; place-items: center; font-size: 38px; }
+.s26-store-product .image { height: 120px; background: radial-gradient(circle, #bbf7d0, #f8fafc 62%); display: grid; place-items: center; font-size: 38px; overflow: hidden; }
+.s26-store-product .image img,
+.s26-logo-preview,
+.s26-hero-logo { width: 100%; height: 100%; object-fit: cover; }
+.s26-logo-preview { margin-top: 12px; width: 74px; height: 74px; border-radius: 16px; border: 1px solid var(--seller-border); background: var(--seller-panel); }
+.s26-cover-preview { background-size: cover; background-position: center; }
+.s26-benefit-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+.s26-hero-logo { width: 82px; height: 82px; border-radius: 18px; background: rgba(255,255,255,.2); }
 .s26-store-product .body { padding: 12px; }
 .s26-phone { width: 210px; border: 10px solid #0f172a; border-radius: 34px; background: var(--seller-panel); box-shadow: var(--seller-shadow); overflow: hidden; }
 .s26-phone .s26-hero { min-height: 220px; border-radius: 0; padding: 18px; }
@@ -256,14 +265,15 @@
   .s26-shell { grid-template-columns: 1fr; }
   .s26-sidebar { position: relative; top: 0; height: auto; }
   .s26-grid.kpi, .s26-grid.dashboard, .s26-grid.operations, .s26-grid.three { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .s26-product-card-grid { grid-template-columns: repeat(2, 1fr); }
+  .s26-product-card-grid,
+  .s26-benefit-grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 760px) {
   .s26-shell { padding: 14px; }
   .s26-topbar { grid-template-columns: 1fr; }
   .s26-actions { justify-content: flex-start; }
   .s26-search { min-width: 0; width: 100%; }
-  .s26-grid.kpi, .s26-grid.dashboard, .s26-grid.operations, .s26-grid.two, .s26-grid.three, .s26-form-grid { grid-template-columns: 1fr; }
+  .s26-grid.kpi, .s26-grid.dashboard, .s26-grid.operations, .s26-grid.two, .s26-grid.three, .s26-form-grid, .s26-benefit-grid { grid-template-columns: 1fr; }
   .s26-stepper { grid-template-columns: repeat(3, 1fr); }
 }
 .s26-status.PENDING,.s26-status.High,.s26-status.Medium { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }

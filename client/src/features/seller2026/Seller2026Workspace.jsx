@@ -238,6 +238,15 @@ function DataTable({ columns, rows, renderRow }) {
   );
 }
 
+const formatRupiah = (value) =>
+  new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
+
+const disabledTodoTitle = "Coming soon: backend integration is pending for this action.";
+
 function DashboardPage({ dashboardData = null, dashboardState = null, mode, storeContext }) {
   const effectiveKpis = dashboardData?.kpis?.length ? dashboardData.kpis : kpis;
   const effectiveReadiness = dashboardData?.readiness?.length ? dashboardData.readiness : readiness;
@@ -300,37 +309,188 @@ function DashboardPage({ dashboardData = null, dashboardState = null, mode, stor
   );
 }
 
-function StorefrontPage() {
+function StorefrontPage({ storefrontData = null, storefrontState = null, mode, storeContext }) {
+  const isLive = Boolean(storefrontData);
+  const previewStore = {
+    name: "Oase Sehat Official Store",
+    slug: "oase-sehat",
+    tagline: "Produk pilihan terbaik untuk keluarga sehat Indonesia.",
+    email: "halo@oasesehat.com",
+    whatsapp: "+62 812-3456-7890",
+    phone: "+62 812-3456-7890",
+    businessCategory: "Kesehatan & Kecantikan",
+    businessSubcategory: "Herbal & Wellness",
+    address: "Jakarta, DKI Jakarta",
+    shippingOrigin: "Jakarta, DKI Jakarta",
+    description: "Oase Sehat hadir untuk memberikan solusi kesehatan alami berkualitas untuk keluarga Indonesia.",
+    policies: [
+      { label: "Store description", status: "complete" },
+      { label: "Contact details", status: "complete" },
+      { label: "Shipping origin", status: "complete" },
+    ],
+    socials: [{ channel: "Instagram", value: "@oasesehat" }],
+    saveStatus: "Identitas, kontak, alamat, sosial media, dan policy toko.",
+  };
+  const store = storefrontData?.store || previewStore;
+  const liveReadiness = storefrontData?.readiness || {};
+  const microsite = storefrontData?.microsite || {
+    heroTitle: "Alami. Sehat.",
+    heroSubtitle: "Produk pilihan terbaik untuk keluarga sehat Indonesia.",
+    heroCtaLabel: "Belanja Sekarang",
+    categories: [
+      { id: "herbal", name: "Herbal" },
+      { id: "vitamin", name: "Vitamin" },
+      { id: "tea", name: "Teh" },
+    ],
+  };
+  const theme = storefrontData?.theme || {
+    mode: "light",
+    brandColors: ["#14532d", "#0f766e", "#a7f3d0", "#f59e0b", "#dc2626"],
+    typography: "Inter / System",
+    sections: [
+      { key: "hero", label: "Hero Banner", enabled: true },
+      { key: "categories", label: "Kategori Populer", enabled: true },
+      { key: "featured", label: "Produk Unggulan", enabled: true },
+      { key: "benefits", label: "Keunggulan Toko", enabled: true },
+      { key: "testimonials", label: "Testimoni", enabled: true },
+      { key: "about", label: "Tentang Kami", enabled: false },
+    ],
+  };
+  const previewHref = store.slug ? `/store/${encodeURIComponent(store.slug)}` : "#";
+  const readinessItems = liveReadiness.checklist?.length
+    ? liveReadiness.checklist.map((item) => ({
+        label: item.label,
+        status:
+          item.status === "complete"
+            ? "Selesai"
+            : item.status === "missing"
+              ? "Belum"
+              : "Dalam Proses",
+      }))
+    : readiness;
+  const policyItems = store.policies?.length
+    ? store.policies
+    : [
+        { label: "Store description", status: "missing" },
+        { label: "Contact details", status: "missing" },
+      ];
+  const benefits = microsite.benefits?.length
+    ? microsite.benefits
+    : [
+        { label: "Brand ready", description: "Preview microsite siap direview." },
+        { label: "Safe preview", description: "Tidak menampilkan data internal seller." },
+      ];
+  const featuredProducts = microsite.featuredProducts?.length
+    ? microsite.featuredProducts
+    : (isLive ? ["Produk Unggulan", "Produk Baru", "Produk Populer", "Pilihan Toko"] : ["Kunyit Ekstrak", "Madu Hutan", "Vitamin D3", "Teh Daun Sirsak"]).map((name, index) => ({
+        id: `fallback-${index}`,
+        name,
+        imageUrl: null,
+        price: 0,
+        badge: "Preview",
+      }));
+
   return (
-    <Shell section="storefront">
+    <Shell section="storefront" mode={mode} storeContext={storeContext}>
+      {storefrontState?.isError ? (
+        <Card
+          title="Store profile data unavailable"
+          hint="Live store profile could not load completely. Safe fallback data remains visible below."
+          actions={<button type="button" className="s26-btn" onClick={storefrontState?.refetch}>Retry</button>}
+        />
+      ) : null}
       <div className="s26-grid two">
-        <Card title="Store Profile" hint="Identitas, kontak, alamat, sosial media, dan policy toko." actions={<button className="s26-btn primary">Simpan Perubahan</button>}>
+        <Card
+          title="Store Profile"
+          hint={isLive ? store.saveStatus : "Identitas, kontak, alamat, sosial media, dan policy toko."}
+          actions={
+            <div className="s26-filter-row" style={{ marginBottom: 0 }}>
+              <a className="s26-btn" href={previewHref} target="_blank" rel="noreferrer">
+                Preview Microsite
+              </a>
+              <button type="button" className="s26-btn primary" disabled title={disabledTodoTitle}>
+                Simpan Perubahan
+              </button>
+            </div>
+          }
+        >
           <div className="s26-grid two">
-            <div className="s26-card soft"><h3>Logo Toko</h3><div className="s26-logo" style={{ marginTop: 12 }}>OS</div><p className="hint">PNG/JPG maks 2MB</p></div>
-            <div className="s26-hero" style={{ minHeight: 160 }}><div><h2 style={{ fontSize: 28 }}>Alami. Sehat.<br />Untuk Hidup Lebih Baik.</h2><p>Cover banner rekomendasi 1920x600px.</p></div></div>
+            <div className="s26-card soft">
+              <h3>Logo Toko</h3>
+              {store.logoUrl ? (
+                <img className="s26-logo-preview" src={store.logoUrl} alt={`${store.name} logo`} />
+              ) : (
+                <div className="s26-logo" style={{ marginTop: 12 }}>{(store.name || "TK").slice(0, 2).toUpperCase()}</div>
+              )}
+              <p className="hint">PNG/JPG maks 2MB</p>
+              <button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Ubah Logo</button>
+            </div>
+            <div className="s26-hero s26-cover-preview" style={store.coverUrl ? { backgroundImage: `linear-gradient(135deg, rgba(15, 23, 42, .76), rgba(5, 150, 105, .58)), url(${store.coverUrl})` } : { minHeight: 160 }}>
+              <div><h2 style={{ fontSize: 28 }}>{store.name || "Alami. Sehat."}</h2><p>{store.tagline || "Cover banner rekomendasi 1920x600px."}</p></div>
+              <button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Ubah Banner</button>
+            </div>
           </div>
           <div className="s26-form-grid" style={{ marginTop: 16 }}>
-            {[["Nama Toko", "Oase Sehat Official Store"], ["Slug / URL", "oase-sehat"], ["Email", "halo@oasesehat.com"], ["WhatsApp", "+62 812-3456-7890"], ["Kategori Bisnis", "Kesehatan & Kecantikan"], ["Asal Pengiriman", "Jakarta, DKI Jakarta"]].map(([label, value]) => <div className="s26-field" key={label}><label>{label}</label><input defaultValue={value} /></div>)}
-            <div className="s26-field" style={{ gridColumn: "1 / -1" }}><label>Tentang Toko</label><textarea defaultValue="Oase Sehat hadir untuk memberikan solusi kesehatan alami berkualitas untuk keluarga Indonesia." /></div>
+            {[
+              ["Nama Toko", store.name || "Toko Kamu"],
+              ["Slug / URL", store.slug || "store-slug"],
+              ["Tagline", store.tagline || "Bangun brand dan jangkau lebih banyak pelanggan."],
+              ["Email", store.email || "Belum diatur"],
+              ["WhatsApp", store.whatsapp || "Belum diatur"],
+              ["Telepon", store.phone || "Belum diatur"],
+              ["Kategori Bisnis", store.businessCategory || "Storefront"],
+              ["Subkategori", store.businessSubcategory || "General"],
+              ["Asal Pengiriman", store.shippingOrigin || "Belum lengkap"],
+            ].map(([label, value]) => <div className="s26-field" key={label}><label>{label}</label><input value={value} readOnly /></div>)}
+            <div className="s26-field" style={{ gridColumn: "1 / -1" }}><label>Alamat Toko</label><input value={store.address || "Alamat toko belum lengkap."} readOnly /></div>
+            <div className="s26-field" style={{ gridColumn: "1 / -1" }}><label>Tentang Toko</label><textarea value={store.description || "Bangun brand dan jangkau lebih banyak pelanggan."} readOnly /></div>
+          </div>
+          <div className="s26-grid two" style={{ marginTop: 16 }}>
+            <div className="s26-card soft">
+              <h3>Media Sosial</h3>
+              <div className="s26-checklist">
+                {(store.socials?.length ? store.socials : [{ channel: "Social", value: "Belum diatur" }]).map((item) => (
+                  <div className="s26-check-row" key={`${item.channel}-${item.value}`}><span>{item.channel}</span><strong>{item.value}</strong></div>
+                ))}
+              </div>
+            </div>
+            <div className="s26-card soft">
+              <h3>Ringkasan Kebijakan</h3>
+              <div className="s26-checklist">
+                {policyItems.map((item) => <div className="s26-check-row" key={item.label}><span>{item.label}</span><span className={statusClass(item.status === "complete" ? "Active" : "Belum")}>{item.status}</span></div>)}
+              </div>
+              <button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Kelola Kebijakan</button>
+            </div>
           </div>
         </Card>
-        <Card title="Microsite Preview" hint="Preview desktop dan mobile storefront publik." actions={<button className="s26-btn">Buka Microsite</button>}>
-          <div className="s26-hero"><div><h2>Alami. Sehat.<br />Untuk Hidup Lebih Baik.</h2><p>Produk pilihan terbaik untuk keluarga sehat Indonesia.</p><button className="s26-btn primary">Belanja Sekarang</button></div><div style={{ fontSize: 82 }}>Leaf</div></div>
+        <Card title="Microsite Preview" hint="Preview desktop dan mobile storefront publik." actions={<a className="s26-btn" href={previewHref} target="_blank" rel="noreferrer">Buka Microsite</a>}>
+          <div className="s26-hero"><div><h2>{microsite.heroTitle || "Alami. Sehat."}</h2><p>{microsite.heroSubtitle || "Produk pilihan terbaik untuk pelanggan toko."}</p><a className="s26-btn primary" href={previewHref} target="_blank" rel="noreferrer">{microsite.heroCtaLabel || "Belanja Sekarang"}</a></div><div style={{ fontSize: 42 }}>{store.logoUrl ? <img className="s26-hero-logo" src={store.logoUrl} alt="" /> : "Store"}</div></div>
+          <div className="s26-benefit-grid">
+            {benefits.map((item) => <div className="s26-card soft" key={item.label}><strong>{item.label}</strong><p className="hint">{item.description}</p></div>)}
+          </div>
+          <div className="s26-tabs" style={{ marginTop: 16 }}>
+            {(microsite.categories || []).map((category) => <button type="button" className="s26-tab" key={category.id}>{category.name}</button>)}
+          </div>
           <div className="s26-product-card-grid" style={{ marginTop: 16 }}>
-            {["Kunyit Ekstrak", "Madu Hutan", "Vitamin D3", "Teh Daun Sirsak"].map((name) => <div className="s26-store-product" key={name}><div className="image">TP</div><div className="body"><strong>{name}</strong><p className="hint">Rp 95.000</p></div></div>)}
+            {featuredProducts.map((product) => <div className="s26-store-product" key={product.id}><div className="image">{product.imageUrl ? <img src={product.imageUrl} alt="" /> : "TP"}</div><div className="body"><strong>{product.name}</strong><p className="hint">{product.price ? formatRupiah(product.price) : product.badge || "Preview"}</p></div></div>)}
+          </div>
+          <div className="s26-phone" style={{ margin: "18px auto 0" }}>
+            <div className="s26-hero"><div><h2>{microsite.heroTitle || store.name || "Toko Kamu"}</h2><p>{store.tagline || "Mobile preview"}</p></div></div>
           </div>
         </Card>
       </div>
       <div className="s26-grid two">
         <Card title="Store Readiness" hint="Checklist siap launch dan verifikasi.">
-          <div style={{ display: "flex", gap: 18, alignItems: "center" }}><div className="s26-progress"><span>78%</span></div><div><strong>Siap Diluncurkan</strong><p className="hint">8 dari 12 langkah selesai.</p></div></div>
-          <div className="s26-checklist">{readiness.map((item) => <div className="s26-check-row" key={item.label}><span>{item.label}</span><span className={statusClass(item.status)}>{item.status}</span></div>)}</div>
-          <button className="s26-btn primary" style={{ marginTop: 16 }}>Submit untuk Review</button>
+          <div style={{ display: "flex", gap: 18, alignItems: "center" }}><div className="s26-progress" style={{ "--s26-progress": `${liveReadiness.percent ?? 78}%` }}><span>{storefrontState?.isLoading ? "..." : `${liveReadiness.percent ?? 78}%`}</span></div><div><strong>{liveReadiness.percent >= 100 ? "Siap Diluncurkan" : "Perlu Dilengkapi"}</strong><p className="hint">{liveReadiness.completed ?? 8} selesai, {liveReadiness.missing ?? 0} perlu dilengkapi.</p></div></div>
+          <div className="s26-checklist">{readinessItems.map((item) => <div className="s26-check-row" key={item.label}><span>{item.label}</span><span className={statusClass(item.status)}>{item.status}</span></div>)}</div>
+          <div className="s26-checklist" style={{ marginTop: 16 }}>{(liveReadiness.verifications || []).map((item) => <div className="s26-check-row" key={item.label}><span>{item.label}</span><span className={statusClass(item.status === "verified" ? "Active" : item.status)}>{item.status}</span></div>)}</div>
+          <button type="button" className="s26-btn primary" style={{ marginTop: 16 }} disabled={!liveReadiness.canSubmitForReview} title={disabledTodoTitle}>Submit untuk Review</button>
         </Card>
         <Card title="Theme & Customization" hint="Light/dark preference, warna brand, dan section microsite.">
-          <div className="s26-tabs"><button className="s26-tab active">Light</button><button className="s26-tab">Dark</button></div>
-          <p className="hint">Warna Brand</p><div className="s26-swatch-row" style={{ margin: "10px 0 18px" }}>{["#14532d", "#0f766e", "#a7f3d0", "#f59e0b", "#dc2626"].map((color) => <span className="s26-swatch" key={color} style={{ background: color }} />)}</div>
-          {["Hero Banner", "Kategori Populer", "Produk Unggulan", "Keunggulan Toko", "Testimoni", "Tentang Kami"].map((section, index) => <div className="s26-toggle-row" key={section}><span>{section}</span><span className={`s26-switch ${index !== 5 ? "on" : ""}`} /></div>)}
+          <div className="s26-tabs"><button type="button" className={`s26-tab ${theme.mode === "light" ? "active" : ""}`} disabled title={disabledTodoTitle}>Light</button><button type="button" className={`s26-tab ${theme.mode === "dark" ? "active" : ""}`} disabled title={disabledTodoTitle}>Dark</button></div>
+          <p className="hint">Warna Brand</p><div className="s26-swatch-row" style={{ margin: "10px 0 18px" }}>{(theme.brandColors || ["#14532d", "#0f766e", "#a7f3d0", "#f59e0b", "#dc2626"]).map((color) => <span className="s26-swatch" key={color} style={{ background: color }} />)}</div>
+          <p className="hint">Typography: {theme.typography || "Inter / System"}</p>
+          {(theme.sections || []).map((section) => <div className="s26-toggle-row" key={section.key}><span>{section.label}</span><span className={`s26-switch ${section.enabled ? "on" : ""}`} title={disabledTodoTitle} /></div>)}
         </Card>
       </div>
     </Shell>
@@ -466,6 +626,8 @@ export function Seller2026Workspace({
   storeContext = null,
   dashboardData = null,
   dashboardState = null,
+  storefrontData = null,
+  storefrontState = null,
 }) {
   const Component = useMemo(() => {
     if (section === "storefront") return StorefrontPage;
@@ -481,6 +643,8 @@ export function Seller2026Workspace({
       storeContext={storeContext}
       dashboardData={dashboardData}
       dashboardState={dashboardState}
+      storefrontData={storefrontData}
+      storefrontState={storefrontState}
     />
   );
 }
