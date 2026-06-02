@@ -2,6 +2,7 @@ import { useSearchParams } from "react-router-dom";
 import Seller2026Workspace from "../../features/seller2026/Seller2026Workspace.jsx";
 import { useSeller2026Products } from "../../hooks/seller2026/useSeller2026Products.ts";
 import { useSellerWorkspaceRoute } from "../../utils/sellerWorkspaceRoute.js";
+import { getSeller2026PagePermissions } from "./seller2026PagePermissions.js";
 
 const readPageNumber = (value, fallback) => {
   const parsed = Number(value);
@@ -11,9 +12,8 @@ const readPageNumber = (value, fallback) => {
 export default function Seller2026LiveProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { sellerContext, workspaceStoreId: storeId } = useSellerWorkspaceRoute();
-  const permissionKeys = sellerContext?.access?.permissionKeys || [];
-  const hasPermission = (permission) => permissionKeys.includes(permission);
-  const canViewProducts = hasPermission("PRODUCT_VIEW") || hasPermission("CATALOG_PRODUCT_READ");
+  const { can } = getSeller2026PagePermissions(sellerContext);
+  const canViewProducts = can("CATALOG_PRODUCT_READ");
   const query = {
     search: searchParams.get("q") || "",
     status: searchParams.get("status") || "all",
@@ -25,10 +25,10 @@ export default function Seller2026LiveProductsPage() {
   const productsQuery = useSeller2026Products(storeId, query, {
     enabled: canViewProducts,
     permissions: {
-      canCreate: hasPermission("PRODUCT_CREATE") || hasPermission("CATALOG_PRODUCT_CREATE"),
-      canUpdate: hasPermission("PRODUCT_UPDATE") || hasPermission("CATALOG_PRODUCT_UPDATE"),
-      canDelete: hasPermission("PRODUCT_DELETE") || hasPermission("CATALOG_PRODUCT_DELETE"),
-      canSubmit: hasPermission("PRODUCT_SUBMIT") || hasPermission("CATALOG_PRODUCT_SUBMIT"),
+      canCreate: can("CATALOG_PRODUCT_CREATE"),
+      canUpdate: can("CATALOG_PRODUCT_UPDATE"),
+      canDelete: can("CATALOG_PRODUCT_DELETE"),
+      canSubmit: can("CATALOG_PRODUCT_SUBMIT"),
     },
   });
 

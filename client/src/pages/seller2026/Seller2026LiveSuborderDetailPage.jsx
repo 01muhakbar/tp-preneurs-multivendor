@@ -2,12 +2,13 @@ import { useParams } from "react-router-dom";
 import Seller2026Workspace from "../../features/seller2026/Seller2026Workspace.jsx";
 import { useSeller2026SuborderDetail } from "../../hooks/seller2026/useSeller2026SuborderDetail.ts";
 import { useSellerWorkspaceRoute } from "../../utils/sellerWorkspaceRoute.js";
+import { getSeller2026PagePermissions } from "./seller2026PagePermissions.js";
 
 export default function Seller2026LiveSuborderDetailPage() {
   const { suborderId } = useParams();
   const { sellerContext, workspaceStoreId: storeId } = useSellerWorkspaceRoute();
-  const permissionKeys = sellerContext?.access?.permissionKeys || [];
-  const canView = permissionKeys.includes("ORDER_READ");
+  const { can } = getSeller2026PagePermissions(sellerContext);
+  const canView = can("ORDER_READ");
   const detailQuery = useSeller2026SuborderDetail(storeId, suborderId, { enabled: canView });
 
   return (

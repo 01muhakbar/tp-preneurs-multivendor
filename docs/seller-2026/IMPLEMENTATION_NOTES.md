@@ -359,6 +359,25 @@
 - Added explicit mutation readiness flags with all risky Seller 2026 mutations disabled.
 - Documented preview leakage, dummy data, storeSlug navigation, mutation safety, adapter fallback, CSS scope, and responsive smoke results.
 
+## Permission Enforcement Pass
+
+### Files Added
+- `client/src/api/seller2026/permissions.ts`
+- `client/src/pages/seller2026/seller2026PagePermissions.js`
+- `docs/seller-2026/PERMISSION_MATRIX.md`
+
+### Files Changed
+- `client/src/features/seller2026/Seller2026Workspace.jsx`
+- `client/src/features/seller2026/Seller2026DesignSystem.css`
+- `client/src/pages/seller2026/Seller2026Live*Page.jsx`
+
+### Summary
+- Added normalized Seller 2026 permission helpers and preview-only full permission constants.
+- Live page hooks now use normalized permission checks instead of raw `permissionKeys` reads.
+- `Seller2026Workspace` now performs route-level restricted-state rendering when permission source is available.
+- Risky action buttons combine permission checks with mutation readiness flags and remain disabled in this phase.
+- Permission matrix documents route permissions, action permissions, mutation flags, aliases, known gaps, and next mutation integration phases.
+
 ## QA Checklist
 - Verify preview pages do not render blank.
 - Verify CSS does not affect `/admin/*`, `/`, `/store/:slug`, or `/user/*`.

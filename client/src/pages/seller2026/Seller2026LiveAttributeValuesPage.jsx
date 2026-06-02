@@ -2,6 +2,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 import Seller2026Workspace from "../../features/seller2026/Seller2026Workspace.jsx";
 import { useSeller2026AttributeValues } from "../../hooks/seller2026/useSeller2026AttributeValues.ts";
 import { useSellerWorkspaceRoute } from "../../utils/sellerWorkspaceRoute.js";
+import { getSeller2026PagePermissions } from "./seller2026PagePermissions.js";
 
 const readPageNumber = (value, fallback) => {
   const parsed = Number(value);
@@ -12,11 +13,8 @@ export default function Seller2026LiveAttributeValuesPage() {
   const { attributeId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const { sellerContext, workspaceStoreId: storeId } = useSellerWorkspaceRoute();
-  const permissionKeys = sellerContext?.access?.permissionKeys || [];
-  const canView =
-    permissionKeys.includes("CATALOG_ATTRIBUTE_READ") ||
-    permissionKeys.includes("ATTRIBUTE_VIEW") ||
-    permissionKeys.includes("PRODUCT_VIEW");
+  const { can } = getSeller2026PagePermissions(sellerContext);
+  const canView = can("CATALOG_ATTRIBUTE_READ");
   const query = {
     search: searchParams.get("q") || "",
     status: searchParams.get("status") || "all",

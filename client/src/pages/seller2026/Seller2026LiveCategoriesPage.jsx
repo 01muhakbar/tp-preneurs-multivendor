@@ -2,15 +2,13 @@ import { useSearchParams } from "react-router-dom";
 import Seller2026Workspace from "../../features/seller2026/Seller2026Workspace.jsx";
 import { useSeller2026Categories } from "../../hooks/seller2026/useSeller2026Categories.ts";
 import { useSellerWorkspaceRoute } from "../../utils/sellerWorkspaceRoute.js";
+import { getSeller2026PagePermissions } from "./seller2026PagePermissions.js";
 
 export default function Seller2026LiveCategoriesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { sellerContext, workspaceStoreId: storeId } = useSellerWorkspaceRoute();
-  const permissionKeys = sellerContext?.access?.permissionKeys || [];
-  const canView =
-    permissionKeys.includes("CATALOG_CATEGORY_READ") ||
-    permissionKeys.includes("CATEGORY_VIEW") ||
-    permissionKeys.includes("PRODUCT_VIEW");
+  const { can } = getSeller2026PagePermissions(sellerContext);
+  const canView = can("CATALOG_CATEGORY_READ");
   const query = { search: searchParams.get("q") || "" };
   const categoriesQuery = useSeller2026Categories(storeId, query, { enabled: canView });
 

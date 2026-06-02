@@ -104,3 +104,10 @@
 - Add API contract tests for each Seller 2026 adapter.
 - Add persistent Playwright smoke coverage to CI once test authentication fixtures are available.
 - Continue backend store-scope verification for every seller mutation endpoint.
+
+## Permission Enforcement Addendum
+- Added `client/src/api/seller2026/permissions.ts` for normalized permission reads, aliases, route checks, and action checks.
+- Added `docs/seller-2026/PERMISSION_MATRIX.md`.
+- Live Seller 2026 pages now use normalized permission checks before enabling data hooks.
+- `Seller2026Workspace` renders a scoped restricted state when permission source exists and route permission is missing.
+- Mutation flags remain disabled and continue to gate all risky actions after permission checks.

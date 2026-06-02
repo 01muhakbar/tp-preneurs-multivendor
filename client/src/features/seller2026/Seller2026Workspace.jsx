@@ -2,6 +2,13 @@ import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { SELLER_2026_MUTATIONS } from "../../api/seller2026/mutation-flags.ts";
 import {
+  SELLER_2026_PREVIEW_PERMISSIONS,
+  canUseSeller2026Action,
+  hasSeller2026Permission,
+  hasSeller2026PermissionSource,
+  normalizeSeller2026Permissions,
+} from "../../api/seller2026/permissions.ts";
+import {
   attributes,
   categories,
   coupons,
@@ -251,6 +258,55 @@ const disabledTodoTitle = hasSeller2026MutationEnabled
   ? "Mutation integration enabled."
   : "Coming soon: backend integration is pending for this action.";
 
+const permissionTitle = "Anda tidak memiliki permission untuk aksi ini.";
+const mutationPendingTitle = "Integrasi aksi ini belum diaktifkan.";
+
+const actionTitle = (permissions, permission, mutationFeature) => {
+  if (!hasSeller2026Permission(permissions, permission)) return permissionTitle;
+  return SELLER_2026_MUTATIONS[mutationFeature] ? undefined : mutationPendingTitle;
+};
+
+const canUseAction = (permissions, permission, mutationFeature) =>
+  canUseSeller2026Action({
+    permissions,
+    permission,
+    mutationEnabled: Boolean(SELLER_2026_MUTATIONS[mutationFeature]),
+  });
+
+const routePermissionFor = ({ section, catalogView, operationsView, teamView }) => {
+  if (section === "dashboard") return "STORE_DASHBOARD_VIEW";
+  if (section === "storefront") return "STORE_PROFILE_READ";
+  if (section === "products") return "CATALOG_PRODUCT_READ";
+  if (section === "taxonomy") {
+    if (catalogView === "coupons") return "COUPON_READ";
+    if (catalogView === "attributes" || catalogView === "attribute-values") return "CATALOG_ATTRIBUTE_READ";
+    return "CATALOG_CATEGORY_READ";
+  }
+  if (section === "operations") {
+    if (operationsView === "payment-review") return "PAYMENT_REVIEW_READ";
+    if (operationsView === "payment-profile") return "STORE_PAYMENT_PROFILE_READ";
+    return "ORDER_READ";
+  }
+  if (section === "team") {
+    if (teamView === "audit") return "TEAM_AUDIT_READ";
+    if (teamView === "notifications") return "NOTIFICATION_READ";
+    return "TEAM_READ";
+  }
+  return null;
+};
+
+function Seller2026RestrictedState({
+  title = "Akses dibatasi",
+  message = "Anda tidak memiliki permission untuk melihat halaman ini.",
+}) {
+  return (
+    <div className="s26-state s26-state-restricted">
+      <h2>{title}</h2>
+      <p>{message}</p>
+    </div>
+  );
+}
+
 function DashboardPage({ dashboardData = null, dashboardState = null, mode, storeContext }) {
   const effectiveKpis = dashboardData?.kpis?.length ? dashboardData.kpis : kpis;
   const effectiveReadiness = dashboardData?.readiness?.length ? dashboardData.readiness : readiness;
@@ -313,7 +369,7 @@ function DashboardPage({ dashboardData = null, dashboardState = null, mode, stor
   );
 }
 
-function StorefrontPage({ storefrontData = null, storefrontState = null, mode, storeContext }) {
+function StorefrontPage({ storefrontData = null, storefrontState = null, mode, storeContext, seller2026Permissions }) {
   const isLive = Boolean(storefrontData);
   const previewStore = {
     name: "Oase Sehat Official Store",
@@ -463,7 +519,7 @@ function StorefrontPage({ storefrontData = null, storefrontState = null, mode, s
               <div className="s26-checklist">
                 {policyItems.map((item) => <div className="s26-check-row" key={item.label}><span>{item.label}</span><span className={statusClass(item.status === "complete" ? "Active" : "Belum")}>{item.status}</span></div>)}
               </div>
-              <button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Kelola Kebijakan</button>
+              <button type="button" className="s26-btn" disabled title={actionTitle(seller2026Permissions, "STORE_PROFILE_UPDATE", "storefront")}>Kelola Kebijakan</button>
             </div>
           </div>
         </Card>
@@ -488,13 +544,13 @@ function StorefrontPage({ storefrontData = null, storefrontState = null, mode, s
           <div style={{ display: "flex", gap: 18, alignItems: "center" }}><div className="s26-progress" style={{ "--s26-progress": `${liveReadiness.percent ?? 78}%` }}><span>{storefrontState?.isLoading ? "..." : `${liveReadiness.percent ?? 78}%`}</span></div><div><strong>{liveReadiness.percent >= 100 ? "Siap Diluncurkan" : "Perlu Dilengkapi"}</strong><p className="hint">{liveReadiness.completed ?? 8} selesai, {liveReadiness.missing ?? 0} perlu dilengkapi.</p></div></div>
           <div className="s26-checklist">{readinessItems.map((item) => <div className="s26-check-row" key={item.label}><span>{item.label}</span><span className={statusClass(item.status)}>{item.status}</span></div>)}</div>
           <div className="s26-checklist" style={{ marginTop: 16 }}>{(liveReadiness.verifications || []).map((item) => <div className="s26-check-row" key={item.label}><span>{item.label}</span><span className={statusClass(item.status === "verified" ? "Active" : item.status)}>{item.status}</span></div>)}</div>
-          <button type="button" className="s26-btn primary" style={{ marginTop: 16 }} disabled={!liveReadiness.canSubmitForReview} title={disabledTodoTitle}>Submit untuk Review</button>
+          <button type="button" className="s26-btn primary" style={{ marginTop: 16 }} disabled title={actionTitle(seller2026Permissions, "STORE_PROFILE_UPDATE", "storefront")}>Submit untuk Review</button>
         </Card>
         <Card title="Theme & Customization" hint="Light/dark preference, warna brand, dan section microsite.">
-          <div className="s26-tabs"><button type="button" className={`s26-tab ${theme.mode === "light" ? "active" : ""}`} disabled title={disabledTodoTitle}>Light</button><button type="button" className={`s26-tab ${theme.mode === "dark" ? "active" : ""}`} disabled title={disabledTodoTitle}>Dark</button></div>
+          <div className="s26-tabs"><button type="button" className={`s26-tab ${theme.mode === "light" ? "active" : ""}`} disabled title={actionTitle(seller2026Permissions, "STORE_PROFILE_UPDATE", "storefront")}>Light</button><button type="button" className={`s26-tab ${theme.mode === "dark" ? "active" : ""}`} disabled title={actionTitle(seller2026Permissions, "STORE_PROFILE_UPDATE", "storefront")}>Dark</button></div>
           <p className="hint">Warna Brand</p><div className="s26-swatch-row" style={{ margin: "10px 0 18px" }}>{(theme.brandColors || ["#14532d", "#0f766e", "#a7f3d0", "#f59e0b", "#dc2626"]).map((color) => <span className="s26-swatch" key={color} style={{ background: color }} />)}</div>
           <p className="hint">Typography: {theme.typography || "Inter / System"}</p>
-          {(theme.sections || []).map((section) => <div className="s26-toggle-row" key={section.key}><span>{section.label}</span><span className={`s26-switch ${section.enabled ? "on" : ""}`} title={disabledTodoTitle} /></div>)}
+          {(theme.sections || []).map((section) => <div className="s26-toggle-row" key={section.key}><span>{section.label}</span><span className={`s26-switch ${section.enabled ? "on" : ""}`} title={actionTitle(seller2026Permissions, "STORE_PROFILE_UPDATE", "storefront")} /></div>)}
         </Card>
       </div>
     </Shell>
@@ -524,6 +580,7 @@ function ProductsPage({
   productEditorMode = null,
   mode,
   storeContext,
+  seller2026Permissions,
 }) {
   const { storeSlug } = useParams();
   const isLive = Boolean(productsData || productsState || productDetailState || productEditorMode);
@@ -535,8 +592,10 @@ function ProductsPage({
   const summary = productsData?.summary || {};
   const liveProducts = productsData?.products || [];
   const tableRows = isLive ? liveProducts : products;
-  const canCreate = productsData?.permissions?.canCreate !== false || !isLive;
-  const canUpdate = productsData?.permissions?.canUpdate !== false || !isLive;
+  const canCreate = !isLive || canUseAction(seller2026Permissions, "CATALOG_PRODUCT_CREATE", "products");
+  const canUpdate = !isLive || canUseAction(seller2026Permissions, "CATALOG_PRODUCT_UPDATE", "products");
+  const createTitle = isLive ? actionTitle(seller2026Permissions, "CATALOG_PRODUCT_CREATE", "products") : undefined;
+  const updateTitle = isLive ? actionTitle(seller2026Permissions, "CATALOG_PRODUCT_UPDATE", "products") : undefined;
   const queryChange = (next) => onProductsQueryChange?.(next);
   const tabs = isLive
     ? [
@@ -591,7 +650,7 @@ function ProductsPage({
             canCreate ? (
               <Link className="s26-btn primary" to={addProductTo}>+ Add Product</Link>
             ) : (
-              <button type="button" className="s26-btn primary" disabled title="CATALOG_PRODUCT_CREATE permission is required.">+ Add Product</button>
+              <button type="button" className="s26-btn primary" disabled title={createTitle}>+ Add Product</button>
             )
           }
         >
@@ -672,7 +731,8 @@ function ProductsPage({
                     <td>
                       <div className="s26-row-actions">
                         <Link className="s26-link" to={detailTo}>Detail</Link>
-                        {canUpdate ? <Link className="s26-link" to={editTo}>Edit</Link> : <span className="s26-muted-action">Edit</span>}
+                        {canUpdate ? <Link className="s26-link" to={editTo}>Edit</Link> : <button type="button" className="s26-muted-action" disabled title={updateTitle}>Edit</button>}
+                        <button type="button" className="s26-muted-action" disabled title={actionTitle(seller2026Permissions, "CATALOG_PRODUCT_DELETE", "products")}>Delete</button>
                       </div>
                     </td>
                   </tr>
@@ -703,8 +763,8 @@ function ProductsPage({
           </div>
           {isLive ? <p className="hint" style={{ marginTop: 14 }}>Product mutation integration is pending. This screen is currently a UI shell.</p> : null}
           <div className="s26-filter-row" style={{ marginTop: 16, marginBottom: 0 }}>
-            <button type="button" className="s26-btn" disabled={isLive} title={disabledTodoTitle}>Save Draft</button>
-            <button type="button" className="s26-btn primary" disabled={isLive} title={disabledTodoTitle}>Next: Media</button>
+            <button type="button" className="s26-btn" disabled={isLive} title={actionTitle(seller2026Permissions, productEditorMode === "edit" ? "CATALOG_PRODUCT_UPDATE" : "CATALOG_PRODUCT_CREATE", "products")}>Save Draft</button>
+            <button type="button" className="s26-btn primary" disabled={isLive} title={actionTitle(seller2026Permissions, "CATALOG_PRODUCT_SUBMIT", "products")}>Next: Media</button>
           </div>
         </Card>
       ) : null}
@@ -749,6 +809,7 @@ function TaxonomyPage({
   onCatalogQueryChange = null,
   mode,
   storeContext,
+  seller2026Permissions,
 }) {
   const { storeSlug } = useParams();
   const [couponDrawerOpen, setCouponDrawerOpen] = useState(false);
@@ -776,7 +837,7 @@ function TaxonomyPage({
           {!catalogState?.isLoading && categoryRows.length === 0 ? (
             <div className="s26-empty"><strong>Belum ada kategori yang tersedia untuk toko ini.</strong><p>Category assignment akan muncul setelah data tersedia.</p></div>
           ) : (
-            <DataTable columns={["Category", "Products", "Assigned Rate", "Status", "Actions"]} rows={categoryRows} renderRow={(row) => <tr key={row.id}><td><strong>{row.level ? `${"  ".repeat(row.level)}${row.name}` : row.name}</strong><div className="s26-sub">Parent: {row.parentId || "-"}</div></td><td>{row.productCount}</td><td>{row.assignedRate || 0}%</td><td><span className={statusClass(row.status === "active" ? "Active" : "Inactive")}>{row.status}</span></td><td><button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Edit</button></td></tr>} />
+            <DataTable columns={["Category", "Products", "Assigned Rate", "Status", "Actions"]} rows={categoryRows} renderRow={(row) => <tr key={row.id}><td><strong>{row.level ? `${"  ".repeat(row.level)}${row.name}` : row.name}</strong><div className="s26-sub">Parent: {row.parentId || "-"}</div></td><td>{row.productCount}</td><td>{row.assignedRate || 0}%</td><td><span className={statusClass(row.status === "active" ? "Active" : "Inactive")}>{row.status}</span></td><td><button type="button" className="s26-btn" disabled title={actionTitle(seller2026Permissions, "CATALOG_CATEGORY_READ", "catalog")}>Edit</button></td></tr>} />
           )}
         </Card>
         <Card title="Recommended Categories" hint="Rekomendasi aman dari adapter, kosong jika API belum menyediakan data.">
@@ -794,7 +855,7 @@ function TaxonomyPage({
     return (
       <Shell section="taxonomy" mode={mode} storeContext={storeContext}>
         {catalogState?.isError ? <Card title="Attributes unavailable" hint="Live attributes could not load." actions={<button type="button" className="s26-btn" onClick={catalogState?.refetch}>Retry</button>} /> : null}
-        <Card title="Attributes" hint="Variant/general attributes, usage count, values, dan status." actions={<button type="button" className="s26-btn primary" disabled title={disabledTodoTitle}>+ Add Attribute</button>}>
+        <Card title="Attributes" hint="Variant/general attributes, usage count, values, dan status." actions={<button type="button" className="s26-btn primary" disabled title={actionTitle(seller2026Permissions, "CATALOG_ATTRIBUTE_READ", "catalog")}>+ Add Attribute</button>}>
           <div className="s26-grid four" style={{ marginBottom: 14 }}>
             <CatalogKpi label="Total Attributes" value={catalogData?.summary?.total || 0} />
             <CatalogKpi label="Active" value={catalogData?.summary?.active || 0} />
@@ -826,7 +887,7 @@ function TaxonomyPage({
     return (
       <Shell section="taxonomy" mode={mode} storeContext={storeContext}>
         {catalogState?.isError ? <Card title="Attribute values unavailable" hint="Attribute tidak ditemukan atau tidak tersedia untuk toko ini." actions={<button type="button" className="s26-btn" onClick={catalogState?.refetch}>Retry</button>} /> : null}
-        <Card title={`Attributes > ${catalogData?.attribute?.name || "Attribute"}`} hint="Swatch, sort order, product usage, mapped SKU, dan status." actions={<button type="button" className="s26-btn primary" disabled title={disabledTodoTitle}>+ Add Value</button>}>
+        <Card title={`Attributes > ${catalogData?.attribute?.name || "Attribute"}`} hint="Swatch, sort order, product usage, mapped SKU, dan status." actions={<button type="button" className="s26-btn primary" disabled title={actionTitle(seller2026Permissions, "CATALOG_ATTRIBUTE_READ", "catalog")}>+ Add Value</button>}>
           {!catalogState?.isLoading && !catalogData?.attribute ? <div className="s26-empty"><strong>Attribute tidak ditemukan atau tidak tersedia untuk toko ini.</strong><p>Pastikan attribute masih tersedia untuk store ini.</p></div> : null}
           {catalogData?.attribute ? <div className="s26-filter-row"><span className={statusClass(catalogData.attribute.status === "active" ? "Active" : "Inactive")}>{catalogData.attribute.status}</span><span className="s26-pill">{catalogData.attribute.type}</span><span className="s26-pill">{catalogData.attribute.usageCount} usage</span></div> : null}
           <div className="s26-filter-row">
@@ -835,7 +896,7 @@ function TaxonomyPage({
           </div>
           {catalogState?.isLoading ? <p className="hint">Loading values...</p> : null}
           {!catalogState?.isLoading && catalogData?.attribute && valueRows.length === 0 ? <div className="s26-empty"><strong>No values available.</strong><p>Attribute values will appear after they are configured.</p></div> : null}
-          {valueRows.length ? <DataTable columns={["Sort", "Value", "Swatch", "Usage", "Mapped SKU", "Status", "Actions"]} rows={valueRows} renderRow={(row) => <tr key={row.id}><td>{row.sortOrder}</td><td>{row.label}</td><td>{row.swatch ? <span className="s26-swatch" style={{ background: row.swatch, width: 26, height: 26 }} /> : "-"}</td><td>{row.productUsage}</td><td>{row.mappedSkus}</td><td><span className={statusClass(row.status === "active" ? "Active" : "Inactive")}>{row.status}</span></td><td><button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Edit</button></td></tr>} /> : null}
+          {valueRows.length ? <DataTable columns={["Sort", "Value", "Swatch", "Usage", "Mapped SKU", "Status", "Actions"]} rows={valueRows} renderRow={(row) => <tr key={row.id}><td>{row.sortOrder}</td><td>{row.label}</td><td>{row.swatch ? <span className="s26-swatch" style={{ background: row.swatch, width: 26, height: 26 }} /> : "-"}</td><td>{row.productUsage}</td><td>{row.mappedSkus}</td><td><span className={statusClass(row.status === "active" ? "Active" : "Inactive")}>{row.status}</span></td><td><button type="button" className="s26-btn" disabled title={actionTitle(seller2026Permissions, "CATALOG_ATTRIBUTE_READ", "catalog")}>Edit</button></td></tr>} /> : null}
         </Card>
         <div className="s26-grid two">
           <Card title="Value Insights" hint="Top values by usage and mapping quality will appear when data is available." />
@@ -850,7 +911,7 @@ function TaxonomyPage({
     return (
       <Shell section="taxonomy" mode={mode} storeContext={storeContext}>
         {catalogState?.isError ? <Card title="Coupons unavailable" hint="Live coupons could not load." actions={<button type="button" className="s26-btn" onClick={catalogState?.refetch}>Retry</button>} /> : null}
-        <Card title="Coupons" hint="Store-scoped promo, validity, usage, dan status." actions={<button type="button" className="s26-btn primary" onClick={() => setCouponDrawerOpen(true)} disabled={!catalogData?.permissions?.canCreate} title={!catalogData?.permissions?.canCreate ? "COUPON_CREATE permission is required." : undefined}>Create Coupon</button>}>
+        <Card title="Coupons" hint="Store-scoped promo, validity, usage, dan status." actions={<button type="button" className="s26-btn primary" onClick={() => setCouponDrawerOpen(true)} disabled={!canUseAction(seller2026Permissions, "COUPON_CREATE", "catalog")} title={actionTitle(seller2026Permissions, "COUPON_CREATE", "catalog")}>Create Coupon</button>}>
           <div className="s26-grid four" style={{ marginBottom: 14 }}>
             <CatalogKpi label="Total Coupons" value={catalogData?.summary?.total || 0} />
             <CatalogKpi label="Active" value={catalogData?.summary?.active || 0} />
@@ -864,7 +925,7 @@ function TaxonomyPage({
           </div>
           {catalogState?.isLoading ? <p className="hint">Loading coupons...</p> : null}
           {!catalogState?.isLoading && couponRows.length === 0 ? <div className="s26-empty"><strong>No coupons available.</strong><p>Create coupon UI is available as a safe shell when permission allows it.</p></div> : null}
-          {couponRows.length ? <DataTable columns={["Code", "Type", "Discount", "Minimum Spend", "Validity", "Usage", "Status", "Actions"]} rows={couponRows} renderRow={(row) => <tr key={row.id}><td><strong>{row.code}</strong></td><td>{row.type}</td><td>{row.discountLabel}</td><td>{formatRupiah(row.minimumSpend)}</td><td>{row.validityLabel}</td><td>{row.usageLabel}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td><button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Edit</button></td></tr>} /> : null}
+          {couponRows.length ? <DataTable columns={["Code", "Type", "Discount", "Minimum Spend", "Validity", "Usage", "Status", "Actions"]} rows={couponRows} renderRow={(row) => <tr key={row.id}><td><strong>{row.code}</strong></td><td>{row.type}</td><td>{row.discountLabel}</td><td>{formatRupiah(row.minimumSpend)}</td><td>{row.validityLabel}</td><td>{row.usageLabel}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td><button type="button" className="s26-btn" disabled title={actionTitle(seller2026Permissions, "COUPON_UPDATE", "catalog")}>Edit</button></td></tr>} /> : null}
         </Card>
         {couponDrawerOpen ? (
           <Card title="Create Coupon" hint="Coupon creation integration is pending.">
@@ -875,7 +936,7 @@ function TaxonomyPage({
               <div className="s26-field"><label>Minimum Spend</label><input readOnly value="" placeholder="100000" /></div>
             </div>
             <p className="hint" style={{ marginTop: 14 }}>Coupon creation integration is pending.</p>
-            <div className="s26-filter-row" style={{ marginTop: 16, marginBottom: 0 }}><button type="button" className="s26-btn" onClick={() => setCouponDrawerOpen(false)}>Close</button><button type="button" className="s26-btn primary" disabled title={disabledTodoTitle}>Create Coupon</button></div>
+            <div className="s26-filter-row" style={{ marginTop: 16, marginBottom: 0 }}><button type="button" className="s26-btn" onClick={() => setCouponDrawerOpen(false)}>Close</button><button type="button" className="s26-btn primary" disabled title={actionTitle(seller2026Permissions, "COUPON_CREATE", "catalog")}>Create Coupon</button></div>
           </Card>
         ) : null}
       </Shell>
@@ -914,6 +975,7 @@ function OperationsPage({
   onOperationsQueryChange = null,
   mode,
   storeContext,
+  seller2026Permissions,
 }) {
   const { storeSlug } = useParams();
   const isLive = Boolean(operationsData || operationsState);
@@ -937,7 +999,7 @@ function OperationsPage({
     return (
       <Shell section="operations" mode={mode} storeContext={storeContext}>
         {operationsState?.isError ? <Card title="Orders unavailable" hint="Live orders could not load." actions={<button type="button" className="s26-btn" onClick={operationsState?.refetch}>Retry</button>} /> : null}
-        <Card title="All Orders / Fulfillment Queue" hint="Store-owned suborders, payment state, fulfillment state, and shipping movement." actions={<button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Export</button>}>
+        <Card title="All Orders / Fulfillment Queue" hint="Store-owned suborders, payment state, fulfillment state, and shipping movement." actions={<button type="button" className="s26-btn" disabled title={actionTitle(seller2026Permissions, "ORDER_READ", "orders")}>Export</button>}>
           <div className="s26-tabs">{tabs.map(([value, label]) => <button type="button" className={`s26-tab ${(operationsQuery?.status || "all") === value ? "active" : ""}`} key={value} onClick={() => queryChange({ status: value, page: 1 })}>{label}</button>)}</div>
           <div className="s26-filter-row">
             <input className="s26-search" aria-label="Search order, customer, suborder, or invoice" placeholder="Search order, customer, suborder, or invoice" value={searchValue} onChange={(event) => queryChange({ search: event.target.value, page: 1 })} />
@@ -979,7 +1041,7 @@ function OperationsPage({
                 <div className="s26-card soft"><h3>Cost Summary</h3><p className="hint">Subtotal {formatRupiah(detail.totals.subtotal)}<br />Shipping {formatRupiah(detail.totals.shippingFee)}<br />Service {formatRupiah(detail.totals.serviceFee)}<br />Discount {formatRupiah(detail.totals.discount)}</p><strong>{formatRupiah(detail.totals.total)}</strong></div>
               </div>
               <div style={{ marginTop: 16 }}><DataTable columns={["Product", "Variant", "Qty", "Price", "Subtotal"]} rows={detail.items} renderRow={(row) => <tr key={row.id}><td>{row.productName}</td><td>{row.variantLabel || "-"}</td><td>{row.quantity}</td><td>{formatRupiah(row.price)}</td><td>{formatRupiah(row.subtotal)}</td></tr>} /></div>
-              <div className="s26-filter-row" style={{ marginTop: 16 }}><button type="button" className="s26-btn primary" disabled title={disabledTodoTitle}>Pack Order</button><button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Print Label</button><button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Mark Shipped</button><button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Update Tracking</button></div>
+              <div className="s26-filter-row" style={{ marginTop: 16 }}><button type="button" className="s26-btn primary" disabled title={actionTitle(seller2026Permissions, "ORDER_FULFILLMENT_UPDATE", "orders")}>Pack Order</button><button type="button" className="s26-btn" disabled title={actionTitle(seller2026Permissions, "ORDER_FULFILLMENT_UPDATE", "orders")}>Print Label</button><button type="button" className="s26-btn" disabled title={actionTitle(seller2026Permissions, "ORDER_FULFILLMENT_UPDATE", "orders")}>Mark Shipped</button><button type="button" className="s26-btn" disabled title={actionTitle(seller2026Permissions, "ORDER_FULFILLMENT_UPDATE", "orders")}>Update Tracking</button></div>
             </>
           ) : null}
         </Card>
@@ -995,7 +1057,7 @@ function OperationsPage({
       <Shell section="operations" mode={mode} storeContext={storeContext}>
         {operationsState?.isError ? <Card title="Payment review unavailable" hint="Live payment review data could not load." actions={<button type="button" className="s26-btn" onClick={operationsState?.refetch}>Retry</button>} /> : null}
         <div className="s26-grid two">
-          <Card title="Payment Review" hint="Proof, customer reference, amount, and review status." actions={<button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Export</button>}>
+          <Card title="Payment Review" hint="Proof, customer reference, amount, and review status." actions={<button type="button" className="s26-btn" disabled title={actionTitle(seller2026Permissions, "PAYMENT_REVIEW_READ", "payments")}>Export</button>}>
             <div className="s26-grid four" style={{ marginBottom: 14 }}>
               <CatalogKpi label="Pending" value={operationsData?.summary?.totalPending || 0} />
               <CatalogKpi label="Amount" value={formatRupiah(operationsData?.summary?.totalAmount || 0)} />
@@ -1007,7 +1069,7 @@ function OperationsPage({
             {!operationsState?.isLoading && rows.length === 0 ? <div className="s26-empty"><strong>Belum ada pembayaran yang perlu direview.</strong><p>Payment proof akan muncul jika ada pembayaran pending.</p></div> : null}
             {rows.length ? <DataTable columns={["Payment", "Invoice", "Customer", "Amount", "Method", "Status", "Risk"]} rows={rows} renderRow={(row) => <tr key={row.id}><td><strong>{row.paymentNo}</strong><div className="s26-sub">{row.receivedAt || "-"}</div></td><td>{row.invoiceNo || "-"}</td><td>{row.customerName || "-"}</td><td>{formatRupiah(row.amount)}</td><td>{row.method || "-"}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td>{row.riskLabel || "unknown"}</td></tr>} /> : null}
           </Card>
-          <Card title="Selected Payment Detail" hint="Transaction breakdown, proof preview, risk checklist, and audit timeline." actions={<><button type="button" className="s26-btn success" disabled title={disabledTodoTitle}>Mark Safe</button><button type="button" className="s26-btn danger" disabled title={disabledTodoTitle}>Reject / Refund</button></>}>
+          <Card title="Selected Payment Detail" hint="Transaction breakdown, proof preview, risk checklist, and audit timeline." actions={<><button type="button" className="s26-btn success" disabled title={actionTitle(seller2026Permissions, "PAYMENT_REVIEW_READ", "payments")}>Mark Safe</button><button type="button" className="s26-btn danger" disabled title={actionTitle(seller2026Permissions, "PAYMENT_REVIEW_READ", "payments")}>Reject / Refund</button></>}>
             {selected ? (
               <>
                 <div className="s26-card soft"><h3>Payment Proof</h3>{selected.proofUrl ? <img className="s26-logo-preview" src={selected.proofUrl} alt="" /> : <p className="hint">No payment proof image available.</p>}</div>
@@ -1026,7 +1088,7 @@ function OperationsPage({
     return (
       <Shell section="operations" mode={mode} storeContext={storeContext}>
         {operationsState?.isError ? <Card title="Payment profile unavailable" hint="Live payment profile could not load." actions={<button type="button" className="s26-btn" onClick={operationsState?.refetch}>Retry</button>} /> : null}
-        <Card title="Payment Profile" hint="QRIS, payout profile, verification documents, and admin review timeline." actions={<button type="button" className="s26-btn primary" disabled title={disabledTodoTitle}>Submit / Update Profile</button>}>
+        <Card title="Payment Profile" hint="QRIS, payout profile, verification documents, and admin review timeline." actions={<button type="button" className="s26-btn primary" disabled title={actionTitle(seller2026Permissions, "STORE_PAYMENT_PROFILE_SUBMIT", "payments")}>Submit / Update Profile</button>}>
           <div className="s26-grid four" style={{ marginBottom: 14 }}>
             <CatalogKpi label="Status" value={profile?.status || "INACTIVE"} />
             <CatalogKpi label="Available Balance" value={formatRupiah(profile?.balances?.available || 0)} />
@@ -1091,6 +1153,7 @@ function TeamPage({
   onTeamQueryChange = null,
   mode,
   storeContext,
+  seller2026Permissions,
 }) {
   const { storeSlug } = useParams();
   const isLive = Boolean(teamData || teamState);
@@ -1106,7 +1169,7 @@ function TeamPage({
     return (
       <Shell section="team" mode={mode} storeContext={storeContext}>
         {teamState?.isError ? <Card title="Team unavailable" hint="Live team members could not load." actions={<button type="button" className="s26-btn" onClick={teamState?.refetch}>Retry</button>} /> : null}
-        <Card title="Team Members" hint="Role, permission summary, last active, and status." actions={<button type="button" className="s26-btn primary" disabled title={disabledTodoTitle}>+ Invite Member</button>}>
+        <Card title="Team Members" hint="Role, permission summary, last active, and status." actions={<button type="button" className="s26-btn primary" disabled title={actionTitle(seller2026Permissions, "TEAM_INVITE", "team")}>+ Invite Member</button>}>
           <div className="s26-grid four" style={{ marginBottom: 14 }}>
             <CatalogKpi label="Members" value={summary.totalMembers || 0} />
             <CatalogKpi label="Active" value={summary.activeMembers || 0} />
@@ -1130,7 +1193,7 @@ function TeamPage({
           </div>
           {teamState?.isLoading ? <p className="hint">Loading team members...</p> : null}
           {!teamState?.isLoading && rows.length === 0 ? <div className="s26-empty"><strong>Belum ada anggota tim untuk toko ini.</strong><p>Anggota dan undangan store-scoped akan muncul setelah ditambahkan.</p></div> : null}
-          {rows.length ? <DataTable columns={["Member", "Role", "Permissions", "Last Active", "Status", "Actions"]} rows={rows} renderRow={(row) => <tr key={row.id}><td><div className="s26-product-cell"><span className="s26-thumb">{(row.name || "T")[0]}</span><div><strong>{row.name}</strong><div className="s26-sub">{row.email}</div></div></div></td><td>{row.roleName}</td><td>{row.permissionSummary}</td><td>{row.lastActiveAt || "-"}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td><div className="s26-row-actions"><Link className="s26-link" to={`${basePath}/team/${encodeURIComponent(String(row.id))}`}>Detail</Link><button type="button" className="s26-muted-action" disabled title={disabledTodoTitle}>Remove</button></div></td></tr>} /> : null}
+          {rows.length ? <DataTable columns={["Member", "Role", "Permissions", "Last Active", "Status", "Actions"]} rows={rows} renderRow={(row) => <tr key={row.id}><td><div className="s26-product-cell"><span className="s26-thumb">{(row.name || "T")[0]}</span><div><strong>{row.name}</strong><div className="s26-sub">{row.email}</div></div></div></td><td>{row.roleName}</td><td>{row.permissionSummary}</td><td>{row.lastActiveAt || "-"}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td><div className="s26-row-actions"><Link className="s26-link" to={`${basePath}/team/${encodeURIComponent(String(row.id))}`}>Detail</Link><button type="button" className="s26-muted-action" disabled title={actionTitle(seller2026Permissions, "TEAM_REMOVE", "team")}>Remove</button></div></td></tr>} /> : null}
         </Card>
       </Shell>
     );
@@ -1155,14 +1218,14 @@ function TeamPage({
               </div>
               <div>
                 <label className="s26-field-label" htmlFor="s26-member-role">Role</label>
-                <select id="s26-member-role" className="s26-control" value={member.roleName} disabled title={disabledTodoTitle}>
+                <select id="s26-member-role" className="s26-control" value={member.roleName} disabled title={actionTitle(seller2026Permissions, "TEAM_ROLE_UPDATE", "team")}>
                   <option>{member.roleName}</option>
                   {(teamData?.roles || []).map((role) => <option key={role.id}>{role.name}</option>)}
                 </select>
                 <div style={{ marginTop: 14 }}>
-                  {(teamData?.permissions || []).map((permission) => <div className="s26-toggle-row" key={permission.key}><span><strong>{permission.key}</strong><span className="s26-sub">{permission.description || permission.label}</span></span><span className={`s26-switch ${permission.enabled ? "on" : ""}`} title={disabledTodoTitle} /></div>)}
+                  {(teamData?.permissions || []).map((permission) => <div className="s26-toggle-row" key={permission.key}><span><strong>{permission.key}</strong><span className="s26-sub">{permission.description || permission.label}</span></span><span className={`s26-switch ${permission.enabled ? "on" : ""}`} title={actionTitle(seller2026Permissions, "TEAM_ROLE_UPDATE", "team")} /></div>)}
                 </div>
-                <button type="button" className="s26-btn primary" style={{ marginTop: 16 }} disabled title={disabledTodoTitle}>Save Changes</button>
+                <button type="button" className="s26-btn primary" style={{ marginTop: 16 }} disabled title={actionTitle(seller2026Permissions, "TEAM_ROLE_UPDATE", "team")}>Save Changes</button>
               </div>
             </div>
           ) : null}
@@ -1181,10 +1244,10 @@ function TeamPage({
       <Shell section="team" mode={mode} storeContext={storeContext}>
         {teamState?.isError ? <Card title="Audit unavailable" hint="Live invitations or audit log could not load." actions={<button type="button" className="s26-btn" onClick={teamState?.refetch}>Retry</button>} /> : null}
         <div className="s26-grid two">
-          <Card title="Pending Invitations" hint="Invitee, role, inviter, date, and lifecycle status." actions={<button type="button" className="s26-btn primary" disabled title={disabledTodoTitle}>Invite Member</button>}>
+          <Card title="Pending Invitations" hint="Invitee, role, inviter, date, and lifecycle status." actions={<button type="button" className="s26-btn primary" disabled title={actionTitle(seller2026Permissions, "TEAM_INVITE", "team")}>Invite Member</button>}>
             {teamState?.isLoading ? <p className="hint">Loading invitations...</p> : null}
             {!teamState?.isLoading && invitations.length === 0 ? <div className="s26-empty"><strong>Belum ada invitation untuk toko ini.</strong><p>Undangan pending akan muncul di sini.</p></div> : null}
-            {invitations.length ? <DataTable columns={["Invitee", "Role", "Invited By", "Date", "Status", "Actions"]} rows={invitations} renderRow={(row) => <tr key={row.id}><td><strong>{row.name}</strong><div className="s26-sub">{row.email}</div></td><td>{row.roleName}</td><td>{row.invitedBy}</td><td>{row.invitedAt || "-"}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td><div className="s26-row-actions"><button type="button" className="s26-muted-action" disabled title={disabledTodoTitle}>Resend</button><button type="button" className="s26-muted-action" disabled title={disabledTodoTitle}>Cancel</button></div></td></tr>} /> : null}
+            {invitations.length ? <DataTable columns={["Invitee", "Role", "Invited By", "Date", "Status", "Actions"]} rows={invitations} renderRow={(row) => <tr key={row.id}><td><strong>{row.name}</strong><div className="s26-sub">{row.email}</div></td><td>{row.roleName}</td><td>{row.invitedBy}</td><td>{row.invitedAt || "-"}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td><div className="s26-row-actions"><button type="button" className="s26-muted-action" disabled title={actionTitle(seller2026Permissions, "TEAM_INVITE", "team")}>Resend</button><button type="button" className="s26-muted-action" disabled title={actionTitle(seller2026Permissions, "TEAM_INVITE", "team")}>Cancel</button></div></td></tr>} /> : null}
           </Card>
           <Card title="Invite Member Form" hint="Team invitation integration is pending.">
             <div className="s26-form-grid">
@@ -1194,7 +1257,7 @@ function TeamPage({
               <label><span>Store Access</span><input className="s26-control" value="Current store only" disabled readOnly /></label>
             </div>
             <label style={{ display: "block", marginTop: 12 }}><span>Custom Message</span><textarea className="s26-control" rows={3} placeholder="Pesan undangan" disabled /></label>
-            <button type="button" className="s26-btn primary" style={{ marginTop: 14 }} disabled title={disabledTodoTitle}>Send Invitation</button>
+            <button type="button" className="s26-btn primary" style={{ marginTop: 14 }} disabled title={actionTitle(seller2026Permissions, "TEAM_INVITE", "team")}>Send Invitation</button>
           </Card>
         </div>
         <Card title="Audit Log" hint="Team role, invitation, lifecycle, and permission activity.">
@@ -1227,7 +1290,7 @@ function TeamPage({
       <Shell section="team" mode={mode} storeContext={storeContext}>
         {teamState?.isError ? <Card title="Notifications unavailable" hint="Live notifications could not load." actions={<button type="button" className="s26-btn" onClick={teamState?.refetch}>Retry</button>} /> : null}
         <div className="s26-grid two">
-          <Card title="Notifications Center" hint="Priority filters, categories, unread state, and operational alerts." actions={<button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Mark all as read</button>}>
+          <Card title="Notifications Center" hint="Priority filters, categories, unread state, and operational alerts." actions={<button type="button" className="s26-btn" disabled title={actionTitle(seller2026Permissions, "NOTIFICATION_READ", "notifications")}>Mark all as read</button>}>
             <div className="s26-grid five" style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 10, marginBottom: 14 }}>
               <CatalogKpi label="All" value={summary.all || 0} />
               <CatalogKpi label="Unread" value={summary.unread || 0} />
@@ -1312,6 +1375,21 @@ export function Seller2026Workspace({
   teamQuery = null,
   onTeamQueryChange = null,
 }) {
+  const seller2026Permissions = useMemo(() => {
+    if (mode !== "embedded") return new Set(SELLER_2026_PREVIEW_PERMISSIONS);
+    return normalizeSeller2026Permissions(storeContext);
+  }, [mode, storeContext]);
+  const permissionSourceAvailable = mode === "embedded" && hasSeller2026PermissionSource(storeContext);
+  const requiredPermission = routePermissionFor({
+    section,
+    catalogView,
+    operationsView,
+    teamView,
+  });
+  const isRestricted =
+    permissionSourceAvailable &&
+    requiredPermission &&
+    !hasSeller2026Permission(seller2026Permissions, requiredPermission);
   const Component = useMemo(() => {
     if (section === "storefront") return StorefrontPage;
     if (section === "products") return ProductsPage;
@@ -1320,6 +1398,18 @@ export function Seller2026Workspace({
     if (section === "team") return TeamPage;
     return DashboardPage;
   }, [section]);
+
+  if (isRestricted) {
+    return (
+      <Shell section={section} mode={mode} storeContext={storeContext}>
+        <Seller2026RestrictedState
+          title="Akses dibatasi"
+          message={`Anda tidak memiliki permission ${requiredPermission} untuk melihat halaman ini.`}
+        />
+      </Shell>
+    );
+  }
+
   return (
     <Component
       mode={mode}
@@ -1350,6 +1440,7 @@ export function Seller2026Workspace({
       teamState={teamState}
       teamQuery={teamQuery}
       onTeamQueryChange={onTeamQueryChange}
+      seller2026Permissions={seller2026Permissions}
     />
   );
 }

@@ -2,6 +2,7 @@ import { useSearchParams } from "react-router-dom";
 import Seller2026Workspace from "../../features/seller2026/Seller2026Workspace.jsx";
 import { useSeller2026TeamAudit } from "../../hooks/seller2026/useSeller2026TeamAudit.ts";
 import { useSellerWorkspaceRoute } from "../../utils/sellerWorkspaceRoute.js";
+import { getSeller2026PagePermissions } from "./seller2026PagePermissions.js";
 
 const readPageNumber = (value, fallback) => {
   const parsed = Number(value);
@@ -30,8 +31,8 @@ const applySearchParams = (currentParams, setSearchParams) => (nextQuery) => {
 export default function Seller2026LiveTeamAuditPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { sellerContext, workspaceStoreId: storeId } = useSellerWorkspaceRoute();
-  const permissionKeys = sellerContext?.access?.permissionKeys || [];
-  const canView = permissionKeys.includes("TEAM_AUDIT_READ");
+  const { can } = getSeller2026PagePermissions(sellerContext);
+  const canView = can("TEAM_AUDIT_READ");
   const query = {
     action: searchParams.get("action") || "all",
     member: searchParams.get("member") || "",

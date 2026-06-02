@@ -2,6 +2,7 @@ import { useSearchParams } from "react-router-dom";
 import Seller2026Workspace from "../../features/seller2026/Seller2026Workspace.jsx";
 import { useSeller2026Notifications } from "../../hooks/seller2026/useSeller2026Notifications.ts";
 import { useSellerWorkspaceRoute } from "../../utils/sellerWorkspaceRoute.js";
+import { getSeller2026PagePermissions } from "./seller2026PagePermissions.js";
 
 const readPageNumber = (value, fallback) => {
   const parsed = Number(value);
@@ -31,8 +32,8 @@ const applySearchParams = (currentParams, setSearchParams) => (nextQuery) => {
 export default function Seller2026LiveNotificationsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { sellerContext, workspaceStoreId: storeId } = useSellerWorkspaceRoute();
-  const permissionKeys = sellerContext?.access?.permissionKeys || [];
-  const canView = permissionKeys.includes("NOTIFICATION_READ") || permissionKeys.includes("ORDER_READ");
+  const { can } = getSeller2026PagePermissions(sellerContext);
+  const canView = can("NOTIFICATION_READ");
   const query = {
     search: searchParams.get("q") || "",
     priority: searchParams.get("priority") || "all",
