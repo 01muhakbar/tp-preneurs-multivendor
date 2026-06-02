@@ -7,6 +7,7 @@ import AdminGuard from "./components/AdminGuard.jsx";
 import RequirePerm from "./components/guards/RequirePerm.jsx";
 import AccountGuard from "./components/AccountGuard.jsx";
 import SeoCustomizationBridge from "./components/SeoCustomizationBridge.jsx";
+import { seller2026PreviewRoutes } from "./routes/seller2026RouteConfig.jsx";
 const StoreProductDetailPage = lazy(() => import("./pages/store/StoreProductDetailPage.jsx"));
 const CheckoutPage = lazy(() => import("./pages/store/Checkout.jsx"));
 const StoreLoginPage = lazy(() => import("./pages/store/StoreLoginPage.jsx"));
@@ -375,6 +376,8 @@ export default function App() {
               element={<Navigate to="/user/store-invitations" replace />}
             />
           </Route>
+
+          {seller2026PreviewRoutes}
 
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/admin/create-account" element={<AdminCreateAccountPage />} />
