@@ -28,6 +28,10 @@
 - `/seller/stores/:storeSlug/catalog/products/new`
 - `/seller/stores/:storeSlug/catalog/products/:productId`
 - `/seller/stores/:storeSlug/catalog/products/:productId/edit`
+- `/seller/stores/:storeSlug/catalog/categories`
+- `/seller/stores/:storeSlug/catalog/attributes`
+- `/seller/stores/:storeSlug/catalog/attributes/:attributeId/values`
+- `/seller/stores/:storeSlug/catalog/coupons`
 
 ## Components Added
 - `client/src/features/seller2026/Seller2026Workspace.jsx`
@@ -50,6 +54,7 @@
 - Live dashboard uses existing seller workspace APIs through `useSeller2026Dashboard`.
 - Live store profile uses existing seller profile/readiness APIs through `useSeller2026Storefront`.
 - Live products use existing seller product APIs through `useSeller2026Products` and `useSeller2026ProductDetail`.
+- Live catalog tools use existing seller categories, attributes, attribute values, and coupons APIs through `useSeller2026Categories`, `useSeller2026Attributes`, `useSeller2026AttributeValues`, and `useSeller2026Coupons`.
 - Adapter skeletons are available in `client/src/api/seller2026/`.
 
 ## Pending Backend Work
@@ -58,7 +63,7 @@
 - Preserve backend checks with `requireAuth`, `requireSellerStoreAccess`, and permission guards.
 
 ## Known Limitations
-- Live seller dashboard, store profile, and product catalog routes have been adopted; other live seller routes are unchanged.
+- Live seller dashboard, store profile, product catalog, and catalog tools routes have been adopted; operations/team/notifications routes are unchanged.
 - Preview pages use shared section wrappers, so several detail routes intentionally render the same domain workspace.
 - Permission-aware action hiding is planned for the live integration phase.
 
@@ -151,6 +156,60 @@
 - Inventory adjustment workflow.
 - SEO persistence.
 - Publish/revision lifecycle wiring.
+
+## Live Route Adoption - Catalog Tools
+
+### Routes Adopted
+- `/seller/stores/:storeSlug/catalog/categories`
+- `/seller/stores/:storeSlug/catalog/attributes`
+- `/seller/stores/:storeSlug/catalog/attributes/:attributeId/values`
+- `/seller/stores/:storeSlug/catalog/coupons`
+
+### Files Added
+- `client/src/pages/seller2026/Seller2026LiveCategoriesPage.jsx`
+- `client/src/pages/seller2026/Seller2026LiveAttributesPage.jsx`
+- `client/src/pages/seller2026/Seller2026LiveAttributeValuesPage.jsx`
+- `client/src/pages/seller2026/Seller2026LiveCouponsPage.jsx`
+- `client/src/hooks/seller2026/useSeller2026Categories.ts`
+- `client/src/hooks/seller2026/useSeller2026Attributes.ts`
+- `client/src/hooks/seller2026/useSeller2026AttributeValues.ts`
+- `client/src/hooks/seller2026/useSeller2026Coupons.ts`
+
+### Files Changed
+- `client/src/App.jsx`
+- `client/src/features/seller2026/Seller2026Workspace.jsx`
+- `client/src/features/seller2026/Seller2026DesignSystem.css`
+- `client/src/api/seller2026/catalog.adapter.ts`
+
+### APIs Used
+- `getSellerCategories`
+- `getSellerAttributes`
+- `getSellerAttributeValues`
+- `listSellerCoupons`
+
+### Adapter Mapping
+- `adaptSeller2026Categories` maps category list responses into summary, category tree rows, and safe recommended category placeholders.
+- `adaptSeller2026Attributes` maps attributes into KPI summary and table rows.
+- `adaptSeller2026AttributeValues` maps attribute metadata and values into the values workspace.
+- `adaptSeller2026Coupons` maps store coupons into KPI summary, table rows, status chips, and permission flags.
+
+### Still Mocked / Fallback
+- Recommended categories remain empty unless the API supplies them.
+- Coupon create drawer is UI-only.
+- Empty live responses render generic empty states and do not reuse preview category/coupon demo rows.
+
+### Disabled Unsafe Mutations
+- Create/edit/delete category.
+- Create/edit/delete attribute.
+- Create/edit/delete attribute value.
+- Create/update/delete coupon.
+
+### Pending Work
+- Category mutation integration.
+- Attribute mutation integration.
+- Coupon mutation integration.
+- Coupon validation rules.
+- Product-category assignment refinement.
 
 ## QA Checklist
 - Verify preview pages do not render blank.

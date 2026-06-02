@@ -728,7 +728,156 @@ function ProductsPage({
   );
 }
 
-function TaxonomyPage() {
+function CatalogKpi({ label, value }) {
+  return (
+    <div className="s26-card soft">
+      <p className="hint">{label}</p>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function TaxonomyPage({
+  catalogView = "overview",
+  catalogData = null,
+  catalogState = null,
+  catalogQuery = null,
+  onCatalogQueryChange = null,
+  mode,
+  storeContext,
+}) {
+  const { storeSlug } = useParams();
+  const [couponDrawerOpen, setCouponDrawerOpen] = useState(false);
+  const isLive = Boolean(catalogData || catalogState);
+  const basePath = storeSlug ? `/seller/stores/${encodeURIComponent(storeSlug)}` : "/seller-2026";
+  const queryChange = (next) => onCatalogQueryChange?.(next);
+  const searchValue = catalogQuery?.search || "";
+
+  if (isLive && catalogView === "categories") {
+    const categoryRows = catalogData?.categories || [];
+    return (
+      <Shell section="taxonomy" mode={mode} storeContext={storeContext}>
+        {catalogState?.isError ? <Card title="Categories unavailable" hint="Live categories could not load." actions={<button type="button" className="s26-btn" onClick={catalogState?.refetch}>Retry</button>} /> : null}
+        <Card title="Categories" hint="Category tree, assignment rate, product count, dan recommended categories." actions={<button type="button" className="s26-btn primary" disabled title={disabledTodoTitle}>+ Add Category</button>}>
+          <div className="s26-grid three" style={{ marginBottom: 14 }}>
+            <CatalogKpi label="Total Categories" value={catalogData?.summary?.totalCategories || 0} />
+            <CatalogKpi label="Products Assigned" value={catalogData?.summary?.totalProducts || 0} />
+            <CatalogKpi label="Assigned Rate" value={`${catalogData?.summary?.assignedRate || 0}%`} />
+          </div>
+          <div className="s26-filter-row">
+            <input className="s26-search" aria-label="Search categories" placeholder="Search category" value={searchValue} onChange={(event) => queryChange({ search: event.target.value })} />
+            <button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Bulk Actions</button>
+          </div>
+          {catalogState?.isLoading ? <p className="hint">Loading categories...</p> : null}
+          {!catalogState?.isLoading && categoryRows.length === 0 ? (
+            <div className="s26-empty"><strong>Belum ada kategori yang tersedia untuk toko ini.</strong><p>Category assignment akan muncul setelah data tersedia.</p></div>
+          ) : (
+            <DataTable columns={["Category", "Products", "Assigned Rate", "Status", "Actions"]} rows={categoryRows} renderRow={(row) => <tr key={row.id}><td><strong>{row.level ? `${"  ".repeat(row.level)}${row.name}` : row.name}</strong><div className="s26-sub">Parent: {row.parentId || "-"}</div></td><td>{row.productCount}</td><td>{row.assignedRate || 0}%</td><td><span className={statusClass(row.status === "active" ? "Active" : "Inactive")}>{row.status}</span></td><td><button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Edit</button></td></tr>} />
+          )}
+        </Card>
+        <Card title="Recommended Categories" hint="Rekomendasi aman dari adapter, kosong jika API belum menyediakan data.">
+          {(catalogData?.recommendedCategories || []).length === 0 ? <div className="s26-empty"><strong>No recommended categories yet.</strong><p>Recommendations will appear once catalog signals are available.</p></div> : null}
+          <div className="s26-grid three">
+            {(catalogData?.recommendedCategories || []).map((item) => <div className="s26-card soft" key={item.id}><strong>{item.name}</strong><p className="hint">{item.path || "No path"} - {item.productCount || 0} products</p></div>)}
+          </div>
+        </Card>
+      </Shell>
+    );
+  }
+
+  if (isLive && catalogView === "attributes") {
+    const attributeRows = catalogData?.attributes || [];
+    return (
+      <Shell section="taxonomy" mode={mode} storeContext={storeContext}>
+        {catalogState?.isError ? <Card title="Attributes unavailable" hint="Live attributes could not load." actions={<button type="button" className="s26-btn" onClick={catalogState?.refetch}>Retry</button>} /> : null}
+        <Card title="Attributes" hint="Variant/general attributes, usage count, values, dan status." actions={<button type="button" className="s26-btn primary" disabled title={disabledTodoTitle}>+ Add Attribute</button>}>
+          <div className="s26-grid four" style={{ marginBottom: 14 }}>
+            <CatalogKpi label="Total Attributes" value={catalogData?.summary?.total || 0} />
+            <CatalogKpi label="Active" value={catalogData?.summary?.active || 0} />
+            <CatalogKpi label="Used in Products" value={catalogData?.summary?.usedInProducts || 0} />
+            <CatalogKpi label="Variant Attributes" value={catalogData?.summary?.variantAttributes || 0} />
+          </div>
+          <div className="s26-filter-row">
+            <input className="s26-search" aria-label="Search attributes" placeholder="Search attributes" value={searchValue} onChange={(event) => queryChange({ search: event.target.value, page: 1 })} />
+            <select className="s26-control" aria-label="Filter attribute type" value={catalogQuery?.type || "all"} onChange={(event) => queryChange({ type: event.target.value, page: 1 })}><option value="all">All Types</option><option value="variant">Variant</option><option value="general">General</option></select>
+            <select className="s26-control" aria-label="Filter attribute status" value={catalogQuery?.status || "all"} onChange={(event) => queryChange({ status: event.target.value, page: 1 })}><option value="all">All Status</option><option value="active">Active</option><option value="inactive">Inactive</option></select>
+          </div>
+          {catalogState?.isLoading ? <p className="hint">Loading attributes...</p> : null}
+          {!catalogState?.isLoading && attributeRows.length === 0 ? (
+            <div className="s26-empty"><strong>No attributes available.</strong><p>Attribute definitions will appear once the catalog is configured.</p></div>
+          ) : (
+            <DataTable columns={["Attribute", "Type", "Usage", "Values", "Status", "Actions"]} rows={attributeRows} renderRow={(row) => <tr key={row.id}><td><strong>{row.name}</strong></td><td>{row.type}</td><td>{row.usageCount}</td><td>{row.valuesCount}</td><td><span className={statusClass(row.status === "active" ? "Active" : "Inactive")}>{row.status}</span></td><td><Link className="s26-link" to={`${basePath}/catalog/attributes/${encodeURIComponent(String(row.id))}/values`}>Values</Link></td></tr>} />
+          )}
+        </Card>
+        <div className="s26-grid two">
+          <Card title="Insights" hint="Variant vs general summary for repeated catalog work." />
+          <Card title="Mutation Safety" hint="Create, edit, delete, and bulk actions are disabled until lifecycle and permissions are fully wired." />
+        </div>
+      </Shell>
+    );
+  }
+
+  if (isLive && catalogView === "attribute-values") {
+    const valueRows = catalogData?.values || [];
+    return (
+      <Shell section="taxonomy" mode={mode} storeContext={storeContext}>
+        {catalogState?.isError ? <Card title="Attribute values unavailable" hint="Attribute tidak ditemukan atau tidak tersedia untuk toko ini." actions={<button type="button" className="s26-btn" onClick={catalogState?.refetch}>Retry</button>} /> : null}
+        <Card title={`Attributes > ${catalogData?.attribute?.name || "Attribute"}`} hint="Swatch, sort order, product usage, mapped SKU, dan status." actions={<button type="button" className="s26-btn primary" disabled title={disabledTodoTitle}>+ Add Value</button>}>
+          {!catalogState?.isLoading && !catalogData?.attribute ? <div className="s26-empty"><strong>Attribute tidak ditemukan atau tidak tersedia untuk toko ini.</strong><p>Pastikan attribute masih tersedia untuk store ini.</p></div> : null}
+          {catalogData?.attribute ? <div className="s26-filter-row"><span className={statusClass(catalogData.attribute.status === "active" ? "Active" : "Inactive")}>{catalogData.attribute.status}</span><span className="s26-pill">{catalogData.attribute.type}</span><span className="s26-pill">{catalogData.attribute.usageCount} usage</span></div> : null}
+          <div className="s26-filter-row">
+            <input className="s26-search" aria-label="Search attribute values" placeholder="Search values" value={searchValue} onChange={(event) => queryChange({ search: event.target.value, page: 1 })} />
+            <select className="s26-control" aria-label="Filter value status" value={catalogQuery?.status || "all"} onChange={(event) => queryChange({ status: event.target.value, page: 1 })}><option value="all">All Status</option><option value="active">Active</option><option value="inactive">Inactive</option></select>
+          </div>
+          {catalogState?.isLoading ? <p className="hint">Loading values...</p> : null}
+          {!catalogState?.isLoading && catalogData?.attribute && valueRows.length === 0 ? <div className="s26-empty"><strong>No values available.</strong><p>Attribute values will appear after they are configured.</p></div> : null}
+          {valueRows.length ? <DataTable columns={["Sort", "Value", "Swatch", "Usage", "Mapped SKU", "Status", "Actions"]} rows={valueRows} renderRow={(row) => <tr key={row.id}><td>{row.sortOrder}</td><td>{row.label}</td><td>{row.swatch ? <span className="s26-swatch" style={{ background: row.swatch, width: 26, height: 26 }} /> : "-"}</td><td>{row.productUsage}</td><td>{row.mappedSkus}</td><td><span className={statusClass(row.status === "active" ? "Active" : "Inactive")}>{row.status}</span></td><td><button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Edit</button></td></tr>} /> : null}
+        </Card>
+        <div className="s26-grid two">
+          <Card title="Value Insights" hint="Top values by usage and mapping quality will appear when data is available." />
+          <Card title="Mutation Safety" hint="Create, edit, delete value actions are disabled until backend lifecycle is confirmed." />
+        </div>
+      </Shell>
+    );
+  }
+
+  if (isLive && catalogView === "coupons") {
+    const couponRows = catalogData?.coupons || [];
+    return (
+      <Shell section="taxonomy" mode={mode} storeContext={storeContext}>
+        {catalogState?.isError ? <Card title="Coupons unavailable" hint="Live coupons could not load." actions={<button type="button" className="s26-btn" onClick={catalogState?.refetch}>Retry</button>} /> : null}
+        <Card title="Coupons" hint="Store-scoped promo, validity, usage, dan status." actions={<button type="button" className="s26-btn primary" onClick={() => setCouponDrawerOpen(true)} disabled={!catalogData?.permissions?.canCreate} title={!catalogData?.permissions?.canCreate ? "COUPON_CREATE permission is required." : undefined}>Create Coupon</button>}>
+          <div className="s26-grid four" style={{ marginBottom: 14 }}>
+            <CatalogKpi label="Total Coupons" value={catalogData?.summary?.total || 0} />
+            <CatalogKpi label="Active" value={catalogData?.summary?.active || 0} />
+            <CatalogKpi label="Redemptions" value={catalogData?.summary?.redemptions || 0} />
+            <CatalogKpi label="Discount Given" value={formatRupiah(catalogData?.summary?.discountGiven || 0)} />
+          </div>
+          <div className="s26-filter-row">
+            <input className="s26-search" aria-label="Search coupons" placeholder="Search coupon code" value={searchValue} onChange={(event) => queryChange({ search: event.target.value, page: 1 })} />
+            <select className="s26-control" aria-label="Filter coupon status" value={catalogQuery?.status || "all"} onChange={(event) => queryChange({ status: event.target.value, page: 1 })}><option value="all">All Status</option><option value="active">Active</option><option value="expired">Expired</option><option value="paused">Paused</option><option value="scheduled">Scheduled</option><option value="inactive">Inactive</option></select>
+            <select className="s26-control" aria-label="Filter coupon type" value={catalogQuery?.type || "all"} onChange={(event) => queryChange({ type: event.target.value, page: 1 })}><option value="all">All Types</option><option value="percentage">Percentage</option><option value="fixed">Fixed</option><option value="free_shipping">Free Shipping</option></select>
+          </div>
+          {catalogState?.isLoading ? <p className="hint">Loading coupons...</p> : null}
+          {!catalogState?.isLoading && couponRows.length === 0 ? <div className="s26-empty"><strong>No coupons available.</strong><p>Create coupon UI is available as a safe shell when permission allows it.</p></div> : null}
+          {couponRows.length ? <DataTable columns={["Code", "Type", "Discount", "Minimum Spend", "Validity", "Usage", "Status", "Actions"]} rows={couponRows} renderRow={(row) => <tr key={row.id}><td><strong>{row.code}</strong></td><td>{row.type}</td><td>{row.discountLabel}</td><td>{formatRupiah(row.minimumSpend)}</td><td>{row.validityLabel}</td><td>{row.usageLabel}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td><button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Edit</button></td></tr>} /> : null}
+        </Card>
+        {couponDrawerOpen ? (
+          <Card title="Create Coupon" hint="Coupon creation integration is pending.">
+            <div className="s26-form-grid">
+              <div className="s26-field"><label>Coupon Code</label><input readOnly value="" placeholder="STORE2026" /></div>
+              <div className="s26-field"><label>Type</label><select disabled><option>Percentage</option><option>Fixed</option><option>Free Shipping</option></select></div>
+              <div className="s26-field"><label>Discount</label><input readOnly value="" placeholder="10" /></div>
+              <div className="s26-field"><label>Minimum Spend</label><input readOnly value="" placeholder="100000" /></div>
+            </div>
+            <p className="hint" style={{ marginTop: 14 }}>Coupon creation integration is pending.</p>
+            <div className="s26-filter-row" style={{ marginTop: 16, marginBottom: 0 }}><button type="button" className="s26-btn" onClick={() => setCouponDrawerOpen(false)}>Close</button><button type="button" className="s26-btn primary" disabled title={disabledTodoTitle}>Create Coupon</button></div>
+          </Card>
+        ) : null}
+      </Shell>
+    );
+  }
+
   return (
     <Shell section="taxonomy">
       <div className="s26-grid two">
@@ -834,6 +983,11 @@ export function Seller2026Workspace({
   productDetailData = null,
   productDetailState = null,
   productEditorMode = null,
+  catalogView = "overview",
+  catalogData = null,
+  catalogState = null,
+  catalogQuery = null,
+  onCatalogQueryChange = null,
 }) {
   const Component = useMemo(() => {
     if (section === "storefront") return StorefrontPage;
@@ -858,6 +1012,11 @@ export function Seller2026Workspace({
       productDetailData={productDetailData}
       productDetailState={productDetailState}
       productEditorMode={productEditorMode}
+      catalogView={catalogView}
+      catalogData={catalogData}
+      catalogState={catalogState}
+      catalogQuery={catalogQuery}
+      onCatalogQueryChange={onCatalogQueryChange}
     />
   );
 }
