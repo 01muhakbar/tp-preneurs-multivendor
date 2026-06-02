@@ -113,11 +113,6 @@ const AdminStoreApplicationDetailPage = lazy(() =>
   import("./pages/admin/AdminStoreApplicationDetailPage.jsx")
 );
 const SellerLayout = lazy(() => import("./layouts/SellerLayout.jsx"));
-const SellerTeamAuditPage = lazy(() => import("./pages/seller/SellerTeamAuditPage.jsx"));
-const SellerMemberLifecyclePage = lazy(() =>
-  import("./pages/seller/SellerMemberLifecyclePage.jsx")
-);
-const SellerTeamPage = lazy(() => import("./pages/seller/SellerTeamPage.jsx"));
 const SellerWorkspaceHome = lazy(() => import("./pages/seller/SellerWorkspaceHome.jsx"));
 const Seller2026LiveDashboardPage = lazy(() =>
   import("./pages/seller2026/Seller2026LiveDashboardPage.jsx")
@@ -157,6 +152,18 @@ const Seller2026LivePaymentReviewPage = lazy(() =>
 );
 const Seller2026LivePaymentProfilePage = lazy(() =>
   import("./pages/seller2026/Seller2026LivePaymentProfilePage.jsx")
+);
+const Seller2026LiveTeamPage = lazy(() =>
+  import("./pages/seller2026/Seller2026LiveTeamPage.jsx")
+);
+const Seller2026LiveMemberDetailPage = lazy(() =>
+  import("./pages/seller2026/Seller2026LiveMemberDetailPage.jsx")
+);
+const Seller2026LiveTeamAuditPage = lazy(() =>
+  import("./pages/seller2026/Seller2026LiveTeamAuditPage.jsx")
+);
+const Seller2026LiveNotificationsPage = lazy(() =>
+  import("./pages/seller2026/Seller2026LiveNotificationsPage.jsx")
 );
 const AdminPaymentAuditPage = lazy(() =>
   import("./pages/admin/AdminPaymentAuditPage.jsx")
@@ -417,9 +424,10 @@ export default function App() {
             <Route path="dashboard" element={<Seller2026LiveDashboardPage />} />
             <Route path="store-profile" element={<Seller2026LiveStorefrontPage />} />
             <Route path="microsite-preview" element={<Seller2026LiveStorefrontPage />} />
-            <Route path="team" element={<SellerTeamPage />} />
-            <Route path="team/:memberId" element={<SellerMemberLifecyclePage />} />
-            <Route path="team/audit" element={<SellerTeamAuditPage />} />
+            <Route path="team" element={<Seller2026LiveTeamPage />} />
+            <Route path="team/audit" element={<Seller2026LiveTeamAuditPage />} />
+            <Route path="team/:memberId" element={<Seller2026LiveMemberDetailPage />} />
+            <Route path="notifications" element={<Seller2026LiveNotificationsPage />} />
             <Route path="catalog" element={<LegacySellerCatalogRedirect />} />
             <Route path="catalog/new" element={<LegacySellerProductCreateRedirect />} />
             <Route path="catalog/products" element={<Seller2026LiveProductsPage />} />

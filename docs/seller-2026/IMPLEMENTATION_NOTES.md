@@ -36,6 +36,10 @@
 - `/seller/stores/:storeSlug/orders/:suborderId`
 - `/seller/stores/:storeSlug/payment-review`
 - `/seller/stores/:storeSlug/payment-profile`
+- `/seller/stores/:storeSlug/team`
+- `/seller/stores/:storeSlug/team/:memberId`
+- `/seller/stores/:storeSlug/team/audit`
+- `/seller/stores/:storeSlug/notifications`
 
 ## Components Added
 - `client/src/features/seller2026/Seller2026Workspace.jsx`
@@ -60,6 +64,7 @@
 - Live products use existing seller product APIs through `useSeller2026Products` and `useSeller2026ProductDetail`.
 - Live catalog tools use existing seller categories, attributes, attribute values, and coupons APIs through `useSeller2026Categories`, `useSeller2026Attributes`, `useSeller2026AttributeValues`, and `useSeller2026Coupons`.
 - Live orders and payments use existing seller suborder, payment review, and payment profile APIs through `useSeller2026Orders`, `useSeller2026SuborderDetail`, `useSeller2026PaymentReview`, and `useSeller2026PaymentProfile`.
+- Live team and notifications use existing seller team, audit, and notification APIs through `useSeller2026Team`, `useSeller2026MemberDetail`, `useSeller2026TeamAudit`, and `useSeller2026Notifications`.
 - Adapter skeletons are available in `client/src/api/seller2026/`.
 
 ## Pending Backend Work
@@ -68,7 +73,7 @@
 - Preserve backend checks with `requireAuth`, `requireSellerStoreAccess`, and permission guards.
 
 ## Known Limitations
-- Live seller dashboard, store profile, product catalog, catalog tools, orders, and payment routes have been adopted; team/notifications routes are unchanged.
+- Live seller dashboard, store profile, product catalog, catalog tools, orders/payments, team, audit, and notifications routes have been adopted.
 - Preview pages use shared section wrappers, so several detail routes intentionally render the same domain workspace.
 - Permission-aware action hiding is planned for the live integration phase.
 
@@ -276,6 +281,65 @@
 - Payment proof review lifecycle.
 - Payment profile submit/update flow.
 - Payout history integration.
+
+## Live Route Adoption - Team, Invitations, Audit Log & Notifications
+
+### Routes Adopted
+- `/seller/stores/:storeSlug/team`
+- `/seller/stores/:storeSlug/team/:memberId`
+- `/seller/stores/:storeSlug/team/audit`
+- `/seller/stores/:storeSlug/notifications`
+
+### Files Added
+- `client/src/pages/seller2026/Seller2026LiveTeamPage.jsx`
+- `client/src/pages/seller2026/Seller2026LiveMemberDetailPage.jsx`
+- `client/src/pages/seller2026/Seller2026LiveTeamAuditPage.jsx`
+- `client/src/pages/seller2026/Seller2026LiveNotificationsPage.jsx`
+- `client/src/hooks/seller2026/useSeller2026Team.ts`
+- `client/src/hooks/seller2026/useSeller2026MemberDetail.ts`
+- `client/src/hooks/seller2026/useSeller2026TeamAudit.ts`
+- `client/src/hooks/seller2026/useSeller2026Notifications.ts`
+
+### Files Changed
+- `client/src/App.jsx`
+- `client/src/features/seller2026/Seller2026Workspace.jsx`
+- `client/src/api/seller2026/team.adapter.ts`
+- `client/src/api/seller2026/notifications.adapter.ts`
+
+### APIs Used
+- `getSellerTeamSummary`
+- `getSellerStoreMemberLifecycle`
+- `getSellerTeamAudit`
+- `getSellerNotifications`
+
+### Adapter Mapping
+- `adaptSeller2026Team` maps team summary, members, roles, member status, and permission summary into the members workspace.
+- `adaptSeller2026MemberDetail` maps member lifecycle data into profile, role selector, permission toggles, store access, and grouped permission summary.
+- `adaptSeller2026TeamAudit` maps invitation-like members and audit log payload into pending invitations, audit rows, and pagination.
+- `adaptSeller2026Notifications` maps notification list payload into summary counters, category counts, priority labels, unread state, and notification rows.
+
+### Still Mocked / Fallback
+- Preview route `/seller-2026/team` still uses demo bundle data.
+- Empty live team, audit, and notification responses render generic empty states and do not reuse preview team/notification demo rows.
+- Store access list remains empty unless the member lifecycle API supplies it.
+
+### Disabled Unsafe Mutations
+- Invite member.
+- Resend invitation.
+- Cancel invitation.
+- Update member role.
+- Remove member.
+- Reset password.
+- Mark notifications as read.
+- Delete notification.
+
+### Pending Work
+- Team invitation mutation integration.
+- Role update mutation integration.
+- Member removal flow.
+- Audit log filter refinement.
+- Notification read/delete flow.
+- Real-time notification integration.
 
 ## QA Checklist
 - Verify preview pages do not render blank.

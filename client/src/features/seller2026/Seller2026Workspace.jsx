@@ -1079,7 +1079,176 @@ function OperationsPage({
   );
 }
 
-function TeamPage() {
+function TeamPage({
+  teamView = "overview",
+  teamData = null,
+  teamState = null,
+  teamQuery = null,
+  onTeamQueryChange = null,
+  mode,
+  storeContext,
+}) {
+  const { storeSlug } = useParams();
+  const isLive = Boolean(teamData || teamState);
+  const basePath = storeSlug ? `/seller/stores/${encodeURIComponent(storeSlug)}` : "/seller-2026";
+  const queryChange = (next) => onTeamQueryChange?.(next);
+  const searchValue = teamQuery?.search || "";
+
+  if (isLive && teamView === "members") {
+    const rows = teamData?.members || [];
+    const summary = teamData?.summary || {};
+    const roles = teamData?.roles || [];
+
+    return (
+      <Shell section="team" mode={mode} storeContext={storeContext}>
+        {teamState?.isError ? <Card title="Team unavailable" hint="Live team members could not load." actions={<button type="button" className="s26-btn" onClick={teamState?.refetch}>Retry</button>} /> : null}
+        <Card title="Team Members" hint="Role, permission summary, last active, and status." actions={<button type="button" className="s26-btn primary" disabled title={disabledTodoTitle}>+ Invite Member</button>}>
+          <div className="s26-grid four" style={{ marginBottom: 14 }}>
+            <CatalogKpi label="Members" value={summary.totalMembers || 0} />
+            <CatalogKpi label="Active" value={summary.activeMembers || 0} />
+            <CatalogKpi label="Invitations" value={summary.pendingInvitations || 0} />
+            <CatalogKpi label="Roles" value={summary.totalRoles || 0} />
+          </div>
+          <div className="s26-filter-row">
+            <input className="s26-search" aria-label="Search team members" placeholder="Search member, email, or role" value={searchValue} onChange={(event) => queryChange({ search: event.target.value, page: 1 })} />
+            <select className="s26-control" aria-label="Filter member role" value={teamQuery?.role || "all"} onChange={(event) => queryChange({ role: event.target.value, page: 1 })}>
+              <option value="all">All Roles</option>
+              {roles.map((role) => <option value={role.name} key={role.id}>{role.name}</option>)}
+            </select>
+            <select className="s26-control" aria-label="Filter member status" value={teamQuery?.status || "all"} onChange={(event) => queryChange({ status: event.target.value, page: 1 })}>
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="pending">Pending</option>
+              <option value="invited">Invited</option>
+            </select>
+            <Link className="s26-btn" to={`${basePath}/team/audit`}>Audit Log</Link>
+          </div>
+          {teamState?.isLoading ? <p className="hint">Loading team members...</p> : null}
+          {!teamState?.isLoading && rows.length === 0 ? <div className="s26-empty"><strong>Belum ada anggota tim untuk toko ini.</strong><p>Anggota dan undangan store-scoped akan muncul setelah ditambahkan.</p></div> : null}
+          {rows.length ? <DataTable columns={["Member", "Role", "Permissions", "Last Active", "Status", "Actions"]} rows={rows} renderRow={(row) => <tr key={row.id}><td><div className="s26-product-cell"><span className="s26-thumb">{(row.name || "T")[0]}</span><div><strong>{row.name}</strong><div className="s26-sub">{row.email}</div></div></div></td><td>{row.roleName}</td><td>{row.permissionSummary}</td><td>{row.lastActiveAt || "-"}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td><div className="s26-row-actions"><Link className="s26-link" to={`${basePath}/team/${encodeURIComponent(String(row.id))}`}>Detail</Link><button type="button" className="s26-muted-action" disabled title={disabledTodoTitle}>Remove</button></div></td></tr>} /> : null}
+        </Card>
+      </Shell>
+    );
+  }
+
+  if (isLive && teamView === "member-detail") {
+    const member = teamData?.member || null;
+    return (
+      <Shell section="team" mode={mode} storeContext={storeContext}>
+        {teamState?.isError ? <Card title="Member unavailable" hint="Member tidak ditemukan atau tidak tersedia untuk toko ini." actions={<button type="button" className="s26-btn" onClick={teamState?.refetch}>Retry</button>} /> : null}
+        <Card title="Member Detail / Role Editor" hint="Store-scoped permission toggles and access summary." actions={<Link className="s26-btn" to={`${basePath}/team`}>Back to Team</Link>}>
+          {teamState?.isLoading ? <p className="hint">Loading member...</p> : null}
+          {!teamState?.isLoading && !member ? <div className="s26-empty"><strong>Member tidak ditemukan atau tidak tersedia untuk toko ini.</strong><p>Pastikan member masih berada dalam scope toko aktif.</p></div> : null}
+          {member ? (
+            <div className="s26-grid two">
+              <div className="s26-card soft">
+                <div className="s26-avatar">{(member.name || "TM").split(" ").map((part) => part[0]).join("").slice(0, 2)}</div>
+                <h3 style={{ marginTop: 12 }}>{member.name}</h3>
+                <p className="hint">{member.roleName}<br />{member.email}<br />{member.phone || "No phone number"}</p>
+                <span className={statusClass(member.status)}>{member.status}</span>
+                <p className="hint" style={{ marginTop: 12 }}>Joined: {member.joinedAt || "-"}<br />Last active: {member.lastActiveAt || "-"}</p>
+              </div>
+              <div>
+                <label className="s26-field-label" htmlFor="s26-member-role">Role</label>
+                <select id="s26-member-role" className="s26-control" value={member.roleName} disabled title={disabledTodoTitle}>
+                  <option>{member.roleName}</option>
+                  {(teamData?.roles || []).map((role) => <option key={role.id}>{role.name}</option>)}
+                </select>
+                <div style={{ marginTop: 14 }}>
+                  {(teamData?.permissions || []).map((permission) => <div className="s26-toggle-row" key={permission.key}><span><strong>{permission.key}</strong><span className="s26-sub">{permission.description || permission.label}</span></span><span className={`s26-switch ${permission.enabled ? "on" : ""}`} title={disabledTodoTitle} /></div>)}
+                </div>
+                <button type="button" className="s26-btn primary" style={{ marginTop: 16 }} disabled title={disabledTodoTitle}>Save Changes</button>
+              </div>
+            </div>
+          ) : null}
+        </Card>
+        {member ? <div className="s26-grid two"><Card title="Store Access" hint={(teamData?.storeAccess || []).length ? "Store access is scoped and read-only in this phase." : "No additional store access data is available."}>{(teamData?.storeAccess || []).map((access) => <div className="s26-toggle-row" key={access.id}><span>{access.name}</span><span className={`s26-switch ${access.enabled ? "on" : ""}`} /></div>)}</Card><Card title="Permission Summary" hint="Grouped permission overview.">{(teamData?.permissionSummary || []).map((item) => <div className="s26-check-row" key={item.group}><span>{item.group}</span><strong>{item.granted}/{item.total}</strong></div>)}</Card></div> : null}
+      </Shell>
+    );
+  }
+
+  if (isLive && teamView === "audit") {
+    const invitations = teamData?.invitations || [];
+    const auditRows = teamData?.auditLogs || [];
+    const pagination = teamData?.pagination || { page: 1, totalPages: 0, total: 0 };
+
+    return (
+      <Shell section="team" mode={mode} storeContext={storeContext}>
+        {teamState?.isError ? <Card title="Audit unavailable" hint="Live invitations or audit log could not load." actions={<button type="button" className="s26-btn" onClick={teamState?.refetch}>Retry</button>} /> : null}
+        <div className="s26-grid two">
+          <Card title="Pending Invitations" hint="Invitee, role, inviter, date, and lifecycle status." actions={<button type="button" className="s26-btn primary" disabled title={disabledTodoTitle}>Invite Member</button>}>
+            {teamState?.isLoading ? <p className="hint">Loading invitations...</p> : null}
+            {!teamState?.isLoading && invitations.length === 0 ? <div className="s26-empty"><strong>Belum ada invitation untuk toko ini.</strong><p>Undangan pending akan muncul di sini.</p></div> : null}
+            {invitations.length ? <DataTable columns={["Invitee", "Role", "Invited By", "Date", "Status", "Actions"]} rows={invitations} renderRow={(row) => <tr key={row.id}><td><strong>{row.name}</strong><div className="s26-sub">{row.email}</div></td><td>{row.roleName}</td><td>{row.invitedBy}</td><td>{row.invitedAt || "-"}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td><div className="s26-row-actions"><button type="button" className="s26-muted-action" disabled title={disabledTodoTitle}>Resend</button><button type="button" className="s26-muted-action" disabled title={disabledTodoTitle}>Cancel</button></div></td></tr>} /> : null}
+          </Card>
+          <Card title="Invite Member Form" hint="Team invitation integration is pending.">
+            <div className="s26-form-grid">
+              <label><span>Full Name</span><input className="s26-control" placeholder="Nama anggota" disabled /></label>
+              <label><span>Email Address</span><input className="s26-control" placeholder="email@domain.com" disabled /></label>
+              <label><span>Role</span><select className="s26-control" disabled><option>Select role</option></select></label>
+              <label><span>Store Access</span><input className="s26-control" value="Current store only" disabled readOnly /></label>
+            </div>
+            <label style={{ display: "block", marginTop: 12 }}><span>Custom Message</span><textarea className="s26-control" rows={3} placeholder="Pesan undangan" disabled /></label>
+            <button type="button" className="s26-btn primary" style={{ marginTop: 14 }} disabled title={disabledTodoTitle}>Send Invitation</button>
+          </Card>
+        </div>
+        <Card title="Audit Log" hint="Team role, invitation, lifecycle, and permission activity.">
+          <div className="s26-filter-row">
+            <input className="s26-search" aria-label="Filter audit member" placeholder="Filter member or target" value={teamQuery?.member || ""} onChange={(event) => queryChange({ member: event.target.value, page: 1 })} />
+            <select className="s26-control" aria-label="Filter audit action" value={teamQuery?.action || "all"} onChange={(event) => queryChange({ action: event.target.value, page: 1 })}><option value="all">All Actions</option><option value="MEMBER_INVITED">Member Invited</option><option value="ROLE_UPDATED">Role Updated</option><option value="MEMBER_REMOVED">Member Removed</option></select>
+            <input className="s26-control" type="date" aria-label="Audit date from" value={teamQuery?.dateFrom || ""} onChange={(event) => queryChange({ dateFrom: event.target.value, page: 1 })} />
+            <input className="s26-control" type="date" aria-label="Audit date to" value={teamQuery?.dateTo || ""} onChange={(event) => queryChange({ dateTo: event.target.value, page: 1 })} />
+          </div>
+          {!teamState?.isLoading && auditRows.length === 0 ? <div className="s26-empty"><strong>Belum ada invitation atau audit log untuk toko ini.</strong><p>Aktivitas team akan muncul setelah ada perubahan akses.</p></div> : null}
+          {auditRows.length ? <DataTable columns={["Time", "Member", "Action", "Target", "Details", "IP Address"]} rows={auditRows} renderRow={(row) => <tr key={row.id}><td>{row.time || "-"}</td><td>{row.memberName}</td><td>{row.action}</td><td>{row.target}</td><td>{row.details || "-"}</td><td>{row.ipAddress || "-"}</td></tr>} /> : null}
+          <div className="s26-pagination">
+            <span>Page {pagination.page} of {pagination.totalPages} - {pagination.total} logs</span>
+            <div className="s26-filter-row" style={{ marginBottom: 0 }}>
+              <button type="button" className="s26-btn" disabled={pagination.page <= 1} onClick={() => queryChange({ page: pagination.page - 1 })}>Previous</button>
+              <button type="button" className="s26-btn" disabled={pagination.page >= pagination.totalPages} onClick={() => queryChange({ page: pagination.page + 1 })}>Next</button>
+            </div>
+          </div>
+        </Card>
+      </Shell>
+    );
+  }
+
+  if (isLive && teamView === "notifications") {
+    const rows = teamData?.notifications || [];
+    const categories = teamData?.categories || [];
+    const summary = teamData?.summary || {};
+
+    return (
+      <Shell section="team" mode={mode} storeContext={storeContext}>
+        {teamState?.isError ? <Card title="Notifications unavailable" hint="Live notifications could not load." actions={<button type="button" className="s26-btn" onClick={teamState?.refetch}>Retry</button>} /> : null}
+        <div className="s26-grid two">
+          <Card title="Notifications Center" hint="Priority filters, categories, unread state, and operational alerts." actions={<button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Mark all as read</button>}>
+            <div className="s26-grid five" style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 10, marginBottom: 14 }}>
+              <CatalogKpi label="All" value={summary.all || 0} />
+              <CatalogKpi label="Unread" value={summary.unread || 0} />
+              <CatalogKpi label="Critical" value={summary.critical || 0} />
+              <CatalogKpi label="Important" value={summary.important || 0} />
+              <CatalogKpi label="Info" value={summary.info || 0} />
+            </div>
+            <div className="s26-filter-row">
+              <input className="s26-search" aria-label="Search notifications" placeholder="Search notifications" value={searchValue} onChange={(event) => queryChange({ search: event.target.value, page: 1 })} />
+              <select className="s26-control" aria-label="Filter notification priority" value={teamQuery?.priority || "all"} onChange={(event) => queryChange({ priority: event.target.value, page: 1 })}><option value="all">All Priority</option><option value="critical">Critical</option><option value="important">Important</option><option value="info">Info</option><option value="low">Low</option></select>
+              <select className="s26-control" aria-label="Filter notification category" value={teamQuery?.category || "all"} onChange={(event) => queryChange({ category: event.target.value, page: 1 })}>{categories.map((category) => <option key={category.key} value={category.key}>{category.label}</option>)}</select>
+              <select className="s26-control" aria-label="Filter unread notifications" value={teamQuery?.unread || "all"} onChange={(event) => queryChange({ unread: event.target.value, page: 1 })}><option value="all">All Read State</option><option value="true">Unread</option><option value="false">Read</option></select>
+            </div>
+            {teamState?.isLoading ? <p className="hint">Loading notifications...</p> : null}
+            {!teamState?.isLoading && rows.length === 0 ? <div className="s26-empty"><strong>Belum ada notifikasi untuk toko ini.</strong><p>Notifikasi store-scoped akan muncul saat ada event operasional.</p></div> : null}
+            {rows.length ? <DataTable columns={["Notification", "Category", "Priority", "Time", "State"]} rows={rows} renderRow={(row) => <tr key={row.id}><td><strong>{row.title}</strong><div className="s26-sub">{row.message || "-"}</div></td><td>{row.category}</td><td><span className={statusClass(row.priority)}>{row.priority}</span></td><td>{row.createdAt || "-"}</td><td>{row.unread ? "Unread" : "Read"}</td></tr>} /> : null}
+          </Card>
+          <Card title="Categories" hint="Notification grouping by operational domain.">
+            <div className="s26-checklist">{categories.map((category) => <button type="button" className="s26-check-row" key={category.key} onClick={() => queryChange({ category: category.key, page: 1 })}><span>{category.label}</span><strong>{category.count}</strong></button>)}</div>
+          </Card>
+        </div>
+      </Shell>
+    );
+  }
+
   return (
     <Shell section="team">
       <div className="s26-grid two">
@@ -1133,6 +1302,11 @@ export function Seller2026Workspace({
   operationsState = null,
   operationsQuery = null,
   onOperationsQueryChange = null,
+  teamView = "overview",
+  teamData = null,
+  teamState = null,
+  teamQuery = null,
+  onTeamQueryChange = null,
 }) {
   const Component = useMemo(() => {
     if (section === "storefront") return StorefrontPage;
@@ -1167,6 +1341,11 @@ export function Seller2026Workspace({
       operationsState={operationsState}
       operationsQuery={operationsQuery}
       onOperationsQueryChange={onOperationsQueryChange}
+      teamView={teamView}
+      teamData={teamData}
+      teamState={teamState}
+      teamQuery={teamQuery}
+      onTeamQueryChange={onTeamQueryChange}
     />
   );
 }
