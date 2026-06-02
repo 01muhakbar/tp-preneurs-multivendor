@@ -96,7 +96,7 @@ const LIVE_ROUTES_BY_KEY = {
   settings: "/settings",
 };
 
-function Shell({ section = "dashboard", children }) {
+function Shell({ section = "dashboard", mode = "standalone", storeContext = null, children }) {
   const { storeSlug } = useParams();
   const initialTheme =
     typeof window !== "undefined" && window.localStorage.getItem("seller2026-theme") === "dark"
@@ -105,6 +105,8 @@ function Shell({ section = "dashboard", children }) {
   const [theme, setTheme] = useState(initialTheme);
   const meta = SECTION_META[section] || SECTION_META.dashboard;
   const isDark = theme === "dark";
+  const store = storeContext?.store || sellerStore;
+  const isEmbedded = mode === "embedded";
   const basePath = storeSlug
     ? `/seller/stores/${encodeURIComponent(storeSlug)}`
     : "/seller-2026";
@@ -121,9 +123,9 @@ function Shell({ section = "dashboard", children }) {
   };
 
   return (
-    <div className={`s26-app ${isDark ? "s26-dark" : ""}`}>
+    <div className={`s26-app ${isDark ? "s26-dark" : ""} ${isEmbedded ? "s26-app-embedded" : ""}`}>
       <div className="s26-shell">
-        <aside className="s26-sidebar">
+        {isEmbedded ? null : <aside className="s26-sidebar">
           <div className="s26-brand">
             <div className="s26-logo">TP</div>
             <div>
@@ -132,7 +134,7 @@ function Shell({ section = "dashboard", children }) {
             </div>
           </div>
           <div className="s26-store-switcher">
-            <span>{sellerStore.name}</span>
+            <span>{store.name || sellerStore.name}</span>
             <span aria-hidden="true">v</span>
           </div>
           {navGroups.map((group) => (
@@ -151,10 +153,10 @@ function Shell({ section = "dashboard", children }) {
               ))}
             </div>
           ))}
-        </aside>
+        </aside>}
 
         <main className="s26-main">
-          <header className="s26-topbar">
+          {isEmbedded ? null : <header className="s26-topbar">
             <div>
               <p className="s26-eyebrow">{meta.eyebrow}</p>
               <div className="s26-title-row">
@@ -172,7 +174,7 @@ function Shell({ section = "dashboard", children }) {
               <button type="button" className="s26-control" aria-label="Open notifications">Notifications 12</button>
               <div className="s26-avatar" title={sellerStore.owner}>{sellerStore.avatar}</div>
             </div>
-          </header>
+          </header>}
           {children}
         </main>
       </div>
@@ -236,37 +238,59 @@ function DataTable({ columns, rows, renderRow }) {
   );
 }
 
-function DashboardPage() {
+function DashboardPage({ dashboardData = null, dashboardState = null, mode, storeContext }) {
+  const effectiveKpis = dashboardData?.kpis?.length ? dashboardData.kpis : kpis;
+  const effectiveReadiness = dashboardData?.readiness?.length ? dashboardData.readiness : readiness;
+  const effectiveTopProducts = dashboardData?.topProducts?.length
+    ? dashboardData.topProducts
+    : topProducts;
+  const effectiveSuborders = dashboardData?.recentSuborders?.length
+    ? dashboardData.recentSuborders
+    : suborders;
+  const effectiveTraffic = dashboardData?.traffic?.length
+    ? dashboardData.traffic
+    : [["Organic Search", "42,1%"], ["Direct", "24,7%"], ["Social Media", "16,3%"], ["Marketplace", "11,9%"], ["Other", "5,0%"]];
+  const readinessPercent = Number(dashboardData?.readinessPercent ?? 78);
+  const isLoading = Boolean(dashboardState?.isLoading);
+  const isError = Boolean(dashboardState?.isError);
+
   return (
-    <Shell section="dashboard">
-      <div className="s26-grid kpi">{kpis.map((item) => <StatCard item={item} key={item.label} />)}</div>
+    <Shell section="dashboard" mode={mode} storeContext={storeContext}>
+      {isError ? (
+        <Card
+          title="Dashboard data unavailable"
+          hint="Seller 2026 dashboard could not load live data. Preview fallback remains visible below."
+          actions={<button type="button" className="s26-btn" onClick={dashboardState?.refetch}>Retry</button>}
+        />
+      ) : null}
+      <div className="s26-grid kpi">{effectiveKpis.map((item) => <StatCard item={{ ...item, change: isLoading ? "Loading..." : item.change }} key={item.label} />)}</div>
       <div className="s26-grid dashboard">
         <Card title="Store Readiness" hint="Lengkapi checklist sebelum scale penjualan.">
           <div style={{ display: "flex", gap: 18, alignItems: "center" }}>
-            <div className="s26-progress"><span>78%</span></div>
+            <div className="s26-progress" style={{ "--s26-progress": `${readinessPercent}%` }}><span>{isLoading ? "..." : `${readinessPercent}%`}</span></div>
             <div>
-              <strong>Good progress!</strong>
-              <p className="hint">Toko sudah siap untuk ditingkatkan.</p>
+              <strong>{dashboardData?.readinessLabel || "Good progress!"}</strong>
+              <p className="hint">{dashboardData?.readinessHint || "Toko sudah siap untuk ditingkatkan."}</p>
             </div>
           </div>
           <div className="s26-checklist">
-            {readiness.map((item) => <div className="s26-check-row" key={item.label}><span>{item.label}</span><span className={statusClass(item.status)}>{item.status}</span></div>)}
+            {effectiveReadiness.map((item) => <div className="s26-check-row" key={item.label}><span>{item.label}</span><span className={statusClass(item.status)}>{item.status}</span></div>)}
           </div>
         </Card>
         <Card title="Sales Analytics" hint="Revenue dan order harian."><MiniChart /></Card>
         <Card title="Traffic by Channel" hint="Sumber traffic microsite.">
-          <div className="s26-donut"><span>Total<br />42.184<br />Sessions</span></div>
+          <div className="s26-donut"><span>Live<br />Seller<br />Signals</span></div>
           <div className="s26-checklist">
-            {[["Organic Search", "42,1%"], ["Direct", "24,7%"], ["Social Media", "16,3%"], ["Marketplace", "11,9%"], ["Other", "5,0%"]].map(([a, b]) => <div className="s26-check-row" key={a}><span>{a}</span><strong>{b}</strong></div>)}
+            {effectiveTraffic.map(([a, b]) => <div className="s26-check-row" key={a}><span>{a}</span><strong>{b}</strong></div>)}
           </div>
         </Card>
       </div>
       <div className="s26-grid two">
         <Card title="Top Products" hint="Produk dengan revenue terbaik minggu ini.">
-          <DataTable columns={["Produk", "Terjual", "Revenue", "Trend"]} rows={topProducts} renderRow={(row) => <tr key={row[0]}><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td style={{ color: "var(--seller-emerald)", fontWeight: 800 }}>{row[3]}</td></tr>} />
+          <DataTable columns={["Produk", "Terjual", "Revenue", "Status"]} rows={effectiveTopProducts} renderRow={(row) => <tr key={row[0]}><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td style={{ color: "var(--seller-emerald)", fontWeight: 800 }}>{row[3]}</td></tr>} />
         </Card>
         <Card title="Recent Suborders" hint="Suborder terbaru dari semua channel.">
-          <DataTable columns={["Suborder", "Customer", "Status", "Waktu"]} rows={suborders} renderRow={(row) => <tr key={row.id}><td>{row.id}</td><td>{row.customer}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td>{row.time}</td></tr>} />
+          <DataTable columns={["Suborder", "Customer", "Status", "Waktu"]} rows={effectiveSuborders} renderRow={(row) => <tr key={row.id}><td>{row.id}</td><td>{row.customer}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td>{row.time}</td></tr>} />
         </Card>
       </div>
       <div className="s26-grid three">
@@ -436,7 +460,13 @@ function TeamPage() {
   );
 }
 
-export function Seller2026Workspace({ section = "dashboard" }) {
+export function Seller2026Workspace({
+  section = "dashboard",
+  mode = "standalone",
+  storeContext = null,
+  dashboardData = null,
+  dashboardState = null,
+}) {
   const Component = useMemo(() => {
     if (section === "storefront") return StorefrontPage;
     if (section === "products") return ProductsPage;
@@ -445,7 +475,14 @@ export function Seller2026Workspace({ section = "dashboard" }) {
     if (section === "team") return TeamPage;
     return DashboardPage;
   }, [section]);
-  return <Component />;
+  return (
+    <Component
+      mode={mode}
+      storeContext={storeContext}
+      dashboardData={dashboardData}
+      dashboardState={dashboardState}
+    />
+  );
 }
 
 export default Seller2026Workspace;

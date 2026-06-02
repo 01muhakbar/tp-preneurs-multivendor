@@ -21,6 +21,7 @@
 - `/seller-2026/team/invitations`
 - `/seller-2026/team/audit`
 - `/seller-2026/notifications`
+- `/seller/stores/:storeSlug/dashboard`
 
 ## Components Added
 - `client/src/features/seller2026/Seller2026Workspace.jsx`
@@ -39,7 +40,8 @@
 - Forms, tables, and action buttons are visual-only in the preview route.
 
 ## API Integrated
-- No live API fetch is connected to the preview UI yet.
+- Preview routes still use mock data from the slicing bundle.
+- Live dashboard uses existing seller workspace APIs through `useSeller2026Dashboard`.
 - Adapter skeletons are available in `client/src/api/seller2026/`.
 
 ## Pending Backend Work
@@ -48,7 +50,7 @@
 - Preserve backend checks with `requireAuth`, `requireSellerStoreAccess`, and permission guards.
 
 ## Known Limitations
-- Live seller routes under `/seller/stores/:storeSlug/*` are unchanged.
+- Live seller dashboard has been adopted; other live seller routes are unchanged.
 - Preview pages use shared section wrappers, so several detail routes intentionally render the same domain workspace.
 - Permission-aware action hiding is planned for the live integration phase.
 

@@ -136,6 +136,9 @@ const SellerProductAuthoringPage = lazy(() =>
 );
 const SellerTeamPage = lazy(() => import("./pages/seller/SellerTeamPage.jsx"));
 const SellerWorkspaceHome = lazy(() => import("./pages/seller/SellerWorkspaceHome.jsx"));
+const Seller2026LiveDashboardPage = lazy(() =>
+  import("./pages/seller2026/Seller2026LiveDashboardPage.jsx")
+);
 const AdminPaymentAuditPage = lazy(() =>
   import("./pages/admin/AdminPaymentAuditPage.jsx")
 );
@@ -392,7 +395,7 @@ export default function App() {
           />
           <Route path="/seller/stores/:storeSlug" element={<SellerLayout />}>
             <Route index element={<SellerWorkspaceHome />} />
-            <Route path="dashboard" element={<SellerWorkspaceHome />} />
+            <Route path="dashboard" element={<Seller2026LiveDashboardPage />} />
             <Route path="store-profile" element={<SellerStoreProfilePage />} />
             <Route path="team" element={<SellerTeamPage />} />
             <Route path="team/:memberId" element={<SellerMemberLifecyclePage />} />
