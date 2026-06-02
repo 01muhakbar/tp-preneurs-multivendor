@@ -124,15 +124,9 @@ const SellerTeamAuditPage = lazy(() => import("./pages/seller/SellerTeamAuditPag
 const SellerMemberLifecyclePage = lazy(() =>
   import("./pages/seller/SellerMemberLifecyclePage.jsx")
 );
-const SellerCatalogPage = lazy(() => import("./pages/seller/SellerCatalogPage.jsx"));
 const SellerCategoriesPage = lazy(() => import("./pages/seller/SellerCategoriesPage.jsx"));
 const SellerAttributesPage = lazy(() => import("./pages/seller/SellerAttributesPage.jsx"));
 const SellerAttributeValuesPage = lazy(() => import("./pages/seller/SellerAttributeValuesPage.jsx"));
-const SellerProductDetailPage = lazy(() => import("./pages/seller/SellerProductDetailPage.jsx"));
-const SellerProductEditPage = lazy(() => import("./pages/seller/SellerProductEditPage.jsx"));
-const SellerProductAuthoringPage = lazy(() =>
-  import("./pages/seller/SellerProductAuthoringPage.jsx")
-);
 const SellerTeamPage = lazy(() => import("./pages/seller/SellerTeamPage.jsx"));
 const SellerWorkspaceHome = lazy(() => import("./pages/seller/SellerWorkspaceHome.jsx"));
 const Seller2026LiveDashboardPage = lazy(() =>
@@ -140,6 +134,15 @@ const Seller2026LiveDashboardPage = lazy(() =>
 );
 const Seller2026LiveStorefrontPage = lazy(() =>
   import("./pages/seller2026/Seller2026LiveStorefrontPage.jsx")
+);
+const Seller2026LiveProductsPage = lazy(() =>
+  import("./pages/seller2026/Seller2026LiveProductsPage.jsx")
+);
+const Seller2026LiveProductDetailPage = lazy(() =>
+  import("./pages/seller2026/Seller2026LiveProductDetailPage.jsx")
+);
+const Seller2026LiveProductEditorPage = lazy(() =>
+  import("./pages/seller2026/Seller2026LiveProductEditorPage.jsx")
 );
 const AdminPaymentAuditPage = lazy(() =>
   import("./pages/admin/AdminPaymentAuditPage.jsx")
@@ -405,7 +408,7 @@ export default function App() {
             <Route path="team/audit" element={<SellerTeamAuditPage />} />
             <Route path="catalog" element={<LegacySellerCatalogRedirect />} />
             <Route path="catalog/new" element={<LegacySellerProductCreateRedirect />} />
-            <Route path="catalog/products" element={<SellerCatalogPage />} />
+            <Route path="catalog/products" element={<Seller2026LiveProductsPage />} />
             <Route path="catalog/categories" element={<SellerCategoriesPage />} />
             <Route path="catalog/attributes" element={<SellerAttributesPage />} />
             <Route
@@ -414,7 +417,7 @@ export default function App() {
             />
             <Route
               path="catalog/products/new"
-              element={<SellerProductAuthoringPage mode="create" />}
+              element={<Seller2026LiveProductEditorPage mode="create" />}
             />
             <Route
               path="catalog/:productId/edit"
@@ -422,10 +425,10 @@ export default function App() {
             />
             <Route
               path="catalog/products/:productId/edit"
-              element={<SellerProductEditPage />}
+              element={<Seller2026LiveProductEditorPage mode="edit" />}
             />
             <Route path="catalog/:productId" element={<LegacySellerProductDetailRedirect />} />
-            <Route path="catalog/products/:productId" element={<SellerProductDetailPage />} />
+            <Route path="catalog/products/:productId" element={<Seller2026LiveProductDetailPage />} />
             <Route path="orders" element={<SellerOrdersPage />} />
             <Route path="orders/:suborderId" element={<SellerOrderDetailPage />} />
             <Route path="payment-review" element={<SellerPaymentReviewPage />} />

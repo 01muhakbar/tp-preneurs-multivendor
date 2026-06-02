@@ -497,34 +497,233 @@ function StorefrontPage({ storefrontData = null, storefrontState = null, mode, s
   );
 }
 
-function ProductsPage() {
+const productStatusLabel = (status = "draft") => {
+  const labels = {
+    draft: "Draft",
+    submitted: "Submitted",
+    active: "Active",
+    needs_revision: "Needs Revision",
+    inactive: "Inactive",
+  };
+  return labels[status] || "Draft";
+};
+
+const productInitial = (name = "P") => String(name || "P").trim().charAt(0).toUpperCase() || "P";
+
+function ProductsPage({
+  productsData = null,
+  productsState = null,
+  productsQuery = null,
+  onProductsQueryChange = null,
+  productDetailData = null,
+  productDetailState = null,
+  productEditorMode = null,
+  mode,
+  storeContext,
+}) {
+  const { storeSlug } = useParams();
+  const isLive = Boolean(productsData || productsState || productDetailState || productEditorMode);
+  const basePath = storeSlug ? `/seller/stores/${encodeURIComponent(storeSlug)}` : "/seller-2026";
+  const addProductTo = storeSlug ? `${basePath}/catalog/products/new` : "/seller-2026/products";
+  const currentStatus = productsQuery?.status || "all";
+  const currentCategory = productsQuery?.category || "all";
+  const currentSearch = productsQuery?.search || "";
+  const summary = productsData?.summary || {};
+  const liveProducts = productsData?.products || [];
+  const tableRows = isLive ? liveProducts : products;
+  const canCreate = productsData?.permissions?.canCreate !== false || !isLive;
+  const canUpdate = productsData?.permissions?.canUpdate !== false || !isLive;
+  const queryChange = (next) => onProductsQueryChange?.(next);
+  const tabs = isLive
+    ? [
+        ["all", `All Products ${summary.total || 0}`],
+        ["draft", `Draft ${summary.draft || 0}`],
+        ["submitted", `Submitted ${summary.submitted || 0}`],
+        ["active", `Active ${summary.active || 0}`],
+        ["needs_revision", `Needs Revision ${summary.needsRevision || 0}`],
+        ["inactive", `Inactive ${summary.inactive || 0}`],
+      ]
+    : ["All Products 1.248", "Draft 142", "Submitted 86", "Active 876", "Needs Revision 27", "Inactive 117"].map((label, index) => [index === 0 ? "all" : label, label]);
+  const editorProduct = productDetailData?.product || null;
+  const detail = productDetailData;
+  const previewDetail = {
+    product: {
+      name: "Hijab Voal Premium",
+      sku: "HJP-VOAL-01-BLK",
+      status: "active",
+      price: 89000,
+      stock: 120,
+      sold: 1248,
+      views: 8432,
+      category: "Fashion / Hijab & Kerudung",
+      tags: ["Hijab", "Voal", "Premium", "Women"],
+      description: "Hijab voal premium berkualitas tinggi dengan jahitan rapi dan finishing yang lembut di kulit.",
+      gallery: [],
+    },
+    revisionNotes: [{ message: "Marketplace Admin meminta tambahan bahan dan foto jahitan." }],
+    publishHistory: [{ label: "Published" }, { label: "Submitted" }, { label: "Revision Requested" }],
+  };
+  const detailView = isLive ? detail : previewDetail;
+  const pagination = productsData?.pagination || { page: 1, totalPages: 1, total: tableRows.length, limit: 10 };
+  const editorTitle = productEditorMode === "edit" ? "Product Edit Shell" : "Product Create Shell";
+  const shouldShowList = !productDetailState?.view && !productEditorMode;
+  const shouldShowDetail = productDetailState?.view === "detail" || !isLive;
+  const shouldShowEditor = Boolean(productEditorMode) || !isLive;
+
   return (
-    <Shell section="products">
-      <div className="s26-grid operations">
-        <Card title="Products List" hint="Search, filter, bulk action, status, SKU, stok, dan performa produk." actions={<button className="s26-btn primary">+ Add Product</button>}>
-          <div className="s26-tabs">{["All Products 1.248", "Draft 142", "Submitted 86", "Active 876", "Needs Revision 27", "Inactive 117"].map((tab, idx) => <button className={`s26-tab ${idx === 0 ? "active" : ""}`} key={tab}>{tab}</button>)}</div>
-          <div className="s26-filter-row"><button className="s26-btn">All Categories</button><button className="s26-btn">All Status</button><button className="s26-btn">All Stock</button><button className="s26-btn">More Filters</button></div>
-          <DataTable columns={["Product", "SKU", "Stock", "Price", "Sales", "Views", "Status", "Updated"]} rows={products} renderRow={(row) => <tr key={row.sku}><td><div className="s26-product-cell"><span className="s26-thumb">{row.name[0]}</span><div><strong>{row.name}</strong><div className="s26-sub">{row.category}</div></div></div></td><td>{row.sku}</td><td>{row.stock}</td><td>{row.price}</td><td>{row.sales}</td><td>{row.views}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td>{row.updated}</td></tr>} />
+    <Shell section="products" mode={mode} storeContext={storeContext}>
+      {productsState?.isError ? (
+        <Card
+          title="Products data unavailable"
+          hint="Live product catalog could not load. No demo product data is shown on this live route."
+          actions={<button type="button" className="s26-btn" onClick={productsState?.refetch}>Retry</button>}
+        />
+      ) : null}
+      {shouldShowList ? (
+        <Card
+          title="Products / Product Catalog"
+          hint="Search, filter, bulk action, status, SKU, stok, dan performa produk."
+          actions={
+            canCreate ? (
+              <Link className="s26-btn primary" to={addProductTo}>+ Add Product</Link>
+            ) : (
+              <button type="button" className="s26-btn primary" disabled title="CATALOG_PRODUCT_CREATE permission is required.">+ Add Product</button>
+            )
+          }
+        >
+          <div className="s26-tabs">
+            {tabs.map(([value, label], index) => (
+              <button
+                type="button"
+                className={`s26-tab ${(isLive ? currentStatus === value : index === 0) ? "active" : ""}`}
+                key={label}
+                onClick={() => isLive && queryChange({ status: value, page: 1 })}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="s26-filter-row">
+            <input
+              className="s26-search"
+              aria-label="Search product, SKU, or category"
+              placeholder="Search product, SKU, or category"
+              value={isLive ? currentSearch : ""}
+              onChange={(event) => queryChange({ search: event.target.value, page: 1 })}
+              readOnly={!isLive}
+            />
+            <select
+              className="s26-control"
+              aria-label="Filter by category"
+              value={currentCategory}
+              onChange={(event) => queryChange({ category: event.target.value, page: 1 })}
+            >
+              {(productsData?.filters?.categories || [{ value: "all", label: "All Categories" }]).map((category) => (
+                <option value={category.value} key={category.value}>{category.label}</option>
+              ))}
+            </select>
+            <select
+              className="s26-control"
+              aria-label="Filter by status"
+              value={currentStatus}
+              onChange={(event) => queryChange({ status: event.target.value, page: 1 })}
+            >
+              {(productsData?.filters?.statuses || [{ value: "all", label: "All Status" }]).map((status) => (
+                <option value={status.value} key={status.value}>{status.label}</option>
+              ))}
+            </select>
+            <button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Bulk Actions</button>
+            <button type="button" className="s26-btn" disabled title={disabledTodoTitle}>More Filters</button>
+          </div>
+          {productsState?.isLoading ? <p className="hint">Loading products...</p> : null}
+          {!productsState?.isLoading && tableRows.length === 0 ? (
+            <div className="s26-empty">
+              <strong>Belum ada produk</strong>
+              <p>Tambahkan produk pertama untuk mulai menjual di toko ini.</p>
+            </div>
+          ) : (
+            <DataTable
+              columns={["", "Product", "SKU", "Stock", "Price", "Sales", "Views", "Status", "Updated", "Actions"]}
+              rows={tableRows}
+              renderRow={(row) => {
+                const rowStatus = isLive ? productStatusLabel(row.status) : row.status;
+                const detailTo = storeSlug ? `${basePath}/catalog/products/${encodeURIComponent(String(row.id))}` : "/seller-2026/products";
+                const editTo = storeSlug ? `${detailTo}/edit` : "/seller-2026/products";
+                return (
+                  <tr key={row.id || row.sku}>
+                    <td><input type="checkbox" aria-label={`Select ${row.name}`} disabled title={disabledTodoTitle} /></td>
+                    <td>
+                      <div className="s26-product-cell">
+                        <span className="s26-thumb">{row.thumbnailUrl ? <img src={row.thumbnailUrl} alt="" /> : productInitial(row.name)}</span>
+                        <div><strong>{row.name}</strong><div className="s26-sub">{row.category}</div></div>
+                      </div>
+                    </td>
+                    <td>{row.sku}</td>
+                    <td>{row.stock}</td>
+                    <td>{isLive ? formatRupiah(row.price) : row.price}</td>
+                    <td>{row.sales}</td>
+                    <td>{row.views}</td>
+                    <td><span className={statusClass(rowStatus)}>{rowStatus}</span></td>
+                    <td>{isLive ? (row.updatedAt || "-") : row.updated}</td>
+                    <td>
+                      <div className="s26-row-actions">
+                        <Link className="s26-link" to={detailTo}>Detail</Link>
+                        {canUpdate ? <Link className="s26-link" to={editTo}>Edit</Link> : <span className="s26-muted-action">Edit</span>}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              }}
+            />
+          )}
+          {isLive ? (
+            <div className="s26-pagination">
+              <span>Page {pagination.page} of {pagination.totalPages} - {pagination.total} products</span>
+              <div className="s26-filter-row" style={{ marginBottom: 0 }}>
+                <button type="button" className="s26-btn" disabled={pagination.page <= 1} onClick={() => queryChange({ page: pagination.page - 1 })}>Previous</button>
+                <button type="button" className="s26-btn" disabled={pagination.page >= pagination.totalPages} onClick={() => queryChange({ page: pagination.page + 1 })}>Next</button>
+              </div>
+            </div>
+          ) : null}
         </Card>
-        <Card title="Product Create / Edit" hint="Multi-step product authoring dengan draft-first workflow.">
+      ) : null}
+      {shouldShowEditor ? (
+        <Card title={isLive ? editorTitle : "Product Create / Edit"} hint="Multi-step product authoring dengan draft-first workflow.">
           <div className="s26-stepper">{["Basic", "Media", "Categories", "Variants", "Pricing", "Inventory", "Shipping", "SEO", "Publish"].map((s, i) => <span className={`s26-step ${i === 0 ? "active" : ""}`} key={s}>{s}</span>)}</div>
           <div className="s26-form-grid">
-            <div className="s26-field"><label>Product Name *</label><input defaultValue="Hijab Voal Premium" /></div>
-            <div className="s26-field"><label>SKU *</label><input defaultValue="HJP-VOAL-01-BLK" /></div>
+            <div className="s26-field"><label>Product Name *</label><input defaultValue={isLive ? editorProduct?.name || "" : "Hijab Voal Premium"} readOnly={isLive} /></div>
+            <div className="s26-field"><label>SKU *</label><input defaultValue={isLive ? editorProduct?.sku || "" : "HJP-VOAL-01-BLK"} readOnly={isLive} /></div>
             <div className="s26-field"><label>Product Type</label><select defaultValue="Physical"><option>Physical</option><option>Digital</option><option>Service</option></select></div>
-            <div className="s26-field"><label>Brand</label><input defaultValue="Butik Nusantara" /></div>
-            <div className="s26-field" style={{ gridColumn: "1 / -1" }}><label>Description</label><textarea defaultValue="Hijab voal premium berkualitas tinggi dengan jahitan rapi dan finishing yang lembut di kulit." /></div>
+            <div className="s26-field"><label>Brand</label><input defaultValue={isLive ? editorProduct?.brand || "" : "Butik Nusantara"} readOnly={isLive} /></div>
+            <div className="s26-field" style={{ gridColumn: "1 / -1" }}><label>Description</label><textarea defaultValue={isLive ? editorProduct?.description || "" : "Hijab voal premium berkualitas tinggi dengan jahitan rapi dan finishing yang lembut di kulit."} readOnly={isLive} /></div>
           </div>
-          <button className="s26-btn primary" style={{ marginTop: 16 }}>Next: Media</button>
+          {isLive ? <p className="hint" style={{ marginTop: 14 }}>Product mutation integration is pending. This screen is currently a UI shell.</p> : null}
+          <div className="s26-filter-row" style={{ marginTop: 16, marginBottom: 0 }}>
+            <button type="button" className="s26-btn" disabled={isLive} title={disabledTodoTitle}>Save Draft</button>
+            <button type="button" className="s26-btn primary" disabled={isLive} title={disabledTodoTitle}>Next: Media</button>
+          </div>
         </Card>
-      </div>
+      ) : null}
+      {shouldShowDetail ? (
       <Card title="Product Detail / Preview" hint="Gallery, performance, variants, revision notes, dan publish history.">
+        {productDetailState?.isError ? (
+          <div className="s26-empty">
+            <strong>Product detail unavailable</strong>
+            <p>Detail produk tidak dapat dimuat saat ini.</p>
+            <button type="button" className="s26-btn" onClick={productDetailState?.refetch}>Retry</button>
+          </div>
+        ) : null}
+        {productDetailState?.isLoading ? <p className="hint">Loading product detail...</p> : null}
         <div className="s26-grid three">
-          <div className="s26-card soft"><div style={{ minHeight: 260, borderRadius: 18, background: "radial-gradient(circle, #e0e7ff, #fff)", display: "grid", placeItems: "center", fontSize: 82 }}>TP</div><button className="s26-btn" style={{ width: "100%", marginTop: 12 }}>View on Storefront</button></div>
-          <div><h3>Hijab Voal Premium <span className={statusClass("Active")}>Active</span></h3><p className="hint">SKU: HJP-VOAL-01-BLK</p><div className="s26-grid two" style={{ marginTop: 16 }}>{[["Price", "89.000"], ["Stock", "120"], ["Sold", "1.248"], ["Views", "8.432"]].map(([a, b]) => <div className="s26-card soft" key={a}><p className="hint">{a}</p><strong>{b}</strong></div>)}</div><p className="hint" style={{ marginTop: 14 }}>Category: Fashion / Hijab & Kerudung. Tags: Hijab, Voal, Premium, Women.</p></div>
-          <div><Card title="Revision Notes" hint="Marketplace Admin meminta tambahan bahan dan foto jahitan." /><Card title="Publish History" hint="Published / Submitted / Revision Requested / Draft Created" className="soft" /></div>
+          <div className="s26-card soft"><div className="s26-product-gallery">{detailView?.product.gallery?.[0] ? <img src={detailView.product.gallery[0]} alt="" /> : productInitial(detailView?.product.name || "P")}</div><button type="button" className="s26-btn" style={{ width: "100%", marginTop: 12 }} disabled={isLive} title={disabledTodoTitle}>View on Storefront</button></div>
+          <div><h3>{detailView?.product.name || "Product detail"} <span className={statusClass(productStatusLabel(detailView?.product.status))}>{productStatusLabel(detailView?.product.status)}</span></h3><p className="hint">SKU: {detailView?.product.sku || "-"}</p><div className="s26-grid two" style={{ marginTop: 16 }}>{[["Price", formatRupiah(detailView?.product.price)], ["Stock", detailView?.product.stock || 0], ["Sold", detailView?.product.sold || 0], ["Views", detailView?.product.views || 0]].map(([a, b]) => <div className="s26-card soft" key={a}><p className="hint">{a}</p><strong>{b}</strong></div>)}</div><p className="hint" style={{ marginTop: 14 }}>Category: {detailView?.product.category || "Uncategorized"}. Tags: {(detailView?.product.tags || []).join(", ") || "No tags"}.</p><p className="hint" style={{ marginTop: 14 }}>{detailView?.product.description || "Product description is not available yet."}</p></div>
+          <div>
+            <Card title="Revision Notes" hint={detailView?.revisionNotes.length ? detailView.revisionNotes.map((note) => note.message).join(" | ") : "No revision notes."} />
+            <Card title="Publish History" hint={detailView?.publishHistory.length ? detailView.publishHistory.map((item) => item.label).join(" / ") : "No publish history yet."} className="soft" />
+          </div>
         </div>
       </Card>
+      ) : null}
     </Shell>
   );
 }
@@ -628,6 +827,13 @@ export function Seller2026Workspace({
   dashboardState = null,
   storefrontData = null,
   storefrontState = null,
+  productsData = null,
+  productsState = null,
+  productsQuery = null,
+  onProductsQueryChange = null,
+  productDetailData = null,
+  productDetailState = null,
+  productEditorMode = null,
 }) {
   const Component = useMemo(() => {
     if (section === "storefront") return StorefrontPage;
@@ -645,6 +851,13 @@ export function Seller2026Workspace({
       dashboardState={dashboardState}
       storefrontData={storefrontData}
       storefrontState={storefrontState}
+      productsData={productsData}
+      productsState={productsState}
+      productsQuery={productsQuery}
+      onProductsQueryChange={onProductsQueryChange}
+      productDetailData={productDetailData}
+      productDetailState={productDetailState}
+      productEditorMode={productEditorMode}
     />
   );
 }
