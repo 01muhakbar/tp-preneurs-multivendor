@@ -341,6 +341,24 @@
 - Notification read/delete flow.
 - Real-time notification integration.
 
+## Hardening Audit & Production Readiness Pass
+
+### Files Added
+- `docs/seller-2026/HARDENING_AUDIT.md`
+- `client/src/api/seller2026/mutation-flags.ts`
+
+### Files Changed
+- `client/src/features/seller2026/Seller2026DesignSystem.css`
+- `client/src/features/seller2026/Seller2026Workspace.jsx`
+
+### Summary
+- Audited live route consistency for every Seller 2026 route under `/seller/stores/:storeSlug/*`.
+- Confirmed preview routes under `/seller-2026/*` remain intact.
+- Confirmed live pages use `mode="embedded"` and do not render a second Seller 2026 sidebar.
+- Scoped Seller 2026 design tokens to `.s26-app` instead of global `:root`.
+- Added explicit mutation readiness flags with all risky Seller 2026 mutations disabled.
+- Documented preview leakage, dummy data, storeSlug navigation, mutation safety, adapter fallback, CSS scope, and responsive smoke results.
+
 ## QA Checklist
 - Verify preview pages do not render blank.
 - Verify CSS does not affect `/admin/*`, `/`, `/store/:slug`, or `/user/*`.

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { SELLER_2026_MUTATIONS } from "../../api/seller2026/mutation-flags.ts";
 import {
   attributes,
   categories,
@@ -245,7 +246,10 @@ const formatRupiah = (value) =>
     maximumFractionDigits: 0,
   }).format(Number(value || 0));
 
-const disabledTodoTitle = "Coming soon: backend integration is pending for this action.";
+const hasSeller2026MutationEnabled = Object.values(SELLER_2026_MUTATIONS).some(Boolean);
+const disabledTodoTitle = hasSeller2026MutationEnabled
+  ? "Mutation integration enabled."
+  : "Coming soon: backend integration is pending for this action.";
 
 function DashboardPage({ dashboardData = null, dashboardState = null, mode, storeContext }) {
   const effectiveKpis = dashboardData?.kpis?.length ? dashboardData.kpis : kpis;

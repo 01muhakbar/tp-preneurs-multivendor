@@ -1,4 +1,9 @@
-:root {
+/*
+ * Seller Workspace 2026 styles.
+ * All selectors must remain scoped under .s26-* to avoid leaking into Admin or Storefront.
+ */
+
+.s26-app {
   --seller-bg: #f6f8fc;
   --seller-panel: #ffffff;
   --seller-panel-soft: #f8fafc;

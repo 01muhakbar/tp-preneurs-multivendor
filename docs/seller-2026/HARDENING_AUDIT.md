@@ -1,0 +1,106 @@
+# Seller Workspace 2026 Hardening Audit
+
+## Scope
+- Audited Seller Workspace 2026 preview and live adoption routes.
+- Preview routes under `/seller-2026/*` are retained as visual regression playgrounds.
+- Live routes under `/seller/stores/:storeSlug/*` remain wrapped by the existing `SellerLayout`.
+- This pass does not enable create/update/delete, fulfillment, payment review, team, or notification mutations.
+
+## Route Map
+- `/seller/stores/:storeSlug/dashboard` -> `Seller2026LiveDashboardPage`
+- `/seller/stores/:storeSlug/store-profile` -> `Seller2026LiveStorefrontPage`
+- `/seller/stores/:storeSlug/microsite-preview` -> `Seller2026LiveStorefrontPage`
+- `/seller/stores/:storeSlug/catalog/products` -> `Seller2026LiveProductsPage`
+- `/seller/stores/:storeSlug/catalog/products/new` -> `Seller2026LiveProductEditorPage`
+- `/seller/stores/:storeSlug/catalog/products/:productId` -> `Seller2026LiveProductDetailPage`
+- `/seller/stores/:storeSlug/catalog/products/:productId/edit` -> `Seller2026LiveProductEditorPage`
+- `/seller/stores/:storeSlug/catalog/categories` -> `Seller2026LiveCategoriesPage`
+- `/seller/stores/:storeSlug/catalog/attributes` -> `Seller2026LiveAttributesPage`
+- `/seller/stores/:storeSlug/catalog/attributes/:attributeId/values` -> `Seller2026LiveAttributeValuesPage`
+- `/seller/stores/:storeSlug/catalog/coupons` -> `Seller2026LiveCouponsPage`
+- `/seller/stores/:storeSlug/orders` -> `Seller2026LiveOrdersPage`
+- `/seller/stores/:storeSlug/orders/:suborderId` -> `Seller2026LiveSuborderDetailPage`
+- `/seller/stores/:storeSlug/payment-review` -> `Seller2026LivePaymentReviewPage`
+- `/seller/stores/:storeSlug/payment-profile` -> `Seller2026LivePaymentProfilePage`
+- `/seller/stores/:storeSlug/team` -> `Seller2026LiveTeamPage`
+- `/seller/stores/:storeSlug/team/audit` -> `Seller2026LiveTeamAuditPage`
+- `/seller/stores/:storeSlug/team/:memberId` -> `Seller2026LiveMemberDetailPage`
+- `/seller/stores/:storeSlug/notifications` -> `Seller2026LiveNotificationsPage`
+
+## Route Consistency Check
+- `team/audit` is declared before `team/:memberId`.
+- `catalog/products/new` is declared before `catalog/products/:productId`.
+- `catalog/products/:productId/edit` is declared before `catalog/products/:productId`.
+- Legacy redirect routes for old seller catalog/profile paths remain in place.
+
+## Preview Leakage Check
+- Search: `/seller-2026` in `client/src` and `docs/seller-2026`.
+- Result: preview paths are limited to preview route config, docs, and standalone fallback links used when no `storeSlug` exists.
+- Live pages and hooks do not hardcode `/seller-2026/*`.
+- Embedded live sidebar uses `SellerLayout`; the Seller 2026 internal sidebar is hidden.
+
+## Dummy Data Leakage Check
+- Search terms: `Oase Sehat`, `Hijab Voal`, `Batik Nusantara`, `Dewi Lestari`, `Budi Santoso`, `Kemeja Batik`, `WELCOME10`.
+- Result: demo names remain in preview data and non-live fallback sections only.
+- Live hooks/adapters/pages use API data or generic fallback/empty states such as `Belum ada produk`, `Belum ada pesanan`, `Belum ada anggota tim`, and `Data belum tersedia`.
+
+## Embedded Layout Check
+- All `Seller2026Live*Page` components pass `mode="embedded"` to `Seller2026Workspace`.
+- `Seller2026Workspace` hides the internal Seller 2026 sidebar and topbar in embedded mode.
+- Smoke tests covered live guarded routes without detecting blank or fatal rendering.
+
+## StoreSlug Navigation Check
+- Live navigation inside `Seller2026Workspace` builds paths from `useParams().storeSlug`.
+- Hardcoded live store examples such as `/seller/stores/demo-store/*` are not present in source; `demo-store` appears only in local smoke commands.
+- Existing route helper `useSellerWorkspaceRoute` continues to resolve `workspaceStoreId`, `workspaceStoreSlug`, and store-scoped route builders for live pages.
+
+## Mutation Safety Check
+- `SELLER_2026_MUTATIONS` centralizes mutation readiness and all domains are currently `false`.
+- Product mutations disabled: create/submit/publish/delete/save draft/media upload/inventory adjustment.
+- Catalog mutations disabled: create/edit/delete category, attribute, attribute value, and coupon.
+- Orders/payments mutations disabled: pack order, print label, mark shipped, update tracking, save internal note, approve payment, reject payment, refund payment, submit payment profile, upload payment documents, change payout account.
+- Team/notification mutations disabled: invite member, resend invitation, cancel invitation, update role, remove member, reset password, mark notifications as read, delete notification.
+
+## Adapter Fallback Check
+- Reviewed Seller 2026 adapters in `client/src/api/seller2026`.
+- Empty arrays fall back to `[]`.
+- Numeric fields fall back to `0`.
+- Unknown statuses normalize to safe values such as `unknown`, `inactive`, `draft`, or `UNKNOWN`.
+- UI view-model adapters isolate raw API payloads from Seller 2026 components.
+
+## Loading, Error, Empty, and Not Found Check
+- Live list routes expose loading, error, retry, and empty states.
+- Invalid detail routes render safe not-found states for product detail, attribute values, suborder detail, and member detail.
+- Guarded live routes without a session are expected to show auth/session-required UI rather than blank screens.
+
+## CSS Scope Check
+- Seller 2026 styles are colocated at `client/src/features/seller2026/Seller2026DesignSystem.css`.
+- CSS now includes a scope guard comment.
+- Design tokens are scoped to `.s26-app` instead of `:root`.
+- No global selectors such as `button`, `table`, `input`, `body`, `.card`, `.sidebar`, or `.layout` were found in Seller 2026 CSS.
+
+## Responsive Smoke Check
+- Desktop: 1440x900 passed.
+- Tablet: 768x1024 passed.
+- Mobile: 390x844 passed.
+- Groups covered: dashboard, store profile, products, catalog tools, orders/payments, team/notifications, and preview entry routes.
+- Assertions: nonblank page, no fatal console error, no fatal horizontal overflow, expected heading/auth guard visible.
+
+## Verification
+- `npm.cmd run build` passed.
+- Targeted ESLint for Seller 2026 TS files passed.
+- Current ESLint config ignores Seller 2026 `.jsx` files; this remains documented as existing config behavior.
+- Playwright smoke passed for preview and live guarded routes.
+
+## Known Issues
+- Seller 2026 `.jsx` files are ignored by current ESLint config.
+- Repo-wide lint debt remains outside this hardening scope.
+- Mutations are intentionally disabled until domain-specific API lifecycle and permission checks are wired.
+- Some preview detail routes share the same domain workspace shell by design.
+
+## Next Recommended Phase
+- Add explicit permission-enforcement UX per action group.
+- Integrate mutations by domain, starting with the lowest-risk draft-only flows.
+- Add API contract tests for each Seller 2026 adapter.
+- Add persistent Playwright smoke coverage to CI once test authentication fixtures are available.
+- Continue backend store-scope verification for every seller mutation endpoint.
