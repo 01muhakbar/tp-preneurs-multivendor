@@ -33,7 +33,8 @@
 ## Action Permissions
 | Domain | Action | Required Permission | Mutation Flag | Current Status |
 | --- | --- | --- | --- | --- |
-| Store Profile | Edit fields, logo/banner, policies, theme | `STORE_PROFILE_UPDATE` | `storefront` | Disabled. |
+| Store Profile | Edit supported seller-owned fields | `STORE_PROFILE_UPDATE` | `storeProfileUpdate` | Enabled for live store profile route. |
+| Store Profile | Logo/banner upload, policies, theme | `STORE_PROFILE_UPDATE` | `storefront` | Disabled. |
 | Store Profile | Submit for review | `STORE_PROFILE_UPDATE` | `storefront` | Disabled. |
 | Products | Add product | `CATALOG_PRODUCT_CREATE` | `products` | Disabled. |
 | Products | Edit product | `CATALOG_PRODUCT_UPDATE` | `products` | Disabled unless route detail link is read-only. |
@@ -55,7 +56,7 @@
 
 ## Current Mutation Policy
 - A button can become active only when the user has the required permission and the matching mutation flag is enabled.
-- All Seller 2026 mutation flags remain `false` in this pass.
+- Only `storeProfileUpdate` is enabled; all other Seller 2026 mutation flags remain `false`.
 - Frontend permission gating is UX readiness only; backend permission and store-scope enforcement remain the source of truth.
 
 ## Known Gaps
@@ -64,7 +65,6 @@
 - Seller 2026 `.jsx` files are ignored by the current ESLint config.
 
 ## Next Phase
-- Store profile update mutation.
 - Product draft save mutation.
 - Coupon create mutation.
 - Fulfillment mutation.

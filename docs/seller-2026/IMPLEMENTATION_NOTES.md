@@ -378,6 +378,37 @@
 - Risky action buttons combine permission checks with mutation readiness flags and remain disabled in this phase.
 - Permission matrix documents route permissions, action permissions, mutation flags, aliases, known gaps, and next mutation integration phases.
 
+## Mutation Integration — Store Profile Update
+
+### Route
+- `/seller/stores/:storeSlug/store-profile`
+
+### Files Added
+- `client/src/api/seller2026/storefront.mutations.ts`
+- `client/src/hooks/seller2026/useSeller2026UpdateStoreProfile.ts`
+- `docs/seller-2026/MUTATION_INTEGRATION.md`
+
+### Files Changed
+- `client/src/api/seller2026/mutation-flags.ts`
+- `client/src/api/seller2026/permissions.ts`
+- `client/src/api/seller2026/storefront.adapter.ts`
+- `client/src/features/seller2026/Seller2026Workspace.jsx`
+- `client/src/pages/seller2026/Seller2026LiveStorefrontPage.jsx`
+
+### Endpoint Used
+- `PATCH /api/seller/stores/:storeId/store-profile`
+
+### Enabled Fields
+- Description, contact fields, social URLs, address fields, and shipping origin fields.
+
+### Still Disabled
+- Store name, slug, logo/banner upload, business category/subcategory, theme persistence, homepage section persistence, and submit for review.
+
+### Safety Notes
+- `STORE_PROFILE_UPDATE` is aliased to the backend `STORE_EDIT` permission.
+- The live page enables save only when permission source is available, the user has update permission, the form is dirty and valid, and `storeProfileUpdate` is enabled.
+- Preview route `/seller-2026/storefront` remains mock-only and receives no mutation submit handler.
+
 ## QA Checklist
 - Verify preview pages do not render blank.
 - Verify CSS does not affect `/admin/*`, `/`, `/store/:slug`, or `/user/*`.

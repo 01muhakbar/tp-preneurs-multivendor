@@ -55,7 +55,7 @@
 - Existing route helper `useSellerWorkspaceRoute` continues to resolve `workspaceStoreId`, `workspaceStoreSlug`, and store-scoped route builders for live pages.
 
 ## Mutation Safety Check
-- `SELLER_2026_MUTATIONS` centralizes mutation readiness and all domains are currently `false`.
+- `SELLER_2026_MUTATIONS` centralizes mutation readiness; only `storeProfileUpdate` is currently enabled.
 - Product mutations disabled: create/submit/publish/delete/save draft/media upload/inventory adjustment.
 - Catalog mutations disabled: create/edit/delete category, attribute, attribute value, and coupon.
 - Orders/payments mutations disabled: pack order, print label, mark shipped, update tracking, save internal note, approve payment, reject payment, refund payment, submit payment profile, upload payment documents, change payout account.
@@ -95,7 +95,7 @@
 ## Known Issues
 - Seller 2026 `.jsx` files are ignored by current ESLint config.
 - Repo-wide lint debt remains outside this hardening scope.
-- Mutations are intentionally disabled until domain-specific API lifecycle and permission checks are wired.
+- Mutations remain disabled except the low-risk store profile update flow.
 - Some preview detail routes share the same domain workspace shell by design.
 
 ## Next Recommended Phase
@@ -111,3 +111,11 @@
 - Live Seller 2026 pages now use normalized permission checks before enabling data hooks.
 - `Seller2026Workspace` renders a scoped restricted state when permission source exists and route permission is missing.
 - Mutation flags remain disabled and continue to gate all risky actions after permission checks.
+
+## Store Profile Mutation Addendum
+- Enabled only `SELLER_2026_MUTATIONS.storeProfileUpdate`.
+- Store profile update requires `STORE_PROFILE_UPDATE`, aliased to backend `STORE_EDIT`.
+- Live store profile submits a whitelisted payload to `PATCH /api/seller/stores/:storeId/store-profile`.
+- Backend safety check confirmed `requireSellerStoreAccess(["STORE_EDIT"])`, strict payload schema, and read-only field rejection.
+- Logo/banner upload, theme persistence, policy editor, and submit-for-review remain disabled.
+- Preview route `/seller-2026/storefront` remains mock-only.

@@ -213,6 +213,10 @@
 .s26-state h2 { margin: 0 0 8px; font-size: 1.25rem; }
 .s26-state p { margin: 0; color: var(--seller-muted); }
 .s26-state-restricted { border-style: dashed; }
+.s26-alert { border-radius: 8px; font-size: 13px; font-weight: 700; margin-bottom: 14px; padding: 10px 12px; }
+.s26-alert.success { background: rgba(22, 163, 74, .1); border: 1px solid rgba(22, 163, 74, .24); color: #15803d; }
+.s26-alert.error { background: rgba(220, 38, 38, .1); border: 1px solid rgba(220, 38, 38, .24); color: #b91c1c; }
+.s26-field-error { color: #b91c1c; display: block; font-size: 12px; font-weight: 700; margin-top: 6px; }
 .s26-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; color: var(--seller-muted); font-size: 13px; flex-wrap: wrap; }
 .s26-product-gallery { min-height: 260px; border-radius: 18px; background: radial-gradient(circle, #e0e7ff, #fff); display: grid; place-items: center; font-size: 82px; font-weight: 900; color: var(--seller-primary); overflow: hidden; }
 .s26-product-gallery img { width: 100%; height: 100%; object-fit: cover; }

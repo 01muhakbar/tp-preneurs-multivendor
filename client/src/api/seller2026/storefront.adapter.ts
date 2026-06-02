@@ -18,6 +18,33 @@ export type Seller2026StorefrontViewModel = {
     description: string;
     policies: Array<{ label: string; status: "complete" | "missing" }>;
     saveStatus: string;
+    editableProfile: {
+      name: string;
+      slug: string;
+      description: string;
+      email: string;
+      whatsapp: string;
+      phone: string;
+      websiteUrl: string;
+      instagramUrl: string;
+      tiktokUrl: string;
+      addressLine1: string;
+      addressLine2: string;
+      city: string;
+      province: string;
+      postalCode: string;
+      country: string;
+      shippingOriginContactName: string;
+      shippingOriginPhone: string;
+      shippingOriginAddressLine1: string;
+      shippingOriginAddressLine2: string;
+      shippingOriginDistrict: string;
+      shippingOriginCity: string;
+      shippingOriginProvince: string;
+      shippingOriginPostalCode: string;
+      shippingOriginCountry: string;
+      shippingPickupNotes: string;
+    };
   };
   readiness: {
     percent: number;
@@ -245,6 +272,33 @@ export function adaptSeller2026Storefront({
       description,
       policies: mapPolicies(source),
       saveStatus: source.updatedAt ? `Updated ${text(source.updatedAt)}` : "Live fallback profile",
+      editableProfile: {
+        name: storeName,
+        slug,
+        description,
+        email: text(source.email),
+        whatsapp: text(source.whatsapp),
+        phone: text(source.phone),
+        websiteUrl: text(source.websiteUrl),
+        instagramUrl: text(source.instagramUrl),
+        tiktokUrl: text(source.tiktokUrl),
+        addressLine1: text(source.addressLine1),
+        addressLine2: text(source.addressLine2),
+        city: text(source.city),
+        province: text(source.province),
+        postalCode: text(source.postalCode),
+        country: text(source.country),
+        shippingOriginContactName: text(shippingSetup.originContactName),
+        shippingOriginPhone: text(shippingSetup.originPhone),
+        shippingOriginAddressLine1: text(shippingSetup.originAddressLine1),
+        shippingOriginAddressLine2: text(shippingSetup.originAddressLine2),
+        shippingOriginDistrict: text(shippingSetup.originDistrict),
+        shippingOriginCity: text(shippingSetup.originCity),
+        shippingOriginProvince: text(shippingSetup.originProvince),
+        shippingOriginPostalCode: text(shippingSetup.originPostalCode),
+        shippingOriginCountry: text(shippingSetup.originCountry),
+        shippingPickupNotes: text(shippingSetup.pickupNotes),
+      },
     },
     readiness: {
       percent,

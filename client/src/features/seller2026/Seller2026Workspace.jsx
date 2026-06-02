@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { SELLER_2026_MUTATIONS } from "../../api/seller2026/mutation-flags.ts";
 import {
@@ -253,10 +253,7 @@ const formatRupiah = (value) =>
     maximumFractionDigits: 0,
   }).format(Number(value || 0));
 
-const hasSeller2026MutationEnabled = Object.values(SELLER_2026_MUTATIONS).some(Boolean);
-const disabledTodoTitle = hasSeller2026MutationEnabled
-  ? "Mutation integration enabled."
-  : "Coming soon: backend integration is pending for this action.";
+const disabledTodoTitle = "Integrasi upload/publishing belum diaktifkan.";
 
 const permissionTitle = "Anda tidak memiliki permission untuk aksi ini.";
 const mutationPendingTitle = "Integrasi aksi ini belum diaktifkan.";
@@ -272,6 +269,138 @@ const canUseAction = (permissions, permission, mutationFeature) =>
     permission,
     mutationEnabled: Boolean(SELLER_2026_MUTATIONS[mutationFeature]),
   });
+
+const storeProfileFields = [
+  "description",
+  "email",
+  "whatsapp",
+  "phone",
+  "websiteUrl",
+  "instagramUrl",
+  "tiktokUrl",
+  "addressLine1",
+  "addressLine2",
+  "city",
+  "province",
+  "postalCode",
+  "country",
+  "shippingOriginContactName",
+  "shippingOriginPhone",
+  "shippingOriginAddressLine1",
+  "shippingOriginAddressLine2",
+  "shippingOriginDistrict",
+  "shippingOriginCity",
+  "shippingOriginProvince",
+  "shippingOriginPostalCode",
+  "shippingOriginCountry",
+  "shippingPickupNotes",
+];
+
+const textValue = (value) => String(value ?? "").trim();
+
+const storeProfileFormFromStore = (store) => {
+  const source = store?.editableProfile || {};
+  return {
+    name: textValue(source.name || store?.name),
+    slug: textValue(source.slug || store?.slug),
+    description: textValue(source.description || store?.description),
+    email: textValue(source.email || store?.email),
+    whatsapp: textValue(source.whatsapp || store?.whatsapp),
+    phone: textValue(source.phone || store?.phone),
+    websiteUrl: textValue(source.websiteUrl),
+    instagramUrl: textValue(source.instagramUrl),
+    tiktokUrl: textValue(source.tiktokUrl),
+    addressLine1: textValue(source.addressLine1),
+    addressLine2: textValue(source.addressLine2),
+    city: textValue(source.city),
+    province: textValue(source.province),
+    postalCode: textValue(source.postalCode),
+    country: textValue(source.country),
+    shippingOriginContactName: textValue(source.shippingOriginContactName),
+    shippingOriginPhone: textValue(source.shippingOriginPhone),
+    shippingOriginAddressLine1: textValue(source.shippingOriginAddressLine1),
+    shippingOriginAddressLine2: textValue(source.shippingOriginAddressLine2),
+    shippingOriginDistrict: textValue(source.shippingOriginDistrict),
+    shippingOriginCity: textValue(source.shippingOriginCity),
+    shippingOriginProvince: textValue(source.shippingOriginProvince),
+    shippingOriginPostalCode: textValue(source.shippingOriginPostalCode),
+    shippingOriginCountry: textValue(source.shippingOriginCountry),
+    shippingPickupNotes: textValue(source.shippingPickupNotes),
+  };
+};
+
+const optionalText = (value) => {
+  const normalized = textValue(value);
+  return normalized || null;
+};
+
+const validateStoreProfileForm = (form) => {
+  const errors = {};
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phonePattern = /^[0-9+().\-\s]{6,64}$/;
+  const urlPattern = /^https?:\/\/.+/i;
+
+  if (form.email && !emailPattern.test(form.email)) {
+    errors.email = "Format email tidak valid.";
+  }
+  if (form.whatsapp && !phonePattern.test(form.whatsapp)) {
+    errors.whatsapp = "Format WhatsApp tidak valid atau terlalu pendek.";
+  }
+  if (form.phone && !phonePattern.test(form.phone)) {
+    errors.phone = "Format telepon tidak valid atau terlalu pendek.";
+  }
+  if (form.shippingOriginPhone && !phonePattern.test(form.shippingOriginPhone)) {
+    errors.shippingOriginPhone = "Format telepon asal pengiriman tidak valid.";
+  }
+  if (form.websiteUrl && !urlPattern.test(form.websiteUrl)) {
+    errors.websiteUrl = "Website harus memakai URL http/https.";
+  }
+  if (form.instagramUrl && !/^https?:\/\/([^/]+\.)?instagram\.com\//i.test(form.instagramUrl)) {
+    errors.instagramUrl = "Instagram harus memakai URL instagram.com.";
+  }
+  if (form.tiktokUrl && !/^https?:\/\/([^/]+\.)?tiktok\.com\//i.test(form.tiktokUrl)) {
+    errors.tiktokUrl = "TikTok harus memakai URL tiktok.com.";
+  }
+  if (form.description && form.description.length > 4000) {
+    errors.description = "Tentang toko maksimal 4000 karakter.";
+  }
+  if (form.postalCode && !/^[A-Z0-9\- ]{3,32}$/i.test(form.postalCode)) {
+    errors.postalCode = "Format kode pos tidak valid.";
+  }
+  if (form.shippingOriginPostalCode && !/^[A-Z0-9\- ]{3,32}$/i.test(form.shippingOriginPostalCode)) {
+    errors.shippingOriginPostalCode = "Format kode pos asal pengiriman tidak valid.";
+  }
+
+  return errors;
+};
+
+const buildStoreProfileUpdatePayload = (form) => ({
+  description: optionalText(form.description),
+  email: optionalText(form.email),
+  whatsapp: optionalText(form.whatsapp),
+  phone: optionalText(form.phone),
+  websiteUrl: optionalText(form.websiteUrl),
+  instagramUrl: optionalText(form.instagramUrl),
+  tiktokUrl: optionalText(form.tiktokUrl),
+  addressLine1: optionalText(form.addressLine1),
+  addressLine2: optionalText(form.addressLine2),
+  city: optionalText(form.city),
+  province: optionalText(form.province),
+  postalCode: optionalText(form.postalCode),
+  country: optionalText(form.country),
+  shippingSetup: {
+    originContactName: optionalText(form.shippingOriginContactName),
+    originPhone: optionalText(form.shippingOriginPhone),
+    originAddressLine1: optionalText(form.shippingOriginAddressLine1),
+    originAddressLine2: optionalText(form.shippingOriginAddressLine2),
+    originDistrict: optionalText(form.shippingOriginDistrict),
+    originCity: optionalText(form.shippingOriginCity),
+    originProvince: optionalText(form.shippingOriginProvince),
+    originPostalCode: optionalText(form.shippingOriginPostalCode),
+    originCountry: optionalText(form.shippingOriginCountry),
+    pickupNotes: optionalText(form.shippingPickupNotes),
+  },
+});
 
 const routePermissionFor = ({ section, catalogView, operationsView, teamView }) => {
   if (section === "dashboard") return "STORE_DASHBOARD_VIEW";
@@ -369,7 +498,14 @@ function DashboardPage({ dashboardData = null, dashboardState = null, mode, stor
   );
 }
 
-function StorefrontPage({ storefrontData = null, storefrontState = null, mode, storeContext, seller2026Permissions }) {
+function StorefrontPage({
+  storefrontData = null,
+  storefrontState = null,
+  storefrontMutation = null,
+  mode,
+  storeContext,
+  seller2026Permissions,
+}) {
   const isLive = Boolean(storefrontData);
   const previewStore = {
     name: "Oase Sehat Official Store",
@@ -392,6 +528,9 @@ function StorefrontPage({ storefrontData = null, storefrontState = null, mode, s
     saveStatus: "Identitas, kontak, alamat, sosial media, dan policy toko.",
   };
   const store = storefrontData?.store || previewStore;
+  const serverForm = useMemo(() => storeProfileFormFromStore(store), [storefrontData?.store]);
+  const [profileForm, setProfileForm] = useState(serverForm);
+  const [submitStatus, setSubmitStatus] = useState({ type: "idle", message: "" });
   const liveReadiness = storefrontData?.readiness || {};
   const microsite = storefrontData?.microsite || {
     heroTitle: "Alami. Sehat.",
@@ -417,6 +556,49 @@ function StorefrontPage({ storefrontData = null, storefrontState = null, mode, s
     ],
   };
   const previewHref = store.slug ? `/store/${encodeURIComponent(store.slug)}` : "#";
+  const validationErrors = useMemo(() => validateStoreProfileForm(profileForm), [profileForm]);
+  const isDirty = useMemo(
+    () => storeProfileFields.some((field) => profileForm[field] !== serverForm[field]),
+    [profileForm, serverForm]
+  );
+  const canUpdateProfile = Boolean(storefrontMutation?.canUpdate);
+  const isSubmittingProfile = Boolean(storefrontMutation?.isSubmitting);
+  const isProfileValid = Object.keys(validationErrors).length === 0;
+  const saveDisabled =
+    !isLive || !canUpdateProfile || !isDirty || !isProfileValid || isSubmittingProfile;
+  const saveTitle = !canUpdateProfile
+    ? actionTitle(seller2026Permissions, "STORE_PROFILE_UPDATE", "storeProfileUpdate")
+    : !isDirty
+      ? "Tidak ada perubahan untuk disimpan."
+      : !isProfileValid
+        ? "Perbaiki field yang belum valid."
+        : undefined;
+  const setProfileField = (field, value) => {
+    setProfileForm((current) => ({ ...current, [field]: value }));
+    setSubmitStatus({ type: "idle", message: "" });
+  };
+  const resetProfileForm = () => {
+    setProfileForm(serverForm);
+    setSubmitStatus({ type: "idle", message: "" });
+  };
+  const submitProfileForm = async () => {
+    if (!storefrontMutation?.submit || saveDisabled) return;
+    setSubmitStatus({ type: "idle", message: "" });
+    try {
+      await storefrontMutation.submit(buildStoreProfileUpdatePayload(profileForm));
+      setSubmitStatus({ type: "success", message: "Profil toko berhasil diperbarui." });
+    } catch (error) {
+      setSubmitStatus({
+        type: "error",
+        message: error?.response?.data?.message || error?.message || "Profil toko gagal diperbarui.",
+      });
+    }
+  };
+
+  useEffect(() => {
+    setProfileForm(serverForm);
+  }, [serverForm]);
+
   const readinessItems = liveReadiness.checklist?.length
     ? liveReadiness.checklist.map((item) => ({
         label: item.label,
@@ -468,12 +650,38 @@ function StorefrontPage({ storefrontData = null, storefrontState = null, mode, s
               <a className="s26-btn" href={previewHref} target="_blank" rel="noreferrer">
                 Preview Microsite
               </a>
-              <button type="button" className="s26-btn primary" disabled title={disabledTodoTitle}>
-                Simpan Perubahan
+              {isLive ? (
+                <button
+                  type="button"
+                  className="s26-btn"
+                  disabled={!isDirty || isSubmittingProfile}
+                  onClick={resetProfileForm}
+                >
+                  Reset
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className="s26-btn primary"
+                disabled={saveDisabled}
+                title={isLive ? saveTitle : disabledTodoTitle}
+                onClick={submitProfileForm}
+              >
+                {isSubmittingProfile ? "Menyimpan..." : "Simpan Perubahan"}
               </button>
             </div>
           }
         >
+          {submitStatus.type !== "idle" ? (
+            <div className={`s26-alert ${submitStatus.type === "success" ? "success" : "error"}`}>
+              {submitStatus.message}
+            </div>
+          ) : null}
+          {storefrontMutation?.error && submitStatus.type !== "error" ? (
+            <div className="s26-alert error">
+              {storefrontMutation.error?.message || "Profil toko gagal diperbarui."}
+            </div>
+          ) : null}
           <div className="s26-grid two">
             <div className="s26-card soft">
               <h3>Logo Toko</h3>
@@ -491,19 +699,89 @@ function StorefrontPage({ storefrontData = null, storefrontState = null, mode, s
             </div>
           </div>
           <div className="s26-form-grid" style={{ marginTop: 16 }}>
+            <div className="s26-field">
+              <label>Nama Toko</label>
+              <input value={profileForm.name || "Toko Kamu"} readOnly title="Nama toko masih admin-governed pada fase ini." />
+            </div>
+            <div className="s26-field">
+              <label>Slug / URL</label>
+              <input value={profileForm.slug || "store-slug"} readOnly title="Slug tidak diedit pada fase mutation ini." />
+            </div>
             {[
-              ["Nama Toko", store.name || "Toko Kamu"],
-              ["Slug / URL", store.slug || "store-slug"],
-              ["Tagline", store.tagline || "Bangun brand dan jangkau lebih banyak pelanggan."],
-              ["Email", store.email || "Belum diatur"],
-              ["WhatsApp", store.whatsapp || "Belum diatur"],
-              ["Telepon", store.phone || "Belum diatur"],
-              ["Kategori Bisnis", store.businessCategory || "Storefront"],
-              ["Subkategori", store.businessSubcategory || "General"],
-              ["Asal Pengiriman", store.shippingOrigin || "Belum lengkap"],
-            ].map(([label, value]) => <div className="s26-field" key={label}><label>{label}</label><input value={value} readOnly /></div>)}
-            <div className="s26-field" style={{ gridColumn: "1 / -1" }}><label>Alamat Toko</label><input value={store.address || "Alamat toko belum lengkap."} readOnly /></div>
-            <div className="s26-field" style={{ gridColumn: "1 / -1" }}><label>Tentang Toko</label><textarea value={store.description || "Bangun brand dan jangkau lebih banyak pelanggan."} readOnly /></div>
+              ["Email", "email", "email"],
+              ["WhatsApp", "whatsapp", "text"],
+              ["Telepon", "phone", "text"],
+              ["Website", "websiteUrl", "url"],
+              ["Instagram URL", "instagramUrl", "url"],
+              ["TikTok URL", "tiktokUrl", "url"],
+              ["Address Line 1", "addressLine1", "text"],
+              ["Address Line 2", "addressLine2", "text"],
+              ["Kota", "city", "text"],
+              ["Provinsi", "province", "text"],
+              ["Kode Pos", "postalCode", "text"],
+              ["Negara", "country", "text"],
+            ].map(([label, field, type]) => (
+              <div className="s26-field" key={field}>
+                <label>{label}</label>
+                <input
+                  type={type}
+                  value={profileForm[field]}
+                  readOnly={!canUpdateProfile}
+                  disabled={isSubmittingProfile}
+                  onChange={(event) => setProfileField(field, event.target.value)}
+                />
+                {validationErrors[field] ? <small className="s26-field-error">{validationErrors[field]}</small> : null}
+              </div>
+            ))}
+            <div className="s26-field" style={{ gridColumn: "1 / -1" }}>
+              <label>Tentang Toko</label>
+              <textarea
+                value={profileForm.description}
+                readOnly={!canUpdateProfile}
+                disabled={isSubmittingProfile}
+                onChange={(event) => setProfileField("description", event.target.value)}
+              />
+              {validationErrors.description ? <small className="s26-field-error">{validationErrors.description}</small> : null}
+            </div>
+            <div className="s26-field">
+              <label>Kategori Bisnis</label>
+              <input value={store.businessCategory || "Storefront"} readOnly title="Kategori bisnis belum didukung endpoint seller profile update." />
+            </div>
+            <div className="s26-field">
+              <label>Subkategori</label>
+              <input value={store.businessSubcategory || "General"} readOnly title="Subkategori belum didukung endpoint seller profile update." />
+            </div>
+            {[
+              ["Nama Kontak Pengiriman", "shippingOriginContactName"],
+              ["Telepon Pengiriman", "shippingOriginPhone"],
+              ["Alamat Pengiriman 1", "shippingOriginAddressLine1"],
+              ["Alamat Pengiriman 2", "shippingOriginAddressLine2"],
+              ["Kecamatan/Distrik", "shippingOriginDistrict"],
+              ["Kota Pengiriman", "shippingOriginCity"],
+              ["Provinsi Pengiriman", "shippingOriginProvince"],
+              ["Kode Pos Pengiriman", "shippingOriginPostalCode"],
+              ["Negara Pengiriman", "shippingOriginCountry"],
+            ].map(([label, field]) => (
+              <div className="s26-field" key={field}>
+                <label>{label}</label>
+                <input
+                  value={profileForm[field]}
+                  readOnly={!canUpdateProfile}
+                  disabled={isSubmittingProfile}
+                  onChange={(event) => setProfileField(field, event.target.value)}
+                />
+                {validationErrors[field] ? <small className="s26-field-error">{validationErrors[field]}</small> : null}
+              </div>
+            ))}
+            <div className="s26-field" style={{ gridColumn: "1 / -1" }}>
+              <label>Catatan Pickup</label>
+              <textarea
+                value={profileForm.shippingPickupNotes}
+                readOnly={!canUpdateProfile}
+                disabled={isSubmittingProfile}
+                onChange={(event) => setProfileField("shippingPickupNotes", event.target.value)}
+              />
+            </div>
           </div>
           <div className="s26-grid two" style={{ marginTop: 16 }}>
             <div className="s26-card soft">
@@ -1352,6 +1630,7 @@ export function Seller2026Workspace({
   dashboardState = null,
   storefrontData = null,
   storefrontState = null,
+  storefrontMutation = null,
   productsData = null,
   productsState = null,
   productsQuery = null,
@@ -1418,6 +1697,7 @@ export function Seller2026Workspace({
       dashboardState={dashboardState}
       storefrontData={storefrontData}
       storefrontState={storefrontState}
+      storefrontMutation={storefrontMutation}
       productsData={productsData}
       productsState={productsState}
       productsQuery={productsQuery}
