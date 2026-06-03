@@ -27,6 +27,7 @@ export default function Seller2026LiveCouponsPage() {
       canCreate: can("COUPON_CREATE"),
       canUpdate: can("COUPON_UPDATE"),
       canDelete: can("COUPON_DELETE"),
+      canManageStatus: can("COUPON_STATUS_MANAGE"),
     },
   });
 
@@ -65,6 +66,21 @@ export default function Seller2026LiveCouponsPage() {
       }}
       catalogQuery={query}
       onCatalogQueryChange={handleQueryChange}
+      catalogMutation={{
+        canCreate: couponsQuery.canCreate,
+        canUpdate: couponsQuery.canUpdate,
+        canDelete: couponsQuery.canDelete,
+        canManageStatus: couponsQuery.canManageStatus,
+        creating: couponsQuery.creating,
+        updatingId: couponsQuery.updatingId,
+        statusChangingId: couponsQuery.statusChangingId,
+        deletingId: couponsQuery.deletingId,
+        error: couponsQuery.mutationError,
+        createCoupon: couponsQuery.createCoupon,
+        updateCoupon: couponsQuery.updateCoupon,
+        changeCouponStatus: couponsQuery.changeCouponStatus,
+        deleteOrArchiveCoupon: couponsQuery.deleteOrArchiveCoupon,
+      }}
     />
   );
 }

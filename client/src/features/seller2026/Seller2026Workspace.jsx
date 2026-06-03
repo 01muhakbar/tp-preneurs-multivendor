@@ -1386,16 +1386,115 @@ function TaxonomyPage({
   catalogState = null,
   catalogQuery = null,
   onCatalogQueryChange = null,
+  catalogMutation = null,
   mode,
   storeContext,
   seller2026Permissions,
 }) {
   const { storeSlug } = useParams();
   const [couponDrawerOpen, setCouponDrawerOpen] = useState(false);
+  const [couponEditing, setCouponEditing] = useState(null);
+  const [couponForm, setCouponForm] = useState({
+    code: "",
+    name: "",
+    discountType: "percent",
+    amount: "",
+    minSpend: "0",
+    startsAt: "",
+    expiresAt: "",
+    active: true,
+  });
+  const [couponMutationStatus, setCouponMutationStatus] = useState({ type: "idle", message: "" });
   const isLive = Boolean(catalogData || catalogState);
   const basePath = storeSlug ? `/seller/stores/${encodeURIComponent(storeSlug)}` : "/seller-2026";
   const queryChange = (next) => onCatalogQueryChange?.(next);
   const searchValue = catalogQuery?.search || "";
+  const resetCouponForm = (coupon = null) => {
+    setCouponEditing(coupon);
+    setCouponForm({
+      code: coupon?.code || "",
+      name: coupon?.name || "",
+      discountType: coupon?.discountType || "percent",
+      amount: coupon?.amount ? String(coupon.amount) : "",
+      minSpend: String(coupon?.minSpend ?? coupon?.minimumSpend ?? 0),
+      startsAt: coupon?.startsAt ? String(coupon.startsAt).slice(0, 16) : "",
+      expiresAt: coupon?.expiresAt ? String(coupon.expiresAt).slice(0, 16) : "",
+      active: coupon?.active ?? true,
+    });
+    setCouponMutationStatus({ type: "idle", message: "" });
+  };
+  const openCouponCreate = () => {
+    resetCouponForm(null);
+    setCouponDrawerOpen(true);
+  };
+  const openCouponEdit = (coupon) => {
+    resetCouponForm(coupon);
+    setCouponDrawerOpen(true);
+  };
+  const setCouponField = (field, value) => {
+    setCouponForm((current) => ({ ...current, [field]: value }));
+    setCouponMutationStatus({ type: "idle", message: "" });
+  };
+  const couponErrors = useMemo(() => {
+    const errors = {};
+    if (!couponForm.code.trim()) errors.code = "Coupon code is required.";
+    if (!couponForm.name.trim()) errors.name = "Coupon name is required.";
+    if (!["percent", "fixed"].includes(couponForm.discountType)) errors.discountType = "Discount type is required.";
+    const amount = Number(couponForm.amount);
+    if (!Number.isFinite(amount) || amount <= 0) errors.amount = "Discount value must be greater than 0.";
+    if (couponForm.discountType === "percent" && amount > 100) errors.amount = "Percentage discount cannot exceed 100.";
+    const minSpend = Number(couponForm.minSpend || 0);
+    if (!Number.isFinite(minSpend) || minSpend < 0) errors.minSpend = "Minimum spend must be zero or greater.";
+    if (couponForm.startsAt && couponForm.expiresAt && new Date(couponForm.expiresAt).getTime() < new Date(couponForm.startsAt).getTime()) {
+      errors.expiresAt = "End date must be after start date.";
+    }
+    return errors;
+  }, [couponForm]);
+  const couponFormValid = Object.keys(couponErrors).length === 0;
+  const submitCouponForm = async () => {
+    if (!couponFormValid || !catalogMutation) return;
+    const isEdit = Boolean(couponEditing?.id);
+    const submit = isEdit ? catalogMutation.updateCoupon : catalogMutation.createCoupon;
+    if (!submit) return;
+    setCouponMutationStatus({ type: "idle", message: "" });
+    try {
+      const payload = {
+        code: couponForm.code,
+        campaignName: couponForm.name,
+        discountType: couponForm.discountType,
+        amount: couponForm.amount,
+        minSpend: couponForm.minSpend,
+        active: couponForm.active,
+        startsAt: couponForm.startsAt,
+        expiresAt: couponForm.expiresAt,
+      };
+      if (isEdit) {
+        await submit({ couponId: couponEditing.id, payload });
+      } else {
+        await submit(payload);
+      }
+      setCouponMutationStatus({ type: "success", message: isEdit ? "Coupon updated." : "Coupon created." });
+      setCouponDrawerOpen(false);
+      resetCouponForm(null);
+      catalogState?.refetch?.();
+    } catch (error) {
+      setCouponMutationStatus({
+        type: "error",
+        message: error?.message || "Coupon mutation failed.",
+      });
+    }
+  };
+  const runCouponStatusAction = async (action, successMessage) => {
+    if (!action) return;
+    setCouponMutationStatus({ type: "idle", message: "" });
+    try {
+      await action();
+      setCouponMutationStatus({ type: "success", message: successMessage });
+      catalogState?.refetch?.();
+    } catch (error) {
+      setCouponMutationStatus({ type: "error", message: error?.message || "Coupon mutation failed." });
+    }
+  };
 
   if (isLive && catalogView === "categories") {
     const categoryRows = catalogData?.categories || [];
@@ -1487,10 +1586,19 @@ function TaxonomyPage({
 
   if (isLive && catalogView === "coupons") {
     const couponRows = catalogData?.coupons || [];
+    const canCreateCoupon = Boolean(catalogMutation?.canCreate);
+    const canUpdateCoupon = Boolean(catalogMutation?.canUpdate);
+    const canManageCouponStatus = Boolean(catalogMutation?.canManageStatus);
+    const canArchiveCoupon = Boolean(catalogMutation?.canDelete);
+    const isCouponMutating =
+      Boolean(catalogMutation?.creating) ||
+      Boolean(catalogMutation?.updatingId) ||
+      Boolean(catalogMutation?.statusChangingId) ||
+      Boolean(catalogMutation?.deletingId);
     return (
       <Shell section="taxonomy" mode={mode} storeContext={storeContext}>
         {catalogState?.isError ? <Card title="Coupons unavailable" hint="Live coupons could not load." actions={<button type="button" className="s26-btn" onClick={catalogState?.refetch}>Retry</button>} /> : null}
-        <Card title="Coupons" hint="Store-scoped promo, validity, usage, dan status." actions={<button type="button" className="s26-btn primary" onClick={() => setCouponDrawerOpen(true)} disabled={!canUseAction(seller2026Permissions, "COUPON_CREATE", "catalog")} title={actionTitle(seller2026Permissions, "COUPON_CREATE", "catalog")}>Create Coupon</button>}>
+        <Card title="Coupons" hint="Store-scoped promo, validity, usage, dan status." actions={<button type="button" className="s26-btn primary" onClick={openCouponCreate} disabled={!canCreateCoupon || isCouponMutating} title={canCreateCoupon ? undefined : actionTitle(seller2026Permissions, "COUPON_CREATE", "coupons")}>Create Coupon</button>}>
           <div className="s26-grid four" style={{ marginBottom: 14 }}>
             <CatalogKpi label="Total Coupons" value={catalogData?.summary?.total || 0} />
             <CatalogKpi label="Active" value={catalogData?.summary?.active || 0} />
@@ -1503,19 +1611,24 @@ function TaxonomyPage({
             <select className="s26-control" aria-label="Filter coupon type" value={catalogQuery?.type || "all"} onChange={(event) => queryChange({ type: event.target.value, page: 1 })}><option value="all">All Types</option><option value="percentage">Percentage</option><option value="fixed">Fixed</option><option value="free_shipping">Free Shipping</option></select>
           </div>
           {catalogState?.isLoading ? <p className="hint">Loading coupons...</p> : null}
+          {couponMutationStatus.message ? <p className={couponMutationStatus.type === "error" ? "s26-field-error" : "hint"}>{couponMutationStatus.message}</p> : null}
           {!catalogState?.isLoading && couponRows.length === 0 ? <div className="s26-empty"><strong>No coupons available.</strong><p>Create coupon UI is available as a safe shell when permission allows it.</p></div> : null}
-          {couponRows.length ? <DataTable columns={["Code", "Type", "Discount", "Minimum Spend", "Validity", "Usage", "Status", "Actions"]} rows={couponRows} renderRow={(row) => <tr key={row.id}><td><strong>{row.code}</strong></td><td>{row.type}</td><td>{row.discountLabel}</td><td>{formatRupiah(row.minimumSpend)}</td><td>{row.validityLabel}</td><td>{row.usageLabel}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td><button type="button" className="s26-btn" disabled title={actionTitle(seller2026Permissions, "COUPON_UPDATE", "catalog")}>Edit</button></td></tr>} /> : null}
+          {couponRows.length ? <DataTable columns={["Code", "Type", "Discount", "Minimum Spend", "Validity", "Usage", "Status", "Actions"]} rows={couponRows} renderRow={(row) => <tr key={row.id}><td><strong>{row.code}</strong><div className="s26-sub">{row.name}</div></td><td>{row.type}</td><td>{row.discountLabel}</td><td>{formatRupiah(row.minimumSpend)}</td><td>{row.validityLabel}</td><td>{row.usageLabel}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td><div className="s26-row-actions"><button type="button" className="s26-muted-action" disabled={!canUpdateCoupon || isCouponMutating} title={canUpdateCoupon ? undefined : actionTitle(seller2026Permissions, "COUPON_UPDATE", "coupons")} onClick={() => openCouponEdit(row)}>Edit</button><button type="button" className="s26-muted-action" disabled={!canManageCouponStatus || isCouponMutating} title={canManageCouponStatus ? undefined : actionTitle(seller2026Permissions, "COUPON_STATUS_MANAGE", "coupons")} onClick={() => runCouponStatusAction(() => catalogMutation?.changeCouponStatus({ couponId: row.id, active: !row.active }), row.active ? "Coupon deactivated." : "Coupon activated.")}>{row.active ? "Deactivate" : "Activate"}</button><button type="button" className="s26-muted-action" disabled={!canArchiveCoupon || isCouponMutating || !row.active} title={canArchiveCoupon ? "Archive deactivates this seller coupon." : actionTitle(seller2026Permissions, "COUPON_DELETE", "coupons")} onClick={() => runCouponStatusAction(() => catalogMutation?.deleteOrArchiveCoupon(row.id), "Coupon archived.")}>Archive</button></div></td></tr>} /> : null}
         </Card>
         {couponDrawerOpen ? (
-          <Card title="Create Coupon" hint="Coupon creation integration is pending.">
+          <Card title={couponEditing ? "Edit Coupon" : "Create Coupon"} hint="Store-scoped coupon lifecycle is permission-gated and refetches after save.">
             <div className="s26-form-grid">
-              <div className="s26-field"><label>Coupon Code</label><input readOnly value="" placeholder="STORE2026" /></div>
-              <div className="s26-field"><label>Type</label><select disabled><option>Percentage</option><option>Fixed</option><option>Free Shipping</option></select></div>
-              <div className="s26-field"><label>Discount</label><input readOnly value="" placeholder="10" /></div>
-              <div className="s26-field"><label>Minimum Spend</label><input readOnly value="" placeholder="100000" /></div>
+              <div className="s26-field"><label htmlFor="s26-coupon-code">Coupon code</label><input id="s26-coupon-code" value={couponForm.code} onChange={(event) => setCouponField("code", event.target.value.toUpperCase())} placeholder="STORE2026" disabled={isCouponMutating} />{couponErrors.code ? <span className="s26-field-error">{couponErrors.code}</span> : null}</div>
+              <div className="s26-field"><label htmlFor="s26-coupon-name">Coupon name</label><input id="s26-coupon-name" value={couponForm.name} onChange={(event) => setCouponField("name", event.target.value)} placeholder="Store campaign" disabled={isCouponMutating} />{couponErrors.name ? <span className="s26-field-error">{couponErrors.name}</span> : null}</div>
+              <div className="s26-field"><label htmlFor="s26-coupon-type">Discount type</label><select id="s26-coupon-type" value={couponForm.discountType} onChange={(event) => setCouponField("discountType", event.target.value)} disabled={isCouponMutating}><option value="percent">Percentage</option><option value="fixed">Fixed</option></select>{couponErrors.discountType ? <span className="s26-field-error">{couponErrors.discountType}</span> : null}</div>
+              <div className="s26-field"><label htmlFor="s26-coupon-amount">Discount value</label><input id="s26-coupon-amount" type="number" min="1" value={couponForm.amount} onChange={(event) => setCouponField("amount", event.target.value)} placeholder="10" disabled={isCouponMutating} />{couponErrors.amount ? <span className="s26-field-error">{couponErrors.amount}</span> : null}</div>
+              <div className="s26-field"><label htmlFor="s26-coupon-min-spend">Minimum spend</label><input id="s26-coupon-min-spend" type="number" min="0" value={couponForm.minSpend} onChange={(event) => setCouponField("minSpend", event.target.value)} placeholder="100000" disabled={isCouponMutating} />{couponErrors.minSpend ? <span className="s26-field-error">{couponErrors.minSpend}</span> : null}</div>
+              <div className="s26-field"><label htmlFor="s26-coupon-starts">Active period start</label><input id="s26-coupon-starts" type="datetime-local" value={couponForm.startsAt} onChange={(event) => setCouponField("startsAt", event.target.value)} disabled={isCouponMutating} /></div>
+              <div className="s26-field"><label htmlFor="s26-coupon-ends">Active period end</label><input id="s26-coupon-ends" type="datetime-local" value={couponForm.expiresAt} onChange={(event) => setCouponField("expiresAt", event.target.value)} disabled={isCouponMutating} />{couponErrors.expiresAt ? <span className="s26-field-error">{couponErrors.expiresAt}</span> : null}</div>
+              <label className="s26-toggle-row" htmlFor="s26-coupon-active"><span>Active</span><input id="s26-coupon-active" type="checkbox" checked={couponForm.active} onChange={(event) => setCouponField("active", event.target.checked)} disabled={isCouponMutating || !canManageCouponStatus} /></label>
             </div>
-            <p className="hint" style={{ marginTop: 14 }}>Coupon creation integration is pending.</p>
-            <div className="s26-filter-row" style={{ marginTop: 16, marginBottom: 0 }}><button type="button" className="s26-btn" onClick={() => setCouponDrawerOpen(false)}>Close</button><button type="button" className="s26-btn primary" disabled title={actionTitle(seller2026Permissions, "COUPON_CREATE", "catalog")}>Create Coupon</button></div>
+            {couponMutationStatus.message ? <p className={couponMutationStatus.type === "error" ? "s26-field-error" : "hint"} style={{ marginTop: 14 }}>{couponMutationStatus.message}</p> : null}
+            <div className="s26-filter-row" style={{ marginTop: 16, marginBottom: 0 }}><button type="button" className="s26-btn" onClick={() => { setCouponDrawerOpen(false); resetCouponForm(null); }} disabled={isCouponMutating}>Close</button><button type="button" className="s26-btn primary" disabled={!couponFormValid || isCouponMutating || (couponEditing ? !canUpdateCoupon : !canCreateCoupon)} title={couponEditing ? actionTitle(seller2026Permissions, "COUPON_UPDATE", "coupons") : actionTitle(seller2026Permissions, "COUPON_CREATE", "coupons")} onClick={submitCouponForm}>{isCouponMutating ? "Saving..." : couponEditing ? "Save Coupon" : "Create Coupon"}</button></div>
           </Card>
         ) : null}
       </Shell>
@@ -1968,6 +2081,7 @@ export function Seller2026Workspace({
   catalogState = null,
   catalogQuery = null,
   onCatalogQueryChange = null,
+  catalogMutation = null,
   operationsView = "overview",
   operationsData = null,
   operationsState = null,
@@ -2037,6 +2151,7 @@ export function Seller2026Workspace({
       catalogState={catalogState}
       catalogQuery={catalogQuery}
       onCatalogQueryChange={onCatalogQueryChange}
+      catalogMutation={catalogMutation}
       operationsView={operationsView}
       operationsData={operationsData}
       operationsState={operationsState}

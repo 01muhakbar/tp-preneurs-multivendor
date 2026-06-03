@@ -43,9 +43,10 @@
 | Products | Delete product | `CATALOG_PRODUCT_DELETE` | `products` | Disabled. |
 | Catalog | Category mutation shell | `CATALOG_CATEGORY_READ` | `catalog` | Disabled; no mutation permission exists yet. |
 | Catalog | Attribute mutation shell | `CATALOG_ATTRIBUTE_READ` | `catalog` | Disabled; no mutation permission exists yet. |
-| Coupons | Create coupon | `COUPON_CREATE` | `catalog` | Disabled. |
-| Coupons | Update coupon | `COUPON_UPDATE` | `catalog` | Disabled. |
-| Coupons | Delete coupon | `COUPON_DELETE` | `catalog` | Disabled. |
+| Coupons | Create coupon | `COUPON_CREATE` | `coupons` | Enabled on live coupon route. |
+| Coupons | Update coupon | `COUPON_UPDATE` aliasing backend `COUPON_EDIT` | `coupons` | Enabled on live coupon route. |
+| Coupons | Activate/deactivate coupon | `COUPON_STATUS_MANAGE` | `coupons` | Enabled on live coupon route. |
+| Coupons | Archive coupon | `COUPON_DELETE` aliasing backend `COUPON_STATUS_MANAGE` | `coupons` | Enabled as deactivate/archive only, not hard delete. |
 | Orders | Pack, print label, mark shipped, update tracking | `ORDER_FULFILLMENT_UPDATE` | `orders` | Disabled. |
 | Payments | Approve/reject/refund payment | `PAYMENT_REVIEW_READ` | `payments` | Disabled. |
 | Payments | Submit profile, upload documents, change payout account | `STORE_PAYMENT_PROFILE_SUBMIT` | `payments` | Disabled. |
@@ -57,7 +58,7 @@
 
 ## Current Mutation Policy
 - A button can become active only when the user has the required permission and the matching mutation flag is enabled.
-- Only `storeProfileUpdate`, `productDraftSave`, and notification read-state mutations are enabled; all other Seller 2026 mutation flags remain `false`.
+- Only `storeProfileUpdate`, `productDraftSave`, `coupons`, and notification read-state mutations are enabled; all other Seller 2026 mutation flags remain `false`.
 - Frontend permission gating is UX readiness only; backend permission and store-scope enforcement remain the source of truth.
 
 ## Known Gaps
@@ -66,7 +67,6 @@
 - Seller 2026 `.jsx` files are ignored by the current ESLint config.
 
 ## Next Phase
-- Coupon create mutation.
 - Fulfillment mutation.
 - Team invitation mutation.
 - Notification delete mutation.

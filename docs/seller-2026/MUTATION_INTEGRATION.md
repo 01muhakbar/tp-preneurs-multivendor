@@ -146,3 +146,56 @@
 - Backend service filters mutations by seller notification metadata: `audience: "SELLER"`, `userId`, and `storeId`.
 - Mutations are idempotent for already-read in-scope notifications and return not found for out-of-scope notifications.
 - Preview route `/seller-2026/team` remains mock-only and receives no live notification mutation handler.
+
+## Coupon Lifecycle
+
+### Route
+- `/seller/stores/:storeSlug/catalog/coupons`
+
+### Permissions
+- Create coupon: `COUPON_CREATE`
+- Edit coupon fields: `COUPON_UPDATE`, aliased to backend `COUPON_EDIT`
+- Activate/deactivate coupon: `COUPON_STATUS_MANAGE`
+- Archive coupon: `COUPON_DELETE`, aliased to backend `COUPON_STATUS_MANAGE`
+
+### Mutation Flag
+- `coupons: true`
+
+### Endpoints Used
+- `POST /api/seller/stores/:storeId/coupons`
+- `PATCH /api/seller/stores/:storeId/coupons/:couponId`
+- `DELETE /api/seller/stores/:storeId/coupons/:couponId`
+
+### Payload Fields Enabled
+- `code`
+- `campaignName`
+- `discountType`
+- `amount`
+- `minSpend`
+- `active`
+- `startsAt`
+- `expiresAt`
+- `bannerImageUrl`
+
+### Lifecycle Actions Enabled
+- Create coupon from the Seller 2026 coupon drawer.
+- Edit supported coupon fields from the coupon table.
+- Activate and deactivate coupons through the status action.
+- Archive coupon through the existing backend delete route, which deactivates the store-scoped coupon instead of hard deleting it.
+
+### Fields Still Disabled
+- Hard delete.
+- Duplicate coupon.
+- Coupon import/export.
+- Banner upload picker.
+- Cross-store coupon mutation.
+- Admin coupon lifecycle mutation from Seller 2026.
+
+### Safety Notes
+- `storeId` is resolved from the live seller workspace context, not from the form body.
+- Frontend sends a whitelisted coupon payload through `coupons.mutations.ts`.
+- Create endpoint forces `scopeType: "STORE"` and the resolved `storeId`.
+- Edit endpoint looks up coupons by `{ couponId, storeId, scopeType: "STORE" }`.
+- Updating `active` requires backend `COUPON_STATUS_MANAGE`.
+- Delete endpoint is treated by the UI as archive/deactivate because the backend returns a deactivated coupon.
+- Preview route `/seller-2026/catalog-tools` remains mock-only and receives no live coupon mutation handler.

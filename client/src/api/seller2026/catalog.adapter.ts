@@ -77,11 +77,19 @@ export type Seller2026CouponsViewModel = {
     validityLabel: string;
     usageLabel: string;
     status: Seller2026CouponStatus;
+    name: string;
+    discountType: "percent" | "fixed";
+    amount: number;
+    minSpend: number;
+    active: boolean;
+    startsAt: string | null;
+    expiresAt: string | null;
   }>;
   permissions: {
     canCreate: boolean;
     canUpdate: boolean;
     canDelete: boolean;
+    canManageStatus: boolean;
   };
 };
 
@@ -114,7 +122,7 @@ const EMPTY_ATTRIBUTE_VALUES: Seller2026AttributeValuesViewModel = {
 const EMPTY_COUPONS: Seller2026CouponsViewModel = {
   summary: { total: 0, active: 0, redemptions: 0, discountGiven: 0 },
   coupons: [],
-  permissions: { canCreate: false, canUpdate: false, canDelete: false },
+  permissions: { canCreate: false, canUpdate: false, canDelete: false, canManageStatus: false },
 };
 
 export function normalizeCatalogStatus(value: unknown): Seller2026CatalogStatus {
@@ -286,11 +294,20 @@ export function adaptSeller2026Coupons(
     const startsAt = formatDate(coupon.startsAt);
     const expiresAt = formatDate(coupon.expiresAt);
     const statusValue = object(coupon.status).code || object(coupon.status).label || coupon.status || (coupon.active ? "active" : "inactive");
+    const active = Boolean(coupon.active ?? statusValue === "active");
+    const discountType: "percent" | "fixed" = coupon.discountType === "fixed" ? "fixed" : "percent";
 
     return {
       id: idValue(coupon.id, index),
       code: text(coupon.code, "COUPON").toUpperCase(),
       type,
+      name: text(coupon.campaignName ?? coupon.name ?? coupon.code, "Coupon"),
+      discountType,
+      amount,
+      minSpend: number(coupon.minimumSpend ?? coupon.minSpend ?? coupon.minOrderAmount, 0),
+      active,
+      startsAt: text(coupon.startsAt) || null,
+      expiresAt: text(coupon.expiresAt) || null,
       discountLabel:
         type === "free_shipping"
           ? "Free Shipping"
@@ -316,6 +333,7 @@ export function adaptSeller2026Coupons(
       canCreate: Boolean(permissions.canCreate ?? object(response.governance).sellerCanCreate),
       canUpdate: Boolean(permissions.canUpdate ?? object(response.governance).sellerCanEdit),
       canDelete: Boolean(permissions.canDelete),
+      canManageStatus: Boolean(permissions.canManageStatus ?? object(response.governance).sellerCanManageStatus),
     },
   };
 }

@@ -489,3 +489,45 @@
 - Verify dark mode toggle works and remains scoped to Seller 2026.
 - Verify responsive layouts at 1440, 1280, 1024, 768, and 390 px.
 - Run `npm run build` from `client`.
+
+## Mutation Integration - Coupon Lifecycle
+
+### Route
+- `/seller/stores/:storeSlug/catalog/coupons`
+
+### Files Added
+- `client/src/api/seller2026/coupons.mutations.ts`
+
+### Files Changed
+- `client/src/api/seller2026/catalog.adapter.ts`
+- `client/src/api/seller2026/mutation-flags.ts`
+- `client/src/api/seller2026/permissions.ts`
+- `client/src/features/seller2026/Seller2026Workspace.jsx`
+- `client/src/hooks/seller2026/useSeller2026Coupons.ts`
+- `client/src/pages/seller2026/Seller2026LiveCouponsPage.jsx`
+- `scripts/seller2026-auth-fixture-live-smoke.ts`
+
+### Endpoints Used
+- `POST /api/seller/stores/:storeId/coupons`
+- `PATCH /api/seller/stores/:storeId/coupons/:couponId`
+- `DELETE /api/seller/stores/:storeId/coupons/:couponId`
+
+### Enabled Actions
+- Create coupon with supported backend fields.
+- Edit coupon code, campaign name, discount, minimum spend, active window, and active state.
+- Activate and deactivate coupon status.
+- Archive coupon through the backend delete route, which deactivates the coupon.
+
+### Still Disabled
+- Hard delete.
+- Duplicate coupon.
+- Coupon import/export.
+- Banner upload picker.
+- Public/storefront coupon exposure changes.
+
+### Safety Notes
+- `COUPON_CREATE`, `COUPON_UPDATE`, `COUPON_STATUS_MANAGE`, and `COUPON_DELETE` are checked before enabling live actions.
+- `COUPON_UPDATE` aliases to backend `COUPON_EDIT`; `COUPON_DELETE` aliases to backend `COUPON_STATUS_MANAGE`.
+- The UI submits only whitelisted coupon fields and does not send raw adapter rows to the backend.
+- The live smoke creates a disposable `S26SMOKE*` coupon, edits it, deactivates it, reactivates it, and archives it.
+- Preview route `/seller-2026/catalog-tools` remains mock-only.

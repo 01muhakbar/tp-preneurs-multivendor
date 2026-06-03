@@ -937,6 +937,52 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureFixture>>) 
   }
   await page.goBack({ waitUntil: "networkidle", timeout: 15_000 }).catch(() => undefined);
 
+  consoleErrors.length = 0;
+  const smokeCouponCode = `S26SMOKE${Date.now()}`;
+  const smokeCouponName = "Seller 2026 Smoke Coupon";
+  const editedSmokeCouponName = "Seller 2026 Smoke Coupon Edited";
+  await page.goto(`/seller/stores/${fixture.storeSlug}/catalog/coupons`, {
+    waitUntil: "networkidle",
+    timeout: 45_000,
+  });
+  await page.getByRole("button", { name: /^Create Coupon$/i }).first().click();
+  await page.getByLabel("Coupon code").fill(smokeCouponCode);
+  await page.getByLabel("Coupon name").fill(smokeCouponName);
+  await page.getByLabel("Discount value").fill("10");
+  await page.getByLabel("Minimum spend").fill("50000");
+  await page.getByRole("button", { name: /^Create Coupon$/i }).last().click();
+  await page.getByText(smokeCouponCode).waitFor({ state: "visible", timeout: 20_000 });
+  const smokeCouponRow = () => page.locator("tr", { hasText: smokeCouponCode }).first();
+  await smokeCouponRow().getByRole("button", { name: /^Edit$/i }).click();
+  await page.getByLabel("Coupon name").fill(editedSmokeCouponName);
+  await page.getByRole("button", { name: /^Save Coupon$/i }).click();
+  await page.getByText(editedSmokeCouponName).waitFor({ state: "visible", timeout: 20_000 });
+  await smokeCouponRow().getByRole("button", { name: /^Deactivate$/i }).click();
+  await page.getByText("Coupon deactivated.").waitFor({ state: "visible", timeout: 20_000 });
+  await smokeCouponRow().getByRole("button", { name: /^Activate$/i }).click();
+  await page.getByText("Coupon activated.").waitFor({ state: "visible", timeout: 20_000 });
+  await smokeCouponRow().getByRole("button", { name: /^Archive$/i }).click();
+  await page.getByText("Coupon archived.").waitFor({ state: "visible", timeout: 20_000 });
+  const couponSmokeText = await page.locator("body").innerText({ timeout: 10_000 }).catch(() => "");
+  const couponLifecycle = {
+    name: "coupon-lifecycle-mutations",
+    code: smokeCouponCode,
+    finalUrl: page.url().replace(CLIENT_URL, ""),
+    status:
+      couponSmokeText.includes(smokeCouponCode) &&
+      couponSmokeText.includes(editedSmokeCouponName) &&
+      couponSmokeText.includes("Coupon archived.")
+        ? "PASS"
+        : "FAIL",
+    consoleErrors: [...consoleErrors],
+    snippet: couponSmokeText.replace(/\s+/g, " ").trim().slice(0, 180),
+  };
+  if (couponLifecycle.status !== "PASS" || consoleErrors.length) {
+    throw new Error(
+      `Coupon lifecycle smoke failed: ${couponLifecycle.status}, code ${smokeCouponCode}, console ${consoleErrors.join(" | ")}`
+    );
+  }
+
   await page.goto(`/seller/stores/${fixture.otherStoreSlug}`, { waitUntil: "networkidle", timeout: 45_000 });
   const crossStoreText = await page.locator("body").innerText({ timeout: 10_000 }).catch(() => "");
   const crossStore = {
@@ -984,7 +1030,7 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureFixture>>) 
     return acc;
   }, {});
 
-  return { routeResults, addProductCta, crossStore, memberResults, sellerApiStatuses, mutationResults };
+  return { routeResults, addProductCta, couponLifecycle, crossStore, memberResults, sellerApiStatuses, mutationResults };
 }
 
 async function main() {

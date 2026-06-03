@@ -135,4 +135,18 @@ Seller Workspace 2026 live pages use existing store-scoped seller APIs and selle
 | Notification | Mark all as read | WIRED_AND_TESTED | Store-scoped endpoint is wired in Seller 2026 UI and smoke-tested with fixture store `200`. |
 | Team Audit | Export | NEEDS_BACKEND_REVIEW | Audit list API exists; no clear export endpoint was confirmed, so export stays disabled. |
 
+## Seller Workspace 2026 Coupon Lifecycle Mutation Status
+
+- Date: 2026-06-03.
+- Scope: frontend Seller 2026 coupon lifecycle wiring only. Backend routes, schema, auth middleware, permission map, Admin Workspace, and Client Storefront were not changed.
+- Route: `/seller/stores/:storeSlug/catalog/coupons`.
+
+| Mutation | Status | Endpoint | Permission | Notes |
+|---|---|---|---|---|
+| Create coupon | WIRED_AND_TESTED | `POST /api/seller/stores/:storeId/coupons` | `COUPON_CREATE` | Payload is whitelisted and backend forces store scope. |
+| Edit coupon | WIRED_AND_TESTED | `PATCH /api/seller/stores/:storeId/coupons/:couponId` | `COUPON_UPDATE` -> `COUPON_EDIT` | Updates supported fields only. |
+| Activate/deactivate | WIRED_AND_TESTED | `PATCH /api/seller/stores/:storeId/coupons/:couponId` | `COUPON_STATUS_MANAGE` | Uses `{ active }` and backend status permission check. |
+| Archive coupon | WIRED_AND_TESTED_AS_DEACTIVATE | `DELETE /api/seller/stores/:storeId/coupons/:couponId` | `COUPON_DELETE` -> `COUPON_STATUS_MANAGE` | Existing backend delete route deactivates the store coupon; UI labels this as archive. |
+| Hard delete | DISABLED | n/a | n/a | No Seller 2026 hard-delete action is exposed. |
+
 Notification mutation smoke assertion: fixture unread count changed `2 -> 1` after mark-one-read and `1 -> 0` after mark-all-read.

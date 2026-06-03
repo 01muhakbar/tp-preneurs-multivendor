@@ -137,3 +137,15 @@
 - Backend service scope was reviewed: mutations filter by seller audience, authenticated user id, and store id.
 - SellerLayout notification dropdown queries are invalidated after Seller 2026 read mutations.
 - Notification delete, admin notification state, and real-time push integration remain disabled.
+
+## Coupon Lifecycle Mutation Addendum
+- Enabled `SELLER_2026_MUTATIONS.coupons`.
+- Create coupon requires `COUPON_CREATE`.
+- Edit coupon requires `COUPON_UPDATE`, aliased to backend `COUPON_EDIT`.
+- Activate/deactivate requires `COUPON_STATUS_MANAGE`.
+- Archive requires `COUPON_DELETE`, aliased to backend `COUPON_STATUS_MANAGE`.
+- Live coupons route uses existing store-scoped seller coupon endpoints.
+- Backend scope was reviewed: create forces `scopeType: "STORE"` and the resolved `storeId`; edit/delete find coupons by store scope before mutation.
+- UI payloads are whitelisted in `client/src/api/seller2026/coupons.mutations.ts`.
+- Hard delete, duplicate, import/export, and banner upload remain disabled.
+- Preview route `/seller-2026/catalog-tools` remains mock-only.
