@@ -1,6 +1,9 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getSellerNotifications } from "../../api/sellerNotifications.ts";
+import {
+  getSellerNotificationUnreadCount,
+  getSellerNotifications,
+} from "../../api/sellerNotifications.ts";
 import {
   adaptSeller2026Notifications,
   emptySeller2026Notifications,
@@ -53,27 +56,48 @@ export function useSeller2026Notifications(
 ) {
   const normalizedStoreId = Number(storeId);
   const enabled = Number.isFinite(normalizedStoreId) && normalizedStoreId > 0 && options.enabled !== false;
+  const page = Number(query.page || 1);
+  const limit = Number(query.limit || 10);
   const notificationsQuery = useQuery({
-    queryKey: ["seller2026", "notifications", normalizedStoreId, query.page, query.limit],
+    queryKey: ["seller2026", "notifications", normalizedStoreId, page, limit],
     queryFn: () =>
       getSellerNotifications(normalizedStoreId, {
-        page: Number(query.page || 1),
-        limit: Number(query.limit || 10),
+        limit,
+        offset: Math.max(0, page - 1) * limit,
       }),
+    enabled,
+    retry: false,
+  });
+  const unreadCountQuery = useQuery({
+    queryKey: ["seller2026", "notifications", normalizedStoreId, "unread-count"],
+    queryFn: () => getSellerNotificationUnreadCount(normalizedStoreId),
     enabled,
     retry: false,
   });
 
   const data = useMemo(() => {
     if (!enabled && !notificationsQuery.data) return emptySeller2026Notifications;
-    return filterNotifications(adaptSeller2026Notifications(notificationsQuery.data), query);
-  }, [enabled, notificationsQuery.data, query]);
+    const source = notificationsQuery.data || emptySeller2026Notifications;
+    return filterNotifications(
+      adaptSeller2026Notifications({
+        ...source,
+        unreadCount: unreadCountQuery.data?.count ?? notificationsQuery.data?.unreadCount,
+      }),
+      query
+    );
+  }, [enabled, notificationsQuery.data, query, unreadCountQuery.data]);
 
   return {
     data,
-    isLoading: notificationsQuery.isLoading,
-    isError: notificationsQuery.isError,
-    error: notificationsQuery.error,
-    refetch: notificationsQuery.refetch,
+    isLoading: notificationsQuery.isLoading || unreadCountQuery.isLoading,
+    isError: notificationsQuery.isError || unreadCountQuery.isError,
+    error: notificationsQuery.error || unreadCountQuery.error,
+    refetch: async () => {
+      const [notificationsResult] = await Promise.all([
+        notificationsQuery.refetch(),
+        unreadCountQuery.refetch(),
+      ]);
+      return notificationsResult;
+    },
   };
 }

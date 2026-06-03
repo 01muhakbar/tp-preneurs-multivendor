@@ -184,6 +184,19 @@ const permissionCatalog = [
   },
 ];
 
+const permissionAliases: Record<string, string[]> = {
+  STORE_PROFILE_UPDATE: ["STORE_EDIT"],
+  CATALOG_PRODUCT_CREATE: ["PRODUCT_CREATE"],
+  CATALOG_PRODUCT_UPDATE: ["PRODUCT_EDIT", "PRODUCT_UPDATE"],
+  ORDER_READ: ["ORDER_VIEW"],
+  ORDER_FULFILLMENT_UPDATE: ["ORDER_FULFILLMENT_MANAGE"],
+  PAYMENT_REVIEW_READ: ["PAYMENT_STATUS_VIEW"],
+  STORE_PAYMENT_PROFILE_READ: ["PAYMENT_PROFILE_VIEW"],
+  TEAM_INVITE: ["STORE_MEMBERS_MANAGE"],
+  TEAM_ROLE_UPDATE: ["STORE_ROLES_MANAGE", "STORE_MEMBERS_MANAGE"],
+  TEAM_AUDIT_READ: ["AUDIT_LOG_VIEW"],
+};
+
 export const emptySeller2026Team: Seller2026TeamViewModel = {
   summary: {
     totalMembers: 0,
@@ -305,14 +318,21 @@ export function adaptSeller2026MemberDetail(
     key: permission.key,
     label: permission.label,
     description: permission.description,
-    enabled: permissionKeys.has(permission.key),
+    enabled:
+      permissionKeys.has(permission.key) ||
+      (permissionAliases[permission.key] || []).some((alias) => permissionKeys.has(alias)),
     scope: permission.group,
   }));
   const groups = permissionCatalog.reduce<Record<string, { granted: number; total: number }>>(
     (accumulator, permission) => {
       const group = accumulator[permission.group] || { granted: 0, total: 0 };
       group.total += 1;
-      if (permissionKeys.has(permission.key)) group.granted += 1;
+      if (
+        permissionKeys.has(permission.key) ||
+        (permissionAliases[permission.key] || []).some((alias) => permissionKeys.has(alias))
+      ) {
+        group.granted += 1;
+      }
       accumulator[permission.group] = group;
       return accumulator;
     },

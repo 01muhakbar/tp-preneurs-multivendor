@@ -108,3 +108,41 @@
 - Update endpoint uses `requireSellerStoreAccess(["PRODUCT_EDIT"])` and fetches product by `{ id, storeId }`.
 - Create endpoint forces `status: "draft"` and `isPublished: false`.
 - Preview route `/seller-2026/products` remains mock-only and receives no draft save mutation handler.
+
+## Notification Read State
+
+### Route
+- `/seller/stores/:storeSlug/notifications`
+
+### Permission
+- UI permission: `NOTIFICATION_READ`
+- Backend permission alias/source: `STORE_VIEW`
+
+### Mutation Flag
+- `notifications: true`
+
+### Endpoints Used
+- `PATCH /api/seller/stores/:storeId/notifications/:notificationId/read`
+- `PATCH /api/seller/stores/:storeId/notifications/read-all`
+- `GET /api/seller/stores/:storeId/notifications/unread-count`
+
+### Fields Enabled
+- mark one seller notification as read
+- mark all seller notifications as read for the current store/user scope
+- refetch Seller 2026 notification list and unread count
+- invalidate existing SellerLayout notification dropdown queries
+
+### Fields Still Disabled
+- delete notification
+- create notification
+- admin notification read state
+- cross-store notification mutation
+- real-time push subscriptions
+
+### Safety Notes
+- `storeId` is resolved from live seller workspace context, not from a form body.
+- Frontend calls whitelisted notification mutation helpers through `notifications.mutations.ts`.
+- Backend routes use `requireSellerStoreAccess(["STORE_VIEW"])`.
+- Backend service filters mutations by seller notification metadata: `audience: "SELLER"`, `userId`, and `storeId`.
+- Mutations are idempotent for already-read in-scope notifications and return not found for out-of-scope notifications.
+- Preview route `/seller-2026/team` remains mock-only and receives no live notification mutation handler.

@@ -4,7 +4,7 @@
 - Audited Seller Workspace 2026 preview and live adoption routes.
 - Preview routes under `/seller-2026/*` are retained as visual regression playgrounds.
 - Live routes under `/seller/stores/:storeSlug/*` remain wrapped by the existing `SellerLayout`.
-- This pass does not enable create/update/delete, fulfillment, payment review, team, or notification mutations.
+- This pass does not enable create/update/delete, fulfillment, payment review, or team mutations. Notification read-state mutations are enabled in a later scoped pass.
 
 ## Route Map
 - `/seller/stores/:storeSlug/dashboard` -> `Seller2026LiveDashboardPage`
@@ -55,11 +55,13 @@
 - Existing route helper `useSellerWorkspaceRoute` continues to resolve `workspaceStoreId`, `workspaceStoreSlug`, and store-scoped route builders for live pages.
 
 ## Mutation Safety Check
-- `SELLER_2026_MUTATIONS` centralizes mutation readiness; only `storeProfileUpdate` and `productDraftSave` are currently enabled.
+- `SELLER_2026_MUTATIONS` centralizes mutation readiness; `storeProfileUpdate`, `productDraftSave`, and notification read-state mutations are currently enabled.
 - Product mutations disabled: create/submit/publish/delete/save draft/media upload/inventory adjustment.
 - Catalog mutations disabled: create/edit/delete category, attribute, attribute value, and coupon.
 - Orders/payments mutations disabled: pack order, print label, mark shipped, update tracking, save internal note, approve payment, reject payment, refund payment, submit payment profile, upload payment documents, change payout account.
-- Team/notification mutations disabled: invite member, resend invitation, cancel invitation, update role, remove member, reset password, mark notifications as read, delete notification.
+- Team mutations disabled: invite member, resend invitation, cancel invitation, update role, remove member, reset password.
+- Notification mutations enabled: mark one notification as read and mark all seller notifications as read.
+- Notification mutations disabled: delete notification, create notification, admin notification read state, and real-time push actions.
 
 ## Adapter Fallback Check
 - Reviewed Seller 2026 adapters in `client/src/api/seller2026`.
@@ -95,7 +97,7 @@
 ## Known Issues
 - Seller 2026 `.jsx` files are ignored by current ESLint config.
 - Repo-wide lint debt remains outside this hardening scope.
-- Mutations remain disabled except the low-risk store profile update and product draft save flows.
+- Mutations remain disabled except the low-risk store profile update, product draft save, and seller notification read-state flows.
 - Some preview detail routes share the same domain workspace shell by design.
 
 ## Next Recommended Phase
@@ -127,3 +129,11 @@
 - Live product editor submits a whitelisted payload to seller draft endpoints.
 - Backend safety check confirmed store-scoped create/update routes and draft-safe create defaults.
 - Submit review, publish/unpublish, delete, media upload, and variant persistence remain disabled.
+
+## Notification Read Mutation Addendum
+- Enabled `SELLER_2026_MUTATIONS.notifications`.
+- Mark one/all read requires `NOTIFICATION_READ`, aliased to backend `STORE_VIEW`.
+- Live notifications route uses store-scoped seller notification endpoints.
+- Backend service scope was reviewed: mutations filter by seller audience, authenticated user id, and store id.
+- SellerLayout notification dropdown queries are invalidated after Seller 2026 read mutations.
+- Notification delete, admin notification state, and real-time push integration remain disabled.

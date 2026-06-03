@@ -443,6 +443,45 @@
 - Products list and detail queries are invalidated after successful draft save.
 - Preview route `/seller-2026/products` remains mock-only.
 
+## Mutation Integration — Notification Read State
+
+### Route
+- `/seller/stores/:storeSlug/notifications`
+
+### Files Added
+- `client/src/api/seller2026/notifications.mutations.ts`
+- `client/src/hooks/seller2026/useSeller2026NotificationMutations.ts`
+
+### Files Changed
+- `client/src/api/seller2026/mutation-flags.ts`
+- `client/src/hooks/seller2026/useSeller2026Notifications.ts`
+- `client/src/features/seller2026/Seller2026Workspace.jsx`
+- `client/src/pages/seller2026/Seller2026LiveNotificationsPage.jsx`
+- `scripts/seller2026-auth-fixture-live-smoke.ts`
+
+### Endpoints Used
+- `PATCH /api/seller/stores/:storeId/notifications/:notificationId/read`
+- `PATCH /api/seller/stores/:storeId/notifications/read-all`
+- `GET /api/seller/stores/:storeId/notifications/unread-count`
+
+### Enabled Actions
+- Mark one seller notification as read.
+- Mark all seller notifications as read for the current store/user scope.
+- Refetch Seller 2026 notification list and unread count after mutation.
+- Invalidate existing SellerLayout notification dropdown queries after mutation.
+
+### Still Disabled
+- Delete notification.
+- Create notification.
+- Admin notification read state.
+- Real-time push notification subscriptions.
+
+### Safety Notes
+- `NOTIFICATION_READ` aliases to the backend `STORE_VIEW` permission used by seller notification routes.
+- Backend service filters read mutations by `audience: "SELLER"`, authenticated `userId`, and `storeId`.
+- Live pagination now sends `offset` and `limit` to match the existing seller notification API.
+- Preview route `/seller-2026/team` remains mock-only and receives no live mutation handler.
+
 ## QA Checklist
 - Verify preview pages do not render blank.
 - Verify CSS does not affect `/admin/*`, `/`, `/store/:slug`, or `/user/*`.

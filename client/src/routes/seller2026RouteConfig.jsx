@@ -45,9 +45,9 @@ export const seller2026PreviewRoutes = (
     <Route path="payment-review" element={<Seller2026PaymentReviewPage />} />
     <Route path="payment-profile" element={<Seller2026PaymentProfilePage />} />
     <Route path="team" element={<Seller2026TeamPage />} />
-    <Route path="team/:memberId" element={<Seller2026MemberDetailPage />} />
-    <Route path="team/invitations" element={<Seller2026InvitationsPage />} />
     <Route path="team/audit" element={<Seller2026AuditLogPage />} />
+    <Route path="team/invitations" element={<Seller2026InvitationsPage />} />
+    <Route path="team/:memberId" element={<Seller2026MemberDetailPage />} />
     <Route path="notifications" element={<Seller2026NotificationsPage />} />
   </Route>
 );

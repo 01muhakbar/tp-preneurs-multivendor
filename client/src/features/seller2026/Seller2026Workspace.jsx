@@ -595,10 +595,10 @@ function DashboardPage({ dashboardData = null, dashboardState = null, mode, stor
       </div>
       <div className="s26-grid two">
         <Card title="Top Products" hint="Produk dengan revenue terbaik minggu ini.">
-          <DataTable columns={["Produk", "Terjual", "Revenue", "Status"]} rows={effectiveTopProducts} renderRow={(row) => <tr key={row[0]}><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td style={{ color: "var(--seller-emerald)", fontWeight: 800 }}>{row[3]}</td></tr>} />
+          <DataTable columns={["Produk", "Terjual", "Revenue", "Status"]} rows={effectiveTopProducts} renderRow={(row, index) => <tr key={`${row[0]}-${index}`}><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td style={{ color: "var(--seller-emerald)", fontWeight: 800 }}>{row[3]}</td></tr>} />
         </Card>
         <Card title="Recent Suborders" hint="Suborder terbaru dari semua channel.">
-          <DataTable columns={["Suborder", "Customer", "Status", "Waktu"]} rows={effectiveSuborders} renderRow={(row) => <tr key={row.id}><td>{row.id}</td><td>{row.customer}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td>{row.time}</td></tr>} />
+          <DataTable columns={["Suborder", "Customer", "Status", "Waktu"]} rows={effectiveSuborders} renderRow={(row, index) => <tr key={`${row.id}-${index}`}><td>{row.id}</td><td>{row.customer}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td>{row.time}</td></tr>} />
         </Card>
       </div>
       <div className="s26-grid three">
@@ -1730,6 +1730,7 @@ function TeamPage({
   teamState = null,
   teamQuery = null,
   onTeamQueryChange = null,
+  notificationMutation = null,
   mode,
   storeContext,
   seller2026Permissions,
@@ -1739,6 +1740,27 @@ function TeamPage({
   const basePath = storeSlug ? `/seller/stores/${encodeURIComponent(storeSlug)}` : "/seller-2026";
   const queryChange = (next) => onTeamQueryChange?.(next);
   const searchValue = teamQuery?.search || "";
+  const [notificationActionStatus, setNotificationActionStatus] = useState({ type: "idle", message: "" });
+  const canMutateNotifications = Boolean(notificationMutation?.canMutate);
+  const isNotificationMutationPending =
+    Boolean(notificationMutation?.isMarkingRead) || Boolean(notificationMutation?.isMarkingAllRead);
+  const notificationActionTitle = canMutateNotifications
+    ? undefined
+    : actionTitle(seller2026Permissions, "NOTIFICATION_READ", "notifications");
+  const runNotificationAction = async (action, successMessage) => {
+    if (!action || isNotificationMutationPending) return;
+    notificationMutation?.reset?.();
+    setNotificationActionStatus({ type: "idle", message: "" });
+    try {
+      await action();
+      setNotificationActionStatus({ type: "success", message: successMessage });
+    } catch (error) {
+      setNotificationActionStatus({
+        type: "error",
+        message: error?.message || "Notification action failed.",
+      });
+    }
+  };
 
   if (isLive && teamView === "members") {
     const rows = teamData?.members || [];
@@ -1869,7 +1891,7 @@ function TeamPage({
       <Shell section="team" mode={mode} storeContext={storeContext}>
         {teamState?.isError ? <Card title="Notifications unavailable" hint="Live notifications could not load." actions={<button type="button" className="s26-btn" onClick={teamState?.refetch}>Retry</button>} /> : null}
         <div className="s26-grid two">
-          <Card title="Notifications Center" hint="Priority filters, categories, unread state, and operational alerts." actions={<button type="button" className="s26-btn" disabled title={actionTitle(seller2026Permissions, "NOTIFICATION_READ", "notifications")}>Mark all as read</button>}>
+          <Card title="Notifications Center" hint="Priority filters, categories, unread state, and operational alerts." actions={<button type="button" className="s26-btn" disabled={!canMutateNotifications || isNotificationMutationPending || summary.unread <= 0} title={notificationActionTitle} onClick={() => runNotificationAction(notificationMutation?.markAllRead, "All notifications marked as read.")}>{notificationMutation?.isMarkingAllRead ? "Marking..." : "Mark all as read"}</button>}>
             <div className="s26-grid five" style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 10, marginBottom: 14 }}>
               <CatalogKpi label="All" value={summary.all || 0} />
               <CatalogKpi label="Unread" value={summary.unread || 0} />
@@ -1884,8 +1906,9 @@ function TeamPage({
               <select className="s26-control" aria-label="Filter unread notifications" value={teamQuery?.unread || "all"} onChange={(event) => queryChange({ unread: event.target.value, page: 1 })}><option value="all">All Read State</option><option value="true">Unread</option><option value="false">Read</option></select>
             </div>
             {teamState?.isLoading ? <p className="hint">Loading notifications...</p> : null}
+            {notificationActionStatus.message ? <p className={notificationActionStatus.type === "error" ? "s26-field-error" : "hint"}>{notificationActionStatus.message}</p> : null}
             {!teamState?.isLoading && rows.length === 0 ? <div className="s26-empty"><strong>Belum ada notifikasi untuk toko ini.</strong><p>Notifikasi store-scoped akan muncul saat ada event operasional.</p></div> : null}
-            {rows.length ? <DataTable columns={["Notification", "Category", "Priority", "Time", "State"]} rows={rows} renderRow={(row) => <tr key={row.id}><td><strong>{row.title}</strong><div className="s26-sub">{row.message || "-"}</div></td><td>{row.category}</td><td><span className={statusClass(row.priority)}>{row.priority}</span></td><td>{row.createdAt || "-"}</td><td>{row.unread ? "Unread" : "Read"}</td></tr>} /> : null}
+            {rows.length ? <DataTable columns={["Notification", "Category", "Priority", "Time", "State", "Actions"]} rows={rows} renderRow={(row) => <tr key={row.id}><td><strong>{row.title}</strong><div className="s26-sub">{row.message || "-"}</div></td><td>{row.category}</td><td><span className={statusClass(row.priority)}>{row.priority}</span></td><td>{row.createdAt || "-"}</td><td>{row.unread ? "Unread" : "Read"}</td><td>{row.unread ? <button type="button" className="s26-muted-action" disabled={!canMutateNotifications || isNotificationMutationPending} title={notificationActionTitle} onClick={() => runNotificationAction(() => notificationMutation?.markRead(row.id), "Notification marked as read.")}>{notificationMutation?.isMarkingRead ? "Marking..." : "Mark read"}</button> : <span className="hint">Done</span>}</td></tr>} /> : null}
           </Card>
           <Card title="Categories" hint="Notification grouping by operational domain.">
             <div className="s26-checklist">{categories.map((category) => <button type="button" className="s26-check-row" key={category.key} onClick={() => queryChange({ category: category.key, page: 1 })}><span>{category.label}</span><strong>{category.count}</strong></button>)}</div>
@@ -1955,6 +1978,7 @@ export function Seller2026Workspace({
   teamState = null,
   teamQuery = null,
   onTeamQueryChange = null,
+  notificationMutation = null,
 }) {
   const seller2026Permissions = useMemo(() => {
     if (mode !== "embedded") return new Set(SELLER_2026_PREVIEW_PERMISSIONS);
@@ -2023,6 +2047,7 @@ export function Seller2026Workspace({
       teamState={teamState}
       teamQuery={teamQuery}
       onTeamQueryChange={onTeamQueryChange}
+      notificationMutation={notificationMutation}
       seller2026Permissions={seller2026Permissions}
     />
   );

@@ -168,31 +168,64 @@ export function normalizeProductStatus(value: unknown): Seller2026ProductStatus 
 
 const categoryLabel = (value: Record<string, unknown>) => {
   const category = object(value.category);
+  const primary = object(category.primary);
+  const defaultCategory = object(category.default);
   const categories = array(value.categories).map(object);
   return (
     text(value.categoryName) ||
     text(category.name) ||
+    text(primary.name) ||
+    text(defaultCategory.name) ||
     text(categories[0]?.name) ||
     "Uncategorized"
   );
 };
 
 const thumbnailUrl = (value: Record<string, unknown>) => {
+  const media = object(value.media);
   const imageUrls = array(value.imageUrls).map((item) => text(item)).filter(Boolean);
+  const mediaImageUrls = array(media.imageUrls).map((item) => text(item)).filter(Boolean);
   const images = array(value.images).map((item) => object(item));
   return (
     text(value.thumbnailUrl) ||
     text(value.thumbnail) ||
     text(value.image) ||
+    text(value.mediaPreviewUrl) ||
+    text(media.promoImageUrl) ||
     imageUrls[0] ||
+    mediaImageUrls[0] ||
     text(images[0]?.url) ||
     null
   );
 };
 
+const productPrice = (product: Record<string, unknown>) => {
+  const pricing = object(product.pricing);
+  return number(
+    pricing.effectivePrice ?? pricing.salePrice ?? pricing.price ?? product.price ?? product.salePrice,
+    0
+  );
+};
+
+const productStock = (product: Record<string, unknown>) => {
+  const inventory = object(product.inventory);
+  const availability = object(product.availability);
+  return number(product.stock ?? product.quantity ?? inventory.stock ?? availability.stock, 0);
+};
+
+const productSubmissionStatus = (product: Record<string, unknown>) => {
+  const submission = object(product.submission);
+  const status = text(submission.status ?? product.submissionStatus ?? product.sellerSubmissionStatus);
+  return status && status !== "none" ? status : undefined;
+};
+
+const productOperationalStatus = (product: Record<string, unknown>) => {
+  const statusMeta = object(product.statusMeta);
+  return product.status ?? statusMeta.code ?? statusMeta.label;
+};
+
 export function adaptSellerProduct(value: unknown) {
   const product = object(value);
-  const inventory = object(product.inventory);
   const id = idValue(product.id ?? product.productId ?? product.uuid, "") as string | number;
 
   return {
@@ -202,11 +235,11 @@ export function adaptSellerProduct(value: unknown) {
     sku: text(product.sku || product.code, "-"),
     thumbnailUrl: thumbnailUrl(product),
     category: categoryLabel(product),
-    stock: number(product.stock ?? product.quantity ?? inventory.stock, 0),
-    price: number(product.price ?? product.salePrice ?? product.regularPrice, 0),
+    stock: productStock(product),
+    price: productPrice(product),
     sales: number(product.salesCount ?? product.soldCount ?? product.sold ?? product.sales, 0),
     views: number(product.viewCount ?? product.views, 0),
-    status: normalizeProductStatus(product.status ?? product.submissionStatus),
+    status: normalizeProductStatus(productSubmissionStatus(product) ?? productOperationalStatus(product)),
     updatedAt: text(product.updatedAt || product.updated_at || product.lastUpdated) || null,
   };
 }
@@ -283,24 +316,37 @@ const categoryIds = (product: Record<string, unknown>) => {
 
   const category = object(product.category);
   const assigned = array(category.assigned ?? product.categories).map(object);
+  const fallbackCategories = [object(category.default), object(category.primary), ...assigned];
   return assigned
     .map((entry) => idValue(entry.id ?? entry.value))
+    .concat(
+      fallbackCategories
+        .map((entry) => idValue(entry.id ?? entry.value))
+        .filter((entry): entry is string | number => entry !== null)
+    )
+    .filter((entry, index, source) => source.indexOf(entry) === index)
     .filter((entry): entry is string | number => entry !== null);
 };
 
 const gallery = (product: Record<string, unknown>) => {
+  const media = object(product.media);
   const imageUrls = array(product.imageUrls).map((item) => text(item)).filter(Boolean);
+  const mediaImageUrls = array(media.imageUrls).map((item) => text(item)).filter(Boolean);
   const galleryItems = array(product.gallery).map((item) => text(item)).filter(Boolean);
   const images = array(product.images)
     .map((item) => text(item) || text(object(item).url))
     .filter(Boolean);
   const thumbnail = thumbnailUrl(product);
-  return Array.from(new Set([thumbnail, ...imageUrls, ...galleryItems, ...images].filter(Boolean))) as string[];
+  return Array.from(new Set([thumbnail, ...imageUrls, ...mediaImageUrls, ...galleryItems, ...images].filter(Boolean))) as string[];
 };
 
 export function adaptSeller2026ProductDetail(value: unknown): Seller2026ProductDetailViewModel {
   const product = object(value);
   const performance = object(product.performance);
+  const pricing = object(product.pricing);
+  const descriptions = object(product.descriptions);
+  const inventory = object(product.inventory);
+  const attributes = object(product.attributes);
   const variants = array(product.variants).map((item, index) => {
     const variant = object(item);
     return {
@@ -313,6 +359,10 @@ export function adaptSeller2026ProductDetail(value: unknown): Seller2026ProductD
       status: text(variant.status, "active"),
     };
   });
+  const submission = object(product.submission);
+  const submissionNote = text(
+    submission.reviewNote ?? submission.revisionNote ?? submission.revisionReason
+  );
   const notes = array(product.revisionNotes ?? product.revisions ?? product.reviewNotes).map((item, index) => {
     const note = object(item);
     return {
@@ -332,10 +382,26 @@ export function adaptSeller2026ProductDetail(value: unknown): Seller2026ProductD
       createdAt: text(entry.createdAt ?? entry.updatedAt, ""),
     };
   });
-  const price = number(product.price ?? product.salePrice, 0);
+  const mappedNotes =
+    notes.length || !submissionNote
+      ? notes
+      : [
+          {
+            id: "submission-note",
+            author: "Reviewer",
+            message: submissionNote,
+            createdAt: text(submission.revisionRequestedAt ?? submission.submittedAt, ""),
+            status: text(submission.status) || undefined,
+          },
+        ];
+  const price = productPrice(product);
   const seo = object(product.seo);
   const sales = number(product.salesCount ?? product.soldCount ?? product.sold ?? performance.sales, 0);
-  const productTags = tags(product.tags);
+  const productTags = tags(product.tags).length ? tags(product.tags) : tags(attributes.tags);
+  const description = text(
+    product.description ?? descriptions.description,
+    "Product description is not available yet."
+  );
 
   return {
     product: {
@@ -343,12 +409,12 @@ export function adaptSeller2026ProductDetail(value: unknown): Seller2026ProductD
       name: text(product.name || product.title, "Untitled product"),
       slug: text(product.slug) || undefined,
       sku: text(product.sku || product.code, "-"),
-      status: normalizeProductStatus(product.status ?? product.submissionStatus),
+      status: normalizeProductStatus(productSubmissionStatus(product) ?? productOperationalStatus(product)),
       price,
-      stock: number(product.stock ?? product.quantity, 0),
+      stock: productStock(product),
       sold: sales,
       views: number(product.viewCount ?? product.views ?? performance.views, 0),
-      description: text(product.description, "Product description is not available yet."),
+      description,
       category: categoryLabel(product),
       brand: text(product.brand ?? object(product.brand).name) || undefined,
       tags: productTags,
@@ -357,12 +423,12 @@ export function adaptSeller2026ProductDetail(value: unknown): Seller2026ProductD
     editableDraft: {
       name: text(product.name || product.title),
       sku: text(product.sku || product.code),
-      description: text(product.description),
+      description: text(product.description ?? descriptions.description),
       categoryIds: categoryIds(product),
       tags: productTags,
       price,
-      compareAtPrice: number(product.salePrice ?? product.compareAtPrice, 0),
-      stock: number(product.stock ?? product.quantity, 0),
+      compareAtPrice: number(pricing.salePrice ?? product.salePrice ?? product.compareAtPrice, 0),
+      stock: number(product.stock ?? product.quantity ?? inventory.stock, 0),
       seoTitle: text(seo.title ?? seo.seoTitle),
       seoDescription: text(seo.description ?? seo.seoDescription),
     },
@@ -373,7 +439,7 @@ export function adaptSeller2026ProductDetail(value: unknown): Seller2026ProductD
       conversionRate: number(performance.conversionRate, 0),
     },
     variants,
-    revisionNotes: notes,
+    revisionNotes: mappedNotes,
     publishHistory: history,
   };
 }

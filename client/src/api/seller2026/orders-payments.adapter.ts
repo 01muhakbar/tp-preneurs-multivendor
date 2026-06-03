@@ -195,6 +195,12 @@ const readItems = (value: unknown) => {
   return [];
 };
 
+const readPayload = (value: unknown) => {
+  const response = object(value);
+  const data = object(response.data);
+  return Object.keys(data).length ? data : response;
+};
+
 const readPagination = (value: unknown, fallbackLimit = 10) => {
   const response = object(value);
   const pagination = object(response.pagination ?? object(response.data).pagination);
@@ -210,8 +216,20 @@ const adaptOrderRow = (value: unknown) => {
   const buyer = object(row.buyer ?? row.customer);
   const readModel = object(row.readModel);
   const sellerScope = object(readModel.sellerScope);
+  const primaryStatus = object(readModel.primaryStatus);
+  const paymentState = object(readModel.paymentState);
   const paymentSummary = object(row.paymentSummary);
-  const status = normalizeSuborderStatus(row.fulfillmentStatus ?? row.paymentStatus);
+  const fulfillmentMeta = object(row.fulfillmentStatusMeta);
+  const paymentMeta = object(row.paymentStatusMeta);
+  const status = normalizeSuborderStatus(
+    primaryStatus.code ??
+      primaryStatus.label ??
+      row.fulfillmentStatus ??
+      fulfillmentMeta.code ??
+      paymentState.code ??
+      paymentMeta.code ??
+      row.paymentStatus
+  );
   return {
     id: idValue(row.suborderId ?? row.id),
     invoiceNo: text(row.orderNumber ?? order.orderNumber ?? row.invoiceNo, "-"),
@@ -220,7 +238,7 @@ const adaptOrderRow = (value: unknown) => {
     customerName: text(buyer.name, "Customer"),
     customerPhone: text(buyer.phone) || undefined,
     channel: text(order.checkoutMode ?? row.checkoutMode ?? row.channel) || undefined,
-    shippingMethod: text(row.shippingStatus ?? row.shippingMethod) || undefined,
+    shippingMethod: text(row.shippingStatus ?? row.shippingMethod ?? primaryStatus.label) || undefined,
     total: number(row.totalAmount ?? sellerScope.totalAmount ?? paymentSummary.amount, 0),
     status,
   };
@@ -245,10 +263,14 @@ export function adaptSeller2026Orders(value: unknown): Seller2026OrdersViewModel
 }
 
 export function adaptSeller2026SuborderDetail(value: unknown): Seller2026SuborderDetailViewModel {
-  const detail = object(value);
+  const detail = readPayload(value);
   const order = object(detail.order);
   const buyer = object(detail.buyer);
   const shipping = object(detail.shipping);
+  const readModel = object(detail.readModel);
+  const sellerScope = object(readModel.sellerScope);
+  const primaryStatus = object(readModel.primaryStatus);
+  const paymentState = object(readModel.paymentState);
   const totals = object(detail.totals);
   const paymentSummary = object(detail.paymentSummary);
   const suborderId = idValue(detail.suborderId ?? detail.id, "");
@@ -278,7 +300,9 @@ export function adaptSeller2026SuborderDetail(value: unknown): Seller2026Suborde
       id: suborderId,
       invoiceNo: text(order.orderNumber ?? detail.orderNumber ?? detail.invoiceNo, "-"),
       suborderNo: text(detail.suborderNumber ?? detail.suborderNo, "-"),
-      status: normalizeSuborderStatus(detail.fulfillmentStatus ?? detail.paymentStatus),
+      status: normalizeSuborderStatus(
+        primaryStatus.code ?? primaryStatus.label ?? detail.fulfillmentStatus ?? paymentState.code ?? detail.paymentStatus
+      ),
       orderDate: text(detail.createdAt ?? order.createdAt) || null,
       channel: text(order.checkoutMode ?? detail.checkoutMode) || undefined,
     },
@@ -296,10 +320,10 @@ export function adaptSeller2026SuborderDetail(value: unknown): Seller2026Suborde
     items,
     totals: {
       subtotal: number(totals.subtotalAmount, items.reduce((sum, item) => sum + item.subtotal, 0)),
-      shippingFee: number(totals.shippingAmount, 0),
-      serviceFee: number(totals.serviceFeeAmount, 0),
+      shippingFee: number(totals.shippingAmount ?? sellerScope.shippingAmount, 0),
+      serviceFee: number(totals.serviceFeeAmount ?? sellerScope.serviceFeeAmount, 0),
       discount: number(totals.discountAmount, 0),
-      total: number(totals.totalAmount ?? paymentSummary.amount, 0),
+      total: number(totals.totalAmount ?? sellerScope.totalAmount ?? paymentSummary.amount, 0),
     },
     timeline: trackingEvents.map((item, index) => {
       const event = object(item);
@@ -319,13 +343,14 @@ const adaptPaymentRow = (value: unknown, index = 0) => {
   const payment = object(suborder.payment ?? suborder.paymentSummary);
   const proof = object(payment.proof);
   const buyer = object(suborder.buyer);
+  const order = object(suborder.order);
   const id = idValue(payment.id ?? proof.id ?? suborder.suborderId, index);
   const amount = number(payment.amount ?? proof.transferAmount ?? suborder.totalAmount, 0);
   return {
     id,
     paymentNo: text(payment.internalReference ?? suborder.suborderNumber ?? id, `PAY-${id}`),
-    invoiceNo: text(suborder.orderNumber) || undefined,
-    customerName: text(buyer.name) || undefined,
+    invoiceNo: text(suborder.orderNumber ?? order.orderNumber) || undefined,
+    customerName: text(buyer.name ?? suborder.customerName) || undefined,
     amount,
     method: text(payment.paymentChannel ?? proof.senderBankOrWallet) || undefined,
     status: text(proof.reviewStatus ?? payment.status ?? suborder.paymentStatus, "PENDING").toUpperCase(),
@@ -369,16 +394,20 @@ export function adaptSeller2026PaymentReview(value: unknown): Seller2026PaymentR
 }
 
 export function adaptSeller2026PaymentProfile(value: unknown): Seller2026PaymentProfileViewModel {
-  const profile = object(value);
+  const profile = readPayload(value);
   const active = object(profile.activeSnapshot);
+  const activeSource = Object.keys(active).length ? active : profile;
   const pending = object(profile.pendingRequest);
   const governance = object(profile.governance);
   const readModel = object(profile.readModel);
   const review = object(profile.reviewFeedback);
-  const status = normalizePaymentProfileStatus(active.verificationStatus ?? pending.requestStatus ?? review.code);
-  const qrisUrl = text(active.qrisImageUrl ?? pending.qrisImageUrl) || null;
-  const accountName = text(active.accountName ?? pending.accountName);
-  const merchantName = text(active.merchantName ?? pending.merchantName);
+  const readiness = object(profile.readiness ?? activeSource.readiness);
+  const status = normalizePaymentProfileStatus(
+    activeSource.verificationStatus ?? readiness.code ?? pending.requestStatus ?? review.code
+  );
+  const qrisUrl = text(activeSource.qrisImageUrl ?? pending.qrisImageUrl) || null;
+  const accountName = text(activeSource.accountName ?? pending.accountName);
+  const merchantName = text(activeSource.merchantName ?? pending.merchantName);
 
   return {
     status,
@@ -394,7 +423,7 @@ export function adaptSeller2026PaymentProfile(value: unknown): Seller2026Payment
     payoutAccount: accountName
       ? {
           bankName: "QRIS",
-          accountNoMasked: text(active.merchantId ?? pending.merchantId, "-"),
+          accountNoMasked: text(activeSource.merchantId ?? pending.merchantId, "-"),
           accountName,
           status: status === "ACTIVE" ? "VERIFIED" : status === "REJECTED" ? "REJECTED" : "PENDING",
         }
@@ -403,10 +432,10 @@ export function adaptSeller2026PaymentProfile(value: unknown): Seller2026Payment
     documents: [
       { label: "KTP/NIK", value: accountName || undefined, status: accountName ? "PENDING" : "MISSING" },
       { label: "NPWP", status: "OPTIONAL" },
-      { label: "QRIS document", value: qrisUrl || undefined, status: qrisUrl ? "PENDING" : "MISSING" },
+      { label: "QRIS document", value: qrisUrl || undefined, status: qrisUrl ? (status === "ACTIVE" ? "VERIFIED" : "PENDING") : "MISSING" },
     ],
     timeline: [
-      { label: text(object(readModel.nextStep).label, "Payment profile snapshot"), actor: text(object(readModel.nextStep).actor) || undefined, createdAt: text(profile.updatedAt) || null },
+      { label: text(object(readModel.nextStep).label, "Payment profile snapshot"), actor: text(object(readModel.nextStep).actor) || undefined, createdAt: text(profile.updatedAt ?? activeSource.updatedAt) || null },
       { label: text(governance.note, "Admin review required"), actor: "System", createdAt: text(governance.submittedAt) || null },
     ].filter((item) => item.label),
   };

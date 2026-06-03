@@ -52,11 +52,12 @@
 | Team | Invite/resend/cancel invitation | `TEAM_INVITE` | `team` | Disabled. |
 | Team | Update role / save changes | `TEAM_ROLE_UPDATE` | `team` | Disabled. |
 | Team | Remove member | `TEAM_REMOVE` | `team` | Disabled. |
-| Notifications | Mark read/delete notification | `NOTIFICATION_READ` | `notifications` | Disabled. |
+| Notifications | Mark one/all as read | `NOTIFICATION_READ` | `notifications` | Enabled on live notifications route. |
+| Notifications | Delete notification | `NOTIFICATION_READ` | `notifications` | Disabled. |
 
 ## Current Mutation Policy
 - A button can become active only when the user has the required permission and the matching mutation flag is enabled.
-- Only `storeProfileUpdate` and `productDraftSave` are enabled; all other Seller 2026 mutation flags remain `false`.
+- Only `storeProfileUpdate`, `productDraftSave`, and notification read-state mutations are enabled; all other Seller 2026 mutation flags remain `false`.
 - Frontend permission gating is UX readiness only; backend permission and store-scope enforcement remain the source of truth.
 
 ## Known Gaps
@@ -68,4 +69,4 @@
 - Coupon create mutation.
 - Fulfillment mutation.
 - Team invitation mutation.
-- Notification read/delete mutation.
+- Notification delete mutation.

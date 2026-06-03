@@ -7,7 +7,7 @@ export const SELLER_2026_MUTATIONS = {
   orders: false,
   payments: false,
   team: false,
-  notifications: false,
+  notifications: true,
 } as const;
 
 export type Seller2026MutationFeature = keyof typeof SELLER_2026_MUTATIONS;

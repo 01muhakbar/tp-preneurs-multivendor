@@ -150,7 +150,19 @@ const mapSocials = (profile: Record<string, unknown>) =>
     { channel: "Website", value: text(profile.websiteUrl), url: text(profile.websiteUrl) },
     { channel: "Instagram", value: text(profile.instagramUrl), url: text(profile.instagramUrl) },
     { channel: "TikTok", value: text(profile.tiktokUrl), url: text(profile.tiktokUrl) },
-  ].filter((item) => item.value);
+    ...(
+      Array.isArray(profile.socialLinks)
+        ? profile.socialLinks.map((entry) => {
+            const item = object(entry);
+            return {
+              channel: text(item.channel || item.label || item.type, "Social"),
+              value: text(item.value || item.url || item.handle),
+              url: text(item.url || item.value),
+            };
+          })
+        : []
+    ),
+  ].filter((item, index, source) => item.value && source.findIndex((entry) => entry.value === item.value) === index);
 
 const mapPolicies = (profile: Record<string, unknown>) => [
   {
@@ -224,7 +236,7 @@ export function adaptSeller2026Storefront({
   const storeName = text(source.name || contextStore.name || publicStore.name, "Toko Kamu");
   const slug = text(source.slug || contextStore.slug || publicStore.slug);
   const description = text(
-    richAboutData.content || source.description || publicStore.description,
+    richAboutData.content || richAboutData.html || source.description || publicStore.description || publicStore.about,
     "Bangun brand dan jangkau lebih banyak pelanggan."
   );
   const address = joinAddress(
@@ -257,21 +269,29 @@ export function adaptSeller2026Storefront({
       id: primitiveId(source.id) || primitiveId(contextStore.id),
       slug,
       name: storeName,
-      logoUrl: nullableText(source.logoUrl || publicStore.logoUrl),
-      coverUrl: nullableText(source.bannerUrl || publicStore.bannerUrl || publicStore.coverUrl),
-      tagline: text(publicStore.tagline, "Bangun brand dan jangkau lebih banyak pelanggan."),
+      logoUrl: nullableText(source.logoUrl || contextStore.logoUrl || publicStore.logoUrl || publicStore.logo),
+      coverUrl: nullableText(source.bannerUrl || contextStore.imageUrl || publicStore.bannerUrl || publicStore.coverUrl),
+      tagline: text(publicStore.tagline || publicStore.shortDescription, "Bangun brand dan jangkau lebih banyak pelanggan."),
       email: text(source.email),
       whatsapp: text(source.whatsapp),
       phone: text(source.phone),
-      businessCategory: text(publicStore.businessCategory, "Storefront"),
-      businessSubcategory: text(publicStore.businessSubcategory, "General"),
+      businessCategory: text(publicStore.businessCategory || publicStore.category, "Storefront"),
+      businessSubcategory: text(publicStore.businessSubcategory || publicStore.subcategory, "General"),
       address: address || "Alamat toko belum lengkap.",
-      operatingHours: [{ day: "Setiap hari", hours: "Belum diatur" }],
+      operatingHours: Array.isArray(publicStore.operatingHours)
+        ? publicStore.operatingHours.map((entry) => {
+            const item = object(entry);
+            return {
+              day: text(item.day || item.label, "Setiap hari"),
+              hours: text(item.hours || item.value, "Belum diatur"),
+            };
+          })
+        : [{ day: "Setiap hari", hours: "Belum diatur" }],
       shippingOrigin: shippingOrigin || "Asal pengiriman belum lengkap.",
-      socials: mapSocials(source),
+      socials: mapSocials({ ...publicStore, ...source }),
       description,
       policies: mapPolicies(source),
-      saveStatus: source.updatedAt ? `Updated ${text(source.updatedAt)}` : "Live fallback profile",
+      saveStatus: source.updatedAt ? `Updated ${text(source.updatedAt)}` : "Live profile",
       editableProfile: {
         name: storeName,
         slug,
@@ -308,7 +328,7 @@ export function adaptSeller2026Storefront({
       verifications: [
         {
           label: "Store status",
-          status: normalizeVerificationStatus(source.status || contextStore.status),
+          status: normalizeVerificationStatus(object(source.statusMeta).code || source.status || contextStore.status),
         },
         {
           label: "Profile completeness",

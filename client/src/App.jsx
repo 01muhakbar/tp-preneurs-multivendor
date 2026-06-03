@@ -113,7 +113,6 @@ const AdminStoreApplicationDetailPage = lazy(() =>
   import("./pages/admin/AdminStoreApplicationDetailPage.jsx")
 );
 const SellerLayout = lazy(() => import("./layouts/SellerLayout.jsx"));
-const SellerWorkspaceHome = lazy(() => import("./pages/seller/SellerWorkspaceHome.jsx"));
 const Seller2026LiveDashboardPage = lazy(() =>
   import("./pages/seller2026/Seller2026LiveDashboardPage.jsx")
 );
@@ -419,8 +418,28 @@ export default function App() {
             path="/seller/stores/:storeSlug/profile"
             element={<LegacySellerStoreProfileRedirect />}
           />
+          <Route
+            path="/seller/stores/:storeSlug/catalog"
+            element={<LegacySellerCatalogRedirect />}
+          />
+          <Route
+            path="/seller/stores/:storeSlug/catalog/new"
+            element={<LegacySellerProductCreateRedirect />}
+          />
+          <Route
+            path="/seller/stores/:storeSlug/catalog/:productId/edit"
+            element={<LegacySellerProductEditRedirect />}
+          />
+          <Route
+            path="/seller/stores/:storeSlug/catalog/:productId"
+            element={<LegacySellerProductDetailRedirect />}
+          />
+          <Route
+            path="/seller/stores/:storeSlug/coupons"
+            element={<LegacySellerCouponsRedirect />}
+          />
           <Route path="/seller/stores/:storeSlug" element={<SellerLayout />}>
-            <Route index element={<SellerWorkspaceHome />} />
+            <Route index element={<Seller2026LiveDashboardPage />} />
             <Route path="dashboard" element={<Seller2026LiveDashboardPage />} />
             <Route path="store-profile" element={<Seller2026LiveStorefrontPage />} />
             <Route path="microsite-preview" element={<Seller2026LiveStorefrontPage />} />
