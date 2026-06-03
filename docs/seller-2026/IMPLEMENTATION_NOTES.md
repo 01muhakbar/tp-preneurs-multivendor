@@ -409,6 +409,40 @@
 - The live page enables save only when permission source is available, the user has update permission, the form is dirty and valid, and `storeProfileUpdate` is enabled.
 - Preview route `/seller-2026/storefront` remains mock-only and receives no mutation submit handler.
 
+## Mutation Integration — Product Draft Save
+
+### Routes
+- `/seller/stores/:storeSlug/catalog/products/new`
+- `/seller/stores/:storeSlug/catalog/products/:productId/edit`
+
+### Files Added
+- `client/src/api/seller2026/products.mutations.ts`
+- `client/src/hooks/seller2026/useSeller2026SaveProductDraft.ts`
+
+### Files Changed
+- `client/src/api/seller2026/mutation-flags.ts`
+- `client/src/api/seller2026/permissions.ts`
+- `client/src/api/seller2026/products.adapter.ts`
+- `client/src/features/seller2026/Seller2026Workspace.jsx`
+- `client/src/pages/seller2026/Seller2026LiveProductEditorPage.jsx`
+
+### Endpoints Used
+- `POST /api/seller/stores/:storeId/products/drafts`
+- `PATCH /api/seller/stores/:storeId/products/:productId/draft`
+
+### Enabled Fields
+- Name, SKU, description, category IDs, tags, price, sale price, stock, SEO title, and SEO description.
+
+### Still Disabled
+- Media upload, variant persistence, submit review, publish/unpublish, delete, duplicate, deactivate, and inventory adjustment workflows.
+
+### Safety Notes
+- Create draft requires `CATALOG_PRODUCT_CREATE`, aliased to backend `PRODUCT_CREATE`.
+- Update draft requires `CATALOG_PRODUCT_UPDATE`, aliased to backend `PRODUCT_EDIT`.
+- The frontend sends a whitelisted draft payload and does not submit `status: active`, `published: true`, media objects, or variant matrix state.
+- Products list and detail queries are invalidated after successful draft save.
+- Preview route `/seller-2026/products` remains mock-only.
+
 ## QA Checklist
 - Verify preview pages do not render blank.
 - Verify CSS does not affect `/admin/*`, `/`, `/store/:slug`, or `/user/*`.

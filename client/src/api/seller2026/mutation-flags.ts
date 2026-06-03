@@ -1,6 +1,7 @@
 export const SELLER_2026_MUTATIONS = {
   storefront: false,
   storeProfileUpdate: true,
+  productDraftSave: true,
   products: false,
   catalog: false,
   orders: false,

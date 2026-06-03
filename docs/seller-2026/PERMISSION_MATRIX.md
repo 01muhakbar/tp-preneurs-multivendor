@@ -36,9 +36,9 @@
 | Store Profile | Edit supported seller-owned fields | `STORE_PROFILE_UPDATE` | `storeProfileUpdate` | Enabled for live store profile route. |
 | Store Profile | Logo/banner upload, policies, theme | `STORE_PROFILE_UPDATE` | `storefront` | Disabled. |
 | Store Profile | Submit for review | `STORE_PROFILE_UPDATE` | `storefront` | Disabled. |
-| Products | Add product | `CATALOG_PRODUCT_CREATE` | `products` | Disabled. |
+| Products | Add product / create draft | `CATALOG_PRODUCT_CREATE` | `productDraftSave` | Enabled on live product create route. |
 | Products | Edit product | `CATALOG_PRODUCT_UPDATE` | `products` | Disabled unless route detail link is read-only. |
-| Products | Save draft | `CATALOG_PRODUCT_CREATE` or `CATALOG_PRODUCT_UPDATE` | `products` | Disabled. |
+| Products | Save draft | `CATALOG_PRODUCT_CREATE` or `CATALOG_PRODUCT_UPDATE` | `productDraftSave` | Enabled on live product create/edit routes. |
 | Products | Submit product | `CATALOG_PRODUCT_SUBMIT` | `products` | Disabled. |
 | Products | Delete product | `CATALOG_PRODUCT_DELETE` | `products` | Disabled. |
 | Catalog | Category mutation shell | `CATALOG_CATEGORY_READ` | `catalog` | Disabled; no mutation permission exists yet. |
@@ -56,7 +56,7 @@
 
 ## Current Mutation Policy
 - A button can become active only when the user has the required permission and the matching mutation flag is enabled.
-- Only `storeProfileUpdate` is enabled; all other Seller 2026 mutation flags remain `false`.
+- Only `storeProfileUpdate` and `productDraftSave` are enabled; all other Seller 2026 mutation flags remain `false`.
 - Frontend permission gating is UX readiness only; backend permission and store-scope enforcement remain the source of truth.
 
 ## Known Gaps
@@ -65,7 +65,6 @@
 - Seller 2026 `.jsx` files are ignored by the current ESLint config.
 
 ## Next Phase
-- Product draft save mutation.
 - Coupon create mutation.
 - Fulfillment mutation.
 - Team invitation mutation.

@@ -55,7 +55,7 @@
 - Existing route helper `useSellerWorkspaceRoute` continues to resolve `workspaceStoreId`, `workspaceStoreSlug`, and store-scoped route builders for live pages.
 
 ## Mutation Safety Check
-- `SELLER_2026_MUTATIONS` centralizes mutation readiness; only `storeProfileUpdate` is currently enabled.
+- `SELLER_2026_MUTATIONS` centralizes mutation readiness; only `storeProfileUpdate` and `productDraftSave` are currently enabled.
 - Product mutations disabled: create/submit/publish/delete/save draft/media upload/inventory adjustment.
 - Catalog mutations disabled: create/edit/delete category, attribute, attribute value, and coupon.
 - Orders/payments mutations disabled: pack order, print label, mark shipped, update tracking, save internal note, approve payment, reject payment, refund payment, submit payment profile, upload payment documents, change payout account.
@@ -95,7 +95,7 @@
 ## Known Issues
 - Seller 2026 `.jsx` files are ignored by current ESLint config.
 - Repo-wide lint debt remains outside this hardening scope.
-- Mutations remain disabled except the low-risk store profile update flow.
+- Mutations remain disabled except the low-risk store profile update and product draft save flows.
 - Some preview detail routes share the same domain workspace shell by design.
 
 ## Next Recommended Phase
@@ -119,3 +119,11 @@
 - Backend safety check confirmed `requireSellerStoreAccess(["STORE_EDIT"])`, strict payload schema, and read-only field rejection.
 - Logo/banner upload, theme persistence, policy editor, and submit-for-review remain disabled.
 - Preview route `/seller-2026/storefront` remains mock-only.
+
+## Product Draft Mutation Addendum
+- Enabled `SELLER_2026_MUTATIONS.productDraftSave`.
+- Create draft requires `CATALOG_PRODUCT_CREATE`, aliased to backend `PRODUCT_CREATE`.
+- Update draft requires `CATALOG_PRODUCT_UPDATE`, aliased to backend `PRODUCT_EDIT`.
+- Live product editor submits a whitelisted payload to seller draft endpoints.
+- Backend safety check confirmed store-scoped create/update routes and draft-safe create defaults.
+- Submit review, publish/unpublish, delete, media upload, and variant persistence remain disabled.

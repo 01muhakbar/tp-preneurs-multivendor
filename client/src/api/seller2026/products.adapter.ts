@@ -63,6 +63,18 @@ export type Seller2026ProductDetailViewModel = {
     tags: string[];
     gallery: string[];
   };
+  editableDraft: {
+    name: string;
+    sku: string;
+    description: string;
+    categoryIds: Array<string | number>;
+    tags: string[];
+    price: number;
+    compareAtPrice: number;
+    stock: number;
+    seoTitle: string;
+    seoDescription: string;
+  };
   performance: {
     sales: number;
     revenue: number;
@@ -263,6 +275,19 @@ export function adaptSeller2026Products(
 
 const tags = (value: unknown) => array(value).map((item) => text(item)).filter(Boolean);
 
+const categoryIds = (product: Record<string, unknown>) => {
+  const directIds = array(product.categoryIds)
+    .map((entry) => idValue(entry))
+    .filter((entry): entry is string | number => entry !== null);
+  if (directIds.length) return directIds;
+
+  const category = object(product.category);
+  const assigned = array(category.assigned ?? product.categories).map(object);
+  return assigned
+    .map((entry) => idValue(entry.id ?? entry.value))
+    .filter((entry): entry is string | number => entry !== null);
+};
+
 const gallery = (product: Record<string, unknown>) => {
   const imageUrls = array(product.imageUrls).map((item) => text(item)).filter(Boolean);
   const galleryItems = array(product.gallery).map((item) => text(item)).filter(Boolean);
@@ -308,7 +333,9 @@ export function adaptSeller2026ProductDetail(value: unknown): Seller2026ProductD
     };
   });
   const price = number(product.price ?? product.salePrice, 0);
+  const seo = object(product.seo);
   const sales = number(product.salesCount ?? product.soldCount ?? product.sold ?? performance.sales, 0);
+  const productTags = tags(product.tags);
 
   return {
     product: {
@@ -324,8 +351,20 @@ export function adaptSeller2026ProductDetail(value: unknown): Seller2026ProductD
       description: text(product.description, "Product description is not available yet."),
       category: categoryLabel(product),
       brand: text(product.brand ?? object(product.brand).name) || undefined,
-      tags: tags(product.tags),
+      tags: productTags,
       gallery: gallery(product),
+    },
+    editableDraft: {
+      name: text(product.name || product.title),
+      sku: text(product.sku || product.code),
+      description: text(product.description),
+      categoryIds: categoryIds(product),
+      tags: productTags,
+      price,
+      compareAtPrice: number(product.salePrice ?? product.compareAtPrice, 0),
+      stock: number(product.stock ?? product.quantity, 0),
+      seoTitle: text(seo.title ?? seo.seoTitle),
+      seoDescription: text(seo.description ?? seo.seoDescription),
     },
     performance: {
       sales,

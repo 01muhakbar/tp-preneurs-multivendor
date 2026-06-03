@@ -402,6 +402,116 @@ const buildStoreProfileUpdatePayload = (form) => ({
   },
 });
 
+const emptyProductDraftForm = {
+  name: "",
+  sku: "",
+  description: "",
+  categoryIdsText: "",
+  tagsText: "",
+  price: "0",
+  compareAtPrice: "",
+  stock: "0",
+  seoTitle: "",
+  seoDescription: "",
+};
+
+const productDraftFormFromDetail = (detail) => {
+  const draft = detail?.editableDraft || {};
+  return {
+    name: textValue(draft.name),
+    sku: textValue(draft.sku),
+    description: textValue(draft.description),
+    categoryIdsText: Array.isArray(draft.categoryIds) ? draft.categoryIds.join(", ") : "",
+    tagsText: Array.isArray(draft.tags) ? draft.tags.join(", ") : "",
+    price: String(draft.price ?? 0),
+    compareAtPrice: draft.compareAtPrice ? String(draft.compareAtPrice) : "",
+    stock: String(draft.stock ?? 0),
+    seoTitle: textValue(draft.seoTitle),
+    seoDescription: textValue(draft.seoDescription),
+  };
+};
+
+const parseDraftNumber = (value) => {
+  const normalized = textValue(value);
+  if (!normalized) return undefined;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
+};
+
+const parseDraftInteger = (value) => {
+  const parsed = parseDraftNumber(value);
+  if (typeof parsed === "undefined" || Number.isNaN(parsed)) return parsed;
+  return Math.floor(parsed);
+};
+
+const parseCsvText = (value) =>
+  textValue(value)
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+const parseCategoryIds = (value) =>
+  parseCsvText(value)
+    .map((entry) => Number(entry))
+    .filter((entry) => Number.isInteger(entry) && entry > 0);
+
+const validateProductDraftForm = (form) => {
+  const errors = {};
+  const price = parseDraftNumber(form.price);
+  const compareAtPrice = parseDraftNumber(form.compareAtPrice);
+  const stock = parseDraftInteger(form.stock);
+
+  if (textValue(form.name).length < 2) {
+    errors.name = "Nama produk wajib diisi minimal 2 karakter.";
+  }
+  if (form.sku && form.sku.length > 100) {
+    errors.sku = "SKU maksimal 100 karakter.";
+  }
+  if (form.description && form.description.length > 4000) {
+    errors.description = "Deskripsi maksimal 4000 karakter.";
+  }
+  if (typeof price === "undefined" || Number.isNaN(price) || price < 0) {
+    errors.price = "Harga wajib berupa angka 0 atau lebih.";
+  }
+  if (typeof compareAtPrice !== "undefined") {
+    if (Number.isNaN(compareAtPrice) || compareAtPrice < 0) {
+      errors.compareAtPrice = "Compare-at price harus angka 0 atau lebih.";
+    } else if (compareAtPrice > 0 && typeof price === "number" && compareAtPrice >= price) {
+      errors.compareAtPrice = "Compare-at price harus lebih rendah dari harga utama.";
+    }
+  }
+  if (typeof stock === "undefined" || Number.isNaN(stock) || stock < 0) {
+    errors.stock = "Stok wajib berupa integer 0 atau lebih.";
+  }
+  if (parseCsvText(form.tagsText).some((tag) => tag.length > 80)) {
+    errors.tagsText = "Setiap tag maksimal 80 karakter.";
+  }
+  if (parseCsvText(form.categoryIdsText).some((entry) => !Number.isInteger(Number(entry)) || Number(entry) <= 0)) {
+    errors.categoryIdsText = "Category IDs harus berupa angka positif dipisahkan koma.";
+  }
+  if (form.seoTitle.length > 160) {
+    errors.seoTitle = "SEO title maksimal 160 karakter.";
+  }
+  if (form.seoDescription.length > 320) {
+    errors.seoDescription = "SEO description maksimal 320 karakter.";
+  }
+
+  return errors;
+};
+
+const buildProductDraftPayload = (form) => ({
+  name: textValue(form.name),
+  sku: optionalText(form.sku),
+  description: optionalText(form.description),
+  categoryIds: parseCategoryIds(form.categoryIdsText),
+  tags: parseCsvText(form.tagsText),
+  price: parseDraftNumber(form.price) ?? 0,
+  compareAtPrice: parseDraftNumber(form.compareAtPrice) ?? null,
+  stock: parseDraftInteger(form.stock) ?? 0,
+  seoTitle: optionalText(form.seoTitle),
+  seoDescription: optionalText(form.seoDescription),
+});
+
 const routePermissionFor = ({ section, catalogView, operationsView, teamView }) => {
   if (section === "dashboard") return "STORE_DASHBOARD_VIEW";
   if (section === "storefront") return "STORE_PROFILE_READ";
@@ -856,6 +966,7 @@ function ProductsPage({
   productDetailData = null,
   productDetailState = null,
   productEditorMode = null,
+  productDraftMutation = null,
   mode,
   storeContext,
   seller2026Permissions,
@@ -910,6 +1021,73 @@ function ProductsPage({
   const shouldShowList = !productDetailState?.view && !productEditorMode;
   const shouldShowDetail = productDetailState?.view === "detail" || !isLive;
   const shouldShowEditor = Boolean(productEditorMode) || !isLive;
+  const serverProductDraftForm = useMemo(
+    () =>
+      productEditorMode === "edit"
+        ? productDraftFormFromDetail(productDetailData)
+        : { ...emptyProductDraftForm },
+    [productDetailData?.editableDraft, productEditorMode]
+  );
+  const [productDraftForm, setProductDraftForm] = useState(serverProductDraftForm);
+  const [productDraftStatus, setProductDraftStatus] = useState({ type: "idle", message: "" });
+  const productDraftErrors = useMemo(
+    () => validateProductDraftForm(productDraftForm),
+    [productDraftForm]
+  );
+  const productDraftDirty = useMemo(
+    () =>
+      Object.keys(emptyProductDraftForm).some(
+        (field) => productDraftForm[field] !== serverProductDraftForm[field]
+      ),
+    [productDraftForm, serverProductDraftForm]
+  );
+  const productDraftValid = Object.keys(productDraftErrors).length === 0;
+  const canSaveProductDraft = Boolean(productDraftMutation?.canSave);
+  const isSavingProductDraft = Boolean(productDraftMutation?.isSubmitting);
+  const saveProductDraftDisabled =
+    !isLive || !canSaveProductDraft || !productDraftDirty || !productDraftValid || isSavingProductDraft;
+  const saveProductDraftTitle = !canSaveProductDraft
+    ? actionTitle(
+        seller2026Permissions,
+        productEditorMode === "edit" ? "CATALOG_PRODUCT_UPDATE" : "CATALOG_PRODUCT_CREATE",
+        "productDraftSave"
+      )
+    : !productDraftDirty
+      ? "Tidak ada perubahan untuk disimpan."
+      : !productDraftValid
+        ? "Perbaiki field yang belum valid."
+        : undefined;
+  const setProductDraftField = (field, value) => {
+    setProductDraftForm((current) => ({ ...current, [field]: value }));
+    setProductDraftStatus({ type: "idle", message: "" });
+  };
+  const resetProductDraftForm = () => {
+    setProductDraftForm(serverProductDraftForm);
+    setProductDraftStatus({ type: "idle", message: "" });
+  };
+  const submitProductDraftForm = async () => {
+    if (!productDraftMutation?.submit || saveProductDraftDisabled) return;
+    setProductDraftStatus({ type: "idle", message: "" });
+    try {
+      await productDraftMutation.submit(buildProductDraftPayload(productDraftForm));
+      setProductDraftStatus({
+        type: "success",
+        message:
+          productEditorMode === "edit"
+            ? "Draft produk berhasil diperbarui."
+            : "Draft produk berhasil dibuat.",
+      });
+    } catch (error) {
+      setProductDraftStatus({
+        type: "error",
+        message: error?.response?.data?.message || error?.message || "Draft produk gagal disimpan.",
+      });
+    }
+  };
+
+  useEffect(() => {
+    setProductDraftForm(serverProductDraftForm);
+  }, [serverProductDraftForm]);
 
   return (
     <Shell section="products" mode={mode} storeContext={storeContext}>
@@ -1032,17 +1210,140 @@ function ProductsPage({
       {shouldShowEditor ? (
         <Card title={isLive ? editorTitle : "Product Create / Edit"} hint="Multi-step product authoring dengan draft-first workflow.">
           <div className="s26-stepper">{["Basic", "Media", "Categories", "Variants", "Pricing", "Inventory", "Shipping", "SEO", "Publish"].map((s, i) => <span className={`s26-step ${i === 0 ? "active" : ""}`} key={s}>{s}</span>)}</div>
+          {productDraftStatus.type !== "idle" ? (
+            <div className={`s26-alert ${productDraftStatus.type === "success" ? "success" : "error"}`}>
+              {productDraftStatus.message}
+            </div>
+          ) : null}
+          {productDraftMutation?.error && productDraftStatus.type !== "error" ? (
+            <div className="s26-alert error">
+              {productDraftMutation.error?.message || "Draft produk gagal disimpan."}
+            </div>
+          ) : null}
           <div className="s26-form-grid">
-            <div className="s26-field"><label>Product Name *</label><input defaultValue={isLive ? editorProduct?.name || "" : "Hijab Voal Premium"} readOnly={isLive} /></div>
-            <div className="s26-field"><label>SKU *</label><input defaultValue={isLive ? editorProduct?.sku || "" : "HJP-VOAL-01-BLK"} readOnly={isLive} /></div>
-            <div className="s26-field"><label>Product Type</label><select defaultValue="Physical"><option>Physical</option><option>Digital</option><option>Service</option></select></div>
-            <div className="s26-field"><label>Brand</label><input defaultValue={isLive ? editorProduct?.brand || "" : "Butik Nusantara"} readOnly={isLive} /></div>
-            <div className="s26-field" style={{ gridColumn: "1 / -1" }}><label>Description</label><textarea defaultValue={isLive ? editorProduct?.description || "" : "Hijab voal premium berkualitas tinggi dengan jahitan rapi dan finishing yang lembut di kulit."} readOnly={isLive} /></div>
+            <div className="s26-field">
+              <label>Product Name *</label>
+              <input
+                value={isLive ? productDraftForm.name : "Hijab Voal Premium"}
+                readOnly={!isLive || !canSaveProductDraft}
+                disabled={isSavingProductDraft}
+                onChange={(event) => setProductDraftField("name", event.target.value)}
+              />
+              {productDraftErrors.name ? <small className="s26-field-error">{productDraftErrors.name}</small> : null}
+            </div>
+            <div className="s26-field">
+              <label>SKU</label>
+              <input
+                value={isLive ? productDraftForm.sku : "HJP-VOAL-01-BLK"}
+                readOnly={!isLive || !canSaveProductDraft}
+                disabled={isSavingProductDraft}
+                onChange={(event) => setProductDraftField("sku", event.target.value)}
+              />
+              {productDraftErrors.sku ? <small className="s26-field-error">{productDraftErrors.sku}</small> : null}
+            </div>
+            <div className="s26-field">
+              <label>Product Type</label>
+              <select defaultValue="Physical" disabled title="Only physical product draft save is enabled in this phase."><option>Physical</option><option>Digital</option><option>Service</option></select>
+            </div>
+            <div className="s26-field">
+              <label>Brand</label>
+              <input defaultValue={isLive ? editorProduct?.brand || "" : "Butik Nusantara"} readOnly disabled title="Brand persistence is not enabled in this draft-save phase." />
+            </div>
+            <div className="s26-field">
+              <label>Price</label>
+              <input
+                type="number"
+                min="0"
+                value={isLive ? productDraftForm.price : "89000"}
+                readOnly={!isLive || !canSaveProductDraft}
+                disabled={isSavingProductDraft}
+                onChange={(event) => setProductDraftField("price", event.target.value)}
+              />
+              {productDraftErrors.price ? <small className="s26-field-error">{productDraftErrors.price}</small> : null}
+            </div>
+            <div className="s26-field">
+              <label>Sale Price</label>
+              <input
+                type="number"
+                min="0"
+                value={isLive ? productDraftForm.compareAtPrice : ""}
+                readOnly={!isLive || !canSaveProductDraft}
+                disabled={isSavingProductDraft}
+                onChange={(event) => setProductDraftField("compareAtPrice", event.target.value)}
+              />
+              {productDraftErrors.compareAtPrice ? <small className="s26-field-error">{productDraftErrors.compareAtPrice}</small> : null}
+            </div>
+            <div className="s26-field">
+              <label>Stock</label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={isLive ? productDraftForm.stock : "120"}
+                readOnly={!isLive || !canSaveProductDraft}
+                disabled={isSavingProductDraft}
+                onChange={(event) => setProductDraftField("stock", event.target.value)}
+              />
+              {productDraftErrors.stock ? <small className="s26-field-error">{productDraftErrors.stock}</small> : null}
+            </div>
+            <div className="s26-field">
+              <label>Category IDs</label>
+              <input
+                value={isLive ? productDraftForm.categoryIdsText : "1, 2"}
+                readOnly={!isLive || !canSaveProductDraft}
+                disabled={isSavingProductDraft}
+                onChange={(event) => setProductDraftField("categoryIdsText", event.target.value)}
+                placeholder="Contoh: 1, 2"
+              />
+              {productDraftErrors.categoryIdsText ? <small className="s26-field-error">{productDraftErrors.categoryIdsText}</small> : null}
+            </div>
+            <div className="s26-field">
+              <label>Tags</label>
+              <input
+                value={isLive ? productDraftForm.tagsText : "hijab, voal"}
+                readOnly={!isLive || !canSaveProductDraft}
+                disabled={isSavingProductDraft}
+                onChange={(event) => setProductDraftField("tagsText", event.target.value)}
+                placeholder="Pisahkan dengan koma"
+              />
+              {productDraftErrors.tagsText ? <small className="s26-field-error">{productDraftErrors.tagsText}</small> : null}
+            </div>
+            <div className="s26-field" style={{ gridColumn: "1 / -1" }}>
+              <label>Description</label>
+              <textarea
+                value={isLive ? productDraftForm.description : "Hijab voal premium berkualitas tinggi dengan jahitan rapi dan finishing yang lembut di kulit."}
+                readOnly={!isLive || !canSaveProductDraft}
+                disabled={isSavingProductDraft}
+                onChange={(event) => setProductDraftField("description", event.target.value)}
+              />
+              {productDraftErrors.description ? <small className="s26-field-error">{productDraftErrors.description}</small> : null}
+            </div>
+            <div className="s26-field">
+              <label>SEO Title</label>
+              <input
+                value={isLive ? productDraftForm.seoTitle : ""}
+                readOnly={!isLive || !canSaveProductDraft}
+                disabled={isSavingProductDraft}
+                onChange={(event) => setProductDraftField("seoTitle", event.target.value)}
+              />
+              {productDraftErrors.seoTitle ? <small className="s26-field-error">{productDraftErrors.seoTitle}</small> : null}
+            </div>
+            <div className="s26-field">
+              <label>SEO Description</label>
+              <input
+                value={isLive ? productDraftForm.seoDescription : ""}
+                readOnly={!isLive || !canSaveProductDraft}
+                disabled={isSavingProductDraft}
+                onChange={(event) => setProductDraftField("seoDescription", event.target.value)}
+              />
+              {productDraftErrors.seoDescription ? <small className="s26-field-error">{productDraftErrors.seoDescription}</small> : null}
+            </div>
           </div>
-          {isLive ? <p className="hint" style={{ marginTop: 14 }}>Product mutation integration is pending. This screen is currently a UI shell.</p> : null}
+          {isLive ? <p className="hint" style={{ marginTop: 14 }}>Draft save is enabled for basic authoring fields only. Media, variants, submit review, publish, and delete remain disabled.</p> : null}
           <div className="s26-filter-row" style={{ marginTop: 16, marginBottom: 0 }}>
-            <button type="button" className="s26-btn" disabled={isLive} title={actionTitle(seller2026Permissions, productEditorMode === "edit" ? "CATALOG_PRODUCT_UPDATE" : "CATALOG_PRODUCT_CREATE", "products")}>Save Draft</button>
-            <button type="button" className="s26-btn primary" disabled={isLive} title={actionTitle(seller2026Permissions, "CATALOG_PRODUCT_SUBMIT", "products")}>Next: Media</button>
+            {isLive ? <button type="button" className="s26-btn" disabled={!productDraftDirty || isSavingProductDraft} onClick={resetProductDraftForm}>Reset</button> : null}
+            <button type="button" className="s26-btn" disabled={saveProductDraftDisabled} title={isLive ? saveProductDraftTitle : disabledTodoTitle} onClick={submitProductDraftForm}>{isSavingProductDraft ? "Saving..." : "Save Draft"}</button>
+            <button type="button" className="s26-btn primary" disabled title={actionTitle(seller2026Permissions, "CATALOG_PRODUCT_SUBMIT", "products")}>Next: Media</button>
           </div>
         </Card>
       ) : null}
@@ -1638,6 +1939,7 @@ export function Seller2026Workspace({
   productDetailData = null,
   productDetailState = null,
   productEditorMode = null,
+  productDraftMutation = null,
   catalogView = "overview",
   catalogData = null,
   catalogState = null,
@@ -1705,6 +2007,7 @@ export function Seller2026Workspace({
       productDetailData={productDetailData}
       productDetailState={productDetailState}
       productEditorMode={productEditorMode}
+      productDraftMutation={productDraftMutation}
       catalogView={catalogView}
       catalogData={catalogData}
       catalogState={catalogState}

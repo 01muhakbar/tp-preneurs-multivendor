@@ -59,3 +59,52 @@
 - Backend schema rejects unknown fields and read-only profile fields.
 - Preview route `/seller-2026/storefront` remains mock-only and receives no mutation handler.
 - Frontend permission gating is UX only; backend remains the enforcement authority.
+
+## Product Draft Save
+
+### Routes
+- `/seller/stores/:storeSlug/catalog/products/new`
+- `/seller/stores/:storeSlug/catalog/products/:productId/edit`
+
+### Permissions
+- Create draft: `CATALOG_PRODUCT_CREATE` aliasing backend `PRODUCT_CREATE`
+- Update draft: `CATALOG_PRODUCT_UPDATE` aliasing backend `PRODUCT_EDIT`
+
+### Mutation Flag
+- `productDraftSave: true`
+
+### Endpoints Used
+- `POST /api/seller/stores/:storeId/products/drafts`
+- `PATCH /api/seller/stores/:storeId/products/:productId/draft`
+
+### Payload Fields Enabled
+- `name`
+- `sku`
+- `description`
+- `categoryIds`
+- `tags`
+- `price`
+- `salePrice` through the Seller 2026 `compareAtPrice` payload field
+- `stock`
+- `seo.title`
+- `seo.description`
+
+### Fields Still Disabled
+- media upload
+- variant matrix persistence
+- submit review
+- publish/unpublish
+- delete product
+- duplicate product
+- deactivate product
+- public visibility toggle
+- admin revision lifecycle
+- inventory adjustment workflow
+
+### Safety Notes
+- `storeId` is resolved from live seller workspace context, not from the form body.
+- Frontend submits a whitelisted draft payload through `products.mutations.ts`.
+- Create endpoint uses `requireSellerStoreAccess(["PRODUCT_CREATE"])`.
+- Update endpoint uses `requireSellerStoreAccess(["PRODUCT_EDIT"])` and fetches product by `{ id, storeId }`.
+- Create endpoint forces `status: "draft"` and `isPublished: false`.
+- Preview route `/seller-2026/products` remains mock-only and receives no draft save mutation handler.
