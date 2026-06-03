@@ -116,6 +116,7 @@ Seller Workspace 2026 live pages use existing store-scoped seller APIs and selle
 | Area | Mutation | Status | Notes |
 |---|---|---|---|
 | Product | Save draft/create draft/basic edit | WIRED_AND_TESTED | Existing Seller 2026 draft save remains wired via store-scoped product draft APIs and smoke route coverage. |
+| Product Catalog | Add Product CTA | FIXED_AND_TESTED | Navigates to canonical `/seller/stores/:storeSlug/catalog/products/new` when the seller has `CATALOG_PRODUCT_CREATE`; product lifecycle mutations remain separately guarded. |
 | Product | Submit review | DISABLED_PENDING_API | Endpoint exists, but UI flow is still behind media/variant/readiness steps; keep disabled until authoring lifecycle can validate full draft readiness. |
 | Product | Duplicate | DISABLED_PENDING_API | Endpoint exists; UI action remains disabled until confirmation/refetch and disposable fixture path are added. |
 | Product | Archive/delete | DISABLED_PENDING_API | Endpoint exists and may archive referenced products; keep disabled until UI confirmation and fixture safety are explicit. |

@@ -905,6 +905,38 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureFixture>>) 
     });
   }
 
+  consoleErrors.length = 0;
+  await page.goto(`/seller/stores/${fixture.storeSlug}/catalog/products`, {
+    waitUntil: "networkidle",
+    timeout: 45_000,
+  });
+  await page.getByRole("link", { name: /^\+?\s*Add Product$/i }).click();
+  await page.waitForURL(`**/seller/stores/${fixture.storeSlug}/catalog/products/new`, {
+    timeout: 15_000,
+  });
+  await page.waitForLoadState("networkidle", { timeout: 15_000 }).catch(() => undefined);
+  const productCreateShell = page.getByText(/Product Create Shell|Multi-step product authoring/i).first();
+  await productCreateShell.waitFor({ state: "visible", timeout: 15_000 });
+  const addProductText = await page.locator("body").innerText({ timeout: 10_000 }).catch(() => "");
+  const addProductCta = {
+    name: "product-catalog-add-product-cta",
+    from: `/seller/stores/${fixture.storeSlug}/catalog/products`,
+    finalUrl: page.url().replace(CLIENT_URL, ""),
+    status:
+      page.url().includes(`/seller/stores/${fixture.storeSlug}/catalog/products/new`) &&
+      /Product Create Shell|Basic Info/i.test(addProductText)
+        ? "PASS"
+        : "FAIL",
+    consoleErrors: [...consoleErrors],
+    snippet: addProductText.replace(/\s+/g, " ").trim().slice(0, 180),
+  };
+  if (addProductCta.status !== "PASS" || consoleErrors.length) {
+    throw new Error(
+      `Add Product CTA smoke failed: ${addProductCta.status}, url ${addProductCta.finalUrl}, console ${consoleErrors.join(" | ")}`
+    );
+  }
+  await page.goBack({ waitUntil: "networkidle", timeout: 15_000 }).catch(() => undefined);
+
   await page.goto(`/seller/stores/${fixture.otherStoreSlug}`, { waitUntil: "networkidle", timeout: 45_000 });
   const crossStoreText = await page.locator("body").innerText({ timeout: 10_000 }).catch(() => "");
   const crossStore = {
@@ -952,7 +984,7 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureFixture>>) 
     return acc;
   }, {});
 
-  return { routeResults, crossStore, memberResults, sellerApiStatuses, mutationResults };
+  return { routeResults, addProductCta, crossStore, memberResults, sellerApiStatuses, mutationResults };
 }
 
 async function main() {

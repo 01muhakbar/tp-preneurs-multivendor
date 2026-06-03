@@ -981,9 +981,9 @@ function ProductsPage({
   const summary = productsData?.summary || {};
   const liveProducts = productsData?.products || [];
   const tableRows = isLive ? liveProducts : products;
-  const canCreate = !isLive || canUseAction(seller2026Permissions, "CATALOG_PRODUCT_CREATE", "products");
+  const canCreate = !isLive || hasSeller2026Permission(seller2026Permissions, "CATALOG_PRODUCT_CREATE");
   const canUpdate = !isLive || canUseAction(seller2026Permissions, "CATALOG_PRODUCT_UPDATE", "products");
-  const createTitle = isLive ? actionTitle(seller2026Permissions, "CATALOG_PRODUCT_CREATE", "products") : undefined;
+  const createTitle = isLive && !canCreate ? permissionTitle : undefined;
   const updateTitle = isLive ? actionTitle(seller2026Permissions, "CATALOG_PRODUCT_UPDATE", "products") : undefined;
   const queryChange = (next) => onProductsQueryChange?.(next);
   const tabs = isLive
@@ -1104,7 +1104,7 @@ function ProductsPage({
           hint="Search, filter, bulk action, status, SKU, stok, dan performa produk."
           actions={
             canCreate ? (
-              <Link className="s26-btn primary" to={addProductTo}>+ Add Product</Link>
+              <Link className="s26-btn primary" to={addProductTo} aria-label="Add Product">+ Add Product</Link>
             ) : (
               <button type="button" className="s26-btn primary" disabled title={createTitle}>+ Add Product</button>
             )
