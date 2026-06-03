@@ -1,6 +1,10 @@
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSellerSuborders } from "../../api/sellerOrders.ts";
+import {
+  updateSeller2026OrderFulfillment,
+  type Seller2026FulfillmentPayload,
+} from "../../api/seller2026/orders.mutations.ts";
 import {
   adaptSeller2026Orders,
   emptySeller2026Orders,
@@ -19,6 +23,9 @@ export type Seller2026OrdersQuery = {
 
 type UseSeller2026OrdersOptions = {
   enabled?: boolean;
+  permissions?: {
+    canFulfill?: boolean;
+  };
 };
 
 const toApiStatus = (status?: string) => {
@@ -36,6 +43,8 @@ export function useSeller2026Orders(
   options: UseSeller2026OrdersOptions = {}
 ) {
   const enabled = Boolean(storeId) && options.enabled !== false;
+  const queryClient = useQueryClient();
+  const canFulfill = Boolean(options.permissions?.canFulfill);
   const ordersQuery = useQuery({
     queryKey: ["seller2026", "orders", storeId, query],
     queryFn: () =>
@@ -53,6 +62,31 @@ export function useSeller2026Orders(
     () => (enabled || ordersQuery.data ? adaptSeller2026Orders(ordersQuery.data) : emptySeller2026Orders),
     [enabled, ordersQuery.data]
   );
+  const invalidateOrders = () => {
+    void queryClient.invalidateQueries({ queryKey: ["seller2026", "orders"] });
+    void queryClient.invalidateQueries({ queryKey: ["seller2026", "suborder-detail"] });
+  };
+  const fulfillmentMutation = useMutation({
+    mutationFn: async ({
+      suborderId,
+      payload,
+    }: {
+      suborderId: number | string;
+      payload: Seller2026FulfillmentPayload;
+    }) => {
+      if (!enabled || !storeId || !canFulfill) {
+        throw new Error("Order fulfillment update is not available.");
+      }
+      const result = await updateSeller2026OrderFulfillment({
+        storeId,
+        suborderId,
+        payload,
+      });
+      if (!result.ok) throw result.error;
+      return result.data;
+    },
+    onSuccess: invalidateOrders,
+  });
 
   return {
     data,
@@ -60,5 +94,9 @@ export function useSeller2026Orders(
     isError: ordersQuery.isError,
     error: ordersQuery.error,
     refetch: ordersQuery.refetch,
+    updatingStatusId: fulfillmentMutation.isPending ? "active" : null,
+    mutationError: fulfillmentMutation.error,
+    updateFulfillmentStatus: fulfillmentMutation.mutateAsync,
+    canFulfill,
   };
 }

@@ -47,7 +47,10 @@
 | Coupons | Update coupon | `COUPON_UPDATE` aliasing backend `COUPON_EDIT` | `coupons` | Enabled on live coupon route. |
 | Coupons | Activate/deactivate coupon | `COUPON_STATUS_MANAGE` | `coupons` | Enabled on live coupon route. |
 | Coupons | Archive coupon | `COUPON_DELETE` aliasing backend `COUPON_STATUS_MANAGE` | `coupons` | Enabled as deactivate/archive only, not hard delete. |
-| Orders | Pack, print label, mark shipped, update tracking | `ORDER_FULFILLMENT_UPDATE` | `orders` | Disabled. |
+| Orders | Mark packed, mark shipped, mark delivered | `ORDER_FULFILLMENT_UPDATE` aliasing backend `ORDER_FULFILLMENT_MANAGE` | `orders` | Enabled when backend governance exposes the action. |
+| Orders | Add/update tracking number | `ORDER_FULFILLMENT_UPDATE` | `orders` | Disabled pending persisted shipment tracking support. |
+| Orders | Print label / receipt | `ORDER_FULFILLMENT_UPDATE` | `orders` | Disabled pending endpoint review. |
+| Orders | Bulk fulfillment / bulk delete | `ORDER_FULFILLMENT_UPDATE` | `orders` | Disabled pending endpoint and destructive-flow review. |
 | Payments | Approve/reject/refund payment | `PAYMENT_REVIEW_READ` | `payments` | Disabled. |
 | Payments | Submit profile, upload documents, change payout account | `STORE_PAYMENT_PROFILE_SUBMIT` | `payments` | Disabled. |
 | Team | Invite/resend/cancel invitation | `TEAM_INVITE` | `team` | Disabled. |
@@ -58,7 +61,7 @@
 
 ## Current Mutation Policy
 - A button can become active only when the user has the required permission and the matching mutation flag is enabled.
-- Only `storeProfileUpdate`, `productDraftSave`, `coupons`, and notification read-state mutations are enabled; all other Seller 2026 mutation flags remain `false`.
+- Only `storeProfileUpdate`, `productDraftSave`, `coupons`, `orders`, and notification read-state mutations are enabled; all other Seller 2026 mutation flags remain `false`.
 - Frontend permission gating is UX readiness only; backend permission and store-scope enforcement remain the source of truth.
 
 ## Known Gaps
@@ -67,6 +70,5 @@
 - Seller 2026 `.jsx` files are ignored by the current ESLint config.
 
 ## Next Phase
-- Fulfillment mutation.
 - Team invitation mutation.
 - Notification delete mutation.

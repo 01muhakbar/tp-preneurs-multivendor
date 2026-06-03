@@ -1663,6 +1663,7 @@ function OperationsPage({
   operationsView = "overview",
   operationsData = null,
   operationsState = null,
+  operationsMutation = null,
   operationsQuery = null,
   onOperationsQueryChange = null,
   mode,
@@ -1674,6 +1675,39 @@ function OperationsPage({
   const basePath = storeSlug ? `/seller/stores/${encodeURIComponent(storeSlug)}` : "/seller-2026";
   const queryChange = (next) => onOperationsQueryChange?.(next);
   const searchValue = operationsQuery?.search || "";
+  const [fulfillmentStatus, setFulfillmentStatus] = useState({ type: "idle", message: "" });
+  const [trackingForm, setTrackingForm] = useState({
+    trackingNumber: "",
+    courierCode: "",
+    courierService: "",
+  });
+  const canFulfillOrders = Boolean(operationsMutation?.canFulfill);
+  const isFulfillmentPending = Boolean(operationsMutation?.updatingStatusId);
+  const fulfillmentActionTitle = canFulfillOrders
+    ? undefined
+    : actionTitle(seller2026Permissions, "ORDER_FULFILLMENT_UPDATE", "orders");
+  const runFulfillmentAction = async (suborderId, action, extraPayload = {}) => {
+    if (!suborderId || !action?.code || !operationsMutation?.updateFulfillmentStatus || isFulfillmentPending) return;
+    setFulfillmentStatus({ type: "idle", message: "" });
+    try {
+      await operationsMutation.updateFulfillmentStatus({
+        suborderId,
+        payload: {
+          action: action.code,
+          ...extraPayload,
+        },
+      });
+      setFulfillmentStatus({ type: "success", message: `${action.label || "Fulfillment status"} updated.` });
+      setTrackingForm({ trackingNumber: "", courierCode: "", courierService: "" });
+      operationsState?.refetch?.();
+    } catch (error) {
+      setFulfillmentStatus({
+        type: "error",
+        message: error?.message || "Fulfillment update failed.",
+      });
+    }
+  };
+  const firstEnabledAction = (actions = []) => actions.find((action) => action?.enabled !== false) || null;
 
   if (isLive && operationsView === "orders") {
     const rows = operationsData?.suborders || [];
@@ -1701,8 +1735,12 @@ function OperationsPage({
             <button type="button" className="s26-btn" disabled title={disabledTodoTitle}>More Filters</button>
           </div>
           {operationsState?.isLoading ? <p className="hint">Loading orders...</p> : null}
+          {fulfillmentStatus.message ? <p className={fulfillmentStatus.type === "error" ? "s26-field-error" : "hint"}>{fulfillmentStatus.message}</p> : null}
           {!operationsState?.isLoading && rows.length === 0 ? <div className="s26-empty"><strong>Belum ada pesanan untuk toko ini.</strong><p>Pesanan store-scoped akan muncul setelah checkout berhasil.</p></div> : null}
-          {rows.length ? <DataTable columns={["Date", "Invoice / Suborder", "Customer", "Phone", "Channel", "Shipping", "Total", "Status", "Actions"]} rows={rows} renderRow={(row) => <tr key={row.id}><td>{row.orderDate || "-"}</td><td><strong>{row.invoiceNo}</strong><div className="s26-sub">{row.suborderNo}</div></td><td>{row.customerName}</td><td>{row.customerPhone || "-"}</td><td>{row.channel || "-"}</td><td>{row.shippingMethod || "-"}</td><td>{formatRupiah(row.total)}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td><Link className="s26-link" to={`${basePath}/orders/${encodeURIComponent(String(row.id))}`}>Detail</Link></td></tr>} /> : null}
+          {rows.length ? <DataTable columns={["Date", "Invoice / Suborder", "Customer", "Phone", "Channel", "Shipping", "Total", "Status", "Actions"]} rows={rows} renderRow={(row) => {
+            const action = firstEnabledAction(row.fulfillmentActions);
+            return <tr key={row.id}><td>{row.orderDate || "-"}</td><td><strong>{row.invoiceNo}</strong><div className="s26-sub">{row.suborderNo}</div></td><td>{row.customerName}</td><td>{row.customerPhone || "-"}</td><td>{row.channel || "-"}</td><td>{row.shippingMethod || "-"}</td><td>{formatRupiah(row.total)}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td><div className="s26-row-actions"><Link className="s26-link" to={`${basePath}/orders/${encodeURIComponent(String(row.id))}`}>Detail</Link>{action ? <button type="button" className="s26-muted-action" disabled={!canFulfillOrders || isFulfillmentPending || action.code === "MARK_SHIPPED"} title={action.code === "MARK_SHIPPED" ? "Open detail to add tracking before shipping." : fulfillmentActionTitle} onClick={() => runFulfillmentAction(row.id, action)}>{isFulfillmentPending ? "Updating..." : action.label}</button> : <span className="hint">No action</span>}</div></td></tr>;
+          }} /> : null}
           <div className="s26-pagination">
             <span>Page {pagination.page} of {pagination.totalPages} - {pagination.total} suborders</span>
             <div className="s26-filter-row" style={{ marginBottom: 0 }}>
@@ -1717,6 +1755,10 @@ function OperationsPage({
 
   if (isLive && operationsView === "suborder-detail") {
     const detail = operationsData;
+    const detailActions = detail?.suborder?.fulfillmentActions || [];
+    const packAction = detailActions.find((action) => action.code === "MARK_PROCESSING");
+    const shipAction = detailActions.find((action) => action.code === "MARK_SHIPPED");
+    const deliverAction = detailActions.find((action) => action.code === "MARK_DELIVERED");
     return (
       <Shell section="operations" mode={mode} storeContext={storeContext}>
         {operationsState?.isError ? <Card title="Suborder unavailable" hint="Suborder tidak ditemukan atau tidak tersedia untuk toko ini." actions={<button type="button" className="s26-btn" onClick={operationsState?.refetch}>Retry</button>} /> : null}
@@ -1733,7 +1775,17 @@ function OperationsPage({
                 <div className="s26-card soft"><h3>Cost Summary</h3><p className="hint">Subtotal {formatRupiah(detail.totals.subtotal)}<br />Shipping {formatRupiah(detail.totals.shippingFee)}<br />Service {formatRupiah(detail.totals.serviceFee)}<br />Discount {formatRupiah(detail.totals.discount)}</p><strong>{formatRupiah(detail.totals.total)}</strong></div>
               </div>
               <div style={{ marginTop: 16 }}><DataTable columns={["Product", "Variant", "Qty", "Price", "Subtotal"]} rows={detail.items} renderRow={(row) => <tr key={row.id}><td>{row.productName}</td><td>{row.variantLabel || "-"}</td><td>{row.quantity}</td><td>{formatRupiah(row.price)}</td><td>{formatRupiah(row.subtotal)}</td></tr>} /></div>
-              <div className="s26-filter-row" style={{ marginTop: 16 }}><button type="button" className="s26-btn primary" disabled title={actionTitle(seller2026Permissions, "ORDER_FULFILLMENT_UPDATE", "orders")}>Pack Order</button><button type="button" className="s26-btn" disabled title={actionTitle(seller2026Permissions, "ORDER_FULFILLMENT_UPDATE", "orders")}>Print Label</button><button type="button" className="s26-btn" disabled title={actionTitle(seller2026Permissions, "ORDER_FULFILLMENT_UPDATE", "orders")}>Mark Shipped</button><button type="button" className="s26-btn" disabled title={actionTitle(seller2026Permissions, "ORDER_FULFILLMENT_UPDATE", "orders")}>Update Tracking</button></div>
+              {fulfillmentStatus.message ? <p className={fulfillmentStatus.type === "error" ? "s26-field-error" : "hint"} style={{ marginTop: 14 }}>{fulfillmentStatus.message}</p> : null}
+              <div className="s26-card soft" style={{ marginTop: 16 }}>
+                <h3>Fulfillment Status</h3>
+                <p className="hint">Payment information stays read-only. Seller actions only update this store-scoped suborder fulfillment state. Tracking persistence is pending backend shipment rollout.</p>
+                <div className="s26-form-grid">
+                  <div className="s26-field"><label htmlFor="s26-tracking-number">Tracking Number</label><input id="s26-tracking-number" value={trackingForm.trackingNumber} onChange={(event) => setTrackingForm((current) => ({ ...current, trackingNumber: event.target.value }))} placeholder="RESI-123456" disabled title="Tracking persistence is pending backend shipment rollout." /></div>
+                  <div className="s26-field"><label htmlFor="s26-courier-code">Shipping Provider</label><input id="s26-courier-code" value={trackingForm.courierCode} onChange={(event) => setTrackingForm((current) => ({ ...current, courierCode: event.target.value.toUpperCase() }))} placeholder="JNE" disabled title="Tracking persistence is pending backend shipment rollout." /></div>
+                  <div className="s26-field"><label htmlFor="s26-courier-service">Courier Service</label><input id="s26-courier-service" value={trackingForm.courierService} onChange={(event) => setTrackingForm((current) => ({ ...current, courierService: event.target.value }))} placeholder="REG" disabled title="Tracking persistence is pending backend shipment rollout." /></div>
+                </div>
+              </div>
+              <div className="s26-filter-row" style={{ marginTop: 16 }}><button type="button" className="s26-btn primary" disabled={!packAction || !canFulfillOrders || isFulfillmentPending} title={packAction ? fulfillmentActionTitle : "Packing is not available for this status."} onClick={() => runFulfillmentAction(detail.suborder.id, packAction)}>{isFulfillmentPending ? "Updating..." : "Mark as Packed"}</button><button type="button" className="s26-btn" disabled title="Print receipt/label endpoint needs backend review.">Print Receipt</button><button type="button" className="s26-btn" disabled={!shipAction || !canFulfillOrders || isFulfillmentPending} title={shipAction ? fulfillmentActionTitle : "Shipping is not available for this status."} onClick={() => runFulfillmentAction(detail.suborder.id, shipAction)}>Mark as Shipped</button><button type="button" className="s26-btn" disabled={!deliverAction || !canFulfillOrders || isFulfillmentPending} title={deliverAction ? fulfillmentActionTitle : "Delivery confirmation is not available for this status."} onClick={() => runFulfillmentAction(detail.suborder.id, deliverAction)}>Mark Delivered</button></div>
             </>
           ) : null}
         </Card>
@@ -2085,6 +2137,7 @@ export function Seller2026Workspace({
   operationsView = "overview",
   operationsData = null,
   operationsState = null,
+  operationsMutation = null,
   operationsQuery = null,
   onOperationsQueryChange = null,
   teamView = "overview",
@@ -2155,6 +2208,7 @@ export function Seller2026Workspace({
       operationsView={operationsView}
       operationsData={operationsData}
       operationsState={operationsState}
+      operationsMutation={operationsMutation}
       operationsQuery={operationsQuery}
       onOperationsQueryChange={onOperationsQueryChange}
       teamView={teamView}

@@ -531,3 +531,45 @@
 - The UI submits only whitelisted coupon fields and does not send raw adapter rows to the backend.
 - The live smoke creates a disposable `S26SMOKE*` coupon, edits it, deactivates it, reactivates it, and archives it.
 - Preview route `/seller-2026/catalog-tools` remains mock-only.
+
+## Mutation Integration - Order Fulfillment
+
+### Routes
+- `/seller/stores/:storeSlug/orders`
+- `/seller/stores/:storeSlug/orders/:suborderId`
+
+### Files Added
+- `client/src/api/seller2026/orders.mutations.ts`
+
+### Files Changed
+- `client/src/api/seller2026/mutation-flags.ts`
+- `client/src/api/seller2026/orders-payments.adapter.ts`
+- `client/src/features/seller2026/Seller2026Workspace.jsx`
+- `client/src/hooks/seller2026/useSeller2026Orders.ts`
+- `client/src/hooks/seller2026/useSeller2026SuborderDetail.ts`
+- `client/src/pages/seller2026/Seller2026LiveOrdersPage.jsx`
+- `client/src/pages/seller2026/Seller2026LiveSuborderDetailPage.jsx`
+- `scripts/seller2026-auth-fixture-live-smoke.ts`
+
+### Endpoint Used
+- `PATCH /api/seller/stores/:storeId/suborders/:suborderId/fulfillment`
+
+### Enabled Actions
+- Mark as Packed when the backend exposes `MARK_PROCESSING`.
+- Mark as Shipped when the backend exposes `MARK_SHIPPED`.
+- Mark Delivered when the backend exposes `MARK_DELIVERED`.
+
+### Still Disabled
+- Payment status mutation.
+- Payment approval/rejection.
+- Tracking/resi persistence.
+- Bulk fulfillment and bulk delete.
+- Print receipt/label.
+- Cancellation/refund/return/dispute flows.
+
+### Safety Notes
+- The UI reads `governance.fulfillment.availableActions` from the existing order API before enabling fulfillment actions.
+- The frontend sends only whitelisted fulfillment fields and never sends payment fields.
+- Backend remains responsible for transition validation, store scope, and `ORDER_FULFILLMENT_MANAGE`.
+- Tracking fields remain disabled because the current smoke fixture read model still reports legacy fallback/no persisted shipment record after transition.
+- Preview route `/seller-2026/orders-payments` remains mock-only.

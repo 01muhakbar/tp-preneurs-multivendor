@@ -9,7 +9,11 @@ export default function Seller2026LiveSuborderDetailPage() {
   const { sellerContext, workspaceStoreId: storeId } = useSellerWorkspaceRoute();
   const { can } = getSeller2026PagePermissions(sellerContext);
   const canView = can("ORDER_READ");
-  const detailQuery = useSeller2026SuborderDetail(storeId, suborderId, { enabled: canView });
+  const canFulfill = can("ORDER_FULFILLMENT_UPDATE");
+  const detailQuery = useSeller2026SuborderDetail(storeId, suborderId, {
+    enabled: canView,
+    permissions: { canFulfill },
+  });
 
   return (
     <Seller2026Workspace
@@ -23,6 +27,12 @@ export default function Seller2026LiveSuborderDetailPage() {
         isError: detailQuery.isError,
         error: detailQuery.error,
         refetch: detailQuery.refetch,
+      }}
+      operationsMutation={{
+        canFulfill: detailQuery.canFulfill,
+        updatingStatusId: detailQuery.updatingStatusId,
+        mutationError: detailQuery.mutationError,
+        updateFulfillmentStatus: detailQuery.updateFulfillmentStatus,
       }}
     />
   );

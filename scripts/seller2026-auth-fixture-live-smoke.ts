@@ -18,6 +18,8 @@ import {
   StoreRole,
   Suborder,
   SuborderItem,
+  Shipment,
+  TrackingEvent,
   User,
   sequelize,
 } from "../server/src/models/index.js";
@@ -477,6 +479,15 @@ async function upsertOrderSet(input: {
       } as any);
     }
 
+    const staleShipments = await Shipment.findAll({
+      where: { suborderId: suborder.id } as any,
+      attributes: ["id"],
+    });
+    const staleShipmentIds = staleShipments.map((shipment: any) => shipment.id).filter(Boolean);
+    if (staleShipmentIds.length) {
+      await TrackingEvent.destroy({ where: { shipmentId: staleShipmentIds } as any });
+    }
+    await Shipment.destroy({ where: { suborderId: suborder.id } as any });
     await SuborderItem.destroy({ where: { suborderId: suborder.id } as any });
     await SuborderItem.create({
       suborderId: suborder.id,
@@ -736,6 +747,7 @@ async function ensureFixture() {
     productId: products[0].id,
     attributeId: color.id,
     suborderId: suborders[0]?.id ?? null,
+    fulfillmentSuborderId: suborders[1]?.id ?? null,
     notificationId: notificationRecord?.id ?? null,
     secondaryNotificationId: stockNotificationRecord?.id ?? null,
     password: PASSWORD,
@@ -939,8 +951,8 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureFixture>>) 
 
   consoleErrors.length = 0;
   const smokeCouponCode = `S26SMOKE${Date.now()}`;
-  const smokeCouponName = "Seller 2026 Smoke Coupon";
-  const editedSmokeCouponName = "Seller 2026 Smoke Coupon Edited";
+  const smokeCouponName = `Seller 2026 Smoke Coupon ${smokeCouponCode}`;
+  const editedSmokeCouponName = `Seller 2026 Smoke Coupon Edited ${smokeCouponCode}`;
   await page.goto(`/seller/stores/${fixture.storeSlug}/catalog/coupons`, {
     waitUntil: "networkidle",
     timeout: 45_000,
@@ -951,8 +963,8 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureFixture>>) 
   await page.getByLabel("Discount value").fill("10");
   await page.getByLabel("Minimum spend").fill("50000");
   await page.getByRole("button", { name: /^Create Coupon$/i }).last().click();
-  await page.getByText(smokeCouponCode).waitFor({ state: "visible", timeout: 20_000 });
   const smokeCouponRow = () => page.locator("tr", { hasText: smokeCouponCode }).first();
+  await smokeCouponRow().waitFor({ state: "visible", timeout: 20_000 });
   await smokeCouponRow().getByRole("button", { name: /^Edit$/i }).click();
   await page.getByLabel("Coupon name").fill(editedSmokeCouponName);
   await page.getByRole("button", { name: /^Save Coupon$/i }).click();
@@ -980,6 +992,46 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureFixture>>) 
   if (couponLifecycle.status !== "PASS" || consoleErrors.length) {
     throw new Error(
       `Coupon lifecycle smoke failed: ${couponLifecycle.status}, code ${smokeCouponCode}, console ${consoleErrors.join(" | ")}`
+    );
+  }
+
+  consoleErrors.length = 0;
+  await page.goto(`/seller/stores/${fixture.storeSlug}/orders/${fixture.fulfillmentSuborderId}`, {
+    waitUntil: "networkidle",
+    timeout: 45_000,
+  });
+  await page.getByText(/Suborder Detail/i).first().waitFor({ state: "visible", timeout: 15_000 });
+  await page.getByLabel("Tracking Number").waitFor({ state: "visible", timeout: 15_000 });
+  await page.getByRole("button", { name: /^Mark as Shipped$/i }).click();
+  await page.waitForLoadState("networkidle", { timeout: 15_000 }).catch(() => undefined);
+  await page.waitForFunction(
+    () => {
+      const text = document.body.innerText || "";
+      return /SHIPPED/i.test(text);
+    },
+    { timeout: 25_000 }
+  );
+  const fulfillmentDetailText = await page.locator("body").innerText({ timeout: 10_000 }).catch(() => "");
+  await page.goto(`/seller/stores/${fixture.storeSlug}/orders`, {
+    waitUntil: "networkidle",
+    timeout: 45_000,
+  });
+  const fulfillmentListText = await page.locator("body").innerText({ timeout: 10_000 }).catch(() => "");
+  const orderFulfillment = {
+    name: "order-fulfillment-mutation",
+    suborderId: fixture.fulfillmentSuborderId,
+    finalUrl: page.url().replace(CLIENT_URL, ""),
+    status:
+      /SHIPPED/i.test(fulfillmentDetailText) &&
+      /SHIPPED/i.test(fulfillmentListText)
+        ? "PASS"
+        : "FAIL",
+    consoleErrors: [...consoleErrors],
+    snippet: fulfillmentDetailText.replace(/\s+/g, " ").trim().slice(0, 180),
+  };
+  if (orderFulfillment.status !== "PASS" || consoleErrors.length) {
+    throw new Error(
+      `Order fulfillment smoke failed: ${orderFulfillment.status}, console ${consoleErrors.join(" | ")}`
     );
   }
 
@@ -1030,7 +1082,16 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureFixture>>) 
     return acc;
   }, {});
 
-  return { routeResults, addProductCta, couponLifecycle, crossStore, memberResults, sellerApiStatuses, mutationResults };
+  return {
+    routeResults,
+    addProductCta,
+    couponLifecycle,
+    orderFulfillment,
+    crossStore,
+    memberResults,
+    sellerApiStatuses,
+    mutationResults,
+  };
 }
 
 async function main() {

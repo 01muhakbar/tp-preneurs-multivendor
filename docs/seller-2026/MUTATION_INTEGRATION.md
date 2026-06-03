@@ -199,3 +199,47 @@
 - Updating `active` requires backend `COUPON_STATUS_MANAGE`.
 - Delete endpoint is treated by the UI as archive/deactivate because the backend returns a deactivated coupon.
 - Preview route `/seller-2026/catalog-tools` remains mock-only and receives no live coupon mutation handler.
+
+## Order Fulfillment
+
+### Routes
+- `/seller/stores/:storeSlug/orders`
+- `/seller/stores/:storeSlug/orders/:suborderId`
+
+### Permissions
+- Read orders: `ORDER_READ`, aliased to backend `ORDER_VIEW`
+- Update fulfillment: `ORDER_FULFILLMENT_UPDATE`, aliased to backend `ORDER_FULFILLMENT_MANAGE`
+
+### Mutation Flag
+- `orders: true`
+
+### Endpoint Used
+- `PATCH /api/seller/stores/:storeId/suborders/:suborderId/fulfillment`
+
+### Payload Fields Enabled
+- `action`
+- `shippingFee`
+
+### Lifecycle Actions Enabled
+- Mark as Packed through `MARK_PROCESSING` when backend governance exposes it.
+- Mark as Shipped through `MARK_SHIPPED`.
+- Mark Delivered through `MARK_DELIVERED` when backend governance exposes it.
+
+### Fields Still Disabled
+- Payment status mutation.
+- Payment approve/reject.
+- Tracking/resi persistence. The backend route accepts courier/tracking fields, but the current shipment read model reports legacy fallback/no persisted shipment in the smoke fixture.
+- Bulk fulfillment.
+- Bulk delete.
+- Print receipt/label.
+- Cancel/refund/return/dispute UI flows.
+- Courier integration beyond the existing text payload fields.
+
+### Safety Notes
+- `storeId` is resolved from the live seller workspace context, not from the form body.
+- The frontend sends a whitelisted fulfillment payload through `orders.mutations.ts`.
+- The backend route is store-scoped by `requireSellerStoreAccess(["ORDER_VIEW", "ORDER_FULFILLMENT_MANAGE"])`.
+- The UI reads backend `governance.fulfillment.availableActions` and does not invent unsupported status transitions.
+- Payment information remains read-only on Seller 2026 order pages.
+- Tracking fields are visible but disabled until persisted shipment tracking is available for the live rollout.
+- Preview route `/seller-2026/orders-payments` remains mock-only and receives no live fulfillment mutation handler.

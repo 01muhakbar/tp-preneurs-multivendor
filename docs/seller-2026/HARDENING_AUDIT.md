@@ -149,3 +149,13 @@
 - UI payloads are whitelisted in `client/src/api/seller2026/coupons.mutations.ts`.
 - Hard delete, duplicate, import/export, and banner upload remain disabled.
 - Preview route `/seller-2026/catalog-tools` remains mock-only.
+
+## Order Fulfillment Mutation Addendum
+- Enabled `SELLER_2026_MUTATIONS.orders`.
+- Fulfillment update requires `ORDER_FULFILLMENT_UPDATE`, aliased to backend `ORDER_FULFILLMENT_MANAGE`.
+- Live order list/detail routes use the existing store-scoped seller fulfillment endpoint.
+- Backend scope was reviewed: mutation route uses `requireSellerStoreAccess(["ORDER_VIEW", "ORDER_FULFILLMENT_MANAGE"])` and loads suborders by `{ id, storeId }`.
+- UI actions are derived from `governance.fulfillment.availableActions`; unsupported transitions remain hidden or disabled.
+- Mark as Shipped uses backend action `MARK_SHIPPED`; tracking fields remain disabled because persisted shipment tracking is not available in the current smoke fixture/read model.
+- Payment status, payment approval/rejection, bulk fulfillment, bulk delete, print label/receipt, cancellation, refund, return, and dispute actions remain disabled.
+- Preview route `/seller-2026/orders-payments` remains mock-only.

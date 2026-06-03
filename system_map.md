@@ -149,4 +149,20 @@ Seller Workspace 2026 live pages use existing store-scoped seller APIs and selle
 | Archive coupon | WIRED_AND_TESTED_AS_DEACTIVATE | `DELETE /api/seller/stores/:storeId/coupons/:couponId` | `COUPON_DELETE` -> `COUPON_STATUS_MANAGE` | Existing backend delete route deactivates the store coupon; UI labels this as archive. |
 | Hard delete | DISABLED | n/a | n/a | No Seller 2026 hard-delete action is exposed. |
 
+## Seller Workspace 2026 Order Fulfillment Mutation Status
+
+- Date: 2026-06-03.
+- Scope: frontend Seller 2026 order fulfillment wiring only. Backend routes, schema, auth middleware, permission map, Admin Workspace, payment review flow, and Client Storefront were not changed.
+- Routes: `/seller/stores/:storeSlug/orders` and `/seller/stores/:storeSlug/orders/:suborderId`.
+
+| Mutation | Status | Endpoint | Permission | Notes |
+|---|---|---|---|---|
+| Mark packed | WIRED_AND_TESTED | `PATCH /api/seller/stores/:storeId/suborders/:suborderId/fulfillment` | `ORDER_FULFILLMENT_UPDATE` -> `ORDER_FULFILLMENT_MANAGE` | Uses backend action `MARK_PROCESSING` when governance exposes it. |
+| Mark shipped | WIRED_AND_TESTED | `PATCH /api/seller/stores/:storeId/suborders/:suborderId/fulfillment` | `ORDER_FULFILLMENT_UPDATE` -> `ORDER_FULFILLMENT_MANAGE` | Uses backend action `MARK_SHIPPED`. |
+| Mark delivered | WIRED_READY | `PATCH /api/seller/stores/:storeId/suborders/:suborderId/fulfillment` | `ORDER_FULFILLMENT_UPDATE` -> `ORDER_FULFILLMENT_MANAGE` | Enabled only when backend governance exposes `MARK_DELIVERED`. |
+| Tracking/resi update | DISABLED_PENDING_API | n/a | n/a | Backend route accepts tracking fields, but current smoke read model remains legacy fallback/no persisted shipment tracking. |
+| Payment status mutation | DISABLED | n/a | n/a | Seller 2026 order pages keep payment state read-only. |
+| Bulk fulfillment / bulk delete | DISABLED_PENDING_REVIEW | n/a | n/a | Existing destructive/bulk flows need separate review before UI exposure. |
+| Print receipt / label | DISABLED_PENDING_API | n/a | n/a | No Seller 2026 store-scoped print endpoint was wired in this pass. |
+
 Notification mutation smoke assertion: fixture unread count changed `2 -> 1` after mark-one-read and `1 -> 0` after mark-all-read.

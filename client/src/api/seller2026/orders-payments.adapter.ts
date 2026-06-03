@@ -7,6 +7,15 @@ export type Seller2026SuborderStatus =
   | "CANCELLED"
   | "UNKNOWN";
 
+export type Seller2026FulfillmentActionViewModel = {
+  code: string;
+  label: string;
+  nextStatus: string;
+  description?: string;
+  enabled: boolean;
+  reason?: string | null;
+};
+
 export type Seller2026OrdersViewModel = {
   summary: {
     total: number;
@@ -27,6 +36,7 @@ export type Seller2026OrdersViewModel = {
     shippingMethod?: string;
     total: number;
     status: Seller2026SuborderStatus;
+    fulfillmentActions: Seller2026FulfillmentActionViewModel[];
   }>;
   pagination: {
     page: number;
@@ -44,6 +54,7 @@ export type Seller2026SuborderDetailViewModel = {
     status: string;
     orderDate: string | null;
     channel?: string;
+    fulfillmentActions: Seller2026FulfillmentActionViewModel[];
   } | null;
   customer: {
     name: string;
@@ -165,6 +176,27 @@ const array = (value: unknown): unknown[] => (Array.isArray(value) ? value : [])
 const idValue = (value: unknown, fallback: string | number = ""): string | number =>
   typeof value === "string" || typeof value === "number" ? value : fallback;
 
+const readFulfillmentActions = (value: unknown): Seller2026FulfillmentActionViewModel[] => {
+  const source = object(value);
+  const governance = object(source.governance);
+  const fulfillment = object(governance.fulfillment);
+  return array(fulfillment.availableActions)
+    .map((item) => {
+      const action = object(item);
+      const code = text(action.code).toUpperCase();
+      if (!code) return null;
+      return {
+        code,
+        label: text(action.label, code),
+        nextStatus: text(action.nextStatus).toUpperCase(),
+        description: text(action.description) || undefined,
+        enabled: action.enabled !== false,
+        reason: text(action.reason) || null,
+      };
+    })
+    .filter(Boolean) as Seller2026FulfillmentActionViewModel[];
+};
+
 export function normalizeSuborderStatus(status: unknown): Seller2026SuborderStatus {
   const value = text(status).toUpperCase();
 
@@ -241,6 +273,7 @@ const adaptOrderRow = (value: unknown) => {
     shippingMethod: text(row.shippingStatus ?? row.shippingMethod ?? primaryStatus.label) || undefined,
     total: number(row.totalAmount ?? sellerScope.totalAmount ?? paymentSummary.amount, 0),
     status,
+    fulfillmentActions: readFulfillmentActions(row),
   };
 };
 
@@ -305,6 +338,7 @@ export function adaptSeller2026SuborderDetail(value: unknown): Seller2026Suborde
       ),
       orderDate: text(detail.createdAt ?? order.createdAt) || null,
       channel: text(order.checkoutMode ?? detail.checkoutMode) || undefined,
+      fulfillmentActions: readFulfillmentActions(detail),
     },
     customer: {
       name: text(buyer.name ?? shipping.fullName, "Customer"),

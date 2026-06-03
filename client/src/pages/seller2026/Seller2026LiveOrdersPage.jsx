@@ -14,6 +14,7 @@ export default function Seller2026LiveOrdersPage() {
   const { sellerContext, workspaceStoreId: storeId } = useSellerWorkspaceRoute();
   const { can } = getSeller2026PagePermissions(sellerContext);
   const canView = can("ORDER_READ");
+  const canFulfill = can("ORDER_FULFILLMENT_UPDATE");
   const query = {
     search: searchParams.get("q") || "",
     status: searchParams.get("status") || "all",
@@ -24,7 +25,10 @@ export default function Seller2026LiveOrdersPage() {
     page: readPageNumber(searchParams.get("page"), 1),
     limit: readPageNumber(searchParams.get("limit"), 10),
   };
-  const ordersQuery = useSeller2026Orders(storeId, query, { enabled: canView });
+  const ordersQuery = useSeller2026Orders(storeId, query, {
+    enabled: canView,
+    permissions: { canFulfill },
+  });
 
   const handleQueryChange = (nextQuery) => {
     const next = new URLSearchParams(searchParams);
@@ -58,6 +62,12 @@ export default function Seller2026LiveOrdersPage() {
         isError: ordersQuery.isError,
         error: ordersQuery.error,
         refetch: ordersQuery.refetch,
+      }}
+      operationsMutation={{
+        canFulfill: ordersQuery.canFulfill,
+        updatingStatusId: ordersQuery.updatingStatusId,
+        mutationError: ordersQuery.mutationError,
+        updateFulfillmentStatus: ordersQuery.updateFulfillmentStatus,
       }}
       operationsQuery={query}
       onOperationsQueryChange={handleQueryChange}

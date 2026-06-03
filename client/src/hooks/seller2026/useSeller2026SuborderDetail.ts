@@ -1,6 +1,10 @@
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSellerSuborderDetail } from "../../api/sellerOrders.ts";
+import {
+  updateSeller2026OrderFulfillment,
+  type Seller2026FulfillmentPayload,
+} from "../../api/seller2026/orders.mutations.ts";
 import {
   adaptSeller2026SuborderDetail,
   emptySeller2026SuborderDetail,
@@ -8,6 +12,9 @@ import {
 
 type UseSeller2026SuborderDetailOptions = {
   enabled?: boolean;
+  permissions?: {
+    canFulfill?: boolean;
+  };
 };
 
 export function useSeller2026SuborderDetail(
@@ -16,6 +23,8 @@ export function useSeller2026SuborderDetail(
   options: UseSeller2026SuborderDetailOptions = {}
 ) {
   const enabled = Boolean(storeId) && Boolean(suborderId) && options.enabled !== false;
+  const queryClient = useQueryClient();
+  const canFulfill = Boolean(options.permissions?.canFulfill);
   const detailQuery = useQuery({
     queryKey: ["seller2026", "suborder-detail", storeId, suborderId],
     queryFn: () =>
@@ -31,6 +40,30 @@ export function useSeller2026SuborderDetail(
         : emptySeller2026SuborderDetail,
     [detailQuery.data, enabled]
   );
+  const invalidateOrders = () => {
+    void queryClient.invalidateQueries({ queryKey: ["seller2026", "orders"] });
+    void queryClient.invalidateQueries({ queryKey: ["seller2026", "suborder-detail", storeId, suborderId] });
+  };
+  const fulfillmentMutation = useMutation({
+    mutationFn: async ({
+      payload,
+    }: {
+      suborderId?: number | string;
+      payload: Seller2026FulfillmentPayload;
+    }) => {
+      if (!enabled || !storeId || !suborderId || !canFulfill) {
+        throw new Error("Order fulfillment update is not available.");
+      }
+      const result = await updateSeller2026OrderFulfillment({
+        storeId,
+        suborderId,
+        payload,
+      });
+      if (!result.ok) throw result.error;
+      return result.data;
+    },
+    onSuccess: invalidateOrders,
+  });
 
   return {
     data,
@@ -38,5 +71,9 @@ export function useSeller2026SuborderDetail(
     isError: detailQuery.isError,
     error: detailQuery.error,
     refetch: detailQuery.refetch,
+    updatingStatusId: fulfillmentMutation.isPending ? String(suborderId) : null,
+    mutationError: fulfillmentMutation.error,
+    updateFulfillmentStatus: fulfillmentMutation.mutateAsync,
+    canFulfill,
   };
 }
