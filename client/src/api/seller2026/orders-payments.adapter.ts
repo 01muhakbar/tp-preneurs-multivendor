@@ -148,6 +148,13 @@ export type Seller2026PaymentReviewViewModel = {
 
 export type Seller2026PaymentProfileViewModel = {
   status: "PENDING" | "ACTIVE" | "REJECTED" | "INACTIVE";
+  requestStatus: {
+    code: string;
+    label: string;
+    description?: string | null;
+    isSubmitted: boolean;
+    isDraft: boolean;
+  };
   methods: Array<{
     type: "QRIS" | "BANK_TRANSFER" | "OTHER";
     label: string;
@@ -175,6 +182,23 @@ export type Seller2026PaymentProfileViewModel = {
     status: "VERIFIED" | "PENDING" | "REJECTED" | "OPTIONAL" | "MISSING";
   }>;
   timeline: Array<{ label: string; actor?: string; createdAt: string | null }>;
+  requestDraft: {
+    accountName: string;
+    merchantName: string;
+    merchantId: string;
+    qrisImageUrl: string;
+    qrisPayload: string;
+    instructionText: string;
+    sellerNote: string;
+  };
+  governance: {
+    canEdit: boolean;
+    permissionCanEdit: boolean;
+    isReviewLocked: boolean;
+    mode: string;
+    note?: string | null;
+    editableFields: string[];
+  };
 };
 
 const text = (value: unknown, fallback = "") => String(value ?? fallback).trim();
@@ -460,6 +484,8 @@ export function adaptSeller2026PaymentProfile(value: unknown): Seller2026Payment
   const pending = object(profile.pendingRequest);
   const governance = object(profile.governance);
   const readModel = object(profile.readModel);
+  const requestStatusSource = object(profile.requestStatus ?? object(readModel).requestState);
+  const requestDraft = object(profile.requestDraft);
   const review = object(profile.reviewFeedback);
   const readiness = object(profile.readiness ?? activeSource.readiness);
   const status = normalizePaymentProfileStatus(
@@ -471,6 +497,13 @@ export function adaptSeller2026PaymentProfile(value: unknown): Seller2026Payment
 
   return {
     status,
+    requestStatus: {
+      code: text(requestStatusSource.code, "DRAFT"),
+      label: text(requestStatusSource.label, "Draft request"),
+      description: text(requestStatusSource.description) || null,
+      isSubmitted: Boolean(requestStatusSource.isSubmitted),
+      isDraft: requestStatusSource.isDraft !== false,
+    },
     methods: qrisUrl || accountName || merchantName
       ? [{
           type: "QRIS",
@@ -498,6 +531,23 @@ export function adaptSeller2026PaymentProfile(value: unknown): Seller2026Payment
       { label: text(object(readModel.nextStep).label, "Payment profile snapshot"), actor: text(object(readModel.nextStep).actor) || undefined, createdAt: text(profile.updatedAt ?? activeSource.updatedAt) || null },
       { label: text(governance.note, "Admin review required"), actor: "System", createdAt: text(governance.submittedAt) || null },
     ].filter((item) => item.label),
+    requestDraft: {
+      accountName: text(requestDraft.accountName ?? pending.accountName ?? activeSource.accountName),
+      merchantName: text(requestDraft.merchantName ?? pending.merchantName ?? activeSource.merchantName),
+      merchantId: text(requestDraft.merchantId ?? pending.merchantId ?? activeSource.merchantId),
+      qrisImageUrl: text(requestDraft.qrisImageUrl ?? pending.qrisImageUrl ?? activeSource.qrisImageUrl),
+      qrisPayload: text(requestDraft.qrisPayload ?? pending.qrisPayload ?? activeSource.qrisPayload),
+      instructionText: text(requestDraft.instructionText ?? pending.instructionText ?? activeSource.instructionText),
+      sellerNote: text(requestDraft.sellerNote ?? pending.sellerNote),
+    },
+    governance: {
+      canEdit: Boolean(governance.canEdit),
+      permissionCanEdit: Boolean(governance.permissionCanEdit ?? governance.canEdit),
+      isReviewLocked: Boolean(governance.isReviewLocked),
+      mode: text(governance.mode, "READ_ONLY_SNAPSHOT"),
+      note: text(governance.note) || null,
+      editableFields: array(governance.editableFields).map((item) => text(item)).filter(Boolean),
+    },
   };
 }
 
@@ -526,9 +576,27 @@ export const emptySeller2026PaymentReview: Seller2026PaymentReviewViewModel = {
 
 export const emptySeller2026PaymentProfile: Seller2026PaymentProfileViewModel = {
   status: "INACTIVE",
+  requestStatus: { code: "INACTIVE", label: "Inactive", description: null, isSubmitted: false, isDraft: false },
   methods: [],
   payoutAccount: null,
   balances: { available: 0, hold: 0 },
   documents: [],
   timeline: [],
+  requestDraft: {
+    accountName: "",
+    merchantName: "",
+    merchantId: "",
+    qrisImageUrl: "",
+    qrisPayload: "",
+    instructionText: "",
+    sellerNote: "",
+  },
+  governance: {
+    canEdit: false,
+    permissionCanEdit: false,
+    isReviewLocked: false,
+    mode: "READ_ONLY_SNAPSHOT",
+    note: null,
+    editableFields: [],
+  },
 };

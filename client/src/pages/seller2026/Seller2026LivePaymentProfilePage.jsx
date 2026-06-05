@@ -7,7 +7,11 @@ export default function Seller2026LivePaymentProfilePage() {
   const { sellerContext, workspaceStoreId: storeId } = useSellerWorkspaceRoute();
   const { can } = getSeller2026PagePermissions(sellerContext);
   const canView = can("STORE_PAYMENT_PROFILE_READ");
-  const profileQuery = useSeller2026PaymentProfile(storeId, { enabled: canView });
+  const canSubmit = can("STORE_PAYMENT_PROFILE_SUBMIT");
+  const profileQuery = useSeller2026PaymentProfile(storeId, {
+    enabled: canView,
+    canSubmit,
+  });
 
   return (
     <Seller2026Workspace
@@ -21,6 +25,12 @@ export default function Seller2026LivePaymentProfilePage() {
         isError: profileQuery.isError,
         error: profileQuery.error,
         refetch: profileQuery.refetch,
+      }}
+      operationsMutation={{
+        canSubmitPaymentProfile: profileQuery.canSubmit,
+        submittingPaymentProfile: profileQuery.submitting,
+        paymentProfileMutationError: profileQuery.mutationError,
+        submitPaymentProfileRequest: profileQuery.submitProfileRequest,
       }}
     />
   );

@@ -1686,10 +1686,37 @@ function OperationsPage({
     reason: "",
   });
   const [paymentReviewStatus, setPaymentReviewStatus] = useState({ type: "idle", message: "" });
+  const [paymentProfileFormOpen, setPaymentProfileFormOpen] = useState(false);
+  const [paymentProfileFormTouched, setPaymentProfileFormTouched] = useState(false);
+  const [paymentProfileForm, setPaymentProfileForm] = useState({
+    accountName: "",
+    merchantName: "",
+    merchantId: "",
+    qrisImageUrl: "",
+    qrisPayload: "",
+    instructionText: "",
+    sellerNote: "",
+  });
+  const [paymentProfileStatus, setPaymentProfileStatus] = useState({ type: "idle", message: "" });
   const canFulfillOrders = Boolean(operationsMutation?.canFulfill);
   const isFulfillmentPending = Boolean(operationsMutation?.updatingStatusId);
   const canReviewPayments = Boolean(operationsMutation?.canReview);
   const isPaymentReviewPending = Boolean(operationsMutation?.approvingId || operationsMutation?.rejectingId || operationsMutation?.isMutating);
+  const canSubmitPaymentProfile = Boolean(operationsMutation?.canSubmitPaymentProfile);
+  const isPaymentProfileSubmitting = Boolean(operationsMutation?.submittingPaymentProfile);
+  useEffect(() => {
+    if (operationsView !== "payment-profile" || paymentProfileFormTouched) return;
+    const draft = operationsData?.requestDraft || {};
+    setPaymentProfileForm({
+      accountName: draft.accountName || "",
+      merchantName: draft.merchantName || "",
+      merchantId: draft.merchantId || "",
+      qrisImageUrl: draft.qrisImageUrl || "",
+      qrisPayload: draft.qrisPayload || "",
+      instructionText: draft.instructionText || "",
+      sellerNote: draft.sellerNote || "",
+    });
+  }, [operationsView, operationsData?.requestDraft, paymentProfileFormTouched]);
   const fulfillmentActionTitle = canFulfillOrders
     ? undefined
     : actionTitle(seller2026Permissions, "ORDER_FULFILLMENT_UPDATE", "orders");
@@ -1750,6 +1777,33 @@ function OperationsPage({
       setPaymentReviewStatus({
         type: "error",
         message: error?.message || "Payment review mutation failed.",
+      });
+    }
+  };
+  const setPaymentProfileField = (field, value) => {
+    setPaymentProfileFormTouched(true);
+    setPaymentProfileForm((current) => ({ ...current, [field]: value }));
+  };
+  const paymentProfileFormValid =
+    paymentProfileForm.accountName.trim() &&
+    paymentProfileForm.merchantName.trim() &&
+    paymentProfileForm.qrisImageUrl.trim();
+  const submitPaymentProfileRequest = async () => {
+    if (!operationsMutation?.submitPaymentProfileRequest || isPaymentProfileSubmitting) return;
+    setPaymentProfileStatus({ type: "idle", message: "" });
+    try {
+      await operationsMutation.submitPaymentProfileRequest(paymentProfileForm);
+      setPaymentProfileStatus({
+        type: "success",
+        message: "Payment profile request submitted for admin review.",
+      });
+      setPaymentProfileFormOpen(false);
+      setPaymentProfileFormTouched(false);
+      operationsState?.refetch?.();
+    } catch (error) {
+      setPaymentProfileStatus({
+        type: "error",
+        message: error?.message || "Payment profile request failed.",
       });
     }
   };
@@ -1860,7 +1914,7 @@ function OperationsPage({
             <div className="s26-filter-row"><input className="s26-search" aria-label="Search payments" placeholder="Search payment, invoice, customer" value={searchValue} onChange={(event) => queryChange({ search: event.target.value, page: 1 })} /><select className="s26-control" aria-label="Filter payment status" value={operationsQuery?.status || "all"} onChange={(event) => queryChange({ status: event.target.value, page: 1 })}><option value="all">Pending Confirmation</option><option value="PAID">Paid</option><option value="REJECTED">Rejected</option><option value="UNPAID">Unpaid</option></select></div>
             {operationsState?.isLoading ? <p className="hint">Loading payment review...</p> : null}
             {paymentReviewStatus.message ? <p className={paymentReviewStatus.type === "error" ? "s26-field-error" : "hint"}>{paymentReviewStatus.message}</p> : null}
-            {!operationsState?.isLoading && rows.length === 0 ? <div className="s26-empty"><strong>Belum ada pembayaran yang perlu direview.</strong><p>Payment proof akan muncul jika ada pembayaran pending.</p></div> : null}
+            {!operationsState?.isLoading && rows.length === 0 ? <div className="s26-empty"><strong>No payments need review.</strong><p>Payment proof appears when a pending payment is available.</p></div> : null}
             {rows.length ? <DataTable columns={["Payment", "Invoice", "Customer", "Amount", "Method", "Status", "Risk"]} rows={rows} renderRow={(row) => <tr key={row.id}><td><strong>{row.paymentNo}</strong><div className="s26-sub">{row.receivedAt || "-"}</div></td><td>{row.invoiceNo || "-"}</td><td>{row.customerName || "-"}</td><td>{formatRupiah(row.amount)}</td><td>{row.method || "-"}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td>{row.riskLabel || "unknown"}</td></tr>} /> : null}
           </Card>
           <Card title="Selected Payment Detail" hint="Transaction breakdown, proof preview, verification checklist, and seller review decision." actions={<><button type="button" className="s26-btn success" disabled={!selectedCanReview || isPaymentReviewPending} title={paymentActionTitle} onClick={() => runPaymentReviewAction(selected, "APPROVE")}>{operationsMutation?.approvingId === selected?.id ? "Approving..." : "Approve Payment"}</button><button type="button" className="s26-btn danger" disabled={!selectedCanReview || isPaymentReviewPending || !paymentReviewForm.reason.trim()} title={!paymentReviewForm.reason.trim() ? "Reason is required before rejecting a payment." : paymentActionTitle} onClick={() => runPaymentReviewAction(selected, "REJECT")}>{operationsMutation?.rejectingId === selected?.id ? "Rejecting..." : "Reject Payment"}</button><button type="button" className="s26-btn" disabled title="No seller request-clarification endpoint is available yet.">Request Clarification</button></>}>
@@ -1884,21 +1938,45 @@ function OperationsPage({
 
   if (isLive && operationsView === "payment-profile") {
     const profile = operationsData;
+    const profileActionTitle = canSubmitPaymentProfile
+      ? undefined
+      : profile?.governance?.isReviewLocked
+        ? "The latest payment profile request is already under admin review."
+        : actionTitle(seller2026Permissions, "STORE_PAYMENT_PROFILE_SUBMIT", "payments");
     return (
       <Shell section="operations" mode={mode} storeContext={storeContext}>
         {operationsState?.isError ? <Card title="Payment profile unavailable" hint="Live payment profile could not load." actions={<button type="button" className="s26-btn" onClick={operationsState?.refetch}>Retry</button>} /> : null}
-        <Card title="Payment Profile" hint="QRIS, payout profile, verification documents, and admin review timeline." actions={<button type="button" className="s26-btn primary" disabled title={actionTitle(seller2026Permissions, "STORE_PAYMENT_PROFILE_SUBMIT", "payments")}>Submit / Update Profile</button>}>
+        <Card title="Payment Profile" hint="QRIS destination, request status, verification documents, and admin review timeline." actions={<button type="button" className="s26-btn primary" disabled={!canSubmitPaymentProfile || isPaymentProfileSubmitting} title={profileActionTitle} onClick={() => { setPaymentProfileFormOpen(true); setPaymentProfileStatus({ type: "idle", message: "" }); }}>Submit / Update Profile</button>}>
           <div className="s26-grid four" style={{ marginBottom: 14 }}>
             <CatalogKpi label="Status" value={profile?.status || "INACTIVE"} />
+            <CatalogKpi label="Request" value={profile?.requestStatus?.label || "No request"} />
             <CatalogKpi label="Available Balance" value={formatRupiah(profile?.balances?.available || 0)} />
             <CatalogKpi label="Hold Balance" value={formatRupiah(profile?.balances?.hold || 0)} />
-            <CatalogKpi label="Last Payout" value={formatRupiah(profile?.balances?.lastPayoutAmount || 0)} />
           </div>
           {operationsState?.isLoading ? <p className="hint">Loading payment profile...</p> : null}
+          {paymentProfileStatus.message ? <p className={paymentProfileStatus.type === "error" ? "s26-field-error" : "hint"}>{paymentProfileStatus.message}</p> : null}
           <div className="s26-grid three">
             {(profile?.methods || []).length ? profile.methods.map((method) => <div className="s26-card soft" key={`${method.type}-${method.label}`}><h3>{method.label}</h3><p className="hint">{method.type}<br />{method.accountName || method.accountNoMasked || "No account detail"}</p><span className={statusClass(method.status)}>{method.status}</span></div>) : <div className="s26-empty"><strong>No payment method configured.</strong><p>QRIS or bank transfer details will appear after setup.</p></div>}
             <div className="s26-card soft"><h3>Payout Account</h3>{profile?.payoutAccount ? <p className="hint">{profile.payoutAccount.bankName}<br />{profile.payoutAccount.accountNoMasked}<br />{profile.payoutAccount.accountName}</p> : <p className="hint">No payout account configured.</p>}<span className={statusClass(profile?.payoutAccount?.status || "UNKNOWN")}>{profile?.payoutAccount?.status || "UNKNOWN"}</span></div>
+            <div className="s26-card soft"><h3>Request Governance</h3><p className="hint">{profile?.requestStatus?.description || profile?.governance?.note || "Seller changes are submitted as admin-reviewed requests."}</p><span className={statusClass(profile?.requestStatus?.code || "UNKNOWN")}>{profile?.requestStatus?.code || "UNKNOWN"}</span></div>
           </div>
+          {paymentProfileFormOpen ? (
+            <div className="s26-card soft" style={{ marginTop: 16 }}>
+              <h3>Payment Profile Request</h3>
+              <p className="hint">Seller requests do not approve, activate, deactivate, or execute payouts. Admin remains the final reviewer.</p>
+              <div className="s26-form-grid">
+                <div className="s26-field"><label htmlFor="s26-payment-account-name">Account Owner Name</label><input id="s26-payment-account-name" value={paymentProfileForm.accountName} onChange={(event) => setPaymentProfileField("accountName", event.target.value)} disabled={isPaymentProfileSubmitting} />{!paymentProfileForm.accountName.trim() ? <span className="s26-field-error">Account owner name is required.</span> : null}</div>
+                <div className="s26-field"><label htmlFor="s26-payment-merchant-name">Merchant Name</label><input id="s26-payment-merchant-name" value={paymentProfileForm.merchantName} onChange={(event) => setPaymentProfileField("merchantName", event.target.value)} disabled={isPaymentProfileSubmitting} />{!paymentProfileForm.merchantName.trim() ? <span className="s26-field-error">Merchant name is required.</span> : null}</div>
+                <div className="s26-field"><label htmlFor="s26-payment-merchant-id">QRIS Identifier</label><input id="s26-payment-merchant-id" value={paymentProfileForm.merchantId} onChange={(event) => setPaymentProfileField("merchantId", event.target.value)} disabled={isPaymentProfileSubmitting} /></div>
+                <div className="s26-field"><label htmlFor="s26-payment-qris-image">QRIS Image URL</label><input id="s26-payment-qris-image" value={paymentProfileForm.qrisImageUrl} onChange={(event) => setPaymentProfileField("qrisImageUrl", event.target.value)} disabled={isPaymentProfileSubmitting} />{!paymentProfileForm.qrisImageUrl.trim() ? <span className="s26-field-error">QRIS image URL is required.</span> : null}</div>
+                <div className="s26-field"><label htmlFor="s26-payment-qris-payload">QRIS Payload</label><textarea id="s26-payment-qris-payload" value={paymentProfileForm.qrisPayload} onChange={(event) => setPaymentProfileField("qrisPayload", event.target.value)} disabled={isPaymentProfileSubmitting} /></div>
+                <div className="s26-field"><label htmlFor="s26-payment-instruction">Payment Instructions</label><textarea id="s26-payment-instruction" value={paymentProfileForm.instructionText} onChange={(event) => setPaymentProfileField("instructionText", event.target.value)} disabled={isPaymentProfileSubmitting} /></div>
+                <div className="s26-field"><label htmlFor="s26-payment-seller-note">Seller Note</label><textarea id="s26-payment-seller-note" value={paymentProfileForm.sellerNote} maxLength={4000} onChange={(event) => setPaymentProfileField("sellerNote", event.target.value)} disabled={isPaymentProfileSubmitting} /></div>
+                <div className="s26-card soft"><h3>Documents Upload</h3><p className="hint">Document upload is disabled until a dedicated seller payment-profile document endpoint is confirmed.</p><button type="button" className="s26-btn" disabled title="Payment profile document upload endpoint needs backend review.">Upload Documents</button></div>
+              </div>
+              <div className="s26-filter-row" style={{ marginTop: 16, marginBottom: 0 }}><button type="button" className="s26-btn" disabled={isPaymentProfileSubmitting} onClick={() => setPaymentProfileFormOpen(false)}>Close</button><button type="button" className="s26-btn primary" disabled={!paymentProfileFormValid || !canSubmitPaymentProfile || isPaymentProfileSubmitting} title={profileActionTitle} onClick={submitPaymentProfileRequest}>{isPaymentProfileSubmitting ? "Submitting..." : "Submit Request"}</button></div>
+            </div>
+          ) : null}
         </Card>
         <div className="s26-grid two">
           <Card title="Documents & Verification" hint="KTP/NIK, NPWP, bank or QRIS documents.">{(profile?.documents || []).length ? <div className="s26-checklist">{profile.documents.map((item) => <div className="s26-check-row" key={item.label}><span>{item.label}</span><span className={statusClass(item.status)}>{item.status}</span></div>)}</div> : <div className="s26-empty"><strong>No documents available.</strong><p>Verification documents are not configured yet.</p></div>}</Card>
@@ -1925,18 +2003,18 @@ function OperationsPage({
         </Card>
       </div>
       <div className="s26-grid two">
-        <Card title="Payment Review" hint="Proof, risk check, breakdown, dan audit timeline." actions={<><button className="s26-btn success">Tandai Aman</button><button className="s26-btn danger">Tolak & Refund</button></>}>
+        <Card title="Payment Review" hint="Proof, risk check, breakdown, and audit timeline." actions={<><button className="s26-btn success">Mark Safe</button><button className="s26-btn danger">Reject</button></>}>
           <div className="s26-grid three">
-            <div className="s26-card soft"><h3>Payment Proof</h3><div style={{ padding: 28, borderRadius: 18, background: "#eff6ff", textAlign: "center" }}>m-BCA<br /><strong>Transfer Berhasil</strong><br />Rp 201.000</div></div>
+            <div className="s26-card soft"><h3>Payment Proof</h3><div style={{ padding: 28, borderRadius: 18, background: "#eff6ff", textAlign: "center" }}>m-BCA<br /><strong>Transfer Successful</strong><br />Rp 201.000</div></div>
             <div className="s26-card soft"><h3>Transaction Breakdown</h3><p className="hint">Total Order Rp 201.000<br />Payment Method Bank Transfer (BCA)<br />Match Score 95%</p></div>
-            <div className="s26-card soft"><h3>Risk & Fraud Check</h3><p className="hint">Low Risk: pass<br />Nominal sesuai: pass<br />Rekening tujuan sesuai: pass</p></div>
+            <div className="s26-card soft"><h3>Risk & Fraud Check</h3><p className="hint">Low Risk: pass<br />Amount match: pass<br />Destination account match: pass</p></div>
           </div>
         </Card>
-        <Card title="Payment Profile" hint="QRIS, bank transfer, payout, dokumen, dan verifikasi.">
+        <Card title="Payment Profile" hint="QRIS, bank transfer, payout, documents, and verification.">
           <div className="s26-grid three">
-            <div className="s26-card soft"><h3>QRIS</h3><p className="hint">Terima pembayaran instan</p><span className={statusClass("Active")}>AKTIF</span></div>
-            <div className="s26-card soft"><h3>Rekening Payout</h3><p className="hint">BCA 123-456-7890<br />TP PRENEURS BATIK STORE</p><span className={statusClass("Active")}>VERIFIED</span></div>
-            <div className="s26-card soft"><h3>Dokumen</h3><p className="hint">KTP, NPWP, Rekening Koran, Selfie KTP</p><span className={statusClass("Pending")}>PENDING</span></div>
+            <div className="s26-card soft"><h3>QRIS</h3><p className="hint">Accept instant payments</p><span className={statusClass("Active")}>ACTIVE</span></div>
+            <div className="s26-card soft"><h3>Payout Account</h3><p className="hint">BCA 123-456-7890<br />TP PRENEURS BATIK STORE</p><span className={statusClass("Active")}>VERIFIED</span></div>
+            <div className="s26-card soft"><h3>Documents</h3><p className="hint">ID card, tax number, bank statement, selfie with ID</p><span className={statusClass("Pending")}>PENDING</span></div>
           </div>
         </Card>
       </div>

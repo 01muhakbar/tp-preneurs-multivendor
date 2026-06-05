@@ -282,3 +282,48 @@
 - Backend rechecks route store scope, payment/suborder store ownership, payment status, proof status, role governance, and audit/status log updates.
 - Seller 2026 order pages keep payment status read-only.
 - Preview route `/seller-2026/orders-payments` remains mock-only and receives no live payment review mutation handler.
+
+## Payment Profile Request
+
+### Route
+- `/seller/stores/:storeSlug/payment-profile`
+
+### Permission / Governance
+- UI read permission: `STORE_PAYMENT_PROFILE_READ`, aliased to backend `PAYMENT_PROFILE_VIEW`.
+- UI submit permission: `STORE_PAYMENT_PROFILE_SUBMIT`, aliased to backend `PAYMENT_PROFILE_EDIT`.
+- Backend guard: `requireSellerStoreAccess(["PAYMENT_PROFILE_EDIT"])`.
+- Backend request governance: seller edits only a separate store-scoped request; admin remains final reviewer and activation authority.
+
+### Mutation Flag
+- `payments: true`
+
+### Endpoint Used
+- `POST /api/seller/stores/:storeId/payment-profile/request/submit`
+
+### Payload Fields Enabled
+- `accountName`
+- `merchantName`
+- `merchantId`
+- `qrisImageUrl`
+- `qrisPayload`
+- `instructionText`
+- `sellerNote`
+
+### Lifecycle Actions Enabled
+- Submit payment profile request for admin review.
+- Refetch payment profile state after successful submit.
+
+### Fields Still Disabled
+- Direct active profile approval.
+- Direct activation/deactivation.
+- Payout execution, balance withdrawal, settlement, refund, or dispute.
+- Payment profile document upload. No dedicated seller payment-profile document endpoint is confirmed.
+- Admin review note/status mutation from seller UI.
+
+### Safety Notes
+- `storeId` is resolved from the live seller workspace context, not from a form body.
+- Frontend sends a whitelisted request payload through `payment-profile.mutations.ts`.
+- Seller 2026 validates required request fields before submit: account owner name, merchant name, and QRIS image URL.
+- Backend rejects unknown fields through a strict schema and blocks edits while the latest request is already `SUBMITTED`.
+- The active approved snapshot remains unchanged until admin review/promotion outside Seller 2026.
+- Preview route `/seller-2026/orders-payments` remains mock-only and receives no live payment profile mutation handler.

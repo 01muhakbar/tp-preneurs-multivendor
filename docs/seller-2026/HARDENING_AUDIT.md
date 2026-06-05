@@ -55,11 +55,11 @@
 - Existing route helper `useSellerWorkspaceRoute` continues to resolve `workspaceStoreId`, `workspaceStoreSlug`, and store-scoped route builders for live pages.
 
 ## Mutation Safety Check
-- `SELLER_2026_MUTATIONS` centralizes mutation readiness; `storeProfileUpdate`, `productDraftSave`, coupon lifecycle, order fulfillment, payment review approve/reject, and notification read-state mutations are currently enabled.
+- `SELLER_2026_MUTATIONS` centralizes mutation readiness; `storeProfileUpdate`, `productDraftSave`, coupon lifecycle, order fulfillment, payment review approve/reject, payment profile request submit, and notification read-state mutations are currently enabled.
 - Product mutations disabled: create/submit/publish/delete/save draft/media upload/inventory adjustment.
 - Catalog mutations disabled: create/edit/delete category, attribute, attribute value, and coupon.
-- Orders/payment mutations enabled: backend-governed order fulfillment transitions and payment review approve/reject.
-- Orders/payment mutations disabled: print label, persisted tracking update, save internal note, request clarification, refund payment, dispute/settlement, submit payment profile, upload payment documents, and change payout account.
+- Orders/payment mutations enabled: backend-governed order fulfillment transitions, payment review approve/reject, and payment profile request submit.
+- Orders/payment mutations disabled: print label, persisted tracking update, save internal note, request clarification, refund payment, dispute/settlement, direct payment profile activation, upload payment documents, and change payout account.
 - Team mutations disabled: invite member, resend invitation, cancel invitation, update role, remove member, reset password.
 - Notification mutations enabled: mark one notification as read and mark all seller notifications as read.
 - Notification mutations disabled: delete notification, create notification, admin notification read state, and real-time push actions.
@@ -98,7 +98,7 @@
 ## Known Issues
 - Seller 2026 `.jsx` files are ignored by current ESLint config.
 - Repo-wide lint debt remains outside this hardening scope.
-- Mutations remain disabled except store profile update, product draft save, coupon lifecycle, order fulfillment, payment review approve/reject, and seller notification read-state flows.
+- Mutations remain disabled except store profile update, product draft save, coupon lifecycle, order fulfillment, payment review approve/reject, payment profile request submit, and seller notification read-state flows.
 - Some preview detail routes share the same domain workspace shell by design.
 
 ## Next Recommended Phase
@@ -168,4 +168,13 @@
 - Approve uses backend action `APPROVE` and optional reviewer note.
 - Reject uses backend action `REJECT`; the Seller 2026 UI requires a reason and sends it as backend `note`.
 - Request clarification, refund/dispute, payout settlement, payment profile approval, and order-page payment status mutation remain disabled.
+- Preview route `/seller-2026/orders-payments` remains mock-only.
+
+## Payment Profile Request Mutation Addendum
+- Enabled Seller 2026 payment profile request submit through the existing `payments` mutation flag.
+- Submit requires `STORE_PAYMENT_PROFILE_SUBMIT`, aliased to backend `PAYMENT_PROFILE_EDIT`, plus backend `governance.canEdit`.
+- Backend scope was reviewed: mutation route uses `requireSellerStoreAccess(["PAYMENT_PROFILE_EDIT"])`, strict request schema, store-scoped request persistence, and review-locking for submitted requests.
+- Seller 2026 submits only request fields: account owner name, merchant name, QRIS identifier, QRIS image URL, QRIS payload, instructions, and seller note.
+- Admin approval, activation/deactivation, payout execution, profile document upload, refund/dispute/settlement, and order-page payment status mutation remain disabled.
+- Payment Review and Payment Profile live copy was harmonized to English for the payment pages touched in this pass.
 - Preview route `/seller-2026/orders-payments` remains mock-only.

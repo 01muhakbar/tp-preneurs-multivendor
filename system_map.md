@@ -98,7 +98,7 @@ Seller Workspace 2026 live pages use existing store-scoped seller APIs and selle
 | Orders | LIVE_API_CONNECTED | Order rows map live read model status, payment state, totals, customer, and fulfillment fields. |
 | Order Detail | LIVE_API_CONNECTED | Detail maps live seller-scope read model totals, status, payment state, items, and shipping/payment fields. |
 | Payment Review | LIVE_API_CONNECTED_AND_MUTATION_READY | Read view uses live payment review suborders and proof fields; approve/reject use the existing store-scoped seller review route when backend governance exposes `canReview`. Request clarification/refund/dispute remain disabled. |
-| Payment Profile | LIVE_API_CONNECTED | Adapter maps active snapshot or root profile shape, readiness, QRIS status, and verification fields. Submit/update mutations remain disabled in Seller 2026 UI. |
+| Payment Profile | LIVE_API_CONNECTED_AND_REQUEST_READY | Adapter maps active snapshot, pending request, readiness, QRIS status, verification fields, and request governance. Seller can submit a store-scoped request for admin review; approval/activation/payout remain disabled. |
 | Coupons | LIVE_API_CONNECTED | Coupon read/list lane uses existing live API; create/edit/delete lifecycle controls remain disabled pending mutation review. |
 | Team | LIVE_API_CONNECTED | Team list and member detail use live team APIs. UI permissions now recognize legacy backend permission keys through Seller 2026 aliases. |
 | Member Lifecycle | LIVE_API_CONNECTED | Member lifecycle endpoint is reachable in smoke; destructive/status/role mutations remain guarded by permission and mutation flags. |
@@ -127,7 +127,7 @@ Seller Workspace 2026 live pages use existing store-scoped seller APIs and selle
 | Order | Print/download receipt or label | NEEDS_BACKEND_REVIEW | No clear Seller 2026 store-scoped print/download endpoint was confirmed. |
 | Payment Review | Approve/reject | WIRED_AND_TESTED | Store-scoped endpoint exists; backend limits mutation to owner/admin roles and proof/payment pending state. UI requires backend `canReview` governance. |
 | Payment Review | Request clarification / dispute / note update | NEEDS_BACKEND_REVIEW | No distinct store-scoped Seller 2026 endpoint was confirmed; request clarification remains disabled. |
-| Payment Profile | Save draft/request and submit request | DISABLED_PENDING_API | Existing request endpoints exist; UI lacks a safe edit form and upload/request lifecycle in this pass. |
+| Payment Profile | Submit/update profile request | WIRED_AND_TESTED | Store-scoped endpoint exists; UI submits whitelisted request fields for admin review. Direct approval/activation/payout/document upload remain disabled. |
 | Coupon | Create/edit/status/delete | DISABLED_PENDING_API | Store-scoped endpoints exist; UI form/lifecycle remains guarded pending validation and disposable fixture flow. |
 | Coupon | Duplicate | NEEDS_BACKEND_REVIEW | No clear duplicate coupon endpoint was confirmed. |
 | Team | Invite/resend/change role/change status/remove | DISABLED_PENDING_PERMISSION_REVIEW | Endpoints and backend guards exist; UI forms/actions remain disabled until self-remove, role hierarchy, and fixture rollback are fully tested. |

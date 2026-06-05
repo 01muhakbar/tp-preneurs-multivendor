@@ -611,3 +611,46 @@
 - Reject requires a UI reason and sends it as backend `note`.
 - Live smoke resets two disposable pending payment proof fixtures: `SELLER2026-PAYAPPROVE` and `SELLER2026-PAYREJECT`.
 - Preview route `/seller-2026/orders-payments` remains mock-only.
+
+## Mutation Integration - Payment Profile Request
+
+### Route
+- `/seller/stores/:storeSlug/payment-profile`
+
+### Files Added
+- `client/src/api/seller2026/payment-profile.mutations.ts`
+
+### Files Changed
+- `client/src/api/seller2026/orders-payments.adapter.ts`
+- `client/src/features/seller2026/Seller2026Workspace.jsx`
+- `client/src/hooks/seller2026/useSeller2026PaymentProfile.ts`
+- `client/src/pages/seller2026/Seller2026LivePaymentProfilePage.jsx`
+- `scripts/seller2026-auth-fixture-live-smoke.ts`
+
+### Endpoint Used
+- `POST /api/seller/stores/:storeId/payment-profile/request/submit`
+
+### Enabled Actions
+- Submit/update a seller payment profile request for admin review.
+- Refetch the live payment profile state after request success.
+
+### Copy Harmonization
+- Payment Review empty state now uses English copy:
+  - `No payments need review.`
+  - `Payment proof appears when a pending payment is available.`
+- Payment Profile request form, validation, and governance helper copy use English copy.
+
+### Still Disabled
+- Direct admin approval.
+- Direct activation/deactivation.
+- Payout execution.
+- Refund/dispute/settlement.
+- Payment profile document upload.
+- Payment status mutation from orders.
+
+### Safety Notes
+- The UI sends only whitelisted request fields and never sends approval, activation, payout, or settlement fields.
+- The form requires account owner name, merchant name, and QRIS image URL before submit.
+- Backend remains responsible for store scope, `PAYMENT_PROFILE_EDIT`, strict schema validation, and review lock enforcement.
+- A submitted request does not change the active approved payment profile until admin review/promotion outside Seller 2026.
+- Live smoke clears open requests for the fixture store before submitting a disposable Seller 2026 payment profile request.

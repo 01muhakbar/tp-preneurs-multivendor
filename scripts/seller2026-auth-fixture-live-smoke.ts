@@ -15,6 +15,7 @@ import {
   StoreAuditLog,
   StoreMember,
   StorePaymentProfile,
+  StorePaymentProfileRequest,
   StoreRole,
   Suborder,
   SuborderItem,
@@ -635,6 +636,7 @@ async function ensureFixture() {
   ]);
 
   const profile = await upsertPaymentProfile(store.id);
+  await StorePaymentProfileRequest.destroy({ where: { storeId: store.id } as any });
   const now = Date.now();
   await upsertCoupon({
     code: "SMOKE2026",
@@ -1106,6 +1108,45 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureFixture>>) 
     );
   }
 
+  consoleErrors.length = 0;
+  const smokeProfileMerchant = `Seller 2026 Smoke Merchant ${Date.now()}`;
+  await page.goto(`/seller/stores/${fixture.storeSlug}/payment-profile`, {
+    waitUntil: "networkidle",
+    timeout: 45_000,
+  });
+  await page.getByText(/Payment Profile/i).first().waitFor({ state: "visible", timeout: 15_000 });
+  await page.getByRole("button", { name: /^Submit \/ Update Profile$/i }).click();
+  await page.getByLabel("Account Owner Name").fill("Seller 2026 Smoke Owner");
+  await page.getByLabel("Merchant Name").fill(smokeProfileMerchant);
+  await page.getByLabel("QRIS Identifier").fill("S26-PROFILE-REQUEST");
+  await page.getByLabel("QRIS Image URL").fill(dataUrl);
+  await page.getByLabel("QRIS Payload").fill("SMOKE-QRIS-PAYLOAD");
+  await page.getByLabel("Payment Instructions").fill("Seller 2026 smoke payment setup request.");
+  await page.getByLabel("Seller Note").fill("Submitted by Seller 2026 smoke.");
+  await page.getByRole("button", { name: /^Submit Request$/i }).click();
+  await page.getByText("Payment profile request submitted for admin review.").waitFor({
+    state: "visible",
+    timeout: 25_000,
+  });
+  const paymentProfileText = await page.locator("body").innerText({ timeout: 10_000 }).catch(() => "");
+  const paymentProfileRequest = {
+    name: "payment-profile-request-mutation",
+    finalUrl: page.url().replace(CLIENT_URL, ""),
+    status:
+      /Payment profile request submitted for admin review\./i.test(paymentProfileText) &&
+      /SUBMITTED|Submitted for review|Pending admin review/i.test(paymentProfileText) &&
+      !/Approved by seller|Activated by seller/i.test(paymentProfileText)
+        ? "PASS"
+        : "FAIL",
+    consoleErrors: [...consoleErrors],
+    snippet: paymentProfileText.replace(/\s+/g, " ").trim().slice(0, 180),
+  };
+  if (paymentProfileRequest.status !== "PASS" || consoleErrors.length) {
+    throw new Error(
+      `Payment profile request smoke failed: ${paymentProfileRequest.status}, console ${consoleErrors.join(" | ")}`
+    );
+  }
+
   await page.goto(`/seller/stores/${fixture.otherStoreSlug}`, { waitUntil: "networkidle", timeout: 45_000 });
   const crossStoreText = await page.locator("body").innerText({ timeout: 10_000 }).catch(() => "");
   const crossStore = {
@@ -1160,6 +1201,7 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureFixture>>) 
     orderFulfillment,
     paymentApproveReview,
     paymentRejectReview,
+    paymentProfileRequest,
     crossStore,
     memberResults,
     sellerApiStatuses,

@@ -53,7 +53,9 @@
 | Orders | Bulk fulfillment / bulk delete | `ORDER_FULFILLMENT_UPDATE` | `orders` | Disabled pending endpoint and destructive-flow review. |
 | Payments | Approve/reject payment proof | `PAYMENT_REVIEW_READ` + backend owner/admin review governance | `payments` | Enabled on live payment review route. |
 | Payments | Request clarification/refund/dispute payment | `PAYMENT_REVIEW_READ` | `payments` | Disabled pending backend lifecycle/governance review. |
-| Payments | Submit profile, upload documents, change payout account | `STORE_PAYMENT_PROFILE_SUBMIT` | `payments` | Disabled. |
+| Payments | Submit/update payment profile request | `STORE_PAYMENT_PROFILE_SUBMIT` aliasing backend `PAYMENT_PROFILE_EDIT` | `payments` | Enabled on live payment profile route as admin-reviewed request only. |
+| Payments | Upload payment profile documents | `STORE_PAYMENT_PROFILE_SUBMIT` | `payments` | Disabled pending endpoint review. |
+| Payments | Approve/activate/deactivate profile, change payout execution | n/a | n/a | Admin/system only; not exposed to seller. |
 | Team | Invite/resend/cancel invitation | `TEAM_INVITE` | `team` | Disabled. |
 | Team | Update role / save changes | `TEAM_ROLE_UPDATE` | `team` | Disabled. |
 | Team | Remove member | `TEAM_REMOVE` | `team` | Disabled. |
@@ -62,13 +64,14 @@
 
 ## Current Mutation Policy
 - A button can become active only when the user has the required permission and the matching mutation flag is enabled.
-- Only `storeProfileUpdate`, `productDraftSave`, `coupons`, `orders`, payment review approve/reject, and notification read-state mutations are enabled; all other Seller 2026 mutation flags remain `false`.
+- Only `storeProfileUpdate`, `productDraftSave`, `coupons`, `orders`, payment review approve/reject, payment profile request submit, and notification read-state mutations are enabled; all other Seller 2026 mutation flags remain `false`.
 - Frontend permission gating is UX readiness only; backend permission and store-scope enforcement remain the source of truth.
 
 ## Known Gaps
 - Some legacy permissions are still aliased, such as `STORE_VIEW`, `PRODUCT_VIEW`, `CATEGORY_VIEW`, `ATTRIBUTE_VIEW`, and `COUPON_VIEW`.
 - Category and attribute mutation-specific permissions are not modeled yet, so those actions stay disabled behind read permissions and mutation flags.
 - Payment review mutation enablement depends on backend `canReview` governance because the backend limits mutation to `STORE_OWNER` and `STORE_ADMIN` even when `ORDER_MANAGER` can view payment review.
+- Payment profile request submit depends on backend `governance.canEdit`; submitted requests become review-locked until admin action.
 - Seller 2026 `.jsx` files are ignored by the current ESLint config.
 
 ## Next Phase
