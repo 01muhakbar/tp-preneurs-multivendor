@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { SELLER_2026_MUTATIONS } from "../../api/seller2026/mutation-flags.ts";
+import { getSeller2026ProductReadiness } from "../../api/seller2026/product-readiness.ts";
 import {
   SELLER_2026_PREVIEW_PERMISSIONS,
   canUseSeller2026Action,
@@ -42,13 +43,13 @@ const SECTION_META = {
     active: "products",
     eyebrow: "Seller Workspace - Catalog",
     title: "Product Catalog & Authoring",
-    description: "Daftar produk, form product create/edit, detail produk, variant, revision notes, dan publish history.",
+    description: "Product list, product create/edit forms, product detail, variants, revision notes, and publish history.",
   },
   taxonomy: {
     active: "categories",
     eyebrow: "Seller Workspace - Catalog Tools",
     title: "Categories, Attributes & Coupons",
-    description: "Kelola category assignment, attribute values, mapping produk, dan promo store-scoped.",
+    description: "Manage category assignment, attribute values, product mapping, and store-scoped promotions.",
   },
   operations: {
     active: "orders",
@@ -462,38 +463,38 @@ const validateProductDraftForm = (form) => {
   const stock = parseDraftInteger(form.stock);
 
   if (textValue(form.name).length < 2) {
-    errors.name = "Nama produk wajib diisi minimal 2 karakter.";
+    errors.name = "Product name must be at least 2 characters.";
   }
   if (form.sku && form.sku.length > 100) {
-    errors.sku = "SKU maksimal 100 karakter.";
+    errors.sku = "SKU must be 100 characters or fewer.";
   }
   if (form.description && form.description.length > 4000) {
-    errors.description = "Deskripsi maksimal 4000 karakter.";
+    errors.description = "Description must be 4000 characters or fewer.";
   }
   if (typeof price === "undefined" || Number.isNaN(price) || price < 0) {
-    errors.price = "Harga wajib berupa angka 0 atau lebih.";
+    errors.price = "Price must be a number greater than or equal to 0.";
   }
   if (typeof compareAtPrice !== "undefined") {
     if (Number.isNaN(compareAtPrice) || compareAtPrice < 0) {
-      errors.compareAtPrice = "Compare-at price harus angka 0 atau lebih.";
+      errors.compareAtPrice = "Compare-at price must be a number greater than or equal to 0.";
     } else if (compareAtPrice > 0 && typeof price === "number" && compareAtPrice >= price) {
-      errors.compareAtPrice = "Compare-at price harus lebih rendah dari harga utama.";
+      errors.compareAtPrice = "Compare-at price must be lower than the base price.";
     }
   }
   if (typeof stock === "undefined" || Number.isNaN(stock) || stock < 0) {
-    errors.stock = "Stok wajib berupa integer 0 atau lebih.";
+    errors.stock = "Stock must be an integer greater than or equal to 0.";
   }
   if (parseCsvText(form.tagsText).some((tag) => tag.length > 80)) {
-    errors.tagsText = "Setiap tag maksimal 80 karakter.";
+    errors.tagsText = "Each tag must be 80 characters or fewer.";
   }
   if (parseCsvText(form.categoryIdsText).some((entry) => !Number.isInteger(Number(entry)) || Number(entry) <= 0)) {
-    errors.categoryIdsText = "Category IDs harus berupa angka positif dipisahkan koma.";
+    errors.categoryIdsText = "Category IDs must be positive numbers separated by commas.";
   }
   if (form.seoTitle.length > 160) {
-    errors.seoTitle = "SEO title maksimal 160 karakter.";
+    errors.seoTitle = "SEO title must be 160 characters or fewer.";
   }
   if (form.seoDescription.length > 320) {
-    errors.seoDescription = "SEO description maksimal 320 karakter.";
+    errors.seoDescription = "SEO description must be 320 characters or fewer.";
   }
 
   return errors;
@@ -594,7 +595,7 @@ function DashboardPage({ dashboardData = null, dashboardState = null, mode, stor
         </Card>
       </div>
       <div className="s26-grid two">
-        <Card title="Top Products" hint="Produk dengan revenue terbaik minggu ini.">
+        <Card title="Top Products" hint="Products with the best revenue this week.">
           <DataTable columns={["Produk", "Terjual", "Revenue", "Status"]} rows={effectiveTopProducts} renderRow={(row, index) => <tr key={`${row[0]}-${index}`}><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td style={{ color: "var(--seller-emerald)", fontWeight: 800 }}>{row[3]}</td></tr>} />
         </Card>
         <Card title="Recent Suborders" hint="Suborder terbaru dari semua channel.">
@@ -602,7 +603,7 @@ function DashboardPage({ dashboardData = null, dashboardState = null, mode, stor
         </Card>
       </div>
       <div className="s26-grid three">
-        {[["Tambah Produk", "Buat produk baru atau import CSV"], ["Kelola Pesanan", "Buka fulfillment queue"], ["Cek Pembayaran", "Review proof dan payout"]].map(([a, b]) => <Card key={a} title={a} hint={b}><button className="s26-btn primary">Buka</button></Card>)}
+        {[["Add Product", "Create a new product or import CSV"], ["Manage Orders", "Open the fulfillment queue"], ["Check Payments", "Review proof and payouts"]].map(([a, b]) => <Card key={a} title={a} hint={b}><button className="s26-btn primary">Open</button></Card>)}
       </div>
     </Shell>
   );
@@ -958,6 +959,42 @@ const productStatusLabel = (status = "draft") => {
 
 const productInitial = (name = "P") => String(name || "P").trim().charAt(0).toUpperCase() || "P";
 
+function ProductReadinessChecklist({ readiness }) {
+  if (!readiness) return null;
+  return (
+    <div className="s26-card soft">
+      <h3>Review Readiness</h3>
+      <p className="hint">Complete the required fields before submitting this product for admin review.</p>
+      <div style={{ display: "flex", gap: 18, alignItems: "center" }}>
+        <div className="s26-progress" style={{ "--s26-progress": `${readiness.score}%` }}>
+          <span>{readiness.score}%</span>
+        </div>
+        <div>
+          <strong>{readiness.ready ? "Ready to submit" : "Needs attention"}</strong>
+          <p className="hint">
+            {readiness.blockingItems.length
+              ? `${readiness.blockingItems.length} required item${readiness.blockingItems.length === 1 ? "" : "s"} need attention.`
+              : "Required checks are complete."}
+          </p>
+        </div>
+      </div>
+      <div className="s26-checklist" aria-label="Product Review Readiness">
+        {readiness.items.map((entry) => (
+          <div className="s26-check-row" key={entry.key}>
+            <span>
+              <strong>{entry.label}</strong>
+              <span className="s26-sub">{entry.severity === "error" ? "Required" : "Recommended"} - {entry.helper}</span>
+            </span>
+            <span className={statusClass(entry.passed ? "Active" : entry.severity === "error" ? "Needs" : "Pending")}>
+              {entry.passed ? "Ready" : entry.severity === "error" ? "Required" : "Recommended"}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ProductsPage({
   productsData = null,
   productsState = null,
@@ -1003,19 +1040,19 @@ function ProductsPage({
   const detail = productDetailData;
   const previewDetail = {
     product: {
-      name: "Hijab Voal Premium",
-      sku: "HJP-VOAL-01-BLK",
+      name: "Premium Cotton Scarf",
+      sku: "PCS-COTTON-01-BLK",
       status: "active",
       price: 89000,
       stock: 120,
       sold: 1248,
       views: 8432,
-      category: "Fashion / Hijab & Kerudung",
-      tags: ["Hijab", "Voal", "Premium", "Women"],
-      description: "Hijab voal premium berkualitas tinggi dengan jahitan rapi dan finishing yang lembut di kulit.",
+      category: "Fashion / Accessories",
+      tags: ["Scarf", "Cotton", "Premium", "Women"],
+      description: "Premium cotton scarf with clean stitching and soft finishing for daily wear.",
       gallery: [],
     },
-    revisionNotes: [{ message: "Marketplace Admin meminta tambahan bahan dan foto jahitan." }],
+    revisionNotes: [{ message: "Marketplace Admin requested material details and stitching photos." }],
     publishHistory: [{ label: "Published" }, { label: "Submitted" }, { label: "Revision Requested" }],
   };
   const detailView = isLive ? detail : previewDetail;
@@ -1058,10 +1095,58 @@ function ProductsPage({
         "productDraftSave"
       )
     : !productDraftDirty
-      ? "Tidak ada perubahan untuk disimpan."
+      ? "There are no changes to save."
       : !productDraftValid
-        ? "Perbaiki field yang belum valid."
+        ? "Fix invalid fields before saving."
         : undefined;
+  const productDraftReadiness = useMemo(
+    () =>
+      getSeller2026ProductReadiness({
+        name: productDraftForm.name,
+        productType: "Physical",
+        price: productDraftForm.price,
+        stock: productDraftForm.stock,
+        categoryIds: productDraftForm.categoryIdsText,
+        description: productDraftForm.description,
+        productId: editorProduct?.id,
+        productEligible: Boolean(editorProduct?.canSubmitReview),
+        submitPermission: canSubmitProductReview,
+        saving: isSavingProductDraft,
+        dirty: productDraftDirty,
+        eligibilityReason: editorProduct?.submitReviewReason,
+      }),
+    [
+      canSubmitProductReview,
+      editorProduct?.canSubmitReview,
+      editorProduct?.id,
+      editorProduct?.submitReviewReason,
+      isSavingProductDraft,
+      productDraftDirty,
+      productDraftForm,
+    ]
+  );
+  const productDetailReadiness = useMemo(
+    () =>
+      getSeller2026ProductReadiness({
+        name: detailView?.product?.name,
+        productType: "Physical",
+        price: detailView?.product?.price,
+        stock: detailView?.product?.stock,
+        categoryLabel: detailView?.product?.category,
+        description: detailView?.product?.description,
+        productId: detailView?.product?.id,
+        productEligible: Boolean(detailView?.product?.canSubmitReview),
+        submitPermission: canSubmitProductReview,
+        saving: isSubmittingProductReview,
+        dirty: false,
+        eligibilityReason: detailView?.product?.submitReviewReason,
+      }),
+    [
+      canSubmitProductReview,
+      detailView?.product,
+      isSubmittingProductReview,
+    ]
+  );
   const setProductDraftField = (field, value) => {
     setProductDraftForm((current) => ({ ...current, [field]: value }));
     setProductDraftStatus({ type: "idle", message: "" });
@@ -1081,13 +1166,13 @@ function ProductsPage({
         type: "success",
         message:
           productEditorMode === "edit"
-            ? "Draft produk berhasil diperbarui."
-            : "Draft produk berhasil dibuat.",
+            ? "Product draft updated."
+            : "Product draft created.",
       });
     } catch (error) {
       setProductDraftStatus({
         type: "error",
-        message: error?.response?.data?.message || error?.message || "Draft produk gagal disimpan.",
+        message: error?.response?.data?.message || error?.message || "Product draft failed to save.",
       });
     }
   };
@@ -1114,31 +1199,22 @@ function ProductsPage({
   };
   const submitCurrentDraftForReview = async () => {
     if (!canSubmitProductReview || isSubmittingProductReview) return;
-    let targetProduct = editorProduct;
     if (productDraftDirty) {
-      if (saveProductDraftDisabled || !productDraftMutation?.submit) {
-        setProductSubmitStatus({
-          type: "error",
-          message: "Save the valid draft before submitting it for review.",
-        });
-        return;
-      }
-      try {
-        targetProduct = await productDraftMutation.submit(buildProductDraftPayload(productDraftForm));
-        setProductDraftStatus({
-          type: "success",
-          message: "Draft produk berhasil disimpan sebelum submit review.",
-        });
-      } catch (error) {
-        setProductSubmitStatus({
-          type: "error",
-          message: error?.response?.data?.message || error?.message || "Draft produk gagal disimpan.",
-        });
-        return;
-      }
+      setProductSubmitStatus({
+        type: "error",
+        message: "Save draft changes before submitting this product for review.",
+      });
+      return;
     }
-    await submitProductReview(targetProduct, {
-      message: "Draft produk berhasil dikirim untuk review.",
+    if (!productDraftReadiness.ready) {
+      setProductSubmitStatus({
+        type: "error",
+        message: productDraftReadiness.blockingItems[0]?.helper || "Complete required readiness checks before submitting for review.",
+      });
+      return;
+    }
+    await submitProductReview(editorProduct, {
+      message: "Product submitted for review.",
     });
   };
 
@@ -1158,7 +1234,7 @@ function ProductsPage({
       {shouldShowList ? (
         <Card
           title="Products / Product Catalog"
-          hint="Search, filter, bulk action, status, SKU, stok, dan performa produk."
+          hint="Search, filter, bulk action, status, SKU, stock, and product performance."
           actions={
             canCreate ? (
               <Link className="s26-btn primary" to={addProductTo} aria-label="Add Product">+ Add Product</Link>
@@ -1219,8 +1295,8 @@ function ProductsPage({
           {productsState?.isLoading ? <p className="hint">Loading products...</p> : null}
           {!productsState?.isLoading && tableRows.length === 0 ? (
             <div className="s26-empty">
-              <strong>Belum ada produk</strong>
-              <p>Tambahkan produk pertama untuk mulai menjual di toko ini.</p>
+              <strong>No products yet</strong>
+              <p>Add the first product to start selling in this store.</p>
             </div>
           ) : (
             <DataTable
@@ -1230,6 +1306,19 @@ function ProductsPage({
                 const rowStatus = isLive ? productStatusLabel(row.status) : row.status;
                 const detailTo = storeSlug ? `${basePath}/catalog/products/${encodeURIComponent(String(row.id))}` : "/seller-2026/products";
                 const editTo = storeSlug ? `${detailTo}/edit` : "/seller-2026/products";
+                const rowReadiness = getSeller2026ProductReadiness({
+                  name: row.name,
+                  productType: "Physical",
+                  price: row.price,
+                  stock: row.stock,
+                  categoryLabel: row.category,
+                  productId: row.id,
+                  productEligible: Boolean(row.canSubmitReview),
+                  submitPermission: canSubmitProductReview,
+                  saving: isSubmittingProductReview,
+                  dirty: false,
+                  eligibilityReason: row.submitReviewReason,
+                });
                 return (
                   <tr key={row.id || row.sku}>
                     <td><input type="checkbox" aria-label={`Select ${row.name}`} disabled title={disabledTodoTitle} /></td>
@@ -1255,12 +1344,12 @@ function ProductsPage({
                           className="s26-muted-action"
                           disabled={
                             !canSubmitProductReview ||
-                            !row.canSubmitReview ||
+                            !rowReadiness.ready ||
                             isSubmittingProductReview
                           }
                           title={
-                            !row.canSubmitReview
-                              ? row.submitReviewReason || "Only draft products can be submitted for review."
+                            !rowReadiness.ready
+                              ? rowReadiness.blockingItems[0]?.helper || row.submitReviewReason || "Only draft products can be submitted for review."
                               : submitReviewTitle
                           }
                           onClick={() => submitProductReview(row)}
@@ -1287,7 +1376,7 @@ function ProductsPage({
         </Card>
       ) : null}
       {shouldShowEditor ? (
-        <Card title={isLive ? editorTitle : "Product Create / Edit"} hint="Multi-step product authoring dengan draft-first workflow.">
+        <Card title={isLive ? editorTitle : "Product Create / Edit"} hint="Multi-step product authoring with a draft-first workflow.">
           <div className="s26-stepper">{["Basic", "Media", "Categories", "Variants", "Pricing", "Inventory", "Shipping", "SEO", "Publish"].map((s, i) => <span className={`s26-step ${i === 0 ? "active" : ""}`} key={s}>{s}</span>)}</div>
           {productDraftStatus.type !== "idle" ? (
             <div className={`s26-alert ${productDraftStatus.type === "success" ? "success" : "error"}`}>
@@ -1301,14 +1390,14 @@ function ProductsPage({
           ) : null}
           {productDraftMutation?.error && productDraftStatus.type !== "error" ? (
             <div className="s26-alert error">
-              {productDraftMutation.error?.message || "Draft produk gagal disimpan."}
+              {productDraftMutation.error?.message || "Product draft failed to save."}
             </div>
           ) : null}
           <div className="s26-form-grid">
             <div className="s26-field">
               <label>Product Name *</label>
               <input
-                value={isLive ? productDraftForm.name : "Hijab Voal Premium"}
+                value={isLive ? productDraftForm.name : "Premium Cotton Scarf"}
                 readOnly={!isLive || !canSaveProductDraft}
                 disabled={isSavingProductDraft}
                 onChange={(event) => setProductDraftField("name", event.target.value)}
@@ -1318,7 +1407,7 @@ function ProductsPage({
             <div className="s26-field">
               <label>SKU</label>
               <input
-                value={isLive ? productDraftForm.sku : "HJP-VOAL-01-BLK"}
+                value={isLive ? productDraftForm.sku : "PCS-COTTON-01-BLK"}
                 readOnly={!isLive || !canSaveProductDraft}
                 disabled={isSavingProductDraft}
                 onChange={(event) => setProductDraftField("sku", event.target.value)}
@@ -1331,7 +1420,7 @@ function ProductsPage({
             </div>
             <div className="s26-field">
               <label>Brand</label>
-              <input defaultValue={isLive ? editorProduct?.brand || "" : "Butik Nusantara"} readOnly disabled title="Brand persistence is not enabled in this draft-save phase." />
+              <input defaultValue={isLive ? editorProduct?.brand || "" : "Seller Brand"} readOnly disabled title="Brand persistence is not enabled in this draft-save phase." />
             </div>
             <div className="s26-field">
               <label>Price</label>
@@ -1377,25 +1466,25 @@ function ProductsPage({
                 readOnly={!isLive || !canSaveProductDraft}
                 disabled={isSavingProductDraft}
                 onChange={(event) => setProductDraftField("categoryIdsText", event.target.value)}
-                placeholder="Contoh: 1, 2"
+                placeholder="Example: 1, 2"
               />
               {productDraftErrors.categoryIdsText ? <small className="s26-field-error">{productDraftErrors.categoryIdsText}</small> : null}
             </div>
             <div className="s26-field">
               <label>Tags</label>
               <input
-                value={isLive ? productDraftForm.tagsText : "hijab, voal"}
+                value={isLive ? productDraftForm.tagsText : "scarf, cotton"}
                 readOnly={!isLive || !canSaveProductDraft}
                 disabled={isSavingProductDraft}
                 onChange={(event) => setProductDraftField("tagsText", event.target.value)}
-                placeholder="Pisahkan dengan koma"
+                placeholder="Separate with commas"
               />
               {productDraftErrors.tagsText ? <small className="s26-field-error">{productDraftErrors.tagsText}</small> : null}
             </div>
             <div className="s26-field" style={{ gridColumn: "1 / -1" }}>
               <label>Description</label>
               <textarea
-                value={isLive ? productDraftForm.description : "Hijab voal premium berkualitas tinggi dengan jahitan rapi dan finishing yang lembut di kulit."}
+                value={isLive ? productDraftForm.description : "Premium product with clean finishing and customer-ready details."}
                 readOnly={!isLive || !canSaveProductDraft}
                 disabled={isSavingProductDraft}
                 onChange={(event) => setProductDraftField("description", event.target.value)}
@@ -1423,6 +1512,7 @@ function ProductsPage({
               {productDraftErrors.seoDescription ? <small className="s26-field-error">{productDraftErrors.seoDescription}</small> : null}
             </div>
           </div>
+          {isLive ? <ProductReadinessChecklist readiness={productDraftReadiness} /> : null}
           {isLive ? <p className="hint" style={{ marginTop: 14 }}>Draft save and submit review are enabled for basic authoring fields. Media, variants, direct publish, and delete remain disabled.</p> : null}
           <div className="s26-filter-row" style={{ marginTop: 16, marginBottom: 0 }}>
             {isLive ? <button type="button" className="s26-btn" disabled={!productDraftDirty || isSavingProductDraft} onClick={resetProductDraftForm}>Reset</button> : null}
@@ -1435,29 +1525,26 @@ function ProductsPage({
                 !canSubmitProductReview ||
                 isSavingProductDraft ||
                 isSubmittingProductReview ||
-                !editorProduct?.id ||
-                !editorProduct?.canSubmitReview
+                !productDraftReadiness.ready
               }
               title={
-                !editorProduct?.id
-                  ? "Save a draft before submitting it for review."
-                  : !editorProduct?.canSubmitReview
-                  ? editorProduct?.submitReviewReason || "Save a draft before submitting it for review."
+                !productDraftReadiness.ready
+                  ? productDraftReadiness.blockingItems[0]?.helper || "Complete required readiness checks before submitting for review."
                   : submitReviewTitle
               }
               onClick={submitCurrentDraftForReview}
             >
-              {isSubmittingProductReview ? "Submitting..." : productDraftDirty ? "Save & Submit Review" : "Submit Review"}
+              {isSubmittingProductReview ? "Submitting..." : "Submit Review"}
             </button>
           </div>
         </Card>
       ) : null}
       {shouldShowDetail ? (
-      <Card title="Product Detail / Preview" hint="Gallery, performance, variants, revision notes, dan publish history.">
+      <Card title="Product Detail / Preview" hint="Gallery, performance, variants, revision notes, and publish history.">
         {productDetailState?.isError ? (
           <div className="s26-empty">
             <strong>Product detail unavailable</strong>
-            <p>Detail produk tidak dapat dimuat saat ini.</p>
+            <p>Product detail cannot be loaded right now.</p>
             <button type="button" className="s26-btn" onClick={productDetailState?.refetch}>Retry</button>
           </div>
         ) : null}
@@ -1473,6 +1560,7 @@ function ProductsPage({
           <div>
             <Card title="Revision Notes" hint={detailView?.revisionNotes.length ? detailView.revisionNotes.map((note) => note.message).join(" | ") : "No revision notes."} />
             <Card title="Publish History" hint={detailView?.publishHistory.length ? detailView.publishHistory.map((item) => item.label).join(" / ") : "No publish history yet."} className="soft" />
+            {isLive ? <ProductReadinessChecklist readiness={productDetailReadiness} /> : null}
             {isLive ? (
               <button
                 type="button"
@@ -1480,12 +1568,12 @@ function ProductsPage({
                 style={{ marginTop: 12, width: "100%" }}
                 disabled={
                   !canSubmitProductReview ||
-                  !detailView?.product?.canSubmitReview ||
+                  !productDetailReadiness.ready ||
                   isSubmittingProductReview
                 }
                 title={
-                  !detailView?.product?.canSubmitReview
-                    ? detailView?.product?.submitReviewReason || "Only draft products can be submitted for review."
+                  !productDetailReadiness.ready
+                    ? productDetailReadiness.blockingItems[0]?.helper || "Complete required readiness checks before submitting for review."
                     : submitReviewTitle
                 }
                 onClick={() => submitProductReview(detailView?.product)}

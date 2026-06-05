@@ -140,6 +140,9 @@
 - Seller 2026 sends no body payload for submit review.
 - Product adapter actionability reads `submission.canSubmit`, `submission.canResubmit`, and `governance.submissionGovernance` before enabling the action.
 - Create route still requires Save Draft first; submit review is available only once a persisted `productId` exists.
+- Added Seller 2026 Review Readiness checks for product authoring/detail/list submit actions. Required blockers are name, product type, price, stock, saved draft, eligible review status, submit permission, no active save, and no unsaved changes.
+- Category and description remain recommended warnings until backend explicitly requires them for submit review.
+- Product authoring/list/detail copy touched by this workflow is English-only.
 - Direct publish/unpublish, delete/archive, bulk submit review, media upload, variant persistence, and admin review actions remain disabled.
 
 ## Notification Read Mutation Addendum

@@ -443,6 +443,42 @@
 - Products list and detail queries are invalidated after successful draft save.
 - Preview route `/seller-2026/products` remains mock-only.
 
+## Product Readiness Checklist and Copy Harmonization
+
+### Routes
+- `/seller/stores/:storeSlug/catalog/products/new`
+- `/seller/stores/:storeSlug/catalog/products/:productId/edit`
+- `/seller/stores/:storeSlug/catalog/products/:productId`
+- `/seller/stores/:storeSlug/catalog/products`
+
+### Files Added
+- `client/src/api/seller2026/product-readiness.ts`
+
+### Files Changed
+- `client/src/features/seller2026/Seller2026Workspace.jsx`
+- `scripts/seller2026-auth-fixture-live-smoke.ts`
+
+### Readiness Checks
+- Product name is valid.
+- Product type is selected.
+- Base price is greater than 0.
+- Stock is zero or positive.
+- Draft is saved and has a product id.
+- Product status is eligible for review.
+- Seller has submit permission.
+- No draft save is currently running.
+- No unsaved changes remain.
+- Category is selected as a recommended warning.
+- Description is ready as a recommended warning.
+
+### Safety Notes
+- Required readiness blockers disable Submit Review on create/edit/detail/list surfaces.
+- Unsaved edit changes block Submit Review until Save Draft succeeds.
+- New product create shows English validation and keeps Submit Review disabled until the draft is saved.
+- Category and description are warnings because the reviewed backend submit route does not require them explicitly.
+- Direct publish, delete/archive, media upload, variant persistence, and bulk submit remain disabled.
+- Product authoring/edit/detail/list copy touched by this flow is English-only.
+
 ## Mutation Integration - Product Submit Review
 
 ### Routes

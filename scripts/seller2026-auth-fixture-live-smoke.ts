@@ -954,6 +954,26 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureFixture>>) 
       `Add Product CTA smoke failed: ${addProductCta.status}, url ${addProductCta.finalUrl}, console ${consoleErrors.join(" | ")}`
     );
   }
+  const createSubmitReviewButton = page.getByRole("button", { name: /^Submit Review$/i }).first();
+  const invalidReadinessDisabled = await createSubmitReviewButton.isDisabled().catch(() => false);
+  const invalidReadiness = {
+    name: "product-readiness-invalid-create",
+    finalUrl: page.url().replace(CLIENT_URL, ""),
+    status:
+      /Product name must be at least 2 characters\./i.test(addProductText) &&
+      /Review Readiness/i.test(addProductText) &&
+      invalidReadinessDisabled
+        ? "PASS"
+        : "FAIL",
+    submitReviewDisabled: invalidReadinessDisabled,
+    consoleErrors: [...consoleErrors],
+    snippet: addProductText.replace(/\s+/g, " ").trim().slice(0, 180),
+  };
+  if (invalidReadiness.status !== "PASS" || consoleErrors.length) {
+    throw new Error(
+      `Invalid product readiness smoke failed: ${invalidReadiness.status}, disabled ${invalidReadinessDisabled}, console ${consoleErrors.join(" | ")}`
+    );
+  }
   await page.goBack({ waitUntil: "networkidle", timeout: 15_000 }).catch(() => undefined);
 
   consoleErrors.length = 0;
@@ -964,6 +984,8 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureFixture>>) 
       timeout: 45_000,
     }
   );
+  await page.getByText(/Ready to submit/i).first().waitFor({ state: "visible", timeout: 20_000 });
+  const readinessReadyBeforeSubmit = await page.getByText(/Ready to submit/i).first().isVisible().catch(() => false);
   await page.getByRole("button", { name: /^Submit Review$/i }).click();
   await page.getByText(/berhasil dikirim untuk review|Product submitted for review/i).waitFor({
     state: "visible",
@@ -977,6 +999,7 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureFixture>>) 
     finalUrl: page.url().replace(CLIENT_URL, ""),
     status:
       /berhasil dikirim untuk review|Product submitted for review/i.test(productSubmitText) &&
+      readinessReadyBeforeSubmit &&
       publishButtonCount === 0
         ? "PASS"
         : "FAIL",
@@ -986,6 +1009,29 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureFixture>>) 
   if (productSubmitReview.status !== "PASS" || consoleErrors.length) {
     throw new Error(
       `Product submit review smoke failed: ${productSubmitReview.status}, product ${fixture.submitReviewProductId}, console ${consoleErrors.join(" | ")}`
+    );
+  }
+  await page.goto(`/seller/stores/${fixture.storeSlug}/catalog/products?status=submitted`, {
+    waitUntil: "networkidle",
+    timeout: 45_000,
+  });
+  await page.getByText("S26-DRAFT").waitFor({ state: "visible", timeout: 20_000 });
+  const productSubmittedListText = await page.locator("body").innerText({ timeout: 10_000 }).catch(() => "");
+  const productSubmittedList = {
+    name: "product-submit-review-list-status",
+    productId: fixture.submitReviewProductId,
+    finalUrl: page.url().replace(CLIENT_URL, ""),
+    status:
+      productSubmittedListText.includes("S26-DRAFT") &&
+      /Submitted|review/i.test(productSubmittedListText)
+        ? "PASS"
+        : "FAIL",
+    consoleErrors: [...consoleErrors],
+    snippet: productSubmittedListText.replace(/\s+/g, " ").trim().slice(0, 180),
+  };
+  if (productSubmittedList.status !== "PASS" || consoleErrors.length) {
+    throw new Error(
+      `Product submitted list smoke failed: ${productSubmittedList.status}, product ${fixture.submitReviewProductId}, console ${consoleErrors.join(" | ")}`
     );
   }
 
@@ -1231,7 +1277,9 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureFixture>>) 
   return {
     routeResults,
     addProductCta,
+    invalidReadiness,
     productSubmitReview,
+    productSubmittedList,
     couponLifecycle,
     orderFulfillment,
     paymentApproveReview,

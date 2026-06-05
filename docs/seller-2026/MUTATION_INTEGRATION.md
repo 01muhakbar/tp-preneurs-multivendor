@@ -150,6 +150,8 @@
 - The adapter reads backend `submission.canSubmit`, `submission.canResubmit`, and `governance.submissionGovernance` before enabling the action.
 - Backend still fetches the product by `{ id: productId, storeId }`, requires draft status, rejects already-submitted drafts, and writes seller submission audit/activity data.
 - Seller 2026 create route requires saving a draft first; submit review is then available from the edit/detail/list surface with a persisted `productId`.
+- Product submit review is gated by the Seller 2026 Review Readiness checklist. Required blockers are valid product name, selected product type, positive base price, non-negative stock, saved draft id, backend-actionable review status, submit permission, no active save, and no unsaved changes.
+- Category and description are currently recommended warnings, not hard blockers, because the reviewed backend submit route does not explicitly require them before review submission.
 - Preview route `/seller-2026/products` remains mock-only and receives no live submit review mutation handler.
 
 ## Notification Read State

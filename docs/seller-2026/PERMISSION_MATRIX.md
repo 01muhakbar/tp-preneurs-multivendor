@@ -40,6 +40,7 @@
 | Products | Edit product | `CATALOG_PRODUCT_UPDATE` | `products` | Enabled for live draft edit navigation; mutation payload remains draft-save scoped. |
 | Products | Save draft | `CATALOG_PRODUCT_CREATE` or `CATALOG_PRODUCT_UPDATE` | `productDraftSave` | Enabled on live product create/edit routes. |
 | Products | Submit product for review | `CATALOG_PRODUCT_SUBMIT` aliasing backend `PRODUCT_EDIT` | `productSubmitReview` | Enabled for backend-actionable draft products only. |
+| Products | Review readiness checklist | `CATALOG_PRODUCT_SUBMIT` for submit action | `productSubmitReview` | Required blockers gate submit review; recommended fields do not block while backend contract is optional. |
 | Products | Delete product | `CATALOG_PRODUCT_DELETE` | `products` | Disabled. |
 | Catalog | Category mutation shell | `CATALOG_CATEGORY_READ` | `catalog` | Disabled; no mutation permission exists yet. |
 | Catalog | Attribute mutation shell | `CATALOG_ATTRIBUTE_READ` | `catalog` | Disabled; no mutation permission exists yet. |

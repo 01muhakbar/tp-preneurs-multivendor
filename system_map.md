@@ -118,6 +118,8 @@ Seller Workspace 2026 live pages use existing store-scoped seller APIs and selle
 | Product | Save draft/create draft/basic edit | WIRED_AND_TESTED | Existing Seller 2026 draft save remains wired via store-scoped product draft APIs and smoke route coverage. |
 | Product Catalog | Add Product CTA | FIXED_AND_TESTED | Navigates to canonical `/seller/stores/:storeSlug/catalog/products/new` when the seller has `CATALOG_PRODUCT_CREATE`; product lifecycle mutations remain separately guarded. |
 | Product | Submit review | WIRED_AND_TESTED | Existing store-scoped endpoint is wired for persisted draft products only; no payload is sent and direct publish remains disabled. |
+| Product | Submit readiness checklist | WIRED_AND_TESTED | Required readiness blockers gate submit review; category and description are recommended warnings until backend requires them. |
+| Product | English copy harmonization | FIXED_AND_TESTED | Product authoring/edit/detail/list copy touched by Seller 2026 submit review is English-only. |
 | Product | Duplicate | DISABLED_PENDING_API | Endpoint exists; UI action remains disabled until confirmation/refetch and disposable fixture path are added. |
 | Product | Archive/delete | DISABLED_PENDING_API | Endpoint exists and may archive referenced products; keep disabled until UI confirmation and fixture safety are explicit. |
 | Product | Publish/unpublish | DISABLED_PENDING_PERMISSION_REVIEW | Backend can block direct publish when admin approval is required; Seller 2026 UI keeps direct publish disabled. |
