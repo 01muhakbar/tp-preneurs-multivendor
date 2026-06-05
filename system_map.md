@@ -73,7 +73,7 @@ Seller Workspace 2026 live pages use existing store-scoped seller APIs and selle
 - Smoke runner: `pnpm exec tsx scripts/seller2026-auth-fixture-live-smoke.ts`.
 - Canonical live route status: PASS for dashboard, store profile, microsite preview, product list/create/detail/edit, categories, attributes, attribute values, coupons, orders, order detail, payment review, payment profile, team, member detail, team audit, and notifications.
 - Legacy redirect status: PASS for `/catalog`, `/catalog/new`, `/catalog/:productId`, `/catalog/:productId/edit`, and `/coupons`.
-- API wiring status: observed 200s for seller context, workspace readiness, finance summary, analytics summary, store profile, products, authoring meta, categories, attributes, attribute values, coupons, suborders, suborder detail, payment review/profile, team, audit, notifications, and unread count. Observed expected 403 for cross-store context.
+- API wiring status: observed 200s for seller context, workspace readiness, finance summary, analytics summary, store profile, products, product submit review, authoring meta, categories, attributes, attribute values, coupons, suborders, suborder detail, payment review/profile, team, audit, notifications, and unread count. Observed expected 403 for cross-store context.
 - Runtime patch from smoke: dashboard table keys now include row index suffixes to avoid duplicate React keys when live rows use fallback `-` identifiers.
 - Permission smoke status: `ORDER_MANAGER` session loads permitted read lanes; restricted team/payment-profile pages render workspace shell with page-level permission handling rather than cross-store/session failure.
 - Analytics route status: still NEEDS REVIEW as a standalone Seller 2026 route; dashboard uses existing live analytics summary API.
@@ -90,9 +90,9 @@ Seller Workspace 2026 live pages use existing store-scoped seller APIs and selle
 | Dashboard | LIVE_API_CONNECTED | Uses live seller context, readiness, finance summary, analytics summary, products, orders, and notifications. Standalone analytics route remains separate. |
 | Store Profile | LIVE_API_CONNECTED | Store profile adapter maps live identity, socials, logo/cover, rich-about, hours, and status fields. Rich profile layout breadth and future mutations remain review items. |
 | Product Catalog | LIVE_API_CONNECTED | Product list maps live pricing, thumbnail/media preview, nested category, inventory, operational status, and submission status. |
-| Product Authoring | PARTIAL_API_CONNECTED | Basic draft save/edit is wired; media, variants, submit/publish/archive/delete, and bulk actions remain disabled pending canonical mutation review. |
+| Product Authoring | PARTIAL_API_CONNECTED_AND_SUBMIT_READY | Basic draft save/edit and submit review are wired for persisted draft products; media, variants, direct publish/archive/delete, and bulk actions remain disabled pending canonical mutation review. |
 | Product Detail | LIVE_API_CONNECTED | Detail adapter maps live descriptions, media gallery, category/default assignment, pricing, tags, submission status, and revision notes. |
-| Product Edit | PARTIAL_API_CONNECTED | Existing draft fields are wired through live product detail/update paths; rich media/variant/review lifecycle controls remain disabled. |
+| Product Edit | PARTIAL_API_CONNECTED_AND_SUBMIT_READY | Existing draft fields are wired through live product detail/update paths; submit review uses the store-scoped backend route. Rich media/variant/direct publish controls remain disabled. |
 | Categories | LIVE_API_CONNECTED | Existing live category APIs are used. |
 | Attributes | LIVE_API_CONNECTED | Existing live attribute and value APIs are used. |
 | Orders | LIVE_API_CONNECTED | Order rows map live read model status, payment state, totals, customer, and fulfillment fields. |
@@ -117,7 +117,7 @@ Seller Workspace 2026 live pages use existing store-scoped seller APIs and selle
 |---|---|---|---|
 | Product | Save draft/create draft/basic edit | WIRED_AND_TESTED | Existing Seller 2026 draft save remains wired via store-scoped product draft APIs and smoke route coverage. |
 | Product Catalog | Add Product CTA | FIXED_AND_TESTED | Navigates to canonical `/seller/stores/:storeSlug/catalog/products/new` when the seller has `CATALOG_PRODUCT_CREATE`; product lifecycle mutations remain separately guarded. |
-| Product | Submit review | DISABLED_PENDING_API | Endpoint exists, but UI flow is still behind media/variant/readiness steps; keep disabled until authoring lifecycle can validate full draft readiness. |
+| Product | Submit review | WIRED_AND_TESTED | Existing store-scoped endpoint is wired for persisted draft products only; no payload is sent and direct publish remains disabled. |
 | Product | Duplicate | DISABLED_PENDING_API | Endpoint exists; UI action remains disabled until confirmation/refetch and disposable fixture path are added. |
 | Product | Archive/delete | DISABLED_PENDING_API | Endpoint exists and may archive referenced products; keep disabled until UI confirmation and fixture safety are explicit. |
 | Product | Publish/unpublish | DISABLED_PENDING_PERMISSION_REVIEW | Backend can block direct publish when admin approval is required; Seller 2026 UI keeps direct publish disabled. |
@@ -166,3 +166,5 @@ Seller Workspace 2026 live pages use existing store-scoped seller APIs and selle
 | Print receipt / label | DISABLED_PENDING_API | n/a | n/a | No Seller 2026 store-scoped print endpoint was wired in this pass. |
 
 Notification mutation smoke assertion: fixture unread count changed `2 -> 1` after mark-one-read and `1 -> 0` after mark-all-read.
+
+Product submit review smoke assertion: fixture product `S26-DRAFT` was reset to draft/unsubmitted, submitted through `/seller/stores/:storeSlug/catalog/products/:productId/edit`, and `POST /api/seller/stores/:storeId/products/:productId/submit-review` returned `200`; no direct `Publish` button was exposed.

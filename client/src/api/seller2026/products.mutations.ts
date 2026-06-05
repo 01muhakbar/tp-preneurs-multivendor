@@ -1,7 +1,9 @@
 import {
   createSellerProductDraft,
+  submitSellerProductDraftForReview,
   updateSellerProductDraft,
 } from "../sellerProducts.ts";
+import { runSeller2026Mutation } from "./mutations.ts";
 
 export type Seller2026ProductDraftPayload = {
   name: string;
@@ -78,4 +80,16 @@ export async function updateSeller2026ProductDraft({
   payload: Seller2026ProductDraftPayload;
 }) {
   return updateSellerProductDraft(storeId, productId, buildSafeProductDraftPayload(payload));
+}
+
+export async function submitSeller2026ProductReview({
+  storeId,
+  productId,
+}: {
+  storeId: string | number;
+  productId: string | number;
+}) {
+  return runSeller2026Mutation(() =>
+    submitSellerProductDraftForReview(storeId, productId)
+  );
 }

@@ -967,6 +967,7 @@ function ProductsPage({
   productDetailState = null,
   productEditorMode = null,
   productDraftMutation = null,
+  productsMutation = null,
   mode,
   storeContext,
   seller2026Permissions,
@@ -982,9 +983,11 @@ function ProductsPage({
   const liveProducts = productsData?.products || [];
   const tableRows = isLive ? liveProducts : products;
   const canCreate = !isLive || hasSeller2026Permission(seller2026Permissions, "CATALOG_PRODUCT_CREATE");
-  const canUpdate = !isLive || canUseAction(seller2026Permissions, "CATALOG_PRODUCT_UPDATE", "products");
+  const canUpdate = !isLive || canUseAction(seller2026Permissions, "CATALOG_PRODUCT_UPDATE", "productDraftSave");
+  const canSubmitProductReview = !isLive || canUseAction(seller2026Permissions, "CATALOG_PRODUCT_SUBMIT", "productSubmitReview");
   const createTitle = isLive && !canCreate ? permissionTitle : undefined;
-  const updateTitle = isLive ? actionTitle(seller2026Permissions, "CATALOG_PRODUCT_UPDATE", "products") : undefined;
+  const updateTitle = isLive ? actionTitle(seller2026Permissions, "CATALOG_PRODUCT_UPDATE", "productDraftSave") : undefined;
+  const submitReviewTitle = isLive ? actionTitle(seller2026Permissions, "CATALOG_PRODUCT_SUBMIT", "productSubmitReview") : undefined;
   const queryChange = (next) => onProductsQueryChange?.(next);
   const tabs = isLive
     ? [
@@ -1030,6 +1033,7 @@ function ProductsPage({
   );
   const [productDraftForm, setProductDraftForm] = useState(serverProductDraftForm);
   const [productDraftStatus, setProductDraftStatus] = useState({ type: "idle", message: "" });
+  const [productSubmitStatus, setProductSubmitStatus] = useState({ type: "idle", message: "" });
   const productDraftErrors = useMemo(
     () => validateProductDraftForm(productDraftForm),
     [productDraftForm]
@@ -1044,6 +1048,7 @@ function ProductsPage({
   const productDraftValid = Object.keys(productDraftErrors).length === 0;
   const canSaveProductDraft = Boolean(productDraftMutation?.canSave);
   const isSavingProductDraft = Boolean(productDraftMutation?.isSubmitting);
+  const isSubmittingProductReview = Boolean(productsMutation?.isSubmittingReview);
   const saveProductDraftDisabled =
     !isLive || !canSaveProductDraft || !productDraftDirty || !productDraftValid || isSavingProductDraft;
   const saveProductDraftTitle = !canSaveProductDraft
@@ -1060,10 +1065,12 @@ function ProductsPage({
   const setProductDraftField = (field, value) => {
     setProductDraftForm((current) => ({ ...current, [field]: value }));
     setProductDraftStatus({ type: "idle", message: "" });
+    setProductSubmitStatus({ type: "idle", message: "" });
   };
   const resetProductDraftForm = () => {
     setProductDraftForm(serverProductDraftForm);
     setProductDraftStatus({ type: "idle", message: "" });
+    setProductSubmitStatus({ type: "idle", message: "" });
   };
   const submitProductDraftForm = async () => {
     if (!productDraftMutation?.submit || saveProductDraftDisabled) return;
@@ -1083,6 +1090,56 @@ function ProductsPage({
         message: error?.response?.data?.message || error?.message || "Draft produk gagal disimpan.",
       });
     }
+  };
+  const submitProductReview = async (product, options = {}) => {
+    const productId = product?.id || product?.productId || editorProduct?.id;
+    if (!productsMutation?.submitReview || !productId) return null;
+    setProductSubmitStatus({ type: "idle", message: "" });
+    try {
+      await productsMutation.submitReview({ productId });
+      productsState?.refetch?.();
+      productDetailState?.refetch?.();
+      setProductSubmitStatus({
+        type: "success",
+        message: options.message || "Product submitted for review.",
+      });
+      return productId;
+    } catch (error) {
+      setProductSubmitStatus({
+        type: "error",
+        message: error?.message || "Product submit review failed.",
+      });
+      return null;
+    }
+  };
+  const submitCurrentDraftForReview = async () => {
+    if (!canSubmitProductReview || isSubmittingProductReview) return;
+    let targetProduct = editorProduct;
+    if (productDraftDirty) {
+      if (saveProductDraftDisabled || !productDraftMutation?.submit) {
+        setProductSubmitStatus({
+          type: "error",
+          message: "Save the valid draft before submitting it for review.",
+        });
+        return;
+      }
+      try {
+        targetProduct = await productDraftMutation.submit(buildProductDraftPayload(productDraftForm));
+        setProductDraftStatus({
+          type: "success",
+          message: "Draft produk berhasil disimpan sebelum submit review.",
+        });
+      } catch (error) {
+        setProductSubmitStatus({
+          type: "error",
+          message: error?.response?.data?.message || error?.message || "Draft produk gagal disimpan.",
+        });
+        return;
+      }
+    }
+    await submitProductReview(targetProduct, {
+      message: "Draft produk berhasil dikirim untuk review.",
+    });
   };
 
   useEffect(() => {
@@ -1110,6 +1167,11 @@ function ProductsPage({
             )
           }
         >
+          {productSubmitStatus.type !== "idle" ? (
+            <div className={`s26-alert ${productSubmitStatus.type === "success" ? "success" : "error"}`}>
+              {productSubmitStatus.message}
+            </div>
+          ) : null}
           <div className="s26-tabs">
             {tabs.map(([value, label], index) => (
               <button
@@ -1188,6 +1250,23 @@ function ProductsPage({
                       <div className="s26-row-actions">
                         <Link className="s26-link" to={detailTo}>Detail</Link>
                         {canUpdate ? <Link className="s26-link" to={editTo}>Edit</Link> : <button type="button" className="s26-muted-action" disabled title={updateTitle}>Edit</button>}
+                        <button
+                          type="button"
+                          className="s26-muted-action"
+                          disabled={
+                            !canSubmitProductReview ||
+                            !row.canSubmitReview ||
+                            isSubmittingProductReview
+                          }
+                          title={
+                            !row.canSubmitReview
+                              ? row.submitReviewReason || "Only draft products can be submitted for review."
+                              : submitReviewTitle
+                          }
+                          onClick={() => submitProductReview(row)}
+                        >
+                          {productsMutation?.submittingReviewProductId === row.id ? "Submitting..." : "Submit Review"}
+                        </button>
                         <button type="button" className="s26-muted-action" disabled title={actionTitle(seller2026Permissions, "CATALOG_PRODUCT_DELETE", "products")}>Delete</button>
                       </div>
                     </td>
@@ -1213,6 +1292,11 @@ function ProductsPage({
           {productDraftStatus.type !== "idle" ? (
             <div className={`s26-alert ${productDraftStatus.type === "success" ? "success" : "error"}`}>
               {productDraftStatus.message}
+            </div>
+          ) : null}
+          {productSubmitStatus.type !== "idle" ? (
+            <div className={`s26-alert ${productSubmitStatus.type === "success" ? "success" : "error"}`}>
+              {productSubmitStatus.message}
             </div>
           ) : null}
           {productDraftMutation?.error && productDraftStatus.type !== "error" ? (
@@ -1339,11 +1423,32 @@ function ProductsPage({
               {productDraftErrors.seoDescription ? <small className="s26-field-error">{productDraftErrors.seoDescription}</small> : null}
             </div>
           </div>
-          {isLive ? <p className="hint" style={{ marginTop: 14 }}>Draft save is enabled for basic authoring fields only. Media, variants, submit review, publish, and delete remain disabled.</p> : null}
+          {isLive ? <p className="hint" style={{ marginTop: 14 }}>Draft save and submit review are enabled for basic authoring fields. Media, variants, direct publish, and delete remain disabled.</p> : null}
           <div className="s26-filter-row" style={{ marginTop: 16, marginBottom: 0 }}>
             {isLive ? <button type="button" className="s26-btn" disabled={!productDraftDirty || isSavingProductDraft} onClick={resetProductDraftForm}>Reset</button> : null}
             <button type="button" className="s26-btn" disabled={saveProductDraftDisabled} title={isLive ? saveProductDraftTitle : disabledTodoTitle} onClick={submitProductDraftForm}>{isSavingProductDraft ? "Saving..." : "Save Draft"}</button>
-            <button type="button" className="s26-btn primary" disabled title={actionTitle(seller2026Permissions, "CATALOG_PRODUCT_SUBMIT", "products")}>Next: Media</button>
+            <button
+              type="button"
+              className="s26-btn primary"
+              disabled={
+                !isLive ||
+                !canSubmitProductReview ||
+                isSavingProductDraft ||
+                isSubmittingProductReview ||
+                !editorProduct?.id ||
+                !editorProduct?.canSubmitReview
+              }
+              title={
+                !editorProduct?.id
+                  ? "Save a draft before submitting it for review."
+                  : !editorProduct?.canSubmitReview
+                  ? editorProduct?.submitReviewReason || "Save a draft before submitting it for review."
+                  : submitReviewTitle
+              }
+              onClick={submitCurrentDraftForReview}
+            >
+              {isSubmittingProductReview ? "Submitting..." : productDraftDirty ? "Save & Submit Review" : "Submit Review"}
+            </button>
           </div>
         </Card>
       ) : null}
@@ -1357,12 +1462,37 @@ function ProductsPage({
           </div>
         ) : null}
         {productDetailState?.isLoading ? <p className="hint">Loading product detail...</p> : null}
+        {productSubmitStatus.type !== "idle" ? (
+          <div className={`s26-alert ${productSubmitStatus.type === "success" ? "success" : "error"}`}>
+            {productSubmitStatus.message}
+          </div>
+        ) : null}
         <div className="s26-grid three">
           <div className="s26-card soft"><div className="s26-product-gallery">{detailView?.product.gallery?.[0] ? <img src={detailView.product.gallery[0]} alt="" /> : productInitial(detailView?.product.name || "P")}</div><button type="button" className="s26-btn" style={{ width: "100%", marginTop: 12 }} disabled={isLive} title={disabledTodoTitle}>View on Storefront</button></div>
           <div><h3>{detailView?.product.name || "Product detail"} <span className={statusClass(productStatusLabel(detailView?.product.status))}>{productStatusLabel(detailView?.product.status)}</span></h3><p className="hint">SKU: {detailView?.product.sku || "-"}</p><div className="s26-grid two" style={{ marginTop: 16 }}>{[["Price", formatRupiah(detailView?.product.price)], ["Stock", detailView?.product.stock || 0], ["Sold", detailView?.product.sold || 0], ["Views", detailView?.product.views || 0]].map(([a, b]) => <div className="s26-card soft" key={a}><p className="hint">{a}</p><strong>{b}</strong></div>)}</div><p className="hint" style={{ marginTop: 14 }}>Category: {detailView?.product.category || "Uncategorized"}. Tags: {(detailView?.product.tags || []).join(", ") || "No tags"}.</p><p className="hint" style={{ marginTop: 14 }}>{detailView?.product.description || "Product description is not available yet."}</p></div>
           <div>
             <Card title="Revision Notes" hint={detailView?.revisionNotes.length ? detailView.revisionNotes.map((note) => note.message).join(" | ") : "No revision notes."} />
             <Card title="Publish History" hint={detailView?.publishHistory.length ? detailView.publishHistory.map((item) => item.label).join(" / ") : "No publish history yet."} className="soft" />
+            {isLive ? (
+              <button
+                type="button"
+                className="s26-btn primary"
+                style={{ marginTop: 12, width: "100%" }}
+                disabled={
+                  !canSubmitProductReview ||
+                  !detailView?.product?.canSubmitReview ||
+                  isSubmittingProductReview
+                }
+                title={
+                  !detailView?.product?.canSubmitReview
+                    ? detailView?.product?.submitReviewReason || "Only draft products can be submitted for review."
+                    : submitReviewTitle
+                }
+                onClick={() => submitProductReview(detailView?.product)}
+              >
+                {isSubmittingProductReview ? "Submitting..." : "Submit Review"}
+              </button>
+            ) : null}
           </div>
         </div>
       </Card>
@@ -2261,6 +2391,7 @@ export function Seller2026Workspace({
   productDetailState = null,
   productEditorMode = null,
   productDraftMutation = null,
+  productsMutation = null,
   catalogView = "overview",
   catalogData = null,
   catalogState = null,
@@ -2332,6 +2463,7 @@ export function Seller2026Workspace({
       productDetailState={productDetailState}
       productEditorMode={productEditorMode}
       productDraftMutation={productDraftMutation}
+      productsMutation={productsMutation}
       catalogView={catalogView}
       catalogData={catalogData}
       catalogState={catalogState}

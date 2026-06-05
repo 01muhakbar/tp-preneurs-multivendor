@@ -31,6 +31,9 @@ export type Seller2026ProductsViewModel = {
     views: number;
     status: Seller2026ProductStatus;
     updatedAt: string | null;
+    canSubmitReview: boolean;
+    submitReviewAction: "submit_review" | "resubmit_review";
+    submitReviewReason: string | null;
   }>;
   pagination: {
     page: number;
@@ -62,6 +65,9 @@ export type Seller2026ProductDetailViewModel = {
     brand?: string;
     tags: string[];
     gallery: string[];
+    canSubmitReview: boolean;
+    submitReviewAction: "submit_review" | "resubmit_review";
+    submitReviewReason: string | null;
   };
   editableDraft: {
     name: string;
@@ -219,14 +225,57 @@ const productSubmissionStatus = (product: Record<string, unknown>) => {
   return status && status !== "none" ? status : undefined;
 };
 
+const productSubmissionState = (product: Record<string, unknown>) => {
+  const submission = object(product.submission);
+  const status = text(submission.status ?? product.submissionStatus ?? product.sellerSubmissionStatus).toLowerCase();
+  return status || "none";
+};
+
 const productOperationalStatus = (product: Record<string, unknown>) => {
   const statusMeta = object(product.statusMeta);
   return product.status ?? statusMeta.code ?? statusMeta.label;
 };
 
+const productSubmitEligibility = (product: Record<string, unknown>) => {
+  const submission = object(product.submission);
+  const governance = object(product.governance);
+  const submissionGovernance = object(governance.submissionGovernance);
+  const status = normalizeProductStatus(productOperationalStatus(product));
+  const submissionStatus = productSubmissionState(product);
+  const canSubmitFromContract = Boolean(
+    submission.canSubmit || submissionGovernance.canSubmitWhenEnabled
+  );
+  const canResubmitFromContract = Boolean(
+    submission.canResubmit || submissionGovernance.canResubmitWhenEnabled
+  );
+  const action =
+    submissionStatus === "needs_revision" ? "resubmit_review" : "submit_review";
+  const canSubmitReview =
+    (canSubmitFromContract || (status === "draft" && submissionStatus === "none")) &&
+    submissionStatus !== "submitted" &&
+    submissionStatus !== "review_queue";
+  const canResubmitReview =
+    canResubmitFromContract || (status === "draft" && submissionStatus === "needs_revision");
+  const reason =
+    text(submission.nextActionDescription) ||
+    text(submissionGovernance.note) ||
+    (submissionStatus === "submitted"
+      ? "Product is already submitted for review."
+      : status !== "draft"
+        ? "Only draft products can be submitted for review."
+        : null);
+
+  return {
+    canSubmitReview: action === "resubmit_review" ? canResubmitReview : canSubmitReview,
+    submitReviewAction: action as "submit_review" | "resubmit_review",
+    submitReviewReason: reason,
+  };
+};
+
 export function adaptSellerProduct(value: unknown) {
   const product = object(value);
   const id = idValue(product.id ?? product.productId ?? product.uuid, "") as string | number;
+  const submit = productSubmitEligibility(product);
 
   return {
     id,
@@ -241,6 +290,7 @@ export function adaptSellerProduct(value: unknown) {
     views: number(product.viewCount ?? product.views, 0),
     status: normalizeProductStatus(productSubmissionStatus(product) ?? productOperationalStatus(product)),
     updatedAt: text(product.updatedAt || product.updated_at || product.lastUpdated) || null,
+    ...submit,
   };
 }
 
@@ -342,6 +392,7 @@ const gallery = (product: Record<string, unknown>) => {
 
 export function adaptSeller2026ProductDetail(value: unknown): Seller2026ProductDetailViewModel {
   const product = object(value);
+  const submit = productSubmitEligibility(product);
   const performance = object(product.performance);
   const pricing = object(product.pricing);
   const descriptions = object(product.descriptions);
@@ -419,6 +470,7 @@ export function adaptSeller2026ProductDetail(value: unknown): Seller2026ProductD
       brand: text(product.brand ?? object(product.brand).name) || undefined,
       tags: productTags,
       gallery: gallery(product),
+      ...submit,
     },
     editableDraft: {
       name: text(product.name || product.title),

@@ -37,9 +37,9 @@
 | Store Profile | Logo/banner upload, policies, theme | `STORE_PROFILE_UPDATE` | `storefront` | Disabled. |
 | Store Profile | Submit for review | `STORE_PROFILE_UPDATE` | `storefront` | Disabled. |
 | Products | Add product / create draft | `CATALOG_PRODUCT_CREATE` | `productDraftSave` | Enabled on live product create route. |
-| Products | Edit product | `CATALOG_PRODUCT_UPDATE` | `products` | Disabled unless route detail link is read-only. |
+| Products | Edit product | `CATALOG_PRODUCT_UPDATE` | `products` | Enabled for live draft edit navigation; mutation payload remains draft-save scoped. |
 | Products | Save draft | `CATALOG_PRODUCT_CREATE` or `CATALOG_PRODUCT_UPDATE` | `productDraftSave` | Enabled on live product create/edit routes. |
-| Products | Submit product | `CATALOG_PRODUCT_SUBMIT` | `products` | Disabled. |
+| Products | Submit product for review | `CATALOG_PRODUCT_SUBMIT` aliasing backend `PRODUCT_EDIT` | `productSubmitReview` | Enabled for backend-actionable draft products only. |
 | Products | Delete product | `CATALOG_PRODUCT_DELETE` | `products` | Disabled. |
 | Catalog | Category mutation shell | `CATALOG_CATEGORY_READ` | `catalog` | Disabled; no mutation permission exists yet. |
 | Catalog | Attribute mutation shell | `CATALOG_ATTRIBUTE_READ` | `catalog` | Disabled; no mutation permission exists yet. |
@@ -64,7 +64,7 @@
 
 ## Current Mutation Policy
 - A button can become active only when the user has the required permission and the matching mutation flag is enabled.
-- Only `storeProfileUpdate`, `productDraftSave`, `coupons`, `orders`, payment review approve/reject, payment profile request submit, and notification read-state mutations are enabled; all other Seller 2026 mutation flags remain `false`.
+- Only `storeProfileUpdate`, `productDraftSave`, product submit review, `coupons`, `orders`, payment review approve/reject, payment profile request submit, and notification read-state mutations are enabled; all other Seller 2026 mutation flags remain `false`.
 - Frontend permission gating is UX readiness only; backend permission and store-scope enforcement remain the source of truth.
 
 ## Known Gaps
@@ -75,5 +75,6 @@
 - Seller 2026 `.jsx` files are ignored by the current ESLint config.
 
 ## Next Phase
+- Product bulk submit review and draft readiness validation refinement.
 - Team invitation mutation.
 - Notification delete mutation.

@@ -749,6 +749,7 @@ async function ensureFixture() {
     otherStoreId: otherStore.id,
     otherStoreSlug: otherStore.slug,
     productId: products[0].id,
+    submitReviewProductId: products[1].id,
     attributeId: color.id,
     suborderId: suborders[0]?.id ?? null,
     fulfillmentSuborderId: suborders[1]?.id ?? null,
@@ -954,6 +955,39 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureFixture>>) 
     );
   }
   await page.goBack({ waitUntil: "networkidle", timeout: 15_000 }).catch(() => undefined);
+
+  consoleErrors.length = 0;
+  await page.goto(
+    `/seller/stores/${fixture.storeSlug}/catalog/products/${fixture.submitReviewProductId}/edit`,
+    {
+      waitUntil: "networkidle",
+      timeout: 45_000,
+    }
+  );
+  await page.getByRole("button", { name: /^Submit Review$/i }).click();
+  await page.getByText(/berhasil dikirim untuk review|Product submitted for review/i).waitFor({
+    state: "visible",
+    timeout: 20_000,
+  });
+  const productSubmitText = await page.locator("body").innerText({ timeout: 10_000 }).catch(() => "");
+  const publishButtonCount = await page.getByRole("button", { name: /^Publish$/i }).count();
+  const productSubmitReview = {
+    name: "product-submit-review-mutation",
+    productId: fixture.submitReviewProductId,
+    finalUrl: page.url().replace(CLIENT_URL, ""),
+    status:
+      /berhasil dikirim untuk review|Product submitted for review/i.test(productSubmitText) &&
+      publishButtonCount === 0
+        ? "PASS"
+        : "FAIL",
+    consoleErrors: [...consoleErrors],
+    snippet: productSubmitText.replace(/\s+/g, " ").trim().slice(0, 180),
+  };
+  if (productSubmitReview.status !== "PASS" || consoleErrors.length) {
+    throw new Error(
+      `Product submit review smoke failed: ${productSubmitReview.status}, product ${fixture.submitReviewProductId}, console ${consoleErrors.join(" | ")}`
+    );
+  }
 
   consoleErrors.length = 0;
   const smokeCouponCode = `S26SMOKE${Date.now()}`;
@@ -1197,6 +1231,7 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureFixture>>) 
   return {
     routeResults,
     addProductCta,
+    productSubmitReview,
     couponLifecycle,
     orderFulfillment,
     paymentApproveReview,

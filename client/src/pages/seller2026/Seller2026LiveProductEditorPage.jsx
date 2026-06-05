@@ -4,6 +4,7 @@ import { hasSeller2026Permission } from "../../api/seller2026/permissions.ts";
 import Seller2026Workspace from "../../features/seller2026/Seller2026Workspace.jsx";
 import { useSeller2026ProductDetail } from "../../hooks/seller2026/useSeller2026ProductDetail.ts";
 import { useSeller2026SaveProductDraft } from "../../hooks/seller2026/useSeller2026SaveProductDraft.ts";
+import { useSeller2026SubmitProductReview } from "../../hooks/seller2026/useSeller2026SubmitProductReview.ts";
 import { useSellerWorkspaceRoute } from "../../utils/sellerWorkspaceRoute.js";
 import { getSeller2026PagePermissions } from "./seller2026PagePermissions.js";
 
@@ -19,6 +20,10 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
     sourceAvailable &&
     hasSeller2026Permission(permissions, requiredMutationPermission) &&
     SELLER_2026_MUTATIONS.productDraftSave;
+  const canSubmitReview =
+    sourceAvailable &&
+    hasSeller2026Permission(permissions, "CATALOG_PRODUCT_SUBMIT") &&
+    SELLER_2026_MUTATIONS.productSubmitReview;
   const productQuery = useSeller2026ProductDetail(storeId, productId, {
     enabled: mode === "edit" && canViewProducts,
   });
@@ -38,6 +43,10 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
         productQuery.refetch?.();
       }
     },
+  });
+  const submitReviewMutation = useSeller2026SubmitProductReview({
+    storeId,
+    enabled: canSubmitReview,
   });
 
   return (
@@ -61,6 +70,7 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
         error: saveDraftMutation.error,
         submit: saveDraftMutation.mutateAsync,
       }}
+      productsMutation={submitReviewMutation}
     />
   );
 }

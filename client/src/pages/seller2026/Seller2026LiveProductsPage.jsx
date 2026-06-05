@@ -1,6 +1,7 @@
 import { useSearchParams } from "react-router-dom";
 import Seller2026Workspace from "../../features/seller2026/Seller2026Workspace.jsx";
 import { useSeller2026Products } from "../../hooks/seller2026/useSeller2026Products.ts";
+import { useSeller2026SubmitProductReview } from "../../hooks/seller2026/useSeller2026SubmitProductReview.ts";
 import { useSellerWorkspaceRoute } from "../../utils/sellerWorkspaceRoute.js";
 import { getSeller2026PagePermissions } from "./seller2026PagePermissions.js";
 
@@ -30,6 +31,10 @@ export default function Seller2026LiveProductsPage() {
       canDelete: can("CATALOG_PRODUCT_DELETE"),
       canSubmit: can("CATALOG_PRODUCT_SUBMIT"),
     },
+  });
+  const submitReviewMutation = useSeller2026SubmitProductReview({
+    storeId,
+    enabled: can("CATALOG_PRODUCT_SUBMIT"),
   });
 
   const handleQueryChange = (nextQuery) => {
@@ -66,6 +71,7 @@ export default function Seller2026LiveProductsPage() {
       }}
       productsQuery={query}
       onProductsQueryChange={handleQueryChange}
+      productsMutation={submitReviewMutation}
     />
   );
 }

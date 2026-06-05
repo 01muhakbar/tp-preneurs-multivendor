@@ -434,13 +434,59 @@
 - Name, SKU, description, category IDs, tags, price, sale price, stock, SEO title, and SEO description.
 
 ### Still Disabled
-- Media upload, variant persistence, submit review, publish/unpublish, delete, duplicate, deactivate, and inventory adjustment workflows.
+- Media upload, variant persistence, publish/unpublish, delete, duplicate, deactivate, and inventory adjustment workflows.
 
 ### Safety Notes
 - Create draft requires `CATALOG_PRODUCT_CREATE`, aliased to backend `PRODUCT_CREATE`.
 - Update draft requires `CATALOG_PRODUCT_UPDATE`, aliased to backend `PRODUCT_EDIT`.
 - The frontend sends a whitelisted draft payload and does not submit `status: active`, `published: true`, media objects, or variant matrix state.
 - Products list and detail queries are invalidated after successful draft save.
+- Preview route `/seller-2026/products` remains mock-only.
+
+## Mutation Integration - Product Submit Review
+
+### Routes
+- `/seller/stores/:storeSlug/catalog/products`
+- `/seller/stores/:storeSlug/catalog/products/:productId`
+- `/seller/stores/:storeSlug/catalog/products/:productId/edit`
+
+### Files Added
+- `client/src/hooks/seller2026/useSeller2026SubmitProductReview.ts`
+
+### Files Changed
+- `client/src/api/seller2026/mutation-flags.ts`
+- `client/src/api/seller2026/permissions.ts`
+- `client/src/api/seller2026/products.adapter.ts`
+- `client/src/api/seller2026/products.mutations.ts`
+- `client/src/features/seller2026/Seller2026Workspace.jsx`
+- `client/src/pages/seller2026/Seller2026LiveProductsPage.jsx`
+- `client/src/pages/seller2026/Seller2026LiveProductDetailPage.jsx`
+- `client/src/pages/seller2026/Seller2026LiveProductEditorPage.jsx`
+- `scripts/seller2026-auth-fixture-live-smoke.ts`
+
+### Endpoint Used
+- `POST /api/seller/stores/:storeId/products/:productId/submit-review`
+
+### Enabled Actions
+- Submit a persisted draft product for admin review from list/detail/edit surfaces.
+- Resubmit a draft product requiring seller changes when backend actionability allows it.
+- Refetch product list/detail after submit review.
+
+### Still Disabled
+- Direct publish/unpublish.
+- Product delete/archive.
+- Bulk submit review.
+- Product duplicate.
+- Media upload.
+- Variant matrix persistence.
+- Admin approval/rejection/revision lifecycle.
+
+### Safety Notes
+- Submit review sends no body payload and uses route-scoped `storeId` plus `productId`.
+- `CATALOG_PRODUCT_SUBMIT` now aliases backend `PRODUCT_EDIT`, matching the existing route guard.
+- The Seller 2026 adapter exposes `canSubmitReview`, `submitReviewAction`, and `submitReviewReason` from backend submission/governance data.
+- New product create still requires Save Draft first; submit review is only active when a persisted product id exists.
+- The smoke fixture resets `S26-DRAFT` to draft/unsubmitted before exercising submit review.
 - Preview route `/seller-2026/products` remains mock-only.
 
 ## Mutation Integration — Notification Read State

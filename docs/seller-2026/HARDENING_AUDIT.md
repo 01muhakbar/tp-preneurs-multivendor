@@ -55,9 +55,10 @@
 - Existing route helper `useSellerWorkspaceRoute` continues to resolve `workspaceStoreId`, `workspaceStoreSlug`, and store-scoped route builders for live pages.
 
 ## Mutation Safety Check
-- `SELLER_2026_MUTATIONS` centralizes mutation readiness; `storeProfileUpdate`, `productDraftSave`, coupon lifecycle, order fulfillment, payment review approve/reject, payment profile request submit, and notification read-state mutations are currently enabled.
-- Product mutations disabled: create/submit/publish/delete/save draft/media upload/inventory adjustment.
-- Catalog mutations disabled: create/edit/delete category, attribute, attribute value, and coupon.
+- `SELLER_2026_MUTATIONS` centralizes mutation readiness; `storeProfileUpdate`, `productDraftSave`, product submit review, coupon lifecycle, order fulfillment, payment review approve/reject, payment profile request submit, and notification read-state mutations are currently enabled.
+- Product mutations enabled: draft create/update and submit review for backend-actionable draft products.
+- Product mutations disabled: direct publish/unpublish, delete/archive, bulk submit, media upload, variant persistence, and inventory adjustment workflow.
+- Catalog taxonomy mutations disabled: create/edit/delete category, attribute, and attribute value. Coupon lifecycle is enabled through its separate store-scoped mutation path.
 - Orders/payment mutations enabled: backend-governed order fulfillment transitions, payment review approve/reject, and payment profile request submit.
 - Orders/payment mutations disabled: print label, persisted tracking update, save internal note, request clarification, refund payment, dispute/settlement, direct payment profile activation, upload payment documents, and change payout account.
 - Team mutations disabled: invite member, resend invitation, cancel invitation, update role, remove member, reset password.
@@ -129,7 +130,17 @@
 - Update draft requires `CATALOG_PRODUCT_UPDATE`, aliased to backend `PRODUCT_EDIT`.
 - Live product editor submits a whitelisted payload to seller draft endpoints.
 - Backend safety check confirmed store-scoped create/update routes and draft-safe create defaults.
-- Submit review, publish/unpublish, delete, media upload, and variant persistence remain disabled.
+- Publish/unpublish, delete, media upload, and variant persistence remain disabled.
+
+## Product Submit Review Mutation Addendum
+- Enabled `SELLER_2026_MUTATIONS.productSubmitReview` for product submit review only; `SELLER_2026_MUTATIONS.products` remains false for direct publish/delete/bulk actions.
+- Submit review requires `CATALOG_PRODUCT_SUBMIT`, aliased to backend `PRODUCT_EDIT`.
+- Live product list/detail/edit routes use the existing store-scoped endpoint `POST /api/seller/stores/:storeId/products/:productId/submit-review`.
+- Backend scope was reviewed: mutation route uses `requireSellerStoreAccess(["PRODUCT_EDIT"])`, loads the product by `{ id, storeId }`, requires draft status, blocks already-submitted drafts, and writes seller submission metadata/activity logs.
+- Seller 2026 sends no body payload for submit review.
+- Product adapter actionability reads `submission.canSubmit`, `submission.canResubmit`, and `governance.submissionGovernance` before enabling the action.
+- Create route still requires Save Draft first; submit review is available only once a persisted `productId` exists.
+- Direct publish/unpublish, delete/archive, bulk submit review, media upload, variant persistence, and admin review actions remain disabled.
 
 ## Notification Read Mutation Addendum
 - Enabled `SELLER_2026_MUTATIONS.notifications`.

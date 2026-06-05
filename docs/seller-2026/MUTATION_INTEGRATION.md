@@ -92,7 +92,6 @@
 ### Fields Still Disabled
 - media upload
 - variant matrix persistence
-- submit review
 - publish/unpublish
 - delete product
 - duplicate product
@@ -108,6 +107,50 @@
 - Update endpoint uses `requireSellerStoreAccess(["PRODUCT_EDIT"])` and fetches product by `{ id, storeId }`.
 - Create endpoint forces `status: "draft"` and `isPublished: false`.
 - Preview route `/seller-2026/products` remains mock-only and receives no draft save mutation handler.
+
+## Product Submit Review
+
+### Routes
+- `/seller/stores/:storeSlug/catalog/products`
+- `/seller/stores/:storeSlug/catalog/products/:productId`
+- `/seller/stores/:storeSlug/catalog/products/:productId/edit`
+
+### Permission / Governance
+- UI permission: `CATALOG_PRODUCT_SUBMIT`
+- Backend permission alias/source: `PRODUCT_EDIT`
+- Backend route guard: `requireSellerStoreAccess(["PRODUCT_EDIT"])`
+
+### Mutation Flag
+- `productSubmitReview: true`
+- `products: false` remains the guard for direct publish/delete/bulk product actions.
+
+### Endpoint Used
+- `POST /api/seller/stores/:storeId/products/:productId/submit-review`
+
+### Payload Fields Enabled
+- No request payload is sent. The endpoint uses route-scoped `storeId` and `productId` only.
+
+### Lifecycle Actions Enabled
+- Submit an existing store-owned draft product for admin review.
+- Resubmit a draft product with `sellerSubmissionStatus: "needs_revision"` when backend actionability allows it.
+- Refetch Seller 2026 product list/detail after successful submit.
+
+### Fields Still Disabled
+- Direct publish/unpublish.
+- Product delete/archive.
+- Bulk submit review.
+- Product duplicate.
+- Media upload.
+- Variant matrix persistence.
+- Admin approval/rejection/revision mutation.
+
+### Safety Notes
+- `storeId` is resolved from the live seller workspace context, not from the UI body.
+- Frontend submit review is exposed only on live list/detail/edit routes when the adapted product view model reports `canSubmitReview`.
+- The adapter reads backend `submission.canSubmit`, `submission.canResubmit`, and `governance.submissionGovernance` before enabling the action.
+- Backend still fetches the product by `{ id: productId, storeId }`, requires draft status, rejects already-submitted drafts, and writes seller submission audit/activity data.
+- Seller 2026 create route requires saving a draft first; submit review is then available from the edit/detail/list surface with a persisted `productId`.
+- Preview route `/seller-2026/products` remains mock-only and receives no live submit review mutation handler.
 
 ## Notification Read State
 
