@@ -561,7 +561,7 @@
 
 ### Still Disabled
 - Payment status mutation.
-- Payment approval/rejection.
+- Payment approval/rejection from order pages.
 - Tracking/resi persistence.
 - Bulk fulfillment and bulk delete.
 - Print receipt/label.
@@ -572,4 +572,42 @@
 - The frontend sends only whitelisted fulfillment fields and never sends payment fields.
 - Backend remains responsible for transition validation, store scope, and `ORDER_FULFILLMENT_MANAGE`.
 - Tracking fields remain disabled because the current smoke fixture read model still reports legacy fallback/no persisted shipment record after transition.
+- Preview route `/seller-2026/orders-payments` remains mock-only.
+
+## Mutation Integration - Payment Review
+
+### Route
+- `/seller/stores/:storeSlug/payment-review`
+
+### Files Added
+- `client/src/api/seller2026/payments.mutations.ts`
+
+### Files Changed
+- `client/src/api/seller2026/mutation-flags.ts`
+- `client/src/api/seller2026/orders-payments.adapter.ts`
+- `client/src/features/seller2026/Seller2026Workspace.jsx`
+- `client/src/hooks/seller2026/useSeller2026PaymentReview.ts`
+- `client/src/pages/seller2026/Seller2026LivePaymentReviewPage.jsx`
+- `scripts/seller2026-auth-fixture-live-smoke.ts`
+
+### Endpoint Used
+- `PATCH /api/seller/stores/:storeId/payments/:paymentId/review`
+
+### Enabled Actions
+- Approve payment proof with backend action `APPROVE`.
+- Reject payment proof with backend action `REJECT`.
+- Refetch payment review, orders, and suborder detail queries after success.
+
+### Still Disabled
+- Request clarification.
+- Refund/dispute/settlement.
+- Payment profile approval and payout account mutation.
+- Any payment status mutation from order list/detail pages.
+
+### Safety Notes
+- `storeId` is resolved from the live seller workspace context.
+- Payment review UI enables actions only when `PAYMENT_REVIEW_READ`, backend `governance.canReview`, row `reviewActionability.canReview`, and `SELLER_2026_MUTATIONS.payments` all pass.
+- Backend still validates route store scope, payment/suborder store ownership, pending payment/proof state, owner/admin review governance, audit/status logs, and parent order recalculation.
+- Reject requires a UI reason and sends it as backend `note`.
+- Live smoke resets two disposable pending payment proof fixtures: `SELLER2026-PAYAPPROVE` and `SELLER2026-PAYREJECT`.
 - Preview route `/seller-2026/orders-payments` remains mock-only.

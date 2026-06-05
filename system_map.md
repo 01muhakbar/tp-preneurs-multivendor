@@ -97,7 +97,7 @@ Seller Workspace 2026 live pages use existing store-scoped seller APIs and selle
 | Attributes | LIVE_API_CONNECTED | Existing live attribute and value APIs are used. |
 | Orders | LIVE_API_CONNECTED | Order rows map live read model status, payment state, totals, customer, and fulfillment fields. |
 | Order Detail | LIVE_API_CONNECTED | Detail maps live seller-scope read model totals, status, payment state, items, and shipping/payment fields. |
-| Payment Review | LIVE_API_CONNECTED | Read view uses live payment review suborders and proof fields; approve/reject mutations remain disabled pending Seller 2026 mutation safety review. |
+| Payment Review | LIVE_API_CONNECTED_AND_MUTATION_READY | Read view uses live payment review suborders and proof fields; approve/reject use the existing store-scoped seller review route when backend governance exposes `canReview`. Request clarification/refund/dispute remain disabled. |
 | Payment Profile | LIVE_API_CONNECTED | Adapter maps active snapshot or root profile shape, readiness, QRIS status, and verification fields. Submit/update mutations remain disabled in Seller 2026 UI. |
 | Coupons | LIVE_API_CONNECTED | Coupon read/list lane uses existing live API; create/edit/delete lifecycle controls remain disabled pending mutation review. |
 | Team | LIVE_API_CONNECTED | Team list and member detail use live team APIs. UI permissions now recognize legacy backend permission keys through Seller 2026 aliases. |
@@ -125,8 +125,8 @@ Seller Workspace 2026 live pages use existing store-scoped seller APIs and selle
 | Order | Fulfillment/status update | DISABLED_PENDING_API | Store-scoped endpoint exists, but shipment mutation rollout and transition payload need a focused UI workflow before enabling. |
 | Order | Bulk fulfillment / bulk delete | NEEDS_BACKEND_REVIEW | Bulk delete exists but is destructive; no Seller 2026 bulk fulfillment UI was enabled. |
 | Order | Print/download receipt or label | NEEDS_BACKEND_REVIEW | No clear Seller 2026 store-scoped print/download endpoint was confirmed. |
-| Payment Review | Approve/reject | DISABLED_PENDING_PERMISSION_REVIEW | Store-scoped endpoint exists; backend limits mutation to owner/admin roles, so UI remains disabled pending explicit review flow and fixture rollback. |
-| Payment Review | Request clarification / dispute / note update | NEEDS_BACKEND_REVIEW | No distinct store-scoped Seller 2026 endpoint was confirmed. |
+| Payment Review | Approve/reject | WIRED_AND_TESTED | Store-scoped endpoint exists; backend limits mutation to owner/admin roles and proof/payment pending state. UI requires backend `canReview` governance. |
+| Payment Review | Request clarification / dispute / note update | NEEDS_BACKEND_REVIEW | No distinct store-scoped Seller 2026 endpoint was confirmed; request clarification remains disabled. |
 | Payment Profile | Save draft/request and submit request | DISABLED_PENDING_API | Existing request endpoints exist; UI lacks a safe edit form and upload/request lifecycle in this pass. |
 | Coupon | Create/edit/status/delete | DISABLED_PENDING_API | Store-scoped endpoints exist; UI form/lifecycle remains guarded pending validation and disposable fixture flow. |
 | Coupon | Duplicate | NEEDS_BACKEND_REVIEW | No clear duplicate coupon endpoint was confirmed. |

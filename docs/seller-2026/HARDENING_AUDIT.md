@@ -4,7 +4,7 @@
 - Audited Seller Workspace 2026 preview and live adoption routes.
 - Preview routes under `/seller-2026/*` are retained as visual regression playgrounds.
 - Live routes under `/seller/stores/:storeSlug/*` remain wrapped by the existing `SellerLayout`.
-- This pass does not enable create/update/delete, fulfillment, payment review, or team mutations. Notification read-state mutations are enabled in a later scoped pass.
+- Initial hardening did not enable risky mutations. Later scoped passes enabled store profile update, product draft save, coupon lifecycle, order fulfillment, payment review approve/reject, and notification read-state mutations.
 
 ## Route Map
 - `/seller/stores/:storeSlug/dashboard` -> `Seller2026LiveDashboardPage`
@@ -55,10 +55,11 @@
 - Existing route helper `useSellerWorkspaceRoute` continues to resolve `workspaceStoreId`, `workspaceStoreSlug`, and store-scoped route builders for live pages.
 
 ## Mutation Safety Check
-- `SELLER_2026_MUTATIONS` centralizes mutation readiness; `storeProfileUpdate`, `productDraftSave`, and notification read-state mutations are currently enabled.
+- `SELLER_2026_MUTATIONS` centralizes mutation readiness; `storeProfileUpdate`, `productDraftSave`, coupon lifecycle, order fulfillment, payment review approve/reject, and notification read-state mutations are currently enabled.
 - Product mutations disabled: create/submit/publish/delete/save draft/media upload/inventory adjustment.
 - Catalog mutations disabled: create/edit/delete category, attribute, attribute value, and coupon.
-- Orders/payments mutations disabled: pack order, print label, mark shipped, update tracking, save internal note, approve payment, reject payment, refund payment, submit payment profile, upload payment documents, change payout account.
+- Orders/payment mutations enabled: backend-governed order fulfillment transitions and payment review approve/reject.
+- Orders/payment mutations disabled: print label, persisted tracking update, save internal note, request clarification, refund payment, dispute/settlement, submit payment profile, upload payment documents, and change payout account.
 - Team mutations disabled: invite member, resend invitation, cancel invitation, update role, remove member, reset password.
 - Notification mutations enabled: mark one notification as read and mark all seller notifications as read.
 - Notification mutations disabled: delete notification, create notification, admin notification read state, and real-time push actions.
@@ -97,7 +98,7 @@
 ## Known Issues
 - Seller 2026 `.jsx` files are ignored by current ESLint config.
 - Repo-wide lint debt remains outside this hardening scope.
-- Mutations remain disabled except the low-risk store profile update, product draft save, and seller notification read-state flows.
+- Mutations remain disabled except store profile update, product draft save, coupon lifecycle, order fulfillment, payment review approve/reject, and seller notification read-state flows.
 - Some preview detail routes share the same domain workspace shell by design.
 
 ## Next Recommended Phase
@@ -157,5 +158,14 @@
 - Backend scope was reviewed: mutation route uses `requireSellerStoreAccess(["ORDER_VIEW", "ORDER_FULFILLMENT_MANAGE"])` and loads suborders by `{ id, storeId }`.
 - UI actions are derived from `governance.fulfillment.availableActions`; unsupported transitions remain hidden or disabled.
 - Mark as Shipped uses backend action `MARK_SHIPPED`; tracking fields remain disabled because persisted shipment tracking is not available in the current smoke fixture/read model.
-- Payment status, payment approval/rejection, bulk fulfillment, bulk delete, print label/receipt, cancellation, refund, return, and dispute actions remain disabled.
+- Payment status and payment approval/rejection from order pages, bulk fulfillment, bulk delete, print label/receipt, cancellation, refund, return, and dispute actions remain disabled.
+- Preview route `/seller-2026/orders-payments` remains mock-only.
+
+## Payment Review Mutation Addendum
+- Enabled `SELLER_2026_MUTATIONS.payments` for payment proof approve/reject only.
+- Payment review mutation requires `PAYMENT_REVIEW_READ`, backend list `governance.canReview`, and row `reviewActionability.canReview`.
+- Backend scope was reviewed: mutation route uses `requireSellerStoreAccess(["ORDER_VIEW", "PAYMENT_STATUS_VIEW"])`, validates route store scope, confirms payment/suborder store ownership, and limits mutation to `STORE_OWNER` or `STORE_ADMIN`.
+- Approve uses backend action `APPROVE` and optional reviewer note.
+- Reject uses backend action `REJECT`; the Seller 2026 UI requires a reason and sends it as backend `note`.
+- Request clarification, refund/dispute, payout settlement, payment profile approval, and order-page payment status mutation remain disabled.
 - Preview route `/seller-2026/orders-payments` remains mock-only.

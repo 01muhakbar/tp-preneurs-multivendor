@@ -20,7 +20,10 @@ export default function Seller2026LivePaymentReviewPage() {
     page: readPageNumber(searchParams.get("page"), 1),
     limit: readPageNumber(searchParams.get("limit"), 10),
   };
-  const reviewQuery = useSeller2026PaymentReview(storeId, query, { enabled: canView });
+  const reviewQuery = useSeller2026PaymentReview(storeId, query, {
+    enabled: canView,
+    canReview: canView,
+  });
 
   const handleQueryChange = (nextQuery) => {
     const next = new URLSearchParams(searchParams);
@@ -54,6 +57,15 @@ export default function Seller2026LivePaymentReviewPage() {
         isError: reviewQuery.isError,
         error: reviewQuery.error,
         refetch: reviewQuery.refetch,
+      }}
+      operationsMutation={{
+        canReview: reviewQuery.canReview,
+        approvingId: reviewQuery.approvingId,
+        rejectingId: reviewQuery.rejectingId,
+        isMutating: reviewQuery.isMutating,
+        mutationError: reviewQuery.mutationError,
+        approvePayment: reviewQuery.approvePayment,
+        rejectPayment: reviewQuery.rejectPayment,
       }}
       operationsQuery={query}
       onOperationsQueryChange={handleQueryChange}

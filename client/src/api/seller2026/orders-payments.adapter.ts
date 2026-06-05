@@ -115,6 +115,9 @@ export type Seller2026PaymentReviewViewModel = {
     receivedAt: string | null;
     proofUrl?: string | null;
     riskLabel?: "low" | "medium" | "high" | "unknown";
+    canReview: boolean;
+    reviewReason?: string | null;
+    buyerNote?: string | null;
   }>;
   selectedPayment?: {
     id: string | number;
@@ -128,10 +131,19 @@ export type Seller2026PaymentReviewViewModel = {
     proofUrl?: string | null;
     status: string;
     receivedAt: string | null;
+    canReview: boolean;
+    reviewReason?: string | null;
+    buyerNote?: string | null;
     breakdown: Array<{ label: string; value: number | string }>;
     riskChecks: Array<{ label: string; status: "pass" | "warning" | "fail" | "unknown" }>;
     timeline: Array<{ label: string; actor?: string; createdAt: string | null }>;
   } | null;
+  governance: {
+    canView: boolean;
+    canReview: boolean;
+    roleCode?: string;
+    note?: string;
+  };
 };
 
 export type Seller2026PaymentProfileViewModel = {
@@ -376,6 +388,7 @@ const adaptPaymentRow = (value: unknown, index = 0) => {
   const suborder = object(value);
   const payment = object(suborder.payment ?? suborder.paymentSummary);
   const proof = object(payment.proof);
+  const reviewActionability = object(payment.reviewActionability);
   const buyer = object(suborder.buyer);
   const order = object(suborder.order);
   const id = idValue(payment.id ?? proof.id ?? suborder.suborderId, index);
@@ -391,13 +404,24 @@ const adaptPaymentRow = (value: unknown, index = 0) => {
     receivedAt: text(proof.createdAt ?? proof.transferTime ?? payment.paidAt ?? suborder.paidAt) || null,
     proofUrl: text(proof.proofImageUrl ?? proof.imageUrl) || null,
     riskLabel: "unknown" as const,
+    canReview: Boolean(reviewActionability.canReview),
+    reviewReason: text(reviewActionability.reason) || null,
+    buyerNote: text(proof.note) || null,
   };
 };
 
 export function adaptSeller2026PaymentReview(value: unknown): Seller2026PaymentReviewViewModel {
+  const payload = readPayload(value);
+  const governanceSource = object(payload.governance);
   const items = readItems(value);
   const payments = items.map(adaptPaymentRow);
   const selected = payments[0] || null;
+  const governance = {
+    canView: governanceSource.canView !== false,
+    canReview: Boolean(governanceSource.canReview),
+    roleCode: text(governanceSource.roleCode) || undefined,
+    note: text(governanceSource.note) || undefined,
+  };
   return {
     summary: {
       totalPending: payments.filter((item) => item.status.includes("PENDING")).length,
@@ -415,15 +439,17 @@ export function adaptSeller2026PaymentReview(value: unknown): Seller2026PaymentR
             { label: "Amount received", value: selected.amount },
             { label: "Payment method", value: selected.method || "Unknown" },
             { label: "Invoice", value: selected.invoiceNo || "-" },
+            { label: "Review eligibility", value: selected.canReview ? "Ready for review" : selected.reviewReason || "Not reviewable" },
           ],
           riskChecks: [
             { label: "Nominal check", status: selected.amount > 0 ? "pass" : "unknown" },
             { label: "Payment proof", status: selected.proofUrl ? "pass" : "unknown" },
-            { label: "Manual review", status: "unknown" },
+            { label: "Review actionability", status: selected.canReview ? "pass" : "warning" },
           ],
           timeline: [{ label: "Payment submitted", actor: "Customer", createdAt: selected.receivedAt }],
         }
       : null,
+    governance,
   };
 }
 
@@ -495,6 +521,7 @@ export const emptySeller2026PaymentReview: Seller2026PaymentReviewViewModel = {
   summary: { totalPending: 0, totalAmount: 0, approvedToday: 0, rejectedToday: 0 },
   payments: [],
   selectedPayment: null,
+  governance: { canView: false, canReview: false },
 };
 
 export const emptySeller2026PaymentProfile: Seller2026PaymentProfileViewModel = {

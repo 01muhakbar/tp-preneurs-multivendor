@@ -6,7 +6,7 @@ export const SELLER_2026_MUTATIONS = {
   catalog: false,
   coupons: true,
   orders: true,
-  payments: false,
+  payments: true,
   team: false,
   notifications: true,
 } as const;

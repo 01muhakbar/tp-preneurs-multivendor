@@ -243,3 +243,42 @@
 - Payment information remains read-only on Seller 2026 order pages.
 - Tracking fields are visible but disabled until persisted shipment tracking is available for the live rollout.
 - Preview route `/seller-2026/orders-payments` remains mock-only and receives no live fulfillment mutation handler.
+
+## Payment Review
+
+### Route
+- `/seller/stores/:storeSlug/payment-review`
+
+### Permission / Governance
+- UI read permission: `PAYMENT_REVIEW_READ`, aliased to backend `PAYMENT_STATUS_VIEW`.
+- Backend view guard: `ORDER_VIEW` + `PAYMENT_STATUS_VIEW`.
+- Backend mutation governance: the store-scoped review route additionally requires the seller access context to be `STORE_OWNER` or `STORE_ADMIN`.
+
+### Mutation Flag
+- `payments: true`
+
+### Endpoint Used
+- `PATCH /api/seller/stores/:storeId/payments/:paymentId/review`
+
+### Payload Fields Enabled
+- `action: "APPROVE" | "REJECT"`
+- `note`
+
+### Lifecycle Actions Enabled
+- Approve payment proof while payment status is `PENDING_CONFIRMATION` and the latest proof is `PENDING`.
+- Reject payment proof while payment status is `PENDING_CONFIRMATION` and the latest proof is `PENDING`.
+- Reject requires a Seller 2026 UI reason before submit; the backend accepts it as `note`.
+
+### Fields Still Disabled
+- Request clarification. No distinct seller endpoint/lifecycle exists yet.
+- Refund, dispute, payout settlement, and admin reconciliation.
+- Payment status mutation from the order detail page.
+- Payment profile approval or payout account approval.
+
+### Safety Notes
+- `storeId` is resolved from the live seller workspace context, not from a form body.
+- Frontend sends a whitelisted payload through `payments.mutations.ts`.
+- Frontend only enables actions when the page has read permission, `SELLER_2026_MUTATIONS.payments` is true, backend list governance returns `canReview: true`, and the selected payment row returns `reviewActionability.canReview: true`.
+- Backend rechecks route store scope, payment/suborder store ownership, payment status, proof status, role governance, and audit/status log updates.
+- Seller 2026 order pages keep payment status read-only.
+- Preview route `/seller-2026/orders-payments` remains mock-only and receives no live payment review mutation handler.

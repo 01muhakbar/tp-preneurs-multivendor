@@ -399,6 +399,8 @@ async function upsertOrderSet(input: {
     { suffix: "PAID", paymentStatus: "PAID", fulfillmentStatus: "PROCESSING", orderStatus: "processing" },
     { suffix: "SHIP", paymentStatus: "PAID", fulfillmentStatus: "SHIPPED", orderStatus: "shipped" },
     { suffix: "DONE", paymentStatus: "PAID", fulfillmentStatus: "DELIVERED", orderStatus: "delivered" },
+    { suffix: "PAYAPPROVE", paymentStatus: "PENDING_CONFIRMATION", fulfillmentStatus: "UNFULFILLED", orderStatus: "pending" },
+    { suffix: "PAYREJECT", paymentStatus: "PENDING_CONFIRMATION", fulfillmentStatus: "UNFULFILLED", orderStatus: "pending" },
   ] as const;
 
   const suborders: any[] = [];
@@ -748,6 +750,8 @@ async function ensureFixture() {
     attributeId: color.id,
     suborderId: suborders[0]?.id ?? null,
     fulfillmentSuborderId: suborders[1]?.id ?? null,
+    paymentApproveSuborderId: suborders[4]?.id ?? null,
+    paymentRejectSuborderId: suborders[5]?.id ?? null,
     notificationId: notificationRecord?.id ?? null,
     secondaryNotificationId: stockNotificationRecord?.id ?? null,
     password: PASSWORD,
@@ -1035,6 +1039,73 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureFixture>>) 
     );
   }
 
+  consoleErrors.length = 0;
+  await page.goto(`/seller/stores/${fixture.storeSlug}/payment-review?q=SELLER2026-PAYAPPROVE`, {
+    waitUntil: "networkidle",
+    timeout: 45_000,
+  });
+  await page.getByText(/Payment Review/i).first().waitFor({ state: "visible", timeout: 15_000 });
+  await page.getByText("PAY-SELLER2026-PAYAPPROVE").waitFor({ state: "visible", timeout: 20_000 });
+  await page.getByLabel("Reviewer Note").fill("Approved by Seller 2026 smoke.");
+  await page.getByRole("button", { name: /^Approve Payment$/i }).click();
+  await page.getByText("Payment approved.").waitFor({ state: "visible", timeout: 25_000 });
+  const approveReviewText = await page.locator("body").innerText({ timeout: 10_000 }).catch(() => "");
+  await page.goto(`/seller/stores/${fixture.storeSlug}/orders/${fixture.paymentApproveSuborderId}`, {
+    waitUntil: "networkidle",
+    timeout: 45_000,
+  });
+  const approveOrderText = await page.locator("body").innerText({ timeout: 10_000 }).catch(() => "");
+  const paymentApproveReview = {
+    name: "payment-review-approve-mutation",
+    suborderId: fixture.paymentApproveSuborderId,
+    finalUrl: page.url().replace(CLIENT_URL, ""),
+    status:
+      /Payment approved\./i.test(approveReviewText) &&
+      /Payment information stays read-only/i.test(approveOrderText)
+        ? "PASS"
+        : "FAIL",
+    consoleErrors: [...consoleErrors],
+    snippet: approveReviewText.replace(/\s+/g, " ").trim().slice(0, 180),
+  };
+  if (paymentApproveReview.status !== "PASS" || consoleErrors.length) {
+    throw new Error(
+      `Payment approve smoke failed: ${paymentApproveReview.status}, console ${consoleErrors.join(" | ")}`
+    );
+  }
+
+  consoleErrors.length = 0;
+  await page.goto(`/seller/stores/${fixture.storeSlug}/payment-review?q=SELLER2026-PAYREJECT`, {
+    waitUntil: "networkidle",
+    timeout: 45_000,
+  });
+  await page.getByText("PAY-SELLER2026-PAYREJECT").waitFor({ state: "visible", timeout: 20_000 });
+  await page.getByLabel("Reason").fill("Rejected by Seller 2026 smoke.");
+  await page.getByRole("button", { name: /^Reject Payment$/i }).click();
+  await page.getByText("Payment rejected.").waitFor({ state: "visible", timeout: 25_000 });
+  const rejectReviewText = await page.locator("body").innerText({ timeout: 10_000 }).catch(() => "");
+  await page.goto(`/seller/stores/${fixture.storeSlug}/orders/${fixture.paymentRejectSuborderId}`, {
+    waitUntil: "networkidle",
+    timeout: 45_000,
+  });
+  const rejectOrderText = await page.locator("body").innerText({ timeout: 10_000 }).catch(() => "");
+  const paymentRejectReview = {
+    name: "payment-review-reject-mutation",
+    suborderId: fixture.paymentRejectSuborderId,
+    finalUrl: page.url().replace(CLIENT_URL, ""),
+    status:
+      /Payment rejected\./i.test(rejectReviewText) &&
+      /Payment information stays read-only/i.test(rejectOrderText)
+        ? "PASS"
+        : "FAIL",
+    consoleErrors: [...consoleErrors],
+    snippet: rejectReviewText.replace(/\s+/g, " ").trim().slice(0, 180),
+  };
+  if (paymentRejectReview.status !== "PASS" || consoleErrors.length) {
+    throw new Error(
+      `Payment reject smoke failed: ${paymentRejectReview.status}, console ${consoleErrors.join(" | ")}`
+    );
+  }
+
   await page.goto(`/seller/stores/${fixture.otherStoreSlug}`, { waitUntil: "networkidle", timeout: 45_000 });
   const crossStoreText = await page.locator("body").innerText({ timeout: 10_000 }).catch(() => "");
   const crossStore = {
@@ -1087,6 +1158,8 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureFixture>>) 
     addProductCta,
     couponLifecycle,
     orderFulfillment,
+    paymentApproveReview,
+    paymentRejectReview,
     crossStore,
     memberResults,
     sellerApiStatuses,

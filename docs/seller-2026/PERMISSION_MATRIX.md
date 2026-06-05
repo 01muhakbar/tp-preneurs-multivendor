@@ -51,7 +51,8 @@
 | Orders | Add/update tracking number | `ORDER_FULFILLMENT_UPDATE` | `orders` | Disabled pending persisted shipment tracking support. |
 | Orders | Print label / receipt | `ORDER_FULFILLMENT_UPDATE` | `orders` | Disabled pending endpoint review. |
 | Orders | Bulk fulfillment / bulk delete | `ORDER_FULFILLMENT_UPDATE` | `orders` | Disabled pending endpoint and destructive-flow review. |
-| Payments | Approve/reject/refund payment | `PAYMENT_REVIEW_READ` | `payments` | Disabled. |
+| Payments | Approve/reject payment proof | `PAYMENT_REVIEW_READ` + backend owner/admin review governance | `payments` | Enabled on live payment review route. |
+| Payments | Request clarification/refund/dispute payment | `PAYMENT_REVIEW_READ` | `payments` | Disabled pending backend lifecycle/governance review. |
 | Payments | Submit profile, upload documents, change payout account | `STORE_PAYMENT_PROFILE_SUBMIT` | `payments` | Disabled. |
 | Team | Invite/resend/cancel invitation | `TEAM_INVITE` | `team` | Disabled. |
 | Team | Update role / save changes | `TEAM_ROLE_UPDATE` | `team` | Disabled. |
@@ -61,12 +62,13 @@
 
 ## Current Mutation Policy
 - A button can become active only when the user has the required permission and the matching mutation flag is enabled.
-- Only `storeProfileUpdate`, `productDraftSave`, `coupons`, `orders`, and notification read-state mutations are enabled; all other Seller 2026 mutation flags remain `false`.
+- Only `storeProfileUpdate`, `productDraftSave`, `coupons`, `orders`, payment review approve/reject, and notification read-state mutations are enabled; all other Seller 2026 mutation flags remain `false`.
 - Frontend permission gating is UX readiness only; backend permission and store-scope enforcement remain the source of truth.
 
 ## Known Gaps
 - Some legacy permissions are still aliased, such as `STORE_VIEW`, `PRODUCT_VIEW`, `CATEGORY_VIEW`, `ATTRIBUTE_VIEW`, and `COUPON_VIEW`.
 - Category and attribute mutation-specific permissions are not modeled yet, so those actions stay disabled behind read permissions and mutation flags.
+- Payment review mutation enablement depends on backend `canReview` governance because the backend limits mutation to `STORE_OWNER` and `STORE_ADMIN` even when `ORDER_MANAGER` can view payment review.
 - Seller 2026 `.jsx` files are ignored by the current ESLint config.
 
 ## Next Phase

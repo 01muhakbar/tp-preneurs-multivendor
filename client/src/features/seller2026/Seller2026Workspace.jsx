@@ -1681,8 +1681,15 @@ function OperationsPage({
     courierCode: "",
     courierService: "",
   });
+  const [paymentReviewForm, setPaymentReviewForm] = useState({
+    note: "",
+    reason: "",
+  });
+  const [paymentReviewStatus, setPaymentReviewStatus] = useState({ type: "idle", message: "" });
   const canFulfillOrders = Boolean(operationsMutation?.canFulfill);
   const isFulfillmentPending = Boolean(operationsMutation?.updatingStatusId);
+  const canReviewPayments = Boolean(operationsMutation?.canReview);
+  const isPaymentReviewPending = Boolean(operationsMutation?.approvingId || operationsMutation?.rejectingId || operationsMutation?.isMutating);
   const fulfillmentActionTitle = canFulfillOrders
     ? undefined
     : actionTitle(seller2026Permissions, "ORDER_FULFILLMENT_UPDATE", "orders");
@@ -1708,6 +1715,44 @@ function OperationsPage({
     }
   };
   const firstEnabledAction = (actions = []) => actions.find((action) => action?.enabled !== false) || null;
+  const runPaymentReviewAction = async (selectedPayment, action) => {
+    if (!selectedPayment?.id || isPaymentReviewPending) return;
+    const selectedCanReview = Boolean(canReviewPayments && selectedPayment.canReview);
+    if (!selectedCanReview) {
+      setPaymentReviewStatus({
+        type: "error",
+        message: selectedPayment.reviewReason || operationsData?.governance?.note || "Payment is not eligible for seller review.",
+      });
+      return;
+    }
+    if (action === "REJECT" && !paymentReviewForm.reason.trim()) {
+      setPaymentReviewStatus({ type: "error", message: "Reason is required before rejecting a payment." });
+      return;
+    }
+    setPaymentReviewStatus({ type: "idle", message: "" });
+    try {
+      if (action === "APPROVE") {
+        await operationsMutation?.approvePayment?.({
+          paymentId: selectedPayment.id,
+          payload: { note: paymentReviewForm.note },
+        });
+        setPaymentReviewStatus({ type: "success", message: "Payment approved." });
+      } else if (action === "REJECT") {
+        await operationsMutation?.rejectPayment?.({
+          paymentId: selectedPayment.id,
+          payload: { reason: paymentReviewForm.reason, note: paymentReviewForm.reason },
+        });
+        setPaymentReviewStatus({ type: "success", message: "Payment rejected." });
+      }
+      setPaymentReviewForm({ note: "", reason: "" });
+      operationsState?.refetch?.();
+    } catch (error) {
+      setPaymentReviewStatus({
+        type: "error",
+        message: error?.message || "Payment review mutation failed.",
+      });
+    }
+  };
 
   if (isLive && operationsView === "orders") {
     const rows = operationsData?.suborders || [];
@@ -1797,6 +1842,10 @@ function OperationsPage({
   if (isLive && operationsView === "payment-review") {
     const rows = operationsData?.payments || [];
     const selected = operationsData?.selectedPayment || null;
+    const selectedCanReview = Boolean(canReviewPayments && selected?.canReview);
+    const paymentActionTitle = selectedCanReview
+      ? undefined
+      : selected?.reviewReason || operationsData?.governance?.note || actionTitle(seller2026Permissions, "PAYMENT_REVIEW_READ", "payments");
     return (
       <Shell section="operations" mode={mode} storeContext={storeContext}>
         {operationsState?.isError ? <Card title="Payment review unavailable" hint="Live payment review data could not load." actions={<button type="button" className="s26-btn" onClick={operationsState?.refetch}>Retry</button>} /> : null}
@@ -1810,15 +1859,21 @@ function OperationsPage({
             </div>
             <div className="s26-filter-row"><input className="s26-search" aria-label="Search payments" placeholder="Search payment, invoice, customer" value={searchValue} onChange={(event) => queryChange({ search: event.target.value, page: 1 })} /><select className="s26-control" aria-label="Filter payment status" value={operationsQuery?.status || "all"} onChange={(event) => queryChange({ status: event.target.value, page: 1 })}><option value="all">Pending Confirmation</option><option value="PAID">Paid</option><option value="REJECTED">Rejected</option><option value="UNPAID">Unpaid</option></select></div>
             {operationsState?.isLoading ? <p className="hint">Loading payment review...</p> : null}
+            {paymentReviewStatus.message ? <p className={paymentReviewStatus.type === "error" ? "s26-field-error" : "hint"}>{paymentReviewStatus.message}</p> : null}
             {!operationsState?.isLoading && rows.length === 0 ? <div className="s26-empty"><strong>Belum ada pembayaran yang perlu direview.</strong><p>Payment proof akan muncul jika ada pembayaran pending.</p></div> : null}
             {rows.length ? <DataTable columns={["Payment", "Invoice", "Customer", "Amount", "Method", "Status", "Risk"]} rows={rows} renderRow={(row) => <tr key={row.id}><td><strong>{row.paymentNo}</strong><div className="s26-sub">{row.receivedAt || "-"}</div></td><td>{row.invoiceNo || "-"}</td><td>{row.customerName || "-"}</td><td>{formatRupiah(row.amount)}</td><td>{row.method || "-"}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td>{row.riskLabel || "unknown"}</td></tr>} /> : null}
           </Card>
-          <Card title="Selected Payment Detail" hint="Transaction breakdown, proof preview, risk checklist, and audit timeline." actions={<><button type="button" className="s26-btn success" disabled title={actionTitle(seller2026Permissions, "PAYMENT_REVIEW_READ", "payments")}>Mark Safe</button><button type="button" className="s26-btn danger" disabled title={actionTitle(seller2026Permissions, "PAYMENT_REVIEW_READ", "payments")}>Reject / Refund</button></>}>
+          <Card title="Selected Payment Detail" hint="Transaction breakdown, proof preview, verification checklist, and seller review decision." actions={<><button type="button" className="s26-btn success" disabled={!selectedCanReview || isPaymentReviewPending} title={paymentActionTitle} onClick={() => runPaymentReviewAction(selected, "APPROVE")}>{operationsMutation?.approvingId === selected?.id ? "Approving..." : "Approve Payment"}</button><button type="button" className="s26-btn danger" disabled={!selectedCanReview || isPaymentReviewPending || !paymentReviewForm.reason.trim()} title={!paymentReviewForm.reason.trim() ? "Reason is required before rejecting a payment." : paymentActionTitle} onClick={() => runPaymentReviewAction(selected, "REJECT")}>{operationsMutation?.rejectingId === selected?.id ? "Rejecting..." : "Reject Payment"}</button><button type="button" className="s26-btn" disabled title="No seller request-clarification endpoint is available yet.">Request Clarification</button></>}>
             {selected ? (
               <>
-                <div className="s26-card soft"><h3>Payment Proof</h3>{selected.proofUrl ? <img className="s26-logo-preview" src={selected.proofUrl} alt="" /> : <p className="hint">No payment proof image available.</p>}</div>
+                <div className="s26-card soft"><h3>Review Proof</h3>{selected.proofUrl ? <img className="s26-logo-preview" src={selected.proofUrl} alt="" /> : <p className="hint">No payment proof image available.</p>}{selected.buyerNote ? <p className="hint">Buyer Note: {selected.buyerNote}</p> : null}{selected.reviewReason && !selected.canReview ? <p className="hint">{selected.reviewReason}</p> : null}</div>
                 <div className="s26-checklist">{selected.breakdown.map((item) => <div className="s26-check-row" key={item.label}><span>{item.label}</span><strong>{typeof item.value === "number" ? formatRupiah(item.value) : item.value}</strong></div>)}</div>
-                <div className="s26-checklist">{selected.riskChecks.map((item) => <div className="s26-check-row" key={item.label}><span>{item.label}</span><span className={statusClass(item.status)}>{item.status}</span></div>)}</div>
+                <div className="s26-checklist" aria-label="Verification Checklist">{selected.riskChecks.map((item) => <div className="s26-check-row" key={item.label}><span>{item.label}</span><span className={statusClass(item.status)}>{item.status}</span></div>)}</div>
+                <div className="s26-form-grid" style={{ marginTop: 14 }}>
+                  <div className="s26-field"><label htmlFor="s26-payment-reviewer-note">Reviewer Note</label><textarea id="s26-payment-reviewer-note" value={paymentReviewForm.note} maxLength={2000} onChange={(event) => setPaymentReviewForm((current) => ({ ...current, note: event.target.value }))} placeholder="Optional note for approved proof." disabled={!selectedCanReview || isPaymentReviewPending} /></div>
+                  <div className="s26-field"><label htmlFor="s26-payment-reject-reason">Reason</label><textarea id="s26-payment-reject-reason" value={paymentReviewForm.reason} maxLength={2000} onChange={(event) => setPaymentReviewForm((current) => ({ ...current, reason: event.target.value }))} placeholder="Required before rejecting payment proof." disabled={!selectedCanReview || isPaymentReviewPending} />{!paymentReviewForm.reason.trim() ? <span className="hint">Reason is required for Reject Payment.</span> : null}</div>
+                </div>
+                <p className="hint" style={{ marginTop: 12 }}>{operationsData?.governance?.note || "Seller review updates only this store-scoped payment proof. Order payment status remains read-only from the order page."}</p>
               </>
             ) : <div className="s26-empty"><strong>No payment selected.</strong><p>Payment detail appears after pending payment data is available.</p></div>}
           </Card>
