@@ -1,4 +1,4 @@
-import Seller2026Workspace from "../../features/seller2026/Seller2026Workspace.jsx";
+import Seller2026Workspace from "../../features/sellerWorkspace2026/Seller2026Workspace.jsx";
 
 export function Seller2026DashboardPage() {
   return <Seller2026Workspace section="dashboard" />;
@@ -6,6 +6,13 @@ export function Seller2026DashboardPage() {
 
 export function Seller2026StorefrontPage() {
   return <Seller2026Workspace section="storefront" />;
+}
+
+/** Explicit alias for /seller-2026-preview/:storeSlug/store-profile.
+ *  Uses section="storefront" which maps to useSellerWorkspace2026StoreProfile in the preview wrapper.
+ */
+export function Seller2026StoreProfilePage({ productionMode = false }) {
+  return <Seller2026Workspace section="storefront" productionMode={productionMode} />;
 }
 
 export function Seller2026ProductsPage() {
@@ -65,3 +72,13 @@ export function Seller2026NotificationsPage() {
 }
 
 export default Seller2026DashboardPage;
+
+export * from "./Seller2026OrdersPreviewPage.jsx";
+
+export * from "./Seller2026PaymentCenterPreviewPage.jsx";
+
+export * from "./Seller2026CouponsPreviewPage.jsx";
+
+export * from "./Seller2026TeamPreviewPage.jsx";
+
+export * from "./Seller2026AnalyticsSyncPreviewPage.jsx";

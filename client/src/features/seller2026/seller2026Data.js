@@ -21,19 +21,19 @@ export const navGroups = [
 ];
 
 export const kpis = [
-  { label: "Total Revenue", value: "Rp 128.450.000", change: "+18,6% vs minggu lalu", tone: "indigo" },
-  { label: "Total Orders", value: "1.248", change: "+12,4% vs minggu lalu", tone: "emerald" },
-  { label: "Products Sold", value: "2.842", change: "+15,7% vs minggu lalu", tone: "teal" },
-  { label: "Conversion Rate", value: "3,24%", change: "+0,42 pp vs minggu lalu", tone: "violet" },
+  { label: "Total Revenue", value: "Rp 128.450.000", change: "+18,6% vs last week", tone: "indigo" },
+  { label: "Total Orders", value: "1.248", change: "+12,4% vs last week", tone: "emerald" },
+  { label: "Products Sold", value: "2.842", change: "+15,7% vs last week", tone: "teal" },
+  { label: "Conversion Rate", value: "3,24%", change: "+0,42 pp vs last week", tone: "violet" },
 ];
 
 export const readiness = [
-  { label: "Store Profile", status: "Selesai" },
-  { label: "Upload Logo & Banner", status: "Selesai" },
-  { label: "Tambah Produk >= 10", status: "Selesai" },
-  { label: "Atur Pengiriman", status: "Selesai" },
-  { label: "Atur Pembayaran", status: "Dalam Proses" },
-  { label: "Verifikasi Identitas", status: "Belum" },
+  { label: "Store Profile", status: "Completed" },
+  { label: "Upload Logo & Banner", status: "Completed" },
+  { label: "Add Products >= 10", status: "Completed" },
+  { label: "Setup Shipping", status: "Completed" },
+  { label: "Setup Payment", status: "In Progress" },
+  { label: "Identity Verification", status: "Not Started" },
 ];
 
 export const products = [
@@ -56,11 +56,11 @@ export const topProducts = [
 ];
 
 export const suborders = [
-  { id: "SO-250524-00132", customer: "Andi Pratama", status: "Menunggu Pembayaran", time: "24 Mei 2026, 14:32" },
-  { id: "SO-250524-00131", customer: "Siti Nurhaliza", status: "Dikemas", time: "24 Mei 2026, 13:58" },
-  { id: "SO-250524-00130", customer: "Rizky Maulana", status: "Dikirim", time: "24 Mei 2026, 11:24" },
-  { id: "SO-250523-00129", customer: "Dewi Anggraini", status: "Terkirim", time: "23 Mei 2026, 18:45" },
-  { id: "SO-250523-00128", customer: "Budi Santoso", status: "Selesai", time: "23 Mei 2026, 16:12" },
+  { id: "SO-250524-00132", customer: "Andi Pratama", status: "Pending Payment", time: "24 Mei 2026, 14:32" },
+  { id: "SO-250524-00131", customer: "Siti Nurhaliza", status: "Packed", time: "24 Mei 2026, 13:58" },
+  { id: "SO-250524-00130", customer: "Rizky Maulana", status: "Shipped", time: "24 Mei 2026, 11:24" },
+  { id: "SO-250523-00129", customer: "Dewi Anggraini", status: "Delivered", time: "23 Mei 2026, 18:45" },
+  { id: "SO-250523-00128", customer: "Budi Santoso", status: "Completed", time: "23 Mei 2026, 16:12" },
 ];
 
 export const orders = [

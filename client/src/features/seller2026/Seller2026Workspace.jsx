@@ -31,13 +31,13 @@ const SECTION_META = {
     active: "dashboard",
     eyebrow: "Seller Workspace - Dashboard",
     title: "Dashboard & Growth Command Center",
-    description: "Ringkasan performa toko, readiness, analytics, order terbaru, dan payout dalam satu tempat.",
+    description: "Store performance summary, readiness, analytics, recent orders, and payouts in one place.",
   },
   storefront: {
     active: "store-profile",
     eyebrow: "Seller Workspace - Storefront",
     title: "Store Profile, Microsite & Brand Control",
-    description: "Kelola identitas toko, preview microsite publik, kesiapan launch, dan tema brand.",
+    description: "Manage store identity, preview public microsite, launch readiness, and brand themes.",
   },
   products: {
     active: "products",
@@ -105,7 +105,7 @@ const LIVE_ROUTES_BY_KEY = {
   settings: "/settings",
 };
 
-function Shell({ section = "dashboard", mode = "standalone", storeContext = null, children }) {
+function Shell({ section = "dashboard", mode = "standalone", productionMode = false, storeContext = null, children }) {
   const { storeSlug } = useParams();
   const initialTheme =
     typeof window !== "undefined" && window.localStorage.getItem("seller2026-theme") === "dark"
@@ -170,7 +170,7 @@ function Shell({ section = "dashboard", mode = "standalone", storeContext = null
               <p className="s26-eyebrow">{meta.eyebrow}</p>
               <div className="s26-title-row">
                 <h1>{meta.title}</h1>
-                <span className="s26-pill">2026 UI</span>
+                {!productionMode && <span className="s26-pill">2026 UI</span>}
               </div>
               <p className="s26-topbar-desc">{meta.description}</p>
             </div>
@@ -579,7 +579,7 @@ function DashboardPage({ dashboardData = null, dashboardState = null, mode, stor
             <div className="s26-progress" style={{ "--s26-progress": `${readinessPercent}%` }}><span>{isLoading ? "..." : `${readinessPercent}%`}</span></div>
             <div>
               <strong>{dashboardData?.readinessLabel || "Good progress!"}</strong>
-              <p className="hint">{dashboardData?.readinessHint || "Toko sudah siap untuk ditingkatkan."}</p>
+              <p className="hint">{dashboardData?.readinessHint || "Store is ready to scale."}</p>
             </div>
           </div>
           <div className="s26-checklist">
@@ -616,6 +616,7 @@ function StorefrontPage({
   mode,
   storeContext,
   seller2026Permissions,
+  productionMode = false,
 }) {
   const isLive = Boolean(storefrontData);
   const previewStore = {
@@ -636,7 +637,7 @@ function StorefrontPage({
       { label: "Shipping origin", status: "complete" },
     ],
     socials: [{ channel: "Instagram", value: "@oasesehat" }],
-    saveStatus: "Identitas, kontak, alamat, sosial media, dan policy toko.",
+    saveStatus: "Identity, contacts, addresses, social media, and store policies.",
   };
   const store = storefrontData?.store || previewStore;
   const serverForm = useMemo(() => storeProfileFormFromStore(store), [storefrontData?.store]);
@@ -646,7 +647,7 @@ function StorefrontPage({
   const microsite = storefrontData?.microsite || {
     heroTitle: "Alami. Sehat.",
     heroSubtitle: "Produk pilihan terbaik untuk keluarga sehat Indonesia.",
-    heroCtaLabel: "Belanja Sekarang",
+    heroCtaLabel: "Shop Now",
     categories: [
       { id: "herbal", name: "Herbal" },
       { id: "vitamin", name: "Vitamin" },
@@ -659,11 +660,11 @@ function StorefrontPage({
     typography: "Inter / System",
     sections: [
       { key: "hero", label: "Hero Banner", enabled: true },
-      { key: "categories", label: "Kategori Populer", enabled: true },
-      { key: "featured", label: "Produk Unggulan", enabled: true },
-      { key: "benefits", label: "Keunggulan Toko", enabled: true },
-      { key: "testimonials", label: "Testimoni", enabled: true },
-      { key: "about", label: "Tentang Kami", enabled: false },
+      { key: "categories", label: "Popular Categories", enabled: true },
+      { key: "featured", label: "Featured Products", enabled: true },
+      { key: "benefits", label: "Store Benefits", enabled: true },
+      { key: "testimonials", label: "Testimonials", enabled: true },
+      { key: "about", label: "About Us", enabled: false },
     ],
   };
   const previewHref = store.slug ? `/store/${encodeURIComponent(store.slug)}` : "#";
@@ -680,9 +681,9 @@ function StorefrontPage({
   const saveTitle = !canUpdateProfile
     ? actionTitle(seller2026Permissions, "STORE_PROFILE_UPDATE", "storeProfileUpdate")
     : !isDirty
-      ? "Tidak ada perubahan untuk disimpan."
+      ? "No changes to save."
       : !isProfileValid
-        ? "Perbaiki field yang belum valid."
+        ? "Fix invalid fields."
         : undefined;
   const setProfileField = (field, value) => {
     setProfileForm((current) => ({ ...current, [field]: value }));
@@ -697,7 +698,7 @@ function StorefrontPage({
     setSubmitStatus({ type: "idle", message: "" });
     try {
       await storefrontMutation.submit(buildStoreProfileUpdatePayload(profileForm));
-      setSubmitStatus({ type: "success", message: "Profil toko berhasil diperbarui." });
+      setSubmitStatus({ type: "success", message: "Store profile successfully updated." });
     } catch (error) {
       setSubmitStatus({
         type: "error",
@@ -715,7 +716,7 @@ function StorefrontPage({
         label: item.label,
         status:
           item.status === "complete"
-            ? "Selesai"
+            ? "Completed"
             : item.status === "missing"
               ? "Belum"
               : "Dalam Proses",
@@ -735,7 +736,7 @@ function StorefrontPage({
       ];
   const featuredProducts = microsite.featuredProducts?.length
     ? microsite.featuredProducts
-    : (isLive ? ["Produk Unggulan", "Produk Baru", "Produk Populer", "Pilihan Toko"] : ["Kunyit Ekstrak", "Madu Hutan", "Vitamin D3", "Teh Daun Sirsak"]).map((name, index) => ({
+    : (isLive ? ["Featured Products", "New Arrivals", "Popular Products", "Store Choice"] : ["Turmeric Extract", "Forest Honey", "Vitamin D3", "Soursop Leaf Tea"]).map((name, index) => ({
         id: `fallback-${index}`,
         name,
         imageUrl: null,
@@ -743,19 +744,21 @@ function StorefrontPage({
         badge: "Preview",
       }));
 
+  const mediaUploadTitle = productionMode ? "Media upload will be connected after storage validation." : disabledTodoTitle;
+
   return (
-    <Shell section="storefront" mode={mode} storeContext={storeContext}>
+    <Shell section="storefront" mode={mode} productionMode={productionMode} storeContext={storeContext}>
       {storefrontState?.isError ? (
         <Card
           title="Store profile data unavailable"
-          hint="Live store profile could not load completely. Safe fallback data remains visible below."
+          hint={productionMode ? "Live store profile data is unavailable. Showing fallback data." : "Live store profile could not load completely. Safe fallback data remains visible below."}
           actions={<button type="button" className="s26-btn" onClick={storefrontState?.refetch}>Retry</button>}
         />
       ) : null}
       <div className="s26-grid two">
         <Card
           title="Store Profile"
-          hint={isLive ? store.saveStatus : "Identitas, kontak, alamat, sosial media, dan policy toko."}
+          hint={isLive ? store.saveStatus : "Identity, contacts, addresses, social media, and store policies."}
           actions={
             <div className="s26-filter-row" style={{ marginBottom: 0 }}>
               <a className="s26-btn" href={previewHref} target="_blank" rel="noreferrer">
@@ -778,7 +781,7 @@ function StorefrontPage({
                 title={isLive ? saveTitle : disabledTodoTitle}
                 onClick={submitProfileForm}
               >
-                {isSubmittingProfile ? "Menyimpan..." : "Simpan Perubahan"}
+                {isSubmittingProfile ? "Saving..." : "Save Changes"}
               </button>
             </div>
           }
@@ -795,28 +798,28 @@ function StorefrontPage({
           ) : null}
           <div className="s26-grid two">
             <div className="s26-card soft">
-              <h3>Logo Toko</h3>
+              <h3>Store Logo</h3>
               {store.logoUrl ? (
                 <img className="s26-logo-preview" src={store.logoUrl} alt={`${store.name} logo`} />
               ) : (
                 <div className="s26-logo" style={{ marginTop: 12 }}>{(store.name || "TK").slice(0, 2).toUpperCase()}</div>
               )}
               <p className="hint">PNG/JPG maks 2MB</p>
-              <button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Ubah Logo</button>
+              <button type="button" className="s26-btn" disabled title={mediaUploadTitle}>Ubah Logo</button>
             </div>
             <div className="s26-hero s26-cover-preview" style={store.coverUrl ? { backgroundImage: `linear-gradient(135deg, rgba(15, 23, 42, .76), rgba(5, 150, 105, .58)), url(${store.coverUrl})` } : { minHeight: 160 }}>
               <div><h2 style={{ fontSize: 28 }}>{store.name || "Alami. Sehat."}</h2><p>{store.tagline || "Cover banner rekomendasi 1920x600px."}</p></div>
-              <button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Ubah Banner</button>
+              <button type="button" className="s26-btn" disabled title={mediaUploadTitle}>Ubah Banner</button>
             </div>
           </div>
           <div className="s26-form-grid" style={{ marginTop: 16 }}>
             <div className="s26-field">
               <label>Nama Toko</label>
-              <input value={profileForm.name || "Toko Kamu"} readOnly title="Nama toko masih admin-governed pada fase ini." />
+              <input value={profileForm.name || "Toko Kamu"} readOnly title={productionMode ? "Slug and domain changes require verification." : "Nama toko masih admin-governed pada fase ini."} />
             </div>
             <div className="s26-field">
               <label>Slug / URL</label>
-              <input value={profileForm.slug || "store-slug"} readOnly title="Slug tidak diedit pada fase mutation ini." />
+              <input value={profileForm.slug || "store-slug"} readOnly title={productionMode ? "Slug and domain changes require verification." : "Slug tidak diedit pada fase mutation ini."} />
             </div>
             {[
               ["Email", "email", "email"],
@@ -904,16 +907,16 @@ function StorefrontPage({
               </div>
             </div>
             <div className="s26-card soft">
-              <h3>Ringkasan Kebijakan</h3>
+              <h3>Policy Summary</h3>
               <div className="s26-checklist">
                 {policyItems.map((item) => <div className="s26-check-row" key={item.label}><span>{item.label}</span><span className={statusClass(item.status === "complete" ? "Active" : "Belum")}>{item.status}</span></div>)}
               </div>
-              <button type="button" className="s26-btn" disabled title={actionTitle(seller2026Permissions, "STORE_PROFILE_UPDATE", "storefront")}>Kelola Kebijakan</button>
+              <button type="button" className="s26-btn" disabled title={actionTitle(seller2026Permissions, "STORE_PROFILE_UPDATE", "storefront")}>Manage Policy</button>
             </div>
           </div>
         </Card>
-        <Card title="Microsite Preview" hint="Preview desktop dan mobile storefront publik." actions={<a className="s26-btn" href={previewHref} target="_blank" rel="noreferrer">Buka Microsite</a>}>
-          <div className="s26-hero"><div><h2>{microsite.heroTitle || "Alami. Sehat."}</h2><p>{microsite.heroSubtitle || "Produk pilihan terbaik untuk pelanggan toko."}</p><a className="s26-btn primary" href={previewHref} target="_blank" rel="noreferrer">{microsite.heroCtaLabel || "Belanja Sekarang"}</a></div><div style={{ fontSize: 42 }}>{store.logoUrl ? <img className="s26-hero-logo" src={store.logoUrl} alt="" /> : "Store"}</div></div>
+        <Card title="Microsite Preview" hint="Preview public desktop and mobile storefront." actions={<a className="s26-btn" href={previewHref} target="_blank" rel="noreferrer">Open Microsite</a>}>
+          <div className="s26-hero"><div><h2>{microsite.heroTitle || "Natural. Healthy."}</h2><p>{microsite.heroSubtitle || "The best products for our customers."}</p><a className="s26-btn primary" href={previewHref} target="_blank" rel="noreferrer">{microsite.heroCtaLabel || "Shop Now"}</a></div><div style={{ fontSize: 42 }}>{store.logoUrl ? <img className="s26-hero-logo" src={store.logoUrl} alt="" /> : "Store"}</div></div>
           <div className="s26-benefit-grid">
             {benefits.map((item) => <div className="s26-card soft" key={item.label}><strong>{item.label}</strong><p className="hint">{item.description}</p></div>)}
           </div>
@@ -930,7 +933,7 @@ function StorefrontPage({
       </div>
       <div className="s26-grid two">
         <Card title="Store Readiness" hint="Checklist siap launch dan verifikasi.">
-          <div style={{ display: "flex", gap: 18, alignItems: "center" }}><div className="s26-progress" style={{ "--s26-progress": `${liveReadiness.percent ?? 78}%` }}><span>{storefrontState?.isLoading ? "..." : `${liveReadiness.percent ?? 78}%`}</span></div><div><strong>{liveReadiness.percent >= 100 ? "Siap Diluncurkan" : "Perlu Dilengkapi"}</strong><p className="hint">{liveReadiness.completed ?? 8} selesai, {liveReadiness.missing ?? 0} perlu dilengkapi.</p></div></div>
+          <div style={{ display: "flex", gap: 18, alignItems: "center" }}><div className="s26-progress" style={{ "--s26-progress": `${liveReadiness.percent ?? 78}%` }}><span>{storefrontState?.isLoading ? "..." : `${liveReadiness.percent ?? 78}%`}</span></div><div><strong>{liveReadiness.percent >= 100 ? "Ready to Launch" : "Needs Completion"}</strong><p className="hint">{liveReadiness.completed ?? 8} completed, {liveReadiness.missing ?? 0} needs completion.</p></div></div>
           <div className="s26-checklist">{readinessItems.map((item) => <div className="s26-check-row" key={item.label}><span>{item.label}</span><span className={statusClass(item.status)}>{item.status}</span></div>)}</div>
           <div className="s26-checklist" style={{ marginTop: 16 }}>{(liveReadiness.verifications || []).map((item) => <div className="s26-check-row" key={item.label}><span>{item.label}</span><span className={statusClass(item.status === "verified" ? "Active" : item.status)}>{item.status}</span></div>)}</div>
           <button type="button" className="s26-btn primary" style={{ marginTop: 16 }} disabled title={actionTitle(seller2026Permissions, "STORE_PROFILE_UPDATE", "storefront")}>Submit untuk Review</button>
@@ -2465,6 +2468,7 @@ function TeamPage({
 export function Seller2026Workspace({
   section = "dashboard",
   mode = "standalone",
+  productionMode = false,
   storeContext = null,
   dashboardData = null,
   dashboardState = null,
@@ -2537,6 +2541,7 @@ export function Seller2026Workspace({
   return (
     <Component
       mode={mode}
+      productionMode={productionMode}
       storeContext={storeContext}
       dashboardData={dashboardData}
       dashboardState={dashboardState}

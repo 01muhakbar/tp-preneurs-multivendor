@@ -137,6 +137,179 @@ Seller Workspace 2026 live pages use existing store-scoped seller APIs and selle
 | Notification | Mark all as read | WIRED_AND_TESTED | Store-scoped endpoint is wired in Seller 2026 UI and smoke-tested with fixture store `200`. |
 | Team Audit | Export | NEEDS_BACKEND_REVIEW | Audit list API exists; no clear export endpoint was confirmed, so export stays disabled. |
 
+1. `SELLER-WORKSPACE-2026-PROD-ADOPT-COUPONS-22`
+2. `SELLER-WORKSPACE-2026-PROD-HARDEN-TEAM-23`
+
+## Seller Workspace 2026 Production Hardening — Coupons
+
+Status: COUPONS_HARDENED_PENDING_ADOPTION
+
+Scope:
+- Coupons 2026 list/attribution workflow audited and hardened.
+- Coupon owner/scope guardrails audited.
+- Destructive mutation guardrails audited.
+- Checkout validation unchanged requirement documented.
+- Production route is not replaced in this task.
+
+Preview Route:
+- `/seller-2026-preview/:storeSlug/coupons`
+
+Future Production Route:
+- `/seller/stores/:storeSlug/catalog/coupons`
+
+Feature Flag Prepared:
+- `VITE_SELLER_WORKSPACE_2026_COUPONS_ENABLED`
+
+Guardrail:
+- Default flag state is off.
+- Backend API contracts are not changed.
+- Existing Seller Coupons page is not deleted.
+- Checkout coupon validation is not changed.
+- Seller cannot mutate platform/admin coupons.
+- Destructive coupon mutation requires attribution validation and confirmation.
+- Rollback is keeping legacy Coupons route.
+
+Next:
+1. `SELLER-WORKSPACE-2026-PROD-ADOPT-COUPONS-22`
+2. `SELLER-WORKSPACE-2026-PROD-HARDEN-TEAM-23`
+
+## Seller Workspace 2026 Production Adoption — Coupons
+
+Status: COUPONS_PRODUCTION_ADOPTION_FLAGGED
+
+Scope:
+- Coupons 2026 can be adopted on production Coupons route via feature flag.
+- Legacy Seller Coupons remains available as rollback.
+- Preview route remains available.
+- Coupon mutations remain disabled until attribution and confirmation workflows are validated.
+
+Production Route:
+- `/seller/stores/:storeSlug/catalog/coupons`
+
+Preview Route:
+- `/seller-2026-preview/:storeSlug/coupons`
+
+Feature Flags:
+- `VITE_SELLER_WORKSPACE_2026_ENABLED`
+- `VITE_SELLER_WORKSPACE_2026_COUPONS_ENABLED`
+
+Guardrail:
+- Default flag state is off.
+- Backend API contracts are not changed.
+- Existing Seller Coupons page is not deleted.
+- Checkout coupon validation is not changed.
+- Seller cannot mutate platform/admin coupons.
+- Create/Edit/Delete/Archive remain disabled unless attribution and confirmation are validated.
+- Rollback is feature-flag off.
+
+Next:
+1. `SELLER-WORKSPACE-2026-PROD-ADOPT-TEAM-24`
+2. `SELLER-WORKSPACE-2026-PROD-HARDEN-PAYMENT-CENTER-25`
+
+## Seller Workspace 2026 Production Hardening — Team
+
+Status: TEAM_HARDENED_PENDING_ADOPTION
+
+Scope:
+- Team 2026 members/roles/audit workflow audited and hardened.
+- Permission matrix is informational and backend-owned.
+- Team mutation guardrails audited.
+- Production route is not replaced in this task.
+
+Preview Route:
+- `/seller-2026-preview/:storeSlug/team`
+
+Future Production Routes:
+- `/seller/stores/:storeSlug/team`
+- `/seller/stores/:storeSlug/team/audit`
+
+Feature Flag Prepared:
+- `VITE_SELLER_WORKSPACE_2026_TEAM_ENABLED`
+
+Guardrail:
+- Default flag state is off.
+- Backend API contracts are not changed.
+- Existing Seller Team pages are not deleted.
+- Backend permissions remain final enforcement.
+- UI permission matrix is informational only.
+- Team mutations remain disabled until permission workflow validation.
+- Owner/current-user destructive actions remain blocked.
+- Rollback is keeping legacy Team route.
+
+Next:
+1. `SELLER-WORKSPACE-2026-PROD-HARDEN-ANALYTICS-SYNC-27`
+2. `SELLER-WORKSPACE-2026-PROD-FINAL-SMOKE-28`
+
+## Seller Workspace 2026 Production Adoption — Payment Center
+
+Status: PAYMENT_CENTER_PRODUCTION_ADOPTION_FLAGGED_READ_ONLY
+
+Scope:
+- Payment Center 2026 can be adopted on production payment routes via feature flag.
+- Legacy Seller Payment Review/Profile remain available as rollback.
+- Preview route remains available.
+- Production adoption is read-only first.
+
+Production Routes:
+- `/seller/stores/:storeSlug/payment-review`
+- `/seller/stores/:storeSlug/payment-profile`
+
+Preview Route:
+- `/seller-2026-preview/:storeSlug/payment-center`
+
+Feature Flags:
+- `VITE_SELLER_WORKSPACE_2026_ENABLED`
+- `VITE_SELLER_WORKSPACE_2026_PAYMENT_CENTER_ENABLED`
+
+Guardrail:
+- Default flag state is off.
+- Backend API contracts are not changed.
+- Existing Seller Payment pages are not deleted.
+- Admin/payment audit remains final authority.
+- Seller cannot self-activate payout profile.
+- Payment approve/reject/recheck actions remain disabled until confirmation workflow is validated.
+- Settlement/payout mutation remains unavailable from Seller UI 2026.
+- Rollback is feature-flag off.
+
+Next:
+1. `SELLER-WORKSPACE-2026-PROD-HARDEN-ANALYTICS-SYNC-27`
+2. `SELLER-WORKSPACE-2026-PROD-FINAL-SMOKE-28`
+
+## Seller Workspace 2026 Production Hardening — Analytics & Storefront Sync
+
+Status: ANALYTICS_SYNC_HARDENED_PREVIEW_ONLY
+
+Scope:
+- Analytics & Storefront Sync 2026 workflow audited and hardened.
+- Analytics/read-only data mapping remains available in preview.
+- Storefront sync/public preview remains read-only.
+- Production route is not introduced in this task.
+
+Preview Route:
+- `/seller-2026-preview/:storeSlug/analytics-sync`
+
+Production Route:
+- Not adopted yet / no canonical production route assigned.
+
+Feature Flag Prepared:
+- `VITE_SELLER_WORKSPACE_2026_ANALYTICS_SYNC_ENABLED`
+
+Guardrail:
+- Default flag state is off.
+- Backend API contracts are not changed.
+- Public storefront visibility is not changed.
+- Product visibility/publish status is not changed.
+- Sync Now/Rebuild Index/Publish Storefront remain disabled.
+- Storefront preview is read-only.
+- Rollback is keeping preview-only module.
+
+Readiness:
+- `PREVIEW_ONLY` until production route strategy and public visibility workflow are validated.
+
+Next:
+1. `SELLER-WORKSPACE-2026-PROD-FINAL-SMOKE-28`
+2. `SELLER-WORKSPACE-2026-RELEASE-NOTES-29`
+
 ## Seller Workspace 2026 Coupon Lifecycle Mutation Status
 
 - Date: 2026-06-03.
@@ -170,3 +343,291 @@ Seller Workspace 2026 live pages use existing store-scoped seller APIs and selle
 Notification mutation smoke assertion: fixture unread count changed `2 -> 1` after mark-one-read and `1 -> 0` after mark-all-read.
 
 Product submit review smoke assertion: fixture product `S26-DRAFT` was reset to draft/unsubmitted, submitted through `/seller/stores/:storeSlug/catalog/products/:productId/edit`, and `POST /api/seller/stores/:storeId/products/:productId/submit-review` returned `200`; no direct `Publish` button was exposed.
+
+## Seller Workspace 2026 UI Polish Parity
+
+Status: PREVIEW_UI_POLISHED
+
+Scope:
+- Preview Seller Workspace 2026 UI polished across all live-adapter pages.
+- Light/dark theme parity improved.
+- Shared visual components introduced.
+- Fallback, loading, empty, disabled, and status states standardized.
+- Guardrails remain unchanged.
+
+Locations:
+- `client/src/features/sellerWorkspace2026/components/Seller2026Shell.jsx`
+- `client/src/features/sellerWorkspace2026/components/Seller2026FallbackBanner.jsx`
+- `client/src/features/sellerWorkspace2026/SellerWorkspace2026.css`
+- `client/src/pages/seller2026/*`
+
+Guardrail:
+- Production Seller canonical routes are not replaced.
+- Existing Seller production pages are not deleted.
+- Backend API contracts are not changed.
+- No new mutation authority is introduced.
+- Public storefront visibility is not changed.
+- Preview remains isolated.
+
+Next:
+1. Production adoption plan per route
+2. Route-by-route live replacement proposal
+3. Final UI regression smoke before production adoption
+
+## Seller Workspace 2026 Production Adoption Plan
+
+Status: PRODUCTION_ADOPTION_PLANNED
+
+Scope:
+- Preview Seller Workspace 2026 is complete and polished.
+- Production adoption will be route-by-route.
+- Feature-flagged adoption is recommended.
+- Rollback to existing Seller pages remains required.
+
+Initial Recommendation:
+- Start with Product Catalog read-only adoption.
+- Keep mutation-heavy and governance-sensitive routes in preview until hardening is complete.
+
+Guardrail:
+- Existing production Seller pages are not deleted.
+- Preview routes remain available.
+- Backend API contracts are not changed.
+- Admin authority remains unchanged.
+- Public storefront visibility remains unchanged.
+- Payment and permission governance remain backend/Admin controlled.
+
+Next:
+1. `SELLER-WORKSPACE-2026-PROD-ADOPT-CATALOG-13`
+2. `SELLER-WORKSPACE-2026-PROD-ADOPT-PRODUCT-DETAIL-14`
+3. `SELLER-WORKSPACE-2026-PROD-HARDEN-AUTHORING-15`
+
+## Seller Workspace 2026 Production Adoption — Product Catalog
+
+Status: CATALOG_PRODUCTION_ADOPTION_FLAGGED
+
+Scope:
+- Product Catalog 2026 can be adopted on production route via feature flag.
+- Legacy Seller Catalog remains available as rollback.
+- Preview route remains available.
+
+Production Route:
+- `/seller/stores/:storeSlug/catalog/products`
+
+Preview Route:
+- `/seller-2026-preview/:storeSlug/catalog/products`
+
+Feature Flags:
+- `VITE_SELLER_WORKSPACE_2026_ENABLED`
+- `VITE_SELLER_WORKSPACE_2026_CATALOG_ENABLED`
+
+Guardrail:
+- Default flag state is off.
+- Backend API contracts are not changed.
+- Existing Seller Catalog page is not deleted.
+- Product destructive/bulk actions remain disabled.
+- Product publish is not introduced.
+- Rollback is feature-flag off.
+
+Next:
+1. `SELLER-WORKSPACE-2026-PROD-ADOPT-PRODUCT-DETAIL-14`
+2. `SELLER-WORKSPACE-2026-PROD-HARDEN-AUTHORING-15`
+
+## Seller Workspace 2026 Production Adoption — Product Detail
+
+Status: PRODUCT_DETAIL_PRODUCTION_ADOPTION_FLAGGED
+
+Scope:
+- Product Detail 2026 can be adopted on production route via feature flag.
+- Legacy Seller Product Detail remains available as rollback.
+- Preview route remains available.
+- Adoption is read-only/guarded first.
+
+Production Route:
+- `/seller/stores/:storeSlug/catalog/products/:productId`
+
+Preview Route:
+- `/seller-2026-preview/:storeSlug/catalog/products/:productId`
+
+Feature Flags:
+- `VITE_SELLER_WORKSPACE_2026_ENABLED`
+- `VITE_SELLER_WORKSPACE_2026_PRODUCT_DETAIL_ENABLED`
+
+Guardrail:
+- Default flag state is off.
+- Backend API contracts are not changed.
+- Existing Seller Product Detail page is not deleted.
+- Product publish is not introduced.
+- Save Changes remains disabled unless mapping is safe.
+- View Storefront remains public-safe only.
+- Rollback is feature-flag off.
+
+Next:
+1. `SELLER-WORKSPACE-2026-PROD-HARDEN-AUTHORING-15`
+2. `SELLER-WORKSPACE-2026-PROD-HARDEN-STORE-PROFILE-16`
+
+## Seller Workspace 2026 Production Hardening — Product Authoring
+
+Status: AUTHORING_HARDENED_PENDING_ADOPTION
+
+Scope:
+- Product Authoring 2026 Save Draft flow audited and hardened.
+- Submit for Review guardrail audited and hardened.
+- Persisted product ID requirement documented.
+- Edit mode remains legacy until update mapping is fully validated.
+- Production route is not replaced in this task.
+
+Preview Route:
+- `/seller-2026-preview/:storeSlug/catalog/products/new`
+
+Future Production Routes:
+- `/seller/stores/:storeSlug/catalog/products/new`
+- `/seller/stores/:storeSlug/catalog/products/:productId/edit`
+
+Feature Flag Prepared:
+- `VITE_SELLER_WORKSPACE_2026_AUTHORING_ENABLED`
+
+Guardrail:
+- Default flag state is off.
+- Backend API contracts are not changed.
+- Existing Seller Product Authoring/Edit pages are not deleted.
+- Save Draft does not publish.
+- Submit for Review does not bypass Admin approval.
+- Submit for Review requires persisted product ID.
+- Rollback is keeping legacy authoring route.
+
+Next:
+1. `SELLER-WORKSPACE-2026-PROD-HARDEN-STORE-PROFILE-17`
+2. `SELLER-WORKSPACE-2026-PROD-HARDEN-ORDERS-18`
+
+## Seller Workspace 2026 Production Adoption — Store Profile
+
+Status: STORE_PROFILE_PRODUCTION_ADOPTION_FLAGGED
+
+Scope:
+- Store Profile 2026 can be adopted on production Store Profile route via feature flag.
+- Legacy Seller Store Profile remains available as rollback.
+- Preview route remains available.
+- Storefront preview remains read-only.
+
+Production Route:
+- `/seller/stores/:storeSlug/store-profile`
+
+Preview Route:
+- `/seller-2026-preview/:storeSlug/store-profile`
+
+Feature Flags:
+- `VITE_SELLER_WORKSPACE_2026_ENABLED`
+- `VITE_SELLER_WORKSPACE_2026_STORE_PROFILE_ENABLED`
+
+Guardrail:
+- Default flag state is off.
+- Backend API contracts are not changed.
+- Existing Seller Store Profile page is not deleted.
+- Save Profile only sends whitelisted fields.
+- Slug/domain/public identity changes remain guarded.
+- Storefront public visibility is not changed.
+- Upload media remains disabled unless storage validation is complete.
+- Rollback is feature-flag off.
+
+## Seller Workspace 2026 Production Hardening — Orders
+
+Status: ORDERS_HARDENED_PENDING_ADOPTION
+
+Scope:
+- Orders 2026 list/detail workflow audited and hardened.
+- Fulfillment action guardrails audited.
+- Tracking update guardrails audited.
+- Store-scoped suborder ownership requirement documented.
+- Production route is not replaced in this task.
+
+Preview Route:
+- `/seller-2026-preview/:storeSlug/orders`
+
+Future Production Routes:
+- `/seller/stores/:storeSlug/orders`
+- `/seller/stores/:storeSlug/orders/:suborderId`
+
+Feature Flag Prepared:
+- `VITE_SELLER_WORKSPACE_2026_ORDERS_ENABLED`
+
+Guardrail:
+- Default flag state is off.
+- Backend API contracts are not changed.
+- Existing Seller Orders pages are not deleted.
+- Seller cannot mutate parent order directly.
+- Fulfillment actions require lifecycle-safe allowed actions.
+- Tracking update requires valid suborder and validation.
+- Payment governance remains Admin/payment-audit owned.
+- Rollback is keeping legacy Orders route.
+
+Next:
+1. `SELLER-WORKSPACE-2026-PROD-ADOPT-ORDERS-20`
+2. `SELLER-WORKSPACE-2026-PROD-HARDEN-COUPONS-21`
+
+## Seller Workspace 2026 Production Adoption — Orders
+
+Status: ORDERS_PRODUCTION_ADOPTION_FLAGGED
+
+Scope:
+- Orders 2026 can be adopted on production Orders route via feature flag.
+- Legacy Seller Orders remains available as rollback.
+- Preview route remains available.
+- Fulfillment and tracking actions remain guarded.
+
+Production Route:
+- `/seller/stores/:storeSlug/orders`
+
+Preview Route:
+- `/seller-2026-preview/:storeSlug/orders`
+
+Feature Flags:
+- `VITE_SELLER_WORKSPACE_2026_ENABLED`
+- `VITE_SELLER_WORKSPACE_2026_ORDERS_ENABLED`
+
+Guardrail:
+- Default flag state is off.
+- Backend API contracts are not changed.
+- Existing Seller Orders pages are not deleted.
+- Seller cannot mutate parent order directly.
+- Fulfillment actions require lifecycle-safe allowed actions.
+- Tracking update requires valid suborder and validation.
+- Bulk shipment/export remain disabled unless operationally validated.
+- Payment governance remains Admin/payment-audit owned.
+- Rollback is feature-flag off.
+
+Next:
+1. `SELLER-WORKSPACE-2026-PROD-HARDEN-COUPONS-21`
+2. `SELLER-WORKSPACE-2026-PROD-HARDEN-TEAM-22`
+
+## Seller Workspace 2026 Live Adapter
+
+Status: SELLER_WORKSPACE_2026_PREVIEW_COMPLETE
+
+Scope:
+- Overview preview route connected to live API where available.
+- Store Profile preview route connected to live API where available.
+- Product Catalog preview route connected to live API where available.
+- Product Authoring preview route connected to live API where safely available.
+- Product Review Detail preview route connected to live API where available.
+- Orders preview route connected to live API where available.
+- Payment Center preview route connected to live API where available.
+- Coupons preview route connected to live API where available.
+- Team preview route connected to live API where available.
+- Analytics & Storefront Sync preview route connected to live API where available.
+
+Locations:
+- `client/src/features/sellerWorkspace2026/adapters/sellerWorkspace2026AnalyticsSyncAdapter.js`
+- `client/src/features/sellerWorkspace2026/hooks/useSellerWorkspace2026AnalyticsSync.js`
+- `client/src/pages/seller2026/Seller2026AnalyticsSyncPreviewPage.jsx`
+
+Guardrail:
+- Analytics & Storefront Sync remains preview-scoped.
+- Public storefront visibility is not changed.
+- Storefront preview is read-only.
+- Sync mutations are disabled unless public visibility workflow is validated.
+- Backend API contracts are not changed.
+- Existing Seller production pages are not replaced.
+
+Next:
+1. UI polish parity for 2026 mockups
+2. Production adoption plan per route

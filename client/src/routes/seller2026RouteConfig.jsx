@@ -1,4 +1,7 @@
 import { Route } from "react-router-dom";
+import Seller2026ProductCatalogPreviewPage from "../pages/seller2026/Seller2026ProductCatalogPreviewPage.jsx";
+import Seller2026ProductAuthoringPreviewPage from "../pages/seller2026/Seller2026ProductAuthoringPreviewPage.jsx";
+import { Seller2026ProductReviewDetailPreviewPage } from "../pages/seller2026/Seller2026ProductReviewDetailPreviewPage.jsx";
 import {
   Seller2026AttributeValuesPage,
   Seller2026AttributesPage,
@@ -14,6 +17,7 @@ import {
   Seller2026PaymentProfilePage,
   Seller2026PaymentReviewPage,
   Seller2026ProductsPage,
+  Seller2026StoreProfilePage,
   Seller2026StorefrontPage,
   Seller2026TeamPage,
 } from "../pages/seller2026/Seller2026Pages.jsx";
@@ -27,28 +31,35 @@ import {
  * These routes are intentionally outside /seller/stores/:storeSlug so your live
  * SellerLayout and API-bound pages remain untouched while the slicing is reviewed.
  */
+
+import { Seller2026OrdersPreviewPage } from "../pages/seller2026/Seller2026Pages.jsx";
+import { Seller2026PaymentCenterPreviewPage } from "../pages/seller2026/Seller2026Pages.jsx";
+import { Seller2026CouponsPreviewPage } from "../pages/seller2026/Seller2026Pages.jsx";
+import { Seller2026TeamPreviewPage } from "../pages/seller2026/Seller2026Pages.jsx";
+import { Seller2026AnalyticsSyncPreviewPage } from "../pages/seller2026/Seller2026Pages.jsx";
+
 export const seller2026PreviewRoutes = (
-  <Route path="/seller-2026">
+  <Route path="/seller-2026-preview/:storeSlug">
+    {/* Overview / Dashboard — wired to useSellerWorkspace2026Overview */}
     <Route index element={<Seller2026DashboardPage />} />
-    <Route path="dashboard" element={<Seller2026DashboardPage />} />
-    <Route path="storefront" element={<Seller2026StorefrontPage />} />
-    <Route path="products" element={<Seller2026ProductsPage />} />
-    <Route path="catalog-tools" element={<Seller2026CategoriesPage />} />
-    <Route path="orders-payments" element={<Seller2026OrdersPage />} />
-    <Route path="catalog/products" element={<Seller2026ProductsPage />} />
-    <Route path="catalog/categories" element={<Seller2026CategoriesPage />} />
-    <Route path="catalog/attributes" element={<Seller2026AttributesPage />} />
-    <Route path="catalog/attributes/:attributeId/values" element={<Seller2026AttributeValuesPage />} />
-    <Route path="catalog/coupons" element={<Seller2026CouponsPage />} />
-    <Route path="orders" element={<Seller2026OrdersPage />} />
-    <Route path="orders/:suborderId" element={<Seller2026OrderDetailPage />} />
-    <Route path="payment-review" element={<Seller2026PaymentReviewPage />} />
-    <Route path="payment-profile" element={<Seller2026PaymentProfilePage />} />
-    <Route path="team" element={<Seller2026TeamPage />} />
-    <Route path="team/audit" element={<Seller2026AuditLogPage />} />
-    <Route path="team/invitations" element={<Seller2026InvitationsPage />} />
-    <Route path="team/:memberId" element={<Seller2026MemberDetailPage />} />
-    <Route path="notifications" element={<Seller2026NotificationsPage />} />
+    {/* Store Profile — wired to useSellerWorkspace2026StoreProfile via section="storefront" */}
+    <Route path="store-profile" element={<Seller2026StoreProfilePage />} />
+    {/* Product Catalog — wired to useSellerWorkspace2026ProductCatalog */}
+    <Route path="catalog/products" element={<Seller2026ProductCatalogPreviewPage />} />
+    {/* Product Authoring — wired to useSellerWorkspace2026ProductAuthoring */}
+    <Route path="catalog/products/new" element={<Seller2026ProductAuthoringPreviewPage />} />
+    {/* Product Review Detail — wired to useSellerWorkspace2026ProductReviewDetail */}
+    <Route path="catalog/products/:productId" element={<Seller2026ProductReviewDetailPreviewPage />} />
+    {/* Orders Preview — wired to useSellerWorkspace2026Orders */}
+    <Route path="orders" element={<Seller2026OrdersPreviewPage />} />
+    {/* Payment Center Preview — wired to useSellerWorkspace2026PaymentCenter */}
+    <Route path="payment-center" element={<Seller2026PaymentCenterPreviewPage />} />
+    {/* Coupons Preview — wired to useSellerWorkspace2026Coupons */}
+    <Route path="coupons" element={<Seller2026CouponsPreviewPage />} />
+    {/* Team Preview — wired to useSellerWorkspace2026Team */}
+    <Route path="team" element={<Seller2026TeamPreviewPage />} />
+    {/* Analytics & Storefront Sync Preview — wired to useSellerWorkspace2026AnalyticsSync */}
+    <Route path="analytics-sync" element={<Seller2026AnalyticsSyncPreviewPage />} />
   </Route>
 );
 
