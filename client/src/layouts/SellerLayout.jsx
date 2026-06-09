@@ -142,12 +142,37 @@ const getSellerNotificationLabel = (notification) => {
 const resolveSellerNotificationRoute = (notification, sellerRoutes) => {
   const meta = notification?.meta && typeof notification.meta === "object" ? notification.meta : {};
   const directRoute = String(meta.route || "").trim();
-  if (directRoute) return directRoute;
+  const canonicalBase = sellerRoutes.home();
+  if (
+    directRoute &&
+    directRoute.startsWith(canonicalBase) &&
+    !directRoute.includes("/seller-2026") &&
+    !/^https?:\/\//i.test(directRoute) &&
+    !directRoute.startsWith("//")
+  ) {
+    return directRoute;
+  }
 
   const actionCode = String(meta.actionCode || notification?.type || "")
     .trim()
     .toUpperCase();
+  const productId = Number(meta.productId || meta.targetId || 0);
   const suborderId = Number(meta.suborderId || 0);
+  const memberId = Number(meta.memberId || 0);
+  if (
+    ["SELLER_PRODUCT_REVIEW_REQUIRED", "SELLER_PRODUCT_NEEDS_REVISION"].includes(actionCode) &&
+    Number.isFinite(productId) &&
+    productId > 0
+  ) {
+    return sellerRoutes.productEdit(productId);
+  }
+  if (
+    ["SELLER_PRODUCT_UPDATED", "SELLER_STOCK_ALERT"].includes(actionCode) &&
+    Number.isFinite(productId) &&
+    productId > 0
+  ) {
+    return sellerRoutes.productDetail(productId);
+  }
   if (
     ["SELLER_SUBORDER_CREATED", "SELLER_PAYMENT_FAILED"].includes(actionCode) &&
     Number.isFinite(suborderId) &&
@@ -157,6 +182,24 @@ const resolveSellerNotificationRoute = (notification, sellerRoutes) => {
   }
   if (actionCode === "SELLER_PAYMENT_REVIEW_REQUIRED") {
     return sellerRoutes.paymentReview();
+  }
+  if (actionCode === "SELLER_PAYMENT_PROFILE_REQUIRED") {
+    return sellerRoutes.paymentProfile();
+  }
+  if (actionCode === "SELLER_COUPON_UPDATED") {
+    return sellerRoutes.coupons();
+  }
+  if (actionCode === "SELLER_TEAM_AUDIT") {
+    return sellerRoutes.teamAudit();
+  }
+  if (actionCode === "SELLER_TEAM_MEMBER_UPDATED" && Number.isFinite(memberId) && memberId > 0) {
+    return sellerRoutes.memberLifecycle(memberId);
+  }
+  if (actionCode === "SELLER_STORE_PROFILE_UPDATED") {
+    return sellerRoutes.storeProfile();
+  }
+  if (actionCode === "SELLER_WORKSPACE_UPDATE") {
+    return sellerRoutes.home();
   }
   return null;
 };

@@ -1,4 +1,5 @@
 import { getSellerStoreProfile } from "../../../api/sellerStoreProfile.ts";
+import { getSellerWorkspaceContextBySlug } from "../../../api/sellerWorkspace.ts";
 import { getSellerTeamSummary } from "../../../api/sellerTeam.ts";
 import { getSellerTeamAudit } from "../../../api/sellerTeamAudit.ts";
 import { getTeamFallback } from "../utils/sellerWorkspace2026Fallbacks.js";
@@ -26,7 +27,15 @@ const mapStatus = (status) => {
 
 export const fetchSellerWorkspace2026Team = async (storeSlug) => {
   try {
-    const storeProfile = await getSellerStoreProfile(storeSlug);
+    const context = await getSellerWorkspaceContextBySlug(storeSlug);
+    const storeProfile = context?.store
+      ? {
+          id: context.store.id,
+          slug: context.store.slug,
+          name: context.store.name,
+          status: context.store.status,
+        }
+      : null;
     if (!storeProfile) {
       return getTeamFallback();
     }

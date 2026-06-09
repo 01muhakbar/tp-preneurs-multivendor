@@ -1,4 +1,5 @@
 import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
 import { chromium } from "playwright";
 import { QueryTypes } from "sequelize";
 import {
@@ -554,7 +555,7 @@ async function upsertOrderSet(input: {
   return suborders;
 }
 
-async function ensureFixture() {
+export async function ensureSeller2026AuthSmokeFixture() {
   await sequelize.authenticate();
   await ensureSystemStoreRoles();
 
@@ -787,7 +788,7 @@ function classifyPage(text: string, url: string) {
   return "PASS";
 }
 
-async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureFixture>>) {
+async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureSeller2026AuthSmokeFixture>>) {
   await waitForOk(`${API_URL}/api/health`, "API");
   await waitForOk(CLIENT_URL, "client");
 
@@ -1293,7 +1294,7 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureFixture>>) 
 }
 
 async function main() {
-  const fixture = await ensureFixture();
+  const fixture = await ensureSeller2026AuthSmokeFixture();
   const smoke = await smokeBrowser(fixture);
   await sequelize.close();
   console.log(
@@ -1308,8 +1309,10 @@ async function main() {
   );
 }
 
-main().catch(async (error) => {
-  await sequelize.close().catch(() => undefined);
-  console.error(error);
-  process.exit(1);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch(async (error) => {
+    await sequelize.close().catch(() => undefined);
+    console.error(error);
+    process.exit(1);
+  });
+}

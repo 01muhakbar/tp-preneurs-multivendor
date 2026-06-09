@@ -31,7 +31,9 @@ export function useSeller2026Attributes(
         page: Number(query.page || 1),
         limit: Number(query.limit || 20),
         keyword: query.search || undefined,
-        scope: query.type === "variant" ? "store" : query.type === "general" ? "global" : "",
+        optionType: ["dropdown", "radio", "checkbox"].includes(String(query.type || ""))
+          ? String(query.type)
+          : "",
         status: query.status === "inactive" ? "archived" : query.status === "active" ? "active" : "",
       }),
     enabled,

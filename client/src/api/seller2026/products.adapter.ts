@@ -13,6 +13,9 @@ export type Seller2026ProductsViewModel = {
     active: number;
     needsRevision: number;
     inactive: number;
+    pendingReview: number;
+    archived: number;
+    outOfStock: number;
   };
   filters: {
     categories: Array<{ value: string; label: string }>;
@@ -55,16 +58,47 @@ export type Seller2026ProductDetailViewModel = {
     name: string;
     slug?: string;
     sku: string;
-    status: Seller2026ProductStatus;
-    price: number;
-    stock: number;
-    sold: number;
-    views: number;
+    shortDescription?: string;
     description: string;
+    thumbnail?: string;
+    gallery: string[];
     category: string;
     brand?: string;
     tags: string[];
-    gallery: string[];
+
+    price: number;
+    salePrice?: number;
+    currency?: string;
+    discountLabel?: string;
+
+    stock: number;
+    stockStatus?: string;
+    lowStockThreshold?: number;
+    inventoryPolicy?: string;
+
+    status: Seller2026ProductStatus;
+    visibility?: string;
+    submissionStatus?: string;
+    approvalStatus?: string;
+    isPublished?: boolean;
+    isDraft?: boolean;
+    isArchived?: boolean;
+    needsAttention?: boolean;
+    lastSubmittedAt?: string;
+    approvedAt?: string;
+    rejectedAt?: string;
+    createdAt?: string;
+    updatedAt?: string;
+    createdBy?: string;
+    updatedBy?: string;
+
+    canonicalListHref?: string;
+    canonicalEditHref?: string;
+    canonicalStorefrontHref?: string;
+    canonicalCategoryHref?: string;
+
+    sold: number;
+    views: number;
     canSubmitReview: boolean;
     submitReviewAction: "submit_review" | "resubmit_review";
     submitReviewReason: string | null;
@@ -121,6 +155,9 @@ const EMPTY_PRODUCTS: Seller2026ProductsViewModel = {
     active: 0,
     needsRevision: 0,
     inactive: 0,
+    pendingReview: 0,
+    archived: 0,
+    outOfStock: 0,
   },
   filters: {
     categories: [{ value: "all", label: "All Categories" }],
@@ -276,20 +313,35 @@ export function adaptSellerProduct(value: unknown) {
   const product = object(value);
   const id = idValue(product.id ?? product.productId ?? product.uuid, "") as string | number;
   const submit = productSubmitEligibility(product);
+  const status = normalizeProductStatus(productSubmissionStatus(product) ?? productOperationalStatus(product));
 
   return {
     id,
     name: text(product.name || product.title, "Untitled product"),
     slug: text(product.slug) || undefined,
-    sku: text(product.sku || product.code, "-"),
+    sku: text(product.sku || product.code, "No SKU"),
     thumbnailUrl: thumbnailUrl(product),
+    thumbnail: thumbnailUrl(product),
     category: categoryLabel(product),
     stock: productStock(product),
     price: productPrice(product),
+    salePrice: number(product.salePrice, 0),
+    currency: text(product.currency, "IDR"),
     sales: number(product.salesCount ?? product.soldCount ?? product.sold ?? product.sales, 0),
     views: number(product.viewCount ?? product.views, 0),
-    status: normalizeProductStatus(productSubmissionStatus(product) ?? productOperationalStatus(product)),
-    updatedAt: text(product.updatedAt || product.updated_at || product.lastUpdated) || null,
+    status,
+    visibility: text(product.visibility, "hidden"),
+    submissionStatus: productSubmissionState(product),
+    approvalStatus: text(object(product.submission).status, "pending"),
+    isPublished: status === "active",
+    isDraft: status === "draft",
+    isArchived: status === "inactive",
+    createdAt: text(product.createdAt, "Recently"),
+    updatedAt: text(product.updatedAt || product.updated_at || product.lastUpdated) || "Recently",
+    needsAttention: status === "needs_revision",
+    revisionNotes: array(product.revisionNotes),
+    canonicalDetailHref: `/seller/stores/:storeSlug/catalog/products/${id}`,
+    canonicalEditHref: `/seller/stores/:storeSlug/catalog/products/${id}/edit`,
     ...submit,
   };
 }
@@ -335,6 +387,9 @@ export function adaptSeller2026Products(
       active: number(rawSummary.active, 0),
       needsRevision: number(rawSummary.needsRevision ?? rawSummary.needs_revision, 0),
       inactive: number(rawSummary.inactive, 0),
+      pendingReview: number(rawSummary.submitted ?? rawSummary.reviewQueue, 0),
+      archived: number(rawSummary.inactive, 0),
+      outOfStock: number(rawSummary.outOfStock ?? rawSummary.out_of_stock, 0),
     },
     filters: {
       categories: adaptCategories(authoringMeta),
@@ -459,17 +514,48 @@ export function adaptSeller2026ProductDetail(value: unknown): Seller2026ProductD
       id: idValue(product.id ?? product.productId, null),
       name: text(product.name || product.title, "Untitled product"),
       slug: text(product.slug) || undefined,
-      sku: text(product.sku || product.code, "-"),
-      status: normalizeProductStatus(productSubmissionStatus(product) ?? productOperationalStatus(product)),
-      price,
-      stock: productStock(product),
-      sold: sales,
-      views: number(product.viewCount ?? product.views ?? performance.views, 0),
+      sku: text(product.sku || product.code, "No SKU"),
+      shortDescription: text(descriptions.short ?? product.shortDescription, ""),
       description,
+      thumbnail: thumbnailUrl(product) || undefined,
+      gallery: gallery(product),
       category: categoryLabel(product),
       brand: text(product.brand ?? object(product.brand).name) || undefined,
       tags: productTags,
-      gallery: gallery(product),
+
+      price,
+      salePrice: number(pricing.salePrice ?? product.salePrice, 0),
+      currency: text(pricing.currency ?? product.currency, "IDR"),
+      discountLabel: text(pricing.discountLabel ?? product.discountLabel, ""),
+
+      stock: productStock(product),
+      stockStatus: text(inventory.status ?? product.stockStatus, "in_stock"),
+      lowStockThreshold: number(inventory.lowStockThreshold ?? product.lowStockThreshold, 0),
+      inventoryPolicy: text(inventory.policy ?? product.inventoryPolicy, "track"),
+
+      status: normalizeProductStatus(productSubmissionStatus(product) ?? productOperationalStatus(product)),
+      visibility: text(product.visibility, "public"),
+      submissionStatus: productSubmissionState(product),
+      approvalStatus: text(submission.approvalStatus ?? product.approvalStatus, "pending"),
+      isPublished: Boolean(product.isPublished ?? (normalizeProductStatus(productOperationalStatus(product)) === 'active')),
+      isDraft: Boolean(product.isDraft ?? (normalizeProductStatus(productOperationalStatus(product)) === 'draft')),
+      isArchived: Boolean(product.isArchived ?? (normalizeProductStatus(productOperationalStatus(product)) === 'inactive')),
+      needsAttention: Boolean(product.needsAttention ?? false),
+      lastSubmittedAt: text(submission.submittedAt ?? product.lastSubmittedAt, "Recently"),
+      approvedAt: text(submission.approvedAt ?? product.approvedAt, ""),
+      rejectedAt: text(submission.rejectedAt ?? product.rejectedAt, ""),
+      createdAt: text(product.createdAt ?? "Recently"),
+      updatedAt: text(product.updatedAt ?? "Recently"),
+      createdBy: text(product.createdBy ?? "System"),
+      updatedBy: text(product.updatedBy ?? "System"),
+
+      canonicalListHref: `/seller/stores/${text(product.storeSlug, "storeSlug")}/catalog/products`,
+      canonicalEditHref: `/seller/stores/${text(product.storeSlug, "storeSlug")}/catalog/products/${idValue(product.id ?? product.productId, "new")}/edit`,
+      canonicalStorefrontHref: `/store/${text(product.storeSlug, "storeSlug")}/${text(product.slug, "")}`,
+      canonicalCategoryHref: `/seller/stores/${text(product.storeSlug, "storeSlug")}/catalog/categories`,
+
+      sold: sales,
+      views: number(product.viewCount ?? product.views ?? performance.views, 0),
       ...submit,
     },
     editableDraft: {

@@ -8,16 +8,25 @@ import RequirePerm from "./components/guards/RequirePerm.jsx";
 import AccountGuard from "./components/AccountGuard.jsx";
 import SeoCustomizationBridge from "./components/SeoCustomizationBridge.jsx";
 import {
-  isSeller2026CatalogProductionEnabled,
-  isSeller2026ProductDetailProductionEnabled,
+  isSeller2026AnalyticsProductionEnabled,
+  isSeller2026AnalyticsSyncProductionEnabled,
+  isSeller2026AttributesProductionEnabled,
   isSeller2026AuthoringProductionEnabled,
-  isSeller2026StoreProfileProductionEnabled,
-  isSeller2026OrdersProductionEnabled,
+  isSeller2026CatalogProductionEnabled,
+  isSeller2026CategoriesProductionEnabled,
   isSeller2026CouponsProductionEnabled,
+  isSeller2026DashboardProductionEnabled,
+  isSeller2026NotificationsProductionEnabled,
+  isSeller2026OrdersProductionEnabled,
+  isSeller2026PaymentProfileProductionEnabled,
+  isSeller2026PaymentReviewProductionEnabled,
+  isSeller2026ProductDetailProductionEnabled,
+  isSeller2026StoreProfileProductionEnabled,
   isSeller2026TeamProductionEnabled,
-  isSeller2026PaymentCenterProductionEnabled,
 } from "./features/sellerWorkspace2026/sellerWorkspace2026Flags.js";
 import { seller2026PreviewRoutes } from "./routes/seller2026RouteConfig.jsx";
+const SellerAnalyticsPage = lazy(() => import("./pages/seller/SellerAnalyticsPage.jsx"));
+const Seller2026LiveAnalyticsPage = lazy(() => import("./pages/seller2026/Seller2026LiveAnalyticsPage.jsx"));
 const StoreProductDetailPage = lazy(() => import("./pages/store/StoreProductDetailPage.jsx"));
 const CheckoutPage = lazy(() => import("./pages/store/Checkout.jsx"));
 const StoreLoginPage = lazy(() => import("./pages/store/StoreLoginPage.jsx"));
@@ -123,6 +132,23 @@ const AdminStoreApplicationDetailPage = lazy(() =>
   import("./pages/admin/AdminStoreApplicationDetailPage.jsx")
 );
 const SellerLayout = lazy(() => import("./layouts/SellerLayout.jsx"));
+const SellerWorkspaceHome = lazy(() => import("./pages/seller/SellerWorkspaceHome.jsx"));
+const SellerStoreProfilePage = lazy(() => import("./pages/seller/SellerStoreProfilePage.jsx"));
+const SellerCatalogPage = lazy(() => import("./pages/seller/SellerCatalogPage.jsx"));
+const SellerProductAuthoringPage = lazy(() => import("./pages/seller/SellerProductAuthoringPage.jsx"));
+const SellerProductDetailPage = lazy(() => import("./pages/seller/SellerProductDetailPage.jsx"));
+const SellerProductEditPage = lazy(() => import("./pages/seller/SellerProductEditPage.jsx"));
+const SellerCategoriesPage = lazy(() => import("./pages/seller/SellerCategoriesPage.jsx"));
+const SellerAttributesPage = lazy(() => import("./pages/seller/SellerAttributesPage.jsx"));
+const SellerAttributeValuesPage = lazy(() => import("./pages/seller/SellerAttributeValuesPage.jsx"));
+const SellerCouponsPage = lazy(() => import("./pages/seller/SellerCouponsPage.jsx"));
+const SellerOrdersPage = lazy(() => import("./pages/seller/SellerOrdersPage.jsx"));
+const SellerOrderDetailPage = lazy(() => import("./pages/seller/SellerOrderDetailPage.jsx"));
+const SellerPaymentReviewPage = lazy(() => import("./pages/seller/SellerPaymentReviewPage.jsx"));
+const SellerPaymentProfilePage = lazy(() => import("./pages/seller/SellerPaymentProfilePage.jsx"));
+const SellerTeamPage = lazy(() => import("./pages/seller/SellerTeamPage.jsx"));
+const SellerMemberLifecyclePage = lazy(() => import("./pages/seller/SellerMemberLifecyclePage.jsx"));
+const SellerTeamAuditPage = lazy(() => import("./pages/seller/SellerTeamAuditPage.jsx"));
 const Seller2026LiveDashboardPage = lazy(() =>
   import("./pages/seller2026/Seller2026LiveDashboardPage.jsx")
 );
@@ -131,18 +157,6 @@ const Seller2026LiveStorefrontPage = lazy(() =>
 );
 const Seller2026LiveProductsPage = lazy(() =>
   import("./pages/seller2026/Seller2026LiveProductsPage.jsx")
-);
-const Seller2026ProductCatalogPreviewPage = lazy(() =>
-  import("./pages/seller2026/Seller2026ProductCatalogPreviewPage.jsx")
-);
-const Seller2026StoreProfilePreviewPage = lazy(() =>
-  import("./pages/seller2026/Seller2026Pages.jsx").then((m) => ({ default: m.Seller2026StoreProfilePage }))
-);
-const Seller2026ProductAuthoringPreviewPage = lazy(() =>
-  import("./pages/seller2026/Seller2026ProductAuthoringPreviewPage.jsx")
-);
-const Seller2026ProductReviewDetailPreviewPage = lazy(() =>
-  import("./pages/seller2026/Seller2026ProductReviewDetailPreviewPage.jsx")
 );
 const Seller2026LiveProductDetailPage = lazy(() =>
   import("./pages/seller2026/Seller2026LiveProductDetailPage.jsx")
@@ -164,20 +178,6 @@ const Seller2026LiveCouponsPage = lazy(() =>
 );
 const Seller2026LiveOrdersPage = lazy(() =>
   import("./pages/seller2026/Seller2026LiveOrdersPage.jsx")
-);
-const Seller2026OrdersPreviewPage = lazy(() =>
-  import("./pages/seller2026/Seller2026OrdersPreviewPage.jsx").then((m) => ({ default: m.Seller2026OrdersPreviewPage }))
-);
-const Seller2026PaymentCenterPreviewPage = lazy(() =>
-  import("./pages/seller2026/Seller2026PaymentCenterPreviewPage.jsx").then((m) => ({ default: m.Seller2026PaymentCenterPreviewPage }))
-);
-
-const Seller2026TeamPreviewPage = lazy(() =>
-  import("./pages/seller2026/Seller2026TeamPreviewPage.jsx").then((m) => ({ default: m.Seller2026TeamPreviewPage }))
-);
-
-const Seller2026CouponsPreviewPage = lazy(() =>
-  import("./pages/seller2026/Seller2026CouponsPreviewPage.jsx").then((m) => ({ default: m.Seller2026CouponsPreviewPage }))
 );
 const Seller2026LiveSuborderDetailPage = lazy(() =>
   import("./pages/seller2026/Seller2026LiveSuborderDetailPage.jsx")
@@ -475,31 +475,77 @@ export default function App() {
             element={<LegacySellerCouponsRedirect />}
           />
           <Route path="/seller/stores/:storeSlug" element={<SellerLayout />}>
-            <Route index element={<Seller2026LiveDashboardPage />} />
-            <Route path="dashboard" element={<Seller2026LiveDashboardPage />} />
+            <Route
+              index
+              element={
+                isSeller2026DashboardProductionEnabled() ? (
+                  <Seller2026LiveDashboardPage />
+                ) : (
+                  <SellerWorkspaceHome />
+                )
+              }
+            />
+            <Route
+              path="dashboard"
+              element={
+                isSeller2026DashboardProductionEnabled() ? (
+                  <Seller2026LiveDashboardPage />
+                ) : (
+                  <SellerWorkspaceHome />
+                )
+              }
+            />
             <Route
               path="store-profile"
               element={
                 isSeller2026StoreProfileProductionEnabled() ? (
-                  <Seller2026StoreProfilePreviewPage productionMode />
-                ) : (
                   <Seller2026LiveStorefrontPage />
+                ) : (
+                  <SellerStoreProfilePage />
                 )
               }
             />
             <Route path="microsite-preview" element={<Seller2026LiveStorefrontPage />} />
             <Route 
-              path="team" 
+              path="analytics" 
               element={
-                isSeller2026TeamProductionEnabled() ? (
-                  <Seller2026TeamPreviewPage productionMode />
+                isSeller2026AnalyticsProductionEnabled() ? (
+                  <Seller2026LiveAnalyticsPage />
                 ) : (
-                  <Seller2026LiveTeamPage />
+                  <SellerAnalyticsPage />
                 )
               } 
             />
-            <Route path="team/audit" element={<Seller2026LiveTeamAuditPage />} />
-            <Route path="team/:memberId" element={<Seller2026LiveMemberDetailPage />} />
+            <Route 
+              path="team" 
+              element={
+                isSeller2026TeamProductionEnabled() ? (
+                  <Seller2026LiveTeamPage />
+                ) : (
+                  <SellerTeamPage />
+                )
+              } 
+            />
+            <Route
+              path="team/audit"
+              element={
+                isSeller2026TeamProductionEnabled() ? (
+                  <Seller2026LiveTeamAuditPage />
+                ) : (
+                  <SellerTeamAuditPage />
+                )
+              }
+            />
+            <Route
+              path="team/:memberId"
+              element={
+                isSeller2026TeamProductionEnabled() ? (
+                  <Seller2026LiveMemberDetailPage />
+                ) : (
+                  <SellerMemberLifecyclePage />
+                )
+              }
+            />
             <Route path="notifications" element={<Seller2026LiveNotificationsPage />} />
             <Route path="catalog" element={<LegacySellerCatalogRedirect />} />
             <Route path="catalog/new" element={<LegacySellerProductCreateRedirect />} />
@@ -507,25 +553,49 @@ export default function App() {
               path="catalog/products"
               element={
                 isSeller2026CatalogProductionEnabled() ? (
-                  <Seller2026ProductCatalogPreviewPage productionMode />
-                ) : (
                   <Seller2026LiveProductsPage />
+                ) : (
+                  <SellerCatalogPage />
                 )
               }
             />
-            <Route path="catalog/categories" element={<Seller2026LiveCategoriesPage />} />
-            <Route path="catalog/attributes" element={<Seller2026LiveAttributesPage />} />
+            <Route
+              path="catalog/categories"
+              element={
+                isSeller2026CategoriesProductionEnabled() ? (
+                  <Seller2026LiveCategoriesPage />
+                ) : (
+                  <SellerCategoriesPage />
+                )
+              }
+            />
+            <Route
+              path="catalog/attributes"
+              element={
+                isSeller2026AttributesProductionEnabled() ? (
+                  <Seller2026LiveAttributesPage />
+                ) : (
+                  <SellerAttributesPage />
+                )
+              }
+            />
             <Route
               path="catalog/attributes/:attributeId/values"
-              element={<Seller2026LiveAttributeValuesPage />}
+              element={
+                isSeller2026AttributesProductionEnabled() ? (
+                  <Seller2026LiveAttributeValuesPage />
+                ) : (
+                  <SellerAttributeValuesPage />
+                )
+              }
             />
             <Route
               path="catalog/products/new"
               element={
                 isSeller2026AuthoringProductionEnabled() ? (
-                  <Seller2026ProductAuthoringPreviewPage productionMode />
-                ) : (
                   <Seller2026LiveProductEditorPage mode="create" />
+                ) : (
+                  <SellerProductAuthoringPage />
                 )
               }
             />
@@ -535,15 +605,21 @@ export default function App() {
             />
             <Route
               path="catalog/products/:productId/edit"
-              element={<Seller2026LiveProductEditorPage mode="edit" />}
+              element={
+                isSeller2026AuthoringProductionEnabled() ? (
+                  <Seller2026LiveProductEditorPage mode="edit" />
+                ) : (
+                  <SellerProductEditPage />
+                )
+              }
             />
             <Route
               path="catalog/products/:productId"
               element={
                 isSeller2026ProductDetailProductionEnabled() ? (
-                  <Seller2026ProductReviewDetailPreviewPage productionMode />
-                ) : (
                   <Seller2026LiveProductDetailPage />
+                ) : (
+                  <SellerProductDetailPage />
                 )
               }
             />
@@ -552,30 +628,39 @@ export default function App() {
               path="orders"
               element={
                 isSeller2026OrdersProductionEnabled() ? (
-                  <Seller2026OrdersPreviewPage productionMode />
-                ) : (
                   <Seller2026LiveOrdersPage />
+                ) : (
+                  <SellerOrdersPage />
                 )
               }
             />
-            <Route path="orders/:suborderId" element={<Seller2026LiveSuborderDetailPage />} />
+            <Route
+              path="orders/:suborderId"
+              element={
+                isSeller2026OrdersProductionEnabled() ? (
+                  <Seller2026LiveSuborderDetailPage />
+                ) : (
+                  <SellerOrderDetailPage />
+                )
+              }
+            />
             <Route 
               path="payment-review" 
               element={
-                isSeller2026PaymentCenterProductionEnabled() ? (
-                  <Seller2026PaymentCenterPreviewPage productionMode initialTab="reviews" />
-                ) : (
+                isSeller2026PaymentReviewProductionEnabled() ? (
                   <Seller2026LivePaymentReviewPage />
+                ) : (
+                  <SellerPaymentReviewPage />
                 )
               } 
             />
             <Route 
               path="payment-profile" 
               element={
-                isSeller2026PaymentCenterProductionEnabled() ? (
-                  <Seller2026PaymentCenterPreviewPage productionMode initialTab="profile" />
-                ) : (
+                isSeller2026PaymentProfileProductionEnabled() ? (
                   <Seller2026LivePaymentProfilePage />
+                ) : (
+                  <SellerPaymentProfilePage />
                 )
               } 
             />
@@ -584,9 +669,9 @@ export default function App() {
               path="catalog/coupons" 
               element={
                 isSeller2026CouponsProductionEnabled() ? (
-                  <Seller2026CouponsPreviewPage productionMode />
-                ) : (
                   <Seller2026LiveCouponsPage />
+                ) : (
+                  <SellerCouponsPage />
                 )
               } 
             />

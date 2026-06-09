@@ -32,12 +32,41 @@ type SellerCategoryWritePayload = {
   parentId?: number | null;
   image?: string | null;
   isPublished?: boolean;
+  published?: boolean;
 };
 
-const normalizeCategory = (item: any): SellerCategory | null => {
-  if (!item || typeof item !== "object") return null;
+const toPayloadText = (value: unknown) => String(value ?? "").trim();
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === "object";
+
+const normalizeCategoryWritePayload = (
+  payload: Partial<SellerCategoryWritePayload>,
+  options: { includePublish?: boolean; includeImage?: boolean; requireName?: boolean } = {},
+): Partial<SellerCategoryWritePayload> => {
+  const name = toPayloadText(payload.name);
+  const description = toPayloadText(payload.description);
+  const parentId = Number(payload.parentId || 0) || null;
+  const nextPayload: Partial<SellerCategoryWritePayload> = { parentId };
+
+  if (name || options.requireName) nextPayload.name = name;
+  if (description) nextPayload.description = description;
+  if (options.includeImage) {
+    const image = toPayloadText(payload.image);
+    if (image) nextPayload.image = image;
+  }
+  if (options.includePublish) {
+    nextPayload.isPublished = Boolean(payload.isPublished ?? payload.published);
+  }
+
+  return nextPayload;
+};
+
+const normalizeCategory = (item: unknown): SellerCategory | null => {
+  if (!isRecord(item)) return null;
   const id = Number(item.id || 0);
   if (!Number.isInteger(id) || id <= 0) return null;
+  const parent = isRecord(item.parent) ? item.parent : null;
   return {
     id,
     code: String(item.code || "").trim() || null,
@@ -47,11 +76,11 @@ const normalizeCategory = (item: any): SellerCategory | null => {
     icon: String(item.icon || item.image || "").trim() || null,
     parentId: Number(item.parentId ?? item.parent_id ?? 0) || null,
     parent:
-      item.parent && typeof item.parent === "object"
+      parent
         ? {
-            id: Number(item.parent.id || 0) || 0,
-            name: String(item.parent.name || "").trim() || "-",
-            code: String(item.parent.code || "").trim() || null,
+            id: Number(parent.id || 0) || 0,
+            name: String(parent.name || "").trim() || "-",
+            code: String(parent.code || "").trim() || null,
           }
         : null,
     isPublished: Boolean(item.isPublished ?? item.published),
@@ -61,19 +90,24 @@ const normalizeCategory = (item: any): SellerCategory | null => {
   };
 };
 
-const normalizeCategoryListResponse = (payload: any) => {
-  const dataRoot = payload?.data && typeof payload.data === "object" ? payload.data : payload;
-  const items = Array.isArray(dataRoot?.items)
+const normalizeCategoryListResponse = (payload: unknown) => {
+  const payloadRoot = isRecord(payload) ? payload : {};
+  const dataRoot = isRecord(payloadRoot.data) ? payloadRoot.data : payloadRoot;
+  const items = Array.isArray(dataRoot.items)
     ? dataRoot.items
-    : Array.isArray(payload?.items)
-      ? payload.items
-      : Array.isArray(payload?.data)
-        ? payload.data
+    : Array.isArray(payloadRoot.items)
+      ? payloadRoot.items
+      : Array.isArray(payloadRoot.data)
+        ? payloadRoot.data
         : Array.isArray(payload)
           ? payload
           : [];
 
-  const metaRoot = dataRoot?.meta || payload?.meta || {};
+  const metaRoot = isRecord(dataRoot.meta)
+    ? dataRoot.meta
+    : isRecord(payloadRoot.meta)
+      ? payloadRoot.meta
+      : {};
   return {
     data: items.map(normalizeCategory).filter(Boolean) as SellerCategory[],
     meta: {
@@ -85,8 +119,9 @@ const normalizeCategoryListResponse = (payload: any) => {
   };
 };
 
-const normalizeCategoryDetailResponse = (payload: any) => {
-  const item = payload?.data && !Array.isArray(payload.data) ? payload.data : payload;
+const normalizeCategoryDetailResponse = (payload: unknown) => {
+  const payloadRoot = isRecord(payload) ? payload : {};
+  const item = isRecord(payloadRoot.data) && !Array.isArray(payloadRoot.data) ? payloadRoot.data : payload;
   return {
     data: normalizeCategory(item),
   };
@@ -104,7 +139,10 @@ export const createSellerCategory = async (
   storeId: number | string,
   payload: SellerCategoryWritePayload,
 ) => {
-  const { data } = await api.post(`/seller/stores/${storeId}/categories`, payload);
+  const { data } = await api.post(
+    `/seller/stores/${storeId}/categories`,
+    normalizeCategoryWritePayload(payload, { includePublish: true, includeImage: true, requireName: true }),
+  );
   return normalizeCategoryDetailResponse(data);
 };
 
@@ -113,7 +151,10 @@ export const updateSellerCategory = async (
   categoryId: number | string,
   payload: Partial<SellerCategoryWritePayload>,
 ) => {
-  const { data } = await api.put(`/seller/stores/${storeId}/categories/${categoryId}`, payload);
+  const { data } = await api.put(
+    `/seller/stores/${storeId}/categories/${categoryId}`,
+    normalizeCategoryWritePayload(payload, { includeImage: true }),
+  );
   return normalizeCategoryDetailResponse(data);
 };
 

@@ -21,6 +21,7 @@ export type Seller2026NotificationsQuery = {
 
 type UseSeller2026NotificationsOptions = {
   enabled?: boolean;
+  storeSlug?: string | null;
 };
 
 const filterNotifications = (
@@ -82,10 +83,10 @@ export function useSeller2026Notifications(
       adaptSeller2026Notifications({
         ...source,
         unreadCount: unreadCountQuery.data?.count ?? notificationsQuery.data?.unreadCount,
-      }),
+      }, { storeSlug: options.storeSlug }),
       query
     );
-  }, [enabled, notificationsQuery.data, query, unreadCountQuery.data]);
+  }, [enabled, notificationsQuery.data, options.storeSlug, query, unreadCountQuery.data]);
 
   return {
     data,

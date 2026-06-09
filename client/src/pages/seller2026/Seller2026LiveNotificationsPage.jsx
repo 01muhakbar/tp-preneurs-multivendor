@@ -34,7 +34,7 @@ const applySearchParams = (currentParams, setSearchParams) => (nextQuery) => {
 
 export default function Seller2026LiveNotificationsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { sellerContext, workspaceStoreId: storeId } = useSellerWorkspaceRoute();
+  const { sellerContext, workspaceStoreId: storeId, workspaceStoreSlug } = useSellerWorkspaceRoute();
   const { can, permissions } = getSeller2026PagePermissions(sellerContext);
   const canView = can("NOTIFICATION_READ");
   const query = {
@@ -45,7 +45,10 @@ export default function Seller2026LiveNotificationsPage() {
     page: readPageNumber(searchParams.get("page"), 1),
     limit: readPageNumber(searchParams.get("limit"), 10),
   };
-  const notificationsQuery = useSeller2026Notifications(storeId, query, { enabled: canView });
+  const notificationsQuery = useSeller2026Notifications(storeId, query, {
+    enabled: canView,
+    storeSlug: workspaceStoreSlug,
+  });
   const canMutateNotifications = canUseSeller2026Action(
     {
       permissions,

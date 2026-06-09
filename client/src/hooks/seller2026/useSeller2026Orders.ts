@@ -13,6 +13,8 @@ import {
 export type Seller2026OrdersQuery = {
   search?: string;
   status?: string;
+  paymentStatus?: string;
+  fulfillmentStatus?: string;
   dateFrom?: string;
   dateTo?: string;
   channel?: string;
@@ -28,7 +30,9 @@ type UseSeller2026OrdersOptions = {
   };
 };
 
-const toApiStatus = (status?: string) => {
+const toApiStatus = (status?: string, paymentStatus?: string, fulfillmentStatus?: string) => {
+  if (paymentStatus && paymentStatus !== "all") return { paymentStatus };
+  if (fulfillmentStatus && fulfillmentStatus !== "all") return { fulfillmentStatus };
   if (status === "unpaid") return { paymentStatus: "UNPAID" };
   if (status === "pending_confirmation") return { paymentStatus: "PENDING_CONFIRMATION" };
   if (status === "processing") return { fulfillmentStatus: "PROCESSING" };
@@ -52,7 +56,7 @@ export function useSeller2026Orders(
         page: Number(query.page || 1),
         limit: Number(query.limit || 10),
         keyword: query.search || undefined,
-        ...toApiStatus(query.status),
+        ...toApiStatus(query.status, query.paymentStatus, query.fulfillmentStatus),
       }),
     enabled,
     retry: false,

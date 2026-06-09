@@ -55,13 +55,13 @@ const SECTION_META = {
     active: "orders",
     eyebrow: "Seller Workspace - Operations",
     title: "Orders, Fulfillment & Payments",
-    description: "Hub operasional untuk suborder, fulfillment queue, payment review, dan payment profile.",
+    description: "Operational hub for suborders, fulfillment queues, payment review, and payment profile.",
   },
   team: {
     active: "members",
     eyebrow: "Seller Workspace - Collaboration",
     title: "Team, Invitations, Audit Log & Notifications",
-    description: "Kelola anggota, role, permission, audit trail, undangan, dan notifikasi operasional.",
+    description: "Manage members, roles, permissions, audit trails, invitations, and operational notifications.",
   },
 };
 
@@ -254,10 +254,27 @@ const formatRupiah = (value) =>
     maximumFractionDigits: 0,
   }).format(Number(value || 0));
 
-const disabledTodoTitle = "Integrasi upload/publishing belum diaktifkan.";
+const disabledTodoTitle = "Upload and publishing integration is not enabled yet.";
 
-const permissionTitle = "Anda tidak memiliki permission untuk aksi ini.";
-const mutationPendingTitle = "Integrasi aksi ini belum diaktifkan.";
+const permissionTitle = "You do not have permission to use this action.";
+const mutationPendingTitle = "This action integration is not enabled yet.";
+const categoryBulkDisabledTitle = "Bulk actions are disabled pending governance review.";
+const categoryImportDisabledTitle = "Import is not available yet.";
+const categoryExportDisabledTitle = "Export is not available yet.";
+const attributeDeleteDisabledTitle = "Delete is disabled pending destructive review.";
+const attributeBulkDisabledTitle = "Bulk actions are disabled pending governance review.";
+const attributeImportDisabledTitle = "Import is not available yet.";
+const attributeExportDisabledTitle = "Export is not available yet.";
+const attributeValueBulkDisabledTitle = "Bulk value actions are disabled pending governance review.";
+const attributeValueMediaDisabledTitle = "Image upload is disabled until storage validation is complete.";
+const attributeValueMetadataDisabledTitle = "Description and color are read-only until the value metadata API is available.";
+const couponBulkDisabledTitle = "Bulk coupon actions are disabled pending governance review.";
+const couponDuplicateDisabledTitle = "Duplicate coupon is disabled pending API review.";
+const couponBannerDisabledTitle = "Coupon banner upload is disabled until storage validation is complete.";
+const couponMetadataDisabledTitle = "Description and usage limits are read-only until the coupon metadata API is available.";
+
+const getSeller2026ErrorMessage = (error, fallback) =>
+  error?.response?.data?.message || error?.message || fallback;
 
 const actionTitle = (permissions, permission, mutationFeature) => {
   if (!hasSeller2026Permission(permissions, permission)) return permissionTitle;
@@ -342,16 +359,16 @@ const validateStoreProfileForm = (form) => {
   const urlPattern = /^https?:\/\/.+/i;
 
   if (form.email && !emailPattern.test(form.email)) {
-    errors.email = "Format email tidak valid.";
+    errors.email = "Email format is invalid.";
   }
   if (form.whatsapp && !phonePattern.test(form.whatsapp)) {
-    errors.whatsapp = "Format WhatsApp tidak valid atau terlalu pendek.";
+    errors.whatsapp = "WhatsApp format is invalid or too short.";
   }
   if (form.phone && !phonePattern.test(form.phone)) {
-    errors.phone = "Format telepon tidak valid atau terlalu pendek.";
+    errors.phone = "Phone format is invalid or too short.";
   }
   if (form.shippingOriginPhone && !phonePattern.test(form.shippingOriginPhone)) {
-    errors.shippingOriginPhone = "Format telepon asal pengiriman tidak valid.";
+    errors.shippingOriginPhone = "Shipping origin phone format is invalid.";
   }
   if (form.websiteUrl && !urlPattern.test(form.websiteUrl)) {
     errors.websiteUrl = "Website harus memakai URL http/https.";
@@ -363,13 +380,13 @@ const validateStoreProfileForm = (form) => {
     errors.tiktokUrl = "TikTok harus memakai URL tiktok.com.";
   }
   if (form.description && form.description.length > 4000) {
-    errors.description = "Tentang toko maksimal 4000 karakter.";
+    errors.description = "Store description must be 4000 characters or fewer.";
   }
   if (form.postalCode && !/^[A-Z0-9\- ]{3,32}$/i.test(form.postalCode)) {
-    errors.postalCode = "Format kode pos tidak valid.";
+    errors.postalCode = "Postal code format is invalid.";
   }
   if (form.shippingOriginPostalCode && !/^[A-Z0-9\- ]{3,32}$/i.test(form.shippingOriginPostalCode)) {
-    errors.shippingOriginPostalCode = "Format kode pos asal pengiriman tidak valid.";
+    errors.shippingOriginPostalCode = "Shipping origin postal code format is invalid.";
   }
 
   return errors;
@@ -536,8 +553,8 @@ const routePermissionFor = ({ section, catalogView, operationsView, teamView }) 
 };
 
 function Seller2026RestrictedState({
-  title = "Akses dibatasi",
-  message = "Anda tidak memiliki permission untuk melihat halaman ini.",
+  title = "Access Restricted",
+  message = "You do not have permission to view this page.",
 }) {
   return (
     <div className="s26-state s26-state-restricted">
@@ -702,7 +719,7 @@ function StorefrontPage({
     } catch (error) {
       setSubmitStatus({
         type: "error",
-        message: error?.response?.data?.message || error?.message || "Profil toko gagal diperbarui.",
+        message: error?.response?.data?.message || error?.message || "Store profile could not be updated.",
       });
     }
   };
@@ -718,7 +735,7 @@ function StorefrontPage({
           item.status === "complete"
             ? "Completed"
             : item.status === "missing"
-              ? "Belum"
+              ? "Pending"
               : "Dalam Proses",
       }))
     : readiness;
@@ -793,7 +810,7 @@ function StorefrontPage({
           ) : null}
           {storefrontMutation?.error && submitStatus.type !== "error" ? (
             <div className="s26-alert error">
-              {storefrontMutation.error?.message || "Profil toko gagal diperbarui."}
+              {storefrontMutation.error?.message || "Store profile could not be updated."}
             </div>
           ) : null}
           <div className="s26-grid two">
@@ -814,12 +831,12 @@ function StorefrontPage({
           </div>
           <div className="s26-form-grid" style={{ marginTop: 16 }}>
             <div className="s26-field">
-              <label>Nama Toko</label>
-              <input value={profileForm.name || "Toko Kamu"} readOnly title={productionMode ? "Slug and domain changes require verification." : "Nama toko masih admin-governed pada fase ini."} />
+              <label>Store Name</label>
+              <input value={profileForm.name || "Your Store"} readOnly title={productionMode ? "Slug and domain changes require verification." : "Store name remains admin-governed in this phase."} />
             </div>
             <div className="s26-field">
               <label>Slug / URL</label>
-              <input value={profileForm.slug || "store-slug"} readOnly title={productionMode ? "Slug and domain changes require verification." : "Slug tidak diedit pada fase mutation ini."} />
+              <input value={profileForm.slug || "store-slug"} readOnly title={productionMode ? "Slug and domain changes require verification." : "Slug is not editable in this mutation phase."} />
             </div>
             {[
               ["Email", "email", "email"],
@@ -848,7 +865,7 @@ function StorefrontPage({
               </div>
             ))}
             <div className="s26-field" style={{ gridColumn: "1 / -1" }}>
-              <label>Tentang Toko</label>
+              <label>About Store</label>
               <textarea
                 value={profileForm.description}
                 readOnly={!canUpdateProfile}
@@ -858,15 +875,15 @@ function StorefrontPage({
               {validationErrors.description ? <small className="s26-field-error">{validationErrors.description}</small> : null}
             </div>
             <div className="s26-field">
-              <label>Kategori Bisnis</label>
-              <input value={store.businessCategory || "Storefront"} readOnly title="Kategori bisnis belum didukung endpoint seller profile update." />
+              <label>Business Category</label>
+              <input value={store.businessCategory || "Storefront"} readOnly title="Business category is not supported by the seller profile update endpoint yet." />
             </div>
             <div className="s26-field">
-              <label>Subkategori</label>
-              <input value={store.businessSubcategory || "General"} readOnly title="Subkategori belum didukung endpoint seller profile update." />
+              <label>Subcategory</label>
+              <input value={store.businessSubcategory || "General"} readOnly title="Subcategory is not supported by the seller profile update endpoint yet." />
             </div>
             {[
-              ["Nama Kontak Pengiriman", "shippingOriginContactName"],
+              ["Shipping Contact Name", "shippingOriginContactName"],
               ["Telepon Pengiriman", "shippingOriginPhone"],
               ["Alamat Pengiriman 1", "shippingOriginAddressLine1"],
               ["Alamat Pengiriman 2", "shippingOriginAddressLine2"],
@@ -901,7 +918,7 @@ function StorefrontPage({
             <div className="s26-card soft">
               <h3>Media Sosial</h3>
               <div className="s26-checklist">
-                {(store.socials?.length ? store.socials : [{ channel: "Social", value: "Belum diatur" }]).map((item) => (
+                {(store.socials?.length ? store.socials : [{ channel: "Social", value: "Not configured" }]).map((item) => (
                   <div className="s26-check-row" key={`${item.channel}-${item.value}`}><span>{item.channel}</span><strong>{item.value}</strong></div>
                 ))}
               </div>
@@ -909,7 +926,7 @@ function StorefrontPage({
             <div className="s26-card soft">
               <h3>Policy Summary</h3>
               <div className="s26-checklist">
-                {policyItems.map((item) => <div className="s26-check-row" key={item.label}><span>{item.label}</span><span className={statusClass(item.status === "complete" ? "Active" : "Belum")}>{item.status}</span></div>)}
+                {policyItems.map((item) => <div className="s26-check-row" key={item.label}><span>{item.label}</span><span className={statusClass(item.status === "complete" ? "Active" : "Pending")}>{item.status}</span></div>)}
               </div>
               <button type="button" className="s26-btn" disabled title={actionTitle(seller2026Permissions, "STORE_PROFILE_UPDATE", "storefront")}>Manage Policy</button>
             </div>
@@ -1519,7 +1536,7 @@ function ProductsPage({
           {isLive ? <p className="hint" style={{ marginTop: 14 }}>Draft save and submit review are enabled for basic authoring fields. Media, variants, direct publish, and delete remain disabled.</p> : null}
           <div className="s26-filter-row" style={{ marginTop: 16, marginBottom: 0 }}>
             {isLive ? <button type="button" className="s26-btn" disabled={!productDraftDirty || isSavingProductDraft} onClick={resetProductDraftForm}>Reset</button> : null}
-            <button type="button" className="s26-btn" disabled={saveProductDraftDisabled} title={isLive ? saveProductDraftTitle : disabledTodoTitle} onClick={submitProductDraftForm}>{isSavingProductDraft ? "Saving..." : "Save Draft"}</button>
+            <button type="button" className="s26-btn" disabled={saveProductDraftDisabled} title={isLive ? saveProductDraftTitle : disabledTodoTitle} onClick={submitProductDraftForm}>{isSavingProductDraft ? "Saving..." : productEditorMode === "edit" ? "Save Changes" : "Save Draft"}</button>
             <button
               type="button"
               className="s26-btn primary"
@@ -1618,26 +1635,322 @@ function TaxonomyPage({
   const [couponForm, setCouponForm] = useState({
     code: "",
     name: "",
+    description: "",
     discountType: "percent",
     amount: "",
     minSpend: "0",
+    usageLimit: "",
     startsAt: "",
     expiresAt: "",
     active: true,
   });
   const [couponMutationStatus, setCouponMutationStatus] = useState({ type: "idle", message: "" });
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [categoryEditing, setCategoryEditing] = useState(null);
+  const [categoryForm, setCategoryForm] = useState({
+    name: "",
+    description: "",
+    parentId: "",
+    isPublished: true,
+  });
+  const [categoryMutationStatus, setCategoryMutationStatus] = useState({ type: "idle", message: "" });
+  const [attributeModalOpen, setAttributeModalOpen] = useState(false);
+  const [attributeEditing, setAttributeEditing] = useState(null);
+  const [attributeForm, setAttributeForm] = useState({
+    name: "",
+    description: "",
+    type: "dropdown",
+    initialValues: "Default",
+    published: true,
+  });
+  const [attributeMutationStatus, setAttributeMutationStatus] = useState({ type: "idle", message: "" });
+  const [attributeValueModalOpen, setAttributeValueModalOpen] = useState(false);
+  const [attributeValueEditing, setAttributeValueEditing] = useState(null);
+  const [attributeValueForm, setAttributeValueForm] = useState({
+    label: "",
+    value: "",
+    description: "",
+    color: "",
+  });
+  const [attributeValueMutationStatus, setAttributeValueMutationStatus] = useState({ type: "idle", message: "" });
   const isLive = Boolean(catalogData || catalogState);
   const basePath = storeSlug ? `/seller/stores/${encodeURIComponent(storeSlug)}` : "/seller-2026";
   const queryChange = (next) => onCatalogQueryChange?.(next);
   const searchValue = catalogQuery?.search || "";
+  const resetCategoryForm = (category = null) => {
+    setCategoryEditing(category);
+    setCategoryForm({
+      name: category?.name || "",
+      description: category?.description === "No description available." ? "" : category?.description || "",
+      parentId: category?.parentId ? String(category.parentId) : "",
+      isPublished: Boolean(category?.isPublished ?? true),
+    });
+    setCategoryMutationStatus({ type: "idle", message: "" });
+  };
+  const openCategoryCreate = () => {
+    resetCategoryForm(null);
+    setCategoryModalOpen(true);
+  };
+  const openCategoryEdit = (category) => {
+    resetCategoryForm(category);
+    setCategoryModalOpen(true);
+  };
+  const setCategoryField = (field, value) => {
+    setCategoryForm((current) => ({ ...current, [field]: value }));
+    setCategoryMutationStatus({ type: "idle", message: "" });
+  };
+  const categoryErrors = useMemo(() => {
+    const errors = {};
+    if (!categoryForm.name.trim()) errors.name = "Category name is required.";
+    if (categoryForm.name.trim().length > 120) errors.name = "Category name must be 120 characters or fewer.";
+    if (categoryForm.description.trim().length > 255) {
+      errors.description = "Description must be 255 characters or fewer.";
+    }
+    return errors;
+  }, [categoryForm]);
+  const categoryFormValid = Object.keys(categoryErrors).length === 0;
+  const isCategoryMutating =
+    Boolean(catalogMutation?.creatingCategory) ||
+    Boolean(catalogMutation?.updatingCategoryId) ||
+    Boolean(catalogMutation?.statusChangingCategoryId);
+  const submitCategoryForm = async () => {
+    if (!categoryFormValid || !catalogMutation) return;
+    const isEdit = Boolean(categoryEditing?.id);
+    const submit = isEdit ? catalogMutation.updateCategory : catalogMutation.createCategory;
+    if (!submit) return;
+
+    const payload = {
+      name: categoryForm.name.trim(),
+      description: categoryForm.description.trim() || undefined,
+      parentId: Number(categoryForm.parentId || 0) || null,
+    };
+    if (!isEdit) {
+      payload.isPublished = Boolean(categoryForm.isPublished);
+    }
+
+    setCategoryMutationStatus({ type: "idle", message: "" });
+    try {
+      if (isEdit) {
+        await submit({ categoryId: categoryEditing.id, payload });
+      } else {
+        await submit(payload);
+      }
+      setCategoryMutationStatus({
+        type: "success",
+        message: isEdit ? "Category updated." : "Category created.",
+      });
+      setCategoryModalOpen(false);
+      setCategoryEditing(null);
+      setCategoryForm({ name: "", description: "", parentId: "", isPublished: true });
+      catalogState?.refetch?.();
+    } catch (error) {
+      setCategoryMutationStatus({
+        type: "error",
+        message: getSeller2026ErrorMessage(error, isEdit ? "Category update failed." : "Category creation failed."),
+      });
+    }
+  };
+  const runCategoryStatusAction = async (row) => {
+    if (!catalogMutation?.setCategoryPublished || !row?.id) return;
+    setCategoryMutationStatus({ type: "idle", message: "" });
+    try {
+      await catalogMutation.setCategoryPublished({
+        categoryId: row.id,
+        isPublished: !row.isPublished,
+      });
+      setCategoryMutationStatus({
+        type: "success",
+        message: row.isPublished ? "Category unpublished." : "Category published.",
+      });
+      catalogState?.refetch?.();
+    } catch (error) {
+      setCategoryMutationStatus({
+        type: "error",
+        message: getSeller2026ErrorMessage(error, "Category status update failed."),
+      });
+    }
+  };
+  const resetAttributeForm = (attribute = null) => {
+    setAttributeEditing(attribute);
+    setAttributeForm({
+      name: attribute?.rawName || attribute?.name || "",
+      description: attribute?.description === "No description available." ? "" : attribute?.description || "",
+      type: ["dropdown", "radio", "checkbox"].includes(attribute?.type) ? attribute.type : "dropdown",
+      initialValues: "Default",
+      published: Boolean(attribute?.isPublished ?? true),
+    });
+    setAttributeMutationStatus({ type: "idle", message: "" });
+  };
+  const openAttributeCreate = () => {
+    resetAttributeForm(null);
+    setAttributeModalOpen(true);
+  };
+  const openAttributeEdit = (attribute) => {
+    resetAttributeForm(attribute);
+    setAttributeModalOpen(true);
+  };
+  const setAttributeField = (field, value) => {
+    setAttributeForm((current) => ({ ...current, [field]: value }));
+    setAttributeMutationStatus({ type: "idle", message: "" });
+  };
+  const attributeErrors = useMemo(() => {
+    const errors = {};
+    const values = attributeForm.initialValues
+      .split(/\r?\n|,/)
+      .map((value) => value.trim())
+      .filter(Boolean);
+    if (!attributeForm.name.trim()) errors.name = "Attribute name is required.";
+    if (attributeForm.name.trim().length > 120) errors.name = "Attribute name must be 120 characters or fewer.";
+    if (!["dropdown", "radio", "checkbox"].includes(attributeForm.type)) errors.type = "Attribute type is required.";
+    if (!attributeEditing && values.length === 0) errors.initialValues = "Add at least one initial value.";
+    if (attributeForm.description.trim().length > 255) errors.description = "Description must be 255 characters or fewer.";
+    return errors;
+  }, [attributeEditing, attributeForm]);
+  const attributeFormValid = Object.keys(attributeErrors).length === 0;
+  const isAttributeMutating =
+    Boolean(catalogMutation?.creatingAttribute) ||
+    Boolean(catalogMutation?.updatingAttributeId) ||
+    Boolean(catalogMutation?.statusChangingAttributeId);
+  const submitAttributeForm = async () => {
+    if (!attributeFormValid || !catalogMutation) return;
+    const isEdit = Boolean(attributeEditing?.id);
+    const submit = isEdit ? catalogMutation.updateAttribute : catalogMutation.createAttribute;
+    if (!submit) return;
+
+    const payload = {
+      name: attributeForm.name.trim(),
+      displayName: attributeForm.description.trim() || attributeForm.name.trim(),
+      type: attributeForm.type,
+    };
+    if (!isEdit) {
+      payload.values = attributeForm.initialValues
+        .split(/\r?\n|,/)
+        .map((value) => value.trim())
+        .filter(Boolean);
+      payload.published = Boolean(attributeForm.published);
+    }
+
+    setAttributeMutationStatus({ type: "idle", message: "" });
+    try {
+      if (isEdit) {
+        await submit({ attributeId: attributeEditing.id, payload });
+      } else {
+        await submit(payload);
+      }
+      setAttributeMutationStatus({
+        type: "success",
+        message: isEdit ? "Attribute updated." : "Attribute created.",
+      });
+      setAttributeModalOpen(false);
+      setAttributeEditing(null);
+      setAttributeForm({ name: "", description: "", type: "dropdown", initialValues: "Default", published: true });
+      catalogState?.refetch?.();
+    } catch (error) {
+      setAttributeMutationStatus({
+        type: "error",
+        message: getSeller2026ErrorMessage(error, isEdit ? "Attribute update failed." : "Attribute creation failed."),
+      });
+    }
+  };
+  const runAttributeStatusAction = async (row) => {
+    if (!catalogMutation?.setAttributePublished || !row?.id) return;
+    setAttributeMutationStatus({ type: "idle", message: "" });
+    try {
+      await catalogMutation.setAttributePublished({
+        attributeId: row.id,
+        published: !row.isPublished,
+      });
+      setAttributeMutationStatus({
+        type: "success",
+        message: row.isPublished ? "Attribute unpublished." : "Attribute published.",
+      });
+      catalogState?.refetch?.();
+    } catch (error) {
+      setAttributeMutationStatus({
+        type: "error",
+        message: getSeller2026ErrorMessage(error, "Attribute status update failed."),
+      });
+    }
+  };
+  const resetAttributeValueForm = (value = null) => {
+    setAttributeValueEditing(value);
+    setAttributeValueForm({
+      label: value?.label || value?.value || "",
+      value: value?.value || value?.label || "",
+      description: value?.description === "No description available." ? "" : value?.description || "",
+      color: value?.color || value?.swatch || "",
+    });
+    setAttributeValueMutationStatus({ type: "idle", message: "" });
+  };
+  const openAttributeValueCreate = () => {
+    resetAttributeValueForm(null);
+    setAttributeValueModalOpen(true);
+  };
+  const openAttributeValueEdit = (value) => {
+    resetAttributeValueForm(value);
+    setAttributeValueModalOpen(true);
+  };
+  const setAttributeValueField = (field, value) => {
+    setAttributeValueForm((current) => ({ ...current, [field]: value }));
+    setAttributeValueMutationStatus({ type: "idle", message: "" });
+  };
+  const attributeValueErrors = useMemo(() => {
+    const errors = {};
+    if (!attributeValueForm.label.trim() && !attributeValueForm.value.trim()) {
+      errors.label = "Value label is required.";
+    }
+    if (attributeValueForm.label.trim().length > 120) errors.label = "Value label must be 120 characters or fewer.";
+    if (attributeValueForm.value.trim().length > 120) errors.value = "Value must be 120 characters or fewer.";
+    if (attributeValueForm.description.trim().length > 255) {
+      errors.description = "Description must be 255 characters or fewer.";
+    }
+    return errors;
+  }, [attributeValueForm]);
+  const attributeValueFormValid = Object.keys(attributeValueErrors).length === 0;
+  const isAttributeValueMutating =
+    Boolean(catalogMutation?.creatingAttributeValue) ||
+    Boolean(catalogMutation?.updatingAttributeValueId);
+  const submitAttributeValueForm = async () => {
+    if (!attributeValueFormValid || !catalogMutation) return;
+    const isEdit = Boolean(attributeValueEditing?.id);
+    const submit = isEdit ? catalogMutation.updateAttributeValue : catalogMutation.createAttributeValue;
+    if (!submit) return;
+
+    const canonicalValue = attributeValueForm.value.trim() || attributeValueForm.label.trim();
+    const payload = { value: canonicalValue };
+
+    setAttributeValueMutationStatus({ type: "idle", message: "" });
+    try {
+      if (isEdit) {
+        await submit({ valueId: attributeValueEditing.id, payload });
+      } else {
+        await submit(payload);
+      }
+      setAttributeValueMutationStatus({
+        type: "success",
+        message: isEdit ? "Value updated." : "Value created.",
+      });
+      setAttributeValueModalOpen(false);
+      setAttributeValueEditing(null);
+      setAttributeValueForm({ label: "", value: "", description: "", color: "" });
+      catalogState?.refetch?.();
+    } catch (error) {
+      setAttributeValueMutationStatus({
+        type: "error",
+        message: getSeller2026ErrorMessage(error, isEdit ? "Value update failed." : "Value creation failed."),
+      });
+    }
+  };
   const resetCouponForm = (coupon = null) => {
     setCouponEditing(coupon);
     setCouponForm({
       code: coupon?.code || "",
-      name: coupon?.name || "",
+      name: coupon?.title || coupon?.name || "",
+      description: coupon?.description === "No description available." ? "" : coupon?.description || "",
       discountType: coupon?.discountType || "percent",
       amount: coupon?.amount ? String(coupon.amount) : "",
       minSpend: String(coupon?.minSpend ?? coupon?.minimumSpend ?? 0),
+      usageLimit: coupon?.usageLimit ? String(coupon.usageLimit) : "",
       startsAt: coupon?.startsAt ? String(coupon.startsAt).slice(0, 16) : "",
       expiresAt: coupon?.expiresAt ? String(coupon.expiresAt).slice(0, 16) : "",
       active: coupon?.active ?? true,
@@ -1659,13 +1972,18 @@ function TaxonomyPage({
   const couponErrors = useMemo(() => {
     const errors = {};
     if (!couponForm.code.trim()) errors.code = "Coupon code is required.";
-    if (!couponForm.name.trim()) errors.name = "Coupon name is required.";
+    if (!couponForm.name.trim()) errors.name = "Coupon title is required.";
+    if (couponForm.description.trim().length > 255) errors.description = "Description must be 255 characters or fewer.";
     if (!["percent", "fixed"].includes(couponForm.discountType)) errors.discountType = "Discount type is required.";
     const amount = Number(couponForm.amount);
     if (!Number.isFinite(amount) || amount <= 0) errors.amount = "Discount value must be greater than 0.";
     if (couponForm.discountType === "percent" && amount > 100) errors.amount = "Percentage discount cannot exceed 100.";
     const minSpend = Number(couponForm.minSpend || 0);
     if (!Number.isFinite(minSpend) || minSpend < 0) errors.minSpend = "Minimum spend must be zero or greater.";
+    if (couponForm.usageLimit) {
+      const usageLimit = Number(couponForm.usageLimit);
+      if (!Number.isFinite(usageLimit) || usageLimit < 0) errors.usageLimit = "Usage limit must be zero or greater.";
+    }
     if (couponForm.startsAt && couponForm.expiresAt && new Date(couponForm.expiresAt).getTime() < new Date(couponForm.startsAt).getTime()) {
       errors.expiresAt = "End date must be after start date.";
     }
@@ -1696,7 +2014,8 @@ function TaxonomyPage({
       }
       setCouponMutationStatus({ type: "success", message: isEdit ? "Coupon updated." : "Coupon created." });
       setCouponDrawerOpen(false);
-      resetCouponForm(null);
+      setCouponEditing(null);
+      setCouponForm({ code: "", name: "", description: "", discountType: "percent", amount: "", minSpend: "0", usageLimit: "", startsAt: "", expiresAt: "", active: true });
       catalogState?.refetch?.();
     } catch (error) {
       setCouponMutationStatus({
@@ -1719,27 +2038,67 @@ function TaxonomyPage({
 
   if (isLive && catalogView === "categories") {
     const categoryRows = catalogData?.categories || [];
+    const summary = catalogData?.summary || {};
+    const canCreateCategory = Boolean(catalogMutation?.canCreateCategory);
+    const canUpdateCategory = Boolean(catalogMutation?.canUpdateCategory);
+    const canManageCategoryStatus = Boolean(catalogMutation?.canManageCategoryStatus);
+    const parentCategoryOptions = categoryRows.filter((row) => !categoryEditing?.id || row.id !== categoryEditing.id);
     return (
       <Shell section="taxonomy" mode={mode} storeContext={storeContext}>
-        {catalogState?.isError ? <Card title="Categories unavailable" hint="Live categories could not load." actions={<button type="button" className="s26-btn" onClick={catalogState?.refetch}>Retry</button>} /> : null}
-        <Card title="Categories" hint="Category tree, assignment rate, product count, dan recommended categories." actions={<button type="button" className="s26-btn primary" disabled title={disabledTodoTitle}>+ Add Category</button>}>
-          <div className="s26-grid three" style={{ marginBottom: 14 }}>
-            <CatalogKpi label="Total Categories" value={catalogData?.summary?.totalCategories || 0} />
-            <CatalogKpi label="Products Assigned" value={catalogData?.summary?.totalProducts || 0} />
-            <CatalogKpi label="Assigned Rate" value={`${catalogData?.summary?.assignedRate || 0}%`} />
+        {catalogState?.isError ? <Card title="Categories could not be loaded" hint="Store-scoped categories are temporarily unavailable." actions={<button type="button" className="s26-btn" onClick={catalogState?.refetch}>Try again</button>} /> : null}
+        <Card
+          title="Categories"
+          hint="Organize products with store-scoped live category data."
+          actions={<button type="button" className="s26-btn primary" onClick={openCategoryCreate} disabled={!canCreateCategory || isCategoryMutating} title={canCreateCategory ? undefined : permissionTitle}>Create Category</button>}
+        >
+          <div data-seller2026-live-categories="true" className="s26-grid five" style={{ marginBottom: 14 }}>
+            <CatalogKpi label="Total" value={summary.total || summary.totalCategories || 0} />
+            <CatalogKpi label="Published" value={summary.published || 0} />
+            <CatalogKpi label="Draft" value={summary.draft || 0} />
+            <CatalogKpi label="Empty" value={summary.empty || 0} />
+            <CatalogKpi label="Needs Attention" value={summary.needsAttention || 0} />
           </div>
           <div className="s26-filter-row">
-            <input className="s26-search" aria-label="Search categories" placeholder="Search category" value={searchValue} onChange={(event) => queryChange({ search: event.target.value })} />
-            <button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Bulk Actions</button>
+            <input className="s26-search" aria-label="Search categories" placeholder="Search categories" value={searchValue} onChange={(event) => queryChange({ search: event.target.value })} />
+            <Link className="s26-btn" to={`${basePath}/catalog/products`}>View Products</Link>
+            <button type="button" className="s26-btn" disabled title={categoryExportDisabledTitle}>Export</button>
+            <button type="button" className="s26-btn" disabled title={categoryImportDisabledTitle}>Import</button>
+            <button type="button" className="s26-btn" disabled title={categoryBulkDisabledTitle}>Bulk Actions</button>
           </div>
+          {categoryMutationStatus.message ? <p className={categoryMutationStatus.type === "error" ? "s26-field-error" : "hint"}>{categoryMutationStatus.message}</p> : null}
           {catalogState?.isLoading ? <p className="hint">Loading categories...</p> : null}
           {!catalogState?.isLoading && categoryRows.length === 0 ? (
-            <div className="s26-empty"><strong>Belum ada kategori yang tersedia untuk toko ini.</strong><p>Category assignment akan muncul setelah data tersedia.</p></div>
+            <div className="s26-empty"><strong>No categories yet</strong><p>Create categories to organize your products.</p></div>
           ) : (
-            <DataTable columns={["Category", "Products", "Assigned Rate", "Status", "Actions"]} rows={categoryRows} renderRow={(row) => <tr key={row.id}><td><strong>{row.level ? `${"  ".repeat(row.level)}${row.name}` : row.name}</strong><div className="s26-sub">Parent: {row.parentId || "-"}</div></td><td>{row.productCount}</td><td>{row.assignedRate || 0}%</td><td><span className={statusClass(row.status === "active" ? "Active" : "Inactive")}>{row.status}</span></td><td><button type="button" className="s26-btn" disabled title={actionTitle(seller2026Permissions, "CATALOG_CATEGORY_READ", "catalog")}>Edit</button></td></tr>} />
+            <DataTable columns={["Category", "Slug", "Products", "Status", "Last Updated", "Actions"]} rows={categoryRows} renderRow={(row) => <tr key={row.id}><td><div className="s26-product-cell">{row.image ? <span className="s26-thumb"><img src={row.image} alt={row.name} /></span> : <span className="s26-thumb">{String(row.name || "C").slice(0, 1).toUpperCase()}</span>}<div><strong>{row.level ? `${"  ".repeat(row.level)}${row.name}` : row.name}</strong><div className="s26-sub">{row.description || "No description available."}</div></div></div></td><td><span className="s26-sub">{row.slug}</span></td><td>{row.productCount}</td><td><span className={statusClass(row.status === "active" ? "Active" : row.statusLabel || "Needs review")}>{row.statusLabel || row.status}</span></td><td>{row.updatedAt || "Recently"}</td><td><div className="s26-row-actions"><Link className="s26-link" to={`${basePath}${row.canonicalHref || `/catalog/products?category=${encodeURIComponent(String(row.id))}`}`}>Products</Link><button type="button" className="s26-muted-action" disabled={!canUpdateCategory || isCategoryMutating} title={canUpdateCategory ? undefined : permissionTitle} onClick={() => openCategoryEdit(row)}>Edit</button><button type="button" className="s26-muted-action" disabled={!canManageCategoryStatus || isCategoryMutating} title={canManageCategoryStatus ? undefined : permissionTitle} onClick={() => runCategoryStatusAction(row)}>{catalogMutation?.statusChangingCategoryId === row.id ? "Saving..." : row.isPublished ? "Unpublish" : "Publish"}</button></div></td></tr>} />
           )}
         </Card>
-        <Card title="Recommended Categories" hint="Rekomendasi aman dari adapter, kosong jika API belum menyediakan data.">
+        {categoryModalOpen ? (
+          <div className="s26-modal-backdrop" role="presentation">
+            <section className="s26-modal" role="dialog" aria-modal="true" aria-labelledby="s26-category-modal-title">
+              <div className="s26-card-head">
+                <div>
+                  <h3 id="s26-category-modal-title">{categoryEditing ? "Update Category" : "Add Category"}</h3>
+                  <p className="hint">Store scope is resolved from the active seller workspace.</p>
+                </div>
+                <button type="button" className="s26-btn" onClick={() => { setCategoryModalOpen(false); resetCategoryForm(null); }} disabled={isCategoryMutating} aria-label="Close category modal">Close</button>
+              </div>
+              <div className="s26-form-grid">
+                <div className="s26-field"><label htmlFor="s26-category-name">Category Name</label><input id="s26-category-name" value={categoryForm.name} onChange={(event) => setCategoryField("name", event.target.value)} placeholder="Category name" disabled={isCategoryMutating} />{categoryErrors.name ? <span className="s26-field-error">{categoryErrors.name}</span> : null}</div>
+                <div className="s26-field"><label htmlFor="s26-category-parent">Parent Category</label><select id="s26-category-parent" value={categoryForm.parentId} onChange={(event) => setCategoryField("parentId", event.target.value)} disabled={isCategoryMutating}><option value="">Root category</option>{parentCategoryOptions.map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}</select></div>
+                <div className="s26-field s26-field-span-2"><label htmlFor="s26-category-description">Description</label><textarea id="s26-category-description" value={categoryForm.description} onChange={(event) => setCategoryField("description", event.target.value)} placeholder="Optional category description" disabled={isCategoryMutating} />{categoryErrors.description ? <span className="s26-field-error">{categoryErrors.description}</span> : null}</div>
+                {!categoryEditing ? <label className="s26-toggle-row" htmlFor="s26-category-published"><span>Published</span><input id="s26-category-published" type="checkbox" checked={categoryForm.isPublished} onChange={(event) => setCategoryField("isPublished", event.target.checked)} disabled={isCategoryMutating || !canManageCategoryStatus} /></label> : <div className="s26-toggle-row"><span>Published</span><span className="hint">Use the row status action.</span></div>}
+                <div className="s26-upload-guard"><strong>Category Image</strong><p>{catalogMutation?.categoryUploadDisabledReason || "Category image upload is disabled until storage validation is complete."}</p><button type="button" className="s26-btn" disabled>Upload Image</button></div>
+              </div>
+              {categoryMutationStatus.message ? <p className={categoryMutationStatus.type === "error" ? "s26-field-error" : "hint"} style={{ marginTop: 14 }}>{categoryMutationStatus.message}</p> : null}
+              <div className="s26-filter-row" style={{ marginTop: 16, marginBottom: 0 }}>
+                <button type="button" className="s26-btn" onClick={() => { setCategoryModalOpen(false); resetCategoryForm(null); }} disabled={isCategoryMutating}>Cancel</button>
+                <button type="button" className="s26-btn primary" onClick={submitCategoryForm} disabled={!categoryFormValid || isCategoryMutating || (categoryEditing ? !canUpdateCategory : !canCreateCategory)}>{isCategoryMutating ? "Saving..." : categoryEditing ? "Update Category" : "Add Category"}</button>
+              </div>
+            </section>
+          </div>
+        ) : null}
+        <Card title="Category Suggestions" hint="Local suggestions stay empty unless the API provides signals.">
           {(catalogData?.recommendedCategories || []).length === 0 ? <div className="s26-empty"><strong>No recommended categories yet.</strong><p>Recommendations will appear once catalog signals are available.</p></div> : null}
           <div className="s26-grid three">
             {(catalogData?.recommendedCategories || []).map((item) => <div className="s26-card soft" key={item.id}><strong>{item.name}</strong><p className="hint">{item.path || "No path"} - {item.productCount || 0} products</p></div>)}
@@ -1751,31 +2110,67 @@ function TaxonomyPage({
 
   if (isLive && catalogView === "attributes") {
     const attributeRows = catalogData?.attributes || [];
+    const summary = catalogData?.summary || {};
+    const canCreateAttribute = Boolean(catalogMutation?.canCreateAttribute);
+    const canUpdateAttribute = Boolean(catalogMutation?.canUpdateAttribute);
+    const canManageAttributeStatus = Boolean(catalogMutation?.canManageAttributeStatus);
     return (
       <Shell section="taxonomy" mode={mode} storeContext={storeContext}>
-        {catalogState?.isError ? <Card title="Attributes unavailable" hint="Live attributes could not load." actions={<button type="button" className="s26-btn" onClick={catalogState?.refetch}>Retry</button>} /> : null}
-        <Card title="Attributes" hint="Variant/general attributes, usage count, values, dan status." actions={<button type="button" className="s26-btn primary" disabled title={actionTitle(seller2026Permissions, "CATALOG_ATTRIBUTE_READ", "catalog")}>+ Add Attribute</button>}>
-          <div className="s26-grid four" style={{ marginBottom: 14 }}>
-            <CatalogKpi label="Total Attributes" value={catalogData?.summary?.total || 0} />
-            <CatalogKpi label="Active" value={catalogData?.summary?.active || 0} />
-            <CatalogKpi label="Used in Products" value={catalogData?.summary?.usedInProducts || 0} />
-            <CatalogKpi label="Variant Attributes" value={catalogData?.summary?.variantAttributes || 0} />
+        {catalogState?.isError ? <Card title="Attributes could not be loaded" hint="Store-scoped attributes are temporarily unavailable." actions={<button type="button" className="s26-btn" onClick={catalogState?.refetch}>Try again</button>} /> : null}
+        <Card title="Attributes" hint="Define product options and specifications with live store-scoped data." actions={<button type="button" className="s26-btn primary" onClick={openAttributeCreate} disabled={!canCreateAttribute || isAttributeMutating} title={canCreateAttribute ? undefined : permissionTitle}>Add Attribute</button>}>
+          <div data-seller2026-live-attributes="true" className="s26-grid five" style={{ marginBottom: 14 }}>
+            <CatalogKpi label="Total" value={summary.total || 0} />
+            <CatalogKpi label="Published" value={summary.published || 0} />
+            <CatalogKpi label="Draft" value={summary.draft || 0} />
+            <CatalogKpi label="Filterable" value={summary.filterable || 0} />
+            <CatalogKpi label="Without Values" value={summary.withoutValues || 0} />
           </div>
           <div className="s26-filter-row">
             <input className="s26-search" aria-label="Search attributes" placeholder="Search attributes" value={searchValue} onChange={(event) => queryChange({ search: event.target.value, page: 1 })} />
-            <select className="s26-control" aria-label="Filter attribute type" value={catalogQuery?.type || "all"} onChange={(event) => queryChange({ type: event.target.value, page: 1 })}><option value="all">All Types</option><option value="variant">Variant</option><option value="general">General</option></select>
+            <select className="s26-control" aria-label="Filter attribute type" value={catalogQuery?.type || "all"} onChange={(event) => queryChange({ type: event.target.value, page: 1 })}><option value="all">All Types</option><option value="dropdown">Dropdown</option><option value="radio">Radio</option><option value="checkbox">Checkbox</option></select>
             <select className="s26-control" aria-label="Filter attribute status" value={catalogQuery?.status || "all"} onChange={(event) => queryChange({ status: event.target.value, page: 1 })}><option value="all">All Status</option><option value="active">Active</option><option value="inactive">Inactive</option></select>
+            <Link className="s26-btn" to={`${basePath}/catalog/products`}>View Products</Link>
+            <button type="button" className="s26-btn" disabled title={attributeExportDisabledTitle}>Export</button>
+            <button type="button" className="s26-btn" disabled title={attributeImportDisabledTitle}>Import</button>
+            <button type="button" className="s26-btn" disabled title={attributeBulkDisabledTitle}>Bulk Actions</button>
           </div>
+          {attributeMutationStatus.message ? <p className={attributeMutationStatus.type === "error" ? "s26-field-error" : "hint"}>{attributeMutationStatus.message}</p> : null}
           {catalogState?.isLoading ? <p className="hint">Loading attributes...</p> : null}
           {!catalogState?.isLoading && attributeRows.length === 0 ? (
-            <div className="s26-empty"><strong>No attributes available.</strong><p>Attribute definitions will appear once the catalog is configured.</p></div>
+            <div className="s26-empty"><strong>No attributes yet</strong><p>Create attributes to describe product options and specifications.</p></div>
           ) : (
-            <DataTable columns={["Attribute", "Type", "Usage", "Values", "Status", "Actions"]} rows={attributeRows} renderRow={(row) => <tr key={row.id}><td><strong>{row.name}</strong></td><td>{row.type}</td><td>{row.usageCount}</td><td>{row.valuesCount}</td><td><span className={statusClass(row.status === "active" ? "Active" : "Inactive")}>{row.status}</span></td><td><Link className="s26-link" to={`${basePath}/catalog/attributes/${encodeURIComponent(String(row.id))}/values`}>Values</Link></td></tr>} />
+            <DataTable columns={["Attribute", "Slug", "Type", "Values", "Required", "Filterable", "Status", "Last Updated", "Actions"]} rows={attributeRows} renderRow={(row) => <tr key={row.id}><td><div><strong>{row.name}</strong><div className="s26-sub">{row.description || "No description available."}</div></div></td><td><span className="s26-sub">{row.slug}</span></td><td><span className="s26-pill">{row.type}</span></td><td>{row.valuesCount}</td><td>{row.isRequired ? "Yes" : "No"}</td><td>{row.isFilterable ? "Yes" : "No"}</td><td><span className={statusClass(row.statusLabel || (row.status === "active" ? "Published" : "Draft"))}>{row.statusLabel || row.status}</span></td><td>{row.updatedAt || "Recently"}</td><td><div className="s26-row-actions"><Link className="s26-link" to={`${basePath}${row.canonicalValuesHref || `/catalog/attributes/${encodeURIComponent(String(row.id))}/values`}`}>Manage Values</Link><button type="button" className="s26-muted-action" disabled={!canUpdateAttribute || isAttributeMutating || row.managedByAdmin} title={row.managedByAdmin ? "Managed by Admin" : canUpdateAttribute ? undefined : permissionTitle} onClick={() => openAttributeEdit(row)}>Edit</button><button type="button" className="s26-muted-action" disabled={!canManageAttributeStatus || isAttributeMutating || row.managedByAdmin} title={row.managedByAdmin ? "Managed by Admin" : canManageAttributeStatus ? undefined : permissionTitle} onClick={() => runAttributeStatusAction(row)}>{catalogMutation?.statusChangingAttributeId === row.id ? "Saving..." : row.isPublished ? "Unpublish" : "Publish"}</button><button type="button" className="s26-muted-action" disabled title={attributeDeleteDisabledTitle}>Delete</button></div></td></tr>} />
           )}
         </Card>
+        {attributeModalOpen ? (
+          <div className="s26-modal-backdrop" role="presentation">
+            <section className="s26-modal" role="dialog" aria-modal="true" aria-labelledby="s26-attribute-modal-title">
+              <div className="s26-card-head">
+                <div>
+                  <h3 id="s26-attribute-modal-title">{attributeEditing ? "Update Attribute" : "Add Attribute"}</h3>
+                  <p className="hint">Store scope is resolved from the active seller workspace.</p>
+                </div>
+                <button type="button" className="s26-btn" onClick={() => { setAttributeModalOpen(false); resetAttributeForm(null); }} disabled={isAttributeMutating} aria-label="Close attribute modal">Close</button>
+              </div>
+              <div className="s26-form-grid">
+                <div className="s26-field"><label htmlFor="s26-attribute-name">Attribute Name</label><input id="s26-attribute-name" value={attributeForm.name} onChange={(event) => setAttributeField("name", event.target.value)} placeholder="Attribute name" disabled={isAttributeMutating} />{attributeErrors.name ? <span className="s26-field-error">{attributeErrors.name}</span> : null}</div>
+                <div className="s26-field"><label htmlFor="s26-attribute-type">Type</label><select id="s26-attribute-type" value={attributeForm.type} onChange={(event) => setAttributeField("type", event.target.value)} disabled={isAttributeMutating}><option value="dropdown">Dropdown</option><option value="radio">Radio</option><option value="checkbox">Checkbox</option></select>{attributeErrors.type ? <span className="s26-field-error">{attributeErrors.type}</span> : null}</div>
+                <div className="s26-field s26-field-span-2"><label htmlFor="s26-attribute-description">Description</label><textarea id="s26-attribute-description" value={attributeForm.description} onChange={(event) => setAttributeField("description", event.target.value)} placeholder="Optional attribute description" disabled={isAttributeMutating} />{attributeErrors.description ? <span className="s26-field-error">{attributeErrors.description}</span> : null}</div>
+                {!attributeEditing ? <div className="s26-field s26-field-span-2"><label htmlFor="s26-attribute-values">Initial Values</label><textarea id="s26-attribute-values" value={attributeForm.initialValues} onChange={(event) => setAttributeField("initialValues", event.target.value)} placeholder="Default, Small, Medium" disabled={isAttributeMutating} />{attributeErrors.initialValues ? <span className="s26-field-error">{attributeErrors.initialValues}</span> : null}</div> : <div className="s26-upload-guard"><strong>Attribute Values</strong><p>Value lifecycle is handled from Manage Values and remains deferred to the next adoption task.</p><Link className="s26-btn" to={`${basePath}/catalog/attributes/${encodeURIComponent(String(attributeEditing.id))}/values`}>Manage Values</Link></div>}
+                {!attributeEditing ? <label className="s26-toggle-row" htmlFor="s26-attribute-published"><span>Published</span><input id="s26-attribute-published" type="checkbox" checked={attributeForm.published} onChange={(event) => setAttributeField("published", event.target.checked)} disabled={isAttributeMutating || !canManageAttributeStatus} /></label> : <div className="s26-toggle-row"><span>Published</span><span className="hint">Use the row status action.</span></div>}
+                <div className="s26-upload-guard"><strong>Advanced Flags</strong><p>Required, filterable, sort order, delete, bulk, import, and export remain disabled until backend governance is reviewed.</p><button type="button" className="s26-btn" disabled>Advanced Controls</button></div>
+              </div>
+              {attributeMutationStatus.message ? <p className={attributeMutationStatus.type === "error" ? "s26-field-error" : "hint"} style={{ marginTop: 14 }}>{attributeMutationStatus.message}</p> : null}
+              <div className="s26-filter-row" style={{ marginTop: 16, marginBottom: 0 }}>
+                <button type="button" className="s26-btn" onClick={() => { setAttributeModalOpen(false); resetAttributeForm(null); }} disabled={isAttributeMutating}>Cancel</button>
+                <button type="button" className="s26-btn primary" onClick={submitAttributeForm} disabled={!attributeFormValid || isAttributeMutating || (attributeEditing ? !canUpdateAttribute : !canCreateAttribute)}>{isAttributeMutating ? "Saving..." : attributeEditing ? "Update Attribute" : "Add Attribute"}</button>
+              </div>
+            </section>
+          </div>
+        ) : null}
         <div className="s26-grid two">
-          <Card title="Insights" hint="Variant vs general summary for repeated catalog work." />
-          <Card title="Mutation Safety" hint="Create, edit, delete, and bulk actions are disabled until lifecycle and permissions are fully wired." />
+          <Card title="Values Boundary" hint="Manage Values links are canonical; value lifecycle mutations are deferred to Attribute Values task 10." />
+          <Card title="Mutation Safety" hint="Create, update, and publish status are guarded. Delete, bulk, import, and export stay disabled." />
         </div>
       </Shell>
     );
@@ -1783,23 +2178,79 @@ function TaxonomyPage({
 
   if (isLive && catalogView === "attribute-values") {
     const valueRows = catalogData?.values || [];
+    const summary = catalogData?.summary || {};
+    const attribute = catalogData?.attribute;
+    const canCreateAttributeValue = Boolean(catalogMutation?.canCreateAttributeValue);
+    const canUpdateAttributeValue = Boolean(catalogMutation?.canUpdateAttributeValue);
+    const attributeValueStatusTitle =
+      catalogMutation?.attributeValueStatusDisabledReason ||
+      "Publish controls are disabled until value status governance is reviewed.";
+    const attributeValueDeleteTitle =
+      catalogMutation?.attributeValueDeleteDisabledReason ||
+      "Delete is disabled pending destructive review.";
     return (
       <Shell section="taxonomy" mode={mode} storeContext={storeContext}>
-        {catalogState?.isError ? <Card title="Attribute values unavailable" hint="Attribute tidak ditemukan atau tidak tersedia untuk toko ini." actions={<button type="button" className="s26-btn" onClick={catalogState?.refetch}>Retry</button>} /> : null}
-        <Card title={`Attributes > ${catalogData?.attribute?.name || "Attribute"}`} hint="Swatch, sort order, product usage, mapped SKU, dan status." actions={<button type="button" className="s26-btn primary" disabled title={actionTitle(seller2026Permissions, "CATALOG_ATTRIBUTE_READ", "catalog")}>+ Add Value</button>}>
-          {!catalogState?.isLoading && !catalogData?.attribute ? <div className="s26-empty"><strong>Attribute tidak ditemukan atau tidak tersedia untuk toko ini.</strong><p>Pastikan attribute masih tersedia untuk store ini.</p></div> : null}
-          {catalogData?.attribute ? <div className="s26-filter-row"><span className={statusClass(catalogData.attribute.status === "active" ? "Active" : "Inactive")}>{catalogData.attribute.status}</span><span className="s26-pill">{catalogData.attribute.type}</span><span className="s26-pill">{catalogData.attribute.usageCount} usage</span></div> : null}
+        {catalogState?.isError ? <Card title="Attribute values could not be loaded" hint="Store-scoped attribute values are temporarily unavailable." actions={<button type="button" className="s26-btn" onClick={catalogState?.refetch}>Try again</button>} /> : null}
+        <Card
+          title="Attribute Values"
+          hint={attribute ? `${attribute.name} values are scoped to this seller store.` : "Manage store-scoped values for a canonical attribute."}
+          actions={<button type="button" className="s26-btn primary" onClick={openAttributeValueCreate} disabled={!attribute || !canCreateAttributeValue || isAttributeValueMutating} title={!canCreateAttributeValue ? permissionTitle : undefined}>Add Value</button>}
+        >
+          <div data-seller2026-live-attribute-values="true" className="s26-grid five" style={{ marginBottom: 14 }}>
+            <CatalogKpi label="Total" value={summary.total || 0} />
+            <CatalogKpi label="Published" value={summary.published || 0} />
+            <CatalogKpi label="Draft" value={summary.draft || 0} />
+            <CatalogKpi label="Empty" value={summary.empty || 0} />
+            <CatalogKpi label="Needs Attention" value={summary.needsAttention || 0} />
+          </div>
+          {!catalogState?.isLoading && !attribute ? <div className="s26-empty"><strong>Attribute was not found or is not available for this store.</strong><p>Make sure the attribute is still available for the active store.</p></div> : null}
+          {attribute ? (
+            <div className="s26-filter-row">
+              <Link className="s26-btn" to={`${basePath}${attribute.canonicalAttributesHref || "/catalog/attributes"}`}>Back to Attributes</Link>
+              <span className={statusClass(attribute.status === "active" ? "Published" : "Draft")}>{attribute.statusLabel || attribute.status}</span>
+              <span className="s26-pill">{attribute.type}</span>
+              <span className="s26-pill">{attribute.usageCount || 0} usage</span>
+            </div>
+          ) : null}
           <div className="s26-filter-row">
             <input className="s26-search" aria-label="Search attribute values" placeholder="Search values" value={searchValue} onChange={(event) => queryChange({ search: event.target.value, page: 1 })} />
             <select className="s26-control" aria-label="Filter value status" value={catalogQuery?.status || "all"} onChange={(event) => queryChange({ status: event.target.value, page: 1 })}><option value="all">All Status</option><option value="active">Active</option><option value="inactive">Inactive</option></select>
+            <button type="button" className="s26-btn" disabled title={attributeValueBulkDisabledTitle}>Bulk Values</button>
           </div>
-          {catalogState?.isLoading ? <p className="hint">Loading values...</p> : null}
-          {!catalogState?.isLoading && catalogData?.attribute && valueRows.length === 0 ? <div className="s26-empty"><strong>No values available.</strong><p>Attribute values will appear after they are configured.</p></div> : null}
-          {valueRows.length ? <DataTable columns={["Sort", "Value", "Swatch", "Usage", "Mapped SKU", "Status", "Actions"]} rows={valueRows} renderRow={(row) => <tr key={row.id}><td>{row.sortOrder}</td><td>{row.label}</td><td>{row.swatch ? <span className="s26-swatch" style={{ background: row.swatch, width: 26, height: 26 }} /> : "-"}</td><td>{row.productUsage}</td><td>{row.mappedSkus}</td><td><span className={statusClass(row.status === "active" ? "Active" : "Inactive")}>{row.status}</span></td><td><button type="button" className="s26-btn" disabled title={actionTitle(seller2026Permissions, "CATALOG_ATTRIBUTE_READ", "catalog")}>Edit</button></td></tr>} /> : null}
+          {attributeValueMutationStatus.message ? <p className={attributeValueMutationStatus.type === "error" ? "s26-field-error" : "hint"}>{attributeValueMutationStatus.message}</p> : null}
+          {catalogState?.isLoading ? <p className="hint">Loading attribute values...</p> : null}
+          {!catalogState?.isLoading && attribute && valueRows.length === 0 ? <div className="s26-empty"><strong>No values yet</strong><p>Create values to use this attribute in products.</p></div> : null}
+          {valueRows.length ? <DataTable columns={["Label", "Value", "Slug", "Color", "Products", "Status", "Last Updated", "Actions"]} rows={valueRows} renderRow={(row) => <tr key={row.id}><td><strong>{row.label}</strong><div className="s26-sub">{row.description || "No description available."}</div></td><td>{row.value || row.label}</td><td><span className="s26-sub">{row.slug}</span></td><td>{row.color || row.swatch ? <span className="s26-swatch" title={row.color || row.swatch} style={{ background: row.color || row.swatch, width: 26, height: 26 }} /> : "-"}</td><td>{row.productUsage || row.productsCount || 0}</td><td><span className={statusClass(row.statusLabel || (row.status === "active" ? "Published" : "Draft"))}>{row.statusLabel || row.status}</span></td><td>{row.updatedAt || "Recently"}</td><td><div className="s26-row-actions"><button type="button" className="s26-muted-action" disabled={!canUpdateAttributeValue || isAttributeValueMutating} title={canUpdateAttributeValue ? undefined : permissionTitle} onClick={() => openAttributeValueEdit(row)}>{catalogMutation?.updatingAttributeValueId === row.id ? "Saving..." : "Edit"}</button><button type="button" className="s26-muted-action" disabled title={attributeValueStatusTitle}>{row.isPublished ? "Unpublish" : "Publish"}</button><button type="button" className="s26-muted-action" disabled title={attributeValueDeleteTitle}>Delete</button></div></td></tr>} /> : null}
         </Card>
+        {attributeValueModalOpen ? (
+          <div className="s26-modal-backdrop" role="presentation">
+            <section className="s26-modal" role="dialog" aria-modal="true" aria-labelledby="s26-attribute-value-modal-title">
+              <div className="s26-card-head">
+                <div>
+                  <h3 id="s26-attribute-value-modal-title">{attributeValueEditing ? "Update Value" : "Add Value"}</h3>
+                  <p className="hint">{attribute?.name || "Attribute"} value changes are saved to the existing seller API.</p>
+                </div>
+                <button type="button" className="s26-btn" onClick={() => { setAttributeValueModalOpen(false); resetAttributeValueForm(null); }} disabled={isAttributeValueMutating} aria-label="Close value modal">Close</button>
+              </div>
+              <div className="s26-form-grid">
+                <div className="s26-field"><label htmlFor="s26-attribute-value-label">Label</label><input id="s26-attribute-value-label" value={attributeValueForm.label} onChange={(event) => setAttributeValueField("label", event.target.value)} placeholder="Value label" disabled={isAttributeValueMutating} />{attributeValueErrors.label ? <span className="s26-field-error">{attributeValueErrors.label}</span> : null}</div>
+                <div className="s26-field"><label htmlFor="s26-attribute-value-value">Value</label><input id="s26-attribute-value-value" value={attributeValueForm.value} onChange={(event) => setAttributeValueField("value", event.target.value)} placeholder="Stored value" disabled={isAttributeValueMutating} />{attributeValueErrors.value ? <span className="s26-field-error">{attributeValueErrors.value}</span> : null}</div>
+                <div className="s26-field s26-field-span-2"><label htmlFor="s26-attribute-value-description">Description</label><textarea id="s26-attribute-value-description" value={attributeValueForm.description} onChange={(event) => setAttributeValueField("description", event.target.value)} placeholder="Read-only until metadata API is available" disabled title={attributeValueMetadataDisabledTitle} />{attributeValueErrors.description ? <span className="s26-field-error">{attributeValueErrors.description}</span> : null}</div>
+                <div className="s26-field"><label htmlFor="s26-attribute-value-color">Color</label><input id="s26-attribute-value-color" value={attributeValueForm.color} onChange={(event) => setAttributeValueField("color", event.target.value)} placeholder="#111827" disabled title={attributeValueMetadataDisabledTitle} /></div>
+                <div className="s26-upload-guard"><strong>Value Image</strong><p>{attributeValueMediaDisabledTitle}</p><button type="button" className="s26-btn" disabled>Upload Image</button></div>
+                <div className="s26-upload-guard"><strong>Status and Delete</strong><p>{attributeValueStatusTitle} Delete remains disabled because unused values may be hard-deleted.</p><button type="button" className="s26-btn" disabled>Advanced Lifecycle</button></div>
+              </div>
+              {attributeValueMutationStatus.message ? <p className={attributeValueMutationStatus.type === "error" ? "s26-field-error" : "hint"} style={{ marginTop: 14 }}>{attributeValueMutationStatus.message}</p> : null}
+              <div className="s26-filter-row" style={{ marginTop: 16, marginBottom: 0 }}>
+                <button type="button" className="s26-btn" onClick={() => { setAttributeValueModalOpen(false); resetAttributeValueForm(null); }} disabled={isAttributeValueMutating}>Cancel</button>
+                <button type="button" className="s26-btn primary" onClick={submitAttributeValueForm} disabled={!attributeValueFormValid || isAttributeValueMutating || (attributeValueEditing ? !canUpdateAttributeValue : !canCreateAttributeValue)}>{isAttributeValueMutating ? "Saving..." : attributeValueEditing ? "Update Value" : "Add Value"}</button>
+              </div>
+            </section>
+          </div>
+        ) : null}
         <div className="s26-grid two">
           <Card title="Value Insights" hint="Top values by usage and mapping quality will appear when data is available." />
-          <Card title="Mutation Safety" hint="Create, edit, delete value actions are disabled until backend lifecycle is confirmed." />
+          <Card title="Mutation Safety" hint="Create and update use existing live APIs. Publish and delete stay disabled with explicit reasons." />
         </div>
       </Shell>
     );
@@ -1807,6 +2258,7 @@ function TaxonomyPage({
 
   if (isLive && catalogView === "coupons") {
     const couponRows = catalogData?.coupons || [];
+    const summary = catalogData?.summary || {};
     const canCreateCoupon = Boolean(catalogMutation?.canCreate);
     const canUpdateCoupon = Boolean(catalogMutation?.canUpdate);
     const canManageCouponStatus = Boolean(catalogMutation?.canManageStatus);
@@ -1818,38 +2270,44 @@ function TaxonomyPage({
       Boolean(catalogMutation?.deletingId);
     return (
       <Shell section="taxonomy" mode={mode} storeContext={storeContext}>
-        {catalogState?.isError ? <Card title="Coupons unavailable" hint="Live coupons could not load." actions={<button type="button" className="s26-btn" onClick={catalogState?.refetch}>Retry</button>} /> : null}
-        <Card title="Coupons" hint="Store-scoped promo, validity, usage, dan status." actions={<button type="button" className="s26-btn primary" onClick={openCouponCreate} disabled={!canCreateCoupon || isCouponMutating} title={canCreateCoupon ? undefined : actionTitle(seller2026Permissions, "COUPON_CREATE", "coupons")}>Create Coupon</button>}>
-          <div className="s26-grid four" style={{ marginBottom: 14 }}>
-            <CatalogKpi label="Total Coupons" value={catalogData?.summary?.total || 0} />
-            <CatalogKpi label="Active" value={catalogData?.summary?.active || 0} />
-            <CatalogKpi label="Redemptions" value={catalogData?.summary?.redemptions || 0} />
-            <CatalogKpi label="Discount Given" value={formatRupiah(catalogData?.summary?.discountGiven || 0)} />
+        {catalogState?.isError ? <Card title="Coupons could not be loaded" hint="Store-scoped coupons are temporarily unavailable." actions={<button type="button" className="s26-btn" onClick={catalogState?.refetch}>Try again</button>} /> : null}
+        <Card title="Coupons" hint="Manage store promotions with live store-scoped coupon data." actions={<button type="button" className="s26-btn primary" onClick={openCouponCreate} disabled={!canCreateCoupon || isCouponMutating} title={canCreateCoupon ? undefined : actionTitle(seller2026Permissions, "COUPON_CREATE", "coupons")}>Add Coupon</button>}>
+          <div data-seller2026-live-coupons="true" className="s26-grid five" style={{ marginBottom: 14 }}>
+            <CatalogKpi label="Total" value={summary.total || 0} />
+            <CatalogKpi label="Active" value={summary.active || 0} />
+            <CatalogKpi label="Inactive" value={summary.inactive || 0} />
+            <CatalogKpi label="Expired" value={summary.expired || 0} />
+            <CatalogKpi label="Scheduled" value={summary.scheduled || 0} />
           </div>
           <div className="s26-filter-row">
             <input className="s26-search" aria-label="Search coupons" placeholder="Search coupon code" value={searchValue} onChange={(event) => queryChange({ search: event.target.value, page: 1 })} />
             <select className="s26-control" aria-label="Filter coupon status" value={catalogQuery?.status || "all"} onChange={(event) => queryChange({ status: event.target.value, page: 1 })}><option value="all">All Status</option><option value="active">Active</option><option value="expired">Expired</option><option value="paused">Paused</option><option value="scheduled">Scheduled</option><option value="inactive">Inactive</option></select>
             <select className="s26-control" aria-label="Filter coupon type" value={catalogQuery?.type || "all"} onChange={(event) => queryChange({ type: event.target.value, page: 1 })}><option value="all">All Types</option><option value="percentage">Percentage</option><option value="fixed">Fixed</option><option value="free_shipping">Free Shipping</option></select>
+            <Link className="s26-btn" to={`${basePath}/catalog/products`}>View Products</Link>
+            <button type="button" className="s26-btn" disabled title={couponBulkDisabledTitle}>Bulk Actions</button>
           </div>
           {catalogState?.isLoading ? <p className="hint">Loading coupons...</p> : null}
           {couponMutationStatus.message ? <p className={couponMutationStatus.type === "error" ? "s26-field-error" : "hint"}>{couponMutationStatus.message}</p> : null}
-          {!catalogState?.isLoading && couponRows.length === 0 ? <div className="s26-empty"><strong>No coupons available.</strong><p>Create coupon UI is available as a safe shell when permission allows it.</p></div> : null}
-          {couponRows.length ? <DataTable columns={["Code", "Type", "Discount", "Minimum Spend", "Validity", "Usage", "Status", "Actions"]} rows={couponRows} renderRow={(row) => <tr key={row.id}><td><strong>{row.code}</strong><div className="s26-sub">{row.name}</div></td><td>{row.type}</td><td>{row.discountLabel}</td><td>{formatRupiah(row.minimumSpend)}</td><td>{row.validityLabel}</td><td>{row.usageLabel}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td><div className="s26-row-actions"><button type="button" className="s26-muted-action" disabled={!canUpdateCoupon || isCouponMutating} title={canUpdateCoupon ? undefined : actionTitle(seller2026Permissions, "COUPON_UPDATE", "coupons")} onClick={() => openCouponEdit(row)}>Edit</button><button type="button" className="s26-muted-action" disabled={!canManageCouponStatus || isCouponMutating} title={canManageCouponStatus ? undefined : actionTitle(seller2026Permissions, "COUPON_STATUS_MANAGE", "coupons")} onClick={() => runCouponStatusAction(() => catalogMutation?.changeCouponStatus({ couponId: row.id, active: !row.active }), row.active ? "Coupon deactivated." : "Coupon activated.")}>{row.active ? "Deactivate" : "Activate"}</button><button type="button" className="s26-muted-action" disabled={!canArchiveCoupon || isCouponMutating || !row.active} title={canArchiveCoupon ? "Archive deactivates this seller coupon." : actionTitle(seller2026Permissions, "COUPON_DELETE", "coupons")} onClick={() => runCouponStatusAction(() => catalogMutation?.deleteOrArchiveCoupon(row.id), "Coupon archived.")}>Archive</button></div></td></tr>} /> : null}
+          {!catalogState?.isLoading && couponRows.length === 0 ? <div className="s26-empty"><strong>No coupons yet</strong><p>Create coupons to offer store promotions.</p></div> : null}
+          {couponRows.length ? <DataTable columns={["Code", "Title", "Discount", "Minimum Order", "Usage", "Status", "Validity", "Scope", "Last Updated", "Actions"]} rows={couponRows} renderRow={(row) => <tr key={row.id}><td><strong>{row.code}</strong></td><td><strong>{row.title || row.name}</strong><div className="s26-sub">{row.description || "No description available."}</div></td><td>{row.discountLabel}</td><td>{formatRupiah(row.minimumOrderAmount ?? row.minimumSpend)}</td><td>{row.usageLabel}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td>{row.validityLabel}</td><td>{row.scopeLabel || "Store coupon"}</td><td>{row.updatedAt || "Recently"}</td><td><div className="s26-row-actions"><button type="button" className="s26-muted-action" disabled={!canUpdateCoupon || !row.canEdit || isCouponMutating} title={!row.isStoreScoped ? "Platform coupons are managed by Admin." : canUpdateCoupon ? undefined : actionTitle(seller2026Permissions, "COUPON_UPDATE", "coupons")} onClick={() => openCouponEdit(row)}>{catalogMutation?.updatingId === row.id ? "Saving..." : "Edit"}</button><button type="button" className="s26-muted-action" disabled={!canManageCouponStatus || !row.canManageStatus || isCouponMutating} title={!row.isStoreScoped ? "Platform coupons are managed by Admin." : canManageCouponStatus ? undefined : actionTitle(seller2026Permissions, "COUPON_STATUS_MANAGE", "coupons")} onClick={() => runCouponStatusAction(() => catalogMutation?.changeCouponStatus({ couponId: row.id, active: !row.active }), row.active ? "Coupon deactivated." : "Coupon activated.")}>{catalogMutation?.statusChangingId === row.id ? "Saving..." : row.active ? "Deactivate" : "Activate"}</button><button type="button" className="s26-muted-action" disabled={!canArchiveCoupon || !row.canArchive || isCouponMutating || !row.active} title={!row.isStoreScoped ? "Platform coupons are managed by Admin." : canArchiveCoupon ? "Archive deactivates this store coupon." : actionTitle(seller2026Permissions, "COUPON_DELETE", "coupons")} onClick={() => runCouponStatusAction(() => catalogMutation?.deleteOrArchiveCoupon(row.id), "Coupon archived.")}>{catalogMutation?.deletingId === row.id ? "Archiving..." : "Archive"}</button><button type="button" className="s26-muted-action" disabled title={couponDuplicateDisabledTitle}>Duplicate</button></div></td></tr>} /> : null}
         </Card>
         {couponDrawerOpen ? (
-          <Card title={couponEditing ? "Edit Coupon" : "Create Coupon"} hint="Store-scoped coupon lifecycle is permission-gated and refetches after save.">
+          <Card title={couponEditing ? "Update Coupon" : "Add Coupon"} hint="Store scope is resolved from the active seller workspace.">
             <div className="s26-form-grid">
-              <div className="s26-field"><label htmlFor="s26-coupon-code">Coupon code</label><input id="s26-coupon-code" value={couponForm.code} onChange={(event) => setCouponField("code", event.target.value.toUpperCase())} placeholder="STORE2026" disabled={isCouponMutating} />{couponErrors.code ? <span className="s26-field-error">{couponErrors.code}</span> : null}</div>
-              <div className="s26-field"><label htmlFor="s26-coupon-name">Coupon name</label><input id="s26-coupon-name" value={couponForm.name} onChange={(event) => setCouponField("name", event.target.value)} placeholder="Store campaign" disabled={isCouponMutating} />{couponErrors.name ? <span className="s26-field-error">{couponErrors.name}</span> : null}</div>
-              <div className="s26-field"><label htmlFor="s26-coupon-type">Discount type</label><select id="s26-coupon-type" value={couponForm.discountType} onChange={(event) => setCouponField("discountType", event.target.value)} disabled={isCouponMutating}><option value="percent">Percentage</option><option value="fixed">Fixed</option></select>{couponErrors.discountType ? <span className="s26-field-error">{couponErrors.discountType}</span> : null}</div>
-              <div className="s26-field"><label htmlFor="s26-coupon-amount">Discount value</label><input id="s26-coupon-amount" type="number" min="1" value={couponForm.amount} onChange={(event) => setCouponField("amount", event.target.value)} placeholder="10" disabled={isCouponMutating} />{couponErrors.amount ? <span className="s26-field-error">{couponErrors.amount}</span> : null}</div>
-              <div className="s26-field"><label htmlFor="s26-coupon-min-spend">Minimum spend</label><input id="s26-coupon-min-spend" type="number" min="0" value={couponForm.minSpend} onChange={(event) => setCouponField("minSpend", event.target.value)} placeholder="100000" disabled={isCouponMutating} />{couponErrors.minSpend ? <span className="s26-field-error">{couponErrors.minSpend}</span> : null}</div>
-              <div className="s26-field"><label htmlFor="s26-coupon-starts">Active period start</label><input id="s26-coupon-starts" type="datetime-local" value={couponForm.startsAt} onChange={(event) => setCouponField("startsAt", event.target.value)} disabled={isCouponMutating} /></div>
-              <div className="s26-field"><label htmlFor="s26-coupon-ends">Active period end</label><input id="s26-coupon-ends" type="datetime-local" value={couponForm.expiresAt} onChange={(event) => setCouponField("expiresAt", event.target.value)} disabled={isCouponMutating} />{couponErrors.expiresAt ? <span className="s26-field-error">{couponErrors.expiresAt}</span> : null}</div>
+              <div className="s26-field"><label htmlFor="s26-coupon-code">Code</label><input id="s26-coupon-code" value={couponForm.code} onChange={(event) => setCouponField("code", event.target.value.toUpperCase())} placeholder="STORE2026" disabled={isCouponMutating} />{couponErrors.code ? <span className="s26-field-error">{couponErrors.code}</span> : null}</div>
+              <div className="s26-field"><label htmlFor="s26-coupon-name">Title</label><input id="s26-coupon-name" value={couponForm.name} onChange={(event) => setCouponField("name", event.target.value)} placeholder="Store campaign" disabled={isCouponMutating} />{couponErrors.name ? <span className="s26-field-error">{couponErrors.name}</span> : null}</div>
+              <div className="s26-field s26-field-span-2"><label htmlFor="s26-coupon-description">Description</label><textarea id="s26-coupon-description" value={couponForm.description} onChange={(event) => setCouponField("description", event.target.value)} placeholder="Read-only until metadata API is available" disabled title={couponMetadataDisabledTitle} />{couponErrors.description ? <span className="s26-field-error">{couponErrors.description}</span> : null}</div>
+              <div className="s26-field"><label htmlFor="s26-coupon-type">Discount Type</label><select id="s26-coupon-type" value={couponForm.discountType} onChange={(event) => setCouponField("discountType", event.target.value)} disabled={isCouponMutating}><option value="percent">Percentage</option><option value="fixed">Fixed</option></select>{couponErrors.discountType ? <span className="s26-field-error">{couponErrors.discountType}</span> : null}</div>
+              <div className="s26-field"><label htmlFor="s26-coupon-amount">Discount Value</label><input id="s26-coupon-amount" type="number" min="1" value={couponForm.amount} onChange={(event) => setCouponField("amount", event.target.value)} placeholder="10" disabled={isCouponMutating} />{couponErrors.amount ? <span className="s26-field-error">{couponErrors.amount}</span> : null}</div>
+              <div className="s26-field"><label htmlFor="s26-coupon-min-spend">Minimum Order</label><input id="s26-coupon-min-spend" type="number" min="0" value={couponForm.minSpend} onChange={(event) => setCouponField("minSpend", event.target.value)} placeholder="100000" disabled={isCouponMutating} />{couponErrors.minSpend ? <span className="s26-field-error">{couponErrors.minSpend}</span> : null}</div>
+              <div className="s26-field"><label htmlFor="s26-coupon-usage-limit">Usage Limit</label><input id="s26-coupon-usage-limit" type="number" min="0" value={couponForm.usageLimit} onChange={(event) => setCouponField("usageLimit", event.target.value)} placeholder="Read-only" disabled title={couponMetadataDisabledTitle} />{couponErrors.usageLimit ? <span className="s26-field-error">{couponErrors.usageLimit}</span> : null}</div>
+              <div className="s26-field"><label htmlFor="s26-coupon-starts">Starts At</label><input id="s26-coupon-starts" type="datetime-local" value={couponForm.startsAt} onChange={(event) => setCouponField("startsAt", event.target.value)} disabled={isCouponMutating} /></div>
+              <div className="s26-field"><label htmlFor="s26-coupon-ends">Expires At</label><input id="s26-coupon-ends" type="datetime-local" value={couponForm.expiresAt} onChange={(event) => setCouponField("expiresAt", event.target.value)} disabled={isCouponMutating} />{couponErrors.expiresAt ? <span className="s26-field-error">{couponErrors.expiresAt}</span> : null}</div>
               <label className="s26-toggle-row" htmlFor="s26-coupon-active"><span>Active</span><input id="s26-coupon-active" type="checkbox" checked={couponForm.active} onChange={(event) => setCouponField("active", event.target.checked)} disabled={isCouponMutating || !canManageCouponStatus} /></label>
+              <div className="s26-upload-guard"><strong>Coupon Banner</strong><p>{couponBannerDisabledTitle}</p><button type="button" className="s26-btn" disabled>Upload Banner</button></div>
             </div>
             {couponMutationStatus.message ? <p className={couponMutationStatus.type === "error" ? "s26-field-error" : "hint"} style={{ marginTop: 14 }}>{couponMutationStatus.message}</p> : null}
-            <div className="s26-filter-row" style={{ marginTop: 16, marginBottom: 0 }}><button type="button" className="s26-btn" onClick={() => { setCouponDrawerOpen(false); resetCouponForm(null); }} disabled={isCouponMutating}>Close</button><button type="button" className="s26-btn primary" disabled={!couponFormValid || isCouponMutating || (couponEditing ? !canUpdateCoupon : !canCreateCoupon)} title={couponEditing ? actionTitle(seller2026Permissions, "COUPON_UPDATE", "coupons") : actionTitle(seller2026Permissions, "COUPON_CREATE", "coupons")} onClick={submitCouponForm}>{isCouponMutating ? "Saving..." : couponEditing ? "Save Coupon" : "Create Coupon"}</button></div>
+            <div className="s26-filter-row" style={{ marginTop: 16, marginBottom: 0 }}><button type="button" className="s26-btn" onClick={() => { setCouponDrawerOpen(false); resetCouponForm(null); }} disabled={isCouponMutating}>Close</button><button type="button" className="s26-btn primary" disabled={!couponFormValid || isCouponMutating || (couponEditing ? !canUpdateCoupon : !canCreateCoupon)} title={couponEditing ? actionTitle(seller2026Permissions, "COUPON_UPDATE", "coupons") : actionTitle(seller2026Permissions, "COUPON_CREATE", "coupons")} onClick={submitCouponForm}>{isCouponMutating ? "Saving..." : couponEditing ? "Update Coupon" : "Add Coupon"}</button></div>
           </Card>
         ) : null}
       </Shell>
@@ -1859,19 +2317,19 @@ function TaxonomyPage({
   return (
     <Shell section="taxonomy">
       <div className="s26-grid two">
-        <Card title="Categories" hint="Category tree, product count, dan assignment rate." actions={<button className="s26-btn primary">+ Add Category</button>}>
+        <Card title="Categories" hint="Category tree, product count, and assignment rate." actions={<button className="s26-btn primary">+ Add Category</button>}>
           <DataTable columns={["Category", "Products", "Assigned"]} rows={categories} renderRow={(row) => <tr key={row[0]}><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td></tr>} />
           <MiniChart />
         </Card>
-        <Card title="Attributes" hint="Variant/general attributes dan usage count." actions={<button className="s26-btn primary">+ Add Attribute</button>}>
+        <Card title="Attributes" hint="Variant/general attributes and usage count." actions={<button className="s26-btn primary">+ Add Attribute</button>}>
           <DataTable columns={["Attribute", "Type", "Usage", "Values", "Status"]} rows={attributes} renderRow={(row) => <tr key={row[0]}><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td>{row[3]}</td><td><span className={statusClass(row[4])}>{row[4]}</span></td></tr>} />
         </Card>
       </div>
       <div className="s26-grid two">
-        <Card title="Attribute Values - Color" hint="Swatch, sort order, product mapping, dan active state.">
+        <Card title="Attribute Values - Color" hint="Swatch, sort order, product mapping, and active state.">
           <DataTable columns={["Sort", "Value", "Swatch", "Usage", "Mapped SKU", "Status"]} rows={[[1, "Red", "#ef4444", 512, 642, "Active"], [2, "Navy Blue", "#1e3a8a", 389, 498, "Active"], [3, "Black", "#111827", 365, 472, "Active"], [4, "White", "#ffffff", 321, 412, "Active"], [5, "Beige", "#f5deb3", 298, 376, "Active"]]} renderRow={(row) => <tr key={row[1]}><td>{row[0]}</td><td>{row[1]}</td><td><span className="s26-swatch" style={{ background: row[2], width: 26, height: 26 }} /></td><td>{row[3]}</td><td>{row[4]}</td><td><span className={statusClass(row[5])}>{row[5]}</span></td></tr>} />
         </Card>
-        <Card title="Coupons" hint="Store-scoped promo dengan create drawer dan batas penggunaan." actions={<button className="s26-btn primary">Create Coupon</button>}>
+        <Card title="Coupons" hint="Store-scoped promo with create drawer and usage limits." actions={<button className="s26-btn primary">Create Coupon</button>}>
           <div className="s26-grid three" style={{ marginBottom: 14 }}>{[["Total Coupons", "48"], ["Active", "18"], ["Redemptions", "1.842"]].map(([a, b]) => <div className="s26-card soft" key={a}><p className="hint">{a}</p><strong>{b}</strong></div>)}</div>
           <DataTable columns={["Code", "Type", "Discount", "Usage", "Status"]} rows={coupons} renderRow={(row) => <tr key={row[0]}><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td>{row[4]}</td><td><span className={statusClass(row[5])}>{row[5]}</span></td></tr>} />
         </Card>
@@ -1963,6 +2421,9 @@ function OperationsPage({
     }
   };
   const firstEnabledAction = (actions = []) => actions.find((action) => action?.enabled !== false) || null;
+  const allowedSellerOrderAction = (actions = []) =>
+    actions.find((action) => action?.code === "MARK_PROCESSING" && action?.enabled !== false) ||
+    null;
   const runPaymentReviewAction = async (selectedPayment, action) => {
     if (!selectedPayment?.id || isPaymentReviewPending) return;
     const selectedCanReview = Boolean(canReviewPayments && selectedPayment.canReview);
@@ -2045,21 +2506,30 @@ function OperationsPage({
     return (
       <Shell section="operations" mode={mode} storeContext={storeContext}>
         {operationsState?.isError ? <Card title="Orders unavailable" hint="Live orders could not load." actions={<button type="button" className="s26-btn" onClick={operationsState?.refetch}>Retry</button>} /> : null}
-        <Card title="All Orders / Fulfillment Queue" hint="Store-owned suborders, payment state, fulfillment state, and shipping movement." actions={<button type="button" className="s26-btn" disabled title={actionTitle(seller2026Permissions, "ORDER_READ", "orders")}>Export</button>}>
+        <div data-seller2026-live-orders="true" className="s26-grid six" style={{ marginBottom: 14 }}>
+          <CatalogKpi label="Total orders" value={summary.total || 0} />
+          <CatalogKpi label="Pending" value={summary.paymentPending || summary.pending || 0} />
+          <CatalogKpi label="Processing" value={summary.processing || 0} />
+          <CatalogKpi label="Shipped" value={summary.shipped || 0} />
+          <CatalogKpi label="Delivered" value={summary.delivered || 0} />
+          <CatalogKpi label="Needs attention" value={summary.needsAttention || 0} />
+        </div>
+        <Card title="Orders" hint="Live store-owned suborders with read-only payment status and guarded fulfillment actions." actions={<button type="button" className="s26-btn" disabled title="Export is disabled pending operations review.">Export</button>}>
           <div className="s26-tabs">{tabs.map(([value, label]) => <button type="button" className={`s26-tab ${(operationsQuery?.status || "all") === value ? "active" : ""}`} key={value} onClick={() => queryChange({ status: value, page: 1 })}>{label}</button>)}</div>
           <div className="s26-filter-row">
             <input className="s26-search" aria-label="Search order, customer, suborder, or invoice" placeholder="Search order, customer, suborder, or invoice" value={searchValue} onChange={(event) => queryChange({ search: event.target.value, page: 1 })} />
-            <select className="s26-control" aria-label="Filter order status" value={operationsQuery?.status || "all"} onChange={(event) => queryChange({ status: event.target.value, page: 1 })}><option value="all">All Status</option><option value="unpaid">Unpaid</option><option value="pending_confirmation">Pending Confirmation</option><option value="processing">Processing</option><option value="shipped">Shipped</option><option value="delivered">Delivered</option></select>
+            <select className="s26-control" aria-label="Filter fulfillment status" value={operationsQuery?.fulfillmentStatus || "all"} onChange={(event) => queryChange({ fulfillmentStatus: event.target.value, status: "all", page: 1 })}><option value="all">All fulfillment</option><option value="UNFULFILLED">Pending</option><option value="PROCESSING">Processing</option><option value="SHIPPED">Shipped</option><option value="DELIVERED">Delivered</option><option value="CANCELLED">Cancelled</option></select>
+            <select className="s26-control" aria-label="Filter payment status" value={operationsQuery?.paymentStatus || "all"} onChange={(event) => queryChange({ paymentStatus: event.target.value, status: "all", page: 1 })}><option value="all">All payment</option><option value="UNPAID">Unpaid</option><option value="PENDING_CONFIRMATION">Pending confirmation</option><option value="PAID">Paid</option><option value="FAILED">Failed</option><option value="EXPIRED">Expired</option><option value="CANCELLED">Cancelled</option></select>
             <input className="s26-control" type="date" aria-label="Date from" value={operationsQuery?.dateFrom || ""} onChange={(event) => queryChange({ dateFrom: event.target.value, page: 1 })} />
             <input className="s26-control" type="date" aria-label="Date to" value={operationsQuery?.dateTo || ""} onChange={(event) => queryChange({ dateTo: event.target.value, page: 1 })} />
             <button type="button" className="s26-btn" disabled title={disabledTodoTitle}>More Filters</button>
           </div>
           {operationsState?.isLoading ? <p className="hint">Loading orders...</p> : null}
           {fulfillmentStatus.message ? <p className={fulfillmentStatus.type === "error" ? "s26-field-error" : "hint"}>{fulfillmentStatus.message}</p> : null}
-          {!operationsState?.isLoading && rows.length === 0 ? <div className="s26-empty"><strong>Belum ada pesanan untuk toko ini.</strong><p>Pesanan store-scoped akan muncul setelah checkout berhasil.</p></div> : null}
-          {rows.length ? <DataTable columns={["Date", "Invoice / Suborder", "Customer", "Phone", "Channel", "Shipping", "Total", "Status", "Actions"]} rows={rows} renderRow={(row) => {
-            const action = firstEnabledAction(row.fulfillmentActions);
-            return <tr key={row.id}><td>{row.orderDate || "-"}</td><td><strong>{row.invoiceNo}</strong><div className="s26-sub">{row.suborderNo}</div></td><td>{row.customerName}</td><td>{row.customerPhone || "-"}</td><td>{row.channel || "-"}</td><td>{row.shippingMethod || "-"}</td><td>{formatRupiah(row.total)}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td><div className="s26-row-actions"><Link className="s26-link" to={`${basePath}/orders/${encodeURIComponent(String(row.id))}`}>Detail</Link>{action ? <button type="button" className="s26-muted-action" disabled={!canFulfillOrders || isFulfillmentPending || action.code === "MARK_SHIPPED"} title={action.code === "MARK_SHIPPED" ? "Open detail to add tracking before shipping." : fulfillmentActionTitle} onClick={() => runFulfillmentAction(row.id, action)}>{isFulfillmentPending ? "Updating..." : action.label}</button> : <span className="hint">No action</span>}</div></td></tr>;
+          {!operationsState?.isLoading && rows.length === 0 ? <div className="s26-empty"><strong>No orders are available for this store yet.</strong><p>Store-scoped orders will appear after checkout succeeds.</p></div> : null}
+          {rows.length ? <DataTable columns={["Date", "Order", "Customer", "Items", "Total", "Payment", "Fulfillment", "Actions"]} rows={rows} renderRow={(row) => {
+            const action = allowedSellerOrderAction(row.fulfillmentActions);
+            return <tr key={row.id}><td>{row.orderDate || "Recently"}</td><td><strong>{row.orderNumber || row.invoiceNo}</strong><div className="s26-sub">{row.suborderNo}</div></td><td>{row.customerName}<div className="s26-sub">{row.customerEmail || row.customerPhone || "-"}</div></td><td>{row.itemsCount || 0}</td><td>{formatRupiah(row.totalAmount || row.total)}</td><td><span className={statusClass(row.paymentStatus)}>{row.paymentStatus || "Needs review"}</span><div className="s26-sub">Read-only</div></td><td><span className={statusClass(row.fulfillmentStatus || row.status)}>{row.fulfillmentStatus || row.status}</span></td><td><div className="s26-row-actions"><Link className="s26-link" to={`${basePath}/orders/${encodeURIComponent(String(row.suborderId || row.id))}`}>View detail</Link>{action ? <button type="button" className="s26-muted-action" disabled={!canFulfillOrders || isFulfillmentPending} title={fulfillmentActionTitle} onClick={() => runFulfillmentAction(row.suborderId || row.id, action)}>{isFulfillmentPending ? "Updating..." : action.label}</button> : <span className="hint">No action</span>}</div></td></tr>;
           }} /> : null}
           <div className="s26-pagination">
             <span>Page {pagination.page} of {pagination.totalPages} - {pagination.total} suborders</span>
@@ -2077,36 +2547,35 @@ function OperationsPage({
     const detail = operationsData;
     const detailActions = detail?.suborder?.fulfillmentActions || [];
     const packAction = detailActions.find((action) => action.code === "MARK_PROCESSING");
-    const shipAction = detailActions.find((action) => action.code === "MARK_SHIPPED");
-    const deliverAction = detailActions.find((action) => action.code === "MARK_DELIVERED");
     return (
       <Shell section="operations" mode={mode} storeContext={storeContext}>
-        {operationsState?.isError ? <Card title="Suborder unavailable" hint="Suborder tidak ditemukan atau tidak tersedia untuk toko ini." actions={<button type="button" className="s26-btn" onClick={operationsState?.refetch}>Retry</button>} /> : null}
-        <Card title="Suborder Detail" hint="Customer, shipping, items, packing status, timeline, and internal notes." actions={<Link className="s26-btn" to={`${basePath}/orders`}>Back to Orders</Link>}>
+        {operationsState?.isError ? <Card title="Suborder unavailable" hint="Suborder was not found or is not available for this store." actions={<button type="button" className="s26-btn" onClick={operationsState?.refetch}>Retry</button>} /> : null}
+        <Card title="Order Details" hint="Store-scoped order detail with read-only payment state." actions={<Link className="s26-btn" to={`${basePath}/orders`}>Back to Orders</Link>}>
           {operationsState?.isLoading ? <p className="hint">Loading suborder...</p> : null}
-          {!operationsState?.isLoading && !detail?.suborder ? <div className="s26-empty"><strong>Suborder tidak ditemukan atau tidak tersedia untuk toko ini.</strong><p>Pastikan suborder masih berada dalam scope toko aktif.</p></div> : null}
+          {!operationsState?.isLoading && !detail?.suborder ? <div className="s26-empty"><strong>Order details could not be loaded</strong><p>Make sure the suborder is still within the active store scope.</p></div> : null}
           {detail?.suborder ? (
-            <>
-              <h3>{detail.suborder.suborderNo} <span className={statusClass(detail.suborder.status)}>{detail.suborder.status}</span></h3>
+            <div data-seller2026-live-order-detail="true">
+              <h3>{detail.suborder.orderNumber || detail.suborder.suborderNo} <span className={statusClass(detail.suborder.status)}>{detail.suborder.status}</span></h3>
               <p className="hint">Invoice {detail.suborder.invoiceNo} - {detail.suborder.orderDate || "-"} - {detail.suborder.channel || "Store"}</p>
               <div className="s26-grid three" style={{ marginTop: 16 }}>
                 <div className="s26-card soft"><h3>Customer & Shipping</h3><p className="hint">{detail.customer?.name || "Customer"}<br />{detail.customer?.phone || "-"}<br />{detail.customer?.address || "-"}</p>{detail.customer?.note ? <p className="hint">Note: {detail.customer.note}</p> : null}</div>
-                <div className="s26-card soft"><h3>Shipping Method</h3><p className="hint">{detail.shipping?.method || "Not assigned"}<br />Tracking: {detail.shipping?.trackingNo || "-"}<br />Estimate: {detail.shipping?.estimate || "-"}</p></div>
+                <div className="s26-card soft"><h3>Shipping</h3><p className="hint">{detail.shipping?.method || "Not assigned"}<br />Tracking: {detail.shipping?.trackingNo || "No tracking number yet."}<br />Courier: {detail.shipping?.courier || "-"}</p></div>
+                <div className="s26-card soft"><h3>Payment</h3><p className="hint">Status: {detail.payment?.status || detail.suborder.paymentStatus}<br />Method: {detail.payment?.method || "-"}<br />Proof: {detail.payment?.proof || "No payment proof available."}</p><strong>Read-only</strong></div>
                 <div className="s26-card soft"><h3>Cost Summary</h3><p className="hint">Subtotal {formatRupiah(detail.totals.subtotal)}<br />Shipping {formatRupiah(detail.totals.shippingFee)}<br />Service {formatRupiah(detail.totals.serviceFee)}<br />Discount {formatRupiah(detail.totals.discount)}</p><strong>{formatRupiah(detail.totals.total)}</strong></div>
               </div>
               <div style={{ marginTop: 16 }}><DataTable columns={["Product", "Variant", "Qty", "Price", "Subtotal"]} rows={detail.items} renderRow={(row) => <tr key={row.id}><td>{row.productName}</td><td>{row.variantLabel || "-"}</td><td>{row.quantity}</td><td>{formatRupiah(row.price)}</td><td>{formatRupiah(row.subtotal)}</td></tr>} /></div>
               {fulfillmentStatus.message ? <p className={fulfillmentStatus.type === "error" ? "s26-field-error" : "hint"} style={{ marginTop: 14 }}>{fulfillmentStatus.message}</p> : null}
               <div className="s26-card soft" style={{ marginTop: 16 }}>
                 <h3>Fulfillment Status</h3>
-                <p className="hint">Payment information stays read-only. Seller actions only update this store-scoped suborder fulfillment state. Tracking persistence is pending backend shipment rollout.</p>
+                <p className="hint">Payment status stays read-only. Seller actions only update this store-scoped suborder fulfillment state.</p>
                 <div className="s26-form-grid">
                   <div className="s26-field"><label htmlFor="s26-tracking-number">Tracking Number</label><input id="s26-tracking-number" value={trackingForm.trackingNumber} onChange={(event) => setTrackingForm((current) => ({ ...current, trackingNumber: event.target.value }))} placeholder="RESI-123456" disabled title="Tracking persistence is pending backend shipment rollout." /></div>
                   <div className="s26-field"><label htmlFor="s26-courier-code">Shipping Provider</label><input id="s26-courier-code" value={trackingForm.courierCode} onChange={(event) => setTrackingForm((current) => ({ ...current, courierCode: event.target.value.toUpperCase() }))} placeholder="JNE" disabled title="Tracking persistence is pending backend shipment rollout." /></div>
                   <div className="s26-field"><label htmlFor="s26-courier-service">Courier Service</label><input id="s26-courier-service" value={trackingForm.courierService} onChange={(event) => setTrackingForm((current) => ({ ...current, courierService: event.target.value }))} placeholder="REG" disabled title="Tracking persistence is pending backend shipment rollout." /></div>
                 </div>
               </div>
-              <div className="s26-filter-row" style={{ marginTop: 16 }}><button type="button" className="s26-btn primary" disabled={!packAction || !canFulfillOrders || isFulfillmentPending} title={packAction ? fulfillmentActionTitle : "Packing is not available for this status."} onClick={() => runFulfillmentAction(detail.suborder.id, packAction)}>{isFulfillmentPending ? "Updating..." : "Mark as Packed"}</button><button type="button" className="s26-btn" disabled title="Print receipt/label endpoint needs backend review.">Print Receipt</button><button type="button" className="s26-btn" disabled={!shipAction || !canFulfillOrders || isFulfillmentPending} title={shipAction ? fulfillmentActionTitle : "Shipping is not available for this status."} onClick={() => runFulfillmentAction(detail.suborder.id, shipAction)}>Mark as Shipped</button><button type="button" className="s26-btn" disabled={!deliverAction || !canFulfillOrders || isFulfillmentPending} title={deliverAction ? fulfillmentActionTitle : "Delivery confirmation is not available for this status."} onClick={() => runFulfillmentAction(detail.suborder.id, deliverAction)}>Mark Delivered</button></div>
-            </>
+              <div className="s26-filter-row" style={{ marginTop: 16 }}><button type="button" className="s26-btn primary" disabled={!packAction || !canFulfillOrders || isFulfillmentPending} title={packAction ? fulfillmentActionTitle : "Packing is not available for this status."} onClick={() => runFulfillmentAction(detail.suborder.id, packAction)}>{isFulfillmentPending ? "Updating..." : "Mark as Packed"}</button><button type="button" className="s26-btn" disabled title="Print receipt/label endpoint needs backend review.">Print Receipt</button><button type="button" className="s26-btn" disabled title="Mark shipped stays disabled until tracking payload smoke is approved.">Mark as Shipped</button><button type="button" className="s26-btn" disabled title="Mark delivered stays disabled until delivery confirmation smoke is approved.">Mark Delivered</button></div>
+            </div>
           ) : null}
         </Card>
         {detail?.suborder ? <div className="s26-grid two"><Card title="Shipment Timeline" hint={detail.timeline.length ? detail.timeline.map((item) => item.label).join(" / ") : "No shipment timeline yet."} /><Card title="Internal Notes" hint="Save internal note integration is pending." /></div> : null}
@@ -2124,7 +2593,7 @@ function OperationsPage({
     return (
       <Shell section="operations" mode={mode} storeContext={storeContext}>
         {operationsState?.isError ? <Card title="Payment review unavailable" hint="Live payment review data could not load." actions={<button type="button" className="s26-btn" onClick={operationsState?.refetch}>Retry</button>} /> : null}
-        <div className="s26-grid two">
+        <div data-seller2026-live-payment-review="true" className="s26-grid two">
           <Card title="Payment Review" hint="Proof, customer reference, amount, and review status." actions={<button type="button" className="s26-btn" disabled title={actionTitle(seller2026Permissions, "PAYMENT_REVIEW_READ", "payments")}>Export</button>}>
             <div className="s26-grid four" style={{ marginBottom: 14 }}>
               <CatalogKpi label="Pending" value={operationsData?.summary?.totalPending || 0} />
@@ -2140,7 +2609,7 @@ function OperationsPage({
           </Card>
           <Card title="Selected Payment Detail" hint="Transaction breakdown, proof preview, verification checklist, and seller review decision." actions={<><button type="button" className="s26-btn success" disabled={!selectedCanReview || isPaymentReviewPending} title={paymentActionTitle} onClick={() => runPaymentReviewAction(selected, "APPROVE")}>{operationsMutation?.approvingId === selected?.id ? "Approving..." : "Approve Payment"}</button><button type="button" className="s26-btn danger" disabled={!selectedCanReview || isPaymentReviewPending || !paymentReviewForm.reason.trim()} title={!paymentReviewForm.reason.trim() ? "Reason is required before rejecting a payment." : paymentActionTitle} onClick={() => runPaymentReviewAction(selected, "REJECT")}>{operationsMutation?.rejectingId === selected?.id ? "Rejecting..." : "Reject Payment"}</button><button type="button" className="s26-btn" disabled title="No seller request-clarification endpoint is available yet.">Request Clarification</button></>}>
             {selected ? (
-              <>
+              <div data-seller2026-live-order-detail="true">
                 <div className="s26-card soft"><h3>Review Proof</h3>{selected.proofUrl ? <img className="s26-logo-preview" src={selected.proofUrl} alt="" /> : <p className="hint">No payment proof image available.</p>}{selected.buyerNote ? <p className="hint">Buyer Note: {selected.buyerNote}</p> : null}{selected.reviewReason && !selected.canReview ? <p className="hint">{selected.reviewReason}</p> : null}</div>
                 <div className="s26-checklist">{selected.breakdown.map((item) => <div className="s26-check-row" key={item.label}><span>{item.label}</span><strong>{typeof item.value === "number" ? formatRupiah(item.value) : item.value}</strong></div>)}</div>
                 <div className="s26-checklist" aria-label="Verification Checklist">{selected.riskChecks.map((item) => <div className="s26-check-row" key={item.label}><span>{item.label}</span><span className={statusClass(item.status)}>{item.status}</span></div>)}</div>
@@ -2149,7 +2618,7 @@ function OperationsPage({
                   <div className="s26-field"><label htmlFor="s26-payment-reject-reason">Reason</label><textarea id="s26-payment-reject-reason" value={paymentReviewForm.reason} maxLength={2000} onChange={(event) => setPaymentReviewForm((current) => ({ ...current, reason: event.target.value }))} placeholder="Required before rejecting payment proof." disabled={!selectedCanReview || isPaymentReviewPending} />{!paymentReviewForm.reason.trim() ? <span className="hint">Reason is required for Reject Payment.</span> : null}</div>
                 </div>
                 <p className="hint" style={{ marginTop: 12 }}>{operationsData?.governance?.note || "Seller review updates only this store-scoped payment proof. Order payment status remains read-only from the order page."}</p>
-              </>
+              </div>
             ) : <div className="s26-empty"><strong>No payment selected.</strong><p>Payment detail appears after pending payment data is available.</p></div>}
           </Card>
         </div>
@@ -2312,7 +2781,7 @@ function TeamPage({
             <Link className="s26-btn" to={`${basePath}/team/audit`}>Audit Log</Link>
           </div>
           {teamState?.isLoading ? <p className="hint">Loading team members...</p> : null}
-          {!teamState?.isLoading && rows.length === 0 ? <div className="s26-empty"><strong>Belum ada anggota tim untuk toko ini.</strong><p>Anggota dan undangan store-scoped akan muncul setelah ditambahkan.</p></div> : null}
+          {!teamState?.isLoading && rows.length === 0 ? <div className="s26-empty"><strong>No team members are available for this store yet.</strong><p>Store-scoped members and invitations will appear after they are added.</p></div> : null}
           {rows.length ? <DataTable columns={["Member", "Role", "Permissions", "Last Active", "Status", "Actions"]} rows={rows} renderRow={(row) => <tr key={row.id}><td><div className="s26-product-cell"><span className="s26-thumb">{(row.name || "T")[0]}</span><div><strong>{row.name}</strong><div className="s26-sub">{row.email}</div></div></div></td><td>{row.roleName}</td><td>{row.permissionSummary}</td><td>{row.lastActiveAt || "-"}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td><div className="s26-row-actions"><Link className="s26-link" to={`${basePath}/team/${encodeURIComponent(String(row.id))}`}>Detail</Link><button type="button" className="s26-muted-action" disabled title={actionTitle(seller2026Permissions, "TEAM_REMOVE", "team")}>Remove</button></div></td></tr>} /> : null}
         </Card>
       </Shell>
@@ -2323,10 +2792,10 @@ function TeamPage({
     const member = teamData?.member || null;
     return (
       <Shell section="team" mode={mode} storeContext={storeContext}>
-        {teamState?.isError ? <Card title="Member unavailable" hint="Member tidak ditemukan atau tidak tersedia untuk toko ini." actions={<button type="button" className="s26-btn" onClick={teamState?.refetch}>Retry</button>} /> : null}
+        {teamState?.isError ? <Card title="Member unavailable" hint="Member was not found or is not available for this store." actions={<button type="button" className="s26-btn" onClick={teamState?.refetch}>Retry</button>} /> : null}
         <Card title="Member Detail / Role Editor" hint="Store-scoped permission toggles and access summary." actions={<Link className="s26-btn" to={`${basePath}/team`}>Back to Team</Link>}>
           {teamState?.isLoading ? <p className="hint">Loading member...</p> : null}
-          {!teamState?.isLoading && !member ? <div className="s26-empty"><strong>Member tidak ditemukan atau tidak tersedia untuk toko ini.</strong><p>Pastikan member masih berada dalam scope toko aktif.</p></div> : null}
+          {!teamState?.isLoading && !member ? <div className="s26-empty"><strong>Member was not found or is not available for this store.</strong><p>Make sure the member is still within the active store scope.</p></div> : null}
           {member ? (
             <div className="s26-grid two">
               <div className="s26-card soft">
@@ -2366,17 +2835,17 @@ function TeamPage({
         <div className="s26-grid two">
           <Card title="Pending Invitations" hint="Invitee, role, inviter, date, and lifecycle status." actions={<button type="button" className="s26-btn primary" disabled title={actionTitle(seller2026Permissions, "TEAM_INVITE", "team")}>Invite Member</button>}>
             {teamState?.isLoading ? <p className="hint">Loading invitations...</p> : null}
-            {!teamState?.isLoading && invitations.length === 0 ? <div className="s26-empty"><strong>Belum ada invitation untuk toko ini.</strong><p>Undangan pending akan muncul di sini.</p></div> : null}
+            {!teamState?.isLoading && invitations.length === 0 ? <div className="s26-empty"><strong>No invitations are available for this store yet.</strong><p>Pending invitations will appear here.</p></div> : null}
             {invitations.length ? <DataTable columns={["Invitee", "Role", "Invited By", "Date", "Status", "Actions"]} rows={invitations} renderRow={(row) => <tr key={row.id}><td><strong>{row.name}</strong><div className="s26-sub">{row.email}</div></td><td>{row.roleName}</td><td>{row.invitedBy}</td><td>{row.invitedAt || "-"}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td><div className="s26-row-actions"><button type="button" className="s26-muted-action" disabled title={actionTitle(seller2026Permissions, "TEAM_INVITE", "team")}>Resend</button><button type="button" className="s26-muted-action" disabled title={actionTitle(seller2026Permissions, "TEAM_INVITE", "team")}>Cancel</button></div></td></tr>} /> : null}
           </Card>
           <Card title="Invite Member Form" hint="Team invitation integration is pending.">
             <div className="s26-form-grid">
-              <label><span>Full Name</span><input className="s26-control" placeholder="Nama anggota" disabled /></label>
+              <label><span>Full Name</span><input className="s26-control" placeholder="Member name" disabled /></label>
               <label><span>Email Address</span><input className="s26-control" placeholder="email@domain.com" disabled /></label>
               <label><span>Role</span><select className="s26-control" disabled><option>Select role</option></select></label>
               <label><span>Store Access</span><input className="s26-control" value="Current store only" disabled readOnly /></label>
             </div>
-            <label style={{ display: "block", marginTop: 12 }}><span>Custom Message</span><textarea className="s26-control" rows={3} placeholder="Pesan undangan" disabled /></label>
+            <label style={{ display: "block", marginTop: 12 }}><span>Custom Message</span><textarea className="s26-control" rows={3} placeholder="Invitation message" disabled /></label>
             <button type="button" className="s26-btn primary" style={{ marginTop: 14 }} disabled title={actionTitle(seller2026Permissions, "TEAM_INVITE", "team")}>Send Invitation</button>
           </Card>
         </div>
@@ -2387,7 +2856,7 @@ function TeamPage({
             <input className="s26-control" type="date" aria-label="Audit date from" value={teamQuery?.dateFrom || ""} onChange={(event) => queryChange({ dateFrom: event.target.value, page: 1 })} />
             <input className="s26-control" type="date" aria-label="Audit date to" value={teamQuery?.dateTo || ""} onChange={(event) => queryChange({ dateTo: event.target.value, page: 1 })} />
           </div>
-          {!teamState?.isLoading && auditRows.length === 0 ? <div className="s26-empty"><strong>Belum ada invitation atau audit log untuk toko ini.</strong><p>Aktivitas team akan muncul setelah ada perubahan akses.</p></div> : null}
+          {!teamState?.isLoading && auditRows.length === 0 ? <div className="s26-empty"><strong>No invitations or audit logs are available for this store yet.</strong><p>Team activity will appear after access changes are recorded.</p></div> : null}
           {auditRows.length ? <DataTable columns={["Time", "Member", "Action", "Target", "Details", "IP Address"]} rows={auditRows} renderRow={(row) => <tr key={row.id}><td>{row.time || "-"}</td><td>{row.memberName}</td><td>{row.action}</td><td>{row.target}</td><td>{row.details || "-"}</td><td>{row.ipAddress || "-"}</td></tr>} /> : null}
           <div className="s26-pagination">
             <span>Page {pagination.page} of {pagination.totalPages} - {pagination.total} logs</span>
@@ -2405,10 +2874,18 @@ function TeamPage({
     const rows = teamData?.notifications || [];
     const categories = teamData?.categories || [];
     const summary = teamData?.summary || {};
+    const categoryLabels = categories.reduce((accumulator, category) => {
+      accumulator[category.key] = category.label;
+      return accumulator;
+    }, {});
+    const formatNotificationLabel = (value) =>
+      String(value || "Info")
+        .replace(/[_-]+/g, " ")
+        .replace(/\b\w/g, (character) => character.toUpperCase());
 
     return (
       <Shell section="team" mode={mode} storeContext={storeContext}>
-        {teamState?.isError ? <Card title="Notifications unavailable" hint="Live notifications could not load." actions={<button type="button" className="s26-btn" onClick={teamState?.refetch}>Retry</button>} /> : null}
+        {teamState?.isError ? <Card title="Notifications could not be loaded" hint="Store-scoped notifications are temporarily unavailable." actions={<button type="button" className="s26-btn" onClick={teamState?.refetch}>Try again</button>} /> : null}
         <div className="s26-grid two">
           <Card title="Notifications Center" hint="Priority filters, categories, unread state, and operational alerts." actions={<button type="button" className="s26-btn" disabled={!canMutateNotifications || isNotificationMutationPending || summary.unread <= 0} title={notificationActionTitle} onClick={() => runNotificationAction(notificationMutation?.markAllRead, "All notifications marked as read.")}>{notificationMutation?.isMarkingAllRead ? "Marking..." : "Mark all as read"}</button>}>
             <div className="s26-grid five" style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 10, marginBottom: 14 }}>
@@ -2424,10 +2901,58 @@ function TeamPage({
               <select className="s26-control" aria-label="Filter notification category" value={teamQuery?.category || "all"} onChange={(event) => queryChange({ category: event.target.value, page: 1 })}>{categories.map((category) => <option key={category.key} value={category.key}>{category.label}</option>)}</select>
               <select className="s26-control" aria-label="Filter unread notifications" value={teamQuery?.unread || "all"} onChange={(event) => queryChange({ unread: event.target.value, page: 1 })}><option value="all">All Read State</option><option value="true">Unread</option><option value="false">Read</option></select>
             </div>
-            {teamState?.isLoading ? <p className="hint">Loading notifications...</p> : null}
+            {teamState?.isLoading ? (
+              <div className="s26-notification-list">
+                {[1, 2, 3, 4].map((i) => (
+                  <article className="s26-notification-item read" key={`skeleton-${i}`} style={{ opacity: 0.6, animation: "s26-pulse 1.5s infinite ease-in-out" }}>
+                    <div className="s26-notification-dot" aria-hidden="true" style={{ background: "var(--s26-border)" }} />
+                    <div className="s26-notification-body">
+                      <div className="s26-notification-head">
+                        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+                          <div style={{ height: 16, width: "50%", background: "var(--s26-muted)", borderRadius: 4 }} />
+                          <div style={{ height: 14, width: "80%", background: "var(--s26-border)", borderRadius: 4 }} />
+                        </div>
+                        <div style={{ height: 24, width: 80, background: "var(--s26-border)", borderRadius: 12 }} />
+                      </div>
+                      <div className="s26-notification-meta" style={{ marginTop: 12 }}>
+                        <div style={{ height: 14, width: 60, background: "var(--s26-border)", borderRadius: 4 }} />
+                        <div style={{ height: 14, width: 60, background: "var(--s26-border)", borderRadius: 4 }} />
+                        <div style={{ height: 14, width: 80, background: "var(--s26-border)", borderRadius: 4 }} />
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : null}
             {notificationActionStatus.message ? <p className={notificationActionStatus.type === "error" ? "s26-field-error" : "hint"}>{notificationActionStatus.message}</p> : null}
-            {!teamState?.isLoading && rows.length === 0 ? <div className="s26-empty"><strong>Belum ada notifikasi untuk toko ini.</strong><p>Notifikasi store-scoped akan muncul saat ada event operasional.</p></div> : null}
-            {rows.length ? <DataTable columns={["Notification", "Category", "Priority", "Time", "State", "Actions"]} rows={rows} renderRow={(row) => <tr key={row.id}><td><strong>{row.title}</strong><div className="s26-sub">{row.message || "-"}</div></td><td>{row.category}</td><td><span className={statusClass(row.priority)}>{row.priority}</span></td><td>{row.createdAt || "-"}</td><td>{row.unread ? "Unread" : "Read"}</td><td>{row.unread ? <button type="button" className="s26-muted-action" disabled={!canMutateNotifications || isNotificationMutationPending} title={notificationActionTitle} onClick={() => runNotificationAction(() => notificationMutation?.markRead(row.id), "Notification marked as read.")}>{notificationMutation?.isMarkingRead ? "Marking..." : "Mark read"}</button> : <span className="hint">Done</span>}</td></tr>} /> : null}
+            {!teamState?.isLoading && !teamState?.isError && rows.length === 0 ? <div className="s26-empty" style={{ padding: "40px 20px" }}><strong>No notifications found</strong><p>Try adjusting your search or priority filters.</p></div> : null}
+            {rows.length > 0 && !teamState?.isLoading && !teamState?.isError ? (
+              <div className="s26-notification-list">
+                {rows.map((row) => (
+                  <article className={`s26-notification-item ${row.unread ? "unread" : "read"}`} key={row.id}>
+                    <div className="s26-notification-dot" aria-hidden="true" />
+                    <div className="s26-notification-body">
+                      <div className="s26-notification-head">
+                        <div>
+                          <strong>{row.title}</strong>
+                          <p>{row.message || "No details available."}</p>
+                        </div>
+                        <span className={statusClass(row.status)}>{formatNotificationLabel(row.status)}</span>
+                      </div>
+                      <div className="s26-notification-meta">
+                        <span>{categoryLabels[row.category] || formatNotificationLabel(row.category)}</span>
+                        <span>{formatNotificationLabel(row.priority)}</span>
+                        <span>{row.createdAt || "Recently"}</span>
+                      </div>
+                    </div>
+                    <div className="s26-notification-actions">
+                      {row.canonicalHref ? <Link className="s26-link" to={row.canonicalHref}>{row.actionLabel || "Open"}</Link> : null}
+                      <button type="button" className="s26-muted-action" disabled={!row.unread || !canMutateNotifications || isNotificationMutationPending} title={row.unread ? notificationActionTitle : "Notification is already read."} onClick={() => runNotificationAction(() => notificationMutation?.markRead(row.id), "Notification marked as read.")}>{notificationMutation?.isMarkingRead ? "Marking..." : row.unread ? "Mark as read" : "Read"}</button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : null}
           </Card>
           <Card title="Categories" hint="Notification grouping by operational domain.">
             <div className="s26-checklist">{categories.map((category) => <button type="button" className="s26-check-row" key={category.key} onClick={() => queryChange({ category: category.key, page: 1 })}><span>{category.label}</span><strong>{category.count}</strong></button>)}</div>
@@ -2440,7 +2965,7 @@ function TeamPage({
   return (
     <Shell section="team">
       <div className="s26-grid two">
-        <Card title="Team Members" hint="Role, permission summary, last active, dan status." actions={<button className="s26-btn primary">+ Invite Member</button>}>
+        <Card title="Team Members" hint="Role, permission summary, last active, and status." actions={<button className="s26-btn primary">+ Invite Member</button>}>
           <div className="s26-grid four" />
           <DataTable columns={["Member", "Role", "Permissions", "Last Active", "Status"]} rows={members} renderRow={(row) => <tr key={row[0]}><td><div className="s26-product-cell"><span className="s26-thumb">{row[0][0]}</span><strong>{row[0]}</strong></div></td><td>{row[1]}</td><td>{row[2]}</td><td>{row[3]}</td><td><span className={statusClass(row[4])}>{row[4]}</span></td></tr>} />
         </Card>
@@ -2453,10 +2978,10 @@ function TeamPage({
         </Card>
       </div>
       <div className="s26-grid two">
-        <Card title="Invitations & Audit Log" hint="Pending invitations dan log aktivitas penting.">
+        <Card title="Invitations & Audit Log" hint="Pending invitations and important activity logs.">
           <DataTable columns={["Time", "Member", "Action", "Target", "Details"]} rows={[["24 Mei 2026 09:41", "Budi Herman", "Updated Role", "Rizky Pratama", "Support Staff to Order Manager"], ["24 Mei 2026 09:15", "Dewi Lestari", "Invited Member", "Rina Oktaviani", "Payment Reviewer"], ["23 Mei 2026 16:32", "Siti Aisyah", "Created Product", "Batik Mega Mendung", "SKU: BAT-MEG-001"]]} renderRow={(row) => <tr key={row.join("-")}>{row.map((cell) => <td key={cell}>{cell}</td>)}</tr>} />
         </Card>
-        <Card title="Notifications Center" hint="Priority, kategori, unread badge, dan aksi mark all as read." actions={<button className="s26-btn">Mark all as read</button>}>
+        <Card title="Notifications Center" hint="Priority, category, unread badge, and mark-all-as-read action." actions={<button className="s26-btn">Mark all as read</button>}>
           <div className="s26-grid four" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 14 }}>{[["All", "124"], ["Unread", "12"], ["Critical", "3"], ["Important", "18"]].map(([a, b]) => <div className="s26-card soft" key={a}><p className="hint">{a}</p><strong>{b}</strong></div>)}</div>
           <DataTable columns={["Notification", "Category", "Priority", "Time"]} rows={notifications} renderRow={(row) => <tr key={row[0]}><td>{row[0]}</td><td>{row[1]}</td><td><span className={statusClass(row[2])}>{row[2]}</span></td><td>{row[3]}</td></tr>} />
         </Card>
@@ -2531,8 +3056,8 @@ export function Seller2026Workspace({
     return (
       <Shell section={section} mode={mode} storeContext={storeContext}>
         <Seller2026RestrictedState
-          title="Akses dibatasi"
-          message={`Anda tidak memiliki permission ${requiredPermission} untuk melihat halaman ini.`}
+          title="Access Restricted"
+          message={`You do not have permission ${requiredPermission} to view this page.`}
         />
       </Shell>
     );

@@ -4,10 +4,7 @@ import { runSeller2026Mutation } from "./mutations.ts";
 export type Seller2026FulfillmentAction =
   | "MARK_PROCESSING"
   | "MARK_SHIPPED"
-  | "MARK_DELIVERED"
-  | "MARK_FAILED_DELIVERY"
-  | "MARK_RETURNED"
-  | "CANCEL_SHIPMENT";
+  | "MARK_DELIVERED";
 
 export type Seller2026FulfillmentPayload = {
   action?: unknown;
@@ -21,9 +18,6 @@ const ACTIONS = new Set<Seller2026FulfillmentAction>([
   "MARK_PROCESSING",
   "MARK_SHIPPED",
   "MARK_DELIVERED",
-  "MARK_FAILED_DELIVERY",
-  "MARK_RETURNED",
-  "CANCEL_SHIPMENT",
 ]);
 
 const text = (value: unknown) => String(value ?? "").trim();

@@ -30,39 +30,83 @@ const asNumber = (value: unknown, fallback = 0) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-const normalizeSellerAttribute = (item: any) => ({
-  id: asNumber(item?.id, 0),
-  name: toText(item?.name) || "-",
-  displayName: toText(item?.displayName) || "",
-  type: toText(item?.type).toLowerCase() || "dropdown",
-  published: Boolean(item?.published),
-  scope: toText(item?.scope).toLowerCase() === "store" ? "store" : "global",
-  status: toText(item?.status).toLowerCase() === "archived" ? "archived" : "active",
-  storeId: asNumber(item?.storeId, 0) || null,
-  storeName: toText(item?.storeName) || "",
-  storeSlug: toText(item?.storeSlug) || "",
-  createdByRole: toText(item?.createdByRole).toLowerCase() === "seller" ? "seller" : "admin",
-  createdByUserId: asNumber(item?.createdByUserId, 0) || null,
-  managedByAdmin: Boolean(item?.managedByAdmin ?? (toText(item?.scope).toLowerCase() !== "store")),
-  editable: Boolean(item?.editable ?? (toText(item?.scope).toLowerCase() === "store")),
-  isUsed: Boolean(item?.isUsed),
-  usageCount: asNumber(item?.usageCount, 0),
-  valueCount: asNumber(item?.valueCount, 0),
-  values: Array.isArray(item?.values)
-    ? item.values.map((entry: unknown) => toText(entry)).filter(Boolean)
-    : [],
-  createdAt: toText(item?.createdAt) || null,
-  updatedAt: toText(item?.updatedAt) || null,
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === "object";
+
+const normalizeAttributeType = (value: unknown): SellerAttributePayload["type"] => {
+  const normalized = toText(value).toLowerCase();
+  return ["dropdown", "radio", "checkbox"].includes(normalized)
+    ? (normalized as SellerAttributePayload["type"])
+    : "dropdown";
+};
+
+const normalizeAttributeValues = (value: unknown) =>
+  Array.isArray(value) ? value.map((entry) => toText(entry)).filter(Boolean) : [];
+
+const normalizeValueWritePayload = (payload: Partial<SellerAttributeValuePayload>) => ({
+  value: toText(payload.value),
 });
 
-const normalizeSellerAttributeValue = (item: any) => ({
-  id: asNumber(item?.id, 0),
-  attributeId: asNumber(item?.attributeId, 0),
-  value: toText(item?.value) || "-",
-  status: toText(item?.status).toLowerCase() === "archived" ? "archived" : "active",
-  isUsed: Boolean(item?.isUsed),
-  usageCount: asNumber(item?.usageCount, 0),
-});
+const normalizeWritePayload = (
+  payload: Partial<SellerAttributePayload>,
+  options: { requireName?: boolean; includeValues?: boolean; includePublished?: boolean } = {}
+) => {
+  const name = toText(payload.name);
+  const displayName = toText(payload.displayName || payload.name);
+  const nextPayload: Partial<SellerAttributePayload> = {};
+
+  if (name || options.requireName) nextPayload.name = name;
+  if (displayName || options.requireName) nextPayload.displayName = displayName || name;
+  if (payload.type) nextPayload.type = normalizeAttributeType(payload.type);
+  if (options.includeValues) {
+    const values = normalizeAttributeValues(payload.values);
+    nextPayload.values = values.length ? values : ["Default"];
+  }
+  if (options.includePublished) {
+    nextPayload.published = Boolean(payload.published);
+  }
+
+  return nextPayload;
+};
+
+const normalizeSellerAttribute = (item: unknown) => {
+  const record = isRecord(item) ? item : {};
+  const scope = toText(record.scope).toLowerCase() === "store" ? "store" : "global";
+  return {
+    id: asNumber(record.id, 0),
+    name: toText(record.name) || "-",
+    displayName: toText(record.displayName) || "",
+    type: normalizeAttributeType(record.type),
+    published: Boolean(record.published),
+    scope,
+    status: toText(record.status).toLowerCase() === "archived" ? "archived" : "active",
+    storeId: asNumber(record.storeId, 0) || null,
+    storeName: toText(record.storeName) || "",
+    storeSlug: toText(record.storeSlug) || "",
+    createdByRole: toText(record.createdByRole).toLowerCase() === "seller" ? "seller" : "admin",
+    createdByUserId: asNumber(record.createdByUserId, 0) || null,
+    managedByAdmin: Boolean(record.managedByAdmin ?? scope !== "store"),
+    editable: Boolean(record.editable ?? scope === "store"),
+    isUsed: Boolean(record.isUsed),
+    usageCount: asNumber(record.usageCount, 0),
+    valueCount: asNumber(record.valueCount, 0),
+    values: normalizeAttributeValues(record.values),
+    createdAt: toText(record.createdAt) || null,
+    updatedAt: toText(record.updatedAt) || null,
+  };
+};
+
+const normalizeSellerAttributeValue = (item: unknown) => {
+  const record = isRecord(item) ? item : {};
+  return {
+    id: asNumber(record.id, 0),
+    attributeId: asNumber(record.attributeId, 0),
+    value: toText(record.value) || "-",
+    status: toText(record.status).toLowerCase() === "archived" ? "archived" : "active",
+    isUsed: Boolean(record.isUsed),
+    usageCount: asNumber(record.usageCount, 0),
+  };
+};
 
 export const getSellerAttributes = async (
   storeId: number | string,
@@ -96,7 +140,10 @@ export const createSellerAttribute = async (
   storeId: number | string,
   payload: SellerAttributePayload
 ) => {
-  const { data } = await api.post(`/seller/stores/${storeId}/attributes`, payload);
+  const { data } = await api.post(
+    `/seller/stores/${storeId}/attributes`,
+    normalizeWritePayload(payload, { requireName: true, includeValues: true, includePublished: true })
+  );
   return {
     ...data,
     data: data?.data ? normalizeSellerAttribute(data.data) : null,
@@ -110,7 +157,7 @@ export const updateSellerAttribute = async (
 ) => {
   const { data } = await api.patch(
     `/seller/stores/${storeId}/attributes/${attributeId}`,
-    payload
+    normalizeWritePayload(payload)
   );
   return {
     ...data,
@@ -222,7 +269,10 @@ export const createSellerAttributeValue = async (
   attributeId: number | string,
   payload: SellerAttributeValuePayload
 ) => {
-  const { data } = await api.post(`/seller/stores/${storeId}/attributes/${attributeId}/values`, payload);
+  const { data } = await api.post(
+    `/seller/stores/${storeId}/attributes/${attributeId}/values`,
+    normalizeValueWritePayload(payload)
+  );
   return {
     ...data,
     data: data?.data ? normalizeSellerAttributeValue(data.data) : null,
@@ -234,7 +284,10 @@ export const updateSellerAttributeValue = async (
   valueId: number | string,
   payload: SellerAttributeValuePayload
 ) => {
-  const { data } = await api.patch(`/seller/stores/${storeId}/attributes/values/${valueId}`, payload);
+  const { data } = await api.patch(
+    `/seller/stores/${storeId}/attributes/values/${valueId}`,
+    normalizeValueWritePayload(payload)
+  );
   return {
     ...data,
     data: data?.data ? normalizeSellerAttributeValue(data.data) : null,

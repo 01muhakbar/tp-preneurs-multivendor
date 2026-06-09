@@ -69,11 +69,16 @@ export function useSeller2026Coupons(
     const status = String(query.status || "all");
     const type = String(query.type || "all");
     const coupons = adapted.coupons.filter((item) => {
-      const matchesSearch = search ? item.code.toLowerCase().includes(search) : true;
+      const matchesSearch = search
+        ? `${item.code} ${item.title} ${item.description}`.toLowerCase().includes(search)
+        : true;
       const matchesStatus = status === "all" ? true : item.status === status;
       const matchesType = type === "all" ? true : item.type === type;
       return matchesSearch && matchesStatus && matchesType;
     });
+    const expired = coupons.filter((item) => item.status === "expired").length;
+    const inactive = coupons.filter((item) => item.status === "inactive").length;
+    const scheduled = coupons.filter((item) => item.status === "scheduled").length;
 
     return {
       ...adapted,
@@ -82,6 +87,11 @@ export function useSeller2026Coupons(
         ...adapted.summary,
         total: coupons.length,
         active: coupons.filter((item) => item.status === "active").length,
+        inactive,
+        expired,
+        scheduled,
+        archived: coupons.filter((item) => item.isArchived).length,
+        needsAttention: expired + coupons.filter((item) => item.code === "NO-CODE" || item.isPlatformCoupon).length,
       },
     };
   }, [couponsQuery.data, enabled, options.permissions, query.search, query.status, query.type]);
@@ -130,9 +140,9 @@ export function useSeller2026Coupons(
     error: couponsQuery.error,
     refetch: couponsQuery.refetch,
     creating: createMutation.isPending,
-    updatingId: updateMutation.isPending ? "active" : null,
-    statusChangingId: statusMutation.isPending ? "active" : null,
-    deletingId: archiveMutation.isPending ? "active" : null,
+    updatingId: updateMutation.isPending ? updateMutation.variables?.couponId || null : null,
+    statusChangingId: statusMutation.isPending ? statusMutation.variables?.couponId || null : null,
+    deletingId: archiveMutation.isPending ? archiveMutation.variables || null : null,
     mutationError:
       createMutation.error || updateMutation.error || statusMutation.error || archiveMutation.error,
     createCoupon: createMutation.mutateAsync,

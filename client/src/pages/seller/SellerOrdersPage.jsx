@@ -22,6 +22,7 @@ import { useSellerWorkspaceRoute } from "../../utils/sellerWorkspaceRoute.js";
 import { sellerStatusBadge } from "./sellerStatusPresentation.js";
 import {
   sellerFieldClass,
+  sellerPrimaryButtonClass,
   sellerSecondaryButtonClass,
   sellerTableCellClass,
   sellerTableHeadCellClass,

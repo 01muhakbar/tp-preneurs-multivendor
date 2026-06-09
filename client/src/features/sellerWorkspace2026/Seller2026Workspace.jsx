@@ -11,6 +11,8 @@ import Seller2026Workspace from "../seller2026/Seller2026Workspace.jsx"; // fall
  */
 export default function Seller2026WorkspacePreview({ section = "dashboard", mode = "standalone", storeContext = null, productionMode = false }) {
   const { storeSlug } = useParams(); // may be undefined in preview routes
+  const overviewStoreSlug = section === "dashboard" ? storeSlug : null;
+  const storeProfileSlug = section === "storefront" ? storeSlug : null;
 
   // Overview hook
   const {
@@ -19,7 +21,7 @@ export default function Seller2026WorkspacePreview({ section = "dashboard", mode
     error: overviewError,
     usingFallback: overviewUsingFallback,
     refetch: overviewRefetch,
-  } = useSellerWorkspace2026Overview(storeSlug);
+  } = useSellerWorkspace2026Overview(overviewStoreSlug);
 
   const {
     data: storeProfileData,
@@ -33,7 +35,7 @@ export default function Seller2026WorkspacePreview({ section = "dashboard", mode
     validation: storeProfileValidation,
     saveProfile: storeProfileSaveProfile,
     refetch: storeProfileRefetch,
-  } = useSellerWorkspace2026StoreProfile(storeSlug);
+  } = useSellerWorkspace2026StoreProfile(storeProfileSlug);
 
   // Determine which data/state to pass based on section
   const dashboardProps = section === "dashboard"

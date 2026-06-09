@@ -629,5 +629,13 @@ Guardrail:
 - Existing Seller production pages are not replaced.
 
 Next:
-1. UI polish parity for 2026 mockups
 2. Production adoption plan per route
+
+## Seller Workspace 2026 Production Adoption — Analytics
+
+Status final: `ANALYTICS_PRODUCTION_ADOPTION_FLAGGED`, `ANALYTICS_READ_ONLY_HARDENED`
+
+*Note: Fixed incorrect React Query import in Seller2026LiveAnalyticsPage.jsx. The codebase uses @tanstack/react-query, not react-query.*
+
+Production route:
+- `/seller/stores/:storeSlug/analytics`

@@ -1,5 +1,10 @@
 import { useParams, useSearchParams } from "react-router-dom";
+import { useMutation } from "@tanstack/react-query";
 import Seller2026Workspace from "../../features/seller2026/Seller2026Workspace.jsx";
+import {
+  createSellerAttributeValue,
+  updateSellerAttributeValue,
+} from "../../api/sellerAttributes.ts";
 import { useSeller2026AttributeValues } from "../../hooks/seller2026/useSeller2026AttributeValues.ts";
 import { useSellerWorkspaceRoute } from "../../utils/sellerWorkspaceRoute.js";
 import { getSeller2026PagePermissions } from "./seller2026PagePermissions.js";
@@ -15,6 +20,8 @@ export default function Seller2026LiveAttributeValuesPage() {
   const { sellerContext, workspaceStoreId: storeId } = useSellerWorkspaceRoute();
   const { can } = getSeller2026PagePermissions(sellerContext);
   const canView = can("CATALOG_ATTRIBUTE_READ");
+  const permissionKeys = sellerContext?.access?.permissionKeys || [];
+  const canManageAttributeValues = permissionKeys.includes("ATTRIBUTE_MANAGE");
   const query = {
     search: searchParams.get("q") || "",
     status: searchParams.get("status") || "all",
@@ -23,6 +30,14 @@ export default function Seller2026LiveAttributeValuesPage() {
   };
   const valuesQuery = useSeller2026AttributeValues(storeId, attributeId, query, {
     enabled: canView,
+  });
+  const createValueMutation = useMutation({
+    mutationFn: (payload) => createSellerAttributeValue(storeId, attributeId, payload),
+    onSuccess: () => valuesQuery.refetch(),
+  });
+  const updateValueMutation = useMutation({
+    mutationFn: ({ valueId, payload }) => updateSellerAttributeValue(storeId, valueId, payload),
+    onSuccess: () => valuesQuery.refetch(),
   });
 
   const handleQueryChange = (nextQuery) => {
@@ -60,6 +75,20 @@ export default function Seller2026LiveAttributeValuesPage() {
       }}
       catalogQuery={query}
       onCatalogQueryChange={handleQueryChange}
+      catalogMutation={{
+        canCreateAttributeValue: canManageAttributeValues,
+        canUpdateAttributeValue: canManageAttributeValues,
+        canDeleteAttributeValue: false,
+        canManageAttributeValueStatus: false,
+        createAttributeValue: createValueMutation.mutateAsync,
+        updateAttributeValue: updateValueMutation.mutateAsync,
+        creatingAttributeValue: createValueMutation.isPending,
+        updatingAttributeValueId: updateValueMutation.isPending ? updateValueMutation.variables?.valueId || null : null,
+        attributeValueStatusDisabledReason:
+          "Publish controls are disabled until value status governance is reviewed.",
+        attributeValueDeleteDisabledReason:
+          "Delete is disabled pending destructive review.",
+      }}
     />
   );
 }

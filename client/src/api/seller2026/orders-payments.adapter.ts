@@ -19,24 +19,48 @@ export type Seller2026FulfillmentActionViewModel = {
 export type Seller2026OrdersViewModel = {
   summary: {
     total: number;
+    pending: number;
     unpaid: number;
+    paymentPending: number;
     pendingConfirmation: number;
     processing: number;
+    packed: number;
     shipped: number;
     delivered: number;
+    cancelled: number;
+    needsAttention: number;
   };
   suborders: Array<{
     id: string | number;
+    suborderId: string | number;
+    orderId: string | number | null;
     invoiceNo: string;
+    orderNumber: string;
     suborderNo: string;
     orderDate: string | null;
+    createdAt: string | null;
+    updatedAt: string | null;
+    paidAt: string | null;
     customerName: string;
+    customerEmail?: string;
     customerPhone?: string;
+    itemsCount: number;
+    items: unknown[];
     channel?: string;
     shippingMethod?: string;
+    deliveryMethod?: string;
+    trackingNumber?: string;
+    currency: string;
     total: number;
+    totalAmount: number;
+    paymentStatus: string;
+    shippingStatus: string;
     status: Seller2026SuborderStatus;
+    fulfillmentStatus: Seller2026SuborderStatus;
+    allowedActions: string[];
+    canFulfill: boolean;
     fulfillmentActions: Seller2026FulfillmentActionViewModel[];
+    canonicalDetailHref?: string;
   }>;
   pagination: {
     page: number;
@@ -49,15 +73,25 @@ export type Seller2026OrdersViewModel = {
 export type Seller2026SuborderDetailViewModel = {
   suborder: {
     id: string | number;
+    suborderId: string | number;
+    orderId: string | number | null;
     invoiceNo: string;
+    orderNumber: string;
     suborderNo: string;
     status: string;
+    paymentStatus: string;
+    shippingStatus: string;
     orderDate: string | null;
     channel?: string;
     fulfillmentActions: Seller2026FulfillmentActionViewModel[];
+    allowedActions: string[];
+    canFulfill: boolean;
+    createdAt: string | null;
+    updatedAt: string | null;
   } | null;
   customer: {
     name: string;
+    email?: string;
     phone?: string;
     address: string;
     note?: string;
@@ -65,8 +99,15 @@ export type Seller2026SuborderDetailViewModel = {
   shipping: {
     method?: string;
     trackingNo?: string;
+    courier?: string;
     estimate?: string;
   } | null;
+  payment: {
+    status: string;
+    method: string;
+    proof: string;
+    paidAt: string | null;
+  };
   items: Array<{
     id: string | number;
     productName: string;
@@ -233,6 +274,13 @@ const readFulfillmentActions = (value: unknown): Seller2026FulfillmentActionView
     .filter(Boolean) as Seller2026FulfillmentActionViewModel[];
 };
 
+const readAllowedActionCodes = (value: unknown) =>
+  readFulfillmentActions(value)
+    .filter((action) => action.enabled !== false)
+    .map((action) => action.code);
+
+const hasEnabledFulfillmentAction = (value: unknown) => readAllowedActionCodes(value).length > 0;
+
 export function normalizeSuborderStatus(status: unknown): Seller2026SuborderStatus {
   const value = text(status).toUpperCase();
 
@@ -282,13 +330,16 @@ const adaptOrderRow = (value: unknown) => {
   const row = object(value);
   const order = object(row.order);
   const buyer = object(row.buyer ?? row.customer);
+  const paymentSummary = object(row.paymentSummary);
+  const shipments = array(row.shipments).map(object);
+  const latestTracking = object(row.latestTrackingEvent);
   const readModel = object(row.readModel);
   const sellerScope = object(readModel.sellerScope);
   const primaryStatus = object(readModel.primaryStatus);
   const paymentState = object(readModel.paymentState);
-  const paymentSummary = object(row.paymentSummary);
   const fulfillmentMeta = object(row.fulfillmentStatusMeta);
   const paymentMeta = object(row.paymentStatusMeta);
+  const shippingMeta = object(row.shippingStatusMeta);
   const status = normalizeSuborderStatus(
     primaryStatus.code ??
       primaryStatus.label ??
@@ -298,18 +349,42 @@ const adaptOrderRow = (value: unknown) => {
       paymentMeta.code ??
       row.paymentStatus
   );
+  const paymentStatus = text(paymentMeta.code ?? paymentState.code ?? row.paymentStatus, "UNPAID").toUpperCase();
+  const fulfillmentActions = readFulfillmentActions(row);
+  const id = idValue(row.suborderId ?? row.id);
+  const orderNumber = text(row.orderNumber ?? order.orderNumber ?? row.invoiceNo, "Order");
+  const itemCount = number(row.itemCount ?? sellerScope.itemCount, 0);
   return {
-    id: idValue(row.suborderId ?? row.id),
-    invoiceNo: text(row.orderNumber ?? order.orderNumber ?? row.invoiceNo, "-"),
-    suborderNo: text(row.suborderNumber ?? row.suborderNo, "-"),
-    orderDate: text(row.createdAt ?? order.createdAt) || null,
+    id,
+    suborderId: id,
+    orderId: idValue(row.orderId ?? order.id, "") || null,
+    invoiceNo: orderNumber,
+    orderNumber,
+    suborderNo: text(row.suborderNumber ?? row.suborderNo, "Order"),
+    orderDate: text(row.createdAt ?? order.createdAt) || "Recently",
+    createdAt: text(row.createdAt ?? order.createdAt) || "Recently",
+    updatedAt: text(row.updatedAt) || null,
+    paidAt: text(row.paidAt ?? paymentSummary.paidAt) || null,
     customerName: text(buyer.name, "Customer"),
+    customerEmail: text(buyer.email) || undefined,
     customerPhone: text(buyer.phone) || undefined,
+    itemsCount: itemCount,
+    items: array(row.items),
     channel: text(order.checkoutMode ?? row.checkoutMode ?? row.channel) || undefined,
     shippingMethod: text(row.shippingStatus ?? row.shippingMethod ?? primaryStatus.label) || undefined,
+    deliveryMethod: text(row.shippingStatus ?? row.deliveryMethod ?? row.shippingMethod) || "Needs review",
+    trackingNumber: text(row.trackingNumber ?? shipments[0]?.trackingNumber ?? latestTracking.trackingNumber) || undefined,
+    currency: text(row.currency, "IDR"),
     total: number(row.totalAmount ?? sellerScope.totalAmount ?? paymentSummary.amount, 0),
+    totalAmount: number(row.totalAmount ?? sellerScope.totalAmount ?? paymentSummary.amount, 0),
+    paymentStatus,
+    shippingStatus: text(shippingMeta.label ?? row.shippingStatus, "Needs review"),
     status,
-    fulfillmentActions: readFulfillmentActions(row),
+    fulfillmentStatus: status,
+    allowedActions: fulfillmentActions.filter((action) => action.enabled !== false).map((action) => action.code),
+    canFulfill: fulfillmentActions.some((action) => action.enabled !== false),
+    fulfillmentActions,
+    canonicalDetailHref: id ? `/orders/${encodeURIComponent(String(id))}` : undefined,
   };
 };
 
@@ -317,11 +392,16 @@ export function adaptSeller2026Orders(value: unknown): Seller2026OrdersViewModel
   const suborders = readItems(value).map(adaptOrderRow);
   const summary = {
     total: suborders.length,
-    unpaid: suborders.filter((item) => item.status === "UNPAID").length,
-    pendingConfirmation: suborders.filter((item) => item.status === "PENDING_CONFIRMATION").length,
-    processing: suborders.filter((item) => item.status === "PROCESSING").length,
-    shipped: suborders.filter((item) => item.status === "SHIPPED").length,
-    delivered: suborders.filter((item) => item.status === "DELIVERED").length,
+    pending: suborders.filter((item) => item.fulfillmentStatus === "UNPAID" || item.fulfillmentStatus === "UNKNOWN").length,
+    unpaid: suborders.filter((item) => item.paymentStatus === "UNPAID").length,
+    paymentPending: suborders.filter((item) => ["UNPAID", "PARTIALLY_PAID", "PENDING_CONFIRMATION"].includes(item.paymentStatus)).length,
+    pendingConfirmation: suborders.filter((item) => item.paymentStatus === "PENDING_CONFIRMATION").length,
+    processing: suborders.filter((item) => item.fulfillmentStatus === "PROCESSING").length,
+    packed: suborders.filter((item) => item.fulfillmentStatus === "PROCESSING").length,
+    shipped: suborders.filter((item) => item.fulfillmentStatus === "SHIPPED").length,
+    delivered: suborders.filter((item) => item.fulfillmentStatus === "DELIVERED").length,
+    cancelled: suborders.filter((item) => item.fulfillmentStatus === "CANCELLED").length,
+    needsAttention: suborders.filter((item) => item.canFulfill || item.paymentStatus === "PENDING_CONFIRMATION").length,
   };
 
   return {
@@ -340,6 +420,8 @@ export function adaptSeller2026SuborderDetail(value: unknown): Seller2026Suborde
   const sellerScope = object(readModel.sellerScope);
   const primaryStatus = object(readModel.primaryStatus);
   const paymentState = object(readModel.paymentState);
+  const detailPaymentMeta = object(detail.paymentStatusMeta);
+  const detailShippingMeta = object(detail.shippingStatusMeta);
   const totals = object(detail.totals);
   const paymentSummary = object(detail.paymentSummary);
   const suborderId = idValue(detail.suborderId ?? detail.id, "");
@@ -367,25 +449,42 @@ export function adaptSeller2026SuborderDetail(value: unknown): Seller2026Suborde
   return {
     suborder: {
       id: suborderId,
-      invoiceNo: text(order.orderNumber ?? detail.orderNumber ?? detail.invoiceNo, "-"),
-      suborderNo: text(detail.suborderNumber ?? detail.suborderNo, "-"),
+      suborderId,
+      orderId: idValue(detail.orderId ?? order.id, "") || null,
+      invoiceNo: text(order.orderNumber ?? detail.orderNumber ?? detail.invoiceNo, "Order"),
+      orderNumber: text(order.orderNumber ?? detail.orderNumber ?? detail.invoiceNo, "Order"),
+      suborderNo: text(detail.suborderNumber ?? detail.suborderNo, "Order"),
       status: normalizeSuborderStatus(
         primaryStatus.code ?? primaryStatus.label ?? detail.fulfillmentStatus ?? paymentState.code ?? detail.paymentStatus
       ),
-      orderDate: text(detail.createdAt ?? order.createdAt) || null,
+      paymentStatus: text(detailPaymentMeta.code ?? paymentState.code ?? detail.paymentStatus, "UNPAID").toUpperCase(),
+      shippingStatus: text(detailShippingMeta.label ?? detail.shippingStatus, "Needs review"),
+      orderDate: text(detail.createdAt ?? order.createdAt) || "Recently",
       channel: text(order.checkoutMode ?? detail.checkoutMode) || undefined,
       fulfillmentActions: readFulfillmentActions(detail),
+      allowedActions: readAllowedActionCodes(detail),
+      canFulfill: hasEnabledFulfillmentAction(detail),
+      createdAt: text(detail.createdAt ?? order.createdAt) || "Recently",
+      updatedAt: text(detail.updatedAt) || null,
     },
     customer: {
       name: text(buyer.name ?? shipping.fullName, "Customer"),
+      email: text(buyer.email) || undefined,
       phone: text(buyer.phone ?? shipping.phoneNumber) || undefined,
-      address: text(shipping.addressLine, "Shipping address is not available."),
+      address: text(shipping.addressLine, "No shipping address available."),
       note: text(order.note) || undefined,
     },
     shipping: {
       method: text(detail.shippingStatus ?? shipments[0]?.courierService) || undefined,
-      trackingNo: text(shipments[0]?.trackingNumber) || undefined,
+      trackingNo: text(shipments[0]?.trackingNumber, "No tracking number yet."),
+      courier: text(shipments[0]?.courierCode ?? shipments[0]?.courierService) || undefined,
       estimate: text(shipments[0]?.estimate) || undefined,
+    },
+    payment: {
+      status: text(detailPaymentMeta.label ?? paymentState.label ?? detail.paymentStatus, "Needs review"),
+      method: text(paymentSummary.paymentChannel ?? paymentSummary.paymentType ?? detail.paymentMethod, "No payment method available."),
+      proof: text(object(paymentSummary.proof).proofImageUrl ?? object(paymentSummary.proof).imageUrl, "No payment proof available."),
+      paidAt: text(detail.paidAt ?? paymentSummary.paidAt) || null,
     },
     items,
     totals: {
@@ -395,7 +494,10 @@ export function adaptSeller2026SuborderDetail(value: unknown): Seller2026Suborde
       discount: number(totals.discountAmount, 0),
       total: number(totals.totalAmount ?? sellerScope.totalAmount ?? paymentSummary.amount, 0),
     },
-    timeline: trackingEvents.map((item, index) => {
+    timeline: (trackingEvents.length ? trackingEvents : [
+      { id: "created", status: "Created", description: "Order was created.", createdAt: detail.createdAt ?? order.createdAt },
+      { id: "paid", status: "Paid", description: text(detail.paymentStatus, "Payment snapshot."), createdAt: detail.paidAt },
+    ]).map((item, index) => {
       const event = object(item);
       return {
         id: idValue(event.id, index),
@@ -552,7 +654,7 @@ export function adaptSeller2026PaymentProfile(value: unknown): Seller2026Payment
 }
 
 export const emptySeller2026Orders: Seller2026OrdersViewModel = {
-  summary: { total: 0, unpaid: 0, pendingConfirmation: 0, processing: 0, shipped: 0, delivered: 0 },
+  summary: { total: 0, pending: 0, unpaid: 0, paymentPending: 0, pendingConfirmation: 0, processing: 0, packed: 0, shipped: 0, delivered: 0, cancelled: 0, needsAttention: 0 },
   suborders: [],
   pagination: { page: 1, limit: 10, total: 0, totalPages: 0 },
 };
@@ -561,6 +663,7 @@ export const emptySeller2026SuborderDetail: Seller2026SuborderDetailViewModel = 
   suborder: null,
   customer: null,
   shipping: null,
+  payment: { status: "Needs review", method: "No payment method available.", proof: "No payment proof available.", paidAt: null },
   items: [],
   totals: { subtotal: 0, shippingFee: 0, serviceFee: 0, discount: 0, total: 0 },
   timeline: [],

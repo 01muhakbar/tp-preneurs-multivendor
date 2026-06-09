@@ -18,6 +18,8 @@ export default function Seller2026LiveOrdersPage() {
   const query = {
     search: searchParams.get("q") || "",
     status: searchParams.get("status") || "all",
+    paymentStatus: searchParams.get("paymentStatus") || "all",
+    fulfillmentStatus: searchParams.get("fulfillmentStatus") || "all",
     dateFrom: searchParams.get("dateFrom") || "",
     dateTo: searchParams.get("dateTo") || "",
     channel: searchParams.get("channel") || "all",

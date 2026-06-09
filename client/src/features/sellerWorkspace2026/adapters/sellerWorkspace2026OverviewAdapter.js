@@ -17,10 +17,14 @@ const mapReadiness = (readiness) => {
 
 export const fetchSellerWorkspace2026Overview = async (storeSlug) => {
   // Fetch store context (includes store info) and finance/analytics etc.
-  const [context, finance, analytics] = await Promise.all([
-    getSellerWorkspaceContextBySlug(storeSlug),
-    getSellerFinanceSummary(storeSlug),
-    getSellerAnalyticsSummary(storeSlug),
+  const context = await getSellerWorkspaceContextBySlug(storeSlug);
+  const storeId = context?.store?.id ?? null;
+  if (!storeId) {
+    throw new Error("Unable to resolve store context.");
+  }
+  const [finance, analytics] = await Promise.all([
+    getSellerFinanceSummary(storeId),
+    getSellerAnalyticsSummary(storeId),
   ]);
 
   // Build a minimal data shape compatible with existing DashboardPage expectations
