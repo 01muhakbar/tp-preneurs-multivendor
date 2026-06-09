@@ -5,7 +5,10 @@ import { AlertTriangle, ArrowRight, BriefcaseBusiness, CreditCard } from "lucide
 import {
   listSellerWorkspaceStores,
 } from "../../api/sellerWorkspace.ts";
-import { createSellerWorkspaceRoutes } from "../../utils/sellerWorkspaceRoute.js";
+import {
+  resolveSellerPaymentProfileRoute,
+  resolveSellerPaymentReviewRoute,
+} from "../../utils/sellerWorkspaceRoute.js";
 
 const PANEL_CLASS =
   "rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_14px_36px_-28px_rgba(15,23,42,0.35)]";
@@ -16,16 +19,18 @@ const LANE_CONFIG = {
     description:
       "This legacy account route is being sunset. Payment setup now belongs to the seller workspace and uses store-scoped seller APIs.",
     requiredPermissions: ["PAYMENT_PROFILE_VIEW"],
-    resolvePath: (store) => createSellerWorkspaceRoutes(store).paymentProfile(),
+    resolvePath: (store) => resolveSellerPaymentProfileRoute({ storeSlug: store }),
     ctaLabel: "Open seller payment setup",
+    emptyTitle: "Select a store to continue to Payment Profile.",
   },
   paymentReview: {
     title: "Legacy store payment review route",
     description:
       "This legacy account route is being sunset. Buyer payment proof review now belongs to the seller workspace finance lane.",
     requiredPermissions: ["ORDER_VIEW", "PAYMENT_STATUS_VIEW"],
-    resolvePath: (store) => createSellerWorkspaceRoutes(store).paymentReview(),
+    resolvePath: (store) => resolveSellerPaymentReviewRoute({ storeSlug: store }),
     ctaLabel: "Open seller payment review",
+    emptyTitle: "Select a store to continue to Payment Review.",
   },
 };
 
@@ -133,7 +138,7 @@ export default function AccountLegacySellerRoutePage({ lane = "paymentProfile" }
             <div>
               <h2 className="text-lg font-semibold text-slate-950">No seller access for this lane</h2>
               <p className="mt-1 text-sm text-slate-600">
-                This account does not currently have seller workspace access for the requested lane. Open your invitation list or ask the store owner to grant the required seller role.
+                {config.emptyTitle} This account does not currently have seller workspace access for the requested lane. Open your invitation list or ask the store owner to grant the required seller role.
               </p>
             </div>
           </div>

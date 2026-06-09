@@ -524,6 +524,7 @@ function SellerSidebar({
   onNavigate,
   onLogout,
 }) {
+  const navigate = useNavigate();
   const permissionKeys = sellerContext?.access?.permissionKeys || [];
   const hasPermission = (permissionKey) => permissionKeys.includes(permissionKey);
   const sellerRoutes = createSellerWorkspaceRoutes(storeSlug);
@@ -537,6 +538,13 @@ function SellerSidebar({
     pathname === normalizeActivePath(to) ||
     (normalizeActivePath(to) !== sellerRoutes.home() &&
       pathname.startsWith(`${normalizeActivePath(to)}/`));
+  const handleNavLinkClick = (event, to) => {
+    event.preventDefault();
+    onNavigate?.();
+    if (normalizeActivePath(to) !== pathname) {
+      navigate(to);
+    }
+  };
 
   const navSections = [
     {
@@ -847,7 +855,7 @@ function SellerSidebar({
                             key={child.label}
                             to={child.to}
                             end={child.to === sellerRoutes.catalog()}
-                            onClick={onNavigate}
+                            onClick={(event) => handleNavLinkClick(event, child.to)}
                             className={({ isActive }) =>
                               joinClassNames(
                                 "group flex items-center gap-2 rounded-md px-2.5 py-1.5 text-[12.5px] transition",
@@ -900,7 +908,7 @@ function SellerSidebar({
                       to={item.to}
                       end={item.to === sellerRoutes.home() || item.to === sellerRoutes.catalog()}
                       title={collapsed ? item.label : undefined}
-                      onClick={onNavigate}
+                      onClick={(event) => handleNavLinkClick(event, item.to)}
                         className={({ isActive }) =>
                           joinClassNames(
                             "group relative flex items-center rounded-lg py-1.5 text-[13px] transition",
@@ -1558,7 +1566,7 @@ export default function SellerLayout() {
 
         <main className="w-full overflow-x-hidden px-4 py-4 sm:px-5 sm:py-4">
           <div className="mx-auto w-full max-w-[1300px] space-y-4">
-            <Outlet context={contextValue} />
+            <Outlet key={pathname} context={contextValue} />
           </div>
         </main>
       </div>

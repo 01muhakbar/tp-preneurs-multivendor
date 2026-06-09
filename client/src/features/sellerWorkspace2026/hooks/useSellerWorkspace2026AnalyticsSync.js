@@ -15,7 +15,15 @@ export function useSellerWorkspace2026AnalyticsSync(storeSlug) {
   });
 
   const fetchData = useCallback(async () => {
-    if (!storeSlug) return;
+    if (!storeSlug) {
+      const fallback = getAnalyticsSyncFallback();
+      fallback.meta.usingLiveData = false;
+      fallback.meta.message = "Analytics data is not available for this store yet.";
+      setData(fallback);
+      setLoading(false);
+      setError(null);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {

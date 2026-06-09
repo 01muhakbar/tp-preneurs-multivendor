@@ -9,7 +9,7 @@ import AccountGuard from "./components/AccountGuard.jsx";
 import SeoCustomizationBridge from "./components/SeoCustomizationBridge.jsx";
 import {
   isSeller2026AnalyticsProductionEnabled,
-  isSeller2026AnalyticsSyncProductionEnabled,
+  isSeller2026AttributeValuesProductionEnabled,
   isSeller2026AttributesProductionEnabled,
   isSeller2026AuthoringProductionEnabled,
   isSeller2026CatalogProductionEnabled,
@@ -546,7 +546,16 @@ export default function App() {
                 )
               }
             />
-            <Route path="notifications" element={<Seller2026LiveNotificationsPage />} />
+            <Route
+              path="notifications"
+              element={
+                isSeller2026NotificationsProductionEnabled() ? (
+                  <Seller2026LiveNotificationsPage />
+                ) : (
+                  <SellerWorkspaceHome />
+                )
+              }
+            />
             <Route path="catalog" element={<LegacySellerCatalogRedirect />} />
             <Route path="catalog/new" element={<LegacySellerProductCreateRedirect />} />
             <Route
@@ -582,7 +591,7 @@ export default function App() {
             <Route
               path="catalog/attributes/:attributeId/values"
               element={
-                isSeller2026AttributesProductionEnabled() ? (
+                isSeller2026AttributeValuesProductionEnabled() ? (
                   <Seller2026LiveAttributeValuesPage />
                 ) : (
                   <SellerAttributeValuesPage />

@@ -297,7 +297,7 @@ const productSubmitEligibility = (product: Record<string, unknown>) => {
     text(submission.nextActionDescription) ||
     text(submissionGovernance.note) ||
     (submissionStatus === "submitted"
-      ? "Product is already submitted for review."
+      ? "This product is already waiting for review."
       : status !== "draft"
         ? "Only draft products can be submitted for review."
         : null);

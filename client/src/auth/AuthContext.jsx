@@ -244,7 +244,11 @@ export function AuthProvider({ children }) {
       }
     })();
 
-    const shouldProbe = hasToken || readAuthHint(currentScope);
+    const shouldProbe =
+      hasToken ||
+      readAuthHint(currentScope) ||
+      (currentScope === "account" &&
+        (location.pathname === "/checkout/success" || location.pathname.startsWith("/user/")));
     if (shouldProbe) {
       refreshSession({ markExpiredOnUnauthorized: true }, currentScope);
     } else if (currentScope === "admin") {

@@ -305,6 +305,34 @@ export function Seller2026OrdersPreviewPage({ productionMode = false }) {
                     Process Order
                   </button>
                 )}
+                
+                {selectedOrder.allowedActions.includes("MARK_SHIPPED") && (
+                  <button 
+                    onClick={() => actions.updateFulfillmentStatus("MARK_SHIPPED")}
+                    disabled={usingFallback || actionState.isUpdating}
+                    style={{ 
+                      width: "100%", padding: "10px", borderRadius: "8px", 
+                      background: usingFallback ? "#f3f4f6" : "#6366f1", color: usingFallback ? "#9ca3af" : "#fff", 
+                      border: "none", fontWeight: 600, cursor: usingFallback || actionState.isUpdating ? "not-allowed" : "pointer" 
+                    }}
+                  >
+                    Mark as Shipped
+                  </button>
+                )}
+                
+                {selectedOrder.allowedActions.includes("MARK_DELIVERED") && (
+                  <button 
+                    onClick={() => actions.updateFulfillmentStatus("MARK_DELIVERED")}
+                    disabled={usingFallback || actionState.isUpdating}
+                    style={{ 
+                      width: "100%", padding: "10px", borderRadius: "8px", 
+                      background: usingFallback ? "#f3f4f6" : "#6366f1", color: usingFallback ? "#9ca3af" : "#fff", 
+                      border: "none", fontWeight: 600, cursor: usingFallback || actionState.isUpdating ? "not-allowed" : "pointer" 
+                    }}
+                  >
+                    Mark Delivered
+                  </button>
+                )}
 
                 <button 
                   disabled

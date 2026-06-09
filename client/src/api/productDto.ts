@@ -1025,7 +1025,7 @@ export const toAdminProductWritePayload = (value: ProductWriteDTO = {} as Produc
 };
 
 export const toSellerProductWritePayload = (value: ProductWriteDTO = {} as ProductWriteDTO) => {
-  return {
+  const payload: Record<string, any> = {
     name: normalizeText(value.name),
     description: normalizeNullableText(value.description),
     sku: normalizeNullableText(value.sku),
@@ -1039,11 +1039,16 @@ export const toSellerProductWritePayload = (value: ProductWriteDTO = {} as Produ
         ? value.salePrice
         : null,
     stock: typeof value.stock === "number" ? value.stock : 0,
-    imageUrls: normalizeMediaUrls(value.imageUrls),
     tags: normalizeTagArray(value.tags),
     seo: typeof value.seo === "undefined" ? undefined : value.seo,
     hasVariants:
       typeof value.hasVariants === "boolean" ? value.hasVariants : undefined,
     variations: typeof value.variations === "undefined" ? undefined : value.variations,
   };
+
+  if (typeof value.imageUrls !== "undefined") {
+    payload.imageUrls = normalizeMediaUrls(value.imageUrls);
+  }
+
+  return payload;
 };

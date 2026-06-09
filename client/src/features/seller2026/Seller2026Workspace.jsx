@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { SELLER_2026_MUTATIONS } from "../../api/seller2026/mutation-flags.ts";
 import { getSeller2026ProductReadiness } from "../../api/seller2026/product-readiness.ts";
+import { useSeller2026TeamMutations } from "../../hooks/seller2026/useSeller2026TeamMutations.ts";
+import { getDisabledReasonForRemoval, getDisabledReasonForRoleChange } from "../../api/seller2026/team.hierarchy.ts";
 import {
   SELLER_2026_PREVIEW_PERMISSIONS,
   canUseSeller2026Action,
@@ -255,6 +257,12 @@ const formatRupiah = (value) =>
   }).format(Number(value || 0));
 
 const disabledTodoTitle = "Upload and publishing integration is not enabled yet.";
+const productPublishDisabledTitle = "Publishing is managed through Admin approval.";
+const productArchiveDisabledTitle = "Archive is unavailable until product lifecycle safeguards are validated.";
+const productDuplicateDisabledTitle = "Duplicate is unavailable until the product duplication API is validated.";
+const productMediaDisabledTitle = "Media upload is unavailable until storage validation is complete.";
+const productVariantDisabledTitle = "Variant editing is unavailable until variant inventory mapping is validated.";
+const productBulkDisabledTitle = "Bulk product actions are unavailable until product lifecycle safeguards are validated.";
 
 const permissionTitle = "You do not have permission to use this action.";
 const mutationPendingTitle = "This action integration is not enabled yet.";
@@ -1212,7 +1220,7 @@ function ProductsPage({
     } catch (error) {
       setProductSubmitStatus({
         type: "error",
-        message: error?.message || "Product submit review failed.",
+        message: error?.message || "Unable to submit this product for review. Please check the product details and try again.",
       });
       return null;
     }
@@ -1222,7 +1230,7 @@ function ProductsPage({
     if (productDraftDirty) {
       setProductSubmitStatus({
         type: "error",
-        message: "Save draft changes before submitting this product for review.",
+        message: "Save this draft before submitting it for review.",
       });
       return;
     }
@@ -1309,7 +1317,7 @@ function ProductsPage({
                 <option value={status.value} key={status.value}>{status.label}</option>
               ))}
             </select>
-            <button type="button" className="s26-btn" disabled title={disabledTodoTitle}>Bulk Actions</button>
+            <button type="button" className="s26-btn" disabled title={productBulkDisabledTitle}>Bulk Actions</button>
             <button type="button" className="s26-btn" disabled title={disabledTodoTitle}>More Filters</button>
           </div>
           {productsState?.isLoading ? <p className="hint">Loading products...</p> : null}
@@ -1341,7 +1349,7 @@ function ProductsPage({
                 });
                 return (
                   <tr key={row.id || row.sku}>
-                    <td><input type="checkbox" aria-label={`Select ${row.name}`} disabled title={disabledTodoTitle} /></td>
+                    <td><input type="checkbox" aria-label={`Select ${row.name}`} disabled title={productBulkDisabledTitle} /></td>
                     <td>
                       <div className="s26-product-cell">
                         <span className="s26-thumb">{row.thumbnailUrl ? <img src={row.thumbnailUrl} alt="" /> : productInitial(row.name)}</span>
@@ -1376,7 +1384,7 @@ function ProductsPage({
                         >
                           {productsMutation?.submittingReviewProductId === row.id ? "Submitting..." : "Submit Review"}
                         </button>
-                        <button type="button" className="s26-muted-action" disabled title={actionTitle(seller2026Permissions, "CATALOG_PRODUCT_DELETE", "products")}>Delete</button>
+                        <button type="button" className="s26-muted-action" disabled title={productArchiveDisabledTitle}>Delete</button>
                       </div>
                     </td>
                   </tr>
@@ -1533,7 +1541,19 @@ function ProductsPage({
             </div>
           </div>
           {isLive ? <ProductReadinessChecklist readiness={productDraftReadiness} /> : null}
-          {isLive ? <p className="hint" style={{ marginTop: 14 }}>Draft save and submit review are enabled for basic authoring fields. Media, variants, direct publish, and delete remain disabled.</p> : null}
+          {isLive ? (
+            <div className="s26-card soft" style={{ marginTop: 16 }}>
+              <h3>Authoring Guardrails</h3>
+              <p className="hint">Draft save and admin review submission are enabled. Publishing stays under Admin approval.</p>
+              <div className="s26-filter-row" style={{ marginBottom: 0 }}>
+                <button type="button" className="s26-btn" disabled title={productMediaDisabledTitle}>Upload Media</button>
+                <button type="button" className="s26-btn" disabled title={productVariantDisabledTitle}>Edit Variants</button>
+                <button type="button" className="s26-btn" disabled title={productPublishDisabledTitle}>Publish Product</button>
+                <button type="button" className="s26-btn" disabled title={productDuplicateDisabledTitle}>Duplicate Product</button>
+                <button type="button" className="s26-btn" disabled title={productArchiveDisabledTitle}>Archive Product</button>
+              </div>
+            </div>
+          ) : null}
           <div className="s26-filter-row" style={{ marginTop: 16, marginBottom: 0 }}>
             {isLive ? <button type="button" className="s26-btn" disabled={!productDraftDirty || isSavingProductDraft} onClick={resetProductDraftForm}>Reset</button> : null}
             <button type="button" className="s26-btn" disabled={saveProductDraftDisabled} title={isLive ? saveProductDraftTitle : disabledTodoTitle} onClick={submitProductDraftForm}>{isSavingProductDraft ? "Saving..." : productEditorMode === "edit" ? "Save Changes" : "Save Draft"}</button>
@@ -1575,7 +1595,7 @@ function ProductsPage({
           </div>
         ) : null}
         <div className="s26-grid three">
-          <div className="s26-card soft"><div className="s26-product-gallery">{detailView?.product.gallery?.[0] ? <img src={detailView.product.gallery[0]} alt="" /> : productInitial(detailView?.product.name || "P")}</div><button type="button" className="s26-btn" style={{ width: "100%", marginTop: 12 }} disabled={isLive} title={disabledTodoTitle}>View on Storefront</button></div>
+          <div className="s26-card soft"><div className="s26-product-gallery">{detailView?.product.gallery?.[0] ? <img src={detailView.product.gallery[0]} alt="" /> : productInitial(detailView?.product.name || "P")}</div><button type="button" className="s26-btn" style={{ width: "100%", marginTop: 12 }} disabled={isLive} title={isLive ? "Public storefront preview is unavailable until Admin approval publishes this product." : disabledTodoTitle}>View on Storefront</button></div>
           <div><h3>{detailView?.product.name || "Product detail"} <span className={statusClass(productStatusLabel(detailView?.product.status))}>{productStatusLabel(detailView?.product.status)}</span></h3><p className="hint">SKU: {detailView?.product.sku || "-"}</p><div className="s26-grid two" style={{ marginTop: 16 }}>{[["Price", formatRupiah(detailView?.product.price)], ["Stock", detailView?.product.stock || 0], ["Sold", detailView?.product.sold || 0], ["Views", detailView?.product.views || 0]].map(([a, b]) => <div className="s26-card soft" key={a}><p className="hint">{a}</p><strong>{b}</strong></div>)}</div><p className="hint" style={{ marginTop: 14 }}>Category: {detailView?.product.category || "Uncategorized"}. Tags: {(detailView?.product.tags || []).join(", ") || "No tags"}.</p><p className="hint" style={{ marginTop: 14 }}>{detailView?.product.description || "Product description is not available yet."}</p></div>
           <div>
             <Card title="Revision Notes" hint={detailView?.revisionNotes.length ? detailView.revisionNotes.map((note) => note.message).join(" | ") : "No revision notes."} />
@@ -1645,6 +1665,7 @@ function TaxonomyPage({
     active: true,
   });
   const [couponMutationStatus, setCouponMutationStatus] = useState({ type: "idle", message: "" });
+  const [couponArchiveCandidate, setCouponArchiveCandidate] = useState(null);
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [categoryEditing, setCategoryEditing] = useState(null);
   const [categoryForm, setCategoryForm] = useState({
@@ -2035,6 +2056,20 @@ function TaxonomyPage({
       setCouponMutationStatus({ type: "error", message: error?.message || "Coupon mutation failed." });
     }
   };
+  const openCouponArchiveConfirm = (coupon) => {
+    if (!coupon?.id) return;
+    setCouponArchiveCandidate(coupon);
+    setCouponMutationStatus({ type: "idle", message: "" });
+  };
+  const closeCouponArchiveConfirm = () => {
+    setCouponArchiveCandidate(null);
+  };
+  const confirmCouponArchive = async () => {
+    const couponId = couponArchiveCandidate?.id;
+    if (!couponId) return;
+    await runCouponStatusAction(() => catalogMutation?.deleteOrArchiveCoupon(couponId), "Coupon archived.");
+    setCouponArchiveCandidate(null);
+  };
 
   if (isLive && catalogView === "categories") {
     const categoryRows = catalogData?.categories || [];
@@ -2289,8 +2324,63 @@ function TaxonomyPage({
           {catalogState?.isLoading ? <p className="hint">Loading coupons...</p> : null}
           {couponMutationStatus.message ? <p className={couponMutationStatus.type === "error" ? "s26-field-error" : "hint"}>{couponMutationStatus.message}</p> : null}
           {!catalogState?.isLoading && couponRows.length === 0 ? <div className="s26-empty"><strong>No coupons yet</strong><p>Create coupons to offer store promotions.</p></div> : null}
-          {couponRows.length ? <DataTable columns={["Code", "Title", "Discount", "Minimum Order", "Usage", "Status", "Validity", "Scope", "Last Updated", "Actions"]} rows={couponRows} renderRow={(row) => <tr key={row.id}><td><strong>{row.code}</strong></td><td><strong>{row.title || row.name}</strong><div className="s26-sub">{row.description || "No description available."}</div></td><td>{row.discountLabel}</td><td>{formatRupiah(row.minimumOrderAmount ?? row.minimumSpend)}</td><td>{row.usageLabel}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td>{row.validityLabel}</td><td>{row.scopeLabel || "Store coupon"}</td><td>{row.updatedAt || "Recently"}</td><td><div className="s26-row-actions"><button type="button" className="s26-muted-action" disabled={!canUpdateCoupon || !row.canEdit || isCouponMutating} title={!row.isStoreScoped ? "Platform coupons are managed by Admin." : canUpdateCoupon ? undefined : actionTitle(seller2026Permissions, "COUPON_UPDATE", "coupons")} onClick={() => openCouponEdit(row)}>{catalogMutation?.updatingId === row.id ? "Saving..." : "Edit"}</button><button type="button" className="s26-muted-action" disabled={!canManageCouponStatus || !row.canManageStatus || isCouponMutating} title={!row.isStoreScoped ? "Platform coupons are managed by Admin." : canManageCouponStatus ? undefined : actionTitle(seller2026Permissions, "COUPON_STATUS_MANAGE", "coupons")} onClick={() => runCouponStatusAction(() => catalogMutation?.changeCouponStatus({ couponId: row.id, active: !row.active }), row.active ? "Coupon deactivated." : "Coupon activated.")}>{catalogMutation?.statusChangingId === row.id ? "Saving..." : row.active ? "Deactivate" : "Activate"}</button><button type="button" className="s26-muted-action" disabled={!canArchiveCoupon || !row.canArchive || isCouponMutating || !row.active} title={!row.isStoreScoped ? "Platform coupons are managed by Admin." : canArchiveCoupon ? "Archive deactivates this store coupon." : actionTitle(seller2026Permissions, "COUPON_DELETE", "coupons")} onClick={() => runCouponStatusAction(() => catalogMutation?.deleteOrArchiveCoupon(row.id), "Coupon archived.")}>{catalogMutation?.deletingId === row.id ? "Archiving..." : "Archive"}</button><button type="button" className="s26-muted-action" disabled title={couponDuplicateDisabledTitle}>Duplicate</button></div></td></tr>} /> : null}
+          {couponRows.length ? (
+            <DataTable
+              columns={["Code", "Title", "Discount", "Minimum Order", "Usage", "Status", "Validity", "Scope", "Last Updated", "Actions"]}
+              rows={couponRows}
+              renderRow={(row) => {
+                const platformTitle = "Platform coupons cannot be managed from Seller Workspace.";
+                const archiveTitle = !row.isStoreScoped
+                  ? platformTitle
+                  : canArchiveCoupon
+                    ? "Archive deactivates this store coupon."
+                    : "You do not have permission to archive coupons.";
+                return (
+                  <tr key={row.id}>
+                    <td><strong>{row.code}</strong></td>
+                    <td><strong>{row.title || row.name}</strong><div className="s26-sub">{row.description || "No description available."}</div></td>
+                    <td>{row.discountLabel}</td>
+                    <td>{formatRupiah(row.minimumOrderAmount ?? row.minimumSpend)}</td>
+                    <td>{row.usageLabel}</td>
+                    <td><span className={statusClass(row.status)}>{row.status}</span></td>
+                    <td>{row.validityLabel}</td>
+                    <td>{row.scopeLabel || "Store coupon"}</td>
+                    <td>{row.updatedAt || "Recently"}</td>
+                    <td>
+                      <div className="s26-row-actions">
+                        <button type="button" className="s26-muted-action" disabled={!canUpdateCoupon || !row.canEdit || isCouponMutating} title={!row.isStoreScoped ? platformTitle : canUpdateCoupon ? undefined : actionTitle(seller2026Permissions, "COUPON_UPDATE", "coupons")} onClick={() => openCouponEdit(row)}>{catalogMutation?.updatingId === row.id ? "Saving..." : "Edit"}</button>
+                        <button type="button" className="s26-muted-action" disabled={!canManageCouponStatus || !row.canManageStatus || isCouponMutating} title={!row.isStoreScoped ? platformTitle : canManageCouponStatus ? undefined : actionTitle(seller2026Permissions, "COUPON_STATUS_MANAGE", "coupons")} onClick={() => runCouponStatusAction(() => catalogMutation?.changeCouponStatus({ couponId: row.id, active: !row.active }), row.active ? "Coupon deactivated." : "Coupon activated.")}>{catalogMutation?.statusChangingId === row.id ? "Saving..." : row.active ? "Deactivate" : "Activate"}</button>
+                        <button type="button" className="s26-muted-action" disabled={!canArchiveCoupon || !row.canArchive || isCouponMutating || !row.active} title={archiveTitle} onClick={() => openCouponArchiveConfirm(row)}>{catalogMutation?.deletingId === row.id ? "Archiving..." : "Archive"}</button>
+                        <button type="button" className="s26-muted-action" disabled title={couponDuplicateDisabledTitle}>Duplicate</button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              }}
+            />
+          ) : null}
         </Card>
+        {couponArchiveCandidate ? (
+          <div className="s26-modal-backdrop" role="presentation">
+            <section className="s26-modal" role="dialog" aria-modal="true" aria-labelledby="s26-coupon-archive-title">
+              <div className="s26-card-head">
+                <div>
+                  <h3 id="s26-coupon-archive-title">Archive coupon?</h3>
+                  <p className="hint">This will make the coupon unavailable for future checkout use. Existing order history will not be changed.</p>
+                </div>
+                <button type="button" className="s26-btn" onClick={closeCouponArchiveConfirm} disabled={isCouponMutating} aria-label="Close archive confirmation">Close</button>
+              </div>
+              <div className="s26-upload-guard">
+                <strong>{couponArchiveCandidate.code || "Coupon"}</strong>
+                <p>Archive keeps the record for audit history and sets the coupon inactive.</p>
+              </div>
+              <div className="s26-filter-row" style={{ marginTop: 16, marginBottom: 0 }}>
+                <button type="button" className="s26-btn" onClick={closeCouponArchiveConfirm} disabled={isCouponMutating}>Cancel</button>
+                <button type="button" className="s26-btn primary" onClick={confirmCouponArchive} disabled={isCouponMutating}>{isCouponMutating ? "Archiving..." : "Archive Coupon"}</button>
+              </div>
+            </section>
+          </div>
+        ) : null}
         {couponDrawerOpen ? (
           <Card title={couponEditing ? "Update Coupon" : "Add Coupon"} hint="Store scope is resolved from the active seller workspace.">
             <div className="s26-form-grid">
@@ -2422,8 +2512,13 @@ function OperationsPage({
   };
   const firstEnabledAction = (actions = []) => actions.find((action) => action?.enabled !== false) || null;
   const allowedSellerOrderAction = (actions = []) =>
-    actions.find((action) => action?.code === "MARK_PROCESSING" && action?.enabled !== false) ||
-    null;
+    actions.find(
+      (action) =>
+        (action?.code === "MARK_PROCESSING" ||
+          action?.code === "MARK_SHIPPED" ||
+          action?.code === "MARK_DELIVERED") &&
+        action?.enabled !== false
+    ) || null;
   const runPaymentReviewAction = async (selectedPayment, action) => {
     if (!selectedPayment?.id || isPaymentReviewPending) return;
     const selectedCanReview = Boolean(canReviewPayments && selectedPayment.canReview);
@@ -2547,6 +2642,8 @@ function OperationsPage({
     const detail = operationsData;
     const detailActions = detail?.suborder?.fulfillmentActions || [];
     const packAction = detailActions.find((action) => action.code === "MARK_PROCESSING");
+    const shipAction = detailActions.find((action) => action.code === "MARK_SHIPPED");
+    const deliverAction = detailActions.find((action) => action.code === "MARK_DELIVERED");
     return (
       <Shell section="operations" mode={mode} storeContext={storeContext}>
         {operationsState?.isError ? <Card title="Suborder unavailable" hint="Suborder was not found or is not available for this store." actions={<button type="button" className="s26-btn" onClick={operationsState?.refetch}>Retry</button>} /> : null}
@@ -2569,12 +2666,12 @@ function OperationsPage({
                 <h3>Fulfillment Status</h3>
                 <p className="hint">Payment status stays read-only. Seller actions only update this store-scoped suborder fulfillment state.</p>
                 <div className="s26-form-grid">
-                  <div className="s26-field"><label htmlFor="s26-tracking-number">Tracking Number</label><input id="s26-tracking-number" value={trackingForm.trackingNumber} onChange={(event) => setTrackingForm((current) => ({ ...current, trackingNumber: event.target.value }))} placeholder="RESI-123456" disabled title="Tracking persistence is pending backend shipment rollout." /></div>
-                  <div className="s26-field"><label htmlFor="s26-courier-code">Shipping Provider</label><input id="s26-courier-code" value={trackingForm.courierCode} onChange={(event) => setTrackingForm((current) => ({ ...current, courierCode: event.target.value.toUpperCase() }))} placeholder="JNE" disabled title="Tracking persistence is pending backend shipment rollout." /></div>
-                  <div className="s26-field"><label htmlFor="s26-courier-service">Courier Service</label><input id="s26-courier-service" value={trackingForm.courierService} onChange={(event) => setTrackingForm((current) => ({ ...current, courierService: event.target.value }))} placeholder="REG" disabled title="Tracking persistence is pending backend shipment rollout." /></div>
+                  <div className="s26-field"><label htmlFor="s26-tracking-number">Tracking Number</label><input id="s26-tracking-number" value={trackingForm.trackingNumber} onChange={(event) => setTrackingForm((current) => ({ ...current, trackingNumber: event.target.value }))} placeholder="RESI-123456" disabled title="Tracking update is unavailable until shipping persistence is validated." /></div>
+                  <div className="s26-field"><label htmlFor="s26-courier-code">Shipping Provider</label><input id="s26-courier-code" value={trackingForm.courierCode} onChange={(event) => setTrackingForm((current) => ({ ...current, courierCode: event.target.value.toUpperCase() }))} placeholder="JNE" disabled title="Tracking update is unavailable until shipping persistence is validated." /></div>
+                  <div className="s26-field"><label htmlFor="s26-courier-service">Courier Service</label><input id="s26-courier-service" value={trackingForm.courierService} onChange={(event) => setTrackingForm((current) => ({ ...current, courierService: event.target.value }))} placeholder="REG" disabled title="Tracking update is unavailable until shipping persistence is validated." /></div>
                 </div>
               </div>
-              <div className="s26-filter-row" style={{ marginTop: 16 }}><button type="button" className="s26-btn primary" disabled={!packAction || !canFulfillOrders || isFulfillmentPending} title={packAction ? fulfillmentActionTitle : "Packing is not available for this status."} onClick={() => runFulfillmentAction(detail.suborder.id, packAction)}>{isFulfillmentPending ? "Updating..." : "Mark as Packed"}</button><button type="button" className="s26-btn" disabled title="Print receipt/label endpoint needs backend review.">Print Receipt</button><button type="button" className="s26-btn" disabled title="Mark shipped stays disabled until tracking payload smoke is approved.">Mark as Shipped</button><button type="button" className="s26-btn" disabled title="Mark delivered stays disabled until delivery confirmation smoke is approved.">Mark Delivered</button></div>
+              <div className="s26-filter-row" style={{ marginTop: 16 }}><button type="button" className="s26-btn primary" disabled={!packAction || !canFulfillOrders || isFulfillmentPending} title={packAction ? fulfillmentActionTitle : "Packing is not available for this status."} onClick={() => runFulfillmentAction(detail.suborder.id, packAction)}>{isFulfillmentPending ? "Updating..." : "Mark as Packed"}</button><button type="button" className="s26-btn" disabled title="Print receipt/label endpoint needs backend review.">Print Receipt</button><button type="button" className="s26-btn primary" disabled={!shipAction || !canFulfillOrders || isFulfillmentPending} title={shipAction ? fulfillmentActionTitle : "Mark shipped is not available for this status."} onClick={() => runFulfillmentAction(detail.suborder.id, shipAction)}>{isFulfillmentPending ? "Updating..." : "Mark as Shipped"}</button><button type="button" className="s26-btn primary" disabled={!deliverAction || !canFulfillOrders || isFulfillmentPending} title={deliverAction ? fulfillmentActionTitle : "Mark delivered is not available for this status."} onClick={() => runFulfillmentAction(detail.suborder.id, deliverAction)}>{isFulfillmentPending ? "Updating..." : "Mark Delivered"}</button></div>
             </div>
           ) : null}
         </Card>
@@ -2722,6 +2819,7 @@ function TeamPage({
   mode,
   storeContext,
   seller2026Permissions,
+  teamMutations = null,
 }) {
   const { storeSlug } = useParams();
   const isLive = Boolean(teamData || teamState);
@@ -2729,6 +2827,8 @@ function TeamPage({
   const queryChange = (next) => onTeamQueryChange?.(next);
   const searchValue = teamQuery?.search || "";
   const [notificationActionStatus, setNotificationActionStatus] = useState({ type: "idle", message: "" });
+  const [roleChangeTarget, setRoleChangeTarget] = useState(null);
+  const [inviteForm, setInviteForm] = useState({ email: "", roleCode: "" });
   const canMutateNotifications = Boolean(notificationMutation?.canMutate);
   const isNotificationMutationPending =
     Boolean(notificationMutation?.isMarkingRead) || Boolean(notificationMutation?.isMarkingAllRead);
@@ -2750,6 +2850,60 @@ function TeamPage({
     }
   };
 
+  const handleRemoveMember = async (memberId) => {
+    if (!teamMutations?.remove) return;
+    if (!window.confirm("Are you sure you want to remove this member? This will revoke their access to this store immediately.")) return;
+    try {
+      await teamMutations.remove.mutateAsync(memberId);
+      alert("Member access removed successfully.");
+    } catch (e) {
+      alert(e?.response?.data?.message || e?.message || "Failed to remove member.");
+    }
+  };
+
+  const handleRoleChange = async () => {
+    if (!roleChangeTarget || !teamMutations?.updateRole || !teamData?.member?.id) return;
+    try {
+      await teamMutations.updateRole.mutateAsync({ memberId: teamData.member.id, roleCode: roleChangeTarget });
+      alert("Member role updated successfully.");
+      setRoleChangeTarget(null);
+    } catch (e) {
+      alert(e?.response?.data?.message || e?.message || "Failed to update member role.");
+    }
+  };
+
+  const handleInviteSubmit = async () => {
+    if (!teamMutations?.invite || !inviteForm.email || !inviteForm.roleCode) return;
+    try {
+      await teamMutations.invite.mutateAsync({ email: inviteForm.email, roleCode: inviteForm.roleCode });
+      alert("Invitation sent successfully.");
+      setInviteForm({ email: "", roleCode: "" });
+    } catch (e) {
+      alert(e?.response?.data?.message || e?.message || "Failed to send invitation.");
+    }
+  };
+
+  const handleReinvite = async (memberId, roleCode) => {
+    if (!teamMutations?.reinvite) return;
+    try {
+      await teamMutations.reinvite.mutateAsync({ memberId, roleCode });
+      alert("Invitation resent successfully.");
+    } catch (e) {
+      alert(e?.response?.data?.message || e?.message || "Failed to resend invitation.");
+    }
+  };
+
+  const handleCancelInvite = async (memberId) => {
+    if (!teamMutations?.remove) return;
+    if (!window.confirm("Are you sure you want to cancel this invitation?")) return;
+    try {
+      await teamMutations.remove.mutateAsync(memberId);
+      alert("Invitation cancelled successfully.");
+    } catch (e) {
+      alert(e?.response?.data?.message || e?.message || "Failed to cancel invitation.");
+    }
+  };
+
   if (isLive && teamView === "members") {
     const rows = teamData?.members || [];
     const summary = teamData?.summary || {};
@@ -2758,7 +2912,7 @@ function TeamPage({
     return (
       <Shell section="team" mode={mode} storeContext={storeContext}>
         {teamState?.isError ? <Card title="Team unavailable" hint="Live team members could not load." actions={<button type="button" className="s26-btn" onClick={teamState?.refetch}>Retry</button>} /> : null}
-        <Card title="Team Members" hint="Role, permission summary, last active, and status." actions={<button type="button" className="s26-btn primary" disabled title={actionTitle(seller2026Permissions, "TEAM_INVITE", "team")}>+ Invite Member</button>}>
+        <Card title="Team Members" hint="Role, permission summary, last active, and status." actions={!actionTitle(seller2026Permissions, "TEAM_INVITE", "team") ? <Link className="s26-btn primary" to={`${basePath}/team/audit`}>+ Invite Member</Link> : <button type="button" className="s26-btn primary" disabled title={actionTitle(seller2026Permissions, "TEAM_INVITE", "team")}>+ Invite Member</button>}>
           <div className="s26-grid four" style={{ marginBottom: 14 }}>
             <CatalogKpi label="Members" value={summary.totalMembers || 0} />
             <CatalogKpi label="Active" value={summary.activeMembers || 0} />
@@ -2782,7 +2936,10 @@ function TeamPage({
           </div>
           {teamState?.isLoading ? <p className="hint">Loading team members...</p> : null}
           {!teamState?.isLoading && rows.length === 0 ? <div className="s26-empty"><strong>No team members are available for this store yet.</strong><p>Store-scoped members and invitations will appear after they are added.</p></div> : null}
-          {rows.length ? <DataTable columns={["Member", "Role", "Permissions", "Last Active", "Status", "Actions"]} rows={rows} renderRow={(row) => <tr key={row.id}><td><div className="s26-product-cell"><span className="s26-thumb">{(row.name || "T")[0]}</span><div><strong>{row.name}</strong><div className="s26-sub">{row.email}</div></div></div></td><td>{row.roleName}</td><td>{row.permissionSummary}</td><td>{row.lastActiveAt || "-"}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td><div className="s26-row-actions"><Link className="s26-link" to={`${basePath}/team/${encodeURIComponent(String(row.id))}`}>Detail</Link><button type="button" className="s26-muted-action" disabled title={actionTitle(seller2026Permissions, "TEAM_REMOVE", "team")}>Remove</button></div></td></tr>} /> : null}
+          {rows.length ? <DataTable columns={["Member", "Role", "Permissions", "Last Active", "Status", "Actions"]} rows={rows} renderRow={(row) => {
+            const finalRemoveReason = getDisabledReasonForRemoval(teamData?.currentAccess, row) || actionTitle(seller2026Permissions, "TEAM_REMOVE", "team");
+            return <tr key={row.id}><td><div className="s26-product-cell"><span className="s26-thumb">{(row.name || "T")[0]}</span><div><strong>{row.name}</strong><div className="s26-sub">{row.email}</div></div></div></td><td>{row.roleName}</td><td>{row.permissionSummary}</td><td>{row.lastActiveAt || "-"}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td><div className="s26-row-actions"><Link className="s26-link" to={`${basePath}/team/${encodeURIComponent(String(row.id))}`}>Detail</Link><button type="button" className="s26-muted-action" disabled={!!finalRemoveReason} title={finalRemoveReason} onClick={() => handleRemoveMember(row.id)}>Remove</button></div></td></tr>;
+          }} /> : null}
         </Card>
       </Shell>
     );
@@ -2807,14 +2964,25 @@ function TeamPage({
               </div>
               <div>
                 <label className="s26-field-label" htmlFor="s26-member-role">Role</label>
-                <select id="s26-member-role" className="s26-control" value={member.roleName} disabled title={actionTitle(seller2026Permissions, "TEAM_ROLE_UPDATE", "team")}>
-                  <option>{member.roleName}</option>
-                  {(teamData?.roles || []).map((role) => <option key={role.id}>{role.name}</option>)}
+                <select id="s26-member-role" className="s26-control" 
+                  value={roleChangeTarget || member.roleCode || member.roleName} 
+                  disabled={!!getDisabledReasonForRoleChange(teamData?.currentAccess, member) || !teamMutations?.updateRole} 
+                  title={getDisabledReasonForRoleChange(teamData?.currentAccess, member) || actionTitle(seller2026Permissions, "TEAM_ROLE_UPDATE", "team")}
+                  onChange={(e) => setRoleChangeTarget(e.target.value)}
+                >
+                  <option value={member.roleCode || member.roleName}>{member.roleName}</option>
+                  {(teamData?.roles || []).filter(r => r.code !== member.roleCode).map((role) => <option value={role.code} key={role.id}>{role.name}</option>)}
                 </select>
                 <div style={{ marginTop: 14 }}>
-                  {(teamData?.permissions || []).map((permission) => <div className="s26-toggle-row" key={permission.key}><span><strong>{permission.key}</strong><span className="s26-sub">{permission.description || permission.label}</span></span><span className={`s26-switch ${permission.enabled ? "on" : ""}`} title={actionTitle(seller2026Permissions, "TEAM_ROLE_UPDATE", "team")} /></div>)}
+                  {(teamData?.permissions || []).map((permission) => <div className="s26-toggle-row" key={permission.key}><span><strong>{permission.key}</strong><span className="s26-sub">{permission.description || permission.label}</span></span><span className={`s26-switch ${permission.enabled ? "on" : ""}`} title="Permissions are managed via Roles in this phase." /></div>)}
                 </div>
-                <button type="button" className="s26-btn primary" style={{ marginTop: 16 }} disabled title={actionTitle(seller2026Permissions, "TEAM_ROLE_UPDATE", "team")}>Save Changes</button>
+                <button type="button" className="s26-btn primary" style={{ marginTop: 16 }} 
+                  disabled={!roleChangeTarget || !!getDisabledReasonForRoleChange(teamData?.currentAccess, member, roleChangeTarget)} 
+                  title={getDisabledReasonForRoleChange(teamData?.currentAccess, member, roleChangeTarget) || actionTitle(seller2026Permissions, "TEAM_ROLE_UPDATE", "team")}
+                  onClick={handleRoleChange}
+                >
+                  {teamMutations?.updateRole?.isPending ? "Saving..." : "Save Changes"}
+                </button>
               </div>
             </div>
           ) : null}
@@ -2836,17 +3004,18 @@ function TeamPage({
           <Card title="Pending Invitations" hint="Invitee, role, inviter, date, and lifecycle status." actions={<button type="button" className="s26-btn primary" disabled title={actionTitle(seller2026Permissions, "TEAM_INVITE", "team")}>Invite Member</button>}>
             {teamState?.isLoading ? <p className="hint">Loading invitations...</p> : null}
             {!teamState?.isLoading && invitations.length === 0 ? <div className="s26-empty"><strong>No invitations are available for this store yet.</strong><p>Pending invitations will appear here.</p></div> : null}
-            {invitations.length ? <DataTable columns={["Invitee", "Role", "Invited By", "Date", "Status", "Actions"]} rows={invitations} renderRow={(row) => <tr key={row.id}><td><strong>{row.name}</strong><div className="s26-sub">{row.email}</div></td><td>{row.roleName}</td><td>{row.invitedBy}</td><td>{row.invitedAt || "-"}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td><div className="s26-row-actions"><button type="button" className="s26-muted-action" disabled title={actionTitle(seller2026Permissions, "TEAM_INVITE", "team")}>Resend</button><button type="button" className="s26-muted-action" disabled title={actionTitle(seller2026Permissions, "TEAM_INVITE", "team")}>Cancel</button></div></td></tr>} /> : null}
+            {invitations.length ? <DataTable columns={["Invitee", "Role", "Invited By", "Date", "Status", "Actions"]} rows={invitations} renderRow={(row) => <tr key={row.id}><td><strong>{row.name}</strong><div className="s26-sub">{row.email}</div></td><td>{row.roleName}</td><td>{row.invitedBy}</td><td>{row.invitedAt || "-"}</td><td><span className={statusClass(row.status)}>{row.status}</span></td><td><div className="s26-row-actions"><button type="button" className="s26-muted-action" disabled={!!actionTitle(seller2026Permissions, "TEAM_INVITE", "team") || !teamMutations?.reinvite} title={actionTitle(seller2026Permissions, "TEAM_INVITE", "team")} onClick={() => handleReinvite(row.id, row.roleCode)}>Resend</button><button type="button" className="s26-muted-action" disabled={!!actionTitle(seller2026Permissions, "TEAM_INVITE", "team") || !teamMutations?.remove} title={actionTitle(seller2026Permissions, "TEAM_INVITE", "team")} onClick={() => handleCancelInvite(row.id)}>Cancel</button></div></td></tr>} /> : null}
           </Card>
-          <Card title="Invite Member Form" hint="Team invitation integration is pending.">
+          <Card title="Invite Member Form" hint="Send store invitation via email.">
             <div className="s26-form-grid">
-              <label><span>Full Name</span><input className="s26-control" placeholder="Member name" disabled /></label>
-              <label><span>Email Address</span><input className="s26-control" placeholder="email@domain.com" disabled /></label>
-              <label><span>Role</span><select className="s26-control" disabled><option>Select role</option></select></label>
+              <label><span>Email Address</span><input className="s26-control" placeholder="email@domain.com" disabled={!!actionTitle(seller2026Permissions, "TEAM_INVITE", "team")} value={inviteForm.email} onChange={(e) => setInviteForm(prev => ({...prev, email: e.target.value}))} /></label>
+              <label><span>Role</span><select className="s26-control" disabled={!!actionTitle(seller2026Permissions, "TEAM_INVITE", "team")} value={inviteForm.roleCode} onChange={(e) => setInviteForm(prev => ({...prev, roleCode: e.target.value}))}>
+                <option value="">Select role</option>
+                {(teamData?.roles || []).map((role) => <option value={role.code} key={role.id}>{role.name}</option>)}
+              </select></label>
               <label><span>Store Access</span><input className="s26-control" value="Current store only" disabled readOnly /></label>
             </div>
-            <label style={{ display: "block", marginTop: 12 }}><span>Custom Message</span><textarea className="s26-control" rows={3} placeholder="Invitation message" disabled /></label>
-            <button type="button" className="s26-btn primary" style={{ marginTop: 14 }} disabled title={actionTitle(seller2026Permissions, "TEAM_INVITE", "team")}>Send Invitation</button>
+            <button type="button" className="s26-btn primary" style={{ marginTop: 14 }} disabled={!inviteForm.email || !inviteForm.roleCode || !!actionTitle(seller2026Permissions, "TEAM_INVITE", "team")} title={actionTitle(seller2026Permissions, "TEAM_INVITE", "team")} onClick={handleInviteSubmit}>{teamMutations?.invite?.isPending ? "Sending..." : "Send Invitation"}</button>
           </Card>
         </div>
         <Card title="Audit Log" hint="Team role, invitation, lifecycle, and permission activity.">
@@ -3052,6 +3221,8 @@ export function Seller2026Workspace({
     return DashboardPage;
   }, [section]);
 
+  const teamMutations = useSeller2026TeamMutations(storeContext?.store?.id);
+
   if (isRestricted) {
     return (
       <Shell section={section} mode={mode} storeContext={storeContext}>
@@ -3101,6 +3272,7 @@ export function Seller2026Workspace({
       onTeamQueryChange={onTeamQueryChange}
       notificationMutation={notificationMutation}
       seller2026Permissions={seller2026Permissions}
+      teamMutations={teamMutations}
     />
   );
 }

@@ -639,3 +639,6 @@ Status final: `ANALYTICS_PRODUCTION_ADOPTION_FLAGGED`, `ANALYTICS_READ_ONLY_HARD
 
 Production route:
 - `/seller/stores/:storeSlug/analytics`
+
+## Seller Workspace 2026 Payment Workflow Sync
+Status: PAYMENT_WORKFLOW_ADMIN_GOVERNED_SYNCED

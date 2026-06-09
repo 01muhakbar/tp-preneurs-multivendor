@@ -30,6 +30,9 @@ type ReadinessInput = {
   saving?: unknown;
   dirty?: unknown;
   eligibilityReason?: unknown;
+  sku?: unknown;
+  image?: unknown;
+  lowStockThreshold?: unknown;
 };
 
 const text = (value: unknown) => String(value ?? "").trim();
@@ -66,12 +69,15 @@ const item = (
 export function getSeller2026ProductReadiness(input: ReadinessInput): Seller2026ProductReadiness {
   const price = numberValue(input.price);
   const stock = numberValue(input.stock);
+  const lowStockThreshold = numberValue(input.lowStockThreshold);
   const hasCategory =
     hasPositiveCategoryId(input.categoryIds) ||
     Boolean(text(input.categoryLabel) && text(input.categoryLabel).toLowerCase() !== "uncategorized");
   const description = text(input.description);
   const productType = text(input.productType) || "Physical";
   const eligibilityReason = text(input.eligibilityReason);
+  const sku = text(input.sku);
+  const hasImage = Boolean(input.image);
 
   const items = [
     item(
@@ -107,7 +113,7 @@ export function getSeller2026ProductReadiness(input: ReadinessInput): Seller2026
       "Draft is saved",
       Boolean(input.productId),
       "error",
-      "Save this product as a draft before submitting it for review."
+      "Save this draft before submitting it for review."
     ),
     item(
       "eligible_status",
@@ -135,7 +141,7 @@ export function getSeller2026ProductReadiness(input: ReadinessInput): Seller2026
       "No unsaved changes",
       !input.dirty,
       "error",
-      "Save draft changes before submitting for review."
+      "Save this draft before submitting it for review."
     ),
     item(
       "category",
@@ -150,6 +156,27 @@ export function getSeller2026ProductReadiness(input: ReadinessInput): Seller2026
       description.length > 0,
       "warning",
       "Description is recommended for review readiness."
+    ),
+    item(
+      "image",
+      "Image is ready",
+      hasImage,
+      "warning",
+      "Image is recommended for review readiness."
+    ),
+    item(
+      "sku",
+      "SKU is ready",
+      sku.length > 0,
+      "warning",
+      "SKU is recommended for review readiness."
+    ),
+    item(
+      "low_stock_threshold",
+      "Low stock threshold is ready",
+      Number.isFinite(lowStockThreshold) && lowStockThreshold > 0,
+      "warning",
+      "Low stock threshold is recommended for review readiness."
     ),
   ];
 

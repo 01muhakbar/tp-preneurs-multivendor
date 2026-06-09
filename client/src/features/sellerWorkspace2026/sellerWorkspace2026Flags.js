@@ -1,149 +1,124 @@
+const isEnabled = (value) => String(value || "").trim().toLowerCase() === "true";
+
+export const isSellerWorkspace2026Enabled = () =>
+  isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_ENABLED);
+
+const isDomainEnabled = (envKey) =>
+  isSellerWorkspace2026Enabled() && isEnabled(import.meta.env[envKey]);
+
 export const sellerWorkspace2026Flags = {
-  enabled: import.meta.env.VITE_SELLER_WORKSPACE_2026_ENABLED === 'true',
-  dashboardEnabled:
-    import.meta.env.VITE_SELLER_WORKSPACE_2026_DASHBOARD_ENABLED === 'true',
-  catalogEnabled:
-    import.meta.env.VITE_SELLER_WORKSPACE_2026_CATALOG_ENABLED === 'true',
-  productDetailEnabled:
-    import.meta.env.VITE_SELLER_WORKSPACE_2026_PRODUCT_DETAIL_ENABLED === 'true',
-  authoringEnabled:
-    import.meta.env.VITE_SELLER_WORKSPACE_2026_AUTHORING_ENABLED === 'true',
-  storeProfileEnabled:
-    import.meta.env.VITE_SELLER_WORKSPACE_2026_STORE_PROFILE_ENABLED === 'true',
-  categoriesEnabled:
-    import.meta.env.VITE_SELLER_WORKSPACE_2026_CATEGORIES_ENABLED === 'true',
-  attributesEnabled:
-    import.meta.env.VITE_SELLER_WORKSPACE_2026_ATTRIBUTES_ENABLED === 'true',
-  ordersEnabled:
-    import.meta.env.VITE_SELLER_WORKSPACE_2026_ORDERS_ENABLED === 'true',
-  couponsEnabled:
-    import.meta.env.VITE_SELLER_WORKSPACE_2026_COUPONS_ENABLED === 'true',
-  teamEnabled:
-    import.meta.env.VITE_SELLER_WORKSPACE_2026_TEAM_ENABLED === 'true',
-  paymentCenterEnabled:
-    import.meta.env.VITE_SELLER_WORKSPACE_2026_PAYMENT_CENTER_ENABLED === 'true',
-  paymentProfileEnabled:
-    import.meta.env.VITE_SELLER_WORKSPACE_2026_PAYMENT_PROFILE_ENABLED === 'true' ||
-    import.meta.env.VITE_SELLER_WORKSPACE_2026_PAYMENT_CENTER_ENABLED === 'true',
-  paymentReviewEnabled:
-    import.meta.env.VITE_SELLER_WORKSPACE_2026_PAYMENT_REVIEW_ENABLED === 'true' ||
-    import.meta.env.VITE_SELLER_WORKSPACE_2026_PAYMENT_CENTER_ENABLED === 'true',
-  notificationsEnabled:
-    import.meta.env.VITE_SELLER_WORKSPACE_2026_NOTIFICATIONS_ENABLED === 'true',
-  analyticsSyncEnabled:
-    import.meta.env.VITE_SELLER_WORKSPACE_2026_ANALYTICS_SYNC_ENABLED === 'true',
-  analyticsEnabled:
-    import.meta.env.VITE_SELLER_WORKSPACE_2026_ANALYTICS_ENABLED === 'true',
+  get enabled() {
+    return isSellerWorkspace2026Enabled();
+  },
+  get dashboardEnabled() {
+    return isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_DASHBOARD_ENABLED);
+  },
+  get catalogEnabled() {
+    return isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_CATALOG_ENABLED);
+  },
+  get productDetailEnabled() {
+    return isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_PRODUCT_DETAIL_ENABLED);
+  },
+  get authoringEnabled() {
+    return isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_AUTHORING_ENABLED);
+  },
+  get storeProfileEnabled() {
+    return isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_STORE_PROFILE_ENABLED);
+  },
+  get categoriesEnabled() {
+    return isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_CATEGORIES_ENABLED);
+  },
+  get attributesEnabled() {
+    return isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_ATTRIBUTES_ENABLED);
+  },
+  get attributeValuesEnabled() {
+    return isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_ATTRIBUTE_VALUES_ENABLED);
+  },
+  get ordersEnabled() {
+    return isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_ORDERS_ENABLED);
+  },
+  get couponsEnabled() {
+    return isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_COUPONS_ENABLED);
+  },
+  get teamEnabled() {
+    return isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_TEAM_ENABLED);
+  },
+  get paymentCenterEnabled() {
+    return isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_PAYMENT_CENTER_ENABLED);
+  },
+  get paymentProfileEnabled() {
+    return (
+      isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_PAYMENT_PROFILE_ENABLED) ||
+      isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_PAYMENT_CENTER_ENABLED)
+    );
+  },
+  get paymentReviewEnabled() {
+    return (
+      isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_PAYMENT_REVIEW_ENABLED) ||
+      isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_PAYMENT_CENTER_ENABLED)
+    );
+  },
+  get notificationsEnabled() {
+    return isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_NOTIFICATIONS_ENABLED);
+  },
+  get analyticsEnabled() {
+    return isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_ANALYTICS_ENABLED);
+  },
+  get analyticsSyncEnabled() {
+    return isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_ANALYTICS_SYNC_ENABLED);
+  },
 };
 
-export function isSeller2026DashboardProductionEnabled() {
-  return (
-    sellerWorkspace2026Flags.enabled &&
-    sellerWorkspace2026Flags.dashboardEnabled
-  );
-}
+export const isSeller2026DashboardProductionEnabled = () =>
+  isDomainEnabled("VITE_SELLER_WORKSPACE_2026_DASHBOARD_ENABLED");
 
-export function isSeller2026CatalogProductionEnabled() {
-  return (
-    sellerWorkspace2026Flags.enabled &&
-    sellerWorkspace2026Flags.catalogEnabled
-  );
-}
+export const isSeller2026StoreProfileProductionEnabled = () =>
+  isDomainEnabled("VITE_SELLER_WORKSPACE_2026_STORE_PROFILE_ENABLED");
 
-export function isSeller2026ProductDetailProductionEnabled() {
-  return (
-    sellerWorkspace2026Flags.enabled &&
-    sellerWorkspace2026Flags.productDetailEnabled
-  );
-}
+export const isSeller2026CatalogProductionEnabled = () =>
+  isDomainEnabled("VITE_SELLER_WORKSPACE_2026_CATALOG_ENABLED");
 
-export function isSeller2026AuthoringProductionEnabled() {
-  return (
-    sellerWorkspace2026Flags.enabled &&
-    sellerWorkspace2026Flags.authoringEnabled
-  );
-}
+export const isSeller2026ProductDetailProductionEnabled = () =>
+  isDomainEnabled("VITE_SELLER_WORKSPACE_2026_PRODUCT_DETAIL_ENABLED");
 
-export function isSeller2026StoreProfileProductionEnabled() {
-  return (
-    sellerWorkspace2026Flags.enabled &&
-    sellerWorkspace2026Flags.storeProfileEnabled
-  );
-}
+export const isSeller2026AuthoringProductionEnabled = () =>
+  isDomainEnabled("VITE_SELLER_WORKSPACE_2026_AUTHORING_ENABLED");
 
-export function isSeller2026CategoriesProductionEnabled() {
-  return (
-    sellerWorkspace2026Flags.enabled &&
-    sellerWorkspace2026Flags.categoriesEnabled
-  );
-}
+export const isSeller2026CategoriesProductionEnabled = () =>
+  isDomainEnabled("VITE_SELLER_WORKSPACE_2026_CATEGORIES_ENABLED");
 
-export function isSeller2026AttributesProductionEnabled() {
-  return (
-    sellerWorkspace2026Flags.enabled &&
-    sellerWorkspace2026Flags.attributesEnabled
-  );
-}
+export const isSeller2026AttributesProductionEnabled = () =>
+  isDomainEnabled("VITE_SELLER_WORKSPACE_2026_ATTRIBUTES_ENABLED");
 
-export function isSeller2026OrdersProductionEnabled() {
-  return (
-    sellerWorkspace2026Flags.enabled &&
-    sellerWorkspace2026Flags.ordersEnabled
-  );
-}
+export const isSeller2026AttributeValuesProductionEnabled = () =>
+  isDomainEnabled("VITE_SELLER_WORKSPACE_2026_ATTRIBUTE_VALUES_ENABLED");
 
-export function isSeller2026CouponsProductionEnabled() {
-  return (
-    sellerWorkspace2026Flags.enabled &&
-    sellerWorkspace2026Flags.couponsEnabled
-  );
-}
+export const isSeller2026CouponsProductionEnabled = () =>
+  isDomainEnabled("VITE_SELLER_WORKSPACE_2026_COUPONS_ENABLED");
 
-export function isSeller2026TeamProductionEnabled() {
-  return (
-    sellerWorkspace2026Flags.enabled &&
-    sellerWorkspace2026Flags.teamEnabled
-  );
-}
+export const isSeller2026OrdersProductionEnabled = () =>
+  isDomainEnabled("VITE_SELLER_WORKSPACE_2026_ORDERS_ENABLED");
 
-export function isSeller2026PaymentCenterProductionEnabled() {
-  return (
-    sellerWorkspace2026Flags.enabled &&
-    sellerWorkspace2026Flags.paymentCenterEnabled
-  );
-}
+export const isSeller2026PaymentCenterProductionEnabled = () =>
+  isDomainEnabled("VITE_SELLER_WORKSPACE_2026_PAYMENT_CENTER_ENABLED");
 
-export function isSeller2026AnalyticsProductionEnabled() {
-  return (
-    sellerWorkspace2026Flags.enabled &&
-    sellerWorkspace2026Flags.analyticsEnabled
-  );
-}
+export const isSeller2026PaymentProfileProductionEnabled = () =>
+  isSellerWorkspace2026Enabled() && sellerWorkspace2026Flags.paymentProfileEnabled;
 
-export function isSeller2026PaymentProfileProductionEnabled() {
-  return (
-    sellerWorkspace2026Flags.enabled &&
-    sellerWorkspace2026Flags.paymentProfileEnabled
-  );
-}
+export const isSeller2026PaymentReviewProductionEnabled = () =>
+  isSellerWorkspace2026Enabled() && sellerWorkspace2026Flags.paymentReviewEnabled;
 
-export function isSeller2026PaymentReviewProductionEnabled() {
-  return (
-    sellerWorkspace2026Flags.enabled &&
-    sellerWorkspace2026Flags.paymentReviewEnabled
-  );
-}
+export const isSeller2026TeamProductionEnabled = () =>
+  isDomainEnabled("VITE_SELLER_WORKSPACE_2026_TEAM_ENABLED");
 
-export function isSeller2026NotificationsProductionEnabled() {
-  return (
-    sellerWorkspace2026Flags.enabled &&
-    sellerWorkspace2026Flags.notificationsEnabled
-  );
-}
+export const isSeller2026NotificationsProductionEnabled = () =>
+  isDomainEnabled("VITE_SELLER_WORKSPACE_2026_NOTIFICATIONS_ENABLED");
 
-export function isSeller2026AnalyticsSyncProductionEnabled() {
-  return (
-    sellerWorkspace2026Flags.enabled &&
-    sellerWorkspace2026Flags.analyticsSyncEnabled
-  );
-}
+export const isSeller2026AnalyticsProductionEnabled = () =>
+  isDomainEnabled("VITE_SELLER_WORKSPACE_2026_ANALYTICS_ENABLED");
+
+export const isSeller2026AnalyticsSyncPreviewEnabled = () =>
+  isDomainEnabled("VITE_SELLER_WORKSPACE_2026_ANALYTICS_SYNC_ENABLED");
+
+export const isSeller2026AnalyticsSyncProductionEnabled =
+  isSeller2026AnalyticsSyncPreviewEnabled;

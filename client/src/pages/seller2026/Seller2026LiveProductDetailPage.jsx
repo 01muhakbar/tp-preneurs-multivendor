@@ -31,6 +31,7 @@ export default function Seller2026LiveProductDetailPage() {
         error: productQuery.error,
         refetch: productQuery.refetch,
       }}
+      productsMutation={submitReviewMutation}
     />
   );
 }

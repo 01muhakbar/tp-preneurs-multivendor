@@ -273,6 +273,9 @@ export default function SellerOrdersPage() {
       prev.forEach((id) => {
         if (visibleIds.has(id)) next.add(id);
       });
+      if (next.size === prev.size && Array.from(next).every((id) => prev.has(id))) {
+        return prev;
+      }
       return next;
     });
   }, [rows]);

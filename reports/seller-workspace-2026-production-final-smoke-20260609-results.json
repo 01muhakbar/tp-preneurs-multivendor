@@ -1,0 +1,394 @@
+{
+  "status": "SELLER_WORKSPACE_2026_PRODUCTION_FINAL_SMOKE_FAIL",
+  "apiBaseUrl": "http://localhost:3001",
+  "clientBaseUrl": "http://localhost:5173",
+  "adoptedFlags": [
+    "VITE_SELLER_WORKSPACE_2026_ENABLED",
+    "VITE_SELLER_WORKSPACE_2026_DASHBOARD_ENABLED",
+    "VITE_SELLER_WORKSPACE_2026_STORE_PROFILE_ENABLED",
+    "VITE_SELLER_WORKSPACE_2026_CATALOG_ENABLED",
+    "VITE_SELLER_WORKSPACE_2026_PRODUCT_DETAIL_ENABLED",
+    "VITE_SELLER_WORKSPACE_2026_AUTHORING_ENABLED",
+    "VITE_SELLER_WORKSPACE_2026_CATEGORIES_ENABLED",
+    "VITE_SELLER_WORKSPACE_2026_ATTRIBUTES_ENABLED",
+    "VITE_SELLER_WORKSPACE_2026_ATTRIBUTE_VALUES_ENABLED",
+    "VITE_SELLER_WORKSPACE_2026_COUPONS_ENABLED",
+    "VITE_SELLER_WORKSPACE_2026_ORDERS_ENABLED",
+    "VITE_SELLER_WORKSPACE_2026_PAYMENT_CENTER_ENABLED",
+    "VITE_SELLER_WORKSPACE_2026_TEAM_ENABLED",
+    "VITE_SELLER_WORKSPACE_2026_NOTIFICATIONS_ENABLED",
+    "VITE_SELLER_WORKSPACE_2026_ANALYTICS_ENABLED"
+  ],
+  "groups": {
+    "production": [
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/dashboard",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/dashboard",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/store-profile",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/store-profile",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/catalog/products",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/catalog/products",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/catalog/products/new",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/catalog/products/new",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/catalog/products/2135",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/catalog/products/2135",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/catalog/products/2135/edit",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/catalog/products/2135/edit",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/catalog/categories",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/catalog/categories",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/catalog/attributes",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/catalog/attributes",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/catalog/attributes/322/values",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/catalog/attributes/322/values",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/catalog/coupons",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/catalog/coupons",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/orders",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/orders",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/orders/1647",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/orders/1647",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/payment-review",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/payment-review",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/payment-profile",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/payment-profile",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/team",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/team",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/team/799",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/team/799",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/team/audit",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/team/audit",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/notifications",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/notifications",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/analytics",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/analytics",
+        "result": "PASS",
+        "notes": "Analytics 2026 route rendered read-only with sync/publish/rebuild/export actions disabled."
+      }
+    ],
+    "legacy": [
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/profile",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/store-profile",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/catalog",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/catalog/products",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/catalog/new",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/catalog/products/new",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/catalog/2135",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/catalog/products/2135",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/catalog/2135/edit",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/catalog/products/2135/edit",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/coupons",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/catalog/coupons",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/user/store-payment-profile",
+        "result": "FAIL",
+        "finalUrl": "/auth/login",
+        "notes": "Expected redirect target containing /payment-profile."
+      },
+      {
+        "route": "/user/store-payment-review",
+        "result": "FAIL",
+        "finalUrl": "/auth/login",
+        "notes": "Expected redirect target containing /payment-review."
+      }
+    ],
+    "preview": [
+      {
+        "route": "/seller-2026-preview/tp-preneurs-demo-store",
+        "finalUrl": "/seller-2026-preview/tp-preneurs-demo-store",
+        "result": "PASS",
+        "notes": "TP TP Preneurs Seller Workspace 2026 Batik Nusantara Store v OVERVIEW Dashboard STOREFRONT Store Profile Microsite Preview CATALOG Products Categories Attribute"
+      },
+      {
+        "route": "/seller-2026-preview/tp-preneurs-demo-store/catalog/products",
+        "finalUrl": "/seller-2026-preview/tp-preneurs-demo-store/catalog/products",
+        "result": "PASS",
+        "notes": "TP TP Preneurs Seller Workspace 2026 Batik Nusantara Store v OVERVIEW Dashboard STOREFRONT Store Profile Microsite Preview CATALOG Products Categories Attribute"
+      },
+      {
+        "route": "/seller-2026-preview/tp-preneurs-demo-store/orders",
+        "finalUrl": "/seller-2026-preview/tp-preneurs-demo-store/orders",
+        "result": "PASS",
+        "notes": "TP TP Preneurs Seller Workspace 2026 Batik Nusantara Store v OVERVIEW Dashboard STOREFRONT Store Profile Microsite Preview CATALOG Products Categories Attribute"
+      },
+      {
+        "route": "/seller-2026-preview/tp-preneurs-demo-store/payment-center",
+        "finalUrl": "/seller-2026-preview/tp-preneurs-demo-store/payment-center",
+        "result": "FAIL",
+        "notes": "Fatal console/page error: Failed to load resource: the server responded with a status of 400 (Bad Request) | Payment Center Adapter Error: AxiosError | Failed to load resource: the server responded with a status of 400 (Bad Request) | Payment Center Adapter Error: AxiosError"
+      },
+      {
+        "route": "/seller-2026-preview/tp-preneurs-demo-store/team",
+        "finalUrl": "/seller-2026-preview/tp-preneurs-demo-store/team",
+        "result": "PASS",
+        "notes": "TP TP Preneurs Seller Workspace 2026 Batik Nusantara Store v OVERVIEW Dashboard STOREFRONT Store Profile Microsite Preview CATALOG Products Categories Attribute"
+      },
+      {
+        "route": "/seller-2026-preview/tp-preneurs-demo-store/analytics-sync",
+        "finalUrl": "/seller-2026-preview/tp-preneurs-demo-store/analytics-sync",
+        "result": "FAIL",
+        "notes": "Fatal console/page error: Failed to load resource: the server responded with a status of 400 (Bad Request) | Analytics & Sync Adapter Error: AxiosError | Failed to load resource: the server responded with a status of 400 (Bad Request) | Analytics & Sync Adapter Error: AxiosError"
+      }
+    ],
+    "admin": [
+      {
+        "route": "/admin/settings",
+        "finalUrl": "/admin/login",
+        "result": "PASS",
+        "notes": "Guarded route redirected to login without blank screen."
+      },
+      {
+        "route": "/admin/store/customization?storeTab=home-settings",
+        "finalUrl": "/admin/login",
+        "result": "PASS",
+        "notes": "Guarded route redirected to login without blank screen."
+      },
+      {
+        "route": "/admin/online-store/store-profile",
+        "finalUrl": "/admin/login",
+        "result": "PASS",
+        "notes": "Guarded route redirected to login without blank screen."
+      },
+      {
+        "route": "/admin/store/store-settings",
+        "finalUrl": "/admin/login",
+        "result": "PASS",
+        "notes": "Guarded route redirected to login without blank screen."
+      },
+      {
+        "route": "/admin/store/payment-profiles",
+        "finalUrl": "/admin/login",
+        "result": "PASS",
+        "notes": "Guarded route redirected to login without blank screen."
+      },
+      {
+        "route": "/admin/online-store/payment-audit",
+        "finalUrl": "/admin/login",
+        "result": "PASS",
+        "notes": "Guarded route redirected to login without blank screen."
+      },
+      {
+        "route": "/admin/online-store/shipping-reconciliation",
+        "finalUrl": "/admin/login",
+        "result": "PASS",
+        "notes": "Guarded route redirected to login without blank screen."
+      },
+      {
+        "route": "/admin/store/applications",
+        "finalUrl": "/admin/login",
+        "result": "PASS",
+        "notes": "Guarded route redirected to login without blank screen."
+      }
+    ],
+    "storefront": [
+      {
+        "route": "/",
+        "finalUrl": "/",
+        "result": "PASS",
+        "notes": "Need help 082386046311 About Us | Contact Us | My Account | Login 0 Categories ▾ About Us Contact Us Pages ▾ Offers English Privacy Policy Terms & Conditions Bo"
+      },
+      {
+        "route": "/store/tp-preneurs-demo-store",
+        "finalUrl": "/store/tp-preneurs-demo-store",
+        "result": "PASS",
+        "notes": "Need help +628111111111 About Us | Contact Us | My Account | Login 0 Categories ▾ About Us Contact Us Pages ▾ Offers English Privacy Policy Terms & Conditions M"
+      },
+      {
+        "route": "/store/tp-preneurs-demo-store/products/seller-2026-hero-product",
+        "finalUrl": "/store/tp-preneurs-demo-store/products/seller-2026-hero-product",
+        "result": "PASS",
+        "notes": "Need help +628111111111 About Us | Contact Us | My Account | Login 0 Categories ▾ About Us Contact Us Pages ▾ Offers English Privacy Policy Terms & Conditions M"
+      },
+      {
+        "route": "/cart",
+        "finalUrl": "/cart",
+        "result": "PASS",
+        "notes": "Need help 082386046311 About Us | Contact Us | My Account | Login 0 Categories ▾ About Us Contact Us Pages ▾ Offers English Privacy Policy Terms & Conditions CA"
+      },
+      {
+        "route": "/checkout",
+        "finalUrl": "/checkout",
+        "result": "PASS",
+        "notes": "Need help 082386046311 About Us | Contact Us | My Account | Login 0 Categories ▾ About Us Contact Us Pages ▾ Offers English Privacy Policy Terms & Conditions Ch"
+      },
+      {
+        "route": "/search",
+        "finalUrl": "/search",
+        "result": "PASS",
+        "notes": "Need help 082386046311 About Us | Contact Us | My Account | Login 0 Categories ▾ About Us Contact Us Pages ▾ Offers English Privacy Policy Terms & Conditions Al"
+      }
+    ],
+    "crossStore": [
+      {
+        "route": "/seller/stores/other-demo-store",
+        "finalUrl": "/seller/stores/other-demo-store",
+        "result": "FAIL",
+        "notes": "Fatal console/page error: Failed to load resource: the server responded with a status of 403 (Forbidden)"
+      }
+    ],
+    "member": [
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/orders",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/orders",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/catalog/products",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/catalog/products",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/team",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/team",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/payment-profile",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/payment-profile",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      },
+      {
+        "route": "/seller/stores/tp-preneurs-demo-store/analytics",
+        "finalUrl": "/seller/stores/tp-preneurs-demo-store/analytics",
+        "result": "PASS",
+        "notes": "TP PRENEURS SELLER WORKSPACE ACTIVE STORE TP Preneurs Demo Store tp-preneurs-demo-store ACTIVE Shipping Ready GENERAL Overview Store Profile Shipping Setup Read"
+      }
+    ],
+    "mutationSafety": [
+      {
+        "route": "Product",
+        "result": "PASS",
+        "notes": "Direct publish, destructive, duplicate, bulk, media upload, and variants lifecycle are not enabled by this smoke."
+      },
+      {
+        "route": "Order",
+        "result": "PASS",
+        "notes": "Parent order, payment state, bulk fulfillment/delete, and print label/receipt mutations are not introduced."
+      },
+      {
+        "route": "Payment",
+        "result": "PASS",
+        "notes": "Seller self-activation, settlement, payout, and public payment authority remain unavailable."
+      },
+      {
+        "route": "Coupon",
+        "result": "PASS",
+        "notes": "Hard delete/platform coupon/checkout validation changes are not introduced."
+      },
+      {
+        "route": "Team",
+        "result": "PASS",
+        "notes": "Owner/current-user destructive action and role hierarchy bypass are not introduced."
+      },
+      {
+        "route": "Analytics",
+        "result": "PASS",
+        "notes": "Analytics 2026 route rendered read-only with sync/publish/rebuild/export actions disabled."
+      }
+    ]
+  }
+}

@@ -7,13 +7,20 @@ import { runSeller2026Mutation } from "./mutations.ts";
 
 export type Seller2026ProductDraftPayload = {
   name: string;
+  slug?: string | null;
   sku?: string | null;
+  shortDescription?: string | null;
   description?: string | null;
   categoryIds?: Array<string | number>;
+  brand?: string | null;
   tags?: string[];
   price?: number;
   compareAtPrice?: number | null;
+  costPrice?: number | null;
   stock?: number;
+  lowStockThreshold?: number | null;
+  weight?: number | null;
+  dimensions?: { length?: number; width?: number; height?: number } | null;
   seoTitle?: string | null;
   seoDescription?: string | null;
 };
@@ -43,18 +50,31 @@ const textList = (value: unknown) =>
 const buildSafeProductDraftPayload = (payload: Seller2026ProductDraftPayload) => {
   const seoTitle = optionalText(payload.seoTitle);
   const seoDescription = optionalText(payload.seoDescription);
+  const categoryIds = positiveIds(payload.categoryIds);
 
   return {
     name: String(payload.name || "").trim(),
+    slug: optionalText(payload.slug),
     sku: optionalText(payload.sku),
+    shortDescription: optionalText(payload.shortDescription),
     description: optionalText(payload.description),
-    categoryIds: positiveIds(payload.categoryIds),
+    brand: optionalText(payload.brand),
+    categoryIds,
+    defaultCategoryId: categoryIds[0] || null,
     price: nonNegativeNumber(payload.price) ?? 0,
+    costPrice: nonNegativeNumber(payload.costPrice) ?? null,
     salePrice:
       typeof payload.compareAtPrice === "number" && payload.compareAtPrice > 0
         ? payload.compareAtPrice
         : null,
     stock: Math.floor(nonNegativeNumber(payload.stock) ?? 0),
+    lowStockThreshold: nonNegativeNumber(payload.lowStockThreshold) ?? null,
+    weight: nonNegativeNumber(payload.weight) ?? null,
+    dimensions: payload.dimensions ? {
+      length: nonNegativeNumber(payload.dimensions.length) ?? 0,
+      width: nonNegativeNumber(payload.dimensions.width) ?? 0,
+      height: nonNegativeNumber(payload.dimensions.height) ?? 0,
+    } : null,
     tags: textList(payload.tags),
     seo: seoTitle || seoDescription ? { title: seoTitle || "", description: seoDescription || "" } : null,
   };

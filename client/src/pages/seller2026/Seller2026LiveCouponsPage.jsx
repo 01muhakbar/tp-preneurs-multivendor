@@ -26,7 +26,7 @@ export default function Seller2026LiveCouponsPage() {
     permissions: {
       canCreate: can("COUPON_CREATE"),
       canUpdate: can("COUPON_UPDATE"),
-      canDelete: can("COUPON_DELETE"),
+      canDelete: can("COUPON_STATUS_MANAGE"),
       canManageStatus: can("COUPON_STATUS_MANAGE"),
     },
   });

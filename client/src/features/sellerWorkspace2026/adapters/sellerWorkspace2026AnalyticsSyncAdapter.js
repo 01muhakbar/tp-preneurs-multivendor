@@ -1,5 +1,8 @@
 import { getSellerStoreProfile } from "../../../api/sellerStoreProfile.ts";
-import { getSellerAnalyticsSummary } from "../../../api/sellerWorkspace.ts";
+import {
+  getSellerAnalyticsSummary,
+  getSellerWorkspaceContextBySlug,
+} from "../../../api/sellerWorkspace.ts";
 import { getAnalyticsSyncFallback } from "../utils/sellerWorkspace2026Fallbacks.js";
 
 const mapSyncStatus = (status) => {
@@ -21,13 +24,29 @@ const mapVisibility = (status) => {
 };
 
 export const fetchSellerWorkspace2026AnalyticsSync = async (storeSlug) => {
+  if (!String(storeSlug || "").trim()) {
+    const fallback = getAnalyticsSyncFallback();
+    fallback.meta.usingLiveData = false;
+    fallback.meta.message = "Analytics data is not available for this store yet.";
+    return fallback;
+  }
+
   try {
-    const storeProfile = await getSellerStoreProfile(storeSlug);
+    const storeContext = await getSellerWorkspaceContextBySlug(storeSlug).catch(() => null);
+    const storeId = Number(storeContext?.store?.id || 0);
+    if (!storeId) {
+      const fallback = getAnalyticsSyncFallback();
+      fallback.meta.usingLiveData = false;
+      fallback.meta.message = "Analytics data is not available for this store yet.";
+      return fallback;
+    }
+
+    const storeProfile = await getSellerStoreProfile(storeId);
     if (!storeProfile) {
       return getAnalyticsSyncFallback();
     }
 
-    const analyticsData = await getSellerAnalyticsSummary(storeProfile.id);
+    const analyticsData = await getSellerAnalyticsSummary(storeId);
     if (!analyticsData) {
       return getAnalyticsSyncFallback();
     }
@@ -117,9 +136,9 @@ export const fetchSellerWorkspace2026AnalyticsSync = async (storeSlug) => {
     };
 
   } catch (error) {
-    console.error("Analytics & Sync Adapter Error:", error);
     const fallback = getAnalyticsSyncFallback();
     fallback.meta.usingLiveData = false;
+    fallback.meta.message = "Analytics data is not available for this store yet.";
     return fallback;
   }
 };

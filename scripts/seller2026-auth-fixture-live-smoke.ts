@@ -32,8 +32,15 @@ const requireFromServer = createRequire(new URL("../server/package.json", import
 const bcrypt = requireFromServer("bcryptjs") as typeof import("bcryptjs");
 
 const PASSWORD = "Password123!";
-const CLIENT_URL = String(process.env.CLIENT_URL || "http://localhost:5173").replace(/\/+$/, "");
-const API_URL = String(process.env.API_URL || "http://localhost:3001").replace(/\/+$/, "");
+const CLIENT_URL = String(
+  process.env.SELLER2026_CLIENT_BASE_URL || process.env.CLIENT_URL || "http://localhost:5173"
+).replace(/\/+$/, "");
+const API_URL = String(
+  process.env.SELLER2026_API_BASE_URL ||
+    process.env.API_URL ||
+    process.env.VITE_SERVER_ORIGIN ||
+    "http://localhost:3001"
+).replace(/\/+$/, "");
 
 type FixtureUser = {
   email: string;

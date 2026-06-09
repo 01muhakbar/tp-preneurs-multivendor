@@ -1,6 +1,7 @@
 import { getSellerStoreProfile } from "../../../api/sellerStoreProfile.ts";
 import { getSellerPaymentReviewSuborders } from "../../../api/sellerPayments.ts";
 import { getSellerPaymentProfile } from "../../../api/sellerPaymentProfile.ts";
+import { getSellerWorkspaceContextBySlug } from "../../../api/sellerWorkspace.ts";
 import { getPaymentCenterFallback } from "../utils/sellerWorkspace2026Fallbacks.js";
 
 const MAP_REVIEW_STATUS = {
@@ -28,16 +29,43 @@ const MAP_PROFILE_STATUS = {
 
 const mapReviewStatus = (raw) => MAP_REVIEW_STATUS[raw?.toLowerCase()] || "Unknown";
 const mapProfileStatus = (raw) => MAP_PROFILE_STATUS[raw?.toLowerCase()] || "Unknown";
+const hasValidStoreSlug = (storeSlug) => Boolean(String(storeSlug || "").trim());
+
+const getUnavailablePaymentCenterFallback = () => {
+  const fallback = getPaymentCenterFallback();
+  fallback.paymentReviews = [];
+  fallback.summary = {
+    ...fallback.summary,
+    pendingReviews: 0,
+    verifiedPayments: 0,
+    rejectedPayments: 0,
+    payoutReadiness: "Unavailable",
+    estimatedPayoutAmount: 0,
+  };
+  fallback.meta.usingLiveData = false;
+  fallback.meta.message = "Payment data is not available for this store yet.";
+  return fallback;
+};
 
 export const fetchSellerWorkspace2026PaymentCenter = async (storeSlug) => {
+  if (!hasValidStoreSlug(storeSlug)) {
+    return getUnavailablePaymentCenterFallback();
+  }
+
   try {
-    const storeProfile = await getSellerStoreProfile(storeSlug);
+    const storeContext = await getSellerWorkspaceContextBySlug(storeSlug).catch(() => null);
+    const storeId = Number(storeContext?.store?.id || 0);
+    if (!storeId) {
+      return getUnavailablePaymentCenterFallback();
+    }
+
+    const storeProfile = await getSellerStoreProfile(storeId);
     if (!storeProfile) {
-      return getPaymentCenterFallback();
+      return getUnavailablePaymentCenterFallback();
     }
 
     const [reviewsData, profileData] = await Promise.all([
-      getSellerPaymentReviewSuborders(storeProfile.id, "pending"),
+      getSellerPaymentReviewSuborders(storeProfile.id, "PENDING_CONFIRMATION"),
       getSellerPaymentProfile(storeProfile.id).catch(() => null)
     ]);
 
@@ -116,9 +144,6 @@ export const fetchSellerWorkspace2026PaymentCenter = async (storeSlug) => {
       }
     };
   } catch (error) {
-    console.error("Payment Center Adapter Error:", error);
-    const fallback = getPaymentCenterFallback();
-    fallback.meta.usingLiveData = false;
-    return fallback;
+    return getUnavailablePaymentCenterFallback();
   }
 };
