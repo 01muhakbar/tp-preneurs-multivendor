@@ -58,11 +58,13 @@ const normalizeWritePayload = (
   if (name || options.requireName) nextPayload.name = name;
   if (displayName || options.requireName) nextPayload.displayName = displayName || name;
   if (payload.type) nextPayload.type = normalizeAttributeType(payload.type);
-  if (options.includeValues) {
+  const hasValues = Object.prototype.hasOwnProperty.call(payload, "values");
+  if (options.includeValues || hasValues) {
     const values = normalizeAttributeValues(payload.values);
-    nextPayload.values = values.length ? values : ["Default"];
+    nextPayload.values = values.length ? values : options.requireName ? ["Default"] : [];
   }
-  if (options.includePublished) {
+  const hasPublished = Object.prototype.hasOwnProperty.call(payload, "published");
+  if (options.includePublished || hasPublished) {
     nextPayload.published = Boolean(payload.published);
   }
 

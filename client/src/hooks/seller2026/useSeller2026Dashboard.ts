@@ -12,40 +12,42 @@ type UseSeller2026DashboardOptions = {
   enabled?: boolean;
   sellerContext?: unknown;
   canViewOrders?: boolean;
+  storeId?: number | string | null;
 };
 
 const RECENT_SUBORDERS_LIMIT = 8;
 
 export function useSeller2026Dashboard(
-  storeId: number | string | null | undefined,
+  storeSlug: string | null | undefined,
   options: UseSeller2026DashboardOptions = {}
 ) {
+  const storeId = options.storeId;
   const enabled = Boolean(storeId) && options.enabled !== false;
   const canViewOrders = options.canViewOrders !== false;
 
   const financeSummaryQuery = useQuery({
-    queryKey: ["seller2026", "dashboard", "finance-summary", storeId],
+    queryKey: ["seller2026", "dashboard", storeSlug, "finance-summary", storeId],
     queryFn: () => getSellerFinanceSummary(storeId as number | string),
     enabled,
     retry: false,
   });
 
   const readinessQuery = useQuery({
-    queryKey: ["seller2026", "dashboard", "readiness", storeId],
+    queryKey: ["seller2026", "dashboard", storeSlug, "readiness", storeId],
     queryFn: () => getSellerWorkspaceReadiness(storeId as number | string),
     enabled,
     retry: false,
   });
 
   const analyticsQuery = useQuery({
-    queryKey: ["seller2026", "dashboard", "analytics-summary", storeId],
+    queryKey: ["seller2026", "dashboard", storeSlug, "analytics-summary", storeId],
     queryFn: () => getSellerAnalyticsSummary(storeId as number | string),
     enabled,
     retry: false,
   });
 
   const subordersQuery = useQuery({
-    queryKey: ["seller2026", "dashboard", "recent-suborders", storeId],
+    queryKey: ["seller2026", "dashboard", storeSlug, "recent-suborders", storeId],
     queryFn: () =>
       getSellerSuborders(storeId as number | string, {
         page: 1,

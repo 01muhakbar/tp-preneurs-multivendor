@@ -233,11 +233,11 @@ export function adaptSeller2026Storefront({
   const richAboutData = object(object(richAbout).data);
   const shippingSetup = object(source.shippingSetup);
   const shippingSummary = object(source.shippingSetupSummary);
-  const storeName = text(source.name || contextStore.name || publicStore.name, "Toko Kamu");
+  const storeName = text(source.name || contextStore.name || publicStore.name, "Your Store");
   const slug = text(source.slug || contextStore.slug || publicStore.slug);
   const description = text(
     richAboutData.content || richAboutData.html || source.description || publicStore.description || publicStore.about,
-    "Bangun brand dan jangkau lebih banyak pelanggan."
+    "Build your brand and reach more customers."
   );
   const address = joinAddress(
     source.addressLine1,
@@ -271,23 +271,23 @@ export function adaptSeller2026Storefront({
       name: storeName,
       logoUrl: nullableText(source.logoUrl || contextStore.logoUrl || publicStore.logoUrl || publicStore.logo),
       coverUrl: nullableText(source.bannerUrl || contextStore.imageUrl || publicStore.bannerUrl || publicStore.coverUrl),
-      tagline: text(publicStore.tagline || publicStore.shortDescription, "Bangun brand dan jangkau lebih banyak pelanggan."),
+      tagline: text(publicStore.tagline || publicStore.shortDescription, "Build your brand and reach more customers."),
       email: text(source.email),
       whatsapp: text(source.whatsapp),
       phone: text(source.phone),
       businessCategory: text(publicStore.businessCategory || publicStore.category, "Storefront"),
       businessSubcategory: text(publicStore.businessSubcategory || publicStore.subcategory, "General"),
-      address: address || "Alamat toko belum lengkap.",
+      address: address || "Store address is not complete yet.",
       operatingHours: Array.isArray(publicStore.operatingHours)
         ? publicStore.operatingHours.map((entry) => {
             const item = object(entry);
             return {
-              day: text(item.day || item.label, "Setiap hari"),
-              hours: text(item.hours || item.value, "Belum diatur"),
+              day: text(item.day || item.label, "Every day"),
+              hours: text(item.hours || item.value, "Not set"),
             };
           })
-        : [{ day: "Setiap hari", hours: "Belum diatur" }],
-      shippingOrigin: shippingOrigin || "Asal pengiriman belum lengkap.",
+        : [{ day: "Every day", hours: "Not set" }],
+      shippingOrigin: shippingOrigin || "Shipping origin is not complete yet.",
       socials: mapSocials({ ...publicStore, ...source }),
       description,
       policies: mapPolicies(source),
@@ -349,25 +349,25 @@ export function adaptSeller2026Storefront({
     microsite: {
       heroTitle: storeName,
       heroSubtitle: description,
-      heroCtaLabel: "Belanja Sekarang",
+      heroCtaLabel: "Shop Now",
       categories: [
-        { id: "profile", name: text(publicStore.businessCategory, "Pilihan Toko") },
-        { id: "featured", name: "Produk Unggulan" },
-        { id: "new", name: "Terbaru" },
+        { id: "profile", name: text(publicStore.businessCategory, "Store Picks") },
+        { id: "featured", name: "Featured Products" },
+        { id: "new", name: "New Arrivals" },
       ],
       featuredProducts: [],
       benefits: [
         {
           label: "Store-scoped",
-          description: "Preview memakai data publik toko, bukan metadata internal seller.",
+          description: "Preview uses public store data, not internal seller metadata.",
         },
         {
           label: "Brand ready",
-          description: "Logo, banner, kontak, dan asal pengiriman mengikuti profil toko.",
+          description: "Logo, banner, contact, and shipping origin follow the store profile.",
         },
         {
           label: "Safe preview",
-          description: "Draft, audit, payment credential, dan data tim tidak ditampilkan.",
+          description: "Drafts, audits, payment credentials, and team data are not shown.",
         },
       ],
     },
@@ -377,11 +377,11 @@ export function adaptSeller2026Storefront({
       typography: "Inter / System",
       sections: [
         { key: "hero", label: "Hero Banner", enabled: true },
-        { key: "categories", label: "Kategori Populer", enabled: true },
-        { key: "featured", label: "Produk Unggulan", enabled: true },
-        { key: "benefits", label: "Keunggulan Toko", enabled: true },
-        { key: "about", label: "Tentang Kami", enabled: Boolean(description) },
-        { key: "policies", label: "Kebijakan Toko", enabled: true },
+        { key: "categories", label: "Popular Categories", enabled: true },
+        { key: "featured", label: "Featured Products", enabled: true },
+        { key: "benefits", label: "Store Benefits", enabled: true },
+        { key: "about", label: "About Us", enabled: Boolean(description) },
+        { key: "policies", label: "Store Policies", enabled: true },
       ],
     },
   };

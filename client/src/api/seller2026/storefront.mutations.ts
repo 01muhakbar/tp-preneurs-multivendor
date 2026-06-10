@@ -2,6 +2,8 @@ import { updateSellerStoreProfile } from "../sellerStoreProfile.ts";
 
 export type Seller2026StoreProfileUpdatePayload = {
   description?: string | null;
+  logoUrl?: string | null;
+  bannerUrl?: string | null;
   email?: string | null;
   whatsapp?: string | null;
   phone?: string | null;
@@ -15,6 +17,7 @@ export type Seller2026StoreProfileUpdatePayload = {
   postalCode?: string | null;
   country?: string | null;
   shippingSetup?: {
+    shippingEnabled?: boolean;
     originContactName?: string | null;
     originPhone?: string | null;
     originAddressLine1?: string | null;
@@ -30,6 +33,8 @@ export type Seller2026StoreProfileUpdatePayload = {
 
 const allowedTopLevelFields = new Set([
   "description",
+  "logoUrl",
+  "bannerUrl",
   "email",
   "whatsapp",
   "phone",
@@ -46,6 +51,7 @@ const allowedTopLevelFields = new Set([
 ]);
 
 const allowedShippingFields = new Set([
+  "shippingEnabled",
   "originContactName",
   "originPhone",
   "originAddressLine1",

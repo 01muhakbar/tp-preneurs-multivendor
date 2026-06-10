@@ -642,3 +642,171 @@ Production route:
 
 ## Seller Workspace 2026 Payment Workflow Sync
 Status: PAYMENT_WORKFLOW_ADMIN_GOVERNED_SYNCED
+
+## Seller Workspace 2026 Dashboard Visual Slicing
+
+Status: DASHBOARD_VISUAL_SLICING_ADOPTED
+
+Scope:
+- Seller Workspace Overview visual redesign implemented for canonical dashboard routes.
+- Minimal 2026 light UI adopted with responsive and dark-theme-compatible tokens.
+- English-only feature copy enforced.
+- Dashboard remains store-scoped under `/seller/stores/:storeSlug`.
+- Data continues to use existing seller APIs and adapters.
+- Admin authority and Client Storefront visibility are unchanged.
+
+Routes:
+- `/seller/stores/:storeSlug`
+- `/seller/stores/:storeSlug/dashboard`
+
+Files:
+- `client/src/pages/seller2026/Seller2026LiveDashboardPage.jsx`
+- `client/src/features/sellerWorkspace2026/SellerWorkspace2026.css`
+- `client/src/hooks/seller2026/useSeller2026Dashboard.ts`
+- `client/src/api/seller2026/dashboard.adapter.ts`
+
+Guardrail:
+- Backend API contracts are not changed.
+- Legacy dashboard fallback remains available through the existing feature flags.
+- Dashboard actions are navigation-only and permission-aware.
+- Public storefront behavior is unchanged.
+- Daily analytics points are not synthesized when the existing summary API only provides aggregates.
+
+## Seller Workspace 2026 Store Profile Visual Slicing
+
+Status: STORE_PROFILE_VISUAL_SLICING_ADOPTED
+
+Scope:
+- Canonical Store Profile route now uses a dedicated responsive 2026 overview and edit experience.
+- Overview includes readiness, buyer-facing preview, governance, missing fields, and shipping setup.
+- Edit mode covers media, public details, contact, address, and shipping origin on the same route.
+- Copy is English-only and all values come from existing seller APIs.
+
+Route:
+- `/seller/stores/:storeSlug/store-profile`
+
+Files:
+- `client/src/pages/seller2026/Seller2026LiveStorefrontPage.jsx`
+- `client/src/features/sellerWorkspace2026/SellerWorkspace2026.css`
+- `client/src/hooks/seller2026/useSeller2026StoreProfile.ts`
+- `client/src/api/seller2026/storeProfile.adapter.ts`
+- `client/src/api/seller2026/storefront.mutations.ts`
+
+Guardrail:
+- `name`, `slug`, and `status` remain Admin-managed and read-only for sellers.
+- Save payloads are restricted to backend-approved seller fields.
+- Media removal requires confirmation and is persisted only after Save.
+- Existing upload and Store Profile endpoints are reused.
+- Legacy Store Profile remains the feature-flag rollback path.
+
+## Seller Workspace 2026 Product Catalog Visual Slicing
+
+Status: PRODUCT_CATALOG_VISUAL_SLICING_ADOPTED
+
+Scope:
+- Products catalog visual redesign implemented for the canonical store-scoped route.
+- Product editor visual redesign implemented for create and edit routes.
+- Product detail visual redesign implemented for the canonical detail route.
+- English-only product workspace copy enforced.
+- Product data continues to use existing seller APIs and Seller 2026 adapters.
+- Product approval and publish governance remain backend/Admin controlled.
+- Public storefront visibility behavior is unchanged.
+
+Routes:
+- `/seller/stores/:storeSlug/catalog/products`
+- `/seller/stores/:storeSlug/catalog/products/new`
+- `/seller/stores/:storeSlug/catalog/products/:productId`
+- `/seller/stores/:storeSlug/catalog/products/:productId/edit`
+
+Files:
+- `client/src/pages/seller2026/Seller2026LiveProductsPage.jsx`
+- `client/src/pages/seller2026/Seller2026LiveProductEditorPage.jsx`
+- `client/src/pages/seller2026/Seller2026LiveProductDetailPage.jsx`
+- `client/src/features/sellerWorkspace2026/SellerWorkspace2026.css`
+- `client/src/hooks/seller2026/useSeller2026Products.ts`
+- `client/src/hooks/seller2026/useSeller2026ProductEditor.ts`
+- `client/src/hooks/seller2026/useSeller2026ProductDetail.ts`
+- `client/src/api/seller2026/products.adapter.ts`
+- `client/src/api/seller2026/productEditor.adapter.ts`
+- `client/src/api/seller2026/productDetail.adapter.ts`
+
+Guardrail:
+- Backend API contracts are not changed.
+- Existing legacy product pages are not deleted.
+- Draft save uses existing store-scoped seller APIs.
+- Submit review does not publish directly.
+- Direct publish remains disabled.
+- Destructive, duplicate, variant, and bulk controls remain disabled.
+- Public storefront visibility is not changed by this UI.
+- Rollback remains feature-flag off.
+
+## Seller Workspace 2026 Categories Visual Slicing
+
+Status: CATEGORIES_VISUAL_SLICING_ADOPTED
+
+Scope:
+- Categories visual redesign implemented for the canonical store-scoped route.
+- Add and update category modal redesigned with the 2026 Seller Workspace design system.
+- English-only feature copy enforced.
+- Categories data continues to use existing seller APIs and Seller 2026 adapters.
+- Category visibility and mutation authority remain backend-governed.
+- Product/category relationships are not changed outside existing APIs.
+
+Route:
+- `/seller/stores/:storeSlug/catalog/categories`
+
+Files:
+- `client/src/pages/seller2026/Seller2026LiveCategoriesPage.jsx`
+- `client/src/features/sellerWorkspace2026/SellerWorkspace2026.css`
+- `client/src/hooks/seller2026/useSeller2026Categories.ts`
+- `client/src/api/seller2026/categories.adapter.ts`
+
+Guardrail:
+- Backend API contracts are not changed.
+- Existing legacy category pages are not deleted.
+- Category create/update uses existing store-scoped seller APIs.
+- Category publish/visibility uses existing governance only.
+- Destructive and bulk actions remain disabled or confirmation-gated.
+- Public storefront behavior is not changed by this UI.
+- Rollback remains feature-flag off.
+
+
+## Seller Workspace 2026 Attributes Visual Slicing
+
+Status: ATTRIBUTES_VISUAL_SLICING_ADOPTED
+
+Scope:
+- Attributes visual redesign implemented for the canonical store-scoped route.
+- Attribute Values visual redesign implemented for the canonical attribute values route.
+- Add/update attribute drawer redesigned with the 2026 Seller Workspace design system.
+- Add/update attribute value drawer redesigned with the 2026 Seller Workspace design system.
+- English-only feature copy enforced.
+- Attributes data continues to use existing seller APIs and Seller 2026 adapters.
+- Attribute and value mutation authority remain backend-governed.
+- Product/variant attribute relationships are not changed outside existing APIs.
+
+Routes:
+- `/seller/stores/:storeSlug/catalog/attributes`
+- `/seller/stores/:storeSlug/catalog/attributes/:attributeId/values`
+
+Files:
+- `client/src/pages/seller2026/Seller2026LiveAttributesPage.jsx`
+- `client/src/pages/seller2026/Seller2026LiveAttributeValuesPage.jsx`
+- `client/src/features/sellerWorkspace2026/components/Seller2026AttributeDrawer.jsx`
+- `client/src/features/sellerWorkspace2026/components/Seller2026AttributeValueDrawer.jsx`
+- `client/src/features/sellerWorkspace2026/SellerWorkspace2026.css`
+- `client/src/hooks/seller2026/useSeller2026Attributes.ts`
+- `client/src/hooks/seller2026/useSeller2026AttributeValues.ts`
+- `client/src/api/seller2026/attributes.adapter.ts`
+- `client/src/api/seller2026/attributeValues.adapter.ts`
+
+Guardrail:
+- Backend API contracts are not changed.
+- Existing legacy attribute pages are not deleted.
+- Attribute create/update uses existing store-scoped seller APIs.
+- Attribute value create/update uses existing store-scoped seller APIs.
+- Attribute publish/visibility uses existing governance only.
+- Destructive and bulk actions remain disabled or confirmation-gated.
+- Product variant behavior is not changed by this UI.
+- Public storefront behavior is not changed by this UI.
+- Rollback remains feature-flag off.

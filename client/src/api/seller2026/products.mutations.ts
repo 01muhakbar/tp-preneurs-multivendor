@@ -9,11 +9,15 @@ export type Seller2026ProductDraftPayload = {
   name: string;
   slug?: string | null;
   sku?: string | null;
+  barcode?: string | null;
   shortDescription?: string | null;
   description?: string | null;
   categoryIds?: Array<string | number>;
+  defaultCategoryId?: string | number | null;
   brand?: string | null;
   tags?: string[];
+  imageUrls?: string[];
+  hasVariants?: boolean;
   price?: number;
   compareAtPrice?: number | null;
   costPrice?: number | null;
@@ -56,11 +60,15 @@ const buildSafeProductDraftPayload = (payload: Seller2026ProductDraftPayload) =>
     name: String(payload.name || "").trim(),
     slug: optionalText(payload.slug),
     sku: optionalText(payload.sku),
+    barcode: optionalText(payload.barcode),
     shortDescription: optionalText(payload.shortDescription),
     description: optionalText(payload.description),
     brand: optionalText(payload.brand),
     categoryIds,
-    defaultCategoryId: categoryIds[0] || null,
+    defaultCategoryId:
+      Number(payload.defaultCategoryId) > 0
+        ? Number(payload.defaultCategoryId)
+        : categoryIds[0] || null,
     price: nonNegativeNumber(payload.price) ?? 0,
     costPrice: nonNegativeNumber(payload.costPrice) ?? null,
     salePrice:
@@ -76,6 +84,8 @@ const buildSafeProductDraftPayload = (payload: Seller2026ProductDraftPayload) =>
       height: nonNegativeNumber(payload.dimensions.height) ?? 0,
     } : null,
     tags: textList(payload.tags),
+    imageUrls: textList(payload.imageUrls).slice(0, 10),
+    hasVariants: false,
     seo: seoTitle || seoDescription ? { title: seoTitle || "", description: seoDescription || "" } : null,
   };
 };

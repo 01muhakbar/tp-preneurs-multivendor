@@ -26,13 +26,19 @@ export type Seller2026ProductsViewModel = {
     name: string;
     slug?: string;
     sku: string;
+    barcode?: string;
     thumbnailUrl: string | null;
     category: string;
     stock: number;
     price: number;
+    salePrice?: number;
     sales: number;
     views: number;
     status: Seller2026ProductStatus;
+    visibility?: string;
+    submissionStatus?: string;
+    approvalStatus?: string;
+    isPublished?: boolean;
     updatedAt: string | null;
     canSubmitReview: boolean;
     submitReviewAction: "submit_review" | "resubmit_review";
@@ -58,6 +64,7 @@ export type Seller2026ProductDetailViewModel = {
     name: string;
     slug?: string;
     sku: string;
+    barcode?: string;
     shortDescription?: string;
     description: string;
     thumbnail?: string;
@@ -515,6 +522,7 @@ export function adaptSeller2026ProductDetail(value: unknown): Seller2026ProductD
       name: text(product.name || product.title, "Untitled product"),
       slug: text(product.slug) || undefined,
       sku: text(product.sku || product.code, "No SKU"),
+      barcode: text(object(product.attributes).barcode ?? product.barcode),
       shortDescription: text(descriptions.short ?? product.shortDescription, ""),
       description,
       thumbnail: thumbnailUrl(product) || undefined,

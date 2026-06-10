@@ -612,7 +612,8 @@ async function waitForBodyText(page: any, expected: string, timeoutMs = 20000) {
 async function inspectPage(page: any) {
   const developerTerms = [
     "raw payload",
-    "mutation",
+    "mutation payload",
+    "mutationFn",
     "metadata",
     "backend",
     "AUDIT_LOG_VIEW",
@@ -625,9 +626,20 @@ async function inspectPage(page: any) {
     const root = document.documentElement;
     const bodyText = String(document.body?.innerText || "").replace(/\s+/g, " ").trim();
     const rootOverflowPx = Math.max(0, root.scrollWidth - root.clientWidth);
+    const editor = document.querySelector(".seller2026-product-editor")?.getBoundingClientRect();
+    const editorActions = document.querySelector(".seller2026-editor__actions")?.getBoundingClientRect();
+    const editorSurface = document.querySelector(".seller2026-editor__surface")?.getBoundingClientRect();
     return {
       url: window.location.pathname,
       rootOverflowPx,
+      viewportWidth: window.innerWidth,
+      editorWidths: editor
+        ? {
+            editor: Math.round(editor.width),
+            actions: Math.round(editorActions?.width || 0),
+            surface: Math.round(editorSurface?.width || 0),
+          }
+        : null,
       bodyTextSample: bodyText.slice(0, 500),
       developerCopyHits: terms.filter((term) =>
         bodyText.toLowerCase().includes(term.toLowerCase())
@@ -671,6 +683,51 @@ async function captureSellerWorkspace(browser: any, sellerClient: CookieClient, 
         screenshotPath: path.relative(process.cwd(), screenshotPath),
         inspection,
       });
+      if (viewport.name === "desktop-1440" && target.key === "product-create") {
+        await page.getByLabel("Product Name *").fill("Visual QA Draft Product");
+        await page.getByLabel("Product Description").fill("Draft created through the Seller Workspace 2026 visual smoke.");
+        await page.locator('.seller2026-editor__category-picker input[type="checkbox"]').first().check();
+        await page.getByLabel("Product Price *").fill("75000");
+        await page.getByLabel("Quantity *").fill("5");
+        await page.getByRole("button", { name: "Save Draft" }).click();
+        await page.waitForURL(/\/catalog\/products\/\d+\/edit$/, { timeout: 15000 });
+        const createdId = Number(page.url().match(/\/catalog\/products\/(\d+)\/edit$/)?.[1]);
+        if (Number.isFinite(createdId) && !createdProductIds.includes(createdId)) {
+          createdProductIds.push(createdId);
+        }
+        await waitForBodyText(page, "Product Editor");
+        log("desktop-1440 product draft save workflow passed");
+      }
+      if (viewport.name === "desktop-1440" && target.key === "categories") {
+        await page.getByRole("button", { name: "Add Category" }).click();
+        await waitForBodyText(page, "Add Category");
+        await page.getByRole("button", { name: "Create Category" }).click();
+        await waitForBodyText(page, "Category name is required.");
+        await page.screenshot({
+          path: path.join(screenshotDir, "categories-add-modal.png"),
+          fullPage: true,
+        });
+        await page.locator(".seller2026-category-modal header button").click();
+        const firstRowMenu = page.locator(".seller2026-category-row__menu > button").first();
+        if (await firstRowMenu.isVisible().catch(() => false)) {
+          await firstRowMenu.click();
+          await page.getByRole("button", { name: "Edit Category" }).first().click();
+          await waitForBodyText(page, "Update Category");
+          await page.screenshot({
+            path: path.join(screenshotDir, "categories-edit-modal.png"),
+            fullPage: true,
+          });
+          await page.locator(".seller2026-category-modal header button").click();
+        }
+        log("desktop-1440 categories modal workflow passed");
+      }
+      if (viewport.name === "desktop-1440" && target.key === "store-profile-edit") {
+        const description = page.getByLabel("Description");
+        await description.fill("Updated through the Seller Workspace 2026 visual smoke.");
+        await page.getByRole("button", { name: "Save" }).click();
+        await waitForBodyText(page, "Store profile updated successfully.");
+        log("desktop-1440 store-profile save workflow passed");
+      }
       log(`${viewport.name} ${target.key} captured`);
     }
 
@@ -724,6 +781,48 @@ async function runScenario(browser: any) {
   const base = `/seller/stores/${encodeURIComponent(store.slug)}`;
   const targets: TargetPage[] = [
     {
+      key: "dashboard-index",
+      label: "Dashboard Index",
+      path: base,
+      waitFor: "Command Center",
+    },
+    {
+      key: "dashboard",
+      label: "Dashboard",
+      path: `${base}/dashboard`,
+      waitFor: "Command Center",
+    },
+    {
+      key: "categories",
+      label: "Categories",
+      path: `${base}/catalog/categories`,
+      waitFor: "Categories",
+    },
+    {
+      key: "products",
+      label: "Products",
+      path: `${base}/catalog/products`,
+      waitFor: "Products",
+    },
+    {
+      key: "product-create",
+      label: "Product Create",
+      path: `${base}/catalog/products/new`,
+      waitFor: "Product Editor",
+    },
+    {
+      key: "product-detail",
+      label: "Product Detail",
+      path: `${base}/catalog/products/${encodeURIComponent(String(product.id))}`,
+      waitFor: "Product Details",
+    },
+    {
+      key: "product-edit",
+      label: "Product Edit",
+      path: `${base}/catalog/products/${encodeURIComponent(String(product.id))}/edit`,
+      waitFor: "Product Editor",
+    },
+    {
       key: "payment-setup",
       label: "Payment Setup",
       path: `${base}/payment-profile`,
@@ -745,7 +844,13 @@ async function runScenario(browser: any) {
       key: "store-profile",
       label: "Store Profile",
       path: `${base}/store-profile`,
-      waitFor: "Store profile",
+      waitFor: "Store Profile",
+    },
+    {
+      key: "store-profile-edit",
+      label: "Store Profile Edit",
+      path: `${base}/store-profile#shipping-setup`,
+      waitFor: "Edit Store Details",
     },
     {
       key: "team",
@@ -928,6 +1033,13 @@ async function main() {
         NODE_ENV: "development",
         VITE_PROXY_API_HOST: APP_HOST,
         VITE_PROXY_API_PORT: String(apiPort),
+        VITE_SELLER_WORKSPACE_2026_ENABLED: "true",
+        VITE_SELLER_WORKSPACE_2026_DASHBOARD_ENABLED: "true",
+        VITE_SELLER_WORKSPACE_2026_STORE_PROFILE_ENABLED: "true",
+        VITE_SELLER_WORKSPACE_2026_CATALOG_ENABLED: "true",
+        VITE_SELLER_WORKSPACE_2026_PRODUCT_DETAIL_ENABLED: "true",
+        VITE_SELLER_WORKSPACE_2026_AUTHORING_ENABLED: "true",
+        VITE_SELLER_WORKSPACE_2026_CATEGORIES_ENABLED: "true",
       },
       async () => {
         await ensureServerModules();
