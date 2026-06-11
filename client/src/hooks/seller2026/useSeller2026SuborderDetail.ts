@@ -41,8 +41,12 @@ export function useSeller2026SuborderDetail(
     [detailQuery.data, enabled]
   );
   const invalidateOrders = () => {
-    void queryClient.invalidateQueries({ queryKey: ["seller2026", "orders"] });
-    void queryClient.invalidateQueries({ queryKey: ["seller2026", "suborder-detail", storeId, suborderId] });
+    void Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["seller2026", "orders", storeId] }),
+      queryClient.invalidateQueries({ queryKey: ["seller2026", "suborder-detail", storeId, suborderId] }),
+      queryClient.invalidateQueries({ queryKey: ["seller", "suborders", storeId] }),
+      queryClient.invalidateQueries({ queryKey: ["seller", "suborder", "detail", storeId, suborderId] }),
+    ]);
   };
   const fulfillmentMutation = useMutation({
     mutationFn: async ({

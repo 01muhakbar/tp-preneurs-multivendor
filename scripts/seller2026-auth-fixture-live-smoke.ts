@@ -1051,23 +1051,31 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureSeller2026A
     waitUntil: "networkidle",
     timeout: 45_000,
   });
-  await page.getByRole("button", { name: /^Create Coupon$/i }).first().click();
-  await page.getByLabel("Coupon code").fill(smokeCouponCode);
-  await page.getByLabel("Coupon name").fill(smokeCouponName);
-  await page.getByLabel("Discount value").fill("10");
-  await page.getByLabel("Minimum spend").fill("50000");
-  await page.getByRole("button", { name: /^Create Coupon$/i }).last().click();
+  await page.getByRole("button", { name: /^New Coupon$/i }).click();
+  await page.getByLabel("Campaign Code *").fill(smokeCouponCode);
+  await page.getByLabel("Campaign Name *").fill(smokeCouponName);
+  await page.getByRole("button", { name: /^Percentage$/i }).click();
+  await page.getByLabel("Discount *").fill("10");
+  await page.getByLabel("Minimum Amount").fill("50000");
+  await page.getByRole("button", { name: /^Create Coupon$/i }).click();
   const smokeCouponRow = () => page.locator("tr", { hasText: smokeCouponCode }).first();
   await smokeCouponRow().waitFor({ state: "visible", timeout: 20_000 });
-  await smokeCouponRow().getByRole("button", { name: /^Edit$/i }).click();
-  await page.getByLabel("Coupon name").fill(editedSmokeCouponName);
-  await page.getByRole("button", { name: /^Save Coupon$/i }).click();
+  await smokeCouponRow()
+    .getByRole("button", { name: `Actions for ${smokeCouponName}` })
+    .click();
+  await page.getByRole("button", { name: /^Edit Coupon$/i }).click();
+  await page.getByLabel("Campaign Name *").fill(editedSmokeCouponName);
+  await page.getByRole("button", { name: /^Update Coupon$/i }).click();
   await page.getByText(editedSmokeCouponName).waitFor({ state: "visible", timeout: 20_000 });
-  await smokeCouponRow().getByRole("button", { name: /^Deactivate$/i }).click();
+  await smokeCouponRow().getByRole("button", { name: /^Deactivate coupon$/i }).click();
   await page.getByText("Coupon deactivated.").waitFor({ state: "visible", timeout: 20_000 });
-  await smokeCouponRow().getByRole("button", { name: /^Activate$/i }).click();
+  await smokeCouponRow().getByRole("button", { name: /^Activate coupon$/i }).click();
   await page.getByText("Coupon activated.").waitFor({ state: "visible", timeout: 20_000 });
-  await smokeCouponRow().getByRole("button", { name: /^Archive$/i }).click();
+  page.once("dialog", (dialog) => dialog.accept());
+  await smokeCouponRow()
+    .getByRole("button", { name: `Actions for ${editedSmokeCouponName}` })
+    .click();
+  await page.getByRole("button", { name: /^Archive Coupon$/i }).click();
   await page.getByText("Coupon archived.").waitFor({ state: "visible", timeout: 20_000 });
   const couponSmokeText = await page.locator("body").innerText({ timeout: 10_000 }).catch(() => "");
   const couponLifecycle = {
@@ -1136,9 +1144,20 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureSeller2026A
   });
   await page.getByText(/Payment Review/i).first().waitFor({ state: "visible", timeout: 15_000 });
   await page.getByText("PAY-SELLER2026-PAYAPPROVE").waitFor({ state: "visible", timeout: 20_000 });
-  await page.getByLabel("Reviewer Note").fill("Approved by Seller 2026 smoke.");
+  const approvePaymentRow = page.locator(".s26-pr-table tbody tr").filter({
+    hasText: "PAY-SELLER2026-PAYAPPROVE",
+  });
+  await approvePaymentRow.getByRole("button", { name: /^Review$/i }).click();
+  await page.getByRole("heading", { name: "SELLER2026-PAYAPPROVE" }).waitFor({
+    state: "visible",
+    timeout: 15_000,
+  });
+  await page.getByPlaceholder("Add notes or a clear rejection reason...").fill(
+    "Approved by Seller 2026 smoke."
+  );
+  await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: /^Approve Payment$/i }).click();
-  await page.getByText("Payment approved.").waitFor({ state: "visible", timeout: 25_000 });
+  await page.getByText(/Payment proof approved\./i).waitFor({ state: "visible", timeout: 25_000 });
   const approveReviewText = await page.locator("body").innerText({ timeout: 10_000 }).catch(() => "");
   await page.goto(`/seller/stores/${fixture.storeSlug}/orders/${fixture.paymentApproveSuborderId}`, {
     waitUntil: "networkidle",
@@ -1150,7 +1169,7 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureSeller2026A
     suborderId: fixture.paymentApproveSuborderId,
     finalUrl: page.url().replace(CLIENT_URL, ""),
     status:
-      /Payment approved\./i.test(approveReviewText) &&
+      /Payment proof approved\./i.test(approveReviewText) &&
       /Payment information stays read-only/i.test(approveOrderText)
         ? "PASS"
         : "FAIL",
@@ -1169,9 +1188,19 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureSeller2026A
     timeout: 45_000,
   });
   await page.getByText("PAY-SELLER2026-PAYREJECT").waitFor({ state: "visible", timeout: 20_000 });
-  await page.getByLabel("Reason").fill("Rejected by Seller 2026 smoke.");
-  await page.getByRole("button", { name: /^Reject Payment$/i }).click();
-  await page.getByText("Payment rejected.").waitFor({ state: "visible", timeout: 25_000 });
+  const rejectPaymentRow = page.locator(".s26-pr-table tbody tr").filter({
+    hasText: "PAY-SELLER2026-PAYREJECT",
+  });
+  await rejectPaymentRow.getByRole("button", { name: /^Review$/i }).click();
+  await page.getByRole("heading", { name: "SELLER2026-PAYREJECT" }).waitFor({
+    state: "visible",
+    timeout: 15_000,
+  });
+  await page.getByPlaceholder("Add notes or a clear rejection reason...").fill(
+    "Rejected by Seller 2026 smoke."
+  );
+  await page.getByRole("button", { name: /^Reject Proof$/i }).click();
+  await page.getByText(/Payment proof rejected\./i).waitFor({ state: "visible", timeout: 25_000 });
   const rejectReviewText = await page.locator("body").innerText({ timeout: 10_000 }).catch(() => "");
   await page.goto(`/seller/stores/${fixture.storeSlug}/orders/${fixture.paymentRejectSuborderId}`, {
     waitUntil: "networkidle",
@@ -1183,7 +1212,7 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureSeller2026A
     suborderId: fixture.paymentRejectSuborderId,
     finalUrl: page.url().replace(CLIENT_URL, ""),
     status:
-      /Payment rejected\./i.test(rejectReviewText) &&
+      /Payment proof rejected\./i.test(rejectReviewText) &&
       /Payment information stays read-only/i.test(rejectOrderText)
         ? "PASS"
         : "FAIL",
@@ -1202,17 +1231,25 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureSeller2026A
     waitUntil: "networkidle",
     timeout: 45_000,
   });
-  await page.getByText(/Payment Profile/i).first().waitFor({ state: "visible", timeout: 15_000 });
-  await page.getByRole("button", { name: /^Submit \/ Update Profile$/i }).click();
-  await page.getByLabel("Account Owner Name").fill("Seller 2026 Smoke Owner");
-  await page.getByLabel("Merchant Name").fill(smokeProfileMerchant);
-  await page.getByLabel("QRIS Identifier").fill("S26-PROFILE-REQUEST");
-  await page.getByLabel("QRIS Image URL").fill(dataUrl);
-  await page.getByLabel("QRIS Payload").fill("SMOKE-QRIS-PAYLOAD");
-  await page.getByLabel("Payment Instructions").fill("Seller 2026 smoke payment setup request.");
-  await page.getByLabel("Seller Note").fill("Submitted by Seller 2026 smoke.");
-  await page.getByRole("button", { name: /^Submit Request$/i }).click();
-  await page.getByText("Payment profile request submitted for admin review.").waitFor({
+  await page.getByRole("heading", { name: /^Payment profile$/i }).waitFor({
+    state: "visible",
+    timeout: 15_000,
+  });
+  const paymentProfileEditor = page.getByRole("heading", {
+    name: /^Payment method editor$/i,
+  });
+  if (!(await paymentProfileEditor.isVisible().catch(() => false))) {
+    await page.getByRole("button", { name: /^Edit$/i }).click();
+  }
+  await page.getByLabel("Account name").fill("Seller 2026 Smoke Owner");
+  await page.getByLabel("Merchant name").fill(smokeProfileMerchant);
+  await page.getByLabel("Merchant ID").fill("S26-PROFILE-REQUEST");
+  await page.getByLabel("QRIS image URL", { exact: false }).fill(dataUrl);
+  await page.getByLabel("QRIS payload", { exact: false }).fill("SMOKE-QRIS-PAYLOAD");
+  await page.getByLabel("Instruction text", { exact: false }).fill("Seller 2026 smoke payment setup request.");
+  await page.getByLabel("Seller note", { exact: false }).fill("Submitted by Seller 2026 smoke.");
+  await page.getByRole("button", { name: /^Submit for review$/i }).click();
+  await page.getByText(/Payment Profile submitted for Admin review\./i).waitFor({
     state: "visible",
     timeout: 25_000,
   });
@@ -1221,7 +1258,7 @@ async function smokeBrowser(fixture: Awaited<ReturnType<typeof ensureSeller2026A
     name: "payment-profile-request-mutation",
     finalUrl: page.url().replace(CLIENT_URL, ""),
     status:
-      /Payment profile request submitted for admin review\./i.test(paymentProfileText) &&
+      /Payment Profile submitted for Admin review\./i.test(paymentProfileText) &&
       /SUBMITTED|Submitted for review|Pending admin review/i.test(paymentProfileText) &&
       !/Approved by seller|Activated by seller/i.test(paymentProfileText)
         ? "PASS"

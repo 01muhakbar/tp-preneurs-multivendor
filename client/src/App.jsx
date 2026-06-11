@@ -14,7 +14,6 @@ import {
   isSeller2026AuthoringProductionEnabled,
   isSeller2026CatalogProductionEnabled,
   isSeller2026CategoriesProductionEnabled,
-  isSeller2026CouponsProductionEnabled,
   isSeller2026DashboardProductionEnabled,
   isSeller2026NotificationsProductionEnabled,
   isSeller2026OrdersProductionEnabled,
@@ -141,7 +140,6 @@ const SellerProductEditPage = lazy(() => import("./pages/seller/SellerProductEdi
 const SellerCategoriesPage = lazy(() => import("./pages/seller/SellerCategoriesPage.jsx"));
 const SellerAttributesPage = lazy(() => import("./pages/seller/SellerAttributesPage.jsx"));
 const SellerAttributeValuesPage = lazy(() => import("./pages/seller/SellerAttributeValuesPage.jsx"));
-const SellerCouponsPage = lazy(() => import("./pages/seller/SellerCouponsPage.jsx"));
 const SellerOrdersPage = lazy(() => import("./pages/seller/SellerOrdersPage.jsx"));
 const SellerOrderDetailPage = lazy(() => import("./pages/seller/SellerOrderDetailPage.jsx"));
 const SellerPaymentReviewPage = lazy(() => import("./pages/seller/SellerPaymentReviewPage.jsx"));
@@ -178,9 +176,6 @@ const Seller2026LiveCouponsPage = lazy(() =>
 );
 const Seller2026LiveOrdersPage = lazy(() =>
   import("./pages/seller2026/Seller2026LiveOrdersPage.jsx")
-);
-const Seller2026LiveSuborderDetailPage = lazy(() =>
-  import("./pages/seller2026/Seller2026LiveSuborderDetailPage.jsx")
 );
 const Seller2026LivePaymentReviewPage = lazy(() =>
   import("./pages/seller2026/Seller2026LivePaymentReviewPage.jsx")
@@ -645,13 +640,7 @@ export default function App() {
             />
             <Route
               path="orders/:suborderId"
-              element={
-                isSeller2026OrdersProductionEnabled() ? (
-                  <Seller2026LiveSuborderDetailPage />
-                ) : (
-                  <SellerOrderDetailPage />
-                )
-              }
+              element={<SellerOrderDetailPage />}
             />
             <Route 
               path="payment-review" 
@@ -674,16 +663,7 @@ export default function App() {
               } 
             />
             <Route path="coupons" element={<LegacySellerCouponsRedirect />} />
-            <Route 
-              path="catalog/coupons" 
-              element={
-                isSeller2026CouponsProductionEnabled() ? (
-                  <Seller2026LiveCouponsPage />
-                ) : (
-                  <SellerCouponsPage />
-                )
-              } 
-            />
+            <Route path="catalog/coupons" element={<Seller2026LiveCouponsPage />} />
           </Route>
           <Route path="/admin" element={<AdminGuard />}>
             <Route element={<AdminLayout />}>

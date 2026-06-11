@@ -42,10 +42,15 @@ export type Seller2026OrdersViewModel = {
     updatedAt: string | null;
     paidAt: string | null;
     customerName: string;
+    customerInitials: string;
     customerEmail?: string;
     customerPhone?: string;
     itemsCount: number;
-    items: unknown[];
+    items: Array<{
+      id: string | number;
+      label: string;
+      imageUrl?: string | null;
+    }>;
     channel?: string;
     shippingMethod?: string;
     deliveryMethod?: string;
@@ -54,9 +59,17 @@ export type Seller2026OrdersViewModel = {
     total: number;
     totalAmount: number;
     paymentStatus: string;
+    paymentLabel: string;
+    paymentTone: string;
+    paymentMethod: string;
     shippingStatus: string;
     status: Seller2026SuborderStatus;
     fulfillmentStatus: Seller2026SuborderStatus;
+    fulfillmentLabel: string;
+    fulfillmentTone: string;
+    fulfillmentProgress: number;
+    createdLabel: string;
+    updatedLabel: string;
     allowedActions: string[];
     canFulfill: boolean;
     fulfillmentActions: Seller2026FulfillmentActionViewModel[];
@@ -253,6 +266,47 @@ const array = (value: unknown): unknown[] => (Array.isArray(value) ? value : [])
 const idValue = (value: unknown, fallback: string | number = ""): string | number =>
   typeof value === "string" || typeof value === "number" ? value : fallback;
 
+const formatDateTime = (value: unknown) => {
+  const normalized = text(value);
+  if (!normalized) return "-";
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return "-";
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+};
+
+const initials = (value: unknown) => {
+  const normalized = text(value, "Customer");
+  return normalized
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("") || "CU";
+};
+
+const statusTone = (value: unknown) => {
+  const normalized = text(value).toUpperCase();
+  if (normalized.includes("PAID") || normalized.includes("DELIVER")) return "green";
+  if (normalized.includes("SHIP") || normalized.includes("TRANSIT")) return "blue";
+  if (normalized.includes("PROCESS")) return "violet";
+  if (normalized.includes("PENDING") || normalized.includes("UNPAID") || normalized.includes("UNFULFILLED")) return "amber";
+  if (normalized.includes("CANCEL") || normalized.includes("FAIL") || normalized.includes("EXPIRE")) return "red";
+  return "slate";
+};
+
+const fulfillmentProgress = (status: Seller2026SuborderStatus) => {
+  if (status === "DELIVERED") return 100;
+  if (status === "SHIPPED") return 75;
+  if (status === "PROCESSING") return 50;
+  if (status === "PENDING_CONFIRMATION") return 25;
+  return 12;
+};
+
 const readFulfillmentActions = (value: unknown): Seller2026FulfillmentActionViewModel[] => {
   const source = object(value);
   const governance = object(source.governance);
@@ -354,6 +408,21 @@ const adaptOrderRow = (value: unknown) => {
   const id = idValue(row.suborderId ?? row.id);
   const orderNumber = text(row.orderNumber ?? order.orderNumber ?? row.invoiceNo, "Order");
   const itemCount = number(row.itemCount ?? sellerScope.itemCount, 0);
+  const customerName = text(buyer.name, "Customer");
+  const rawItems = array(row.items).map((item, index) => {
+    const itemValue = object(item);
+    return {
+      id: idValue(itemValue.id ?? itemValue.productId, index),
+      label: text(itemValue.productName ?? itemValue.name, `Item ${index + 1}`),
+      imageUrl: text(itemValue.imageUrl ?? itemValue.thumbnailUrl) || null,
+    };
+  });
+  const paymentLabel = text(paymentMeta.label ?? paymentState.label ?? paymentStatus, paymentStatus);
+  const fulfillmentLabel = text(
+    fulfillmentMeta.label ?? primaryStatus.label ?? row.fulfillmentStatus,
+    status === "PROCESSING" ? "Ready to Pack" : status
+  );
+  const updatedAt = text(row.updatedAt ?? row.createdAt ?? order.createdAt) || null;
   return {
     id,
     suborderId: id,
@@ -363,13 +432,14 @@ const adaptOrderRow = (value: unknown) => {
     suborderNo: text(row.suborderNumber ?? row.suborderNo, "Order"),
     orderDate: text(row.createdAt ?? order.createdAt) || "Recently",
     createdAt: text(row.createdAt ?? order.createdAt) || "Recently",
-    updatedAt: text(row.updatedAt) || null,
+    updatedAt,
     paidAt: text(row.paidAt ?? paymentSummary.paidAt) || null,
-    customerName: text(buyer.name, "Customer"),
+    customerName,
+    customerInitials: initials(customerName),
     customerEmail: text(buyer.email) || undefined,
     customerPhone: text(buyer.phone) || undefined,
     itemsCount: itemCount,
-    items: array(row.items),
+    items: rawItems,
     channel: text(order.checkoutMode ?? row.checkoutMode ?? row.channel) || undefined,
     shippingMethod: text(row.shippingStatus ?? row.shippingMethod ?? primaryStatus.label) || undefined,
     deliveryMethod: text(row.shippingStatus ?? row.deliveryMethod ?? row.shippingMethod) || "Needs review",
@@ -378,9 +448,17 @@ const adaptOrderRow = (value: unknown) => {
     total: number(row.totalAmount ?? sellerScope.totalAmount ?? paymentSummary.amount, 0),
     totalAmount: number(row.totalAmount ?? sellerScope.totalAmount ?? paymentSummary.amount, 0),
     paymentStatus,
+    paymentLabel,
+    paymentTone: statusTone(paymentStatus),
+    paymentMethod: text(paymentSummary.paymentChannel ?? paymentSummary.paymentType, "Payment"),
     shippingStatus: text(shippingMeta.label ?? row.shippingStatus, "Needs review"),
     status,
     fulfillmentStatus: status,
+    fulfillmentLabel,
+    fulfillmentTone: statusTone(status),
+    fulfillmentProgress: fulfillmentProgress(status),
+    createdLabel: formatDateTime(row.createdAt ?? order.createdAt),
+    updatedLabel: formatDateTime(updatedAt),
     allowedActions: fulfillmentActions.filter((action) => action.enabled !== false).map((action) => action.code),
     canFulfill: fulfillmentActions.some((action) => action.enabled !== false),
     fulfillmentActions,

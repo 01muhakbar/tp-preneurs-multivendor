@@ -38,12 +38,15 @@ export function useSeller2026Coupons(
 ) {
   const enabled = Boolean(storeId) && options.enabled !== false;
   const queryClient = useQueryClient();
-  const canCreate = Boolean(options.permissions?.canCreate);
-  const canUpdate = Boolean(options.permissions?.canUpdate);
-  const canDelete = Boolean(options.permissions?.canDelete);
-  const canManageStatus = Boolean(options.permissions?.canManageStatus);
+  const permissionCanCreate = Boolean(options.permissions?.canCreate);
+  const permissionCanUpdate = Boolean(options.permissions?.canUpdate);
+  const permissionCanDelete = Boolean(options.permissions?.canDelete);
+  const permissionCanManageStatus = Boolean(options.permissions?.canManageStatus);
   const invalidateCoupons = () => {
-    void queryClient.invalidateQueries({ queryKey: ["seller2026", "coupons"] });
+    void Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["seller2026", "coupons", storeId] }),
+      queryClient.invalidateQueries({ queryKey: ["seller", "coupons", storeId] }),
+    ]);
   };
   const couponsQuery = useQuery({
     queryKey: ["seller2026", "coupons", storeId],
@@ -51,19 +54,27 @@ export function useSeller2026Coupons(
     enabled,
     retry: false,
   });
+  const governance = couponsQuery.data?.governance;
+  const canCreate = Boolean(governance?.sellerCanCreate || permissionCanCreate);
+  const canUpdate = Boolean(governance?.sellerCanEdit || permissionCanUpdate);
+  const canManageStatus = Boolean(
+    governance?.sellerCanManageStatus || permissionCanManageStatus
+  );
+  const canDelete = Boolean(canManageStatus || permissionCanDelete);
 
   const data = useMemo(() => {
+    const effectivePermissions = {
+      canCreate,
+      canUpdate,
+      canDelete,
+      canManageStatus,
+    };
     const adapted =
       enabled || couponsQuery.data
-        ? adaptSeller2026Coupons(couponsQuery.data, options.permissions)
+        ? adaptSeller2026Coupons(couponsQuery.data, effectivePermissions)
         : {
             ...emptySeller2026Coupons,
-            permissions: {
-              canCreate: Boolean(options.permissions?.canCreate),
-              canUpdate: Boolean(options.permissions?.canUpdate),
-              canDelete: Boolean(options.permissions?.canDelete),
-              canManageStatus: Boolean(options.permissions?.canManageStatus),
-            },
+            permissions: effectivePermissions,
           };
     const search = String(query.search || "").trim().toLowerCase();
     const status = String(query.status || "all");
@@ -94,7 +105,17 @@ export function useSeller2026Coupons(
         needsAttention: expired + coupons.filter((item) => item.code === "NO-CODE" || item.isPlatformCoupon).length,
       },
     };
-  }, [couponsQuery.data, enabled, options.permissions, query.search, query.status, query.type]);
+  }, [
+    canCreate,
+    canDelete,
+    canManageStatus,
+    canUpdate,
+    couponsQuery.data,
+    enabled,
+    query.search,
+    query.status,
+    query.type,
+  ]);
 
   const createMutation = useMutation({
     mutationFn: async (payload: Seller2026CouponPayload) => {

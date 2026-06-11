@@ -17,7 +17,7 @@ Seller Workspace is store-scoped under `/seller/stores/:storeSlug` and is render
 | Attributes | `/seller/stores/:storeSlug/catalog/attributes` | `Seller2026LiveAttributesPage` |
 | Attribute Values | `/seller/stores/:storeSlug/catalog/attributes/:attributeId/values` | `Seller2026LiveAttributeValuesPage` |
 | Orders | `/seller/stores/:storeSlug/orders` | `Seller2026LiveOrdersPage` |
-| Order Detail | `/seller/stores/:storeSlug/orders/:suborderId` | `Seller2026LiveSuborderDetailPage` |
+| Order Detail | `/seller/stores/:storeSlug/orders/:suborderId` | `SellerOrderDetailPage` deep-link fallback |
 | Payment Review | `/seller/stores/:storeSlug/payment-review` | `Seller2026LivePaymentReviewPage` |
 | Payment Profile | `/seller/stores/:storeSlug/payment-profile` | `Seller2026LivePaymentProfilePage` |
 | Coupons | `/seller/stores/:storeSlug/catalog/coupons` | `Seller2026LiveCouponsPage` |
@@ -810,3 +810,119 @@ Guardrail:
 - Product variant behavior is not changed by this UI.
 - Public storefront behavior is not changed by this UI.
 - Rollback remains feature-flag off.
+
+## Seller Workspace 2026 Coupons Visual Slicing
+
+Status: COUPONS_VISUAL_SLICING_ADOPTED
+
+Scope:
+- Coupons visual redesign implemented for the canonical store-scoped route.
+- Add/Edit Coupon slide-over drawer redesigned with the 2026 Seller Workspace design system.
+- English-only feature copy enforced.
+- Coupon data and mutations continue to use existing seller APIs and Seller Workspace context.
+- Checkout coupon validation and Admin authority are unchanged.
+
+Route:
+- `/seller/stores/:storeSlug/catalog/coupons`
+
+Files:
+- `client/src/pages/seller2026/Seller2026LiveCouponsPage.jsx`
+- `client/src/components/seller2026/coupons/Seller2026CouponDrawer.jsx`
+- `client/src/features/sellerWorkspace2026/Seller2026Coupons.css`
+
+Guardrail:
+- Backend API contracts are not changed.
+- Existing legacy coupons page is not deleted until smoke passes.
+- Seller cannot mutate platform/admin coupons outside existing backend governance.
+- Archive is deactivate-style behavior through the existing seller endpoint.
+- Public storefront and checkout coupon validation are not changed by this UI.
+- Rollback remains restoring the previous route component.
+
+## Seller Workspace 2026 Orders Visual Slicing
+
+Status: ORDERS_VISUAL_SLICING_ADOPTED_FLAGGED
+
+Scope:
+- Orders list visual redesign implemented for the canonical store-scoped route.
+- Live order detail is available in a right-side drawer without replacing the deep-link detail fallback.
+- English-only feature copy enforced.
+- Orders and drawer data continue to use existing store-scoped seller APIs.
+- Fulfillment mutation remains limited to backend-enabled `MARK_DELIVERED`.
+
+Routes:
+- `/seller/stores/:storeSlug/orders`
+- `/seller/stores/:storeSlug/orders/:suborderId` remains the legacy deep-link fallback.
+
+Files:
+- `client/src/pages/seller2026/Seller2026LiveOrdersPage.jsx`
+- `client/src/components/seller2026/orders/Seller2026OrderDetailDrawer.jsx`
+- `client/src/hooks/seller2026/useSeller2026Orders.ts`
+- `client/src/api/seller2026/orders-payments.adapter.ts`
+- `client/src/features/sellerWorkspace2026/Seller2026Orders.css`
+
+Guardrail:
+- Backend API contracts are not changed.
+- Payment status remains read-only.
+- Parent order mutation is not exposed.
+- Tracking updates remain read-only until persistence is validated.
+- Bulk destructive actions remain disabled.
+- Rollback is `VITE_SELLER_WORKSPACE_2026_ORDERS_ENABLED=false`.
+
+## Seller Workspace 2026 Payment Review Visual Slicing
+
+Status: PAYMENT_REVIEW_VISUAL_SLICING_ADOPTED_FLAGGED
+
+Scope:
+- Payment Review queue visual redesign implemented for the canonical store-scoped route.
+- Live payment proof review is available in a right-side drawer.
+- Awaiting, approved, rejected, and combined queues use the existing seller payment review API.
+- Match status is computed for presentation only; backend payment governance remains final.
+- English-only feature copy enforced.
+
+Route:
+- `/seller/stores/:storeSlug/payment-review`
+
+Files:
+- `client/src/pages/seller2026/Seller2026LivePaymentReviewPage.jsx`
+- `client/src/components/seller2026/paymentReview/Seller2026PaymentProofDrawer.jsx`
+- `client/src/hooks/seller2026/useSeller2026PaymentReview.ts`
+- `client/src/api/seller2026/paymentReview.adapter.ts`
+- `client/src/features/sellerWorkspace2026/Seller2026PaymentReview.css`
+
+Guardrail:
+- Backend API contracts are not changed.
+- Access requires order and payment-status visibility.
+- Approve/reject require both actor governance and row-level review actionability.
+- Reject requires a clear note.
+- Request Clarification remains disabled pending a backend-approved endpoint.
+- Payment status remains read-only outside the existing review endpoint.
+- Rollback is `VITE_SELLER_WORKSPACE_2026_PAYMENT_REVIEW_ENABLED=false`.
+
+## Seller Workspace 2026 Payment Profile Visual Slicing
+
+Status: PAYMENT_PROFILE_VISUAL_SLICING_ADOPTED_FLAGGED
+
+Scope:
+- Payment Profile visual redesign implemented for the canonical store-scoped route.
+- Active QRIS checkout setup remains read-only unless backend marks it active and approved.
+- Seller edits only a store-scoped request for admin review.
+- English-only feature copy enforced.
+- Checkout and Admin authority remain unchanged.
+
+Route:
+- `/seller/stores/:storeSlug/payment-profile`
+
+Files:
+- `client/src/pages/seller2026/Seller2026LivePaymentProfilePage.jsx`
+- `client/src/components/seller2026/paymentProfile/Seller2026PaymentProfileEditor.jsx`
+- `client/src/hooks/seller2026/useSeller2026PaymentProfile.ts`
+- `client/src/api/seller2026/paymentProfile.adapter.ts`
+- `client/src/features/sellerWorkspace2026/Seller2026PaymentProfile.css`
+
+Guardrail:
+- Backend API contracts are not changed.
+- Seller cannot self-activate checkout or payout setup.
+- Save Draft and Submit for Review use the existing store-scoped seller request endpoints.
+- Client checkout continues reading only the active approved setup.
+- Payment proof approval/rejection remains in Payment Review.
+- Rollback is `VITE_SELLER_WORKSPACE_2026_PAYMENT_PROFILE_ENABLED=false`.

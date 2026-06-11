@@ -63,12 +63,48 @@ export function useSeller2026Orders(
   });
 
   const data = useMemo(
-    () => (enabled || ordersQuery.data ? adaptSeller2026Orders(ordersQuery.data) : emptySeller2026Orders),
-    [enabled, ordersQuery.data]
+    () => {
+      const adapted =
+        enabled || ordersQuery.data
+          ? adaptSeller2026Orders(ordersQuery.data)
+          : emptySeller2026Orders;
+      const channel = String(query.channel || "all").toLowerCase();
+      const shippingMethod = String(query.shippingMethod || "all").toLowerCase();
+      const dateFrom = query.dateFrom ? new Date(`${query.dateFrom}T00:00:00`) : null;
+      const dateTo = query.dateTo ? new Date(`${query.dateTo}T23:59:59`) : null;
+      const suborders = adapted.suborders.filter((order) => {
+        const orderDate = order.createdAt ? new Date(order.createdAt) : null;
+        if (channel !== "all" && String(order.channel || "").toLowerCase() !== channel) return false;
+        if (
+          shippingMethod !== "all" &&
+          !`${order.shippingMethod || ""} ${order.deliveryMethod || ""}`
+            .toLowerCase()
+            .includes(shippingMethod)
+        ) {
+          return false;
+        }
+        if (dateFrom && orderDate && orderDate < dateFrom) return false;
+        if (dateTo && orderDate && orderDate > dateTo) return false;
+        return true;
+      });
+      return { ...adapted, suborders };
+    },
+    [
+      enabled,
+      ordersQuery.data,
+      query.channel,
+      query.dateFrom,
+      query.dateTo,
+      query.shippingMethod,
+    ]
   );
   const invalidateOrders = () => {
-    void queryClient.invalidateQueries({ queryKey: ["seller2026", "orders"] });
-    void queryClient.invalidateQueries({ queryKey: ["seller2026", "suborder-detail"] });
+    void Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["seller2026", "orders", storeId] }),
+      queryClient.invalidateQueries({ queryKey: ["seller2026", "suborder-detail", storeId] }),
+      queryClient.invalidateQueries({ queryKey: ["seller", "suborders", storeId] }),
+      queryClient.invalidateQueries({ queryKey: ["seller", "suborder", "detail", storeId] }),
+    ]);
   };
   const fulfillmentMutation = useMutation({
     mutationFn: async ({

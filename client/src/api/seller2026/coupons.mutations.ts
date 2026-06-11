@@ -18,6 +18,7 @@ export type Seller2026CouponPayload = {
   startsAt?: unknown;
   endsAt?: unknown;
   expiresAt?: unknown;
+  bannerImageUrl?: unknown;
 };
 
 const text = (value: unknown) => String(value ?? "").trim();
@@ -47,6 +48,7 @@ export function buildSeller2026CouponPayload(payload: Seller2026CouponPayload) {
   const active = booleanOrUndefined(payload.active);
   const startsAt = isoOrNull(payload.startsAt);
   const expiresAt = isoOrNull(payload.expiresAt ?? payload.endsAt);
+  const bannerImageUrl = text(payload.bannerImageUrl) || null;
 
   return {
     ...(code ? { code } : {}),
@@ -55,6 +57,7 @@ export function buildSeller2026CouponPayload(payload: Seller2026CouponPayload) {
     ...(typeof amount !== "undefined" ? { amount } : {}),
     ...(typeof minSpend !== "undefined" ? { minSpend } : {}),
     ...(typeof active !== "undefined" ? { active } : {}),
+    bannerImageUrl,
     startsAt,
     expiresAt,
   };

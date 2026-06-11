@@ -6,22 +6,91 @@ export type Seller2026TeamViewModel = {
     totalMembers: number;
     activeMembers: number;
     pendingInvitations: number;
+    disabledMembers: number;
+    removedMembers: number;
     totalRoles: number;
+  };
+  currentAccess: {
+    roleCode: string;
+    roleName: string;
+    membershipStatus: string;
+    accessLabel: string;
+    authorityLabel: string;
+    authoritySummary: string;
+    membershipBoundary: string;
+    permissionKeys: string[];
+    permissionGroups: Array<{
+      key: string;
+      label: string;
+      granted: number;
+      total: number;
+      accessLabel: string;
+    }>;
+    capabilities: {
+      canViewTeam: boolean;
+      canViewLifecycle: boolean;
+      canViewAudit: boolean;
+      canInviteMembers: boolean;
+      canAttachMembers: boolean;
+      manageableRoleCodes: string[];
+    };
   };
   roles: Array<{
     id: string | number;
+    code: string;
     name: string;
-    permissionCount?: number;
+    description: string;
+    isActive: boolean;
+    permissionKeys: string[];
+    permissionCount: number;
+    isManageable: boolean;
   }>;
   members: Array<{
     id: string | number;
+    userId: string | number | null;
     name: string;
     email: string;
+    initials: string;
     avatarUrl?: string | null;
+    roleCode: string;
     roleName: string;
+    roleDescription: string;
     permissionSummary: string;
+    joinedAt: string | null;
+    invitedAt: string | null;
+    acceptedAt: string | null;
     lastActiveAt: string | null;
     status: Seller2026MemberStatus;
+    statusCode: string;
+    statusLabel: string;
+    governance: {
+      canViewLifecycle: boolean;
+      isSelf: boolean;
+      isOwner: boolean;
+      restrictionReason: string;
+    };
+  }>;
+};
+
+export type Seller2026MemberLifecycleViewModel = {
+  member: Seller2026TeamViewModel["members"][number] | null;
+  lifecycle: {
+    invitedAt: string | null;
+    acceptedAt: string | null;
+    disabledAt: string | null;
+    removedAt: string | null;
+  };
+  permissions: Array<{
+    key: string;
+    label: string;
+  }>;
+  history: Array<{
+    id: string | number;
+    action: string;
+    title: string;
+    summary: string;
+    actorName: string;
+    createdAt: string | null;
   }>;
 };
 
@@ -202,10 +271,43 @@ export const emptySeller2026Team: Seller2026TeamViewModel = {
     totalMembers: 0,
     activeMembers: 0,
     pendingInvitations: 0,
+    disabledMembers: 0,
+    removedMembers: 0,
     totalRoles: 0,
+  },
+  currentAccess: {
+    roleCode: "",
+    roleName: "No role",
+    membershipStatus: "",
+    accessLabel: "No access",
+    authorityLabel: "No access",
+    authoritySummary: "No team access is available for this store.",
+    membershipBoundary: "",
+    permissionKeys: [],
+    permissionGroups: [],
+    capabilities: {
+      canViewTeam: false,
+      canViewLifecycle: false,
+      canViewAudit: false,
+      canInviteMembers: false,
+      canAttachMembers: false,
+      manageableRoleCodes: [],
+    },
   },
   roles: [],
   members: [],
+};
+
+export const emptySeller2026MemberLifecycle: Seller2026MemberLifecycleViewModel = {
+  member: null,
+  lifecycle: {
+    invitedAt: null,
+    acceptedAt: null,
+    disabledAt: null,
+    removedAt: null,
+  },
+  permissions: [],
+  history: [],
 };
 
 export const emptySeller2026MemberDetail: Seller2026MemberDetailViewModel = {
@@ -252,47 +354,213 @@ const readPermissionKeys = (member: Record<string, unknown>) => {
 
 const rolePermissionCount = (role: Record<string, unknown>) => array(role.permissionKeys).length;
 
+const initials = (value: unknown) => {
+  const parts = text(value, "Team member").split(/\s+/).filter(Boolean);
+  return parts.slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+};
+
+const permissionLabel = (key: string) =>
+  key
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+
+const permissionGroups = [
+  {
+    key: "store",
+    label: "Store",
+    matches: (permission: string) =>
+      permission.startsWith("STORE_") && !permission.startsWith("STORE_MEMBER"),
+  },
+  {
+    key: "orders",
+    label: "Orders",
+    matches: (permission: string) => permission.startsWith("ORDER_"),
+  },
+  {
+    key: "payments",
+    label: "Payments",
+    matches: (permission: string) =>
+      permission.startsWith("PAYMENT_") || permission.includes("PAYMENT_PROFILE"),
+  },
+  {
+    key: "team",
+    label: "Team",
+    matches: (permission: string) =>
+      permission.startsWith("TEAM_") ||
+      permission.startsWith("STORE_MEMBER") ||
+      permission.startsWith("STORE_ROLE") ||
+      permission === "AUDIT_LOG_VIEW",
+  },
+];
+
+const buildPermissionGroups = (permissionKeys: string[], isOwner: boolean) =>
+  permissionGroups.map((group) => {
+    const granted = permissionKeys.filter(group.matches).length;
+    return {
+      key: group.key,
+      label: group.label,
+      granted,
+      total: granted,
+      accessLabel: isOwner ? "Full access" : granted ? "Manage" : "No access",
+    };
+  });
+
+const adaptTeamMember = (
+  entry: unknown
+): Seller2026TeamViewModel["members"][number] => {
+  const member = object(entry);
+  const user = object(member.user);
+  const role = object(member.role);
+  const governance = object(member.governance);
+  const statusCode = text(member.status, "UNKNOWN").toUpperCase();
+  const permissionCount = readPermissionKeys(member).length;
+  const name = text(member.name || user.name, "Team member");
+
+  return {
+    id: idValue(member),
+    userId: (member.userId ?? user.id ?? null) as string | number | null,
+    name,
+    email: text(member.email || user.email),
+    initials: initials(name),
+    avatarUrl: (member.avatarUrl || user.avatarUrl || null) as string | null,
+    roleCode: text(member.roleCode || role.code),
+    roleName: text(member.roleName || role.name || member.roleCode, "Role"),
+    roleDescription: text(role.description),
+    permissionSummary: permissionCount ? `${permissionCount} permissions` : "No explicit permissions",
+    joinedAt: (member.joinedAt || member.acceptedAt || member.createdAt || null) as string | null,
+    invitedAt: (member.invitedAt || object(member.lifecycle).invitedAt || null) as string | null,
+    acceptedAt: (member.acceptedAt || object(member.lifecycle).acceptedAt || null) as string | null,
+    lastActiveAt: (member.lastActiveAt || member.updatedAt || member.acceptedAt || null) as string | null,
+    status: normalizeMemberStatus(member.status),
+    statusCode,
+    statusLabel: text(object(member.statusMeta).label, permissionLabel(statusCode)),
+    governance: {
+      canViewLifecycle: Boolean(governance.canViewLifecycle),
+      isSelf: Boolean(governance.isSelf),
+      isOwner: Boolean(governance.isOwner),
+      restrictionReason: text(governance.restrictionReason),
+    },
+  };
+};
+
 export function adaptSeller2026Team(value: unknown): Seller2026TeamViewModel {
   const payload = readPayload(value);
   const summary = object(payload.summary);
+  const currentAccessPayload = object(payload.currentAccess);
+  const capabilities = object(currentAccessPayload.capabilities);
+  const accessReadModel = object(currentAccessPayload.readModel);
+  const primaryRole = object(accessReadModel.primaryRole);
+  const authority = object(accessReadModel.authority);
+  const permissionKeys = array(currentAccessPayload.permissionKeys)
+    .map((permission) => text(permission))
+    .filter(Boolean);
+  const manageableRoleCodes = array(capabilities.manageableRoleCodes)
+    .map((roleCode) => text(roleCode))
+    .filter(Boolean);
+  const roleCode = text(currentAccessPayload.roleCode || primaryRole.code);
+  const isOwner = roleCode === "STORE_OWNER";
   const rawMembers = array(payload.members);
   const roles = array(payload.roles).map((entry) => {
     const role = object(entry);
+    const code = text(role.code);
+    const rolePermissions = array(role.permissionKeys).map((permission) => text(permission)).filter(Boolean);
     return {
       id: idValue(role),
+      code,
       name: text(role.name || role.code, "Role"),
+      description: text(role.description),
+      isActive: role.isActive !== false,
+      permissionKeys: rolePermissions,
       permissionCount: rolePermissionCount(role),
+      isManageable: manageableRoleCodes.includes(code),
     };
   });
-
-  const members = rawMembers.map((entry) => {
-    const member = object(entry);
-    const user = object(member.user);
-    const role = object(member.role);
-    const permissionCount = readPermissionKeys(member).length;
-    return {
-      id: idValue(member),
-      name: text(member.name || user.name, "Team member"),
-      email: text(member.email || user.email),
-      avatarUrl: (member.avatarUrl || user.avatarUrl || null) as string | null,
-      roleName: text(member.roleName || role.name || member.roleCode, "Role"),
-      permissionSummary: permissionCount ? `${permissionCount} permissions` : "No explicit permissions",
-      lastActiveAt: (member.lastActiveAt || member.updatedAt || member.acceptedAt || null) as string | null,
-      status: normalizeMemberStatus(member.status),
-    };
-  });
+  const members = rawMembers.map(adaptTeamMember);
 
   const pendingInvitations = number(summary.invitedMembers, members.filter((member) => member.status === "invited" || member.status === "pending").length);
+  const currentRole = roles.find((role) => role.code === roleCode);
 
   return {
     summary: {
       totalMembers: number(summary.totalMembers, members.length),
       activeMembers: number(summary.activeMembers, members.filter((member) => member.status === "active").length),
       pendingInvitations,
+      disabledMembers: number(summary.disabledMembers),
+      removedMembers: number(summary.removedMembers),
       totalRoles: number(summary.systemRolesAvailable, roles.length),
+    },
+    currentAccess: {
+      roleCode,
+      roleName: text(primaryRole.label || currentRole?.name || roleCode, "No role"),
+      membershipStatus: text(currentAccessPayload.membershipStatus),
+      accessLabel:
+        text(currentAccessPayload.membershipStatus).toUpperCase() === "ACTIVE"
+          ? "Has access"
+          : "Access restricted",
+      authorityLabel: text(authority.label, isOwner ? "Store Owner" : "Team member"),
+      authoritySummary: text(
+        authority.description || primaryRole.summary,
+        isOwner ? "Full access to all store features." : "Access follows the assigned store role."
+      ),
+      membershipBoundary: text(accessReadModel.membershipBoundary),
+      permissionKeys,
+      permissionGroups: buildPermissionGroups(permissionKeys, isOwner),
+      capabilities: {
+        canViewTeam: Boolean(capabilities.canViewTeam),
+        canViewLifecycle: Boolean(capabilities.canViewLifecycle),
+        canViewAudit: Boolean(capabilities.canViewAudit),
+        canInviteMembers: Boolean(capabilities.canInviteMembers),
+        canAttachMembers: Boolean(capabilities.canAttachMembers),
+        manageableRoleCodes,
+      },
     },
     roles,
     members,
+  };
+}
+
+export function adaptSeller2026MemberLifecycle(
+  value: unknown,
+  fallbackMember: Seller2026TeamViewModel["members"][number] | null = null
+): Seller2026MemberLifecycleViewModel {
+  const payload = readPayload(value);
+  const memberPayload = object(payload.member);
+  const member = Object.keys(memberPayload).length
+    ? adaptTeamMember(memberPayload)
+    : fallbackMember;
+  const lifecycle = object(payload.lifecycle);
+  const role = object(memberPayload.role);
+  const permissions = array(role.permissionKeys).map((entry) => {
+    const key = text(entry);
+    return { key, label: permissionLabel(key) };
+  }).filter((entry) => entry.key);
+  const historyPayload = object(payload.history);
+  const history = array(historyPayload.items).map((entry) => {
+    const item = object(entry);
+    const readModel = object(item.readModel);
+    const actor = object(item.actor);
+    return {
+      id: idValue(item),
+      action: text(item.action, "TEAM_ACTIVITY"),
+      title: text(readModel.title || item.action, "Team activity"),
+      summary: text(readModel.summary || readModel.changeSummary),
+      actorName: text(actor.name || actor.email, "System"),
+      createdAt: (item.createdAt || null) as string | null,
+    };
+  });
+
+  return {
+    member,
+    lifecycle: {
+      invitedAt: (lifecycle.invitedAt || member?.invitedAt || null) as string | null,
+      acceptedAt: (lifecycle.acceptedAt || member?.acceptedAt || null) as string | null,
+      disabledAt: (lifecycle.disabledAt || null) as string | null,
+      removedAt: (lifecycle.removedAt || null) as string | null,
+    },
+    permissions,
+    history,
   };
 }
 
