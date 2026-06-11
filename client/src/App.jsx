@@ -21,6 +21,7 @@ import {
   isSeller2026PaymentReviewProductionEnabled,
   isSeller2026ProductDetailProductionEnabled,
   isSeller2026StoreProfileProductionEnabled,
+  isSeller2026TeamAuditProductionEnabled,
   isSeller2026TeamProductionEnabled,
 } from "./features/sellerWorkspace2026/sellerWorkspace2026Flags.js";
 import { seller2026PreviewRoutes } from "./routes/seller2026RouteConfig.jsx";
@@ -524,7 +525,7 @@ export default function App() {
             <Route
               path="team/audit"
               element={
-                isSeller2026TeamProductionEnabled() ? (
+                isSeller2026TeamAuditProductionEnabled() ? (
                   <Seller2026LiveTeamAuditPage />
                 ) : (
                   <SellerTeamAuditPage />

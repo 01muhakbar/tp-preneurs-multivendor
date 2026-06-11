@@ -355,7 +355,9 @@ const readPermissionKeys = (member: Record<string, unknown>) => {
 const rolePermissionCount = (role: Record<string, unknown>) => array(role.permissionKeys).length;
 
 const initials = (value: unknown) => {
-  const parts = text(value, "Team member").split(/\s+/).filter(Boolean);
+  const parts = text(value, "Team member")
+    .split(/\s+/)
+    .filter((part) => /[a-z]/i.test(part));
   return parts.slice(0, 2).map((part) => part[0]).join("").toUpperCase();
 };
 
@@ -493,9 +495,10 @@ export function adaptSeller2026Team(value: unknown): Seller2026TeamViewModel {
     },
     currentAccess: {
       roleCode,
-      roleName: text(primaryRole.label || currentRole?.name || roleCode, "No role"),
+      roleName: text(currentRole?.name || primaryRole.label || roleCode, "No role"),
       membershipStatus: text(currentAccessPayload.membershipStatus),
       accessLabel:
+        Boolean(capabilities.canViewTeam) ||
         text(currentAccessPayload.membershipStatus).toUpperCase() === "ACTIVE"
           ? "Has access"
           : "Access restricted",

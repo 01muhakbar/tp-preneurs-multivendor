@@ -43,6 +43,12 @@ export const sellerWorkspace2026Flags = {
   get teamEnabled() {
     return isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_TEAM_ENABLED);
   },
+  get teamAuditEnabled() {
+    return (
+      isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_TEAM_AUDIT_ENABLED) ||
+      isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_TEAM_ENABLED)
+    );
+  },
   get paymentCenterEnabled() {
     return isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_PAYMENT_CENTER_ENABLED);
   },
@@ -110,6 +116,9 @@ export const isSeller2026PaymentReviewProductionEnabled = () =>
 
 export const isSeller2026TeamProductionEnabled = () =>
   isDomainEnabled("VITE_SELLER_WORKSPACE_2026_TEAM_ENABLED");
+
+export const isSeller2026TeamAuditProductionEnabled = () =>
+  isSellerWorkspace2026Enabled() && sellerWorkspace2026Flags.teamAuditEnabled;
 
 export const isSeller2026NotificationsProductionEnabled = () =>
   isDomainEnabled("VITE_SELLER_WORKSPACE_2026_NOTIFICATIONS_ENABLED");

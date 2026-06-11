@@ -926,3 +926,61 @@ Guardrail:
 - Client checkout continues reading only the active approved setup.
 - Payment proof approval/rejection remains in Payment Review.
 - Rollback is `VITE_SELLER_WORKSPACE_2026_PAYMENT_PROFILE_ENABLED=false`.
+
+## Seller Workspace 2026 Team Visual Slicing
+
+Status: TEAM_VISUAL_SLICING_ADOPTED_FLAGGED
+
+Scope:
+- Team visual redesign implemented for the canonical store-scoped route.
+- Invite/add-member controls use existing store-scoped seller APIs and backend capabilities.
+- Member lifecycle is available in a read-only drawer.
+- Role summary and permission groups are presentation-only; backend permissions remain final.
+- English-only feature copy enforced.
+
+Route:
+- `/seller/stores/:storeSlug/team`
+
+Files:
+- `client/src/pages/seller2026/Seller2026LiveTeamPage.jsx`
+- `client/src/components/seller2026/team/Seller2026TeamMemberDrawer.jsx`
+- `client/src/hooks/seller2026/useSeller2026Team.ts`
+- `client/src/api/seller2026/team.adapter.ts`
+- `client/src/features/sellerWorkspace2026/Seller2026Team.css`
+
+Guardrail:
+- Backend API contracts are not changed.
+- Backend permissions remain final enforcement.
+- Assignable roles are limited by backend `manageableRoleCodes`.
+- Owner/current-user destructive actions remain blocked.
+- Team Audit route remains unchanged.
+- Rollback is `VITE_SELLER_WORKSPACE_2026_TEAM_ENABLED=false` or restoring the previous route component.
+
+## Seller Workspace 2026 Team Audit Visual Slicing
+
+Status: TEAM_AUDIT_VISUAL_SLICING_ADOPTED_FLAGGED
+
+Scope:
+- Team Audit visual redesign implemented for the canonical store-scoped route.
+- Audit events, pending invitations, actor data, and current access use existing seller APIs.
+- Invitation controls use existing store-scoped seller APIs and backend capabilities.
+- Audit event details are available in a read-only drawer.
+- English-only feature copy enforced.
+
+Route:
+- `/seller/stores/:storeSlug/team/audit`
+
+Files:
+- `client/src/pages/seller2026/Seller2026LiveTeamAuditPage.jsx`
+- `client/src/components/seller2026/teamAudit/Seller2026AuditEventDrawer.jsx`
+- `client/src/hooks/seller2026/useSeller2026TeamAudit.ts`
+- `client/src/api/seller2026/teamAudit.adapter.ts`
+- `client/src/features/sellerWorkspace2026/Seller2026TeamAudit.css`
+
+Guardrail:
+- Backend API contracts are not changed.
+- Backend permissions remain final enforcement.
+- Assignable roles are limited by backend `manageableRoleCodes`.
+- Audit event details remain read-only.
+- Resend, role/status changes, removal, and export remain unavailable.
+- Rollback is `VITE_SELLER_WORKSPACE_2026_TEAM_AUDIT_ENABLED=false` together with the Team flag disabled, or restoring the previous route component.
