@@ -1,12 +1,26 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "../../api/axios.ts";
-import { getStoreCustomization } from "../../api/public/storeCustomizationPublic.ts";
-import { normalizeDashboardSettingCopy } from "../../utils/dashboardSettingCopy.js";
-import { useAccountAuth } from "../../auth/authDomainHooks.js";
-import { resolveAssetUrl } from "../../lib/assetUrl.js";
+import { getDefaultAddress } from "../../api/userAddresses.ts";
 import { uploadUserProfileImage } from "../../api/userMe.ts";
+import { useAccountAuth } from "../../auth/authDomainHooks.js";
+import AccountUpdateProfile2026View from "./AccountUpdateProfile2026View";
+import {
+  buildUpdateProfilePayloadFrom2026Form,
+  normalizeUpdateProfileFor2026,
+  validateUpdateProfile2026Form,
+} from "./accountUpdateProfile2026Adapter";
+
+const emptyForm = {
+  name: "",
+  email: "",
+  phone: "",
+  avatarUrl: "",
+  dateOfBirth: "",
+  gender: "",
+  language: "en",
+};
 
 const fetchMe = async () => {
   const { data } = await api.get("/auth/account/me");
@@ -18,187 +32,185 @@ const updateProfile = async (payload) => {
   return data;
 };
 
+const unwrapProfile = (payload) =>
+  payload?.data?.user ?? payload?.user ?? payload?.data ?? (payload?.id ? payload : null);
+
+const getProfileForm = (profile, fallbackUser) => {
+  const source = {
+    ...(fallbackUser || {}),
+    ...(profile || {}),
+  };
+
+  return {
+    name: String(source.name || source.fullName || source.displayName || ""),
+    email: String(source.email || source.emailAddress || ""),
+    phone: String(source.phone || source.mobile || source.phoneNumber || source.mobileNumber || ""),
+    avatarUrl: String(
+      source.avatarUrl ||
+        source.avatar ||
+        source.profileImage ||
+        source.profileImageUrl ||
+        source.image ||
+        ""
+    ),
+    dateOfBirth: String(source.dateOfBirth || source.birthDate || source.dob || "").slice(0, 10),
+    gender: String(source.gender || ""),
+    language: String(source.language || source.preferredLanguage || "en"),
+  };
+};
+
+const getErrorMessage = (error, fallback) =>
+  error?.response?.data?.message || error?.message || fallback;
+
 export default function AccountProfilePage() {
+  const navigate = useNavigate();
   const qc = useQueryClient();
-  const { refreshSession } = useAccountAuth();
-  const fileInputRef = useRef(null);
-  const dashboardSettingQuery = useQuery({
-    queryKey: ["store-customization", "dashboard-setting", "en"],
-    queryFn: () => getStoreCustomization({ lang: "en", include: "dashboardSetting" }),
-    staleTime: 60_000,
-  });
-  const dashboardSettingCopy = normalizeDashboardSettingCopy(
-    dashboardSettingQuery.data?.customization?.dashboardSetting
-  );
-  const profileCopy = dashboardSettingCopy.updateProfile;
-  const { data, isLoading } = useQuery({
+  const { user: accountUser, refreshSession } = useAccountAuth();
+  const [form, setForm] = useState(emptyForm);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [status, setStatus] = useState(null);
+
+  const profileQuery = useQuery({
     queryKey: ["account", "me"],
     queryFn: fetchMe,
   });
-  const user = data?.data?.user;
+  const defaultAddressQuery = useQuery({
+    queryKey: ["account", "addresses", "default"],
+    queryFn: getDefaultAddress,
+    retry: false,
+  });
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState("");
-  const [status, setStatus] = useState(null);
-  const [uploading, setUploading] = useState(false);
+  const profileData = unwrapProfile(profileQuery.data) || accountUser;
+  const defaultAddress = defaultAddressQuery.data || null;
 
   useEffect(() => {
-    if (user) {
-      setName(user.name || "");
-      setEmail(user.email || "");
-      setAvatarUrl(String(user.avatarUrl || user.avatar || ""));
-    }
-  }, [user]);
+    if (!profileData && !accountUser) return;
+    setForm((current) => ({
+      ...current,
+      ...getProfileForm(profileData, accountUser),
+    }));
+  }, [accountUser, profileData]);
 
-  const mutation = useMutation({
+  const updateProfileMutation = useMutation({
     mutationFn: updateProfile,
-    onSuccess: async () => {
+    onSuccess: async (response) => {
+      const nextProfile = unwrapProfile(response);
+      if (nextProfile) {
+        setForm((current) => ({
+          ...current,
+          ...getProfileForm(nextProfile, current),
+        }));
+      }
       setStatus({ type: "success", message: "Profile updated." });
+      setFieldErrors({});
       await qc.invalidateQueries({ queryKey: ["account", "me"] });
       await refreshSession?.();
     },
-    onError: () => {
-      setStatus({ type: "error", message: "Failed to update profile." });
+    onError: (error) => {
+      setStatus({
+        type: "error",
+        message: getErrorMessage(error, "Failed to update profile."),
+      });
     },
   });
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    setStatus(null);
-    mutation.mutate({ name, email, avatarUrl: avatarUrl || null });
-  };
-
-  const handleAvatarUpload = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    setStatus(null);
-    try {
-      const nextUrl = await uploadUserProfileImage(file);
-      setAvatarUrl(nextUrl);
-      setStatus({ type: "success", message: "Profile image uploaded. Save to persist the change." });
-    } catch (error) {
+  const uploadMutation = useMutation({
+    mutationFn: uploadUserProfileImage,
+    onSuccess: (nextUrl) => {
+      setForm((current) => ({ ...current, avatarUrl: nextUrl }));
+      setStatus({
+        type: "success",
+        message: "Profile image uploaded. Save to persist the change.",
+      });
+    },
+    onError: (error) => {
       setStatus({
         type: "error",
-        message: error?.response?.data?.message || error?.message || "Failed to upload profile image.",
+        message: getErrorMessage(error, "Failed to upload profile image."),
       });
+    },
+  });
+
+  const handleFormChange = (name, value) => {
+    setForm((current) => ({ ...current, [name]: value }));
+    setFieldErrors((current) => {
+      if (!current[name]) return current;
+      const next = { ...current };
+      delete next[name];
+      return next;
+    });
+    if (status?.type === "error") setStatus(null);
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setStatus(null);
+
+    const validation = validateUpdateProfile2026Form(form);
+    if (!validation.isValid) {
+      setFieldErrors(validation.errors);
+      return;
+    }
+
+    setFieldErrors({});
+    const payload = buildUpdateProfilePayloadFrom2026Form(form);
+    try {
+      await updateProfileMutation.mutateAsync(payload);
+    } catch {
+      // Mutation onError owns the user-facing message.
+    }
+  };
+
+  const handleUploadImage = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setStatus(null);
+    try {
+      await uploadMutation.mutateAsync(file);
+    } catch {
+      // Mutation onError owns the user-facing message.
     } finally {
-      setUploading(false);
       event.target.value = "";
     }
   };
 
-  const avatarSrc = resolveAssetUrl(avatarUrl || "");
+  const handleRemoveImage = () => {
+    setForm((current) => ({ ...current, avatarUrl: "" }));
+    setStatus({
+      type: "success",
+      message: "Profile image removed. Save to persist the change.",
+    });
+  };
 
-  if (isLoading) {
-    return <div className="text-sm text-slate-500">Loading profile...</div>;
-  }
+  const normalized = normalizeUpdateProfileFor2026({
+    user: accountUser,
+    profile: profileData,
+    defaultAddress,
+    form,
+  });
+  const isLoading = profileQuery.isLoading;
+  const error = profileQuery.isError
+    ? getErrorMessage(profileQuery.error, "Failed to load profile.")
+    : "";
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/png,image/jpeg"
-        className="hidden"
-        onChange={handleAvatarUpload}
-      />
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">
-          {profileCopy.sectionTitleValue}
-        </h1>
-      </div>
-      <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
-        <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-          Profile Image
-        </p>
-        <div className="mt-3 flex flex-wrap items-center gap-4">
-          <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white text-lg font-semibold text-slate-400">
-            {avatarSrc ? (
-              <img src={avatarSrc} alt={name || email || "Profile avatar"} className="h-full w-full object-cover" />
-            ) : (
-              "UP"
-            )}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading || mutation.isPending}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-60"
-            >
-              {uploading ? "Uploading..." : avatarSrc ? "Replace image" : "Upload image"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setAvatarUrl("")}
-              disabled={uploading || mutation.isPending || !avatarUrl}
-              className="rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-60"
-            >
-              Remove image
-            </button>
-          </div>
-        </div>
-      </div>
-      <div>
-        <label className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-          {profileCopy.fullNameLabel}
-        </label>
-        <input
-          type="text"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-          placeholder={profileCopy.fullNameLabel}
-        />
-      </div>
-      <div>
-        <label className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-          {profileCopy.emailAddressLabel}
-        </label>
-        <input
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-          placeholder={profileCopy.emailAddressLabel}
-        />
-      </div>
-      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-          Shipping Address
-        </p>
-        <p className="mt-1 text-sm text-slate-600">
-          Manage default shipping, store, and return addresses.
-        </p>
-        <Link
-          to="/user/shipping-address"
-          className="mt-2 inline-flex rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
-        >
-          Manage Shipping Address
-        </Link>
-      </div>
-
-      {status && (
-        <div
-          className={`rounded-lg border px-3 py-2 text-sm ${
-            status.type === "success"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-              : "border-rose-200 bg-rose-50 text-rose-700"
-          }`}
-        >
-          {status.message}
-        </div>
-      )}
-
-      <button
-        type="submit"
-        disabled={mutation.isPending}
-        className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-60"
-      >
-        {mutation.isPending ? "Saving..." : profileCopy.updateButtonValue}
-      </button>
-    </form>
+    <AccountUpdateProfile2026View
+      form={normalized.form}
+      profile={normalized.profile}
+      defaultAddress={normalized.defaultAddress}
+      fieldErrors={fieldErrors}
+      genderOptions={normalized.genderOptions}
+      languageOptions={normalized.languageOptions}
+      isLoading={isLoading}
+      isSaving={updateProfileMutation.isPending || uploadMutation.isPending}
+      error={error}
+      status={status}
+      LinkComponent={Link}
+      onFormChange={handleFormChange}
+      onSubmit={handleSubmit}
+      onCancel={() => navigate("/user/my-account")}
+      onUploadImage={handleUploadImage}
+      onRemoveImage={handleRemoveImage}
+    />
   );
 }

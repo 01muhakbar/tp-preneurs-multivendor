@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   Box,
@@ -21,11 +22,13 @@ import {
   Truck,
   WalletCards,
 } from "lucide-react";
-import Seller2026OrderDetailDrawer from "../../components/seller2026/orders/Seller2026OrderDetailDrawer.jsx";
 import { useSeller2026Orders } from "../../hooks/seller2026/useSeller2026Orders.ts";
+import { useSeller2026SuborderDetail } from "../../hooks/seller2026/useSeller2026SuborderDetail.ts";
 import { downloadCsvFile } from "../../utils/exportFiles.js";
 import { useSellerWorkspaceRoute } from "../../utils/sellerWorkspaceRoute.js";
 import { getSeller2026PagePermissions } from "./seller2026PagePermissions.js";
+import SellerOrderDetail2026Panel from "./SellerOrderDetail2026Panel.jsx";
+import { normalizeSellerOrderDetailFor2026 } from "./sellerOrderDetail2026Adapter.js";
 import "../../features/sellerWorkspace2026/Seller2026Orders.css";
 
 const EXPORT_COLUMNS = [
@@ -88,7 +91,9 @@ function ItemStack({ order }) {
 
 export default function Seller2026LiveOrdersPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { sellerContext, workspaceStoreId: storeId } = useSellerWorkspaceRoute();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { sellerContext, workspaceStoreId: storeId, workspaceRoutes } = useSellerWorkspaceRoute();
   const { can } = getSeller2026PagePermissions(sellerContext);
   const canView = can("ORDER_READ");
   const canFulfill = can("ORDER_FULFILLMENT_UPDATE");
@@ -111,6 +116,19 @@ export default function Seller2026LiveOrdersPage() {
   const [view, setView] = useState("table");
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [notice, setNotice] = useState(null);
+  const detailQuery = useSeller2026SuborderDetail(storeId, selectedOrderId, {
+    enabled: canView && Boolean(selectedOrderId),
+    permissions: { canFulfill },
+  });
+  const orderDetail2026 = useMemo(
+    () =>
+      selectedOrderId
+        ? normalizeSellerOrderDetailFor2026({
+            suborder: detailQuery.data,
+          })
+        : null,
+    [detailQuery.data, selectedOrderId]
+  );
 
   const changeQuery = (patch) => {
     const next = new URLSearchParams(searchParams);
@@ -180,6 +198,57 @@ export default function Seller2026LiveOrdersPage() {
     }
   };
 
+  const closeOrderDetail = () => {
+    if (detailQuery.updatingStatusId) return;
+    setSelectedOrderId(null);
+  };
+
+  const handleCopyReference = () => {
+    if (orderDetail2026?.reference) {
+      void copyOrderNumber(orderDetail2026.reference);
+    }
+  };
+
+  const handlePrintLabel = () => {
+    setNotice({
+      type: "error",
+      text: "Print label is not available for this seller order yet.",
+    });
+  };
+
+  const handleMessageBuyer = () => {
+    setNotice({
+      type: "success",
+      text: "Buyer messaging placeholder opened. Chat backend is not enabled yet.",
+    });
+  };
+
+  const handleViewInvoice = () => {
+    if (!selectedOrderId) return;
+    navigate(workspaceRoutes.orderDetail(selectedOrderId));
+  };
+
+  const handleFulfillmentAction = async (action) => {
+    if (!selectedOrderId || !canFulfill || detailQuery.updatingStatusId) return;
+    try {
+      await detailQuery.updateFulfillmentStatus({
+        payload: { action },
+      });
+      await Promise.all([
+        orders.refetch(),
+        detailQuery.refetch(),
+        queryClient.invalidateQueries({ queryKey: ["seller2026", "dashboard"] }),
+        queryClient.invalidateQueries({ queryKey: ["seller", "notifications", storeId] }),
+      ]);
+      setNotice({ type: "success", text: "Order fulfillment updated." });
+    } catch (mutationError) {
+      setNotice({
+        type: "error",
+        text: errorMessage(mutationError, "Unable to update fulfillment."),
+      });
+    }
+  };
+
   if (orders.isLoading) {
     return (
       <div className="s26-orders">
@@ -210,7 +279,8 @@ export default function Seller2026LiveOrdersPage() {
   ];
 
   return (
-    <div className="s26-orders">
+    <div className="s26-orders" data-seller2026-live-orders="true">
+      <span className="tpsod2026-sr-only">Live store-owned suborders</span>
       <nav className="s26-orders-breadcrumb" aria-label="Breadcrumb">
         <span>Stores</span><i>/</i><span>{sellerContext?.store?.name || "Active Store"}</span><i>/</i><strong>Orders</strong>
       </nav>
@@ -222,7 +292,7 @@ export default function Seller2026LiveOrdersPage() {
         </div>
         <div className="s26-orders-header__actions">
           <span className="s26-orders-ready"><Check size={16} />Store Ready</span>
-          <button type="button" disabled title="Bulk operations remain disabled pending review"><ClipboardList size={16} />Bulk Actions<ChevronDown size={15} /></button>
+          <button type="button" disabled title="Batch operations remain disabled pending review"><ClipboardList size={16} />Actions<ChevronDown size={15} /></button>
           <button type="button" className="is-primary" onClick={exportOrders}><Download size={17} />Export Orders</button>
         </div>
       </header>
@@ -301,17 +371,25 @@ export default function Seller2026LiveOrdersPage() {
         </footer>
       </section>
 
-      <Seller2026OrderDetailDrawer
-        open={Boolean(selectedOrderId)}
-        storeId={storeId}
-        suborderId={selectedOrderId}
-        canFulfill={canFulfill}
-        onClose={() => setSelectedOrderId(null)}
-        onUpdated={() => {
-          orders.refetch();
-          setNotice({ type: "success", text: "Order fulfillment updated." });
-        }}
-      />
+      {selectedOrderId ? (
+        <SellerOrderDetail2026Panel
+          order={orderDetail2026}
+          isLoading={detailQuery.isLoading}
+          error={detailQuery.isError ? detailQuery.error : null}
+          isUpdating={Boolean(detailQuery.updatingStatusId)}
+          onClose={closeOrderDetail}
+          onBack={closeOrderDetail}
+          onCopyReference={handleCopyReference}
+          onPrintLabel={handlePrintLabel}
+          onMessageBuyer={handleMessageBuyer}
+          onViewInvoice={handleViewInvoice}
+          onMarkDelivered={
+            orderDetail2026?.canMarkDelivered && canFulfill
+              ? () => handleFulfillmentAction("MARK_DELIVERED")
+              : undefined
+          }
+        />
+      ) : null}
     </div>
   );
 }

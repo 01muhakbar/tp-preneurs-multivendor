@@ -178,6 +178,9 @@ const Seller2026LiveCouponsPage = lazy(() =>
 const Seller2026LiveOrdersPage = lazy(() =>
   import("./pages/seller2026/Seller2026LiveOrdersPage.jsx")
 );
+const Seller2026LiveSuborderDetailPage = lazy(() =>
+  import("./pages/seller2026/Seller2026LiveSuborderDetailPage.jsx")
+);
 const Seller2026LivePaymentReviewPage = lazy(() =>
   import("./pages/seller2026/Seller2026LivePaymentReviewPage.jsx")
 );
@@ -641,7 +644,13 @@ export default function App() {
             />
             <Route
               path="orders/:suborderId"
-              element={<SellerOrderDetailPage />}
+              element={
+                isSeller2026OrdersProductionEnabled() ? (
+                  <Seller2026LiveSuborderDetailPage />
+                ) : (
+                  <SellerOrderDetailPage />
+                )
+              }
             />
             <Route 
               path="payment-review" 

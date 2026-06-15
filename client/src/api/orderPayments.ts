@@ -222,6 +222,8 @@ export type GroupedOrderPaymentResponse = {
       storeId?: number | null;
       storeName: string;
       storeSlug?: string | null;
+      storePhone?: string | null;
+      storeWhatsapp?: string | null;
       suborderId?: number | null;
       suborderNumber?: string | null;
       subtotalAmount: number;

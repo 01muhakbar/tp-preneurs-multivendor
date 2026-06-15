@@ -1568,7 +1568,7 @@ const loadOrderWithSplitRelations = async (lookup: string | number, transaction?
           {
             model: Store,
             as: "store",
-            attributes: ["id", "name", "slug", "status"],
+            attributes: ["id", "name", "slug", "status", "phone", "whatsapp"],
           },
           {
             model: StorePaymentProfile,
@@ -1877,6 +1877,12 @@ const serializeSplitOrder = (order: any) => {
       storeName: String(getAttr(suborder?.store, "name") || `Store #${getAttr(suborder, "storeId")}`),
       storeSlug: getAttr(suborder?.store, "slug")
         ? String(getAttr(suborder?.store, "slug"))
+        : null,
+      storePhone: getAttr(suborder?.store, "phone")
+        ? String(getAttr(suborder?.store, "phone"))
+        : null,
+      storeWhatsapp: getAttr(suborder?.store, "whatsapp")
+        ? String(getAttr(suborder?.store, "whatsapp"))
         : null,
       subtotalAmount: toNumber(getAttr(suborder, "subtotalAmount")),
       shippingAmount: toNumber(getAttr(suborder, "shippingAmount")),

@@ -1,15 +1,7 @@
 const isEnabled = (value) => String(value || "").trim().toLowerCase() === "true";
 
-export const isSellerWorkspace2026Enabled = () =>
-  isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_ENABLED);
-
-const isDomainEnabled = (envKey) =>
-  isSellerWorkspace2026Enabled() && isEnabled(import.meta.env[envKey]);
-
 export const sellerWorkspace2026Flags = {
-  get enabled() {
-    return isSellerWorkspace2026Enabled();
-  },
+  enabled: import.meta.env.VITE_SELLER_WORKSPACE_2026_ENABLED === 'true',
   get dashboardEnabled() {
     return isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_DASHBOARD_ENABLED);
   },
@@ -34,9 +26,7 @@ export const sellerWorkspace2026Flags = {
   get attributeValuesEnabled() {
     return isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_ATTRIBUTE_VALUES_ENABLED);
   },
-  get ordersEnabled() {
-    return isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_ORDERS_ENABLED);
-  },
+  ordersEnabled: import.meta.env.VITE_SELLER_WORKSPACE_2026_ORDERS_ENABLED === 'true',
   get couponsEnabled() {
     return isEnabled(import.meta.env.VITE_SELLER_WORKSPACE_2026_COUPONS_ENABLED);
   },
@@ -75,6 +65,11 @@ export const sellerWorkspace2026Flags = {
   },
 };
 
+export const isSellerWorkspace2026Enabled = () => Boolean(sellerWorkspace2026Flags.enabled);
+
+const isDomainEnabled = (envKey) =>
+  isSellerWorkspace2026Enabled() && isEnabled(import.meta.env[envKey]);
+
 export const isSeller2026DashboardProductionEnabled = () =>
   isDomainEnabled("VITE_SELLER_WORKSPACE_2026_DASHBOARD_ENABLED");
 
@@ -103,7 +98,7 @@ export const isSeller2026CouponsProductionEnabled = () =>
   isDomainEnabled("VITE_SELLER_WORKSPACE_2026_COUPONS_ENABLED");
 
 export const isSeller2026OrdersProductionEnabled = () =>
-  isDomainEnabled("VITE_SELLER_WORKSPACE_2026_ORDERS_ENABLED");
+  isSellerWorkspace2026Enabled() && Boolean(sellerWorkspace2026Flags.ordersEnabled);
 
 export const isSeller2026PaymentCenterProductionEnabled = () =>
   isDomainEnabled("VITE_SELLER_WORKSPACE_2026_PAYMENT_CENTER_ENABLED");

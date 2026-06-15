@@ -1,4 +1,10 @@
-import { NavLink, Outlet, useNavigate, useOutletContext } from "react-router-dom";
+import {
+  NavLink,
+  Outlet,
+  useLocation,
+  useNavigate,
+  useOutletContext,
+} from "react-router-dom";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -8,6 +14,7 @@ import {
   KeyRound,
   LayoutDashboard,
   LogOut,
+  MapPin,
   Star,
   User,
 } from "lucide-react";
@@ -63,13 +70,18 @@ function AccountSidebar({ user, onLogout, isLoggingOut, dashboardSettingCopy }) 
       Icon: User,
     },
     {
+      to: "/user/shipping-address",
+      label: "Shipping Addresses",
+      Icon: MapPin,
+    },
+    {
       to: "/user/change-password",
       label: copy.updateProfile.changePasswordLabel,
       Icon: KeyRound,
     },
   ];
   return (
-    <aside className="lg:sticky lg:top-6">
+    <aside className="order-2 lg:order-1 lg:sticky lg:top-6">
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="relative">
@@ -129,6 +141,7 @@ function AccountSidebar({ user, onLogout, isLoggingOut, dashboardSettingCopy }) 
 
 export default function AccountLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useOutletContext() || {};
   const { logout } = useAccountAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -139,6 +152,9 @@ export default function AccountLayout() {
   });
   const dashboardSettingCopy = normalizeDashboardSettingCopy(
     dashboardSettingQuery.data?.customization?.dashboardSetting
+  );
+  const isOrderDetailRoute = /^\/user\/my-orders\/[^/]+(?:\/payment)?$/.test(
+    location.pathname
   );
 
   const handleLogout = async () => {
@@ -170,7 +186,15 @@ export default function AccountLayout() {
         isLoggingOut={isLoggingOut}
         dashboardSettingCopy={dashboardSettingCopy}
       />
-      <main className="rounded-xl border border-slate-200 bg-white p-6">
+      <main
+        className={
+          location.pathname === "/user/dashboard" ||
+          location.pathname === "/user/my-orders" ||
+          isOrderDetailRoute
+            ? "order-1 min-w-0 lg:order-2"
+            : "order-1 min-w-0 rounded-xl border border-slate-200 bg-white p-6 lg:order-2"
+        }
+      >
         <Outlet context={{ user }} />
       </main>
     </section>
