@@ -29,6 +29,8 @@ import {
   presentStoreApplicationStatus,
   presentStoreReadiness,
 } from "../../utils/storeOnboardingPresentation.ts";
+import StoreApplicationReview2026 from "./components/StoreApplicationReview2026.jsx";
+import StoreApplicationWizard2026 from "./components/StoreApplicationWizard2026.jsx";
 
 const QUERY_KEY = ["user", "store-application", "current"];
 const SELLER_STORES_QUERY_KEY = ["seller", "workspace", "stores"];
@@ -96,6 +98,25 @@ const toNumberOrNull = (value) => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
+const asObject = (value) =>
+  value && typeof value === "object" && !Array.isArray(value) ? value : {};
+
+const firstText = (...values) => {
+  for (const value of values) {
+    const normalized = String(value ?? "").trim();
+    if (normalized) return normalized;
+  }
+  return null;
+};
+
+const firstValue = (...values) => {
+  for (const value of values) {
+    if (value === false || value === 0) return value;
+    if (value !== null && value !== undefined && String(value).trim() !== "") return value;
+  }
+  return null;
+};
+
 const formatDateTime = (value) => {
   if (!value) return "-";
   const date = new Date(value);
@@ -108,6 +129,30 @@ const formatDateTime = (value) => {
 
 const createFormState = (application, user) => {
   const empty = createEmptyStoreApplicationSnapshots();
+  const ownerSource = {
+    ...asObject(application?.profile),
+    ...asObject(application?.user),
+    ...asObject(application?.owner),
+    ...asObject(application?.ownerIdentitySnapshot),
+  };
+  const storeSource = {
+    ...asObject(application?.store),
+    ...asObject(application?.storeInformationSnapshot),
+  };
+  const businessSource = {
+    ...asObject(application?.business),
+    ...asObject(application?.address),
+    ...asObject(application?.operationalAddressSnapshot),
+  };
+  const payoutSource = {
+    ...asObject(application?.payout),
+    ...asObject(application?.payoutPaymentSnapshot),
+  };
+  const complianceSource = {
+    ...asObject(application?.compliance),
+    ...asObject(application?.complianceSnapshot),
+  };
+
   if (!application) {
     return {
       ...empty,
@@ -134,22 +179,105 @@ const createFormState = (application, user) => {
     ownerIdentitySnapshot: {
       ...empty.ownerIdentitySnapshot,
       ...(application.ownerIdentitySnapshot || {}),
+      fullName: firstText(
+        ownerSource.fullName,
+        application.fullName,
+        application.profile?.fullName,
+        application.user?.name
+      ),
+      operationalContactName: firstText(
+        ownerSource.operationalContactName,
+        ownerSource.contactName,
+        ownerSource.fullName,
+        application.user?.name
+      ),
+      email: firstText(ownerSource.email, application.email, application.user?.email),
+      phoneNumber: firstText(ownerSource.phoneNumber, ownerSource.phone, application.phoneNumber),
+      birthDate: firstText(ownerSource.birthDate, ownerSource.dateOfBirth),
+      identityType: firstText(ownerSource.identityType, ownerSource.idType),
+      identityLegalName: firstText(ownerSource.identityLegalName, ownerSource.legalName),
     },
     storeInformationSnapshot: {
       ...empty.storeInformationSnapshot,
       ...(application.storeInformationSnapshot || {}),
+      storeName: firstText(
+        storeSource.storeName,
+        storeSource.name,
+        application.storeName,
+        application.name
+      ),
+      storeSlug: firstText(
+        storeSource.storeSlug,
+        storeSource.slug,
+        application.storeSlug,
+        application.slug
+      ),
+      storeCategory: firstText(storeSource.storeCategory, storeSource.category),
+      description: firstText(storeSource.description, storeSource.summary),
+      sellerType: firstText(storeSource.sellerType, storeSource.businessType),
+      isSelfProduced: Boolean(firstValue(storeSource.isSelfProduced, false)),
+      initialProductCount: firstValue(storeSource.initialProductCount, null),
     },
     operationalAddressSnapshot: {
       ...empty.operationalAddressSnapshot,
       ...(application.operationalAddressSnapshot || {}),
+      contactName: firstText(businessSource.contactName, businessSource.name),
+      phoneNumber: firstText(businessSource.phoneNumber, businessSource.phone),
+      addressLine1: firstText(
+        businessSource.addressLine1,
+        application.business?.addressLine1,
+        application.addressLine1
+      ),
+      addressLine2: firstText(businessSource.addressLine2),
+      city: firstText(businessSource.city),
+      province: firstText(businessSource.province),
+      district: firstText(businessSource.district),
+      postalCode: firstText(businessSource.postalCode),
+      country: firstText(businessSource.country) || empty.operationalAddressSnapshot.country,
+      notes: firstText(businessSource.notes),
     },
     payoutPaymentSnapshot: {
       ...empty.payoutPaymentSnapshot,
       ...(application.payoutPaymentSnapshot || {}),
+      payoutMethod: firstText(
+        payoutSource.payoutMethod,
+        payoutSource.method,
+        application.payoutMethod
+      ),
+      accountHolderName: firstText(payoutSource.accountHolderName, payoutSource.accountName),
+      accountNumber: firstText(payoutSource.accountNumber),
+      bankName: firstText(payoutSource.bankName, payoutSource.channel),
+      qrisImageUrl: firstText(payoutSource.qrisImageUrl),
+      accountHolderMatchesIdentity: Boolean(
+        firstValue(payoutSource.accountHolderMatchesIdentity, false)
+      ),
     },
     complianceSnapshot: {
       ...empty.complianceSnapshot,
       ...(application.complianceSnapshot || {}),
+      supportEmail: firstText(
+        complianceSource.supportEmail,
+        application.supportEmail,
+        application.user?.email
+      ),
+      supportPhone: firstText(complianceSource.supportPhone),
+      taxId: firstText(complianceSource.taxId),
+      identityNumber: firstText(complianceSource.identityNumber),
+      productTypes: firstText(complianceSource.productTypes),
+      brandOwnershipType: firstText(complianceSource.brandOwnershipType),
+      authenticityConfirmed: Boolean(firstValue(complianceSource.authenticityConfirmed, false)),
+      prohibitedGoodsConfirmed: Boolean(
+        firstValue(complianceSource.prohibitedGoodsConfirmed, false)
+      ),
+      websiteUrl: firstText(complianceSource.websiteUrl),
+      socialMediaUrl: firstText(complianceSource.socialMediaUrl),
+      notes: firstText(complianceSource.notes),
+      agreedToTerms: Boolean(firstValue(complianceSource.agreedToTerms, false)),
+      agreedToAdminReview: Boolean(firstValue(complianceSource.agreedToAdminReview, false)),
+      agreedToPlatformPolicy: Boolean(firstValue(complianceSource.agreedToPlatformPolicy, false)),
+      understandsStoreInactiveUntilApproved: Boolean(
+        firstValue(complianceSource.understandsStoreInactiveUntilApproved, false)
+      ),
     },
   };
 };
@@ -221,75 +349,115 @@ const buildLocalCompleteness = (form) => {
   const missingFields = [];
 
   if (!toText(form.ownerIdentitySnapshot.fullName)) {
-    missingFields.push({ key: "ownerIdentitySnapshot.fullName", label: "Full name" });
+    missingFields.push({
+      key: "ownerIdentitySnapshot.fullName",
+      label: "Full name",
+      step: "owner_identity",
+    });
   }
   if (!toText(form.ownerIdentitySnapshot.email)) {
-    missingFields.push({ key: "ownerIdentitySnapshot.email", label: "Email address" });
+    missingFields.push({
+      key: "ownerIdentitySnapshot.email",
+      label: "Email address",
+      step: "owner_identity",
+    });
   }
   if (!toText(form.storeInformationSnapshot.storeName)) {
-    missingFields.push({ key: "storeInformationSnapshot.storeName", label: "Store name" });
+    missingFields.push({
+      key: "storeInformationSnapshot.storeName",
+      label: "Store name",
+      step: "store_information",
+    });
   }
   if (!toText(form.operationalAddressSnapshot.addressLine1)) {
     missingFields.push({
       key: "operationalAddressSnapshot.addressLine1",
       label: "Business address",
+      step: "operational_address",
     });
   }
   if (!toText(form.operationalAddressSnapshot.city)) {
-    missingFields.push({ key: "operationalAddressSnapshot.city", label: "City" });
+    missingFields.push({
+      key: "operationalAddressSnapshot.city",
+      label: "City",
+      step: "operational_address",
+    });
   }
   if (!toText(form.operationalAddressSnapshot.province)) {
-    missingFields.push({ key: "operationalAddressSnapshot.province", label: "Province" });
+    missingFields.push({
+      key: "operationalAddressSnapshot.province",
+      label: "Province",
+      step: "operational_address",
+    });
   }
   if (!toText(form.operationalAddressSnapshot.country)) {
-    missingFields.push({ key: "operationalAddressSnapshot.country", label: "Country" });
+    missingFields.push({
+      key: "operationalAddressSnapshot.country",
+      label: "Country",
+      step: "operational_address",
+    });
   }
   if (!toText(form.payoutPaymentSnapshot.payoutMethod)) {
-    missingFields.push({ key: "payoutPaymentSnapshot.payoutMethod", label: "Payout method" });
+    missingFields.push({
+      key: "payoutPaymentSnapshot.payoutMethod",
+      label: "Payout method",
+      step: "payout_payment",
+    });
   }
   if (!toText(form.payoutPaymentSnapshot.accountHolderName)) {
     missingFields.push({
       key: "payoutPaymentSnapshot.accountHolderName",
       label: "Account holder name",
+      step: "payout_payment",
     });
   }
   if (!toText(form.complianceSnapshot.supportEmail)) {
-    missingFields.push({ key: "complianceSnapshot.supportEmail", label: "Support email" });
+    missingFields.push({
+      key: "complianceSnapshot.supportEmail",
+      label: "Support email",
+      step: "compliance",
+    });
   }
   if (!form.complianceSnapshot.agreedToTerms) {
     missingFields.push({
       key: "complianceSnapshot.agreedToTerms",
       label: "Terms confirmation",
+      step: "compliance",
     });
   }
   if (!form.complianceSnapshot.agreedToAdminReview) {
     missingFields.push({
       key: "complianceSnapshot.agreedToAdminReview",
       label: "Admin review consent",
+      step: "compliance",
     });
   }
   if (!form.complianceSnapshot.agreedToPlatformPolicy) {
     missingFields.push({
       key: "complianceSnapshot.agreedToPlatformPolicy",
       label: "Platform policy consent",
+      step: "compliance",
     });
   }
   if (!form.complianceSnapshot.understandsStoreInactiveUntilApproved) {
     missingFields.push({
       key: "complianceSnapshot.understandsStoreInactiveUntilApproved",
       label: "Inactive until approval confirmation",
+      step: "compliance",
     });
   }
   if (!form.complianceSnapshot.authenticityConfirmed) {
     missingFields.push({
       key: "complianceSnapshot.authenticityConfirmed",
       label: "Authenticity confirmation",
+      step: "compliance",
     });
   }
   if (!form.complianceSnapshot.prohibitedGoodsConfirmed) {
     missingFields.push({
       key: "complianceSnapshot.prohibitedGoodsConfirmed",
       label: "Prohibited goods confirmation",
+      step: "compliance",
     });
   }
 
@@ -297,6 +465,15 @@ const buildLocalCompleteness = (form) => {
     isComplete: missingFields.length === 0,
     missingFields,
   };
+};
+
+const getCompletedStepKeys = (form) => {
+  const { missingFields } = buildLocalCompleteness(form);
+  const incompleteSteps = new Set(missingFields.map((field) => field.step));
+  return STEP_CONFIG.map((step) => step.code).filter((code) => {
+    if (code === "review") return missingFields.length === 0;
+    return !incompleteSteps.has(code);
+  });
 };
 
 const getRequestErrorMessage = (error, fallback) => {
@@ -549,7 +726,7 @@ export default function AccountStoreApplicationPage() {
         ? resubmitUserStoreApplication(application.id)
         : submitUserStoreApplication(application.id);
     },
-    onSuccess: (nextApplication) => {
+    onSuccess: async (nextApplication) => {
       hydrateApplication(
         nextApplication,
         application?.status === "revision_requested"
@@ -557,6 +734,7 @@ export default function AccountStoreApplicationPage() {
           : "Application submitted for review."
       );
       setActiveStep("review");
+      await queryClient.invalidateQueries({ queryKey: QUERY_KEY });
     },
     onError: (error) => {
       setFlash({
@@ -571,8 +749,9 @@ export default function AccountStoreApplicationPage() {
       if (!application?.id) throw new Error("Store application is missing.");
       return cancelUserStoreApplication(application.id);
     },
-    onSuccess: (nextApplication) => {
+    onSuccess: async (nextApplication) => {
       hydrateApplication(nextApplication, "Application cancelled.");
+      await queryClient.invalidateQueries({ queryKey: QUERY_KEY });
     },
     onError: (error) => {
       setFlash({
@@ -600,6 +779,29 @@ export default function AccountStoreApplicationPage() {
     }
     setFlash(null);
     cancelMutation.mutate();
+  };
+
+  const handleBackStep = () => {
+    if (currentStepIndex > 0) {
+      setActiveStep(STEP_CONFIG[currentStepIndex - 1].code);
+    }
+  };
+
+  const handleNextStep = () => {
+    if (currentStepIndex < STEP_CONFIG.length - 1) {
+      setActiveStep(STEP_CONFIG[currentStepIndex + 1].code);
+    }
+  };
+
+  const handleSaveDraft = () => {
+    setFlash(null);
+    saveDraftMutation.mutate();
+  };
+
+  const handleSubmitApplication = () => {
+    setFlash(null);
+    if (!localCompleteness.isComplete || activeStep !== "review") return;
+    submitMutation.mutate();
   };
 
   const renderOwnerSection = () => (
@@ -1316,8 +1518,16 @@ export default function AccountStoreApplicationPage() {
           title="Store Application"
           description="Loading your store application."
         />
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500">
-          Loading store application...
+        <div
+          className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-5"
+          aria-label="Loading store application"
+        >
+          <span className="h-4 w-48 animate-pulse rounded-full bg-slate-100" />
+          <span className="h-20 animate-pulse rounded-2xl bg-slate-100" />
+          <div className="grid gap-4 md:grid-cols-2">
+            <span className="h-36 animate-pulse rounded-2xl bg-slate-100" />
+            <span className="h-36 animate-pulse rounded-2xl bg-slate-100" />
+          </div>
         </div>
       </div>
     );
@@ -1455,7 +1665,83 @@ export default function AccountStoreApplicationPage() {
     );
   }
 
-  const readOnlyStatus = !editable;
+  if (!editable) {
+    return (
+      <div className="space-y-5">
+        {flash ? (
+          <InfoNotice tone={flash.type === "error" ? "error" : "info"}>
+            {flash.message}
+          </InfoNotice>
+        ) : null}
+        <StoreApplicationReview2026
+          application={application}
+          onCancel={handleCancelApplication}
+          isCancelling={cancelMutation.isPending}
+          canCancel={Boolean(application.workflow?.canCancel)}
+          canEdit={false}
+        />
+        {application.status === "approved" && workspaceHref ? (
+          <Link
+            to={workspaceHref}
+            className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white"
+          >
+            Go to Seller Workspace
+          </Link>
+        ) : null}
+        {(application.status === "rejected" || application.status === "cancelled") &&
+        !ownerStore ? (
+          <button
+            type="button"
+            onClick={handleRestart}
+            disabled={createDraftMutation.isPending}
+            className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {createDraftMutation.isPending ? (
+              <LoaderCircle className="h-4 w-4 animate-spin" />
+            ) : (
+              <Store className="h-4 w-4" />
+            )}
+            {application.status === "rejected" ? "Start New Application" : "Start Application"}
+          </button>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {flash ? (
+        <InfoNotice tone={flash.type === "error" ? "error" : "info"}>
+          {flash.message}
+        </InfoNotice>
+      ) : null}
+
+      {application.revisionNote ? (
+        <InfoNotice tone="warning">Revision note: {application.revisionNote}</InfoNotice>
+      ) : null}
+
+      {application.rejectReason ? (
+        <InfoNotice tone="error">Rejection note: {application.rejectReason}</InfoNotice>
+      ) : null}
+
+      <StoreApplicationWizard2026
+        application={application}
+        form={form}
+        errors={{}}
+        currentStep={activeStep}
+        completedStepKeys={getCompletedStepKeys(form)}
+        missingFields={localCompleteness.missingFields}
+        onFieldChange={updateSection}
+        onBackStep={handleBackStep}
+        onNextStep={handleNextStep}
+        onSaveDraft={handleSaveDraft}
+        onSubmitApplication={handleSubmitApplication}
+        isSaving={saveDraftMutation.isPending}
+        isSubmitting={submitMutation.isPending}
+      />
+    </div>
+  );
+
   const activeStepMeta = STEP_CONFIG[currentStepIndex] || STEP_CONFIG[0];
   const completionSummary = `${application.completeness.completedFields}/${application.completeness.totalFields}`;
   const submittedSummary = application.submittedAt ? formatDateTime(application.submittedAt) : null;
@@ -1469,7 +1755,7 @@ export default function AccountStoreApplicationPage() {
   const canSubmit = editable && activeStep === "review" && localCompleteness.isComplete;
 
   return (
-    <div className="space-y-6 pb-32">
+    <div className="space-y-6">
       <SectionHeader
         title="Store Application"
         description="Complete your store details and submit for review."
@@ -1564,22 +1850,6 @@ export default function AccountStoreApplicationPage() {
           </div>
         </aside>
         <div className="space-y-6">
-          {readOnlyStatus ? (
-            <InfoNotice tone="info">
-              {application.status === "submitted" || application.status === "under_review"
-                ? "This application is being reviewed. Editing is temporarily locked."
-                : application.status === "approved"
-                  ? workspaceHref
-                    ? "This application is approved and seller workspace is available."
-                    : "This application is approved. Seller workspace may still need a refresh."
-                  : application.status === "rejected"
-                    ? "This application was rejected. You can start a new one from this page."
-                    : application.status === "cancelled"
-                      ? "This application was cancelled. You can create a new draft any time."
-                      : "Editing is not available for the current status."}
-            </InfoNotice>
-          ) : null}
-
           <section className={SECTION_CARD_CLASS}>
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -1739,8 +2009,8 @@ export default function AccountStoreApplicationPage() {
         </div>
       </section>
 
-      <div className="fixed inset-x-0 bottom-4 z-30 px-4">
-        <div className="mx-auto max-w-6xl rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur">
+      <div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap gap-2">
               {editable ? (

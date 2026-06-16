@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useStoreCategories } from "../../hooks/useStoreCategories.ts";
 import CategoryAccordion from "../store/CategoryAccordion.jsx";
+import ThemeToggle from "../store/ThemeToggle.jsx";
 import { buildCategoryTree } from "../../utils/categoryTree.ts";
 
 const PAGE_LINKS = [
@@ -62,40 +63,40 @@ export default function MobileMenuDrawer({ isOpen, onClose }) {
       <button
         type="button"
         aria-label="Close menu"
-        className={`absolute inset-0 bg-black/40 transition-opacity duration-200 ${
+        className={`absolute inset-0 bg-black/40 transition-opacity duration-200 dark:bg-black/60 ${
           isOpen ? "opacity-100" : "opacity-0"
         }`}
         onClick={onClose}
       />
       <aside
-        className={`absolute left-0 top-0 h-full w-[85%] max-w-[320px] transform bg-white shadow-xl transition-transform duration-200 ease-out ${
+        className={`absolute left-0 top-0 h-full w-[85%] max-w-[320px] transform bg-white shadow-xl transition-transform duration-200 ease-out dark:bg-slate-950 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex h-full flex-col overflow-hidden">
-          <div className="flex items-center justify-between border-b border-slate-200 p-4">
+          <div className="flex items-center justify-between border-b border-slate-200 p-4 dark:border-slate-800">
             <button
               type="button"
               onClick={onClose}
               aria-label="Close drawer"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-600"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               <X className="h-5 w-5" />
             </button>
-            <div className="text-sm font-extrabold tracking-wide text-slate-900">
+            <div className="text-sm font-extrabold tracking-wide text-slate-900 dark:text-white">
               KACHA BAZAR
             </div>
           </div>
 
-          <div className="sticky top-0 z-10 grid grid-cols-2 border-b border-slate-200 bg-white">
+          <div className="sticky top-0 z-10 grid grid-cols-2 border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
             <button
               type="button"
               onClick={() => setActiveTab("category")}
               className={`h-11 border-b-2 text-sm font-medium ${
                 activeTab === "category"
-                  ? "border-indigo-600 font-semibold text-indigo-600"
-                  : "border-transparent text-slate-500"
+                  ? "border-emerald-600 font-semibold text-emerald-600 dark:text-emerald-300"
+                  : "border-transparent text-slate-500 dark:text-slate-400"
               }`}
             >
               Category
@@ -105,8 +106,8 @@ export default function MobileMenuDrawer({ isOpen, onClose }) {
               onClick={() => setActiveTab("pages")}
               className={`h-11 border-b-2 text-sm font-medium ${
                 activeTab === "pages"
-                  ? "border-indigo-600 font-semibold text-indigo-600"
-                  : "border-transparent text-slate-500"
+                  ? "border-emerald-600 font-semibold text-emerald-600 dark:text-emerald-300"
+                  : "border-transparent text-slate-500 dark:text-slate-400"
               }`}
             >
               Pages
@@ -114,23 +115,29 @@ export default function MobileMenuDrawer({ isOpen, onClose }) {
           </div>
 
           <div className="flex-1 overflow-y-auto overflow-x-hidden">
+            <div className="border-b border-slate-200 px-4 py-4 dark:border-slate-800">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                Appearance
+              </p>
+              <ThemeToggle variant="segmented" />
+            </div>
             {activeTab === "category" ? (
               categoriesLoading ? (
                 <div className="space-y-2 px-4 py-4">
                   {Array.from({ length: 5 }).map((_, index) => (
                     <div
                       key={`drawer-categories-loading-${index}`}
-                      className="h-11 animate-pulse rounded-lg bg-slate-100"
+                      className="h-11 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800"
                     />
                   ))}
                 </div>
               ) : categories.length > 0 ? (
                 <div className="px-3 py-2">
-                  <div className="mb-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  <div className="mb-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-800 dark:bg-slate-900">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
                       Categories
                     </p>
-                    <p className="mt-0.5 text-xs text-slate-600">
+                    <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-300">
                       Expand parent categories to see child items.
                     </p>
                   </div>
@@ -138,11 +145,11 @@ export default function MobileMenuDrawer({ isOpen, onClose }) {
                     nodes={categoryTree}
                     onSelect={handleSelectCategory}
                     defaultExpandedIds={categoryTree.slice(0, 1).map((item) => item.id)}
-                    className="rounded-xl border border-slate-200 bg-white p-1"
+                    className="rounded-xl border border-slate-200 bg-white p-1 dark:border-slate-800 dark:bg-slate-900"
                   />
                 </div>
               ) : (
-                <div className="px-4 py-6 text-sm text-slate-500">No categories found.</div>
+                <div className="px-4 py-6 text-sm text-slate-500 dark:text-slate-400">No categories found.</div>
               )
             ) : (
               PAGE_LINKS.map((item) => (
@@ -150,7 +157,7 @@ export default function MobileMenuDrawer({ isOpen, onClose }) {
                   key={item.to}
                   to={item.to}
                   onClick={onClose}
-                  className="flex min-h-12 items-center justify-between border-b border-slate-100 px-4 py-3 text-sm font-semibold text-slate-800"
+                  className="flex min-h-12 items-center justify-between border-b border-slate-100 px-4 py-3 text-sm font-semibold text-slate-800 dark:border-slate-800 dark:text-slate-200"
                 >
                   <span>{item.label}</span>
                   <ChevronRight className="h-4 w-4 text-slate-400" />

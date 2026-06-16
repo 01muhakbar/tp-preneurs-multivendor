@@ -1,350 +1,336 @@
-import { useEffect, useMemo, useState } from "react";
-import { Bell, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
-  clearAllUserNotifications,
-  deleteUserNotification,
+  BadgePercent,
+  Bell,
+  CheckCheck,
+  ChevronLeft,
+  ChevronRight,
+  CreditCard,
+  Inbox,
+  Mail,
+  MoreVertical,
+  PackageCheck,
+  SlidersHorizontal,
+  Truck,
+  UserRound,
+} from "lucide-react";
+import {
   fetchUserNotifications,
+  fetchUserUnreadNotificationCount,
   markAllUserNotificationsRead,
-  markUserNotificationRead,
+  markUserNotificationAsRead,
 } from "../../api/userNotifications.ts";
+import {
+  NOTIFICATION_FILTERS,
+  filterNotification,
+  normalizeNotification,
+  unwrapNotifications,
+} from "../../utils/notificationViewModel.js";
+import "./AccountNotificationsPage.css";
 
-const MONTH_LABELS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
+const PAGE_SIZE = 6;
 
-const formatNotificationTimestamp = (input) => {
-  const date = new Date(input || "");
-  if (Number.isNaN(date.getTime())) return "-";
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = MONTH_LABELS[date.getMonth()] || "";
-  const year = date.getFullYear();
-  const hour24 = date.getHours();
-  const minute = String(date.getMinutes()).padStart(2, "0");
-  const period = hour24 >= 12 ? "PM" : "AM";
-  const hour12 = hour24 % 12 || 12;
-  return `${day} ${month}, ${year} ${hour12}:${minute} ${period}`;
+const KIND_ICONS = {
+  order: PackageCheck,
+  status: Truck,
+  payment: CreditCard,
+  invitation: Mail,
+  promotion: BadgePercent,
+  account: UserRound,
 };
 
-const toLabel = (type) => {
-  if (type === "ORDER_PLACED") return "Order Placed";
-  if (type === "ORDER_STATUS_UPDATED") return "Status Update";
-  return String(type || "Notification");
-};
+const getErrorMessage = (error, fallback) =>
+  error?.response?.data?.message || error?.message || fallback;
 
-const normalizeMetaString = (value) => {
-  const normalized = String(value || "").trim();
-  if (!normalized) return "";
-  const lowered = normalized.toLowerCase();
-  if (lowered === "undefined" || lowered === "null") return "";
-  return normalized;
-};
+const invalidateNotifications = (queryClient) =>
+  queryClient.invalidateQueries({ queryKey: ["account", "notifications"] });
 
-const buildNotificationTargetUrl = (item) => {
-  const type = String(item?.type || "").trim().toUpperCase();
-  const invoiceNo = normalizeMetaString(item?.meta?.invoiceNo);
-  const orderFallback = "/account/orders";
-
-  if (type === "ORDER_STATUS_UPDATED" || type === "ORDER_CREATED" || type === "ORDER_PLACED") {
-    if (invoiceNo) {
-      return `/order/${encodeURIComponent(invoiceNo)}`;
-    }
-    return orderFallback;
-  }
-
-  return null;
-};
-
-const isNewTabIntent = (event) =>
-  Boolean(
-    event?.ctrlKey ||
-      event?.metaKey ||
-      event?.button === 1 ||
-      event?.which === 2
+function NotificationIcon({ kind }) {
+  const Icon = KIND_ICONS[kind] || Bell;
+  return (
+    <span className={`an26-icon an26-icon--${kind || "account"}`} aria-hidden="true">
+      <Icon size={20} strokeWidth={2} />
+    </span>
   );
+}
+
+function NotificationSkeleton() {
+  return (
+    <div className="an26-list" aria-label="Loading notifications">
+      {Array.from({ length: 5 }).map((_, index) => (
+        <article className="an26-card an26-card--skeleton" key={`notification-skeleton-${index}`}>
+          <span className="an26-skeleton-dot" />
+          <span className="an26-skeleton-icon" />
+          <div className="an26-skeleton-body">
+            <span className="an26-skeleton-line an26-skeleton-line--title" />
+            <span className="an26-skeleton-line an26-skeleton-line--copy" />
+            <span className="an26-skeleton-chip" />
+          </div>
+          <span className="an26-skeleton-action" />
+        </article>
+      ))}
+    </div>
+  );
+}
 
 export default function AccountNotificationsPage() {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [items, setItems] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [activeReadId, setActiveReadId] = useState(0);
-  const [offset, setOffset] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
-  const [activeDeleteId, setActiveDeleteId] = useState(0);
-  const [isClearingAll, setIsClearingAll] = useState(false);
-  const pageSize = 20;
+  const queryClient = useQueryClient();
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [unreadOnly, setUnreadOnly] = useState(false);
 
-  const unreadItems = useMemo(() => items.filter((item) => !item.isRead), [items]);
+  const notificationsQuery = useQuery({
+    queryKey: ["account", "notifications", { page, limit: PAGE_SIZE }],
+    queryFn: () => fetchUserNotifications({ page, limit: PAGE_SIZE }),
+    staleTime: 20_000,
+    retry: 1,
+  });
 
-  const loadNotifications = async ({ nextOffset = 0, append = false, withLoading = true } = {}) => {
-    if (withLoading && !append) setIsLoading(true);
-    if (append) setIsLoadingMore(true);
-    setError("");
-    try {
-      const data = await fetchUserNotifications({ limit: pageSize, offset: nextOffset });
-      const safeItems = Array.isArray(data?.items) ? data.items : [];
-      setItems((previous) => (append ? [...previous, ...safeItems] : safeItems));
-      setUnreadCount(Number(data?.unreadCount || 0));
-      setOffset(nextOffset);
-      setHasMore(safeItems.length === pageSize);
-    } catch (requestError) {
-      setError(requestError?.response?.data?.message || "Failed to load notifications.");
-    } finally {
-      if (withLoading && !append) setIsLoading(false);
-      if (append) setIsLoadingMore(false);
-    }
+  const unreadQuery = useQuery({
+    queryKey: ["account", "notifications", "unread-count"],
+    queryFn: fetchUserUnreadNotificationCount,
+    staleTime: 20_000,
+    retry: 1,
+  });
+
+  const markReadMutation = useMutation({
+    mutationFn: (id) => markUserNotificationAsRead(id),
+    onSuccess: () => invalidateNotifications(queryClient),
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: markAllUserNotificationsRead,
+    onSuccess: () => invalidateNotifications(queryClient),
+  });
+
+  const payload = useMemo(
+    () => unwrapNotifications(notificationsQuery.data),
+    [notificationsQuery.data]
+  );
+  const normalizedItems = useMemo(
+    () => payload.items.map(normalizeNotification).filter((item) => item.id > 0),
+    [payload.items]
+  );
+  const visibleItems = useMemo(
+    () =>
+      normalizedItems.filter(
+        (item) => filterNotification(item, activeFilter) && (!unreadOnly || !item.isRead)
+      ),
+    [activeFilter, normalizedItems, unreadOnly]
+  );
+  const unreadCount = Number(unreadQuery.data ?? payload.unreadCount ?? 0);
+  const totalFromMeta = Number(payload.meta.total ?? payload.meta.totalItems ?? 0);
+  const hasNextPage = totalFromMeta
+    ? page * PAGE_SIZE < totalFromMeta
+    : normalizedItems.length >= PAGE_SIZE;
+  const hasPreviousPage = page > 1;
+  const showingStart = visibleItems.length > 0 ? (page - 1) * PAGE_SIZE + 1 : 0;
+  const showingEnd = visibleItems.length > 0 ? showingStart + visibleItems.length - 1 : 0;
+  const activeReadId = Number(markReadMutation.variables || 0);
+  const errorMessage = notificationsQuery.isError
+    ? getErrorMessage(notificationsQuery.error, "Failed to load notifications.")
+    : "";
+
+  const handleFilterChange = (filterKey) => {
+    setActiveFilter(filterKey);
+    setPage(1);
   };
 
-  useEffect(() => {
-    loadNotifications({ nextOffset: 0, append: false, withLoading: true });
-  }, []);
+  const handleClearFilters = () => {
+    setActiveFilter("all");
+    setUnreadOnly(false);
+    setPage(1);
+  };
 
-  const handleMarkRead = async (notification, options = {}) => {
-    if (!notification || activeReadId) return;
-    const id = Number(notification.id);
-    if (!Number.isFinite(id) || id <= 0) return;
-    const targetUrl = buildNotificationTargetUrl(notification);
-    const shouldOpenNewTab = Boolean(options?.newTab);
+  const handleMarkAllRead = () => {
+    if (markAllReadMutation.isPending || unreadCount <= 0) return;
+    markAllReadMutation.mutate();
+  };
 
-    if (shouldOpenNewTab && targetUrl && typeof window !== "undefined") {
-      window.open(targetUrl, "_blank", "noreferrer");
-    }
-
-    setActiveReadId(id);
-    setError("");
+  const handleOpenNotification = async (item) => {
+    if (!item?.id || markReadMutation.isPending) return;
     try {
-      if (!notification.isRead) {
-        await markUserNotificationRead(id);
-        await loadNotifications({ nextOffset: 0, append: false, withLoading: false });
+      if (!item.isRead) {
+        await markReadMutation.mutateAsync(item.id);
       }
-      if (targetUrl && !shouldOpenNewTab) {
-        navigate(targetUrl);
+      if (item.actionUrl) {
+        navigate(item.actionUrl);
       }
-    } catch (requestError) {
-      setError(requestError?.response?.data?.message || "Failed to mark notification as read.");
-    } finally {
-      setActiveReadId(0);
-    }
-  };
-
-  const handleNotificationClick = (event, item) => {
-    if (event) {
-      event.preventDefault();
-    }
-    handleMarkRead(item, { newTab: isNewTabIntent(event) });
-  };
-
-  const handleNotificationAuxClick = (event, item) => {
-    if (!isNewTabIntent(event)) return;
-    event.preventDefault();
-    handleMarkRead(item, { newTab: true });
-  };
-
-  const handleMarkAllRead = async () => {
-    if (isMarkingAllRead || unreadCount === 0) return;
-    setIsMarkingAllRead(true);
-    setError("");
-    try {
-      await markAllUserNotificationsRead();
-      await loadNotifications({ nextOffset: 0, append: false, withLoading: false });
-    } catch (requestError) {
-      setError(requestError?.response?.data?.message || "Failed to mark all notifications as read.");
-    } finally {
-      setIsMarkingAllRead(false);
-    }
-  };
-
-  const handleLoadMore = async () => {
-    if (isLoadingMore || !hasMore) return;
-    await loadNotifications({ nextOffset: offset + pageSize, append: true, withLoading: false });
-  };
-
-  const handleDeleteItem = async (event, notification) => {
-    event.preventDefault();
-    event.stopPropagation();
-    const id = Number(notification?.id);
-    if (!Number.isFinite(id) || id <= 0 || activeDeleteId === id || isClearingAll) return;
-    setActiveDeleteId(id);
-    setError("");
-    try {
-      await deleteUserNotification(id);
-      await loadNotifications({ nextOffset: 0, append: false, withLoading: false });
-    } catch (requestError) {
-      setError(requestError?.response?.data?.message || "Failed to delete notification.");
-    } finally {
-      setActiveDeleteId(0);
-    }
-  };
-
-  const handleClearAll = async () => {
-    if (isClearingAll || items.length === 0) return;
-    if (typeof window !== "undefined") {
-      const confirmed = window.confirm("Clear all notifications?");
-      if (!confirmed) return;
-    }
-    setIsClearingAll(true);
-    setError("");
-    try {
-      await clearAllUserNotifications();
-      setItems([]);
-      setUnreadCount(0);
-      setOffset(0);
-      setHasMore(false);
-    } catch (requestError) {
-      setError(requestError?.response?.data?.message || "Failed to clear notifications.");
-    } finally {
-      setIsClearingAll(false);
+    } catch {
+      // The mutation error is surfaced by React Query state on the next render.
     }
   };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Notifications</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Stay updated with order and account activity.
-        </p>
-      </div>
-
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          {unreadCount} unread
+    <section className="account-notifications-2026" aria-labelledby="account-notifications-title">
+      <header className="an26-hero">
+        <div>
+          <h1 id="account-notifications-title">Notifications</h1>
+          <p>Order and account updates.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleMarkAllRead}
-            disabled={isMarkingAllRead || unreadCount === 0}
-            className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isMarkingAllRead ? "Marking..." : "Mark all read"}
-          </button>
-          <button
-            type="button"
-            onClick={handleClearAll}
-            disabled={isClearingAll || items.length === 0}
-            className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isClearingAll ? "Clearing..." : "Clear all"}
-          </button>
-        </div>
-      </div>
+        <span className="an26-unread-pill">{unreadCount} unread</span>
+      </header>
 
-      {isLoading ? (
-        <div className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-500">
-          Loading notifications...
-        </div>
-      ) : null}
-
-      {!isLoading && error ? (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-          {error}
-        </div>
-      ) : null}
-
-      {!isLoading && !error && items.length === 0 ? (
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white text-slate-400">
-            <Bell className="h-5 w-5" />
-          </div>
-          <p className="mt-3 text-sm font-medium text-slate-700">No notifications yet.</p>
-          <p className="mt-1 text-xs text-slate-500">
-            New activity will appear here once available.
-          </p>
-        </div>
-      ) : null}
-
-      {!isLoading && !error && items.length > 0 ? (
-        <div className="space-y-3">
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className={`w-full rounded-xl border p-4 text-left transition ${
-                item.isRead
-                  ? "border-slate-200 bg-white"
-                  : "border-emerald-200 bg-emerald-50/40"
-              }`}
+      <div className="an26-toolbar" aria-label="Notification controls">
+        <div className="an26-tabs" role="tablist" aria-label="Notification filters">
+          {NOTIFICATION_FILTERS.map((filter) => (
+            <button
+              type="button"
+              key={filter.key}
+              role="tab"
+              aria-selected={activeFilter === filter.key}
+              className={activeFilter === filter.key ? "is-active" : ""}
+              onClick={() => handleFilterChange(filter.key)}
             >
-              <div className="flex items-start justify-between gap-4">
-                <button
-                  type="button"
-                  onClick={(event) => handleNotificationClick(event, item)}
-                  onAuxClick={(event) => handleNotificationAuxClick(event, item)}
-                  onMouseDown={(event) => {
-                    if (event.button === 1) {
-                      event.preventDefault();
-                    }
-                  }}
-                  disabled={activeReadId === item.id || activeDeleteId === Number(item.id)}
-                  className="min-w-0 flex-1 text-left"
-                >
-                  <p
-                    className={`truncate text-sm ${
-                      item.isRead ? "font-medium text-slate-700" : "font-semibold text-slate-900"
-                    }`}
-                    title={item.title}
-                  >
-                    {item.title}
-                  </p>
-                  <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
-                      {toLabel(item.type)}
-                    </span>
-                    <span>{formatNotificationTimestamp(item.createdAt)}</span>
-                  </div>
-                </button>
-                <div className="flex items-start gap-2">
-                  {!item.isRead ? (
-                    <span className="mt-1 h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                  ) : null}
+              {filter.label}
+            </button>
+          ))}
+        </div>
+        <div className="an26-actions">
+          <button
+            type="button"
+            className="an26-button"
+            onClick={handleMarkAllRead}
+            disabled={markAllReadMutation.isPending || unreadCount <= 0}
+          >
+            <CheckCheck size={16} />
+            <span>{markAllReadMutation.isPending ? "Marking..." : "Mark all read"}</span>
+          </button>
+          <button type="button" className="an26-button" onClick={handleClearFilters}>
+            Clear filters
+          </button>
+          <button
+            type="button"
+            className={`an26-button an26-button--icon ${unreadOnly ? "is-active" : ""}`}
+            onClick={() => {
+              setUnreadOnly((current) => !current);
+              setPage(1);
+            }}
+            aria-pressed={unreadOnly}
+          >
+            <SlidersHorizontal size={16} />
+            <span>Filter</span>
+          </button>
+        </div>
+      </div>
+
+      {markReadMutation.isError || markAllReadMutation.isError ? (
+        <div className="an26-alert an26-alert--error" role="alert">
+          {getErrorMessage(
+            markReadMutation.error || markAllReadMutation.error,
+            "Failed to update notification state."
+          )}
+        </div>
+      ) : null}
+
+      {notificationsQuery.isLoading ? <NotificationSkeleton /> : null}
+
+      {!notificationsQuery.isLoading && errorMessage ? (
+        <div className="an26-state an26-state--error" role="alert">
+          <Bell size={22} />
+          <strong>Notifications could not be loaded.</strong>
+          <p>{errorMessage}</p>
+          <button type="button" className="an26-button" onClick={() => notificationsQuery.refetch()}>
+            Try again
+          </button>
+        </div>
+      ) : null}
+
+      {!notificationsQuery.isLoading && !errorMessage && visibleItems.length === 0 ? (
+        <div className="an26-state">
+          <Inbox size={24} />
+          <strong>No notifications found.</strong>
+          <p>New order, account, and offer updates will appear here.</p>
+          {activeFilter !== "all" || unreadOnly ? (
+            <button type="button" className="an26-button" onClick={handleClearFilters}>
+              Clear filters
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {!notificationsQuery.isLoading && !errorMessage && visibleItems.length > 0 ? (
+        <div className="an26-list">
+          {visibleItems.map((item) => (
+            <article
+              className={`an26-card ${item.isRead ? "is-read" : "is-unread"}`}
+              key={item.id}
+            >
+              <span className="an26-unread-dot" aria-hidden="true" />
+              <NotificationIcon kind={item.kind} />
+              <button
+                type="button"
+                className="an26-card-main"
+                onClick={() => handleOpenNotification(item)}
+              >
+                <span className="an26-card-title">{item.title}</span>
+                <span className="an26-card-copy">{item.description}</span>
+                <span className={`an26-chip an26-chip--${item.tone}`}>{item.label}</span>
+              </button>
+              <div className="an26-card-side">
+                <span className="an26-card-time">{item.timeLabel}</span>
+                {item.actionUrl ? (
                   <button
                     type="button"
-                    onClick={(event) => handleDeleteItem(event, item)}
-                    disabled={activeDeleteId === Number(item.id) || isClearingAll}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-60"
-                    aria-label="Delete notification"
-                    title="Delete notification"
+                    className="an26-card-cta"
+                    onClick={() => handleOpenNotification(item)}
+                    disabled={markReadMutation.isPending && activeReadId === item.id}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    {["order", "status", "payment"].includes(item.kind)
+                      ? "View order"
+                      : item.kind === "promotion"
+                        ? "Shop now"
+                        : "Open"}
                   </button>
-                </div>
+                ) : null}
               </div>
-            </div>
+              <button
+                type="button"
+                className="an26-more"
+                aria-label={item.isRead ? "Notification options" : "Mark as read"}
+                title={item.isRead ? "Notification options" : "Mark as read"}
+                disabled={item.isRead || (markReadMutation.isPending && activeReadId === item.id)}
+                onClick={() => {
+                  if (!item.isRead) markReadMutation.mutate(item.id);
+                }}
+              >
+                <MoreVertical size={18} />
+              </button>
+            </article>
           ))}
         </div>
       ) : null}
 
-      {!isLoading && !error && unreadItems.length > 0 ? (
-        <p className="text-xs text-slate-500">Click an unread item to mark it as read.</p>
+      {!notificationsQuery.isLoading && !errorMessage && normalizedItems.length > 0 ? (
+        <footer className="an26-pagination">
+          <span>
+            Showing {showingStart}-{showingEnd} of{" "}
+            {totalFromMeta || (hasNextPage ? `${page * PAGE_SIZE}+` : normalizedItems.length)}
+          </span>
+          <div className="an26-page-controls">
+            <button
+              type="button"
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+              disabled={!hasPreviousPage}
+              aria-label="Previous page"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <span>{page}</span>
+            <button
+              type="button"
+              onClick={() => setPage((current) => current + 1)}
+              disabled={!hasNextPage}
+              aria-label="Next page"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </footer>
       ) : null}
-
-      {!isLoading && !error && items.length > 0 ? (
-        <div>
-          <button
-            type="button"
-            onClick={handleLoadMore}
-            disabled={!hasMore || isLoadingMore}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isLoadingMore ? "Loading..." : hasMore ? "Load more" : "No more notifications"}
-          </button>
-        </div>
-      ) : null}
-    </div>
+    </section>
   );
 }

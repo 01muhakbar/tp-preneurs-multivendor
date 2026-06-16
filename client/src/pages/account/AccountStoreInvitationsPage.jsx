@@ -1,81 +1,308 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { BriefcaseBusiness, CheckCircle2, MailOpen, Store, UserRound, XCircle } from "lucide-react";
 import {
-  acceptSellerInvitation,
-  declineSellerInvitation,
-  getSellerInvitations,
-} from "../../api/sellerInvitations.ts";
+  AlertCircle,
+  CalendarDays,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  Clock3,
+  Inbox,
+  LoaderCircle,
+  RefreshCw,
+  Store,
+  UserRound,
+  X,
+  XCircle,
+} from "lucide-react";
+import {
+  acceptUserStoreInvitation,
+  declineUserStoreInvitation,
+  fetchUserStoreInvitations,
+} from "../../api/userStoreInvitations.ts";
+import {
+  INVITATION_TABS,
+  countInvitations,
+  filterInvitations,
+  normalizeInvitation,
+  sortInvitations,
+  unwrapInvitationCollection,
+} from "../../utils/storeInvitationViewModel.js";
 import { createSellerWorkspaceRoutes } from "../../utils/sellerWorkspaceRoute.js";
+import "./AccountStoreInvitationsPage.css";
 
-const cardClass =
-  "rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_14px_36px_-28px_rgba(15,23,42,0.35)]";
+const QUERY_KEY = ["account", "store-invitations"];
 
-function Badge({ children, tone = "amber" }) {
-  const toneClass =
-    tone === "emerald"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-      : tone === "rose"
-        ? "border-rose-200 bg-rose-50 text-rose-700"
-      : "border-amber-200 bg-amber-50 text-amber-800";
+const STATUS_META = {
+  pending: {
+    label: "Pending",
+    detail: "Needs your action",
+    Icon: Store,
+  },
+  accepted: {
+    label: "Accepted",
+    detail: "Active access",
+    Icon: UserRound,
+  },
+  declined: {
+    label: "Declined",
+    detail: "Not accepted",
+    Icon: XCircle,
+  },
+};
+
+const getMutationErrorMessage = (error, fallbackMessage) => {
+  const code = String(error?.response?.data?.code || "").toUpperCase();
+  const knownMessages = {
+    INVITATION_EXPIRED:
+      "This invitation expired. Ask the store owner or admin to send it again.",
+    INVITATION_ALREADY_ACCEPTED:
+      "This invitation was already accepted. Your store access may already be active.",
+    INVITATION_ALREADY_DECLINED:
+      "This invitation was already declined. A new invitation is required.",
+    INVITATION_NOT_FOUND: "Invitation not found for this account.",
+    INVALID_MEMBER_ID: "This invitation does not have a valid action reference.",
+  };
 
   return (
-    <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${toneClass}`}>
-      {children}
+    knownMessages[code] ||
+    error?.response?.data?.message ||
+    error?.message ||
+    fallbackMessage
+  );
+};
+
+const getQueryErrorMessage = (error) =>
+  error?.response?.data?.message ||
+  error?.message ||
+  "Store invitations could not be loaded.";
+
+function StoreMark({ size = "large" }) {
+  return (
+    <span className={`si26-store-mark si26-store-mark--${size}`} aria-hidden="true">
+      <Store strokeWidth={1.9} />
     </span>
   );
 }
 
-function formatDateTime(value) {
-  if (!value) return "-";
-  return new Intl.DateTimeFormat("id-ID", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
+function InvitationSkeleton() {
+  return (
+    <div className="si26-card si26-card--skeleton" aria-label="Loading store invitations">
+      <div className="si26-skeleton-identity">
+        <span className="si26-skeleton-block si26-skeleton-block--mark" />
+        <div>
+          <span className="si26-skeleton-block si26-skeleton-block--title" />
+          <span className="si26-skeleton-block si26-skeleton-block--pill" />
+          <span className="si26-skeleton-block si26-skeleton-block--line" />
+        </div>
+      </div>
+      <div className="si26-skeleton-column">
+        <span className="si26-skeleton-block si26-skeleton-block--line" />
+        <span className="si26-skeleton-block si26-skeleton-block--line-short" />
+      </div>
+      <div className="si26-skeleton-column">
+        <span className="si26-skeleton-block si26-skeleton-block--line" />
+        <span className="si26-skeleton-block si26-skeleton-block--line-wide" />
+      </div>
+      <div className="si26-skeleton-actions">
+        <span className="si26-skeleton-block si26-skeleton-block--button" />
+        <span className="si26-skeleton-block si26-skeleton-block--button" />
+      </div>
+    </div>
+  );
 }
 
-function getInvitationTone(item) {
-  if (item?.invitationState === "EXPIRED") return "rose";
-  return "amber";
+function DeclineConfirmation({ invitation, isPending, onCancel, onConfirm }) {
+  if (!invitation) return null;
+
+  return (
+    <div className="si26-modal-backdrop" role="presentation" onMouseDown={onCancel}>
+      <div
+        className="si26-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="si26-decline-title"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
+          className="si26-modal-close"
+          onClick={onCancel}
+          disabled={isPending}
+          aria-label="Close confirmation"
+          title="Close"
+        >
+          <X size={18} />
+        </button>
+        <span className="si26-modal-icon" aria-hidden="true">
+          <XCircle size={24} />
+        </span>
+        <h2 id="si26-decline-title">Decline this invitation?</h2>
+        <p>
+          You will not receive access to <strong>{invitation.storeName}</strong>. The store
+          owner will need to send a new invitation if you change your mind.
+        </p>
+        <div className="si26-modal-actions">
+          <button
+            type="button"
+            className="si26-button si26-button--secondary"
+            onClick={onCancel}
+            disabled={isPending}
+          >
+            Keep invitation
+          </button>
+          <button
+            type="button"
+            className="si26-button si26-button--decline-solid"
+            onClick={onConfirm}
+            disabled={isPending}
+          >
+            {isPending ? <LoaderCircle className="si26-spin" size={17} /> : <XCircle size={17} />}
+            <span>{isPending ? "Declining..." : "Decline invitation"}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-function getInvitationMutationErrorMessage(error, fallbackMessage) {
-  const code = String(error?.response?.data?.code || "").toUpperCase();
-  if (code === "INVITATION_EXPIRED") {
-    return "This invitation expired. Ask the store owner or admin to send it again.";
-  }
-  if (code === "INVITATION_ALREADY_ACCEPTED") {
-    return "This invitation was already accepted. Open the seller workspace from your active stores.";
-  }
-  if (code === "INVITATION_ALREADY_DECLINED") {
-    return "This invitation was already declined or closed. A new re-invite is required before you can act again.";
-  }
-  if (code === "INVITATION_NOT_FOUND") {
-    return "Invitation not found for this account.";
-  }
-  if (code === "INVALID_MEMBER_ID") {
-    return "Invitation reference is invalid.";
-  }
-  return error?.response?.data?.message || error?.message || fallbackMessage;
+function InvitationCard({
+  invitation,
+  busyAction,
+  actionsDisabled,
+  onAccept,
+  onDecline,
+}) {
+  const isPending = invitation.status === "pending";
+  const canAct = isPending && invitation.isActionable;
+  const accepting = busyAction === `accept:${invitation.memberId}`;
+  const declining = busyAction === `decline:${invitation.memberId}`;
+
+  return (
+    <article className={`si26-card si26-card--${invitation.status}`}>
+      <div className="si26-card-identity">
+        <StoreMark size="card" />
+        <div className="si26-card-identity-copy">
+          <h3>{invitation.storeName}</h3>
+          <span className={`si26-status si26-status--${invitation.status}`}>
+            {invitation.invitationState === "EXPIRED" ? <Clock3 size={13} /> : null}
+            {invitation.statusLabel}
+          </span>
+          <p>
+            Role on action: <strong>{invitation.roleName}</strong>
+          </p>
+          {invitation.storeSlug ? (
+            <span className="si26-store-slug">/{invitation.storeSlug}</span>
+          ) : null}
+        </div>
+      </div>
+
+      <dl className="si26-card-meta">
+        <div>
+          <dt>
+            <UserRound size={15} />
+            Invited by
+          </dt>
+          <dd>{invitation.inviterEmail}</dd>
+        </div>
+        <div>
+          <dt>
+            <CalendarDays size={15} />
+            Invited at
+          </dt>
+          <dd>{invitation.invitedAtLabel}</dd>
+        </div>
+      </dl>
+
+      <div className="si26-card-state">
+        <p className="si26-card-state-title">
+          <Store size={15} />
+          Invitation state
+        </p>
+        <p>{invitation.message}</p>
+        {invitation.expiresAt ? (
+          <span>Expires: {invitation.expiresAtLabel}</span>
+        ) : (
+          <span>No expiration date provided</span>
+        )}
+      </div>
+
+      <div className="si26-card-actions">
+        {canAct ? (
+          <>
+            <button
+              type="button"
+              className="si26-button si26-button--accept"
+              onClick={() => onAccept(invitation)}
+              disabled={actionsDisabled}
+            >
+              {accepting ? <LoaderCircle className="si26-spin" size={17} /> : <CheckCircle2 size={17} />}
+              <span>{accepting ? "Accepting..." : "Accept"}</span>
+            </button>
+            <button
+              type="button"
+              className="si26-button si26-button--decline"
+              onClick={() => onDecline(invitation)}
+              disabled={actionsDisabled}
+            >
+              {declining ? <LoaderCircle className="si26-spin" size={17} /> : <XCircle size={17} />}
+              <span>{declining ? "Declining..." : "Decline"}</span>
+            </button>
+          </>
+        ) : invitation.status === "accepted" ? (
+          <div className="si26-final-state si26-final-state--accepted">
+            <Check size={18} />
+            <span>Access active</span>
+          </div>
+        ) : invitation.status === "declined" ? (
+          <div className="si26-final-state si26-final-state--declined">
+            <X size={18} />
+            <span>Invitation closed</span>
+          </div>
+        ) : (
+          <div className="si26-action-guard">
+            <AlertCircle size={18} />
+            <span>
+              {invitation.memberId
+                ? "This invitation is no longer actionable."
+                : "Action unavailable: invitation reference is missing."}
+            </span>
+          </div>
+        )}
+      </div>
+    </article>
+  );
 }
 
 export default function AccountStoreInvitationsPage() {
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState("pending");
+  const [sortOrder, setSortOrder] = useState("recent");
   const [feedback, setFeedback] = useState(null);
-  const [busyActionKey, setBusyActionKey] = useState("");
+  const [busyAction, setBusyAction] = useState("");
+  const [declineTarget, setDeclineTarget] = useState(null);
 
   const invitationsQuery = useQuery({
-    queryKey: ["seller", "invitations"],
-    queryFn: getSellerInvitations,
-    retry: false,
+    queryKey: QUERY_KEY,
+    queryFn: fetchUserStoreInvitations,
+    retry: 1,
   });
 
+  const invalidateInvitationData = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
+      queryClient.invalidateQueries({ queryKey: ["seller", "invitations"] }),
+      queryClient.invalidateQueries({ queryKey: ["seller", "team"] }),
+      queryClient.invalidateQueries({ queryKey: ["seller", "workspace", "stores"] }),
+    ]);
+  };
+
   const acceptMutation = useMutation({
-    mutationFn: (memberId) => acceptSellerInvitation(memberId),
+    mutationFn: acceptUserStoreInvitation,
     onMutate: (memberId) => {
       setFeedback(null);
-      setBusyActionKey(`accept:${Number(memberId)}`);
+      setBusyAction(`accept:${memberId}`);
     },
     onSuccess: async (result) => {
       setFeedback({
@@ -83,238 +310,235 @@ export default function AccountStoreInvitationsPage() {
         message: result?.message || "Store invitation accepted.",
         store: result?.data?.store || null,
       });
-      await queryClient.invalidateQueries({ queryKey: ["seller", "invitations"] });
-      await queryClient.invalidateQueries({ queryKey: ["seller", "team"] });
+      await invalidateInvitationData();
     },
     onError: (error) => {
       setFeedback({
         type: "error",
-        message: getInvitationMutationErrorMessage(
-          error,
-          "Failed to accept store invitation."
-        ),
+        message: getMutationErrorMessage(error, "Failed to accept store invitation."),
       });
     },
-    onSettled: () => {
-      setBusyActionKey("");
-    },
+    onSettled: () => setBusyAction(""),
   });
 
   const declineMutation = useMutation({
-    mutationFn: (memberId) => declineSellerInvitation(memberId),
+    mutationFn: declineUserStoreInvitation,
     onMutate: (memberId) => {
       setFeedback(null);
-      setBusyActionKey(`decline:${Number(memberId)}`);
+      setBusyAction(`decline:${memberId}`);
     },
     onSuccess: async (result) => {
+      setDeclineTarget(null);
       setFeedback({
         type: "success",
         message: result?.message || "Store invitation declined.",
       });
-      await queryClient.invalidateQueries({ queryKey: ["seller", "invitations"] });
-      await queryClient.invalidateQueries({ queryKey: ["seller", "team"] });
+      await invalidateInvitationData();
     },
     onError: (error) => {
       setFeedback({
         type: "error",
-        message: getInvitationMutationErrorMessage(
-          error,
-          "Failed to decline store invitation."
-        ),
+        message: getMutationErrorMessage(error, "Failed to decline store invitation."),
       });
     },
-    onSettled: () => {
-      setBusyActionKey("");
-    },
+    onSettled: () => setBusyAction(""),
   });
 
-  const items = Array.isArray(invitationsQuery.data?.items)
-    ? invitationsQuery.data.items
-    : [];
-  const actionableCount = items.filter((item) => item.isActionable).length;
+  const invitations = useMemo(
+    () =>
+      unwrapInvitationCollection(invitationsQuery.data)
+        .map(normalizeInvitation)
+        .filter(Boolean),
+    [invitationsQuery.data]
+  );
+  const counts = useMemo(() => countInvitations(invitations), [invitations]);
+  const visibleInvitations = useMemo(
+    () => sortInvitations(filterInvitations(invitations, activeTab), sortOrder),
+    [activeTab, invitations, sortOrder]
+  );
+  const actionsDisabled = acceptMutation.isPending || declineMutation.isPending;
 
-  if (invitationsQuery.isLoading) {
-    return (
-      <section className={cardClass}>
-        <p className="text-sm text-slate-500">Loading your seller invitations...</p>
-      </section>
-    );
-  }
+  const handleAccept = (invitation) => {
+    if (!invitation?.memberId || actionsDisabled) {
+      setFeedback({
+        type: "error",
+        message: "This invitation does not have a valid action reference.",
+      });
+      return;
+    }
+    acceptMutation.mutate(invitation.memberId);
+  };
 
-  if (invitationsQuery.isError) {
-    return (
-      <section className={cardClass}>
-        <p className="text-sm text-rose-600">
-          {invitationsQuery.error?.response?.data?.message ||
-            invitationsQuery.error?.message ||
-            "Failed to load seller invitations."}
-        </p>
-      </section>
-    );
-  }
+  const handleDeclineRequest = (invitation) => {
+    if (!invitation?.memberId || actionsDisabled) {
+      setFeedback({
+        type: "error",
+        message: "This invitation does not have a valid action reference.",
+      });
+      return;
+    }
+    setDeclineTarget(invitation);
+  };
+
+  const handleDeclineConfirm = () => {
+    if (!declineTarget?.memberId || actionsDisabled) return;
+    declineMutation.mutate(declineTarget.memberId);
+  };
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-2xl border border-slate-200 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_45%,#ecfdf5_100%)] p-6">
-        <div className="flex items-start justify-between gap-4">
+    <section className="store-invite-2026-page" aria-labelledby="store-invitations-title">
+      <header className="si26-hero">
+        <div className="si26-hero-copy">
+          <StoreMark />
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-              Seller Invitations
-            </p>
-            <h1 className="mt-3 text-2xl font-semibold text-slate-950">
-              Accept store access invitations
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-              These invitations are for existing accounts only. Accepting an invitation activates
-              your seller membership for the target store. Invitations in this phase live on the
-              membership row itself, so pending, expired, accepted, and declined outcomes stay
-              aligned with seller team lifecycle and audit.
-            </p>
+            <h1 id="store-invitations-title">Store Invitations</h1>
+            <p>Review and manage store access invitations.</p>
           </div>
-          <Badge tone={actionableCount > 0 ? "amber" : "rose"}>
-            {actionableCount} Actionable
-          </Badge>
+        </div>
+        <div className="si26-stats" aria-label="Invitation summary">
+          {INVITATION_TABS.map((tab) => {
+            const meta = STATUS_META[tab.key];
+            const Icon = meta.Icon;
+            return (
+              <button
+                type="button"
+                className={`si26-stat si26-stat--${tab.key} ${
+                  activeTab === tab.key ? "is-active" : ""
+                }`}
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+              >
+                <span className="si26-stat-icon" aria-hidden="true">
+                  <Icon size={20} />
+                </span>
+                <span>
+                  <strong>{counts[tab.key]}</strong>
+                  <b>{meta.label}</b>
+                  <small>{meta.detail}</small>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </header>
+
+      {feedback ? (
+        <div className={`si26-feedback si26-feedback--${feedback.type}`} role="status">
+          {feedback.type === "success" ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+          <span>{feedback.message}</span>
+          {feedback.type === "success" && (feedback.store?.slug || feedback.store?.id) ? (
+            <Link to={createSellerWorkspaceRoutes(feedback.store).home()}>Open workspace</Link>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => setFeedback(null)}
+            aria-label="Dismiss message"
+            title="Dismiss"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      ) : null}
+
+      <section className="si26-panel">
+        <div className="si26-toolbar">
+          <div className="si26-tabs" role="tablist" aria-label="Invitation status">
+            {INVITATION_TABS.map((tab) => (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab.key}
+                className={activeTab === tab.key ? "is-active" : ""}
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+              >
+                {tab.label} <span>({counts[tab.key]})</span>
+              </button>
+            ))}
+          </div>
+          <label className="si26-sort">
+            <span className="sr-only">Sort invitations</span>
+            <select value={sortOrder} onChange={(event) => setSortOrder(event.target.value)}>
+              <option value="recent">Most recent</option>
+              <option value="oldest">Oldest first</option>
+            </select>
+            <ChevronDown size={16} aria-hidden="true" />
+          </label>
+        </div>
+
+        <div className="si26-content">
+          {invitationsQuery.isLoading ? (
+            <div className="si26-list">
+              <InvitationSkeleton />
+              <InvitationSkeleton />
+            </div>
+          ) : null}
+
+          {!invitationsQuery.isLoading && invitationsQuery.isError ? (
+            <div className="si26-state si26-state--error" role="alert">
+              <span className="si26-state-icon">
+                <AlertCircle size={24} />
+              </span>
+              <h2>Invitations could not be loaded</h2>
+              <p>{getQueryErrorMessage(invitationsQuery.error)}</p>
+              <button
+                type="button"
+                className="si26-button si26-button--secondary"
+                onClick={() => invitationsQuery.refetch()}
+                disabled={invitationsQuery.isFetching}
+              >
+                <RefreshCw
+                  className={invitationsQuery.isFetching ? "si26-spin" : ""}
+                  size={17}
+                />
+                <span>{invitationsQuery.isFetching ? "Trying again..." : "Try again"}</span>
+              </button>
+            </div>
+          ) : null}
+
+          {!invitationsQuery.isLoading &&
+          !invitationsQuery.isError &&
+          visibleInvitations.length > 0 ? (
+            <div className="si26-list">
+              {visibleInvitations.map((invitation) => (
+                <InvitationCard
+                  key={invitation.id}
+                  invitation={invitation}
+                  busyAction={busyAction}
+                  actionsDisabled={actionsDisabled}
+                  onAccept={handleAccept}
+                  onDecline={handleDeclineRequest}
+                />
+              ))}
+            </div>
+          ) : null}
+
+          {!invitationsQuery.isLoading &&
+          !invitationsQuery.isError &&
+          visibleInvitations.length === 0 ? (
+            <div className="si26-state">
+              <span className="si26-state-icon si26-state-icon--empty">
+                <Inbox size={25} />
+              </span>
+              <h2>No {activeTab} invitations</h2>
+              <p>
+                {activeTab === "pending"
+                  ? "You are all caught up. New store invitations will appear here."
+                  : `Store invitations marked as ${activeTab} will appear here.`}
+              </p>
+            </div>
+          ) : null}
         </div>
       </section>
 
-      {feedback ? (
-        <section
-          className={`rounded-2xl border px-4 py-3 text-sm ${
-            feedback.type === "success"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-              : "border-rose-200 bg-rose-50 text-rose-700"
-          }`}
-        >
-          <div className="flex flex-wrap items-center gap-2">
-            <span>{feedback.message}</span>
-            {feedback.type === "success" && (feedback.store?.slug || feedback.store?.id) ? (
-              <Link
-                to={createSellerWorkspaceRoutes(feedback.store).home()}
-                className="inline-flex items-center gap-1 font-semibold underline"
-              >
-                Open workspace
-              </Link>
-            ) : null}
-          </div>
-        </section>
-      ) : null}
-
-      {items.length === 0 ? (
-        <section className={cardClass}>
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
-              <MailOpen className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-slate-950">No pending store invitations</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                When a store owner or admin invites this account, it will appear here until you
-                accept it.
-              </p>
-            </div>
-          </div>
-        </section>
-      ) : (
-        <section className="space-y-4">
-          {items.map((item) => (
-            <article key={item.memberId} className={cardClass}>
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="text-lg font-semibold text-slate-950">
-                        {item.store?.name || "Store"}
-                      </h2>
-                      <Badge tone={getInvitationTone(item)}>
-                        {item.stateMeta?.label || item.invitationState || item.status}
-                      </Badge>
-                    </div>
-                    <p className="mt-1 text-sm text-slate-500">
-                      Role on action:{" "}
-                      <span className="font-medium text-slate-700">
-                        {item.roleName || item.roleCode}
-                      </span>
-                    </p>
-                  </div>
-
-                  <dl className="grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                      <dt className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                        <Store className="h-3.5 w-3.5" />
-                        Store
-                      </dt>
-                      <dd className="mt-2 text-sm font-medium text-slate-900">
-                        {item.store?.slug || "-"}
-                      </dd>
-                    </div>
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                      <dt className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                        <UserRound className="h-3.5 w-3.5" />
-                        Invited By
-                      </dt>
-                      <dd className="mt-2 text-sm font-medium text-slate-900">
-                        {item.invitedBy?.email || item.invitedBy?.name || "-"}
-                      </dd>
-                    </div>
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                      <dt className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                        Invited At
-                      </dt>
-                      <dd className="mt-2 text-sm font-medium text-slate-900">
-                        {formatDateTime(item.invitedAt)}
-                      </dd>
-                    </div>
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                      <dt className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                        <BriefcaseBusiness className="h-3.5 w-3.5" />
-                        Invitation State
-                      </dt>
-                      <dd className="mt-2 text-sm font-medium text-slate-900">
-                        {item.stateMeta?.description || "Seller workspace activates after acceptance"}
-                      </dd>
-                      {item.expiresAt ? (
-                        <p className="mt-2 text-xs text-slate-500">
-                          Expires: {formatDateTime(item.expiresAt)}
-                        </p>
-                      ) : null}
-                    </div>
-                  </dl>
-                </div>
-
-                <div className="flex shrink-0 flex-col gap-3 lg:w-56">
-                  <button
-                    type="button"
-                    onClick={() => acceptMutation.mutate(item.memberId)}
-                    disabled={busyActionKey !== "" || !item.isActionable}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <CheckCircle2 className="h-4 w-4" />
-                    <span>
-                      {busyActionKey === `accept:${Number(item.memberId)}` ? "Accepting..." : "Accept"}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => declineMutation.mutate(item.memberId)}
-                    disabled={busyActionKey !== "" || !item.isActionable}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <XCircle className="h-4 w-4" />
-                    <span>
-                      {busyActionKey === `decline:${Number(item.memberId)}` ? "Declining..." : "Decline"}
-                    </span>
-                  </button>
-                  <p className="text-xs leading-5 text-slate-500">
-                    {item.isActionable
-                      ? "Decline closes this invitation for now. This phase still does not include email-token acceptance."
-                      : "This invitation is no longer actionable from the account lane. Ask the store owner or admin to send it again."}
-                  </p>
-                </div>
-              </div>
-            </article>
-          ))}
-        </section>
-      )}
-    </div>
+      <DeclineConfirmation
+        invitation={declineTarget}
+        isPending={declineMutation.isPending}
+        onCancel={() => {
+          if (!declineMutation.isPending) setDeclineTarget(null);
+        }}
+        onConfirm={handleDeclineConfirm}
+      />
+    </section>
   );
 }

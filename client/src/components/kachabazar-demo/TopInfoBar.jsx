@@ -73,11 +73,11 @@ export default function TopInfoBar({
   }
 
   return (
-    <div className="border-b border-slate-200 bg-slate-100 text-[12px] text-slate-500">
+    <div className="border-b border-slate-200 bg-slate-100 text-[12px] text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-1.5 md:px-6">
         <div className="flex items-center gap-1.5 leading-none">
           {isHeaderLoading ? (
-            <span className="inline-block h-3 w-40 rounded bg-slate-300/70" />
+            <span className="inline-block h-3 w-40 rounded bg-slate-300/70 dark:bg-slate-800" />
           ) : null}
           {!isHeaderLoading && safeHeaderText ? <span>{safeHeaderText}</span> : null}
           {!isHeaderLoading && safePhoneNumber ? (
@@ -87,31 +87,31 @@ export default function TopInfoBar({
                 target="_blank"
                 rel="noreferrer"
                 aria-label="Contact us on WhatsApp"
-                className="cursor-pointer font-semibold text-emerald-600 hover:underline focus:outline-none focus:underline"
+                className="cursor-pointer font-semibold text-emerald-600 hover:underline focus:outline-none focus:underline dark:text-emerald-300"
               >
                 {safePhoneNumber}
               </a>
             ) : (
-              <span className="font-semibold text-emerald-600">{safePhoneNumber}</span>
+              <span className="font-semibold text-emerald-600 dark:text-emerald-300">{safePhoneNumber}</span>
             )
           ) : null}
         </div>
-        <div className="flex flex-wrap items-center text-[12px] text-slate-500">
+        <div className="flex flex-wrap items-center text-[12px] text-slate-500 dark:text-slate-400">
           {utilityItems.map((item, index) => (
             <Fragment key={item.key}>
-              {index > 0 ? <span className="mx-2 text-slate-300">|</span> : null}
+              {index > 0 ? <span className="mx-2 text-slate-300 dark:text-slate-700">|</span> : null}
               {item.type === "button" ? (
                 <button
                   type="button"
                   onClick={() => void logout?.()}
-                  className="transition hover:text-slate-700 hover:underline"
+                  className="transition hover:text-slate-700 hover:underline dark:hover:text-slate-100"
                 >
                   {item.label}
                 </button>
               ) : (
                 <Link
                   to={item.to}
-                  className="transition hover:text-slate-700 hover:underline"
+                  className="transition hover:text-slate-700 hover:underline dark:hover:text-slate-100"
                 >
                   {item.label}
                 </Link>

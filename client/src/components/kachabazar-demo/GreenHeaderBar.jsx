@@ -34,7 +34,7 @@ export default function GreenHeaderBar({
     "inline-flex h-10 w-[144px] items-center sm:h-11 sm:w-[156px] md:h-12 md:w-[172px]";
 
   return (
-    <div className="border-b border-emerald-700/45 bg-emerald-600 text-white shadow-[0_6px_20px_rgba(5,150,105,0.24)]">
+    <div className="border-b border-emerald-700/45 bg-emerald-600 text-white shadow-[0_6px_20px_rgba(5,150,105,0.24)] dark:border-emerald-900/60 dark:bg-emerald-700 dark:shadow-[0_10px_30px_rgba(0,0,0,0.32)]">
       <div className="mx-auto grid w-full max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-2.5 sm:px-4 sm:py-3 md:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-x-4 md:gap-y-0 lg:px-6">
         <Link
           to="/"

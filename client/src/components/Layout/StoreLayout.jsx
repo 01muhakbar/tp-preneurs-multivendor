@@ -308,7 +308,7 @@ gtag('config', '${key}');`;
   const showFloatingCartWidget = !isCheckoutRoute && !isCartRoute;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="storefront-shell min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <StoreHeaderKacha
         onCartClick={openCartDrawer}
         brandingLogoUrl={storeSettings.branding.clientLogoUrl}

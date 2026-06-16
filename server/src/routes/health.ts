@@ -9,6 +9,8 @@ router.get("/health", async (_req, res) => {
 
   try {
     await sequelize.authenticate();
+    // A successful handshake alone does not detect broken InnoDB table metadata.
+    await sequelize.query("SELECT `id` FROM `users` LIMIT 1");
     db = "connected";
   } catch {
     db = "disconnected";

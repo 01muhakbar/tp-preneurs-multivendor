@@ -1,5 +1,29 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --sf-bg: #f8fafc;
+  --sf-surface: #ffffff;
+  --sf-surface-soft: #f1f5f9;
+  --sf-border: #e2e8f0;
+  --sf-text: #0f172a;
+  --sf-muted: #64748b;
+  --sf-primary: #059669;
+  --sf-primary-strong: #047857;
+}
+
+.dark {
+  --sf-bg: #020617;
+  --sf-surface: #0f172a;
+  --sf-surface-soft: #111827;
+  --sf-border: #1e293b;
+  --sf-text: #e5e7eb;
+  --sf-muted: #94a3b8;
+  --sf-primary: #10b981;
+  --sf-primary-strong: #34d399;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -7,8 +31,8 @@
 body {
   margin: 0;
   font-family: "Segoe UI", Arial, sans-serif;
-  background: #f4f6fb;
-  color: #1f2937;
+  background: var(--sf-bg);
+  color: var(--sf-text);
 }
 
 a {
@@ -23,8 +47,98 @@ img {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
+}
+
+.dark .storefront-shell,
+.dark .account-shell,
+.dark .store-microsite-shell {
+  color-scheme: dark;
+}
+
+.dark .storefront-shell [class*="bg-white"],
+.dark .account-shell [class*="bg-white"],
+.dark .store-microsite-shell [class*="bg-white"] {
+  background-color: #0f172a !important;
+}
+
+.dark .storefront-shell [class*="bg-slate-50"],
+.dark .storefront-shell [class*="bg-slate-100"],
+.dark .account-shell [class*="bg-slate-50"],
+.dark .account-shell [class*="bg-slate-100"],
+.dark .store-microsite-shell [class*="bg-slate-50"],
+.dark .store-microsite-shell [class*="bg-slate-100"] {
+  background-color: #111827 !important;
+}
+
+.dark .storefront-shell [class*="bg-slate-200"],
+.dark .account-shell [class*="bg-slate-200"],
+.dark .store-microsite-shell [class*="bg-slate-200"] {
+  background-color: #1e293b !important;
+}
+
+.dark .storefront-shell [class*="border-slate-200"],
+.dark .storefront-shell [class*="border-slate-300"],
+.dark .account-shell [class*="border-slate-200"],
+.dark .account-shell [class*="border-slate-300"],
+.dark .store-microsite-shell [class*="border-slate-200"],
+.dark .store-microsite-shell [class*="border-slate-300"] {
+  border-color: #1e293b !important;
+}
+
+.dark .storefront-shell [class*="text-slate-950"],
+.dark .storefront-shell [class*="text-slate-900"],
+.dark .storefront-shell [class*="text-slate-800"],
+.dark .account-shell [class*="text-slate-950"],
+.dark .account-shell [class*="text-slate-900"],
+.dark .account-shell [class*="text-slate-800"],
+.dark .store-microsite-shell [class*="text-slate-950"],
+.dark .store-microsite-shell [class*="text-slate-900"],
+.dark .store-microsite-shell [class*="text-slate-800"] {
+  color: #f8fafc !important;
+}
+
+.dark .storefront-shell [class*="text-slate-700"],
+.dark .storefront-shell [class*="text-slate-600"],
+.dark .account-shell [class*="text-slate-700"],
+.dark .account-shell [class*="text-slate-600"],
+.dark .store-microsite-shell [class*="text-slate-700"],
+.dark .store-microsite-shell [class*="text-slate-600"] {
+  color: #cbd5e1 !important;
+}
+
+.dark .storefront-shell [class*="text-slate-500"],
+.dark .storefront-shell [class*="text-slate-400"],
+.dark .account-shell [class*="text-slate-500"],
+.dark .account-shell [class*="text-slate-400"],
+.dark .store-microsite-shell [class*="text-slate-500"],
+.dark .store-microsite-shell [class*="text-slate-400"] {
+  color: #94a3b8 !important;
+}
+
+.dark .storefront-shell input,
+.dark .storefront-shell select,
+.dark .storefront-shell textarea,
+.dark .account-shell input,
+.dark .account-shell select,
+.dark .account-shell textarea,
+.dark .store-microsite-shell input,
+.dark .store-microsite-shell select,
+.dark .store-microsite-shell textarea {
+  background-color: #020617;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+.dark .storefront-shell input::placeholder,
+.dark .storefront-shell textarea::placeholder,
+.dark .account-shell input::placeholder,
+.dark .account-shell textarea::placeholder,
+.dark .store-microsite-shell input::placeholder,
+.dark .store-microsite-shell textarea::placeholder {
+  color: #64748b;
 }
 
 .status-badge {

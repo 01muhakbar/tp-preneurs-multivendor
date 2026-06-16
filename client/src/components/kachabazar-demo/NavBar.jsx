@@ -22,14 +22,14 @@ export default function NavBar({
   const navItemClass = ({ isActive }) =>
     `inline-flex items-center whitespace-nowrap text-[14px] font-medium transition ${
       isActive
-        ? "text-slate-900"
-        : "text-slate-700 hover:text-emerald-600 hover:underline hover:decoration-1 hover:underline-offset-4"
+        ? "text-slate-900 dark:text-white"
+        : "text-slate-700 hover:text-emerald-600 hover:underline hover:decoration-1 hover:underline-offset-4 dark:text-slate-300 dark:hover:text-emerald-300"
     }`;
   const offerItemClass = ({ isActive }) =>
     `relative inline-flex items-center whitespace-nowrap pr-2 text-[14px] font-medium transition ${
       isActive
-        ? "text-slate-900"
-        : "text-slate-700 hover:text-emerald-600 hover:underline hover:decoration-1 hover:underline-offset-4"
+        ? "text-slate-900 dark:text-white"
+        : "text-slate-700 hover:text-emerald-600 hover:underline hover:decoration-1 hover:underline-offset-4 dark:text-slate-300 dark:hover:text-emerald-300"
     }`;
   const categoryTree = useMemo(() => buildCategoryTree(categories || []), [categories]);
   const categoriesLabel = toText(menuLabels.categories, "Categories");
@@ -68,7 +68,7 @@ export default function NavBar({
   };
 
   return (
-    <div className="border-b border-slate-200 bg-white">
+    <div className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
       <div className="mx-auto flex h-[56px] w-full max-w-7xl items-center justify-between gap-5 px-4 sm:px-5 lg:px-6">
         <div className="flex min-w-0 items-center gap-5 lg:gap-7">
           {showCategoriesMenu ? (
@@ -76,21 +76,21 @@ export default function NavBar({
               <button
                 type="button"
                 onClick={() => setShowCategories((prev) => !prev)}
-                className="inline-flex h-10 items-center gap-2 rounded-full border border-slate-200 bg-slate-50/65 px-4 text-[14px] font-medium leading-none text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                className="inline-flex h-10 items-center gap-2 rounded-full border border-slate-200 bg-slate-50/65 px-4 text-[14px] font-medium leading-none text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
               >
                 {categoriesLabel} <span className="text-[10px] text-slate-500">▾</span>
               </button>
               {showCategories ? (
-                <div className="absolute left-0 top-12 z-20 w-80 max-h-[70vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2 text-sm shadow-lg">
+                <div className="absolute left-0 top-12 z-20 w-80 max-h-[70vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2 text-sm shadow-lg dark:border-slate-800 dark:bg-slate-900">
                   {categoriesLoading ? (
                     Array.from({ length: 5 }).map((_, index) => (
                       <div
                         key={`categories-loading-${index}`}
-                        className="mb-1 h-9 animate-pulse rounded-lg bg-slate-100 last:mb-0"
+                        className="mb-1 h-9 animate-pulse rounded-lg bg-slate-100 last:mb-0 dark:bg-slate-800"
                       />
                     ))
                   ) : categories.length === 0 ? (
-                    <div className="rounded-lg px-3 py-2 text-xs text-slate-500">
+                    <div className="rounded-lg px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
                       No categories
                     </div>
                   ) : (
@@ -121,17 +121,17 @@ export default function NavBar({
                 <button
                   type="button"
                   onClick={() => setShowPages((prev) => !prev)}
-                  className="inline-flex items-center gap-1.5 whitespace-nowrap text-[14px] font-medium text-slate-700 transition hover:text-emerald-600 hover:underline hover:decoration-1 hover:underline-offset-4"
+                  className="inline-flex items-center gap-1.5 whitespace-nowrap text-[14px] font-medium text-slate-700 transition hover:text-emerald-600 hover:underline hover:decoration-1 hover:underline-offset-4 dark:text-slate-300 dark:hover:text-emerald-300"
                 >
                   {pagesLabel} <span className="text-[10px] text-slate-500">▾</span>
                 </button>
                 {showPages ? (
-                  <div className="absolute left-0 top-9 z-20 w-44 rounded-xl border border-slate-200 bg-white p-1.5 text-sm shadow-lg">
+                  <div className="absolute left-0 top-9 z-20 w-44 rounded-xl border border-slate-200 bg-white p-1.5 text-sm shadow-lg dark:border-slate-800 dark:bg-slate-900">
                     {pageItems.map((item) => (
                       <Link
                         key={item.key}
                         to={item.to}
-                        className="block rounded-lg px-3 py-2 hover:bg-slate-50"
+                        className="block rounded-lg px-3 py-2 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
                       >
                         {item.label}
                       </Link>
@@ -150,15 +150,15 @@ export default function NavBar({
         </div>
 
         {hasLegalMenuItems ? (
-          <div className="hidden shrink-0 items-center gap-5 text-[13px] text-slate-500 lg:flex">
+          <div className="hidden shrink-0 items-center gap-5 text-[13px] text-slate-500 dark:text-slate-400 lg:flex">
             <span className="whitespace-nowrap">English</span>
             {showPrivacyPolicyMenu ? (
-              <Link to="/privacy-policy" className="transition hover:text-emerald-600">
+              <Link to="/privacy-policy" className="transition hover:text-emerald-600 dark:hover:text-emerald-300">
                 {privacyPolicyLabel}
               </Link>
             ) : null}
             {showTermsMenu ? (
-              <Link to="/terms" className="transition hover:text-emerald-600">
+              <Link to="/terms" className="transition hover:text-emerald-600 dark:hover:text-emerald-300">
                 {termsAndConditionsLabel}
               </Link>
             ) : null}

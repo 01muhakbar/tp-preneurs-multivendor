@@ -1,0 +1,362 @@
+.store-header-notification-anchor {
+  position: relative;
+  display: inline-flex;
+}
+
+.notification-preview-2026 {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  z-index: 80;
+  width: min(380px, calc(100vw - 24px));
+  overflow: visible;
+  border: 1px solid rgba(226, 232, 240, 0.92);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #0f172a;
+  box-shadow: 0 26px 70px rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(18px);
+}
+
+.notification-preview-2026 * {
+  box-sizing: border-box;
+}
+
+.np26-arrow {
+  position: absolute;
+  top: -8px;
+  right: 28px;
+  width: 16px;
+  height: 16px;
+  border-left: 1px solid rgba(226, 232, 240, 0.92);
+  border-top: 1px solid rgba(226, 232, 240, 0.92);
+  background: rgba(255, 255, 255, 0.94);
+  transform: rotate(45deg);
+}
+
+.np26-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.74);
+  padding: 16px 18px 14px;
+}
+
+.np26-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.np26-title-row h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 850;
+  line-height: 1.2;
+}
+
+.np26-title-row span {
+  color: #059669;
+  font-size: 12px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.np26-head p {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.np26-head p span {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #10b981;
+}
+
+.np26-head button,
+.np26-view-all,
+.np26-row {
+  font: inherit;
+}
+
+.np26-head button {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 11px;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 850;
+  padding: 0 13px;
+  white-space: nowrap;
+}
+
+.np26-head button:hover {
+  border-color: rgba(5, 150, 105, 0.28);
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.np26-head button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.np26-body {
+  max-height: 396px;
+  overflow-y: auto;
+  padding: 8px 12px;
+}
+
+.np26-row {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 10px 44px minmax(0, 1fr) 30px;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.82);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 12px 2px;
+  text-align: left;
+}
+
+.np26-row:last-child {
+  border-bottom: 0;
+}
+
+.np26-row:hover {
+  background: linear-gradient(90deg, rgba(236, 253, 245, 0.66), rgba(255, 255, 255, 0));
+}
+
+.np26-row-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  border: 1px solid #94a3b8;
+}
+
+.np26-row.is-unread .np26-row-dot {
+  border-color: #10b981;
+  background: #10b981;
+}
+
+.np26-row-icon {
+  display: inline-flex;
+  width: 42px;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+}
+
+.np26-row-icon--order {
+  background: #dcfce7;
+  color: #059669;
+}
+
+.np26-row-icon--status {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.np26-row-icon--payment {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.np26-row-icon--invitation {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.np26-row-icon--promotion {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.np26-row-icon--account {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.np26-row-main {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.np26-row-main strong {
+  overflow: hidden;
+  color: #1e293b;
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.np26-row-main span {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.np26-chip {
+  display: inline-flex;
+  min-height: 22px;
+  align-items: center;
+  border-radius: 999px;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 850;
+  padding: 0 9px;
+  white-space: nowrap;
+}
+
+.np26-chip--order {
+  background: #bbf7d0;
+  color: #047857;
+}
+
+.np26-chip--status {
+  background: #bfdbfe;
+  color: #0369a1;
+}
+
+.np26-chip--payment {
+  background: #fde68a;
+  color: #a16207;
+}
+
+.np26-chip--invitation {
+  background: #ddd6fe;
+  color: #6d28d9;
+}
+
+.np26-chip--account {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.np26-chip--promotion {
+  background: #a7f3d0;
+  color: #047857;
+}
+
+.np26-mark-read {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  color: #94a3b8;
+}
+
+.np26-mark-read:hover {
+  background: #f1f5f9;
+  color: #059669;
+}
+
+.np26-row.is-read .np26-mark-read {
+  opacity: 0.45;
+}
+
+.np26-view-all {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  border: 0;
+  border-top: 1px solid rgba(226, 232, 240, 0.74);
+  border-radius: 0 0 18px 18px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #047857;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 850;
+  padding: 15px 18px;
+}
+
+.np26-view-all:hover {
+  background: #ecfdf5;
+}
+
+.np26-state {
+  padding: 24px 8px;
+  color: #64748b;
+  font-size: 13px;
+  text-align: center;
+}
+
+.np26-row--skeleton {
+  pointer-events: none;
+}
+
+.np26-skeleton-icon,
+.np26-skeleton-lines {
+  display: block;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #e2e8f0 0%, #f8fafc 45%, #e2e8f0 100%);
+  background-size: 220% 100%;
+  animation: np26-pulse 1.35s ease-in-out infinite;
+}
+
+.np26-skeleton-icon {
+  width: 42px;
+  height: 42px;
+}
+
+.np26-skeleton-lines {
+  width: 100%;
+  height: 34px;
+}
+
+@keyframes np26-pulse {
+  0% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -120% 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .notification-preview-2026 {
+    position: fixed;
+    top: 70px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+  }
+
+  .np26-arrow {
+    display: none;
+  }
+
+  .np26-head {
+    padding: 15px;
+  }
+
+  .np26-row {
+    grid-template-columns: 9px 40px minmax(0, 1fr) 28px;
+    gap: 8px;
+  }
+}

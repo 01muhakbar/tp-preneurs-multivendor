@@ -15,8 +15,8 @@ export default function HeaderSearch({
       onSubmit={onSubmit}
       className={`relative w-full overflow-hidden rounded-full transition focus-within:ring-2 focus-within:ring-emerald-200/80 ${
         isDesktop
-          ? "h-[44px] border border-emerald-100/90 bg-white shadow-[0_6px_16px_rgba(15,23,42,0.15)] lg:h-12"
-          : "h-11 border border-white/25 bg-slate-100 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.15)] sm:h-12"
+          ? "h-[44px] border border-emerald-100/90 bg-white shadow-[0_6px_16px_rgba(15,23,42,0.15)] dark:border-slate-700 dark:bg-slate-900 dark:shadow-[0_8px_24px_rgba(0,0,0,0.28)] lg:h-12"
+          : "h-11 border border-white/25 bg-slate-100 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.15)] dark:border-slate-700 dark:bg-slate-900 sm:h-12"
       } ${className}`}
       role="search"
       aria-label="Store search"
@@ -31,13 +31,13 @@ export default function HeaderSearch({
           }
         }}
         placeholder={placeholder}
-        className="h-full w-full rounded-full bg-transparent pl-4 pr-16 text-[13px] text-slate-700 outline-none placeholder:font-medium placeholder:text-slate-400 sm:pl-5 sm:text-sm"
+        className="h-full w-full rounded-full bg-transparent pl-4 pr-16 text-[13px] text-slate-700 outline-none placeholder:font-medium placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500 sm:pl-5 sm:text-sm"
       />
       {search ? (
         <button
           type="button"
           onClick={() => setSearch("")}
-          className="absolute right-11 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-200/80 hover:text-slate-700"
+          className="absolute right-11 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-200/80 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-100"
           aria-label="Clear search"
         >
           <X className="h-4 w-4" />
@@ -45,7 +45,7 @@ export default function HeaderSearch({
       ) : null}
       <button
         type="submit"
-        className="absolute right-3.5 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-200/80 hover:text-slate-700"
+        className="absolute right-3.5 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-200/80 hover:text-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100"
         aria-label="Submit search"
       >
         <Search className="h-[18px] w-[18px]" />

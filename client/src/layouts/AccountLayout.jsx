@@ -23,6 +23,7 @@ import { useCartStore } from "../store/cart.store.ts";
 import { getStoreCustomization } from "../api/public/storeCustomizationPublic.ts";
 import { normalizeDashboardSettingCopy } from "../utils/dashboardSettingCopy.js";
 import { resolveAssetUrl } from "../lib/assetUrl.js";
+import ThemeToggle from "../components/store/ThemeToggle.jsx";
 
 const getInitials = (value) => {
   const text = String(value || "").trim();
@@ -82,10 +83,10 @@ function AccountSidebar({ user, onLogout, isLoggingOut, dashboardSettingCopy }) 
   ];
   return (
     <aside className="order-2 lg:order-1 lg:sticky lg:top-6">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
         <div className="flex items-center gap-4">
           <div className="relative">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-xl font-bold text-slate-500">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-xl font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-300">
               {avatarSrc ? (
                 <img
                   src={avatarSrc}
@@ -96,11 +97,11 @@ function AccountSidebar({ user, onLogout, isLoggingOut, dashboardSettingCopy }) 
                 initials
               )}
             </div>
-            <span className="absolute -bottom-1 left-1/2 h-3 w-3 -translate-x-1/2 rounded-full border-2 border-white bg-emerald-500" />
+            <span className="absolute -bottom-1 left-1/2 h-3 w-3 -translate-x-1/2 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-900" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-slate-900">{displayName}</p>
-            <p className="text-xs text-slate-500">{email}</p>
+            <p className="text-sm font-semibold text-slate-900 dark:text-white">{displayName}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{email}</p>
           </div>
         </div>
 
@@ -114,8 +115,8 @@ function AccountSidebar({ user, onLogout, isLoggingOut, dashboardSettingCopy }) 
                 [
                   "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition",
                   isActive
-                    ? "bg-emerald-100 text-emerald-700 font-semibold"
-                    : "text-slate-600 hover:bg-emerald-50 hover:text-emerald-700",
+                    ? "bg-emerald-100 text-emerald-700 font-semibold dark:bg-emerald-950/40 dark:text-emerald-300"
+                    : "text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-emerald-300",
                 ].join(" ")
               }
             >
@@ -125,11 +126,18 @@ function AccountSidebar({ user, onLogout, isLoggingOut, dashboardSettingCopy }) 
           ))}
         </nav>
 
+        <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-800">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+            Appearance
+          </p>
+          <ThemeToggle variant="segmented" />
+        </div>
+
         <button
           type="button"
           onClick={onLogout}
           disabled={isLoggingOut}
-          className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg border border-rose-200 px-4 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg border border-rose-200 px-4 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-900/70 dark:text-rose-300 dark:hover:bg-rose-950/40"
         >
           <LogOut className="h-4 w-4" />
           <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
@@ -156,6 +164,11 @@ export default function AccountLayout() {
   const isOrderDetailRoute = /^\/user\/my-orders\/[^/]+(?:\/payment)?$/.test(
     location.pathname
   );
+  const usesStandaloneSurface =
+    location.pathname === "/user/dashboard" ||
+    location.pathname === "/user/my-orders" ||
+    location.pathname === "/user/store-invitations" ||
+    isOrderDetailRoute;
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
@@ -179,7 +192,7 @@ export default function AccountLayout() {
     }
   };
   return (
-    <section className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
+    <section className="account-shell grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
       <AccountSidebar
         user={user}
         onLogout={handleLogout}
@@ -188,11 +201,9 @@ export default function AccountLayout() {
       />
       <main
         className={
-          location.pathname === "/user/dashboard" ||
-          location.pathname === "/user/my-orders" ||
-          isOrderDetailRoute
+          usesStandaloneSurface
             ? "order-1 min-w-0 lg:order-2"
-            : "order-1 min-w-0 rounded-xl border border-slate-200 bg-white p-6 lg:order-2"
+            : "order-1 min-w-0 rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/80 lg:order-2"
         }
       >
         <Outlet context={{ user }} />

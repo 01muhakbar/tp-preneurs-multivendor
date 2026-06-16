@@ -1,236 +1,623 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Image as ImageIcon, Star } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  CalendarDays,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
+  Image as ImageIcon,
+  Plus,
+  Star,
+  Store,
+  X,
+} from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
-  createReview,
+  createProductReview,
   fetchMyReviewNeeds,
   fetchMyReviews,
-  uploadReviewImage,
-  updateReview,
+  updateProductReview,
+  uploadReviewAsset,
 } from "../../api/reviews.service.ts";
-import ReviewModal from "../../components/account/ReviewModal.jsx";
-import { resolveProductImageUrl } from "../../utils/productImage.js";
+import {
+  buildReviewPayload,
+  extractUploadUrl,
+  formatReviewDate,
+  getAssetUrl,
+  MAX_REVIEW_IMAGES,
+  MAX_REVIEW_LENGTH,
+  normalizeNeedReviewItem,
+  normalizeReviewedItem,
+  REVIEW_TABS,
+  unwrapReviewCollection,
+} from "../../utils/reviewViewModel.js";
 import {
   buildLoginRedirectState,
   REVIEWS_LOGIN_REQUIRED_NOTICE,
 } from "../../auth/loginRedirectState.ts";
+import "./AccountMyReviewPage.css";
 
-const PAGE_SIZE = 16;
+const PAGE_SIZE = 6;
+const ACCEPTED_IMAGE_TYPES = new Set(["image/jpeg", "image/png"]);
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
-const toDateLabel = (value) => {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleDateString("id-ID", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+const clampPage = (value) => {
+  const nextPage = Number(value || 1);
+  return Number.isFinite(nextPage) && nextPage > 0 ? Math.floor(nextPage) : 1;
 };
 
-const normalizeReviewImages = (review) => {
-  if (!Array.isArray(review?.images)) return [];
-  return review.images
-    .map((image) => String(image || "").trim())
-    .filter(Boolean)
-    .slice(0, 4);
-};
-
-const ResolvedImage = ({ product, alt, className, fallback }) => {
-  const resolvedSrc = useMemo(() => resolveProductImageUrl(product), [product]);
-  const [src, setSrc] = useState(resolvedSrc);
+function ProductImage({ src, alt, className }) {
+  const [imageSrc, setImageSrc] = useState(src || "");
 
   useEffect(() => {
-    setSrc(resolvedSrc);
-  }, [resolvedSrc]);
+    setImageSrc(src || "");
+  }, [src]);
 
-  if (!src) return fallback;
-  return <img src={src} alt={alt} className={className} onError={() => setSrc("")} />;
-};
+  if (!imageSrc) {
+    return (
+      <span className={`${className || ""} reviews-2026-image-fallback`}>
+        <ImageIcon size={22} />
+      </span>
+    );
+  }
+
+  return (
+    <img
+      src={imageSrc}
+      alt={alt}
+      className={className}
+      onError={() => setImageSrc("")}
+    />
+  );
+}
+
+function StarRating({ value, onChange, readonly = false }) {
+  const rating = Number(value) || 0;
+
+  return (
+    <div className="reviews-2026-stars" aria-label={`${rating} out of 5 stars`}>
+      {Array.from({ length: 5 }).map((_, index) => {
+        const starValue = index + 1;
+        const active = starValue <= rating;
+        const Icon = (
+          <Star
+            size={readonly ? 16 : 28}
+            fill={active ? "currentColor" : "none"}
+            strokeWidth={readonly ? 2.2 : 2}
+          />
+        );
+
+        if (readonly) {
+          return (
+            <span
+              key={starValue}
+              className={active ? "is-active" : ""}
+              aria-hidden="true"
+            >
+              {Icon}
+            </span>
+          );
+        }
+
+        return (
+          <button
+            key={starValue}
+            type="button"
+            className={active ? "is-active" : ""}
+            onClick={() => onChange?.(starValue)}
+            aria-label={`Rate ${starValue} star`}
+          >
+            {Icon}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function StatCard({ icon: Icon, tone, label, value, caption }) {
+  return (
+    <article className={`reviews-2026-stat is-${tone}`}>
+      <span className="reviews-2026-stat__icon">
+        <Icon size={24} />
+      </span>
+      <div>
+        <span>{label}</span>
+        <strong>{value}</strong>
+        <small>{caption}</small>
+      </div>
+    </article>
+  );
+}
+
+function ReviewModal({
+  open,
+  mode,
+  item,
+  onClose,
+  onSubmit,
+  isSubmitting,
+  submitError,
+}) {
+  const initialImages = useMemo(
+    () => (Array.isArray(item?.images) ? item.images : []),
+    [item?.images]
+  );
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
+  const [existingImages, setExistingImages] = useState([]);
+  const [newFiles, setNewFiles] = useState([]);
+  const [localError, setLocalError] = useState("");
+  const [imageError, setImageError] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    setRating(mode === "edit" ? Number(item?.rating || 0) : 5);
+    setComment(mode === "edit" ? String(item?.comment || "") : "");
+    setExistingImages(initialImages.slice(0, MAX_REVIEW_IMAGES));
+    setNewFiles([]);
+    setLocalError("");
+    setImageError("");
+  }, [initialImages, item?.comment, item?.rating, mode, open]);
+
+  const newFilePreviews = useMemo(
+    () =>
+      newFiles.map((file, index) => ({
+        id: `${file.name}-${file.lastModified}-${index}`,
+        file,
+        preview: URL.createObjectURL(file),
+      })),
+    [newFiles]
+  );
+
+  useEffect(
+    () => () => {
+      newFilePreviews.forEach((entry) => URL.revokeObjectURL(entry.preview));
+    },
+    [newFilePreviews]
+  );
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKeyDown = (event) => {
+      if (event.key === "Escape" && !isSubmitting) {
+        onClose?.();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isSubmitting, onClose, open]);
+
+  if (!open || !item) return null;
+
+  const selectedCount = existingImages.length + newFiles.length;
+  const remainingSlots = Math.max(0, MAX_REVIEW_IMAGES - selectedCount);
+  const trimmedComment = comment.trim();
+  const canSubmit =
+    rating >= 1 &&
+    trimmedComment.length >= 3 &&
+    trimmedComment.length <= MAX_REVIEW_LENGTH &&
+    !isSubmitting;
+
+  const handleBackdropClick = (event) => {
+    if (event.target === event.currentTarget && !isSubmitting) {
+      onClose?.();
+    }
+  };
+
+  const handleFileChange = (event) => {
+    const selected = Array.from(event.target.files || []);
+    event.target.value = "";
+    if (!selected.length) return;
+
+    if (remainingSlots <= 0) {
+      setImageError("Maximum 4 photos.");
+      return;
+    }
+
+    const validFiles = [];
+    for (const file of selected) {
+      if (!ACCEPTED_IMAGE_TYPES.has(file.type)) {
+        setImageError("Only JPG and PNG photos are allowed.");
+        return;
+      }
+      if (file.size > MAX_IMAGE_BYTES) {
+        setImageError("Each photo must be 2 MB or smaller.");
+        return;
+      }
+      validFiles.push(file);
+    }
+
+    const nextFiles = validFiles.slice(0, remainingSlots);
+    setNewFiles((current) => [...current, ...nextFiles]);
+    setImageError(
+      validFiles.length > nextFiles.length ? "Maximum 4 photos." : ""
+    );
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    if (rating < 1) {
+      setLocalError("Please select a rating.");
+      return;
+    }
+    if (trimmedComment.length < 3) {
+      setLocalError("Please write at least 3 characters.");
+      return;
+    }
+    if (trimmedComment.length > MAX_REVIEW_LENGTH) {
+      setLocalError(`Review cannot exceed ${MAX_REVIEW_LENGTH} characters.`);
+      return;
+    }
+    setLocalError("");
+    onSubmit?.({
+      rating,
+      comment: trimmedComment,
+      existingImages,
+      newFiles,
+    });
+  };
+
+  return (
+    <div className="reviews-2026-modal-backdrop" onClick={handleBackdropClick}>
+      <section
+        className="reviews-2026-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="review-modal-title"
+      >
+        <header className="reviews-2026-modal__header">
+          <h2 id="review-modal-title">Review Product</h2>
+          <button
+            type="button"
+            className="reviews-2026-icon-button"
+            onClick={onClose}
+            disabled={isSubmitting}
+            aria-label="Close review modal"
+          >
+            <X size={21} />
+          </button>
+        </header>
+
+        <form className="reviews-2026-modal__body" onSubmit={handleSubmit}>
+          <div className="reviews-2026-modal-product">
+            <ProductImage
+              src={item.imageUrl}
+              alt={item.name}
+              className="reviews-2026-modal-product__image"
+            />
+            <div>
+              <h3>{item.name}</h3>
+              <p>
+                <Store size={14} />
+                {item.storeName}
+              </p>
+              <p>
+                <CalendarDays size={14} />
+                {mode === "edit" ? "Reviewed" : "Order date"}:{" "}
+                {formatReviewDate(item.orderedAt || item.createdAt)}
+              </p>
+            </div>
+          </div>
+
+          <div className="reviews-2026-field">
+            <label>Your rating</label>
+            <div className="reviews-2026-rating-row">
+              <StarRating value={rating} onChange={setRating} />
+              {rating === 5 ? <span>Excellent!</span> : null}
+            </div>
+          </div>
+
+          <div className="reviews-2026-field">
+            <label>Add photos (up to 4)</label>
+            <div className="reviews-2026-photo-grid">
+              {existingImages.map((image, index) => (
+                <figure key={`existing-${image}-${index}`}>
+                  <img src={getAssetUrl(image)} alt="" />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExistingImages((current) =>
+                        current.filter((_, itemIndex) => itemIndex !== index)
+                      )
+                    }
+                    disabled={isSubmitting}
+                    aria-label="Remove photo"
+                  >
+                    <X size={13} />
+                  </button>
+                </figure>
+              ))}
+              {newFilePreviews.map((entry, index) => (
+                <figure key={entry.id}>
+                  <img src={entry.preview} alt="" />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setNewFiles((current) =>
+                        current.filter((_, itemIndex) => itemIndex !== index)
+                      )
+                    }
+                    disabled={isSubmitting}
+                    aria-label="Remove photo"
+                  >
+                    <X size={13} />
+                  </button>
+                </figure>
+              ))}
+              {remainingSlots > 0 ? (
+                <label className="reviews-2026-photo-add">
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg"
+                    multiple
+                    onChange={handleFileChange}
+                    disabled={isSubmitting}
+                  />
+                  <Plus size={24} />
+                  <span>Add photo</span>
+                </label>
+              ) : null}
+            </div>
+            {imageError ? <p className="reviews-2026-error">{imageError}</p> : null}
+          </div>
+
+          <div className="reviews-2026-field">
+            <label htmlFor="review-comment">Your review</label>
+            <div className="reviews-2026-textarea-wrap">
+              <textarea
+                id="review-comment"
+                value={comment}
+                maxLength={MAX_REVIEW_LENGTH}
+                rows={5}
+                onChange={(event) => setComment(event.target.value)}
+                placeholder="Excellent product and smooth service. Highly recommended."
+                disabled={isSubmitting}
+              />
+              <span>
+                {comment.length}/{MAX_REVIEW_LENGTH}
+              </span>
+            </div>
+          </div>
+
+          {localError || submitError ? (
+            <p className="reviews-2026-error">{localError || submitError}</p>
+          ) : null}
+
+          <footer className="reviews-2026-modal__footer">
+            <button type="submit" disabled={!canSubmit}>
+              {isSubmitting
+                ? "Submitting..."
+                : mode === "edit"
+                  ? "Update Review"
+                  : "Submit Review"}
+            </button>
+          </footer>
+        </form>
+      </section>
+    </div>
+  );
+}
 
 export default function AccountMyReviewPage() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("need");
   const [searchParams, setSearchParams] = useSearchParams();
-  const page = Math.max(1, Number(searchParams.get("page") || 1));
-  const [submitError, setSubmitError] = useState("");
-  const [submitSuccess, setSubmitSuccess] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const activeTab = searchParams.get("tab") === "reviewed" ? "reviewed" : "need";
+  const page = clampPage(searchParams.get("page"));
   const [modalState, setModalState] = useState({
     open: false,
-    product: null,
-    review: null,
+    mode: "create",
+    item: null,
   });
+  const [submitError, setSubmitError] = useState("");
+  const [submitSuccess, setSubmitSuccess] = useState("");
 
-  const needQuery = useQuery({
-    queryKey: ["account", "reviews", "need"],
-    queryFn: () => fetchMyReviewNeeds(),
-  });
-  const reviewedQuery = useQuery({
-    queryKey: ["account", "reviews", "reviewed"],
-    queryFn: () => fetchMyReviews(),
-  });
-
-  const needToReview = Array.isArray(needQuery.data?.items) ? needQuery.data.items : [];
-  const reviews = Array.isArray(reviewedQuery.data?.items) ? reviewedQuery.data.items : [];
-
-  const reviewedProducts = useMemo(
-    () =>
-      reviews.map((review) => {
-        const productId = Number(review?.productId);
-        const fallbackName = Number.isFinite(productId)
-          ? `Product #${productId}`
-          : "Reviewed product";
-        return {
-          id: Number.isFinite(productId) ? productId : `review-${review?.id}`,
-          productId: Number.isFinite(productId) ? productId : null,
-          name: review?.product?.name || fallbackName,
-          imageUrl: review?.product?.imageUrl || null,
-          review,
-        };
-      }),
-    [reviews]
-  );
-
-  const currentList = activeTab === "need" ? needToReview : reviewedProducts;
-  const totalItems = currentList.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
-  const startIndex = (page - 1) * PAGE_SIZE;
-  const pagedItems = currentList.slice(startIndex, startIndex + PAGE_SIZE);
-  const startLabel = totalItems === 0 ? 0 : startIndex + 1;
-  const endLabel = totalItems === 0 ? 0 : Math.min(totalItems, startIndex + PAGE_SIZE);
-
-  const updatePage = (nextPage) => {
+  const routeTo = (tab, nextPage) => {
     const params = new URLSearchParams(searchParams);
-    params.set("page", String(nextPage));
+    if (tab === "reviewed") {
+      params.set("tab", "reviewed");
+    } else {
+      params.delete("tab");
+    }
+    params.set("page", String(Math.max(1, nextPage)));
     setSearchParams(params);
   };
 
-  useEffect(() => {
-    if (page > totalPages) {
-      updatePage(totalPages);
-    }
-  }, [page, totalPages]);
+  const requestParams = useMemo(
+    () => ({ page, limit: PAGE_SIZE }),
+    [page]
+  );
+
+  const needQuery = useQuery({
+    queryKey: ["account", "reviews", "need", requestParams],
+    queryFn: () => fetchMyReviewNeeds(requestParams),
+    staleTime: 30_000,
+  });
+
+  const reviewedQuery = useQuery({
+    queryKey: ["account", "reviews", "reviewed", requestParams],
+    queryFn: () => fetchMyReviews(requestParams),
+    staleTime: 30_000,
+  });
+
+  const needCollection = useMemo(
+    () => unwrapReviewCollection(needQuery.data),
+    [needQuery.data]
+  );
+  const reviewedCollection = useMemo(
+    () => unwrapReviewCollection(reviewedQuery.data),
+    [reviewedQuery.data]
+  );
+
+  const needItems = useMemo(
+    () => needCollection.items.map(normalizeNeedReviewItem),
+    [needCollection.items]
+  );
+  const reviewedItems = useMemo(
+    () => reviewedCollection.items.map(normalizeReviewedItem),
+    [reviewedCollection.items]
+  );
+
+  const activeItems = activeTab === "need" ? needItems : reviewedItems;
+  const activeTotal =
+    activeTab === "need" ? needCollection.totalItems : reviewedCollection.totalItems;
+  const shouldClientPaginate =
+    activeItems.length > PAGE_SIZE || activeTotal <= activeItems.length;
+  const visibleItems = shouldClientPaginate
+    ? activeItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+    : activeItems;
+  const totalItems = shouldClientPaginate ? activeItems.length : activeTotal;
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  const startLabel = totalItems === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const endLabel = totalItems === 0 ? 0 : Math.min(totalItems, page * PAGE_SIZE);
 
   const pageNumbers = useMemo(() => {
-    const maxButtons = 7;
-    let start = Math.max(1, page - Math.floor(maxButtons / 2));
-    let end = Math.min(totalPages, start + maxButtons - 1);
-    if (end - start + 1 < maxButtons) {
-      start = Math.max(1, end - maxButtons + 1);
-    }
-    return Array.from({ length: end - start + 1 }, (_, idx) => start + idx);
+    const maxButtons = 4;
+    const start = Math.max(1, Math.min(page, totalPages - maxButtons + 1));
+    const end = Math.min(totalPages, start + maxButtons - 1);
+    return Array.from({ length: end - start + 1 }, (_, index) => start + index);
   }, [page, totalPages]);
 
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-    setSubmitError("");
-    setSubmitSuccess("");
-    updatePage(1);
-  };
+  useEffect(() => {
+    if (page > totalPages) {
+      routeTo(activeTab, totalPages);
+    }
+  }, [activeTab, page, totalPages]);
 
-  const handleOpenModal = (product, review = null) => {
-    setSubmitError("");
-    setSubmitSuccess("");
-    setModalState({ open: true, product, review });
-  };
-
-  const handleCloseModal = () => {
-    setModalState({ open: false, product: null, review: null });
-  };
-
-  const handleSaveReview = async (payload) => {
-    if (!modalState.product?.productId && !modalState.product?.id) return;
-    const productId = Number(modalState.product?.productId ?? modalState.product?.id);
-    if (!Number.isFinite(productId)) return;
-
-    setSubmitError("");
-    setSubmitSuccess("");
-    setIsSubmitting(true);
-    try {
-      const uploadedUrls =
-        Array.isArray(payload?.newFiles) && payload.newFiles.length > 0
-          ? await Promise.all(payload.newFiles.map((file) => uploadReviewImage(file)))
-          : [];
-      const existingImages = Array.isArray(payload?.existingImages)
-        ? payload.existingImages
-        : [];
-      const images = [...existingImages, ...uploadedUrls].slice(0, 4);
-
-      if (modalState.review?.id) {
-        await updateReview(Number(modalState.review.id), {
-          rating: payload.rating,
-          comment: payload.comment,
-          images,
-        });
-      } else {
-        await createReview({
-          productId,
-          rating: payload.rating,
-          comment: payload.comment,
-          images,
-        });
+  const saveReviewMutation = useMutation({
+    mutationFn: async ({ item, mode, form }) => {
+      if (mode === "create" && !needItems.some((entry) => entry.productId === item.productId)) {
+        throw new Error("This product is not currently eligible for review.");
       }
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["account", "reviews", "need"] }),
-        queryClient.invalidateQueries({ queryKey: ["account", "reviews", "reviewed"] }),
-      ]);
-      setActiveTab("reviewed");
-      updatePage(1);
-      handleCloseModal();
+      if (mode === "edit" && !item.reviewId) {
+        throw new Error("Review id is missing.");
+      }
+
+      const uploadedImages = [];
+      for (const file of form.newFiles) {
+        const uploaded = await uploadReviewAsset(file);
+        const url = extractUploadUrl(uploaded);
+        if (!url) {
+          throw new Error("Upload succeeded without URL.");
+        }
+        uploadedImages.push(url);
+      }
+
+      const payload = buildReviewPayload({
+        productId: item.productId,
+        rating: form.rating,
+        comment: form.comment,
+        existingImages: form.existingImages,
+        uploadedImages,
+      });
+
+      if (mode === "edit") {
+        const { productId: _productId, ...updatePayload } = payload;
+        return updateProductReview(item.reviewId, updatePayload);
+      }
+
+      return createProductReview(payload);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["account", "reviews"] });
+      setSubmitError("");
       setSubmitSuccess("Review submitted successfully.");
-    } catch (err) {
-      const status = err?.response?.status;
+      setModalState({ open: false, mode: "create", item: null });
+      routeTo("reviewed", 1);
+    },
+    onError: (error) => {
+      const status = error?.response?.status;
       const message =
         status === 409
           ? "You already reviewed this product."
-          : err?.response?.data?.message || "Failed to submit review.";
+          : error?.response?.data?.message ||
+            error?.message ||
+            "Failed to submit review.";
       setSubmitError(message);
-    } finally {
-      setIsSubmitting(false);
-    }
+    },
+  });
+
+  const activeQuery = activeTab === "need" ? needQuery : reviewedQuery;
+  const isLoading = activeQuery.isLoading;
+  const isError = activeQuery.isError;
+  const error = activeQuery.error;
+  const isUnauthorized = error?.response?.status === 401;
+
+  const openCreateModal = (item) => {
+    setSubmitError("");
+    setSubmitSuccess("");
+    setModalState({ open: true, mode: "create", item });
   };
 
-  const isLoading =
-    activeTab === "need" ? needQuery.isLoading : reviewedQuery.isLoading;
-  const activeError = activeTab === "need" ? needQuery.error : reviewedQuery.error;
-  const isActiveError = activeTab === "need" ? needQuery.isError : reviewedQuery.isError;
-  const showEmptyState = !isLoading && !isActiveError && currentList.length === 0;
+  const openEditModal = (item) => {
+    setSubmitError("");
+    setSubmitSuccess("");
+    setModalState({ open: true, mode: "edit", item });
+  };
+
+  const handleTabChange = (tab) => {
+    setSubmitError("");
+    setSubmitSuccess("");
+    routeTo(tab, 1);
+  };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6">
-      <div className="mb-6 flex items-center gap-8 border-b border-slate-200">
-        <button
-          type="button"
-          onClick={() => handleTabChange("need")}
-          className={`inline-flex pb-3 text-sm font-medium ${
-            activeTab === "need"
-              ? "border-b-2 border-emerald-600 text-emerald-700"
-              : "text-slate-500"
-          }`}
-        >
-          Need to Review
-        </button>
-        <button
-          type="button"
-          onClick={() => handleTabChange("reviewed")}
-          className={`inline-flex pb-3 text-sm font-medium ${
-            activeTab === "reviewed"
-              ? "border-b-2 border-emerald-600 text-emerald-700"
-              : "text-slate-500"
-          }`}
-        >
-          Reviewed Products
-        </button>
+    <div className="reviews-2026-page">
+      <section className="reviews-2026-hero">
+        <div>
+          <span className="reviews-2026-eyebrow">Product feedback</span>
+          <h1>My Reviews</h1>
+          <p>Rate products and manage feedback from completed orders.</p>
+        </div>
+        <div className="reviews-2026-stats">
+          <StatCard
+            icon={Clock3}
+            tone="pending"
+            label="Pending"
+            value={needItems.length}
+            caption="Awaiting your review"
+          />
+          <StatCard
+            icon={CheckCircle2}
+            tone="published"
+            label="Published"
+            value={reviewedItems.length}
+            caption="Reviews submitted"
+          />
+        </div>
+      </section>
+
+      <div className="reviews-2026-tabs" role="tablist" aria-label="Review tabs">
+        {REVIEW_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            className={activeTab === tab.id ? "is-active" : ""}
+            onClick={() => handleTabChange(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
+      {submitSuccess ? (
+        <div className="reviews-2026-success" role="status">
+          {submitSuccess}
+        </div>
+      ) : null}
+
       {isLoading ? (
-        <div className="py-10 text-sm text-slate-500">Loading reviews...</div>
-      ) : isActiveError ? (
-        <div className="mt-6 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-600">
-          {activeError?.response?.status === 401 ? (
-            <>
+        <section className="reviews-2026-section">
+          <div className="reviews-2026-skeleton" />
+          <div className="reviews-2026-skeleton" />
+        </section>
+      ) : isError ? (
+        <section className="reviews-2026-empty is-error">
+          {isUnauthorized ? (
+            <p>
               Please login.{" "}
               <Link
                 to="/auth/login"
@@ -238,183 +625,127 @@ export default function AccountMyReviewPage() {
                   from: "/user/my-reviews",
                   authNotice: REVIEWS_LOGIN_REQUIRED_NOTICE,
                 })}
-                className="font-medium text-rose-700 underline"
               >
                 Go to login
               </Link>
-            </>
+            </p>
           ) : (
-            "Failed to load reviews."
+            <p>Failed to load reviews.</p>
           )}
-        </div>
-      ) : showEmptyState ? (
-        <div className="mt-6 rounded-xl border border-slate-200 bg-white px-6 py-10 text-center text-sm text-slate-600">
-          {activeTab === "need"
-            ? "No products to review yet."
-            : "No reviewed products yet."}
-        </div>
+        </section>
+      ) : visibleItems.length === 0 ? (
+        <section className="reviews-2026-empty">
+          <ImageIcon size={28} />
+          <h2>
+            {activeTab === "need"
+              ? "No products waiting for review"
+              : "No reviewed products yet"}
+          </h2>
+          <p>
+            {activeTab === "need"
+              ? "Completed orders that are eligible for review will appear here."
+              : "Your submitted reviews will be listed here once published."}
+          </p>
+        </section>
       ) : (
-        <>
-          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {pagedItems.map((item) =>
+        <section className="reviews-2026-section">
+          <h2>{activeTab === "need" ? "Pending Reviews" : "Your Reviewed Products"}</h2>
+          <div className="reviews-2026-list">
+            {visibleItems.map((item) =>
               activeTab === "need" ? (
-                <div
-                  key={`${item.productId}-${item.orderId ?? "na"}`}
-                  className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white px-4 py-4"
-                >
-                  <ResolvedImage
-                    product={item}
+                <article className="reviews-2026-card is-pending" key={item.id}>
+                  <ProductImage
+                    src={item.imageUrl}
                     alt={item.name}
-                    className="h-14 w-14 rounded-lg object-cover"
-                    fallback={
-                      <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-slate-50 text-slate-400">
-                        <ImageIcon className="h-6 w-6" />
-                      </div>
-                    }
+                    className="reviews-2026-card__image"
                   />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-slate-800">
-                      {item.name}
-                    </p>
+                  <div className="reviews-2026-card__content">
+                    <h3>{item.name}</h3>
+                    <p>{item.storeName}</p>
+                    <span>
+                      <CalendarDays size={14} />
+                      {formatReviewDate(item.orderedAt)}
+                    </span>
+                    <StarRating value={0} readonly />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleOpenModal(item)}
-                    className="ml-auto inline-flex rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
-                  >
+                  <button type="button" onClick={() => openCreateModal(item)}>
                     Write Review
                   </button>
-                </div>
+                </article>
               ) : (
-                <div
-                  key={item.id}
-                  className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-slate-50 p-1">
-                      <ResolvedImage
-                        product={item}
-                        alt={item.name}
-                        className="h-full w-full rounded-lg object-cover"
-                        fallback={<ImageIcon className="h-8 w-8 text-slate-300" />}
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="line-clamp-2 text-sm font-semibold text-slate-800">
-                        {item.name}
-                      </p>
-                      <div className="mt-2 flex items-center gap-1">
-                        {Array.from({ length: 5 }).map((_, idx) => {
-                          const ratingValue = Number(item.review?.rating || 0);
-                          const active = idx + 1 <= ratingValue;
-                          return (
-                            <Star
-                              key={idx}
-                              className={`h-4 w-4 ${
-                                active ? "text-yellow-400" : "text-slate-200"
-                              }`}
-                              fill={active ? "currentColor" : "none"}
-                            />
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                  <p className="mt-3 line-clamp-3 text-sm text-slate-600">
-                    {item.review?.comment || "-"}
-                  </p>
-                  {normalizeReviewImages(item.review).length > 0 ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {normalizeReviewImages(item.review).map((image, index) => (
-                        <img
-                          key={`${item.id}-${index}`}
-                          src={image}
-                          alt=""
-                          className="h-12 w-12 rounded-md object-cover"
-                          onError={(event) => {
-                            event.currentTarget.onerror = null;
-                            event.currentTarget.src =
-                              "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
-                          }}
-                        />
-                      ))}
-                    </div>
-                  ) : null}
-                  <div className="mt-3 flex items-center justify-between gap-2">
-                    <span className="text-xs text-slate-400">
-                      {toDateLabel(item.review?.createdAt)}
+                <article className="reviews-2026-card is-reviewed" key={item.id}>
+                  <ProductImage
+                    src={item.imageUrl}
+                    alt={item.name}
+                    className="reviews-2026-card__image"
+                  />
+                  <div className="reviews-2026-card__content">
+                    <h3>{item.name}</h3>
+                    <p>{item.storeName}</p>
+                    <StarRating value={item.rating} readonly />
+                    <span>
+                      <CalendarDays size={14} />
+                      {formatReviewDate(item.createdAt)}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenModal(item, item.review)}
-                      className="text-sm font-medium text-emerald-600 transition hover:text-emerald-700"
-                    >
-                      Edit Review
-                    </button>
                   </div>
-                </div>
+                  <button type="button" onClick={() => openEditModal(item)}>
+                    View Review
+                  </button>
+                </article>
               )
             )}
           </div>
 
-          <div className="mt-6 flex items-center justify-between">
-            <span className="text-xs uppercase tracking-wide text-slate-500">
-              SHOWING {startLabel}-{endLabel} OF {totalItems}
+          <footer className="reviews-2026-pagination">
+            <span>
+              Showing {startLabel}-{endLabel} of {totalItems}
             </span>
-            <div className="flex items-center gap-2">
+            <div>
               <button
                 type="button"
-                onClick={() => updatePage(Math.max(1, page - 1))}
-                disabled={page === 1}
-                className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
+                onClick={() => routeTo(activeTab, page - 1)}
+                disabled={page <= 1}
+                aria-label="Previous page"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft size={18} />
               </button>
-              {pageNumbers.map((num) => (
+              {pageNumbers.map((pageNumber) => (
                 <button
-                  key={num}
+                  key={pageNumber}
                   type="button"
-                  onClick={() => updatePage(num)}
-                  className={`flex h-9 w-9 items-center justify-center rounded-md text-sm font-semibold ${
-                    num === page
-                      ? "bg-emerald-600 text-white"
-                      : "text-slate-700 hover:text-emerald-700"
-                  }`}
+                  className={pageNumber === page ? "is-active" : ""}
+                  onClick={() => routeTo(activeTab, pageNumber)}
                 >
-                  {num}
+                  {pageNumber}
                 </button>
               ))}
               <button
                 type="button"
-                onClick={() => updatePage(Math.min(totalPages, page + 1))}
-                disabled={page === totalPages}
-                className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
+                onClick={() => routeTo(activeTab, page + 1)}
+                disabled={page >= totalPages}
+                aria-label="Next page"
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight size={18} />
               </button>
             </div>
-          </div>
-        </>
+          </footer>
+        </section>
       )}
-
-      {submitError ? (
-        <div className="mt-6 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-600">
-          {submitError}
-        </div>
-      ) : null}
-      {submitSuccess ? (
-        <div className="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
-          {submitSuccess}
-        </div>
-      ) : null}
 
       <ReviewModal
         open={modalState.open}
-        product={modalState.product}
-        review={modalState.review}
-        onClose={handleCloseModal}
-        onSubmit={handleSaveReview}
-        isSubmitting={isSubmitting}
+        mode={modalState.mode}
+        item={modalState.item}
+        onClose={() => setModalState({ open: false, mode: "create", item: null })}
+        onSubmit={(form) =>
+          saveReviewMutation.mutate({
+            item: modalState.item,
+            mode: modalState.mode,
+            form,
+          })
+        }
+        isSubmitting={saveReviewMutation.isPending}
+        submitError={submitError}
       />
     </div>
   );

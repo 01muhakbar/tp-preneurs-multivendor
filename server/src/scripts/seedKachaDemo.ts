@@ -1,12 +1,23 @@
 import "dotenv/config";
 import bcrypt from "bcrypt";
 import { Op } from "sequelize";
-import { Category, Product, ProductReview, User, sequelize, syncDb } from "../models/index.js";
+import {
+  Category,
+  Product,
+  ProductReview,
+  Store,
+  StorePaymentProfile,
+  User,
+  sequelize,
+  syncDb,
+} from "../models/index.js";
 
 const SEED_EMAIL = "store-seed@local.dev";
 const SUPER_ADMIN_EMAIL = process.env.SEED_SUPER_EMAIL || "superadmin@local.dev";
 const SEED_PASSWORD = "seedstore123";
 const REVIEWER_PASSWORD = "reviewer123";
+const DEMO_QRIS_IMAGE =
+  "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
 
 type DemoCategory = {
   code: string;
@@ -260,6 +271,62 @@ const getNumericAttr = (model: any, key: string) => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
+async function ensureDemoStorePaymentProfile(ownerUserId: number) {
+  const store = await Store.findOne({ where: { ownerUserId } });
+  const storeId = getNumericAttr(store, "id");
+  if (!store || !storeId) {
+    throw new Error(`Missing demo store for owner user id=${ownerUserId}.`);
+  }
+
+  let profile = await StorePaymentProfile.findOne({
+    where: {
+      storeId,
+      isActive: true,
+      verificationStatus: "ACTIVE",
+    },
+    order: [["id", "DESC"]],
+  });
+
+  if (!profile) {
+    const merchantId = `KACHA-DEMO-${storeId}`;
+    profile = await StorePaymentProfile.findOne({
+      where: { storeId, merchantId },
+      order: [["id", "DESC"]],
+    });
+    const now = new Date();
+    const values = {
+      storeId,
+      providerCode: "MANUAL_QRIS",
+      paymentType: "QRIS_STATIC",
+      version: 1,
+      snapshotStatus: "ACTIVE",
+      accountName: "KachaBazar Demo",
+      merchantName: String(store.get("name") || "KachaBazar Demo"),
+      merchantId,
+      qrisImageUrl: DEMO_QRIS_IMAGE,
+      qrisPayload: `KACHA-DEMO-PAYLOAD-${storeId}`,
+      instructionText: "Demo QRIS payment profile for local development.",
+      isActive: true,
+      verificationStatus: "ACTIVE",
+      verifiedAt: now,
+      activatedAt: now,
+    } as const;
+
+    if (profile) {
+      await profile.update(values as any);
+    } else {
+      profile = await StorePaymentProfile.create(values as any);
+    }
+  }
+
+  const profileId = getNumericAttr(profile, "id");
+  if (!profileId) {
+    throw new Error(`Missing active payment profile for demo store id=${storeId}.`);
+  }
+  await store.update({ activeStorePaymentProfileId: profileId } as any);
+  return profileId;
+}
+
 async function seedKachaDemo() {
   await sequelize.authenticate();
   await syncDb();
@@ -392,6 +459,8 @@ async function seedKachaDemo() {
     productsCreated += 1;
   }
 
+  const paymentProfileId = await ensureDemoStorePaymentProfile(Number(seller.id));
+
   const reviewerIds: number[] = [];
   for (const reviewer of REVIEWER_ACCOUNTS) {
     const [account] = await User.findOrCreate({
@@ -436,6 +505,7 @@ async function seedKachaDemo() {
   console.log("[seed:kacha] Products updated:", productsUpdated);
   console.log("[seed:kacha] Reviews created:", reviewsCreated);
   console.log("[seed:kacha] Seed user id:", seller.id);
+  console.log("[seed:kacha] Active payment profile id:", paymentProfileId);
 }
 
 seedKachaDemo()

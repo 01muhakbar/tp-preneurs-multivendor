@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import { MutationCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster, toast } from "react-hot-toast";
 import App from "./App.jsx";
+import { ThemeProvider } from "./theme/ThemeProvider.jsx";
 import "./index.css";
 
 const ADMIN_AUTH_PATHS = new Set([
@@ -47,10 +48,12 @@ const queryClient = new QueryClient({
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-      <Toaster position="top-right" />
+      <ThemeProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+        <Toaster position="top-right" />
+      </ThemeProvider>
     </QueryClientProvider>
   </React.StrictMode>
 );

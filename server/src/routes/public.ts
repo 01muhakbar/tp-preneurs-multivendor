@@ -172,8 +172,11 @@ router.get("/user/notifications", protect, getUserNotifications);
 router.get("/user/notifications/stream", protect, streamUserNotifications);
 router.get("/user/notifications/unread-count", protect, getUserUnreadNotificationCount);
 router.delete("/user/notifications", protect, clearUserNotifications);
+router.post("/user/notifications/read-all", protect, readAllUserNotifications);
 router.patch("/user/notifications/read-all", protect, readAllUserNotifications);
 
+// POST /api/user/notifications/:id/read
+router.post("/user/notifications/:id/read", protect, readUserNotification);
 // PATCH /api/user/notifications/:id/read
 router.patch("/user/notifications/:id/read", protect, readUserNotification);
 router.delete("/user/notifications/:id", protect, removeUserNotification);
@@ -183,7 +186,9 @@ router.get("/notifications", protect, getUserNotifications);
 router.get("/notifications/stream", protect, streamUserNotifications);
 router.get("/notifications/unread-count", protect, getUserUnreadNotificationCount);
 router.delete("/notifications", protect, clearUserNotifications);
+router.post("/notifications/read-all", protect, readAllUserNotifications);
 router.patch("/notifications/read-all", protect, readAllUserNotifications);
+router.post("/notifications/:id/read", protect, readUserNotification);
 router.patch("/notifications/:id/read", protect, readUserNotification);
 router.delete("/notifications/:id", protect, removeUserNotification);
 

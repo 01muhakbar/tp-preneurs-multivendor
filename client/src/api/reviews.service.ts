@@ -48,26 +48,64 @@ type NeedReviewListResponse = {
   };
 };
 
-export const fetchMyReviews = async () => {
-  const { data } = await api.get<ReviewsListResponse>("/store/my/reviews");
-  const items = Array.isArray(data?.items) ? data.items : [];
-  const totalItems = Number(data?.meta?.totalItems ?? items.length);
+type ListParams = {
+  page?: number;
+  limit?: number;
+};
+
+const getListItems = <T>(payload: any): T[] => {
+  const source = payload?.data ?? payload;
+  const candidates = [
+    source?.items,
+    source?.reviews,
+    source?.products,
+    source?.data?.items,
+    source?.data?.reviews,
+    source?.data?.products,
+    source?.data,
+  ];
+  const items = candidates.find((candidate) => Array.isArray(candidate));
+  return Array.isArray(items) ? items : [];
+};
+
+const getTotalItems = (payload: any, fallback: number) => {
+  const source = payload?.data ?? payload;
+  const totalItems = Number(
+    source?.meta?.totalItems ??
+      source?.meta?.total ??
+      source?.totalItems ??
+      source?.total ??
+      source?.data?.meta?.totalItems ??
+      fallback
+  );
+  return Number.isFinite(totalItems) ? totalItems : fallback;
+};
+
+export const fetchMyReviews = async (params: ListParams = {}) => {
+  const { data } = await api.get<ReviewsListResponse>("/store/my/reviews", {
+    params,
+  });
+  const items = getListItems<ReviewResponse>(data);
+  const totalItems = getTotalItems(data, items.length);
   return {
     items,
     meta: {
-      totalItems: Number.isFinite(totalItems) ? totalItems : items.length,
+      totalItems,
     },
   };
 };
 
-export const fetchMyReviewNeeds = async () => {
-  const { data } = await api.get<NeedReviewListResponse>("/store/my/reviews/need");
-  const items = Array.isArray(data?.items) ? data.items : [];
-  const totalItems = Number(data?.meta?.totalItems ?? items.length);
+export const fetchMyReviewNeeds = async (params: ListParams = {}) => {
+  const { data } = await api.get<NeedReviewListResponse>(
+    "/store/my/reviews/need",
+    { params }
+  );
+  const items = getListItems<NeedReviewItem>(data);
+  const totalItems = getTotalItems(data, items.length);
   return {
     items,
     meta: {
-      totalItems: Number.isFinite(totalItems) ? totalItems : items.length,
+      totalItems,
     },
   };
 };
@@ -119,3 +157,9 @@ export const uploadReviewImage = async (file: File) => {
   }
   return url;
 };
+
+export const fetchNeedReviewProducts = fetchMyReviewNeeds;
+export const createProductReview = createReview;
+export const updateProductReview = updateReview;
+export const upsertProductReview = upsertReviewByProduct;
+export const uploadReviewAsset = uploadReviewImage;

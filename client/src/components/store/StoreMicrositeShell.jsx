@@ -223,7 +223,7 @@ export default function StoreMicrositeShell({
   }, [location.hash]);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="store-microsite-shell min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <StoreHeaderKacha
         onCartClick={() => setIsCartDrawerOpen(true)}
         publicIdentityOverride={identity}

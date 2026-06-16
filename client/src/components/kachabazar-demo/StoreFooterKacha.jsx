@@ -158,7 +158,7 @@ const isInternalHref = (href) => /^\/(?!\/)/.test(String(href || "").trim());
 function FooterLink({ href, children }) {
   if (isInternalHref(href)) {
     return (
-      <Link to={href} className="text-sm text-slate-600 transition hover:text-emerald-600">
+      <Link to={href} className="text-sm text-slate-600 transition hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-300">
         {children}
       </Link>
     );
@@ -169,7 +169,7 @@ function FooterLink({ href, children }) {
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="text-sm text-slate-600 transition hover:text-emerald-600"
+      className="text-sm text-slate-600 transition hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-300"
     >
       {children}
     </a>
@@ -181,7 +181,7 @@ function FooterLinkBlock({ title, links }) {
 
   return (
     <section className="space-y-4">
-      <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-900">{title}</h3>
+      <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-900 dark:text-white">{title}</h3>
       <ul className="space-y-2.5">
         {links.map((link) => (
           <li key={`${link.label}-${link.href}`}>
@@ -200,9 +200,9 @@ export default function StoreFooterKacha({ footerConfig, brandingName = "TP PREN
   const socialItems = SOCIAL_LINKS.filter(({ key }) => footer.socialLinks[key]);
 
   return (
-    <footer className="border-t border-slate-200 bg-white">
+    <footer className="border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
       <div className="mx-auto w-full max-w-7xl px-4 py-10">
-        <div className="grid gap-10 border-b border-slate-200 pb-8 lg:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,0.85fr))]">
+        <div className="grid gap-10 border-b border-slate-200 pb-8 dark:border-slate-800 lg:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,0.85fr))]">
           {footer.block4.enabled ? (
             <section className="space-y-4">
               {footerLogoSrc ? (
@@ -212,9 +212,9 @@ export default function StoreFooterKacha({ footerConfig, brandingName = "TP PREN
                   className="h-12 w-auto object-contain"
                 />
               ) : (
-                <p className="text-lg font-semibold text-slate-900">{brandingName}</p>
+                <p className="text-lg font-semibold text-slate-900 dark:text-white">{brandingName}</p>
               )}
-              <div className="space-y-2 text-sm text-slate-600">
+              <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
                 {footer.block4.address ? <p>{footer.block4.address}</p> : null}
                 {footer.block4.phone ? <p>{footer.block4.phone}</p> : null}
                 {footer.block4.email ? <p>{footer.block4.email}</p> : null}
@@ -238,7 +238,7 @@ export default function StoreFooterKacha({ footerConfig, brandingName = "TP PREN
             <div className="flex flex-wrap items-center gap-3">
               {footer.socialLinks.enabled && socialItems.length > 0 ? (
                 <>
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
                     Follow Us
                   </span>
                   {socialItems.map(({ key, label }) => (
@@ -247,7 +247,7 @@ export default function StoreFooterKacha({ footerConfig, brandingName = "TP PREN
                       href={footer.socialLinks[key]}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-emerald-300 hover:text-emerald-600"
+                      className="inline-flex rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-emerald-300 hover:text-emerald-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-emerald-700 dark:hover:text-emerald-300"
                     >
                       {label}
                     </a>
@@ -259,7 +259,7 @@ export default function StoreFooterKacha({ footerConfig, brandingName = "TP PREN
             <div className="flex flex-wrap items-center gap-4 lg:justify-end">
               {footer.paymentMethod.enabled && paymentImageSrc ? (
                 <div className="flex items-center gap-3">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
                     Payment Method
                   </span>
                   <img
@@ -270,8 +270,8 @@ export default function StoreFooterKacha({ footerConfig, brandingName = "TP PREN
                 </div>
               ) : null}
               {footer.bottomContact.enabled && footer.bottomContact.contactNumber ? (
-                <div className="text-sm text-slate-600">
-                  <span className="font-semibold text-slate-900">Need help?</span>{" "}
+                <div className="text-sm text-slate-600 dark:text-slate-400">
+                  <span className="font-semibold text-slate-900 dark:text-white">Need help?</span>{" "}
                   <span>{footer.bottomContact.contactNumber}</span>
                 </div>
               ) : null}

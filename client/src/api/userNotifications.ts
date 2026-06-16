@@ -20,9 +20,12 @@ const unwrap = (payload: any): UserNotificationsPayload => payload?.data ?? payl
 export const fetchUserNotifications = async (params?: {
   limit?: number;
   offset?: number;
+  page?: number;
 }) => {
   const limit = Number(params?.limit) || 20;
-  const offset = Number(params?.offset) || 0;
+  const pageOffset =
+    Number(params?.page) > 0 ? (Number(params?.page) - 1) * limit : undefined;
+  const offset = Number(params?.offset ?? pageOffset) || 0;
   const { data } = await api.get("/user/notifications", {
     params: { limit, offset },
   });
@@ -35,13 +38,15 @@ export const fetchUserUnreadNotificationCount = async () => {
   return Number(payload?.count || 0);
 };
 
-export const markUserNotificationRead = async (id: number) => {
-  const { data } = await api.patch(`/user/notifications/${id}/read`);
+export const markUserNotificationAsRead = async (id: number) => {
+  const { data } = await api.post(`/user/notifications/${id}/read`);
   return data;
 };
 
+export const markUserNotificationRead = markUserNotificationAsRead;
+
 export const markAllUserNotificationsRead = async () => {
-  const { data } = await api.patch("/user/notifications/read-all");
+  const { data } = await api.post("/user/notifications/read-all");
   const payload = data?.data ?? data;
   return { updated: Number(payload?.updated || 0) };
 };
