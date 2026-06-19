@@ -592,6 +592,14 @@ const toText = (value: unknown, fallback = "") => {
   return normalized || fallback;
 };
 
+const hasOwnValue = (source: Record<string, unknown>, key: string) =>
+  source && Object.prototype.hasOwnProperty.call(source, key);
+
+const toSliderText = (value: unknown, fallback = "", preserveEmpty = false) => {
+  if (preserveEmpty && value != null) return String(value).trim();
+  return toText(value, fallback);
+};
+
 const toBool = (value: unknown, fallback = false) => {
   if (typeof value === "boolean") return value;
   if (typeof value === "number") return value !== 0;
@@ -717,6 +725,19 @@ const normalizeHome = (root: Record<string, any>) => {
     const legacyNested = isPlainObject(mainSliderSource[`slider${order}`])
       ? mainSliderSource[`slider${order}`]
       : {};
+    const hasExplicitSlide =
+      Object.keys(nested).length > 0 ||
+      Object.keys(legacyNested).length > 0 ||
+      hasOwnValue(mainSliderSource, `slider${order}ImageDataUrl`) ||
+      hasOwnValue(mainSliderSource, `slider${order}Image`) ||
+      hasOwnValue(mainSliderSource, `slider${order}Title`) ||
+      hasOwnValue(mainSliderSource, `slider${order}Description`) ||
+      hasOwnValue(mainSliderSource, `slider${order}ButtonName`) ||
+      hasOwnValue(mainSliderSource, `slider${order}ButtonLink`);
+    const titleFallback = hasExplicitSlide ? "" : fallback.title;
+    const descriptionFallback = hasExplicitSlide ? "" : fallback.description;
+    const buttonFallback = hasExplicitSlide ? "" : fallback.buttonName;
+    const linkFallback = hasExplicitSlide ? "" : fallback.buttonLink;
 
     return {
       imageDataUrl: toText(
@@ -729,33 +750,37 @@ const normalizeHome = (root: Record<string, any>) => {
           "",
         fallback.imageDataUrl
       ),
-      title: toText(
+      title: toSliderText(
         nested.title ??
           legacyNested.title ??
           mainSliderSource[`slider${order}Title`] ??
           "",
-        fallback.title
+        titleFallback,
+        hasExplicitSlide
       ),
-      description: toText(
+      description: toSliderText(
         nested.description ??
           legacyNested.description ??
           mainSliderSource[`slider${order}Description`] ??
           "",
-        fallback.description
+        descriptionFallback,
+        hasExplicitSlide
       ),
-      buttonName: toText(
+      buttonName: toSliderText(
         nested.buttonName ??
           legacyNested.buttonName ??
           mainSliderSource[`slider${order}ButtonName`] ??
           "",
-        fallback.buttonName
+        buttonFallback,
+        hasExplicitSlide
       ),
-      buttonLink: toText(
+      buttonLink: toSliderText(
         nested.buttonLink ??
           legacyNested.buttonLink ??
           mainSliderSource[`slider${order}ButtonLink`] ??
           "",
-        fallback.buttonLink
+        linkFallback,
+        hasExplicitSlide
       ),
     };
   });

@@ -324,7 +324,7 @@ function LegacyStoreCategoryRedirect() {
   const { slug } = useParams();
   const target = slug
     ? `/search?category=${encodeURIComponent(slug)}&page=1`
-    : "/search?page=1";
+    : "/shop";
   return <Navigate to={target} replace />;
 }
 
@@ -367,6 +367,7 @@ export default function App() {
           <Route path="/store/:slug" element={<StoreMicrositePage />} />
           <Route path="/" element={<StoreLayout />}>
             <Route index element={<KachaBazarDemoHomePage />} />
+            <Route path="shop" element={<StoreSearchPage />} />
             <Route path="search" element={<StoreSearchPage />} />
             <Route path="category" element={<LegacyStoreCategoryRedirect />} />
             <Route path="category/:slug" element={<LegacyStoreCategoryRedirect />} />

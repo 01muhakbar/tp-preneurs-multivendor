@@ -1,6 +1,10 @@
 import { ShoppingCart } from "lucide-react";
+import { useCart } from "../../hooks/useCart.ts";
+import { formatCurrency } from "../../utils/format.js";
 
-export default function FloatingCartWidget({ totalQty, subtotalDisplay }) {
+export default function FloatingCartWidget() {
+  const { count, subtotal } = useCart();
+
   const handleOpenDrawer = () => {
     window.dispatchEvent(new Event("cart-drawer:open"));
   };
@@ -10,17 +14,22 @@ export default function FloatingCartWidget({ totalQty, subtotalDisplay }) {
       type="button"
       onClick={handleOpenDrawer}
       aria-label="Open shopping cart"
-      className="no-print fixed right-3 top-1/2 z-30 hidden w-[98px] -translate-y-1/2 flex-col items-center rounded-[18px] border border-slate-200 bg-white px-2.5 pb-3.5 pt-3.5 text-slate-900 shadow-[0_18px_40px_rgba(15,23,42,0.15)] transition hover:-translate-y-[calc(50%+2px)] hover:shadow-[0_22px_46px_rgba(15,23,42,0.18)] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:shadow-[0_18px_40px_rgba(0,0,0,0.35)] sm:flex"
+      className="no-print fixed right-4 top-1/2 z-30 hidden w-[104px] -translate-y-1/2 flex-col items-center overflow-hidden rounded-[24px] border border-[#d8e4f2] bg-white text-[#071a3f] shadow-[0_22px_44px_rgba(3,76,133,0.16)] transition hover:-translate-y-[calc(50%+2px)] hover:shadow-[0_26px_54px_rgba(3,76,133,0.2)] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 2xl:flex"
     >
-      <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-emerald-100 bg-emerald-50 text-emerald-600 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-300">
-        <ShoppingCart className="h-4.5 w-4.5" />
+      <span className="relative mt-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-[#f7fbff] text-[#034c85] shadow-inner dark:bg-slate-800 dark:text-sky-300">
+        <ShoppingCart className="h-6 w-6" />
+        {count > 0 ? (
+          <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-[#fe6f05] px-1.5 text-[11px] font-black leading-5 text-white">
+            {count}
+          </span>
+        ) : null}
       </span>
-      <div className="mt-3 text-[11px] font-semibold leading-none text-slate-500 dark:text-slate-400">
-        {totalQty} Items
-      </div>
-      <div className="mt-3 w-[118px] rounded-[13px] bg-emerald-500 px-3 py-2 text-center text-[15px] font-bold leading-none text-white shadow-[0_10px_20px_rgba(5,150,105,0.24)]">
-        {subtotalDisplay}
-      </div>
+      <span className="mt-3 text-sm font-bold text-slate-500 dark:text-slate-300">
+        {count} Items
+      </span>
+      <span className="mt-4 block w-full bg-[#034c85] px-2 py-4 text-center text-lg font-black leading-none text-white">
+        {formatCurrency(Number(subtotal || 0))}
+      </span>
     </button>
   );
 }

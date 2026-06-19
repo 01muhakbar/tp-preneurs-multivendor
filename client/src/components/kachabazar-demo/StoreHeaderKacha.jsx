@@ -1,301 +1,336 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { useCartStore } from "../../store/cart.store.ts";
-import { useStoreCategories } from "../../hooks/useStoreCategories.ts";
+import {
+  ChevronDown,
+  Globe2,
+  Headphones,
+  Heart,
+  Menu,
+  Search,
+  ShoppingCart,
+  UserRound,
+} from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAccountAuth } from "../../auth/authDomainHooks.js";
-import {
-  getStoreCustomization,
-  getStoreHeaderCustomization,
-} from "../../api/public/storeCustomizationPublic.ts";
-import { getStorePublicIdentity } from "../../api/public/storePublicIdentity.ts";
-import {
-  normalizePublicStoreIdentity,
-  resolvePreferredText,
-  toPreferredWhatsAppLink,
-} from "../../utils/storePublicIdentity.ts";
-import TopInfoBar from "./TopInfoBar.jsx";
-import GreenHeaderBar from "./GreenHeaderBar.jsx";
-import NavBar from "./NavBar.jsx";
+import { useCart } from "../../hooks/useCart.ts";
+import { resolveAssetUrl } from "../../lib/assetUrl.js";
+import { useCategories } from "../../storefront.jsx";
+import ThemeToggle from "../store/ThemeToggle.jsx";
 
-const DEFAULT_HEADER_CONTENT = {
-  headerText: "Need help?",
-  phoneNumber: "+62 812 3456 7890",
-  whatsAppLink: "",
-  headerLogoUrl: "",
-  updatedAt: "",
-};
-const DEFAULT_MENU_CONTENT = {
-  labels: {
-    categories: "Categories",
-    aboutUs: "About Us",
-    contactUs: "Contact Us",
-    offers: "Offers",
-    faq: "FAQ",
-    privacyPolicy: "Privacy Policy",
-    termsAndConditions: "Terms & Conditions",
-    pages: "Pages",
-    myAccount: "My Account",
-    login: "Login",
-    logout: "Logout",
-    checkout: "Checkout",
-  },
-  enabled: {
-    showCategories: true,
-    showAboutUs: true,
-    showContactUs: true,
-    showOffers: true,
-    showFaq: true,
-    showPrivacyPolicy: true,
-    showTermsAndConditions: true,
-  },
+const PRIMARY = "#034c85";
+const ACCENT = "#fe6f05";
+
+const extractList = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.products)) return payload.products;
+  if (Array.isArray(payload?.categories)) return payload.categories;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.data?.items)) return payload.data.items;
+  if (Array.isArray(payload?.data?.products)) return payload.data.products;
+  if (Array.isArray(payload?.data?.categories)) return payload.data.categories;
+  return [];
 };
 
-const toText = (value, fallback = "") => {
-  const normalized = String(value ?? "").trim();
-  return normalized || fallback;
-};
+const navItems = [
+  { label: "Shop", href: "/shop", hasChevron: true },
+  { label: "Offers", href: "/offers", hasDot: true },
+  { label: "About Us", href: "/about-us" },
+  { label: "Contact Us", href: "/contact-us" },
+];
 
-const toBool = (value, fallback = false) => {
-  if (typeof value === "boolean") return value;
-  if (typeof value === "number") return value !== 0;
-  if (typeof value === "string") {
-    const normalized = value.trim().toLowerCase();
-    if (["true", "1", "yes", "on"].includes(normalized)) return true;
-    if (["false", "0", "no", "off"].includes(normalized)) return false;
+function LogoMark({ logoUrl, logoVersion }) {
+  const src = resolveAssetUrl(logoUrl);
+
+  if (src) {
+    const separator = src.includes("?") ? "&" : "?";
+    const versionedSrc = logoVersion ? `${src}${separator}v=${logoVersion}` : src;
+    return (
+      <Link
+        to="/"
+        className="flex h-[42px] w-[138px] shrink-0 items-center sm:h-[48px] sm:w-[164px]"
+        aria-label="TP Preneurs home"
+      >
+        <img
+          src={versionedSrc}
+          alt="TP Preneurs logo"
+          className="h-full w-full object-contain object-left"
+        />
+      </Link>
+    );
   }
-  return fallback;
-};
 
-const sanitizeHeaderBrandName = (value, fallback = "KACHA BAZAR") => {
-  const normalized = toText(value, fallback);
-  const lowered = normalized.toLowerCase();
-  if (lowered === "super admin" || lowered === "super-admin" || lowered === "super_admin") {
-    return fallback;
+  return (
+    <Link
+      to="/"
+      className="flex h-[42px] min-w-[138px] items-center gap-2.5 sm:h-[48px] sm:min-w-[164px]"
+      aria-label="TP Preneurs home"
+    >
+      <div className="relative h-11 w-[52px]">
+        <div
+          className="absolute left-0 top-1.5 h-8 w-9 rounded-r-[15px] rounded-tl-lg"
+          style={{ background: PRIMARY }}
+        />
+        <div
+          className="absolute left-6 top-0 h-11 w-4 rounded-full"
+          style={{ background: PRIMARY }}
+        />
+        <div
+          className="absolute right-0 top-1.5 grid h-8 w-8 place-items-center rounded-full"
+          style={{ background: ACCENT }}
+        >
+          <div className="h-4 w-4 rounded-full bg-white" />
+        </div>
+      </div>
+      <div className="leading-none">
+        <div className="text-[21px] font-black tracking-tight text-[#034c85]">
+          TP <span className="text-[#fe6f05]">Preneurs</span>
+        </div>
+        <div className="mt-1 text-[8px] font-black uppercase tracking-[0.16em] text-[#034c85]">
+          The Preneurs Power Hub
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function IconButton({ as: Component = "button", to, children, label, badge, onClick }) {
+  const commonClass =
+    "relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#d8e4f2] bg-white text-[#071a3f] shadow-[0_6px_16px_rgba(3,76,133,0.07)] transition hover:border-[#034c85]/35 hover:text-[#034c85] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-[#034c85]";
+
+  if (Component === Link) {
+    return (
+      <Link to={to} aria-label={label} className={commonClass}>
+        {children}
+        {badge ? (
+          <span className="absolute -right-0.5 -top-1 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-black text-white" style={{ background: ACCENT }}>
+            {badge}
+          </span>
+        ) : null}
+      </Link>
+    );
   }
-  return normalized;
-};
+
+  return (
+    <button type="button" onClick={onClick} aria-label={label} className={commonClass}>
+      {children}
+      {badge ? (
+        <span className="absolute -right-0.5 -top-1 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-black text-white" style={{ background: ACCENT }}>
+          {badge}
+        </span>
+      ) : null}
+    </button>
+  );
+}
 
 export default function StoreHeaderKacha({
   onCartClick,
   publicIdentityOverride = null,
   brandingLogoUrl = "",
+  storeSettings = null,
+  customization = null,
+  identity = null,
 }) {
+  void publicIdentityOverride;
+  void storeSettings;
+  void customization;
+  void identity;
+
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const totalQty = useCartStore((state) => state.totalQty);
-  const { data: categories, isLoading: categoriesLoading } = useStoreCategories();
+  const { count } = useCart();
   const { isAccountSession } = useAccountAuth();
-  const lang = "en";
-  const headerQuery = useQuery({
-    queryKey: ["store-customization-header", lang],
-    queryFn: () => getStoreHeaderCustomization({ lang }),
-    staleTime: 60_000,
-    retry: 1,
-    refetchOnWindowFocus: false,
+  const { data: categoriesData, isLoading: categoriesLoading } = useCategories({
+    parentsOnly: true,
   });
-  const homeCustomizationQuery = useQuery({
-    queryKey: ["store-customization", "home-header", lang],
-    queryFn: () => getStoreCustomization({ lang, include: "home" }),
-    staleTime: 60_000,
-    retry: 1,
-    refetchOnWindowFocus: false,
-  });
-  const publicIdentityQuery = useQuery({
-    queryKey: ["store-public-identity"],
-    queryFn: getStorePublicIdentity,
-    enabled: !publicIdentityOverride,
-    staleTime: 60_000,
-    retry: 1,
-    refetchOnWindowFocus: false,
-  });
-
   const [search, setSearch] = useState("");
-  const [showCategories, setShowCategories] = useState(false);
-  const [showPages, setShowPages] = useState(false);
-  const hasHeaderPayload = Boolean(headerQuery.data?.data);
-  const hasPublicIdentityPayload = Boolean(publicIdentityQuery.data?.data);
-  const hasHomeCustomizationPayload = Boolean(homeCustomizationQuery.data?.customization?.home);
-  const headerContent = useMemo(() => {
-    const headerContentRaw = headerQuery.data?.data || {};
-    if (!hasHeaderPayload) {
-      return {
-        headerText: "",
-        phoneNumber: "",
-        whatsAppLink: "",
-        headerLogoUrl: "",
-        updatedAt: "",
-      };
-    }
-    return {
-      headerText: toText(headerContentRaw.headerText, DEFAULT_HEADER_CONTENT.headerText),
-      phoneNumber: toText(headerContentRaw.phoneNumber, DEFAULT_HEADER_CONTENT.phoneNumber),
-      whatsAppLink: toText(
-        headerContentRaw.whatsAppLink,
-        DEFAULT_HEADER_CONTENT.whatsAppLink
-      ),
-      headerLogoUrl: toText(
-        headerContentRaw.headerLogoUrl,
-        DEFAULT_HEADER_CONTENT.headerLogoUrl
-      ),
-      updatedAt: toText(headerContentRaw.updatedAt, DEFAULT_HEADER_CONTENT.updatedAt),
-    };
-  }, [headerQuery.data, hasHeaderPayload]);
-  const menuContent = useMemo(() => {
-    const menuEditor =
-      homeCustomizationQuery.data?.customization?.home?.menuEditor || {};
-    const labels =
-      menuEditor.labels && typeof menuEditor.labels === "object" ? menuEditor.labels : {};
-    const enabled =
-      menuEditor.enabled && typeof menuEditor.enabled === "object" ? menuEditor.enabled : {};
-
-    if (!hasHomeCustomizationPayload) {
-      return DEFAULT_MENU_CONTENT;
-    }
-
-    return {
-      labels: {
-        categories: toText(labels.categories, DEFAULT_MENU_CONTENT.labels.categories),
-        aboutUs: toText(labels.aboutUs, DEFAULT_MENU_CONTENT.labels.aboutUs),
-        contactUs: toText(labels.contactUs, DEFAULT_MENU_CONTENT.labels.contactUs),
-        offers: toText(labels.offers, DEFAULT_MENU_CONTENT.labels.offers),
-        faq: toText(labels.faq, DEFAULT_MENU_CONTENT.labels.faq),
-        privacyPolicy: toText(
-          labels.privacyPolicy,
-          DEFAULT_MENU_CONTENT.labels.privacyPolicy
-        ),
-        termsAndConditions: toText(
-          labels.termsAndConditions,
-          DEFAULT_MENU_CONTENT.labels.termsAndConditions
-        ),
-        pages: toText(labels.pages, DEFAULT_MENU_CONTENT.labels.pages),
-        myAccount: toText(labels.myAccount, DEFAULT_MENU_CONTENT.labels.myAccount),
-        login: toText(labels.login, DEFAULT_MENU_CONTENT.labels.login),
-        logout: toText(labels.logout, DEFAULT_MENU_CONTENT.labels.logout),
-        checkout: toText(labels.checkout, DEFAULT_MENU_CONTENT.labels.checkout),
-      },
-      enabled: {
-        showCategories: toBool(
-          enabled.showCategories,
-          DEFAULT_MENU_CONTENT.enabled.showCategories
-        ),
-        showAboutUs: toBool(enabled.showAboutUs, DEFAULT_MENU_CONTENT.enabled.showAboutUs),
-        showContactUs: toBool(
-          enabled.showContactUs,
-          DEFAULT_MENU_CONTENT.enabled.showContactUs
-        ),
-        showOffers: toBool(enabled.showOffers, DEFAULT_MENU_CONTENT.enabled.showOffers),
-        showFaq: toBool(enabled.showFaq, DEFAULT_MENU_CONTENT.enabled.showFaq),
-        showPrivacyPolicy: toBool(
-          enabled.showPrivacyPolicy,
-          DEFAULT_MENU_CONTENT.enabled.showPrivacyPolicy
-        ),
-        showTermsAndConditions: toBool(
-          enabled.showTermsAndConditions,
-          DEFAULT_MENU_CONTENT.enabled.showTermsAndConditions
-        ),
-      },
-    };
-  }, [hasHomeCustomizationPayload, homeCustomizationQuery.data]);
-  const publicIdentity = useMemo(() => {
-    if (publicIdentityOverride && typeof publicIdentityOverride === "object") {
-      return normalizePublicStoreIdentity({ data: publicIdentityOverride });
-    }
-    return normalizePublicStoreIdentity(publicIdentityQuery.data);
-  }, [publicIdentityOverride, publicIdentityQuery.data]);
-  const resolvedBrandName = sanitizeHeaderBrandName(
-    resolvePreferredText(publicIdentity.name, "", "KACHA BAZAR")
-  );
-  const resolvedPhoneNumber = publicIdentityOverride
-    ? resolvePreferredText(publicIdentity.phone, headerContent.phoneNumber)
-    : resolvePreferredText(headerContent.phoneNumber, publicIdentity.phone);
-  const resolvedWhatsAppLink = publicIdentityOverride
-    ? toPreferredWhatsAppLink(publicIdentity.whatsapp, headerContent.whatsAppLink)
-    : toPreferredWhatsAppLink(headerContent.whatsAppLink, publicIdentity.whatsapp);
-  const resolvedHeaderLogoUrl = publicIdentityOverride
-    ? resolvePreferredText(publicIdentity.logoUrl, headerContent.headerLogoUrl)
-    : resolvePreferredText(headerContent.headerLogoUrl, publicIdentity.logoUrl);
-  const effectiveHeaderLogoUrl = resolvePreferredText(
-    brandingLogoUrl,
-    resolvedHeaderLogoUrl
-  );
-  const isIdentityLoading =
-    !publicIdentityOverride &&
-    !hasHeaderPayload &&
-    !hasPublicIdentityPayload &&
-    (headerQuery.isFetching || publicIdentityQuery.isFetching);
-  const headerVersion = useMemo(() => {
-    const versionSource = publicIdentityOverride
-      ? resolvePreferredText(publicIdentity.updatedAt, headerContent.updatedAt)
-      : resolvePreferredText(headerContent.updatedAt, publicIdentity.updatedAt);
-    const parsed = Date.parse(versionSource);
-    return Number.isFinite(parsed)
-      ? String(parsed)
-      : toText(versionSource);
-  }, [headerContent.updatedAt, publicIdentity.updatedAt]);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const categories = useMemo(() => extractList(categoriesData).slice(0, 8), [categoriesData]);
 
   useEffect(() => {
-    const q = searchParams.get("q") ?? "";
-    setSearch(q);
+    setSearch(searchParams.get("q") ?? "");
   }, [searchParams]);
 
-  useEffect(() => {
-    const handleClick = (event) => {
-      if (!(event.target instanceof Element)) return;
-      if (!event.target.closest("[data-demo-dropdown]")) {
-        setShowCategories(false);
-        setShowPages(false);
-      }
-    };
-    document.addEventListener("click", handleClick);
-    return () => document.removeEventListener("click", handleClick);
-  }, []);
-
-  const handleSearchSubmit = (event) => {
+  const submitSearch = (event) => {
     event.preventDefault();
-    const q = search.trim();
-    if (!q) return;
     const params = new URLSearchParams();
+    const q = search.trim();
+    if (!q) {
+      navigate("/shop");
+      return;
+    }
     params.set("q", q);
     params.set("page", "1");
     navigate(`/search?${params.toString()}`);
   };
 
+  const closeCategories = () => setCategoriesOpen(false);
+
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
-      <div className="hidden sm:block">
-        <TopInfoBar
-          headerText={headerContent.headerText}
-          phoneNumber={resolvedPhoneNumber}
-          whatsAppLink={resolvedWhatsAppLink}
-          menuLabels={menuContent.labels}
-          menuEnabled={menuContent.enabled}
-          isHeaderLoading={isIdentityLoading}
-        />
+    <header className="sticky top-0 z-50 border-b border-[#e3edf8] bg-[#f7fbff]/95 text-[#071a3f] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95 dark:text-slate-100">
+      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-1.5 text-xs text-slate-600 sm:px-5 lg:px-6 dark:text-slate-300">
+        <div className="flex min-w-0 items-center gap-3">
+          <Headphones className="h-[18px] w-[18px] shrink-0 text-[#034c85] dark:text-sky-300" />
+          <span className="truncate">We are available 24/7, Need help?</span>
+          <a href="tel:565555" className="font-black text-[#fe6f05]">
+            565555
+          </a>
+        </div>
+        <nav className="hidden items-center gap-5 lg:flex">
+          {[
+            ["About Us", "/about-us"],
+            ["Contact Us", "/contact-us"],
+            ["My Account", "/user/my-account"],
+            ["Login", "/auth/login"],
+          ].map(([label, href], index) => (
+            <div key={label} className="flex items-center gap-5">
+              {index > 0 ? <span className="h-4 w-px bg-slate-300 dark:bg-slate-700" /> : null}
+              <Link to={href} className="font-semibold transition hover:text-[#fe6f05]">
+                {label}
+              </Link>
+            </div>
+          ))}
+        </nav>
       </div>
-      <GreenHeaderBar
-        search={search}
-        setSearch={setSearch}
-        onSubmit={handleSearchSubmit}
-        totalQty={totalQty}
-        isAuthenticated={Boolean(isAccountSession)}
-        onCartClick={onCartClick}
-        brandName={resolvedBrandName}
-        headerLogoUrl={effectiveHeaderLogoUrl}
-        logoUpdatedAt={headerVersion}
-        isHeaderLoading={isIdentityLoading}
-      />
-      <div className="hidden sm:block">
-        <NavBar
-          showCategories={showCategories}
-          setShowCategories={setShowCategories}
-          showPages={showPages}
-          setShowPages={setShowPages}
-          categories={categories}
-          categoriesLoading={categoriesLoading}
-          menuLabels={menuContent.labels}
-          menuEnabled={menuContent.enabled}
-        />
+
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-5 lg:px-6">
+        <div className="rounded-[18px] border border-white/80 bg-white px-4 py-2 shadow-[0_10px_24px_rgba(3,76,133,0.08)] dark:border-slate-800 dark:bg-slate-900 dark:shadow-[0_14px_30px_rgba(0,0,0,0.22)]">
+          <div className="flex items-center gap-3 lg:gap-5">
+            <div className="shrink-0">
+              <LogoMark logoUrl={brandingLogoUrl} />
+            </div>
+
+            <form onSubmit={submitSearch} className="hidden min-w-0 flex-1 md:block">
+              <label className="relative block">
+                <span className="sr-only">Search products</span>
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Search for products (e.g. fish, apple, baby care)"
+                  className="h-11 w-full rounded-full border border-[#c8d7ea] bg-white px-6 pr-[58px] text-sm font-semibold text-[#42577b] outline-none transition placeholder:text-[#667798] focus:border-[#034c85] focus:ring-4 focus:ring-[#034c85]/10 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
+                />
+                <button
+                  type="submit"
+                  aria-label="Search"
+                  className="absolute right-1.5 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-white shadow-[0_10px_20px_rgba(3,76,133,0.2)] transition hover:scale-[1.03]"
+                  style={{ background: PRIMARY }}
+                >
+                  <Search className="h-5 w-5" />
+                </button>
+              </label>
+            </form>
+
+            <div className="ml-auto flex items-center gap-2 sm:gap-3">
+              <ThemeToggle
+                variant="icon"
+                className="h-10 w-10 border-[#d8e4f2] text-[#071a3f] shadow-[0_6px_16px_rgba(3,76,133,0.07)] hover:text-[#034c85] dark:border-slate-700"
+              />
+              <IconButton as={Link} to="/wishlist" label="Wishlist">
+                <Heart className="h-5 w-5" />
+              </IconButton>
+              <IconButton label="Open cart" badge={count > 0 ? count : null} onClick={onCartClick}>
+                <ShoppingCart className="h-5 w-5" />
+              </IconButton>
+              <IconButton
+                as={Link}
+                to={isAccountSession ? "/user/my-account" : "/auth/login"}
+                label={isAccountSession ? "My account" : "Login"}
+              >
+                <UserRound className="h-5 w-5" />
+              </IconButton>
+            </div>
+          </div>
+
+          <form onSubmit={submitSearch} className="mt-3 md:hidden">
+            <label className="relative block">
+              <span className="sr-only">Search products</span>
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search products"
+                className="h-12 w-full rounded-full border border-[#c8d7ea] bg-white px-5 pr-14 text-base font-semibold text-[#42577b] outline-none focus:border-[#034c85] focus:ring-4 focus:ring-[#034c85]/10 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+              />
+              <button
+                type="submit"
+                aria-label="Search"
+                className="absolute right-1.5 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-white"
+                style={{ background: PRIMARY }}
+              >
+                <Search className="h-5 w-5" />
+              </button>
+            </label>
+          </form>
+        </div>
+      </div>
+
+      <div className="mx-auto mt-2 w-full max-w-7xl px-4 pb-2 sm:px-5 lg:px-6">
+        <div className="flex min-h-[52px] items-center justify-between gap-4 overflow-visible rounded-[18px] border border-white/80 bg-white px-3 py-1.5 shadow-[0_8px_20px_rgba(3,76,133,0.06)] dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex min-w-0 items-center gap-2 md:gap-4">
+            <div className="relative" data-demo-dropdown>
+              <button
+                type="button"
+                onClick={() => setCategoriesOpen((value) => !value)}
+                className="inline-flex h-10 items-center gap-2.5 rounded-full px-4 text-sm font-black text-white shadow-[0_10px_22px_rgba(3,76,133,0.17)] sm:px-5"
+                style={{ background: PRIMARY }}
+                aria-expanded={categoriesOpen}
+              >
+                <Menu className="h-5 w-5" />
+                <span>Categories</span>
+                <ChevronDown className="h-4 w-4" />
+              </button>
+              {categoriesOpen ? (
+                <div className="absolute left-0 top-[calc(100%+10px)] z-50 w-72 overflow-hidden rounded-[22px] border border-[#d8e4f2] bg-white p-2 shadow-[0_22px_45px_rgba(3,76,133,0.16)] dark:border-slate-700 dark:bg-slate-900">
+                  {categoriesLoading ? (
+                    <div className="px-3 py-3 text-sm text-slate-500">Loading categories...</div>
+                  ) : categories.length > 0 ? (
+                    categories.map((category) => (
+                      <Link
+                        key={category.id ?? category.slug ?? category.name}
+                        to={`/search?category=${encodeURIComponent(category.slug ?? category.id ?? category.name)}&page=1`}
+                        onClick={closeCategories}
+                        className="block rounded-2xl px-4 py-3 text-sm font-bold text-[#071a3f] transition hover:bg-[#f7fbff] hover:text-[#fe6f05] dark:text-slate-100 dark:hover:bg-slate-800"
+                      >
+                        {category.name}
+                      </Link>
+                    ))
+                  ) : (
+                    <Link
+                      to="/shop"
+                      onClick={closeCategories}
+                      className="block rounded-2xl px-4 py-3 text-sm font-bold text-[#071a3f] transition hover:bg-[#f7fbff] hover:text-[#fe6f05] dark:text-slate-100"
+                    >
+                      Browse all products
+                    </Link>
+                  )}
+                </div>
+              ) : null}
+            </div>
+
+            <nav className="hidden items-center gap-2 lg:flex">
+              {navItems.map((item) => (
+                <Link
+                  key={item.label}
+                  to={item.href}
+                  className="relative inline-flex h-9 items-center gap-2 rounded-full px-3.5 text-sm font-black text-[#071a3f] transition hover:bg-[#f7fbff] hover:text-[#034c85] dark:text-slate-100 dark:hover:bg-slate-800"
+                >
+                  <span>{item.label}</span>
+                  {item.hasChevron ? <ChevronDown className="h-4 w-4" /> : null}
+                  {item.hasDot ? (
+                    <span className="absolute right-1 top-2 h-2.5 w-2.5 rounded-full" style={{ background: ACCENT }} />
+                  ) : null}
+                </Link>
+              ))}
+            </nav>
+          </div>
+
+          <button
+            type="button"
+            className="inline-flex h-9 shrink-0 items-center gap-2.5 rounded-full px-3 text-sm font-black text-[#071a3f] transition hover:bg-[#f7fbff] dark:text-slate-100 dark:hover:bg-slate-800 sm:px-4"
+          >
+            <Globe2 className="h-5 w-5" />
+            <span className="hidden sm:inline">English</span>
+            <ChevronDown className="h-4 w-4" />
+          </button>
+        </div>
       </div>
     </header>
   );

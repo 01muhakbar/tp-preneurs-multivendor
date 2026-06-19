@@ -1,584 +1,702 @@
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import {
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  Flag,
+  MoreHorizontal,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  Store,
+  X,
+} from "lucide-react";
 import { fetchAdminPaymentAudit } from "../../api/adminPaymentAudit.ts";
 import { formatCurrency } from "../../utils/format.js";
-import {
-  CheckoutModeBadge,
-  PaymentStatusBadge,
-} from "../../components/payments/PaymentReadModelBadges.jsx";
-import {
-  AdminOpsEmptyState,
-  AdminOpsErrorState,
-  AdminOpsLoadingState,
-  AdminOpsMetricCard,
-  AdminOpsPageHeader,
-  AdminOpsStatusBadge,
-} from "../../components/admin/AdminOpsPrimitives.jsx";
+import "./AdminPaymentAuditPage.css";
 
-const PAYMENT_STATUS_OPTIONS = ["", "UNPAID", "PARTIALLY_PAID", "PAID"];
-const REVIEW_STATUS_OPTIONS = ["", "PENDING", "REJECTED", "APPROVED"];
-const CHECKOUT_MODE_OPTIONS = ["", "MULTI_STORE", "SINGLE_STORE", "LEGACY"];
-const RISK_FILTERS = [
+const RISK_TABS = [
   { value: "all", label: "All" },
   { value: "urgent", label: "Urgent" },
-  { value: "review", label: "Proof review" },
+  { value: "proof_review", label: "Proof Review" },
   { value: "mismatch", label: "Mismatch" },
   { value: "blocked", label: "Blocked" },
   { value: "clear", label: "Clear" },
 ];
 
+const PARENT_PAYMENT_OPTIONS = [
+  { value: "", label: "All" },
+  { value: "PAID", label: "Paid" },
+  { value: "PENDING", label: "Pending" },
+  { value: "FAILED", label: "Failed" },
+  { value: "EXPIRED", label: "Expired" },
+  { value: "REFUNDED", label: "Refunded" },
+];
+
+const PROOF_REVIEW_OPTIONS = [
+  { value: "", label: "All" },
+  { value: "APPROVED", label: "Approved" },
+  { value: "PENDING", label: "Pending" },
+  { value: "UNDER_REVIEW", label: "Under Review" },
+  { value: "REJECTED", label: "Rejected" },
+  { value: "NO_PROOF", label: "No Proof" },
+];
+
+const CHECKOUT_MODE_OPTIONS = [
+  { value: "", label: "All" },
+  { value: "SINGLE_STORE", label: "Single Store" },
+  { value: "MULTI_STORE", label: "Multi-Store" },
+];
+
+const PAID_LIKE = new Set(["PAID", "APPROVED", "SETTLED", "SUCCESS", "COMPLETED"]);
+const REVIEW_LIKE = new Set(["PENDING", "UNDER_REVIEW", "NEEDS_REVIEW", "SUBMITTED"]);
+const BLOCKED_LIKE = new Set(["BLOCKED", "FAILED", "REJECTED", "EXPIRED", "CANCELLED"]);
+const BACKEND_PARENT_FILTERS = new Set(["PAID", "UNPAID", "PARTIALLY_PAID"]);
+const BACKEND_REVIEW_FILTERS = new Set(["PENDING", "APPROVED", "REJECTED"]);
+
+const text = (value, fallback = "-") => {
+  const normalized = String(value ?? "").trim();
+  return normalized || fallback;
+};
+
+const normalizeStatus = (value, fallback = "UNKNOWN") => text(value, fallback).toUpperCase();
+
+const isPaidLike = (value) => PAID_LIKE.has(normalizeStatus(value));
+const isReviewLike = (value) => REVIEW_LIKE.has(normalizeStatus(value));
+const isBlockedLike = (value) => BLOCKED_LIKE.has(normalizeStatus(value));
+
 const formatDateTime = (value) => {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleString();
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 };
 
-const getToneBadgeClass = (tone) => {
-  const value = String(tone || "").trim().toLowerCase();
-  if (value === "amber") return "bg-amber-100 text-amber-700";
-  if (value === "sky") return "bg-sky-100 text-sky-700";
-  if (value === "indigo") return "bg-indigo-100 text-indigo-700";
-  if (value === "emerald") return "bg-emerald-100 text-emerald-700";
-  if (value === "rose") return "bg-rose-100 text-rose-700";
-  if (value === "orange") return "bg-orange-100 text-orange-700";
-  return "bg-slate-100 text-slate-700";
-};
+const initials = (value) =>
+  text(value, "NA")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
 
-function StatusMetaBadge({ label, tone, prefix = "" }) {
-  const text = String(label || "-").trim() || "-";
-  return (
-    <span
-      className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getToneBadgeClass(tone)}`}
-    >
-      {prefix ? `${prefix} ${text}` : text}
-    </span>
+const labelize = (value, fallback = "Unknown") =>
+  text(value, fallback)
+    .toLowerCase()
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((part) => part[0].toUpperCase() + part.slice(1))
+    .join(" ");
+
+const getOrderNumber = (entry) =>
+  text(
+    entry?.invoiceNo ||
+      entry?.invoiceNumber ||
+      entry?.orderNumber ||
+      entry?.orderNo ||
+      entry?.order?.invoiceNo ||
+      entry?.order?.invoiceNumber ||
+      entry?.order?.orderNumber ||
+      entry?.id
   );
-}
 
-const getAuditRisk = (entry) => {
-  const counts = getOperationalCounts(entry) || {};
-  const paid = Number(counts?.paidSuborders || 0);
-  const review = Number(counts?.pendingSuborders || 0);
-  const blocked = Number(counts?.unpaidSuborders || 0);
-  const rejected = Number(counts?.rejectedPayments || 0);
-  const finalNegative = Number(counts?.finalNegativeSuborders || 0);
-  const paymentStatus = String(entry?.paymentStatus || "").trim().toUpperCase();
-  const parentPaidButSplitOpen = paymentStatus === "PAID" && (review > 0 || blocked > 0);
-  const splitPaidButParentOpen = paid > 0 && paymentStatus !== "PAID";
+const getOrderId = (entry) =>
+  entry?.orderId || entry?.id || entry?.order?.id || entry?.order?.orderId || getOrderNumber(entry);
 
-  if (rejected > 0 || finalNegative > 0) {
-    return {
-      key: "urgent",
-      label: "Urgent",
-      tone: "rose",
-      helper: "Rejected or final-negative split found.",
-      rank: 4,
-    };
-  }
-  if (parentPaidButSplitOpen || splitPaidButParentOpen) {
-    return {
-      key: "mismatch",
-      label: "Mismatch",
-      tone: "attention",
-      helper: "Parent and store split states differ.",
-      rank: 3,
-    };
-  }
-  if (review > 0) {
-    return {
-      key: "review",
-      label: "Proof review",
-      tone: "attention",
-      helper: "At least one proof still needs review.",
-      rank: 2,
-    };
-  }
-  if (blocked > 0) {
-    return {
-      key: "blocked",
-      label: "Not confirmed",
-      tone: "stone",
-      helper: NOT_CONFIRMED_HELPER,
-      rank: 1,
-    };
-  }
+const getBuyer = (entry) => {
+  const source = entry?.customer || entry?.buyer || entry?.user || entry?.order?.customer || {};
   return {
-    key: "clear",
-    label: "Clear",
-    tone: "ready",
-    helper: "No visible payment risk in this row.",
-    rank: 0,
+    name: text(entry?.buyerName || source.name || entry?.customerName, "Guest"),
+    email: entry?.buyerEmail || source.email || entry?.customerEmail || null,
   };
 };
 
-function SplitStatusBlock({ counts, helperLines }) {
-  const entries = [
-    ["Paid", counts?.paidSuborders || 0, "emerald"],
-    ["Review", counts?.pendingSuborders || 0, "amber"],
-    ["Not confirmed", counts?.unpaidSuborders || 0, "slate"],
-    ["Rejected", counts?.rejectedPayments || 0, "rose"],
-  ];
+const getParentPayment = (entry) => {
+  const payment = entry?.parentPayment || entry?.payment || entry?.order?.payment || {};
+  const status = normalizeStatus(
+    payment.status || entry?.paymentStatus || entry?.parentPaymentStatus,
+    "UNKNOWN"
+  );
+  return {
+    reference: text(
+      payment.internalReference ||
+        payment.externalReference ||
+        payment.reference ||
+        entry?.paymentReference ||
+        entry?.parentPaymentReference ||
+        `PP-${getOrderId(entry)}`
+    ),
+    amount: Number(payment.amount || entry?.grandTotal || entry?.totalAmount || 0),
+    status,
+    label: entry?.paymentStatusMeta?.label || payment.statusMeta?.label || labelize(status),
+    tone: entry?.paymentStatusMeta?.tone || payment.statusMeta?.tone || getStatusTone(status),
+  };
+};
 
+const getSplitStatus = (entry) => {
+  const counts = entry?.operationalCounts || entry?.counts || {};
+  const paid = Number(counts.paidSuborders || 0);
+  const pending = Number(counts.pendingSuborders || 0);
+  const unpaid = Number(counts.unpaidSuborders || 0);
+  const rejected = Number(counts.rejectedPayments || 0) + Number(counts.finalNegativeSuborders || 0);
+
+  if (entry?.splitStatus || entry?.splitPaymentStatus) {
+    return normalizeStatus(entry.splitStatus || entry.splitPaymentStatus);
+  }
+  if (rejected > 0) return "BLOCKED";
+  if (pending > 0) return "PENDING";
+  if (unpaid > 0) return paid > 0 ? "MISMATCH" : "PENDING";
+  if (paid > 0) return "PAID";
+  return normalizeStatus(entry?.paymentStatus, "UNKNOWN");
+};
+
+const getProofReviewStatus = (entry) => {
+  const proof =
+    entry?.proof ||
+    entry?.paymentProof ||
+    entry?.parentPayment?.proof ||
+    entry?.payment?.proof ||
+    entry?.latestProof ||
+    {};
+  const explicit = proof.reviewStatus || entry?.proofReviewStatus || entry?.reviewStatus;
+  if (explicit) return normalizeStatus(explicit);
+
+  const counts = entry?.operationalCounts || entry?.counts || {};
+  if (Number(counts.rejectedPayments || 0) > 0) return "REJECTED";
+  if (Number(counts.pendingSuborders || 0) > 0) return "UNDER_REVIEW";
+  if (Number(counts.paidSuborders || 0) > 0) return "APPROVED";
+  return "NO_PROOF";
+};
+
+const getCheckoutMode = (entry) => {
+  const mode = normalizeStatus(entry?.checkoutMode || entry?.order?.checkoutMode, "SINGLE_STORE");
+  if (mode === "MULTI_STORE") return { code: mode, label: "Multi-Store" };
+  return { code: "SINGLE_STORE", label: "Single Store" };
+};
+
+const getStores = (entry) => {
+  const candidates = entry?.stores || entry?.storeSummaries || entry?.suborders || entry?.split?.groups;
+  if (Array.isArray(candidates) && candidates.length) {
+    return candidates.map((item, index) => {
+      const store = item?.store || item;
+      return {
+        id: store?.id || store?.storeId || item?.storeId || index + 1,
+        name: text(store?.name || store?.storeName || item?.storeName, `Store ${index + 1}`),
+      };
+    });
+  }
+  const count = Math.max(0, Number(entry?.totalStores || entry?.storeCount || 0));
+  return Array.from({ length: count }, (_, index) => ({
+    id: index + 1,
+    name: `Store ${index + 1}`,
+  }));
+};
+
+const getUpdatedAt = (entry) =>
+  entry?.updatedAt || entry?.payment?.updatedAt || entry?.parentPayment?.updatedAt || entry?.order?.updatedAt || entry?.createdAt;
+
+function getStatusTone(status) {
+  const value = normalizeStatus(status, "UNKNOWN");
+  if (PAID_LIKE.has(value)) return "success";
+  if (REVIEW_LIKE.has(value)) return "warning";
+  if (["MISMATCH", "REVIEW"].includes(value)) return "info";
+  if (BLOCKED_LIKE.has(value)) return "danger";
+  if (["NONE", "NO_PROOF", "UNKNOWN"].includes(value)) return "neutral";
+  return "neutral";
+}
+
+const getRisk = (entry) => {
+  const parent = getParentPayment(entry).status;
+  const split = getSplitStatus(entry);
+  const proof = getProofReviewStatus(entry);
+  const explicit = normalizeStatus(entry?.risk || entry?.riskLevel || "", "");
+
+  if (explicit && explicit !== "UNKNOWN") {
+    return explicit === "PROOF_REVIEW" ? "proof_review" : explicit.toLowerCase();
+  }
+  if (isBlockedLike(parent) || isBlockedLike(split) || isBlockedLike(proof)) return "blocked";
+  if (isReviewLike(proof)) return "proof_review";
+  if (parent !== split && !(isPaidLike(parent) && isPaidLike(split))) return "mismatch";
+  if (!isPaidLike(parent) || !isPaidLike(split)) return "urgent";
+  return "clear";
+};
+
+const getRiskRank = (risk) =>
+  ({ blocked: 5, mismatch: 4, proof_review: 3, urgent: 2, clear: 0 }[risk] ?? 1);
+
+function Badge({ children, tone = "neutral" }) {
+  return <span className={`paa-badge paa-badge--${tone}`}>{children}</span>;
+}
+
+function KpiCard({ icon: Icon, label, value, helper, tone }) {
   return (
-    <div className="min-w-[210px] space-y-2">
-      <div className="grid grid-cols-2 gap-2">
-        {entries.map(([label, value, tone]) => (
-          <div key={label} className={`rounded-lg px-2.5 py-2 ${getToneBadgeClass(tone)}`}>
-            <p className="text-[11px] font-semibold uppercase tracking-wide">{label}</p>
-            <p className="mt-0.5 text-base font-bold text-slate-900">{value}</p>
-          </div>
-        ))}
+    <section className={`paa-kpi paa-kpi--${tone}`}>
+      <span className="paa-kpi__icon" aria-hidden="true">
+        <Icon size={28} />
+      </span>
+      <div>
+        <p>{label}</p>
+        <strong>{value}</strong>
+        <small>{helper}</small>
       </div>
-      {helperLines.length > 0 ? (
-        <div className="space-y-1 text-[11px] text-slate-500">
-          {helperLines.map((line) => (
-            <div key={line}>{line}</div>
+    </section>
+  );
+}
+
+function SkeletonRows() {
+  return (
+    <div className="paa-table-wrap">
+      <table className="paa-table">
+        <tbody>
+          {Array.from({ length: 6 }).map((_, index) => (
+            <tr key={index}>
+              {Array.from({ length: 9 }).map((__, cellIndex) => (
+                <td key={cellIndex}>
+                  <span className="paa-skeleton" />
+                </td>
+              ))}
+            </tr>
           ))}
-        </div>
-      ) : null}
+        </tbody>
+      </table>
     </div>
   );
 }
 
-const NOT_CONFIRMED_HELPER =
-  "Not confirmed includes unpaid, expired, failed, and cancelled store splits.";
+function EmptyState({ onReset }) {
+  return (
+    <div className="paa-empty">
+      <ShieldCheck size={30} aria-hidden="true" />
+      <strong>No payment audit rows</strong>
+      <span>Try a different filter.</span>
+      <button type="button" onClick={onReset}>
+        Reset filters
+      </button>
+    </div>
+  );
+}
 
-const getOperationalCounts = (entry) => entry?.operationalCounts || entry?.counts || null;
-
-const getStoreSplitHelperLines = (counts) => {
-  const lines = [];
-  if (Number(counts?.shipmentLaneSuborders || 0) > 0) {
-    lines.push(`Shipment lane: ${counts.shipmentLaneSuborders}`);
-  }
-  if (Number(counts?.finalNegativeSuborders || 0) > 0) {
-    lines.push(`Final-negative: ${counts.finalNegativeSuborders}`);
-  }
-  return lines;
-};
+function ErrorState({ message, onRetry }) {
+  return (
+    <div className="paa-error">
+      <Flag size={30} aria-hidden="true" />
+      <strong>Failed to load payment audit</strong>
+      <span>{message}</span>
+      <button type="button" onClick={onRetry}>
+        <RefreshCw size={16} aria-hidden="true" />
+        Retry
+      </button>
+    </div>
+  );
+}
 
 export default function AdminPaymentAuditPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [searchInput, setSearchInput] = useState(searchParams.get("search") || "");
   const [riskFilter, setRiskFilter] = useState("all");
+  const [draft, setDraft] = useState({
+    search: searchParams.get("search") || "",
+    paymentStatus: searchParams.get("paymentStatus") || "",
+    reviewStatus: searchParams.get("reviewStatus") || "",
+    checkoutMode: searchParams.get("checkoutMode") || "",
+    storeId: searchParams.get("storeId") || "",
+  });
 
   const params = useMemo(() => {
-    const page = Number(searchParams.get("page") || 1);
+    const page = Math.max(1, Number(searchParams.get("page") || 1));
+    const pageSize = Math.max(1, Number(searchParams.get("pageSize") || 10));
+    const paymentStatus = searchParams.get("paymentStatus") || "";
+    const reviewStatus = searchParams.get("reviewStatus") || "";
+
     return {
-      page: Number.isFinite(page) && page > 0 ? page : 1,
+      page,
+      pageSize,
       search: searchParams.get("search") || "",
-      paymentStatus: searchParams.get("paymentStatus") || "",
-      reviewStatus: searchParams.get("reviewStatus") || "",
+      paymentStatus: BACKEND_PARENT_FILTERS.has(paymentStatus) ? paymentStatus : "",
+      reviewStatus: BACKEND_REVIEW_FILTERS.has(reviewStatus) ? reviewStatus : "",
       checkoutMode: searchParams.get("checkoutMode") || "",
       storeId: searchParams.get("storeId") || "",
+      uiPaymentStatus: paymentStatus,
+      uiReviewStatus: reviewStatus,
     };
   }, [searchParams]);
 
+  const queryParams = useMemo(
+    () => ({
+      page: params.page,
+      pageSize: params.pageSize,
+      search: params.search,
+      paymentStatus: params.paymentStatus,
+      reviewStatus: params.reviewStatus,
+      checkoutMode: params.checkoutMode,
+      storeId: params.storeId,
+    }),
+    [params]
+  );
+
   const auditQuery = useQuery({
-    queryKey: ["admin", "payment-audit", params],
-    queryFn: () => fetchAdminPaymentAudit(params),
+    queryKey: ["admin", "payment-audit", queryParams],
+    queryFn: () => fetchAdminPaymentAudit(queryParams),
   });
 
   const updateParams = (patch) => {
     const next = new URLSearchParams(searchParams);
     Object.entries(patch).forEach(([key, value]) => {
-      const text = String(value ?? "").trim();
-      if (!text) next.delete(key);
-      else next.set(key, text);
+      const normalized = String(value ?? "").trim();
+      if (!normalized) next.delete(key);
+      else next.set(key, normalized);
     });
-    if (!Object.prototype.hasOwnProperty.call(patch, "page")) {
-      next.set("page", "1");
-    }
+    if (!Object.prototype.hasOwnProperty.call(patch, "page")) next.set("page", "1");
     setSearchParams(next);
+  };
+
+  const applyFilters = () => updateParams(draft);
+
+  const resetFilters = () => {
+    setDraft({ search: "", paymentStatus: "", reviewStatus: "", checkoutMode: "", storeId: "" });
+    setRiskFilter("all");
+    setSearchParams(new URLSearchParams({ page: "1", pageSize: String(params.pageSize || 10) }));
   };
 
   const items = Array.isArray(auditQuery.data?.items) ? auditQuery.data.items : [];
   const meta = auditQuery.data || { total: 0, page: 1, pageSize: 10, totalPages: 1 };
-  const visibleCounts = useMemo(
-    () =>
-      items.reduce(
-        (acc, entry) => {
-          const counts = getOperationalCounts(entry);
-          const risk = getAuditRisk(entry);
-          acc.paid += Number(counts?.paidSuborders || 0);
-          acc.review += Number(counts?.pendingSuborders || 0);
-          acc.blocked += Number(counts?.unpaidSuborders || 0);
-          acc.rejected += Number(counts?.rejectedPayments || 0);
-          acc.finalNegative += Number(counts?.finalNegativeSuborders || 0);
-          if (risk.key === "urgent") acc.urgent += 1;
-          if (risk.key === "mismatch") acc.mismatch += 1;
-          return acc;
-        },
-        { paid: 0, review: 0, blocked: 0, rejected: 0, finalNegative: 0, urgent: 0, mismatch: 0 }
-      ),
-    [items]
-  );
-  const filteredItems = useMemo(() => {
-    if (riskFilter === "all") return items;
-    return items.filter((entry) => getAuditRisk(entry).key === riskFilter);
-  }, [items, riskFilter]);
-  const mostUrgent = useMemo(
-    () =>
-      [...items]
-        .map((entry) => ({ entry, risk: getAuditRisk(entry) }))
-        .sort((left, right) => right.risk.rank - left.risk.rank)[0] || null,
-    [items]
-  );
+
+  const locallyFilteredItems = useMemo(() => {
+    return items.filter((entry) => {
+      if (params.uiPaymentStatus && !BACKEND_PARENT_FILTERS.has(params.uiPaymentStatus)) {
+        if (getParentPayment(entry).status !== params.uiPaymentStatus) return false;
+      }
+      if (params.uiReviewStatus && !BACKEND_REVIEW_FILTERS.has(params.uiReviewStatus)) {
+        if (getProofReviewStatus(entry) !== params.uiReviewStatus) return false;
+      }
+      if (riskFilter !== "all" && getRisk(entry) !== riskFilter) return false;
+      return true;
+    });
+  }, [items, params.uiPaymentStatus, params.uiReviewStatus, riskFilter]);
+
+  const summary = useMemo(() => {
+    return items.reduce(
+      (acc, entry) => {
+        const risk = getRisk(entry);
+        const parent = getParentPayment(entry).status;
+        const split = getSplitStatus(entry);
+        const proof = getProofReviewStatus(entry);
+
+        if (risk !== "clear") acc.flagged += 1;
+        if (isPaidLike(parent)) acc.paid += 1;
+        if (isReviewLike(proof)) acc.proofReview += 1;
+        if (parent !== split && !(isPaidLike(parent) && isPaidLike(split))) acc.mismatch += 1;
+        acc[risk] = (acc[risk] || 0) + 1;
+        return acc;
+      },
+      {
+        flagged: 0,
+        paid: 0,
+        proofReview: 0,
+        mismatch: 0,
+        urgent: 0,
+        proof_review: 0,
+        blocked: 0,
+        clear: 0,
+      }
+    );
+  }, [items]);
+
+  const clearCount = summary.clear || 0;
+  const attentionCount = items.length - clearCount;
+  const start = meta.total ? (meta.page - 1) * meta.pageSize + 1 : 0;
+  const end = Math.min(meta.total || items.length, (meta.page || 1) * (meta.pageSize || 10));
+  const totalPages = Math.max(1, Number(meta.totalPages || 1));
 
   return (
-    <div className="space-y-5">
-      <AdminOpsPageHeader
-        title="Payment Audit"
-        description="Parent order state and store split payment truth."
-        meta={`${meta.total || 0} order${meta.total === 1 ? "" : "s"}`}
-        badges={
-          <>
-            <AdminOpsStatusBadge
-              label={visibleCounts.review ? "Action needed" : "Ready"}
-              tone={visibleCounts.review ? "attention" : "ready"}
-            />
-            <AdminOpsStatusBadge
-              label={visibleCounts.blocked ? "Needs attention" : "Verified"}
-              tone={visibleCounts.blocked ? "rose" : "verified"}
-            />
-          </>
-        }
-        actions={
-          <button
-            type="button"
-            onClick={() => auditQuery.refetch()}
-            className="inline-flex h-9 items-center justify-center rounded-full border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
+    <div className="admin-payment-audit-page">
+      <section className="paa-hero">
+        <div>
+          <span className="paa-eyebrow">Online Store</span>
+          <h1>Payment Audit</h1>
+          <p>Split payment review and order truth.</p>
+          <div className="paa-hero__badges">
+            <Badge tone="success">Ready</Badge>
+            <Badge tone="success">Verified</Badge>
+          </div>
+        </div>
+        <div className="paa-hero__actions">
+          <span className="paa-total">{meta.total || 0} orders</span>
+          <button type="button" className="paa-refresh" onClick={() => auditQuery.refetch()}>
+            <RefreshCw size={17} aria-hidden="true" />
             Refresh
           </button>
-        }
-      />
+        </div>
+      </section>
 
-      <div className="grid gap-3 md:grid-cols-4">
-        <AdminOpsMetricCard
-          label="Urgent Rows"
-          badgeLabel={visibleCounts.urgent ? "Immediate" : "Ready"}
-          value={visibleCounts.urgent}
-          helper="Rejected or final-negative rows."
-          tone={visibleCounts.urgent ? "rose" : "ready"}
-        />
-        <AdminOpsMetricCard
-          label="Paid Splits"
-          badgeLabel="Verified"
-          value={visibleCounts.paid}
-          helper="Visible rows confirmed as paid."
-          tone="verified"
-        />
-        <AdminOpsMetricCard
-          label="Under Review"
-          badgeLabel={visibleCounts.review ? "Action needed" : "Ready"}
-          value={visibleCounts.review}
-          helper="Proof review still pending."
-          tone={visibleCounts.review ? "attention" : "ready"}
-        />
-        <AdminOpsMetricCard
-          label="Mismatch Rows"
-          badgeLabel={visibleCounts.mismatch ? "Needs attention" : "Ready"}
-          value={visibleCounts.mismatch}
-          helper="Parent state differs from split state."
-          tone={visibleCounts.mismatch ? "attention" : "ready"}
-        />
-      </div>
+      <section className="paa-kpis">
+        <KpiCard icon={Flag} label="Flagged" value={summary.flagged} helper="Need attention" tone="red" />
+        <KpiCard icon={CheckCircle2} label="Paid" value={summary.paid} helper="Confirmed as paid" tone="green" />
+        <KpiCard icon={Eye} label="Proof Review" value={summary.proofReview} helper="Awaiting proof" tone="amber" />
+        <KpiCard icon={ShieldCheck} label="Mismatch" value={summary.mismatch} helper="Mismatch detected" tone="blue" />
+      </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <section className="paa-risk">
+        <div className="paa-risk__tabs">
+          <h2>
+            <ShieldCheck size={18} aria-hidden="true" />
+            Risk Queue
+          </h2>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-              Risk Queue
-            </p>
-            <p className="mt-1 text-sm font-semibold text-slate-900">
-              {RISK_FILTERS.find((filter) => filter.value === riskFilter)?.label || "All"}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {RISK_FILTERS.map((filter) => {
-              const isActive = filter.value === riskFilter;
+            {RISK_TABS.map((tab) => {
+              const count = tab.value === "all" ? items.length : summary[tab.value] || 0;
               return (
                 <button
-                  key={filter.value}
+                  key={tab.value}
                   type="button"
-                  onClick={() => setRiskFilter(filter.value)}
-                  className={`inline-flex h-9 items-center rounded-full border px-3 text-xs font-semibold transition ${
-                    isActive
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                  }`}
+                  className={riskFilter === tab.value ? "is-active" : ""}
+                  onClick={() => setRiskFilter(tab.value)}
                 >
-                  {filter.label}
+                  {tab.label}
+                  {count > 0 ? <span>{count}</span> : null}
                 </button>
               );
             })}
           </div>
         </div>
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-          <div>
-            <p className="text-sm font-semibold text-slate-900">
-              {mostUrgent?.risk?.rank > 0
-                ? `${mostUrgent.risk.label}: ${mostUrgent.entry.orderNumber}`
-                : "No visible risk in this view"}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              {mostUrgent?.risk?.helper || "Use filters to inspect payment lanes."}
-            </p>
+        <div className={`paa-risk-banner ${attentionCount > 0 ? "is-attention" : ""}`}>
+          <div className="paa-spark" aria-hidden="true">
+            <span />
+            <span />
+            <span />
           </div>
-          {mostUrgent?.risk?.rank > 0 ? (
-            <Link
-              to={`/admin/online-store/payment-audit/${mostUrgent.entry.orderId}`}
-              className="inline-flex h-9 items-center rounded-full bg-slate-900 px-3.5 text-sm font-semibold text-white transition hover:bg-slate-800"
-            >
-              Open Urgent
-            </Link>
-          ) : (
-            <AdminOpsStatusBadge label="Audit clear" tone="ready" />
-          )}
+          <div>
+            <strong>
+              {attentionCount > 0
+                ? `${attentionCount} orders need attention`
+                : "Audit queue looks healthy"}
+            </strong>
+            <p>{clearCount} orders are clear</p>
+          </div>
+          <button type="button" aria-label="Dismiss banner">
+            <X size={18} />
+          </button>
         </div>
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
-        <div className="grid gap-3 lg:grid-cols-[minmax(260px,2fr)_repeat(4,minmax(140px,1fr))]">
-          <div>
-            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Search Order / Buyer
-            </label>
-            <div className="mt-2 flex gap-2">
-              <input
-                type="text"
-                value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
-                placeholder="Order number or buyer"
-                className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm text-slate-900 focus:border-emerald-400 focus:outline-none"
-              />
-              <button
-                type="button"
-                onClick={() => updateParams({ search: searchInput })}
-                className="rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700"
-              >
-                Search
-              </button>
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Parent Payment
-            </label>
-            <select
-              value={params.paymentStatus}
-              onChange={(event) => updateParams({ paymentStatus: event.target.value })}
-              className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm text-slate-900 focus:border-emerald-400 focus:outline-none"
-            >
-              {PAYMENT_STATUS_OPTIONS.map((option) => (
-                <option key={option || "all"} value={option}>
-                  {option || "All"}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Proof Review
-            </label>
-            <select
-              value={params.reviewStatus}
-              onChange={(event) => updateParams({ reviewStatus: event.target.value })}
-              className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm text-slate-900 focus:border-emerald-400 focus:outline-none"
-            >
-              {REVIEW_STATUS_OPTIONS.map((option) => (
-                <option key={option || "all"} value={option}>
-                  {option || "All"}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Checkout Mode
-            </label>
-            <select
-              value={params.checkoutMode}
-              onChange={(event) => updateParams({ checkoutMode: event.target.value })}
-              className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm text-slate-900 focus:border-emerald-400 focus:outline-none"
-            >
-              {CHECKOUT_MODE_OPTIONS.map((option) => (
-                <option key={option || "all"} value={option}>
-                  {option || "All"}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Store ID
-            </label>
+      <section className="paa-filters">
+        <label>
+          <span>Search Order / Buyer</span>
+          <div className="paa-search-field">
+            <Search size={18} aria-hidden="true" />
             <input
-              type="number"
-              min="1"
-              value={params.storeId}
-              onChange={(event) => updateParams({ storeId: event.target.value })}
-              placeholder="Any"
-              className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm text-slate-900 focus:border-emerald-400 focus:outline-none"
+              value={draft.search}
+              onChange={(event) => setDraft((value) => ({ ...value, search: event.target.value }))}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") applyFilters();
+              }}
+              placeholder="Order # or buyer name..."
             />
           </div>
-        </div>
+        </label>
+        <label>
+          <span>Parent Payment</span>
+          <select
+            value={draft.paymentStatus}
+            onChange={(event) => setDraft((value) => ({ ...value, paymentStatus: event.target.value }))}
+          >
+            {PARENT_PAYMENT_OPTIONS.map((option) => (
+              <option key={option.value || "all"} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Proof Review</span>
+          <select
+            value={draft.reviewStatus}
+            onChange={(event) => setDraft((value) => ({ ...value, reviewStatus: event.target.value }))}
+          >
+            {PROOF_REVIEW_OPTIONS.map((option) => (
+              <option key={option.value || "all"} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Checkout Mode</span>
+          <select
+            value={draft.checkoutMode}
+            onChange={(event) => setDraft((value) => ({ ...value, checkoutMode: event.target.value }))}
+          >
+            {CHECKOUT_MODE_OPTIONS.map((option) => (
+              <option key={option.value || "all"} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Store ID</span>
+          <input
+            value={draft.storeId}
+            onChange={(event) => setDraft((value) => ({ ...value, storeId: event.target.value }))}
+            placeholder="All"
+            inputMode="numeric"
+          />
+        </label>
+        <button type="button" className="paa-search-button" onClick={applyFilters}>
+          <Search size={17} aria-hidden="true" />
+          Search
+        </button>
+        <button type="button" className="paa-reset-button" onClick={resetFilters}>
+          Reset
+        </button>
       </section>
 
-      {auditQuery.isLoading ? (
-        <AdminOpsLoadingState title="Loading payment audit..." />
-      ) : null}
-
-      {auditQuery.isError ? (
-        <AdminOpsErrorState
-          message={
-            auditQuery.error?.response?.data?.message ||
-            auditQuery.error?.message ||
-            "Failed to load payment audit."
-          }
-          onRetry={() => auditQuery.refetch()}
-        />
-      ) : null}
-
-      {!auditQuery.isLoading && !auditQuery.isError ? (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
-          {items.length === 0 ? (
-            <AdminOpsEmptyState
-              title="No payment audit rows"
-              description="Try clearing filters or searching a different order or buyer."
-            />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200 text-sm">
-                <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <section className="paa-table-card">
+        {auditQuery.isLoading ? <SkeletonRows /> : null}
+        {auditQuery.isError ? (
+          <ErrorState
+            message={
+              auditQuery.error?.response?.data?.message ||
+              auditQuery.error?.message ||
+              "Please retry."
+            }
+            onRetry={() => auditQuery.refetch()}
+          />
+        ) : null}
+        {!auditQuery.isLoading && !auditQuery.isError && items.length === 0 ? (
+          <EmptyState onReset={resetFilters} />
+        ) : null}
+        {!auditQuery.isLoading && !auditQuery.isError && items.length > 0 ? (
+          <div className="paa-table-wrap">
+            <table className="paa-table">
+              <thead>
+                <tr>
+                  <th>Order</th>
+                  <th>Buyer</th>
+                  <th>Parent Payment</th>
+                  <th>Split Status</th>
+                  <th>Proof Review</th>
+                  <th>Checkout Mode</th>
+                  <th>Stores</th>
+                  <th>Updated</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {locallyFilteredItems.length === 0 ? (
                   <tr>
-                    <th className="px-4 py-3">Order</th>
-                    <th className="px-4 py-3">Buyer</th>
-                    <th className="px-4 py-3">Mode</th>
-                    <th className="px-4 py-3">Stores</th>
-                    <th className="px-4 py-3">Grand Total</th>
-                    <th className="px-4 py-3">Parent State</th>
-                    <th className="px-4 py-3">Risk</th>
-                    <th className="px-4 py-3">Store Split Status</th>
-                    <th className="px-4 py-3">Created</th>
-                    <th className="px-4 py-3 text-right">Action</th>
+                    <td colSpan={9}>
+                      <EmptyState onReset={resetFilters} />
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filteredItems.length === 0 ? (
-                    <tr>
-                      <td colSpan={10} className="px-4 py-6">
-                        <AdminOpsEmptyState
-                          title="No audit rows match this risk filter"
-                          description="Switch filters or clear search criteria."
-                        />
+                ) : null}
+                {locallyFilteredItems.map((entry) => {
+                  const orderNumber = getOrderNumber(entry);
+                  const orderId = getOrderId(entry);
+                  const buyer = getBuyer(entry);
+                  const parent = getParentPayment(entry);
+                  const split = getSplitStatus(entry);
+                  const proof = getProofReviewStatus(entry);
+                  const mode = getCheckoutMode(entry);
+                  const stores = getStores(entry);
+                  const visibleStores = stores.slice(0, 2);
+
+                  return (
+                    <tr key={orderId}>
+                      <td>
+                        <strong>{orderNumber}</strong>
+                        <span>{formatDateTime(entry?.createdAt)}</span>
+                      </td>
+                      <td>
+                        <div className="paa-buyer">
+                          <span>{initials(buyer.name)}</span>
+                          <div>
+                            <strong>{buyer.name}</strong>
+                            <small>{buyer.email || "-"}</small>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <strong>{parent.reference}</strong>
+                        <span>{formatCurrency(parent.amount)}</span>
+                      </td>
+                      <td>
+                        <Badge tone={getStatusTone(split)}>{labelize(split)}</Badge>
+                      </td>
+                      <td>
+                        <Badge tone={getStatusTone(proof)}>{labelize(proof)}</Badge>
+                      </td>
+                      <td>{mode.label}</td>
+                      <td>
+                        <div className="paa-stores">
+                          {visibleStores.map((store) => (
+                            <span key={`${orderId}-${store.id}`} title={store.name}>
+                              <Store size={14} aria-hidden="true" />
+                            </span>
+                          ))}
+                          {stores.length > 2 ? <b>+{stores.length - 2}</b> : null}
+                        </div>
+                      </td>
+                      <td>{formatDateTime(getUpdatedAt(entry))}</td>
+                      <td>
+                        <Link
+                          className="paa-action"
+                          to={`/admin/online-store/payment-audit/${encodeURIComponent(String(orderId))}`}
+                          aria-label={`Open payment audit ${orderNumber}`}
+                        >
+                          <MoreHorizontal size={20} aria-hidden="true" />
+                        </Link>
                       </td>
                     </tr>
-                  ) : null}
-                  {filteredItems.map((entry) => {
-                    const counts = getOperationalCounts(entry);
-                    const helperLines = getStoreSplitHelperLines(counts);
-                    const risk = getAuditRisk(entry);
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+      </section>
 
-                    return (
-                      <tr key={entry.orderId} className="align-top">
-                        <td className="px-4 py-4">
-                          <div className="font-semibold text-slate-900">{entry.orderNumber}</div>
-                          <div className="text-xs text-slate-500">ID {entry.orderId}</div>
-                          <div className="mt-2">
-                            <CheckoutModeBadge mode={entry.checkoutMode} />
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="font-medium text-slate-900">{entry.buyerName}</div>
-                          <div className="text-xs text-slate-500">{entry.buyerEmail || "-"}</div>
-                        </td>
-                        <td className="px-4 py-4 text-slate-700">{entry.checkoutMode}</td>
-                        <td className="px-4 py-4 text-slate-700">{entry.totalStores}</td>
-                        <td className="px-4 py-4 font-medium text-slate-900">
-                          {formatCurrency(entry.grandTotal)}
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="space-y-1">
-                            <StatusMetaBadge
-                              label={entry.orderStatusMeta?.label || entry.orderStatus}
-                              tone={entry.orderStatusMeta?.tone}
-                              prefix="Order"
-                            />
-                            <PaymentStatusBadge
-                              status={entry.paymentStatus}
-                              label={entry.paymentStatusMeta?.label}
-                              tone={entry.paymentStatusMeta?.tone}
-                              prefix="Parent"
-                            />
-                            <div className="text-xs text-slate-500">
-                              {entry.checkoutMode === "MULTI_STORE"
-                                ? "Aggregate parent state."
-                                : entry.orderStatusMeta?.description ||
-                                  entry.paymentStatusMeta?.description ||
-                                  "-"}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="space-y-2">
-                            <AdminOpsStatusBadge label={risk.label} tone={risk.tone} />
-                            <p className="max-w-[180px] text-xs leading-5 text-slate-500">
-                              {risk.helper}
-                            </p>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <SplitStatusBlock counts={counts} helperLines={helperLines} />
-                        </td>
-                        <td className="px-4 py-4 text-slate-600">
-                          {formatDateTime(entry.createdAt)}
-                        </td>
-                        <td className="px-4 py-4 text-right">
-                          <Link
-                            to={`/admin/online-store/payment-audit/${entry.orderId}`}
-                            className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                          >
-                            View Detail
-                          </Link>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      ) : null}
-
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+      <section className="paa-pagination">
         <p>
-          Page {meta.page || 1} of {meta.totalPages || 1}
+          Showing {start} to {end} of {meta.total || 0} orders
         </p>
-        <div className="flex gap-2">
+        <div>
+          <select
+            value={String(meta.pageSize || params.pageSize || 10)}
+            onChange={(event) => updateParams({ pageSize: event.target.value, page: 1 })}
+          >
+            <option value="10">10 / page</option>
+            <option value="25">25 / page</option>
+            <option value="50">50 / page</option>
+          </select>
           <button
             type="button"
-            onClick={() => updateParams({ page: Math.max(1, (meta.page || 1) - 1) })}
             disabled={(meta.page || 1) <= 1}
-            className="rounded-lg border border-slate-200 px-3 py-2 font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={() => updateParams({ page: Math.max(1, (meta.page || 1) - 1) })}
+            aria-label="Previous page"
           >
-            Previous
+            <ChevronLeft size={18} aria-hidden="true" />
           </button>
+          <span>{meta.page || 1}</span>
           <button
             type="button"
-            onClick={() =>
-              updateParams({ page: Math.min(meta.totalPages || 1, (meta.page || 1) + 1) })
-            }
-            disabled={(meta.page || 1) >= (meta.totalPages || 1)}
-            className="rounded-lg border border-slate-200 px-3 py-2 font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={(meta.page || 1) >= totalPages}
+            onClick={() => updateParams({ page: Math.min(totalPages, (meta.page || 1) + 1) })}
+            aria-label="Next page"
           >
-            Next
+            <ChevronRight size={18} aria-hidden="true" />
           </button>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

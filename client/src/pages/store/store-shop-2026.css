@@ -1,0 +1,15 @@
+.shop2026-hide-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.shop2026-hide-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}

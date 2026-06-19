@@ -1,10 +1,11 @@
 # TP Preneurs Multivendor — Seller Workspace System Map
 
-Generated: 2026-06-12  
-Source archive: `tp-preneurs-multivendor-main(3).zip`  
+Generated: 2026-06-17  
+Source archive: `tp-preneurs-multivendor-main(5).zip`  
+Updated from: uploaded `system_map_multi_vendor_seller_workspace.md` + static extraction of latest code archive  
 Focus: **Multi-Vendor Seller Workspace** only. This file is intended to give an AI agent enough context to reason about architecture, features, route/API boundaries, lifecycle, and implementation guardrails before modifying or designing Seller Workspace surfaces.
 
-> Important validation note: this map is based on static extraction and code reading from the uploaded ZIP. I did not execute `pnpm build`, database migrations, or browser smoke tests in this run. Existing repo reports mention previous smoke/build outcomes, but any new work should re-run targeted validation.
+> Important validation note: this map is based on static extraction and code reading from the uploaded ZIP. I did not run `pnpm install`, `pnpm build`, database migrations, or browser smoke tests in this update because the archive does not include installed workspace dependencies. Existing repo reports mention previous smoke/build outcomes, but any new work should re-run targeted validation.
 
 ---
 
@@ -28,6 +29,13 @@ The current codebase has **three Seller UI generations** that must not be confus
 
 Backend Seller APIs are mounted under `/api/seller` in `server/src/app.ts`, use Express + Sequelize models, and enforce store-scope through `requireSellerStoreAccess()` and `resolveSellerAccess()`.
 
+Latest code delta from `tp-preneurs-multivendor-main(5).zip`:
+
+- Seller order detail is now 2026-live mounted behind the Orders production flag through `Seller2026LiveSuborderDetailPage`; legacy `SellerOrderDetailPage` remains as fallback only.
+- Seller context/store profile now expose shipping setup readiness (`shippingSetupStatus`, `shippingSetupMeta`, `isShippingReady`, `missingShippingFields`) and the seller profile update lane can patch `shippingSetup`.
+- Fulfillment actions synchronize both compatibility suborder status and canonical shipment/tracking-event state when shipment feature flags allow mutation.
+- Preview/mock Seller 2026 routes now include deeper nested routes for product edit/detail, taxonomy, order detail, payment review/profile, member lifecycle, and notifications.
+
 The strongest architectural invariant is:
 
 ```txt
@@ -43,8 +51,8 @@ Seller Workspace is store-scoped. Admin Workspace remains source of truth for ap
 | Area | Path | Notes |
 |---|---|---|
 | Root workspace | `package.json`, `pnpm-workspace.yaml` | Workspaces: `server`, `client`, `packages/*`. |
-| Client | `client/` | React 19, Vite 7, React Router 7, React Query 5, Axios, Tailwind/PostCSS, Recharts, lucide-react. |
-| Server | `server/` | Express 4, TypeScript, Sequelize, MySQL, cookie/JWT auth, file upload static serving. |
+| Client | `client/` | React 19.1.1, Vite 7.1.2, React Router 7.8.2, React Query 5.85.6, Axios 1.11, Tailwind 4/PostCSS, Recharts 3.1.2, framer-motion, sonner/react-toastify, lucide-react. |
+| Server | `server/` | Express 4.21, TypeScript, Sequelize 6, MySQL2, cookie/JWT auth, Multer upload handling, Nodemailer, Stripe, file upload static serving. |
 | Shared schemas | `packages/schemas/` | Shared validation/contracts package, built before server. |
 | Reports / planning | `reports/`, `CODEx_REPORTS/` | Historical implementation/audit notes. Treat as context, not source of truth when code differs. |
 | Existing system map | `system_map.md` in repo root | Broad previous map; this generated file narrows and refreshes Seller Workspace context. |
@@ -144,7 +152,11 @@ Access context shape:
 ```ts
 {
   storeId,
-  store: { id, ownerUserId, name, slug, status, logoUrl, imageUrl },
+  store: {
+    id, ownerUserId, name, slug, status, logoUrl, imageUrl,
+    shippingSetupStatus, shippingSetupMeta, isShippingReady,
+    missingShippingFields, shippingSetupSummary
+  },
   accessMode: "OWNER_BRIDGE" | "MEMBER",
   roleCode,
   permissionKeys,
@@ -177,7 +189,7 @@ Defined in `client/src/App.jsx`, nested below `SellerLayout`.
 | Product Detail | `/seller/stores/:storeSlug/catalog/products/:productId` | `Seller2026LiveProductDetailPage` | Uses `isSeller2026ProductDetailProductionEnabled()`, else `SellerProductDetailPage`. |
 | Coupons | `/seller/stores/:storeSlug/catalog/coupons` | `Seller2026LiveCouponsPage` | Currently always mounted live in `App.jsx`; the `isSeller2026CouponsProductionEnabled()` helper exists but is not used here. |
 | Orders | `/seller/stores/:storeSlug/orders` | `Seller2026LiveOrdersPage` | Uses `isSeller2026OrdersProductionEnabled()`, else `SellerOrdersPage`. |
-| Order Detail | `/seller/stores/:storeSlug/orders/:suborderId` | `SellerOrderDetailPage` | Legacy fallback component is still mounted even though `Seller2026LiveSuborderDetailPage` exists. Verify before replacing. |
+| Order Detail | `/seller/stores/:storeSlug/orders/:suborderId` | `Seller2026LiveSuborderDetailPage` | Uses `isSeller2026OrdersProductionEnabled()`, else `SellerOrderDetailPage`. The live page consumes `useSeller2026SuborderDetail()` and `SellerSuborderDetail2026PageView`. |
 | Payment Review | `/seller/stores/:storeSlug/payment-review` | `Seller2026LivePaymentReviewPage` | Uses `isSeller2026PaymentReviewProductionEnabled()`, else `SellerPaymentReviewPage`. |
 | Payment Profile | `/seller/stores/:storeSlug/payment-profile` | `Seller2026LivePaymentProfilePage` | Uses `isSeller2026PaymentProfileProductionEnabled()`, else `SellerPaymentProfilePage`. |
 | Team | `/seller/stores/:storeSlug/team` | `Seller2026LiveTeamPage` | Uses `isSeller2026TeamProductionEnabled()`, else `SellerTeamPage`. |
@@ -224,30 +236,55 @@ Do not hard-code seller routes in new components unless there is a strong reason
 
 ## 5. Preview / Slicing Routes
 
-Defined in `client/src/routes/seller2026RouteConfig.jsx`.
+Defined in `client/src/routes/seller2026RouteConfig.jsx`. These routes are useful for design and slicing, but they are not the canonical production Seller Workspace unless explicitly requested.
 
-### 5.1 `/seller-2026`
+### 5.1 `/seller-2026` mock workspace
 
-Uses `RawSeller2026Workspace` from `client/src/features/seller2026/Seller2026Workspace.jsx`. It is a preview/mock workspace with sections such as dashboard, storefront, products, taxonomy, operations, team, and notifications.
+Uses `RawSeller2026Workspace` from `client/src/features/seller2026/Seller2026Workspace.jsx`. The current mock route family includes:
 
-### 5.2 `/seller-2026-preview/:storeSlug`
+```txt
+/seller-2026
+/seller-2026/dashboard
+/seller-2026/storefront
+/seller-2026/catalog/products
+/seller-2026/catalog/products/new
+/seller-2026/catalog/products/:productId
+/seller-2026/catalog/products/:productId/edit
+/seller-2026/catalog/categories
+/seller-2026/catalog/attributes
+/seller-2026/catalog/attributes/:attributeId/values
+/seller-2026/catalog/coupons
+/seller-2026/orders
+/seller-2026/orders/:suborderId
+/seller-2026/payment-review
+/seller-2026/payment-profile
+/seller-2026/team
+/seller-2026/team/invitations
+/seller-2026/team/audit
+/seller-2026/team/:memberId
+/seller-2026/notifications
+```
 
-Uses preview pages that may call some live APIs through `client/src/features/sellerWorkspace2026/hooks/*` and adapters. This is not the canonical production route.
+The mock route decides the rendered section through props such as `section`, `productEditorMode`, `catalogView`, `operationsView`, and `teamView`. It can be used as a design reference, but production route work should not be implemented here unless the user asks for mock/preview slicing.
 
-Routes include:
+### 5.2 `/seller-2026-preview/:storeSlug` live-adapter preview
 
-- `/seller-2026-preview/:storeSlug`
-- `/seller-2026-preview/:storeSlug/store-profile`
-- `/seller-2026-preview/:storeSlug/catalog/products`
-- `/seller-2026-preview/:storeSlug/catalog/products/new`
-- `/seller-2026-preview/:storeSlug/catalog/products/:productId`
-- `/seller-2026-preview/:storeSlug/orders`
-- `/seller-2026-preview/:storeSlug/payment-center`
-- `/seller-2026-preview/:storeSlug/coupons`
-- `/seller-2026-preview/:storeSlug/team`
-- `/seller-2026-preview/:storeSlug/analytics-sync`
+Uses preview pages that may call some live APIs through `client/src/features/sellerWorkspace2026/hooks/*` and adapters. Routes include:
 
-Rule: treat preview routes as design/reference surfaces. Production changes should target `/seller/stores/:storeSlug` unless user explicitly asks for preview/slicing files.
+```txt
+/seller-2026-preview/:storeSlug
+/seller-2026-preview/:storeSlug/store-profile
+/seller-2026-preview/:storeSlug/catalog/products
+/seller-2026-preview/:storeSlug/catalog/products/new
+/seller-2026-preview/:storeSlug/catalog/products/:productId
+/seller-2026-preview/:storeSlug/orders
+/seller-2026-preview/:storeSlug/payment-center
+/seller-2026-preview/:storeSlug/coupons
+/seller-2026-preview/:storeSlug/team
+/seller-2026-preview/:storeSlug/analytics-sync
+```
+
+Rule: treat preview routes as design/reference surfaces. Production changes should target `/seller/stores/:storeSlug` unless the user explicitly asks for preview/slicing files.
 
 ---
 
@@ -327,8 +364,10 @@ VITE_SELLER_WORKSPACE_2026_ANALYTICS_SYNC_ENABLED
 
 Important env observations:
 
-- `client/.env.development` enables many 2026 domains but does not list every helper flag such as coupons/notifications/analytics.
-- `client/.env.example` lists the core production adoption flags.
+- `client/.env.development` enables the global flag plus dashboard, store profile, catalog, product detail, authoring, categories, attributes, attribute values, orders, payment review/profile, team, and team audit. It does **not** list coupons, notifications, analytics, or analytics sync.
+- `client/.env.example` lists the core production adoption flags up to attribute values; root `.env.example` still contains a smaller set with defaults set to `false`.
+- `teamAuditEnabled` is true when either `VITE_SELLER_WORKSPACE_2026_TEAM_AUDIT_ENABLED` or `VITE_SELLER_WORKSPACE_2026_TEAM_ENABLED` is true.
+- Payment profile/review production helpers also honor `VITE_SELLER_WORKSPACE_2026_PAYMENT_CENTER_ENABLED`.
 - `App.jsx` currently ignores the coupon production helper and mounts `Seller2026LiveCouponsPage` directly for `/catalog/coupons`.
 
 ### 7.2 Mutation Flags
@@ -404,11 +443,17 @@ The 2026 UI uses semantic permissions such as:
 
 ```txt
 STORE_DASHBOARD_VIEW, STORE_PROFILE_READ, STORE_PROFILE_UPDATE,
+STORE_PAYMENT_PROFILE_READ, STORE_PAYMENT_PROFILE_SUBMIT,
 CATALOG_PRODUCT_READ, CATALOG_PRODUCT_CREATE, CATALOG_PRODUCT_UPDATE,
 CATALOG_PRODUCT_DELETE, CATALOG_PRODUCT_SUBMIT,
 CATALOG_CATEGORY_READ, CATALOG_CATEGORY_CREATE, CATALOG_CATEGORY_UPDATE,
+CATALOG_CATEGORY_STATUS_MANAGE, CATALOG_CATEGORY_DELETE,
 CATALOG_ATTRIBUTE_READ, CATALOG_ATTRIBUTE_CREATE, CATALOG_ATTRIBUTE_UPDATE,
+CATALOG_ATTRIBUTE_STATUS_MANAGE, CATALOG_ATTRIBUTE_DELETE,
+CATALOG_ATTRIBUTE_VALUE_CREATE, CATALOG_ATTRIBUTE_VALUE_UPDATE,
+CATALOG_ATTRIBUTE_VALUE_STATUS_MANAGE,
 COUPON_READ, COUPON_CREATE, COUPON_UPDATE, COUPON_DELETE,
+COUPON_STATUS_MANAGE,
 ORDER_READ, ORDER_FULFILLMENT_UPDATE,
 PAYMENT_REVIEW_READ,
 TEAM_READ, TEAM_INVITE, TEAM_ROLE_UPDATE, TEAM_REMOVE, TEAM_AUDIT_READ,
@@ -419,13 +464,30 @@ These map back to backend permission keys through `PERMISSION_ALIASES`. Example:
 
 | 2026 Permission | Backend Alias |
 |---|---|
+| `STORE_DASHBOARD_VIEW` | `DASHBOARD_VIEW` or `STORE_VIEW` |
+| `STORE_PROFILE_READ` | `STORE_VIEW` |
 | `STORE_PROFILE_UPDATE` | `STORE_EDIT` |
+| `STORE_PAYMENT_PROFILE_READ` | `PAYMENT_PROFILE_VIEW` |
+| `STORE_PAYMENT_PROFILE_SUBMIT` | `PAYMENT_PROFILE_EDIT` |
 | `CATALOG_PRODUCT_CREATE` | `PRODUCT_CREATE` |
 | `CATALOG_PRODUCT_UPDATE` | `PRODUCT_UPDATE` or `PRODUCT_EDIT` |
+| `CATALOG_PRODUCT_DELETE` | `PRODUCT_DELETE` or `PRODUCT_ARCHIVE` |
 | `CATALOG_PRODUCT_SUBMIT` | `PRODUCT_SUBMIT_REVIEW` or `PRODUCT_EDIT` or `PRODUCT_PUBLISH` |
+| `CATALOG_CATEGORY_READ` | `CATEGORY_VIEW` or `PRODUCT_VIEW` |
+| `CATALOG_CATEGORY_*` mutate/status/delete | `CATEGORY_MANAGE` |
+| `CATALOG_ATTRIBUTE_READ` | `ATTRIBUTE_VIEW` or `PRODUCT_VIEW` |
+| `CATALOG_ATTRIBUTE_*` mutate/status/delete/value | `ATTRIBUTE_MANAGE` |
 | `COUPON_READ` | `COUPON_VIEW` |
+| `COUPON_CREATE` | `COUPON_CREATE` |
+| `COUPON_UPDATE` | `COUPON_EDIT` |
+| `COUPON_DELETE` | `COUPON_DELETE` or `COUPON_STATUS_MANAGE` |
+| `COUPON_STATUS_MANAGE` | `COUPON_STATUS_MANAGE` |
+| `ORDER_READ` | `ORDER_VIEW` |
 | `ORDER_FULFILLMENT_UPDATE` | `ORDER_FULFILLMENT_MANAGE` |
 | `PAYMENT_REVIEW_READ` | `PAYMENT_STATUS_VIEW` |
+| `TEAM_READ` | `STORE_MEMBERS_MANAGE` or `STORE_ROLES_MANAGE` |
+| `TEAM_INVITE`, `TEAM_REMOVE` | `STORE_MEMBERS_MANAGE` |
+| `TEAM_ROLE_UPDATE` | `STORE_ROLES_MANAGE` or `STORE_MEMBERS_MANAGE` |
 | `TEAM_AUDIT_READ` | `AUDIT_LOG_VIEW` |
 | `NOTIFICATION_READ` | `ORDER_VIEW` or `PAYMENT_STATUS_VIEW` or `STORE_VIEW` |
 
@@ -452,7 +514,8 @@ Page helper:
 | Attributes | `Seller2026LiveAttributesPage.jsx` | `useSeller2026Attributes.ts` | `sellerAttributes.ts` | `attributes.adapter.ts` |
 | Attribute Values | `Seller2026LiveAttributeValuesPage.jsx` | `useSeller2026AttributeValues.ts` | `sellerAttributes.ts` | `attributeValues.adapter.ts` |
 | Coupons | `Seller2026LiveCouponsPage.jsx` | `useSeller2026Coupons.ts` | `sellerCoupons.ts` | `coupons.mutations.ts`, coupon drawer component |
-| Orders | `Seller2026LiveOrdersPage.jsx` | `useSeller2026Orders.ts`, `useSeller2026SuborderDetail.ts` | `sellerOrders.ts` | `orders.adapter.ts`, `orders.mutations.ts` |
+| Orders | `Seller2026LiveOrdersPage.jsx` | `useSeller2026Orders.ts` | `sellerOrders.ts` | `orders.adapter.ts`, `orders.mutations.ts` |
+| Suborder Detail | `Seller2026LiveSuborderDetailPage.jsx`, `SellerSuborderDetail2026PageView.jsx` | `useSeller2026SuborderDetail.ts` | `sellerOrders.ts` | `orders-payments.adapter.ts`, `sellerSuborderDetail2026Adapter.js`, `orders.mutations.ts` |
 | Payment Review | `Seller2026LivePaymentReviewPage.jsx` | `useSeller2026PaymentReview.ts` | `sellerPayments.ts` | `paymentReview.adapter.ts`, `payments.mutations.ts` |
 | Payment Profile | `Seller2026LivePaymentProfilePage.jsx` | `useSeller2026PaymentProfile.ts` | `sellerPaymentProfile.ts` | `paymentProfile.adapter.ts`, `payment-profile.mutations.ts` |
 | Team | `Seller2026LiveTeamPage.jsx`, `Seller2026LiveMemberDetailPage.jsx` | `useSeller2026Team.ts`, `useSeller2026MemberDetail.ts`, `useSeller2026TeamMutations.ts` | `sellerTeam.ts` | `team.adapter.ts`, `team.hierarchy.ts` |
@@ -645,7 +708,7 @@ Primary seller-relevant Sequelize models live in `server/src/models/*`.
 
 | Entity | Model | Seller Role in System | Key Notes |
 |---|---|---|---|
-| Store | `Store.ts` | Seller workspace tenant/scope. | `ownerUserId`, `activeStorePaymentProfileId`, `slug`, status, profile/contact/social fields, `shippingSetup`. |
+| Store | `Store.ts` | Seller workspace tenant/scope. | `ownerUserId`, `activeStorePaymentProfileId`, `slug`, `status`, seller/public profile fields, and JSON `shippingSetup` used by readiness + shipment origin fallback. |
 | Store Role | `StoreRole.ts` | Role record for members. | Codes mirror `SYSTEM_SELLER_ROLES`; system roles are seeded. |
 | Store Member | `StoreMember.ts` | User membership in store. | Status: `INVITED`, `ACTIVE`, `DISABLED`, `REMOVED`; tracks invited/disabled/removed timestamps and actors. |
 | Store Audit Log | `StoreAuditLog.ts` | Team/member audit trail. | Records actor, target user/member, action, before/after state. |
@@ -656,7 +719,9 @@ Primary seller-relevant Sequelize models live in `server/src/models/*`.
 | Attribute | `Attribute.ts` | Product attributes/variant inputs. | Scope `global` or `store`, creator role, status active/archived. |
 | Coupon | `Coupon.ts` | Promotion entity. | `scopeType` `PLATFORM` or `STORE`; seller list should be store-scoped. |
 | Order | `Order.ts` | Parent buyer order. | Parent aggregate; Seller should not mutate outside allowed child/suborder lifecycle. |
-| Suborder | `Suborder.ts` | Store-specific order slice. | `storeId`, amounts, QRIS payment status, fulfillment status, applied coupon info. |
+| Suborder | `Suborder.ts` | Store-specific order slice. | `storeId`, amounts, QRIS payment status, compatibility fulfillment status, applied coupon attribution fields. |
+| Shipment | `Shipment.ts` | Canonical shipment state for a suborder. | Unique `suborderId`; statuses include `WAITING_PAYMENT`, `READY_TO_FULFILL`, `PACKED`, `SHIPPED`, `FAILED_DELIVERY`, `RETURNED`, `DELIVERED`, `CANCELLED`; stores courier/tracking/shipping snapshots. |
+| Tracking Event | `TrackingEvent.ts` | Shipment timeline/audit read model. | `shipmentId`, `eventType`, labels/descriptions, actor/source metadata. Seller fulfillment mutations append events. |
 | Suborder Item | `SuborderItem.ts` | Items within store suborder. | Belongs to suborder and product. |
 | Payment | `Payment.ts` | QRIS payment record. | Store-scoped, status `CREATED`, `PENDING_CONFIRMATION`, `PAID`, `FAILED`, `EXPIRED`, `REJECTED`. |
 | Payment Proof | `PaymentProof.ts` | Buyer-uploaded payment proof. | Review status `PENDING`, `APPROVED`, `REJECTED`; seller/admin review metadata. |
@@ -710,7 +775,54 @@ Guardrails:
 - Admin may still govern store status/application/payment profile readiness.
 - Public storefront should only show active/visible approved data.
 
-### 12.3 Product Draft / Review / Publish Lifecycle
+### 12.3 Shipping Setup / Fulfillment Readiness Lifecycle
+
+Files:
+
+- Backend readiness service: `server/src/services/sellerShippingSetup.service.ts`
+- Store profile contract: `server/src/services/storeProfileGovernance.ts`
+- Seller profile route: `server/src/routes/seller.storeProfile.ts`
+- Seller workspace context/readiness: `server/src/routes/seller.workspace.ts`
+
+Seller-owned shipping setup lives in `Store.shippingSetup` and is patched through the seller store profile endpoint. It is intentionally separate from admin-owned core identity fields (`name`, `slug`, `status`).
+
+Required shipping origin fields:
+
+```txt
+originContactName, originPhone, originAddressLine1, originCity,
+originProvince, originPostalCode, originCountry
+```
+
+Patchable shipping fields:
+
+```txt
+shippingEnabled, originContactName, originPhone, originAddressLine1,
+originAddressLine2, originDistrict, originCity, originProvince,
+originPostalCode, originCountry, pickupNotes
+```
+
+Flow:
+
+```txt
+Seller opens Store Profile or Dashboard
+  -> context/readiness computes buildStoreShippingSetupReadiness(store)
+  -> missing fields and fallback fields are exposed to SellerLayout/sidebar/readiness panels
+Seller edits shipping setup from Store Profile
+  -> PATCH /api/seller/stores/:storeId/store-profile with shippingSetup
+  -> sellerStoreProfilePatchSchema validates nested shipping setup
+  -> mergeSellerShippingSetupPatch() preserves existing values and applies patch
+  -> readiness/status metadata recalculates from Store.shippingSetup + store profile fallbacks
+Fulfillment later uses shipping origin context
+  -> shipment/order read models can use store shipping setup as operational origin metadata
+```
+
+Guardrails:
+
+- `shippingSetup` is seller-owned metadata, but Store status/public availability still follows Admin/storefront governance.
+- Missing shipping fields do not grant seller permission to bypass payment, product, or admin approval gates.
+- `SellerLayout` links Shipping Setup to `store-profile#shipping-setup` rather than a separate route.
+
+### 12.4 Product Draft / Review / Publish Lifecycle
 
 Files:
 
@@ -758,7 +870,7 @@ AI guardrails:
 - Do not treat `Product.status = active` alone as storefront-visible; also check `published` and visibility governance returned by backend/adapter.
 - Product detail/editor adapters normalize DTOs; use them instead of re-mapping API data in page JSX.
 
-### 12.4 Categories and Attributes Lifecycle
+### 12.5 Categories and Attributes Lifecycle
 
 Files:
 
@@ -779,7 +891,7 @@ Guardrails:
 - Attribute scope can be `global` or `store`; be careful not to allow seller mutation of admin/global assets unless backend already permits it.
 - Category table name is historically `Categories`, while many newer tables are snake_case. Avoid making assumptions in raw SQL.
 
-### 12.5 Coupon Lifecycle
+### 12.6 Coupon Lifecycle
 
 Files:
 
@@ -810,12 +922,14 @@ Guardrails:
 - Storefront quote/validate path (`/api/store/coupons`) must preserve attribution and conflict rules.
 - Sidebar currently gates coupon navigation with `PRODUCT_VIEW`, but page permission uses coupon permissions. This is a mismatch worth cleaning carefully.
 
-### 12.6 Order / Fulfillment Lifecycle
+### 12.7 Order / Fulfillment Lifecycle
 
 Files:
 
-- Frontend: `Seller2026LiveOrdersPage.jsx`, order drawer components, `useSeller2026Orders.ts`, `useSeller2026SuborderDetail.ts`
-- Backend: `server/src/routes/seller.orders.ts`
+- List page: `Seller2026LiveOrdersPage.jsx`, order drawer components, `useSeller2026Orders.ts`
+- Detail page: `Seller2026LiveSuborderDetailPage.jsx`, `SellerSuborderDetail2026PageView.jsx`, `sellerSuborderDetail2026Adapter.js`, `useSeller2026SuborderDetail.ts`
+- Backend route: `server/src/routes/seller.orders.ts`
+- Shipment services/read models: `shipmentMutation.service.ts`, `orderShippingReadModel.service.ts`, `Shipment.ts`, `TrackingEvent.ts`
 
 Suborder status domains:
 
@@ -843,10 +957,12 @@ Critical rules:
 - Seller reads and mutates **suborders**, not parent `Order` directly.
 - Fulfillment mutation checks payment/order blockers before updating.
 - Payment must be settled according to backend rules before certain transitions.
-- Shipment MVP flags may block mutation with `SHIPMENT_MUTATION_DISABLED`.
-- Parent order sync is handled server-side where appropriate.
+- Shipment MVP flags may block mutation with `SHIPMENT_MUTATION_DISABLED`; defaults are enabled outside production unless env says otherwise.
+- When shipment mutation is open, `applySellerShipmentFulfillment()` updates/creates `Shipment`, appends `TrackingEvent`, returns a compatibility fulfillment status, then server updates the `Suborder.fulfillmentStatus`.
+- `MARK_SHIPPED` can sync shipping fee/courier/tracking fields when provided.
+- Parent order sync is handled server-side through `recalculateParentOrderFulfillmentStatus()`, and buyer notifications can be created when parent status changes.
 
-### 12.7 Payment Review Lifecycle
+### 12.8 Payment Review Lifecycle
 
 Files:
 
@@ -894,7 +1010,7 @@ Guardrails:
 - A proof already reviewed cannot be reviewed again.
 - Backend verifies payment belongs to the active store scope.
 
-### 12.8 Payment Profile / QRIS Setup Lifecycle
+### 12.9 Payment Profile / QRIS Setup Lifecycle
 
 Files:
 
@@ -925,7 +1041,7 @@ Guardrails:
 - If latest request is under admin review, backend returns `PAYMENT_PROFILE_REVIEW_LOCKED`.
 - Submit validates required QRIS setup fields and may return `PAYMENT_PROFILE_INCOMPLETE`.
 
-### 12.9 Team / Invitation / Audit Lifecycle
+### 12.10 Team / Invitation / Audit Lifecycle
 
 Files:
 
@@ -962,7 +1078,7 @@ Guardrails:
 - Team mutation flag is currently `team: false`; be careful when exposing mutation UI.
 - Team audit route should be treated as immutable/read-only unless dedicated export endpoint is added.
 
-### 12.10 Notifications Lifecycle
+### 12.11 Notifications Lifecycle
 
 Files:
 
@@ -1004,7 +1120,7 @@ Guardrail:
 
 - Direct `meta.route` is accepted only if it starts with the canonical seller base and is not external or `/seller-2026`.
 
-### 12.11 Dashboard / Analytics Lifecycle
+### 12.12 Dashboard / Analytics Lifecycle
 
 Files:
 
@@ -1072,7 +1188,7 @@ Related Storefront/Public APIs:
 |---|---|---|
 | Seller shell/layout | Active | `SellerLayout.jsx`; resolves context, canonical slug, sidebar, notifications. |
 | Dashboard | Live 2026 flag-gated | Uses readiness, finance, analytics, recent suborders. |
-| Store profile / storefront | Live 2026 flag-gated | Store profile update mutation enabled; public identity queries used in store profile/storefront hooks. |
+| Store profile / storefront | Live 2026 flag-gated | Store profile update mutation enabled; seller can patch seller-owned profile/contact/address fields plus nested `shippingSetup`; public identity queries used in store profile/storefront hooks. |
 | Microsite preview | Always live page | Mounted directly to `Seller2026LiveStorefrontPage`. |
 | Product list | Live 2026 flag-gated | Read list + authoring meta. |
 | Product create/edit | Live 2026 flag-gated | Draft save and submit review enabled. Rich product lifecycle still needs backend governance checks. |
@@ -1082,7 +1198,7 @@ Related Storefront/Public APIs:
 | Attribute values | Live 2026 flag-gated | Create/update values. |
 | Coupons | Live 2026 direct-mounted | Create/update/status/archive hook exists; route is not flag-gated in `App.jsx`. |
 | Orders | Live 2026 flag-gated | Fulfillment mutation enabled. |
-| Order detail | Legacy component mounted | Verify before adopting `Seller2026LiveSuborderDetailPage`. |
+| Order detail | Live 2026 flag-gated | `Seller2026LiveSuborderDetailPage` is mounted when Orders 2026 flag is enabled; legacy `SellerOrderDetailPage` remains fallback. |
 | Payment review | Live 2026 flag-gated | Approve/reject enabled for owner/admin roles only. |
 | Payment profile | Live 2026 flag-gated | Save draft/submit request enabled; admin activation remains external. |
 | Team | Live 2026 flag-gated | Team mutation flag says false; avoid exposing unsafe mutation controls. |
@@ -1095,23 +1211,26 @@ Related Storefront/Public APIs:
 
 ## 15. Known Inconsistencies / Cleanup Candidates
 
-1. **Coupons route flag mismatch**  
-   `isSeller2026CouponsProductionEnabled()` exists, but `/seller/stores/:storeSlug/catalog/coupons` is mounted directly to `Seller2026LiveCouponsPage` in `App.jsx`.
+1. **Coupons route flag mismatch remains**  
+   `isSeller2026CouponsProductionEnabled()` exists, but `/seller/stores/:storeSlug/catalog/coupons` is still mounted directly to `Seller2026LiveCouponsPage` in `App.jsx`.
 
-2. **Order detail live page not mounted**  
-   `Seller2026LiveSuborderDetailPage.jsx` exists, but `/orders/:suborderId` currently uses legacy `SellerOrderDetailPage`.
+2. **Sidebar coupon permission mismatch remains**  
+   Sidebar shows Coupons when `PRODUCT_VIEW` exists, but page logic uses `COUPON_READ`/coupon permissions. This can hide coupons from marketing-focused roles or show coupon links to roles without coupon read, depending role map and alias behavior.
 
-3. **Sidebar coupon permission mismatch**  
-   Sidebar shows Coupons when `PRODUCT_VIEW` exists, but page logic uses `COUPON_READ`/coupon permissions. This may hide coupons from marketing-only roles or show links to roles without coupon read depending role map.
-
-4. **Team mutations need careful review**  
+3. **Team mutations need careful review**  
    Team mutation wrappers exist, but global mutation flag has `team: false`. UI should not expose role/status/remove operations unless the specific feature decision is made and backend smoke is run.
+
+4. **Order detail 2026 live route is now mounted, but still depends on Orders flag**  
+   `/orders/:suborderId` uses `Seller2026LiveSuborderDetailPage` only when `isSeller2026OrdersProductionEnabled()` is true. Keep legacy fallback intact until the Orders domain is fully verified.
 
 5. **Preview vs production confusion risk**  
    There are multiple `Seller2026Shell`, adapter, and page families. Before editing, identify whether the requested route is canonical `/seller/stores/:storeSlug`, mock `/seller-2026`, or live-adapter preview `/seller-2026-preview/:storeSlug`.
 
 6. **Historical reports may be stale**  
-   `reports/` and `system_map.md` include many prior statuses. Code should be treated as source of truth when reports conflict.
+   `reports/`, `CODEx_REPORTS/`, and root `system_map*.md` files include many prior statuses. Code should be treated as source of truth when reports conflict.
+
+7. **Shipment rollout flags can change mutation behavior**  
+   `ENABLE_MULTISTORE_SHIPMENT_MVP` and `ENABLE_MULTISTORE_SHIPMENT_MUTATION` affect whether seller fulfillment writes canonical shipment state. Production defaults can differ from local development defaults.
 
 ---
 
@@ -1153,7 +1272,7 @@ Use these rules before modifying Seller Workspace:
 
 ## 17. Recommended Validation Commands
 
-Because the uploaded run was static analysis only, run targeted checks after changes:
+Because this update was static analysis only and dependencies were not installed from the archive, run targeted checks after changes:
 
 ```bash
 # Install if needed
@@ -1195,7 +1314,7 @@ Historical Seller 2026 smoke runner referenced in repo root `system_map.md`:
 pnpm exec tsx scripts/seller2026-auth-fixture-live-smoke.ts
 ```
 
-Verify this script exists/current before using it; if missing or moved, search `scripts/` and `tools/qa/` for seller 2026 smoke tooling.
+Verify this script exists/current before using it; if missing or moved, search `scripts/` and `tools/qa/` for seller 2026 smoke tooling. The uploaded archive contains no `node_modules`, so install dependencies before running these commands.
 
 ---
 
@@ -1295,6 +1414,9 @@ server/src/services/seller/storeRoles.ts
 server/src/services/seller/backfillOwnerMembers.ts
 server/src/services/seller/teamAudit.ts
 server/src/services/seller/teamMutations.ts
+server/src/services/sellerShippingSetup.service.ts
+server/src/services/shipmentMutation.service.ts
+server/src/services/orderShippingReadModel.service.ts
 server/src/routes/seller.workspace.ts
 server/src/routes/seller.storeProfile.ts
 server/src/routes/seller.products.ts
@@ -1323,6 +1445,8 @@ server/src/routes/store.coupons.ts
 server/src/routes/store.customization.ts
 server/src/routes/stores.ts
 server/src/routes/user.storeApplications.ts
+server/src/models/Shipment.ts
+server/src/models/TrackingEvent.ts
 ```
 
 ---
@@ -1342,6 +1466,9 @@ server/src/routes/user.storeApplications.ts
 | Payment Profile Request | Seller-submitted QRIS setup request awaiting admin review/promotion. |
 | Active Payment Profile | Admin-approved QRIS setup snapshot used for checkout/payment. |
 | Suborder | Store-specific child of a parent buyer order. Seller operations should primarily target suborders. |
+| Shipment | Canonical delivery/shipment state tied one-to-one to a suborder. Seller fulfillment can sync this state when shipment mutation flags allow it. |
+| Tracking Event | Timeline entry for shipment transitions, written by seller/admin/system shipment mutations. |
+| Shipping Setup | Store-owned JSON metadata for fulfillment origin/contact readiness, editable through Seller Store Profile. |
 | Store Coupon | Coupon with `scopeType = STORE` and store ID. |
 | Platform Coupon | Admin/platform coupon, should not be treated as seller-owned. |
 

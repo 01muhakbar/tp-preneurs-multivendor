@@ -1,206 +1,410 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "react-hot-toast";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock3,
+  Image as ImageIcon,
+  RefreshCw,
+  ShoppingCart,
+  Store,
+  UserRoundCheck,
+  Wrench,
+} from "lucide-react";
 import {
   fetchAdminStorePaymentProfiles,
   reviewAdminStorePaymentProfile,
 } from "../../api/storePaymentProfiles.ts";
-import {
-  AdminOpsEmptyState,
-  AdminOpsErrorState,
-  AdminOpsLoadingState,
-  AdminOpsMetricCard,
-  AdminOpsPageHeader,
-  AdminOpsStatusBadge,
-} from "../../components/admin/AdminOpsPrimitives.jsx";
+import "./AdminStorePaymentProfilesPage.css";
 
-const formatDate = (value) => {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("id-ID", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-};
-
-function StatusPill({ label, status }) {
-  return <AdminOpsStatusBadge label={label} tone={status} />;
-}
-
-function ProgressBar({ value }) {
-  const normalized = Math.max(0, Math.min(100, Number(value || 0)));
-  return (
-    <div className="h-1.5 overflow-hidden rounded-full bg-slate-200">
-      <div className="h-full rounded-full bg-emerald-500" style={{ width: `${normalized}%` }} />
-    </div>
-  );
-}
-
-function ImagePanel({ title, hint, imageUrl, alt, statusLabel }) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</p>
-          <p className="mt-1 text-xs text-slate-500">{hint}</p>
-        </div>
-        <StatusPill
-          label={imageUrl ? statusLabel || "Available" : "Missing"}
-          status={imageUrl ? "SUCCESS" : "NEUTRAL"}
-        />
-      </div>
-      <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-2">
-        {imageUrl ? (
-          <img
-            src={imageUrl}
-            alt={alt}
-            className="h-40 w-full rounded-md bg-white object-contain"
-          />
-        ) : (
-          <div className="flex h-32 items-center justify-center rounded-md border border-dashed border-slate-200 bg-white text-sm font-medium text-slate-400">
-            No QRIS uploaded
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ReadinessPanel({ workspaceReadiness, readinessChecklist }) {
-  if (!workspaceReadiness) return null;
-
-  const visibleChecks = readinessChecklist.filter((item) => item.visible !== false);
-  const importantChecks = visibleChecks.slice(0, 4);
-
-  return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Seller Readiness
-          </p>
-          <p className="mt-1 text-sm font-semibold text-slate-900">
-            {workspaceReadiness.completionPercent || 0}% complete
-          </p>
-        </div>
-        <StatusPill
-          label={workspaceReadiness.summary?.label || "In progress"}
-          status={workspaceReadiness.summary?.tone || "NEUTRAL"}
-        />
-      </div>
-      <div className="mt-3">
-        <ProgressBar value={workspaceReadiness.completionPercent || 0} />
-      </div>
-      <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        {importantChecks.map((item) => (
-          <div
-            key={item.key}
-            className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2"
-          >
-            <span className="min-w-0 truncate text-sm font-medium text-slate-700">
-              {item.label}
-            </span>
-            <StatusPill
-              label={item.status?.label || "Unknown"}
-              status={item.status?.tone || "NEUTRAL"}
-            />
-          </div>
-        ))}
-      </div>
-      <p className="mt-3 text-xs font-medium text-slate-500">
-        Complete required items before checkout can go live.
-      </p>
-    </div>
-  );
-}
-
-function SnapshotField({ label, value }) {
-  return (
-    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2.5">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-        {label}
-      </p>
-      <p className="mt-1.5 truncate text-sm font-semibold text-slate-900">{value || "-"}</p>
-    </div>
-  );
-}
-
-function getShortWorkflowLabel(status, fallback = "Not ready") {
-  const label = String(status?.label || fallback).trim();
-  return label
-    .replace(/^Waiting for seller setup$/i, "Seller setup")
-    .replace(/^No open request$/i, "No request")
-    .replace(/^Not reviewed yet$/i, "Not reviewed")
-    .replace(/^Action required$/i, "Action needed");
-}
-
-const PAYMENT_PROFILE_FILTERS = [
+const FILTERS = [
   { value: "all", label: "All" },
-  { value: "action", label: "Action needed" },
-  { value: "active", label: "Checkout ready" },
-  { value: "pending", label: "Pending review" },
+  { value: "action", label: "Action Needed" },
+  { value: "active", label: "Checkout Ready" },
+  { value: "pending", label: "Pending" },
   { value: "revision", label: "Revision" },
   { value: "incomplete", label: "Incomplete" },
 ];
 
-const derivePaymentProfileLane = (entry) => {
-  const profile = entry?.paymentProfile || null;
-  const pendingRequest = entry?.pendingRequest || null;
-  const workflow = entry?.workflow || {};
-  const workspaceReadiness = entry?.workspaceReadiness || null;
-  const requestStatus = String(pendingRequest?.requestStatus || workflow?.requestState?.code || "")
-    .trim()
-    .toUpperCase();
-  const readinessCode = String(profile?.readiness?.code || workspaceReadiness?.summary?.code || "")
-    .trim()
-    .toUpperCase();
-  const canApprovePromotion = Boolean(workflow?.governance?.canApprovePromotion);
-  const canRequestRevision = Boolean(workflow?.governance?.canRequestRevision);
-  const hasAction = canApprovePromotion || canRequestRevision;
+const text = (value, fallback = "-") => {
+  const normalized = String(value ?? "").trim();
+  return normalized || fallback;
+};
 
-  if (profile?.readiness?.isReady) {
-    return {
-      key: "active",
-      label: "Checkout ready",
-      tone: "ready",
-      hasAction,
-    };
-  }
-  if (requestStatus === "SUBMITTED" || canApprovePromotion) {
-    return {
-      key: "pending",
-      label: "Pending review",
-      tone: "attention",
-      hasAction: true,
-    };
+const percent = (value) => Math.max(0, Math.min(100, Number(value || 0)));
+
+const getRequestStatus = (entry) =>
+  String(entry?.pendingRequest?.requestStatus || entry?.workflow?.requestState?.code || "")
+    .trim()
+    .toUpperCase();
+
+const hasProfileQris = (profile) => Boolean(profile?.qrisImageUrl);
+
+const isCheckoutReady = (entry) => {
+  const profile = entry?.paymentProfile;
+  return Boolean(profile?.isActive && (profile?.readiness?.isReady || hasProfileQris(profile)));
+};
+
+const getLane = (entry) => {
+  const requestStatus = getRequestStatus(entry);
+  const profile = entry?.paymentProfile;
+  const governance = entry?.workflow?.governance || {};
+  const hasSubmittedRequest = requestStatus === "SUBMITTED";
+
+  if (hasSubmittedRequest || governance.canApprovePromotion) {
+    return { key: "pending", label: "Pending", tone: "warning", action: true };
   }
   if (requestStatus === "NEEDS_REVISION") {
-    return {
-      key: "revision",
-      label: "Needs revision",
-      tone: "rose",
-      hasAction,
-    };
+    return { key: "revision", label: "Revision", tone: "blue", action: false };
   }
-  if (!profile || readinessCode === "INCOMPLETE" || readinessCode === "NOT_CONFIGURED") {
-    return {
-      key: "incomplete",
-      label: "Incomplete",
-      tone: "attention",
-      hasAction,
-    };
+  if (isCheckoutReady(entry)) {
+    return { key: "active", label: "Checkout ready", tone: "success", action: false };
   }
-  return {
-    key: "inactive",
-    label: profile?.readiness?.label || "Inactive",
-    tone: profile?.readiness?.tone || "neutral",
-    hasAction,
-  };
+  if (!profile || !profile?.readiness?.isReady) {
+    return { key: "incomplete", label: "Incomplete", tone: "danger", action: false };
+  }
+  return { key: "incomplete", label: "Incomplete", tone: "warning", action: false };
 };
+
+const statusTone = (value, fallback = "neutral") => {
+  const normalized = String(value || fallback).toLowerCase();
+  if (["success", "ready", "verified", "emerald", "active"].includes(normalized)) return "success";
+  if (["warning", "attention", "amber", "pending"].includes(normalized)) return "warning";
+  if (["danger", "rose", "red", "rejected"].includes(normalized)) return "danger";
+  if (["blue", "info", "revision"].includes(normalized)) return "blue";
+  return "neutral";
+};
+
+const getMissingLabels = (entry) => {
+  const missing =
+    entry?.paymentProfile?.readiness?.missingFields ||
+    entry?.pendingRequest?.readiness?.missingFields ||
+    entry?.workflow?.completeness?.missingFields ||
+    [];
+  return missing.map((field) => field.label || field.key).filter(Boolean);
+};
+
+const getReadinessItems = (entry) => {
+  const checklist = Array.isArray(entry?.workspaceReadiness?.checklist)
+    ? entry.workspaceReadiness.checklist
+    : [];
+  const byText = (needle) =>
+    checklist.find((item) => String(item.label || item.key || "").toLowerCase().includes(needle));
+  const fallback = (label, value, tone = "neutral") => ({ label, value, tone });
+
+  const store = byText("store");
+  const shipping = byText("shipping");
+  const payment = byText("payment");
+  const product = byText("product");
+
+  return [
+    fallback("Store", store?.status?.label || entry?.store?.status || "Inactive", statusTone(store?.status?.tone)),
+    fallback("Shipping", shipping?.status?.label || "Update", statusTone(shipping?.status?.tone, "warning")),
+    fallback("Payment", payment?.status?.label || (isCheckoutReady(entry) ? "Ready" : "Not set"), statusTone(payment?.status?.tone, isCheckoutReady(entry) ? "success" : "danger")),
+    fallback("Products", product?.status?.label || "No products", statusTone(product?.status?.tone, "warning")),
+  ];
+};
+
+function Badge({ children, tone = "neutral" }) {
+  return <span className={`spp-badge spp-badge--${tone}`}>{children}</span>;
+}
+
+function KpiCard({ icon: Icon, label, value, helper, tone }) {
+  return (
+    <section className={`spp-kpi spp-kpi--${tone}`}>
+      <span className="spp-kpi__icon" aria-hidden="true">
+        <Icon size={28} />
+      </span>
+      <div>
+        <p>{label}</p>
+        <strong>{value}</strong>
+        <small>{helper}</small>
+      </div>
+    </section>
+  );
+}
+
+function LoadingState() {
+  return (
+    <div className="admin-store-payment-profiles-page">
+      <div className="spp-state">
+        <span className="spp-spinner" />
+        <strong>Loading store payment</strong>
+      </div>
+    </div>
+  );
+}
+
+function ErrorState({ message, onRetry }) {
+  return (
+    <div className="admin-store-payment-profiles-page">
+      <div className="spp-state spp-state--error">
+        <AlertTriangle size={28} aria-hidden="true" />
+        <strong>Unable to load store payment</strong>
+        <p>{message}</p>
+        <button type="button" onClick={onRetry}>
+          <RefreshCw size={16} aria-hidden="true" />
+          Retry
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ title }) {
+  return (
+    <div className="spp-empty">
+      <Store size={28} aria-hidden="true" />
+      <strong>{title}</strong>
+      <span>Store payment profiles will appear here.</span>
+    </div>
+  );
+}
+
+function SnapshotCell({ label, value }) {
+  return (
+    <div className="spp-snapshot-cell">
+      <span>{label}</span>
+      <strong>{text(value)}</strong>
+    </div>
+  );
+}
+
+function QrisPanel({ title, imageUrl, profile, emptyLabel, badgeLabel }) {
+  return (
+    <section className="spp-panel">
+      <div className="spp-panel__head">
+        <h3>{title}</h3>
+        <Badge tone={imageUrl ? "success" : "neutral"}>{imageUrl ? badgeLabel : "No snapshot"}</Badge>
+      </div>
+      {imageUrl ? (
+        <div className="spp-qris-card">
+          <img src={imageUrl} alt={`${title} QRIS`} />
+          <div>
+            <strong>QRIS</strong>
+            <span>Merchant</span>
+            <b>{text(profile?.merchantName)}</b>
+            <span>Merchant ID</span>
+            <b>{text(profile?.merchantId)}</b>
+            <span>Version</span>
+            <b>{profile?.version ? `v${profile.version}` : "-"}</b>
+          </div>
+        </div>
+      ) : (
+        <div className="spp-dashed">
+          <ImageIcon size={26} aria-hidden="true" />
+          <span>{emptyLabel}</span>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ActionForm({ action, note, setNote, onCancel, onSubmit, isBusy }) {
+  if (!action || action === "approve" || action === "deactivate") return null;
+  return (
+    <div className="spp-action-note">
+      <textarea
+        value={note}
+        onChange={(event) => setNote(event.target.value)}
+        placeholder={action === "revision" ? "Revision note" : "Reject reason"}
+      />
+      <div>
+        <button type="button" className="spp-secondary" onClick={onCancel} disabled={isBusy}>
+          Cancel
+        </button>
+        <button type="button" className="spp-primary" onClick={onSubmit} disabled={isBusy || !note.trim()}>
+          {isBusy ? "Sending..." : action === "revision" ? "Send Revision" : "Reject"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function StorePaymentCard({ entry, mutation, activeDraft, setActiveDraft }) {
+  const profile = entry.paymentProfile;
+  const pendingRequest = entry.pendingRequest;
+  const lane = getLane(entry);
+  const missingLabels = getMissingLabels(entry);
+  const readinessItems = getReadinessItems(entry);
+  const readinessPercent = percent(entry.workspaceReadiness?.completionPercent);
+  const governance = entry.workflow?.governance || {};
+  const requestStatus = getRequestStatus(entry);
+  const storeId = entry.store?.id;
+  const isBusy = mutation.isPending && Number(mutation.variables?.storeId) === Number(storeId);
+  const activeSnapshot = Boolean(profile?.isActive);
+  const hasAction = requestStatus === "SUBMITTED" || (profile && !pendingRequest);
+  const draftKey = `${storeId}:${activeDraft?.action || ""}`;
+  const isCurrentDraft = activeDraft?.storeId === storeId;
+  const note = isCurrentDraft ? activeDraft.note : "";
+  const setNote = (value) => setActiveDraft((current) => ({ ...(current || {}), storeId, note: value }));
+
+  const submitReview = (action, noteValue = "") => {
+    mutation.mutate({
+      storeId,
+      payload: {
+        action,
+        decision: action,
+        status: action,
+        note: noteValue || null,
+        adminNote: noteValue || null,
+        reviewNote: noteValue || null,
+      },
+    });
+  };
+
+  return (
+    <article className="spp-store-card">
+      <header className="spp-store-card__head">
+        <div className="spp-store-title">
+          <span className="spp-store-icon">
+            <Store size={20} aria-hidden="true" />
+          </span>
+          <div>
+            <h2>{text(entry.store?.name, "Unnamed Store")}</h2>
+            <p>Owner: {text(entry.owner?.name || entry.owner?.email)}</p>
+          </div>
+        </div>
+        <div className="spp-store-badges">
+          <Badge tone={profile ? "success" : "neutral"}>
+            {profile ? "Active snapshot" : "No snapshot"}
+          </Badge>
+          <Badge tone={pendingRequest ? "warning" : activeSnapshot ? "success" : "neutral"}>
+            {pendingRequest ? "Pending" : activeSnapshot ? "Verified" : "Not reviewed"}
+          </Badge>
+          <Badge tone={lane.action ? "warning" : "success"}>{lane.action ? "Action" : "Clear"}</Badge>
+          <Badge tone={lane.key === "active" ? "success" : lane.tone}>{lane.label}</Badge>
+        </div>
+      </header>
+
+      <div className="spp-card-grid">
+        <div className="spp-left-column">
+          <section className="spp-panel">
+            <div className="spp-panel__head">
+              <h3>Active Snapshot</h3>
+              <Badge tone={activeSnapshot ? "success" : "neutral"}>
+                {activeSnapshot ? "Active" : "No snapshot"}
+              </Badge>
+            </div>
+            <div className="spp-snapshot-grid">
+              <SnapshotCell label="Account" value={profile?.accountName} />
+              <SnapshotCell label="Merchant" value={profile?.merchantName} />
+              <SnapshotCell label="Merchant ID" value={profile?.merchantId} />
+              <SnapshotCell label="Version" value={profile?.version ? `v${profile.version}` : "-"} />
+            </div>
+            <div className="spp-note spp-note--info">Approval required</div>
+            {missingLabels.length ? (
+              <div className="spp-note spp-note--warning">
+                Missing: {missingLabels.join(", ")}
+              </div>
+            ) : null}
+          </section>
+
+          <section className="spp-panel">
+            <div className="spp-readiness-head">
+              <h3>Seller Readiness</h3>
+              <strong>{readinessPercent}%</strong>
+              <div className="spp-progress">
+                <span style={{ width: `${readinessPercent}%` }} />
+              </div>
+            </div>
+            <div className="spp-readiness-grid">
+              {readinessItems.map((item) => (
+                <div key={item.label}>
+                  <span>{item.label}</span>
+                  <strong className={`spp-readiness--${item.tone}`}>{item.value}</strong>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="spp-admin-actions">
+            <span>Admin action</span>
+            <div>
+              {requestStatus === "SUBMITTED" ? (
+                <>
+                  <button
+                    type="button"
+                    className="spp-primary"
+                    disabled={isBusy || !governance.canApprovePromotion}
+                    onClick={() => submitReview("APPROVE")}
+                  >
+                    {isBusy ? "Updating..." : "Approve"}
+                  </button>
+                  <button
+                    type="button"
+                    className="spp-secondary"
+                    disabled={isBusy || !governance.canRequestRevision}
+                    onClick={() => setActiveDraft({ storeId, action: "revision", note: "" })}
+                  >
+                    Revision
+                  </button>
+                  <button
+                    type="button"
+                    className="spp-danger"
+                    disabled={isBusy || !governance.canRequestRevision}
+                    onClick={() => setActiveDraft({ storeId, action: "reject", note: "" })}
+                  >
+                    Reject
+                  </button>
+                </>
+              ) : profile ? (
+                <button
+                  type="button"
+                  className="spp-danger spp-danger--outline"
+                  disabled={isBusy || !governance.canToggleActiveSnapshot}
+                  onClick={() => submitReview(activeSnapshot ? "INACTIVE" : "APPROVE")}
+                >
+                  {activeSnapshot ? "Deactivate Snapshot" : "Activate Snapshot"}
+                </button>
+              ) : (
+                <button type="button" className="spp-secondary" disabled>
+                  No action
+                </button>
+              )}
+            </div>
+          </section>
+
+          <ActionForm
+            key={draftKey}
+            action={isCurrentDraft ? activeDraft.action : ""}
+            note={note}
+            setNote={setNote}
+            isBusy={isBusy}
+            onCancel={() => setActiveDraft(null)}
+            onSubmit={() => {
+              const action = activeDraft?.action === "revision" ? "REJECTED" : "REJECTED";
+              submitReview(action, note);
+            }}
+          />
+        </div>
+
+        <div className="spp-right-column">
+          <QrisPanel
+            title="Active QRIS"
+            imageUrl={profile?.qrisImageUrl}
+            profile={profile}
+            emptyLabel="No QRIS"
+            badgeLabel="Available"
+          />
+          <QrisPanel
+            title="Pending Request"
+            imageUrl={pendingRequest?.qrisImageUrl}
+            profile={pendingRequest}
+            emptyLabel="No request"
+            badgeLabel="Submitted"
+          />
+        </div>
+      </div>
+    </article>
+  );
+}
 
 export default function AdminStorePaymentProfilesPage() {
   const queryClient = useQueryClient();
   const [activeFilter, setActiveFilter] = useState("all");
+  const [activeDraft, setActiveDraft] = useState(null);
 
   const profilesQuery = useQuery({
     queryKey: ["admin-store-payment-profiles"],
@@ -209,47 +413,45 @@ export default function AdminStorePaymentProfilesPage() {
 
   const mutation = useMutation({
     mutationFn: ({ storeId, payload }) => reviewAdminStorePaymentProfile(storeId, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-store-payment-profiles"] });
+    onSuccess: async () => {
+      toast.success("Store payment updated");
+      setActiveDraft(null);
+      await queryClient.invalidateQueries({ queryKey: ["admin-store-payment-profiles"] });
+      profilesQuery.refetch();
+    },
+    onError: (error) => {
+      toast.error(
+        error?.response?.data?.message || error?.message || "Failed to update store payment."
+      );
     },
   });
 
   const items = useMemo(
-    () => (Array.isArray(profilesQuery.data) ? profilesQuery.data : []),
+    () => (Array.isArray(profilesQuery.data) ? profilesQuery.data.filter((item) => item?.store?.id) : []),
     [profilesQuery.data]
   );
+
   const summary = useMemo(() => {
-    const pending = items.filter(
-      (entry) => derivePaymentProfileLane(entry).key === "pending"
-    ).length;
-    const active = items.filter((entry) => derivePaymentProfileLane(entry).key === "active").length;
-    const revision = items.filter(
-      (entry) => derivePaymentProfileLane(entry).key === "revision"
-    ).length;
-    const incomplete = items.filter(
-      (entry) => derivePaymentProfileLane(entry).key === "incomplete"
-    ).length;
-    const needsAction = items.filter(
-      (entry) => entry.workflow?.governance?.canApprovePromotion || entry.workflow?.governance?.canRequestRevision
-    ).length;
-    return { pending, active, revision, incomplete, needsAction };
+    const active = items.filter((entry) => getLane(entry).key === "active").length;
+    const pending = items.filter((entry) => getLane(entry).key === "pending").length;
+    const followUp = items.filter((entry) => getLane(entry).key === "revision").length;
+    const setup = items.filter((entry) => getLane(entry).key === "incomplete").length;
+    return { active, pending, followUp, setup };
   }, [items]);
+
   const filteredItems = useMemo(() => {
     if (activeFilter === "all") return items;
-    if (activeFilter === "action") {
-      return items.filter((entry) => derivePaymentProfileLane(entry).hasAction);
-    }
-    return items.filter((entry) => derivePaymentProfileLane(entry).key === activeFilter);
+    if (activeFilter === "action") return items.filter((entry) => getLane(entry).action);
+    return items.filter((entry) => getLane(entry).key === activeFilter);
   }, [activeFilter, items]);
-  const firstActionable = items.find((entry) => derivePaymentProfileLane(entry).hasAction);
 
-  if (profilesQuery.isLoading) {
-    return <AdminOpsLoadingState title="Loading store payment profiles..." />;
-  }
+  const queueClear = summary.pending === 0;
+
+  if (profilesQuery.isLoading) return <LoadingState />;
 
   if (profilesQuery.isError) {
     return (
-      <AdminOpsErrorState
+      <ErrorState
         message={
           profilesQuery.error?.response?.data?.message ||
           profilesQuery.error?.message ||
@@ -261,421 +463,75 @@ export default function AdminStorePaymentProfilesPage() {
   }
 
   return (
-    <div className="space-y-5">
-      <AdminOpsPageHeader
-        title="Store Payment"
-        description="QRIS approval, active snapshots, and checkout readiness."
-        meta={`${items.length} store${items.length === 1 ? "" : "s"}`}
-        badges={
-          <>
-            <AdminOpsStatusBadge
-              label={summary.needsAction ? "Action needed" : "Ready"}
-              tone={summary.needsAction ? "attention" : "ready"}
-            />
-            <AdminOpsStatusBadge
-              label={summary.active ? "Verified" : "Missing"}
-              tone={summary.active ? "verified" : "missing"}
-            />
-          </>
-        }
-        actions={
-          <button
-            type="button"
-            onClick={() => profilesQuery.refetch()}
-            className="inline-flex h-9 items-center justify-center rounded-full border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            Refresh
-          </button>
-        }
-      />
-
-      <div className="grid gap-3 md:grid-cols-4">
-        <AdminOpsMetricCard
-          label="Active Ready"
-          badgeLabel={summary.active ? "Ready" : "Missing"}
-          value={summary.active}
-          helper="Can accept checkout."
-          tone={summary.active ? "ready" : "missing"}
-        />
-        <AdminOpsMetricCard
-          label="Pending Review"
-          badgeLabel={summary.pending ? "Action needed" : "Ready"}
-          value={summary.pending}
-          helper="Seller requests awaiting admin review."
-          tone={summary.pending ? "attention" : "ready"}
-        />
-        <AdminOpsMetricCard
-          label="Needs Revision"
-          badgeLabel={summary.revision ? "Needs attention" : "Ready"}
-          value={summary.revision}
-          helper="Seller follow-up required."
-          tone={summary.revision ? "rose" : "ready"}
-        />
-        <AdminOpsMetricCard
-          label="Incomplete"
-          badgeLabel={summary.incomplete ? "Needs setup" : "Verified"}
-          value={summary.incomplete}
-          helper="No checkout-ready profile yet."
-          tone={summary.incomplete ? "attention" : "verified"}
-        />
-      </div>
-
-      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="admin-store-payment-profiles-page">
+      <section className="spp-hero">
+        <div className="spp-hero__top">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-              Payment Readiness
-            </p>
-            <p className="mt-1 text-sm font-semibold text-slate-900">
-              {PAYMENT_PROFILE_FILTERS.find((filter) => filter.value === activeFilter)?.label ||
-                "All"}
-            </p>
+            <span className="spp-eyebrow">Online Store</span>
+            <h1>Store Payment</h1>
+            <p>QRIS review and checkout readiness.</p>
+            <div className="spp-hero__badges">
+              <Badge tone={summary.setup ? "warning" : "success"}>Ready</Badge>
+              <Badge tone={summary.active ? "success" : "neutral"}>Verified</Badge>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {PAYMENT_PROFILE_FILTERS.map((filter) => {
-              const isActive = filter.value === activeFilter;
-              return (
+          <div className="spp-hero__actions">
+            <Badge tone="neutral">{items.length} store{items.length === 1 ? "" : "s"}</Badge>
+            <button type="button" className="spp-refresh" onClick={() => profilesQuery.refetch()}>
+              <RefreshCw size={16} aria-hidden="true" />
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <div className="spp-kpis">
+          <KpiCard icon={ShoppingCart} label="Active" value={summary.active} helper="Checkout live" tone="green" />
+          <KpiCard icon={Clock3} label="Pending" value={summary.pending} helper="Awaiting review" tone="amber" />
+          <KpiCard icon={UserRoundCheck} label="Follow-up" value={summary.followUp} helper="Needs seller update" tone="blue" />
+          <KpiCard icon={Wrench} label="Setup" value={summary.setup} helper="Not ready" tone="purple" />
+        </div>
+
+        <section className="spp-readiness-filter">
+          <div className="spp-filter-head">
+            <h2>Payment Readiness</h2>
+            <div className="spp-tabs">
+              {FILTERS.map((filter) => (
                 <button
                   key={filter.value}
                   type="button"
+                  className={activeFilter === filter.value ? "is-active" : ""}
                   onClick={() => setActiveFilter(filter.value)}
-                  className={`inline-flex h-9 items-center rounded-full border px-3 text-xs font-semibold transition ${
-                    isActive
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                  }`}
                 >
                   {filter.label}
                 </button>
-              );
-            })}
+              ))}
+            </div>
           </div>
-        </div>
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-          <div>
-            <p className="text-sm font-semibold text-slate-900">
-              {summary.needsAction ? `${summary.needsAction} admin decision${summary.needsAction === 1 ? "" : "s"}` : "No admin decisions waiting"}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              Checkout uses only an active approved snapshot.
-            </p>
+          <div className={`spp-queue ${queueClear ? "spp-queue--clear" : "spp-queue--action"}`}>
+            <CheckCircle2 size={22} aria-hidden="true" />
+            <div>
+              <strong>{queueClear ? "Queue clear" : `${summary.pending} pending review`}</strong>
+              <span>{queueClear ? "No admin action waiting" : "Admin decision required"}</span>
+            </div>
           </div>
-          {firstActionable ? (
-            <button
-              type="button"
-              onClick={() => setActiveFilter("action")}
-              className="inline-flex h-9 items-center rounded-full bg-slate-900 px-3.5 text-sm font-semibold text-white transition hover:bg-slate-800"
-            >
-              Show Actions
-            </button>
-          ) : (
-            <AdminOpsStatusBadge label="Review queue clear" tone="ready" />
-          )}
-        </div>
+        </section>
       </section>
 
-      {items.length === 0 ? (
-        <AdminOpsEmptyState
-          title="No store payment data found"
-          description="Seller submissions and active snapshots will appear here."
-        />
-      ) : (
-        <div className="grid gap-4">
-          {filteredItems.length === 0 ? (
-            <AdminOpsEmptyState
-              title="No profiles match this filter"
-              description="Switch filters to review other payment readiness states."
-            />
-          ) : null}
-          {filteredItems.map((entry) => {
-            const profile = entry.paymentProfile;
-            const pendingRequest = entry.pendingRequest;
-            const workflow = entry.workflow || {};
-            const paymentLane = derivePaymentProfileLane(entry);
-            const currentStatus = String(
-              profile?.activityMeta?.code || profile?.verificationStatus || "NOT_CONFIGURED"
-            ).toUpperCase();
-            const pendingStoreId = mutation.variables?.storeId;
-            const isBusy =
-              mutation.isPending && Number(pendingStoreId) === Number(entry.store.id);
-            const canApprovePromotion = Boolean(workflow?.governance?.canApprovePromotion);
-            const canRequestRevision = Boolean(workflow?.governance?.canRequestRevision);
-            const canToggleActiveSnapshot = Boolean(workflow?.governance?.canToggleActiveSnapshot);
-            const completeness = workflow?.completeness || {};
-            const missingFields = Array.isArray(completeness?.missingFields)
-              ? completeness.missingFields
-              : [];
-            const workspaceReadiness = entry.workspaceReadiness || null;
-            const readinessChecklist = Array.isArray(workspaceReadiness?.checklist)
-              ? workspaceReadiness.checklist
-              : [];
-            const activeStatusLabel = profile
-              ? profile.isActive
-                ? "Active snapshot"
-                : "Inactive snapshot"
-              : "No snapshot";
-            const reviewStatusLabel = workflow?.reviewStatus?.label
-              ? `Review ${getShortWorkflowLabel(workflow.reviewStatus)}`
-              : "Review not reviewed";
-            const readinessStatusLabel = workspaceReadiness?.summary?.label
-              ? getShortWorkflowLabel(workspaceReadiness.summary, "In progress")
-              : "Readiness unknown";
-            const hasAdminAction =
-              canApprovePromotion || canRequestRevision || canToggleActiveSnapshot;
-            const actionHelper = pendingRequest
-              ? canApprovePromotion
-                ? "Only approved requests can be promoted."
-                : "Request is not eligible for promotion yet."
-              : profile
-                ? canToggleActiveSnapshot
-                  ? "Manual activation follows backend governance."
-                  : "Backend governance keeps this action locked."
-                : "No snapshot is available to activate.";
-
-            return (
-              <section
-                key={entry.store.id}
-                className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.05)]"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 pb-4">
-                  <div>
-                    <h2 className="text-lg font-semibold text-slate-900">{entry.store.name}</h2>
-                    <p className="mt-1 text-sm text-slate-500">
-                      Owner: {entry.owner?.name || "-"} ({entry.owner?.email || "-"})
-                    </p>
-                  </div>
-                  <div className="flex max-w-full flex-wrap justify-start gap-2 sm:justify-end">
-                    <StatusPill
-                      label={activeStatusLabel}
-                      status={profile?.activityMeta?.tone || currentStatus}
-                    />
-                    <StatusPill
-                      label={reviewStatusLabel}
-                      status={workflow?.reviewStatus?.tone || "NEUTRAL"}
-                    />
-                    {workspaceReadiness ? (
-                    <StatusPill
-                      label={readinessStatusLabel}
-                      status={workspaceReadiness.summary?.tone || "NEUTRAL"}
-                    />
-                  ) : null}
-                    <StatusPill
-                      label={paymentLane.label}
-                      status={paymentLane.tone}
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-4 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-                  <div className="grid gap-4">
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                          <p className="text-sm font-semibold text-slate-900">Active Snapshot</p>
-                          <p className="mt-1 text-xs text-slate-500">Used by checkout</p>
-                        </div>
-                        <StatusPill
-                          label={profile?.activityMeta?.label || activeStatusLabel}
-                          status={profile?.activityMeta?.tone || currentStatus}
-                        />
-                      </div>
-                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                        <SnapshotField label="Account" value={profile?.accountName} />
-                        <SnapshotField label="Merchant" value={profile?.merchantName} />
-                        <SnapshotField label="Merchant ID" value={profile?.merchantId} />
-                        <SnapshotField
-                          label="Version"
-                          value={profile?.version ? `v${profile.version}` : "-"}
-                        />
-                      </div>
-                    </div>
-
-                    {pendingRequest ? (
-                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-amber-900">Pending admin review</p>
-                          <StatusPill
-                            label={getShortWorkflowLabel(workflow?.requestState, "Submitted")}
-                            status={workflow?.requestState?.tone || "WARNING"}
-                          />
-                        </div>
-                        <p className="mt-1 text-xs font-medium text-amber-800">Awaiting admin review</p>
-                      </div>
-                    ) : (
-                      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                        <StatusPill label="No pending request" status="NEUTRAL" />
-                        <span>Admin approval required for activation</span>
-                      </div>
-                    )}
-
-                    {pendingRequest ? (
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Pending Account
-                          </p>
-                          <p className="mt-2 text-sm text-slate-900">{pendingRequest.accountName || "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Pending Merchant
-                          </p>
-                          <p className="mt-2 text-sm text-slate-900">{pendingRequest.merchantName || "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Submitted At
-                          </p>
-                          <p className="mt-2 text-sm text-slate-900">{formatDate(pendingRequest.submittedAt)}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Based On Snapshot
-                          </p>
-                          <p className="mt-2 text-sm text-slate-900">
-                            {pendingRequest.basedOnProfileId ? `#${pendingRequest.basedOnProfileId}` : "-"}
-                          </p>
-                        </div>
-                        <div className="sm:col-span-2">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Instruction
-                          </p>
-                          <p className="mt-2 line-clamp-3 text-sm text-slate-700">
-                            {pendingRequest.instructionText || "-"}
-                          </p>
-                        </div>
-                        <div className="sm:col-span-2">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Seller Note
-                          </p>
-                          <p className="mt-2 text-sm text-slate-700">{pendingRequest.sellerNote || "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Review Status
-                          </p>
-                          <p className="mt-2 text-sm text-slate-900">
-                            {workflow?.reviewStatus?.label || "-"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Required Fields
-                          </p>
-                          <p className="mt-2 text-sm text-slate-900">
-                            {`${completeness?.completedFields || 0}/${completeness?.totalFields || 0}`}
-                          </p>
-                        </div>
-                      </div>
-                    ) : null}
-                    {missingFields.length ? (
-                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                        Missing required fields: {missingFields.map((field) => field.label).join(", ")}
-                      </div>
-                    ) : null}
-                    {workflow?.reviewStatus?.adminReviewNote ? (
-                      <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                        Admin review note: {workflow.reviewStatus.adminReviewNote}
-                      </div>
-                    ) : null}
-                    {workflow?.governance?.note ? (
-                      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                        <StatusPill label="Admin authority" status="NEUTRAL" />
-                        <span>Approval required</span>
-                      </div>
-                    ) : null}
-                    <ReadinessPanel
-                      workspaceReadiness={workspaceReadiness}
-                      readinessChecklist={readinessChecklist}
-                    />
-                  </div>
-
-                  <div className="grid gap-4">
-                    <ImagePanel
-                      title="Active QRIS"
-                      hint="Used by checkout"
-                      imageUrl={profile?.qrisImageUrl || null}
-                      alt={`Active QRIS ${entry.store.name}`}
-                      statusLabel="Available"
-                    />
-                    <ImagePanel
-                      title="Pending Request"
-                      hint="Awaiting admin review"
-                      imageUrl={pendingRequest?.qrisImageUrl || null}
-                      alt={`Pending QRIS ${entry.store.name}`}
-                      statusLabel="Submitted"
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-4 flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">Admin action</p>
-                    <p className="mt-1 text-xs text-slate-500">{actionHelper}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {pendingRequest ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            mutation.mutate({
-                              storeId: entry.store.id,
-                              payload: { verificationStatus: "ACTIVE" },
-                            })
-                          }
-                          disabled={isBusy || !canApprovePromotion}
-                          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          {isBusy ? "Updating..." : "Approve & Promote"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            mutation.mutate({
-                              storeId: entry.store.id,
-                              payload: { verificationStatus: "REJECTED" },
-                            })
-                          }
-                          disabled={isBusy || !canRequestRevision}
-                          className="rounded-lg border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          Request Revision
-                        </button>
-                      </>
-                    ) : null}
-
-                    {profile ? (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          mutation.mutate({
-                            storeId: entry.store.id,
-                            payload: {
-                              verificationStatus: profile.isActive ? "INACTIVE" : "ACTIVE",
-                            },
-                          })
-                        }
-                        disabled={isBusy || !canToggleActiveSnapshot}
-                        className={`rounded-lg px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                          !profile.isActive && canToggleActiveSnapshot
-                            ? "bg-slate-900 text-white hover:bg-slate-800"
-                            : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                        }`}
-                      >
-                        {profile.isActive ? "Deactivate Snapshot" : "Activate Snapshot"}
-                      </button>
-                    ) : null}
-                    {!hasAdminAction ? (
-                      <StatusPill label="No action available" status="NEUTRAL" />
-                    ) : null}
-                  </div>
-                </div>
-              </section>
-            );
-          })}
-        </div>
-      )}
+      <section className="spp-list">
+        {items.length === 0 ? <EmptyState title="No store payment data" /> : null}
+        {items.length > 0 && filteredItems.length === 0 ? (
+          <EmptyState title="No stores match this filter" />
+        ) : null}
+        {filteredItems.map((entry) => (
+          <StorePaymentCard
+            key={entry.store.id}
+            entry={entry}
+            mutation={mutation}
+            activeDraft={activeDraft}
+            setActiveDraft={setActiveDraft}
+          />
+        ))}
+      </section>
     </div>
   );
 }

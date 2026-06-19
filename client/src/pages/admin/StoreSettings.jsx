@@ -1,67 +1,74 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "react-hot-toast";
+import {
+  AlertTriangle,
+  BarChart3,
+  CheckCircle2,
+  CreditCard,
+  Eye,
+  EyeOff,
+  RefreshCw,
+  Save,
+  ShieldAlert,
+} from "lucide-react";
 import {
   fetchAdminStoreSettings,
   updateAdminStoreSettings,
 } from "../../lib/adminApi.js";
-import {
-  AdminOpsErrorState,
-  AdminOpsLoadingState,
-  AdminOpsMetricCard,
-  AdminOpsPageHeader,
-  AdminOpsStatusBadge,
-} from "../../components/admin/AdminOpsPrimitives.jsx";
+import "./StoreSettings.css";
 
 const STRIPE_PUBLISHABLE_KEY_REGEX = /^pk_(test|live)_[A-Za-z0-9]+$/;
 const STRIPE_SECRET_KEY_REGEX = /^sk_(test|live)_[A-Za-z0-9]+$/;
-const STRIPE_WEBHOOK_SECRET_REGEX = /^whsec_[A-Za-z0-9]+$/;
 const RAZORPAY_KEY_ID_REGEX = /^rzp_(test|live)_[A-Za-z0-9]+$/;
-const RAZORPAY_SECRET_REGEX = /^[A-Za-z0-9_-]{8,128}$/;
 const GOOGLE_ANALYTICS_KEY_REGEX = /^(G|AW|UA)-[A-Z0-9-]+$/i;
-const TAWK_ID_REGEX = /^[A-Za-z0-9]{6,64}$/;
 
-const DEFAULT_STORE_SETTINGS = {
-  payments: {
-    cashOnDeliveryEnabled: true,
-    stripeEnabled: true,
-    stripeKey: "",
-    stripeSecret: "",
-    stripeWebhookSecret: "",
-    razorPayEnabled: false,
-    razorPayKeyId: "",
-    razorPayKeySecret: "",
-  },
-  socialLogin: {
-    googleEnabled: true,
-    googleClientId: "",
-    googleSecretKey: "",
-    githubEnabled: true,
-    githubId: "",
-    githubSecret: "",
-    facebookEnabled: true,
-    facebookId: "",
-    facebookSecret: "",
-  },
-  analytics: {
-    googleAnalyticsEnabled: true,
-    googleAnalyticKey: "",
-  },
-  chat: {
-    tawkEnabled: true,
-    tawkPropertyId: "",
-    tawkWidgetId: "",
-  },
+const DEFAULT_FORM = {
+  cashOnDelivery: true,
+  stripeEnabled: true,
+  stripeKey: "",
+  stripeSecret: "",
+  stripeWebhookSecret: "",
+  razorpayEnabled: false,
+  razorpayKeyId: "",
+  razorpayKeySecret: "",
+  googleLogin: true,
+  googleClientId: "",
+  googleSecretKey: "",
+  githubLogin: true,
+  githubClientId: "",
+  githubSecret: "",
+  facebookLogin: true,
+  facebookAppId: "",
+  facebookSecret: "",
+  googleAnalytics: true,
+  googleAnalyticKey: "",
+  tawkChat: true,
+  tawkPropertyId: "",
+  tawkWidgetId: "",
 };
 
 const isPlainObject = (value) =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
-const toText = (value, fallback = "") => {
+const unwrapEnvelope = (response) => response?.data?.data ?? response?.data ?? response ?? {};
+
+const getStoreSettingsPayload = (response) => {
+  const payload = unwrapEnvelope(response);
+  return payload?.storeSettings ?? payload?.settings ?? payload;
+};
+
+const getDiagnosticsPayload = (response) => {
+  const payload = unwrapEnvelope(response);
+  return payload?.diagnostics ?? {};
+};
+
+const text = (value, fallback = "") => {
   const normalized = String(value ?? "").trim();
   return normalized || fallback;
 };
 
-const toBool = (value, fallback = false) => {
+const bool = (value, fallback = false) => {
   if (typeof value === "boolean") return value;
   if (typeof value === "number") return value !== 0;
   if (typeof value === "string") {
@@ -74,264 +81,383 @@ const toBool = (value, fallback = false) => {
 
 const normalizeStoreSettings = (raw) => {
   const source = isPlainObject(raw) ? raw : {};
-  const paymentsSource = isPlainObject(source.payments) ? source.payments : {};
-  const socialSource = isPlainObject(source.socialLogin) ? source.socialLogin : {};
-  const analyticsSource = isPlainObject(source.analytics) ? source.analytics : {};
-  const chatSource = isPlainObject(source.chat) ? source.chat : {};
+  const payments = isPlainObject(source.payments) ? source.payments : {};
+  const paymentMethods = isPlainObject(source.paymentMethods) ? source.paymentMethods : {};
+  const stripe = isPlainObject(paymentMethods.stripe) ? paymentMethods.stripe : {};
+  const razorpay = isPlainObject(paymentMethods.razorpay) ? paymentMethods.razorpay : {};
+  const cod = isPlainObject(paymentMethods.cashOnDelivery)
+    ? paymentMethods.cashOnDelivery
+    : {};
+  const social = isPlainObject(source.socialLogin) ? source.socialLogin : {};
+  const google = isPlainObject(social.google) ? social.google : {};
+  const github = isPlainObject(social.github) ? social.github : {};
+  const facebook = isPlainObject(social.facebook) ? social.facebook : {};
+  const analytics = isPlainObject(source.analytics) ? source.analytics : {};
+  const analyticsGoogle = isPlainObject(analytics.google) ? analytics.google : {};
+  const chat = isPlainObject(source.chat) ? source.chat : {};
+  const tawk = isPlainObject(chat.tawk) ? chat.tawk : {};
 
   return {
+    cashOnDelivery: bool(
+      source.cashOnDelivery ?? payments.cashOnDeliveryEnabled ?? cod.enabled,
+      DEFAULT_FORM.cashOnDelivery
+    ),
+    stripeEnabled: bool(
+      source.stripePayment ?? source.stripeEnabled ?? payments.stripeEnabled ?? stripe.enabled,
+      DEFAULT_FORM.stripeEnabled
+    ),
+    stripeKey: text(source.stripeKey ?? payments.stripeKey ?? stripe.key),
+    stripeSecret: text(source.stripeSecret ?? payments.stripeSecret ?? stripe.secret),
+    stripeWebhookSecret: text(
+      source.stripeWebhookSecret ?? payments.stripeWebhookSecret ?? stripe.webhookSecret
+    ),
+    razorpayEnabled: bool(
+      source.razorpay ?? source.razorpayEnabled ?? payments.razorPayEnabled ?? razorpay.enabled,
+      DEFAULT_FORM.razorpayEnabled
+    ),
+    razorpayKeyId: text(
+      source.razorpayKeyId ?? payments.razorPayKeyId ?? razorpay.keyId
+    ),
+    razorpayKeySecret: text(
+      source.razorpayKeySecret ?? payments.razorPayKeySecret ?? razorpay.keySecret
+    ),
+    googleLogin: bool(
+      source.googleLogin ?? social.googleEnabled ?? google.enabled,
+      DEFAULT_FORM.googleLogin
+    ),
+    googleClientId: text(source.googleClientId ?? social.googleClientId ?? google.clientId),
+    googleSecretKey: text(source.googleSecretKey ?? social.googleSecretKey ?? google.secret),
+    githubLogin: bool(
+      source.githubLogin ?? social.githubEnabled ?? github.enabled,
+      DEFAULT_FORM.githubLogin
+    ),
+    githubClientId: text(
+      source.githubClientId ?? source.githubId ?? social.githubClientId ?? social.githubId ?? github.clientId
+    ),
+    githubSecret: text(source.githubSecret ?? social.githubSecret ?? github.secret),
+    facebookLogin: bool(
+      source.facebookLogin ?? social.facebookEnabled ?? facebook.enabled,
+      DEFAULT_FORM.facebookLogin
+    ),
+    facebookAppId: text(
+      source.facebookAppId ?? source.facebookId ?? social.facebookAppId ?? social.facebookId ?? facebook.appId
+    ),
+    facebookSecret: text(
+      source.facebookAppSecret ?? source.facebookSecret ?? social.facebookAppSecret ?? social.facebookSecret ?? facebook.secret
+    ),
+    googleAnalytics: bool(
+      source.googleAnalytics ?? analytics.googleAnalyticsEnabled ?? analyticsGoogle.enabled,
+      DEFAULT_FORM.googleAnalytics
+    ),
+    googleAnalyticKey: text(
+      source.googleAnalyticKey ?? analytics.googleAnalyticKey ?? analyticsGoogle.measurementId
+    ),
+    tawkChat: bool(source.tawkChat ?? chat.tawkEnabled ?? tawk.enabled, DEFAULT_FORM.tawkChat),
+    tawkPropertyId: text(source.tawkPropertyId ?? chat.tawkPropertyId ?? tawk.propertyId),
+    tawkWidgetId: text(source.tawkWidgetId ?? chat.tawkWidgetId ?? tawk.widgetId),
+  };
+};
+
+const hasConfiguredSecret = (diagnostics, path) =>
+  path.reduce((node, key) => node?.[key], diagnostics)?.secretConfigured === true;
+
+const buildValidationIssues = (form) => {
+  const issues = [];
+  if (form.stripeKey && !STRIPE_PUBLISHABLE_KEY_REGEX.test(form.stripeKey)) {
+    issues.push("Stripe key invalid");
+  }
+  if (form.stripeSecret && !STRIPE_SECRET_KEY_REGEX.test(form.stripeSecret)) {
+    issues.push("Stripe secret invalid");
+  }
+  if (form.razorpayKeyId && !RAZORPAY_KEY_ID_REGEX.test(form.razorpayKeyId)) {
+    issues.push("Razorpay key invalid");
+  }
+  if (
+    form.googleAnalyticKey &&
+    !GOOGLE_ANALYTICS_KEY_REGEX.test(form.googleAnalyticKey)
+  ) {
+    issues.push("Google Analytics ID invalid");
+  }
+  return issues;
+};
+
+const getProviderStatus = ({ enabled, missing, invalid = false }) => {
+  if (!enabled) return { label: "Off", tone: "neutral" };
+  if (invalid) return { label: "Invalid", tone: "danger" };
+  if (missing) return { label: "Missing", tone: "warning" };
+  return { label: "Ready", tone: "success" };
+};
+
+const getPaymentStatus = ({ enabled, missing, invalid = false }) => {
+  if (!enabled) return { label: "Disabled", tone: "neutral" };
+  if (invalid) return { label: "Invalid", tone: "danger" };
+  if (missing) return { label: "Missing", tone: "warning" };
+  return { label: "Ready", tone: "success" };
+};
+
+const buildUpdatePayload = (rawSettings, form) => {
+  const source = isPlainObject(rawSettings) ? rawSettings : {};
+  const payments = isPlainObject(source.payments) ? source.payments : {};
+  const paymentMethods = isPlainObject(source.paymentMethods) ? source.paymentMethods : {};
+  const socialLogin = isPlainObject(source.socialLogin) ? source.socialLogin : {};
+  const analytics = isPlainObject(source.analytics) ? source.analytics : {};
+  const chat = isPlainObject(source.chat) ? source.chat : {};
+
+  return {
+    ...source,
+    cashOnDelivery: form.cashOnDelivery,
+    stripePayment: form.stripeEnabled,
+    stripeEnabled: form.stripeEnabled,
+    stripeKey: form.stripeKey,
+    stripeSecret: form.stripeSecret,
+    stripeWebhookSecret: form.stripeWebhookSecret,
+    razorpay: form.razorpayEnabled,
+    razorpayEnabled: form.razorpayEnabled,
+    razorpayKeyId: form.razorpayKeyId,
+    razorpayKeySecret: form.razorpayKeySecret,
+    googleLogin: form.googleLogin,
+    googleClientId: form.googleClientId,
+    googleSecretKey: form.googleSecretKey,
+    githubLogin: form.githubLogin,
+    githubId: form.githubClientId,
+    githubClientId: form.githubClientId,
+    githubSecret: form.githubSecret,
+    facebookLogin: form.facebookLogin,
+    facebookId: form.facebookAppId,
+    facebookAppId: form.facebookAppId,
+    facebookSecret: form.facebookSecret,
+    facebookAppSecret: form.facebookSecret,
+    googleAnalytics: form.googleAnalytics,
+    googleAnalyticKey: form.googleAnalyticKey,
+    tawkChat: form.tawkChat,
+    tawkPropertyId: form.tawkPropertyId,
+    tawkWidgetId: form.tawkWidgetId,
     payments: {
-      cashOnDeliveryEnabled: toBool(
-        paymentsSource.cashOnDeliveryEnabled,
-        DEFAULT_STORE_SETTINGS.payments.cashOnDeliveryEnabled
-      ),
-      stripeEnabled: toBool(
-        paymentsSource.stripeEnabled,
-        DEFAULT_STORE_SETTINGS.payments.stripeEnabled
-      ),
-      stripeKey: toText(
-        paymentsSource.stripeKey,
-        DEFAULT_STORE_SETTINGS.payments.stripeKey
-      ),
-      stripeSecret: toText(
-        paymentsSource.stripeSecret,
-        DEFAULT_STORE_SETTINGS.payments.stripeSecret
-      ),
-      stripeWebhookSecret: toText(
-        paymentsSource.stripeWebhookSecret,
-        DEFAULT_STORE_SETTINGS.payments.stripeWebhookSecret
-      ),
-      razorPayEnabled: toBool(
-        paymentsSource.razorPayEnabled,
-        DEFAULT_STORE_SETTINGS.payments.razorPayEnabled
-      ),
-      razorPayKeyId: toText(
-        paymentsSource.razorPayKeyId,
-        DEFAULT_STORE_SETTINGS.payments.razorPayKeyId
-      ),
-      razorPayKeySecret: toText(
-        paymentsSource.razorPayKeySecret,
-        DEFAULT_STORE_SETTINGS.payments.razorPayKeySecret
-      ),
+      ...payments,
+      cashOnDeliveryEnabled: form.cashOnDelivery,
+      stripeEnabled: form.stripeEnabled,
+      stripeKey: form.stripeKey,
+      stripeSecret: form.stripeSecret,
+      stripeWebhookSecret: form.stripeWebhookSecret,
+      razorPayEnabled: form.razorpayEnabled,
+      razorPayKeyId: form.razorpayKeyId,
+      razorPayKeySecret: form.razorpayKeySecret,
+    },
+    paymentMethods: {
+      ...paymentMethods,
+      cashOnDelivery: {
+        ...(isPlainObject(paymentMethods.cashOnDelivery) ? paymentMethods.cashOnDelivery : {}),
+        enabled: form.cashOnDelivery,
+      },
+      stripe: {
+        ...(isPlainObject(paymentMethods.stripe) ? paymentMethods.stripe : {}),
+        enabled: form.stripeEnabled,
+        key: form.stripeKey,
+        secret: form.stripeSecret,
+        webhookSecret: form.stripeWebhookSecret,
+      },
+      razorpay: {
+        ...(isPlainObject(paymentMethods.razorpay) ? paymentMethods.razorpay : {}),
+        enabled: form.razorpayEnabled,
+        keyId: form.razorpayKeyId,
+        keySecret: form.razorpayKeySecret,
+      },
     },
     socialLogin: {
-      googleEnabled: toBool(
-        socialSource.googleEnabled,
-        DEFAULT_STORE_SETTINGS.socialLogin.googleEnabled
-      ),
-      googleClientId: toText(
-        socialSource.googleClientId,
-        DEFAULT_STORE_SETTINGS.socialLogin.googleClientId
-      ),
-      googleSecretKey: toText(
-        socialSource.googleSecretKey,
-        DEFAULT_STORE_SETTINGS.socialLogin.googleSecretKey
-      ),
-      githubEnabled: toBool(
-        socialSource.githubEnabled,
-        DEFAULT_STORE_SETTINGS.socialLogin.githubEnabled
-      ),
-      githubId: toText(socialSource.githubId, DEFAULT_STORE_SETTINGS.socialLogin.githubId),
-      githubSecret: toText(
-        socialSource.githubSecret,
-        DEFAULT_STORE_SETTINGS.socialLogin.githubSecret
-      ),
-      facebookEnabled: toBool(
-        socialSource.facebookEnabled,
-        DEFAULT_STORE_SETTINGS.socialLogin.facebookEnabled
-      ),
-      facebookId: toText(
-        socialSource.facebookId,
-        DEFAULT_STORE_SETTINGS.socialLogin.facebookId
-      ),
-      facebookSecret: toText(
-        socialSource.facebookSecret,
-        DEFAULT_STORE_SETTINGS.socialLogin.facebookSecret
-      ),
+      ...socialLogin,
+      googleEnabled: form.googleLogin,
+      googleClientId: form.googleClientId,
+      googleSecretKey: form.googleSecretKey,
+      githubEnabled: form.githubLogin,
+      githubId: form.githubClientId,
+      githubClientId: form.githubClientId,
+      githubSecret: form.githubSecret,
+      facebookEnabled: form.facebookLogin,
+      facebookId: form.facebookAppId,
+      facebookAppId: form.facebookAppId,
+      facebookSecret: form.facebookSecret,
+      facebookAppSecret: form.facebookSecret,
+      google: {
+        ...(isPlainObject(socialLogin.google) ? socialLogin.google : {}),
+        enabled: form.googleLogin,
+        clientId: form.googleClientId,
+        secret: form.googleSecretKey,
+      },
+      github: {
+        ...(isPlainObject(socialLogin.github) ? socialLogin.github : {}),
+        enabled: form.githubLogin,
+        clientId: form.githubClientId,
+        secret: form.githubSecret,
+      },
+      facebook: {
+        ...(isPlainObject(socialLogin.facebook) ? socialLogin.facebook : {}),
+        enabled: form.facebookLogin,
+        appId: form.facebookAppId,
+        secret: form.facebookSecret,
+      },
     },
     analytics: {
-      googleAnalyticsEnabled: toBool(
-        analyticsSource.googleAnalyticsEnabled,
-        DEFAULT_STORE_SETTINGS.analytics.googleAnalyticsEnabled
-      ),
-      googleAnalyticKey: toText(
-        analyticsSource.googleAnalyticKey,
-        DEFAULT_STORE_SETTINGS.analytics.googleAnalyticKey
-      ),
+      ...analytics,
+      googleAnalyticsEnabled: form.googleAnalytics,
+      googleAnalyticKey: form.googleAnalyticKey,
+      google: {
+        ...(isPlainObject(analytics.google) ? analytics.google : {}),
+        enabled: form.googleAnalytics,
+        measurementId: form.googleAnalyticKey,
+      },
     },
     chat: {
-      tawkEnabled: toBool(chatSource.tawkEnabled, DEFAULT_STORE_SETTINGS.chat.tawkEnabled),
-      tawkPropertyId: toText(
-        chatSource.tawkPropertyId,
-        DEFAULT_STORE_SETTINGS.chat.tawkPropertyId
-      ),
-      tawkWidgetId: toText(chatSource.tawkWidgetId, DEFAULT_STORE_SETTINGS.chat.tawkWidgetId),
+      ...chat,
+      tawkEnabled: form.tawkChat,
+      tawkPropertyId: form.tawkPropertyId,
+      tawkWidgetId: form.tawkWidgetId,
+      tawk: {
+        ...(isPlainObject(chat.tawk) ? chat.tawk : {}),
+        enabled: form.tawkChat,
+        propertyId: form.tawkPropertyId,
+        widgetId: form.tawkWidgetId,
+      },
     },
   };
 };
 
-const buildFatalIssues = (form) => {
-  const issues = [];
-  const stripeKey = toText(form.payments.stripeKey, "");
-  const stripeSecret = toText(form.payments.stripeSecret, "");
-  const stripeWebhookSecret = toText(form.payments.stripeWebhookSecret, "");
-  const razorPayKeyId = toText(form.payments.razorPayKeyId, "");
-  const razorPayKeySecret = toText(form.payments.razorPayKeySecret, "");
-  const analyticsKey = toText(form.analytics.googleAnalyticKey, "");
-  const tawkPropertyId = toText(form.chat.tawkPropertyId, "");
-  const tawkWidgetId = toText(form.chat.tawkWidgetId, "");
-
-  if (
-    form.payments.stripeEnabled &&
-    stripeKey &&
-    !STRIPE_PUBLISHABLE_KEY_REGEX.test(stripeKey)
-  ) {
-    issues.push("Stripe key format is invalid.");
-  }
-  if (
-    form.payments.stripeEnabled &&
-    stripeSecret &&
-    !STRIPE_SECRET_KEY_REGEX.test(stripeSecret)
-  ) {
-    issues.push("Stripe secret format is invalid.");
-  }
-  if (
-    form.payments.stripeEnabled &&
-    stripeWebhookSecret &&
-    !STRIPE_WEBHOOK_SECRET_REGEX.test(stripeWebhookSecret)
-  ) {
-    issues.push("Stripe webhook secret format is invalid.");
-  }
-  if (
-    form.payments.razorPayEnabled &&
-    razorPayKeyId &&
-    !RAZORPAY_KEY_ID_REGEX.test(razorPayKeyId)
-  ) {
-    issues.push("Razorpay key id format is invalid.");
-  }
-  if (
-    form.payments.razorPayEnabled &&
-    razorPayKeySecret &&
-    !RAZORPAY_SECRET_REGEX.test(razorPayKeySecret)
-  ) {
-    issues.push("Razorpay secret format is invalid.");
-  }
-  if (
-    form.analytics.googleAnalyticsEnabled &&
-    analyticsKey &&
-    !GOOGLE_ANALYTICS_KEY_REGEX.test(analyticsKey)
-  ) {
-    issues.push("Google Analytics key format is invalid.");
-  }
-  if (form.chat.tawkEnabled && tawkPropertyId && !TAWK_ID_REGEX.test(tawkPropertyId)) {
-    issues.push("Tawk property id format is invalid.");
-  }
-  if (form.chat.tawkEnabled && tawkWidgetId && !TAWK_ID_REGEX.test(tawkWidgetId)) {
-    issues.push("Tawk widget id format is invalid.");
-  }
-
-  return issues;
-};
-
-const inputClass =
-  "mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-700 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-50";
-
-function Field({ label, hint, children }) {
+function StatusBadge({ status }) {
   return (
-    <label className="block">
-      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-        {label}
-      </span>
-      {children}
-      {hint ? <p className="mt-2 text-xs text-slate-500">{hint}</p> : null}
-    </label>
+    <span className={`store-settings-badge store-settings-badge--${status.tone}`}>
+      {status.label}
+    </span>
   );
 }
 
-function ToggleField({ label, value, onChange, hint }) {
+function KpiCard({ icon: Icon, title, value, helper, tone }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3.5">
-      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-        {label}
+    <section className={`store-settings-kpi store-settings-kpi--${tone}`}>
+      <div className="store-settings-kpi__icon">
+        <Icon size={18} aria-hidden="true" />
       </div>
-      <div className="mt-3 inline-flex rounded-xl border border-slate-200 bg-white p-1">
-        <button
-          type="button"
-          onClick={() => onChange(true)}
-          className={`h-8 rounded-lg px-3 text-xs font-semibold transition ${
-            value ? "bg-emerald-600 text-white" : "text-slate-600 hover:bg-slate-100"
-          }`}
-        >
-          Yes
-        </button>
-        <button
-          type="button"
-          onClick={() => onChange(false)}
-          className={`h-8 rounded-lg px-3 text-xs font-semibold transition ${
-            !value ? "bg-emerald-600 text-white" : "text-slate-600 hover:bg-slate-100"
-          }`}
-        >
-          No
-        </button>
-      </div>
-      {hint ? <p className="mt-3 text-xs text-slate-500">{hint}</p> : null}
-    </div>
-  );
-}
-
-function Section({ title, description, children }) {
-  return (
-    <section className="rounded-xl border border-slate-200 bg-white px-5 py-5 shadow-[0_1px_2px_rgba(15,23,42,0.05)] sm:px-6 sm:py-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-[17px] font-semibold text-slate-800">{title}</h2>
-          {description ? <p className="mt-1 text-sm text-slate-500">{description}</p> : null}
-        </div>
-      </div>
-      <div className="mt-5 grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-        {children}
+      <div>
+        <span>{title}</span>
+        <strong>{value}</strong>
+        <small>{helper}</small>
       </div>
     </section>
   );
 }
 
-function StatusBadge({ status }) {
-  const tone = status?.tone || "slate";
-  return <AdminOpsStatusBadge label={status?.label || "Unknown"} tone={tone} />;
-}
-
-function StatusCard({ title, diagnostic, helper, extra }) {
-  const status = diagnostic?.status || {};
-  const details = []
-    .concat(Array.isArray(status?.missingFields) ? status.missingFields : [])
-    .concat(Array.isArray(status?.invalidFields) ? status.invalidFields : []);
+function Toggle({ value, onChange, disabled = false }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-sm font-semibold text-slate-700">{title}</div>
-        <StatusBadge status={status} />
-      </div>
-      {helper ? <p className="mt-2 text-xs text-slate-500">{helper}</p> : null}
-      {details.length > 0 ? (
-        <p className="mt-2 text-xs text-slate-500">Needs attention: {details.join(", ")}</p>
-      ) : null}
-      {extra ? <div className="mt-2 text-xs text-slate-500">{extra}</div> : null}
+    <div className="store-settings-toggle" role="group" aria-label="Toggle">
+      <button
+        type="button"
+        disabled={disabled}
+        className={value ? "is-active" : ""}
+        onClick={() => onChange(true)}
+      >
+        Yes
+      </button>
+      <button
+        type="button"
+        disabled={disabled}
+        className={!value ? "is-active" : ""}
+        onClick={() => onChange(false)}
+      >
+        No
+      </button>
     </div>
   );
 }
 
-const buildSecretHint = (diagnostic, label) => {
-  if (!diagnostic?.secretConfigured) {
-    return `${label} is not stored yet.`;
-  }
-  const masked = toText(diagnostic.secretMask, "");
-  return `Saved ${label.toLowerCase()}: ${masked || "configured"}. Leave blank to keep it unchanged.`;
-};
+function TextField({ label, value, onChange, placeholder, disabled = false }) {
+  return (
+    <label className="store-settings-field">
+      <span>{label}</span>
+      <input
+        type="text"
+        value={value}
+        placeholder={placeholder}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </label>
+  );
+}
+
+function SecretField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  disabled = false,
+  visible,
+  onToggle,
+}) {
+  return (
+    <label className="store-settings-field">
+      <span>{label}</span>
+      <div className="store-settings-secret">
+        <input
+          type={visible ? "text" : "password"}
+          value={value}
+          placeholder={placeholder}
+          disabled={disabled}
+          onChange={(event) => onChange(event.target.value)}
+        />
+        <button type="button" onClick={onToggle} disabled={disabled} aria-label="Toggle visibility">
+          {visible ? <EyeOff size={16} /> : <Eye size={16} />}
+        </button>
+      </div>
+    </label>
+  );
+}
+
+function Panel({ title, subtitle, badge, children, className = "" }) {
+  return (
+    <section className={`store-settings-panel ${className}`}>
+      <div className="store-settings-panel__head">
+        <div>
+          <h2>{title}</h2>
+          {subtitle ? <p>{subtitle}</p> : null}
+        </div>
+        {badge ? <StatusBadge status={badge} /> : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function LoadingState() {
+  return (
+    <div className="store-settings-2026">
+      <div className="store-settings-state">
+        <span className="store-settings-spinner" />
+        <strong>Loading store settings</strong>
+      </div>
+    </div>
+  );
+}
+
+function ErrorState({ message, onRetry }) {
+  return (
+    <div className="store-settings-2026">
+      <div className="store-settings-state store-settings-state--error">
+        <ShieldAlert size={28} aria-hidden="true" />
+        <strong>Unable to load settings</strong>
+        <p>{message}</p>
+        <button type="button" onClick={onRetry}>
+          <RefreshCw size={16} aria-hidden="true" />
+          Retry
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function StoreSettingsPage() {
   const queryClient = useQueryClient();
-  const [form, setForm] = useState(() => normalizeStoreSettings(DEFAULT_STORE_SETTINGS));
-  const [feedback, setFeedback] = useState(null);
+  const [form, setForm] = useState(DEFAULT_FORM);
+  const [serverForm, setServerForm] = useState(DEFAULT_FORM);
+  const [rawSettings, setRawSettings] = useState({});
+  const [visibleSecrets, setVisibleSecrets] = useState({});
 
   const settingsQuery = useQuery({
     queryKey: ["admin-store-settings"],
@@ -340,480 +466,405 @@ export default function StoreSettingsPage() {
 
   useEffect(() => {
     if (!settingsQuery.data) return;
-    const normalized = normalizeStoreSettings(settingsQuery.data.storeSettings);
+    const raw = getStoreSettingsPayload(settingsQuery.data);
+    const normalized = normalizeStoreSettings(raw);
+    setRawSettings(isPlainObject(raw) ? raw : {});
     setForm(normalized);
+    setServerForm(normalized);
   }, [settingsQuery.data]);
 
+  const diagnostics = useMemo(
+    () => getDiagnosticsPayload(settingsQuery.data),
+    [settingsQuery.data]
+  );
+
+  const fatalIssues = useMemo(() => buildValidationIssues(form), [form]);
+
+  const setField = (field, value) => {
+    setForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const toggleSecret = (key) => {
+    setVisibleSecrets((current) => ({ ...current, [key]: !current[key] }));
+  };
+
   const mutation = useMutation({
-    mutationFn: updateAdminStoreSettings,
+    mutationFn: (payload) => updateAdminStoreSettings(payload),
     onSuccess: (data) => {
-      const normalized = normalizeStoreSettings(data?.storeSettings);
+      const raw = getStoreSettingsPayload(data);
+      const normalized = normalizeStoreSettings(raw);
+      setRawSettings(isPlainObject(raw) ? raw : {});
       setForm(normalized);
-      setFeedback({ type: "success", message: "Store settings updated successfully." });
+      setServerForm(normalized);
+      toast.success("Store settings updated");
       queryClient.invalidateQueries({ queryKey: ["admin-store-settings"] });
       queryClient.invalidateQueries({ queryKey: ["store-settings", "public"], exact: false });
     },
     onError: (error) => {
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Failed to update store settings.";
-      setFeedback({ type: "error", message });
+      toast.error(
+        error?.response?.data?.message || error?.message || "Failed to update store settings."
+      );
     },
   });
 
-  const isSaving = mutation.isPending;
-  const diagnostics = mutation.data?.diagnostics || settingsQuery.data?.diagnostics || {};
-  const localFatalIssues = useMemo(() => buildFatalIssues(form), [form]);
-  const checkoutAvailableMethods = Array.isArray(
-    diagnostics?.payments?.checkout?.availableMethods
-  )
-    ? diagnostics.payments.checkout.availableMethods
-    : [];
-  const enabledPaymentSettings = [
-    form.payments.cashOnDeliveryEnabled,
-    form.payments.stripeEnabled,
-    form.payments.razorPayEnabled,
+  const stripeSecretConfigured = hasConfiguredSecret(diagnostics, [
+    "payments",
+    "stripe",
+  ]);
+  const stripeWebhookConfigured = hasConfiguredSecret(diagnostics, [
+    "payments",
+    "stripeWebhook",
+  ]);
+  const razorpaySecretConfigured = hasConfiguredSecret(diagnostics, [
+    "payments",
+    "razorpay",
+  ]);
+  const googleSecretConfigured = hasConfiguredSecret(diagnostics, [
+    "socialLogin",
+    "google",
+  ]);
+  const githubSecretConfigured = hasConfiguredSecret(diagnostics, [
+    "socialLogin",
+    "github",
+  ]);
+  const facebookSecretConfigured = hasConfiguredSecret(diagnostics, [
+    "socialLogin",
+    "facebook",
+  ]);
+
+  const stripeStatus = getPaymentStatus({
+    enabled: form.stripeEnabled,
+    invalid:
+      (form.stripeKey && !STRIPE_PUBLISHABLE_KEY_REGEX.test(form.stripeKey)) ||
+      (form.stripeSecret && !STRIPE_SECRET_KEY_REGEX.test(form.stripeSecret)),
+    missing:
+      !form.stripeKey ||
+      (!form.stripeSecret && !stripeSecretConfigured) ||
+      (!form.stripeWebhookSecret && !stripeWebhookConfigured),
+  });
+  const razorpayStatus = getPaymentStatus({
+    enabled: form.razorpayEnabled,
+    invalid: form.razorpayKeyId && !RAZORPAY_KEY_ID_REGEX.test(form.razorpayKeyId),
+    missing:
+      !form.razorpayKeyId || (!form.razorpayKeySecret && !razorpaySecretConfigured),
+  });
+  const googleStatus = getProviderStatus({
+    enabled: form.googleLogin,
+    missing: !form.googleClientId || (!form.googleSecretKey && !googleSecretConfigured),
+  });
+  const githubStatus = getProviderStatus({
+    enabled: form.githubLogin,
+    missing: !form.githubClientId || (!form.githubSecret && !githubSecretConfigured),
+  });
+  const facebookStatus = getProviderStatus({
+    enabled: form.facebookLogin,
+    missing: !form.facebookAppId || (!form.facebookSecret && !facebookSecretConfigured),
+  });
+  const analyticsStatus = getProviderStatus({
+    enabled: form.googleAnalytics,
+    invalid:
+      form.googleAnalyticKey &&
+      !GOOGLE_ANALYTICS_KEY_REGEX.test(form.googleAnalyticKey),
+    missing: !form.googleAnalyticKey,
+  });
+  const tawkStatus = getProviderStatus({
+    enabled: form.tawkChat,
+    missing: !form.tawkPropertyId || !form.tawkWidgetId,
+  });
+
+  const checkoutActive = [
+    form.cashOnDelivery,
+    form.stripeEnabled && stripeStatus.label === "Ready",
+    form.razorpayEnabled && razorpayStatus.label === "Ready",
   ].filter(Boolean).length;
-  const enabledPublicTools = [
-    form.analytics.googleAnalyticsEnabled,
-    form.chat.tawkEnabled,
+  const enabledPayments = [
+    form.cashOnDelivery,
+    form.stripeEnabled,
+    form.razorpayEnabled,
   ].filter(Boolean).length;
-  const isSubmitDisabled = isSaving || localFatalIssues.length > 0;
+  const enabledIntegrations = [
+    form.googleAnalytics,
+    form.tawkChat,
+  ].filter(Boolean).length;
 
-  const statusBoxClass = useMemo(() => {
-    if (!feedback) return "";
-    return feedback.type === "success"
-      ? "rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700"
-      : "rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700";
-  }, [feedback]);
-
-  const setSectionField = (section, field, value) => {
-    setForm((prev) => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        [field]: value,
-      },
-    }));
-  };
-
-  const onSubmit = (event) => {
+  const submitSettings = (event) => {
     event.preventDefault();
-    if (localFatalIssues.length > 0) {
-      setFeedback({
-        type: "error",
-        message: "Resolve invalid configuration fields before saving.",
-      });
+    if (fatalIssues.length > 0) {
+      toast.error("Fix validation issues before saving.");
       return;
     }
-    setFeedback(null);
-    mutation.mutate({ storeSettings: form });
+    mutation.mutate({ storeSettings: buildUpdatePayload(rawSettings, form) });
   };
 
-  if (settingsQuery.isLoading) {
-    return (
-      <div className="mx-auto w-full max-w-[1120px] px-1 sm:px-2">
-        <AdminOpsLoadingState title="Loading store settings..." />
-      </div>
-    );
-  }
+  const resetForm = () => {
+    setForm(serverForm);
+    toast.success("Settings reset");
+  };
+
+  if (settingsQuery.isLoading) return <LoadingState />;
 
   if (settingsQuery.isError) {
-    const message =
-      settingsQuery.error?.response?.data?.message ||
-      settingsQuery.error?.message ||
-      "Failed to load store settings.";
     return (
-      <div className="mx-auto w-full max-w-[1120px] px-1 sm:px-2">
-        <AdminOpsErrorState message={message} onRetry={() => settingsQuery.refetch()} />
-      </div>
+      <ErrorState
+        message={
+          settingsQuery.error?.response?.data?.message ||
+          settingsQuery.error?.message ||
+          "Failed to load store settings."
+        }
+        onRetry={() => settingsQuery.refetch()}
+      />
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1120px] px-1 sm:px-2">
-      <form className="space-y-5 pb-2" onSubmit={onSubmit}>
-        <AdminOpsPageHeader
-          title="Store Settings"
-          description="Backend-driven checkout, login, analytics, and chat switches."
-          badges={
-            <>
-              <AdminOpsStatusBadge
-                label={checkoutAvailableMethods.length > 0 ? "Ready" : "Missing"}
-                tone={checkoutAvailableMethods.length > 0 ? "ready" : "missing"}
-              />
-              <AdminOpsStatusBadge
-                label={localFatalIssues.length === 0 ? "Verified" : "Needs attention"}
-                tone={localFatalIssues.length === 0 ? "verified" : "attention"}
-              />
-            </>
-          }
-          actions={
-            <button
-              type="submit"
-              disabled={isSubmitDisabled}
-              className="h-10 min-w-[110px] rounded-lg bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isSaving ? "Updating..." : "Update"}
-            </button>
-          }
-        />
-
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-        <AdminOpsMetricCard
-          label="Checkout"
-          badgeLabel={checkoutAvailableMethods.length > 0 ? "Ready" : "Missing"}
-          value={`${checkoutAvailableMethods.length} active`}
-          helper="Client receives only backend-approved methods."
-          tone={checkoutAvailableMethods.length > 0 ? "emerald" : "amber"}
-        />
-        <AdminOpsMetricCard
-          label="Payment toggles"
-          badgeLabel={enabledPaymentSettings > 0 ? "Ready" : "Missing"}
-          value={`${enabledPaymentSettings}/3`}
-          helper="Invalid credentials stay hidden from checkout."
-          tone={enabledPaymentSettings > 0 ? "emerald" : "amber"}
-        />
-        <AdminOpsMetricCard
-          label="Public tools"
-          badgeLabel={enabledPublicTools > 0 ? "Ready" : "Inactive"}
-          value={`${enabledPublicTools}/2`}
-          helper="Analytics and chat require valid public-safe values."
-          tone={enabledPublicTools > 0 ? "blue" : "slate"}
-        />
-        <AdminOpsMetricCard
-          label="Validation"
-          badgeLabel={localFatalIssues.length === 0 ? "Verified" : "Needs attention"}
-          value={localFatalIssues.length === 0 ? "Clear" : `${localFatalIssues.length} issue`}
-          helper="Save is blocked while fatal issues exist."
-          tone={localFatalIssues.length === 0 ? "emerald" : "rose"}
-          />
+    <form className="store-settings-2026" onSubmit={submitSettings}>
+      <section className="store-settings-hero">
+        <div>
+          <span className="store-settings-eyebrow">Online Store</span>
+          <h1>Store Settings</h1>
+          <p>Checkout, login, analytics, integrations.</p>
         </div>
+        <button type="submit" className="store-settings-primary" disabled={mutation.isPending}>
+          <Save size={16} aria-hidden="true" />
+          {mutation.isPending ? "Updating..." : "Update"}
+        </button>
+      </section>
 
-        {feedback ? <div className={statusBoxClass}>{feedback.message}</div> : null}
+      <section className="store-settings-kpis" aria-label="Store settings summary">
+        <KpiCard
+          icon={CheckCircle2}
+          title="Checkout"
+          value={checkoutActive}
+          helper="active"
+          tone={checkoutActive > 0 ? "green" : "amber"}
+        />
+        <KpiCard
+          icon={CreditCard}
+          title="Payments"
+          value={`${enabledPayments} / 3`}
+          helper={enabledPayments === 3 ? "Ready" : "Incomplete"}
+          tone={enabledPayments === 3 ? "green" : "amber"}
+        />
+        <KpiCard
+          icon={BarChart3}
+          title="Integrations"
+          value={`${enabledIntegrations} / 2`}
+          helper={enabledIntegrations === 2 ? "Ready" : "Incomplete"}
+          tone="blue"
+        />
+        <KpiCard
+          icon={ShieldAlert}
+          title="Issues"
+          value={fatalIssues.length}
+          helper={fatalIssues.length > 0 ? "Needs attention" : "Clear"}
+          tone={fatalIssues.length > 0 ? "red" : "green"}
+        />
+      </section>
 
-        {localFatalIssues.length > 0 ? (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-            <p className="font-semibold">Fatal validation</p>
-            <ul className="mt-2 list-disc pl-5">
-              {localFatalIssues.map((issue) => (
+      {fatalIssues.length > 0 ? (
+        <section className="store-settings-validation">
+          <AlertTriangle size={22} aria-hidden="true" />
+          <div>
+            <h2>Validation issues</h2>
+            <ul>
+              {fatalIssues.map((issue) => (
                 <li key={issue}>{issue}</li>
               ))}
             </ul>
           </div>
-        ) : null}
+        </section>
+      ) : null}
 
-        <Section
-          title="Payment Methods"
-          description="Checkout reads only active methods returned by backend diagnostics."
-        >
-          <StatusCard
-            title="Checkout Availability"
-            diagnostic={{
-              status: {
-                label:
-                  checkoutAvailableMethods.length > 0
-                    ? `${checkoutAvailableMethods.length} method active`
-                    : "No active method",
-                tone: checkoutAvailableMethods.length > 0 ? "emerald" : "amber",
-              },
-            }}
-            helper={
-              checkoutAvailableMethods.length > 0
-                ? `Client checkout currently receives: ${checkoutAvailableMethods
-                    .map((method) => method.label)
-                    .join(", ")}`
-                : "Client checkout currently has no active payment method."
-            }
-          />
-          <StatusCard
-            title="Cash on Delivery"
-            diagnostic={diagnostics?.payments?.cashOnDelivery}
-            helper="Available in checkout when enabled."
-          />
-          <ToggleField
-            label="Cash On Delivery"
-            value={form.payments.cashOnDeliveryEnabled}
-            onChange={(value) => setSectionField("payments", "cashOnDeliveryEnabled", value)}
-            hint="Turning this off removes COD from client checkout immediately."
-          />
-          <div />
+      <Panel
+        title="Payment Methods"
+        subtitle="Active checkout methods."
+        className="store-settings-panel--wide"
+      >
+        <div className="store-settings-payment-grid">
+          <div className="store-settings-stack">
+            <div className="store-settings-availability">
+              <strong>Availability</strong>
+              <StatusBadge status={{ label: `${checkoutActive} active`, tone: "success" }} />
+            </div>
 
-          <StatusCard
-            title="Stripe"
-            diagnostic={diagnostics?.payments?.stripe}
-            helper="Appears only when enabled and credentials validate."
-            extra={buildSecretHint(diagnostics?.payments?.stripe, "secret")}
-          />
-          <ToggleField
-            label="Stripe Payment"
-            value={form.payments.stripeEnabled}
-            onChange={(value) => setSectionField("payments", "stripeEnabled", value)}
-            hint="Enabled without valid credentials will remain incomplete and never surface in checkout."
-          />
-          <Field label="Stripe Key">
-            <input
-              type="text"
-              value={form.payments.stripeKey}
-              onChange={(event) => setSectionField("payments", "stripeKey", event.target.value)}
-              className={inputClass}
-              disabled={!form.payments.stripeEnabled}
+            <Panel title="Cash on Delivery" badge={{ label: form.cashOnDelivery ? "Ready" : "Off", tone: form.cashOnDelivery ? "success" : "neutral" }}>
+              <Toggle
+                value={form.cashOnDelivery}
+                onChange={(value) => setField("cashOnDelivery", value)}
+              />
+            </Panel>
+
+            <Panel title="Razorpay" badge={razorpayStatus}>
+              <Toggle
+                value={form.razorpayEnabled}
+                onChange={(value) => setField("razorpayEnabled", value)}
+              />
+              <TextField
+                label="Razorpay Key ID"
+                value={form.razorpayKeyId}
+                placeholder="Enter key ID"
+                disabled={!form.razorpayEnabled}
+                onChange={(value) => setField("razorpayKeyId", value)}
+              />
+              <SecretField
+                label="Razorpay Secret"
+                value={form.razorpayKeySecret}
+                placeholder={razorpaySecretConfigured ? "Saved secret" : "Enter secret"}
+                disabled={!form.razorpayEnabled}
+                visible={visibleSecrets.razorpay}
+                onToggle={() => toggleSecret("razorpay")}
+                onChange={(value) => setField("razorpayKeySecret", value)}
+              />
+            </Panel>
+          </div>
+
+          <Panel title="Stripe" badge={stripeStatus}>
+            <Toggle
+              value={form.stripeEnabled}
+              onChange={(value) => setField("stripeEnabled", value)}
+            />
+            <TextField
+              label="Stripe Key"
+              value={form.stripeKey}
               placeholder="pk_test_..."
+              disabled={!form.stripeEnabled}
+              onChange={(value) => setField("stripeKey", value)}
             />
-          </Field>
-          <Field
-            label="Stripe Secret"
-            hint={buildSecretHint(diagnostics?.payments?.stripe, "secret")}
-          >
-            <input
-              type="password"
-              value={form.payments.stripeSecret}
-              onChange={(event) =>
-                setSectionField("payments", "stripeSecret", event.target.value)
-              }
-              className={inputClass}
-              disabled={!form.payments.stripeEnabled}
-              placeholder="sk_test_..."
+            <SecretField
+              label="Stripe Secret"
+              value={form.stripeSecret}
+              placeholder={stripeSecretConfigured ? "Saved secret" : "sk_test_..."}
+              disabled={!form.stripeEnabled}
+              visible={visibleSecrets.stripe}
+              onToggle={() => toggleSecret("stripe")}
+              onChange={(value) => setField("stripeSecret", value)}
             />
-          </Field>
-          <StatusCard
-            title="Stripe Webhook"
-            diagnostic={diagnostics?.payments?.stripeWebhook}
-            helper="Keeps Stripe payment status synced from events."
-            extra={buildSecretHint(diagnostics?.payments?.stripeWebhook, "secret")}
-          />
-          <Field
-            label="Stripe Webhook Secret"
-            hint={buildSecretHint(diagnostics?.payments?.stripeWebhook, "secret")}
-          >
-            <input
-              type="password"
-              value={form.payments.stripeWebhookSecret}
-              onChange={(event) =>
-                setSectionField("payments", "stripeWebhookSecret", event.target.value)
-              }
-              className={inputClass}
-              disabled={!form.payments.stripeEnabled}
-              placeholder="whsec_..."
+            <SecretField
+              label="Webhook Secret"
+              value={form.stripeWebhookSecret}
+              placeholder={stripeWebhookConfigured ? "Saved secret" : "Enter secret"}
+              disabled={!form.stripeEnabled}
+              visible={visibleSecrets.stripeWebhook}
+              onToggle={() => toggleSecret("stripeWebhook")}
+              onChange={(value) => setField("stripeWebhookSecret", value)}
             />
-          </Field>
+          </Panel>
+        </div>
+      </Panel>
 
-          <StatusCard
-            title="Razorpay"
-            diagnostic={diagnostics?.payments?.razorpay}
-            helper="Stored and validated; hidden until checkout runtime exists."
-            extra={buildSecretHint(diagnostics?.payments?.razorpay, "secret")}
-          />
-          <ToggleField
-            label="Razorpay"
-            value={form.payments.razorPayEnabled}
-            onChange={(value) => setSectionField("payments", "razorPayEnabled", value)}
-            hint="Enabled without valid credentials will remain incomplete and never surface in checkout."
-          />
-          <Field label="Razorpay Key ID">
-            <input
-              type="text"
-              value={form.payments.razorPayKeyId}
-              onChange={(event) =>
-                setSectionField("payments", "razorPayKeyId", event.target.value)
-              }
-              className={inputClass}
-              disabled={!form.payments.razorPayEnabled}
-              placeholder="rzp_test_..."
+      <Panel title="Social Login" subtitle="OAuth providers.">
+        <div className="store-settings-social-grid">
+          <Panel title="Google" badge={googleStatus}>
+            <Toggle value={form.googleLogin} onChange={(value) => setField("googleLogin", value)} />
+            <TextField
+              label="Client ID"
+              value={form.googleClientId}
+              placeholder="Enter client ID"
+              disabled={!form.googleLogin}
+              onChange={(value) => setField("googleClientId", value)}
             />
-          </Field>
-          <Field
-            label="Razorpay Key Secret"
-            hint={buildSecretHint(diagnostics?.payments?.razorpay, "secret")}
-          >
-            <input
-              type="password"
-              value={form.payments.razorPayKeySecret}
-              onChange={(event) =>
-                setSectionField("payments", "razorPayKeySecret", event.target.value)
-              }
-              className={inputClass}
-              disabled={!form.payments.razorPayEnabled}
+            <SecretField
+              label="Client Secret"
+              value={form.googleSecretKey}
+              placeholder={googleSecretConfigured ? "Saved secret" : "Enter secret"}
+              disabled={!form.googleLogin}
+              visible={visibleSecrets.google}
+              onToggle={() => toggleSecret("google")}
+              onChange={(value) => setField("googleSecretKey", value)}
             />
-          </Field>
-        </Section>
+          </Panel>
 
-        <Section
-          title="Social Login"
-          description="Client buttons appear only when backend marks a provider usable."
-        >
-          <StatusCard
-            title="Google Login"
-            diagnostic={diagnostics?.socialLogin?.google}
-            helper="OAuth runtime is not wired here, so configured providers remain non-public until that flow exists."
-            extra={buildSecretHint(diagnostics?.socialLogin?.google, "secret")}
-          />
-          <ToggleField
-            label="Google Login"
-            value={form.socialLogin.googleEnabled}
-            onChange={(value) => setSectionField("socialLogin", "googleEnabled", value)}
-          />
-          <Field label="Google Client ID">
-            <input
-              type="text"
-              value={form.socialLogin.googleClientId}
-              onChange={(event) =>
-                setSectionField("socialLogin", "googleClientId", event.target.value)
-              }
-              className={inputClass}
-              disabled={!form.socialLogin.googleEnabled}
+          <Panel title="GitHub" badge={githubStatus}>
+            <Toggle value={form.githubLogin} onChange={(value) => setField("githubLogin", value)} />
+            <TextField
+              label="Client ID"
+              value={form.githubClientId}
+              placeholder="Enter client ID"
+              disabled={!form.githubLogin}
+              onChange={(value) => setField("githubClientId", value)}
             />
-          </Field>
-          <Field
-            label="Google Secret Key"
-            hint={buildSecretHint(diagnostics?.socialLogin?.google, "secret")}
-          >
-            <input
-              type="password"
-              value={form.socialLogin.googleSecretKey}
-              onChange={(event) =>
-                setSectionField("socialLogin", "googleSecretKey", event.target.value)
-              }
-              className={inputClass}
-              disabled={!form.socialLogin.googleEnabled}
+            <SecretField
+              label="Client Secret"
+              value={form.githubSecret}
+              placeholder={githubSecretConfigured ? "Saved secret" : "Enter secret"}
+              disabled={!form.githubLogin}
+              visible={visibleSecrets.github}
+              onToggle={() => toggleSecret("github")}
+              onChange={(value) => setField("githubSecret", value)}
             />
-          </Field>
+          </Panel>
 
-          <StatusCard
-            title="Github Login"
-            diagnostic={diagnostics?.socialLogin?.github}
-            helper="Configured metadata is stored, but public login stays hidden until OAuth runtime exists."
-            extra={buildSecretHint(diagnostics?.socialLogin?.github, "secret")}
-          />
-          <ToggleField
-            label="Github Login"
-            value={form.socialLogin.githubEnabled}
-            onChange={(value) => setSectionField("socialLogin", "githubEnabled", value)}
-          />
-          <Field label="Github ID">
-            <input
-              type="text"
-              value={form.socialLogin.githubId}
-              onChange={(event) => setSectionField("socialLogin", "githubId", event.target.value)}
-              className={inputClass}
-              disabled={!form.socialLogin.githubEnabled}
+          <Panel title="Facebook" badge={facebookStatus}>
+            <Toggle value={form.facebookLogin} onChange={(value) => setField("facebookLogin", value)} />
+            <TextField
+              label="App ID"
+              value={form.facebookAppId}
+              placeholder="Enter app ID"
+              disabled={!form.facebookLogin}
+              onChange={(value) => setField("facebookAppId", value)}
             />
-          </Field>
-          <Field
-            label="Github Secret"
-            hint={buildSecretHint(diagnostics?.socialLogin?.github, "secret")}
-          >
-            <input
-              type="password"
-              value={form.socialLogin.githubSecret}
-              onChange={(event) =>
-                setSectionField("socialLogin", "githubSecret", event.target.value)
-              }
-              className={inputClass}
-              disabled={!form.socialLogin.githubEnabled}
+            <SecretField
+              label="App Secret"
+              value={form.facebookSecret}
+              placeholder={facebookSecretConfigured ? "Saved secret" : "Enter secret"}
+              disabled={!form.facebookLogin}
+              visible={visibleSecrets.facebook}
+              onToggle={() => toggleSecret("facebook")}
+              onChange={(value) => setField("facebookSecret", value)}
             />
-          </Field>
+          </Panel>
+        </div>
+      </Panel>
 
-          <StatusCard
-            title="Facebook Login"
-            diagnostic={diagnostics?.socialLogin?.facebook}
-            helper="Configured metadata is stored, but public login stays hidden until OAuth runtime exists."
-            extra={buildSecretHint(diagnostics?.socialLogin?.facebook, "secret")}
-          />
-          <ToggleField
-            label="Facebook Login"
-            value={form.socialLogin.facebookEnabled}
-            onChange={(value) => setSectionField("socialLogin", "facebookEnabled", value)}
-          />
-          <Field label="Facebook ID">
-            <input
-              type="text"
-              value={form.socialLogin.facebookId}
-              onChange={(event) =>
-                setSectionField("socialLogin", "facebookId", event.target.value)
-              }
-              className={inputClass}
-              disabled={!form.socialLogin.facebookEnabled}
+      <Panel title="Analytics & Chat" subtitle="Public integrations.">
+        <div className="store-settings-integrations-grid">
+          <Panel title="Google Analytics" badge={analyticsStatus}>
+            <Toggle
+              value={form.googleAnalytics}
+              onChange={(value) => setField("googleAnalytics", value)}
             />
-          </Field>
-          <Field
-            label="Facebook Secret"
-            hint={buildSecretHint(diagnostics?.socialLogin?.facebook, "secret")}
-          >
-            <input
-              type="password"
-              value={form.socialLogin.facebookSecret}
-              onChange={(event) =>
-                setSectionField("socialLogin", "facebookSecret", event.target.value)
-              }
-              className={inputClass}
-              disabled={!form.socialLogin.facebookEnabled}
+            <TextField
+              label="GA ID"
+              value={form.googleAnalyticKey}
+              placeholder="Enter GA ID"
+              disabled={!form.googleAnalytics}
+              onChange={(value) => setField("googleAnalyticKey", value)}
             />
-          </Field>
-        </Section>
+          </Panel>
 
-        <Section
-          title="Analytics & Chat"
-          description="Client only injects scripts from public-safe values that pass backend validation."
-        >
-          <StatusCard
-            title="Google Analytics"
-            diagnostic={diagnostics?.analytics?.googleAnalytics}
-            helper="Measurement ID is exposed publicly only when enabled and valid."
-          />
-          <ToggleField
-            label="Google Analytics"
-            value={form.analytics.googleAnalyticsEnabled}
-            onChange={(value) =>
-              setSectionField("analytics", "googleAnalyticsEnabled", value)
-            }
-          />
-          <Field
-            label="Google Analytic Key"
-            hint="Accepted examples: G-XXXXXXX, AW-XXXXXXX, UA-XXXXXXX"
-          >
-            <input
-              type="text"
-              value={form.analytics.googleAnalyticKey}
-              onChange={(event) =>
-                setSectionField("analytics", "googleAnalyticKey", event.target.value)
-              }
-              className={inputClass}
-              disabled={!form.analytics.googleAnalyticsEnabled}
-            />
-          </Field>
+          <Panel title="Tawk Chat" badge={tawkStatus}>
+            <Toggle value={form.tawkChat} onChange={(value) => setField("tawkChat", value)} />
+            <div className="store-settings-two-fields">
+              <TextField
+                label="Property ID"
+                value={form.tawkPropertyId}
+                placeholder="Enter property ID"
+                disabled={!form.tawkChat}
+                onChange={(value) => setField("tawkPropertyId", value)}
+              />
+              <TextField
+                label="Widget ID"
+                value={form.tawkWidgetId}
+                placeholder="Enter widget ID"
+                disabled={!form.tawkChat}
+                onChange={(value) => setField("tawkWidgetId", value)}
+              />
+            </div>
+          </Panel>
+        </div>
+      </Panel>
 
-          <StatusCard
-            title="Tawk Chat"
-            diagnostic={diagnostics?.chat?.tawk}
-            helper="Widget script is injected only when both IDs are enabled and valid."
-          />
-          <ToggleField
-            label="Tawk Chat"
-            value={form.chat.tawkEnabled}
-            onChange={(value) => setSectionField("chat", "tawkEnabled", value)}
-          />
-          <Field label="Tawk Property ID">
-            <input
-              type="text"
-              value={form.chat.tawkPropertyId}
-              onChange={(event) => setSectionField("chat", "tawkPropertyId", event.target.value)}
-              className={inputClass}
-              disabled={!form.chat.tawkEnabled}
-            />
-          </Field>
-          <Field label="Tawk Widget ID">
-            <input
-              type="text"
-              value={form.chat.tawkWidgetId}
-              onChange={(event) => setSectionField("chat", "tawkWidgetId", event.target.value)}
-              className={inputClass}
-              disabled={!form.chat.tawkEnabled}
-            />
-          </Field>
-        </Section>
-      </form>
-    </div>
+      <div className="store-settings-savebar">
+        <span>Settings are validated on update.</span>
+        <div>
+          <button type="button" className="store-settings-secondary" onClick={resetForm}>
+            Reset
+          </button>
+          <button type="submit" className="store-settings-primary" disabled={mutation.isPending}>
+            {mutation.isPending ? "Updating..." : "Update"}
+          </button>
+        </div>
+      </div>
+    </form>
   );
 }

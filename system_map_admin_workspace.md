@@ -1,10 +1,42 @@
-# system_map.md — Admin Workspace TP PRENEURS Multivendor
+# system_map_admin_workspace.md — Admin Workspace TP PRENEURS Multivendor
 
 > Fondasi sistem untuk membantu AI memahami arsitektur, fitur, alur, route, model data, dan guardrail pengembangan **Admin Workspace** pada codebase `tp-preneurs-multivendor-main`.
 >
-> Sumber analisis: arsip `tp-preneurs-multivendor-main(2).zip`, diekstrak ke `/mnt/data/tp_extract/tp-preneurs-multivendor-main`.
+> Sumber analisis: arsip terbaru `tp-preneurs-multivendor-main(12).zip`, diekstrak ke `/mnt/data/tp_admin_extract/tp-preneurs-multivendor-main`. File referensi lintas area `system_map_client _storefront.md` di dalam ZIP juga dicek untuk menjaga sinkronisasi Admin → Storefront.
 >
-> Tanggal analisis: 12 Juni 2026. Metode: static code analysis. Build/test tidak dijalankan.
+> Tanggal update: 17 Juni 2026. Metode: static code analysis dari ZIP terbaru; build/test tidak dijalankan pada sesi ini.
+
+---
+
+## 0. Validasi Ulang ZIP Terbaru — 17 Juni 2026
+
+Update ini dibuat dari ekstraksi ulang `tp-preneurs-multivendor-main(12).zip`. File `system_map_admin_workspace.md` yang terdapat di ZIP identik dengan file upload, tetapi metadata sebelumnya masih mengarah ke arsip lama `(2).zip`. Karena itu, dokumen ini disegarkan agar menjadi fondasi Admin Workspace terbaru yang konsisten dengan struktur codebase saat ini.
+
+Temuan validasi terbaru:
+
+| Area | Status dari ZIP terbaru | Catatan update |
+|---|---|---|
+| Root workspace | `server`, `client`, `packages/*` | Tetap monorepo PNPM workspace. |
+| Frontend route source | `client/src/App.jsx` | Protected Admin Workspace tetap berada di `<Route path="/admin" element={<AdminGuard />}>` dan `<AdminLayout />`. |
+| Layout aktif | `client/src/components/layouts/AdminLayout.jsx` | Layout aktif masih memakai Sidebar, Navbar, Search Palette, theme, dan collapse state. |
+| Navigation source | `client/src/components/Layout/adminNavigation.jsx` | Menu canonical tetap memakai `/admin/catalog/...`, `/admin/store/...`, dan `/admin/international/...`. |
+| RBAC client | `client/src/constants/permissions.js` | Role minimum tetap `staff`, `admin`, `super_admin`. |
+| Backend mount source | `server/src/app.ts` | Semua `/api/admin` tetap melewati `requireAuth`, lalu middleware role per domain. |
+| API adapter utama | `client/src/lib/adminApi.js` | Masih menjadi adapter dominan untuk products, categories, orders, customers, coupons, attributes, settings, languages, currencies, customization, dan store settings. |
+| Cross-area storefront map | `system_map_client _storefront.md` | Storefront map menegaskan Admin mengatur customization/settings/coupons/store profile/payment profile yang dikonsumsi Storefront. |
+
+Delta penting dibanding dokumen lama:
+
+1. Metadata sumber analisis diperbarui dari ZIP lama `(2).zip` menjadi ZIP terbaru `(12).zip`.
+2. Jumlah file service backend hasil scan terbaru adalah `45`, bukan `57`.
+3. Permission route yang sebelumnya ditulis generik untuk beberapa settings page diperjelas: `payment-review`, `store-settings`, `payment-profiles`, dan `settings` berada di guard `SETTINGS_MANAGE` pada `App.jsx`.
+4. QA section diperluas dengan smoke script yang ditemukan di `package.json` terbaru, termasuk admin public auth, admin staff, store customization, store payment profile, store application, product SEO, product variation validation, auth/session, dan shipment/order-payment.
+
+Guardrail tambahan dari sinkronisasi Storefront:
+
+- Jangan mengubah kontrak Admin `Store Customization`, `Store Settings`, `Coupons`, `Store Profile`, dan `Store Payment Profiles` tanpa mengecek dampaknya ke Client / Storefront.
+- Storefront adalah consumer data Admin/Seller; Admin Workspace tetap source pengaturan platform/public store untuk banyak tampilan storefront.
+- Bila mengubah admin coupon/payment/store readiness, jalankan smoke checkout/storefront yang relevan karena efeknya muncul pada public catalog, offers, checkout, dan store microsite.
 
 ---
 
@@ -91,6 +123,8 @@ Proxy Vite:
 
 - `/api` diarahkan ke backend default `http://localhost:3001`
 - `/uploads` diarahkan ke backend default `http://localhost:3001`
+- Host/port proxy bisa diganti melalui `VITE_PROXY_API_HOST` dan `VITE_PROXY_API_PORT`.
+- Vite config juga memiliki manual vendor chunks: `vendor-react`, `vendor-router`, `vendor-query`, `vendor-ui`, `vendor-utils`, dan `vendor-misc`.
 
 ### 2.3 Server
 
@@ -199,7 +233,7 @@ Jumlah file yang ditemukan pada area admin:
 | `client/src/api/admin*.ts` | 11 |
 | `server/src/routes/admin*.ts` | 29 |
 | `server/src/models/*` | 33 |
-| `server/src/services/*` | 57 |
+| `server/src/services/*` | 45 |
 
 ---
 
@@ -258,17 +292,17 @@ Public admin auth routes berada di luar protected layout:
 | `/admin/international/currencies` | `CurrenciesPage` | `SETTINGS_MANAGE` |
 | `/admin/online-store/store-profile` | `AdminStoreProfilePage` | `SETTINGS_MANAGE` |
 | `/admin/online-store/store-payment` | `AdminStorePaymentPage` | `SETTINGS_MANAGE` |
-| `/admin/online-store/payment-review` | `AdminStorePaymentReviewPage` | checked by page/API |
+| `/admin/online-store/payment-review` | `AdminStorePaymentReviewPage` | `SETTINGS_MANAGE` |
 | `/admin/online-store/payment-audit` | `AdminPaymentAuditPage` | `DASHBOARD_VIEW` |
 | `/admin/online-store/payment-audit/:orderId` | `AdminPaymentAuditDetailPage` | `DASHBOARD_VIEW` |
-| `/admin/online-store/shipping-reconciliation` | `AdminShippingReconciliationPage` | checked by page/API |
+| `/admin/online-store/shipping-reconciliation` | `AdminShippingReconciliationPage` | `DASHBOARD_VIEW` |
 | `/admin/store/customization` | `StoreCustomizationPage` | `SETTINGS_MANAGE` |
 | `/admin/customization` | `StoreCustomizationPage` | `SETTINGS_MANAGE` |
-| `/admin/store/store-settings` | `StoreSettingsPage` | settings/admin API gated |
-| `/admin/store/payment-profiles` | `AdminStorePaymentProfilesPage` | settings/admin API gated |
+| `/admin/store/store-settings` | `StoreSettingsPage` | `SETTINGS_MANAGE` |
+| `/admin/store/payment-profiles` | `AdminStorePaymentProfilesPage` | `SETTINGS_MANAGE` |
 | `/admin/store/applications` | `AdminStoreApplicationsPage` | `STORE_APPLICATIONS_REVIEW` |
 | `/admin/store/applications/:applicationId` | `AdminStoreApplicationDetailPage` | `STORE_APPLICATIONS_REVIEW` |
-| `/admin/settings` | `Settings` | settings/admin API gated |
+| `/admin/settings` | `Settings` | `SETTINGS_MANAGE` |
 | `/admin/profile` | `AdminProfilePage` | authenticated admin |
 
 ### 4.3 Legacy Redirects
@@ -1774,6 +1808,43 @@ pnpm qa:staging:core
 pnpm qa:public-release
 ```
 
+### 14.7 Smoke tambahan yang terdeteksi di ZIP terbaru
+
+Script berikut ada pada `server/package.json` dan root `package.json`; pilih sesuai domain perubahan:
+
+```bash
+pnpm -F server smoke:admin-seller-admin-login-block
+pnpm -F server smoke:auth-session-invalidation
+pnpm -F server smoke:auth-rate-limit
+pnpm -F server smoke:profile-image-sync
+pnpm -F server smoke:store-customization-right-box
+pnpm -F server smoke:store-customization-about-us
+pnpm -F server smoke:store-customization-checkout
+pnpm -F server smoke:store-customization-contact-us
+pnpm -F server smoke:store-customization-dashboard-setting
+pnpm -F server smoke:store-customization-faq
+pnpm -F server smoke:store-customization-offers
+pnpm -F server smoke:store-customization-our-team
+pnpm -F server smoke:store-customization-seo
+pnpm -F server smoke:currencies-delete
+pnpm -F server smoke:store-settings
+pnpm -F server smoke:coupon-scope
+pnpm -F server smoke:checkout-coupons
+pnpm -F server smoke:checkout-variants
+pnpm -F server smoke:seller-order-ownership
+pnpm -F server smoke:store-application-activation
+pnpm -F client build
+pnpm qa:auth:frontend
+pnpm qa:admin:public-auth
+pnpm qa:admin:public-auth:live
+pnpm qa:admin:staff
+pnpm qa:admin:staff-approval
+pnpm qa:shipping:release
+pnpm qa:ui
+```
+
+Catatan: pilih subset smoke yang paling dekat dengan perubahan. Untuk perubahan Admin yang memengaruhi Storefront, minimal jalankan `pnpm -F client build`, route smoke Admin terkait, dan smoke public/storefront terkait.
+
 ---
 
 ## 15. Prompt Internal untuk AI Saat Mengembangkan Admin Workspace
@@ -1795,6 +1866,7 @@ Jangan menggunakan client/src/lib/http.ts karena deprecated.
 Jangan menganggap server/src/routes/admin.index.ts atau server/src/routes/admin.ts sebagai mount aktif utama; cek server/src/app.ts.
 Jangan memakai server/src/middleware/requireAdmin.ts sebagai RBAC source of truth.
 Pertahankan multi-vendor boundaries: Product.storeId, Order -> Suborder per store, StorePaymentProfile versioned snapshot, StoreApplication provisioning, Coupon scope PLATFORM/STORE.
+Untuk domain yang dikonsumsi Storefront (Store Customization, Store Settings, Coupons, Store Profile, Store Payment Profiles), cek dampak ke system_map_client _storefront.md dan route public/client sebelum mengubah kontrak.
 Setiap perubahan UI harus tetap mempertahankan loading/error/empty states, pagination/filter/search, mutation states, toast/feedback, query invalidation, dan permission guard.
 ```
 
@@ -1829,4 +1901,4 @@ Admin Workspace pada codebase ini sudah memiliki fondasi multi-domain yang cukup
 - Domain admin mencakup dashboard, produk, kategori, attribute, coupon, order, payment audit, customer, staff, language/currency, store customization, store settings, store profile, store payment profile, store applications, notification, dan profile.
 - Multi-vendor truth berada pada `Store`, `Product.storeId`, `Order -> Suborder`, `StorePaymentProfile`, `StoreApplication`, dan coupon scope.
 
-Dokumen ini harus dijadikan konteks awal untuk AI sebelum melakukan desain visual, slicing UI, refactor, atau penambahan fitur pada Admin Workspace.
+Dokumen ini harus dijadikan konteks awal untuk AI sebelum melakukan desain visual, slicing UI, refactor, atau penambahan fitur pada Admin Workspace. Versi ini sudah disegarkan berdasarkan ZIP terbaru `(12)` pada 17 Juni 2026.

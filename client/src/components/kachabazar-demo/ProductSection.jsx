@@ -139,14 +139,14 @@ export default function ProductSection({
   }, [products, activeTabMeta, sortBy, maxProducts]);
 
   const viewAllLink = useMemo(() => {
-    if (activeTabMeta?.key === "all") return "/search?page=1";
+    if (activeTabMeta?.key === "all") return "/shop";
     if (activeTabMeta?.slug) {
       return `/search?category=${encodeURIComponent(activeTabMeta.slug)}&page=1`;
     }
     if (activeTabMeta?.label) {
       return `/search?category=${encodeURIComponent(activeTabMeta.label)}&page=1`;
     }
-    return "/search?page=1";
+    return "/shop";
   }, [activeTabMeta]);
 
   return (

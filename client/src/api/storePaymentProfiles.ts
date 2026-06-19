@@ -1,5 +1,12 @@
 import { api } from "./axios.ts";
 
+type ApiRecord = Record<string, unknown>;
+
+const asRecord = (value: unknown): ApiRecord =>
+  value && typeof value === "object" && !Array.isArray(value) ? (value as ApiRecord) : {};
+
+const hasRecordShape = (value: unknown) => Object.keys(asRecord(value)).length > 0;
+
 const textOrNull = (value: unknown) => {
   const normalized = String(value || "").trim();
   return normalized ? normalized : null;
@@ -13,236 +20,298 @@ const textOrFallback = (value: unknown, fallback = "") => {
 const normalizeMissingFields = (value: unknown) =>
   Array.isArray(value)
     ? value
-        .map((entry) => ({
-          key: textOrFallback((entry as any)?.key),
-          label: textOrFallback((entry as any)?.label, "Unknown field"),
-        }))
+        .map((entry) => {
+          const field = asRecord(entry);
+          return {
+            key: textOrFallback(field.key),
+            label: textOrFallback(field.label, "Unknown field"),
+          };
+        })
         .filter((entry) => entry.key)
     : [];
 
 const normalizeStatusChip = (
-  value: any,
+  value: unknown,
   fallbackLabel: string,
   fallbackTone: string,
   fallbackCode: string
-) => ({
-  code: textOrFallback(value?.code, fallbackCode),
-  label: textOrFallback(value?.label, fallbackLabel),
-  tone: textOrFallback(value?.tone, fallbackTone),
-  description: textOrNull(value?.description),
-});
+) => {
+  const chip = asRecord(value);
+  return {
+    code: textOrFallback(chip.code, fallbackCode),
+    label: textOrFallback(chip.label, fallbackLabel),
+    tone: textOrFallback(chip.tone, fallbackTone),
+    description: textOrNull(chip.description),
+  };
+};
 
-const normalizeActor = (value: any) =>
-  value
+const normalizeActor = (value: unknown) => {
+  const actor = asRecord(value);
+  return hasRecordShape(actor)
     ? {
-        id: Number(value.id || 0) || null,
-        name: textOrFallback(value.name),
-        email: textOrNull(value.email),
+        id: Number(actor.id || 0) || null,
+        name: textOrFallback(actor.name),
+        email: textOrNull(actor.email),
       }
     : null;
+};
 
-const normalizeSnapshot = (value: any) => {
-  if (!value) return null;
+const firstObject = (...values: unknown[]) =>
+  (values.find((value) => value && typeof value === "object" && !Array.isArray(value)) as
+    | ApiRecord
+    | undefined) || null;
+
+const getListPayload = (payload: unknown) => {
+  const envelope = asRecord(payload);
+  const dataEnvelope = asRecord(envelope.data);
+  const source = dataEnvelope.data ?? envelope.data ?? payload;
+  if (Array.isArray(source)) return source;
+
+  const sourceRecord = asRecord(source);
+  for (const key of ["items", "rows", "stores", "profiles", "paymentProfiles"]) {
+    if (Array.isArray(sourceRecord[key])) return sourceRecord[key] as unknown[];
+  }
+  return [];
+};
+
+const qrisImage = (value: unknown) => {
+  const profile = asRecord(value);
+  const qris = asRecord(profile.qris);
+  return textOrNull(profile.qrisImageUrl || profile.qrisUrl || qris.imageUrl || profile.qrImageUrl);
+};
+
+const normalizeSnapshot = (value: unknown) => {
+  const snapshot = asRecord(value);
+  if (!hasRecordShape(snapshot)) return null;
+  const readiness = asRecord(snapshot.readiness);
 
   return {
-    id: Number(value.id || 0) || null,
-    storeId: Number(value.storeId || 0) || null,
-    providerCode: textOrFallback(value.providerCode, "MANUAL_QRIS"),
-    paymentType: textOrFallback(value.paymentType, "QRIS_STATIC"),
-    version: Number(value.version || 1),
-    snapshotStatus: textOrFallback(value.snapshotStatus, "INACTIVE"),
-    accountName: textOrNull(value.accountName),
-    merchantName: textOrNull(value.merchantName),
-    merchantId: textOrNull(value.merchantId),
-    qrisImageUrl: textOrNull(value.qrisImageUrl),
-    qrisPayload: textOrNull(value.qrisPayload),
-    instructionText: textOrNull(value.instructionText),
-    isActive: Boolean(value.isActive),
-    verificationStatus: textOrFallback(value.verificationStatus, "INACTIVE"),
+    id: Number(snapshot.id || 0) || null,
+    storeId: Number(snapshot.storeId || 0) || null,
+    providerCode: textOrFallback(snapshot.providerCode, "MANUAL_QRIS"),
+    paymentType: textOrFallback(snapshot.paymentType, "QRIS_STATIC"),
+    version: Number(snapshot.version || 1),
+    snapshotStatus: textOrFallback(snapshot.snapshotStatus, "INACTIVE"),
+    accountName: textOrNull(snapshot.accountName || snapshot.account),
+    merchantName: textOrNull(snapshot.merchantName || snapshot.merchant),
+    merchantId: textOrNull(snapshot.merchantId),
+    qrisImageUrl: qrisImage(snapshot),
+    qrisPayload: textOrNull(snapshot.qrisPayload),
+    instructionText: textOrNull(snapshot.instructionText),
+    isActive: Boolean(snapshot.isActive),
+    verificationStatus: textOrFallback(snapshot.verificationStatus, "INACTIVE"),
     verificationMeta: normalizeStatusChip(
-      value.verificationMeta,
-      value.isActive ? "Verified" : "Inactive",
-      value.isActive ? "success" : "neutral",
-      value.verificationStatus || "INACTIVE"
+      snapshot.verificationMeta,
+      snapshot.isActive ? "Verified" : "Inactive",
+      snapshot.isActive ? "success" : "neutral",
+      textOrFallback(snapshot.verificationStatus, "INACTIVE")
     ),
     activityMeta: normalizeStatusChip(
-      value.activityMeta,
-      value.isActive ? "Active" : "Inactive",
-      value.isActive ? "success" : "neutral",
-      value.isActive ? "ACTIVE" : "INACTIVE"
+      snapshot.activityMeta,
+      snapshot.isActive ? "Active" : "Inactive",
+      snapshot.isActive ? "success" : "neutral",
+      snapshot.isActive ? "ACTIVE" : "INACTIVE"
     ),
     readiness: {
-      code: textOrFallback(value?.readiness?.code, "INCOMPLETE"),
-      label: textOrFallback(value?.readiness?.label, "Incomplete"),
-      tone: textOrFallback(value?.readiness?.tone, "warning"),
-      description: textOrNull(value?.readiness?.description),
-      isReady: Boolean(value?.readiness?.isReady),
-      completedFields: Number(value?.readiness?.completedFields || 0),
-      totalFields: Number(value?.readiness?.totalFields || 0),
-      missingFields: normalizeMissingFields(value?.readiness?.missingFields),
+      code: textOrFallback(readiness.code, "INCOMPLETE"),
+      label: textOrFallback(readiness.label, "Incomplete"),
+      tone: textOrFallback(readiness.tone, "warning"),
+      description: textOrNull(readiness.description),
+      isReady: Boolean(readiness.isReady),
+      completedFields: Number(readiness.completedFields || 0),
+      totalFields: Number(readiness.totalFields || 0),
+      missingFields: normalizeMissingFields(readiness.missingFields),
     },
-    verifiedAt: value.verifiedAt || null,
-    updatedAt: value.updatedAt || null,
+    verifiedAt: snapshot.verifiedAt || null,
+    updatedAt: snapshot.updatedAt || null,
   };
 };
 
-const normalizePendingRequest = (value: any, snapshot: any) => {
-  if (!value) return null;
+const normalizePendingRequest = (value: unknown, snapshotValue: unknown) => {
+  const request = asRecord(value);
+  if (!hasRecordShape(request)) return null;
+  const snapshot = asRecord(snapshotValue);
+  const readiness = asRecord(request.readiness);
 
   return {
-    id: Number(value.id || 0) || null,
-    storeId: Number(value.storeId || snapshot?.storeId || 0) || null,
-    basedOnProfileId: Number(value.basedOnProfileId || 0) || null,
-    requestStatus: textOrFallback(value.requestStatus, "SUBMITTED"),
-    accountName: textOrFallback(value.accountName, snapshot?.accountName || ""),
-    merchantName: textOrFallback(value.merchantName, snapshot?.merchantName || ""),
-    merchantId: textOrNull(value.merchantId),
-    qrisImageUrl: textOrNull(value.qrisImageUrl),
-    qrisPayload: textOrNull(value.qrisPayload),
-    instructionText: textOrNull(value.instructionText),
-    sellerNote: textOrNull(value.sellerNote),
-    adminReviewNote: textOrNull(value.adminReviewNote),
+    id: Number(request.id || 0) || null,
+    storeId: Number(request.storeId || snapshot.storeId || 0) || null,
+    basedOnProfileId: Number(request.basedOnProfileId || 0) || null,
+    requestStatus: textOrFallback(request.requestStatus, "SUBMITTED"),
+    accountName: textOrFallback(request.accountName, textOrFallback(snapshot.accountName)),
+    merchantName: textOrFallback(request.merchantName, textOrFallback(snapshot.merchantName)),
+    merchantId: textOrNull(request.merchantId),
+    qrisImageUrl: qrisImage(request),
+    qrisPayload: textOrNull(request.qrisPayload),
+    instructionText: textOrNull(request.instructionText),
+    sellerNote: textOrNull(request.sellerNote),
+    adminReviewNote: textOrNull(request.adminReviewNote),
     readiness: {
-      code: textOrFallback(value?.readiness?.code, "INCOMPLETE"),
-      label: textOrFallback(value?.readiness?.label, "Incomplete"),
-      tone: textOrFallback(value?.readiness?.tone, "warning"),
-      description: textOrNull(value?.readiness?.description),
-      isReady: Boolean(value?.readiness?.isReady),
-      completedFields: Number(value?.readiness?.completedFields || 0),
-      totalFields: Number(value?.readiness?.totalFields || 0),
-      missingFields: normalizeMissingFields(value?.readiness?.missingFields),
+      code: textOrFallback(readiness.code, "INCOMPLETE"),
+      label: textOrFallback(readiness.label, "Incomplete"),
+      tone: textOrFallback(readiness.tone, "warning"),
+      description: textOrNull(readiness.description),
+      isReady: Boolean(readiness.isReady),
+      completedFields: Number(readiness.completedFields || 0),
+      totalFields: Number(readiness.totalFields || 0),
+      missingFields: normalizeMissingFields(readiness.missingFields),
     },
-    submittedAt: value.submittedAt || null,
-    reviewedAt: value.reviewedAt || null,
-    submittedBy: normalizeActor(value.submittedBy),
-    reviewedBy: normalizeActor(value.reviewedBy),
+    submittedAt: request.submittedAt || null,
+    reviewedAt: request.reviewedAt || null,
+    submittedBy: normalizeActor(request.submittedBy),
+    reviewedBy: normalizeActor(request.reviewedBy),
   };
 };
 
-const normalizeWorkflow = (value: any) => ({
-  primaryStatus: normalizeStatusChip(
-    value?.primaryStatus,
-    "Waiting for seller setup",
-    "neutral",
-    "WAITING_SELLER"
-  ),
-  requestState: {
-    ...normalizeStatusChip(
-      value?.requestState,
-      "No open request",
-      "neutral",
-      "INACTIVE"
-    ),
-  },
-  reviewStatus: {
-    ...normalizeStatusChip(
-      value?.reviewStatus,
-      "Not reviewed yet",
-      "neutral",
-      "NOT_CONFIGURED"
-    ),
-    reviewedAt: value?.reviewStatus?.reviewedAt || null,
-    reviewedBy: normalizeActor(value?.reviewStatus?.reviewedBy),
-    adminReviewNote: textOrNull(value?.reviewStatus?.adminReviewNote),
-    source: textOrFallback(value?.reviewStatus?.source, "ACTIVE_SNAPSHOT"),
-  },
-  completeness: {
-    completedFields: Number(value?.completeness?.completedFields || 0),
-    totalFields: Number(value?.completeness?.totalFields || 0),
-    allRequiredPresent: Boolean(value?.completeness?.allRequiredPresent),
-    missingFields: normalizeMissingFields(value?.completeness?.missingFields),
-  },
-  nextStep: {
-    code: textOrFallback(value?.nextStep?.code, "WAIT_FOR_SUBMISSION"),
-    label: textOrFallback(value?.nextStep?.label, "Wait for seller submission"),
-    lane: textOrFallback(value?.nextStep?.lane, "SELLER_PAYMENT_SETUP"),
-    actor: textOrFallback(value?.nextStep?.actor, "SELLER"),
-    description: textOrNull(value?.nextStep?.description),
-  },
-  governance: {
-    managedBy: textOrFallback(value?.governance?.managedBy, "ADMIN_FINAL_APPROVAL"),
-    canApprovePromotion: Boolean(value?.governance?.canApprovePromotion),
-    canRequestRevision: Boolean(value?.governance?.canRequestRevision),
-    canToggleActiveSnapshot: Boolean(value?.governance?.canToggleActiveSnapshot),
-    note: textOrNull(value?.governance?.note),
-  },
-});
-
-const normalizeWorkspaceReadiness = (value: any) => {
-  if (!value || typeof value !== "object") return null;
+const normalizeWorkflow = (value: unknown) => {
+  const workflow = asRecord(value);
+  const reviewStatus = asRecord(workflow.reviewStatus);
+  const completeness = asRecord(workflow.completeness);
+  const nextStep = asRecord(workflow.nextStep);
+  const governance = asRecord(workflow.governance);
 
   return {
-    summary: normalizeStatusChip(
-      value?.summary,
-      "In progress",
+    primaryStatus: normalizeStatusChip(
+      workflow.primaryStatus,
+      "Waiting for seller setup",
       "neutral",
-      "IN_PROGRESS"
+      "WAITING_SELLER"
     ),
-    completedItems: Number(value?.summary?.completedItems || 0),
-    totalItems: Number(value?.summary?.totalItems || 0),
-    completionPercent: Number(value?.summary?.completionPercent || 0),
-    checklist: Array.isArray(value?.checklist)
-      ? value.checklist
-          .map((entry: any) => ({
-            key: textOrFallback(entry?.key),
-            label: textOrFallback(entry?.label, "Unknown"),
-            required: Boolean(entry?.required),
-            infoOnly: Boolean(entry?.infoOnly),
-            visible: entry?.visible !== false,
-            isComplete: Boolean(entry?.isComplete),
-            status: normalizeStatusChip(entry?.status, "Unknown", "neutral", "UNKNOWN"),
-            progress: {
-              completed: Number(entry?.progress?.completed || 0),
-              total: Number(entry?.progress?.total || 0),
-              missingFields: normalizeMissingFields(entry?.progress?.missingFields),
-            },
-            cta: entry?.cta
-              ? {
-                  label: textOrFallback(entry.cta.label, "Open lane"),
-                  lane: textOrFallback(entry.cta.lane, "HOME"),
-                  actor: textOrFallback(entry.cta.actor, "SELLER"),
-                  description: textOrNull(entry.cta.description),
-                }
-              : null,
-          }))
-          .filter((entry: any) => entry.key)
+    requestState: {
+      ...normalizeStatusChip(workflow.requestState, "No open request", "neutral", "INACTIVE"),
+    },
+    reviewStatus: {
+      ...normalizeStatusChip(workflow.reviewStatus, "Not reviewed yet", "neutral", "NOT_CONFIGURED"),
+      reviewedAt: reviewStatus.reviewedAt || null,
+      reviewedBy: normalizeActor(reviewStatus.reviewedBy),
+      adminReviewNote: textOrNull(reviewStatus.adminReviewNote),
+      source: textOrFallback(reviewStatus.source, "ACTIVE_SNAPSHOT"),
+    },
+    completeness: {
+      completedFields: Number(completeness.completedFields || 0),
+      totalFields: Number(completeness.totalFields || 0),
+      allRequiredPresent: Boolean(completeness.allRequiredPresent),
+      missingFields: normalizeMissingFields(completeness.missingFields),
+    },
+    nextStep: {
+      code: textOrFallback(nextStep.code, "WAIT_FOR_SUBMISSION"),
+      label: textOrFallback(nextStep.label, "Wait for seller submission"),
+      lane: textOrFallback(nextStep.lane, "SELLER_PAYMENT_SETUP"),
+      actor: textOrFallback(nextStep.actor, "SELLER"),
+      description: textOrNull(nextStep.description),
+    },
+    governance: {
+      managedBy: textOrFallback(governance.managedBy, "ADMIN_FINAL_APPROVAL"),
+      canApprovePromotion: Boolean(governance.canApprovePromotion),
+      canRequestRevision: Boolean(governance.canRequestRevision),
+      canToggleActiveSnapshot: Boolean(governance.canToggleActiveSnapshot),
+      note: textOrNull(governance.note),
+    },
+  };
+};
+
+const normalizeWorkspaceReadiness = (value: unknown) => {
+  const workspace = asRecord(value);
+  if (!hasRecordShape(workspace)) return null;
+  const summary = asRecord(workspace.summary);
+  const nextStep = asRecord(workspace.nextStep);
+
+  return {
+    summary: normalizeStatusChip(workspace.summary, "In progress", "neutral", "IN_PROGRESS"),
+    completedItems: Number(summary.completedItems || 0),
+    totalItems: Number(summary.totalItems || 0),
+    completionPercent: Number(summary.completionPercent || 0),
+    checklist: Array.isArray(workspace.checklist)
+      ? workspace.checklist
+          .map((entry) => {
+            const item = asRecord(entry);
+            const status = asRecord(item.status);
+            const progress = asRecord(item.progress);
+            const cta = asRecord(item.cta);
+            return {
+              key: textOrFallback(item.key),
+              label: textOrFallback(item.label, "Unknown"),
+              required: Boolean(item.required),
+              infoOnly: Boolean(item.infoOnly),
+              visible: item.visible !== false,
+              isComplete: Boolean(item.isComplete),
+              status: normalizeStatusChip(status, "Unknown", "neutral", "UNKNOWN"),
+              progress: {
+                completed: Number(progress.completed || 0),
+                total: Number(progress.total || 0),
+                missingFields: normalizeMissingFields(progress.missingFields),
+              },
+              cta: hasRecordShape(cta)
+                ? {
+                    label: textOrFallback(cta.label, "Open lane"),
+                    lane: textOrFallback(cta.lane, "HOME"),
+                    actor: textOrFallback(cta.actor, "SELLER"),
+                    description: textOrNull(cta.description),
+                  }
+                : null,
+            };
+          })
+          .filter((entry) => entry.key)
       : [],
-    nextStep: value?.nextStep
+    nextStep: hasRecordShape(nextStep)
       ? {
-          code: textOrFallback(value.nextStep.code, "HOME"),
-          label: textOrFallback(value.nextStep.label, "Follow next step"),
-          lane: textOrFallback(value.nextStep.lane, "HOME"),
-          actor: textOrFallback(value.nextStep.actor, "SELLER"),
-          description: textOrNull(value.nextStep.description),
+          code: textOrFallback(nextStep.code, "HOME"),
+          label: textOrFallback(nextStep.label, "Follow next step"),
+          lane: textOrFallback(nextStep.lane, "HOME"),
+          actor: textOrFallback(nextStep.actor, "SELLER"),
+          description: textOrNull(nextStep.description),
         }
       : null,
   };
 };
 
-const normalizeAdminStorePaymentProfile = (value: any) => {
-  if (!value) return null;
+const normalizeAdminStorePaymentProfile = (value: unknown) => {
+  const entry = asRecord(value);
+  if (!hasRecordShape(entry)) return null;
 
-  const paymentProfile = normalizeSnapshot(value.paymentProfile);
-  const pendingRequest = normalizePendingRequest(value.pendingRequest, paymentProfile);
-  const workflow = normalizeWorkflow(value.workflow);
+  const storeRecord = asRecord(entry.store);
+  const storeSource = firstObject(entry.store, entry);
+  const ownerSource = firstObject(entry.owner, entry.user, storeRecord.owner, storeRecord.user);
+  const paymentProfile = normalizeSnapshot(
+    entry.activeProfile ||
+      entry.activeSnapshot ||
+      entry.activeStorePaymentProfile ||
+      entry.paymentProfile ||
+      entry.profile
+  );
+  const pendingRequest = normalizePendingRequest(
+    entry.pendingRequest || entry.request || entry.latestRequest,
+    paymentProfile
+  );
+  const workflow = normalizeWorkflow(entry.workflow);
 
   return {
-    store: value.store
+    store: storeSource
       ? {
-          id: Number(value.store.id || 0) || null,
-          ownerUserId: Number(value.store.ownerUserId || 0) || null,
-          activeStorePaymentProfileId: Number(value.store.activeStorePaymentProfileId || 0) || null,
-          name: textOrFallback(value.store.name),
-          slug: textOrFallback(value.store.slug),
-          status: textOrFallback(value.store.status, "ACTIVE"),
+          id: Number(entry.storeId || storeSource.id || 0) || null,
+          ownerUserId: Number(storeSource.ownerUserId || 0) || null,
+          activeStorePaymentProfileId: Number(storeSource.activeStorePaymentProfileId || 0) || null,
+          name: textOrFallback(entry.storeName || entry.name || storeSource.name),
+          slug: textOrFallback(storeSource.slug),
+          status: textOrFallback(storeSource.status, "ACTIVE"),
         }
       : null,
-    owner: normalizeActor(value.owner),
+    owner: normalizeActor(
+      ownerSource || {
+        name: entry.ownerName,
+        email: entry.ownerEmail,
+      }
+    ),
     paymentProfile,
     pendingRequest,
     workflow,
     reviewStatus: workflow.reviewStatus,
-    workspaceReadiness: normalizeWorkspaceReadiness(value.workspaceReadiness),
+    workspaceReadiness: normalizeWorkspaceReadiness(
+      entry.workspaceReadiness ||
+        entry.readiness ||
+        entry.sellerReadiness ||
+        entry.checkoutReadiness
+    ),
   };
 };
 
@@ -266,13 +335,43 @@ export const upsertStorePaymentProfile = async (
 
 export const fetchAdminStorePaymentProfiles = async () => {
   const { data } = await api.get("/admin/stores/payment-profiles");
-  return Array.isArray(data?.data) ? data.data.map(normalizeAdminStorePaymentProfile).filter(Boolean) : [];
+  return getListPayload(data).map(normalizeAdminStorePaymentProfile).filter(Boolean);
 };
 
 export const reviewAdminStorePaymentProfile = async (
   storeId: number | string,
-  payload: { verificationStatus: string; adminReviewNote?: string | null }
+  payload: {
+    verificationStatus?: string;
+    action?: string;
+    decision?: string;
+    status?: string;
+    note?: string | null;
+    adminNote?: string | null;
+    reviewNote?: string | null;
+    adminReviewNote?: string | null;
+  }
 ) => {
-  const { data } = await api.patch(`/admin/stores/${storeId}/payment-profile/review`, payload);
+  const decision = String(
+    payload.verificationStatus ||
+      payload.decision ||
+      payload.status ||
+      payload.action ||
+      ""
+  ).toUpperCase();
+  const verificationStatus =
+    decision === "APPROVE" || decision === "APPROVED" || decision === "ACTIVE"
+      ? "ACTIVE"
+      : decision === "INACTIVE" || decision === "DEACTIVATE"
+        ? "INACTIVE"
+        : "REJECTED";
+  const { data } = await api.patch(`/admin/stores/${storeId}/payment-profile/review`, {
+    verificationStatus,
+    adminReviewNote:
+      payload.adminReviewNote ??
+      payload.reviewNote ??
+      payload.adminNote ??
+      payload.note ??
+      null,
+  });
   return normalizeAdminStorePaymentProfile(data?.data ?? null);
 };

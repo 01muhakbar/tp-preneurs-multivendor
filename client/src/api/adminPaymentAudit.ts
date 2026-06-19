@@ -62,6 +62,60 @@ export type AdminPaymentAuditListResponse = {
   };
 };
 
+const asRecord = (value: unknown): Record<string, unknown> =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+
+const asNumber = (value: unknown, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const getListPayload = (payload: unknown) => {
+  const envelope = asRecord(payload);
+  const dataEnvelope = asRecord(envelope.data);
+  const source = dataEnvelope.data ?? envelope.data ?? payload;
+  const sourceRecord = asRecord(source);
+
+  if (Array.isArray(source)) {
+    return { items: source, meta: sourceRecord };
+  }
+
+  for (const key of ["items", "rows", "orders", "auditRows", "payments"]) {
+    if (Array.isArray(sourceRecord[key])) {
+      return { items: sourceRecord[key] as AdminPaymentAuditListItem[], meta: sourceRecord };
+    }
+  }
+
+  return { items: [] as AdminPaymentAuditListItem[], meta: sourceRecord };
+};
+
+const normalizeListResponse = (payload: unknown) => {
+  const { items, meta } = getListPayload(payload);
+  const metaRecord = {
+    ...asRecord(meta.pagination),
+    ...asRecord(meta.meta),
+    ...meta,
+  };
+  const page = Math.max(1, asNumber(metaRecord.page ?? metaRecord.currentPage, 1));
+  const pageSize = Math.max(1, asNumber(metaRecord.pageSize ?? metaRecord.perPage ?? metaRecord.limit, 10));
+  const total = Math.max(0, asNumber(metaRecord.total ?? metaRecord.count, items.length));
+  const totalPages = Math.max(
+    1,
+    asNumber(metaRecord.totalPages ?? metaRecord.pages, Math.ceil(total / pageSize) || 1)
+  );
+
+  return {
+    items,
+    total,
+    page,
+    pageSize,
+    totalPages,
+    filters: asRecord(metaRecord.filters),
+  };
+};
+
 export type AdminPaymentAuditDetailResponse = {
   success: boolean;
   data: {
@@ -304,7 +358,7 @@ export const fetchAdminPaymentAudit = async (params: Record<string, unknown>) =>
   const { data } = await api.get<AdminPaymentAuditListResponse>("/admin/payments/audit", {
     params,
   });
-  return data?.data ?? { items: [], total: 0, page: 1, pageSize: 10, totalPages: 1, filters: {} };
+  return normalizeListResponse(data);
 };
 
 export const fetchAdminPaymentAuditDetail = async (orderId: string | number) => {

@@ -1,0 +1,904 @@
+.asp2026 {
+  --asp-navy: #0f172a;
+  --asp-green: #10b981;
+  --asp-blue: #2563eb;
+  --asp-orange: #f59e0b;
+  --asp-red: #ef4444;
+  --asp-purple: #7c3aed;
+  --asp-ink: #172033;
+  --asp-muted: #64748b;
+  --asp-line: rgba(148, 163, 184, 0.22);
+  --asp-card: rgba(255, 255, 255, 0.78);
+  --asp-soft: rgba(248, 250, 252, 0.92);
+  --asp-shadow: 0 18px 46px rgba(15, 23, 42, 0.08);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  color: var(--asp-ink);
+}
+
+.asp2026 *,
+.asp2026 *::before,
+.asp2026 *::after {
+  box-sizing: border-box;
+}
+
+.asp2026 button,
+.asp2026 input,
+.asp2026 select {
+  font: inherit;
+}
+
+.asp2026-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.asp2026-header h1 {
+  margin: 0;
+  color: var(--asp-navy);
+  font-size: 28px;
+  font-weight: 760;
+  line-height: 1.15;
+  letter-spacing: 0;
+}
+
+.asp2026-header p {
+  margin: 6px 0 0;
+  color: var(--asp-muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.asp2026-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.asp2026-primary-button,
+.asp2026-soft-button,
+.asp2026-filter-button,
+.asp2026-ai-button {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  padding: 0 16px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.asp2026-primary-button {
+  background: var(--asp-navy);
+  color: #fff;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.18);
+  font-weight: 720;
+}
+
+.asp2026-primary-button:hover,
+.asp2026-soft-button:hover,
+.asp2026-filter-button:hover,
+.asp2026-ai-button:hover {
+  transform: translateY(-1px);
+}
+
+.asp2026-primary-button:disabled,
+.asp2026-soft-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+  transform: none;
+}
+
+.asp2026-soft-button {
+  width: 100%;
+  border-color: var(--asp-line);
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--asp-navy);
+  font-size: 13px;
+  font-weight: 720;
+}
+
+.asp2026-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 26px;
+}
+
+.asp2026-metric {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 16px;
+  overflow: hidden;
+  border: 1px solid var(--asp-line);
+  border-radius: 22px;
+  background: var(--asp-card);
+  box-shadow: var(--asp-shadow);
+  padding: 18px 20px;
+  backdrop-filter: blur(18px);
+}
+
+.asp2026-metric::before {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0));
+  content: "";
+  pointer-events: none;
+}
+
+.asp2026-metric__icon,
+.asp2026-metric__body,
+.asp2026-metric__helper {
+  position: relative;
+  z-index: 1;
+}
+
+.asp2026-metric__icon {
+  display: inline-flex;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+}
+
+.asp2026-metric__body {
+  min-width: 0;
+}
+
+.asp2026-metric__body p {
+  margin: 0;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.asp2026-metric__body strong {
+  display: block;
+  margin-top: 7px;
+  color: var(--asp-navy);
+  font-size: 28px;
+  line-height: 1;
+}
+
+.asp2026-metric__helper {
+  margin-left: auto;
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.asp2026-metric--green {
+  border-color: rgba(16, 185, 129, 0.22);
+}
+
+.asp2026-metric--green .asp2026-metric__icon,
+.asp2026-metric--green .asp2026-metric__helper {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.asp2026-metric--orange {
+  border-color: rgba(245, 158, 11, 0.24);
+}
+
+.asp2026-metric--orange .asp2026-metric__icon,
+.asp2026-metric--orange .asp2026-metric__helper {
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
+}
+
+.asp2026-metric--blue {
+  border-color: rgba(37, 99, 235, 0.2);
+}
+
+.asp2026-metric--blue .asp2026-metric__icon,
+.asp2026-metric--blue .asp2026-metric__helper {
+  background: rgba(37, 99, 235, 0.11);
+  color: var(--asp-blue);
+}
+
+.asp2026-metric--red {
+  border-color: rgba(239, 68, 68, 0.22);
+}
+
+.asp2026-metric--red .asp2026-metric__icon,
+.asp2026-metric--red .asp2026-metric__helper {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+.asp2026-toolbar {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(210px, 320px) auto auto;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.asp2026-search,
+.asp2026-select,
+.asp2026-view-toggle,
+.asp2026-filter-button {
+  min-width: 0;
+  border: 1px solid var(--asp-line);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.045);
+}
+
+.asp2026-search {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 10px;
+  border-radius: 15px;
+  padding: 0 16px;
+  color: #475569;
+}
+
+.asp2026-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--asp-navy);
+}
+
+.asp2026-search input::placeholder {
+  color: #94a3b8;
+}
+
+.asp2026-select {
+  min-height: 48px;
+  border-radius: 15px;
+  color: var(--asp-navy);
+  outline: 0;
+  padding: 0 16px;
+}
+
+.asp2026-view-toggle {
+  display: inline-grid;
+  grid-template-columns: repeat(2, 44px);
+  min-height: 48px;
+  border-radius: 16px;
+  overflow: hidden;
+  padding: 4px;
+}
+
+.asp2026-view-toggle button {
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #475569;
+  cursor: pointer;
+}
+
+.asp2026-view-toggle button.is-active {
+  background: #fff;
+  color: var(--asp-navy);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+.asp2026-filter-button {
+  min-height: 48px;
+  color: var(--asp-navy);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.asp2026-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.asp2026-filters button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--asp-line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.74);
+  color: #334155;
+  cursor: pointer;
+  padding: 0 16px;
+  font-weight: 720;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.asp2026-filters button:hover {
+  transform: translateY(-1px);
+}
+
+.asp2026-filters button.is-active {
+  background: var(--asp-navy);
+  color: #fff;
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.16);
+}
+
+.asp2026-filters span {
+  display: inline-flex;
+  min-width: 22px;
+  min-height: 22px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.16);
+  padding: 0 7px;
+  font-size: 12px;
+}
+
+.asp2026-filters button.is-active span {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.asp2026-store-list {
+  display: grid;
+  gap: 14px;
+}
+
+.asp2026--grid .asp2026-store-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.asp2026-store-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--asp-line);
+  border-radius: 22px;
+  background: var(--asp-card);
+  box-shadow: var(--asp-shadow);
+  backdrop-filter: blur(18px);
+}
+
+.asp2026-store-card.is-expanded {
+  border-color: rgba(37, 99, 235, 0.22);
+}
+
+.asp2026-store-summary {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 58px minmax(160px, 1fr) minmax(420px, 1.4fr) 44px;
+  gap: 18px;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 22px;
+  text-align: left;
+}
+
+.asp2026-avatar {
+  display: inline-flex;
+  width: 54px;
+  height: 54px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #dbeafe, #eef2ff);
+  color: var(--asp-navy);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.asp2026-store-title {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.asp2026-store-title strong {
+  overflow: hidden;
+  color: var(--asp-navy);
+  font-size: 18px;
+  font-weight: 780;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.asp2026-store-title small,
+.asp2026-summary-item small {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.asp2026-summary-meta {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(4, minmax(86px, 1fr));
+  gap: 14px;
+  align-items: center;
+}
+
+.asp2026-summary-item {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+
+.asp2026-summary-item > strong {
+  color: var(--asp-navy);
+  font-size: 15px;
+}
+
+.asp2026-chip {
+  display: inline-flex;
+  max-width: 100%;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 780;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.asp2026-chip--success {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+}
+
+.asp2026-chip--warning {
+  background: rgba(245, 158, 11, 0.16);
+  color: #b45309;
+}
+
+.asp2026-chip--danger {
+  background: rgba(239, 68, 68, 0.14);
+  color: #dc2626;
+}
+
+.asp2026-chip--neutral {
+  background: rgba(100, 116, 139, 0.12);
+  color: #475569;
+}
+
+.asp2026-chevron {
+  display: inline-flex;
+  width: 42px;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--asp-navy);
+  transition: transform 160ms ease;
+}
+
+.asp2026-store-card.is-expanded .asp2026-chevron {
+  transform: rotate(180deg);
+}
+
+.asp2026-card-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr) minmax(240px, 0.92fr);
+  gap: 16px;
+  border-top: 1px solid var(--asp-line);
+  padding: 18px 20px 20px;
+}
+
+.asp2026-panel {
+  min-width: 0;
+  border: 1px solid var(--asp-line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.045);
+  padding: 16px;
+}
+
+.asp2026-panel--core {
+  grid-column: span 2;
+}
+
+.asp2026-panel--ownership {
+  grid-column: span 2;
+}
+
+.asp2026-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.asp2026-panel h2 {
+  margin: 0;
+  color: var(--asp-navy);
+  font-size: 15px;
+  font-weight: 790;
+}
+
+.asp2026-muted {
+  margin: 0;
+  color: var(--asp-muted);
+  font-size: 13px;
+}
+
+.asp2026-issue-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.asp2026-issue-chip {
+  display: inline-flex;
+  min-width: 0;
+  min-height: 38px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.16);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.74);
+  color: #334155;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 720;
+}
+
+.asp2026-issue-chip span {
+  display: inline-flex;
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--asp-red);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.asp2026-preview-list {
+  display: grid;
+  margin-bottom: 14px;
+  overflow: hidden;
+  border: 1px solid var(--asp-line);
+  border-radius: 14px;
+  background: rgba(248, 250, 252, 0.72);
+}
+
+.asp2026-preview-list div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+.asp2026-preview-list div + div {
+  border-top: 1px solid rgba(226, 232, 240, 0.78);
+}
+
+.asp2026-preview-list span {
+  color: #475569;
+  font-size: 13px;
+  font-weight: 690;
+}
+
+.asp2026-preview-list strong {
+  font-size: 12px;
+}
+
+.asp2026-preview-list .is-ready {
+  color: #047857;
+}
+
+.asp2026-preview-list .is-missing {
+  color: #ea580c;
+}
+
+.asp2026-panel--ai {
+  background: linear-gradient(145deg, rgba(124, 58, 237, 0.08), rgba(255, 255, 255, 0.74));
+}
+
+.asp2026-ai-button {
+  width: 100%;
+  border-color: rgba(124, 58, 237, 0.16);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--asp-purple);
+  cursor: pointer;
+  font-weight: 780;
+}
+
+.asp2026-core-form {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(130px, 0.9fr) minmax(120px, 0.65fr) auto;
+  gap: 14px;
+  align-items: end;
+}
+
+.asp2026-core-form label {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+}
+
+.asp2026-core-form span {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.asp2026-core-form input,
+.asp2026-core-form select {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  border: 1px solid var(--asp-line);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--asp-navy);
+  outline: 0;
+  padding: 0 12px;
+}
+
+.asp2026-core-form input:focus,
+.asp2026-core-form select:focus,
+.asp2026-search:focus-within,
+.asp2026-select:focus {
+  border-color: rgba(37, 99, 235, 0.42);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.asp2026-form-error {
+  grid-column: 1 / -1;
+  margin: 0;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 680;
+}
+
+.asp2026-detail-list {
+  display: grid;
+  gap: 9px;
+}
+
+.asp2026-detail-button {
+  display: grid;
+  min-height: 40px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--asp-line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--asp-navy);
+  cursor: pointer;
+  padding: 0 10px;
+  text-align: left;
+}
+
+.asp2026-detail-button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.asp2026-ownership-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.asp2026-ownership-grid div {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 8px;
+  align-items: center;
+  border-radius: 14px;
+  background: rgba(248, 250, 252, 0.7);
+  padding: 12px;
+}
+
+.asp2026-ownership-grid strong {
+  min-width: 0;
+  color: var(--asp-navy);
+  font-size: 13px;
+}
+
+.asp2026-ownership-grid small {
+  grid-column: 2;
+  min-width: 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.asp2026-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.asp2026-dot--green {
+  background: var(--asp-green);
+}
+
+.asp2026-dot--blue {
+  background: var(--asp-blue);
+}
+
+.asp2026-dot--purple {
+  background: var(--asp-purple);
+}
+
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026 {
+  --asp-ink: #e5e7eb;
+  --asp-muted: #94a3b8;
+  --asp-line: rgba(148, 163, 184, 0.2);
+  --asp-card: rgba(15, 23, 42, 0.74);
+  --asp-soft: rgba(30, 41, 59, 0.82);
+  --asp-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+}
+
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-header h1,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-metric__body strong,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-store-title strong,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-summary-item > strong,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-panel h2,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-detail-button,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-ownership-grid strong,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-search input,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-select,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-core-form input,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-core-form select {
+  color: #f8fafc;
+}
+
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-search,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-select,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-view-toggle,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-filter-button,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-panel,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-core-form input,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-core-form select,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-detail-button,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-filters button,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-soft-button {
+  background: rgba(15, 23, 42, 0.66);
+}
+
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-metric__body p,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-store-title small,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-summary-item small,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-core-form span,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-preview-list span,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-ownership-grid small {
+  color: #94a3b8;
+}
+
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-preview-list,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-ownership-grid div,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .asp2026-issue-chip {
+  background: rgba(30, 41, 59, 0.72);
+}
+
+@media (max-width: 1280px) {
+  .asp2026-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .asp2026-store-summary {
+    grid-template-columns: 58px minmax(160px, 1fr) 44px;
+  }
+
+  .asp2026-summary-meta {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .asp2026-card-detail {
+    grid-template-columns: 1fr;
+  }
+
+  .asp2026-panel--core,
+  .asp2026-panel--ownership {
+    grid-column: auto;
+  }
+
+  .asp2026--grid .asp2026-store-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .asp2026-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .asp2026-view-toggle {
+    width: max-content;
+  }
+
+  .asp2026-filter-button {
+    width: max-content;
+  }
+
+  .asp2026-core-form {
+    grid-template-columns: 1fr;
+  }
+
+  .asp2026-issue-grid,
+  .asp2026-ownership-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .asp2026-header {
+    display: grid;
+  }
+
+  .asp2026-header__actions,
+  .asp2026-primary-button {
+    width: 100%;
+  }
+
+  .asp2026-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .asp2026-store-summary {
+    grid-template-columns: 48px minmax(0, 1fr) 38px;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .asp2026-avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 15px;
+    font-size: 15px;
+  }
+
+  .asp2026-summary-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .asp2026-card-detail {
+    padding: 14px;
+  }
+
+  .asp2026-filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .asp2026-filters button {
+    flex: 0 0 auto;
+  }
+}

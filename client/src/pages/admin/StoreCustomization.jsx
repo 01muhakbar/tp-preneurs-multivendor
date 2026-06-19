@@ -20,6 +20,7 @@ import {
   createAdminLanguage,
   fetchAdminStoreCustomization,
   updateAdminStoreCustomization,
+  uploadAdminImage,
 } from "../../lib/adminApi.js";
 import {
   fileToDataUrl,
@@ -31,6 +32,8 @@ import {
   AdminOpsPageHeader,
   AdminOpsStatusBadge,
 } from "../../components/admin/AdminOpsPrimitives.jsx";
+import StoreCustomizationHomeSettings2026 from "../../components/admin/store-customization/StoreCustomizationHomeSettings2026.jsx";
+import StoreCustomizationSingleSetting2026 from "../../components/admin/store-customization/StoreCustomizationSingleSetting2026.jsx";
 
 const ADMIN_LANGUAGE_KEY = "adminLanguage";
 
@@ -143,14 +146,72 @@ const MAIN_SLIDER_LENGTH = 5;
 const ABOUT_US_MEMBER_LENGTH = 6;
 const FAQS_ITEM_LENGTH = 8;
 const PRODUCTS_LIMIT_OPTIONS = [6, 12, 18, 24];
-const PRODUCT_SLUG_DESCRIPTION_LABELS = [
-  "Description One",
-  "Description Two",
-  "Description Three",
-  "Description Four",
-  "Description Five",
-  "Description Six",
-  "Description Seven",
+const PRODUCT_SLUG_LEGACY_DESCRIPTION_KEYS = [
+  "descriptionOne",
+  "descriptionTwo",
+  "descriptionThree",
+  "descriptionFour",
+  "descriptionFive",
+  "descriptionSix",
+  "descriptionSeven",
+];
+const DEFAULT_PRODUCT_SLUG_BENEFIT_ITEMS = [
+  {
+    id: "free-shipping",
+    title: "Free Shipping",
+    message: "Free shipping applies to all orders over shipping 100",
+    icon: "truck",
+    tone: "positive",
+    visible: true,
+  },
+  {
+    id: "one-hour-delivery",
+    title: "1-Hour Delivery",
+    message: "Home Delivery within 1 Hour",
+    icon: "clock",
+    tone: "positive",
+    visible: true,
+  },
+  {
+    id: "cash-on-delivery",
+    title: "Cash on Delivery",
+    message: "Cash on Delivery Available",
+    icon: "wallet",
+    tone: "neutral",
+    visible: true,
+  },
+  {
+    id: "seven-day-returns",
+    title: "7-Day Returns",
+    message: "7 Days returns money back guarantee",
+    icon: "returns",
+    tone: "neutral",
+    visible: true,
+  },
+  {
+    id: "warranty-info",
+    title: "Warranty Info",
+    message: "Warranty not available for this item",
+    icon: "shield",
+    tone: "neutral",
+    visible: true,
+  },
+  {
+    id: "organic",
+    title: "100% Organic",
+    message: "Guaranteed 100% organic from natural products.",
+    icon: "leaf",
+    tone: "positive",
+    visible: true,
+  },
+  {
+    id: "pickup-point",
+    title: "Pickup Point Delivery",
+    message: "Delivery from our pick point Boho One, Bridge Street West, Middlesbrough.",
+    icon: "pin",
+    tone: "neutral",
+    visible: true,
+  },
 ];
 const FAQ_ITEM_ORDINALS = [
   "One",
@@ -496,6 +557,8 @@ const getDefaultCustomization = () => ({
         "Guaranteed 100% organic from natural products.",
         "Delivery from our pick point Boho One, Bridge Street West, Middlesbrough, North Yorkshire, TS2 1AE.",
       ],
+      items: DEFAULT_PRODUCT_SLUG_BENEFIT_ITEMS,
+      benefitItems: DEFAULT_PRODUCT_SLUG_BENEFIT_ITEMS,
     },
   },
   aboutUs: {
@@ -755,6 +818,20 @@ const normalizeLanguage = (item) => ({
 const isPlainObject = (value) =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
+const unwrapCustomizationEnvelope = (value) => {
+  let cursor = value;
+  for (let index = 0; index < 4; index += 1) {
+    if (!isPlainObject(cursor)) return {};
+    if (isPlainObject(cursor.customization)) return cursor.customization;
+    if (isPlainObject(cursor.data)) {
+      cursor = cursor.data;
+      continue;
+    }
+    return cursor;
+  }
+  return isPlainObject(cursor?.customization) ? cursor.customization : cursor || {};
+};
+
 const mergeDeep = (base, source) => {
   if (!isPlainObject(base)) return source;
   const output = { ...base };
@@ -775,6 +852,14 @@ const mergeDeep = (base, source) => {
 const toText = (value, fallback = "") => {
   const normalized = String(value ?? "").trim();
   return normalized || fallback;
+};
+
+const hasOwnValue = (source, key) =>
+  source && Object.prototype.hasOwnProperty.call(source, key);
+
+const toSliderText = (value, fallback = "", preserveEmpty = false) => {
+  if (preserveEmpty && value != null) return String(value).trim();
+  return toText(value, fallback);
 };
 
 const isSafeWhatsAppLink = (value) => {
@@ -890,21 +975,132 @@ const normalizeFooterLinks = (value, fallback = []) => {
 
 const normalizeRightBoxDescriptions = (value, fallback = [], legacySource = {}) => {
   const rawArray = Array.isArray(value) ? value : [];
-  const legacyKeys = [
-    "descriptionOne",
-    "descriptionTwo",
-    "descriptionThree",
-    "descriptionFour",
-    "descriptionFive",
-    "descriptionSix",
-    "descriptionSeven",
-  ];
   return fallback.map((fallbackItem, index) => {
     const fromArray = toText(rawArray[index], "");
-    const legacyKey = legacyKeys[index];
+    const legacyKey = PRODUCT_SLUG_LEGACY_DESCRIPTION_KEYS[index];
     const fromLegacy = toText(legacySource?.[legacyKey], "");
     return toText(fromArray || fromLegacy, fallbackItem);
   });
+};
+
+const mergeRightBoxSources = (root) => {
+  const source = isPlainObject(root) ? root : {};
+  const productSlugPageSource = isPlainObject(source.productSlugPage)
+    ? source.productSlugPage
+    : {};
+  const productSlugSource = isPlainObject(source.productSlug) ? source.productSlug : {};
+  const productSlugSettingSource = isPlainObject(source.productSlugSetting)
+    ? source.productSlugSetting
+    : {};
+  const singleSettingSource = isPlainObject(source.singleSetting)
+    ? source.singleSetting
+    : {};
+  const snakeSingleSettingSource = isPlainObject(source.single_setting)
+    ? source.single_setting
+    : {};
+
+  return [
+    isPlainObject(source.right_box) ? source.right_box : {},
+    isPlainObject(source.rightBox) ? source.rightBox : {},
+    snakeSingleSettingSource,
+    isPlainObject(snakeSingleSettingSource.right_box)
+      ? snakeSingleSettingSource.right_box
+      : {},
+    isPlainObject(snakeSingleSettingSource.rightBox)
+      ? snakeSingleSettingSource.rightBox
+      : {},
+    singleSettingSource,
+    isPlainObject(singleSettingSource.right_box) ? singleSettingSource.right_box : {},
+    isPlainObject(singleSettingSource.rightBox) ? singleSettingSource.rightBox : {},
+    productSlugSettingSource,
+    isPlainObject(productSlugSettingSource.rightBox)
+      ? productSlugSettingSource.rightBox
+      : {},
+    productSlugSource,
+    isPlainObject(productSlugSource.rightBox) ? productSlugSource.rightBox : {},
+    isPlainObject(productSlugSource.right_box) ? productSlugSource.right_box : {},
+    productSlugPageSource,
+    isPlainObject(productSlugPageSource.right_box)
+      ? productSlugPageSource.right_box
+      : {},
+    isPlainObject(productSlugPageSource.rightBox)
+      ? productSlugPageSource.rightBox
+      : {},
+  ].reduce((result, item) => (isPlainObject(item) ? { ...result, ...item } : result), {});
+};
+
+const normalizeRightBoxItems = (rightBoxSource = {}, fallbackDescriptions = []) => {
+  const source = isPlainObject(rightBoxSource) ? rightBoxSource : {};
+  const rawItems = Array.isArray(source.items)
+    ? source.items
+    : Array.isArray(source.benefitItems)
+      ? source.benefitItems
+      : [];
+  const descriptions = normalizeRightBoxDescriptions(
+    source.descriptions,
+    fallbackDescriptions,
+    source
+  );
+
+  if (rawItems.length > 0) {
+    return rawItems.map((rawItem, index) => {
+      const item = isPlainObject(rawItem) ? rawItem : {};
+      const fallback =
+        DEFAULT_PRODUCT_SLUG_BENEFIT_ITEMS[index] ||
+        DEFAULT_PRODUCT_SLUG_BENEFIT_ITEMS[
+          DEFAULT_PRODUCT_SLUG_BENEFIT_ITEMS.length - 1
+        ];
+      return {
+        ...fallback,
+        ...item,
+        id: toText(item.id, `${fallback.id}-${index}`),
+        title: toText(item.title ?? item.label, fallback.title),
+        message: toText(
+          item.message ?? item.description ?? item.text,
+          descriptions[index] || fallback.message
+        ),
+        icon: toText(item.icon, fallback.icon),
+        tone: toText(item.tone, fallback.tone),
+        visible:
+          typeof item.visible === "boolean"
+            ? item.visible
+            : typeof item.enabled === "boolean"
+              ? item.enabled
+              : fallback.visible,
+      };
+    });
+  }
+
+  return DEFAULT_PRODUCT_SLUG_BENEFIT_ITEMS.map((item, index) => ({
+    ...item,
+    message: descriptions[index] || item.message,
+  }));
+};
+
+const serializeRightBoxForPayload = (rightBoxState = {}) => {
+  const defaults = getDefaultCustomization().productSlugPage.rightBox;
+  const items = normalizeRightBoxItems(rightBoxState, defaults.descriptions);
+  const descriptions = normalizeRightBoxDescriptions(
+    items.map((item) => item.message),
+    defaults.descriptions,
+    rightBoxState
+  );
+  const legacyDescriptionFields = PRODUCT_SLUG_LEGACY_DESCRIPTION_KEYS.reduce(
+    (result, key, index) => ({
+      ...result,
+      [key]: toText(descriptions[index]),
+    }),
+    {}
+  );
+
+  return {
+    ...rightBoxState,
+    enabled: Boolean(rightBoxState?.enabled),
+    items,
+    benefitItems: items,
+    descriptions,
+    ...legacyDescriptionFields,
+  };
 };
 
 const normalizeAboutUsMembers = (value, fallback = []) => {
@@ -1566,7 +1762,13 @@ const normalizeCustomizationPayload = (raw) => {
   const source = isPlainObject(raw) ? raw : {};
   const merged = mergeDeep(defaults, source);
 
-  const homeSource = isPlainObject(source.home) ? source.home : {};
+  const homeSource = isPlainObject(source.home)
+    ? source.home
+    : isPlainObject(source.homeSettings)
+      ? source.homeSettings
+      : isPlainObject(source.homepage)
+        ? source.homepage
+        : {};
   const legacyHome = isPlainObject(source.homePage) ? source.homePage : {};
 
   const headerSource = isPlainObject(homeSource.header)
@@ -1633,10 +1835,12 @@ const normalizeCustomizationPayload = (raw) => {
     : {};
   const productSlugPageSource = isPlainObject(source.productSlugPage)
     ? source.productSlugPage
-    : {};
-  const productSlugRightBoxSource = isPlainObject(productSlugPageSource.rightBox)
-    ? productSlugPageSource.rightBox
-    : {};
+    : isPlainObject(source.productSlug)
+      ? source.productSlug
+      : isPlainObject(source.productSlugSetting)
+        ? source.productSlugSetting
+        : {};
+  const productSlugRightBoxSource = mergeRightBoxSources(source);
   const aboutUsSource = isPlainObject(source.aboutUs) ? source.aboutUs : {};
   const aboutUsPageHeaderSource = isPlainObject(aboutUsSource.pageHeader)
     ? aboutUsSource.pageHeader
@@ -1701,6 +1905,19 @@ const normalizeCustomizationPayload = (raw) => {
     const legacyNested = isPlainObject(mainSliderSource[`slider${order}`])
       ? mainSliderSource[`slider${order}`]
       : {};
+    const hasExplicitSlide =
+      Object.keys(nested).length > 0 ||
+      Object.keys(legacyNested).length > 0 ||
+      hasOwnValue(mainSliderSource, `slider${order}ImageDataUrl`) ||
+      hasOwnValue(mainSliderSource, `slider${order}Image`) ||
+      hasOwnValue(mainSliderSource, `slider${order}Title`) ||
+      hasOwnValue(mainSliderSource, `slider${order}Description`) ||
+      hasOwnValue(mainSliderSource, `slider${order}ButtonName`) ||
+      hasOwnValue(mainSliderSource, `slider${order}ButtonLink`);
+    const titleFallback = hasExplicitSlide ? "" : fallback.title;
+    const descriptionFallback = hasExplicitSlide ? "" : fallback.description;
+    const buttonFallback = hasExplicitSlide ? "" : fallback.buttonName;
+    const linkFallback = hasExplicitSlide ? "" : fallback.buttonLink;
 
     return {
       imageDataUrl: toText(
@@ -1713,33 +1930,37 @@ const normalizeCustomizationPayload = (raw) => {
           "",
         fallback.imageDataUrl
       ),
-      title: toText(
+      title: toSliderText(
         nested.title ??
           legacyNested.title ??
           mainSliderSource[`slider${order}Title`] ??
           "",
-        fallback.title
+        titleFallback,
+        hasExplicitSlide
       ),
-      description: toText(
+      description: toSliderText(
         nested.description ??
           legacyNested.description ??
           mainSliderSource[`slider${order}Description`] ??
           "",
-        fallback.description
+        descriptionFallback,
+        hasExplicitSlide
       ),
-      buttonName: toText(
+      buttonName: toSliderText(
         nested.buttonName ??
           legacyNested.buttonName ??
           mainSliderSource[`slider${order}ButtonName`] ??
           "",
-        fallback.buttonName
+        buttonFallback,
+        hasExplicitSlide
       ),
-      buttonLink: toText(
+      buttonLink: toSliderText(
         nested.buttonLink ??
           legacyNested.buttonLink ??
           mainSliderSource[`slider${order}ButtonLink`] ??
           "",
-        fallback.buttonLink
+        linkFallback,
+        hasExplicitSlide
       ),
       imageFocus: normalizeMainSliderImageFocus(
         nested.imageFocus ??
@@ -2147,6 +2368,14 @@ const normalizeCustomizationPayload = (raw) => {
         enabled: toBool(
           productSlugRightBoxSource.enabled,
           defaultsProductSlugPage.rightBox.enabled
+        ),
+        items: normalizeRightBoxItems(
+          productSlugRightBoxSource,
+          defaultsProductSlugPage.rightBox.descriptions
+        ),
+        benefitItems: normalizeRightBoxItems(
+          productSlugRightBoxSource,
+          defaultsProductSlugPage.rightBox.descriptions
         ),
         descriptions: normalizeRightBoxDescriptions(
           productSlugRightBoxSource.descriptions,
@@ -2687,6 +2916,7 @@ export default function StoreCustomizationPage() {
 
   const [isAddLanguageOpen, setIsAddLanguageOpen] = useState(false);
   const [presetOpen, setPresetOpen] = useState(false);
+  const [isPublishIntent, setIsPublishIntent] = useState(false);
   const [addLanguageError, setAddLanguageError] = useState("");
   const [addLanguageForm, setAddLanguageForm] = useState({
     selectedPreset: "id",
@@ -2772,8 +3002,8 @@ export default function StoreCustomizationPage() {
   });
 
   useEffect(() => {
-    const payload = customizationQuery.data?.customization || customizationQuery.data;
-    if (!payload) return;
+    if (!customizationQuery.data) return;
+    const payload = unwrapCustomizationEnvelope(customizationQuery.data);
     const normalized = normalizeCustomizationPayload(payload);
     setHomeState(normalized.home);
     setProductSlugPageState(normalized.productSlugPage);
@@ -2840,18 +3070,19 @@ export default function StoreCustomizationPage() {
     },
     mutationFn: ({ language, payload }) =>
       updateAdminStoreCustomization(language, payload),
-    onMutate: () => {
+    onMutate: (variables) => {
       const activeTabLabel = TABS.find((tab) => tab.key === activeTab)?.label || "Store";
       const toastId = `store-customization-${activeTab}-update`;
+      const actionLabel = variables?.publish ? "Publishing" : "Updating";
       setNotice({
         type: "success",
-        message: `Updating customization for ${String(lang || "en").toUpperCase()}...`,
+        message: `${actionLabel} customization for ${String(lang || "en").toUpperCase()}...`,
       });
-      toast.loading(`Updating ${activeTabLabel} settings...`, { id: toastId });
-      return { toastId, activeTabLabel };
+      toast.loading(`${actionLabel} ${activeTabLabel} settings...`, { id: toastId });
+      return { toastId, activeTabLabel, publish: Boolean(variables?.publish) };
     },
     onSuccess: async (data, _variables, context) => {
-      const payload = data?.customization || data;
+      const payload = unwrapCustomizationEnvelope(data);
       const normalized = normalizeCustomizationPayload(payload);
       setHomeState(normalized.home);
       setProductSlugPageState(normalized.productSlugPage);
@@ -2870,11 +3101,19 @@ export default function StoreCustomizationPage() {
         type: "success",
         message: `Store customization updated for ${String(lang || "en").toUpperCase()}.`,
       });
-      toast.success(`${context?.activeTabLabel || "Store"} settings updated.`, {
+      toast.success(
+        context?.publish
+          ? `${context?.activeTabLabel || "Store"} draft published.`
+          : `${context?.activeTabLabel || "Store"} settings updated.`,
+        {
         id: context?.toastId || `store-customization-${activeTab}-update`,
-      });
+        }
+      );
       await queryClient.invalidateQueries({
         queryKey: ["admin-store-customization", lang],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["admin", "store-customization"],
       });
     },
     onError: (error, _variables, context) => {
@@ -2901,6 +3140,9 @@ export default function StoreCustomizationPage() {
           id: context?.toastId || `store-customization-${activeTab}-update`,
         }
       );
+    },
+    onSettled: () => {
+      setIsPublishIntent(false);
     },
   });
 
@@ -2969,6 +3211,7 @@ export default function StoreCustomizationPage() {
     : "Select a language";
   const isLoadingHeader = customizationQuery.isFetching;
   const isSaving = updateMutation.isPending;
+  const isPublishing = updateMutation.isPending && isPublishIntent;
   const showFullCustomizationLoader =
     customizationQuery.isLoading && !customizationQuery.data;
   const showCustomizationError =
@@ -2978,12 +3221,14 @@ export default function StoreCustomizationPage() {
     ? "WhatsApp link must be wa.me or api.whatsapp.com"
     : whatsAppLinkHelperError || whatsAppLinkServerError;
 
-  const onSave = () => {
+  const onSave = (options = {}) => {
     if (!lang || isLoadingHeader || isSaving) return;
+    const shouldPublish = Boolean(options?.publish);
+    setIsPublishIntent(shouldPublish);
     setNotice(null);
     const current = queryClient.getQueryData(["admin-store-customization", lang]);
     const currentCustomization = normalizeCustomizationPayload(
-      current?.customization || current || {}
+      unwrapCustomizationEnvelope(current)
     );
 
     const nextPayload = {
@@ -3162,11 +3407,7 @@ export default function StoreCustomizationPage() {
         ...currentCustomization.productSlugPage,
         rightBox: {
           ...currentCustomization.productSlugPage?.rightBox,
-          enabled: Boolean(productSlugPageState?.rightBox?.enabled),
-          descriptions: normalizeRightBoxDescriptions(
-            productSlugPageState?.rightBox?.descriptions,
-            getDefaultCustomization().productSlugPage.rightBox.descriptions
-          ),
+          ...serializeRightBoxForPayload(productSlugPageState?.rightBox),
         },
       },
       aboutUs: {
@@ -3536,9 +3777,40 @@ export default function StoreCustomizationPage() {
       },
     };
 
+    if (shouldPublish) {
+      nextPayload.status = "published";
+      nextPayload.publishStatus = "published";
+      nextPayload.home = {
+        ...nextPayload.home,
+        status: "published",
+        publishStatus: "published",
+      };
+    }
+
     updateMutation.mutate({
       language: lang || "en",
       payload: nextPayload,
+      publish: shouldPublish,
+    });
+  };
+
+  const onPublish = () => {
+    onSave({ publish: true });
+  };
+
+  const onPreviewStorefront = () => {
+    window.open("/", "_blank", "noopener,noreferrer");
+  };
+
+  const onResetProductSlugSingleSetting = () => {
+    const current = queryClient.getQueryData(["admin-store-customization", lang]);
+    const currentCustomization = normalizeCustomizationPayload(
+      unwrapCustomizationEnvelope(current || customizationQuery.data)
+    );
+    setProductSlugPageState(currentCustomization.productSlugPage);
+    setNotice({
+      type: "success",
+      message: "Single setting draft reset.",
     });
   };
 
@@ -3812,16 +4084,20 @@ export default function StoreCustomizationPage() {
       return;
     }
     try {
-      const dataUrl = await fileToDataUrl(file);
+      const result = await uploadAdminImage(file);
+      const uploadedUrl = String(result?.url || result?.data?.url || "").trim();
+      if (!uploadedUrl) {
+        throw new Error("Upload succeeded without an image URL.");
+      }
       setMainSliderImageErrors((prev) => ({
         ...prev,
         [index]: "",
       }));
-      onChangeMainSliderField(index, "imageDataUrl", dataUrl);
+      onChangeMainSliderField(index, "imageDataUrl", uploadedUrl);
     } catch (error) {
       setMainSliderImageErrors((prev) => ({
         ...prev,
-        [index]: error?.message || "Failed to process image.",
+        [index]: error?.response?.data?.message || error?.message || "Failed to upload image.",
       }));
     }
   };
@@ -4112,35 +4388,6 @@ export default function StoreCustomizationPage() {
     } else if (fieldKey === "paymentImageDataUrl") {
       onChangeFooterBlockField("paymentMethod", "imageDataUrl", "");
     }
-  };
-
-  const onChangeProductSlugRightBoxEnabled = (value) => {
-    setProductSlugPageState((prev) => ({
-      ...prev,
-      rightBox: {
-        ...prev.rightBox,
-        enabled: Boolean(value),
-      },
-    }));
-  };
-
-  const onChangeProductSlugRightBoxDescription = (index, value) => {
-    setProductSlugPageState((prev) => {
-      const defaults =
-        getDefaultCustomization().productSlugPage.rightBox.descriptions;
-      const nextDescriptions = normalizeRightBoxDescriptions(
-        prev?.rightBox?.descriptions,
-        defaults
-      );
-      nextDescriptions[index] = value;
-      return {
-        ...prev,
-        rightBox: {
-          ...prev.rightBox,
-          descriptions: normalizeRightBoxDescriptions(nextDescriptions, defaults),
-        },
-      };
-    });
   };
 
   const onChangeSeoField = (field, value) => {
@@ -4875,6 +5122,14 @@ export default function StoreCustomizationPage() {
     ...productSlugRightBoxDefaults,
     ...(productSlugPageState?.rightBox || {}),
     enabled: Boolean(productSlugPageState?.rightBox?.enabled),
+    items: normalizeRightBoxItems(
+      productSlugPageState?.rightBox,
+      productSlugRightBoxDefaults.descriptions
+    ),
+    benefitItems: normalizeRightBoxItems(
+      productSlugPageState?.rightBox,
+      productSlugRightBoxDefaults.descriptions
+    ),
     descriptions: normalizeRightBoxDescriptions(
       productSlugPageState?.rightBox?.descriptions,
       productSlugRightBoxDefaults.descriptions,
@@ -5622,49 +5877,51 @@ export default function StoreCustomizationPage() {
 
   return (
     <div className="mx-auto w-full max-w-[1280px] space-y-5 px-1 sm:px-2">
-      <AdminOpsPageHeader
-        title="Store Customizations"
-        description="Customize storefront sections, labels, and SEO."
-        actions={
-          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-            <div className="relative min-w-0 flex-1 sm:flex-none">
-              <select
-                value={lang}
-                onChange={(event) => setLang(String(event.target.value).toLowerCase())}
-                disabled={isSaving}
-                className={`${inputBase} min-w-0 appearance-none pr-9 sm:min-w-[178px]`}
+      {activeTab === "home" || activeTab === "productSlugPage" ? null : (
+        <AdminOpsPageHeader
+          title="Store Customizations"
+          description="Customize storefront sections, labels, and SEO."
+          actions={
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+              <div className="relative min-w-0 flex-1 sm:flex-none">
+                <select
+                  value={lang}
+                  onChange={(event) => setLang(String(event.target.value).toLowerCase())}
+                  disabled={isSaving}
+                  className={`${inputBase} min-w-0 appearance-none pr-9 sm:min-w-[178px]`}
+                >
+                  {publishedLanguages.length === 0 ? (
+                    <option value="en">en</option>
+                  ) : (
+                    publishedLanguages.map((item) => (
+                      <option key={item.id || item.isoCode} value={item.isoCode}>
+                        {item.isoCode}
+                      </option>
+                    ))
+                  )}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              </div>
+              <button
+                type="button"
+                onClick={onOpenAddLanguage}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                aria-label="Add language"
               >
-                {publishedLanguages.length === 0 ? (
-                  <option value="en">en</option>
-                ) : (
-                  publishedLanguages.map((item) => (
-                    <option key={item.id || item.isoCode} value={item.isoCode}>
-                      {item.isoCode}
-                    </option>
-                  ))
-                )}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Plus className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={onSave}
+                disabled={isSaving || isLoadingHeader || !lang}
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+              >
+                {isSaving ? "Updating..." : "Update"}
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={onOpenAddLanguage}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-              aria-label="Add language"
-            >
-              <Plus className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={onSave}
-              disabled={isSaving || isLoadingHeader || !lang}
-              className="inline-flex h-10 items-center justify-center rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
-            >
-              {isSaving ? "Updating..." : "Update"}
-            </button>
-          </div>
-        }
-      />
+          }
+        />
+      )}
 
       {isLoadingHeader && customizationQuery.data ? (
         <p className="text-xs text-slate-500">
@@ -5684,24 +5941,26 @@ export default function StoreCustomizationPage() {
         </div>
       ) : null}
 
-      <div className={`${glassCard} p-3`}>
-        <div className="flex flex-wrap gap-2">
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => onSelectTab(tab.key)}
-              className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
-                activeTab === tab.key
-                  ? "bg-slate-950 text-white shadow-sm"
-                  : "bg-white/80 text-slate-600 hover:-translate-y-0.5 hover:bg-emerald-50 hover:text-emerald-700"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+      {activeTab === "home" || activeTab === "productSlugPage" ? null : (
+        <div className={`${glassCard} p-3`}>
+          <div className="flex flex-wrap gap-2">
+            {TABS.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => onSelectTab(tab.key)}
+                className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                  activeTab === tab.key
+                    ? "bg-slate-950 text-white shadow-sm"
+                    : "bg-white/80 text-slate-600 hover:-translate-y-0.5 hover:bg-emerald-50 hover:text-emerald-700"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div
         ref={tabContentRef}
@@ -5720,45 +5979,45 @@ export default function StoreCustomizationPage() {
             }
             onRetry={() => customizationQuery.refetch()}
           />
+        ) : activeTab === "home" ? (
+          <StoreCustomizationHomeSettings2026
+            value={homeState}
+            activeTab={activeTab}
+            onTabChange={onSelectTab}
+            onChange={setHomeState}
+            onSave={onSave}
+            onPublish={onPublish}
+            onPreview={onPreviewStorefront}
+            isSaving={isSaving && !isPublishing}
+            isPublishing={isPublishing}
+            language={lang}
+            languages={publishedLanguages}
+            onLanguageChange={(nextLanguage) =>
+              setLang(String(nextLanguage || "en").toLowerCase())
+            }
+            isLoading={isLoadingHeader}
+          />
         ) : activeTab === "productSlugPage" ? (
-          <div className="flex flex-col gap-5">
-          <section className={sectionCard}>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-                <Settings className="h-4 w-4" />
-              </span>
-              <h2 className="text-base font-semibold text-slate-900">Right Box</h2>
-            </div>
-            <div className="mt-4 h-px w-full bg-slate-200" />
-
-            <div className="mt-4 grid grid-cols-1 gap-4">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Enable This Block
-                </p>
-                <SegmentedToggle
-                  value={Boolean(productSlugRightBox.enabled)}
-                  onChange={onChangeProductSlugRightBoxEnabled}
-                />
-              </div>
-
-              {PRODUCT_SLUG_DESCRIPTION_LABELS.map((label, index) => (
-                <label key={label} className="block">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    {label}
-                  </span>
-                  <textarea
-                    value={productSlugRightBox.descriptions[index] || ""}
-                    onChange={(event) =>
-                      onChangeProductSlugRightBoxDescription(index, event.target.value)
-                    }
-                    className="mt-2 min-h-[92px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                  />
-                </label>
-              ))}
-            </div>
-          </section>
-        </div>
+          <StoreCustomizationSingleSetting2026
+            value={{
+              ...productSlugPageState,
+              rightBox: productSlugRightBox,
+            }}
+            activeTab={activeTab}
+            onTabChange={onSelectTab}
+            onChange={setProductSlugPageState}
+            onSave={onSave}
+            onPublish={onPublish}
+            onReset={onResetProductSlugSingleSetting}
+            onPreview={onPreviewStorefront}
+            isSaving={isSaving && !isPublishing}
+            isPublishing={isPublishing}
+            language={lang}
+            languages={publishedLanguages}
+            onLanguageChange={(nextLanguage) =>
+              setLang(String(nextLanguage || "en").toLowerCase())
+            }
+          />
       ) : activeTab === "aboutUs" ? (
         <div className="flex flex-col gap-5">
           <section className={sectionCard}>
@@ -8648,7 +8907,7 @@ export default function StoreCustomizationPage() {
                           Slider Images
                         </span>
                         <span className="hidden rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600 sm:inline-flex">
-                          Recommended: 1600x650
+                          Recommended: 1920x640 (3:1)
                         </span>
                       </div>
                       <input
@@ -9107,10 +9366,10 @@ export default function StoreCustomizationPage() {
                         </p>
                       </label>
                       <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-                        <p>Recommended size: 1600x650px (1920x780px for sharper display)</p>
-                        <p>Aspect ratio: horizontal ~2.4-2.5:1</p>
+                        <p>Recommended size: 1920x640px for the responsive storefront hero area</p>
+                        <p>Aspect ratio: horizontal 3:1</p>
                         <p>Format: WEBP preferred, PNG/JPG supported</p>
-                        <p>Keep important subject on the center or right-safe area.</p>
+                        <p>Keep the main subject near the center safe area; avoid text or key details near the edges.</p>
                         <p>Use Image Focus below if the subject sits too close to the left text area.</p>
                         <p>Recommended file size: under 300-500KB for faster homepage loading.</p>
                       </div>

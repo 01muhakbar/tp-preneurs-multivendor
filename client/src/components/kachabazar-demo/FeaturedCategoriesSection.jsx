@@ -5,7 +5,7 @@ const toText = (value) => String(value ?? "").trim();
 
 const buildCategoryHref = (value) => {
   const slug = toText(value);
-  return slug ? `/search?category=${encodeURIComponent(slug)}&page=1` : "/search?page=1";
+  return slug ? `/search?category=${encodeURIComponent(slug)}&page=1` : "/shop";
 };
 
 const buildSubLinksByParent = (allCategories = []) => {

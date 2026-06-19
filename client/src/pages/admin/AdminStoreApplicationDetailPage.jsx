@@ -1,99 +1,388 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "react-hot-toast";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  CalendarDays,
+  CheckCircle2,
+  Database,
+  FileText,
+  GitBranch,
+  Globe2,
+  IdCard,
+  ShieldCheck,
+  UserRound,
+  UsersRound,
+  XCircle,
+} from "lucide-react";
 import {
   approveAdminStoreApplication,
   fetchAdminStoreApplicationDetail,
   rejectAdminStoreApplication,
   requestAdminStoreApplicationRevision,
 } from "../../api/adminStoreApplications.ts";
-import {
-  presentStoreApplicationStatus,
-  presentStoreReadiness,
-} from "../../utils/storeOnboardingPresentation.ts";
-import {
-  AdminOpsErrorState,
-  AdminOpsLoadingState,
-  AdminOpsPageHeader,
-  AdminOpsStatusBadge,
-  getActionBadge,
-} from "../../components/admin/AdminOpsPrimitives.jsx";
+import "./AdminStoreApplicationDetailPage.css";
 
-const formatDateTime = (value) => {
-  if (!value) return "-";
+const DASH = "-";
+const DETAIL_QUERY_KEY = "admin-store-application";
+const LIST_QUERY_KEY = "admin-store-applications";
+
+const text = (value, fallback = DASH) => {
+  const normalized = String(value ?? "").trim();
+  return normalized || fallback;
+};
+
+const boolText = (value) => (value === true ? "Yes" : value === false ? "No" : DASH);
+
+const unwrapApplication = (payload) =>
+  payload?.data?.data ||
+  payload?.data?.application ||
+  payload?.data?.item ||
+  payload?.data?.storeApplication ||
+  payload?.data ||
+  payload?.application ||
+  payload?.item ||
+  payload?.storeApplication ||
+  payload ||
+  null;
+
+const firstObject = (...values) =>
+  values.find((value) => value && typeof value === "object" && !Array.isArray(value)) || {};
+
+const getCompleteness = (application) => {
+  const source = firstObject(
+    application?.completeness,
+    application?.workflowSummary?.completeness
+  );
+  const completed = Number(
+    source.completed ?? source.completedFields ?? application?.completedFields ?? 0
+  );
+  const total = Number(source.total ?? source.totalFields ?? application?.totalFields ?? 0);
+  const explicitPercent = Number(
+    source.percentage ?? source.completionPercent ?? application?.completionPercent
+  );
+  const percent = Number.isFinite(explicitPercent)
+    ? explicitPercent
+    : total > 0
+      ? Math.round((completed / total) * 100)
+      : 0;
+  return {
+    completed: Number.isFinite(completed) ? completed : 0,
+    total: Number.isFinite(total) ? total : 0,
+    percent: Math.max(0, Math.min(100, Number.isFinite(percent) ? percent : 0)),
+    label: source.label || (total > 0 && completed >= total ? "Ready" : "Needs completion"),
+  };
+};
+
+const getStatusLabel = (status) => {
+  const normalized = String(status || "draft").toLowerCase();
+  const labels = {
+    draft: "Draft",
+    submitted: "Submitted",
+    under_review: "In Review",
+    revision_requested: "Needs Revision",
+    approved: "Approved",
+    rejected: "Rejected",
+    cancelled: "Cancelled",
+  };
+  return labels[normalized] || text(status);
+};
+
+const getStatusTone = (status) => {
+  const normalized = String(status || "draft").toLowerCase();
+  if (["approved"].includes(normalized)) return "success";
+  if (["submitted", "under_review"].includes(normalized)) return "info";
+  if (["revision_requested"].includes(normalized)) return "warning";
+  if (["rejected"].includes(normalized)) return "danger";
+  return "neutral";
+};
+
+const formatDate = (value) => {
+  if (!value) return DASH;
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
+  if (Number.isNaN(date.getTime())) return DASH;
   return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   }).format(date);
 };
 
-const yesNo = (value) => (value ? "Yes" : "No");
+const formatTime = (value) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+};
 
-function StatusPill({ label, tone = "stone" }) {
-  return <AdminOpsStatusBadge label={label} tone={tone} />;
+const getMatchValue = (fields, key) => {
+  const found = fields.find((field) => String(field.key || "").toLowerCase() === key);
+  if (!found) return null;
+  return found.matched;
+};
+
+const normalizeDetail = (payload, fallbackId) => {
+  const application = unwrapApplication(payload);
+  if (!application) return null;
+
+  const workflow = firstObject(application.workflowSummary);
+  const applicant = firstObject(application.applicant, application.user);
+  const reviewer = firstObject(application.reviewer, application.reviewedByUser, application.reviewedBy);
+  const ownerIdentity = firstObject(
+    application.ownerIdentitySnapshot,
+    application.ownerIdentity,
+    application.identitySnapshot,
+    application.identity
+  );
+  const storeInfo = firstObject(
+    application.storeInformationSnapshot,
+    application.storeInformation,
+    application.storeSnapshot,
+    application.store
+  );
+  const operational = firstObject(
+    application.operationalAddressSnapshot,
+    application.addressSnapshot,
+    application.operationalAddress,
+    application.address,
+    application.operationalVerification
+  );
+  const payout = firstObject(
+    application.payoutSnapshot,
+    application.paymentSnapshot,
+    application.payout,
+    application.payment,
+    application.financialVerification
+  );
+  const compliance = firstObject(
+    application.complianceSnapshot,
+    application.compliance,
+    application.riskSnapshot,
+    application.complianceRisk
+  );
+  const activation = firstObject(workflow.activation, application.activation);
+  const identityMatch = firstObject(applicant.identityMatch, application.identityMatch);
+  const matchFields = Array.isArray(identityMatch.fields) ? identityMatch.fields : [];
+  const completeness = getCompleteness(application);
+
+  const status = text(application.status || workflow.applicationStatus || "draft", "draft").toLowerCase();
+  const currentStep = firstObject(application.currentStepMeta, workflow.currentStepMeta);
+  const actionGovernance = firstObject(workflow.actionGovernance, application.actionGovernance);
+
+  return {
+    id: application.id || fallbackId,
+    status,
+    statusLabel: application.statusMeta?.label || getStatusLabel(status),
+    stepLabel: currentStep.label || text(application.currentStep || workflow.currentStep, "Review"),
+    submittedAt: application.submittedAt || workflow.submittedAt,
+    reviewedAt: application.reviewedAt || workflow.reviewedAt,
+    reviewer: {
+      name: reviewer.name || workflow.reviewedBy?.name || DASH,
+      email: reviewer.email || workflow.reviewedBy?.email || null,
+    },
+    actionGovernance,
+    completeness,
+    activation,
+    applicant: {
+      userId: applicant.userId || applicant.id || application.applicantUserId,
+      name: applicant.accountName || applicant.name || ownerIdentity.fullName,
+      email: applicant.accountEmail || applicant.email,
+      phone: applicant.accountPhone || applicant.phone || applicant.phoneNumber,
+      role: applicant.accountRole || applicant.role,
+      status: applicant.accountStatus || applicant.status,
+    },
+    identity: {
+      number: ownerIdentity.identityNumber,
+      birthDate: ownerIdentity.birthDate,
+      type: ownerIdentity.identityType,
+      idName: ownerIdentity.fullName,
+      legalName: ownerIdentity.identityLegalName || ownerIdentity.legalName,
+    },
+    identityMatch: {
+      summary: identityMatch.summaryLabel || application.identityMatchLabel || "Partial Match",
+      name: getMatchValue(matchFields, "name"),
+      email: getMatchValue(matchFields, "email"),
+      phone: getMatchValue(matchFields, "phone"),
+    },
+    store: {
+      name: storeInfo.storeName || storeInfo.name,
+      slug: storeInfo.storeSlug || storeInfo.slug,
+      category: storeInfo.storeCategory || storeInfo.category,
+      sellerType: storeInfo.sellerType || storeInfo.ownerType,
+      taxId: compliance.taxId || payout.taxId,
+      businessType: storeInfo.businessType || storeInfo.sellerType,
+      description: storeInfo.description,
+    },
+    operational: {
+      contact: operational.contactName,
+      phone: operational.phoneNumber || operational.phone,
+      address: operational.fullAddress || [
+        operational.addressLine1,
+        operational.addressLine2,
+        operational.district,
+        operational.city,
+        operational.province,
+        operational.postalCode,
+        operational.country,
+      ].filter(Boolean).join(", "),
+      province: operational.province,
+      city: operational.city,
+      district: operational.district,
+      postalCode: operational.postalCode,
+      country: operational.country,
+    },
+    financial: {
+      method: payout.payoutMethod || payout.method,
+      holder: payout.accountHolderName,
+      bank: payout.bankChannel || payout.bankName,
+      accountNumber: payout.accountNumberMasked || payout.accountNumber,
+      nameMatch: payout.accountHolderMatchesIdentity,
+      taxId: payout.taxId || compliance.taxId,
+    },
+    compliance: {
+      productTypes: compliance.productTypes,
+      brandOwnership: compliance.brandOwnershipType,
+      authenticity: compliance.authenticityConfirmed,
+      prohibitedGoods: compliance.prohibitedGoodsConfirmed,
+      website: compliance.websiteUrl,
+      socialMedia: compliance.socialMediaUrl,
+      supportEmail: compliance.supportEmail,
+      supportPhone: compliance.supportPhone,
+    },
+  };
+};
+
+function Pill({ children, tone = "neutral" }) {
+  return <span className={`asad-pill asad-pill--${tone}`}>{children}</span>;
 }
 
-function SectionCard({ title, description, children }) {
+function SummaryCard({ icon: Icon, label, value, helper, tone = "neutral", progress }) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
-      <div>
-        <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-        {description ? <p className="mt-1 text-sm text-slate-500">{description}</p> : null}
+    <section className={`asad-summary-card asad-summary-card--${tone}`}>
+      <span className="asad-summary-card__icon" aria-hidden="true">
+        <Icon size={22} />
+      </span>
+      <div className="asad-summary-card__body">
+        <span>{label}</span>
+        <strong>{value}</strong>
+        {progress !== undefined ? (
+          <span className="asad-progress">
+            <span style={{ width: `${progress}%` }} />
+          </span>
+        ) : null}
+        {helper ? <small className="asad-summary-card__helper">{helper}</small> : null}
       </div>
-      <div className="mt-4">{children}</div>
     </section>
   );
 }
 
-function DetailGrid({ items }) {
+function Section({ title, subtitle, children, className = "" }) {
   return (
-    <div className="grid gap-4 md:grid-cols-2">
-      {items.map((item) => (
-        <div key={item.label} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            {item.label}
-          </p>
-          <p className="mt-2 text-sm leading-6 text-slate-900">{item.value || "-"}</p>
-          {item.hint ? <p className="mt-1 text-xs text-slate-500">{item.hint}</p> : null}
+    <section className={`asad-section ${className}`}>
+      <div className="asad-section__head">
+        <h2>{title}</h2>
+        {subtitle ? <p>{subtitle}</p> : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function FieldGrid({ fields, columns = "auto" }) {
+  return (
+    <div className={`asad-field-grid asad-field-grid--${columns}`}>
+      {fields.map((field) => (
+        <div
+          key={field.label}
+          className={`asad-field ${field.wide ? "asad-field--wide" : ""}`}
+        >
+          <span>{field.label}</span>
+          <strong>{text(field.value)}</strong>
         </div>
       ))}
     </div>
   );
 }
 
-function Notice({ tone = "info", children }) {
-  const className =
-    tone === "error"
-      ? "border-rose-200 bg-rose-50 text-rose-700"
-      : tone === "warning"
-        ? "border-amber-200 bg-amber-50 text-amber-700"
-        : "border-sky-200 bg-sky-50 text-sky-700";
-  return <div className={`rounded-xl border px-4 py-3 text-sm ${className}`}>{children}</div>;
+function MatchTile({ label, value }) {
+  const isMatch = value === true;
+  const isMismatch = value === false;
+  return (
+    <div className={`asad-match ${isMismatch ? "asad-match--danger" : "asad-match--success"}`}>
+      {isMismatch ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
+      <div>
+        <span>{label}</span>
+        <strong>{isMismatch ? "Mismatch" : isMatch ? "Match" : DASH}</strong>
+      </div>
+    </div>
+  );
+}
+
+function LoadingState() {
+  return (
+    <div className="asad-page">
+      <div className="asad-loading-card">
+        <span className="asad-spinner" />
+        <strong>Loading application</strong>
+      </div>
+    </div>
+  );
+}
+
+function ErrorState({ message, onRetry }) {
+  return (
+    <div className="asad-page">
+      <div className="asad-error-card">
+        <h1>Application unavailable</h1>
+        <p>{message}</p>
+        <div>
+          <Link to="/admin/store/applications" className="asad-secondary-button">
+            Back to Queue
+          </Link>
+          <button type="button" className="asad-primary-button" onClick={onRetry}>
+            Retry
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function AdminStoreApplicationDetailPage() {
   const { applicationId } = useParams();
   const queryClient = useQueryClient();
+  const reviewRef = useRef(null);
+  const [activeAction, setActiveAction] = useState("");
+  const [approveInternalNote, setApproveInternalNote] = useState("");
   const [revisionNote, setRevisionNote] = useState("");
   const [revisionSummary, setRevisionSummary] = useState("");
   const [revisionInternalNote, setRevisionInternalNote] = useState("");
   const [rejectReason, setRejectReason] = useState("");
   const [rejectInternalNote, setRejectInternalNote] = useState("");
-  const [approveInternalNote, setApproveInternalNote] = useState("");
-  const [flash, setFlash] = useState(null);
 
   const detailQuery = useQuery({
-    queryKey: ["admin", "store-application", applicationId],
+    queryKey: [DETAIL_QUERY_KEY, applicationId],
     queryFn: () => fetchAdminStoreApplicationDetail(applicationId),
     enabled: Boolean(applicationId),
   });
 
-  const syncDetail = (data, message) => {
-    queryClient.setQueryData(["admin", "store-application", applicationId], data);
-    queryClient.invalidateQueries({ queryKey: ["admin", "store-applications"] });
-    setFlash(message ? { type: "success", message } : null);
+  const detail = useMemo(
+    () => normalizeDetail(detailQuery.data, applicationId),
+    [applicationId, detailQuery.data]
+  );
+
+  const invalidateApplications = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: [DETAIL_QUERY_KEY, applicationId] }),
+      queryClient.invalidateQueries({ queryKey: ["admin", "store-application", applicationId] }),
+      queryClient.invalidateQueries({ queryKey: [LIST_QUERY_KEY], exact: false }),
+      queryClient.invalidateQueries({ queryKey: ["admin", "store-applications"], exact: false }),
+    ]);
   };
 
   const approveMutation = useMutation({
@@ -101,13 +390,13 @@ export default function AdminStoreApplicationDetailPage() {
       approveAdminStoreApplication(applicationId, {
         internalAdminNote: approveInternalNote || null,
       }),
-    onSuccess: (data) => syncDetail(data, "Application approved successfully."),
+    onSuccess: async () => {
+      toast.success("Application approved");
+      setActiveAction("");
+      await invalidateApplications();
+    },
     onError: (error) =>
-      setFlash({
-        type: "error",
-        message:
-          error?.response?.data?.message || error?.message || "Failed to approve application.",
-      }),
+      toast.error(error?.response?.data?.message || error?.message || "Failed to approve application."),
   });
 
   const revisionMutation = useMutation({
@@ -117,15 +406,13 @@ export default function AdminStoreApplicationDetailPage() {
         revisionSummary: revisionSummary || null,
         internalAdminNote: revisionInternalNote || null,
       }),
-    onSuccess: (data) => syncDetail(data, "Revision request submitted successfully."),
+    onSuccess: async () => {
+      toast.success("Revision requested");
+      setActiveAction("");
+      await invalidateApplications();
+    },
     onError: (error) =>
-      setFlash({
-        type: "error",
-        message:
-          error?.response?.data?.message ||
-          error?.message ||
-          "Failed to request revision.",
-      }),
+      toast.error(error?.response?.data?.message || error?.message || "Failed to request revision."),
   });
 
   const rejectMutation = useMutation({
@@ -134,382 +421,330 @@ export default function AdminStoreApplicationDetailPage() {
         rejectReason,
         internalAdminNote: rejectInternalNote || null,
       }),
-    onSuccess: (data) => syncDetail(data, "Application rejected successfully."),
+    onSuccess: async () => {
+      toast.success("Application rejected");
+      setActiveAction("");
+      await invalidateApplications();
+    },
     onError: (error) =>
-      setFlash({
-        type: "error",
-        message:
-          error?.response?.data?.message || error?.message || "Failed to reject application.",
-      }),
+      toast.error(error?.response?.data?.message || error?.message || "Failed to reject application."),
   });
 
-  const detail = detailQuery.data;
-  const workflow = detail?.workflowSummary;
-  const actionGovernance = workflow?.actionGovernance || {};
-  const applicationStatus = detail
-    ? presentStoreApplicationStatus(detail.statusMeta, detail.status)
-    : presentStoreApplicationStatus("draft");
-  const readinessStatus = presentStoreReadiness({
-    storeStatus: workflow?.activation?.storeStatus || null,
-    hasStore: Boolean(workflow?.activation?.storeId),
-    sellerAccessReady: Boolean(workflow?.activation?.sellerAccessReady),
-  });
   const isBusy =
     approveMutation.isPending || revisionMutation.isPending || rejectMutation.isPending;
 
-  if (detailQuery.isLoading) {
-    return <AdminOpsLoadingState title="Loading store application detail..." />;
-  }
+  if (detailQuery.isLoading) return <LoadingState />;
 
   if (detailQuery.isError || !detail) {
     return (
-      <div className="space-y-4">
-        <Link
-          to="/admin/store/applications"
-          className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-        >
-          Back to Queue
-        </Link>
-        <AdminOpsErrorState
-          message={
-            detailQuery.error?.response?.data?.message ||
-            detailQuery.error?.message ||
-            "Failed to load store application detail."
-          }
-          onRetry={() => detailQuery.refetch()}
-        />
-      </div>
+      <ErrorState
+        message={
+          detailQuery.error?.response?.data?.message ||
+          detailQuery.error?.message ||
+          "Failed to load store application detail."
+        }
+        onRetry={() => detailQuery.refetch()}
+      />
     );
   }
 
+  const hasReviewAction =
+    detail.actionGovernance.canApprove ||
+    detail.actionGovernance.canRequestRevision ||
+    detail.actionGovernance.canReject;
+  const publicStatus = String(detail.activation.storeStatus || "").toUpperCase() === "ACTIVE";
+  const provisionedStore = Boolean(detail.activation.storeId || detail.activation.storeSlug);
+  const ownerAccess = Boolean(detail.activation.ownerMembershipId);
+  const sellerAccess = Boolean(detail.activation.sellerAccessReady);
+  const statusTone = getStatusTone(detail.status);
+
   return (
-    <div className="space-y-5">
-      <AdminOpsPageHeader
-        title={`Store Application #${detail.id}`}
-        description="Review identity, readiness, and the next admin action."
-        meta={detail.currentStepMeta.label}
-        badges={
-          <>
-            <StatusPill label={applicationStatus.label} tone={applicationStatus.tone} />
-            <StatusPill label={readinessStatus.label} tone={readinessStatus.tone} />
-            <AdminOpsStatusBadge
-              {...getActionBadge(
-                actionGovernance.canApprove ||
-                  actionGovernance.canRequestRevision ||
-                  actionGovernance.canReject
-              )}
-            />
-          </>
-        }
-        actions={
-          <Link
-            to="/admin/store/applications"
-            className="inline-flex h-9 items-center rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
+    <div className="asad-page">
+      <header className="asad-header">
+        <div>
+          <nav className="asad-breadcrumb" aria-label="Breadcrumb">
+            <span>Online Store</span>
+            <span>/</span>
+            <span>Store Applications</span>
+          </nav>
+          <h1>Store Application #{detail.id}</h1>
+          <div className="asad-pills">
+            <Pill tone={statusTone}>{detail.statusLabel}</Pill>
+            <Pill tone={publicStatus ? "success" : "neutral"}>
+              {publicStatus ? "Public" : "Not Public"}
+            </Pill>
+            {hasReviewAction ? <Pill tone="warning">Action Needed</Pill> : <Pill tone="success">Reviewed</Pill>}
+          </div>
+        </div>
+        <div className="asad-header__actions">
+          <Link to="/admin/store/applications" className="asad-secondary-button">
+            <ArrowLeft size={16} aria-hidden="true" />
             Back to Queue
           </Link>
-        }
-      />
+          <button
+            type="button"
+            className="asad-primary-button"
+            onClick={() => reviewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          >
+            Review
+          </button>
+        </div>
+      </header>
 
-      {flash ? <Notice tone={flash.type === "error" ? "error" : "info"}>{flash.message}</Notice> : null}
-
-      <SectionCard
-        title="Application Summary"
-        description="Status, progress, and review timestamps."
-      >
-        <DetailGrid
-          items={[
-            { label: "Application Status", value: applicationStatus.label },
-            { label: "Current Step", value: detail.currentStepMeta.label },
-            {
-              label: "Completeness",
-              value: `${workflow.completeness.completedFields}/${workflow.completeness.totalFields}`,
-              hint: workflow.completeness.label,
-            },
-            { label: "Submitted At", value: formatDateTime(workflow.submittedAt) },
-            { label: "Reviewed At", value: formatDateTime(workflow.reviewedAt) },
-            {
-              label: "Reviewed By",
-              value: workflow.reviewedBy?.name || "-",
-              hint: workflow.reviewedBy?.email || null,
-            },
-            { label: "Revision Note", value: workflow.revisionNote },
-            { label: "Revision Summary", value: workflow.revisionSummary },
-            { label: "Reject Reason", value: workflow.rejectReason },
-            { label: "Internal Admin Note", value: workflow.internalAdminNote },
-          ]}
+      <section className="asad-summary-grid" aria-label="Application summary">
+        <SummaryCard icon={FileText} label="Status" value={detail.statusLabel} tone={statusTone} />
+        <SummaryCard icon={GitBranch} label="Step" value={detail.stepLabel} tone="info" />
+        <SummaryCard
+          icon={CheckCircle2}
+          label="Progress"
+          value={`${detail.completeness.completed}/${detail.completeness.total}`}
+          helper={`${detail.completeness.percent}% complete`}
+          tone="success"
+          progress={detail.completeness.percent}
         />
-        {actionGovernance.boundaryNote ? (
-          <Notice tone="warning">{actionGovernance.boundaryNote}</Notice>
+        <SummaryCard
+          icon={CalendarDays}
+          label="Submitted"
+          value={formatDate(detail.submittedAt)}
+          helper={formatTime(detail.submittedAt)}
+          tone="warning"
+        />
+        <SummaryCard icon={UserRound} label="Reviewer" value={text(detail.reviewer.name)} tone="neutral" />
+        <SummaryCard
+          icon={ShieldCheck}
+          label="Identity Match"
+          value={text(detail.identityMatch.summary)}
+          tone="purple"
+        />
+      </section>
+
+      <main className="asad-main-grid">
+        <Section title="Store Readiness" subtitle="Store access status.">
+          <div className="asad-readiness-grid">
+            <SummaryCard icon={Globe2} label="Visibility" value={publicStatus ? "Public" : "Not Public"} tone="warning" />
+            <SummaryCard icon={Database} label="Provisioned Store" value={boolText(provisionedStore)} tone="neutral" />
+            <SummaryCard icon={UsersRound} label="Owner Access" value={ownerAccess ? "Ready" : "Not Ready"} tone="neutral" />
+            <SummaryCard icon={UserRound} label="Seller Access" value={sellerAccess ? "Ready" : "Not Ready"} tone="neutral" />
+          </div>
+          <div className="asad-notice">
+            <AlertTriangle size={16} aria-hidden="true" />
+            Approval creates the store and owner access.
+          </div>
+        </Section>
+
+        <Section title="Applicant Identity" subtitle="Account and identity.">
+          <FieldGrid
+            fields={[
+              { label: "User ID", value: detail.applicant.userId },
+              { label: "Account Name", value: detail.applicant.name },
+              { label: "Account Email", value: detail.applicant.email },
+              { label: "Mobile / Phone", value: detail.applicant.phone },
+              { label: "Account Role", value: detail.applicant.role },
+              { label: "Account Status", value: detail.applicant.status },
+              { label: "ID Number", value: detail.identity.number },
+              { label: "Birth Date", value: detail.identity.birthDate },
+              { label: "ID Type", value: detail.identity.type },
+              { label: "ID Name", value: detail.identity.idName },
+              { label: "Legal Name", value: detail.identity.legalName },
+            ]}
+          />
+          <div className="asad-match-grid">
+            <MatchTile label="Name Match" value={detail.identityMatch.name} />
+            <MatchTile label="Email Match" value={detail.identityMatch.email} />
+            <MatchTile label="Phone Match" value={detail.identityMatch.phone} />
+          </div>
+        </Section>
+
+        <Section title="Store Information" subtitle="Store details.">
+          <FieldGrid
+            fields={[
+              { label: "Store Name", value: detail.store.name },
+              { label: "Store Slug", value: detail.store.slug },
+              { label: "Category", value: detail.store.category },
+              { label: "Seller Type", value: detail.store.sellerType },
+              { label: "Tax ID / NPWP", value: detail.store.taxId },
+              { label: "Business Type", value: detail.store.businessType },
+              { label: "Store Description", value: detail.store.description, wide: true },
+            ]}
+          />
+        </Section>
+
+        <Section title="Operational Verification" subtitle="Contact and address.">
+          <FieldGrid
+            fields={[
+              { label: "Contact", value: detail.operational.contact },
+              { label: "Phone", value: detail.operational.phone },
+              { label: "Address", value: detail.operational.address, wide: true },
+              { label: "Province", value: detail.operational.province },
+              { label: "City / Regency", value: detail.operational.city },
+              { label: "District", value: detail.operational.district },
+              { label: "Postal Code", value: detail.operational.postalCode },
+              { label: "Country", value: detail.operational.country },
+            ]}
+          />
+        </Section>
+
+        <Section title="Financial Verification" subtitle="Payout details.">
+          <FieldGrid
+            fields={[
+              { label: "Payout Method", value: detail.financial.method },
+              { label: "Account Holder", value: detail.financial.holder },
+              { label: "Bank / Channel", value: detail.financial.bank },
+              { label: "Account Number", value: detail.financial.accountNumber },
+              { label: "Name Match", value: boolText(detail.financial.nameMatch) },
+              { label: "Tax ID", value: detail.financial.taxId },
+            ]}
+          />
+        </Section>
+
+        <Section title="Compliance & Risk" subtitle="Risk signals.">
+          <FieldGrid
+            fields={[
+              { label: "Product Types", value: detail.compliance.productTypes },
+              { label: "Brand Ownership", value: detail.compliance.brandOwnership },
+              { label: "Authenticity Statement", value: boolText(detail.compliance.authenticity) },
+              { label: "Prohibited Goods", value: boolText(detail.compliance.prohibitedGoods) },
+              { label: "Website", value: detail.compliance.website },
+              { label: "Social Media", value: detail.compliance.socialMedia },
+              { label: "Support Email", value: detail.compliance.supportEmail },
+              { label: "Support Phone", value: detail.compliance.supportPhone },
+            ]}
+          />
+        </Section>
+      </main>
+
+      <section className="asad-section asad-review" ref={reviewRef}>
+        <div className="asad-section__head">
+          <h2>Review Actions</h2>
+          <p>Choose an action.</p>
+        </div>
+        <div className="asad-action-grid">
+          <button
+            type="button"
+            className={`asad-action-card asad-action-card--approve ${activeAction === "approve" ? "is-active" : ""}`}
+            onClick={() => setActiveAction("approve")}
+          >
+            <CheckCircle2 size={28} aria-hidden="true" />
+            <span>
+              <strong>Approve</strong>
+              <small>Create store and grant access.</small>
+            </span>
+          </button>
+          <button
+            type="button"
+            className={`asad-action-card asad-action-card--revision ${activeAction === "revision" ? "is-active" : ""}`}
+            onClick={() => setActiveAction("revision")}
+          >
+            <AlertTriangle size={28} aria-hidden="true" />
+            <span>
+              <strong>Request Revision</strong>
+              <small>Send back for changes.</small>
+            </span>
+          </button>
+          <button
+            type="button"
+            className={`asad-action-card asad-action-card--reject ${activeAction === "reject" ? "is-active" : ""}`}
+            onClick={() => setActiveAction("reject")}
+          >
+            <XCircle size={28} aria-hidden="true" />
+            <span>
+              <strong>Reject</strong>
+              <small>Decline this application.</small>
+            </span>
+          </button>
+        </div>
+
+        {activeAction ? (
+          <div className="asad-action-form">
+            {activeAction === "approve" ? (
+              <>
+                <label>
+                  <span>Internal Note</span>
+                  <textarea
+                    value={approveInternalNote}
+                    onChange={(event) => setApproveInternalNote(event.target.value)}
+                    placeholder="Optional"
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="asad-submit asad-submit--approve"
+                  disabled={isBusy}
+                  onClick={() => approveMutation.mutate()}
+                >
+                  {approveMutation.isPending ? "Approving..." : "Approve Application"}
+                </button>
+              </>
+            ) : null}
+
+            {activeAction === "revision" ? (
+              <>
+                <label>
+                  <span>Revision Note</span>
+                  <textarea
+                    value={revisionNote}
+                    onChange={(event) => setRevisionNote(event.target.value)}
+                    placeholder="Required"
+                  />
+                </label>
+                <label>
+                  <span>Summary</span>
+                  <textarea
+                    value={revisionSummary}
+                    onChange={(event) => setRevisionSummary(event.target.value)}
+                    placeholder="Optional"
+                  />
+                </label>
+                <label>
+                  <span>Internal Note</span>
+                  <textarea
+                    value={revisionInternalNote}
+                    onChange={(event) => setRevisionInternalNote(event.target.value)}
+                    placeholder="Optional"
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="asad-submit asad-submit--revision"
+                  disabled={isBusy || !revisionNote.trim()}
+                  onClick={() => revisionMutation.mutate()}
+                >
+                  {revisionMutation.isPending ? "Requesting..." : "Request Revision"}
+                </button>
+              </>
+            ) : null}
+
+            {activeAction === "reject" ? (
+              <>
+                <label>
+                  <span>Reject Reason</span>
+                  <textarea
+                    value={rejectReason}
+                    onChange={(event) => setRejectReason(event.target.value)}
+                    placeholder="Required"
+                  />
+                </label>
+                <label>
+                  <span>Internal Note</span>
+                  <textarea
+                    value={rejectInternalNote}
+                    onChange={(event) => setRejectInternalNote(event.target.value)}
+                    placeholder="Optional"
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="asad-submit asad-submit--reject"
+                  disabled={isBusy || !rejectReason.trim()}
+                  onClick={() => rejectMutation.mutate()}
+                >
+                  {rejectMutation.isPending ? "Rejecting..." : "Reject Application"}
+                </button>
+              </>
+            ) : null}
+          </div>
         ) : null}
-      </SectionCard>
-
-      <SectionCard
-        title="Store Readiness"
-        description="Seller access and store activation stay separate from application review."
-      >
-        <DetailGrid
-          items={[
-            { label: "Readiness", value: readinessStatus.label, hint: readinessStatus.description },
-            {
-              label: "Provisioned Store",
-              value: workflow.activation?.storeSlug
-                ? `@${workflow.activation.storeSlug}`
-                : "-",
-              hint:
-                workflow.activation?.storeStatus && workflow.activation?.storeId
-                  ? `Store #${workflow.activation.storeId} | ${workflow.activation.storeStatus}`
-                  : null,
-            },
-            {
-              label: "Owner Membership",
-              value:
-                workflow.activation?.ownerMembershipId
-                  ? `#${workflow.activation.ownerMembershipId}`
-                  : "-",
-              hint: workflow.activation?.ownerMembershipStatus || null,
-            },
-            {
-              label: "Seller Access",
-              value: workflow.activation?.sellerAccessReady ? "Ready" : "Not Ready",
-            },
-          ]}
-        />
-      </SectionCard>
-
-      <SectionCard
-        title="Applicant Identity"
-        description="Account data and identity comparison."
-      >
-        <DetailGrid
-          items={[
-            { label: "User ID", value: String(detail.applicant.userId || "-") },
-            { label: "Account Name", value: detail.applicant.accountName },
-            { label: "Account Email", value: detail.applicant.accountEmail },
-            { label: "Account Phone", value: detail.applicant.accountPhone },
-            { label: "Account Role", value: detail.applicant.accountRole },
-            { label: "Account Status", value: detail.applicant.accountStatus },
-            { label: "Identity Name", value: detail.ownerIdentity.fullName },
-            { label: "Identity Type", value: detail.ownerIdentity.identityType },
-            { label: "Identity Number", value: detail.ownerIdentity.identityNumber },
-            { label: "Birth Date", value: detail.ownerIdentity.birthDate },
-            { label: "Operational PIC", value: detail.ownerIdentity.operationalContactName },
-            { label: "Legal Name", value: detail.ownerIdentity.identityLegalName },
-          ]}
-        />
-        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-          <p className="text-sm font-semibold text-slate-900">
-            Identity match summary: {detail.applicant.identityMatch.summaryLabel}
-          </p>
-          <div className="mt-3 grid gap-3 md:grid-cols-3">
-            {detail.applicant.identityMatch.fields.map((field) => (
-              <div key={field.key} className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  {field.label}
-                </p>
-                <p className="mt-2 text-sm font-semibold text-slate-900">
-                  {field.matched ? "Match" : "Mismatch"}
-                </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  Account: {field.accountValue || "-"}
-                </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  Application: {field.applicationValue || "-"}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </SectionCard>
-
-      <SectionCard
-        title="Store Information"
-        description="Submitted store profile details."
-      >
-        <DetailGrid
-          items={[
-            { label: "Store Name", value: detail.storeInformation.storeName },
-            { label: "Store Slug", value: detail.storeInformation.storeSlug },
-            { label: "Business Category", value: detail.storeInformation.storeCategory },
-            { label: "Seller Type", value: detail.storeInformation.sellerType },
-            {
-              label: "Self Produced",
-              value: yesNo(detail.storeInformation.isSelfProduced),
-            },
-            {
-              label: "Initial Product Estimate",
-              value:
-                detail.storeInformation.initialProductCount === null
-                  ? "-"
-                  : String(detail.storeInformation.initialProductCount),
-            },
-            { label: "Store Description", value: detail.storeInformation.description },
-          ]}
-        />
-      </SectionCard>
-
-      <SectionCard
-        title="Operational Verification"
-        description="Business contact and address details."
-      >
-        <DetailGrid
-          items={[
-            { label: "Operational Contact", value: detail.operationalVerification.contactName },
-            { label: "Operational Phone", value: detail.operationalVerification.phoneNumber },
-            { label: "Full Address", value: detail.operationalVerification.fullAddress },
-            { label: "Province", value: detail.operationalVerification.province },
-            { label: "City / Regency", value: detail.operationalVerification.city },
-            { label: "District", value: detail.operationalVerification.district },
-            { label: "Postal Code", value: detail.operationalVerification.postalCode },
-            { label: "Country", value: detail.operationalVerification.country },
-            { label: "Address Note", value: detail.operationalVerification.addressNotes },
-          ]}
-        />
-      </SectionCard>
-
-      <SectionCard
-        title="Financial Verification"
-        description="Masked payout details for review."
-      >
-        <DetailGrid
-          items={[
-            { label: "Payout Method", value: detail.financialVerification.payoutMethod },
-            { label: "Account Holder", value: detail.financialVerification.accountHolderName },
-            { label: "Bank / Channel", value: detail.financialVerification.bankChannel },
-            {
-              label: "Account Number",
-              value: detail.financialVerification.accountNumberMasked,
-            },
-            {
-              label: "Account Name Matches Identity",
-              value: yesNo(detail.financialVerification.accountHolderMatchesIdentity),
-            },
-            { label: "Tax ID", value: detail.financialVerification.taxId },
-          ]}
-        />
-      </SectionCard>
-
-      <SectionCard
-        title="Compliance and Risk"
-        description="Declarations, support details, and risk-related notes."
-      >
-        <DetailGrid
-          items={[
-            { label: "Product Types", value: detail.complianceRisk.productTypes },
-            { label: "Brand Ownership", value: detail.complianceRisk.brandOwnershipType },
-            {
-              label: "Authenticity Statement",
-              value: yesNo(detail.complianceRisk.authenticityConfirmed),
-            },
-            {
-              label: "No Prohibited Goods Statement",
-              value: yesNo(detail.complianceRisk.prohibitedGoodsConfirmed),
-            },
-            { label: "Website", value: detail.complianceRisk.websiteUrl },
-            { label: "Social Media", value: detail.complianceRisk.socialMediaUrl },
-            { label: "Support Email", value: detail.complianceRisk.supportEmail },
-            { label: "Support Phone", value: detail.complianceRisk.supportPhone },
-            { label: "Additional Notes", value: detail.complianceRisk.additionalNotes },
-          ]}
-        />
-      </SectionCard>
-
-      <SectionCard
-        title="Admin Actions"
-        description="Approve, request revision, or reject the current application. Actions follow backend transition validation."
-      >
-        <div className="grid gap-5 xl:grid-cols-3">
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <h3 className="text-sm font-semibold text-slate-900">Approve</h3>
-            <p className="mt-1 text-xs text-slate-500">
-              Approve seller access. Public activity still depends on store readiness.
-            </p>
-            <textarea
-              value={approveInternalNote}
-              onChange={(event) => setApproveInternalNote(event.target.value)}
-              className="mt-3 h-28 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-emerald-400 focus:outline-none"
-              placeholder="Optional internal admin note"
-            />
-            <button
-              type="button"
-              onClick={() => {
-                setFlash(null);
-                approveMutation.mutate();
-              }}
-              disabled={isBusy || !actionGovernance.canApprove}
-              className="mt-3 w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {approveMutation.isPending ? "Approving..." : "Approve Application"}
-            </button>
-          </div>
-
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <h3 className="text-sm font-semibold text-slate-900">Request Revision</h3>
-            <p className="mt-1 text-xs text-slate-500">
-              Add a clear revision note for the applicant.
-            </p>
-            <textarea
-              value={revisionNote}
-              onChange={(event) => setRevisionNote(event.target.value)}
-              className="mt-3 h-24 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-emerald-400 focus:outline-none"
-              placeholder="Revision note"
-            />
-            <textarea
-              value={revisionSummary}
-              onChange={(event) => setRevisionSummary(event.target.value)}
-              className="mt-3 h-20 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-emerald-400 focus:outline-none"
-              placeholder="Short revision summary"
-            />
-            <textarea
-              value={revisionInternalNote}
-              onChange={(event) => setRevisionInternalNote(event.target.value)}
-              className="mt-3 h-20 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-emerald-400 focus:outline-none"
-              placeholder="Optional internal admin note"
-            />
-            <button
-              type="button"
-              onClick={() => {
-                setFlash(null);
-                revisionMutation.mutate();
-              }}
-              disabled={isBusy || !actionGovernance.canRequestRevision || !revisionNote.trim()}
-              className="mt-3 w-full rounded-xl bg-amber-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {revisionMutation.isPending ? "Submitting..." : "Request Revision"}
-            </button>
-          </div>
-
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <h3 className="text-sm font-semibold text-slate-900">Reject</h3>
-            <p className="mt-1 text-xs text-slate-500">
-              Add a rejection reason. Internal notes stay private.
-            </p>
-            <textarea
-              value={rejectReason}
-              onChange={(event) => setRejectReason(event.target.value)}
-              className="mt-3 h-24 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-emerald-400 focus:outline-none"
-              placeholder="Reject reason"
-            />
-            <textarea
-              value={rejectInternalNote}
-              onChange={(event) => setRejectInternalNote(event.target.value)}
-              className="mt-3 h-20 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-emerald-400 focus:outline-none"
-              placeholder="Optional internal admin note"
-            />
-            <button
-              type="button"
-              onClick={() => {
-                setFlash(null);
-                rejectMutation.mutate();
-              }}
-              disabled={isBusy || !actionGovernance.canReject || !rejectReason.trim()}
-              className="mt-3 w-full rounded-xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {rejectMutation.isPending ? "Rejecting..." : "Reject Application"}
-            </button>
-          </div>
-        </div>
-      </SectionCard>
+      </section>
     </div>
   );
 }
