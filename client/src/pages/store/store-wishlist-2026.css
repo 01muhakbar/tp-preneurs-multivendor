@@ -1,0 +1,13 @@
+.wishlist-2026-hide-scroll::-webkit-scrollbar {
+  display: none;
+}
+.wishlist-2026-hide-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.wishlist-2026-line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

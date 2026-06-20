@@ -976,7 +976,7 @@ export default function StoreCustomizationHomeSettings2026({
                 </span>
               </button>
               <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-                Recommended size: 1920 x 640px (3:1 responsive hero). Keep the main subject near the center safe area. Max file size: 2MB
+                Recommended size: 1200 x 400px (3:1 aspect ratio). Keep the main subject near the center safe area since edges may be cropped on smaller screens. Max file size: 2MB
               </p>
               {uploadError ? <p className="mt-2 text-sm font-semibold text-rose-600">{uploadError}</p> : null}
             </div>
@@ -1000,24 +1000,18 @@ export default function StoreCustomizationHomeSettings2026({
                 </div>
               </div>
               <div className="relative min-h-[210px] overflow-hidden rounded-2xl bg-[#eef6ff] p-4 dark:bg-slate-900">
-                {currentSlider.imageDataUrl ? (
-                  <>
-                    <img
-                      src={currentSlider.imageDataUrl}
-                      alt=""
-                      className={`absolute inset-0 h-full w-full object-cover ${getPreviewImageFocusClass(currentSlider.imageFocus)}`}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#eef6ff]/96 via-[#eef6ff]/70 to-[#eef6ff]/8 dark:from-slate-950/92 dark:via-slate-950/62 dark:to-slate-950/12" />
-                  </>
-                ) : null}
-                {!currentSlider.imageDataUrl ? (
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_58%_45%,rgba(3,76,133,0.12),transparent_35%)]" />
-                ) : null}
-                <div className="relative grid min-h-[178px] grid-cols-[minmax(0,1fr)_92px] items-center gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#fe6f05]">
-                      100% Natural & Organic
-                    </p>
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_58%_45%,rgba(3,76,133,0.12),transparent_35%)]" />
+                <div className="relative grid min-h-[178px] grid-cols-[minmax(0,1fr)_92px] items-stretch gap-3">
+                  <div className={`relative flex flex-col justify-center overflow-hidden rounded-xl ${currentSlider.imageDataUrl ? "w-full h-full" : ""}`}>
+                    {currentSlider.imageDataUrl ? (
+                      <img
+                        src={currentSlider.imageDataUrl}
+                        alt=""
+                        className={`absolute inset-0 h-full w-full object-contain ${getPreviewImageFocusClass(currentSlider.imageFocus)}`}
+                      />
+                    ) : null}
+                    <div className={`relative z-10 ${currentSlider.imageDataUrl ? "p-3 sm:p-4" : ""} min-w-0`}>
+
                     {toText(currentSlider.title) ? (
                       <p className="mt-3 text-2xl font-black leading-none text-[#071a3f] dark:text-white">
                         {currentSlider.title}
@@ -1033,6 +1027,7 @@ export default function StoreCustomizationHomeSettings2026({
                         {currentSlider.buttonName}
                       </span>
                     ) : null}
+                  </div>
                   </div>
                   {draft.discountCouponBox.enabled ? (
                     <div className="rounded-2xl border border-[#cdebdc] bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-slate-950">

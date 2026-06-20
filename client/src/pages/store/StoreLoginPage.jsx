@@ -1,12 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useLocation, useNavigate, useOutletContext } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAccountAuth } from "../../auth/authDomainHooks.js";
 import { api } from "../../api/axios.ts";
 import { useCart } from "../../hooks/useCart.ts";
 import * as cartApi from "../../api/cartApi.ts";
 import { clearGuestCart, getGuestCart } from "../../utils/guestCart.ts";
-import AuthNotice from "../../components/auth/AuthNotice.jsx";
-import PasswordVisibilityButton from "../../components/auth/PasswordVisibilityButton.jsx";
 import { getRetryAfterSeconds } from "../../utils/authRateLimit.js";
 import { clearPendingAuthNotice, readPendingAuthNotice } from "../../auth/authSessionNotice.js";
 import {
@@ -14,6 +12,8 @@ import {
   buildCooldownButtonLabel,
   buildRetryAfterMessage,
 } from "../../utils/authUi.js";
+import StoreLogin2026View from "./login2026/StoreLogin2026View.jsx";
+import { createStoreLogin2026ViewModel } from "./login2026/storeLogin2026Adapter.js";
 
 const PENDING_ADD_KEY = "pending_cart_add";
 const PENDING_ADD_CONSUMED_KEY = "pending_cart_add_consumed";
@@ -24,11 +24,11 @@ const normalizeRole = (value) => String(value || "").trim().toLowerCase();
 export default function StoreLoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { storeSettings } = useOutletContext() || {};
   const { refreshSession, isAccountSession } = useAccountAuth();
   const { refreshCart } = useCart();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(true);
   const [error, setError] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,16 +38,6 @@ export default function StoreLoginPage() {
   const passwordRef = useRef(null);
   const statusRef = useRef(null);
   const errorRef = useRef(null);
-  const socialLogin = storeSettings?.socialLogin || {};
-  const socialButtons = [
-    { id: "google", label: "Continue with Google", enabled: Boolean(socialLogin.googleEnabled) },
-    { id: "github", label: "Continue with Github", enabled: Boolean(socialLogin.githubEnabled) },
-    {
-      id: "facebook",
-      label: "Continue with Facebook",
-      enabled: Boolean(socialLogin.facebookEnabled),
-    },
-  ].filter((item) => item.enabled);
 
   useEffect(() => {
     if (isAccountSession) {
@@ -219,99 +209,36 @@ export default function StoreLoginPage() {
     }
   };
 
-  return (
-    <section className="mx-auto w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h1 className="text-xl font-semibold text-slate-900">Welcome back</h1>
-      <p className="mt-1 text-sm text-slate-500">Sign in to access your account.</p>
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-        <div>
-          <label htmlFor="store-login-email" className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-            Email
-          </label>
-          <input
-            id="store-login-email"
-            ref={emailRef}
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-            placeholder="you@email.com"
-            autoComplete="email"
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor="store-login-password" className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-            Password
-          </label>
-          <div className="relative mt-2">
-            <input
-              id="store-login-password"
-              ref={passwordRef}
-              type={showPassword ? "text" : "password"}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 pr-16 text-sm"
-              placeholder="••••••••"
-              autoComplete="current-password"
-              aria-describedby="store-login-password-helper"
-              required
-            />
-            <PasswordVisibilityButton
-              visible={showPassword}
-              onToggle={() => setShowPassword((value) => !value)}
-            />
-          </div>
-          <div className="mt-2 flex items-center justify-between gap-3">
-            <span id="store-login-password-helper" className="text-xs text-slate-500">
-              {PASSWORD_HIDDEN_HELPER}
-            </span>
-            <Link to="/auth/forgot-password" className="text-xs font-semibold text-slate-900 hover:underline">
-              Forgot password?
-            </Link>
-          </div>
-        </div>
-        <AuthNotice id="store-login-status" tone="success" focusRef={statusRef}>
-          {statusMessage}
-        </AuthNotice>
-        <AuthNotice id="store-login-error" tone="error" live="assertive" focusRef={errorRef}>
-          {error}
-        </AuthNotice>
-        <button
-          type="submit"
-          disabled={isSubmitting || cooldownSeconds > 0}
-          className="w-full rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
-        >
-          {isSubmitting
-            ? "Signing in..."
-            : buildCooldownButtonLabel(cooldownSeconds, "Sign in")}
-        </button>
+  const viewModel = createStoreLogin2026ViewModel({
+    form: {
+      email,
+      password,
+      remember,
+      showPassword,
+    },
+    status: {
+      errorMessage: error,
+      successMessage: statusMessage,
+      helperMessage: PASSWORD_HIDDEN_HELPER,
+      cooldownSeconds,
+      submitLabel: buildCooldownButtonLabel(cooldownSeconds, "Sign in"),
+    },
+    submitting: isSubmitting,
+    redirectState: location.state,
+  });
 
-        {socialButtons.length > 0 ? (
-          <div className="space-y-2 pt-1">
-            <div className="text-center text-xs font-semibold uppercase tracking-widest text-slate-400">
-              Or continue with
-            </div>
-            <div className="grid gap-2">
-              {socialButtons.map((button) => (
-                <button
-                  key={button.id}
-                  type="button"
-                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                >
-                  {button.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : null}
-      </form>
-      <p className="mt-4 text-sm text-slate-500">
-        New here?{" "}
-        <Link to="/auth/register" className="font-semibold text-slate-900 hover:underline">
-          Create account
-        </Link>
-      </p>
-    </section>
+  return (
+    <StoreLogin2026View
+      viewModel={viewModel}
+      fieldRefs={{ emailRef, passwordRef }}
+      messageRefs={{ statusRef, errorRef }}
+      onSubmit={handleSubmit}
+      onEmailChange={setEmail}
+      onPasswordChange={setPassword}
+      onRememberChange={setRemember}
+      onTogglePassword={() => setShowPassword((value) => !value)}
+      onForgotPassword={() => navigate("/auth/forgot-password")}
+      onCreateAccount={() => navigate("/auth/register")}
+    />
   );
 }

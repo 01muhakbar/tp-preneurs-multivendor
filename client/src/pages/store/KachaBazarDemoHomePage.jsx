@@ -27,6 +27,7 @@ import { useCategories, useProducts } from "../../storefront.jsx";
 import { formatCurrency } from "../../utils/format.js";
 import { resolveProductImageUrl } from "../../utils/productImage.js";
 import { productHasVariantSelections } from "../../utils/publicProductVariations.js";
+import { useStorefrontWishlist } from "../../utils/storefrontWishlist.js";
 
 const PRIMARY = "#034c85";
 const ACCENT = "#fe6f05";
@@ -648,18 +649,7 @@ function MainSliderSection({
 
   return (
     <section className="relative overflow-hidden rounded-[34px] bg-[#eef6ff] p-5 shadow-[0_18px_42px_rgba(3,76,133,0.08)] dark:bg-slate-900 sm:p-6 2xl:p-8">
-      {imageSrc ? (
-        <>
-          <img
-            src={imageSrc}
-            alt={toText(slide.title, "Store promotion")}
-            className={`absolute inset-0 h-full w-full object-cover ${getSliderImageFocusClass(slide.imageFocus)}`}
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#eef6ff]/96 via-[#eef6ff]/70 to-[#eef6ff]/8 dark:from-slate-950/92 dark:via-slate-950/62 dark:to-slate-950/12" />
-        </>
-      ) : (
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_58%_45%,rgba(3,76,133,0.12),transparent_35%)]" />
-      )}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_58%_45%,rgba(3,76,133,0.12),transparent_35%)]" />
 
       {showArrows ? (
         <>
@@ -686,29 +676,34 @@ function MainSliderSection({
         className={`relative grid gap-6 2xl:gap-8 ${
           imageSrc
             ? showCouponBox
-              ? "min-h-[340px] items-center lg:min-h-[340px] lg:grid-cols-[minmax(0,1fr)_252px] 2xl:min-h-[360px] 2xl:grid-cols-[minmax(0,1fr)_260px]"
-              : "min-h-[340px] items-center lg:min-h-[340px] 2xl:min-h-[360px]"
+              ? "min-h-[340px] items-stretch lg:min-h-[340px] lg:grid-cols-[minmax(0,1fr)_252px] 2xl:min-h-[360px] 2xl:grid-cols-[minmax(0,1fr)_260px]"
+              : "min-h-[340px] items-stretch lg:min-h-[340px] 2xl:min-h-[360px]"
             : showCouponBox
               ? "lg:grid-cols-[minmax(320px,0.95fr)_minmax(340px,1fr)_252px] 2xl:grid-cols-[0.9fr_1.08fr_260px] lg:items-center"
               : "lg:grid-cols-[minmax(320px,0.95fr)_minmax(340px,1fr)] lg:items-center"
         }`}
       >
-        <div className={`${imageSrc ? "max-w-xl" : ""} space-y-5 2xl:space-y-7`}>
-          <p className="text-sm font-black uppercase tracking-[0.22em] text-[#fe6f05]">
-            100% Natural & Organic
-          </p>
-          <div className="space-y-4 2xl:space-y-5">
-            {titleText ? (
-              <h1 className="max-w-2xl text-5xl font-black leading-[1.05] tracking-tight text-[#071a3f] dark:text-white 2xl:text-6xl">
-                {titleText}
-              </h1>
-            ) : null}
-            {toText(slide.description) ? (
-              <p className="max-w-lg text-base font-medium leading-7 text-[#4e6387] dark:text-slate-300 2xl:text-lg 2xl:leading-8">
-                {slide.description}
-              </p>
-            ) : null}
-          </div>
+        <div className={`relative flex flex-col justify-center overflow-hidden rounded-[24px] ${imageSrc ? "w-full h-full" : "max-w-xl"} space-y-5 2xl:space-y-7`}>
+          {imageSrc ? (
+            <img
+              src={imageSrc}
+              alt={toText(slide.title, "Store promotion")}
+              className={`absolute inset-0 h-full w-full object-contain ${getSliderImageFocusClass(slide.imageFocus)}`}
+            />
+          ) : null}
+          <div className={`relative z-10 ${imageSrc ? "p-6 sm:p-8" : ""} flex flex-col h-full justify-center space-y-5 2xl:space-y-7`}>
+            <div className="space-y-4 2xl:space-y-5">
+              {titleText ? (
+                <h1 className="max-w-2xl text-5xl font-black leading-[1.05] tracking-tight text-[#071a3f] dark:text-white 2xl:text-6xl">
+                  {titleText}
+                </h1>
+              ) : null}
+              {toText(slide.description) ? (
+                <p className="max-w-lg text-base font-medium leading-7 text-[#4e6387] dark:text-slate-300 2xl:text-lg 2xl:leading-8">
+                  {slide.description}
+                </p>
+              ) : null}
+            </div>
           {ctaLabel ? (
             <div className="flex flex-col gap-3 sm:flex-row">
               {ctaIsExternal ? (
@@ -742,7 +737,7 @@ function MainSliderSection({
             </div>
           ) : null}
           {showDots ? (
-            <div className="flex gap-2">
+            <div className="absolute bottom-6 left-6 z-20 flex gap-2 sm:bottom-8 sm:left-8">
               {slides.map((_, index) => (
                 <button
                   key={`main-slider-dot-${index}`}
@@ -756,6 +751,7 @@ function MainSliderSection({
               ))}
             </div>
           ) : null}
+          </div>
         </div>
 
         {!imageSrc ? (
@@ -840,6 +836,7 @@ function StarRating({ value }) {
 
 function ProductCard({ product, compact = false, showDiscount = false }) {
   const { add, isLoading } = useCart();
+  const wishlist = useStorefrontWishlist();
   const [isAdding, setIsAdding] = useState(false);
   const [variantOpen, setVariantOpen] = useState(false);
   const timerRef = useRef(null);
@@ -883,10 +880,15 @@ function ProductCard({ product, compact = false, showDiscount = false }) {
       ) : null}
       <button
         type="button"
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); wishlist.toggle(product); }}
         aria-label={`Save ${product.name}`}
-        className="absolute right-4 top-4 z-10 grid h-10 w-10 place-items-center rounded-full bg-white text-[#557099] shadow-[0_8px_20px_rgba(3,76,133,0.12)] transition hover:text-[#fe6f05] dark:bg-slate-950 dark:text-slate-300"
+        className={`absolute right-4 top-4 z-10 grid h-10 w-10 place-items-center rounded-full shadow-[0_8px_20px_rgba(3,76,133,0.12)] transition ${
+          wishlist.isWishlisted(product.id || product.slug)
+            ? "bg-[#fe6f05] text-white hover:bg-[#d95700]"
+            : "bg-white text-[#557099] hover:text-[#fe6f05] dark:bg-slate-950 dark:text-slate-300"
+        }`}
       >
-        <Heart className="h-5 w-5" />
+        <Heart className={`h-5 w-5 ${wishlist.isWishlisted(product.id || product.slug) ? "fill-current" : ""}`} />
       </button>
       <Link to={`/product/${product.routeSlug || product.slug || product.id}`} className="block">
         <div className={`relative grid place-items-center overflow-hidden rounded-[16px] bg-[#f7fbff] dark:bg-slate-800 ${compact ? "aspect-[1.35]" : "aspect-square"}`}>

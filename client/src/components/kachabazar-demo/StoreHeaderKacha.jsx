@@ -8,6 +8,7 @@ import {
   Search,
   ShoppingCart,
   UserRound,
+  Bell,
 } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAccountAuth } from "../../auth/authDomainHooks.js";
@@ -15,6 +16,7 @@ import { useCart } from "../../hooks/useCart.ts";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
 import { useCategories } from "../../storefront.jsx";
 import ThemeToggle from "../store/ThemeToggle.jsx";
+import { useStorefrontWishlist } from "../../utils/storefrontWishlist.js";
 
 const PRIMARY = "#034c85";
 const ACCENT = "#fe6f05";
@@ -138,6 +140,7 @@ export default function StoreHeaderKacha({
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { count } = useCart();
+  const wishlist = useStorefrontWishlist();
   const { isAccountSession } = useAccountAuth();
   const { data: categoriesData, isLoading: categoriesLoading } = useCategories({
     parentsOnly: true,
@@ -224,11 +227,18 @@ export default function StoreHeaderKacha({
                 variant="icon"
                 className="h-10 w-10 border-[#d8e4f2] text-[#071a3f] shadow-[0_6px_16px_rgba(3,76,133,0.07)] hover:text-[#034c85] dark:border-slate-700"
               />
-              <IconButton as={Link} to="/wishlist" label="Wishlist">
+              <IconButton as={Link} to="/wishlist" label="Wishlist" badge={wishlist.count > 0 ? wishlist.count : null}>
                 <Heart className="h-5 w-5" />
               </IconButton>
               <IconButton label="Open cart" badge={count > 0 ? count : null} onClick={onCartClick}>
                 <ShoppingCart className="h-5 w-5" />
+              </IconButton>
+              <IconButton
+                as={Link}
+                to={isAccountSession ? "/user/notifications" : "/auth/login"}
+                label="Notifications"
+              >
+                <Bell className="h-5 w-5" />
               </IconButton>
               <IconButton
                 as={Link}

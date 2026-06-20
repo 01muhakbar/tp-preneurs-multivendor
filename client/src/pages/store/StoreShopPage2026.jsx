@@ -27,6 +27,8 @@ import {
 import { useCategories, useProducts } from "../../storefront.jsx";
 import { useCart } from "../../hooks/useCart.ts";
 import { formatCurrency } from "../../utils/format.js";
+import { productHasVariantSelections } from "../../utils/publicProductVariations.js";
+import { useStorefrontWishlist } from "../../utils/storefrontWishlist.js";
 import { resolveProductImageUrl } from "../../utils/productImage.js";
 import "./store-shop-2026.css";
 
@@ -448,6 +450,7 @@ function ProductImageFallback() {
 function ProductCard({ product, viewMode, onAdd }) {
   const [imageFailed, setImageFailed] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  const wishlist = useStorefrontWishlist();
   const timerRef = useRef(null);
   const image = getProductImage(product);
   const name = readText(product?.name, product?.title, "Product");
@@ -514,10 +517,15 @@ function ProductCard({ product, viewMode, onAdd }) {
         ) : null}
         <button
           type="button"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); wishlist.toggle(product); }}
           aria-label={`Save ${name}`}
-          className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-[#fe6f05]/40 hover:text-[#fe6f05] dark:border-white/10 dark:bg-slate-900 dark:text-slate-300"
+          className={`absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full border shadow-sm transition ${
+            wishlist.isWishlisted(product.id || product.slug)
+              ? "border-[#fe6f05] bg-[#fe6f05] text-white hover:bg-[#d95700]"
+              : "border-slate-200 bg-white text-slate-500 hover:border-[#fe6f05]/40 hover:text-[#fe6f05] dark:border-white/10 dark:bg-slate-900 dark:text-slate-300"
+          }`}
         >
-          <Heart className="h-4 w-4" />
+          <Heart className={`h-4 w-4 ${wishlist.isWishlisted(product.id || product.slug) ? "fill-current" : ""}`} />
         </button>
         <Link
           to={productHref}
