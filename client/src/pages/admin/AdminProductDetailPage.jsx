@@ -46,7 +46,7 @@ const getShowingMeta = (product) => {
   if (published && storefrontVisible) {
     return {
       label: "Showing",
-      className: "bg-emerald-500 text-white",
+      className: "bg-[var(--admin-primary-soft)]0 text-white",
     };
   }
 
@@ -365,7 +365,7 @@ export default function AdminProductDetailPage() {
                   <span
                     className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                       Number(product.stock || 0) > 0
-                        ? "bg-emerald-100 text-emerald-700"
+                        ? "bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]"
                         : "bg-rose-100 text-rose-700"
                     }`}
                   >
@@ -469,7 +469,7 @@ export default function AdminProductDetailPage() {
                           <td className="px-4 py-3 font-medium text-slate-700">
                             {moneyIDR(variant.originalPrice)}
                           </td>
-                          <td className="px-4 py-3 font-medium text-emerald-600">
+                          <td className="px-4 py-3 font-medium text-[var(--admin-primary)]">
                             {moneyIDR(variant.salePrice)}
                           </td>
                           <td className="px-4 py-3 font-medium text-slate-700">{variant.quantity}</td>

@@ -104,7 +104,6 @@ const buildPublicProductWhere = (extraWhere: Record<string, any> = {}) => ({
   status: "active",
   sellerSubmissionStatus: "none",
   storeId: { [Op.not]: null },
-  stock: { [Op.gt]: 0 },
   ...extraWhere,
 });
 
@@ -295,25 +294,15 @@ router.get("/products", async (req: Request, res: Response) => {
       offset,
     });
 
-    const visibleRows = rows.filter((row: any) => {
-      const plain = row?.get ? row.get({ plain: true }) : row;
-      return hasStorefrontSellableInventory({
-        stock: plain?.stock,
-        variations: plain?.variations,
-      });
-    });
-    const hiddenOnPage = rows.length - visibleRows.length;
-    const visibleTotal = Math.max(0, Number(count || 0) - hiddenOnPage);
-
     return res.json({
       success: true,
       data: {
-        items: visibleRows.map(toProductListItem),
+        items: rows.map(toProductListItem),
         meta: {
           page,
           pageSize,
-          total: visibleTotal,
-          totalPages: Math.max(1, Math.ceil(visibleTotal / pageSize)),
+          total: Number(count || 0),
+          totalPages: Math.max(1, Math.ceil(Number(count || 0) / pageSize)),
         },
       },
     });
@@ -345,14 +334,6 @@ router.get("/products/:slug", async (req: Request, res: Response) => {
     });
 
     if (!product) {
-      return res.status(404).json({ success: false, message: "Not found" });
-    }
-    if (
-      !hasStorefrontSellableInventory({
-        stock: product.stock,
-        variations: product.variations,
-      })
-    ) {
       return res.status(404).json({ success: false, message: "Not found" });
     }
 

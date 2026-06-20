@@ -21,12 +21,12 @@ const STATUS_CLASS = {
   refunded: "border-violet-200 bg-violet-50 text-violet-700",
   delivered: "border-sky-200 bg-sky-50 text-sky-700",
   shipped: "border-indigo-200 bg-indigo-50 text-indigo-700",
-  complete: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  complete: "border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]",
   shipping: "border-indigo-200 bg-indigo-50 text-indigo-700",
 };
 
 const fieldClass =
-  "h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none";
+  "h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-[var(--admin-primary)] focus:outline-none";
 const tableHeadCell =
   "whitespace-nowrap px-4 py-3.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500";
 const tableCell = "px-4 py-3.5 align-middle text-sm text-slate-700";

@@ -210,8 +210,8 @@ function ShopHero({ query, onSearch }) {
       <div className="absolute right-0 top-0 hidden h-full w-1/2 bg-[radial-gradient(circle_at_60%_35%,rgba(254,111,5,0.12),transparent_34%),radial-gradient(circle_at_72%_68%,rgba(3,76,133,0.13),transparent_36%)] lg:block" />
       <div className="relative grid items-center gap-7 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="max-w-3xl space-y-5">
-          <span className="inline-flex items-center gap-2 rounded-full border border-[#034c85]/15 bg-[#034c85]/5 px-4 py-2 text-xs font-semibold text-[#034c85] dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
-            <Leaf className="h-4 w-4 text-[#fe6f05]" />
+          <span className="inline-flex items-center gap-2 rounded-full border border-[var(--tp-primary)]/15 bg-[var(--tp-primary)]/5 px-4 py-2 text-xs font-semibold text-[var(--tp-primary)] dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
+            <Leaf className="h-4 w-4 text-[var(--tp-accent)]" />
             Fresh picks from trusted sellers
           </span>
           <div className="space-y-3">
@@ -240,7 +240,7 @@ function ShopHero({ query, onSearch }) {
             </div>
             <button
               type="submit"
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-[1.15rem] bg-[#034c85] px-6 text-sm font-semibold text-white shadow-lg shadow-[#034c85]/20 transition hover:bg-[#023b68]"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-[1.15rem] bg-[var(--tp-primary)] px-6 text-sm font-semibold text-white shadow-lg shadow-[var(--tp-primary)]/20 transition hover:bg-[#023b68]"
             >
               <Search className="h-4 w-4" />
               Search
@@ -249,17 +249,17 @@ function ShopHero({ query, onSearch }) {
         </div>
 
         <div className="relative mx-auto h-56 w-full max-w-sm lg:h-64">
-          <div className="absolute inset-x-8 bottom-4 h-24 rounded-full bg-[#034c85]/10 blur-2xl" />
-          <div className="absolute left-1/2 top-8 flex h-40 w-48 -translate-x-1/2 items-center justify-center rounded-[2rem] bg-[#034c85] text-white shadow-2xl shadow-[#034c85]/20">
+          <div className="absolute inset-x-8 bottom-4 h-24 rounded-full bg-[var(--tp-primary)]/10 blur-2xl" />
+          <div className="absolute left-1/2 top-8 flex h-40 w-48 -translate-x-1/2 items-center justify-center rounded-[2rem] bg-[var(--tp-primary)] text-white shadow-2xl shadow-[var(--tp-primary)]/20">
             <ShoppingBasket className="h-20 w-20" />
           </div>
-          <div className="absolute left-8 top-6 rounded-3xl bg-white p-4 text-[#fe6f05] shadow-xl dark:bg-slate-800">
+          <div className="absolute left-8 top-6 rounded-3xl bg-white p-4 text-[var(--tp-accent)] shadow-xl dark:bg-slate-800">
             <Apple className="h-9 w-9" />
           </div>
-          <div className="absolute bottom-5 right-8 rounded-3xl bg-white p-4 text-[#034c85] shadow-xl dark:bg-slate-800 dark:text-slate-100">
+          <div className="absolute bottom-5 right-8 rounded-3xl bg-white p-4 text-[var(--tp-primary)] shadow-xl dark:bg-slate-800 dark:text-slate-100">
             <Leaf className="h-10 w-10" />
           </div>
-          <div className="absolute right-10 top-5 rounded-full bg-[#fe6f05] px-3 py-1.5 text-xs font-bold text-white shadow-lg shadow-[#fe6f05]/30">
+          <div className="absolute right-10 top-5 rounded-full bg-[var(--tp-accent)] px-3 py-1.5 text-xs font-bold text-white shadow-lg shadow-[var(--tp-accent)]/30">
             Daily deal
           </div>
         </div>
@@ -290,16 +290,16 @@ function CategoryPills({ categories, activeCategory, onCategoryChange }) {
             onClick={() => onCategoryChange(item.value)}
             className={`inline-flex h-12 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition ${
               isActive
-                ? "border-[#034c85] bg-[#034c85] text-white shadow-lg shadow-[#034c85]/20"
-                : "border-slate-200 bg-white text-slate-700 shadow-sm hover:border-[#034c85]/30 hover:text-[#034c85] dark:border-white/10 dark:bg-slate-900 dark:text-slate-200"
+                ? "border-[var(--tp-primary)] bg-[var(--tp-primary)] text-white shadow-lg shadow-[var(--tp-primary)]/20"
+                : "border-slate-200 bg-white text-slate-700 shadow-sm hover:border-[var(--tp-primary)]/30 hover:text-[var(--tp-primary)] dark:border-white/10 dark:bg-slate-900 dark:text-slate-200"
             }`}
           >
             <span
               className={`inline-flex h-7 w-7 items-center justify-center rounded-full ${
-                isActive ? "bg-white/15" : "bg-[#034c85]/8 text-[#034c85] dark:bg-white/10 dark:text-white"
+                isActive ? "bg-white/15" : "bg-[var(--tp-primary)]/8 text-[var(--tp-primary)] dark:bg-white/10 dark:text-white"
               }`}
             >
-              <Icon className={`h-4 w-4 ${isActive && item.value ? "text-[#fe6f05]" : ""}`} />
+              <Icon className={`h-4 w-4 ${isActive && item.value ? "text-[var(--tp-accent)]" : ""}`} />
             </span>
             <span>{item.name}</span>
           </button>
@@ -342,7 +342,7 @@ function FilterPanel({
         <button
           type="button"
           onClick={onClear}
-          className="text-xs font-semibold text-[#fe6f05] hover:text-[#d95700]"
+          className="text-xs font-semibold text-[var(--tp-accent)] hover:text-[#d95700]"
         >
           Clear All
         </button>
@@ -358,14 +358,14 @@ function FilterPanel({
             return (
               <label
                 key={`filter-category-${value}`}
-                className="flex cursor-pointer items-center justify-between gap-3 rounded-xl px-1 py-1.5 text-sm text-slate-600 hover:text-[#034c85] dark:text-slate-300 dark:hover:text-white"
+                className="flex cursor-pointer items-center justify-between gap-3 rounded-xl px-1 py-1.5 text-sm text-slate-600 hover:text-[var(--tp-primary)] dark:text-slate-300 dark:hover:text-white"
               >
                 <span className="flex min-w-0 items-center gap-2">
                   <input
                     type="checkbox"
                     checked={checked}
                     onChange={() => onCategoryChange(checked ? "" : value)}
-                    className="h-4 w-4 rounded border-slate-300 text-[#034c85] focus:ring-[#034c85]"
+                    className="h-4 w-4 rounded border-slate-300 text-[var(--tp-primary)] focus:ring-[var(--tp-primary)]"
                   />
                   <span className="line-clamp-2">{label}</span>
                 </span>
@@ -391,7 +391,7 @@ function FilterPanel({
               if (event.key === "Enter") applyPrice();
             }}
             placeholder="Rp 0"
-            className="h-11 min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 outline-none focus:border-[#034c85] dark:border-white/10 dark:bg-slate-950 dark:text-white"
+            className="h-11 min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 outline-none focus:border-[var(--tp-primary)] dark:border-white/10 dark:bg-slate-950 dark:text-white"
           />
           <input
             type="number"
@@ -403,7 +403,7 @@ function FilterPanel({
               if (event.key === "Enter") applyPrice();
             }}
             placeholder="Rp 1.000.000"
-            className="h-11 min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 outline-none focus:border-[#034c85] dark:border-white/10 dark:bg-slate-950 dark:text-white"
+            className="h-11 min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 outline-none focus:border-[var(--tp-primary)] dark:border-white/10 dark:bg-slate-950 dark:text-white"
           />
         </div>
       </section>
@@ -420,9 +420,9 @@ function FilterPanel({
                 type="checkbox"
                 checked={Number(minRating || 0) === rating}
                 onChange={() => onRatingChange(Number(minRating || 0) === rating ? "" : rating)}
-                className="h-4 w-4 rounded border-slate-300 text-[#034c85] focus:ring-[#034c85]"
+                className="h-4 w-4 rounded border-slate-300 text-[var(--tp-primary)] focus:ring-[var(--tp-primary)]"
               />
-              <span className="flex items-center gap-0.5 text-[#fe6f05]">
+              <span className="flex items-center gap-0.5 text-[var(--tp-accent)]">
                 {Array.from({ length: 5 }).map((_, index) => (
                   <Star
                     key={`${rating}-${index}`}
@@ -441,7 +441,7 @@ function FilterPanel({
 
 function ProductImageFallback() {
   return (
-    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 via-white to-slate-200 text-[#034c85] dark:from-slate-800 dark:via-slate-900 dark:to-slate-950 dark:text-slate-300">
+    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 via-white to-slate-200 text-[var(--tp-primary)] dark:from-slate-800 dark:via-slate-900 dark:to-slate-950 dark:text-slate-300">
       <ShoppingBasket className="h-12 w-12" />
     </div>
   );
@@ -511,7 +511,7 @@ function ProductCard({ product, viewMode, onAdd }) {
           )}
         </Link>
         {discount > 0 ? (
-          <span className="absolute left-3 top-3 rounded-full bg-[#fe6f05] px-3 py-1 text-[10px] font-bold uppercase text-white shadow-lg shadow-[#fe6f05]/30">
+          <span className="absolute left-3 top-3 rounded-full bg-[var(--tp-accent)] px-3 py-1 text-[10px] font-bold uppercase text-white shadow-lg shadow-[var(--tp-accent)]/30">
             {discount}% Off
           </span>
         ) : null}
@@ -521,8 +521,8 @@ function ProductCard({ product, viewMode, onAdd }) {
           aria-label={`Save ${name}`}
           className={`absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full border shadow-sm transition ${
             wishlist.isWishlisted(product.id || product.slug)
-              ? "border-[#fe6f05] bg-[#fe6f05] text-white hover:bg-[#d95700]"
-              : "border-slate-200 bg-white text-slate-500 hover:border-[#fe6f05]/40 hover:text-[#fe6f05] dark:border-white/10 dark:bg-slate-900 dark:text-slate-300"
+              ? "border-[var(--tp-accent)] bg-[var(--tp-accent)] text-white hover:bg-[#d95700]"
+              : "border-slate-200 bg-white text-slate-500 hover:border-[var(--tp-accent)]/40 hover:text-[var(--tp-accent)] dark:border-white/10 dark:bg-slate-900 dark:text-slate-300"
           }`}
         >
           <Heart className={`h-4 w-4 ${wishlist.isWishlisted(product.id || product.slug) ? "fill-current" : ""}`} />
@@ -530,7 +530,7 @@ function ProductCard({ product, viewMode, onAdd }) {
         <Link
           to={productHref}
           aria-label={`Quick view ${name}`}
-          className="absolute bottom-3 left-3 inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-[#034c85] shadow-sm transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-900 dark:text-white"
+          className="absolute bottom-3 left-3 inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-[var(--tp-primary)] shadow-sm transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-900 dark:text-white"
         >
           <Eye className="h-4 w-4" />
         </Link>
@@ -540,7 +540,7 @@ function ProductCard({ product, viewMode, onAdd }) {
             onClick={handleAdd}
             disabled={!Number.isFinite(productId) || !isPurchasable || isAdding}
             aria-label={`Add ${name} to cart`}
-            className="absolute bottom-3 right-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#034c85] text-white shadow-lg shadow-[#034c85]/20 transition hover:bg-[#023b68] disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700"
+            className="absolute bottom-3 right-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--tp-primary)] text-white shadow-lg shadow-[var(--tp-primary)]/20 transition hover:bg-[#023b68] disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700"
           >
             {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
           </button>
@@ -554,12 +554,12 @@ function ProductCard({ product, viewMode, onAdd }) {
           </p>
           <Link
             to={productHref}
-            className="line-clamp-2 min-h-[2.75rem] text-sm font-bold leading-6 text-slate-950 transition hover:text-[#034c85] dark:text-white dark:hover:text-slate-200"
+            className="line-clamp-2 min-h-[2.75rem] text-sm font-bold leading-6 text-slate-950 transition hover:text-[var(--tp-primary)] dark:text-white dark:hover:text-slate-200"
           >
             {name}
           </Link>
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="flex items-center gap-0.5 text-[#fe6f05]">
+            <span className="flex items-center gap-0.5 text-[var(--tp-accent)]">
               {Array.from({ length: 5 }).map((_, index) => (
                 <Star
                   key={`${name}-star-${index}`}
@@ -590,7 +590,7 @@ function ProductCard({ product, viewMode, onAdd }) {
             onClick={handleAdd}
             disabled={!Number.isFinite(productId) || !isPurchasable || isAdding}
             className={`inline-flex h-11 w-full items-center justify-center gap-2 rounded-[1rem] px-4 text-sm font-bold text-white shadow-lg transition disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 dark:disabled:bg-slate-700 ${
-              isPurchasable ? "bg-[#034c85] shadow-[#034c85]/20 hover:bg-[#023b68]" : "bg-slate-300"
+              isPurchasable ? "bg-[var(--tp-primary)] shadow-[var(--tp-primary)]/20 hover:bg-[#023b68]" : "bg-slate-300"
             }`}
           >
             {isAdding ? (
@@ -634,7 +634,7 @@ function Pagination2026({ page, total, limit, onPageChange }) {
         type="button"
         onClick={() => onPageChange(Math.max(1, page - 1))}
         disabled={page <= 1}
-        className="inline-flex h-10 items-center gap-1 rounded-full border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:border-[#034c85]/30 hover:text-[#034c85] disabled:cursor-not-allowed disabled:opacity-45 dark:border-white/10 dark:text-slate-200"
+        className="inline-flex h-10 items-center gap-1 rounded-full border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:border-[var(--tp-primary)]/30 hover:text-[var(--tp-primary)] disabled:cursor-not-allowed disabled:opacity-45 dark:border-white/10 dark:text-slate-200"
       >
         <ChevronLeft className="h-4 w-4" />
         Prev
@@ -646,8 +646,8 @@ function Pagination2026({ page, total, limit, onPageChange }) {
           onClick={() => onPageChange(item)}
           className={`inline-flex h-10 min-w-10 items-center justify-center rounded-full px-3 text-sm font-bold transition ${
             item === page
-              ? "bg-[#fe6f05] text-white shadow-lg shadow-[#fe6f05]/30"
-              : "border border-slate-200 text-slate-700 hover:border-[#034c85]/30 hover:text-[#034c85] dark:border-white/10 dark:text-slate-200"
+              ? "bg-[var(--tp-accent)] text-white shadow-lg shadow-[var(--tp-accent)]/30"
+              : "border border-slate-200 text-slate-700 hover:border-[var(--tp-primary)]/30 hover:text-[var(--tp-primary)] dark:border-white/10 dark:text-slate-200"
           }`}
         >
           {item}
@@ -657,7 +657,7 @@ function Pagination2026({ page, total, limit, onPageChange }) {
         type="button"
         onClick={() => onPageChange(Math.min(totalPages, page + 1))}
         disabled={page >= totalPages}
-        className="inline-flex h-10 items-center gap-1 rounded-full border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:border-[#034c85]/30 hover:text-[#034c85] disabled:cursor-not-allowed disabled:opacity-45 dark:border-white/10 dark:text-slate-200"
+        className="inline-flex h-10 items-center gap-1 rounded-full border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:border-[var(--tp-primary)]/30 hover:text-[var(--tp-primary)] disabled:cursor-not-allowed disabled:opacity-45 dark:border-white/10 dark:text-slate-200"
       >
         Next
         <ChevronRight className="h-4 w-4" />
@@ -822,8 +822,8 @@ export default function StoreShopPage2026() {
                       aria-pressed={viewMode === "grid"}
                       className={`inline-flex h-10 w-10 items-center justify-center rounded-xl transition ${
                         viewMode === "grid"
-                          ? "bg-[#034c85] text-white"
-                          : "text-slate-500 hover:bg-white hover:text-[#034c85] dark:text-slate-300 dark:hover:bg-slate-800"
+                          ? "bg-[var(--tp-primary)] text-white"
+                          : "text-slate-500 hover:bg-white hover:text-[var(--tp-primary)] dark:text-slate-300 dark:hover:bg-slate-800"
                       }`}
                     >
                       <Grid2X2 className="h-4 w-4" />
@@ -835,8 +835,8 @@ export default function StoreShopPage2026() {
                       aria-pressed={viewMode === "list"}
                       className={`inline-flex h-10 w-10 items-center justify-center rounded-xl transition ${
                         viewMode === "list"
-                          ? "bg-[#034c85] text-white"
-                          : "text-slate-500 hover:bg-white hover:text-[#034c85] dark:text-slate-300 dark:hover:bg-slate-800"
+                          ? "bg-[var(--tp-primary)] text-white"
+                          : "text-slate-500 hover:bg-white hover:text-[var(--tp-primary)] dark:text-slate-300 dark:hover:bg-slate-800"
                       }`}
                     >
                       <List className="h-4 w-4" />
@@ -846,7 +846,7 @@ export default function StoreShopPage2026() {
                     <span className="text-slate-950 dark:text-white">{total}</span> results
                   </div>
                   {productsFetching && !isInitialLoading ? (
-                    <span className="inline-flex items-center gap-2 rounded-full bg-[#034c85]/8 px-3 py-1.5 text-xs font-semibold text-[#034c85] dark:bg-white/10 dark:text-slate-200">
+                    <span className="inline-flex items-center gap-2 rounded-full bg-[var(--tp-primary)]/8 px-3 py-1.5 text-xs font-semibold text-[var(--tp-primary)] dark:bg-white/10 dark:text-slate-200">
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       Updating
                     </span>
@@ -855,7 +855,7 @@ export default function StoreShopPage2026() {
                     <button
                       type="button"
                       onClick={clearAll}
-                      className="rounded-full bg-[#fe6f05]/10 px-3 py-1.5 text-xs font-bold text-[#fe6f05] hover:bg-[#fe6f05]/15"
+                      className="rounded-full bg-[var(--tp-accent)]/10 px-3 py-1.5 text-xs font-bold text-[var(--tp-accent)] hover:bg-[var(--tp-accent)]/15"
                     >
                       {activeFilterCount} active
                     </button>
@@ -866,7 +866,7 @@ export default function StoreShopPage2026() {
                   <button
                     type="button"
                     onClick={() => setIsFilterOpen(true)}
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-[1rem] border border-slate-200 bg-white px-4 text-sm font-bold text-[#034c85] shadow-sm transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-950 dark:text-white lg:hidden"
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-[1rem] border border-slate-200 bg-white px-4 text-sm font-bold text-[var(--tp-primary)] shadow-sm transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-950 dark:text-white lg:hidden"
                   >
                     <Filter className="h-4 w-4" />
                     Filters
@@ -878,7 +878,7 @@ export default function StoreShopPage2026() {
                     id="shop-sort"
                     value={sort}
                     onChange={(event) => commitParams({ sort: event.target.value, page: 1 })}
-                    className="h-11 min-w-44 rounded-[1rem] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-950 outline-none focus:border-[#034c85] dark:border-white/10 dark:bg-slate-950 dark:text-white"
+                    className="h-11 min-w-44 rounded-[1rem] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-950 outline-none focus:border-[var(--tp-primary)] dark:border-white/10 dark:bg-slate-950 dark:text-white"
                   >
                     {SORT_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -922,7 +922,7 @@ export default function StoreShopPage2026() {
                 <button
                   type="button"
                   onClick={() => refetch()}
-                  className="mt-5 inline-flex h-11 items-center justify-center rounded-[1rem] bg-[#034c85] px-5 text-sm font-bold text-white shadow-lg shadow-[#034c85]/20 hover:bg-[#023b68]"
+                  className="mt-5 inline-flex h-11 items-center justify-center rounded-[1rem] bg-[var(--tp-primary)] px-5 text-sm font-bold text-white shadow-lg shadow-[var(--tp-primary)]/20 hover:bg-[#023b68]"
                 >
                   Retry
                 </button>
@@ -931,7 +931,7 @@ export default function StoreShopPage2026() {
 
             {isEmpty ? (
               <div className="rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-white/10 dark:bg-slate-900">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#034c85]/8 text-[#034c85] dark:bg-white/10 dark:text-white">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--tp-primary)]/8 text-[var(--tp-primary)] dark:bg-white/10 dark:text-white">
                   <SearchX className="h-7 w-7" />
                 </div>
                 <h2 className="mt-5 text-2xl font-bold text-slate-950 dark:text-white">
@@ -943,7 +943,7 @@ export default function StoreShopPage2026() {
                 <button
                   type="button"
                   onClick={clearAll}
-                  className="mt-5 inline-flex h-11 items-center justify-center rounded-[1rem] bg-[#fe6f05] px-5 text-sm font-bold text-white shadow-lg shadow-[#fe6f05]/30 hover:bg-[#d95700]"
+                  className="mt-5 inline-flex h-11 items-center justify-center rounded-[1rem] bg-[var(--tp-accent)] px-5 text-sm font-bold text-white shadow-lg shadow-[var(--tp-accent)]/30 hover:bg-[#d95700]"
                 >
                   Clear Filters
                 </button>
@@ -999,7 +999,7 @@ export default function StoreShopPage2026() {
           <div className="absolute bottom-0 left-0 right-0 max-h-[88vh] overflow-y-auto rounded-t-[2rem] bg-slate-50 p-4 shadow-2xl dark:bg-slate-950">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm font-bold text-slate-950 dark:text-white">
-                <SlidersHorizontal className="h-4 w-4 text-[#034c85] dark:text-slate-200" />
+                <SlidersHorizontal className="h-4 w-4 text-[var(--tp-primary)] dark:text-slate-200" />
                 Filters
               </div>
               <button

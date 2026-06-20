@@ -322,9 +322,9 @@ function Stars({ rating, size = "h-4 w-4" }) {
 
 function Badge({ children, tone = "blue" }) {
   const tones = {
-    blue: "border-[#034c85]/20 bg-[#034c85]/8 text-[#034c85] dark:border-sky-300/20 dark:bg-sky-300/10 dark:text-sky-200",
+    blue: "border-[var(--tp-primary)]/20 bg-[var(--tp-primary)]/8 text-[var(--tp-primary)] dark:border-sky-300/20 dark:bg-sky-300/10 dark:text-sky-200",
     green: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200",
-    orange: "border-[#fe6f05]/20 bg-[#fe6f05]/10 text-[#fe6f05] dark:border-[#fe6f05]/30",
+    orange: "border-[var(--tp-accent)]/20 bg-[var(--tp-accent)]/10 text-[var(--tp-accent)] dark:border-[var(--tp-accent)]/30",
     slate: "border-slate-200 bg-slate-100 text-slate-600 dark:border-white/10 dark:bg-white/10 dark:text-slate-200",
   };
   return (
@@ -336,7 +336,7 @@ function Badge({ children, tone = "blue" }) {
 
 function ImageFallback({ categoryName }) {
   return (
-    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 via-white to-slate-200 text-[#034c85] dark:from-slate-800 dark:via-slate-900 dark:to-slate-950 dark:text-slate-200">
+    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 via-white to-slate-200 text-[var(--tp-primary)] dark:from-slate-800 dark:via-slate-900 dark:to-slate-950 dark:text-slate-200">
       <div className="text-center">
         <ShoppingBag className="mx-auto h-14 w-14" />
         <p className="mt-2 text-sm font-bold">{getFallbackVisual(categoryName)}</p>
@@ -378,7 +378,7 @@ function ProductGallery({ product, selectedVariant }) {
         <button
           type="button"
           aria-label="Wishlist"
-          className="absolute right-5 top-5 inline-flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:text-[#fe6f05] dark:border-white/10 dark:bg-slate-900 dark:text-white"
+          className="absolute right-5 top-5 inline-flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:text-[var(--tp-accent)] dark:border-white/10 dark:bg-slate-900 dark:text-white"
         >
           <Heart className="h-5 w-5" />
         </button>
@@ -388,7 +388,7 @@ function ProductGallery({ product, selectedVariant }) {
           <button
             type="button"
             onClick={() => setActiveIndex((index) => (index - 1 + images.length) % images.length)}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-[#034c85] dark:border-white/10 dark:bg-slate-950 dark:text-white"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-[var(--tp-primary)] dark:border-white/10 dark:bg-slate-950 dark:text-white"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -401,7 +401,7 @@ function ProductGallery({ product, selectedVariant }) {
               onClick={() => setActiveIndex(index)}
               className={`h-20 w-24 shrink-0 overflow-hidden rounded-xl border bg-slate-50 transition dark:bg-slate-950 ${
                 index === activeIndex
-                  ? "border-[#034c85] shadow-[0_0_0_2px_rgba(3,76,133,0.12)]"
+                  ? "border-[var(--tp-primary)] shadow-[0_0_0_2px_rgba(3,76,133,0.12)]"
                   : "border-slate-200 dark:border-white/10"
               }`}
             >
@@ -417,7 +417,7 @@ function ProductGallery({ product, selectedVariant }) {
           <button
             type="button"
             onClick={() => setActiveIndex((index) => (index + 1) % images.length)}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-[#034c85] dark:border-white/10 dark:bg-slate-950 dark:text-white"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-[var(--tp-primary)] dark:border-white/10 dark:bg-slate-950 dark:text-white"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -434,7 +434,7 @@ function QuantityStepper({ quantity, stock, disabled, onDecrease, onIncrease }) 
         type="button"
         onClick={onDecrease}
         disabled={disabled || quantity <= 1}
-        className="inline-flex items-center justify-center border-r border-slate-200 text-[#034c85] disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:text-white"
+        className="inline-flex items-center justify-center border-r border-slate-200 text-[var(--tp-primary)] disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:text-white"
       >
         <Minus className="h-4 w-4" />
       </button>
@@ -445,7 +445,7 @@ function QuantityStepper({ quantity, stock, disabled, onDecrease, onIncrease }) 
         type="button"
         onClick={onIncrease}
         disabled={disabled || (stock !== null && quantity >= stock)}
-        className="inline-flex items-center justify-center border-l border-slate-200 text-[#034c85] disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:text-white"
+        className="inline-flex items-center justify-center border-l border-slate-200 text-[var(--tp-primary)] disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:text-white"
       >
         <Plus className="h-4 w-4" />
       </button>
@@ -523,8 +523,8 @@ function ProductSummary({
                         onClick={() => onSelectOption(group.id, option.selectionKey)}
                         className={`rounded-full border px-4 py-2 text-sm font-bold transition ${
                           active
-                            ? "border-[#034c85] bg-[#034c85] text-white"
-                            : "border-slate-200 bg-white text-slate-700 hover:border-[#034c85]/30 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200"
+                            ? "border-[var(--tp-primary)] bg-[var(--tp-primary)] text-white"
+                            : "border-slate-200 bg-white text-slate-700 hover:border-[var(--tp-primary)]/30 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200"
                         }`}
                       >
                         {option.value}
@@ -555,7 +555,7 @@ function ProductSummary({
             type="button"
             onClick={onAddToCart}
             disabled={!canPurchase || isAdding}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-[1rem] bg-[#fe6f05] px-6 text-sm font-black text-white shadow-lg shadow-[#fe6f05]/25 transition hover:bg-[#d95700] disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-[1rem] bg-[var(--tp-accent)] px-6 text-sm font-black text-white shadow-lg shadow-[var(--tp-accent)]/25 transition hover:bg-[#d95700] disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700"
           >
             {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
             Add to Cart
@@ -565,15 +565,15 @@ function ProductSummary({
           type="button"
           onClick={onBuyNow}
           disabled={!canPurchase || isAdding}
-          className="inline-flex h-12 w-full items-center justify-center rounded-[1rem] bg-[#034c85] px-6 text-sm font-black text-white shadow-lg shadow-[#034c85]/20 transition hover:bg-[#023b68] disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700"
+          className="inline-flex h-12 w-full items-center justify-center rounded-[1rem] bg-[var(--tp-primary)] px-6 text-sm font-black text-white shadow-lg shadow-[var(--tp-primary)]/20 transition hover:bg-[#023b68] disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700"
         >
           Buy Now
         </button>
 
         <div className="grid grid-cols-3 gap-2 border-t border-slate-200 pt-5 text-xs font-semibold text-slate-600 dark:border-white/10 dark:text-slate-300">
           <div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-emerald-500" />100% Organic</div>
-          <div className="flex items-center gap-2"><BadgeCheck className="h-5 w-5 text-[#034c85] dark:text-sky-300" />Fresh & Natural</div>
-          <div className="flex items-center gap-2"><Truck className="h-5 w-5 text-[#034c85] dark:text-sky-300" />Fast Delivery</div>
+          <div className="flex items-center gap-2"><BadgeCheck className="h-5 w-5 text-[var(--tp-primary)] dark:text-sky-300" />Fresh & Natural</div>
+          <div className="flex items-center gap-2"><Truck className="h-5 w-5 text-[var(--tp-primary)] dark:text-sky-300" />Fast Delivery</div>
         </div>
 
         <div className="space-y-3 border-t border-slate-200 pt-5 text-sm text-slate-600 dark:border-white/10 dark:text-slate-300">
@@ -593,7 +593,7 @@ function SellerCardFallback({ product }) {
     <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-slate-900 dark:shadow-none">
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_1.3fr] lg:items-center">
         <div className="flex items-start gap-4">
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl border border-[#034c85]/20 bg-[#034c85]/8 text-[#034c85] dark:border-white/10 dark:bg-white/10 dark:text-white">
+          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--tp-primary)]/20 bg-[var(--tp-primary)]/8 text-[var(--tp-primary)] dark:border-white/10 dark:bg-white/10 dark:text-white">
             <Store className="h-8 w-8" />
           </div>
           <div className="min-w-0">
@@ -605,7 +605,7 @@ function SellerCardFallback({ product }) {
             <div className="mt-4 flex flex-wrap gap-2">
               <Link
                 to={storeSlug ? `/store/${encodeURIComponent(storeSlug)}` : "/shop"}
-                className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:border-[#034c85]/30 hover:text-[#034c85] dark:border-white/10 dark:bg-slate-950 dark:text-slate-200"
+                className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:border-[var(--tp-primary)]/30 hover:text-[var(--tp-primary)] dark:border-white/10 dark:bg-slate-950 dark:text-slate-200"
               >
                 <Store className="h-4 w-4" /> Visit Store
               </Link>
@@ -617,7 +617,7 @@ function SellerCardFallback({ product }) {
                 <MessageCircle className="h-4 w-4" /> Chat
               </button>
             </div>
-            <p className="mt-2 text-xs text-[#034c85] dark:text-sky-300">Chat not available yet.</p>
+            <p className="mt-2 text-xs text-[var(--tp-primary)] dark:text-sky-300">Chat not available yet.</p>
           </div>
         </div>
         <div className="grid grid-cols-3 divide-x divide-slate-200 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 text-center dark:divide-white/10 dark:border-white/10 dark:bg-slate-950">
@@ -646,7 +646,7 @@ function ReviewsAndDetails({ product }) {
             onClick={() => setTab(value)}
             className={`border-b-4 px-4 pb-4 text-sm font-black transition ${
               tab === value
-                ? "border-[#034c85] text-[#034c85] dark:border-sky-300 dark:text-white"
+                ? "border-[var(--tp-primary)] text-[var(--tp-primary)] dark:border-sky-300 dark:text-white"
                 : "border-transparent text-slate-500 dark:text-slate-400"
             }`}
           >
@@ -700,13 +700,13 @@ function Highlights({ product }) {
   const icons = [Truck, Home, Package, ShieldCheck, BadgeCheck, Sparkles, MapPin];
   return (
     <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-slate-900 dark:shadow-none">
-      <h2 className="text-2xl font-black text-[#034c85] dark:text-white">Highlights</h2>
+      <h2 className="text-2xl font-black text-[var(--tp-primary)] dark:text-white">Highlights</h2>
       <ul className="mt-4 divide-y divide-slate-200 text-sm text-slate-600 dark:divide-white/10 dark:text-slate-300">
         {items.map((item, index) => {
           const Icon = icons[index] || Sparkles;
           return (
             <li key={item} className="flex gap-3 py-2.5">
-              <Icon className="mt-0.5 h-4 w-4 shrink-0 text-[#034c85] dark:text-sky-300" />
+              <Icon className="mt-0.5 h-4 w-4 shrink-0 text-[var(--tp-primary)] dark:text-sky-300" />
               <span>{item}</span>
             </li>
           );
@@ -719,7 +719,7 @@ function Highlights({ product }) {
 function ShareCard() {
   return (
     <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-slate-900 dark:shadow-none">
-      <h2 className="text-2xl font-black text-[#034c85] dark:text-white">Share</h2>
+      <h2 className="text-2xl font-black text-[var(--tp-primary)] dark:text-white">Share</h2>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Send this item to someone else.</p>
       <div className="mt-4 flex gap-3">
         {[
@@ -732,7 +732,7 @@ function ShareCard() {
             key={label}
             href="#"
             aria-label={`Share to ${label}`}
-            className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 text-[#034c85] transition hover:border-[#034c85]/30 hover:bg-[#034c85]/5 dark:border-white/10 dark:text-white dark:hover:bg-white/10"
+            className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 text-[var(--tp-primary)] transition hover:border-[var(--tp-primary)]/30 hover:bg-[var(--tp-primary)]/5 dark:border-white/10 dark:text-white dark:hover:bg-white/10"
           >
             <Icon className="h-5 w-5" />
           </a>
@@ -783,7 +783,7 @@ function RelatedProductCard({ product, onAdd }) {
             await onAdd(product);
             setTimeout(() => setIsAdding(false), 500);
           }}
-          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-[#034c85] transition hover:border-[#034c85]/30 hover:bg-[#034c85]/5 dark:border-white/10 dark:text-white"
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-[var(--tp-primary)] transition hover:border-[var(--tp-primary)]/30 hover:bg-[var(--tp-primary)]/5 dark:border-white/10 dark:text-white"
           aria-label={`Add ${getProductName(product)} to cart`}
         >
           {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
@@ -806,7 +806,7 @@ function RelatedProducts({ products, onAdd }) {
           <h2 className="text-3xl font-black text-slate-950 dark:text-white">Related Products</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400">More great items you might love.</p>
         </div>
-        <Link to="/shop" className="inline-flex items-center gap-1 text-sm font-black text-[#034c85] dark:text-sky-300">
+        <Link to="/shop" className="inline-flex items-center gap-1 text-sm font-black text-[var(--tp-primary)] dark:text-sky-300">
           View more <ChevronRight className="h-4 w-4" />
         </Link>
       </div>
@@ -814,7 +814,7 @@ function RelatedProducts({ products, onAdd }) {
         <button
           type="button"
           onClick={() => scroll(-1)}
-          className="absolute left-0 top-1/2 z-10 hidden h-11 w-11 -translate-x-3 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white text-[#034c85] shadow-md dark:border-white/10 dark:bg-slate-900 dark:text-white sm:inline-flex"
+          className="absolute left-0 top-1/2 z-10 hidden h-11 w-11 -translate-x-3 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white text-[var(--tp-primary)] shadow-md dark:border-white/10 dark:bg-slate-900 dark:text-white sm:inline-flex"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
@@ -829,7 +829,7 @@ function RelatedProducts({ products, onAdd }) {
         <button
           type="button"
           onClick={() => scroll(1)}
-          className="absolute right-0 top-1/2 z-10 hidden h-11 w-11 translate-x-3 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white text-[#034c85] shadow-md dark:border-white/10 dark:bg-slate-900 dark:text-white sm:inline-flex"
+          className="absolute right-0 top-1/2 z-10 hidden h-11 w-11 translate-x-3 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white text-[var(--tp-primary)] shadow-md dark:border-white/10 dark:bg-slate-900 dark:text-white sm:inline-flex"
         >
           <ChevronRight className="h-4 w-4" />
         </button>
@@ -850,7 +850,7 @@ function LoadingState() {
 function ErrorState({ message }) {
   return (
     <section className="rounded-[2rem] border border-slate-200 bg-white p-10 text-center shadow-sm dark:border-white/10 dark:bg-slate-900">
-      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#034c85]/8 text-[#034c85] dark:bg-white/10 dark:text-white">
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--tp-primary)]/8 text-[var(--tp-primary)] dark:bg-white/10 dark:text-white">
         <SearchX className="h-7 w-7" />
       </div>
       <h1 className="mt-5 text-2xl font-black text-slate-950 dark:text-white">Product not found</h1>
@@ -859,7 +859,7 @@ function ErrorState({ message }) {
       </p>
       <Link
         to="/shop"
-        className="mt-5 inline-flex h-11 items-center justify-center rounded-[1rem] bg-[#034c85] px-5 text-sm font-black text-white"
+        className="mt-5 inline-flex h-11 items-center justify-center rounded-[1rem] bg-[var(--tp-primary)] px-5 text-sm font-black text-white"
       >
         Back to Shop
       </Link>
@@ -979,11 +979,11 @@ export default function StoreProductDetailPage2026() {
   return (
     <div className="space-y-6 bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-white">
       <nav className="flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-        <Link to="/" className="inline-flex items-center gap-1 font-semibold hover:text-[#034c85] dark:hover:text-white">
+        <Link to="/" className="inline-flex items-center gap-1 font-semibold hover:text-[var(--tp-primary)] dark:hover:text-white">
           <Home className="h-4 w-4" /> Home
         </Link>
         <ChevronRight className="h-4 w-4" />
-        <Link to={`/search?category=${encodeURIComponent(categorySlug)}&page=1`} className="font-semibold hover:text-[#034c85] dark:hover:text-white">
+        <Link to={`/search?category=${encodeURIComponent(categorySlug)}&page=1`} className="font-semibold hover:text-[var(--tp-primary)] dark:hover:text-white">
           {categoryName}
         </Link>
         <ChevronRight className="h-4 w-4" />

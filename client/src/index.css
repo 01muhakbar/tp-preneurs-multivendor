@@ -1,27 +1,56 @@
 @import "tailwindcss";
 
+@theme {
+  --color-tp-primary: var(--tp-primary);
+  --color-tp-accent: var(--tp-accent);
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --sf-bg: #f8fafc;
-  --sf-surface: #ffffff;
-  --sf-surface-soft: #f1f5f9;
-  --sf-border: #e2e8f0;
-  --sf-text: #0f172a;
-  --sf-muted: #64748b;
-  --sf-primary: #059669;
-  --sf-primary-strong: #047857;
+  --tp-primary: var(--tp-primary);
+  --tp-primary-strong: #013d70;
+  --tp-primary-soft: #eaf3fb;
+  --tp-primary-rgb: 3 76 133;
+
+  --tp-accent: var(--tp-accent);
+  --tp-accent-strong: #d95b00;
+  --tp-accent-soft: #fff3e8;
+  --tp-accent-rgb: 254 111 5;
+
+  --tp-bg: #f8fafc;
+  --tp-surface: #ffffff;
+  --tp-surface-soft: #f3f7fb;
+  --tp-border: #dbe6f1;
+  --tp-text: #071a3f;
+  --tp-muted: #63738e;
+
+  --tp-success: #059669;
+  --tp-warning: #f59e0b;
+  --tp-danger: #ef4444;
+  --tp-info: #2563eb;
+
+  --sf-bg: var(--tp-bg);
+  --sf-surface: var(--tp-surface);
+  --sf-surface-soft: var(--tp-surface-soft);
+  --sf-border: var(--tp-border);
+  --sf-text: var(--tp-text);
+  --sf-muted: var(--tp-muted);
+  --sf-primary: var(--tp-primary);
+  --sf-primary-strong: var(--tp-primary-strong);
+  --sf-accent: var(--tp-accent);
 }
 
 .dark {
-  --sf-bg: #020617;
-  --sf-surface: #0f172a;
-  --sf-surface-soft: #111827;
-  --sf-border: #1e293b;
-  --sf-text: #e5e7eb;
-  --sf-muted: #94a3b8;
-  --sf-primary: #10b981;
-  --sf-primary-strong: #34d399;
+  --tp-bg: #07111f;
+  --tp-surface: #0d1b2c;
+  --tp-surface-soft: #13253a;
+  --tp-border: #263a51;
+  --tp-text: #e7f1ff;
+  --tp-muted: #9dafc6;
+
+  --tp-primary-soft: rgba(3, 76, 133, 0.26);
+  --tp-accent-soft: rgba(254, 111, 5, 0.18);
 }
 
 * {

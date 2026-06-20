@@ -43,7 +43,7 @@ const applyResolvedTheme = (preference, resolvedTheme) => {
   root.dataset.themePreference = normalizeTheme(preference);
   root.style.colorScheme = resolvedTheme;
 
-  const themeColor = resolvedTheme === "dark" ? "#020617" : "#f8fafc";
+  const themeColor = resolvedTheme === "dark" ? "#07111f" : "#034c85";
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) {
     meta.setAttribute("content", themeColor);
@@ -111,4 +111,3 @@ export function useTheme() {
   }
   return context;
 }
-

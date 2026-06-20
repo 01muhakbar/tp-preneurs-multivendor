@@ -249,15 +249,15 @@ const DASHBOARD_SETTING_UPDATE_PROFILE_FIELDS = [
 ];
 
 const inputBase =
-  "h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100";
+  "h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 transition focus:border-[var(--admin-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary-soft)]";
 const sectionCard =
   "rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.05)]";
 const glassCard =
   "rounded-3xl border border-white/70 bg-white/80 shadow-[0_16px_48px_rgba(15,23,42,0.08)] backdrop-blur-xl";
 const compactActionButton =
-  "inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-emerald-200 hover:text-emerald-700 hover:shadow-sm";
+  "inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-[var(--admin-primary-soft)] hover:text-[var(--admin-primary)] hover:shadow-sm";
 const textAreaBase =
-  "mt-2 min-h-[92px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100";
+  "mt-2 min-h-[92px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-[var(--admin-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary-soft)]";
 const ABOUT_US_MEMBER_TABS = Array.from({ length: ABOUT_US_MEMBER_LENGTH }, (_, index) => ({
   key: `member-${index}`,
   index,
@@ -2576,7 +2576,7 @@ function SegmentedToggle({ value, onChange }) {
         type="button"
         onClick={() => onChange(true)}
         className={`h-8 rounded-lg px-3 text-xs font-semibold transition ${
-          value ? "bg-emerald-600 text-white" : "text-slate-600 hover:bg-slate-100"
+          value ? "bg-[var(--admin-primary)] text-white" : "text-slate-600 hover:bg-slate-100"
         }`}
       >
         Yes
@@ -2585,7 +2585,7 @@ function SegmentedToggle({ value, onChange }) {
         type="button"
         onClick={() => onChange(false)}
         className={`h-8 rounded-lg px-3 text-xs font-semibold transition ${
-          !value ? "bg-emerald-600 text-white" : "text-slate-600 hover:bg-slate-100"
+          !value ? "bg-[var(--admin-primary)] text-white" : "text-slate-600 hover:bg-slate-100"
         }`}
       >
         No
@@ -2710,7 +2710,7 @@ function RichTextEditor({ id, label, value, onChange }) {
               value={linkInput}
               onChange={(event) => setLinkInput(event.target.value)}
               placeholder="https://example.com"
-              className="h-9 w-full rounded-lg border border-slate-200 px-3 text-xs text-slate-700 focus:border-emerald-500 focus:outline-none"
+              className="h-9 w-full rounded-lg border border-slate-200 px-3 text-xs text-slate-700 focus:border-[var(--admin-primary)] focus:outline-none"
             />
             <button
               type="button"
@@ -2730,7 +2730,7 @@ function RichTextEditor({ id, label, value, onChange }) {
               value={imageInput}
               onChange={(event) => setImageInput(event.target.value)}
               placeholder="Image URL or Data URL"
-              className="h-9 w-full rounded-lg border border-slate-200 px-3 text-xs text-slate-700 focus:border-emerald-500 focus:outline-none"
+              className="h-9 w-full rounded-lg border border-slate-200 px-3 text-xs text-slate-700 focus:border-[var(--admin-primary)] focus:outline-none"
             />
             <button
               type="button"
@@ -2794,7 +2794,7 @@ function ImageUploadField({
         onDrop={onDrop}
         className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${
           dropActive
-            ? "border-emerald-400 bg-emerald-50"
+            ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)]"
             : "border-slate-300 bg-white hover:border-slate-400"
         }`}
       >
@@ -5914,7 +5914,7 @@ export default function StoreCustomizationPage() {
                 type="button"
                 onClick={onSave}
                 disabled={isSaving || isLoadingHeader || !lang}
-                className="inline-flex h-10 items-center justify-center rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--admin-primary)] px-4 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[var(--admin-primary-strong)] hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
               >
                 {isSaving ? "Updating..." : "Update"}
               </button>
@@ -5934,7 +5934,7 @@ export default function StoreCustomizationPage() {
           className={`rounded-xl border px-4 py-2 text-sm ${
             notice.type === "error"
               ? "border-rose-200 bg-rose-50 text-rose-600"
-              : "border-emerald-200 bg-emerald-50 text-emerald-700"
+              : "border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]"
           }`}
         >
           {notice.message}
@@ -5952,7 +5952,7 @@ export default function StoreCustomizationPage() {
                 className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
                   activeTab === tab.key
                     ? "bg-slate-950 text-white shadow-sm"
-                    : "bg-white/80 text-slate-600 hover:-translate-y-0.5 hover:bg-emerald-50 hover:text-emerald-700"
+                    : "bg-white/80 text-slate-600 hover:-translate-y-0.5 hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary)]"
                 }`}
               >
                 {tab.label}
@@ -6388,7 +6388,7 @@ export default function StoreCustomizationPage() {
                       onClick={() => setActiveAboutUsMemberTab(memberTab.key)}
                       className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
                         activeAboutUsMemberTab === memberTab.key
-                          ? "border border-slate-200 bg-white text-emerald-700 shadow-sm"
+                          ? "border border-slate-200 bg-white text-[var(--admin-primary)] shadow-sm"
                           : "text-slate-600 hover:bg-white"
                       }`}
                     >
@@ -8451,7 +8451,7 @@ export default function StoreCustomizationPage() {
                   onDrop={(event) => onDropSeoImage("faviconDataUrl", event)}
                   className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${
                     seoDropActive.faviconDataUrl
-                      ? "border-emerald-400 bg-emerald-50"
+                      ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)]"
                       : "border-slate-300 bg-white hover:border-slate-400"
                   }`}
                 >
@@ -8506,7 +8506,7 @@ export default function StoreCustomizationPage() {
                     onChange={(event) =>
                       onChangeSeoField("metaDescription", event.target.value)
                     }
-                    className="mt-2 min-h-[92px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                    className="mt-2 min-h-[92px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-[var(--admin-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary-soft)]"
                   />
                 </label>
                 <label className="block">
@@ -8529,7 +8529,7 @@ export default function StoreCustomizationPage() {
                     onChange={(event) =>
                       onChangeSeoField("metaKeywords", event.target.value)
                     }
-                    className="mt-2 min-h-[120px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                    className="mt-2 min-h-[120px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-[var(--admin-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary-soft)]"
                   />
                 </label>
               </div>
@@ -8555,7 +8555,7 @@ export default function StoreCustomizationPage() {
                   onDrop={(event) => onDropSeoImage("metaImageDataUrl", event)}
                   className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${
                     seoDropActive.metaImageDataUrl
-                      ? "border-emerald-400 bg-emerald-50"
+                      ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)]"
                       : "border-slate-300 bg-white hover:border-slate-400"
                   }`}
                 >
@@ -8634,7 +8634,7 @@ export default function StoreCustomizationPage() {
                 <button
                   type="button"
                   onClick={() => onReviewSection("mainSlider")}
-                  className="inline-flex h-9 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-xs font-bold text-emerald-700 transition hover:-translate-y-0.5 hover:bg-emerald-100"
+                  className="inline-flex h-9 items-center justify-center rounded-xl border border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] px-3 text-xs font-bold text-[var(--admin-primary)] transition hover:-translate-y-0.5 hover:bg-[var(--admin-primary-soft)]"
                 >
                   Review slider
                 </button>
@@ -8648,8 +8648,8 @@ export default function StoreCustomizationPage() {
                       key={section.key}
                       className={`relative rounded-2xl border p-4 transition ${
                         isSelected
-                          ? "border-emerald-300 bg-emerald-50/70 shadow-sm"
-                          : "border-slate-200 bg-white/75 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-sm"
+                          ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)]/70 shadow-sm"
+                          : "border-slate-200 bg-white/75 hover:-translate-y-0.5 hover:border-[var(--admin-primary-soft)] hover:shadow-sm"
                       }`}
                     >
                       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -8682,7 +8682,7 @@ export default function StoreCustomizationPage() {
                                 current === section.key ? null : section.key
                               );
                             }}
-                            className="inline-flex h-9 w-full items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:border-emerald-200 hover:text-emerald-700 min-[480px]:w-9"
+                            className="inline-flex h-9 w-full items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:border-[var(--admin-primary-soft)] hover:text-[var(--admin-primary)] min-[480px]:w-9"
                             aria-label={`Open ${section.title} actions`}
                           >
                             <MoreHorizontal className="h-4 w-4" />
@@ -8692,7 +8692,7 @@ export default function StoreCustomizationPage() {
                               <div className="mt-3 w-full rounded-[1.75rem] border border-white/70 bg-white/95 p-3 shadow-[0_28px_90px_rgba(15,23,42,0.24)] backdrop-blur-2xl sm:absolute sm:right-0 sm:top-full sm:z-50 sm:mt-2 sm:w-[280px]">
                                 <div className="flex items-start justify-between gap-3">
                                   <div>
-                                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-emerald-700">
+                                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--admin-primary)]">
                                       Quick Edit
                                     </p>
                                     <p className="mt-1 text-base font-bold leading-5 text-slate-950">
@@ -8740,7 +8740,7 @@ export default function StoreCustomizationPage() {
                                   />
                                   <label
                                     htmlFor={`main-slider-quick-file-${activeMainSliderIndex}`}
-                                    className="mt-1.5 flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-2 transition hover:border-emerald-200 hover:bg-emerald-50/60"
+                                    className="mt-1.5 flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-2 transition hover:border-[var(--admin-primary-soft)] hover:bg-[var(--admin-primary-soft)]/60"
                                   >
                                     <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white">
                                       <Upload className="h-4 w-4" />
@@ -8784,7 +8784,7 @@ export default function StoreCustomizationPage() {
                                     type="button"
                                     onClick={onSave}
                                     disabled={isSaving || isLoadingHeader || !lang}
-                                    className="inline-flex h-9 w-full items-center justify-center rounded-xl bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-1"
+                                    className="inline-flex h-9 w-full items-center justify-center rounded-xl bg-[var(--admin-primary)] px-3 text-xs font-bold text-white hover:bg-[var(--admin-primary-strong)] disabled:cursor-not-allowed disabled:opacity-60 sm:flex-1"
                                   >
                                     {isSaving ? "Saving" : "Save"}
                                   </button>
@@ -8814,7 +8814,7 @@ export default function StoreCustomizationPage() {
                                 <button
                                   type="button"
                                   onClick={() => onShowAiSuggestion(section.key)}
-                                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700"
+                                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary)]"
                                 >
                                   <Sparkles className="h-3.5 w-3.5" />
                                   Generate plan
@@ -8844,7 +8844,7 @@ export default function StoreCustomizationPage() {
                   <h2 className="text-base font-bold text-slate-950">Optimization Suggestions</h2>
                   <p className="mt-1 text-xs text-slate-500">Data-based suggestions</p>
                 </div>
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
+                <span className="rounded-full border border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] px-2.5 py-1 text-xs font-bold text-[var(--admin-primary)]">
                   Personalisasi & AI
                 </span>
               </div>
@@ -8864,7 +8864,7 @@ export default function StoreCustomizationPage() {
               <button
                 type="button"
                 onClick={() => onShowAiSuggestion("mainSlider")}
-                className="mt-4 inline-flex h-9 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 text-xs font-bold text-white transition hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-sm"
+                className="mt-4 inline-flex h-9 w-full items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-3 text-xs font-bold text-white transition hover:-translate-y-0.5 hover:bg-[var(--admin-primary-strong)] hover:shadow-sm"
               >
                 <Wand2 className="h-3.5 w-3.5" />
                 Generate plan
@@ -8880,7 +8880,7 @@ export default function StoreCustomizationPage() {
               />
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--admin-primary)]">
                     Review Detail
                   </p>
                   <h2 className="mt-1 text-lg font-bold text-slate-950">
@@ -8929,8 +8929,8 @@ export default function StoreCustomizationPage() {
                         onDrop={(event) => onDropMainSliderImage(activeMainSliderIndex, event)}
                         className={`mt-3 flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 py-6 text-center transition ${
                           isMainSliderDropActive
-                            ? "border-emerald-400 bg-emerald-50"
-                            : "border-slate-300 bg-slate-50/80 hover:border-emerald-300 hover:bg-emerald-50/40"
+                            ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)]"
+                            : "border-slate-300 bg-slate-50/80 hover:border-[var(--admin-primary)] hover:bg-[var(--admin-primary-soft)]/40"
                         }`}
                       >
                         <Upload className="h-5 w-5 text-slate-500" />
@@ -9077,7 +9077,7 @@ export default function StoreCustomizationPage() {
                       <div
                         className={`rounded-2xl border px-3 py-3 text-xs ${
                           aiSuggestionSectionKey === "mainSlider"
-                            ? "border-emerald-200 bg-emerald-50/80 text-emerald-800"
+                            ? "border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)]/80 text-[var(--admin-primary-strong)]"
                             : "border-slate-200 bg-white/70 text-slate-500"
                         }`}
                       >
@@ -9106,7 +9106,7 @@ export default function StoreCustomizationPage() {
                         type="button"
                         onClick={onSave}
                         disabled={isSaving || isLoadingHeader || !lang}
-                        className="inline-flex h-9 w-full items-center justify-center rounded-xl bg-emerald-600 px-4 text-xs font-bold text-white transition hover:-translate-y-0.5 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                        className="inline-flex h-9 w-full items-center justify-center rounded-xl bg-[var(--admin-primary)] px-4 text-xs font-bold text-white transition hover:-translate-y-0.5 hover:bg-[var(--admin-primary-strong)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                       >
                         {isSaving ? "Updating..." : "Save Section"}
                       </button>
@@ -9122,7 +9122,7 @@ export default function StoreCustomizationPage() {
                     Use Advanced section editor below for full field control.
                   </p>
                   {aiSuggestionSectionKey === reviewSectionKey ? (
-                    <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
+                    <p className="mt-3 rounded-xl border border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] px-3 py-2 text-xs font-semibold text-[var(--admin-primary-strong)]">
                       Suggested: keep this section active only when copy and storefront media are ready.
                     </p>
                   ) : null}
@@ -9214,7 +9214,7 @@ export default function StoreCustomizationPage() {
                     <button
                       type="button"
                       onClick={onTestWhatsAppLink}
-                      className="inline-flex h-8 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                      className="inline-flex h-8 items-center justify-center rounded-lg border border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] px-3 text-xs font-semibold text-[var(--admin-primary)] transition hover:bg-[var(--admin-primary-soft)]"
                     >
                       Test Link
                     </button>
@@ -9245,7 +9245,7 @@ export default function StoreCustomizationPage() {
                     onClick={() => setActiveMainSliderTab(tab.key)}
                     className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
                       activeMainSliderTab === tab.key
-                        ? "border border-slate-200 bg-white text-emerald-700 shadow-sm"
+                        ? "border border-slate-200 bg-white text-[var(--admin-primary)] shadow-sm"
                         : "text-slate-600 hover:bg-white"
                     }`}
                   >
@@ -9353,7 +9353,7 @@ export default function StoreCustomizationPage() {
                         }
                         className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${
                           isMainSliderDropActive
-                            ? "border-emerald-400 bg-emerald-50"
+                            ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)]"
                             : "border-slate-300 bg-slate-50 hover:border-slate-400"
                         }`}
                       >
@@ -9499,7 +9499,7 @@ export default function StoreCustomizationPage() {
                             )
                           }
                           rows={4}
-                          className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                          className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-[var(--admin-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary-soft)]"
                         />
                       </label>
 
@@ -9656,7 +9656,7 @@ export default function StoreCustomizationPage() {
                       event.target.value
                     )
                   }
-                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-[var(--admin-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary-soft)]"
                 />
               </label>
               <label className="block">
@@ -9749,7 +9749,7 @@ export default function StoreCustomizationPage() {
                       event.target.value
                     )
                   }
-                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-[var(--admin-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary-soft)]"
                 />
               </label>
               <label className="block md:col-span-2">
@@ -9818,7 +9818,7 @@ export default function StoreCustomizationPage() {
                       event.target.value
                     )
                   }
-                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-[var(--admin-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary-soft)]"
                 />
               </label>
               <label className="block md:col-span-2">
@@ -9886,7 +9886,7 @@ export default function StoreCustomizationPage() {
                   onDrop={onDropQuickDeliveryImage}
                   className={`flex w-full flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${
                     isQuickDeliveryDropActive
-                      ? "border-emerald-400 bg-emerald-50"
+                      ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)]"
                       : "border-slate-300 bg-slate-50 hover:border-slate-400"
                   }`}
                 >
@@ -9967,7 +9967,7 @@ export default function StoreCustomizationPage() {
                         event.target.value
                       )
                     }
-                    className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                    className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-[var(--admin-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary-soft)]"
                   />
                 </label>
                 <label className="block">
@@ -10061,7 +10061,7 @@ export default function StoreCustomizationPage() {
                       event.target.value
                     )
                   }
-                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-[var(--admin-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary-soft)]"
                 />
               </label>
               <label className="block md:col-span-2">
@@ -10143,7 +10143,7 @@ export default function StoreCustomizationPage() {
                       event.target.value
                     )
                   }
-                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-[var(--admin-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary-soft)]"
                 />
               </label>
 
@@ -10172,7 +10172,7 @@ export default function StoreCustomizationPage() {
                   onDrop={(event) => onDropDailyNeedsImage("imageLeftDataUrl", event)}
                   className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${
                     dailyNeedsDropActive.imageLeftDataUrl
-                      ? "border-emerald-400 bg-emerald-50"
+                      ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)]"
                       : "border-slate-300 bg-slate-50 hover:border-slate-400"
                   }`}
                 >
@@ -10233,7 +10233,7 @@ export default function StoreCustomizationPage() {
                   onDrop={(event) => onDropDailyNeedsImage("imageRightDataUrl", event)}
                   className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${
                     dailyNeedsDropActive.imageRightDataUrl
-                      ? "border-emerald-400 bg-emerald-50"
+                      ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)]"
                       : "border-slate-300 bg-slate-50 hover:border-slate-400"
                   }`}
                 >
@@ -10294,7 +10294,7 @@ export default function StoreCustomizationPage() {
                   onDrop={(event) => onDropDailyNeedsImage("button1ImageDataUrl", event)}
                   className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${
                     dailyNeedsDropActive.button1ImageDataUrl
-                      ? "border-emerald-400 bg-emerald-50"
+                      ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)]"
                       : "border-slate-300 bg-slate-50 hover:border-slate-400"
                   }`}
                 >
@@ -10372,7 +10372,7 @@ export default function StoreCustomizationPage() {
                   onDrop={(event) => onDropDailyNeedsImage("button2ImageDataUrl", event)}
                   className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${
                     dailyNeedsDropActive.button2ImageDataUrl
-                      ? "border-emerald-400 bg-emerald-50"
+                      ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)]"
                       : "border-slate-300 bg-slate-50 hover:border-slate-400"
                   }`}
                 >
@@ -10661,7 +10661,7 @@ export default function StoreCustomizationPage() {
                       onDrop={(event) => onDropFooterImage("footerLogoDataUrl", event)}
                       className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${
                         footerDropActive.footerLogoDataUrl
-                          ? "border-emerald-400 bg-emerald-50"
+                          ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)]"
                           : "border-slate-300 bg-white hover:border-slate-400"
                       }`}
                     >
@@ -10883,7 +10883,7 @@ export default function StoreCustomizationPage() {
                       onDrop={(event) => onDropFooterImage("paymentImageDataUrl", event)}
                       className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${
                         footerDropActive.paymentImageDataUrl
-                          ? "border-emerald-400 bg-emerald-50"
+                          ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)]"
                           : "border-slate-300 bg-white hover:border-slate-400"
                       }`}
                     >
@@ -11064,7 +11064,7 @@ export default function StoreCustomizationPage() {
                             onClick={() => onSelectPreset(preset.isoCode)}
                             className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition hover:bg-slate-100 ${
                               addLanguageForm.selectedPreset === preset.isoCode
-                                ? "bg-emerald-50 text-emerald-700"
+                                ? "bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]"
                                 : "text-slate-700"
                             }`}
                           >
@@ -11163,7 +11163,7 @@ export default function StoreCustomizationPage() {
                   <button
                     type="submit"
                     disabled={addLanguageMutation.isPending}
-                    className="inline-flex h-10 items-center justify-center rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--admin-primary)] px-4 text-sm font-semibold text-white hover:bg-[var(--admin-primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {addLanguageMutation.isPending ? "Adding..." : "Add Language"}
                   </button>

@@ -138,7 +138,7 @@ export const buildProductVisibilitySnapshot = (input: {
     operationalReadiness != null ? Boolean(operationalReadiness.isReady) : storeActive;
   const reviewBlocked = submissionStatus !== "none";
   const storefrontVisible =
-    isPublished && status === "active" && !reviewBlocked && storeOperational && hasStock;
+    isPublished && status === "active" && !reviewBlocked && storeOperational;
   const blockingSignals: string[] = [];
 
   if (!isPublished) {
@@ -175,13 +175,11 @@ export const buildProductVisibilitySnapshot = (input: {
         ? "REVISION_REQUIRED"
         : !storeActive
           ? "STORE_NOT_ACTIVE"
-          : !storeOperational
+            : !storeOperational
             ? "STORE_NOT_READY"
-            : !hasStock
-              ? "OUT_OF_STOCK"
-              : storefrontVisible
-                ? "STOREFRONT_VISIBLE"
-                : "STATUS_NOT_ACTIVE";
+            : storefrontVisible
+              ? "STOREFRONT_VISIBLE"
+              : "STATUS_NOT_ACTIVE";
 
   const sellerLabel = !isPublished
     ? status === "draft"
@@ -197,9 +195,7 @@ export const buildProductVisibilitySnapshot = (input: {
             ? "Published but store is inactive"
           : !storeOperational
             ? "Published but store is not operational"
-            : !hasStock
-              ? "Published but out of stock"
-              : "Published but blocked";
+            : "Published but blocked";
   const storefrontReason = !isPublished
     ? "Public storefront queries exclude this product because the publish flag is off."
     : storefrontVisible
@@ -213,9 +209,7 @@ export const buildProductVisibilitySnapshot = (input: {
             : !storeOperational
             ? String(operationalReadiness?.description || "").trim() ||
               "Publish is on, but the linked store is not operational yet, so storefront queries still exclude this product."
-            : !hasStock
-              ? "Publish is on, but public storefront queries exclude this product until stock is available."
-              : "Publish is on, but public storefront queries still exclude this product until status becomes active.";
+            : "Publish is on, but public storefront queries still exclude this product until status becomes active.";
   const sellerHint = !isPublished
     ? "Seller can still review this product here, but customers cannot see it yet."
     : storefrontVisible
@@ -228,9 +222,7 @@ export const buildProductVisibilitySnapshot = (input: {
             ? "Seller can keep this product published internally, but storefront visibility stays blocked until the store becomes active."
           : !storeOperational
             ? "Seller can keep this product published internally, but storefront visibility stays blocked until the store becomes operational."
-            : !hasStock
-              ? "Seller can keep this product published internally, but customers will not see it until stock is available."
-              : "Seller can review this product here, but customers will not see it until status becomes active.";
+            : "Seller can review this product here, but customers will not see it until status becomes active.";
 
   return {
     isPublished,

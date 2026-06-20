@@ -74,7 +74,7 @@ function Stars({ rating, count }) {
           </span>
         ))}
       </div>
-      <span className="text-[#034c85] font-bold dark:text-sky-400">{rating.toFixed(1)}</span>
+      <span className="text-[var(--tp-primary)] font-bold dark:text-sky-400">{rating.toFixed(1)}</span>
       <span>({count})</span>
     </div>
   );
@@ -83,7 +83,7 @@ function Stars({ rating, count }) {
 function StatCard({ icon: Icon, title, value }) {
   return (
     <div className="flex items-center gap-3 rounded-[24px] border border-slate-200 bg-white p-3 px-4 shadow-sm dark:border-white/10 dark:bg-slate-900">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[#034c85] dark:bg-slate-800 dark:text-sky-400">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[var(--tp-primary)] dark:bg-slate-800 dark:text-sky-400">
         <Icon className="h-5 w-5" />
       </div>
       <div>
@@ -119,7 +119,7 @@ function WishlistHero({ itemsCount, totalValue, onShare, onMoveAll }) {
         <button 
           onClick={onMoveAll}
           disabled={itemsCount === 0}
-          className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#fe6f05] px-6 text-sm font-bold text-white shadow-md transition hover:bg-[#e66404] disabled:opacity-50"
+          className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[var(--tp-accent)] px-6 text-sm font-bold text-white shadow-md transition hover:bg-[#e66404] disabled:opacity-50"
         >
           <ShoppingCart className="h-4 w-4" />
           <span>Move All to Cart</span>
@@ -136,7 +136,7 @@ function CategoryTabs({ categories, activeCategory, onSelect }) {
         onClick={() => onSelect('all')}
         className={`shrink-0 rounded-full px-5 py-2 text-sm font-bold transition ${
           activeCategory === 'all' 
-            ? 'bg-[#034c85] text-white dark:bg-sky-600' 
+            ? 'bg-[var(--tp-primary)] text-white dark:bg-sky-600' 
             : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
         }`}
       >
@@ -148,7 +148,7 @@ function CategoryTabs({ categories, activeCategory, onSelect }) {
           onClick={() => onSelect(cat.name)}
           className={`shrink-0 rounded-full px-5 py-2 text-sm font-bold transition ${
             activeCategory === cat.name 
-              ? 'bg-[#034c85] text-white dark:bg-sky-600' 
+              ? 'bg-[var(--tp-primary)] text-white dark:bg-sky-600' 
               : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
           }`}
         >
@@ -164,7 +164,7 @@ function WishlistFilters({ query, onQueryChange, minPrice, onMinChange, maxPrice
     <div className="flex w-full flex-col gap-6 rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900">
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-slate-950 dark:text-white">Filters</h3>
-        <button onClick={onClear} className="text-xs font-semibold text-[#034c85] hover:underline dark:text-sky-400">Clear All</button>
+        <button onClick={onClear} className="text-xs font-semibold text-[var(--tp-primary)] hover:underline dark:text-sky-400">Clear All</button>
       </div>
       
       <div className="relative">
@@ -174,7 +174,7 @@ function WishlistFilters({ query, onQueryChange, minPrice, onMinChange, maxPrice
           placeholder="Search wishlist..."
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
-          className="h-10 w-full rounded-full border border-slate-200 bg-slate-50 pl-9 pr-4 text-sm font-semibold text-slate-900 focus:border-[#034c85] focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:border-sky-500"
+          className="h-10 w-full rounded-full border border-slate-200 bg-slate-50 pl-9 pr-4 text-sm font-semibold text-slate-900 focus:border-[var(--tp-primary)] focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:border-sky-500"
         />
       </div>
 
@@ -182,13 +182,13 @@ function WishlistFilters({ query, onQueryChange, minPrice, onMinChange, maxPrice
         <h4 className="mb-3 text-sm font-bold text-slate-900 dark:text-white">Categories</h4>
         <div className="flex flex-col gap-2">
           <label className="flex cursor-pointer items-center gap-2">
-            <input type="radio" name="wl-cat" checked={activeCategory === 'all'} onChange={() => onSelectCategory('all')} className="h-4 w-4 text-[#034c85] dark:bg-slate-800" />
+            <input type="radio" name="wl-cat" checked={activeCategory === 'all'} onChange={() => onSelectCategory('all')} className="h-4 w-4 text-[var(--tp-primary)] dark:bg-slate-800" />
             <span className="text-sm font-medium text-slate-700 dark:text-slate-300">All Categories</span>
           </label>
           {categories.map((cat) => (
             <label key={cat.name} className="flex cursor-pointer items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <input type="radio" name="wl-cat" checked={activeCategory === cat.name} onChange={() => onSelectCategory(cat.name)} className="h-4 w-4 text-[#034c85] dark:bg-slate-800" />
+                <input type="radio" name="wl-cat" checked={activeCategory === cat.name} onChange={() => onSelectCategory(cat.name)} className="h-4 w-4 text-[var(--tp-primary)] dark:bg-slate-800" />
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{cat.name}</span>
               </div>
               <span className="text-xs text-slate-400">({cat.count})</span>
@@ -215,7 +215,7 @@ function WishlistProductCard({ item, viewMode, onRemove, onAddToCart }) {
   const isAdding = false; // We can add local state if needed
   
   return (
-    <div className={`group relative flex rounded-[24px] border border-slate-200 bg-white p-3 shadow-sm transition hover:border-[#034c85]/30 hover:shadow-md dark:border-white/10 dark:bg-slate-900 ${isGrid ? 'flex-col' : 'items-center gap-4'}`}>
+    <div className={`group relative flex rounded-[24px] border border-slate-200 bg-white p-3 shadow-sm transition hover:border-[var(--tp-primary)]/30 hover:shadow-md dark:border-white/10 dark:bg-slate-900 ${isGrid ? 'flex-col' : 'items-center gap-4'}`}>
       <button 
         onClick={() => onRemove(getItemKey(item))}
         className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-rose-500 opacity-0 shadow-sm backdrop-blur-sm transition-all hover:bg-rose-50 hover:text-rose-600 group-hover:opacity-100 dark:bg-slate-900/80 dark:hover:bg-slate-800"
@@ -241,7 +241,7 @@ function WishlistProductCard({ item, viewMode, onRemove, onAddToCart }) {
         <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
           {getItemCategory(item)}
         </div>
-        <Link to={`/product/${getItemSlug(item)}`} className="wishlist-2026-line-clamp-2 mt-1 text-sm font-bold text-slate-950 transition hover:text-[#034c85] dark:text-white dark:hover:text-sky-400">
+        <Link to={`/product/${getItemSlug(item)}`} className="wishlist-2026-line-clamp-2 mt-1 text-sm font-bold text-slate-950 transition hover:text-[var(--tp-primary)] dark:text-white dark:hover:text-sky-400">
           {item.name}
         </Link>
         <div className="mt-1">
@@ -266,7 +266,7 @@ function WishlistProductCard({ item, viewMode, onRemove, onAddToCart }) {
           </button>
           <button
             onClick={() => onAddToCart(item)}
-            className="flex h-9 flex-1 items-center justify-center gap-2 rounded-xl bg-[#fe6f05] px-4 text-xs font-bold text-white shadow-sm transition hover:bg-[#e66404]"
+            className="flex h-9 flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--tp-accent)] px-4 text-xs font-bold text-white shadow-sm transition hover:bg-[#e66404]"
           >
             <ShoppingCart className="h-3.5 w-3.5" />
             <span>Add to Cart</span>
@@ -287,7 +287,7 @@ function EmptyWishlist() {
       <p className="mt-2 text-sm font-medium text-slate-500 dark:text-slate-400">Start adding items you love to your wishlist.</p>
       <Link 
         to="/shop" 
-        className="mt-6 inline-flex h-12 items-center justify-center rounded-full bg-[#034c85] px-8 text-sm font-bold !text-white shadow-md transition hover:bg-[#023b69] dark:bg-sky-600 dark:hover:bg-sky-700"
+        className="mt-6 inline-flex h-12 items-center justify-center rounded-full bg-[var(--tp-primary)] px-8 text-sm font-bold !text-white shadow-md transition hover:bg-[#023b69] dark:bg-sky-600 dark:hover:bg-sky-700"
       >
         Browse Products
       </Link>
@@ -305,7 +305,7 @@ function BenefitStrip() {
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
       {benefits.map((b, i) => (
         <div key={i} className="flex items-center gap-3 rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-50 text-[#034c85] dark:bg-slate-950 dark:text-sky-400">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-50 text-[var(--tp-primary)] dark:bg-slate-950 dark:text-sky-400">
             <b.icon className="h-5 w-5" />
           </div>
           <div>
@@ -449,9 +449,9 @@ export default function StoreWishlistPage2026() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         
         <nav className="mb-6 flex items-center text-sm font-semibold text-slate-500 dark:text-slate-400">
-          <Link to="/" className="hover:text-[#034c85] dark:hover:text-sky-400">Home</Link>
+          <Link to="/" className="hover:text-[var(--tp-primary)] dark:hover:text-sky-400">Home</Link>
           <span className="mx-2">/</span>
-          <Link to="/user/my-account" className="hover:text-[#034c85] dark:hover:text-sky-400">My Account</Link>
+          <Link to="/user/my-account" className="hover:text-[var(--tp-primary)] dark:hover:text-sky-400">My Account</Link>
           <span className="mx-2">/</span>
           <span className="text-slate-900 dark:text-white">Wishlist</span>
         </nav>
@@ -513,7 +513,7 @@ export default function StoreWishlistPage2026() {
                       categories={categories} activeCategory={activeCategory} onSelectCategory={setActiveCategory}
                       onClear={() => { setQuery(''); setMinPrice(''); setMaxPrice(''); setActiveCategory('all'); }}
                     />
-                    <button onClick={() => setShowMobileFilter(false)} className="mt-6 w-full rounded-full bg-[#034c85] h-12 text-sm font-bold text-white">Apply Filters</button>
+                    <button onClick={() => setShowMobileFilter(false)} className="mt-6 w-full rounded-full bg-[var(--tp-primary)] h-12 text-sm font-bold text-white">Apply Filters</button>
                   </div>
                 </div>
               )}
@@ -528,7 +528,7 @@ export default function StoreWishlistPage2026() {
                     </button>
                     
                     <div className="relative shrink-0">
-                      <select value={sort} onChange={(e) => setSort(e.target.value)} className="h-10 appearance-none rounded-full border border-slate-200 bg-white pl-4 pr-10 text-sm font-bold text-slate-700 shadow-sm outline-none focus:border-[#034c85] dark:border-white/10 dark:bg-slate-900 dark:text-slate-200">
+                      <select value={sort} onChange={(e) => setSort(e.target.value)} className="h-10 appearance-none rounded-full border border-slate-200 bg-white pl-4 pr-10 text-sm font-bold text-slate-700 shadow-sm outline-none focus:border-[var(--tp-primary)] dark:border-white/10 dark:bg-slate-900 dark:text-slate-200">
                         <option value="recent">Recently Added</option>
                         <option value="price_asc">Price: Low to High</option>
                         <option value="price_desc">Price: High to Low</option>
@@ -539,10 +539,10 @@ export default function StoreWishlistPage2026() {
                     </div>
 
                     <div className="flex shrink-0 items-center rounded-full border border-slate-200 bg-white p-1 shadow-sm dark:border-white/10 dark:bg-slate-900">
-                      <button onClick={() => setViewMode('grid')} className={`flex h-8 w-8 items-center justify-center rounded-full transition ${viewMode === 'grid' ? 'bg-slate-100 text-[#034c85] dark:bg-slate-800 dark:text-sky-400' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}>
+                      <button onClick={() => setViewMode('grid')} className={`flex h-8 w-8 items-center justify-center rounded-full transition ${viewMode === 'grid' ? 'bg-slate-100 text-[var(--tp-primary)] dark:bg-slate-800 dark:text-sky-400' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}>
                         <LayoutGrid className="h-4 w-4" />
                       </button>
-                      <button onClick={() => setViewMode('list')} className={`flex h-8 w-8 items-center justify-center rounded-full transition ${viewMode === 'list' ? 'bg-slate-100 text-[#034c85] dark:bg-slate-800 dark:text-sky-400' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}>
+                      <button onClick={() => setViewMode('list')} className={`flex h-8 w-8 items-center justify-center rounded-full transition ${viewMode === 'list' ? 'bg-slate-100 text-[var(--tp-primary)] dark:bg-slate-800 dark:text-sky-400' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}>
                         <List className="h-4 w-4" />
                       </button>
                     </div>

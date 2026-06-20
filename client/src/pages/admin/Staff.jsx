@@ -35,9 +35,9 @@ import {
 const headerBtnBase =
   "inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-[11px] font-medium transition";
 const headerBtnSoft = `${headerBtnBase} bg-slate-50/80 text-slate-600 hover:bg-slate-100`;
-const headerBtnGreen = `${headerBtnBase} bg-emerald-600 text-white hover:bg-emerald-700`;
+const headerBtnGreen = `${headerBtnBase} bg-[var(--admin-primary)] text-white hover:bg-[var(--admin-primary-strong)]`;
 const fieldClass =
-  "h-8 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none";
+  "h-8 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-[var(--admin-primary)] focus:outline-none";
 const tableHeadCell =
   "whitespace-nowrap px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500";
 const tableCell = "px-3 py-2 align-middle text-sm text-slate-700";
@@ -119,13 +119,13 @@ function ActiveStatusBadge({ isActive }) {
     <span
       className={`inline-flex min-h-5 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
         isActive
-          ? "border-emerald-200/80 bg-emerald-50/80 text-emerald-700"
+          ? "border-[var(--admin-primary-soft)]/80 bg-[var(--admin-primary-soft)]/80 text-[var(--admin-primary)]"
           : "border-rose-200/80 bg-rose-50/80 text-rose-700"
       }`}
     >
       <span
         className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-          isActive ? "bg-emerald-500" : "bg-rose-500"
+          isActive ? "bg-[var(--admin-primary-soft)]0" : "bg-rose-500"
         }`}
       />
       {isActive ? "Active" : "Inactive"}
@@ -540,7 +540,7 @@ export default function AdminStaffPage() {
       {notice ? (
         <div
           id="admin-staff-notice"
-          className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-700"
+          className="rounded-2xl border border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] px-4 py-2 text-sm text-[var(--admin-primary)]"
         >
           {notice}
         </div>
@@ -568,7 +568,7 @@ export default function AdminStaffPage() {
           <button
             type="button"
             onClick={openCreateModal}
-            className="mt-2.5 inline-flex h-8 items-center justify-center rounded-lg bg-emerald-600 px-3 text-[11px] font-medium text-white hover:bg-emerald-700"
+            className="mt-2.5 inline-flex h-8 items-center justify-center rounded-lg bg-[var(--admin-primary)] px-3 text-[11px] font-medium text-white hover:bg-[var(--admin-primary-strong)]"
           >
             Create Account
           </button>
@@ -609,7 +609,7 @@ export default function AdminStaffPage() {
                     >
                       <td className={`${tableCell} w-[44%]`}>
                         <div className="flex items-center gap-3">
-                          <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-[11px] font-semibold text-emerald-700">
+                          <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--admin-primary-soft)] text-[11px] font-semibold text-[var(--admin-primary)]">
                             {getStaffAvatarUrl(staff) ? (
                               <img
                                 src={getStaffAvatarUrl(staff)}
@@ -649,7 +649,7 @@ export default function AdminStaffPage() {
                               onClick={() => onTogglePublished(staff)}
                               disabled={isPublishing}
                               className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition ${
-                                getPublished(staff) ? "bg-emerald-500" : "bg-slate-300"
+                                getPublished(staff) ? "bg-[var(--admin-primary-soft)]0" : "bg-slate-300"
                               } ${isPublishing ? "cursor-not-allowed opacity-60" : ""}`}
                               aria-label={`Toggle publish for ${getStaffName(staff)}`}
                             >
@@ -679,7 +679,7 @@ export default function AdminStaffPage() {
                               onClick={() => onApproveStaff(staff)}
                               disabled={isApproving}
                               title="Approve account"
-                              className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-emerald-200 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
+                              className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-[var(--admin-primary-soft)] text-[var(--admin-primary)] hover:border-[var(--admin-primary)] hover:bg-[var(--admin-primary-soft)] disabled:cursor-not-allowed disabled:opacity-60"
                               aria-label={`Approve ${getStaffName(staff)}`}
                             >
                               <CheckCheck className="h-3.5 w-3.5" />
@@ -777,7 +777,7 @@ export default function AdminStaffPage() {
             </div>
             <div className="mt-4 space-y-3 text-sm">
               <div className="flex items-center gap-3">
-                <span className="inline-flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-emerald-100 text-sm font-semibold text-emerald-700">
+                <span className="inline-flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-[var(--admin-primary-soft)] text-sm font-semibold text-[var(--admin-primary)]">
                   {getStaffAvatarUrl(viewTarget) ? (
                     <img
                       src={getStaffAvatarUrl(viewTarget)}

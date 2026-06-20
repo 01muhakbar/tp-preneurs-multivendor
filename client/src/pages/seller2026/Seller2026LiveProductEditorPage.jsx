@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   AlertTriangle,
@@ -25,6 +25,7 @@ import { useSeller2026ProductEditor } from "../../hooks/seller2026/useSeller2026
 import { useSellerWorkspaceRoute } from "../../utils/sellerWorkspaceRoute.js";
 import { getSeller2026PagePermissions } from "./seller2026PagePermissions.js";
 import "../../features/sellerWorkspace2026/SellerWorkspace2026.css";
+import SellerProductEditorMedia2026 from "../../features/sellerWorkspace2026/productEditor/SellerProductEditorMedia2026.jsx";
 
 function Field({ label, error, children, ...props }) {
   return (
@@ -64,6 +65,22 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
   const dirty = JSON.stringify(editor.form) !== initial || mode === "create";
   const setValue = (key) => (event) => editor.setForm((current) => ({ ...current, [key]: event.target.value }));
   const persistedId = productId || editor.form.id;
+
+  const [activeTab, setActiveTab] = useState(() => {
+    const hash = window.location.hash.replace("#editor-", "");
+    return ["details", "media", "pricing", "inventory", "seo"].includes(hash) ? hash : "details";
+  });
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace("#editor-", "");
+      if (["details", "media", "pricing", "inventory", "seo"].includes(hash)) {
+        setActiveTab(hash);
+      }
+    };
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
 
   const addTag = () => {
     const value = tagInput.trim();
@@ -146,62 +163,63 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
 
       <form className="seller2026-editor__surface" onSubmit={(event) => event.preventDefault()}>
         <nav className="seller2026-editor__tabs">
-          {[["details", FileText], ["media", Image], ["pricing", Tag], ["inventory", Layers], ["seo", Search]].map(([label, Icon], index) => <a className={index === 0 ? "is-active" : ""} href={`#editor-${label}`} key={label}><Icon size={17} />{label[0].toUpperCase() + label.slice(1)}</a>)}
+          {[["details", FileText], ["media", Image], ["pricing", Tag], ["inventory", Layers], ["seo", Search]].map(([label, Icon]) => <a className={activeTab === label ? "is-active" : ""} href={`#editor-${label}`} key={label}><Icon size={17} />{label[0].toUpperCase() + label.slice(1)}</a>)}
         </nav>
 
-        <section className="seller2026-editor__details" id="editor-details">
-          <div className="seller2026-editor__column">
-            <Field label="Product Name *" error={editor.validation.name} value={editor.form.name} onChange={(event) => editor.setForm((current) => ({ ...current, name: event.target.value, slug: current.slug || slugifySeller2026Product(event.target.value) }))} />
-            <Field label="Product Description"><textarea rows={4} value={editor.form.description} onChange={setValue("description")} /></Field>
-            <div className="seller2026-editor__media" id="editor-media">
-              <strong>Images</strong>
-              <div>
-                {editor.form.images.map((url, index) => (
-                  <figure key={url}><img src={resolveAssetUrl(url)} alt={`Product ${index + 1}`} />{index === 0 ? <span>Cover</span> : null}<button type="button" onClick={() => window.confirm("Remove this image from the draft?") && editor.setForm((current) => ({ ...current, images: current.images.filter((item) => item !== url) }))}><Trash2 size={13} /></button></figure>
-                ))}
-                <button className="seller2026-editor__add-image" type="button" onClick={() => imageInputRef.current?.click()} disabled={uploading || editor.form.images.length >= 10}><Plus size={22} />{uploading ? "Uploading..." : "Add Image"}</button>
-                <input ref={imageInputRef} hidden multiple accept="image/*" type="file" onChange={(event) => handleImages(event.target.files)} />
-              </div>
-              <small>Upload up to 10 images. JPG or PNG.</small>
+        <div style={{ display: activeTab === "details" ? "block" : "none" }}>
+          <section className="seller2026-editor__details" id="editor-details">
+            <div className="seller2026-editor__column">
+              <Field label="Product Name *" error={editor.validation.name} value={editor.form.name} onChange={(event) => editor.setForm((current) => ({ ...current, name: event.target.value, slug: current.slug || slugifySeller2026Product(event.target.value) }))} />
+              <Field label="Product Description"><textarea rows={4} value={editor.form.description} onChange={setValue("description")} /></Field>
             </div>
-          </div>
 
-          <div className="seller2026-editor__column">
-            <Field label="Short Description" value={editor.form.shortDescription} disabled title="Short description is not supported by the current seller draft API" />
-            <Field label="Categories *" error={editor.validation.categoryIds}>
-              <div className="seller2026-editor__category-picker">
-                {editor.categories.map((category) => <label key={category.value}><input type="checkbox" checked={editor.form.categoryIds.includes(category.value)} onChange={(event) => editor.setForm((current) => {
-                  const categoryIds = event.target.checked ? [...current.categoryIds, category.value] : current.categoryIds.filter((id) => id !== category.value);
-                  return { ...current, categoryIds, defaultCategoryId: categoryIds.includes(current.defaultCategoryId) ? current.defaultCategoryId : categoryIds[0] || "" };
-                })} />{category.label}</label>)}
-              </div>
+            <div className="seller2026-editor__column">
+              <Field label="Short Description" value={editor.form.shortDescription} disabled title="Short description is not supported by the current seller draft API" />
+              <Field label="Categories *" error={editor.validation.categoryIds}>
+                <div className="seller2026-editor__category-picker">
+                  {editor.categories.map((category) => <label key={category.value}><input type="checkbox" checked={editor.form.categoryIds.includes(category.value)} onChange={(event) => editor.setForm((current) => {
+                    const categoryIds = event.target.checked ? [...current.categoryIds, category.value] : current.categoryIds.filter((id) => id !== category.value);
+                    return { ...current, categoryIds, defaultCategoryId: categoryIds.includes(current.defaultCategoryId) ? current.defaultCategoryId : categoryIds[0] || "" };
+                  })} />{category.label}</label>)}
+                </div>
+              </Field>
+              <Field label="Default Category *">
+                <select value={editor.form.defaultCategoryId} onChange={setValue("defaultCategoryId")}><option value="">Select default category</option>{editor.categories.filter((item) => editor.form.categoryIds.includes(item.value)).map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}</select>
+              </Field>
+            </div>
+          </section>
+        </div>
+
+        <div style={{ display: activeTab === "media" ? "block" : "none" }} id="editor-media">
+          <SellerProductEditorMedia2026 editor={editor} />
+        </div>
+
+        <div style={{ display: activeTab === "pricing" ? "block" : "none" }}>
+          <section className="seller2026-editor__fields" id="editor-pricing">
+            <Field label="Product Price *" error={editor.validation.price}><div className="seller2026-editor__money"><span>Rp</span><input type="number" min="0" value={editor.form.price} onChange={setValue("price")} /></div></Field>
+            <Field label="Sale Price" error={editor.validation.salePrice}><div className="seller2026-editor__money"><span>Rp</span><input type="number" min="0" value={editor.form.salePrice} onChange={setValue("salePrice")} /></div></Field>
+            <Field label="Quantity *" error={editor.validation.quantity} type="number" min="0" value={editor.form.quantity} onChange={setValue("quantity")} />
+            <Field label="SKU" value={editor.form.sku} onChange={setValue("sku")} />
+            <Field label="Barcode (ISBN / EAN)" value={editor.form.barcode} onChange={setValue("barcode")} />
+            <Field label="Product Slug *" value={editor.form.slug} onChange={setValue("slug")} />
+            <Field label="Tags">
+              <div className="seller2026-editor__tags">{editor.form.tags.map((tag) => <span key={tag}>{tag}<button type="button" aria-label={`Remove ${tag}`} onClick={() => editor.setForm((current) => ({ ...current, tags: current.tags.filter((item) => item !== tag) }))}>x</button></span>)}<input value={tagInput} onChange={(event) => setTagInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addTag(); } }} placeholder="Press Enter to add" /></div>
             </Field>
-            <Field label="Default Category *">
-              <select value={editor.form.defaultCategoryId} onChange={setValue("defaultCategoryId")}><option value="">Select default category</option>{editor.categories.filter((item) => editor.form.categoryIds.includes(item.value)).map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}</select>
-            </Field>
-          </div>
-        </section>
+          </section>
+        </div>
 
-        <section className="seller2026-editor__fields" id="editor-pricing">
-          <Field label="Product Price *" error={editor.validation.price}><div className="seller2026-editor__money"><span>Rp</span><input type="number" min="0" value={editor.form.price} onChange={setValue("price")} /></div></Field>
-          <Field label="Sale Price" error={editor.validation.salePrice}><div className="seller2026-editor__money"><span>Rp</span><input type="number" min="0" value={editor.form.salePrice} onChange={setValue("salePrice")} /></div></Field>
-          <Field label="Quantity *" error={editor.validation.quantity} type="number" min="0" value={editor.form.quantity} onChange={setValue("quantity")} />
-          <Field label="SKU" value={editor.form.sku} onChange={setValue("sku")} />
-          <Field label="Barcode (ISBN / EAN)" value={editor.form.barcode} onChange={setValue("barcode")} />
-          <Field label="Product Slug *" value={editor.form.slug} onChange={setValue("slug")} />
-          <Field label="Tags">
-            <div className="seller2026-editor__tags">{editor.form.tags.map((tag) => <span key={tag}>{tag}<button type="button" aria-label={`Remove ${tag}`} onClick={() => editor.setForm((current) => ({ ...current, tags: current.tags.filter((item) => item !== tag) }))}>x</button></span>)}<input value={tagInput} onChange={(event) => setTagInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addTag(); } }} placeholder="Press Enter to add" /></div>
-          </Field>
-        </section>
+        <div style={{ display: activeTab === "inventory" ? "block" : "none" }}>
+          <section className="seller2026-editor__variant" id="editor-inventory">
+            <div><strong>This product has variants</strong><span>Variant management is not available in this workflow.</span></div><button className="seller2026-switch" disabled><i /></button>
+          </section>
+        </div>
 
-        <section className="seller2026-editor__variant" id="editor-inventory">
-          <div><strong>This product has variants</strong><span>Variant management is not available in this workflow.</span></div><button className="seller2026-switch" disabled><i /></button>
-        </section>
-
-        <section className="seller2026-editor__seo" id="editor-seo">
-          <Field label="SEO Title" value={editor.form.seoTitle} onChange={setValue("seoTitle")} />
-          <Field label="SEO Description"><textarea rows={3} value={editor.form.seoDescription} onChange={setValue("seoDescription")} /></Field>
-        </section>
+        <div style={{ display: activeTab === "seo" ? "block" : "none" }}>
+          <section className="seller2026-editor__seo" id="editor-seo">
+            <Field label="SEO Title" value={editor.form.seoTitle} onChange={setValue("seoTitle")} />
+            <Field label="SEO Description"><textarea rows={3} value={editor.form.seoDescription} onChange={setValue("seoDescription")} /></Field>
+          </section>
+        </div>
       </form>
     </div>
   );

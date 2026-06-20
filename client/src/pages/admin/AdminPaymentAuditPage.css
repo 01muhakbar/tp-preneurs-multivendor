@@ -1,15 +1,15 @@
 .admin-payment-audit-page {
-  --paa-bg: #f7f9fc;
-  --paa-card: #ffffff;
-  --paa-card-soft: #f4f7fb;
-  --paa-border: #dfe7f1;
-  --paa-text: #0c1833;
-  --paa-muted: #687794;
-  --paa-primary: #059669;
-  --paa-green: #10b981;
+  --paa-bg: var(--tp-bg);
+  --paa-card: var(--tp-surface);
+  --paa-card-soft: var(--tp-surface-soft);
+  --paa-border: var(--tp-border);
+  --paa-text: var(--tp-text);
+  --paa-muted: var(--tp-muted);
+  --paa-primary: var(--tp-primary);
+  --paa-green: var(--tp-success);
   --paa-amber: #f59e0b;
   --paa-red: #ef4444;
-  --paa-blue: #2563eb;
+  --paa-blue: var(--tp-primary);
   min-height: 100%;
   display: grid;
   gap: 22px;
@@ -33,17 +33,17 @@ body.dark .admin-payment-audit-page,
 [data-theme='dark'] .admin-payment-audit-page,
 [data-admin-theme='dark'] .admin-payment-audit-page,
 .admin-theme-dark .admin-payment-audit-page {
-  --paa-bg: #07111d;
-  --paa-card: #0b1624;
-  --paa-card-soft: #111f31;
-  --paa-border: #223249;
-  --paa-text: #edf4ff;
-  --paa-muted: #9aa9bd;
-  --paa-primary: #16c784;
-  --paa-green: #34d399;
+  --paa-bg: var(--tp-bg);
+  --paa-card: var(--tp-surface);
+  --paa-card-soft: var(--tp-surface-soft);
+  --paa-border: var(--tp-border);
+  --paa-text: var(--tp-text);
+  --paa-muted: var(--tp-muted);
+  --paa-primary: var(--tp-primary);
+  --paa-green: var(--tp-success);
   --paa-amber: #fbbf24;
   --paa-red: #fb7185;
-  --paa-blue: #60a5fa;
+  --paa-blue: var(--tp-primary);
 }
 
 .paa-hero,

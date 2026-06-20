@@ -1,15 +1,15 @@
 .admin-store-payment-profiles-page {
-  --spp-bg: #f8fafc;
-  --spp-card: #ffffff;
-  --spp-card-soft: #f8fafc;
-  --spp-border: #e2e8f0;
-  --spp-text: #0f172a;
-  --spp-muted: #64748b;
-  --spp-primary: #10b981;
-  --spp-green: #10b981;
+  --spp-bg: var(--tp-bg);
+  --spp-card: var(--tp-surface);
+  --spp-card-soft: var(--tp-surface-soft);
+  --spp-border: var(--tp-border);
+  --spp-text: var(--tp-text);
+  --spp-muted: var(--tp-muted);
+  --spp-primary: var(--tp-primary);
+  --spp-green: var(--tp-success);
   --spp-amber: #f59e0b;
   --spp-red: #ef4444;
-  --spp-blue: #3b82f6;
+  --spp-blue: var(--tp-primary);
   --spp-purple: #8b5cf6;
   --spp-shadow: 0 18px 46px rgba(15, 23, 42, 0.07);
   display: flex;

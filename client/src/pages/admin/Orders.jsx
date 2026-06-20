@@ -40,16 +40,16 @@ import { normalizeAdminOrder } from "../../services/adapters/orderAdapter.js";
 const headerBtnBase =
   "inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-3 text-xs font-semibold transition";
 const headerBtnOutline = `${headerBtnBase} border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50`;
-const headerBtnGreen = `${headerBtnBase} bg-emerald-600 text-white hover:bg-emerald-700`;
+const headerBtnGreen = `${headerBtnBase} bg-[var(--admin-primary)] text-white hover:bg-[var(--admin-primary-strong)]`;
 const headerBtnSoft = `${headerBtnBase} border border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:bg-white`;
 const headerBtnDisabled = `${headerBtnBase} cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400 opacity-80`;
 const fieldClass =
-  "h-9 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none";
+  "h-9 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus:border-[var(--admin-primary)] focus:outline-none";
 const tableHeadCell =
   "whitespace-nowrap px-2.5 py-2 text-[10px] font-medium uppercase tracking-[0.08em] text-slate-400";
 const tableCell = "px-2.5 py-2 align-middle text-[13px] text-slate-700";
 const selectionCheckboxClass =
-  "h-4 w-4 rounded border border-emerald-300 text-emerald-600 focus:ring-emerald-500";
+  "h-4 w-4 rounded border border-[var(--admin-primary)] text-[var(--admin-primary)] focus:ring-[var(--admin-primary)]";
 const subtleLabelClass = "text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500";
 const BULK_OPERATIONS_AVAILABLE = false;
 const compactBadgeClass = "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold";
@@ -66,7 +66,7 @@ const DELIVERY_TONE_CLASS = {
   amber: "border-amber-200 bg-amber-50 text-amber-700",
   sky: "border-sky-200 bg-sky-50 text-sky-700",
   indigo: "border-indigo-200 bg-indigo-50 text-indigo-700",
-  emerald: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  emerald: "border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]",
   rose: "border-rose-200 bg-rose-50 text-rose-700",
   orange: "border-orange-200 bg-orange-50 text-orange-700",
   teal: "border-teal-200 bg-teal-50 text-teal-700",
@@ -585,7 +585,7 @@ export default function Orders() {
       </div>
 
       {notice ? (
-        <div className="pointer-events-none fixed bottom-4 right-4 z-50 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-700 shadow-sm">
+        <div className="pointer-events-none fixed bottom-4 right-4 z-50 rounded-xl border border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] px-4 py-2 text-sm text-[var(--admin-primary)] shadow-sm">
           {notice}
         </div>
       ) : null}
@@ -748,7 +748,7 @@ export default function Orders() {
                             value={actionStatus}
                             onChange={(event) => onUpdateStatus(order, event.target.value)}
                             disabled={isUpdating || !hasBackendActions}
-                            className="h-9 w-full min-w-0 rounded-xl border border-slate-200 bg-white px-2 text-[11px] font-medium text-slate-700 focus:border-emerald-500 focus:outline-none disabled:opacity-60"
+                            className="h-9 w-full min-w-0 rounded-xl border border-slate-200 bg-white px-2 text-[11px] font-medium text-slate-700 focus:border-[var(--admin-primary)] focus:outline-none disabled:opacity-60"
                           >
                             {actionOptions.map((option) => (
                               <option

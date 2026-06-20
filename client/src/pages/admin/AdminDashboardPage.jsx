@@ -137,7 +137,7 @@ export default function AdminDashboardPage() {
             </Link>
             <Link
               to="/admin/orders"
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-3 text-sm font-semibold text-white hover:bg-emerald-700"
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-[var(--admin-primary)] px-3 text-sm font-semibold text-white hover:bg-[var(--admin-primary-strong)]"
             >
               View Orders
               <ArrowRight className="h-4 w-4" />
@@ -150,7 +150,7 @@ export default function AdminDashboardPage() {
         <div className="border-b border-slate-200 px-4 py-3">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-slate-900">Recent Orders</h2>
-            <Link to="/admin/orders" className="text-xs font-medium text-emerald-700 hover:text-emerald-800">
+            <Link to="/admin/orders" className="text-xs font-medium text-[var(--admin-primary)] hover:text-[var(--admin-primary-strong)]">
               View all
             </Link>
           </div>

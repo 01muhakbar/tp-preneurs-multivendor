@@ -1,15 +1,15 @@
 .store-settings-2026 {
-  --ss-bg: #f8fafc;
-  --ss-card: #ffffff;
-  --ss-card-soft: #f8fafc;
-  --ss-border: #e2e8f0;
-  --ss-text: #0f172a;
-  --ss-muted: #64748b;
-  --ss-primary: #10b981;
-  --ss-green: #10b981;
+  --ss-bg: var(--tp-bg);
+  --ss-card: var(--tp-surface);
+  --ss-card-soft: var(--tp-surface-soft);
+  --ss-border: var(--tp-border);
+  --ss-text: var(--tp-text);
+  --ss-muted: var(--tp-muted);
+  --ss-primary: var(--tp-primary);
+  --ss-green: var(--tp-success);
   --ss-amber: #f59e0b;
   --ss-red: #ef4444;
-  --ss-blue: #3b82f6;
+  --ss-blue: var(--tp-primary);
   --ss-shadow: 0 20px 50px rgba(15, 23, 42, 0.07);
   display: flex;
   width: 100%;

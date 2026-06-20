@@ -97,7 +97,7 @@ function AccountSidebar({ user, onLogout, isLoggingOut, dashboardSettingCopy }) 
                 initials
               )}
             </div>
-            <span className="absolute -bottom-1 left-1/2 h-3 w-3 -translate-x-1/2 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-900" />
+            <span className="absolute -bottom-1 left-1/2 h-3 w-3 -translate-x-1/2 rounded-full border-2 border-white bg-[var(--tp-accent)] dark:border-slate-900" />
           </div>
           <div>
             <p className="text-sm font-semibold text-slate-900 dark:text-white">{displayName}</p>
@@ -115,8 +115,8 @@ function AccountSidebar({ user, onLogout, isLoggingOut, dashboardSettingCopy }) 
                 [
                   "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition",
                   isActive
-                    ? "bg-emerald-100 text-emerald-700 font-semibold dark:bg-emerald-950/40 dark:text-emerald-300"
-                    : "text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-emerald-300",
+                    ? "bg-[var(--tp-primary-soft)] text-[var(--tp-primary)] font-semibold dark:text-sky-200"
+                    : "text-slate-600 hover:bg-[var(--tp-primary-soft)] hover:text-[var(--tp-primary)] dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-sky-200",
                 ].join(" ")
               }
             >

@@ -60,12 +60,12 @@ const hasParentCategory = (category) => {
 const btnBase =
   "inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3.5 text-[13px] font-medium transition";
 const btnOutline = `${btnBase} border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50`;
-const btnGreen = `${btnBase} bg-emerald-500 text-white hover:bg-emerald-600`;
+const btnGreen = `${btnBase} bg-[var(--admin-primary-soft)]0 text-white hover:bg-[var(--admin-primary)]`;
 const btnDanger = `${btnBase} border border-slate-200 bg-slate-100 text-slate-400 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60`;
 const btnAmber = `${btnBase} border border-amber-200 bg-amber-100 text-amber-700 hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-60`;
 const btnSoft = `${btnBase} border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60`;
 const fieldClass =
-  "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-[14px] text-slate-700 focus:border-emerald-500 focus:outline-none";
+  "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-[14px] text-slate-700 focus:border-[var(--admin-primary)] focus:outline-none";
 const tableHeadCell =
   "whitespace-nowrap px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500";
 const tableCell = "px-3 py-2 align-middle text-sm text-slate-700";
@@ -94,13 +94,13 @@ function CategoryPublishedBadge({ published }) {
     <span
       className={`inline-flex min-h-6 items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
         published
-          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+          ? "border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]"
           : "border-slate-200 bg-slate-100 text-slate-600"
       }`}
     >
       <span
         className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-          published ? "bg-emerald-500" : "bg-slate-400"
+          published ? "bg-[var(--admin-primary-soft)]0" : "bg-slate-400"
         }`}
       />
       {published ? "Active" : "Inactive"}
@@ -700,7 +700,7 @@ export default function AdminCategoriesPage() {
               <button
                 type="button"
                 onClick={handleBackToParents}
-                className="font-medium text-slate-600 hover:text-emerald-600"
+                className="font-medium text-slate-600 hover:text-[var(--admin-primary)]"
               >
                 Category
               </button>
@@ -720,7 +720,7 @@ export default function AdminCategoriesPage() {
           className={`rounded-xl px-3 py-2 text-sm ${
             notice.type === "error"
               ? "border border-rose-200 bg-rose-50 text-rose-700"
-              : "border border-emerald-200 bg-emerald-50 text-emerald-700"
+              : "border border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]"
           }`}
         >
           {notice.message}
@@ -917,7 +917,7 @@ export default function AdminCategoriesPage() {
                         if (event.target.checked) setSelectedIds(tableItems.map((item) => item.id));
                         else setSelectedIds([]);
                       }}
-                      className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                      className="h-4 w-4 rounded border-slate-300 text-[var(--admin-primary)] focus:ring-[var(--admin-primary)]"
                     />
                   </th>
                   <th className={`${tableHeadCell} w-[36%]`}>Category</th>
@@ -956,7 +956,7 @@ export default function AdminCategoriesPage() {
                               return prev.filter((id) => id !== category.id);
                             });
                           }}
-                          className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                          className="h-4 w-4 rounded border-slate-300 text-[var(--admin-primary)] focus:ring-[var(--admin-primary)]"
                         />
                       </td>
                       <td className={`${tableCell} w-[36%]`}>
@@ -981,7 +981,7 @@ export default function AdminCategoriesPage() {
                             <button
                               type="button"
                               onClick={() => handleOpenSubcategories(category)}
-                              className="inline-flex items-center gap-1 text-left text-sm font-semibold text-slate-900 hover:text-emerald-600"
+                              className="inline-flex items-center gap-1 text-left text-sm font-semibold text-slate-900 hover:text-[var(--admin-primary)]"
                             >
                               <span className="truncate">{category.name}</span>
                               <ChevronRight className="h-4 w-4 text-slate-400" />
@@ -1005,7 +1005,7 @@ export default function AdminCategoriesPage() {
                             onClick={() => handleTogglePublished(category)}
                             disabled={isPublishingRow}
                             className={`relative inline-flex h-5 w-10 items-center rounded-full transition ${
-                              category.published ? "bg-emerald-500" : "bg-slate-300"
+                              category.published ? "bg-[var(--admin-primary-soft)]0" : "bg-slate-300"
                             } ${isPublishingRow ? "cursor-wait opacity-60" : ""}`}
                             aria-label={`Toggle publish for ${category.name}`}
                           >
@@ -1125,7 +1125,7 @@ export default function AdminCategoriesPage() {
                       : "Create a new category and assign it to a parent if needed."}
                   </p>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
+                    <span className="inline-flex items-center rounded-full border border-emerald-100 bg-[var(--admin-primary-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--admin-primary)]">
                       {editing ? "Edit Mode" : "Create Mode"}
                     </span>
                     <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold text-slate-600">
@@ -1176,7 +1176,7 @@ export default function AdminCategoriesPage() {
                   <input
                     value={form.name}
                     onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-                    className="mt-2 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm focus:border-emerald-500 focus:outline-none"
+                    className="mt-2 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm focus:border-[var(--admin-primary)] focus:outline-none"
                     placeholder="Category title"
                     required
                   />
@@ -1190,7 +1190,7 @@ export default function AdminCategoriesPage() {
                       setForm((prev) => ({ ...prev, description: event.target.value }))
                     }
                     rows={3}
-                    className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                    className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[var(--admin-primary)] focus:outline-none"
                     placeholder="Category Description"
                   />
                 </div>
@@ -1211,7 +1211,7 @@ export default function AdminCategoriesPage() {
                       setForm((prev) => ({ ...prev, parent_id: event.target.value }))
                     }
                     disabled={isSubView}
-                    className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm focus:border-emerald-500 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100"
+                    className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm focus:border-[var(--admin-primary)] focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100"
                   >
                     {isSubView ? (
                       <option value={String(selectedParent?.id ?? "")}>{selectedParentName}</option>
@@ -1279,7 +1279,7 @@ export default function AdminCategoriesPage() {
                   <input
                     value={form.icon}
                     onChange={(event) => setForm((prev) => ({ ...prev, icon: event.target.value }))}
-                    className="mt-2 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm focus:border-emerald-500 focus:outline-none"
+                    className="mt-2 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm focus:border-[var(--admin-primary)] focus:outline-none"
                     placeholder="Image URL (optional)"
                   />
                   {previewImageUrl ? (
@@ -1317,7 +1317,7 @@ export default function AdminCategoriesPage() {
                         setForm((prev) => ({ ...prev, published: !Boolean(prev.published) }))
                       }
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
-                        form.published ? "bg-emerald-500" : "bg-slate-300"
+                        form.published ? "bg-[var(--admin-primary-soft)]0" : "bg-slate-300"
                       }`}
                       aria-label="Toggle published"
                     >
@@ -1353,7 +1353,7 @@ export default function AdminCategoriesPage() {
                     type="submit"
                     form="category-form"
                     disabled={isFormBusy}
-                    className="inline-flex h-10 items-center justify-center rounded-lg bg-emerald-500 px-4 text-sm font-semibold text-white disabled:opacity-60"
+                    className="inline-flex h-10 items-center justify-center rounded-lg bg-[var(--admin-primary-soft)]0 px-4 text-sm font-semibold text-white disabled:opacity-60"
                   >
                     {isFormBusy
                       ? editing

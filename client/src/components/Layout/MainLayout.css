@@ -1,11 +1,40 @@
 .layout {
   display: flex;
   min-height: 100vh;
-  background: #f3f4f6;
+  background: var(--admin-bg, #f3f4f6);
+}
+
+.admin-theme-light {
+  --admin-bg: var(--tp-bg);
+  --admin-surface: var(--tp-surface);
+  --admin-surface-soft: var(--tp-surface-soft);
+  --admin-border: var(--tp-border);
+  --admin-text: var(--tp-text);
+  --admin-muted: var(--tp-muted);
+  --admin-primary: var(--tp-primary);
+  --admin-primary-strong: var(--tp-primary-strong);
+  --admin-primary-soft: var(--tp-primary-soft);
+  --admin-accent: var(--tp-accent);
+  --admin-accent-soft: var(--tp-accent-soft);
+}
+
+.admin-theme-dark {
+  --admin-bg: var(--tp-bg);
+  --admin-surface: var(--tp-surface);
+  --admin-surface-soft: var(--tp-surface-soft);
+  --admin-border: var(--tp-border);
+  --admin-text: var(--tp-text);
+  --admin-muted: var(--tp-muted);
+  --admin-primary: var(--tp-primary);
+  --admin-primary-strong: var(--tp-primary-strong);
+  --admin-primary-soft: var(--tp-primary-soft);
+  --admin-accent: var(--tp-accent);
+  --admin-accent-soft: var(--tp-accent-soft);
 }
 
 .admin-shell {
-  background: #f6f8fb;
+  background: var(--admin-bg, #f6f8fb);
+  color: var(--admin-text, #071a3f);
 }
 
 .layout__content {
@@ -13,7 +42,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: #f3f4f6;
+  background: var(--admin-bg, #f3f4f6);
 }
 
 .admin-content {
@@ -41,6 +70,7 @@
 .admin-page-shell .rounded-2xl.border.bg-white,
 .admin-page-shell .overflow-hidden.rounded-2xl.border.bg-white {
   border-color: #e2e8f0;
+  border-color: var(--admin-border, #e2e8f0);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
 }
 
@@ -48,11 +78,11 @@
 .admin-theme-dark .layout__content,
 .admin-theme-dark.admin-shell,
 .admin-theme-dark .admin-content {
-  background: #020617;
+  background: var(--admin-bg);
 }
 
 .admin-theme-dark .admin-page-shell {
-  color: #e2e8f0;
+  color: var(--admin-text);
 }
 
 .admin-theme-dark .admin-page-shell .bg-white,
@@ -61,22 +91,22 @@
 .admin-theme-dark .admin-page-shell .dashboard-card,
 .admin-theme-dark .admin-page-shell .status-mini-card,
 .admin-theme-dark .admin-page-shell .dashboard-recent {
-  background: #0f172a !important;
-  border-color: #334155 !important;
+  background: var(--admin-surface) !important;
+  border-color: var(--admin-border) !important;
   box-shadow: none !important;
 }
 
 .admin-theme-dark .admin-page-shell .bg-slate-50,
 .admin-theme-dark .admin-page-shell .bg-slate-100,
 .admin-theme-dark .admin-page-shell .bg-slate-200 {
-  background: #1e293b !important;
+  background: var(--admin-surface-soft) !important;
 }
 
 .admin-theme-dark .admin-page-shell .border,
 .admin-theme-dark .admin-page-shell .border-slate-100,
 .admin-theme-dark .admin-page-shell .border-slate-200,
 .admin-theme-dark .admin-page-shell .border-slate-300 {
-  border-color: #334155 !important;
+  border-color: var(--admin-border) !important;
 }
 
 .admin-theme-dark .admin-page-shell .text-slate-900,
@@ -86,7 +116,7 @@
 .admin-theme-dark .admin-page-shell .best-selling-card__value,
 .admin-theme-dark .admin-page-shell .status-mini-card__value,
 .admin-theme-dark .admin-page-shell .dashboard-recent__header h3 {
-  color: #f8fafc !important;
+  color: var(--admin-text) !important;
 }
 
 .admin-theme-dark .admin-page-shell .text-slate-700,
@@ -99,21 +129,21 @@
 .admin-theme-dark .admin-page-shell .dashboard-recent--loading,
 .admin-theme-dark .admin-page-shell .dashboard-recent--error,
 .admin-theme-dark .admin-page-shell .dashboard-recent--empty {
-  color: #94a3b8 !important;
+  color: var(--admin-muted) !important;
 }
 
 .admin-theme-dark .admin-page-shell .dashboard-tab.is-active {
-  background: #10b981;
+  background: var(--admin-primary);
 }
 
 .admin-theme-dark .admin-page-shell .dashboard-recent__table th {
-  background: #1e293b;
-  color: #cbd5e1;
+  background: var(--admin-surface-soft);
+  color: var(--admin-text);
 }
 
 .admin-theme-dark .admin-page-shell .dashboard-recent__table th,
 .admin-theme-dark .admin-page-shell .dashboard-recent__table td {
-  border-top-color: #334155;
+  border-top-color: var(--admin-border);
 }
 
 @media (max-width: 1024px) {

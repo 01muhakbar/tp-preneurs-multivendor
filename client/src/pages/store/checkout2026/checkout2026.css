@@ -1,12 +1,12 @@
 .co26-page {
-  --co26-blue: #034c85;
-  --co26-blue-strong: #003d73;
-  --co26-orange: #fe6f05;
-  --co26-ink: #082a52;
-  --co26-muted: #63738c;
-  --co26-border: #dce5ef;
-  --co26-surface: #fff;
-  --co26-soft: #f5f8fc;
+  --co26-blue: var(--tp-primary);
+  --co26-blue-strong: var(--tp-primary-strong);
+  --co26-orange: var(--tp-accent);
+  --co26-ink: var(--tp-text);
+  --co26-muted: var(--tp-muted);
+  --co26-border: var(--tp-border);
+  --co26-surface: var(--tp-surface);
+  --co26-soft: var(--tp-surface-soft);
   min-height: calc(100vh - 150px);
   background: radial-gradient(circle at 12% 5%, rgba(3,76,133,.055), transparent 29rem), #f8fafc;
   color: var(--co26-ink);

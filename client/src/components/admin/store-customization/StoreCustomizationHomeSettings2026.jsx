@@ -1023,7 +1023,7 @@ export default function StoreCustomizationHomeSettings2026({
                       </p>
                     ) : null}
                     {toText(currentSlider.buttonName) ? (
-                      <span className="mt-3 inline-flex h-9 items-center rounded-full bg-[#034c85] px-4 text-xs font-black text-white">
+                      <span className="mt-3 inline-flex h-9 items-center rounded-full bg-[var(--tp-primary)] px-4 text-xs font-black text-white">
                         {currentSlider.buttonName}
                       </span>
                     ) : null}
@@ -1031,7 +1031,7 @@ export default function StoreCustomizationHomeSettings2026({
                   </div>
                   {draft.discountCouponBox.enabled ? (
                     <div className="rounded-2xl border border-[#cdebdc] bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-slate-950">
-                      <p className="text-[7px] font-black uppercase tracking-[0.16em] text-[#fe6f05]">
+                      <p className="text-[7px] font-black uppercase tracking-[0.16em] text-[var(--tp-accent)]">
                         Coupon Box
                       </p>
                       <p className="mt-1 line-clamp-2 text-[10px] font-black leading-3 text-[#071a3f] dark:text-white">
@@ -1041,7 +1041,7 @@ export default function StoreCustomizationHomeSettings2026({
                         <p className="text-[7px] font-black uppercase tracking-[0.12em] text-[#00a46c]">
                           Coupon
                         </p>
-                        <p className="mt-1 truncate text-[11px] font-black tracking-[0.12em] text-[#034c85] dark:text-sky-300">
+                        <p className="mt-1 truncate text-[11px] font-black tracking-[0.12em] text-[var(--tp-primary)] dark:text-sky-300">
                           {draft.discountCouponBox.activeCouponCodes?.[0] || "CODE"}
                         </p>
                       </div>

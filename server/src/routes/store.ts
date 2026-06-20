@@ -951,7 +951,7 @@ const buildPublicPurchaseState = (product: any, store: any) => {
       code: "OUT_OF_STOCK",
       label: "Out of stock",
       isPurchasable: false,
-      description: "This product stays hidden from storefront until sellable stock is available.",
+      description: "This product is currently out of stock.",
     };
   }
 
@@ -1074,7 +1074,6 @@ const buildPublicProductWhere = (extraWhere: Record<string, any> = {}) => {
     isPublished: { [Op.in]: [1, true] },
     sellerSubmissionStatus: "none",
     storeId: { [Op.not]: null },
-    stock: { [Op.gt]: 0 },
     ...extraWhere,
     [Op.and]: [
       { name: { [Op.notLike]: "QA %" } },
@@ -1375,23 +1374,13 @@ router.get(
         );
       }
 
-      const visibleRows = rows.filter((row: any) => {
-        const plain = row?.get ? row.get({ plain: true }) : row;
-        return hasStorefrontSellableInventory({
-          stock: plain?.stock,
-          variations: plain?.variations,
-        });
-      });
-      const hiddenOnPage = rows.length - visibleRows.length;
-      const visibleTotal = Math.max(0, Number(count || 0) - hiddenOnPage);
-
       res.json({
-        data: visibleRows.map(toProductListItem),
+        data: rows.map(toProductListItem),
         meta: {
           page,
           pageSize,
-          total: visibleTotal,
-          totalPages: Math.max(1, Math.ceil(visibleTotal / pageSize)),
+          total: Number(count || 0),
+          totalPages: Math.max(1, Math.ceil(Number(count || 0) / pageSize)),
         },
       });
     } catch (error) {
@@ -1550,14 +1539,6 @@ router.get(
       const sanitizedVariations = await sanitizeVariationsForRuntime(productPlain?.variations, {
         storeId: Number(productPlain?.storeId) || null,
       });
-      if (
-        !hasStorefrontSellableInventory({
-          stock: productPlain?.stock,
-          variations: sanitizedVariations,
-        })
-      ) {
-        return res.status(404).json({ message: "Not found" });
-      }
 
       const productWithStats = {
         ...productPlain,

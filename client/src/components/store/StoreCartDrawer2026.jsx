@@ -56,7 +56,7 @@ const normalizeItems = (cart) => {
 function CartTrustPill({ icon: Icon, label }) {
   return (
     <div className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600 shadow-sm dark:border-white/10 dark:bg-slate-900 dark:text-slate-300">
-      <Icon className="h-3 w-3 text-[#034c85] dark:text-sky-400" />
+      <Icon className="h-3 w-3 text-[var(--tp-primary)] dark:text-sky-400" />
       <span>{label}</span>
     </div>
   );
@@ -124,10 +124,10 @@ function CartItemCard({ item, onUpdate, onRemove, isLoading }) {
       </Link>
 
       <div className="flex flex-1 flex-col justify-center">
-        <div className="inline-flex w-fit items-center rounded-full bg-[#fe6f05]/10 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-[#fe6f05] dark:bg-[#fe6f05]/20">
+        <div className="inline-flex w-fit items-center rounded-full bg-[var(--tp-accent)]/10 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-[var(--tp-accent)] dark:bg-[var(--tp-accent)]/20">
           {getCategoryLabel(item)}
         </div>
-        <Link to={`/product/${getItemSlug(item)}`} className="mt-1 line-clamp-1 pr-6 text-[13px] font-bold text-slate-950 hover:text-[#034c85] dark:text-white dark:hover:text-sky-400">
+        <Link to={`/product/${getItemSlug(item)}`} className="mt-1 line-clamp-1 pr-6 text-[13px] font-bold text-slate-950 hover:text-[var(--tp-primary)] dark:text-white dark:hover:text-sky-400">
           {getItemName(item)}
         </Link>
         <div className="mt-0.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
@@ -143,7 +143,7 @@ function CartItemCard({ item, onUpdate, onRemove, isLoading }) {
             <button 
               onClick={() => handleUpdate(qty - 1)}
               disabled={isDecrementDisabled}
-              className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-slate-600 shadow-sm transition hover:bg-[#034c85] hover:text-white disabled:opacity-50 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-sky-600"
+              className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-slate-600 shadow-sm transition hover:bg-[var(--tp-primary)] hover:text-white disabled:opacity-50 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-sky-600"
             >
               <Minus className="h-3 w-3" />
             </button>
@@ -151,7 +151,7 @@ function CartItemCard({ item, onUpdate, onRemove, isLoading }) {
             <button 
               onClick={() => handleUpdate(qty + 1)}
               disabled={isIncrementDisabled}
-              className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-slate-600 shadow-sm transition hover:bg-[#034c85] hover:text-white disabled:opacity-50 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-sky-600"
+              className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-slate-600 shadow-sm transition hover:bg-[var(--tp-primary)] hover:text-white disabled:opacity-50 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-sky-600"
             >
               <Plus className="h-3 w-3" />
             </button>
@@ -172,7 +172,7 @@ function EmptyCart({ onClose }) {
       <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Looks like you haven't added anything yet.</p>
       <button 
         onClick={onClose}
-        className="mt-8 inline-flex h-12 items-center justify-center rounded-full bg-[#034c85] px-8 text-sm font-bold text-white shadow-md transition hover:bg-[#023b69] dark:bg-sky-600 dark:hover:bg-sky-700"
+        className="mt-8 inline-flex h-12 items-center justify-center rounded-full bg-[var(--tp-primary)] px-8 text-sm font-bold text-white shadow-md transition hover:bg-[#023b69] dark:bg-sky-600 dark:hover:bg-sky-700"
       >
         Continue Shopping
       </button>
@@ -195,7 +195,7 @@ function OrderSummary({ itemsCount, subtotal }) {
         <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
           <div className="flex items-center gap-2">
             <span>Discount</span>
-            <button className="text-[10px] font-bold text-[#fe6f05] hover:underline">Add code</button>
+            <button className="text-[10px] font-bold text-[var(--tp-accent)] hover:underline">Add code</button>
           </div>
           <span className="font-semibold text-slate-950 dark:text-white">- Rp 0</span>
         </div>
@@ -264,7 +264,7 @@ export function StoreCartDrawer2026({
       >
         <div className={`flex shrink-0 items-center justify-between border-b border-slate-200 bg-white/95 px-5 py-4 backdrop-blur-md dark:border-white/10 dark:bg-slate-900/95 ${isBottom ? 'pt-8' : ''}`}>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#034c85] text-white">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--tp-primary)] text-white">
               <ShoppingCart className="h-5 w-5" />
             </div>
             <div>
@@ -319,14 +319,14 @@ export function StoreCartDrawer2026({
             <div className="flex flex-col gap-3">
               <button 
                 onClick={handleCheckout}
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#fe6f05] text-sm font-bold text-white shadow-md transition hover:bg-[#e66404]"
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--tp-accent)] text-sm font-bold text-white shadow-md transition hover:bg-[#e66404]"
               >
                 <ShieldCheck className="h-4 w-4" />
                 Proceed to Checkout
               </button>
               <button 
                 onClick={handleViewCart}
-                className="flex h-12 w-full items-center justify-center rounded-full border-2 border-[#034c85] text-sm font-bold text-[#034c85] transition hover:bg-[#034c85] hover:text-white dark:border-white/10 dark:bg-slate-900 dark:text-sky-100 dark:hover:bg-slate-800"
+                className="flex h-12 w-full items-center justify-center rounded-full border-2 border-[var(--tp-primary)] text-sm font-bold text-[var(--tp-primary)] transition hover:bg-[var(--tp-primary)] hover:text-white dark:border-white/10 dark:bg-slate-900 dark:text-sky-100 dark:hover:bg-slate-800"
               >
                 View Cart
               </button>

@@ -37,10 +37,10 @@ export const createStoreForgotPassword2026ViewModel = ({
       successMessage: pickString(
         status.successMessage,
         success ? notice : "",
-        "We’ll email you if the address is registered."
+        "We'll email you if the address is registered."
       ),
       privacySuccessMessage: "For privacy and security, we always return a generic response.",
-      privacyNote: "Your privacy is important to us. We’ll never share your email.",
+      privacyNote: "Your privacy is important to us. We'll never share your email.",
       isSubmitting: Boolean(status.isSubmitting),
       hasSubmitted: success,
       sent: success,
@@ -54,4 +54,3 @@ export const createStoreForgotPassword2026ViewModel = ({
     },
   };
 };
-

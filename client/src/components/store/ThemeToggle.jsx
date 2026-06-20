@@ -9,7 +9,7 @@ const OPTIONS = [
 ];
 
 const iconButtonClass =
-  "inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/35 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800";
+  "inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-[var(--tp-primary)] hover:text-[var(--tp-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tp-primary-rgb)/0.35)] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800";
 
 function CurrentIcon({ resolvedTheme }) {
   const Icon = resolvedTheme === "dark" ? Moon : Sun;
@@ -33,9 +33,9 @@ function SegmentedToggle({ className = "" }) {
             type="button"
             onClick={() => setTheme(value)}
             aria-pressed={active}
-            className={`inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl px-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/35 ${
+            className={`inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl px-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tp-primary-rgb)/0.35)] ${
               active
-                ? "bg-white text-emerald-700 shadow-sm ring-1 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-800"
+                ? "bg-white text-[var(--tp-primary)] shadow-sm ring-1 ring-[rgb(var(--tp-primary-rgb)/0.22)] dark:bg-[var(--tp-primary-soft)] dark:text-sky-200 dark:ring-[rgb(var(--tp-primary-rgb)/0.55)]"
                 : "text-slate-600 hover:bg-white/70 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
             }`}
           >
@@ -96,7 +96,7 @@ function MenuToggle({ className = "" }) {
                 aria-pressed={active}
                 className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm font-semibold transition ${
                   active
-                    ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+                    ? "bg-[var(--tp-primary-soft)] text-[var(--tp-primary)] dark:text-sky-200"
                     : "text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
                 }`}
               >
@@ -138,4 +138,3 @@ export default function ThemeToggle({ variant = "icon", className = "" }) {
     </button>
   );
 }
-

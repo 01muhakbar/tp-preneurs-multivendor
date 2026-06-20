@@ -1,10 +1,11 @@
 .store-invite-2026-page {
-  --si26-ink: #0f172a;
-  --si26-muted: #64748b;
-  --si26-line: rgba(148, 163, 184, 0.24);
-  --si26-green: #059669;
-  --si26-green-dark: #047857;
-  --si26-green-soft: #ecfdf5;
+  --si26-ink: var(--tp-text);
+  --si26-muted: var(--tp-muted);
+  --si26-line: rgb(var(--tp-primary-rgb) / 0.18);
+  --si26-green: var(--tp-primary);
+  --si26-green-dark: var(--tp-primary-strong);
+  --si26-green-soft: var(--tp-primary-soft);
+  --si26-success: var(--tp-success);
   color: var(--si26-ink);
 }
 

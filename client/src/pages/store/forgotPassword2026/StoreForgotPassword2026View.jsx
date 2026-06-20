@@ -15,12 +15,13 @@ function StatusMessage({ viewModel, statusRef }) {
   if (!status.message) return null;
 
   const isError = status.tone === "error";
+  const isSuccess = status.tone === "success";
   const Icon = isError ? LockKeyhole : CheckCircle2;
 
   return (
     <div
       ref={statusRef}
-      className={`fp26-status fp26-status-${isError ? "error" : "success"}`}
+      className={`fp26-status fp26-status-${isError ? "error" : isSuccess ? "success" : "neutral"}`}
       role={isError ? "alert" : "status"}
       tabIndex={-1}
     >
@@ -58,7 +59,7 @@ export default function StoreForgotPassword2026View({
 
           <h1>Reset your password</h1>
           <p className="fp26-subtitle">
-            Enter the email linked to your TP Preneurs account. We’ll send a secure link to reset
+            Enter the email linked to your TP Preneurs account. We'll send a secure link to reset
             your password.
           </p>
 
@@ -158,4 +159,3 @@ export default function StoreForgotPassword2026View({
     </main>
   );
 }
-

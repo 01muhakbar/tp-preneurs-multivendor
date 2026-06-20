@@ -1,6 +1,7 @@
 .tpdash2026-root {
-  --tpdash2026-green: #08a94f;
-  --tpdash2026-ink: #14213d;
+  --tpdash2026-green: var(--tp-primary);
+  --tpdash2026-success: var(--tp-success);
+  --tpdash2026-ink: var(--tp-text);
   min-width: 0;
   color: var(--tpdash2026-ink);
 }

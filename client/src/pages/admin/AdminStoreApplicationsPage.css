@@ -1,17 +1,17 @@
 .asa-page {
-  --asa-bg: #f8fafc;
-  --asa-surface: #ffffff;
-  --asa-surface-soft: #f1f5f9;
-  --asa-border: #e2e8f0;
-  --asa-border-soft: rgba(148, 163, 184, 0.24);
-  --asa-text: #0f172a;
-  --asa-muted: #64748b;
-  --asa-primary: #0f172a;
-  --asa-primary-blue: #1d4ed8;
+  --asa-bg: var(--tp-bg);
+  --asa-surface: var(--tp-surface);
+  --asa-surface-soft: var(--tp-surface-soft);
+  --asa-border: var(--tp-border);
+  --asa-border-soft: rgb(var(--tp-primary-rgb) / 0.18);
+  --asa-text: var(--tp-text);
+  --asa-muted: var(--tp-muted);
+  --asa-primary: var(--tp-primary);
+  --asa-primary-blue: var(--tp-primary);
   --asa-success: #10b981;
   --asa-warning: #f59e0b;
   --asa-danger: #ef4444;
-  --asa-info: #2563eb;
+  --asa-info: var(--tp-primary);
   --asa-shadow: 0 18px 48px rgba(15, 23, 42, 0.07);
   color: var(--asa-text);
   min-width: 0;

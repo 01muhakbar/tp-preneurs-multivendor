@@ -157,7 +157,7 @@ const isInternalHref = (href) => /^\/(?!\/)/.test(String(href || "").trim());
 
 function FooterLink({ href, children }) {
   const className =
-    "text-sm font-semibold text-[#31486e] transition hover:text-[#fe6f05] dark:text-slate-300 dark:hover:text-orange-300";
+    "text-sm font-semibold text-[#31486e] transition hover:text-[var(--tp-accent)] dark:text-slate-300 dark:hover:text-orange-300";
 
   if (isInternalHref(href)) {
     return (
@@ -179,7 +179,7 @@ function FooterLinkBlock({ title, links }) {
 
   return (
     <section className="space-y-5">
-      <h3 className="text-sm font-black uppercase tracking-[0.18em] text-[#034c85] dark:text-sky-300">
+      <h3 className="text-sm font-black uppercase tracking-[0.18em] text-[var(--tp-primary)] dark:text-sky-300">
         {title}
       </h3>
       <ul className="space-y-3">
@@ -201,17 +201,17 @@ function FallbackBrand({ brandingName }) {
       aria-label={`${brandingName} home`}
     >
       <div className="relative h-11 w-[52px] shrink-0">
-        <div className="absolute left-0 top-1.5 h-8 w-9 rounded-r-[15px] rounded-tl-lg bg-[#034c85]" />
-        <div className="absolute left-6 top-0 h-11 w-4 rounded-full bg-[#034c85]" />
-        <div className="absolute right-0 top-1.5 grid h-8 w-8 place-items-center rounded-full bg-[#fe6f05]">
+        <div className="absolute left-0 top-1.5 h-8 w-9 rounded-r-[15px] rounded-tl-lg bg-[var(--tp-primary)]" />
+        <div className="absolute left-6 top-0 h-11 w-4 rounded-full bg-[var(--tp-primary)]" />
+        <div className="absolute right-0 top-1.5 grid h-8 w-8 place-items-center rounded-full bg-[var(--tp-accent)]">
           <div className="h-4 w-4 rounded-full bg-white" />
         </div>
       </div>
       <div className="leading-none">
-        <p className="text-[21px] font-black tracking-tight text-[#034c85] dark:text-white">
-          TP <span className="text-[#fe6f05]">Preneurs</span>
+        <p className="text-[21px] font-black tracking-tight text-[var(--tp-primary)] dark:text-white">
+          TP <span className="text-[var(--tp-accent)]">Preneurs</span>
         </p>
-        <p className="mt-1 text-[8px] font-black uppercase tracking-[0.16em] text-[#034c85] dark:text-sky-300">
+        <p className="mt-1 text-[8px] font-black uppercase tracking-[0.16em] text-[var(--tp-primary)] dark:text-sky-300">
           The Preneurs Power Hub
         </p>
       </div>
@@ -231,7 +231,7 @@ export default function StoreFooterKacha({
 
   return (
     <footer className="bg-[#f7fbff] px-4 pb-6 pt-0 dark:bg-slate-950 sm:px-6">
-      <div className="mx-auto max-w-[1540px] overflow-hidden rounded-[28px] border border-white bg-white shadow-[0_18px_42px_rgba(3,76,133,0.10)] dark:border-slate-800 dark:bg-slate-900">
+      <div className="mx-auto max-w-[1540px] overflow-hidden rounded-[28px] border border-white bg-white shadow-[0_18px_42px_rgba(var(--tp-primary-rgb)/0.10)] dark:border-slate-800 dark:bg-slate-900">
         <div className="grid gap-10 border-b border-[#dbe6f3] px-6 py-8 dark:border-slate-800 md:grid-cols-2 xl:grid-cols-[1.35fr_0.7fr_0.7fr_0.8fr_1.35fr] xl:px-10">
           {footer.block4.enabled ? (
             <section className="space-y-5">
@@ -253,19 +253,19 @@ export default function StoreFooterKacha({
               <div className="space-y-3 text-sm font-medium leading-6 text-[#31486e] dark:text-slate-300">
                 {footer.block4.address ? (
                   <p className="flex gap-3">
-                    <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-[#034c85] dark:text-sky-300" />
+                    <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-[var(--tp-primary)] dark:text-sky-300" />
                     <span>{footer.block4.address}</span>
                   </p>
                 ) : null}
                 {footer.block4.phone ? (
                   <p className="flex items-center gap-3">
-                    <Phone className="h-5 w-5 shrink-0 text-[#034c85] dark:text-sky-300" />
+                    <Phone className="h-5 w-5 shrink-0 text-[var(--tp-primary)] dark:text-sky-300" />
                     <span>{footer.block4.phone}</span>
                   </p>
                 ) : null}
                 {footer.block4.email ? (
                   <p className="flex items-center gap-3">
-                    <Mail className="h-5 w-5 shrink-0 text-[#034c85] dark:text-sky-300" />
+                    <Mail className="h-5 w-5 shrink-0 text-[var(--tp-primary)] dark:text-sky-300" />
                     <span>{footer.block4.email}</span>
                   </p>
                 ) : null}
@@ -286,7 +286,7 @@ export default function StoreFooterKacha({
           <section className="space-y-8">
             {footer.socialLinks.enabled && socialItems.length > 0 ? (
               <div className="space-y-4">
-                <h3 className="text-sm font-black uppercase tracking-[0.18em] text-[#034c85] dark:text-sky-300">
+                <h3 className="text-sm font-black uppercase tracking-[0.18em] text-[var(--tp-primary)] dark:text-sky-300">
                   Follow Us
                 </h3>
                 <div className="flex flex-wrap gap-3">
@@ -297,7 +297,7 @@ export default function StoreFooterKacha({
                       target="_blank"
                       rel="noreferrer"
                       aria-label={label}
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#b9cbe1] bg-white text-[#034c85] transition hover:border-[#fe6f05] hover:bg-[#fe6f05] hover:text-white dark:border-slate-700 dark:bg-slate-950 dark:text-sky-300"
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#b9cbe1] bg-white text-[var(--tp-primary)] transition hover:border-[var(--tp-accent)] hover:bg-[var(--tp-accent)] hover:text-white dark:border-slate-700 dark:bg-slate-950 dark:text-sky-300"
                     >
                       <Icon className="h-4.5 w-4.5" />
                     </a>
@@ -308,18 +308,18 @@ export default function StoreFooterKacha({
 
             {footer.bottomContact.enabled && footer.bottomContact.contactNumber ? (
               <div className="flex items-center gap-4">
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[#b9cbe1] text-[#034c85] dark:border-slate-700 dark:text-sky-300">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[#b9cbe1] text-[var(--tp-primary)] dark:border-slate-700 dark:text-sky-300">
                   <Headphones className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-lg font-black text-[#034c85] dark:text-white">
+                  <p className="text-lg font-black text-[var(--tp-primary)] dark:text-white">
                     Need help?{" "}
                     <a href={`tel:${footer.bottomContact.contactNumber.replace(/\s+/g, "")}`}>
                       {footer.bottomContact.contactNumber}
                     </a>
                   </p>
                   <p className="text-sm font-semibold text-[#31486e] dark:text-slate-300">
-                    We're available <span className="text-[#fe6f05]">24/7</span>
+                    We're available <span className="text-[var(--tp-accent)]">24/7</span>
                   </p>
                 </div>
               </div>
@@ -330,13 +330,13 @@ export default function StoreFooterKacha({
         <div className="flex flex-col gap-4 px-6 py-5 text-sm font-semibold text-[#557099] dark:text-slate-400 md:flex-row md:items-center md:justify-between xl:px-10">
           <p>© 2026 TP Preneurs. All rights reserved.</p>
           <div className="flex flex-wrap gap-4 md:gap-8">
-            <Link to="/privacy-policy" className="transition hover:text-[#fe6f05]">
+            <Link to="/privacy-policy" className="transition hover:text-[var(--tp-accent)]">
               Privacy Policy
             </Link>
-            <Link to="/terms-and-conditions" className="transition hover:text-[#fe6f05]">
+            <Link to="/terms-and-conditions" className="transition hover:text-[var(--tp-accent)]">
               Terms & Conditions
             </Link>
-            <Link to="/refund-policy" className="transition hover:text-[#fe6f05]">
+            <Link to="/refund-policy" className="transition hover:text-[var(--tp-accent)]">
               Refund Policy
             </Link>
           </div>

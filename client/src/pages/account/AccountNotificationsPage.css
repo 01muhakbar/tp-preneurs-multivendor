@@ -1,9 +1,10 @@
 .account-notifications-2026 {
-  --an26-ink: #0f172a;
-  --an26-muted: #64748b;
-  --an26-line: rgba(148, 163, 184, 0.22);
-  --an26-green: #059669;
-  --an26-soft-green: #ecfdf5;
+  --an26-ink: var(--tp-text);
+  --an26-muted: var(--tp-muted);
+  --an26-line: rgb(var(--tp-primary-rgb) / 0.18);
+  --an26-green: var(--tp-primary);
+  --an26-soft-green: var(--tp-primary-soft);
+  --an26-success: var(--tp-success);
   color: var(--an26-ink);
 }
 

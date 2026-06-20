@@ -102,9 +102,9 @@ const resolveDefaultCategoryId = (categoryIds, currentDefaultCategoryId) => {
 };
 
 const fieldInputClass =
-  "h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 transition focus:border-emerald-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-50";
+  "h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 transition focus:border-[var(--admin-primary)] focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-50";
 const fieldTextareaClass =
-  "h-32 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-emerald-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-50";
+  "h-32 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-[var(--admin-primary)] focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-50";
 const sectionCardClass =
   "rounded-[24px] border border-slate-200/90 bg-white p-4 shadow-[0_12px_30px_-24px_rgba(15,23,42,0.45)] sm:p-5";
 const sectionTitleClass = "text-base font-semibold text-slate-900";
@@ -365,7 +365,7 @@ function CategoryTree({ tree, selectedIds, onToggle }) {
               type="checkbox"
               checked={isSelected}
               onChange={() => onToggle(nodeId)}
-              className="h-4 w-4 border-slate-300 text-emerald-600 focus:ring-emerald-400"
+              className="h-4 w-4 border-slate-300 text-[var(--admin-primary)] focus:ring-emerald-400"
             />
             {node?.name}
           </label>
@@ -1231,7 +1231,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
               {isDrawerMode ? (
                 <select
                   defaultValue="en"
-                  className="h-10 rounded-lg border border-emerald-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                  className="h-10 rounded-lg border border-[var(--admin-primary-soft)] bg-white px-3 text-sm text-slate-700 outline-none"
                   aria-label="Language"
                 >
                   <option value="en">en</option>
@@ -1254,7 +1254,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
             className={`mx-4 mt-4 rounded-xl border px-4 py-2 text-sm sm:mx-5 md:mx-6 ${
               notice.type === "error"
                 ? "border-rose-200 bg-rose-50 text-rose-700"
-                : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]"
             }`}
           >
             {notice.message}
@@ -1318,7 +1318,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
                           onClick={() => setActiveTab(tab.id)}
                           className={`inline-flex h-10 shrink-0 items-center justify-center border-b-2 px-4 text-sm font-semibold transition ${
                             activeTab === tab.id
-                              ? "border-emerald-600 text-emerald-700"
+                              ? "border-[var(--admin-primary-strong)] text-[var(--admin-primary)]"
                               : "border-transparent text-slate-500 hover:text-slate-700"
                           }`}
                         >
@@ -1335,7 +1335,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
                           type="button"
                           onClick={() => setHasVariants((prev) => !prev)}
                           className={`relative inline-flex h-8 w-[66px] items-center rounded-full px-1 transition ${
-                            hasVariants ? "bg-emerald-500" : "bg-rose-500"
+                            hasVariants ? "bg-[var(--admin-primary-soft)]0" : "bg-rose-500"
                           }`}
                           aria-label="Toggle variants"
                         >
@@ -1635,11 +1635,11 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
                         }}
                         className={`flex h-[170px] cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed px-4 py-6 text-center transition ${
                           dragActive
-                            ? "border-emerald-400 bg-emerald-50"
+                            ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)]"
                             : "border-slate-300 bg-white hover:border-slate-400"
                         }`}
                       >
-                        <UploadCloud className="mb-2 h-8 w-8 text-emerald-500" />
+                        <UploadCloud className="mb-2 h-8 w-8 text-[var(--admin-primary)]" />
                         <p className="text-base font-medium leading-tight text-slate-700">
                           Drag your images here
                         </p>
@@ -1722,7 +1722,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
                               {form.tags.map((tag) => (
                                 <span
                                   key={tag}
-                                  className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700"
+                                  className="inline-flex items-center gap-1 rounded-full border border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] px-2.5 py-1 text-xs font-medium text-[var(--admin-primary)]"
                                 >
                                   {tag}
                                   <button
@@ -1733,7 +1733,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
                                         tags: prev.tags.filter((item) => item !== tag),
                                       }))
                                     }
-                                    className="text-emerald-700 hover:text-emerald-900"
+                                    className="text-[var(--admin-primary)] hover:text-emerald-900"
                                     aria-label={`Remove ${tag}`}
                                   >
                                     <X className="h-3.5 w-3.5" />
@@ -1768,7 +1768,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
                               type="button"
                               onClick={() => setHasVariants((prev) => !prev)}
                               className={`relative inline-flex h-8 w-[66px] items-center rounded-full px-1 transition ${
-                                hasVariants ? "bg-emerald-500" : "bg-rose-500"
+                                hasVariants ? "bg-[var(--admin-primary-soft)]0" : "bg-rose-500"
                               }`}
                               aria-label="Toggle variants"
                             >
@@ -1819,7 +1819,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
                                   type="button"
                                   onClick={addSelectedAttribute}
                                   disabled={!pendingAttributeId}
-                                  className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                  className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl border border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] px-4 text-sm font-semibold text-[var(--admin-primary)] transition hover:bg-[var(--admin-primary-soft)] disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                   Add attribute
                                 </button>
@@ -1829,13 +1829,13 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
                                   {selectedAttributes.map((attribute) => (
                                     <span
                                       key={attribute.id}
-                                      className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700"
+                                      className="inline-flex items-center gap-1 rounded-full border border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] px-3 py-1 text-xs font-semibold text-[var(--admin-primary)]"
                                     >
                                       {attribute.name}
                                       <button
                                         type="button"
                                         onClick={() => removeSelectedAttribute(attribute.id)}
-                                        className="text-emerald-700 hover:text-emerald-900"
+                                        className="text-[var(--admin-primary)] hover:text-emerald-900"
                                         aria-label={`Remove ${attribute.name}`}
                                       >
                                         <X className="h-3.5 w-3.5" />
@@ -1920,7 +1920,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
                                               type="checkbox"
                                               checked={checked}
                                               onChange={() => toggleAttributeValue(attribute, value)}
-                                              className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                              className="h-4 w-4 rounded border-slate-300 text-[var(--admin-primary)] focus:ring-[var(--admin-primary)]"
                                             />
                                             <span>{value.label || value.value}</span>
                                           </label>
@@ -2215,7 +2215,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
                             <p className="line-clamp-2 text-base font-semibold text-blue-700 sm:text-lg">
                               {seoPreview.title}
                             </p>
-                            <p className="mt-1 break-all text-sm text-emerald-700">
+                            <p className="mt-1 break-all text-sm text-[var(--admin-primary)]">
                               {seoPreview.url}
                             </p>
                             <p className="mt-2 line-clamp-3 text-sm text-slate-500">
@@ -2287,7 +2287,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
                 className={`inline-flex h-12 items-center justify-center rounded-xl px-6 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${
                   isEdit
                     ? "bg-amber-500 shadow-[0_14px_26px_-18px_rgba(245,158,11,0.65)] hover:bg-amber-600"
-                    : "bg-emerald-600 shadow-[0_14px_26px_-18px_rgba(5,150,105,0.7)] hover:bg-emerald-700"
+                    : "bg-[var(--admin-primary)] shadow-[0_14px_26px_-18px_rgba(5,150,105,0.7)] hover:bg-[var(--admin-primary-strong)]"
                 }`}
               >
                 {isSubmitting

@@ -316,7 +316,7 @@ export default function OrderDetail() {
       >
         <div className="space-y-3">
           {successMessage ? (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-700">
+            <div className="rounded-2xl border border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] px-4 py-2 text-sm text-[var(--admin-primary)]">
               {successMessage}
             </div>
           ) : null}
@@ -362,7 +362,7 @@ export default function OrderDetail() {
                       </span>
                     </div>
                     <div className="mt-4 rounded-2xl border border-emerald-100 bg-white/90 px-4 py-3 text-sm text-slate-600 shadow-sm sm:max-w-xl">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-600">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--admin-primary)]">
                         Status Guidance
                       </p>
                       <p className="mt-1.5 leading-6">{statusHelper}</p>
@@ -426,7 +426,7 @@ export default function OrderDetail() {
                   {order?.id && String(order?.checkoutMode || "LEGACY").toUpperCase() !== "LEGACY" ? (
                     <Link
                       to={`/admin/online-store/payment-audit/${order.id}`}
-                      className="mt-3 inline-flex text-sm font-semibold text-emerald-700 underline underline-offset-2"
+                      className="mt-3 inline-flex text-sm font-semibold text-[var(--admin-primary)] underline underline-offset-2"
                     >
                       Open split payment audit
                     </Link>
@@ -479,7 +479,7 @@ export default function OrderDetail() {
                         ))}
                       </div>
                     ) : (
-                      <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-xs text-emerald-700">
+                      <div className="mt-3 rounded-2xl border border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] px-3 py-3 text-xs text-[var(--admin-primary)]">
                         Shipment compatibility storage stays aligned with persisted shipping truth for this order.
                       </div>
                     )}
@@ -1018,7 +1018,7 @@ export default function OrderDetail() {
             <div className="space-y-4">
               <div className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="space-y-1">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-600">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--admin-primary)]">
                     Action Panel
                   </div>
                   <div className="text-sm font-semibold text-slate-900">Update Status</div>
@@ -1082,7 +1082,7 @@ export default function OrderDetail() {
                       isSameStatus ||
                       isSelectedDisabled
                     }
-                    className="h-11 w-full rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="h-11 w-full rounded-xl bg-[var(--admin-primary)] px-4 text-sm font-semibold text-white hover:bg-[var(--admin-primary-strong)] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {updateMutation.isPending ? "Updating..." : "Update Status"}
                   </button>

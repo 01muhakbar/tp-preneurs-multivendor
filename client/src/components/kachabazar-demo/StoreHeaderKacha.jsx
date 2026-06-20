@@ -18,8 +18,8 @@ import { useCategories } from "../../storefront.jsx";
 import ThemeToggle from "../store/ThemeToggle.jsx";
 import { useStorefrontWishlist } from "../../utils/storefrontWishlist.js";
 
-const PRIMARY = "#034c85";
-const ACCENT = "#fe6f05";
+const PRIMARY = "var(--tp-primary)";
+const ACCENT = "var(--tp-accent)";
 
 const extractList = (payload) => {
   if (Array.isArray(payload)) return payload;
@@ -84,10 +84,10 @@ function LogoMark({ logoUrl, logoVersion }) {
         </div>
       </div>
       <div className="leading-none">
-        <div className="text-[21px] font-black tracking-tight text-[#034c85]">
-          TP <span className="text-[#fe6f05]">Preneurs</span>
+        <div className="text-[21px] font-black tracking-tight text-[var(--tp-primary)]">
+          TP <span className="text-[var(--tp-accent)]">Preneurs</span>
         </div>
-        <div className="mt-1 text-[8px] font-black uppercase tracking-[0.16em] text-[#034c85]">
+        <div className="mt-1 text-[8px] font-black uppercase tracking-[0.16em] text-[var(--tp-primary)]">
           The Preneurs Power Hub
         </div>
       </div>
@@ -97,7 +97,7 @@ function LogoMark({ logoUrl, logoVersion }) {
 
 function IconButton({ as: Component = "button", to, children, label, badge, onClick }) {
   const commonClass =
-    "relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#d8e4f2] bg-white text-[#071a3f] shadow-[0_6px_16px_rgba(3,76,133,0.07)] transition hover:border-[#034c85]/35 hover:text-[#034c85] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-[#034c85]";
+    "relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#d8e4f2] bg-white text-[#071a3f] shadow-[0_6px_16px_rgba(var(--tp-primary-rgb)/0.07)] transition hover:border-[var(--tp-primary)]/35 hover:text-[var(--tp-primary)] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-[var(--tp-primary)]";
 
   if (Component === Link) {
     return (
@@ -172,9 +172,9 @@ export default function StoreHeaderKacha({
     <header className="sticky top-0 z-50 border-b border-[#e3edf8] bg-[#f7fbff]/95 text-[#071a3f] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95 dark:text-slate-100">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-1.5 text-xs text-slate-600 sm:px-5 lg:px-6 dark:text-slate-300">
         <div className="flex min-w-0 items-center gap-3">
-          <Headphones className="h-[18px] w-[18px] shrink-0 text-[#034c85] dark:text-sky-300" />
+          <Headphones className="h-[18px] w-[18px] shrink-0 text-[var(--tp-primary)] dark:text-sky-300" />
           <span className="truncate">We are available 24/7, Need help?</span>
-          <a href="tel:565555" className="font-black text-[#fe6f05]">
+          <a href="tel:565555" className="font-black text-[var(--tp-accent)]">
             565555
           </a>
         </div>
@@ -187,7 +187,7 @@ export default function StoreHeaderKacha({
           ].map(([label, href], index) => (
             <div key={label} className="flex items-center gap-5">
               {index > 0 ? <span className="h-4 w-px bg-slate-300 dark:bg-slate-700" /> : null}
-              <Link to={href} className="font-semibold transition hover:text-[#fe6f05]">
+              <Link to={href} className="font-semibold transition hover:text-[var(--tp-accent)]">
                 {label}
               </Link>
             </div>
@@ -196,7 +196,7 @@ export default function StoreHeaderKacha({
       </div>
 
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-5 lg:px-6">
-        <div className="rounded-[18px] border border-white/80 bg-white px-4 py-2 shadow-[0_10px_24px_rgba(3,76,133,0.08)] dark:border-slate-800 dark:bg-slate-900 dark:shadow-[0_14px_30px_rgba(0,0,0,0.22)]">
+        <div className="rounded-[18px] border border-white/80 bg-white px-4 py-2 shadow-[0_10px_24px_rgba(var(--tp-primary-rgb)/0.08)] dark:border-slate-800 dark:bg-slate-900 dark:shadow-[0_14px_30px_rgba(0,0,0,0.22)]">
           <div className="flex items-center gap-3 lg:gap-5">
             <div className="shrink-0">
               <LogoMark logoUrl={brandingLogoUrl} />
@@ -209,12 +209,12 @@ export default function StoreHeaderKacha({
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Search for products (e.g. fish, apple, baby care)"
-                  className="h-11 w-full rounded-full border border-[#c8d7ea] bg-white px-6 pr-[58px] text-sm font-semibold text-[#42577b] outline-none transition placeholder:text-[#667798] focus:border-[#034c85] focus:ring-4 focus:ring-[#034c85]/10 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
+                  className="h-11 w-full rounded-full border border-[#c8d7ea] bg-white px-6 pr-[58px] text-sm font-semibold text-[#42577b] outline-none transition placeholder:text-[#667798] focus:border-[var(--tp-primary)] focus:ring-4 focus:ring-[rgb(var(--tp-primary-rgb)/0.1)] dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
                 />
                 <button
                   type="submit"
                   aria-label="Search"
-                  className="absolute right-1.5 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-white shadow-[0_10px_20px_rgba(3,76,133,0.2)] transition hover:scale-[1.03]"
+                  className="absolute right-1.5 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-white shadow-[0_10px_20px_rgba(var(--tp-primary-rgb)/0.2)] transition hover:scale-[1.03]"
                   style={{ background: PRIMARY }}
                 >
                   <Search className="h-5 w-5" />
@@ -225,7 +225,7 @@ export default function StoreHeaderKacha({
             <div className="ml-auto flex items-center gap-2 sm:gap-3">
               <ThemeToggle
                 variant="icon"
-                className="h-10 w-10 border-[#d8e4f2] text-[#071a3f] shadow-[0_6px_16px_rgba(3,76,133,0.07)] hover:text-[#034c85] dark:border-slate-700"
+                className="h-10 w-10 border-[#d8e4f2] text-[#071a3f] shadow-[0_6px_16px_rgba(var(--tp-primary-rgb)/0.07)] hover:text-[var(--tp-primary)] dark:border-slate-700"
               />
               <IconButton as={Link} to="/wishlist" label="Wishlist" badge={wishlist.count > 0 ? wishlist.count : null}>
                 <Heart className="h-5 w-5" />
@@ -257,7 +257,7 @@ export default function StoreHeaderKacha({
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search products"
-                className="h-12 w-full rounded-full border border-[#c8d7ea] bg-white px-5 pr-14 text-base font-semibold text-[#42577b] outline-none focus:border-[#034c85] focus:ring-4 focus:ring-[#034c85]/10 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                className="h-12 w-full rounded-full border border-[#c8d7ea] bg-white px-5 pr-14 text-base font-semibold text-[#42577b] outline-none focus:border-[var(--tp-primary)] focus:ring-4 focus:ring-[rgb(var(--tp-primary-rgb)/0.1)] dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
               />
               <button
                 type="submit"
@@ -273,13 +273,13 @@ export default function StoreHeaderKacha({
       </div>
 
       <div className="mx-auto mt-2 w-full max-w-7xl px-4 pb-2 sm:px-5 lg:px-6">
-        <div className="flex min-h-[52px] items-center justify-between gap-4 overflow-visible rounded-[18px] border border-white/80 bg-white px-3 py-1.5 shadow-[0_8px_20px_rgba(3,76,133,0.06)] dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex min-h-[52px] items-center justify-between gap-4 overflow-visible rounded-[18px] border border-white/80 bg-white px-3 py-1.5 shadow-[0_8px_20px_rgba(var(--tp-primary-rgb)/0.06)] dark:border-slate-800 dark:bg-slate-900">
           <div className="flex min-w-0 items-center gap-2 md:gap-4">
             <div className="relative" data-demo-dropdown>
               <button
                 type="button"
                 onClick={() => setCategoriesOpen((value) => !value)}
-                className="inline-flex h-10 items-center gap-2.5 rounded-full px-4 text-sm font-black text-white shadow-[0_10px_22px_rgba(3,76,133,0.17)] sm:px-5"
+                className="inline-flex h-10 items-center gap-2.5 rounded-full px-4 text-sm font-black text-white shadow-[0_10px_22px_rgba(var(--tp-primary-rgb)/0.17)] sm:px-5"
                 style={{ background: PRIMARY }}
                 aria-expanded={categoriesOpen}
               >
@@ -288,7 +288,7 @@ export default function StoreHeaderKacha({
                 <ChevronDown className="h-4 w-4" />
               </button>
               {categoriesOpen ? (
-                <div className="absolute left-0 top-[calc(100%+10px)] z-50 w-72 overflow-hidden rounded-[22px] border border-[#d8e4f2] bg-white p-2 shadow-[0_22px_45px_rgba(3,76,133,0.16)] dark:border-slate-700 dark:bg-slate-900">
+                <div className="absolute left-0 top-[calc(100%+10px)] z-50 w-72 overflow-hidden rounded-[22px] border border-[#d8e4f2] bg-white p-2 shadow-[0_22px_45px_rgba(var(--tp-primary-rgb)/0.16)] dark:border-slate-700 dark:bg-slate-900">
                   {categoriesLoading ? (
                     <div className="px-3 py-3 text-sm text-slate-500">Loading categories...</div>
                   ) : categories.length > 0 ? (
@@ -297,7 +297,7 @@ export default function StoreHeaderKacha({
                         key={category.id ?? category.slug ?? category.name}
                         to={`/search?category=${encodeURIComponent(category.slug ?? category.id ?? category.name)}&page=1`}
                         onClick={closeCategories}
-                        className="block rounded-2xl px-4 py-3 text-sm font-bold text-[#071a3f] transition hover:bg-[#f7fbff] hover:text-[#fe6f05] dark:text-slate-100 dark:hover:bg-slate-800"
+                        className="block rounded-2xl px-4 py-3 text-sm font-bold text-[#071a3f] transition hover:bg-[var(--tp-primary-soft)] hover:text-[var(--tp-accent)] dark:text-slate-100 dark:hover:bg-slate-800"
                       >
                         {category.name}
                       </Link>
@@ -306,7 +306,7 @@ export default function StoreHeaderKacha({
                     <Link
                       to="/shop"
                       onClick={closeCategories}
-                      className="block rounded-2xl px-4 py-3 text-sm font-bold text-[#071a3f] transition hover:bg-[#f7fbff] hover:text-[#fe6f05] dark:text-slate-100"
+                      className="block rounded-2xl px-4 py-3 text-sm font-bold text-[#071a3f] transition hover:bg-[var(--tp-primary-soft)] hover:text-[var(--tp-accent)] dark:text-slate-100"
                     >
                       Browse all products
                     </Link>
@@ -320,7 +320,7 @@ export default function StoreHeaderKacha({
                 <Link
                   key={item.label}
                   to={item.href}
-                  className="relative inline-flex h-9 items-center gap-2 rounded-full px-3.5 text-sm font-black text-[#071a3f] transition hover:bg-[#f7fbff] hover:text-[#034c85] dark:text-slate-100 dark:hover:bg-slate-800"
+                  className="relative inline-flex h-9 items-center gap-2 rounded-full px-3.5 text-sm font-black text-[#071a3f] transition hover:bg-[var(--tp-primary-soft)] hover:text-[var(--tp-primary)] dark:text-slate-100 dark:hover:bg-slate-800"
                 >
                   <span>{item.label}</span>
                   {item.hasChevron ? <ChevronDown className="h-4 w-4" /> : null}
@@ -334,7 +334,7 @@ export default function StoreHeaderKacha({
 
           <button
             type="button"
-            className="inline-flex h-9 shrink-0 items-center gap-2.5 rounded-full px-3 text-sm font-black text-[#071a3f] transition hover:bg-[#f7fbff] dark:text-slate-100 dark:hover:bg-slate-800 sm:px-4"
+            className="inline-flex h-9 shrink-0 items-center gap-2.5 rounded-full px-3 text-sm font-black text-[#071a3f] transition hover:bg-[var(--tp-primary-soft)] dark:text-slate-100 dark:hover:bg-slate-800 sm:px-4"
           >
             <Globe2 className="h-5 w-5" />
             <span className="hidden sm:inline">English</span>

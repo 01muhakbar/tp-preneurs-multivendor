@@ -97,13 +97,13 @@ const PRICE_MENU_OPTIONS = [
 const btnBase =
   "inline-flex h-[38px] items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3 text-[12px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1";
 const btnOutline = `${btnBase} border border-slate-200 bg-white text-slate-700 hover:border-slate-300 focus-visible:ring-slate-300`;
-const btnGreen = `${btnBase} bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-300`;
+const btnGreen = `${btnBase} bg-[var(--admin-primary)] text-white hover:bg-[var(--admin-primary-strong)] focus-visible:ring-emerald-300`;
 const btnDanger = `${btnBase} bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-300`;
 const btnAmber = `${btnBase} bg-amber-500 text-white hover:bg-amber-600 focus-visible:ring-amber-300`;
 const btnSoft = `${btnBase} bg-slate-50 text-slate-600 hover:bg-slate-100 focus-visible:ring-slate-300`;
 
 const inputBase =
-  "h-[38px] w-full rounded-xl border border-slate-200 bg-white px-2.5 text-sm text-slate-700 transition focus:border-emerald-500 focus:outline-none";
+  "h-[38px] w-full rounded-xl border border-slate-200 bg-white px-2.5 text-sm text-slate-700 transition focus:border-[var(--admin-primary)] focus:outline-none";
 const selectBase = `${inputBase} pr-8`;
 const tableHeadCell =
   "whitespace-nowrap px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500";
@@ -147,8 +147,8 @@ const getStorefrontBadgeMeta = ({ visibility, published, status, submissionStatu
   if (stateCode === "STOREFRONT_VISIBLE") {
     return {
       label: "Visible",
-      className: "border-emerald-200 bg-emerald-50 text-emerald-700",
-      dotClassName: "bg-emerald-500",
+      className: "border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]",
+      dotClassName: "bg-[var(--admin-primary-soft)]0",
     };
   }
 
@@ -206,8 +206,8 @@ const getStorefrontBadgeMeta = ({ visibility, published, status, submissionStatu
   if (normalizedStatus === "active") {
     return {
       label: "Visible",
-      className: "border-emerald-200 bg-emerald-50 text-emerald-700",
-      dotClassName: "bg-emerald-500",
+      className: "border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]",
+      dotClassName: "bg-[var(--admin-primary-soft)]0",
     };
   }
 
@@ -301,7 +301,7 @@ const getStockMeta = (value) => {
   }
   return {
     label: "In stock",
-    className: "text-emerald-600",
+    className: "text-[var(--admin-primary)]",
   };
 };
 
@@ -317,7 +317,7 @@ const getInventoryStatusMeta = (value) => {
   return {
     code: "selling",
     label: "Selling",
-    className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    className: "border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]",
   };
 };
 
@@ -1237,7 +1237,7 @@ export default function AdminProductsPage() {
                 ? "border-rose-200"
                 : notice.type === "warning"
                   ? "border-amber-200"
-                  : "border-emerald-200"
+                  : "border-[var(--admin-primary-soft)]"
             }`}
           >
             <div className="flex items-start gap-3">
@@ -1247,7 +1247,7 @@ export default function AdminProductsPage() {
                     ? "bg-rose-500"
                     : notice.type === "warning"
                       ? "bg-amber-500"
-                      : "bg-emerald-500"
+                      : "bg-[var(--admin-primary-soft)]0"
                 }`}
               />
               <div className="min-w-0 flex-1">
@@ -1356,9 +1356,9 @@ export default function AdminProductsPage() {
                           ? `${pendingImportSummary.name} • ${pendingImportSummary.totalRows} rows • ${formatFileSize(pendingImportSummary.size)}`
                           : "SelectYourJSON Products File"
                       }
-                      className="inline-flex h-[34px] w-[136px] min-w-0 max-w-[136px] items-center gap-1 rounded-lg border border-emerald-200 border-dashed bg-white px-1.5 text-[10px] font-medium text-slate-600 transition hover:border-emerald-300 hover:bg-emerald-50/40 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex h-[34px] w-[136px] min-w-0 max-w-[136px] items-center gap-1 rounded-lg border border-[var(--admin-primary-soft)] border-dashed bg-white px-1.5 text-[10px] font-medium text-slate-600 transition hover:border-[var(--admin-primary)] hover:bg-[var(--admin-primary-soft)]/40 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      <Upload className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                      <Upload className="h-3.5 w-3.5 shrink-0 text-[var(--admin-primary)]" />
                       <span className="truncate">
                         {pendingImportSummary?.name || "SelectYourJSON Products File"}
                       </span>
@@ -1470,7 +1470,7 @@ export default function AdminProductsPage() {
                 }}
                 className={`${btnOutline} h-[38px] w-full justify-start gap-2 rounded-xl border-dashed px-3 text-sm font-semibold ${
                   draftFilters.categoryIds.length > 0
-                    ? "border-emerald-300 bg-emerald-50/70 text-emerald-700"
+                    ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)]/70 text-[var(--admin-primary)]"
                     : ""
                 }`}
               >
@@ -1499,14 +1499,14 @@ export default function AdminProductsPage() {
                         <label
                           key={category.id}
                           className={`flex cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2 text-sm transition ${
-                            checked ? "bg-emerald-50 text-emerald-800" : "hover:bg-slate-50"
+                            checked ? "bg-[var(--admin-primary-soft)] text-[var(--admin-primary-strong)]" : "hover:bg-slate-50"
                           }`}
                         >
                           <input
                             type="checkbox"
                             checked={checked}
                             onChange={() => handleToggleCategory(category.id)}
-                            className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-300"
+                            className="h-4 w-4 rounded border-slate-300 text-[var(--admin-primary)] focus:ring-emerald-300"
                           />
                           <span className="min-w-0 truncate">{category.name}</span>
                         </label>
@@ -1546,7 +1546,7 @@ export default function AdminProductsPage() {
                 }}
                 className={`${btnOutline} h-[38px] w-full justify-start gap-2 rounded-xl border-dashed px-3 text-sm font-semibold ${
                   quickFilterValue !== "date_added"
-                    ? "border-emerald-300 bg-emerald-50/70 text-emerald-700"
+                    ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)]/70 text-[var(--admin-primary)]"
                     : ""
                 }`}
               >
@@ -1577,13 +1577,13 @@ export default function AdminProductsPage() {
                             type="button"
                             onClick={() => handleQuickFilterSelect(option.value)}
                             className={`flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left text-sm transition ${
-                              checked ? "bg-emerald-50 text-emerald-800" : "hover:bg-slate-50"
+                              checked ? "bg-[var(--admin-primary-soft)] text-[var(--admin-primary-strong)]" : "hover:bg-slate-50"
                             }`}
                           >
                             <span
                               className={`inline-flex h-4 w-4 shrink-0 rounded border ${
                                 checked
-                                  ? "border-emerald-500 bg-emerald-100"
+                                  ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)]"
                                   : "border-slate-300 bg-white"
                               }`}
                             />
@@ -1665,7 +1665,7 @@ export default function AdminProductsPage() {
                               [key]: !prev[key],
                             }))
                           }
-                          className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-300"
+                          className="h-4 w-4 rounded border-slate-300 text-[var(--admin-primary)] focus:ring-emerald-300"
                         />
                         <span className="text-sm text-slate-700">{label}</span>
                       </label>
@@ -1716,7 +1716,7 @@ export default function AdminProductsPage() {
                       aria-label="Select all visible products"
                       checked={allVisibleSelected}
                       onChange={toggleSelectAllVisible}
-                      className="h-4 w-4 cursor-pointer rounded border-slate-300 text-emerald-600 focus:ring-emerald-300"
+                      className="h-4 w-4 cursor-pointer rounded border-slate-300 text-[var(--admin-primary)] focus:ring-emerald-300"
                     />
                   </th>
                   {columnVisibility.title ? (
@@ -1791,7 +1791,7 @@ export default function AdminProductsPage() {
                           aria-label={`Select ${product.name || `product ${product.id}`}`}
                           checked={isSelected}
                           onChange={() => toggleSelectRow(product.id)}
-                          className="h-4 w-4 cursor-pointer rounded border-slate-300 text-emerald-600 focus:ring-emerald-300"
+                          className="h-4 w-4 cursor-pointer rounded border-slate-300 text-[var(--admin-primary)] focus:ring-emerald-300"
                         />
                       </td>
 
@@ -1847,7 +1847,7 @@ export default function AdminProductsPage() {
                       {columnVisibility.salePrice ? (
                         <td className={`${tableCell} text-right tabular-nums`}>
                           {pricing.hasSalePrice ? (
-                            <span className="font-semibold text-emerald-700">
+                            <span className="font-semibold text-[var(--admin-primary)]">
                               {asCurrency(pricing.salePrice)}
                             </span>
                           ) : (
@@ -1922,7 +1922,7 @@ export default function AdminProductsPage() {
                                 type="button"
                                 onClick={() => handleApproveProduct(product)}
                                 disabled={approveMutation.isPending}
-                                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs font-medium text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs font-medium text-[var(--admin-primary)] transition hover:bg-[var(--admin-primary-soft)] disabled:cursor-not-allowed disabled:opacity-60"
                               >
                                 <CheckCircle2 className="h-3.5 w-3.5" />
                                 Approve
@@ -2088,7 +2088,7 @@ export default function AdminProductsPage() {
                   type="button"
                   disabled={approveMutation.isPending}
                   onClick={handleConfirmApproveProduct}
-                  className="inline-flex h-10 items-center justify-center rounded-lg border border-emerald-600 bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-10 items-center justify-center rounded-lg border border-[var(--admin-primary-strong)] bg-[var(--admin-primary)] px-4 text-sm font-semibold text-white transition hover:bg-[var(--admin-primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {approveMutation.isPending ? "Approving..." : "Approve product"}
                 </button>

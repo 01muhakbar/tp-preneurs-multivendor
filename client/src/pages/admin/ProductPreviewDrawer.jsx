@@ -122,7 +122,7 @@ const getLifecycleMeta = (status) => {
   if (normalized === "active") {
     return {
       label: "Active",
-      toneClass: "bg-emerald-100 text-emerald-700",
+      toneClass: "bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]",
     };
   }
   if (normalized === "inactive") {
@@ -151,7 +151,7 @@ const getStorefrontMeta = (visibility, published, status, submissionStatus) => {
   if (stateCode === "STOREFRONT_VISIBLE") {
     return {
       label: "Visible in storefront",
-      toneClass: "bg-emerald-100 text-emerald-700",
+      toneClass: "bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]",
       description:
         visibility?.storefrontReason ||
         "Publish is on and lifecycle is active, so storefront visibility is live.",
@@ -218,7 +218,7 @@ const getStorefrontMeta = (visibility, published, status, submissionStatus) => {
   if (normalized === "active") {
     return {
       label: "Visible in storefront",
-      toneClass: "bg-emerald-100 text-emerald-700",
+      toneClass: "bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]",
       description: "Publish is on and lifecycle is active, so storefront visibility is live.",
     };
   }
@@ -377,7 +377,7 @@ export default function ProductPreviewDrawer({ productId, onClose, onEdit }) {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <select className="h-10 min-w-[82px] rounded-[10px] border border-emerald-500 bg-white px-3 text-sm font-medium text-slate-700 focus:outline-none">
+            <select className="h-10 min-w-[82px] rounded-[10px] border border-[var(--admin-primary)] bg-white px-3 text-sm font-medium text-slate-700 focus:outline-none">
               <option value="en">en</option>
             </select>
             <button
@@ -456,7 +456,7 @@ export default function ProductPreviewDrawer({ productId, onClose, onEdit }) {
                   <span
                     className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                       Number(product.stock || 0) > 0
-                        ? "bg-emerald-100 text-emerald-700"
+                        ? "bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]"
                         : "bg-rose-100 text-rose-700"
                     }`}
                   >
@@ -511,7 +511,7 @@ export default function ProductPreviewDrawer({ productId, onClose, onEdit }) {
                       className={`mt-4 rounded-xl border px-3 py-3 text-sm ${
                         revisionStatus.type === "error"
                           ? "border-rose-200 bg-rose-50 text-rose-700"
-                          : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          : "border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]"
                       }`}
                     >
                       {revisionStatus.message}
@@ -523,7 +523,7 @@ export default function ProductPreviewDrawer({ productId, onClose, onEdit }) {
                       className={`mt-4 rounded-xl border px-3 py-3 text-sm ${
                         publishStatus.type === "error"
                           ? "border-rose-200 bg-rose-50 text-rose-700"
-                          : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          : "border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]"
                       }`}
                     >
                       {publishStatus.message}
@@ -537,7 +537,7 @@ export default function ProductPreviewDrawer({ productId, onClose, onEdit }) {
                           type="button"
                           onClick={() => publishMutation.mutate()}
                           disabled={publishMutation.isPending || !canPublishReviewOutcome}
-                          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 text-sm font-semibold text-white transition hover:bg-[var(--admin-primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           <CheckCircle2 className="h-4 w-4" />
                           {publishMutation.isPending ? "Approving..." : "Approve Review"}
@@ -655,7 +655,7 @@ export default function ProductPreviewDrawer({ productId, onClose, onEdit }) {
                   <button
                     type="button"
                     onClick={() => onEdit?.(product.id)}
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-500 px-5 text-sm font-semibold text-white transition hover:bg-emerald-600"
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary-soft)]0 px-5 text-sm font-semibold text-white transition hover:bg-[var(--admin-primary)]"
                   >
                     <Edit2 className="h-4 w-4" />
                     Edit Product
@@ -704,7 +704,7 @@ export default function ProductPreviewDrawer({ productId, onClose, onEdit }) {
                           <td className="px-4 py-3 font-medium text-slate-700">
                             {moneyIDR(variant.originalPrice)}
                           </td>
-                          <td className="px-4 py-3 font-medium text-emerald-600">
+                          <td className="px-4 py-3 font-medium text-[var(--admin-primary)]">
                             {moneyIDR(variant.salePrice)}
                           </td>
                           <td className="px-4 py-3 font-medium text-slate-700">{variant.quantity}</td>

@@ -29,8 +29,8 @@ import { resolveProductImageUrl } from "../../utils/productImage.js";
 import { productHasVariantSelections } from "../../utils/publicProductVariations.js";
 import { useStorefrontWishlist } from "../../utils/storefrontWishlist.js";
 
-const PRIMARY = "#034c85";
-const ACCENT = "#fe6f05";
+const PRIMARY = "var(--tp-primary)";
+const ACCENT = "var(--tp-accent)";
 const PLACEHOLDER_IMAGE = "/demo/placeholder-product.svg";
 const MAIN_SLIDER_LENGTH = 5;
 
@@ -436,12 +436,12 @@ function SectionHeading({ eyebrow, title, accent, description, action }) {
     <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
       <div>
         {eyebrow ? (
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-[#fe6f05]">
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--tp-accent)]">
             {eyebrow}
           </p>
         ) : null}
-        <h2 className="mt-2 text-3xl font-black tracking-tight text-[#034c85] dark:text-white sm:text-4xl">
-          {title} {accent ? <span className="text-[#fe6f05]">{accent}</span> : null}
+        <h2 className="mt-2 text-3xl font-black tracking-tight text-[var(--tp-primary)] dark:text-white sm:text-4xl">
+          {title} {accent ? <span className="text-[var(--tp-accent)]">{accent}</span> : null}
         </h2>
         {description ? (
           <p className="mt-3 max-w-xl text-sm font-medium leading-6 text-[#557099] dark:text-slate-300">
@@ -459,7 +459,7 @@ function HeroVisual({ products }) {
 
   return (
     <div className="relative min-h-[300px] overflow-hidden rounded-[32px] md:min-h-[360px] 2xl:min-h-[390px]">
-      <div className="absolute inset-x-[12%] bottom-7 h-24 rounded-full bg-[#034c85]/10 blur-3xl" />
+      <div className="absolute inset-x-[12%] bottom-7 h-24 rounded-full bg-[var(--tp-primary)]/10 blur-3xl" />
       <div className="absolute bottom-8 left-[8%] right-[10%] top-7 rounded-[34px] bg-gradient-to-br from-white/85 to-[#e8f3ff] shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:from-slate-800 dark:to-slate-900" />
       <div className="absolute bottom-10 left-[24%] h-44 w-52 rounded-b-[32px] rounded-t-[14px] bg-[#9b6336] shadow-[0_25px_45px_rgba(68,36,14,0.25)] sm:h-56 sm:w-[17rem] 2xl:h-60 2xl:w-72">
         <div className="absolute left-7 top-6 h-16 w-9 rounded-full border-4 border-[#d49358] 2xl:h-20 2xl:w-10" />
@@ -509,9 +509,9 @@ function CompactHeroCouponCard({
 
   return (
     <aside className="relative mx-auto flex min-h-[338px] w-full max-w-[252px] flex-col overflow-hidden rounded-[26px] border border-[#cdebdc] bg-white p-4 text-[#071a3f] shadow-[0_18px_34px_rgba(3,76,133,0.13)] dark:border-slate-700 dark:bg-slate-950 dark:text-white lg:mx-0 2xl:max-w-[260px]">
-      <div className="absolute inset-x-0 top-0 h-1 bg-[#fe6f05]" />
+      <div className="absolute inset-x-0 top-0 h-1 bg-[var(--tp-accent)]" />
       <div className="text-left">
-        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#fe6f05]">
+        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--tp-accent)]">
           Coupon Box
         </p>
         <h3 className="mt-2 text-[17px] font-black leading-5 text-[#071a3f] dark:text-white">
@@ -539,13 +539,13 @@ function CompactHeroCouponCard({
               <span className="text-[9px] font-black uppercase tracking-[0.24em] text-[#00a46c]">
                 {copiedCode === primaryCoupon.code ? "Copied!" : "Coupon Code"}
               </span>
-              <span className="mt-2 block break-all text-[22px] font-black leading-none tracking-[0.14em] text-[#034c85] dark:text-sky-300">
+              <span className="mt-2 block break-all text-[22px] font-black leading-none tracking-[0.14em] text-[var(--tp-primary)] dark:text-sky-300">
                 {primaryCoupon.code}
               </span>
             </button>
 
             <div className="rounded-2xl bg-[#f7fbff] p-3 text-left dark:bg-slate-900">
-              <p className="text-[13px] font-black text-[#fe6f05]">
+              <p className="text-[13px] font-black text-[var(--tp-accent)]">
                 {primaryCoupon.discountLabel || "Active discount"}
               </p>
               <p className="mt-1.5 text-[11px] font-semibold leading-5 text-[#557099] dark:text-slate-300">
@@ -565,7 +565,7 @@ function CompactHeroCouponCard({
                     onClick={() => onCopy?.(coupon.code)}
                     className={`h-7 rounded-full border px-3 text-[10px] font-black tracking-[0.12em] transition ${
                       copiedCode === coupon.code
-                        ? "border-[#fe6f05] bg-[#fe6f05] text-white"
+                        ? "border-[var(--tp-accent)] bg-[var(--tp-accent)] text-white"
                         : "border-[#cdebdc] bg-white text-[#00a46c] hover:border-[#00a46c] dark:bg-slate-950"
                     }`}
                   >
@@ -657,7 +657,7 @@ function MainSliderSection({
             type="button"
             onClick={goToPrevSlide}
             aria-label="Previous slider"
-            className="absolute left-4 top-1/2 z-20 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/80 bg-white/90 text-[#034c85] shadow-[0_12px_28px_rgba(3,76,133,0.13)] transition hover:bg-white"
+            className="absolute left-4 top-1/2 z-20 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/80 bg-white/90 text-[var(--tp-primary)] shadow-[0_12px_28px_rgba(3,76,133,0.13)] transition hover:bg-white"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
@@ -665,7 +665,7 @@ function MainSliderSection({
             type="button"
             onClick={goToNextSlide}
             aria-label="Next slider"
-            className="absolute right-4 top-1/2 z-20 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/80 bg-white/90 text-[#034c85] shadow-[0_12px_28px_rgba(3,76,133,0.13)] transition hover:bg-white"
+            className="absolute right-4 top-1/2 z-20 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/80 bg-white/90 text-[var(--tp-primary)] shadow-[0_12px_28px_rgba(3,76,133,0.13)] transition hover:bg-white"
           >
             <ChevronRight className="h-5 w-5" />
           </button>
@@ -711,7 +711,7 @@ function MainSliderSection({
                   href={ctaLink}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex h-14 items-center justify-center gap-3 whitespace-nowrap rounded-full bg-[#034c85] px-8 text-base font-black text-white shadow-[0_16px_30px_rgba(3,76,133,0.2)] transition hover:-translate-y-0.5 hover:bg-[#023f70]"
+                  className="inline-flex h-14 items-center justify-center gap-3 whitespace-nowrap rounded-full bg-[var(--tp-primary)] px-8 text-base font-black text-white shadow-[0_16px_30px_rgba(3,76,133,0.2)] transition hover:-translate-y-0.5 hover:bg-[#023f70]"
                 >
                   {ctaLabel}
                   <ArrowRight className="h-5 w-5" />
@@ -719,7 +719,7 @@ function MainSliderSection({
               ) : (
                 <Link
                   to={ctaLink}
-                  className="inline-flex h-14 items-center justify-center gap-3 whitespace-nowrap rounded-full bg-[#034c85] px-8 text-base font-black text-white shadow-[0_16px_30px_rgba(3,76,133,0.2)] transition hover:-translate-y-0.5 hover:bg-[#023f70]"
+                  className="inline-flex h-14 items-center justify-center gap-3 whitespace-nowrap rounded-full bg-[var(--tp-primary)] px-8 text-base font-black text-white shadow-[0_16px_30px_rgba(3,76,133,0.2)] transition hover:-translate-y-0.5 hover:bg-[#023f70]"
                 >
                   {ctaLabel}
                   <ArrowRight className="h-5 w-5" />
@@ -728,7 +728,7 @@ function MainSliderSection({
               {!imageSrc ? (
                 <Link
                   to="/shop"
-                  className="inline-flex h-14 items-center justify-center gap-3 whitespace-nowrap rounded-full border-2 border-[#034c85] bg-white/60 px-8 text-base font-black text-[#034c85] transition hover:-translate-y-0.5 hover:bg-white dark:bg-slate-950/60 dark:text-sky-300"
+                  className="inline-flex h-14 items-center justify-center gap-3 whitespace-nowrap rounded-full border-2 border-[var(--tp-primary)] bg-white/60 px-8 text-base font-black text-[var(--tp-primary)] transition hover:-translate-y-0.5 hover:bg-white dark:bg-slate-950/60 dark:text-sky-300"
                 >
                   <Grid3X3 className="h-5 w-5" />
                   Explore Categories
@@ -745,7 +745,7 @@ function MainSliderSection({
                   onClick={() => setActiveSlide(index)}
                   aria-label={`Show slider ${index + 1}`}
                   className={`h-3 rounded-full transition-all ${
-                    index === slideIndex ? "w-8 bg-[#fe6f05]" : "w-3 bg-[#adc6df]"
+                    index === slideIndex ? "w-8 bg-[var(--tp-accent)]" : "w-3 bg-[#adc6df]"
                   }`}
                 />
               ))}
@@ -777,15 +777,15 @@ function BenefitStrip() {
     <section className="grid gap-4 rounded-[28px] bg-white p-5 shadow-[0_14px_34px_rgba(3,76,133,0.08)] dark:bg-slate-900 md:grid-cols-2 xl:grid-cols-4">
       {benefitItems.map(({ title, text, Icon }) => (
         <div key={title} className="flex gap-5 border-[#dbe6f3] p-3 xl:border-r xl:last:border-r-0 dark:border-slate-800">
-          <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-[#f7fbff] text-[#034c85] dark:bg-slate-800 dark:text-sky-300">
+          <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-[#f7fbff] text-[var(--tp-primary)] dark:bg-slate-800 dark:text-sky-300">
             <Icon className="h-8 w-8" />
           </div>
           <div>
-            <h3 className="font-black text-[#034c85] dark:text-white">{title}</h3>
+            <h3 className="font-black text-[var(--tp-primary)] dark:text-white">{title}</h3>
             <p className="mt-2 text-sm font-medium leading-6 text-[#557099] dark:text-slate-300">
               {text}
             </p>
-            <span className="mt-4 block h-1 w-7 rounded-full bg-[#fe6f05]" />
+            <span className="mt-4 block h-1 w-7 rounded-full bg-[var(--tp-accent)]" />
           </div>
         </div>
       ))}
@@ -797,8 +797,8 @@ function CategoryCard({ category, active }) {
   return (
     <Link
       to={`/search?category=${encodeURIComponent(category.slug)}&page=1`}
-      className={`group min-h-[176px] rounded-[22px] border bg-white p-4 text-center shadow-[0_12px_28px_rgba(3,76,133,0.07)] transition hover:-translate-y-1 hover:border-[#034c85] dark:bg-slate-900 ${
-        active ? "border-[#034c85]" : "border-[#dbe6f3] dark:border-slate-800"
+      className={`group min-h-[176px] rounded-[22px] border bg-white p-4 text-center shadow-[0_12px_28px_rgba(3,76,133,0.07)] transition hover:-translate-y-1 hover:border-[var(--tp-primary)] dark:bg-slate-900 ${
+        active ? "border-[var(--tp-primary)]" : "border-[#dbe6f3] dark:border-slate-800"
       }`}
     >
       <div className="mx-auto grid h-24 w-full place-items-center rounded-[18px] bg-[#f7fbff] dark:bg-slate-800">
@@ -808,11 +808,11 @@ function CategoryCard({ category, active }) {
           <span className="text-6xl">{category.emoji}</span>
         )}
       </div>
-      <h3 className="mt-4 line-clamp-2 text-sm font-black text-[#034c85] dark:text-white">
+      <h3 className="mt-4 line-clamp-2 text-sm font-black text-[var(--tp-primary)] dark:text-white">
         {category.name}
       </h3>
-      <span className={`mx-auto mt-3 grid h-9 w-9 place-items-center rounded-full border text-sm transition group-hover:border-[#fe6f05] group-hover:bg-[#fe6f05] group-hover:text-white ${
-        active ? "border-[#034c85] bg-[#034c85] text-white" : "border-[#fe6f05] text-[#fe6f05]"
+      <span className={`mx-auto mt-3 grid h-9 w-9 place-items-center rounded-full border text-sm transition group-hover:border-[var(--tp-accent)] group-hover:bg-[var(--tp-accent)] group-hover:text-white ${
+        active ? "border-[var(--tp-primary)] bg-[var(--tp-primary)] text-white" : "border-[var(--tp-accent)] text-[var(--tp-accent)]"
       }`}>
         <ArrowRight className="h-4 w-4" />
       </span>
@@ -872,9 +872,9 @@ function ProductCard({ product, compact = false, showDiscount = false }) {
   };
 
   return (
-    <article className="group relative rounded-[18px] border border-[#dbe6f3] bg-white p-3 shadow-[0_12px_28px_rgba(3,76,133,0.07)] transition hover:-translate-y-1 hover:border-[#034c85] dark:border-slate-800 dark:bg-slate-900">
+    <article className="group relative rounded-[18px] border border-[#dbe6f3] bg-white p-3 shadow-[0_12px_28px_rgba(3,76,133,0.07)] transition hover:-translate-y-1 hover:border-[var(--tp-primary)] dark:border-slate-800 dark:bg-slate-900">
       {showDiscount && discount > 0 ? (
-        <span className="absolute left-4 top-4 z-10 rounded-full bg-[#fe6f05] px-3 py-1 text-xs font-black text-white">
+        <span className="absolute left-4 top-4 z-10 rounded-full bg-[var(--tp-accent)] px-3 py-1 text-xs font-black text-white">
           -{discount}%
         </span>
       ) : null}
@@ -884,8 +884,8 @@ function ProductCard({ product, compact = false, showDiscount = false }) {
         aria-label={`Save ${product.name}`}
         className={`absolute right-4 top-4 z-10 grid h-10 w-10 place-items-center rounded-full shadow-[0_8px_20px_rgba(3,76,133,0.12)] transition ${
           wishlist.isWishlisted(product.id || product.slug)
-            ? "bg-[#fe6f05] text-white hover:bg-[#d95700]"
-            : "bg-white text-[#557099] hover:text-[#fe6f05] dark:bg-slate-950 dark:text-slate-300"
+            ? "bg-[var(--tp-accent)] text-white hover:bg-[#d95700]"
+            : "bg-white text-[#557099] hover:text-[var(--tp-accent)] dark:bg-slate-950 dark:text-slate-300"
         }`}
       >
         <Heart className={`h-5 w-5 ${wishlist.isWishlisted(product.id || product.slug) ? "fill-current" : ""}`} />
@@ -911,7 +911,7 @@ function ProductCard({ product, compact = false, showDiscount = false }) {
               onClick={handleAdd}
               disabled={isLoading || isAdding || !isPurchasable}
               aria-label={`Add ${product.name} to cart`}
-              className="absolute bottom-3 right-3 grid h-11 w-11 place-items-center rounded-full bg-[#034c85] text-white shadow-[0_10px_20px_rgba(3,76,133,0.2)] transition hover:bg-[#fe6f05] disabled:cursor-not-allowed disabled:opacity-60"
+              className="absolute bottom-3 right-3 grid h-11 w-11 place-items-center rounded-full bg-[var(--tp-primary)] text-white shadow-[0_10px_20px_rgba(3,76,133,0.2)] transition hover:bg-[var(--tp-accent)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isAdding ? <BadgeCheck className="h-5 w-5" /> : <ShoppingCart className="h-5 w-5" />}
             </button>
@@ -921,7 +921,7 @@ function ProductCard({ product, compact = false, showDiscount = false }) {
       <div className="mt-3 space-y-2">
         <div className="flex items-start justify-between gap-3">
           <Link to={`/product/${product.routeSlug || product.slug || product.id}`} className="min-w-0">
-            <h3 className="line-clamp-2 text-sm font-black leading-6 text-[#071a3f] transition group-hover:text-[#034c85] dark:text-white">
+            <h3 className="line-clamp-2 text-sm font-black leading-6 text-[#071a3f] transition group-hover:text-[var(--tp-primary)] dark:text-white">
               {product.name}
             </h3>
           </Link>
@@ -929,7 +929,7 @@ function ProductCard({ product, compact = false, showDiscount = false }) {
             <Link
               to={`/product/${product.routeSlug || product.slug || product.id}`}
               aria-label={`View ${product.name}`}
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[#dbe6f3] text-[#034c85] transition hover:border-[#fe6f05] hover:bg-[#fe6f05] hover:text-white dark:border-slate-700"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[#dbe6f3] text-[var(--tp-primary)] transition hover:border-[var(--tp-accent)] hover:bg-[var(--tp-accent)] hover:text-white dark:border-slate-700"
             >
               <Eye className="h-4 w-4" />
             </Link>
@@ -943,7 +943,7 @@ function ProductCard({ product, compact = false, showDiscount = false }) {
           </div>
         ) : null}
         <div className="flex flex-wrap items-baseline gap-3">
-          <span className="text-lg font-black text-[#034c85] dark:text-sky-300">
+          <span className="text-lg font-black text-[var(--tp-primary)] dark:text-sky-300">
             {formatCurrency(product.price)}
           </span>
           {product.originalPrice > product.price ? (
@@ -971,7 +971,7 @@ function PromoStrip() {
           📱
         </div>
         <div>
-          <h3 className="text-lg font-black text-[#034c85] dark:text-white">
+          <h3 className="text-lg font-black text-[var(--tp-primary)] dark:text-white">
             Download the TP Preneurs App
           </h3>
           <p className="mt-1 text-sm font-medium text-[#557099] dark:text-slate-300">
@@ -993,7 +993,7 @@ function PromoStrip() {
           {["A", "K", "M", "S"].map((item, index) => (
             <span
               key={item}
-              className="grid h-11 w-11 place-items-center rounded-full border-2 border-white bg-[#034c85] text-sm font-black text-white dark:border-slate-900"
+              className="grid h-11 w-11 place-items-center rounded-full border-2 border-white bg-[var(--tp-primary)] text-sm font-black text-white dark:border-slate-900"
               style={{ background: index % 2 ? ACCENT : PRIMARY }}
             >
               {item}
@@ -1001,11 +1001,11 @@ function PromoStrip() {
           ))}
         </div>
         <div>
-          <h3 className="text-lg font-black text-[#034c85] dark:text-white">
+          <h3 className="text-lg font-black text-[var(--tp-primary)] dark:text-white">
             Trusted by Thousands of Happy Customers
           </h3>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="rounded-lg bg-[#034c85] px-3 py-2 text-sm font-black text-white">
+            <span className="rounded-lg bg-[var(--tp-primary)] px-3 py-2 text-sm font-black text-white">
               4.8
             </span>
             <StarRating value={5} />
@@ -1018,7 +1018,7 @@ function PromoStrip() {
 
       <div className="flex items-center gap-5">
         <div className="min-w-0 flex-1">
-          <h3 className="text-lg font-black text-[#034c85] dark:text-white">
+          <h3 className="text-lg font-black text-[var(--tp-primary)] dark:text-white">
             Subscribe to Our Newsletter
           </h3>
           <p className="mt-1 text-sm font-medium text-[#557099] dark:text-slate-300">
@@ -1034,13 +1034,13 @@ function PromoStrip() {
               placeholder="Enter your email address"
               className="min-w-0 flex-1 bg-transparent px-4 text-sm font-semibold text-[#071a3f] outline-none dark:text-white"
             />
-            <button type="submit" className="bg-[#fe6f05] px-5 text-sm font-black text-white">
+            <button type="submit" className="bg-[var(--tp-accent)] px-5 text-sm font-black text-white">
               Subscribe
             </button>
           </form>
         </div>
         <div className="hidden text-7xl md:block">
-          <Mail className="h-20 w-20 text-[#034c85]" />
+          <Mail className="h-20 w-20 text-[var(--tp-primary)]" />
         </div>
       </div>
     </section>
@@ -1169,7 +1169,7 @@ export default function KachaBazarDemoHomePage() {
           action={
             <Link
               to="/shop"
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[#034c85] px-5 text-sm font-black text-[#034c85] transition hover:bg-[#034c85] hover:text-white dark:text-sky-300"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[var(--tp-primary)] px-5 text-sm font-black text-[var(--tp-primary)] transition hover:bg-[var(--tp-primary)] hover:text-white dark:text-sky-300"
             >
               View all categories
               <ArrowRight className="h-4 w-4" />
@@ -1188,7 +1188,7 @@ export default function KachaBazarDemoHomePage() {
           <div>
             <h2 className="flex items-center gap-3 text-2xl font-black text-[#071a3f] dark:text-white">
               Popular Products
-              <span className="h-2.5 w-2.5 rounded-full bg-[#fe6f05]" />
+              <span className="h-2.5 w-2.5 rounded-full bg-[var(--tp-accent)]" />
             </h2>
             <div className="mt-5 flex flex-wrap gap-3">
               {chips.map((chip, index) => (
@@ -1197,8 +1197,8 @@ export default function KachaBazarDemoHomePage() {
                   to={index === 0 ? "/shop" : `/search?category=${encodeURIComponent(chip.toLowerCase().replace(/\s+/g, "-"))}&page=1`}
                   className={`inline-flex h-9 items-center rounded-full border px-5 text-sm font-bold transition ${
                     index === 0
-                      ? "border-[#034c85] bg-[#034c85] text-white"
-                      : "border-[#dbe6f3] text-[#31486e] hover:border-[#034c85] hover:text-[#034c85] dark:border-slate-700 dark:text-slate-300"
+                      ? "border-[var(--tp-primary)] bg-[var(--tp-primary)] text-white"
+                      : "border-[#dbe6f3] text-[#31486e] hover:border-[var(--tp-primary)] hover:text-[var(--tp-primary)] dark:border-slate-700 dark:text-slate-300"
                   }`}
                 >
                   {chip}
@@ -1212,7 +1212,7 @@ export default function KachaBazarDemoHomePage() {
             </button>
             <Link
               to="/shop?sort=popular"
-              className="inline-flex h-11 items-center gap-2 rounded-full border border-[#034c85] px-5 text-sm font-black text-[#034c85] transition hover:bg-[#034c85] hover:text-white"
+              className="inline-flex h-11 items-center gap-2 rounded-full border border-[var(--tp-primary)] px-5 text-sm font-black text-[var(--tp-primary)] transition hover:bg-[var(--tp-primary)] hover:text-white"
             >
               View all
               <ArrowRight className="h-4 w-4" />
@@ -1238,19 +1238,19 @@ export default function KachaBazarDemoHomePage() {
         <div className="flex items-center justify-between gap-4">
           <h2 className="flex items-center gap-3 text-2xl font-black text-[#071a3f] dark:text-white">
             Latest Discounted Products
-            <span className="h-2.5 w-2.5 rounded-full bg-[#fe6f05]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[var(--tp-accent)]" />
           </h2>
           <div className="hidden items-center gap-3 sm:flex">
-            <button className="grid h-11 w-11 place-items-center rounded-full border border-[#dbe6f3] text-[#034c85] dark:border-slate-700">
+            <button className="grid h-11 w-11 place-items-center rounded-full border border-[#dbe6f3] text-[var(--tp-primary)] dark:border-slate-700">
               <ChevronLeft className="h-5 w-5" />
             </button>
             <Link
               to="/search?discounted=true&page=1"
-              className="inline-flex h-11 items-center rounded-full border border-[#034c85] px-5 text-sm font-black text-[#034c85] transition hover:bg-[#034c85] hover:text-white"
+              className="inline-flex h-11 items-center rounded-full border border-[var(--tp-primary)] px-5 text-sm font-black text-[var(--tp-primary)] transition hover:bg-[var(--tp-primary)] hover:text-white"
             >
               View all
             </Link>
-            <button className="grid h-11 w-11 place-items-center rounded-full bg-[#fe6f05] text-white">
+            <button className="grid h-11 w-11 place-items-center rounded-full bg-[var(--tp-accent)] text-white">
               <ChevronRight className="h-5 w-5" />
             </button>
           </div>
@@ -1270,10 +1270,10 @@ export default function KachaBazarDemoHomePage() {
         )}
       </section>
 
-      <section className="overflow-hidden rounded-[34px] bg-[#034c85] p-7 text-white shadow-[0_18px_42px_rgba(3,76,133,0.16)] sm:p-10">
+      <section className="overflow-hidden rounded-[34px] bg-[var(--tp-primary)] p-7 text-white shadow-[0_18px_42px_rgba(3,76,133,0.16)] sm:p-10">
         <div className="grid gap-8 lg:grid-cols-[1fr_0.85fr] lg:items-center">
           <div className="space-y-5">
-            <p className="text-sm font-black uppercase tracking-[0.22em] text-[#fe6f05]">
+            <p className="text-sm font-black uppercase tracking-[0.22em] text-[var(--tp-accent)]">
               Daily Essentials Delivered Fast
             </p>
             <h2 className="max-w-2xl text-4xl font-black leading-tight sm:text-5xl">
@@ -1284,7 +1284,7 @@ export default function KachaBazarDemoHomePage() {
             </p>
             <Link
               to="/shop"
-              className="inline-flex h-14 items-center gap-3 rounded-full bg-[#fe6f05] px-7 text-base font-black text-white transition hover:-translate-y-0.5"
+              className="inline-flex h-14 items-center gap-3 rounded-full bg-[var(--tp-accent)] px-7 text-base font-black text-white transition hover:-translate-y-0.5"
             >
               Start Shopping
               <ArrowRight className="h-5 w-5" />
@@ -1295,7 +1295,7 @@ export default function KachaBazarDemoHomePage() {
             <div className="absolute left-8 top-8 text-8xl">🥬</div>
             <div className="absolute right-10 top-12 text-8xl">🍊</div>
             <div className="absolute bottom-8 left-[30%] text-8xl">🥛</div>
-            <div className="absolute bottom-12 right-8 rounded-[28px] bg-white p-6 text-[#034c85] shadow-[0_20px_42px_rgba(0,0,0,0.2)]">
+            <div className="absolute bottom-12 right-8 rounded-[28px] bg-white p-6 text-[var(--tp-primary)] shadow-[0_20px_42px_rgba(0,0,0,0.2)]">
               <Truck className="h-12 w-12" />
               <p className="mt-3 text-lg font-black">Same-day ready</p>
             </div>

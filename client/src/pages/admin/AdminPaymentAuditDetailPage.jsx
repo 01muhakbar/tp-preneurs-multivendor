@@ -34,7 +34,7 @@ const getToneBadgeClass = (tone) => {
   if (value === "amber") return "bg-amber-100 text-amber-700";
   if (value === "sky") return "bg-sky-100 text-sky-700";
   if (value === "indigo") return "bg-indigo-100 text-indigo-700";
-  if (value === "emerald") return "bg-emerald-100 text-emerald-700";
+  if (value === "emerald") return "bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]";
   if (value === "rose") return "bg-rose-100 text-rose-700";
   if (value === "orange") return "bg-orange-100 text-orange-700";
   return "bg-slate-100 text-slate-700";
@@ -490,7 +490,7 @@ export default function AdminPaymentAuditDetailPage() {
                                 href={paymentRecord.proof.proofImageUrl}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="inline-flex text-sm font-semibold text-emerald-700 underline"
+                                className="inline-flex text-sm font-semibold text-[var(--admin-primary)] underline"
                               >
                                 Open proof image
                               </a>

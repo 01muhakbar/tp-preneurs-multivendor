@@ -18,6 +18,7 @@ export type Seller2026ProductEditorForm = {
   hasVariants: boolean;
   seoTitle: string;
   seoDescription: string;
+  imageAlt: string;
 };
 
 export type Seller2026ProductCategoryOption = {
@@ -57,6 +58,7 @@ export function createSeller2026ProductEditorForm(
     hasVariants: Boolean(detail?.variants?.length),
     seoTitle: text(editable?.seoTitle),
     seoDescription: text(editable?.seoDescription),
+    imageAlt: text((editable as any)?.imageAlt), // TODO: Map from actual API if supported
   };
 }
 
@@ -102,6 +104,7 @@ export function buildSeller2026ProductDraftPayload(form: Seller2026ProductEditor
     hasVariants: false,
     seoTitle: text(form.seoTitle) || null,
     seoDescription: text(form.seoDescription) || null,
+    // imageAlt: text(form.imageAlt) || null, // TODO: Send to API when endpoint supports image alt
   };
 }
 

@@ -53,11 +53,11 @@ const isEmojiLike = (value) => {
 const btnBase =
   "inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-semibold transition";
 const btnOutline = `${btnBase} border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50`;
-const btnGreen = `${btnBase} bg-emerald-600 text-white hover:bg-emerald-700`;
+const btnGreen = `${btnBase} bg-[var(--admin-primary)] text-white hover:bg-[var(--admin-primary-strong)]`;
 const btnDanger = `${btnBase} bg-rose-600 text-white hover:bg-rose-700`;
 const btnAmber = `${btnBase} bg-amber-500 text-white hover:bg-amber-600`;
 const fieldClass =
-  "h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none";
+  "h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-[var(--admin-primary)] focus:outline-none";
 const statCardClass =
   "rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-right shadow-sm";
 const tableHeadCell =
@@ -69,13 +69,13 @@ function CategoryPublishedBadge({ published }) {
     <span
       className={`inline-flex min-h-7 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
         published
-          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+          ? "border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]"
           : "border-slate-200 bg-slate-100 text-slate-600"
       }`}
     >
       <span
         className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-          published ? "bg-emerald-500" : "bg-slate-400"
+          published ? "bg-[var(--admin-primary-soft)]0" : "bg-slate-400"
         }`}
       />
       {published ? "Active" : "Inactive"}
@@ -351,7 +351,7 @@ export default function AdminSubCategoriesPage({ resolveMode = "code" }) {
             <div className="flex items-center gap-1.5 text-sm text-slate-500">
               <Link
                 to="/admin/catalog/categories"
-                className="font-medium text-slate-600 hover:text-emerald-600"
+                className="font-medium text-slate-600 hover:text-[var(--admin-primary)]"
               >
                 Categories
               </Link>
@@ -373,7 +373,7 @@ export default function AdminSubCategoriesPage({ resolveMode = "code" }) {
       </div>
 
       {notice ? (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-700">
+        <div className="rounded-xl border border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] px-4 py-2 text-sm text-[var(--admin-primary)]">
           {notice}
         </div>
       ) : null}
@@ -473,7 +473,7 @@ export default function AdminSubCategoriesPage({ resolveMode = "code" }) {
                             if (event.target.checked) setSelectedIds(subCategories.map((item) => item.id));
                             else setSelectedIds([]);
                           }}
-                          className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                          className="h-4 w-4 rounded border-slate-300 text-[var(--admin-primary)] focus:ring-[var(--admin-primary)]"
                         />
                       </th>
                       <th className={tableHeadCell}>ID</th>
@@ -504,7 +504,7 @@ export default function AdminSubCategoriesPage({ resolveMode = "code" }) {
                                   return prev.filter((id) => id !== category.id);
                                 });
                               }}
-                              className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                              className="h-4 w-4 rounded border-slate-300 text-[var(--admin-primary)] focus:ring-[var(--admin-primary)]"
                             />
                           </td>
                           <td className={`${tableCell} font-medium tabular-nums text-slate-700`}>
@@ -540,7 +540,7 @@ export default function AdminSubCategoriesPage({ resolveMode = "code" }) {
                                 type="button"
                                 onClick={() => handleTogglePublished(category)}
                                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
-                                  category.published ? "bg-emerald-500" : "bg-slate-300"
+                                  category.published ? "bg-[var(--admin-primary-soft)]0" : "bg-slate-300"
                                 }`}
                                 aria-label={`Toggle publish for ${category.name}`}
                               >
@@ -645,7 +645,7 @@ export default function AdminSubCategoriesPage({ resolveMode = "code" }) {
                 <input
                   value={form.name}
                   onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-                  className="mt-2 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm focus:border-emerald-500 focus:outline-none"
+                  className="mt-2 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm focus:border-[var(--admin-primary)] focus:outline-none"
                   placeholder="Category title"
                   required
                 />
@@ -659,7 +659,7 @@ export default function AdminSubCategoriesPage({ resolveMode = "code" }) {
                     setForm((prev) => ({ ...prev, description: event.target.value }))
                   }
                   rows={3}
-                  className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                  className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-[var(--admin-primary)] focus:outline-none"
                   placeholder="Category Description"
                 />
               </div>
@@ -709,7 +709,7 @@ export default function AdminSubCategoriesPage({ resolveMode = "code" }) {
                 <input
                   value={form.icon}
                   onChange={(event) => setForm((prev) => ({ ...prev, icon: event.target.value }))}
-                  className="mt-2 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm focus:border-emerald-500 focus:outline-none"
+                  className="mt-2 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm focus:border-[var(--admin-primary)] focus:outline-none"
                   placeholder="Image URL (optional)"
                 />
                 {previewImageUrl ? (
@@ -733,7 +733,7 @@ export default function AdminSubCategoriesPage({ resolveMode = "code" }) {
                       setForm((prev) => ({ ...prev, published: !Boolean(prev.published) }))
                     }
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
-                      form.published ? "bg-emerald-500" : "bg-slate-300"
+                      form.published ? "bg-[var(--admin-primary-soft)]0" : "bg-slate-300"
                     }`}
                     aria-label="Toggle published"
                   >
@@ -772,7 +772,7 @@ export default function AdminSubCategoriesPage({ resolveMode = "code" }) {
                     uploadMutation.isPending ||
                     uploadMutation.isLoading
                   }
-                  className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                  className="rounded-xl bg-[var(--admin-primary)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
                 >
                   {editing ? "Update Category" : "Add Category"}
                 </button>

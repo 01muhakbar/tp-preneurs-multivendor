@@ -291,7 +291,7 @@ export default function AdminNotificationsPage() {
               type="button"
               onClick={handleMarkSelectedRead}
               disabled={isMutating || selectedItems.filter((item) => !item.isRead).length === 0}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-4 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-4 text-sm font-semibold text-white transition hover:bg-[var(--admin-primary-soft)]0 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <CheckCheck className="h-4 w-4" />
               Mark as Read
@@ -317,7 +317,7 @@ export default function AdminNotificationsPage() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search notifications..."
-                className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-emerald-400"
+                className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-[var(--admin-primary)]"
               />
             </div>
 
@@ -348,13 +348,13 @@ export default function AdminNotificationsPage() {
                           setStatusMenuOpen(false);
                         }}
                         className={`flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left text-sm transition ${
-                          checked ? "bg-emerald-50 text-emerald-800" : "hover:bg-slate-50"
+                          checked ? "bg-[var(--admin-primary-soft)] text-[var(--admin-primary-strong)]" : "hover:bg-slate-50"
                         }`}
                       >
                         <span
                           className={`inline-flex h-4 w-4 rounded border ${
                             checked
-                              ? "border-emerald-500 bg-emerald-100"
+                              ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)]"
                               : "border-slate-300 bg-white"
                           }`}
                         />
@@ -392,7 +392,7 @@ export default function AdminNotificationsPage() {
                       onChange={() =>
                         setColumnVisibility((prev) => ({ ...prev, [key]: !prev[key] }))
                       }
-                      className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-300"
+                      className="h-4 w-4 rounded border-slate-300 text-[var(--admin-primary)] focus:ring-emerald-300"
                     />
                     <span>{label}</span>
                   </label>
@@ -436,7 +436,7 @@ export default function AdminNotificationsPage() {
                       type="checkbox"
                       checked={allVisibleSelected}
                       onChange={toggleSelectAllVisible}
-                      className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-300"
+                      className="h-4 w-4 rounded border-slate-300 text-[var(--admin-primary)] focus:ring-emerald-300"
                     />
                   </th>
                   {columnVisibility.status ? (
@@ -472,7 +472,7 @@ export default function AdminNotificationsPage() {
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => toggleSelectRow(item.id)}
-                          className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-300"
+                          className="h-4 w-4 rounded border-slate-300 text-[var(--admin-primary)] focus:ring-emerald-300"
                         />
                       </td>
                       {columnVisibility.status ? (
@@ -481,7 +481,7 @@ export default function AdminNotificationsPage() {
                             className={`inline-flex h-7 items-center rounded-full px-3 text-xs font-semibold ${
                               item.isRead
                                 ? "bg-slate-100 text-slate-600"
-                                : "bg-emerald-500 text-white"
+                                : "bg-[var(--admin-primary-soft)]0 text-white"
                             }`}
                           >
                             {item.isRead ? "Read" : "Unread"}
@@ -498,13 +498,13 @@ export default function AdminNotificationsPage() {
                               <button
                                 type="button"
                                 onClick={() => handleOpenNotification(item)}
-                                className="truncate text-left text-[15px] font-semibold text-slate-900 transition hover:text-emerald-700"
+                                className="truncate text-left text-[15px] font-semibold text-slate-900 transition hover:text-[var(--admin-primary)]"
                                 title={item.title}
                               >
                                 {item.title}
                               </button>
                               <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                                <span className="inline-flex h-6 items-center rounded-full bg-emerald-500 px-2.5 text-[11px] font-semibold text-white">
+                                <span className="inline-flex h-6 items-center rounded-full bg-[var(--admin-primary-soft)]0 px-2.5 text-[11px] font-semibold text-white">
                                   {toLabel(item.type)}
                                 </span>
                                 <span className="text-xs text-slate-500">
@@ -515,7 +515,7 @@ export default function AdminNotificationsPage() {
                                 <div className="mt-2">
                                   <Link
                                     to={targetUrl}
-                                    className="text-xs font-medium text-emerald-700 hover:text-emerald-800"
+                                    className="text-xs font-medium text-[var(--admin-primary)] hover:text-[var(--admin-primary-strong)]"
                                   >
                                     Open related order
                                   </Link>

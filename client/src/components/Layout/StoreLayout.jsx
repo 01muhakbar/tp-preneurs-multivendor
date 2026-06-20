@@ -323,23 +323,23 @@ gtag('config', '${key}');`;
       {showFloatingCartWidget ? (
         <FloatingCartWidget />
       ) : null}
-      <nav className="fixed inset-x-0 bottom-0 z-40 h-16 border-t border-[#034c85]/70 bg-[#034c85] px-4 py-2 text-white shadow-[0_-8px_20px_rgba(3,76,133,0.35)] sm:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 h-16 border-t border-[var(--tp-primary)]/70 bg-[var(--tp-primary)] px-4 py-2 text-white shadow-[0_-8px_20px_rgba(3,76,133,0.35)] sm:hidden">
         <div className="mx-auto grid h-full max-w-7xl grid-cols-4 gap-1">
           <button
             type="button"
             onClick={() => setIsMenuOpen(true)}
             aria-expanded={isMenuOpen}
             aria-label="Open menu"
-            className="flex h-full flex-col items-center justify-center rounded-lg text-xs tracking-[0.01em] text-white/90 hover:bg-[#fe6f05]"
+            className="flex h-full flex-col items-center justify-center rounded-lg text-xs tracking-[0.01em] text-white/90 hover:bg-[var(--tp-accent)]"
           >
             <Menu className="h-[18px] w-[18px]" />
             <span className="leading-none">Menu</span>
           </button>
           <Link
             to="/"
-            className={`flex h-full flex-col items-center justify-center rounded-lg text-xs tracking-[0.01em] hover:bg-[#fe6f05] ${
+            className={`flex h-full flex-col items-center justify-center rounded-lg text-xs tracking-[0.01em] hover:bg-[var(--tp-accent)] ${
               isHomeActive
-                ? "bg-[#fe6f05] font-semibold text-white"
+                ? "bg-[var(--tp-accent)] font-semibold text-white"
                 : "font-medium text-white/90"
             }`}
           >
@@ -349,9 +349,9 @@ gtag('config', '${key}');`;
           <button
             type="button"
             onClick={openCartDrawer}
-            className={`relative flex h-full flex-col items-center justify-center rounded-lg text-xs tracking-[0.01em] hover:bg-[#fe6f05] ${
+            className={`relative flex h-full flex-col items-center justify-center rounded-lg text-xs tracking-[0.01em] hover:bg-[var(--tp-accent)] ${
               isCartActive || isCartDrawerOpen
-                ? "bg-[#fe6f05] font-semibold text-white"
+                ? "bg-[var(--tp-accent)] font-semibold text-white"
                 : "font-medium text-white/90"
             }`}
           >
@@ -365,9 +365,9 @@ gtag('config', '${key}');`;
           </button>
           <Link
             to="/user/my-account"
-            className={`flex h-full flex-col items-center justify-center rounded-lg text-xs tracking-[0.01em] hover:bg-[#fe6f05] ${
+            className={`flex h-full flex-col items-center justify-center rounded-lg text-xs tracking-[0.01em] hover:bg-[var(--tp-accent)] ${
               isProfileActive
-                ? "bg-[#fe6f05] font-semibold text-white"
+                ? "bg-[var(--tp-accent)] font-semibold text-white"
                 : "font-medium text-white/90"
             }`}
           >

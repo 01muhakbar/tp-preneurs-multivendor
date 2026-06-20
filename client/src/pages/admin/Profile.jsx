@@ -168,7 +168,7 @@ export default function AdminProfilePage() {
             type="text"
             value={form.name}
             onChange={handleChange("name")}
-            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none"
+            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-[var(--admin-primary)] focus:outline-none"
             required
           />
         </label>
@@ -189,7 +189,7 @@ export default function AdminProfilePage() {
             type="text"
             value={form.phone}
             onChange={handleChange("phone")}
-            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none"
+            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-[var(--admin-primary)] focus:outline-none"
             placeholder="Optional"
           />
         </label>
@@ -200,7 +200,7 @@ export default function AdminProfilePage() {
           </div>
         ) : null}
         {success ? (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+          <div className="rounded-xl border border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] px-3 py-2 text-sm text-[var(--admin-primary)]">
             {success}
           </div>
         ) : null}
@@ -208,7 +208,7 @@ export default function AdminProfilePage() {
         <div className="flex items-center gap-2 pt-1">
           <button
             type="submit"
-            className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-600 px-5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+            className="inline-flex h-10 items-center justify-center rounded-full bg-[var(--admin-primary)] px-5 text-sm font-semibold text-white hover:bg-[var(--admin-primary-strong)] disabled:opacity-60"
             disabled={saving}
           >
             {saving ? "Saving..." : "Save"}

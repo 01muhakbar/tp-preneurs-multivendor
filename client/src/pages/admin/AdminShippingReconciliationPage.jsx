@@ -115,13 +115,13 @@ const CATEGORY_META = {
     label: "Corrected",
     shortLabel: "Corrected",
     color: "#059669",
-    bg: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200",
+    bg: "bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] dark:bg-[var(--admin-primary-soft)]0/15 dark:text-emerald-200",
     Icon: CheckCircle2,
   },
 };
 
 const STATUS_STYLES = {
-  DELIVERED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200",
+  DELIVERED: "bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] dark:bg-[var(--admin-primary-soft)]0/15 dark:text-emerald-200",
   SHIPPED: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-200",
   INFO_RECEIVED: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-200",
   FAILED_DELIVERY: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-200",
@@ -133,7 +133,7 @@ const STATUS_STYLES = {
 const PRIORITY_STYLES = {
   Urgent: "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-200",
   Active: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-200",
-  Corrected: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200",
+  Corrected: "bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] dark:bg-[var(--admin-primary-soft)]0/15 dark:text-emerald-200",
   Review: "bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200",
 };
 
@@ -499,9 +499,9 @@ function MetricCard({ title, value, delta, icon: Icon, accent = "emerald", spark
         ? "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-200"
         : accent === "sky"
           ? "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-200"
-          : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200";
+          : "bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] dark:bg-[var(--admin-primary-soft)]0/15 dark:text-emerald-200";
   const lineClass =
-    accent === "rose" ? "bg-rose-500" : accent === "amber" ? "bg-amber-500" : "bg-emerald-500";
+    accent === "rose" ? "bg-rose-500" : accent === "amber" ? "bg-amber-500" : "bg-[var(--admin-primary-soft)]0";
 
   return (
     <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-200/50 transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-950 dark:shadow-none">
@@ -527,7 +527,7 @@ function MetricCard({ title, value, delta, icon: Icon, accent = "emerald", spark
         <p className="mt-1 text-3xl font-semibold leading-none text-slate-950 dark:text-white">{value}</p>
         <p
           className={`mt-3 text-xs font-semibold ${
-            spark === "down" ? "text-emerald-600 dark:text-emerald-300" : "text-emerald-600 dark:text-emerald-300"
+            spark === "down" ? "text-[var(--admin-primary)] dark:text-emerald-300" : "text-[var(--admin-primary)] dark:text-emerald-300"
           }`}
         >
           {delta}
@@ -584,7 +584,7 @@ function ErrorState({ message, onRetry }) {
 function EmptyState({ onReset }) {
   return (
     <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center dark:border-slate-700 dark:bg-slate-950">
-      <div className="mx-auto grid size-14 place-items-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200">
+      <div className="mx-auto grid size-14 place-items-center rounded-full bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] dark:bg-[var(--admin-primary-soft)]0/15 dark:text-emerald-200">
         <FileSearch className="size-6" aria-hidden="true" />
       </div>
       <h2 className="mt-4 text-lg font-semibold text-slate-950 dark:text-white">No reconciliation rows found</h2>
@@ -594,7 +594,7 @@ function EmptyState({ onReset }) {
       <button
         type="button"
         onClick={onReset}
-        className="mt-5 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+        className="mt-5 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
       >
         <RotateCcw className="size-4" aria-hidden="true" />
         Reset filters
@@ -815,7 +815,7 @@ export default function AdminShippingReconciliationPage() {
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <StatusBadge className="gap-1.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200">
-              <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+              <span className="size-1.5 rounded-full bg-[var(--admin-primary-soft)]0" aria-hidden="true" />
               Live
             </StatusBadge>
             <StatusBadge className="gap-1.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200">
@@ -829,7 +829,7 @@ export default function AdminShippingReconciliationPage() {
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-emerald-300 hover:text-emerald-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
             >
               <CalendarDays className="size-4" aria-hidden="true" />
               {dateRange}
@@ -838,7 +838,7 @@ export default function AdminShippingReconciliationPage() {
             <button
               type="button"
               onClick={handleRefresh}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-emerald-300 hover:text-emerald-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
             >
               <RefreshCw className={`size-4 ${reportQuery.isFetching ? "animate-spin" : ""}`} aria-hidden="true" />
               Refresh
@@ -846,14 +846,14 @@ export default function AdminShippingReconciliationPage() {
             <button
               type="button"
               onClick={handleExport}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-emerald-300 hover:text-emerald-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
             >
               <Download className="size-4" aria-hidden="true" />
               Export Report
             </button>
           </div>
           <p className="inline-flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-            <CheckCircle2 className="size-4 text-emerald-500" aria-hidden="true" />
+            <CheckCircle2 className="size-4 text-[var(--admin-primary)]" aria-hidden="true" />
             Last sync {lastSync}
           </p>
         </div>
@@ -943,7 +943,7 @@ export default function AdminShippingReconciliationPage() {
             <button
               type="button"
               onClick={() => setQuickFilter("all")}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-emerald-300 hover:text-emerald-700 dark:border-slate-800 dark:text-slate-300"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] dark:border-slate-800 dark:text-slate-300"
             >
               View All Insights
               <ExternalLink className="size-4" aria-hidden="true" />
@@ -1011,8 +1011,8 @@ export default function AdminShippingReconciliationPage() {
                   onClick={() => setQuickFilter(filter.value)}
                   className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
                     quickFilter === filter.value
-                      ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-500/15 dark:text-emerald-200"
-                      : "border-slate-200 bg-white text-slate-500 hover:border-emerald-300 hover:text-emerald-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400"
+                      ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] dark:border-[var(--admin-primary)] dark:bg-[var(--admin-primary-soft)]0/15 dark:text-emerald-200"
+                      : "border-slate-200 bg-white text-slate-500 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400"
                   }`}
                 >
                   {filter.label}
@@ -1040,7 +1040,7 @@ export default function AdminShippingReconciliationPage() {
                 <select
                   value={draftFilters.category}
                   onChange={(event) => setDraftFilters((current) => ({ ...current, category: event.target.value }))}
-                  className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-emerald-400 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+                  className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[var(--admin-primary)] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
                 >
                   {CATEGORY_OPTIONS.map((option) => (
                     <option key={option.value || "all"} value={option.value}>
@@ -1054,7 +1054,7 @@ export default function AdminShippingReconciliationPage() {
                 <select
                   value={draftFilters.status}
                   onChange={(event) => setDraftFilters((current) => ({ ...current, status: event.target.value }))}
-                  className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-emerald-400 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+                  className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[var(--admin-primary)] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
                 >
                   {STATUS_OPTIONS.map((option) => (
                     <option key={option.value || "all"} value={option.value}>
@@ -1068,7 +1068,7 @@ export default function AdminShippingReconciliationPage() {
                 <select
                   value={draftFilters.store}
                   onChange={(event) => setDraftFilters((current) => ({ ...current, store: event.target.value }))}
-                  className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-emerald-400 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+                  className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[var(--admin-primary)] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
                 >
                   <option value="">All Stores</option>
                   {stores.map((store) => (
@@ -1081,7 +1081,7 @@ export default function AdminShippingReconciliationPage() {
               <button
                 type="button"
                 onClick={applySearch}
-                className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
+                className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--admin-primary-strong)]"
               >
                 <Filter className="size-4" aria-hidden="true" />
                 Search
@@ -1089,7 +1089,7 @@ export default function AdminShippingReconciliationPage() {
               <button
                 type="button"
                 onClick={resetFilters}
-                className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-600 transition hover:border-emerald-300 hover:text-emerald-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+                className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-600 transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
               >
                 Reset
               </button>
@@ -1134,7 +1134,7 @@ export default function AdminShippingReconciliationPage() {
                         key={row._key}
                         className={`transition ${
                           isSelected
-                            ? "bg-emerald-50/70 dark:bg-emerald-500/10"
+                            ? "bg-[var(--admin-primary-soft)]/70 dark:bg-[var(--admin-primary-soft)]0/10"
                             : "hover:bg-slate-50 dark:hover:bg-slate-900/60"
                         }`}
                       >
@@ -1145,7 +1145,7 @@ export default function AdminShippingReconciliationPage() {
                             onClick={() => setSelectedKey(row._key)}
                             className={`grid size-4 place-items-center rounded border ${
                               isSelected
-                                ? "border-emerald-600 bg-emerald-600 text-white"
+                                ? "border-[var(--admin-primary-strong)] bg-[var(--admin-primary)] text-white"
                                 : "border-slate-300 bg-white text-transparent dark:border-slate-700 dark:bg-slate-900"
                             }`}
                           >
@@ -1156,7 +1156,7 @@ export default function AdminShippingReconciliationPage() {
                           {row.invoiceNo !== EMPTY_TEXT ? (
                             <Link
                               to={`/admin/orders/${encodeURIComponent(row.invoiceNo)}`}
-                              className="font-semibold text-emerald-700 hover:text-emerald-800 dark:text-emerald-300"
+                              className="font-semibold text-[var(--admin-primary)] hover:text-[var(--admin-primary-strong)] dark:text-emerald-300"
                             >
                               {row.invoiceNo}
                             </Link>
@@ -1174,7 +1174,7 @@ export default function AdminShippingReconciliationPage() {
                                 type="button"
                                 aria-label={`Copy tracking number ${row.trackingNumber}`}
                                 onClick={() => handleCopyTracking(row)}
-                                className="rounded-md p-1 text-slate-400 transition hover:bg-slate-100 hover:text-emerald-700 dark:hover:bg-slate-800"
+                                className="rounded-md p-1 text-slate-400 transition hover:bg-slate-100 hover:text-[var(--admin-primary)] dark:hover:bg-slate-800"
                               >
                                 <Copy className="size-3.5" aria-hidden="true" />
                               </button>
@@ -1201,7 +1201,7 @@ export default function AdminShippingReconciliationPage() {
                               type="button"
                               onClick={() => handleCorrect(row)}
                               disabled={correctionMutation.isPending}
-                              className="inline-flex h-9 min-w-20 items-center justify-center rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                              className="inline-flex h-9 min-w-20 items-center justify-center rounded-lg bg-[var(--admin-primary)] px-3 text-xs font-semibold text-white transition hover:bg-[var(--admin-primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               {correctionMutation.isPending ? (
                                 <Loader2 className="size-4 animate-spin" aria-hidden="true" />
@@ -1214,7 +1214,7 @@ export default function AdminShippingReconciliationPage() {
                               type="button"
                               onClick={() => row.invoiceNo !== EMPTY_TEXT && navigate(`/admin/orders/${encodeURIComponent(row.invoiceNo)}`)}
                               disabled={row.invoiceNo === EMPTY_TEXT}
-                              className="inline-flex h-9 min-w-20 items-center justify-center rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600 transition hover:border-emerald-300 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:text-slate-300"
+                              className="inline-flex h-9 min-w-20 items-center justify-center rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600 transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:text-slate-300"
                             >
                               Review
                             </button>
@@ -1258,7 +1258,7 @@ export default function AdminShippingReconciliationPage() {
                   <SelectedIssueIcon className="size-5" aria-hidden="true" />
                 </span>
                 <div className="min-w-0">
-                  <p className="truncate font-semibold text-emerald-700 dark:text-emerald-300">{selectedRow.invoiceNo}</p>
+                  <p className="truncate font-semibold text-[var(--admin-primary)] dark:text-emerald-300">{selectedRow.invoiceNo}</p>
                   <p className="mt-1 text-sm font-medium text-slate-600 dark:text-slate-300">{selectedRow.storeName}</p>
                 </div>
               </div>
@@ -1283,7 +1283,7 @@ export default function AdminShippingReconciliationPage() {
                             type="button"
                             aria-label={`Copy tracking number ${value}`}
                             onClick={() => handleCopyTracking(selectedRow)}
-                            className="rounded-md p-1 text-slate-400 transition hover:bg-slate-100 hover:text-emerald-700 dark:hover:bg-slate-800"
+                            className="rounded-md p-1 text-slate-400 transition hover:bg-slate-100 hover:text-[var(--admin-primary)] dark:hover:bg-slate-800"
                           >
                             <Copy className="size-3.5" aria-hidden="true" />
                           </button>
@@ -1317,7 +1317,7 @@ export default function AdminShippingReconciliationPage() {
                   type="button"
                   onClick={() => handleCorrect(selectedRow)}
                   disabled={!getCorrectionTarget(selectedRow) || correctionMutation.isPending}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--admin-primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {correctionMutation.isPending ? (
                     <Loader2 className="size-4 animate-spin" aria-hidden="true" />
@@ -1330,7 +1330,7 @@ export default function AdminShippingReconciliationPage() {
                   type="button"
                   onClick={() => selectedRow.invoiceNo !== EMPTY_TEXT && navigate(`/admin/orders/${encodeURIComponent(selectedRow.invoiceNo)}`)}
                   disabled={selectedRow.invoiceNo === EMPTY_TEXT}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-600 transition hover:border-emerald-300 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:text-slate-300"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-600 transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:text-slate-300"
                 >
                   <ExternalLink className="size-4" aria-hidden="true" />
                   Open Order

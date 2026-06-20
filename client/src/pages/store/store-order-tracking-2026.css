@@ -1,10 +1,11 @@
 .tpord2026-page {
-  --tpord2026-bg: #fff;
-  --tpord2026-soft: #f7fafc;
-  --tpord2026-border: #dfe7f1;
-  --tpord2026-text: #11203d;
-  --tpord2026-muted: #657693;
-  --tpord2026-green: #079b68;
+  --tpord2026-bg: var(--tp-surface);
+  --tpord2026-soft: var(--tp-surface-soft);
+  --tpord2026-border: var(--tp-border);
+  --tpord2026-text: var(--tp-text);
+  --tpord2026-muted: var(--tp-muted);
+  --tpord2026-green: var(--tp-primary);
+  --tpord2026-success: var(--tp-success);
   color: var(--tpord2026-text);
   display: grid;
   gap: 18px;
