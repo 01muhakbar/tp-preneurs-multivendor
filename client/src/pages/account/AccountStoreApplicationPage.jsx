@@ -1684,6 +1684,7 @@ export default function AccountStoreApplicationPage() {
           <Link
             to={workspaceHref}
             className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white"
+            style={{ color: "#ffffff" }}
           >
             Go to Seller Workspace
           </Link>
@@ -1876,6 +1877,7 @@ export default function AccountStoreApplicationPage() {
                     <Link
                       to={workspaceHref}
                       className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+                      style={{ color: "#ffffff" }}
                     >
                       Go to Seller Workspace
                     </Link>
