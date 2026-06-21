@@ -8,12 +8,12 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --tp-primary: var(--tp-primary);
+  --tp-primary: #034c85;
   --tp-primary-strong: #013d70;
   --tp-primary-soft: #eaf3fb;
   --tp-primary-rgb: 3 76 133;
 
-  --tp-accent: var(--tp-accent);
+  --tp-accent: #fe6f05;
   --tp-accent-strong: #d95b00;
   --tp-accent-soft: #fff3e8;
   --tp-accent-rgb: 254 111 5;
