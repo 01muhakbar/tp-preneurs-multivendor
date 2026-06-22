@@ -175,14 +175,18 @@ export const buildBuyerOrderPaymentEntry = (displayStatuses: unknown[]) => {
         ? "PAID"
         : failedCount > 0
           ? "FAILED"
-          : "FINAL",
+          : cancelledCount > 0
+            ? "CANCELLED"
+            : expiredCount > 0
+              ? "EXPIRED"
+              : "FINAL",
     summaryLabel:
       paidCount > 0 && paidCount === totalGroups
         ? "Payment complete"
         : failedCount > 0
           ? "Payment failed"
         : cancelledCount > 0
-          ? "Transaction closed"
+          ? "Payment cancelled"
           : expiredCount > 0
             ? "Payment expired"
             : "Payment closed",

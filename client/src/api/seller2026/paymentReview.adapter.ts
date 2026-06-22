@@ -12,9 +12,13 @@ export type Seller2026PaymentProofRow = {
   id: number | string;
   paymentId: number | string;
   proofId: number | string | null;
+  orderId: number | string;
+  orderCode: string;
   suborderId: number | string;
   suborderNumber: string;
   orderNumber: string;
+  buyerName: string;
+  buyerEmail: string;
   buyer: {
     name: string;
     email: string;
@@ -25,7 +29,9 @@ export type Seller2026PaymentProofRow = {
   paymentMethod: string;
   paymentType: string;
   paymentReference: string;
+  paymentCode: string;
   expectedAmount: number;
+  amount: number;
   paidAmount: number;
   paymentStatus: string;
   paymentStatusLabel: string;
@@ -34,6 +40,8 @@ export type Seller2026PaymentProofRow = {
   proofStatusLabel: string;
   proofStatusTone: string;
   proofUrl: string | null;
+  proofImageUrl: string | null;
+  proofPreviewUrls: string[];
   senderName: string;
   senderAccount: string;
   buyerNote: string;
@@ -42,11 +50,13 @@ export type Seller2026PaymentProofRow = {
   transferTime: string | null;
   reviewedAt: string | null;
   reviewedByUserId: number | null;
+  reviewer: string;
   fulfillmentStatus: string;
   fulfillmentLabel: string;
   matchStatus: Seller2026PaymentMatchStatus;
   canReview: boolean;
   reviewReason: string;
+  raw: SellerSuborderReviewItem;
 };
 
 export type Seller2026PaymentReviewViewModel = {
@@ -130,14 +140,20 @@ export function adaptSeller2026PaymentProof(
   ).toUpperCase();
   const proofStatus = text(proof?.reviewStatus, "PENDING").toUpperCase();
   const buyerName = text(entry.buyer?.name, "Customer");
+  const proofImageUrl = text(proof?.proofImageUrl) || null;
+  const paymentReference = text(payment?.internalReference, "-");
 
   return {
     id: payment?.id || proof?.id || entry.suborderId,
     paymentId: payment?.id || entry.suborderId,
     proofId: proof?.id || null,
+    orderId: entry.orderId,
+    orderCode: text(entry.orderNumber, entry.suborderNumber),
     suborderId: entry.suborderId,
     suborderNumber: text(entry.suborderNumber, `Order ${entry.suborderId}`),
     orderNumber: text(entry.orderNumber, entry.suborderNumber),
+    buyerName,
+    buyerEmail: text(entry.buyer?.email),
     buyer: {
       name: buyerName,
       email: text(entry.buyer?.email),
@@ -150,8 +166,10 @@ export function adaptSeller2026PaymentProof(
       payment?.paymentType
     ),
     paymentType: text(payment?.paymentType),
-    paymentReference: text(payment?.internalReference, "-"),
+    paymentReference,
+    paymentCode: paymentReference,
     expectedAmount,
+    amount: expectedAmount,
     paidAmount,
     paymentStatus,
     paymentStatusLabel: text(
@@ -164,7 +182,9 @@ export function adaptSeller2026PaymentProof(
     proofStatus,
     proofStatusLabel: text(proof?.reviewMeta?.label, proofStatus),
     proofStatusTone: tone(proof?.reviewMeta?.tone),
-    proofUrl: text(proof?.proofImageUrl) || null,
+    proofUrl: proofImageUrl,
+    proofImageUrl,
+    proofPreviewUrls: proofImageUrl ? [proofImageUrl] : [],
     senderName: text(proof?.senderName, buyerName),
     senderAccount: text(proof?.senderBankOrWallet, "Not provided"),
     buyerNote: text(proof?.note),
@@ -173,6 +193,7 @@ export function adaptSeller2026PaymentProof(
     transferTime: proof?.transferTime || null,
     reviewedAt: proof?.reviewedAt || null,
     reviewedByUserId: proof?.reviewedByUserId || null,
+    reviewer: proof?.reviewedByUserId ? `Reviewer #${proof.reviewedByUserId}` : "",
     fulfillmentStatus: text(entry.fulfillmentStatus, "UNFULFILLED"),
     fulfillmentLabel: text(
       entry.fulfillmentStatusMeta?.label,
@@ -187,6 +208,7 @@ export function adaptSeller2026PaymentProof(
     ),
     canReview: Boolean(payment?.reviewActionability?.canReview),
     reviewReason: text(payment?.reviewActionability?.reason),
+    raw: entry,
   };
 }
 

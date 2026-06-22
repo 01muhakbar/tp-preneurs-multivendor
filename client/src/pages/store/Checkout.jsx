@@ -39,6 +39,14 @@ import {
 import Checkout2026View from "./checkout2026/Checkout2026View.jsx";
 import { createCheckout2026ViewModel } from "./checkout2026/checkout2026Adapter.js";
 
+// Warm the lazy account route while checkout is being created. This prevents React
+// from retaining the checkout screen for a noticeable time after the URL changes.
+const preloadAccountPaymentRoute = () =>
+  Promise.all([
+    import("../../layouts/AccountLayout.jsx"),
+    import("../account/AccountOrderPaymentPage.jsx"),
+  ]).catch(() => undefined);
+
 const INPUT_CLASS =
   "mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-[0_1px_1px_rgba(15,23,42,0.03)] focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100";
 
@@ -2394,6 +2402,7 @@ export default function CheckoutPage() {
         customer: submitPayload.customer || null,
       });
       const checkoutRequestKey = getCheckoutRequestKeyForSignature(checkoutRequestSignature);
+      void preloadAccountPaymentRoute();
       const response = await createMultiStoreCheckoutOrder({
         ...submitPayload,
         checkoutRequestKey,
@@ -2423,10 +2432,13 @@ export default function CheckoutPage() {
       setPaymentRedirectUrl(nextPaymentUrl);
       clearCheckoutRequestKeyForSignature(checkoutRequestSignature);
       clearCart();
-      await queryClient.invalidateQueries({
-        queryKey: ["account", "orders", "my"],
-      });
-      navigate(nextPaymentUrl);
+      queryClient.setQueryData(["account", "order", "payment", resolvedOrderId], response);
+      void queryClient
+        .invalidateQueries({
+          queryKey: ["account", "orders", "my"],
+        })
+        .catch(() => {});
+      navigate(nextPaymentUrl, { replace: true });
     } catch (err) {
       const data = err?.response?.data;
       const serverMessage =

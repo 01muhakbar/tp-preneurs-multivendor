@@ -1,10 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
-import { Upload, X } from "lucide-react";
+import {
+  BadgeCheck,
+  CalendarClock,
+  FileImage,
+  ShieldCheck,
+  Upload,
+  WalletCards,
+  X,
+} from "lucide-react";
 import {
   cancelPaymentTransaction,
   fetchOrderCheckoutPayment,
+  fetchPaymentDetail,
   submitPaymentProof,
   uploadPaymentProofImage,
 } from "../../api/orderPayments.ts";
@@ -58,7 +67,7 @@ const copyText = async (value) => {
   }
 };
 
-function OverlayDialog({ open, title, onClose, children }) {
+function OverlayDialog({ open, title, eyebrow = "Payment", onClose, children, panelClassName = "" }) {
   useEffect(() => {
     if (!open) return undefined;
     const handleKeyDown = (event) => {
@@ -72,29 +81,33 @@ function OverlayDialog({ open, title, onClose, children }) {
 
   return (
     <div
-      className="fixed inset-0 z-[90] flex items-center justify-center overflow-y-auto bg-slate-950/70 px-4 py-6"
+      className="tp-payment-dialog"
       onClick={onClose}
     >
-      <div
-        className="relative w-full max-w-3xl rounded-xl bg-white p-5 shadow-2xl sm:p-6"
+      <section
+        className={`tp-payment-dialog__panel${panelClassName ? ` ${panelClassName}` : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tp-payment-dialog-title"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-3">
+        <span className="tp-payment-dialog__handle" aria-hidden="true" />
+        <div className="tp-payment-dialog__head">
           <div>
-            <p className="text-xs font-semibold uppercase text-slate-500">Payment</p>
-            <h2 className="mt-1 text-xl font-semibold text-slate-900">{title}</h2>
+            <p>{eyebrow}</p>
+            <h2 id="tp-payment-dialog-title">{title}</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:bg-slate-50"
+            className="tp-payment-dialog__close"
             aria-label="Close dialog"
           >
-            <X className="h-4 w-4" />
+            <X aria-hidden="true" />
           </button>
         </div>
-        <div className="mt-5">{children}</div>
-      </div>
+        <div className="tp-payment-dialog__body">{children}</div>
+      </section>
     </div>
   );
 }
@@ -192,71 +205,77 @@ function PaymentProofForm({
     }
   };
 
-  const fieldClass =
-    "mt-2 h-11 w-full rounded-lg border border-slate-200 px-3 text-sm text-slate-900 focus:border-emerald-400 focus:outline-none";
+  const amountDisplay = formatCurrency(Number(paymentAmount || 0) || 0);
+  const isBusy = disabled || isSubmitting || isUploading;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600">
-        Upload proof for <strong className="text-slate-900">{storeName}</strong>.
-        This confirmation remains scoped to this store payment.
-      </p>
-      <div>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <label className="text-xs font-semibold uppercase text-slate-500">
-            Proof Image *
-          </label>
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
-            <Upload className="h-4 w-4" />
-            {isUploading ? "Uploading..." : "Upload image"}
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/jpg"
-              className="sr-only"
-              disabled={disabled || isSubmitting || isUploading}
-              onChange={handleProofFileUpload}
-            />
-          </label>
+    <form onSubmit={handleSubmit} className="tp-payment-proof-form">
+      <div className="tp-payment-proof-form__summary">
+        <div>
+          <span><WalletCards aria-hidden="true" /></span>
+          <small>Store</small>
+          <strong>{storeName}</strong>
         </div>
-        <textarea
-          value={form.proofImageUrl}
-          onChange={(event) => handleChange("proofImageUrl", event.target.value)}
-          disabled={disabled || isSubmitting || isUploading}
-          placeholder="Upload an image or paste its URL"
-          className="mt-2 h-20 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+        <div>
+          <span><BadgeCheck aria-hidden="true" /></span>
+          <small>Amount</small>
+          <strong>{amountDisplay}</strong>
+        </div>
+      </div>
+
+      <label className="tp-payment-proof-upload">
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/jpg"
+          disabled={isBusy}
+          onChange={handleProofFileUpload}
         />
-        {form.proofImageUrl ? (
+        <span className="tp-payment-proof-upload__icon">
+          <FileImage aria-hidden="true" />
+        </span>
+        <span className="tp-payment-proof-upload__copy">
+          <strong>{isUploading ? "Uploading image..." : "Upload proof image"}</strong>
+          <small>JPG or PNG, uploaded securely for seller review.</small>
+        </span>
+        <span className="tp-payment-proof-upload__button">
+          <Upload aria-hidden="true" />
+          Browse
+        </span>
+      </label>
+
+      {form.proofImageUrl ? (
+        <div className="tp-payment-proof-preview">
           <img
             src={resolveAssetUrl(form.proofImageUrl)}
             alt={`Payment proof for ${storeName}`}
-            className="mt-3 max-h-44 w-full rounded-lg border border-slate-200 bg-slate-50 object-contain p-2"
           />
-        ) : null}
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="block text-xs font-semibold uppercase text-slate-500">
-          Sender Name *
+        </div>
+      ) : null}
+
+      <div className="tp-payment-proof-form__grid">
+        <label className="tp-payment-proof-field">
+          <span>Sender name *</span>
           <input
             ref={senderNameRef}
             value={form.senderName}
             onChange={(event) => handleChange("senderName", event.target.value)}
             disabled={disabled || isSubmitting}
-            className={fieldClass}
+            placeholder="Your account name"
           />
         </label>
-        <label className="block text-xs font-semibold uppercase text-slate-500">
-          Bank / Wallet *
+        <label className="tp-payment-proof-field">
+          <span>Bank / wallet *</span>
           <input
             value={form.senderBankOrWallet}
             onChange={(event) =>
               handleChange("senderBankOrWallet", event.target.value)
             }
             disabled={disabled || isSubmitting}
-            className={fieldClass}
+            placeholder="BCA, Mandiri, OVO..."
           />
         </label>
-        <label className="block text-xs font-semibold uppercase text-slate-500">
-          Transfer Amount *
+        <label className="tp-payment-proof-field">
+          <span>Transfer amount *</span>
           <input
             type="number"
             min="1"
@@ -264,45 +283,52 @@ function PaymentProofForm({
             value={form.transferAmount}
             onChange={(event) => handleChange("transferAmount", event.target.value)}
             disabled={disabled || isSubmitting}
-            className={fieldClass}
           />
         </label>
-        <label className="block text-xs font-semibold uppercase text-slate-500">
-          Transfer Time *
-          <input
-            type="datetime-local"
-            value={form.transferTime}
-            onChange={(event) => handleChange("transferTime", event.target.value)}
-            disabled={disabled || isSubmitting}
-            className={fieldClass}
-          />
+        <label className="tp-payment-proof-field">
+          <span>Transfer time *</span>
+          <span className="tp-payment-proof-field__with-icon">
+            <CalendarClock aria-hidden="true" />
+            <input
+              type="datetime-local"
+              value={form.transferTime}
+              onChange={(event) => handleChange("transferTime", event.target.value)}
+              disabled={disabled || isSubmitting}
+            />
+          </span>
         </label>
       </div>
-      <label className="block text-xs font-semibold uppercase text-slate-500">
-        Note
+
+      <label className="tp-payment-proof-field tp-payment-proof-field--wide">
+        <span>Note</span>
         <textarea
           value={form.note}
           onChange={(event) => handleChange("note", event.target.value)}
           disabled={disabled || isSubmitting}
-          className="mt-2 h-20 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+          placeholder="Optional"
         />
       </label>
+
       {error ? (
-        <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+        <p className="tp-payment-proof-form__error">
           {error}
         </p>
       ) : null}
+
+      <div className="tp-payment-proof-form__footer">
+        <p><ShieldCheck aria-hidden="true" /> Seller review starts after submit.</p>
       <button
         type="submit"
-        disabled={disabled || isSubmitting || isUploading}
-        className="inline-flex h-11 items-center justify-center rounded-lg bg-emerald-600 px-5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+        disabled={isBusy}
+        className="tp-payment-proof-form__submit"
       >
         {isSubmitting
           ? "Submitting..."
           : mode === "resubmit"
-            ? "Submit new payment proof"
-            : "Submit payment confirmation"}
+            ? "Submit new proof"
+            : "Submit confirmation"}
       </button>
+      </div>
     </form>
   );
 }
@@ -313,6 +339,7 @@ export default function AccountOrderPaymentPage() {
   const [proofPaymentId, setProofPaymentId] = useState(null);
   const [cancelTarget, setCancelTarget] = useState(null);
   const [actionNotice, setActionNotice] = useState(null);
+  const [selectedPaymentId, setSelectedPaymentId] = useState(null);
   const [now, setNow] = useState(() => Date.now());
 
   const paymentQuery = useQuery({
@@ -380,16 +407,39 @@ export default function AccountOrderPaymentPage() {
 
   const order = paymentQuery.data?.data || null;
   const groups = Array.isArray(order?.groups) ? order.groups : [];
+  const availablePaymentIds = useMemo(
+    () => groups.map((group) => group?.payment?.id).filter(Boolean),
+    [groups]
+  );
+
+  useEffect(() => {
+    if (!availablePaymentIds.length) {
+      setSelectedPaymentId(null);
+      return;
+    }
+    setSelectedPaymentId((current) =>
+      availablePaymentIds.includes(current) ? current : availablePaymentIds[0]
+    );
+  }, [availablePaymentIds]);
+
+  const paymentDetailQuery = useQuery({
+    queryKey: ["payment", selectedPaymentId],
+    queryFn: () => fetchPaymentDetail(selectedPaymentId),
+    enabled: Boolean(selectedPaymentId),
+    refetchOnWindowFocus: true,
+  });
+  const selectedPaymentDetail = paymentDetailQuery.data?.data || null;
   const payment2026 = useMemo(
     () =>
       order
         ? normalizeOrderPaymentFor2026({
             order,
-            payment: null,
+            payment: selectedPaymentDetail,
             readModel: order,
+            selectedPaymentId,
           })
         : null,
-    [order]
+    [order, selectedPaymentDetail, selectedPaymentId]
   );
   const primaryPaymentId = payment2026?.primaryPayment?.paymentId ?? null;
 
@@ -409,17 +459,32 @@ export default function AccountOrderPaymentPage() {
     }
   };
 
-  const handleSaveQr = () => {
+  const handleSaveQr = async () => {
     const imageUrl = resolveAssetUrl(payment2026?.qr?.imageUrl);
     if (!imageUrl) return;
-    const link = document.createElement("a");
-    link.href = imageUrl;
-    link.target = "_blank";
-    link.rel = "noreferrer";
-    link.download = `${payment2026?.reference || "payment"}-qris`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const fileName = `${payment2026?.reference || "payment"}-qris.png`;
+    const clickDownload = (href, { openInNewTab = false } = {}) => {
+      const link = document.createElement("a");
+      link.href = href;
+      link.download = fileName;
+      if (openInNewTab) {
+        link.target = "_blank";
+        link.rel = "noreferrer";
+      }
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+
+    try {
+      const response = await fetch(imageUrl, { credentials: "include" });
+      if (!response.ok) throw new Error("QR image download failed.");
+      const objectUrl = URL.createObjectURL(await response.blob());
+      clickDownload(objectUrl);
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    } catch {
+      clickDownload(imageUrl, { openInNewTab: true });
+    }
   };
 
   const handleSubmitProof = (paymentId, payload) =>
@@ -459,6 +524,7 @@ export default function AccountOrderPaymentPage() {
         status={actionNotice}
         isSubmitting={proofMutation.isPending || cancelMutation.isPending}
         LinkComponent={Link}
+        onSelectDestination={setSelectedPaymentId}
         onCopyAmount={() => handleCopy(payment2026?.amount)}
         onCopyReference={() => handleCopy(payment2026?.paymentReference)}
         onSaveQr={handleSaveQr}
@@ -476,11 +542,13 @@ export default function AccountOrderPaymentPage() {
 
       <OverlayDialog
         open={Boolean(proofPaymentId && proofGroup)}
+        eyebrow="Payment proof"
         title={
           payment2026?.primaryPayment?.status?.code === "REJECTED"
             ? "Submit new payment proof"
             : "Confirm your transfer"
         }
+        panelClassName="tp-payment-dialog__panel--proof"
         onClose={() => {
           if (!proofMutation.isPending) setProofPaymentId(null);
         }}

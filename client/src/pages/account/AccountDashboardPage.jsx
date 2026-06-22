@@ -8,6 +8,7 @@ import { listAddresses } from "../../api/userAddresses.ts";
 import { fetchUserUnreadNotificationCount } from "../../api/userNotifications.ts";
 import { getCurrentUserStoreApplication } from "../../api/userStoreApplications.ts";
 import { getOrderTruthStatus } from "../../utils/orderTruth.js";
+import { buildSellerWorkspacePath } from "../../utils/sellerWorkspaceRoute.js";
 import {
   presentStoreApplicationStatus,
   presentStoreReadiness,
@@ -42,6 +43,9 @@ const resolveOnboarding = ({ application, sellerStores }) => {
   });
 
   return {
+    hasApplication: Boolean(application),
+    status: application?.status || null,
+    workflow: application?.workflow || {},
     applicationStatus,
     readinessStatus,
     description:
@@ -58,6 +62,9 @@ const resolveOnboarding = ({ application, sellerStores }) => {
       application?.reviewedAt ||
       application?.submittedAt ||
       null,
+    workspaceHref: ownerStore?.store
+      ? buildSellerWorkspacePath(ownerStore.store)
+      : null,
   };
 };
 

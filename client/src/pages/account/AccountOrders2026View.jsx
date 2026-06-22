@@ -4,13 +4,13 @@ import {
   ArrowRight,
   CalendarDays,
   ChevronDown,
+  CreditCard,
   Eye,
+  Headphones,
   Package,
+  RotateCcw,
   Search,
-  Store,
   Truck,
-  WalletCards,
-  X,
 } from "lucide-react";
 import { formatCurrency } from "../../utils/format.js";
 import "./account-orders-2026.css";
@@ -28,8 +28,15 @@ const formatDateTime = (value) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return { date: "-", time: "" };
   return {
-    date: new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date),
-    time: new Intl.DateTimeFormat("en-US", { timeStyle: "short" }).format(date),
+    date: new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(date),
+    time: new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(date),
   };
 };
 
@@ -46,14 +53,14 @@ const toDateInputValue = (value) => {
 const getPageNumbers = (page, totalPages) => {
   const size = Math.min(5, totalPages);
   let start = Math.max(1, page - Math.floor(size / 2));
-  let end = Math.min(totalPages, start + size - 1);
+  const end = Math.min(totalPages, start + size - 1);
   start = Math.max(1, end - size + 1);
   return Array.from({ length: end - start + 1 }, (_, index) => start + index);
 };
 
 function LoadingCards() {
   return (
-    <div className="tporders2026-loading" aria-label="Loading orders">
+    <div className="tp-orders-2026__loading" aria-label="Loading orders">
       {Array.from({ length: 3 }).map((_, index) => (
         <span key={index} />
       ))}
@@ -61,10 +68,25 @@ function LoadingCards() {
   );
 }
 
+function FilterTab({ filter, count, isActive, onClick }) {
+  return (
+    <button
+      type="button"
+      className={`tp-orders-filter-tab${isActive ? " is-active" : ""}`}
+      onClick={onClick}
+    >
+      <span>{filter.label}</span>
+      <strong>{count || 0}</strong>
+    </button>
+  );
+}
+
 function StatusPill({ status }) {
   return (
-    <span className={`tporders2026-status tporders2026-status--${status.tone}`}>
-      <i />
+    <span
+      className={`tp-orders-status tp-orders-status--${status.tone || "neutral"}`}
+    >
+      <i aria-hidden="true" />
       {status.label}
     </span>
   );
@@ -72,83 +94,140 @@ function StatusPill({ status }) {
 
 function PaymentPill({ payment }) {
   return (
-    <span className={`tporders2026-payment tporders2026-payment--${payment.tone}`}>
+    <span
+      className={`tp-orders-payment-pill tp-orders-payment-pill--${
+        payment.tone || "neutral"
+      }`}
+    >
       {payment.label}
     </span>
   );
 }
 
 function OrderCard({ order, LinkComponent }) {
-  const placed = formatDateTime(order.createdAt);
+  const placed = formatDateTime(order.date || order.createdAt);
+  const status = order.status || {
+    label: "Unknown",
+    tone: "neutral",
+    bucket: "pending",
+  };
+  const paymentState = order.paymentState || order.payment || {
+    label: "Unpaid",
+    tone: "neutral",
+  };
+  const storeSearchLabel = order.storeNames?.length
+    ? order.storeNames.join(", ")
+    : order.checkoutMode?.label || order.storeMode || "Store";
 
   return (
-    <article className="tporders2026-order">
-      <div className="tporders2026-order__summary">
-        <div className="tporders2026-order__identity">
-          <span className="tporders2026-order__icon">
-            <Package aria-hidden="true" />
+    <article className={`tp-order-card tp-order-card--${status.tone || "neutral"}`}>
+      <div className="tp-order-card__identity">
+        <span className="tp-order-card__icon" aria-hidden="true">
+          <Package />
+        </span>
+        <div className="tp-order-card__main">
+          <h2>{order.displayId || order.reference}</h2>
+          <p>
+            {placed.date}
+            {placed.time ? (
+              <>
+                <i aria-hidden="true" />
+                {placed.time}
+              </>
+            ) : null}
+          </p>
+          <span className="tp-order-card__mode">
+            {order.storeMode || order.checkoutMode?.shortLabel || "SINGLE STORE"}
           </span>
-          <div>
-            <h2>{order.reference}</h2>
-            <p>
-              {placed.date}
-              {placed.time ? <><i />{placed.time}</> : null}
-            </p>
-            <span className="tporders2026-mode">{order.checkoutMode.label}</span>
-          </div>
-        </div>
-
-        <div className="tporders2026-order__status">
-          <StatusPill status={order.status} />
-          <PaymentPill payment={order.payment} />
-          {order.payment.description ? <p>{order.payment.description}</p> : null}
-        </div>
-
-        <div className="tporders2026-order__total">
-          <strong>{formatCurrency(order.totalAmount)}</strong>
-          <span>Order total</span>
-          {order.detailPath ? (
-            <LinkComponent
-              className="tporders2026-eye"
-              to={order.detailPath}
-              aria-label={`View order ${order.reference}`}
-            >
-              <Eye aria-hidden="true" />
-            </LinkComponent>
-          ) : null}
+          <span className="tp-order-card__store">{storeSearchLabel}</span>
         </div>
       </div>
 
-      <div className="tporders2026-order__details">
+      <div className="tp-order-card__payment">
         <div>
-          <Store aria-hidden="true" />
+          <CreditCard aria-hidden="true" />
           <span>
-            <small>Order</small>
-            <strong>{order.reference}</strong>
+            <small>Payment</small>
+            <strong>{order.paymentMethod}</strong>
           </span>
         </div>
         <div>
           <Truck aria-hidden="true" />
           <span>
             <small>Shipping</small>
-            <strong>{formatCurrency(order.shippingAmount)}</strong>
+            <strong>{formatCurrency(order.shipping ?? order.shippingAmount)}</strong>
           </span>
         </div>
-        <div>
-          <WalletCards aria-hidden="true" />
-          <span>
-            <small>Payment</small>
-            <strong>{order.paymentMethod}</strong>
-          </span>
-        </div>
-        {order.detailPath ? (
-          <LinkComponent className="tporders2026-details-cta" to={order.detailPath}>
-            View Order Details
-            <ArrowRight aria-hidden="true" />
+      </div>
+
+      <div className="tp-order-card__state">
+        <small>Status</small>
+        <StatusPill status={status} />
+        <PaymentPill payment={paymentState} />
+        {order.note ? <p>{order.note}</p> : null}
+      </div>
+
+      <div className="tp-order-card__total">
+        <small>Total Amount</small>
+        <strong>{formatCurrency(order.total ?? order.totalAmount)}</strong>
+      </div>
+
+      <div className="tp-order-card__actions">
+        {order.href ? (
+          <LinkComponent
+            className="tp-order-card__quick"
+            to={order.href}
+            aria-label={`Quick view order ${order.displayId || order.reference}`}
+          >
+            <Eye aria-hidden="true" />
+          </LinkComponent>
+        ) : null}
+        {order.href ? (
+          <LinkComponent className="tp-order-card__cta" to={order.href}>
+            View Details
+          </LinkComponent>
+        ) : null}
+        {order.paymentAction?.path ? (
+          <LinkComponent className="tp-order-card__payment-cta" to={order.paymentAction.path}>
+            {order.paymentAction.label || "Payment"}
           </LinkComponent>
         ) : null}
       </div>
     </article>
+  );
+}
+
+function EmptyOrders({ hasFilters, onClearFilters, LinkComponent }) {
+  return (
+    <div className="tp-orders-2026__empty">
+      <Package aria-hidden="true" />
+      <h2>{hasFilters ? "No matching orders" : "No orders yet"}</h2>
+      <p>
+        {hasFilters
+          ? "Try another status, date, order ID, or store."
+          : "Your order history will appear here after checkout."}
+      </p>
+      {hasFilters ? (
+        <button type="button" onClick={onClearFilters}>
+          Clear filters
+        </button>
+      ) : (
+        <LinkComponent to="/shop">Start Shopping</LinkComponent>
+      )}
+    </div>
+  );
+}
+
+function HelpCard() {
+  return (
+    <a className="tp-orders-2026__help" href="tel:+6599887766">
+      <span aria-hidden="true">
+        <Headphones />
+      </span>
+      <strong>Need help? +65 9988 7766</strong>
+      <small>We're available 24/7</small>
+      <ArrowRight aria-hidden="true" />
+    </a>
   );
 }
 
@@ -171,35 +250,39 @@ export default function AccountOrders2026View({
   const [dateValue, setDateValue] = useState("");
   const normalizedSearch = searchValue.trim().toLowerCase();
   const effectiveStatus = statusValue !== "all" ? statusValue : activeFilter;
+  const safeOrders = Array.isArray(orders) ? orders : [];
   const filteredOrders = useMemo(
     () =>
-      orders.filter((order) => {
-        if (effectiveStatus !== "all" && order.status.bucket !== effectiveStatus) {
+      safeOrders.filter((order) => {
+        if (effectiveStatus !== "all" && order.status?.bucket !== effectiveStatus) {
           return false;
         }
-        if (
-          normalizedSearch &&
-          ![
+        if (normalizedSearch) {
+          const searchable = [
+            order.displayId,
             order.reference,
-            order.status.label,
-            order.payment.label,
+            order.status?.label,
+            order.paymentState?.label,
+            order.payment?.label,
             order.paymentMethod,
-            order.checkoutMode.label,
+            order.storeMode,
+            order.checkoutMode?.label,
+            ...(Array.isArray(order.storeNames) ? order.storeNames : []),
           ]
             .join(" ")
-            .toLowerCase()
-            .includes(normalizedSearch)
-        ) {
+            .toLowerCase();
+          if (!searchable.includes(normalizedSearch)) return false;
+        }
+        if (dateValue && toDateInputValue(order.date || order.createdAt) !== dateValue) {
           return false;
         }
-        if (dateValue && toDateInputValue(order.createdAt) !== dateValue) return false;
         return true;
       }),
-    [dateValue, effectiveStatus, normalizedSearch, orders]
+    [dateValue, effectiveStatus, normalizedSearch, safeOrders]
   );
   const pageNumbers = getPageNumbers(page, totalPages);
   const firstVisible = totalOrders === 0 ? 0 : (page - 1) * pageSize + 1;
-  const lastVisible = Math.min(totalOrders, (page - 1) * pageSize + orders.length);
+  const lastVisible = Math.min(totalOrders, (page - 1) * pageSize + safeOrders.length);
   const clearFilters = () => {
     setActiveFilter("all");
     setStatusValue("all");
@@ -213,43 +296,39 @@ export default function AccountOrders2026View({
     Boolean(dateValue);
 
   return (
-    <section className="tporders2026-root">
-      <header className="tporders2026-heading">
-        <div>
-          <h1>My Orders</h1>
-          <p>Track and manage all your orders in one place.</p>
-        </div>
+    <section className="tp-orders-2026 tporders2026-root">
+      <header className="tp-orders-2026__heading">
+        <h1>My Orders</h1>
+        <p>Track and manage all your orders in one place.</p>
       </header>
 
-      <div className="tporders2026-tabs" aria-label="Order status filters">
+      <div className="tp-orders-2026__tabs" aria-label="Order status filters">
         {FILTERS.map((filter) => (
-          <button
-            type="button"
-            className={activeFilter === filter.code ? "is-active" : ""}
+          <FilterTab
+            filter={filter}
+            count={counts?.[filter.code] || 0}
+            isActive={activeFilter === filter.code}
             onClick={() => {
               setActiveFilter(filter.code);
               setStatusValue("all");
             }}
             key={filter.code}
-          >
-            {filter.label}
-            <span>{counts[filter.code] || 0}</span>
-          </button>
+          />
         ))}
       </div>
 
-      <div className="tporders2026-filter-row">
-        <label className="tporders2026-search">
-          <Search aria-hidden="true" />
+      <div className="tp-orders-toolbar">
+        <label className="tp-orders-toolbar__field tp-orders-toolbar__search">
           <input
             type="search"
             value={searchValue}
             onChange={(event) => setSearchValue(event.target.value)}
-            placeholder="Search order"
+            placeholder="Search by order ID or store"
           />
+          <Search aria-hidden="true" />
         </label>
 
-        <label className="tporders2026-select">
+        <label className="tp-orders-toolbar__field tp-orders-toolbar__select">
           <select
             value={statusValue}
             onChange={(event) => {
@@ -268,7 +347,7 @@ export default function AccountOrders2026View({
           <ChevronDown aria-hidden="true" />
         </label>
 
-        <label className="tporders2026-date">
+        <label className="tp-orders-toolbar__field tp-orders-toolbar__date">
           <CalendarDays aria-hidden="true" />
           <input
             type="date"
@@ -280,17 +359,17 @@ export default function AccountOrders2026View({
 
         <button
           type="button"
-          className="tporders2026-clear"
+          className="tp-orders-toolbar__clear"
           onClick={clearFilters}
           disabled={!hasFilters}
         >
-          <X aria-hidden="true" />
+          <RotateCcw aria-hidden="true" />
           Clear
         </button>
       </div>
 
       {error ? (
-        <div className="tporders2026-alert" role="alert">
+        <div className="tp-orders-2026__alert" role="alert">
           {error?.response?.status === 401
             ? "Please sign in again to view your orders."
             : error?.response?.data?.message || error?.message || "Failed to load orders."}
@@ -298,32 +377,25 @@ export default function AccountOrders2026View({
       ) : isLoading ? (
         <LoadingCards />
       ) : filteredOrders.length === 0 ? (
-        <div className="tporders2026-empty">
-          <Package aria-hidden="true" />
-          <h2>{orders.length === 0 ? "No orders yet" : "No matching orders"}</h2>
-          <p>
-            {orders.length === 0
-              ? "Your order history will appear here after checkout."
-              : "Try another status, date, or order reference."}
-          </p>
-          {hasFilters ? (
-            <button type="button" onClick={clearFilters}>
-              Clear filters
-            </button>
-          ) : (
-            <LinkComponent to="/search">Browse products</LinkComponent>
-          )}
-        </div>
+        <EmptyOrders
+          hasFilters={hasFilters}
+          onClearFilters={clearFilters}
+          LinkComponent={LinkComponent}
+        />
       ) : (
-        <div className="tporders2026-list">
+        <div className="tp-orders-2026__list">
           {filteredOrders.map((order) => (
-            <OrderCard order={order} LinkComponent={LinkComponent} key={order.id || order.reference} />
+            <OrderCard
+              order={order}
+              LinkComponent={LinkComponent}
+              key={order.id || order.displayId || order.reference}
+            />
           ))}
         </div>
       )}
 
       {!error && !isLoading && totalOrders > 0 ? (
-        <footer className="tporders2026-pagination">
+        <footer className="tp-orders-2026__pagination">
           <p>
             Showing {firstVisible} to {lastVisible} of {totalOrders} orders
             {hasFilters ? `, ${filteredOrders.length} matching this page` : ""}
@@ -360,7 +432,8 @@ export default function AccountOrders2026View({
         </footer>
       ) : null}
 
-      {cartSummary ? <aside className="tporders2026-cart">{cartSummary}</aside> : null}
+      <HelpCard />
+      {cartSummary ? <aside className="tp-orders-2026__cart">{cartSummary}</aside> : null}
     </section>
   );
 }

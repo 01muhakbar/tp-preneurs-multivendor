@@ -136,6 +136,7 @@ const getSellerNotificationLabel = (notification) => {
   if (actionCode === "SELLER_SUBORDER_CREATED") return "New suborder";
   if (actionCode === "SELLER_PAYMENT_REVIEW_REQUIRED") return "Needs review";
   if (actionCode === "SELLER_PAYMENT_FAILED") return "Payment failed";
+  if (actionCode === "SELLER_PAYMENT_CANCELLED") return "Payment cancelled";
   return "Seller update";
 };
 
@@ -174,7 +175,7 @@ const resolveSellerNotificationRoute = (notification, sellerRoutes) => {
     return sellerRoutes.productDetail(productId);
   }
   if (
-    ["SELLER_SUBORDER_CREATED", "SELLER_PAYMENT_FAILED"].includes(actionCode) &&
+    ["SELLER_SUBORDER_CREATED", "SELLER_PAYMENT_FAILED", "SELLER_PAYMENT_CANCELLED"].includes(actionCode) &&
     Number.isFinite(suborderId) &&
     suborderId > 0
   ) {

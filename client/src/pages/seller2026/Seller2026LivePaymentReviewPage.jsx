@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { toast } from "react-hot-toast";
 import {
   AlertTriangle,
   Banknote,
@@ -64,7 +65,8 @@ const matchLabel = {
 
 export default function Seller2026LivePaymentReviewPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { sellerContext, workspaceStoreId: storeId } = useSellerWorkspaceRoute();
+  const navigate = useNavigate();
+  const { sellerContext, workspaceStoreId: storeId, workspaceRoutes } = useSellerWorkspaceRoute();
   const { can } = getSeller2026PagePermissions(sellerContext);
   const canView = can("ORDER_READ") && can("PAYMENT_REVIEW_READ");
   const query = {
@@ -92,6 +94,9 @@ export default function Seller2026LivePaymentReviewPage() {
       ) || null,
     [review.data.rows, selectedPaymentId]
   );
+  const selectedOrderHref = selectedRow
+    ? workspaceRoutes.orderDetail(selectedRow.suborderId)
+    : "";
 
   const changeQuery = (patch) => {
     const next = new URLSearchParams(searchParams);
@@ -150,11 +155,20 @@ export default function Seller2026LivePaymentReviewPage() {
       type: "success",
       text: `${review.data.rows.length} visible payment proof(s) exported.`,
     });
+    toast.success(`${review.data.rows.length} visible payment proof(s) exported.`);
   };
 
   const mutationSucceeded = (message) => {
     setSelectedPaymentId(null);
     setNotice({ type: "success", text: message });
+    toast.success(message);
+  };
+
+  const mutationFailed = (error) => {
+    const message = error?.message || "Unable to review this payment proof.";
+    setNotice({ type: "error", text: message });
+    toast.error(message);
+    throw error;
   };
 
   if (!canView) {
@@ -225,7 +239,7 @@ export default function Seller2026LivePaymentReviewPage() {
         <div className="s26-pr-header__actions">
           <span>{review.data.store.name || sellerContext?.store?.name}</span>
           <span className={review.canReview ? "is-green" : "is-amber"}>
-            {review.canReview ? "Can review" : "Read-only"}
+            {review.canReview ? "Can review" : "View only"}
           </span>
           <span className="is-blue">{roleLabel(review.data.governance.roleCode)}</span>
           <button type="button" onClick={exportQueue}><Download size={17} />Export Queue</button>
@@ -311,15 +325,53 @@ export default function Seller2026LivePaymentReviewPage() {
           </div>
         ) : (
           <div className="s26-pr-board">
-            {review.data.rows.map((row) => (
-              <article key={row.paymentId}>
-                <header><span className={`s26-pr-chip is-${row.matchStatus.toLowerCase()}`}>{matchLabel[row.matchStatus]}</span><span className={`s26-pr-chip is-${row.paymentStatusTone}`}>{row.paymentStatusLabel}</span></header>
-                <button type="button" onClick={() => setSelectedPaymentId(row.paymentId)}>{row.orderNumber}</button>
-                <div className="s26-pr-buyer"><span>{row.buyer.initials}</span><div><strong>{row.buyer.name}</strong><small>{row.buyer.email || "Buyer"}</small></div></div>
-                <dl><div><dt>Method</dt><dd>{row.paymentMethod}</dd></div><div><dt>Submitted</dt><dd>{dateTime(row.submittedAt)}</dd></div><div><dt>Amount</dt><dd>{money(row.expectedAmount)}</dd></div></dl>
-                <footer><button type="button" onClick={() => setSelectedPaymentId(row.paymentId)}>{row.canReview && review.canReview ? "Review Proof" : "View Proof"}</button></footer>
-              </article>
-            ))}
+            {[
+              ["awaiting", "Awaiting Review", "PENDING_CONFIRMATION"],
+              ["approved", "Approved", "PAID"],
+              ["rejected", "Rejected", "REJECTED"],
+            ].map(([columnKey, label, status]) => {
+              const columnRows = review.data.rows.filter((row) => row.paymentStatus === status);
+              return (
+                <section className={`s26-pr-board-column is-${columnKey}`} key={columnKey}>
+                  <header>
+                    <strong>{label}</strong>
+                    <span>{columnRows.length}</span>
+                    <MoreVertical size={16} />
+                  </header>
+                  <div>
+                    {columnRows.length === 0 ? (
+                      <div className="s26-pr-board-empty">
+                        {status === "PAID" ? <CheckCircle2 size={28} /> : status === "REJECTED" ? <XCircle size={28} /> : <Clock3 size={28} />}
+                        <strong>No {label.toLowerCase()} payments</strong>
+                        <span>{label} payments will appear here</span>
+                      </div>
+                    ) : columnRows.map((row) => {
+                      const proof = resolveAssetUrl(row.proofUrl);
+                      return (
+                        <article key={row.paymentId}>
+                          <button type="button" className="s26-pr-board-card" onClick={() => setSelectedPaymentId(row.paymentId)}>
+                            <span className="s26-pr-board-proof">{proof ? <img src={proof} alt="" /> : <FileImage size={20} />}</span>
+                            <span>
+                              <strong>{row.orderNumber}</strong>
+                              <small>{row.buyer.name}</small>
+                              <em>{row.paymentMethod}</em>
+                              <small>{dateTime(row.submittedAt)}</small>
+                            </span>
+                            <b>{money(row.expectedAmount)}</b>
+                          </button>
+                          <footer>
+                            <span className={`s26-pr-chip is-${row.paymentStatusTone}`}>{row.paymentStatusLabel}</span>
+                            <button type="button" onClick={() => setSelectedPaymentId(row.paymentId)}>
+                              {row.canReview && review.canReview ? "Review Proof" : "View Proof"}
+                            </button>
+                          </footer>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </section>
+              );
+            })}
           </div>
         )}
 
@@ -341,14 +393,28 @@ export default function Seller2026LivePaymentReviewPage() {
         governanceNote={review.data.governance.note}
         isMutating={review.isMutating}
         mutationError={review.mutationError}
+        orderHref={selectedOrderHref}
         onClose={() => setSelectedPaymentId(null)}
+        onViewOrder={() => {
+          if (!selectedOrderHref) return;
+          setSelectedPaymentId(null);
+          navigate(selectedOrderHref);
+        }}
         onApprove={async (variables) => {
-          await review.approvePayment(variables);
-          mutationSucceeded("Payment proof approved. The review queue is refreshing.");
+          try {
+            await review.approvePayment(variables);
+            mutationSucceeded("Payment proof approved. The review queue is refreshing.");
+          } catch (error) {
+            mutationFailed(error);
+          }
         }}
         onReject={async (variables) => {
-          await review.rejectPayment(variables);
-          mutationSucceeded("Payment proof rejected. The review queue is refreshing.");
+          try {
+            await review.rejectPayment(variables);
+            mutationSucceeded("Payment proof rejected. The review queue is refreshing.");
+          } catch (error) {
+            mutationFailed(error);
+          }
         }}
       />
     </div>

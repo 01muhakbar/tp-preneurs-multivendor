@@ -6,13 +6,18 @@ import {
   Payment,
   PaymentProof,
   PaymentStatusLog,
+  Product,
   Store,
   StorePaymentProfile,
   Suborder,
+  SuborderItem,
   User,
   sequelize,
 } from "../models/index.js";
-import { recalculateParentOrderPaymentStatus } from "../services/orderPaymentAggregation.service.js";
+import {
+  recalculateParentOrderFulfillmentStatus,
+  recalculateParentOrderPaymentStatus,
+} from "../services/orderPaymentAggregation.service.js";
 import { expirePaymentIfNeeded } from "../services/paymentExpiry.service.js";
 import { appendPaymentStatusLog } from "../services/paymentStatusLog.service.js";
 import {
@@ -55,6 +60,130 @@ const getAttr = (row: any, key: string) =>
 const toNumber = (value: any, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const normalizeJsonValue = (value: unknown) => {
+  if (typeof value !== "string") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+};
+
+const restoreProductVariationStock = (
+  rawVariations: unknown,
+  variantQtyByKey: Map<string, number>
+) => {
+  if (variantQtyByKey.size === 0) {
+    return { changed: false, value: rawVariations };
+  }
+
+  const normalized = normalizeJsonValue(rawVariations);
+  if (!normalized || typeof normalized !== "object") {
+    return { changed: false, value: rawVariations };
+  }
+
+  const raw = Array.isArray(normalized)
+    ? { hasVariants: normalized.length > 0, variants: normalized }
+    : (normalized as Record<string, any>);
+  const variants = Array.isArray(raw?.variants) ? raw.variants : [];
+  let changed = false;
+
+  const nextVariants = variants.map((variant: any) => {
+    const key = String(variant?.combinationKey || "").trim().toLowerCase();
+    const restoreQty = key ? variantQtyByKey.get(key) || 0 : 0;
+    if (restoreQty <= 0) return variant;
+
+    const quantityRaw =
+      variant?.quantity === null ||
+      typeof variant?.quantity === "undefined" ||
+      variant?.quantity === ""
+        ? variant?.stock
+        : variant?.quantity;
+    const currentVariantStock = Number.isFinite(Number(quantityRaw))
+      ? Math.max(0, Math.round(Number(quantityRaw)))
+      : 0;
+    changed = true;
+
+    return {
+      ...variant,
+      ...(Object.prototype.hasOwnProperty.call(variant || {}, "stock")
+        ? { stock: currentVariantStock + restoreQty }
+        : {}),
+      quantity: currentVariantStock + restoreQty,
+    };
+  });
+
+  if (!changed) return { changed: false, value: rawVariations };
+
+  return {
+    changed: true,
+    value: {
+      ...raw,
+      hasVariants: Boolean(raw?.hasVariants) || nextVariants.length > 0,
+      variants: nextVariants,
+    },
+  };
+};
+
+const restoreSuborderInventory = async (suborderId: number, transaction: any) => {
+  if (!Number.isFinite(Number(suborderId)) || Number(suborderId) <= 0) {
+    return [];
+  }
+
+  const items = await SuborderItem.findAll({
+    where: { suborderId: Number(suborderId) },
+    attributes: ["id", "productId", "qty", "variantKey"],
+    transaction,
+  });
+
+  const restoreByProduct = new Map<
+    number,
+    { totalQty: number; variants: Map<string, number> }
+  >();
+
+  for (const item of items as any[]) {
+    const productId = toNumber(getAttr(item, "productId"), 0);
+    const qty = Math.max(0, Math.round(toNumber(getAttr(item, "qty"), 0)));
+    if (productId <= 0 || qty <= 0) continue;
+
+    const entry =
+      restoreByProduct.get(productId) || { totalQty: 0, variants: new Map<string, number>() };
+    entry.totalQty += qty;
+
+    const variantKey = String(getAttr(item, "variantKey") || "").trim().toLowerCase();
+    if (variantKey) {
+      entry.variants.set(variantKey, (entry.variants.get(variantKey) || 0) + qty);
+    }
+    restoreByProduct.set(productId, entry);
+  }
+
+  const restored: Array<{ productId: number; qty: number }> = [];
+  for (const [productId, entry] of restoreByProduct.entries()) {
+    const product = await Product.findByPk(productId, {
+      attributes: ["id", "stock", "variations"],
+      transaction,
+      lock: transaction?.LOCK?.UPDATE,
+    });
+    if (!product) continue;
+
+    const currentStock = Math.max(0, Math.round(toNumber(getAttr(product, "stock"), 0)));
+    product.set("stock", currentStock + entry.totalQty);
+
+    const variationRestore = restoreProductVariationStock(
+      getAttr(product, "variations"),
+      entry.variants
+    );
+    if (variationRestore.changed) {
+      product.set("variations", variationRestore.value as any);
+    }
+
+    await product.save({ transaction });
+    restored.push({ productId, qty: entry.totalQty });
+  }
+
+  return restored;
 };
 
 const normalizeProofSummary = (proofs: any[]) => {
@@ -514,33 +643,67 @@ router.post("/:paymentId/cancel", paymentMutationRateLimit, async (req, res) => 
       });
     }
 
-    const currentStatus = String(getAttr(paymentForCancel, "status") || "CREATED").toUpperCase();
-    const orderId = Number(getAttr(activeSuborder, "orderId") || 0);
     const tx = await sequelize.transaction();
+    let restoredInventory: Array<{ productId: number; qty: number }> = [];
     try {
-      await paymentForCancel.update(
+      const lockedPayment = await Payment.findByPk(paymentId, {
+        transaction: tx,
+        lock: tx.LOCK.UPDATE,
+      });
+      const lockedSuborderId = Number(getAttr(activeSuborder, "id") || 0);
+      const lockedSuborder =
+        lockedSuborderId > 0
+          ? await Suborder.findByPk(lockedSuborderId, {
+              transaction: tx,
+              lock: tx.LOCK.UPDATE,
+            })
+          : null;
+
+      const lockedDisplayStatus = resolveBuyerFacingPaymentStatus({
+        paymentStatus: getAttr(lockedPayment, "status") || "CREATED",
+        suborderPaymentStatus: getAttr(lockedSuborder, "paymentStatus") || "UNPAID",
+        expiresAt: getAttr(lockedPayment, "expiresAt") || null,
+      });
+      const lockedCancelability = buildBuyerCancelActionability(lockedDisplayStatus);
+      if (!lockedPayment || !lockedCancelability.canCancel) {
+        await tx.rollback();
+        return res.status(409).json({
+          success: false,
+          code: "PAYMENT_CANCEL_NOT_ALLOWED",
+          message: lockedCancelability.reason || "This payment can no longer be cancelled.",
+        });
+      }
+
+      const currentStatus = String(getAttr(lockedPayment, "status") || "CREATED").toUpperCase();
+      const orderId = Number(getAttr(lockedSuborder, "orderId") || 0);
+      const suborderId = Number(getAttr(lockedSuborder, "id") || 0);
+
+      await lockedPayment.update(
         {
-          status: "FAILED",
+          status: "CANCELLED",
           paidAt: null,
         } as any,
         { transaction: tx }
       );
 
-      if (activeSuborder) {
-        await activeSuborder.update(
+      if (lockedSuborder) {
+        await lockedSuborder.update(
           {
-            paymentStatus: "FAILED",
+            paymentStatus: "CANCELLED",
+            fulfillmentStatus: "CANCELLED",
             paidAt: null,
           } as any,
           { transaction: tx }
         );
       }
 
+      restoredInventory = await restoreSuborderInventory(suborderId, tx);
+
       await appendPaymentStatusLog(
         {
           paymentId,
           oldStatus: currentStatus,
-          newStatus: "FAILED",
+          newStatus: "CANCELLED",
           actorType: "BUYER",
           actorId: authUser.id,
           traceId: getRequestTraceId(req),
@@ -550,11 +713,12 @@ router.post("/:paymentId/cancel", paymentMutationRateLimit, async (req, res) => 
             paymentId,
             orderId,
             invoiceNo: String(getAttr(activeSuborder?.order, "invoiceNo") || ""),
-            suborderId: Number(getAttr(activeSuborder, "id") || 0) || null,
-            suborderNumber: String(getAttr(activeSuborder, "suborderNumber") || ""),
+            suborderId: Number(getAttr(lockedSuborder, "id") || 0) || null,
+            suborderNumber: String(getAttr(lockedSuborder, "suborderNumber") || ""),
             storeId:
-              Number(getAttr(paymentForCancel, "storeId") || getAttr(activeSuborder, "storeId") || 0) ||
+              Number(getAttr(lockedPayment, "storeId") || getAttr(lockedSuborder, "storeId") || 0) ||
               null,
+            restoredInventory,
           }),
         },
         tx
@@ -562,6 +726,7 @@ router.post("/:paymentId/cancel", paymentMutationRateLimit, async (req, res) => 
 
       if (orderId > 0) {
         await recalculateParentOrderPaymentStatus(orderId, tx);
+        await recalculateParentOrderFulfillmentStatus(orderId, tx);
       }
 
       await tx.commit();
@@ -587,11 +752,11 @@ router.post("/:paymentId/cancel", paymentMutationRateLimit, async (req, res) => 
       if (notifyStoreId > 0) {
         await createSellerNotificationsForStoreRecipients({
           storeId: notifyStoreId,
-          type: "SELLER_PAYMENT_FAILED",
+          type: "SELLER_PAYMENT_CANCELLED",
           title: invoiceNo
-            ? `Payment closed as failed for order ${invoiceNo}`
-            : "Payment closed as failed for a seller suborder",
-          actionCode: "SELLER_PAYMENT_FAILED",
+            ? `Payment cancelled for order ${invoiceNo}`
+            : "Payment cancelled for a seller suborder",
+          actionCode: "SELLER_PAYMENT_CANCELLED",
           orderId: notifyOrderId || null,
           suborderId: notifySuborderId || null,
           paymentId: notifyPaymentId || null,
@@ -599,10 +764,11 @@ router.post("/:paymentId/cancel", paymentMutationRateLimit, async (req, res) => 
             notifyStoreSlug && notifySuborderId
               ? `/seller/stores/${encodeURIComponent(notifyStoreSlug)}/orders/${notifySuborderId}`
               : null,
-          message: "Buyer cancelled the payment before confirmation, so this seller payment lane is now closed.",
+          message: "Buyer cancelled the payment before confirmation. Reserved stock has been returned to the catalog.",
           meta: {
             invoiceNo: invoiceNo || null,
             suborderNumber: String(getAttr(notifySuborder, "suborderNumber") || ""),
+            restoredInventory,
           },
         });
       }

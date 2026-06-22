@@ -158,9 +158,15 @@ const getProgressStep = (statusCode) => {
   return 1;
 };
 
-const normalizeGroup = (value, index, orderReference) => {
+const normalizeGroup = (value, index, orderReference, detailedPayment) => {
   const group = asObject(value);
-  const payment = asObject(group.payment);
+  const groupedPayment = asObject(group.payment);
+  const detail = asObject(detailedPayment);
+  const detailMatches =
+    detail.paymentId != null && String(detail.paymentId) === String(groupedPayment.id);
+  const payment = detailMatches
+    ? { ...groupedPayment, ...detail, id: groupedPayment.id ?? detail.paymentId }
+    : groupedPayment;
   const readModel = getGroupedPaymentReadModel(group);
   const operationalPayment = getSplitOperationalPayment(group);
   const operationalSummary = asObject(getSplitOperationalStatusSummary(group));
@@ -256,16 +262,22 @@ const normalizeGroup = (value, index, orderReference) => {
   };
 };
 
-export const normalizeOrderPaymentFor2026 = ({ order, payment, readModel }) => {
+export const normalizeOrderPaymentFor2026 = ({
+  order,
+  payment,
+  readModel,
+  selectedPaymentId,
+}) => {
   const source = asObject(readModel || payment || order);
   const reference = text(
     source.invoiceNo || source.ref || order?.invoiceNo || order?.ref,
     "Order"
   );
   const groups = asArray(source.groups).map((group, index) =>
-    normalizeGroup(group, index, reference)
+    normalizeGroup(group, index, reference, payment)
   );
   const primary =
+    groups.find((group) => String(group.paymentId) === String(selectedPaymentId)) ||
     groups.find((group) => group.canConfirmTransfer) ||
     groups.find((group) => group.canCancelPayment) ||
     groups.find((group) => group.qrImageUrl) ||
@@ -319,6 +331,8 @@ export const normalizeOrderPaymentFor2026 = ({ order, payment, readModel }) => {
       instruction: text(primary?.instruction, "Pay to this QRIS only."),
     },
     primaryPayment: primary,
+    selectedDestination: primary,
+    destinations: groups,
     groups,
     warnings: [
       source.checkoutMode &&
@@ -330,6 +344,14 @@ export const normalizeOrderPaymentFor2026 = ({ order, payment, readModel }) => {
     actions: {
       canConfirmTransfer: Boolean(primary?.canConfirmTransfer),
       canCancelPayment: Boolean(primary?.canCancelPayment),
+    },
+    canConfirm: Boolean(primary?.canConfirmTransfer),
+    canCancel: Boolean(primary?.canCancelPayment),
+    paymentSummary: {
+      items: number(summary.totalItems, groups.reduce((total, group) => total + group.itemCount, 0)),
+      subtotal: number(summary.subtotalAmount ?? source.subtotalAmount, 0),
+      shipping: number(summary.shippingAmount ?? source.shippingAmount, 0),
+      total: grandTotal,
     },
   };
 };

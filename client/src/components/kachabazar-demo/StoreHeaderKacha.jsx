@@ -33,6 +33,15 @@ const extractList = (payload) => {
   return [];
 };
 
+const getInitials = (value) => {
+  const text = String(value || "").trim();
+  if (!text) return "U";
+  if (text.includes("@")) return text.split("@")[0].slice(0, 2).toUpperCase();
+  const parts = text.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+};
+
 const navItems = [
   { label: "Shop", href: "/shop", hasChevron: true },
   { label: "Offers", href: "/offers", hasDot: true },
@@ -141,13 +150,17 @@ export default function StoreHeaderKacha({
   const [searchParams] = useSearchParams();
   const { count } = useCart();
   const wishlist = useStorefrontWishlist();
-  const { isAccountSession } = useAccountAuth();
+  const { user, isAccountSession, logout } = useAccountAuth();
   const { data: categoriesData, isLoading: categoriesLoading } = useCategories({
     parentsOnly: true,
   });
   const [search, setSearch] = useState("");
   const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const categories = useMemo(() => extractList(categoriesData).slice(0, 8), [categoriesData]);
+  const accountDisplayName = user?.name || user?.fullName || user?.email || "Account";
+  const accountAvatarSrc = resolveAssetUrl(user?.avatarUrl || user?.avatar || "");
+  const accountInitials = getInitials(user?.name || user?.fullName || user?.email);
 
   useEffect(() => {
     setSearch(searchParams.get("q") ?? "");
@@ -168,6 +181,30 @@ export default function StoreHeaderKacha({
 
   const closeCategories = () => setCategoriesOpen(false);
 
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await logout?.();
+      navigate("/auth/login", { replace: true });
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
+  const utilityItems = [
+    { key: "about-us", label: "About Us", href: "/about-us" },
+    { key: "contact-us", label: "Contact Us", href: "/contact-us" },
+    {
+      key: "my-account",
+      label: "My Account",
+      href: isAccountSession ? "/user/my-account" : "/auth/login",
+    },
+    isAccountSession
+      ? { key: "session-action", label: isLoggingOut ? "Logging out..." : "Logout", action: handleLogout }
+      : { key: "session-action", label: "Login", href: "/auth/login" },
+  ];
+
   return (
     <header className="sticky top-0 z-50 border-b border-[#e3edf8] bg-[#f7fbff]/95 text-[#071a3f] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95 dark:text-slate-100">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-1.5 text-xs text-slate-600 sm:px-5 lg:px-6 dark:text-slate-300">
@@ -179,17 +216,23 @@ export default function StoreHeaderKacha({
           </a>
         </div>
         <nav className="hidden items-center gap-5 lg:flex">
-          {[
-            ["About Us", "/about-us"],
-            ["Contact Us", "/contact-us"],
-            ["My Account", "/user/my-account"],
-            ["Login", "/auth/login"],
-          ].map(([label, href], index) => (
-            <div key={label} className="flex items-center gap-5">
+          {utilityItems.map((item, index) => (
+            <div key={item.key} className="flex items-center gap-5">
               {index > 0 ? <span className="h-4 w-px bg-slate-300 dark:bg-slate-700" /> : null}
-              <Link to={href} className="font-semibold transition hover:text-[var(--tp-accent)]">
-                {label}
-              </Link>
+              {item.action ? (
+                <button
+                  type="button"
+                  onClick={item.action}
+                  disabled={isLoggingOut}
+                  className="font-semibold transition hover:text-[var(--tp-accent)] disabled:cursor-wait disabled:opacity-60"
+                >
+                  {item.label}
+                </button>
+              ) : (
+                <Link to={item.href} className="font-semibold transition hover:text-[var(--tp-accent)]">
+                  {item.label}
+                </Link>
+              )}
             </div>
           ))}
         </nav>
@@ -223,13 +266,17 @@ export default function StoreHeaderKacha({
             </form>
 
             <div className="ml-auto flex items-center gap-2 sm:gap-3">
-              <ThemeToggle
-                variant="icon"
-                className="h-10 w-10 border-[#d8e4f2] text-[#071a3f] shadow-[0_6px_16px_rgba(var(--tp-primary-rgb)/0.07)] hover:text-[var(--tp-primary)] dark:border-slate-700"
-              />
-              <IconButton as={Link} to="/wishlist" label="Wishlist" badge={wishlist.count > 0 ? wishlist.count : null}>
-                <Heart className="h-5 w-5" />
-              </IconButton>
+              <div className="hidden sm:block">
+                <ThemeToggle
+                  variant="icon"
+                  className="h-10 w-10 border-[#d8e4f2] text-[#071a3f] shadow-[0_6px_16px_rgba(var(--tp-primary-rgb)/0.07)] hover:text-[var(--tp-primary)] dark:border-slate-700"
+                />
+              </div>
+              <div className="hidden sm:block">
+                <IconButton as={Link} to="/wishlist" label="Wishlist" badge={wishlist.count > 0 ? wishlist.count : null}>
+                  <Heart className="h-5 w-5" />
+                </IconButton>
+              </div>
               <IconButton label="Open cart" badge={count > 0 ? count : null} onClick={onCartClick}>
                 <ShoppingCart className="h-5 w-5" />
               </IconButton>
@@ -245,7 +292,24 @@ export default function StoreHeaderKacha({
                 to={isAccountSession ? "/user/my-account" : "/auth/login"}
                 label={isAccountSession ? "My account" : "Login"}
               >
-                <UserRound className="h-5 w-5" />
+                {isAccountSession ? (
+                  accountAvatarSrc ? (
+                    <img
+                      src={accountAvatarSrc}
+                      alt={`${accountDisplayName} profile`}
+                      className="h-8 w-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--tp-primary-soft)] text-xs font-black text-[var(--tp-primary)] dark:bg-slate-800 dark:text-sky-200"
+                      aria-hidden="true"
+                    >
+                      {accountInitials}
+                    </span>
+                  )
+                ) : (
+                  <UserRound className="h-5 w-5" />
+                )}
               </IconButton>
             </div>
           </div>

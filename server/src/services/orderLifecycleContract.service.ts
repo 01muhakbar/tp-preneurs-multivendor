@@ -267,6 +267,8 @@ export const buildPaymentActionability = (displayStatuses: unknown[]) => {
     isFinal:
       paymentEntry.summaryStatus === "PAID" ||
       paymentEntry.summaryStatus === "FAILED" ||
+      paymentEntry.summaryStatus === "CANCELLED" ||
+      paymentEntry.summaryStatus === "EXPIRED" ||
       paymentEntry.summaryStatus === "FINAL",
     actionableCount: paymentEntry.actionableCount,
     reviewCount: paymentEntry.reviewCount,
@@ -397,7 +399,8 @@ export const buildStatusSummary = (input: {
       paymentActionabilityStateCode === "EXPIRED" ||
       paymentActionabilityStateCode === "CANCELLED" ||
       paymentStatusMeta.code === "FAILED" ||
-      paymentStatusMeta.code === "EXPIRED"
+      paymentStatusMeta.code === "EXPIRED" ||
+      paymentStatusMeta.code === "CANCELLED"
     ) {
       const meta = buildPaymentStatusMeta(
         paymentActionabilityStateCode === "FAILED" ||
@@ -548,6 +551,14 @@ export const buildSellerSuborderContract = (input: {
           description: orderStatusMeta.description,
           isFinal: true,
         }
+      : paymentStatus === "CANCELLED"
+        ? {
+            code: "CANCELLED",
+            label: "Cancelled",
+            tone: "stone" as ContractTone,
+            description: paymentStatusMeta.description,
+            isFinal: true,
+          }
       : paymentStatus !== "PAID"
         ? {
             code: "AWAITING_PAYMENT",

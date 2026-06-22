@@ -17,6 +17,7 @@ export interface PaymentAttributes {
     | "PENDING_CONFIRMATION"
     | "PAID"
     | "FAILED"
+    | "CANCELLED"
     | "EXPIRED"
     | "REJECTED";
   expiresAt?: Date | null;
@@ -58,6 +59,7 @@ export class Payment
     | "PENDING_CONFIRMATION"
     | "PAID"
     | "FAILED"
+    | "CANCELLED"
     | "EXPIRED"
     | "REJECTED";
   declare expiresAt?: Date | null;
@@ -166,6 +168,7 @@ export class Payment
             "PENDING_CONFIRMATION",
             "PAID",
             "FAILED",
+            "CANCELLED",
             "EXPIRED",
             "REJECTED"
           ),
