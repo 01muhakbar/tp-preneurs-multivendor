@@ -1,4 +1,4 @@
-import { updateSellerSuborderFulfillment } from "../sellerOrders.ts";
+import { updateSellerSuborderFulfillment, updateSellerSuborderInternalNote } from "../sellerOrders.ts";
 import { runSeller2026Mutation } from "./mutations.ts";
 
 export type Seller2026FulfillmentAction =
@@ -65,5 +65,19 @@ export async function updateSeller2026OrderFulfillment({
       suborderId,
       buildSeller2026FulfillmentPayload(payload)
     )
+  );
+}
+
+export async function updateSeller2026OrderInternalNote({
+  storeId,
+  suborderId,
+  note,
+}: {
+  storeId: number | string;
+  suborderId: number | string;
+  note: string;
+}) {
+  return runSeller2026Mutation(() =>
+    updateSellerSuborderInternalNote(storeId, suborderId, { note })
   );
 }

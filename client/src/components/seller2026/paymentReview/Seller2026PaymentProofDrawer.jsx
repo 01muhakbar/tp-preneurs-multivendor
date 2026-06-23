@@ -37,6 +37,12 @@ const dateTime = (value) => {
   }).format(date);
 };
 
+const truncateId = (value, maxLength = 24) => {
+  const str = String(value || "");
+  if (str.length <= maxLength) return str || "-";
+  return `${str.slice(0, 12)}...${str.slice(-8)}`;
+};
+
 const matchCopy = {
   MATCHED: {
     label: "Matched",
@@ -59,7 +65,9 @@ export default function Seller2026PaymentProofDrawer({
   governanceNote,
   isMutating,
   mutationError,
+  orderHref,
   onClose,
+  onViewOrder,
   onApprove,
   onReject,
 }) {
@@ -148,8 +156,8 @@ export default function Seller2026PaymentProofDrawer({
         <header className="s26-pr-drawer__header">
           <div>
             <small>Review Proof</small>
-            <h2 id="s26-pr-drawer-title">{row.orderNumber}</h2>
-            <p>{row.suborderNumber}</p>
+            <h2 id="s26-pr-drawer-title" title={row.orderNumber}>{truncateId(row.orderNumber)}</h2>
+            <p title={row.suborderNumber}>{truncateId(row.suborderNumber)}</p>
           </div>
           <div className="s26-pr-drawer__header-actions">
             <span className={`s26-pr-chip is-${row.paymentStatusTone}`}>
@@ -239,13 +247,21 @@ export default function Seller2026PaymentProofDrawer({
           <section className="s26-pr-drawer-card">
             <h3>3. Linked Order</h3>
             <dl>
-              <div><dt>Order ID</dt><dd>{row.orderNumber}</dd></div>
+              <div><dt>Order ID</dt><dd title={row.orderNumber}>{truncateId(row.orderNumber)}</dd></div>
               <div><dt>Customer</dt><dd>{row.buyer.name}</dd></div>
               <div><dt>Items</dt><dd>{row.items.length}</dd></div>
               <div><dt>Total Amount</dt><dd>{money(row.expectedAmount)}</dd></div>
               <div><dt>Payment Channel</dt><dd>{row.paymentMethod}</dd></div>
               <div><dt>Fulfillment State</dt><dd>{row.fulfillmentLabel}</dd></div>
             </dl>
+            <button
+              type="button"
+              className="s26-pr-view-order"
+              disabled={!orderHref || isMutating}
+              onClick={onViewOrder}
+            >
+              View Order <ExternalLink size={14} />
+            </button>
           </section>
 
           <section className="s26-pr-drawer-card">
@@ -327,18 +343,18 @@ export default function Seller2026PaymentProofDrawer({
         <footer className="s26-pr-drawer__footer">
           <button
             type="button"
+            disabled
+            title="No backend-approved clarification endpoint is available."
+          >
+            <MessageCircle size={17} />Request Clarification
+          </button>
+          <button
+            type="button"
             className="is-reject"
             disabled={!reviewEnabled || isMutating}
             onClick={reject}
           >
             <XCircle size={17} />Reject Proof
-          </button>
-          <button
-            type="button"
-            disabled
-            title="No backend-approved clarification endpoint is available."
-          >
-            <MessageCircle size={17} />Request Clarification
           </button>
           <button
             type="button"

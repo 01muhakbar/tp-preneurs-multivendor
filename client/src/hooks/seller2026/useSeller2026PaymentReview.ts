@@ -96,9 +96,13 @@ export function useSeller2026PaymentReview(
         search &&
         ![
           row.orderNumber,
+          row.orderCode,
           row.suborderNumber,
           row.paymentReference,
+          row.paymentCode,
+          row.buyerName,
           row.buyer.name,
+          row.buyerEmail,
           row.buyer.email,
           row.buyerNote,
           row.reviewNote,
@@ -177,6 +181,7 @@ export function useSeller2026PaymentReview(
   }, [completeData, query]);
 
   const invalidatePaymentReview = async () => {
+    const storeKey = storeId == null ? "" : String(storeId);
     await Promise.all([
       queryClient.invalidateQueries({
         queryKey: ["seller2026", "payment-review", storeId],
@@ -189,6 +194,27 @@ export function useSeller2026PaymentReview(
       }),
       queryClient.invalidateQueries({
         queryKey: ["seller", "workspace", "finance-summary", storeId],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ["seller2026", "dashboard"],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ["seller2026", "orders", storeId],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ["seller2026", "suborder-detail", storeId],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ["seller2026", "notifications", storeId],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ["seller2026", "notifications", storeKey],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ["seller", "notifications", storeId, "count"],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ["seller", "notifications", storeId, "list"],
       }),
       queryClient.invalidateQueries({ queryKey: ["account", "orders"] }),
     ]);
@@ -231,6 +257,7 @@ export function useSeller2026PaymentReview(
       return result.data;
     },
     onSuccess: invalidatePaymentReview,
+    meta: { suppressGlobalToast: true },
   });
 
   const rejectMutation = useMutation({
@@ -269,6 +296,7 @@ export function useSeller2026PaymentReview(
       return result.data;
     },
     onSuccess: invalidatePaymentReview,
+    meta: { suppressGlobalToast: true },
   });
 
   return {

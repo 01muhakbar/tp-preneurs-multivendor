@@ -1,3 +1,4 @@
+import React from "react";
 import {
   ArrowLeft,
   Box,
@@ -22,7 +23,7 @@ function StatusPill({ status }) {
   return (
     <span className={`tpsodp2026-pill tpsodp2026-pill--${status?.tone || "slate"}`}>
       <i aria-hidden="true" />
-      {status?.label || "Not set"}
+      {status?.label || "-"}
     </span>
   );
 }
@@ -250,6 +251,50 @@ function FulfillmentSection({
     </section>
   );
 }
+function InternalNotes({
+  internalNoteDraft,
+  onInternalNoteChange,
+  onSaveInternalNote,
+  isUpdating,
+}) {
+  return (
+    <section className="tpsodp2026-card tpsodp2026-notes">
+      <header>
+        <span aria-hidden="true"><ClipboardList /></span>
+        <h2>Internal Notes</h2>
+      </header>
+      <div className="tpsodp2026-notes-inner">
+        <label>
+          <span className="tpsodp2026-sr-only">Private note</span>
+          <textarea
+            value={internalNoteDraft || ""}
+            onChange={(e) => onInternalNoteChange?.(e.target.value)}
+            placeholder="Add note..."
+            rows={4}
+          />
+        </label>
+        <div className="tpsodp2026-notes-actions">
+          <button
+            type="button"
+            className="tpsodp2026-primary s26-btn-small"
+            onClick={onSaveInternalNote}
+            disabled={isUpdating}
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const TABS = [
+  { id: "overview", label: "Overview" },
+  { id: "items", label: "Items" },
+  { id: "fulfillment", label: "Fulfillment" },
+  { id: "timeline", label: "Timeline" },
+  { id: "notes", label: "Internal Notes" },
+];
 
 export default function SellerSuborderDetail2026PageView({
   order,
@@ -269,7 +314,11 @@ export default function SellerSuborderDetail2026PageView({
   onMarkPacked,
   onMarkShipped,
   onMarkDelivered,
+  internalNoteDraft = "",
+  onInternalNoteChange,
+  onSaveInternalNote,
 }) {
+  const [activeTab, setActiveTab] = React.useState("overview");
   const Link = LinkComponent;
 
   if (isLoading) return <LoadingState />;
@@ -282,21 +331,6 @@ export default function SellerSuborderDetail2026PageView({
       <span className="tpsodp2026-sr-only s26-card soft">
         Payment <strong>Read-only</strong>
       </span>
-      <div className="tpsodp2026-toolbar">
-        <label>
-          <Search aria-hidden="true" />
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(event) => onSearchChange?.(event.target.value)}
-            placeholder="Search orders, products, customers..."
-          />
-        </label>
-        <button type="button" onClick={onBack}>
-          <ArrowLeft aria-hidden="true" />
-          Back to Orders
-        </button>
-      </div>
 
       {notice ? (
         <p className={`tpsodp2026-notice tpsodp2026-notice--${notice.type || "info"}`}>
@@ -322,82 +356,102 @@ export default function SellerSuborderDetail2026PageView({
         </div>
       </header>
 
-      <div className="tpsodp2026-summary-grid">
-        <InfoCard icon={UserRound} title="Customer">
-          <div className="tpsodp2026-stack">
-            <strong>{order.customer.name}</strong>
-            <span>{order.customer.phone || order.customer.email || "Not set"}</span>
-            <p>{order.customer.address}</p>
-          </div>
-        </InfoCard>
-
-        <InfoCard icon={Truck} title="Shipping">
-          <div className="tpsodp2026-stack">
-            <StatusPill status={{ label: order.shipping.status, tone: order.shipping.statusTone }} />
-            <span>Tracking: {order.shipping.trackingLabel}</span>
-            <span>Courier: {order.shipping.courier || "Not set"}</span>
-          </div>
-        </InfoCard>
-
-        <InfoCard icon={WalletCards} title="Payment">
-          <div className="tpsodp2026-stack">
-            <span>Status: <StatusPill status={order.paymentStatus} /></span>
-            <span>Method: {order.payment.method}</span>
-            <span>Proof: {order.payment.proof}</span>
-            <span className="tpsodp2026-lock"><LockKeyhole aria-hidden="true" /> Read-only payment information</span>
-          </div>
-        </InfoCard>
-
-        <InfoCard icon={FileText} title="Cost Summary">
-          <dl className="tpsodp2026-costs">
-            <div><dt>Subtotal</dt><dd>{order.totals.subtotalLabel}</dd></div>
-            <div><dt>Shipping</dt><dd>{order.totals.shippingFeeLabel}</dd></div>
-            <div><dt>Service</dt><dd>{order.totals.serviceFeeLabel}</dd></div>
-            <div><dt>Discount</dt><dd>{order.totals.discountLabel}</dd></div>
-            <div><dt>Total</dt><dd>{order.totals.totalLabel}</dd></div>
-          </dl>
-        </InfoCard>
-      </div>
-
       <section className="tpsodp2026-reference">
         <div>
           <span>Order Reference</span>
           <strong>{order.reference}</strong>
         </div>
-        <button type="button" onClick={onCopyReference}>
-          <Copy aria-hidden="true" />
-          Copy
-        </button>
-        <Link to={order.ordersPath}>
-          <ArrowLeft aria-hidden="true" />
-          Orders
-        </Link>
+        <div className="tpsodp2026-reference-actions">
+          <button type="button" onClick={onCopyReference} className="s26-btn-outline">
+            <Copy aria-hidden="true" />
+            Copy
+          </button>
+          <Link to={order.ordersPath} className="s26-btn-outline">
+            <ArrowLeft aria-hidden="true" />
+            Orders
+          </Link>
+        </div>
       </section>
 
-      <ItemsTable items={order.items} />
-
-      <div className="tpsodp2026-lower-grid">
-        <FulfillmentSection
-          order={order}
-          draft={fulfillmentDraft}
-          isUpdating={isUpdating}
-          onDraftChange={onFulfillmentDraftChange}
-          onMarkPacked={onMarkPacked}
-          onMarkShipped={onMarkShipped}
-          onMarkDelivered={onMarkDelivered}
-          onPrintReceipt={onPrintReceipt}
-        />
-        <div className="tpsodp2026-side-stack">
-          <Timeline items={order.timeline} />
-          <InfoCard icon={ClipboardList} title="Internal Notes">
-            <p className="tpsodp2026-muted">Save internal note integration is pending.</p>
-          </InfoCard>
-        </div>
+      <div className="tpsodp2026-tabs">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            className={`tpsodp2026-tab ${activeTab === tab.id ? "is-active" : ""}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      <p className="tpsodp2026-store-note">
-        Active store: {store?.name || "Seller store"}. Payment review remains outside Seller Orders.
-      </p>
+      <div className="tpsodp2026-tab-content">
+        {activeTab === "overview" && (
+          <div className="tpsodp2026-summary-grid">
+            <InfoCard icon={UserRound} title="Customer">
+              <div className="tpsodp2026-stack">
+                <strong>{order.customer.name}</strong>
+                <span>{order.customer.phone || order.customer.email || "-"}</span>
+                <p>{order.customer.address}</p>
+              </div>
+            </InfoCard>
+
+            <InfoCard icon={Truck} title="Shipping">
+              <div className="tpsodp2026-stack">
+                <StatusPill status={{ label: order.shipping.status, tone: order.shipping.statusTone }} />
+                <span>Tracking: {order.shipping.trackingLabel}</span>
+                <span>Courier: {order.shipping.courier || "-"}</span>
+              </div>
+            </InfoCard>
+
+            <InfoCard icon={WalletCards} title="Payment">
+              <div className="tpsodp2026-stack">
+                <span>Status: <StatusPill status={order.paymentStatus} /></span>
+                <span>Method: {order.payment.method}</span>
+                <span>Proof: {order.payment.proof}</span>
+                <span className="tpsodp2026-lock"><LockKeyhole aria-hidden="true" /> {order.payment.readOnlyReason}</span>
+              </div>
+            </InfoCard>
+
+            <InfoCard icon={FileText} title="Cost Summary">
+              <dl className="tpsodp2026-costs">
+                <div><dt>Subtotal</dt><dd>{order.totals.subtotalLabel}</dd></div>
+                <div><dt>Shipping</dt><dd>{order.totals.shippingFeeLabel}</dd></div>
+                <div><dt>Service</dt><dd>{order.totals.serviceFeeLabel}</dd></div>
+                <div><dt>Discount</dt><dd>{order.totals.discountLabel}</dd></div>
+                <div><dt>Total</dt><dd>{order.totals.totalLabel}</dd></div>
+              </dl>
+            </InfoCard>
+          </div>
+        )}
+
+        {activeTab === "items" && <ItemsTable items={order.items} />}
+
+        {activeTab === "fulfillment" && (
+          <FulfillmentSection
+            order={order}
+            draft={fulfillmentDraft}
+            isUpdating={isUpdating}
+            onDraftChange={onFulfillmentDraftChange}
+            onMarkPacked={onMarkPacked}
+            onMarkShipped={onMarkShipped}
+            onMarkDelivered={onMarkDelivered}
+            onPrintReceipt={onPrintReceipt}
+          />
+        )}
+
+        {activeTab === "timeline" && <Timeline items={order.timeline} />}
+
+        {activeTab === "notes" && (
+          <InternalNotes
+            internalNoteDraft={internalNoteDraft}
+            onInternalNoteChange={onInternalNoteChange}
+            onSaveInternalNote={onSaveInternalNote}
+            isUpdating={isUpdating}
+          />
+        )}
+      </div>
     </div>
   );
 }

@@ -143,12 +143,7 @@ export type Seller2026SuborderDetailViewModel = {
     description?: string;
     createdAt: string | null;
   }>;
-  notes: Array<{
-    id: string | number;
-    author: string;
-    message: string;
-    createdAt: string | null;
-  }>;
+  internalNotes: string | null;
 };
 
 export type Seller2026PaymentReviewViewModel = {
@@ -584,7 +579,7 @@ export function adaptSeller2026SuborderDetail(value: unknown): Seller2026Suborde
         createdAt: text(event.createdAt ?? event.timestamp) || null,
       };
     }),
-    notes: [],
+    internalNotes: text(detail.internalNotes) || null,
   };
 }
 
@@ -745,7 +740,7 @@ export const emptySeller2026SuborderDetail: Seller2026SuborderDetailViewModel = 
   items: [],
   totals: { subtotal: 0, shippingFee: 0, serviceFee: 0, discount: 0, total: 0 },
   timeline: [],
-  notes: [],
+  internalNotes: null,
 };
 
 export const emptySeller2026PaymentReview: Seller2026PaymentReviewViewModel = {

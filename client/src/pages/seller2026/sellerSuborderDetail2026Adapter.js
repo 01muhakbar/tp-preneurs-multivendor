@@ -184,6 +184,14 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {} }) 
   const createdAt = order.createdAt || order.orderDate || null;
   const paidAt = payment.paidAt || null;
 
+  const humanize = (val) => {
+    if (!val) return "";
+    if (val === "WAITING_PAYMENT") return "Waiting Payment";
+    if (val === "No tracking number yet." || val === "No tracking yet") return "";
+    if (val === "PACKED") return "";
+    return val;
+  };
+
   return {
     id: order.suborderId ?? order.id ?? null,
     reference: text(order.orderNumber ?? order.invoiceNo, "Order"),
@@ -218,17 +226,17 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {} }) 
     shipping: {
       status: text(order.shippingStatus, "Ready to fulfill"),
       statusTone: statusTone(order.shippingStatus || fulfillmentStatus),
-      method: text(shipping.method, "REG"),
-      courier: text(shipping.courier || shipping.method, "JNE"),
+      method: humanize(text(shipping.method, "REG")),
+      courier: humanize(text(shipping.courier || shipping.method, "JNE")),
       trackingNo: text(shipping.trackingNo),
-      trackingLabel: text(shipping.trackingNo, "No tracking number yet."),
+      trackingLabel: humanize(text(shipping.trackingNo, "No tracking yet")),
       estimate: text(shipping.estimate),
     },
     payment: {
       method: text(payment.method, "No payment method available."),
-      proof: text(payment.proof, "No payment proof available."),
+      proof: text(payment.proof, "No payment proof"),
       paidAt,
-      readOnlyReason: "Read-only payment information",
+      readOnlyReason: "Read-only",
     },
     items: normalizeItems(detail.items),
     totals: {
@@ -250,11 +258,12 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {} }) 
       paymentStatus,
     }),
     fulfillmentDraft: {
-      trackingNumber: text(shipping.trackingNo),
-      shippingProvider: text(shipping.courier || shipping.method),
-      courierService: text(shipping.method),
+      trackingNumber: humanize(text(shipping.trackingNo)),
+      shippingProvider: humanize(text(shipping.courier || shipping.method)),
+      courierService: humanize(text(shipping.method)),
       note: "",
     },
+    internalNotes: text(detail.internalNotes),
     actions: {
       canMarkPacked: isActionEnabled(markPackedAction),
       canMarkShipped: isActionEnabled(markShippedAction),

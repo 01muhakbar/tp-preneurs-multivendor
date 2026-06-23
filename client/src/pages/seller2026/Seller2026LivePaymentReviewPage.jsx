@@ -63,6 +63,12 @@ const matchLabel = {
   RISK_FLAG: "Risk Flag",
 };
 
+const truncateId = (value, maxLength = 22) => {
+  const str = String(value || "");
+  if (str.length <= maxLength) return str || "-";
+  return `${str.slice(0, 12)}...${str.slice(-6)}`;
+};
+
 export default function Seller2026LivePaymentReviewPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -86,6 +92,7 @@ export default function Seller2026LivePaymentReviewPage() {
   });
   const [view, setView] = useState("table");
   const [selectedPaymentId, setSelectedPaymentId] = useState(null);
+  const [openMenuId, setOpenMenuId] = useState(null);
   const [notice, setNotice] = useState(null);
   const selectedRow = useMemo(
     () =>
@@ -168,7 +175,7 @@ export default function Seller2026LivePaymentReviewPage() {
     const message = error?.message || "Unable to review this payment proof.";
     setNotice({ type: "error", text: message });
     toast.error(message);
-    throw error;
+    throw error || new Error(message);
   };
 
   if (!canView) {
@@ -309,14 +316,36 @@ export default function Seller2026LivePaymentReviewPage() {
                   return (
                     <tr key={row.paymentId}>
                       <td><button type="button" className="s26-pr-proof-thumb" onClick={() => setSelectedPaymentId(row.paymentId)}>{proof ? <img src={proof} alt="" /> : <FileImage size={20} />}</button></td>
-                      <td><button type="button" className="s26-pr-order" onClick={() => setSelectedPaymentId(row.paymentId)}>{row.orderNumber}</button><small>{row.suborderNumber}</small></td>
+                      <td><button type="button" className="s26-pr-order" title={row.orderNumber} onClick={() => setSelectedPaymentId(row.paymentId)}>{truncateId(row.orderNumber)}</button><small title={row.suborderNumber}>{truncateId(row.suborderNumber)}</small></td>
                       <td><div className="s26-pr-buyer"><span>{row.buyer.initials}</span><div><strong>{row.buyer.name}</strong><small>{row.buyer.email || row.buyer.phone || "Buyer"}</small></div></div></td>
-                      <td><strong>{row.paymentMethod}</strong><small>{row.paymentReference}</small></td>
+                      <td><strong>{row.paymentMethod}</strong><small title={row.paymentReference}>{truncateId(row.paymentReference)}</small></td>
                       <td><span>{dateTime(row.submittedAt)}</span></td>
                       <td><span className={`s26-pr-chip is-${row.matchStatus.toLowerCase()}`}>{matchLabel[row.matchStatus]}</span></td>
                       <td><strong>{money(row.expectedAmount)}</strong></td>
                       <td><span className={`s26-pr-chip is-${row.paymentStatusTone}`}>{row.paymentStatusLabel}</span></td>
-                      <td><div className="s26-pr-actions"><button type="button" className={row.canReview && review.canReview ? "is-primary" : ""} onClick={() => setSelectedPaymentId(row.paymentId)}>{row.canReview && review.canReview ? "Review" : "View"}</button><button type="button" disabled title="Additional payment actions are not enabled"><MoreVertical size={17} /></button></div></td>
+                      <td>
+                        <div className="s26-pr-actions relative">
+                          <button type="button" className={row.canReview && review.canReview ? "is-primary" : ""} onClick={() => setSelectedPaymentId(row.paymentId)}>{row.canReview && review.canReview ? "Review" : "View"}</button>
+                          <button type="button" title="More options" onClick={() => setOpenMenuId(openMenuId === row.paymentId ? null : row.paymentId)}>
+                            <MoreVertical size={17} />
+                          </button>
+                          {openMenuId === row.paymentId && (
+                            <div className="absolute right-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+                              <div className="flex flex-col text-[12px] font-medium text-slate-700">
+                                <button type="button" className="w-full px-4 py-2.5 text-left hover:bg-slate-50" onClick={() => { setOpenMenuId(null); setSelectedPaymentId(row.paymentId); }}>
+                                  {row.canReview && review.canReview ? "Review Proof" : "View Proof"}
+                                </button>
+                                <button type="button" className="w-full px-4 py-2.5 text-left hover:bg-slate-50" onClick={() => { setOpenMenuId(null); navigate(workspaceRoutes.orderDetail(row.suborderId)); }}>
+                                  View Order Details
+                                </button>
+                                <button type="button" className="w-full px-4 py-2.5 text-left hover:bg-slate-50" onClick={() => { setOpenMenuId(null); navigator.clipboard.writeText(row.orderNumber); toast.success("Order ID copied"); }}>
+                                  Copy Order ID
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
@@ -352,7 +381,7 @@ export default function Seller2026LivePaymentReviewPage() {
                           <button type="button" className="s26-pr-board-card" onClick={() => setSelectedPaymentId(row.paymentId)}>
                             <span className="s26-pr-board-proof">{proof ? <img src={proof} alt="" /> : <FileImage size={20} />}</span>
                             <span>
-                              <strong>{row.orderNumber}</strong>
+                              <strong title={row.orderNumber}>{truncateId(row.orderNumber)}</strong>
                               <small>{row.buyer.name}</small>
                               <em>{row.paymentMethod}</em>
                               <small>{dateTime(row.submittedAt)}</small>
@@ -360,10 +389,15 @@ export default function Seller2026LivePaymentReviewPage() {
                             <b>{money(row.expectedAmount)}</b>
                           </button>
                           <footer>
-                            <span className={`s26-pr-chip is-${row.paymentStatusTone}`}>{row.paymentStatusLabel}</span>
-                            <button type="button" onClick={() => setSelectedPaymentId(row.paymentId)}>
-                              {row.canReview && review.canReview ? "Review Proof" : "View Proof"}
-                            </button>
+                            <span className={`s26-pr-chip is-${row.paymentStatusTone}`} title={row.paymentStatusLabel}>{row.paymentStatusLabel}</span>
+                            <div className="s26-pr-card-actions">
+                              <button type="button" className="s26-pr-primary-btn" onClick={() => setSelectedPaymentId(row.paymentId)}>
+                                {row.canReview && review.canReview ? "Review Proof" : "View Proof"}
+                              </button>
+                              <button type="button" className="s26-pr-icon-btn" title="View Order" onClick={() => navigate(row.canonicalDetailHref || `/seller/stores/${workspaceStoreId}/orders/${row.id}`)}>
+                                <MoreVertical size={14} />
+                              </button>
+                            </div>
                           </footer>
                         </article>
                       );
@@ -403,7 +437,10 @@ export default function Seller2026LivePaymentReviewPage() {
         onApprove={async (variables) => {
           try {
             await review.approvePayment(variables);
-            mutationSucceeded("Payment proof approved. The review queue is refreshing.");
+            mutationSucceeded("Payment proof approved.");
+            if (selectedRow) {
+              navigate(workspaceRoutes.orders(), { state: { openDetailId: selectedRow.suborderId || selectedRow.orderId } });
+            }
           } catch (error) {
             mutationFailed(error);
           }

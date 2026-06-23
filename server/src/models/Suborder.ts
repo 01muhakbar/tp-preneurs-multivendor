@@ -29,6 +29,7 @@ export interface SuborderAttributes {
     | "CANCELLED";
   expiresAt?: Date | null;
   paidAt?: Date | null;
+  internalNotes?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -47,6 +48,7 @@ type SuborderCreationAttributes = Optional<
   | "fulfillmentStatus"
   | "expiresAt"
   | "paidAt"
+  | "internalNotes"
 >;
 
 export class Suborder
@@ -81,6 +83,7 @@ export class Suborder
     | "CANCELLED";
   declare expiresAt?: Date | null;
   declare paidAt?: Date | null;
+  declare internalNotes?: string | null;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
 
@@ -237,6 +240,11 @@ export class Suborder
           type: DataTypes.DATE,
           allowNull: true,
           field: "paid_at",
+        },
+        internalNotes: {
+          type: DataTypes.TEXT,
+          allowNull: true,
+          field: "internal_notes",
         },
         createdAt: {
           type: DataTypes.DATE,

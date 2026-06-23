@@ -193,7 +193,7 @@ export function adaptSeller2026PaymentProof(
     transferTime: proof?.transferTime || null,
     reviewedAt: proof?.reviewedAt || null,
     reviewedByUserId: proof?.reviewedByUserId || null,
-    reviewer: proof?.reviewedByUserId ? `Reviewer #${proof.reviewedByUserId}` : "",
+    reviewer: proof?.reviewedByUserId ? `Reviewer #${proof?.reviewedByUserId}` : "",
     fulfillmentStatus: text(entry.fulfillmentStatus, "UNFULFILLED"),
     fulfillmentLabel: text(
       entry.fulfillmentStatusMeta?.label,

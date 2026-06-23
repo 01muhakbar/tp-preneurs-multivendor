@@ -708,3 +708,15 @@ export const bulkDeleteSellerSuborders = async (
   });
   return data;
 };
+
+export const updateSellerSuborderInternalNote = async (
+  storeId: number | string,
+  suborderId: number | string,
+  payload: { note: string }
+) => {
+  const { data } = await api.post(
+    `/seller/stores/${storeId}/orders/${suborderId}/internal-notes`,
+    payload
+  );
+  return data;
+};

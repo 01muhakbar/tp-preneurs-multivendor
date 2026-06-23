@@ -44,6 +44,7 @@ export default function Seller2026LiveSuborderDetailPage() {
     courierService: "",
     note: "",
   });
+  const [internalNoteDraft, setInternalNoteDraft] = useState("");
 
   const detailQuery = useSeller2026SuborderDetail(workspaceStoreId, suborderId, {
     enabled: Boolean(canView && workspaceStoreId && suborderId),
@@ -69,6 +70,12 @@ export default function Seller2026LiveSuborderDetailPage() {
     orderDetail2026?.fulfillmentDraft?.shippingProvider,
     orderDetail2026?.fulfillmentDraft?.courierService,
   ]);
+
+  useEffect(() => {
+    if (orderDetail2026?.internalNotes !== undefined) {
+      setInternalNoteDraft(orderDetail2026.internalNotes || "");
+    }
+  }, [orderDetail2026?.internalNotes]);
 
   const handleBack = () => {
     navigate(workspaceRoutes.orders());
@@ -112,6 +119,20 @@ export default function Seller2026LiveSuborderDetailPage() {
     }
   };
 
+  const handleSaveInternalNote = async () => {
+    if (!orderDetail2026?.id || detailQuery.updatingStatusId) return;
+    try {
+      await detailQuery.updateInternalNote({ note: internalNoteDraft });
+      await detailQuery.refetch();
+      setNotice({ type: "success", text: "Internal note saved." });
+    } catch (error) {
+      setNotice({
+        type: "error",
+        text: getErrorMessage(error, "Failed to save internal note."),
+      });
+    }
+  };
+
   return (
     <SellerSuborderDetail2026PageView
       order={orderDetail2026}
@@ -143,6 +164,9 @@ export default function Seller2026LiveSuborderDetailPage() {
           ? () => handleFulfillmentAction("MARK_DELIVERED")
           : undefined
       }
+      internalNoteDraft={internalNoteDraft}
+      onInternalNoteChange={setInternalNoteDraft}
+      onSaveInternalNote={handleSaveInternalNote}
     />
   );
 }

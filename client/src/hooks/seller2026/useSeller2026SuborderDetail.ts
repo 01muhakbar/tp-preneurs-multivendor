@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSellerSuborderDetail } from "../../api/sellerOrders.ts";
 import {
   updateSeller2026OrderFulfillment,
+  updateSeller2026OrderInternalNote,
   type Seller2026FulfillmentPayload,
 } from "../../api/seller2026/orders.mutations.ts";
 import {
@@ -69,6 +70,22 @@ export function useSeller2026SuborderDetail(
     onSuccess: invalidateOrders,
   });
 
+  const notesMutation = useMutation({
+    mutationFn: async ({ note }: { note: string }) => {
+      if (!enabled || !storeId || !suborderId || !canFulfill) {
+        throw new Error("Internal note update is not available.");
+      }
+      const result = await updateSeller2026OrderInternalNote({
+        storeId,
+        suborderId,
+        note,
+      });
+      if (!result.ok) throw result.error;
+      return result.data;
+    },
+    onSuccess: invalidateOrders,
+  });
+
   return {
     data,
     isLoading: detailQuery.isLoading,
@@ -78,6 +95,7 @@ export function useSeller2026SuborderDetail(
     updatingStatusId: fulfillmentMutation.isPending ? String(suborderId) : null,
     mutationError: fulfillmentMutation.error,
     updateFulfillmentStatus: fulfillmentMutation.mutateAsync,
+    updateInternalNote: notesMutation.mutateAsync,
     canFulfill,
   };
 }
