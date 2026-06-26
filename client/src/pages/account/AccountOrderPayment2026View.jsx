@@ -15,6 +15,7 @@ import {
   UsersRound,
   WalletCards,
   X,
+  MessageCircle,
 } from "lucide-react";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
 import "./account-order-payment-2026.css";
@@ -179,9 +180,20 @@ function QrPaymentCard({ payment, isSubmitting, onCopyAmount, onCopyReference, o
         {imageUrl ? <button type="button" onClick={() => setModalOpen(true)}><Expand aria-hidden="true" />View QR</button> : null}
         {imageUrl ? <button type="button" onClick={onSaveQr}><Download aria-hidden="true" />Save QR</button> : null}
       </div>
-      {(onConfirmTransfer || onCancelPayment) ? (
+      {(onConfirmTransfer || onCancelPayment || payment?.primaryPayment?.whatsappContact) ? (
         <div className="tp-payment-qr-card__actions">
           {onConfirmTransfer ? <button type="button" className="is-primary" onClick={onConfirmTransfer} disabled={isSubmitting}><Check aria-hidden="true" />{isSubmitting ? "Submitting..." : "I Have Transferred"}</button> : null}
+          {payment?.primaryPayment?.whatsappContact ? (
+            <a
+              href={payment.primaryPayment.whatsappContact.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="is-whatsapp"
+            >
+              <MessageCircle aria-hidden="true" />
+              Notify Store via WhatsApp
+            </a>
+          ) : null}
           {onCancelPayment ? <button type="button" className="is-danger" onClick={onCancelPayment} disabled={isSubmitting}><X aria-hidden="true" />Cancel Payment</button> : null}
         </div>
       ) : null}

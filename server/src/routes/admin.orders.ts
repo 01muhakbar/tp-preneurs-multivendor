@@ -43,6 +43,15 @@ const router = Router();
 type UiOrderStatus = "pending" | "processing" | "shipping" | "complete" | "cancelled";
 type DbOrderStatus = "pending" | "processing" | "shipped" | "delivered" | "cancelled";
 type CanonicalMethod = "cash" | "card" | "credit";
+type DeliveryStatusFilter =
+  | "waiting_payment"
+  | "ready_to_fulfill"
+  | "processing"
+  | "in_delivery"
+  | "delivered"
+  | "cancelled"
+  | "failed"
+  | "";
 
 const asSingle = (v: unknown) => (Array.isArray(v) ? v[0] : v);
 const getAttr = (row: any, key: string) =>
@@ -448,8 +457,41 @@ const normalizeMethodInput = (raw: unknown): CanonicalMethod | "" => {
   const value = String(raw || "").toLowerCase().trim();
   if (!value) return "";
   if (value === "cash" || value === "cod") return "cash";
-  if (value === "card") return "card";
+  if (value === "card" || value === "qris" || value === "visa" || value === "mastercard") return "card";
   if (value === "credit") return "credit";
+  return "";
+};
+
+const normalizePaymentStatusInput = (raw: unknown) => {
+  const value = String(raw || "").trim().toUpperCase();
+  const aliases: Record<string, string> = {
+    PAID: "PAID",
+    UNPAID: "UNPAID",
+    PENDING: "PENDING_CONFIRMATION",
+    PENDING_CONFIRMATION: "PENDING_CONFIRMATION",
+    WAITING_PAYMENT: "UNPAID",
+    FAILED: "FAILED",
+    EXPIRED: "EXPIRED",
+    CANCELLED: "CANCELLED",
+    CANCELED: "CANCELLED",
+  };
+  return aliases[value] || "";
+};
+
+const normalizeDeliveryStatusInput = (raw: unknown): DeliveryStatusFilter => {
+  const value = String(raw || "").toLowerCase().trim();
+  if (!value) return "";
+  if (["waiting_payment", "waiting-payment", "unpaid"].includes(value)) return "waiting_payment";
+  if (["ready_to_fulfill", "ready-to-fulfill", "ready", "ready_to_fulfillment"].includes(value)) {
+    return "ready_to_fulfill";
+  }
+  if (["processing", "packed"].includes(value)) return "processing";
+  if (["in_delivery", "in-delivery", "delivery", "shipping", "shipped", "out_for_delivery"].includes(value)) {
+    return "in_delivery";
+  }
+  if (["delivered", "complete", "completed"].includes(value)) return "delivered";
+  if (["cancelled", "canceled", "cancel"].includes(value)) return "cancelled";
+  if (["failed", "failed_delivery", "failed-delivery", "rejected"].includes(value)) return "failed";
   return "";
 };
 
@@ -518,6 +560,7 @@ const parseLimitDays = (raw: unknown) => {
 const buildOrdersWhere = (filters: {
   search: string;
   status: DbOrderStatus | "";
+  paymentStatus: string;
   method: CanonicalMethod | "";
   limitDays: number;
   startDate: Date | null;
@@ -542,6 +585,10 @@ const buildOrdersWhere = (filters: {
 
   if (filters.status) {
     where.status = filters.status as string;
+  }
+
+  if (filters.paymentStatus) {
+    where.paymentStatus = filters.paymentStatus;
   }
 
   if (filters.method) {
@@ -580,18 +627,33 @@ const parseOrdersQuery = (query: any) => {
     100
   );
 
-  const search = String(asSingle(query.search) ?? asSingle(query.q) ?? "").trim();
+  const search = String(
+    asSingle(query.customer) ?? asSingle(query.search) ?? asSingle(query.q) ?? ""
+  ).trim();
   const status = normalizeStatusInput(asSingle(query.status));
-  const method = normalizeMethodInput(asSingle(query.method));
+  const paymentStatus = normalizePaymentStatusInput(asSingle(query.paymentStatus));
+  const method = normalizeMethodInput(asSingle(query.paymentMethod) ?? asSingle(query.method));
+  const deliveryStatus = normalizeDeliveryStatusInput(asSingle(query.deliveryStatus));
   const limitDays = parseLimitDays(asSingle(query.limitDays));
   const startDate = parseDateAtBoundary(asSingle(query.startDate), false);
   const endDate = parseDateAtBoundary(asSingle(query.endDate), true);
   const userIdRaw = Number(asSingle(query.userId));
   const userId = Number.isFinite(userIdRaw) && userIdRaw > 0 ? userIdRaw : null;
+  const sortKey = String(asSingle(query.sortBy) || "orderDate").trim();
+  const sortMap: Record<string, string> = {
+    orderDate: "createdAt",
+    createdAt: "createdAt",
+    amount: "totalAmount",
+    totalAmount: "totalAmount",
+    invoiceNo: "invoiceNo",
+  };
+  const sortColumn = sortMap[sortKey] || "createdAt";
+  const sortDir = String(asSingle(query.sortDir) || "desc").toLowerCase() === "asc" ? "ASC" : "DESC";
 
   const where = buildOrdersWhere({
     search,
     status,
+    paymentStatus,
     method,
     limitDays,
     startDate,
@@ -607,13 +669,104 @@ const parseOrdersQuery = (query: any) => {
     filters: {
       search,
       status,
+      paymentStatus,
       method,
+      deliveryStatus,
       limitDays,
       startDate: startDate ? startDate.toISOString() : null,
       endDate: endDate ? endDate.toISOString() : null,
       dateSource: startDate || endDate ? "dateRange" : limitDays > 0 ? "limitDays" : "none",
     },
+    sort: {
+      sortBy: sortKey,
+      sortColumn,
+      sortDir,
+    },
   };
+};
+
+const deliveryStatusMatches = (deliveryStatus: DeliveryStatusFilter, suborder: any) => {
+  const paymentStatus = normalizeSuborderPaymentStatus(getAttr(suborder, "paymentStatus"));
+  const fulfillmentStatus = normalizeSuborderFulfillmentStatus(getAttr(suborder, "fulfillmentStatus"));
+  const shipment = suborder?.shipment ?? suborder?.get?.("shipment") ?? null;
+  const shipmentStatus = String(getAttr(shipment, "status") || "").trim().toUpperCase();
+
+  if (deliveryStatus === "waiting_payment") {
+    return paymentStatus !== "PAID" || shipmentStatus === "WAITING_PAYMENT";
+  }
+  if (deliveryStatus === "ready_to_fulfill") {
+    return shipmentStatus === "READY_TO_FULFILL" || (paymentStatus === "PAID" && fulfillmentStatus === "UNFULFILLED");
+  }
+  if (deliveryStatus === "processing") {
+    return fulfillmentStatus === "PROCESSING" || ["PROCESSING", "PACKED"].includes(shipmentStatus);
+  }
+  if (deliveryStatus === "in_delivery") {
+    return fulfillmentStatus === "SHIPPED" || ["SHIPPED", "IN_TRANSIT", "OUT_FOR_DELIVERY"].includes(shipmentStatus);
+  }
+  if (deliveryStatus === "delivered") {
+    return fulfillmentStatus === "DELIVERED" || shipmentStatus === "DELIVERED";
+  }
+  if (deliveryStatus === "cancelled") {
+    return fulfillmentStatus === "CANCELLED" || shipmentStatus === "CANCELLED";
+  }
+  if (deliveryStatus === "failed") {
+    return ["FAILED", "EXPIRED"].includes(paymentStatus) || shipmentStatus === "FAILED_DELIVERY";
+  }
+  return true;
+};
+
+const listOrderIdsForDeliveryFilter = async (deliveryStatus: DeliveryStatusFilter) => {
+  if (!deliveryStatus) return null;
+  const suborders = await Suborder.findAll({
+    attributes: ["orderId", "paymentStatus", "fulfillmentStatus"],
+    include: [
+      {
+        model: Shipment,
+        as: "shipment",
+        attributes: ["status"],
+        required: false,
+      } as any,
+    ],
+  });
+
+  return Array.from(
+    new Set(
+      suborders
+        .filter((suborder: any) => deliveryStatusMatches(deliveryStatus, suborder))
+        .map((suborder: any) => Number(getAttr(suborder, "orderId") || 0))
+        .filter((orderId) => Number.isFinite(orderId) && orderId > 0)
+    )
+  );
+};
+
+const applyDeliveryFilter = async (baseWhere: any, deliveryStatus: DeliveryStatusFilter) => {
+  if (!deliveryStatus) return baseWhere;
+  const orderIds = await listOrderIdsForDeliveryFilter(deliveryStatus);
+  if (!orderIds || orderIds.length === 0) {
+    return { ...baseWhere, id: { [Op.in]: [] } };
+  }
+  return { ...baseWhere, id: { [Op.in]: orderIds } };
+};
+
+const summarizeAdminOrders = async (where: any) => {
+  const rows = await Order.findAll({
+    where,
+    attributes: ["status", "paymentStatus"],
+  });
+  return rows.reduce(
+    (summary, row: any) => {
+      const status = toUiStatus(getAttr(row, "status"));
+      const paymentStatus = String(getAttr(row, "paymentStatus") || "").toUpperCase().trim();
+      summary.totalOrders += 1;
+      if (status === "processing" || status === "shipping") summary.processing += 1;
+      if (status === "complete") summary.delivered += 1;
+      if (!paymentStatus || ["UNPAID", "FAILED", "EXPIRED", "CANCELLED"].includes(paymentStatus)) {
+        summary.paymentIssues += 1;
+      }
+      return summary;
+    },
+    { totalOrders: 0, processing: 0, delivered: 0, paymentIssues: 0 }
+  );
 };
 
 const resolveOrderWhere = (idOrRef: string) => {
@@ -947,9 +1100,10 @@ router.get("/", requireStaffOrAdmin, async (req, res) => {
   try {
     const parsed = parseOrdersQuery(req.query || {});
     const { page, pageSize, offset, where } = parsed;
+    const filteredWhere = await applyDeliveryFilter(where, parsed.filters.deliveryStatus);
 
     const { rows, count } = await Order.findAndCountAll({
-      where,
+      where: filteredWhere,
       include: [
         {
           model: User,
@@ -970,7 +1124,7 @@ router.get("/", requireStaffOrAdmin, async (req, res) => {
         "customerPhone",
         "paymentMethod",
       ],
-      order: [["createdAt", "DESC"]],
+      order: [[parsed.sort.sortColumn, parsed.sort.sortDir]],
       limit: pageSize,
       offset,
       distinct: true,
@@ -1080,6 +1234,7 @@ router.get("/", requireStaffOrAdmin, async (req, res) => {
     );
 
     const totalPages = Math.max(1, Math.ceil(count / pageSize));
+    const summary = await summarizeAdminOrders(filteredWhere);
 
     return res.json({
       success: true,
@@ -1093,6 +1248,7 @@ router.get("/", requireStaffOrAdmin, async (req, res) => {
         limit: pageSize,
         totalItems: count,
         filters: parsed.filters,
+        summary,
       },
     });
   } catch (error) {
@@ -1104,8 +1260,9 @@ router.get("/", requireStaffOrAdmin, async (req, res) => {
 const exportOrdersCsv = async (req: any, res: any) => {
   try {
     const parsed = parseOrdersQuery(req.query || {});
+    const filteredWhere = await applyDeliveryFilter(parsed.where, parsed.filters.deliveryStatus);
     const rows = await Order.findAll({
-      where: parsed.where,
+      where: filteredWhere,
       attributes: [
         "id",
         "invoiceNo",
@@ -1125,7 +1282,7 @@ const exportOrdersCsv = async (req: any, res: any) => {
           required: false,
         },
       ],
-      order: [["createdAt", "DESC"]],
+      order: [[parsed.sort.sortColumn, parsed.sort.sortDir]],
     });
 
     const header = csvRow([
@@ -1161,10 +1318,8 @@ const exportOrdersCsv = async (req: any, res: any) => {
     });
 
     const now = new Date();
-    const stampDate = now.toISOString().slice(0, 10).replace(/-/g, "");
-    const hh = String(now.getHours()).padStart(2, "0");
-    const mm = String(now.getMinutes()).padStart(2, "0");
-    const filename = `orders-${stampDate}-${hh}${mm}.csv`;
+    const stampDate = now.toISOString().slice(0, 10);
+    const filename = `tp-preneurs-orders-${stampDate}.csv`;
     const csv = [header, ...lines].join("\n");
 
     res.setHeader("Content-Type", "text/csv; charset=utf-8");

@@ -174,15 +174,6 @@ function OrderCard({ order, LinkComponent }) {
 
       <div className="tp-order-card__actions">
         {order.href ? (
-          <LinkComponent
-            className="tp-order-card__quick"
-            to={order.href}
-            aria-label={`Quick view order ${order.displayId || order.reference}`}
-          >
-            <Eye aria-hidden="true" />
-          </LinkComponent>
-        ) : null}
-        {order.href ? (
           <LinkComponent className="tp-order-card__cta" to={order.href}>
             View Details
           </LinkComponent>

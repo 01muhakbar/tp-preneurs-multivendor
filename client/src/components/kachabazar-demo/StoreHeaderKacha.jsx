@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   ChevronDown,
   Globe2,
@@ -16,7 +17,9 @@ import { useCart } from "../../hooks/useCart.ts";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
 import { useCategories } from "../../storefront.jsx";
 import ThemeToggle from "../store/ThemeToggle.jsx";
+import NotificationPreviewDropdown from "../store/NotificationPreviewDropdown.jsx";
 import { useStorefrontWishlist } from "../../utils/storefrontWishlist.js";
+import { fetchUserUnreadNotificationCount } from "../../api/userNotifications.ts";
 
 const PRIMARY = "var(--tp-primary)";
 const ACCENT = "var(--tp-accent)";
@@ -156,15 +159,49 @@ export default function StoreHeaderKacha({
   });
   const [search, setSearch] = useState("");
   const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const notificationRootRef = useRef(null);
   const categories = useMemo(() => extractList(categoriesData).slice(0, 8), [categoriesData]);
   const accountDisplayName = user?.name || user?.fullName || user?.email || "Account";
   const accountAvatarSrc = resolveAssetUrl(user?.avatarUrl || user?.avatar || "");
   const accountInitials = getInitials(user?.name || user?.fullName || user?.email);
+  const unreadQuery = useQuery({
+    queryKey: ["account", "notifications", "unread-count"],
+    queryFn: fetchUserUnreadNotificationCount,
+    enabled: Boolean(isAccountSession),
+    staleTime: 20_000,
+    retry: 1,
+  });
+  const unreadCount = Number(unreadQuery.data || 0);
+  const unreadBadge = unreadCount > 99 ? "99+" : unreadCount > 0 ? String(unreadCount) : null;
 
   useEffect(() => {
     setSearch(searchParams.get("q") ?? "");
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!notificationsOpen) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (!(event.target instanceof Node)) return;
+      if (!notificationRootRef.current?.contains(event.target)) {
+        setNotificationsOpen(false);
+      }
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setNotificationsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [notificationsOpen]);
 
   const submitSearch = (event) => {
     event.preventDefault();
@@ -180,6 +217,19 @@ export default function StoreHeaderKacha({
   };
 
   const closeCategories = () => setCategoriesOpen(false);
+
+  const handleToggleNotifications = () => {
+    if (!isAccountSession) {
+      navigate("/auth/login");
+      return;
+    }
+    setNotificationsOpen((value) => !value);
+  };
+
+  const handleNotificationNavigate = (path) => {
+    setNotificationsOpen(false);
+    navigate(path || "/user/notifications");
+  };
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
@@ -280,13 +330,30 @@ export default function StoreHeaderKacha({
               <IconButton label="Open cart" badge={count > 0 ? count : null} onClick={onCartClick}>
                 <ShoppingCart className="h-5 w-5" />
               </IconButton>
-              <IconButton
-                as={Link}
-                to={isAccountSession ? "/user/notifications" : "/auth/login"}
-                label="Notifications"
-              >
-                <Bell className="h-5 w-5" />
-              </IconButton>
+              <div ref={notificationRootRef} className="store-header-notification-anchor">
+                <button
+                  type="button"
+                  aria-label="Notifications"
+                  aria-expanded={notificationsOpen}
+                  onClick={handleToggleNotifications}
+                  className={`store-header-notification-button relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#d8e4f2] bg-white text-[#071a3f] shadow-[0_6px_16px_rgba(var(--tp-primary-rgb)/0.07)] transition hover:border-[var(--tp-primary)]/35 hover:text-[var(--tp-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tp-primary-rgb)/0.24)] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-[var(--tp-primary)] ${notificationsOpen ? "is-open" : ""}`}
+                >
+                  <Bell className="h-5 w-5" />
+                  {unreadBadge ? (
+                    <span
+                      className="absolute -right-0.5 -top-1 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-black text-white"
+                      style={{ background: ACCENT }}
+                    >
+                      {unreadBadge}
+                    </span>
+                  ) : null}
+                </button>
+                <NotificationPreviewDropdown
+                  open={notificationsOpen}
+                  onClose={() => setNotificationsOpen(false)}
+                  onNavigate={handleNotificationNavigate}
+                />
+              </div>
               <IconButton
                 as={Link}
                 to={isAccountSession ? "/user/my-account" : "/auth/login"}

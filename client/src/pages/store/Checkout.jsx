@@ -2438,7 +2438,7 @@ export default function CheckoutPage() {
           queryKey: ["account", "orders", "my"],
         })
         .catch(() => {});
-      navigate(nextPaymentUrl, { replace: true });
+      window.location.href = nextPaymentUrl;
     } catch (err) {
       const data = err?.response?.data;
       const serverMessage =

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import {
@@ -69,6 +69,9 @@ const truncateId = (value, maxLength = 22) => {
   return `${str.slice(0, 12)}...${str.slice(-6)}`;
 };
 
+const sameToken = (left, right) =>
+  Boolean(left && right) && String(left).trim() === String(right).trim();
+
 export default function Seller2026LivePaymentReviewPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -94,6 +97,16 @@ export default function Seller2026LivePaymentReviewPage() {
   const [selectedPaymentId, setSelectedPaymentId] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [notice, setNotice] = useState(null);
+  const [autoOpenedSignature, setAutoOpenedSignature] = useState("");
+  const requestedProofId = searchParams.get("proofId") || "";
+  const requestedPaymentId = searchParams.get("paymentId") || "";
+  const requestedSuborderId = searchParams.get("suborderId") || "";
+  const requestedOrder = searchParams.get("order") || searchParams.get("q") || "";
+  const requestSignature = `${requestedProofId}|${requestedPaymentId}|${requestedSuborderId}|${requestedOrder}`;
+  const shouldOpenRequestedProof =
+    searchParams.get("openProof") === "1" ||
+    searchParams.get("drawer") === "review-proof" ||
+    Boolean(requestedProofId || requestedPaymentId || requestedSuborderId);
   const selectedRow = useMemo(
     () =>
       review.data.rows.find(
@@ -104,6 +117,33 @@ export default function Seller2026LivePaymentReviewPage() {
   const selectedOrderHref = selectedRow
     ? workspaceRoutes.orderDetail(selectedRow.suborderId)
     : "";
+
+  useEffect(() => {
+    if (!shouldOpenRequestedProof || review.isLoading || autoOpenedSignature === requestSignature) return;
+
+    const matchedRow = review.data.rows.find((row) =>
+      sameToken(row.paymentId, requestedPaymentId) ||
+      sameToken(row.proofId, requestedProofId) ||
+      sameToken(row.suborderId, requestedSuborderId) ||
+      sameToken(row.suborderNumber, requestedOrder) ||
+      sameToken(row.orderNumber, requestedOrder)
+    );
+
+    if (matchedRow) {
+      setSelectedPaymentId(matchedRow.paymentId);
+      setAutoOpenedSignature(requestSignature);
+    }
+  }, [
+    requestedOrder,
+    requestedPaymentId,
+    requestedProofId,
+    requestedSuborderId,
+    review.data.rows,
+    review.isLoading,
+    shouldOpenRequestedProof,
+    requestSignature,
+    autoOpenedSignature
+  ]);
 
   const changeQuery = (patch) => {
     const next = new URLSearchParams(searchParams);
@@ -134,6 +174,14 @@ export default function Seller2026LivePaymentReviewPage() {
   const reset = () => {
     setSearchParams(new URLSearchParams());
     setNotice(null);
+  };
+
+  const clearProofRequestParams = () => {
+    const next = new URLSearchParams(searchParams);
+    ["openProof", "drawer", "proofId", "paymentId", "suborderId", "order"].forEach((key) => {
+      next.delete(key);
+    });
+    setSearchParams(next);
   };
 
   const exportQueue = () => {
@@ -167,6 +215,7 @@ export default function Seller2026LivePaymentReviewPage() {
 
   const mutationSucceeded = (message) => {
     setSelectedPaymentId(null);
+    clearProofRequestParams();
     setNotice({ type: "success", text: message });
     toast.success(message);
   };
@@ -428,18 +477,22 @@ export default function Seller2026LivePaymentReviewPage() {
         isMutating={review.isMutating}
         mutationError={review.mutationError}
         orderHref={selectedOrderHref}
-        onClose={() => setSelectedPaymentId(null)}
+        onClose={() => {
+          setSelectedPaymentId(null);
+          clearProofRequestParams();
+        }}
         onViewOrder={() => {
           if (!selectedOrderHref) return;
-          setSelectedPaymentId(null);
           navigate(selectedOrderHref);
         }}
         onApprove={async (variables) => {
           try {
             await review.approvePayment(variables);
-            mutationSucceeded("Payment proof approved.");
+            toast.success("Payment proof approved.");
             if (selectedRow) {
               navigate(workspaceRoutes.orders(), { state: { openDetailId: selectedRow.suborderId || selectedRow.orderId } });
+            } else {
+              mutationSucceeded("Payment proof approved.");
             }
           } catch (error) {
             mutationFailed(error);

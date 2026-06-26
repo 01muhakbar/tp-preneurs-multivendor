@@ -114,7 +114,6 @@ export default function Seller2026PaymentProofDrawer({
     setValidation("");
     try {
       await onApprove({ paymentId: row.paymentId, payload: { note: note || null } });
-      onClose();
     } catch {
       // The mutation error remains visible in the drawer.
     }
@@ -132,7 +131,6 @@ export default function Seller2026PaymentProofDrawer({
         paymentId: row.paymentId,
         payload: { reason: note.trim() },
       });
-      onClose();
     } catch {
       // The mutation error remains visible in the drawer.
     }

@@ -1,55 +1,67 @@
 import {
   ArrowLeft,
   CalendarDays,
+  Check,
+  ChevronRight,
+  Circle,
   Clock3,
+  Copy,
   FileText,
   Headphones,
   MapPin,
   Package,
+  PackageCheck,
   Printer,
   ReceiptText,
   Store,
   Truck,
   WalletCards,
 } from "lucide-react";
-import { formatCurrency } from "../../utils/format.js";
+import { useTheme } from "../../theme/ThemeProvider.jsx";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
 import "./account-order-detail-2026.css";
-
-const formatDateTime = (value) => {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-};
+import { buildAccountOrderInvoiceModel } from "./invoice/accountOrderInvoiceAdapter.js";
+import AccountOrderInvoicePrint from "./invoice/AccountOrderInvoicePrint.jsx";
 
 function StatusBadge({ status, prefix }) {
+  if (!status) return null;
   return (
-    <span className={`tpo2026-status tpo2026-status--${status.tone}`}>
+    <span className={`aod-chip aod-chip--${status.tone || "neutral"}`}>
       {prefix ? <small>{prefix}</small> : null}
       {status.label}
     </span>
   );
 }
 
+function IconMetric({ icon: Icon, label, value }) {
+  return (
+    <div className="aod-metric">
+      <span className="aod-metric__icon">
+        <Icon aria-hidden="true" />
+      </span>
+      <span>
+        <small>{label}</small>
+        <strong title={value}>{value}</strong>
+      </span>
+    </div>
+  );
+}
+
 function LoadingState() {
   return (
-    <section className="tpo2026-root tpo2026-loading" aria-label="Loading order details">
-      <span />
-      <span />
-      <span />
-      <span />
+    <section className="aod-root aod-loading" aria-label="Loading order details">
+      <div className="aod-skeleton aod-skeleton--hero" />
+      <div className="aod-skeleton" />
+      <div className="aod-skeleton" />
+      <div className="aod-skeleton aod-skeleton--rail" />
     </section>
   );
 }
 
-function ErrorState({ error, LinkComponent }) {
+function ErrorState({ error, LinkComponent, onRetry }) {
   return (
-    <section className="tpo2026-root">
-      <div className="tpo2026-state" role="alert">
+    <section className="aod-root">
+      <div className="aod-state" role="alert">
         <Package aria-hidden="true" />
         <h1>Order details are unavailable</h1>
         <p>
@@ -57,92 +69,188 @@ function ErrorState({ error, LinkComponent }) {
             error?.message ||
             "The latest order information could not be loaded."}
         </p>
-        <LinkComponent to="/user/my-orders">Back to orders</LinkComponent>
+        <div className="aod-state__actions">
+          {onRetry ? (
+            <button type="button" onClick={onRetry}>
+              Try Again
+            </button>
+          ) : null}
+          <LinkComponent to="/user/my-orders">Back to Orders</LinkComponent>
+        </div>
       </div>
     </section>
   );
 }
 
-function ShipmentSummary({ shipments, shipmentStatus }) {
-  const primary = shipments[0] || null;
-  const timeline = shipments.flatMap((shipment) => shipment.events).slice(0, 4);
+function EmptyInline({ children }) {
+  return <p className="aod-empty">{children}</p>;
+}
 
+function OrderHero({ orderDetail, onCopy }) {
+  const { order, payment, summary } = orderDetail;
   return (
-    <section className="tpo2026-section" id="tpo2026-order-timeline">
-      <div className="tpo2026-section__heading">
+    <section className="aod-card aod-hero">
+      <div className="aod-card__top">
+        <div>
+          <h1>Order Details</h1>
+          <p>Order ID</p>
+        </div>
+        <StatusBadge status={order.status} />
+      </div>
+
+      <div className="aod-order-code">
+        <strong title={order.code}>{order.code}</strong>
+        <button
+          type="button"
+          onClick={() => onCopy(order.code, "Order ID copied.")}
+          disabled={!orderDetail.actionability.copyOrderCode.enabled}
+          aria-label="Copy Order ID"
+        >
+          <Copy aria-hidden="true" />
+        </button>
+      </div>
+
+      <div className="aod-placed">
+        <CalendarDays aria-hidden="true" />
+        <span>Placed on {order.placedAtDisplay}</span>
+      </div>
+
+      <div className="aod-chip-row">
+        {order.statusChips.map((status) => (
+          <StatusBadge key={`${status.code}-${status.label}`} status={status} />
+        ))}
+      </div>
+
+      <div className="aod-stepper" aria-label="Order progress">
+        {order.progress.map((step) => (
+          <div
+            key={step.code}
+            className={step.complete ? "aod-step aod-step--complete" : "aod-step"}
+          >
+            <span className="aod-step__dot">
+              {step.complete ? <Check aria-hidden="true" /> : <Circle aria-hidden="true" />}
+            </span>
+            <strong>{step.label}</strong>
+            <small>{step.timestampDisplay}</small>
+          </div>
+        ))}
+      </div>
+
+      <div className="aod-metric-grid">
+        <IconMetric icon={WalletCards} label="Payment Method" value={payment.method} />
+        <IconMetric icon={ReceiptText} label="Total" value={summary.totalDisplay} />
+        <IconMetric icon={FileText} label="Subtotal" value={summary.subtotalDisplay} />
+        <IconMetric icon={Truck} label="Shipping" value={summary.shippingDisplay} />
+      </div>
+    </section>
+  );
+}
+
+function ShipmentSummary({ shipment, onCopy, onTrack }) {
+  const primary = shipment.primary;
+  return (
+    <section className="aod-card aod-shipment" id="aod-shipment-summary">
+      <div className="aod-card__top">
         <div>
           <h2>Shipment Summary</h2>
-          <p>{shipments.length} shipment record{shipments.length === 1 ? "" : "s"}</p>
+          <p>Quick view</p>
         </div>
-        <StatusBadge status={primary?.status || shipmentStatus} />
+        <StatusBadge status={shipment.status} />
       </div>
-      <div className="tpo2026-shipment-grid">
-        <div>
-          <WalletCards aria-hidden="true" />
-          <span><small>Source</small><strong>{primary?.source || "Not available"}</strong></span>
+
+      <div className="aod-shipment-quick">
+        <IconMetric icon={Truck} label="Courier" value={primary.courier} />
+        <div className="aod-metric">
+          <span className="aod-metric__icon">
+            <ReceiptText aria-hidden="true" />
+          </span>
+          <span>
+            <small>Tracking No.</small>
+            <strong title={primary.trackingNumber}>{primary.trackingNumber}</strong>
+          </span>
+          <button
+            type="button"
+            className="aod-copy-mini"
+            onClick={() => onCopy(primary.trackingNumber, "Tracking number copied.")}
+            disabled={!primary.trackingNumber || primary.trackingNumber === "Not assigned"}
+            aria-label="Copy Tracking No."
+          >
+            <Copy aria-hidden="true" />
+          </button>
         </div>
-        <div>
-          <Truck aria-hidden="true" />
-          <span><small>Courier</small><strong>{primary?.courier || "Pending assignment"}</strong></span>
-        </div>
-        <div>
-          <MapPin aria-hidden="true" />
-          <span><small>Tracking</small><strong>{primary?.trackingNumber || "Not assigned"}</strong></span>
-        </div>
-        <div>
-          <Clock3 aria-hidden="true" />
-          <span><small>Status</small><strong>{primary?.status.label || shipmentStatus.label}</strong></span>
-        </div>
+        <IconMetric icon={MapPin} label="Source" value={primary.source} />
+        <IconMetric icon={CalendarDays} label="Delivered On" value={primary.deliveredOnDisplay} />
       </div>
-      {timeline.length ? (
-        <div className="tpo2026-timeline">
-          <h3>Tracking timeline</h3>
-          {timeline.map((event) => (
-            <div key={event.id}>
-              <i />
-              <span>
-                <strong>{event.status.label}</strong>
-                <small>{event.note}</small>
-              </span>
-              <time>{formatDateTime(event.happenedAt)}</time>
+
+      <div className="aod-timeline" id="aod-order-timeline">
+        <div className="aod-timeline__head">
+          <h3>Order Timeline</h3>
+          <button
+            type="button"
+            onClick={onTrack}
+            disabled={!shipment.timeline.length}
+          >
+            Track Order
+          </button>
+        </div>
+        {shipment.timeline.length ? (
+          shipment.timeline.map((event) => (
+            <div key={event.id} className="aod-timeline__row">
+              <span className={`aod-timeline__dot aod-timeline__dot--${event.tone}`} />
+              <div>
+                <strong>{event.label}</strong>
+                <small>{event.happenedAtDisplay}</small>
+              </div>
+              <p>{event.note}</p>
             </div>
-          ))}
-        </div>
-      ) : null}
+          ))
+        ) : (
+          <EmptyInline>No timeline updates yet.</EmptyInline>
+        )}
+      </div>
     </section>
   );
 }
 
 function StoreBreakdown({ stores }) {
   return (
-    <section className="tpo2026-section">
-      <div className="tpo2026-section__heading">
+    <section className="aod-card">
+      <div className="aod-card__top">
         <div>
           <h2>Store Breakdown</h2>
           <p>Payment and shipment truth for each store split.</p>
         </div>
       </div>
-      <div className="tpo2026-stores">
-        {stores.map((store) => (
-          <article key={store.id}>
-            <div className="tpo2026-store-icon"><Store aria-hidden="true" /></div>
-            <div className="tpo2026-store-copy">
-              <h3>{store.storeName}</h3>
-              <p title={store.suborderNumber}>{store.suborderNumber}</p>
-              <div>
-                <StatusBadge status={store.status} prefix="Split" />
-                <StatusBadge status={store.paymentStatus} prefix="Payment" />
-                <StatusBadge status={store.shipmentStatus} prefix="Shipment" />
+
+      <div className="aod-store-list">
+        {stores.length ? (
+          stores.map((store) => (
+            <article className="aod-store" key={store.id}>
+              <span className="aod-store__icon">
+                <Store aria-hidden="true" />
+              </span>
+              <div className="aod-store__body">
+                <h3>{store.storeName}</h3>
+                <p title={store.suborderNumber}>{store.suborderNumber}</p>
+                <div className="aod-chip-row">
+                  <StatusBadge status={store.status} prefix="Split" />
+                  <StatusBadge status={store.paymentStatus} />
+                  <StatusBadge status={store.shipmentStatus} prefix="Shipment" />
+                </div>
+                <small>Merchant: {store.merchantName}</small>
+                <small>Account label: {store.accountLabel}</small>
               </div>
-              <small>Merchant: {store.merchantName}</small>
-              <small>Account label: {store.accountLabel}</small>
-            </div>
-            <div className="tpo2026-store-total">
-              <strong>{formatCurrency(store.totalAmount)}</strong>
-              <span>{store.itemCount} item{store.itemCount === 1 ? "" : "s"}</span>
-            </div>
-          </article>
-        ))}
+              <div className="aod-store__total">
+                <strong>{store.totalAmountDisplay}</strong>
+                <span>
+                  {store.itemCount} item{store.itemCount === 1 ? "" : "s"}
+                </span>
+              </div>
+            </article>
+          ))
+        ) : (
+          <EmptyInline>No store split is available yet.</EmptyInline>
+        )}
       </div>
     </section>
   );
@@ -150,89 +258,135 @@ function StoreBreakdown({ stores }) {
 
 function Items({ items }) {
   return (
-    <section className="tpo2026-section">
-      <div className="tpo2026-section__heading">
+    <section className="aod-card">
+      <div className="aod-card__top">
         <div>
           <h2>Items</h2>
-          <p>{items.length} item line{items.length === 1 ? "" : "s"}</p>
+          <p>
+            {items.length} item line{items.length === 1 ? "" : "s"}
+          </p>
         </div>
       </div>
-      <div className="tpo2026-items">
-        {items.length ? items.map((item) => (
-          <article key={item.id}>
-            <div className="tpo2026-item-image">
-              {item.image ? (
-                <img src={resolveAssetUrl(item.image)} alt="" />
-              ) : (
-                <Package aria-hidden="true" />
-              )}
-            </div>
-            <div className="tpo2026-item-copy">
-              <h3>{item.name}</h3>
-              {item.variantLines.length ? (
-                <p title={item.variantLines.join(" · ")}>{item.variantLines.join(" · ")}</p>
-              ) : (
-                <p>Standard option</p>
-              )}
-            </div>
-            <div className="tpo2026-item-quantity">
-              {item.quantity} × {formatCurrency(item.unitPrice)}
-            </div>
-            <strong>{formatCurrency(item.lineTotal)}</strong>
-          </article>
-        )) : (
-          <p className="tpo2026-muted">No item details are available.</p>
+
+      <div className="aod-items">
+        {items.length ? (
+          items.map((item) => (
+            <article className="aod-item" key={item.id}>
+              <div className="aod-item__image">
+                {item.image ? (
+                  <img src={resolveAssetUrl(item.image)} alt="" />
+                ) : (
+                  <Package aria-hidden="true" />
+                )}
+              </div>
+              <div className="aod-item__copy">
+                <h3>{item.name}</h3>
+                <p title={item.variantLines.join(" / ")}>
+                  {item.variantLines.length ? item.variantLines.join(" / ") : "Standard option"}
+                </p>
+              </div>
+              <div className="aod-item__qty">
+                {item.quantity} x {item.unitPriceDisplay}
+              </div>
+              <strong>{item.lineTotalDisplay}</strong>
+            </article>
+          ))
+        ) : (
+          <EmptyInline>No item details are available.</EmptyInline>
         )}
+      </div>
+
+      <div className="aod-notice">
+        <PackageCheck aria-hidden="true" />
+        <span>Return or help requests depend on the latest order status.</span>
       </div>
     </section>
   );
 }
 
+function RailAction({ icon: Icon, label, onClick, disabled, title }) {
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} title={title || label}>
+      <Icon aria-hidden="true" />
+      <span>{label}</span>
+      <ChevronRight aria-hidden="true" />
+    </button>
+  );
+}
+
 function OrderActions({
   orderDetail,
-  LinkComponent,
+  onInvoice,
   onPrint,
-  onViewInvoice,
-  onContactSupport,
+  onTrack,
+  onTimeline,
 }) {
+  const actions = orderDetail.actionability;
   return (
-    <section className="tpo2026-side-card">
+    <section className="aod-rail-card">
       <h2>Order Actions</h2>
-      <button type="button" onClick={onViewInvoice}>
-        <FileText aria-hidden="true" /> View Invoice
-      </button>
-      <button type="button" onClick={onPrint}>
-        <Printer aria-hidden="true" /> Print Order
-      </button>
-      <a href="#tpo2026-order-timeline">
-        <Clock3 aria-hidden="true" /> Order Timeline
-      </a>
-      {orderDetail.paymentAction ? (
-        <LinkComponent to={orderDetail.paymentAction.path}>
-          <WalletCards aria-hidden="true" /> {orderDetail.paymentAction.label}
-        </LinkComponent>
-      ) : null}
+      <RailAction
+        icon={FileText}
+        label="Invoice"
+        onClick={() => onInvoice(actions.invoice)}
+        disabled={!actions.invoice.enabled}
+        title={actions.invoice.reason}
+      />
+      <RailAction
+        icon={Truck}
+        label="Track Order"
+        onClick={() => onTrack(actions.track)}
+        disabled={!actions.track.enabled}
+        title={actions.track.reason}
+      />
+      <RailAction
+        icon={Clock3}
+        label="Order Timeline"
+        onClick={onTimeline}
+        disabled={!actions.timeline.enabled}
+        title={actions.timeline.reason}
+      />
+    </section>
+  );
+}
+
+function SupportCard({ onContactSupport }) {
+  return (
+    <section className="aod-rail-card aod-support">
+      <h2>Need Help?</h2>
+      <p>We are here to help you.</p>
       <button type="button" onClick={onContactSupport}>
-        <Headphones aria-hidden="true" /> Contact Support
+        <Headphones aria-hidden="true" />
+        <span>Contact Support</span>
       </button>
     </section>
   );
 }
 
 function OrderSummary({ orderDetail }) {
-  const { totals } = orderDetail;
+  const { summary, payment } = orderDetail;
   return (
-    <section className="tpo2026-side-card" id="tpo2026-order-summary">
+    <section className="aod-rail-card aod-summary" id="aod-order-summary">
       <h2>Order Summary</h2>
       <dl>
-        <div><dt>Subtotal</dt><dd>{formatCurrency(totals.subtotal)}</dd></div>
-        <div><dt>Shipping</dt><dd>{formatCurrency(totals.shipping)}</dd></div>
-        <div><dt>Discount</dt><dd>{formatCurrency(totals.discount)}</dd></div>
-        <div className="tpo2026-summary-total">
-          <dt>Total</dt><dd>{formatCurrency(totals.total)}</dd>
+        <div>
+          <dt>Subtotal</dt>
+          <dd>{summary.subtotalDisplay}</dd>
+        </div>
+        <div>
+          <dt>Shipping</dt>
+          <dd>{summary.shippingDisplay}</dd>
+        </div>
+        <div>
+          <dt>Discount</dt>
+          <dd>{summary.discountDisplay}</dd>
+        </div>
+        <div className="aod-summary__total">
+          <dt>Total</dt>
+          <dd>{summary.totalDisplay}</dd>
         </div>
       </dl>
-      <StatusBadge status={orderDetail.paymentStatus} prefix="Parent" />
+      <StatusBadge status={payment.status} />
     </section>
   );
 }
@@ -243,75 +397,76 @@ export default function AccountOrderDetail2026View({
   error,
   LinkComponent,
   onPrint,
-  onViewInvoice,
+  onInvoice,
+  onTrack,
+  onTimeline,
   onContactSupport,
+  onCopy,
+  onRetry,
+  rawOrder,
+  groupedOrder,
+  user,
 }) {
+  const { theme, resolvedTheme } = useTheme();
+
   if (isLoading) return <LoadingState />;
-  if (error || !orderDetail) return <ErrorState error={error} LinkComponent={LinkComponent} />;
+  if (error || !orderDetail) {
+    return (
+      <ErrorState
+        error={error}
+        LinkComponent={LinkComponent}
+        onRetry={onRetry}
+      />
+    );
+  }
+
+  const invoiceData = rawOrder
+    ? buildAccountOrderInvoiceModel({ order: rawOrder, groupedOrder, user })
+    : null;
 
   return (
-    <section className="tpo2026-root">
-      <nav className="tpo2026-breadcrumb" aria-label="Breadcrumb">
+    <>
+      <section
+      className="aod-root"
+      data-theme-preference={theme}
+      data-resolved-theme={resolvedTheme}
+    >
+      <nav className="aod-breadcrumb" aria-label="Breadcrumb">
         <LinkComponent to="/user/my-orders">My Orders</LinkComponent>
-        <span>/</span>
+        <ChevronRight aria-hidden="true" />
         <span>Order Details</span>
       </nav>
 
-      <div className="tpo2026-layout">
-        <div className="tpo2026-main">
-          <section className="tpo2026-hero">
-            <p>Order</p>
-            <h1 title={orderDetail.reference}>{orderDetail.reference}</h1>
-            <div className="tpo2026-placed">
-              <CalendarDays aria-hidden="true" />
-              Placed on {formatDateTime(orderDetail.placedAt)}
-            </div>
-            <div className="tpo2026-hero-statuses">
-              <span>{orderDetail.checkoutMode}</span>
-              <StatusBadge status={orderDetail.orderStatus} />
-              <StatusBadge status={orderDetail.paymentStatus} prefix="Parent" />
-            </div>
-            {orderDetail.paymentSummary ? <small>{orderDetail.paymentSummary}</small> : null}
-
-            <div className="tpo2026-metrics">
-              <div><WalletCards /><span><small>Payment</small><strong>{orderDetail.paymentMethod}</strong></span></div>
-              <div><ReceiptText /><span><small>Total</small><strong>{formatCurrency(orderDetail.totals.total)}</strong></span></div>
-              <div><FileText /><span><small>Subtotal</small><strong>{formatCurrency(orderDetail.totals.subtotal)}</strong></span></div>
-              <div><Truck /><span><small>Shipping</small><strong>{formatCurrency(orderDetail.totals.shipping)}</strong></span></div>
-            </div>
-          </section>
-
+      <div className="aod-layout">
+        <div className="aod-main">
+          <OrderHero orderDetail={orderDetail} onCopy={onCopy} />
           <ShipmentSummary
-            shipments={orderDetail.shipments}
-            shipmentStatus={orderDetail.shipmentStatus}
+            shipment={orderDetail.shipment}
+            onCopy={onCopy}
+            onTrack={() => onTrack(orderDetail.actionability.track)}
           />
-          <StoreBreakdown stores={orderDetail.stores} />
+          <StoreBreakdown stores={orderDetail.storeBreakdown} />
           <Items items={orderDetail.items} />
-
-          <LinkComponent className="tpo2026-back" to="/user/my-orders">
-            <ArrowLeft aria-hidden="true" /> Back to orders
+          <LinkComponent className="aod-back" to="/user/my-orders">
+            <ArrowLeft aria-hidden="true" />
+            Back to Orders
           </LinkComponent>
         </div>
 
-        <aside className="tpo2026-sidebar">
+        <aside className="aod-rail">
           <OrderActions
             orderDetail={orderDetail}
-            LinkComponent={LinkComponent}
+            onInvoice={onInvoice}
             onPrint={onPrint}
-            onViewInvoice={onViewInvoice}
-            onContactSupport={onContactSupport}
+            onTrack={onTrack}
+            onTimeline={onTimeline}
           />
-          <section className="tpo2026-side-card tpo2026-support">
-            <h2>Support</h2>
-            <strong>Need help?</strong>
-            <p>We are here to assist with this order.</p>
-            <button type="button" onClick={onContactSupport}>
-              <Headphones aria-hidden="true" /> Contact Support
-            </button>
-          </section>
+          <SupportCard onContactSupport={onContactSupport} />
           <OrderSummary orderDetail={orderDetail} />
         </aside>
       </div>
     </section>
+    <AccountOrderInvoicePrint invoiceData={invoiceData} themeMode={resolvedTheme} />
+    </>
   );
 }

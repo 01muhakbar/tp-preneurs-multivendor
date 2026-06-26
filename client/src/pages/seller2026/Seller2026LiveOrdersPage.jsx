@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSeller2026Orders } from "../../hooks/seller2026/useSeller2026Orders.ts";
@@ -58,6 +58,14 @@ export default function Seller2026LiveOrdersPage() {
   const location = useLocation();
   const [view, setView] = useState("table");
   const [selectedOrderId, setSelectedOrderId] = useState(location.state?.openDetailId || null);
+
+  useEffect(() => {
+    if (location.state?.openDetailId) {
+      setSelectedOrderId(location.state.openDetailId);
+      // Clear the state so it doesn't persist on page reload or back navigation
+      navigate(location.pathname + location.search, { replace: true, state: {} });
+    }
+  }, [location.state?.openDetailId, location.pathname, location.search, navigate]);
   const [notice, setNotice] = useState(null);
 
   const detailQuery = useSeller2026SuborderDetail(storeId, selectedOrderId, {
@@ -167,8 +175,21 @@ export default function Seller2026LiveOrdersPage() {
 
   const handleFulfillmentAction = async (action, draft = {}) => {
     if (action === "REVIEW_PAYMENT") {
-      const orderRef = detailQuery.data?.suborder?.orderNumber || detailQuery.data?.suborder?.invoiceNo || "";
-      navigate(`${workspaceRoutes.paymentReview()}?q=${orderRef}`);
+      const suborder = detailQuery.data?.suborder || {};
+      const orderRef = suborder.orderNumber || suborder.invoiceNo || "";
+      const params = new URLSearchParams({
+        openProof: "1",
+        status: "awaiting",
+      });
+
+      if (suborder.suborderId || suborder.id || selectedOrderId) {
+        params.set("suborderId", String(suborder.suborderId || suborder.id || selectedOrderId));
+      }
+      if (orderRef) {
+        params.set("q", orderRef);
+      }
+
+      window.location.href = `${workspaceRoutes.paymentReview()}?${params.toString()}`;
       return;
     }
 

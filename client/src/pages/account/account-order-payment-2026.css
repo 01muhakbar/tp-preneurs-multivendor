@@ -259,6 +259,7 @@
 .tp-payment-qr-card__utilities { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 13px; }
 .tp-payment-qr-card__utilities button,
 .tp-payment-qr-card__actions button,
+.tp-payment-qr-card__actions a,
 .tp-payment-modal__copy {
   display: inline-flex;
   min-height: 39px;
@@ -285,7 +286,10 @@
 .tp-payment-qr-card__actions button.is-primary:hover { background: var(--tp-pay-primary-strong); }
 .tp-payment-qr-card__actions button.is-danger { border-color: #ffb8b8; color: #d91d36; }
 .tp-payment-qr-card__actions button.is-danger:hover { border-color: #ff808a; background: #fff5f5; }
-.tp-payment-qr-card__actions button:disabled { cursor: not-allowed; opacity: .58; }
+.tp-payment-qr-card__actions button:disabled,
+.tp-payment-qr-card__actions a:disabled { cursor: not-allowed; opacity: .58; }
+.tp-payment-qr-card__actions a.is-whatsapp { border-color: #22c55e; background: #22c55e; color: #fff; text-decoration: none; }
+.tp-payment-qr-card__actions a.is-whatsapp:hover { border-color: #16a34a; background: #16a34a; }
 .tp-payment-qr-card__notice,
 .tp-payment-summary-card__safe { display: flex; align-items: center; gap: 9px; border: 1px solid #b9e8cf; border-radius: 8px; background: #effbf5; margin-top: 11px; padding: 10px 12px; color: #087a52; font-size: 11px; }
 .tp-payment-qr-card__notice svg,
@@ -761,6 +765,8 @@
 .dark .tp-payment-qr-card__preview > em { background: rgb(8 27 43 / 92%); color: #8fd0ff; }
 .dark .tp-payment-qr-card__actions button.is-danger { border-color: #8b3846; color: #ff8799; }
 .dark .tp-payment-qr-card__actions button.is-danger:hover { background: #34141b; }
+.dark .tp-payment-qr-card__actions a.is-whatsapp { border-color: #15803d; background: #166534; color: #64e3b1; }
+.dark .tp-payment-qr-card__actions a.is-whatsapp:hover { border-color: #166534; background: #14532d; }
 .dark .tp-payment-qr-card__notice,
 .dark .tp-payment-summary-card__safe { border-color: #155d4a; background: #092d28; color: #68d9b4; }
 .dark .tp-payment-2026__alert.is-emerald { border-color: #155d4a; background: #092d28; color: #68d9b4; }

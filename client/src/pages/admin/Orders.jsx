@@ -1,29 +1,48 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import {
+  assignAdminOrdersDelivery,
+  bulkActionAdminOrders,
   bulkDeleteAdminOrders,
+  exportAdminOrders,
   fetchAdminOrders,
+  unassignAdminOrdersDelivery,
   updateAdminOrderStatus,
 } from "../../lib/adminApi.js";
 import { prevData } from "../../lib/rq.ts";
 import useAdminLocale from "../../hooks/useAdminLocale.js";
-import OrderStatusBadge from "../../components/admin/OrderStatusBadge.jsx";
 import {
-  CheckoutModeBadge,
-  PaymentStatusBadge,
-} from "../../components/payments/PaymentReadModelBadges.jsx";
+  ADMIN_ORDER_ACTION_OPTIONS,
+  getAdminOrderTransitionErrorMeta,
+  toAdminOrderActionValue,
+} from "./orderLifecyclePresentation.js";
+import { normalizeAdminOrder } from "../../services/adapters/orderAdapter.js";
 import {
+  Ban,
   CalendarDays,
+  CheckCircle2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
+  Copy,
+  CreditCard,
   Download,
   Eye,
+  FileText,
+  Grid2X2,
+  MoreVertical,
+  PackageCheck,
   Printer,
-  RotateCcw,
+  RefreshCw,
   Search,
+  ShoppingBag,
   Trash2,
   Truck,
-  XCircle,
+  UserRound,
+  X,
 } from "lucide-react";
 import {
   UiErrorState,
@@ -31,259 +50,383 @@ import {
   UiUpdatingBadge,
 } from "../../components/primitives/state/index.js";
 import { GENERIC_ERROR } from "../../constants/uiMessages.js";
-import {
-  getAdminOrderTransitionErrorMeta,
-  toAdminOrderActionValue,
-} from "./orderLifecyclePresentation.js";
-import { normalizeAdminOrder } from "../../services/adapters/orderAdapter.js";
+import "./AdminOrdersPage.css";
 
-const headerBtnBase =
-  "inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-3 text-xs font-semibold transition";
-const headerBtnOutline = `${headerBtnBase} border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50`;
-const headerBtnGreen = `${headerBtnBase} bg-[var(--admin-primary)] text-white hover:bg-[var(--admin-primary-strong)]`;
-const headerBtnSoft = `${headerBtnBase} border border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:bg-white`;
-const headerBtnDisabled = `${headerBtnBase} cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400 opacity-80`;
-const fieldClass =
-  "h-9 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus:border-[var(--admin-primary)] focus:outline-none";
-const tableHeadCell =
-  "whitespace-nowrap px-2.5 py-2 text-[10px] font-medium uppercase tracking-[0.08em] text-slate-400";
-const tableCell = "px-2.5 py-2 align-middle text-[13px] text-slate-700";
-const selectionCheckboxClass =
-  "h-4 w-4 rounded border border-[var(--admin-primary)] text-[var(--admin-primary)] focus:ring-[var(--admin-primary)]";
-const subtleLabelClass = "text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500";
-const BULK_OPERATIONS_AVAILABLE = false;
-const compactBadgeClass = "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold";
+const todayInput = () => new Date().toISOString().slice(0, 10);
+
+const daysAgoInput = (days) => {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString().slice(0, 10);
+};
+
+const DEFAULT_FILTERS = {
+  startDate: daysAgoInput(7),
+  endDate: todayInput(),
+  customer: "",
+  paymentStatus: "",
+  paymentMethod: "",
+  deliveryStatus: "",
+};
+
+const PAYMENT_STATUS_OPTIONS = [
+  { value: "", label: "All Statuses" },
+  { value: "PAID", label: "Paid" },
+  { value: "UNPAID", label: "Unpaid" },
+  { value: "PENDING_CONFIRMATION", label: "Pending confirmation" },
+  { value: "FAILED", label: "Failed" },
+  { value: "EXPIRED", label: "Expired" },
+  { value: "CANCELLED", label: "Cancelled" },
+];
+
+const PAYMENT_METHOD_OPTIONS = [
+  { value: "", label: "All Methods" },
+  { value: "card", label: "QRIS" },
+  { value: "cash", label: "Cash" },
+  { value: "credit", label: "Credit" },
+];
+
+const DELIVERY_STATUS_OPTIONS = [
+  { value: "", label: "All Delivery Status" },
+  { value: "waiting_payment", label: "Waiting payment" },
+  { value: "ready_to_fulfill", label: "Ready to fulfill" },
+  { value: "processing", label: "Processing" },
+  { value: "in_delivery", label: "In delivery" },
+  { value: "delivered", label: "Delivered" },
+  { value: "cancelled", label: "Cancelled" },
+  { value: "failed", label: "Failed" },
+];
+
+const ROW_LIMIT_OPTIONS = [10, 20, 50, 100];
+
+const COLUMN_DEFS = [
+  { key: "invoice", label: "Invoice ID" },
+  { key: "orderDate", label: "Order Date" },
+  { key: "customer", label: "Customer" },
+  { key: "paymentMethod", label: "Payment Method" },
+  { key: "amount", label: "Amount" },
+  { key: "paymentStatus", label: "Payment Status" },
+  { key: "deliveryStatus", label: "Delivery Status" },
+  { key: "orderStatus", label: "Order Status" },
+];
+
+const INITIAL_VISIBLE_COLUMNS = COLUMN_DEFS.reduce(
+  (acc, column) => ({ ...acc, [column.key]: true }),
+  {}
+);
+
+const BULK_ACTIONS = [
+  { action: "MARK_DELIVERED", label: "Mark as Delivered", tone: "success", icon: CheckCircle2 },
+  { action: "MARK_CANCELLED", label: "Mark as Cancelled", tone: "muted", icon: Ban },
+  { action: "MARK_FAILED", label: "Mark as Failed", tone: "danger", icon: X },
+];
 
 const toText = (value) => String(value ?? "").trim();
 
-const getOrderDateValue = (order) => order?.createdAt || order?.created_at || null;
+const normalizeToken = (value) =>
+  toText(value)
+    .replace(/([a-z])([A-Z])/g, "$1_$2")
+    .replace(/[\s-]+/g, "_")
+    .toUpperCase();
+
+const formatDisplayDate = (value) => {
+  if (!value) return "Any";
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+};
 
 const getInvoiceParam = (order, view) =>
-  toText(view?.invoiceNo || order?.invoiceNo || order?.invoice || order?.ref || order?.id);
+  toText(view?.invoiceNo || order?.invoiceNo || order?.invoice || order?.orderRef || order?.reference || order?.ref || order?.id);
 
-const DELIVERY_TONE_CLASS = {
-  stone: "border-slate-200 bg-slate-50 text-slate-700",
-  amber: "border-amber-200 bg-amber-50 text-amber-700",
-  sky: "border-sky-200 bg-sky-50 text-sky-700",
-  indigo: "border-indigo-200 bg-indigo-50 text-indigo-700",
-  emerald: "border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]",
-  rose: "border-rose-200 bg-rose-50 text-rose-700",
-  orange: "border-orange-200 bg-orange-50 text-orange-700",
-  teal: "border-teal-200 bg-teal-50 text-teal-700",
+const getOrderDateValue = (order, view) =>
+  view?.orderTime || order?.orderDate || order?.createdAt || order?.created_at || order?.order_time || null;
+
+const getPaymentStatus = (order) =>
+  normalizeToken(order?.paymentStatus || order?.payment?.status || order?.payment_state || "UNPAID");
+
+const getOrderStatus = (order) =>
+  toText(order?.orderStatus || order?.rawStatus || order?.status || "pending");
+
+const getDeliveryStatus = (order, view) => {
+  const raw =
+    order?.deliveryStatus ||
+    order?.shipmentStatus ||
+    order?.shippingStatus ||
+    order?.fulfillmentStatus ||
+    order?.shippingStatusMeta?.label ||
+    view?.deliveryName ||
+    "";
+  return normalizeToken(raw || (view?.deliveryAssigned ? "PROCESSING" : "WAITING_PAYMENT"));
 };
 
-const getDeliveryBadgeClass = (tone) =>
-  DELIVERY_TONE_CLASS[String(tone || "").trim()] || DELIVERY_TONE_CLASS.stone;
-
-const getDeliveryPresentation = (order) => {
-  const meta = order?.shippingStatusMeta || null;
-  const latestNote = toText(order?.latestTrackingEvent?.note);
-  const latestEventLabel = toText(order?.latestTrackingEvent?.statusMeta?.label);
-  const legacyFallbackCount = Number(order?.shipmentAuditMeta?.legacyFallbackSuborderCount || 0);
-
-  if (meta?.label) {
-    return {
-      label: meta.label,
-      tone: meta.tone || "stone",
-      hint:
-        latestNote ||
-        latestEventLabel ||
-        meta.description ||
-        (order?.hasTrackingNumber ? "Tracking is available for at least one shipment." : "No tracking number captured yet."),
-    };
-  }
-
-  if (legacyFallbackCount > 0 || order?.usedLegacyFallback) {
-    return {
-      label: "Legacy fallback",
-      tone: "amber",
-      hint: "Shipment truth still relies on compatibility fallback for one or more store splits.",
-    };
-  }
-
-  return {
-    label: "No shipment",
-    tone: "stone",
-    hint: "Shipment truth has not started for this order yet.",
-  };
+const getTone = (raw) => {
+  const value = normalizeToken(raw);
+  if (["PAID", "DELIVERED", "COMPLETED", "COMPLETE"].includes(value)) return "success";
+  if (["PROCESSING", "READY_TO_FULFILL", "READY", "SHIPPED", "IN_DELIVERY", "IN_TRANSIT", "OUT_FOR_DELIVERY"].includes(value)) return "info";
+  if (["PENDING", "WAITING_PAYMENT", "PENDING_CONFIRMATION", "EXPIRED", "UNFULFILLED"].includes(value)) return "warning";
+  if (["FAILED", "REJECTED", "FAILED_DELIVERY"].includes(value)) return "danger";
+  if (["CANCELLED", "CANCELED", "UNPAID"].includes(value)) return "muted";
+  return "muted";
 };
 
-const STATUS_FILTER_OPTIONS = [
-  { value: "", label: "All Status" },
-  { value: "pending", label: "Pending" },
-  { value: "processing", label: "Processing" },
-  { value: "shipping", label: "On delivery" },
-  { value: "delivered", label: "Delivered" },
-  { value: "cancel", label: "Cancelled" },
-];
+const labelize = (raw) => {
+  const value = toText(raw);
+  if (!value) return "-";
+  return value
+    .replace(/_/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const getPaymentMethodLabel = (view, order) => {
+  const raw = toText(view?.method || order?.paymentMethod || order?.payment?.method || order?.method);
+  const normalized = raw.toLowerCase();
+  const checkoutMode = normalizeToken(order?.checkoutMode || "");
+  if (
+    normalized.includes("qris") ||
+    normalized.includes("card") ||
+    checkoutMode === "SINGLE_STORE" ||
+    checkoutMode === "MULTI_STORE"
+  ) {
+    return "QRIS";
+  }
+  if (normalized.includes("cash") || normalized.includes("cod")) return "COD";
+  if (normalized.includes("credit")) return "Credit";
+  return raw || "QRIS";
+};
+
+const getOptionLabel = (options, value) =>
+  options.find((option) => option.value === value)?.label || labelize(value);
+
+const normalizeRows = (items) =>
+  items.map((order) => ({
+    order,
+    view: normalizeAdminOrder({
+      ...order,
+      invoiceNo: order?.invoiceNo || order?.invoice || order?.orderRef || order?.reference,
+      createdAt: order?.orderDate || order?.createdAt || order?.created_at || order?.order_time,
+      customerName:
+        order?.customerName ||
+        order?.customer?.name ||
+        order?.user?.name ||
+        order?.buyerName,
+      paymentMethod: order?.paymentMethod || order?.payment?.method || order?.method,
+      totalAmount: order?.amount || order?.total || order?.grandTotal || order?.totalAmount,
+    }),
+  }));
+
+const downloadBlob = (response, fallbackName) => {
+  const blob = response?.data;
+  const objectUrl = window.URL.createObjectURL(blob);
+  const disposition = response?.headers?.["content-disposition"] || "";
+  const filenameMatch = disposition.match(/filename="?([^"]+)"?/i);
+  const filename = filenameMatch?.[1] || fallbackName;
+  const anchor = document.createElement("a");
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.URL.revokeObjectURL(objectUrl);
+  return filename;
+};
+
+const getErrorMessage = (error, fallback = GENERIC_ERROR) =>
+  error?.response?.data?.message || error?.message || fallback;
 
 export default function Orders() {
-  const [page, setPage] = useState(1);
-  const pageSize = 10;
-  const [searchInput, setSearchInput] = useState("");
-  const [statusInput, setStatusInput] = useState("");
-  const [methodInput, setMethodInput] = useState("");
-  const [limitDaysInput, setLimitDaysInput] = useState("");
-  const [startDateInput, setStartDateInput] = useState("");
-  const [endDateInput, setEndDateInput] = useState("");
-  const [appliedFilters, setAppliedFilters] = useState({
-    search: "",
-    status: "",
-    method: "",
-    limitDays: "",
-    startDate: "",
-    endDate: "",
-  });
-  const [pendingUpdateId, setPendingUpdateId] = useState(null);
-  const [lastStatusAttempt, setLastStatusAttempt] = useState(null);
-  const [rowError, setRowError] = useState("");
-  const [notice, setNotice] = useState("");
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [selectedIds, setSelectedIds] = useState(() => new Set());
-  const [bulkAction, setBulkAction] = useState("");
-  const [tableDensity, setTableDensity] = useState("comfortable");
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { formatDateTime, formatMoney } = useAdminLocale();
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [goToPage, setGoToPage] = useState("1");
+  const [sortDir, setSortDir] = useState("desc");
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [customerInput, setCustomerInput] = useState(DEFAULT_FILTERS.customer);
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [bulkMenuOpen, setBulkMenuOpen] = useState(false);
+  const [columnsMenuOpen, setColumnsMenuOpen] = useState(false);
+  const [openMoreId, setOpenMoreId] = useState(null);
+  const [visibleColumns, setVisibleColumns] = useState(INITIAL_VISIBLE_COLUMNS);
+  const [pendingUpdateId, setPendingUpdateId] = useState(null);
 
   useEffect(() => {
-    if (!notice) return;
-    const timer = setTimeout(() => setNotice(""), 2500);
-    return () => clearTimeout(timer);
-  }, [notice]);
+    const timer = window.setTimeout(() => {
+      setFilters((current) =>
+        current.customer === customerInput ? current : { ...current, customer: customerInput.trim() }
+      );
+      setPage(1);
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [customerInput]);
 
-  const params = useMemo(
+  useEffect(() => {
+    setGoToPage(String(page));
+  }, [page]);
+
+  useEffect(() => {
+    const closeMenus = (event) => {
+      const target = event.target;
+      if (!target.closest?.("[data-admin-orders-menu]")) {
+        setBulkMenuOpen(false);
+        setColumnsMenuOpen(false);
+        setOpenMoreId(null);
+      }
+    };
+    document.addEventListener("click", closeMenus);
+    return () => document.removeEventListener("click", closeMenus);
+  }, []);
+
+  const queryParams = useMemo(
     () => ({
       page,
-      pageSize,
-      search: appliedFilters.search || undefined,
-      status: appliedFilters.status || undefined,
-      method: appliedFilters.method || undefined,
-      limitDays: appliedFilters.limitDays || undefined,
-      startDate: appliedFilters.startDate || undefined,
-      endDate: appliedFilters.endDate || undefined,
+      limit: pageSize,
+      startDate: filters.startDate,
+      endDate: filters.endDate,
+      customer: filters.customer,
+      paymentStatus: filters.paymentStatus,
+      paymentMethod: filters.paymentMethod,
+      deliveryStatus: filters.deliveryStatus,
+      sortBy: "orderDate",
+      sortDir,
     }),
-    [page, pageSize, appliedFilters]
+    [filters, page, pageSize, sortDir]
   );
 
   const ordersQuery = useQuery({
-    queryKey: ["admin-orders", params],
-    queryFn: () => fetchAdminOrders(params),
+    queryKey: ["admin-orders", queryParams],
+    queryFn: () => fetchAdminOrders(queryParams),
     placeholderData: prevData,
   });
 
-  const updateMutation = useMutation({
-    mutationFn: ({ orderId, payload }) => updateAdminOrderStatus(orderId, payload),
-    onSuccess: () => {
-      setRowError("");
-      setNotice("Order status updated.");
-      queryClient.invalidateQueries({ queryKey: ["admin-orders"], exact: false });
+  const invalidateOrders = () =>
+    queryClient.invalidateQueries({ queryKey: ["admin-orders"], exact: false });
+
+  const mutationOptions = {
+    meta: { suppressGlobalToast: true },
+    onSuccess: (payload) => {
+      toast.success(payload?.message || "Order action completed.");
+      setSelectedIds(new Set());
+      invalidateOrders();
     },
-    onSettled: () => {
-      setPendingUpdateId(null);
+    onError: (error) => {
+      toast.error(getErrorMessage(error, "Order action failed."));
+    },
+  };
+
+  const updateMutation = useMutation({
+    mutationFn: ({ target, status }) => updateAdminOrderStatus(target, { status }),
+    meta: { suppressGlobalToast: true },
+    onMutate: ({ target }) => setPendingUpdateId(target),
+    onSuccess: () => {
+      toast.success("Order status updated.");
+      invalidateOrders();
     },
     onError: (error) => {
       const errorMeta = getAdminOrderTransitionErrorMeta(error);
-      setRowError(
-        [errorMeta.title, errorMeta.message, errorMeta.detail].filter(Boolean).join(". ")
-      );
+      toast.error([errorMeta.title, errorMeta.message, errorMeta.detail].filter(Boolean).join(". "));
     },
+    onSettled: () => setPendingUpdateId(null),
+  });
+
+  const bulkMutation = useMutation({
+    mutationFn: bulkActionAdminOrders,
+    ...mutationOptions,
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: assignAdminOrdersDelivery,
+    ...mutationOptions,
+  });
+
+  const unassignMutation = useMutation({
+    mutationFn: unassignAdminOrdersDelivery,
+    ...mutationOptions,
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (ids) => bulkDeleteAdminOrders(ids),
-    onSuccess: (result) => {
-      setRowError("");
-      setNotice(result?.message || "Selected orders deleted.");
-      setSelectedIds(new Set());
-      queryClient.invalidateQueries({ queryKey: ["admin-orders"], exact: false });
+    mutationFn: bulkDeleteAdminOrders,
+    ...mutationOptions,
+  });
+
+  const downloadMutation = useMutation({
+    mutationFn: exportAdminOrders,
+    meta: { suppressGlobalToast: true },
+    onSuccess: (response) => {
+      const stamp = new Date().toISOString().slice(0, 10);
+      const filename = downloadBlob(response, `tp-preneurs-orders-${stamp}.csv`);
+      toast.success(`Orders downloaded as ${filename}.`);
     },
-    onError: (error) => {
-      setRowError(
-        error?.response?.data?.message || error?.message || "Failed to delete selected orders."
-      );
-    },
+    onError: (error) => toast.error(getErrorMessage(error, "Failed to download orders.")),
   });
 
   const items = Array.isArray(ordersQuery.data?.data) ? ordersQuery.data.data : [];
-  const rows = useMemo(
-    () =>
-      items.map((order) => ({
-        order,
-        view: normalizeAdminOrder(order),
-      })),
-    [items]
-  );
-
+  const rows = useMemo(() => normalizeRows(items), [items]);
   const meta = ordersQuery.data?.meta || { page: 1, limit: pageSize, total: 0, totalPages: 1 };
   const totalPages = Math.max(1, Number(meta.totalPages || 1));
-  const hasItems = rows.length > 0;
-  const isInitialLoading = ordersQuery.isLoading && !ordersQuery.data;
-  const isRefetching = ordersQuery.isFetching && !isInitialLoading;
-  const isErrorState = ordersQuery.isError && !ordersQuery.data;
-  const showInlineError = ordersQuery.isError && Boolean(ordersQuery.data);
-  const errorMessage =
-    ordersQuery.error?.response?.data?.message ||
-    ordersQuery.error?.message ||
-    GENERIC_ERROR;
-  const selectedCount = selectedIds.size;
+  const summary = meta.summary || {
+    totalOrders: Number(meta.total || 0),
+    processing: rows.filter(({ order }) => getTone(getOrderStatus(order)) === "info").length,
+    delivered: rows.filter(({ order }) => getTone(getOrderStatus(order)) === "success").length,
+    paymentIssues: rows.filter(({ order }) => getTone(getPaymentStatus(order)) !== "success").length,
+  };
 
   useEffect(() => {
     const visibleIds = new Set(rows.map(({ view }) => Number(view?.id)).filter(Boolean));
-    setSelectedIds((prev) => {
+    setSelectedIds((previous) => {
       const next = new Set();
-      prev.forEach((id) => {
+      previous.forEach((id) => {
         if (visibleIds.has(id)) next.add(id);
       });
       return next;
     });
   }, [rows]);
 
-  const onApplyFilters = () => {
-    setAppliedFilters({
-      search: searchInput.trim(),
-      status: statusInput,
-      method: methodInput,
-      limitDays: limitDaysInput,
-      startDate: startDateInput,
-      endDate: endDateInput,
-    });
+  const selectedRows = rows.filter(({ view }) => selectedIds.has(Number(view?.id)));
+  const selectedCount = selectedRows.length;
+  const visibleIds = rows.map(({ view }) => Number(view?.id)).filter(Boolean);
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id));
+  const isBusy =
+    updateMutation.isPending ||
+    bulkMutation.isPending ||
+    assignMutation.isPending ||
+    unassignMutation.isPending ||
+    deleteMutation.isPending;
+  const isInitialLoading = ordersQuery.isLoading && !ordersQuery.data;
+  const isErrorState = ordersQuery.isError && !ordersQuery.data;
+  const showInlineError = ordersQuery.isError && Boolean(ordersQuery.data);
+
+  const selectedPayload = () => ({
+    ids: selectedRows.map(({ view }) => Number(view.id)).filter(Boolean),
+    invoiceNos: selectedRows.map(({ order, view }) => getInvoiceParam(order, view)).filter(Boolean),
+  });
+
+  const updateFilter = (key, value) => {
+    setFilters((current) => ({ ...current, [key]: value }));
+    setSelectedIds(new Set());
     setPage(1);
   };
 
-  const onResetFilters = () => {
-    setSearchInput("");
-    setStatusInput("");
-    setMethodInput("");
-    setLimitDaysInput("");
-    setStartDateInput("");
-    setEndDateInput("");
-    setAppliedFilters({
-      search: "",
-      status: "",
-      method: "",
-      limitDays: "",
-      startDate: "",
-      endDate: "",
-    });
+  const resetFilters = () => {
+    setFilters({ ...DEFAULT_FILTERS, customer: "" });
+    setCustomerInput("");
+    setSelectedIds(new Set());
     setPage(1);
   };
 
-  const onUpdateStatus = (order, nextStatus) => {
-    if (!nextStatus) return;
-    if (!order?.id) return;
-    setRowError("");
-    setNotice("");
-    setPendingUpdateId(order.id);
-    const requestPayload = { orderId: order.id, payload: { status: nextStatus } };
-    setLastStatusAttempt(requestPayload);
-    updateMutation.mutate(requestPayload);
-  };
-
-  const toggleRowSelection = (orderId) => {
-    const normalizedId = Number(orderId || 0);
+  const toggleRowSelection = (id) => {
+    const normalizedId = Number(id || 0);
     if (!normalizedId) return;
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
+    setSelectedIds((previous) => {
+      const next = new Set(previous);
       if (next.has(normalizedId)) next.delete(normalizedId);
       else next.add(normalizedId);
       return next;
@@ -291,302 +434,306 @@ export default function Orders() {
   };
 
   const toggleSelectAllVisible = () => {
-    const visibleIds = rows.map(({ view }) => Number(view?.id)).filter(Boolean);
     if (visibleIds.length === 0) return;
-    const allSelected = visibleIds.every((id) => selectedIds.has(id));
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
+    setSelectedIds((previous) => {
+      const next = new Set(previous);
       visibleIds.forEach((id) => {
-        if (allSelected) next.delete(id);
+        if (allVisibleSelected) next.delete(id);
         else next.add(id);
       });
       return next;
     });
   };
 
-  const retryLastStatusUpdate = () => {
-    if (!lastStatusAttempt || updateMutation.isPending) return;
-    setRowError("");
-    setNotice("");
-    setPendingUpdateId(lastStatusAttempt.orderId);
-    updateMutation.mutate(lastStatusAttempt);
-  };
-
-  const onDownloadAll = () => {
-    if (isDownloading) return;
-    setRowError("");
-    setIsDownloading(true);
-    const params = new URLSearchParams();
-    if (appliedFilters.search) params.set("search", appliedFilters.search);
-    if (appliedFilters.status) params.set("status", appliedFilters.status);
-    if (appliedFilters.method) params.set("method", appliedFilters.method);
-    if (appliedFilters.limitDays) params.set("limitDays", appliedFilters.limitDays);
-    if (appliedFilters.startDate) params.set("startDate", appliedFilters.startDate);
-    if (appliedFilters.endDate) params.set("endDate", appliedFilters.endDate);
-    const query = params.toString();
-    const endpoint = query
-      ? `/api/admin/orders/export?${query}`
-      : "/api/admin/orders/export";
-
-    fetch(endpoint, { credentials: "include" })
-      .then(async (response) => {
-        if (!response.ok) {
-          const fallback = `Failed to download orders (${response.status}).`;
-          try {
-            const data = await response.json();
-            throw new Error(data?.message || fallback);
-          } catch {
-            throw new Error(fallback);
-          }
-        }
-
-        const blob = await response.blob();
-        const objectUrl = window.URL.createObjectURL(blob);
-        const disposition = response.headers.get("content-disposition") || "";
-        const filenameMatch = disposition.match(/filename="?([^"]+)"?/i);
-        const filename = filenameMatch?.[1] || "orders-export.csv";
-
-        const anchor = document.createElement("a");
-        anchor.href = objectUrl;
-        anchor.download = filename;
-        document.body.appendChild(anchor);
-        anchor.click();
-        anchor.remove();
-        window.URL.revokeObjectURL(objectUrl);
-
-        setNotice("Orders CSV downloaded.");
-      })
-      .catch((error) => {
-        setRowError(error?.message || GENERIC_ERROR);
-      })
-      .finally(() => {
-        setIsDownloading(false);
-      });
-  };
-
-  const onDeleteSelected = () => {
-    const ids = Array.from(selectedIds);
-    if (ids.length === 0 || deleteMutation.isPending) return;
-
-    const confirmed = window.confirm(
-      ids.length === 1
-        ? "Delete the selected order? This action cannot be undone."
-        : `Delete ${ids.length} selected orders? This action cannot be undone.`
-    );
-    if (!confirmed) return;
-
-    setRowError("");
-    setNotice("");
-    deleteMutation.mutate(ids);
-  };
-
-  const onPrintInvoice = (invoiceParam) => {
-    if (!invoiceParam) {
-      setRowError("Order detail is unavailable for this record.");
+  const runBulkAction = (action) => {
+    setBulkMenuOpen(false);
+    if (selectedCount === 0) {
+      toast.error("Select at least one order first.");
       return;
     }
-    const printWindow = window.open(
-      `/admin/orders/${encodeURIComponent(invoiceParam)}?print=1`,
-      "_blank"
-    );
-    if (!printWindow) {
-      setRowError("Pop-up blocked. Allow pop-ups to print invoice.");
-    }
+    bulkMutation.mutate({ ...selectedPayload(), action });
   };
 
-  const visibleIds = rows.map(({ view }) => Number(view?.id)).filter(Boolean);
-  const allVisibleSelected =
-    visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id));
-  const tableRowClass =
-    tableDensity === "compact"
-      ? "border-t border-slate-100 text-slate-700 transition hover:bg-slate-50/80"
-      : "border-t border-slate-100 text-slate-700 transition hover:bg-slate-50";
+  const runAssign = () => {
+    if (selectedCount === 0) return toast.error("Select at least one order first.");
+    assignMutation.mutate(selectedPayload());
+  };
+
+  const runUnassign = () => {
+    if (selectedCount === 0) return toast.error("Select at least one order first.");
+    unassignMutation.mutate(selectedPayload());
+  };
+
+  const runDelete = () => {
+    if (selectedCount === 0) return toast.error("Select at least one order first.");
+    const confirmed = window.confirm(
+      selectedCount === 1
+        ? "Delete the selected order? This action cannot be undone."
+        : `Delete ${selectedCount} selected orders? This action cannot be undone.`
+    );
+    if (!confirmed) return;
+    deleteMutation.mutate(selectedPayload().ids);
+  };
+
+  const runDownload = () => {
+    downloadMutation.mutate({
+      ...filters,
+      sortBy: "orderDate",
+      sortDir,
+    });
+  };
+
+  const onUpdateStatus = (order, view, status) => {
+    const target = getInvoiceParam(order, view) || view?.id || order?.id;
+    if (!target || !status) return;
+    updateMutation.mutate({ target, status });
+  };
+
+  const onPrintInvoice = (order, view) => {
+    const invoiceParam = getInvoiceParam(order, view);
+    if (!invoiceParam) return toast.error("Order detail is unavailable for this record.");
+    const printWindow = window.open(`/admin/orders/${encodeURIComponent(invoiceParam)}?print=1`, "_blank");
+    if (!printWindow) toast.error("Pop-up blocked. Allow pop-ups to print invoice.");
+  };
+
+  const onGoToPage = (event) => {
+    event.preventDefault();
+    const nextPage = Math.max(1, Math.min(totalPages, Number(goToPage) || 1));
+    setPage(nextPage);
+  };
+
+  const activeFilterChips = [
+    filters.startDate || filters.endDate
+      ? {
+          key: "date",
+          label: `Date: ${formatDisplayDate(filters.startDate)} - ${formatDisplayDate(filters.endDate)}`,
+          clear: () => {
+            updateFilter("startDate", "");
+            updateFilter("endDate", "");
+          },
+        }
+      : null,
+    filters.paymentStatus
+      ? {
+          key: "paymentStatus",
+          label: `Payment Status: ${labelize(filters.paymentStatus)}`,
+          clear: () => updateFilter("paymentStatus", ""),
+        }
+      : null,
+    filters.deliveryStatus
+      ? {
+          key: "deliveryStatus",
+          label: `Delivery Status: ${labelize(filters.deliveryStatus)}`,
+          clear: () => updateFilter("deliveryStatus", ""),
+        }
+      : null,
+    filters.paymentMethod
+      ? {
+          key: "paymentMethod",
+          label: `Payment Method: ${getOptionLabel(PAYMENT_METHOD_OPTIONS, filters.paymentMethod)}`,
+          clear: () => updateFilter("paymentMethod", ""),
+        }
+      : null,
+    filters.customer
+      ? {
+          key: "customer",
+          label: `Customer: ${filters.customer}`,
+          clear: () => {
+            setCustomerInput("");
+            updateFilter("customer", "");
+          },
+        }
+      : null,
+  ].filter(Boolean);
+
+  const metricCards = [
+    {
+      label: "Total Orders",
+      value: summary.totalOrders,
+      detail: "This range",
+      icon: ShoppingBag,
+      tone: "primary",
+    },
+    {
+      label: "Processing",
+      value: summary.processing,
+      detail: "Pending fulfillment",
+      icon: Clock3,
+      tone: "warning",
+    },
+    {
+      label: "Delivered",
+      value: summary.delivered,
+      detail: "Successfully delivered",
+      icon: CheckCircle2,
+      tone: "success",
+    },
+    {
+      label: "Payment Issues",
+      value: summary.paymentIssues,
+      detail: "Require attention",
+      icon: CreditCard,
+      tone: "danger",
+    },
+  ];
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-3.5 shadow-sm sm:px-5">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="min-w-0 flex-1 pr-4 xl:max-w-[420px]">
-            <div className="space-y-1">
-              <h1 className="text-[1.85rem] font-semibold tracking-tight text-slate-900">Orders</h1>
-              <p className="text-sm text-slate-500">Manage customer orders.</p>
-            </div>
-            {isRefetching ? <UiUpdatingBadge /> : null}
-          </div>
-
-          <div className="flex w-full flex-wrap items-center gap-2 xl:max-w-[860px] xl:flex-none xl:justify-end">
-            <div className="flex min-w-[190px] items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3">
-              <select
-                value={bulkAction}
-                onChange={(event) => setBulkAction(event.target.value)}
-                disabled={!BULK_OPERATIONS_AVAILABLE}
-                className="h-9 w-full bg-transparent text-sm text-slate-500 focus:outline-none disabled:cursor-not-allowed"
-                title="Bulk actions stay disabled until a backend bulk orders endpoint exists."
-              >
-                <option value="">Bulk Action</option>
-                <option value="mark_processing">Mark processing</option>
-                <option value="mark_shipping">Mark in delivery</option>
-                <option value="mark_delivered">Mark delivered</option>
-                <option value="mark_cancelled">Cancel selected</option>
-              </select>
-              <ChevronDown className="h-4 w-4 text-slate-400" />
-            </div>
-            <button
-              type="button"
-              className={headerBtnDisabled}
-              disabled
-              title="Bulk delivery assignment is not wired to the backend."
-            >
-              <Truck className="h-4 w-4" />
-              Assign Delivery{selectedCount > 0 ? ` (${selectedCount})` : ""}
-            </button>
-            <button
-              type="button"
-              className={headerBtnDisabled}
-              disabled
-              title="Bulk delivery unassign is not wired to the backend."
-            >
-              <XCircle className="h-4 w-4" />
-              Unassign{selectedCount > 0 ? ` (${selectedCount})` : ""}
-            </button>
-            <button
-              type="button"
-              className={
-                selectedCount > 0 && !deleteMutation.isPending
-                  ? headerBtnOutline
-                  : headerBtnDisabled
-              }
-              disabled={selectedCount === 0 || deleteMutation.isPending}
-              onClick={onDeleteSelected}
-              title={
-                selectedCount > 0
-                  ? "Delete selected orders."
-                  : "Select one or more orders to delete."
-              }
-            >
-              <Trash2 className="h-4 w-4" />
-              {deleteMutation.isPending ? "Deleting..." : "Delete"}
-            </button>
-            <button
-              type="button"
-              className={headerBtnGreen}
-              onClick={onDownloadAll}
-              disabled={isDownloading}
-            >
-              <Download className="h-4 w-4" />
-              {isDownloading ? "Downloading..." : "Download All Orders"}
-            </button>
+    <div className="admin-orders-2026">
+      <section className="orders-hero">
+        <div className="orders-title">
+          <span className="orders-title__icon" aria-hidden="true">
+            <CalendarDays size={24} />
+          </span>
+          <div>
+            <h1>Orders</h1>
+            <p>Manage and track customer orders</p>
           </div>
         </div>
-      </div>
 
-      <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="grid gap-3">
-          <div className="grid gap-3 xl:grid-cols-[180px_180px]">
-            <label className="grid gap-1.5">
-              <span className={subtleLabelClass}>Start Date</span>
-              <div className="relative">
-                <CalendarDays className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="date"
-                  value={startDateInput}
-                  onChange={(event) => setStartDateInput(event.target.value)}
-                  className={`${fieldClass} pr-9`}
-                />
-              </div>
-            </label>
-            <label className="grid gap-1.5">
-              <span className={subtleLabelClass}>End Date</span>
-              <div className="relative">
-                <CalendarDays className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="date"
-                  value={endDateInput}
-                  onChange={(event) => setEndDateInput(event.target.value)}
-                  className={`${fieldClass} pr-9`}
-                />
-              </div>
-            </label>
-          </div>
-          <div className="grid gap-3 xl:grid-cols-[minmax(320px,1fr)_150px_140px_120px_auto_auto] xl:items-end">
-            <label className="grid gap-1.5 xl:col-start-1">
-              <span className={subtleLabelClass}>Search by Customer Name</span>
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="search"
-                  value={searchInput}
-                  onChange={(event) => setSearchInput(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      onApplyFilters();
-                    }
-                  }}
-                  placeholder="Search by customer name"
-                  className={`${fieldClass} pl-9`}
-                />
-              </div>
-            </label>
-            <select
-              value={statusInput}
-              onChange={(event) => setStatusInput(event.target.value)}
-              className={`${fieldClass} w-full`}
-            >
-              <option value="">Status</option>
-              {STATUS_FILTER_OPTIONS.filter((option) => option.value).map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <select
-              value={limitDaysInput}
-              onChange={(event) => setLimitDaysInput(event.target.value)}
-              className={`${fieldClass} w-full`}
-            >
-              <option value="">Order limits</option>
-              <option value="5">Last 5 days</option>
-              <option value="7">Last 7 days</option>
-              <option value="15">Last 15 days</option>
-              <option value="30">Last 30 days</option>
-            </select>
-            <select
-              value={methodInput}
-              onChange={(event) => setMethodInput(event.target.value)}
-              className={`${fieldClass} w-full`}
-            >
-              <option value="">Method</option>
-              <option value="cash">Cash</option>
-              <option value="card">Card</option>
-              <option value="credit">Credit</option>
-            </select>
+        <div className="orders-actions">
+          {selectedCount > 0 ? (
+            <button type="button" className="orders-selection-pill" onClick={() => setSelectedIds(new Set())}>
+              {selectedCount} selected <X size={16} />
+            </button>
+          ) : null}
+
+          <div className="orders-menu-wrap" data-admin-orders-menu>
             <button
               type="button"
-              className={`${headerBtnOutline} w-full xl:w-auto xl:justify-center`}
-              onClick={onApplyFilters}
-              aria-label="View orders"
-              title="View orders"
+              className="orders-btn orders-btn--outline"
+              onClick={(event) => {
+                event.stopPropagation();
+                setBulkMenuOpen((open) => !open);
+              }}
+              disabled={isBusy}
             >
-              View
+              <FileText size={17} />
+              Bulk Actions
+              {selectedCount > 0 ? <span className="orders-count-badge">{selectedCount}</span> : null}
+              <ChevronDown size={16} />
             </button>
-            <button
-              type="button"
-              className={`${headerBtnSoft} w-full xl:w-auto xl:justify-center`}
-              onClick={onResetFilters}
-              aria-label="Reset filters"
-              title="Reset filters"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Reset
-            </button>
+            {bulkMenuOpen ? (
+              <div className="orders-dropdown orders-dropdown--bulk">
+                {BULK_ACTIONS.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button key={item.action} type="button" onClick={() => runBulkAction(item.action)}>
+                      <span className={`orders-menu-dot orders-menu-dot--${item.tone}`}>
+                        <Icon size={15} />
+                      </span>
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
           </div>
+
+          <button type="button" className="orders-btn orders-btn--outline" onClick={runAssign} disabled={isBusy}>
+            <Truck size={17} />
+            Assign Delivery
+          </button>
+          <button type="button" className="orders-btn orders-btn--outline" onClick={runUnassign} disabled={isBusy}>
+            <UserRound size={17} />
+            Unassign
+          </button>
+          <button type="button" className="orders-btn orders-btn--danger" onClick={runDelete} disabled={isBusy}>
+            <Trash2 size={17} />
+            Delete
+          </button>
+          <button type="button" className="orders-btn orders-btn--primary" onClick={runDownload} disabled={downloadMutation.isPending}>
+            <Download size={17} />
+            {downloadMutation.isPending ? "Downloading..." : "Download All Orders"}
+          </button>
         </div>
-      </div>
+      </section>
 
-      {notice ? (
-        <div className="pointer-events-none fixed bottom-4 right-4 z-50 rounded-xl border border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] px-4 py-2 text-sm text-[var(--admin-primary)] shadow-sm">
-          {notice}
+      <section className="orders-metrics" aria-label="Order summary">
+        {metricCards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <article key={card.label} className="orders-metric">
+              <span className={`orders-metric__icon orders-metric__icon--${card.tone}`}>
+                <Icon size={24} />
+              </span>
+              <div>
+                <p>{card.label}</p>
+                <strong>{card.value}</strong>
+                <span>{card.detail}</span>
+              </div>
+            </article>
+          );
+        })}
+      </section>
+
+      <section className="orders-filter-panel">
+        <label className="orders-field orders-field--date">
+          <span>Date Range</span>
+          <div className="orders-date-range">
+            <CalendarDays size={16} />
+            <input type="date" value={filters.startDate} onChange={(event) => updateFilter("startDate", event.target.value)} />
+            <ChevronRight size={15} />
+            <input type="date" value={filters.endDate} onChange={(event) => updateFilter("endDate", event.target.value)} />
+          </div>
+        </label>
+
+        <label className="orders-field">
+          <span>Customer</span>
+          <div className="orders-input-with-icon">
+            <Search size={17} />
+            <input
+              type="search"
+              value={customerInput}
+              onChange={(event) => setCustomerInput(event.target.value)}
+              placeholder="Search customer..."
+            />
+          </div>
+        </label>
+
+        <label className="orders-field">
+          <span>Payment Status</span>
+          <select value={filters.paymentStatus} onChange={(event) => updateFilter("paymentStatus", event.target.value)}>
+            {PAYMENT_STATUS_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+
+        <label className="orders-field">
+          <span>Payment Method</span>
+          <select value={filters.paymentMethod} onChange={(event) => updateFilter("paymentMethod", event.target.value)}>
+            {PAYMENT_METHOD_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+
+        <label className="orders-field">
+          <span>Delivery Status</span>
+          <select value={filters.deliveryStatus} onChange={(event) => updateFilter("deliveryStatus", event.target.value)}>
+            {DELIVERY_STATUS_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+
+        <button type="button" className="orders-reset-btn" onClick={resetFilters}>
+          <RefreshCw size={17} />
+          Reset
+        </button>
+      </section>
+
+      {activeFilterChips.length > 0 ? (
+        <div className="orders-filter-chips">
+          {activeFilterChips.map((chip) => (
+            <button key={chip.key} type="button" onClick={chip.clear}>
+              {chip.label}
+              <X size={14} />
+            </button>
+          ))}
+          <button type="button" className="orders-filter-clear" onClick={resetFilters}>
+            Clear all
+          </button>
         </div>
       ) : null}
 
@@ -595,265 +742,299 @@ export default function Orders() {
       {isErrorState ? (
         <UiErrorState
           title={GENERIC_ERROR}
-          message={errorMessage}
+          message={getErrorMessage(ordersQuery.error)}
           onRetry={() => ordersQuery.refetch()}
         />
       ) : null}
 
       {!isInitialLoading && !isErrorState ? (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <section className="orders-table-card">
           {showInlineError ? (
-            <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <div className="orders-inline-error">
               Could not refresh orders. Showing previous data.
-              <button
-                type="button"
-                onClick={() => ordersQuery.refetch()}
-                className="ml-2 font-semibold underline underline-offset-2"
-              >
-                Try again
-              </button>
+              <button type="button" onClick={() => ordersQuery.refetch()}>Try again</button>
             </div>
           ) : null}
-          <div className="border-b border-slate-100 bg-slate-50/70 px-3 py-0.5 text-[10px] text-slate-400">
-            <span className="font-semibold text-slate-700">{items.length}</span> /{" "}
-            <span className="font-semibold text-slate-700">{meta.total || 0}</span>
+
+          <div className="orders-table-toolbar">
+            <div>
+              Showing {rows.length > 0 ? (Number(meta.page || page) - 1) * Number(meta.limit || pageSize) + 1 : 0} to{" "}
+              {Math.min(Number(meta.total || 0), (Number(meta.page || page) - 1) * Number(meta.limit || pageSize) + rows.length)} of{" "}
+              {Number(meta.total || 0)} orders
+              {ordersQuery.isFetching && !isInitialLoading ? <UiUpdatingBadge /> : null}
+            </div>
+            <div className="orders-table-tools">
+              <div className="orders-menu-wrap" data-admin-orders-menu>
+                <button
+                  type="button"
+                  className="orders-icon-btn orders-columns-btn"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setColumnsMenuOpen((open) => !open);
+                  }}
+                >
+                  <Grid2X2 size={18} />
+                  Columns
+                  <ChevronDown size={15} />
+                </button>
+                {columnsMenuOpen ? (
+                  <div className="orders-dropdown orders-dropdown--columns">
+                    {COLUMN_DEFS.map((column) => (
+                      <label key={column.key}>
+                        <input
+                          type="checkbox"
+                          checked={Boolean(visibleColumns[column.key])}
+                          onChange={() =>
+                            setVisibleColumns((current) => ({
+                              ...current,
+                              [column.key]: !current[column.key],
+                            }))
+                          }
+                        />
+                        {column.label}
+                      </label>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+              <button type="button" className="orders-icon-btn" onClick={runDownload} aria-label="Download orders">
+                <Download size={18} />
+              </button>
+            </div>
           </div>
-          <div className="w-full px-0 pb-1">
-            <table className="w-full table-fixed text-left text-sm">
-              <thead className="sticky top-0 z-10 bg-slate-50">
+
+          {selectedCount > 0 ? (
+            <div className="orders-selected-bar">
+              <input
+                type="checkbox"
+                checked={allVisibleSelected}
+                onChange={toggleSelectAllVisible}
+                aria-label="Select all visible orders"
+              />
+              <span>{selectedCount} of {rows.length} orders selected</span>
+              <button type="button" onClick={toggleSelectAllVisible}>Select all {rows.length}</button>
+            </div>
+          ) : null}
+
+          <div className="orders-table-scroll">
+            <table className="orders-table">
+              <thead>
                 <tr>
-                  <th className={`${tableHeadCell} w-[4%]`}>
+                  <th className="orders-checkbox-col">
                     <input
                       type="checkbox"
                       checked={allVisibleSelected}
                       onChange={toggleSelectAllVisible}
-                      className={selectionCheckboxClass}
-                      aria-label="Select all visible orders"
+                      aria-label="Select all current page orders"
                     />
                   </th>
-                  <th className={`${tableHeadCell} w-[19%]`}>Invoice No</th>
-                  <th className={`${tableHeadCell} w-[16%]`}>Order Time</th>
-                  <th className={`${tableHeadCell} w-[16%]`}>Customer Name</th>
-                  <th className={`${tableHeadCell} w-[8%]`}>Method</th>
-                  <th className={`${tableHeadCell} w-[10%] text-right`}>Amount</th>
-                  <th className={`${tableHeadCell} w-[11%]`}>Status</th>
-                  <th className={`${tableHeadCell} w-[7%]`}>Delivery</th>
-                  <th className={`${tableHeadCell} w-[13%]`}>Action</th>
-                  <th className={`${tableHeadCell} w-[8%] text-center`}>Invoice</th>
+                  {visibleColumns.invoice ? <th className="orders-col-invoice">Invoice ID</th> : null}
+                  {visibleColumns.orderDate ? (
+                    <th className="orders-col-date">
+                      <button
+                        type="button"
+                        className="orders-sort-btn"
+                        onClick={() => setSortDir((current) => (current === "desc" ? "asc" : "desc"))}
+                      >
+                        Order Date
+                        <ChevronDown className={sortDir === "asc" ? "is-ascending" : ""} size={15} />
+                      </button>
+                    </th>
+                  ) : null}
+                  {visibleColumns.customer ? <th className="orders-col-customer">Customer</th> : null}
+                  {visibleColumns.paymentMethod ? <th className="orders-col-method">Payment Method</th> : null}
+                  {visibleColumns.amount ? <th className="orders-col-amount">Amount</th> : null}
+                  {visibleColumns.paymentStatus ? <th className="orders-col-payment">Payment Status</th> : null}
+                  {visibleColumns.deliveryStatus ? <th className="orders-col-delivery">Delivery Status</th> : null}
+                  {visibleColumns.orderStatus ? <th className="orders-col-status">Order Status</th> : null}
+                  <th className="orders-col-actions">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {hasItems ? rows.map(({ order, view }, rowIndex) => {
-                  const contract = order.contract || null;
-                  const actionStatus = toAdminOrderActionValue(
-                    order.rawStatus || order.status || "pending"
-                  );
-                  const actionOptions = Array.isArray(contract?.availableActions) &&
-                    contract.availableActions.length > 0
-                    ? contract.availableActions
-                    : [
-                        {
-                          code: actionStatus,
-                          label: contract?.statusSummary?.label || "Status unavailable",
-                          enabled: false,
-                          reason:
-                            "Backend actionability is unavailable for this order row right now.",
-                        },
-                      ];
-                  const hasBackendActions = Array.isArray(contract?.availableActions) &&
-                    contract.availableActions.length > 0;
-                  const isUpdating = pendingUpdateId === order.id;
-                  const orderId = view?.id || order?.id;
+                {rows.length > 0 ? rows.map(({ order, view }) => {
+                  const rowId = Number(view?.id || order?.id || 0);
                   const invoiceParam = getInvoiceParam(order, view);
-                  const orderDateValue = view?.orderTime || getOrderDateValue(order);
-                  const delivery = getDeliveryPresentation(order);
-                  const isSelected = selectedIds.has(Number(orderId));
-                  const rowKey =
-                    orderId ||
-                    `${view.invoiceNo}-${formatDateTime(orderDateValue)}`;
+                  const orderDateValue = getOrderDateValue(order, view);
+                  const paymentStatus = getPaymentStatus(order);
+                  const deliveryStatus = getDeliveryStatus(order, view);
+                  const orderStatus = getOrderStatus(order);
+                  const paymentMethod = getPaymentMethodLabel(view, order);
+                  const actionStatus = toAdminOrderActionValue(orderStatus);
+                  const contract = order?.contract || null;
+                  const actionOptions =
+                    Array.isArray(contract?.availableActions) && contract.availableActions.length > 0
+                      ? contract.availableActions
+                      : ADMIN_ORDER_ACTION_OPTIONS.map((option) => ({
+                          code: option.value,
+                          label: option.label,
+                          enabled: option.value === actionStatus,
+                        }));
+                  const isUpdating = pendingUpdateId === invoiceParam || pendingUpdateId === rowId;
+
                   return (
-                    <tr
-                      key={rowKey}
-                      className={`${tableRowClass} ${
-                        rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50/35"
-                      }`}
-                    >
-                      <td className={`${tableCell} w-[4%]`}>
+                    <tr key={rowId || invoiceParam} className={selectedIds.has(rowId) ? "is-selected" : ""}>
+                      <td className="orders-checkbox-col">
                         <input
                           type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleRowSelection(orderId)}
-                          className={selectionCheckboxClass}
-                          aria-label={`Select order ${view.invoiceNo}`}
+                          checked={selectedIds.has(rowId)}
+                          onChange={() => toggleRowSelection(rowId)}
+                          aria-label={`Select order ${invoiceParam}`}
                         />
                       </td>
-                      <td className={`${tableCell} w-[19%]`}>
-                        <div className="space-y-0.5">
-                          <div className="break-words text-[13px] font-semibold leading-4 text-slate-900">
-                            {view.invoiceNo}
+                      {visibleColumns.invoice ? (
+                        <td className="orders-col-invoice">
+                          <Link className="orders-invoice-link" to={`/admin/orders/${encodeURIComponent(invoiceParam)}`}>
+                            {invoiceParam}
+                          </Link>
+                        </td>
+                      ) : null}
+                      {visibleColumns.orderDate ? <td className="orders-col-date">{formatDateTime(orderDateValue)}</td> : null}
+                      {visibleColumns.customer ? (
+                        <td className="orders-col-customer">
+                          <div className="orders-customer">
+                            <strong>{view.customerName}</strong>
+                            {view.customerType === "guest" ? <span>Guest</span> : null}
                           </div>
-                          <div className="origin-left scale-90 opacity-85">
-                            <CheckoutModeBadge mode={order.checkoutMode} />
+                        </td>
+                      ) : null}
+                      {visibleColumns.paymentMethod ? (
+                        <td className="orders-col-method">
+                          <div className="orders-method">
+                            <span>{paymentMethod}</span>
                           </div>
-                        </div>
-                      </td>
-                      <td className={`${tableCell} w-[16%] leading-4 text-slate-600`}>
-                        {formatDateTime(orderDateValue)}
-                      </td>
-                      <td className={`${tableCell} w-[16%] text-slate-600`}>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <div className="line-clamp-2 font-medium leading-4 text-slate-900">
-                            {view.customerName}
-                          </div>
-                          {view.customerType === "guest" ? (
-                            <span className={`${compactBadgeClass} border-amber-200 bg-amber-50 text-amber-700`}>
-                              Guest
-                            </span>
-                          ) : null}
-                        </div>
-                      </td>
-                      <td className={`${tableCell} w-[8%] text-slate-600`}>{view.method}</td>
-                      <td className={`${tableCell} w-[10%] whitespace-nowrap text-right font-semibold tabular-nums text-slate-800`}>
-                        {formatMoney(view.amount)}
-                      </td>
-                      <td className={`${tableCell} w-[11%]`}>
-                        <div className="space-y-1">
-                          <OrderStatusBadge
-                            status={order.rawStatus || order.status || "-"}
-                            meta={contract?.statusSummary || null}
-                          />
-                          <div className="origin-left scale-90 opacity-85">
-                            <PaymentStatusBadge
-                              status={order.paymentStatus}
-                              label={order.paymentStatusMeta?.label}
-                              tone={order.paymentStatusMeta?.tone}
-                              prefix="Parent Payment"
-                            />
-                          </div>
-                        </div>
-                      </td>
-                      <td className={`${tableCell} w-[7%]`}>
-                        <span
-                          className={`inline-flex w-full items-center justify-center rounded-full border px-2 py-0.5 text-[10px] font-semibold leading-4 ${getDeliveryBadgeClass(
-                            delivery.tone
-                          )}`}
-                          title={view.deliveryName || delivery.label}
-                        >
-                          {view.deliveryName || (view.deliveryAssigned ? delivery.label : "Assign")}
-                        </span>
-                      </td>
-                      <td className={`${tableCell} w-[13%]`}>
-                        <div className="flex items-center gap-1.5">
+                        </td>
+                      ) : null}
+                      {visibleColumns.amount ? <td className="orders-col-amount orders-amount">{formatMoney(view.amount)}</td> : null}
+                      {visibleColumns.paymentStatus ? (
+                        <td className="orders-col-payment">
+                          <span className={`orders-chip orders-chip--${getTone(paymentStatus)}`}>{labelize(paymentStatus)}</span>
+                        </td>
+                      ) : null}
+                      {visibleColumns.deliveryStatus ? (
+                        <td className="orders-col-delivery">
+                          <span className={`orders-chip orders-chip--${getTone(deliveryStatus)}`}>{labelize(deliveryStatus)}</span>
+                        </td>
+                      ) : null}
+                      {visibleColumns.orderStatus ? (
+                        <td className="orders-col-status">
                           <select
+                            className={`orders-status-select orders-status-select--${getTone(orderStatus)}`}
                             value={actionStatus}
-                            onChange={(event) => onUpdateStatus(order, event.target.value)}
-                            disabled={isUpdating || !hasBackendActions}
-                            className="h-9 w-full min-w-0 rounded-xl border border-slate-200 bg-white px-2 text-[11px] font-medium text-slate-700 focus:border-[var(--admin-primary)] focus:outline-none disabled:opacity-60"
+                            disabled={isUpdating}
+                            onChange={(event) => onUpdateStatus(order, view, event.target.value)}
                           >
                             {actionOptions.map((option) => (
                               <option
-                                key={option.code}
-                                value={option.code}
-                                disabled={Boolean(option.enabled === false)}
+                                key={option.code || option.value}
+                                value={option.code || option.value}
+                                disabled={option.enabled === false}
                               >
                                 {option.label}
                               </option>
                             ))}
                           </select>
-                        </div>
-                      </td>
-                      <td className={`${tableCell} w-[8%] text-center`}>
-                        <div className="flex items-center justify-center gap-1.5">
-                          {view.invoiceUrl ? (
-                            <Link
-                              to={view.invoiceUrl}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-100"
-                              aria-label="View order detail"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Link>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 text-slate-400 disabled:cursor-not-allowed disabled:opacity-70"
-                              aria-label="View order detail"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </button>
-                          )}
+                        </td>
+                      ) : null}
+                      <td className="orders-col-actions">
+                        <div className="orders-row-actions" data-admin-orders-menu>
+                          <button type="button" onClick={() => navigate(`/admin/orders/${encodeURIComponent(invoiceParam)}`)} aria-label="View detail">
+                            <Eye size={17} />
+                          </button>
+                          <button type="button" onClick={() => onPrintInvoice(order, view)} aria-label="Print invoice">
+                            <Printer size={17} />
+                          </button>
                           <button
                             type="button"
-                            onClick={() => onPrintInvoice(invoiceParam)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-100"
-                            aria-label="Print invoice"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setOpenMoreId((current) => (current === rowId ? null : rowId));
+                            }}
+                            aria-label="More actions"
                           >
-                            <Printer className="h-4 w-4" />
+                            <MoreVertical size={17} />
                           </button>
+                          {openMoreId === rowId ? (
+                            <div className="orders-dropdown orders-dropdown--row">
+                              <button type="button" onClick={() => navigator.clipboard.writeText(invoiceParam).then(() => toast.success("Invoice ID copied."))}>
+                                <Copy size={15} />
+                                Copy invoice ID
+                              </button>
+                              <button type="button" onClick={() => navigate(`/admin/orders/${encodeURIComponent(invoiceParam)}`)}>
+                                <Eye size={15} />
+                                View detail
+                              </button>
+                            </div>
+                          ) : null}
                         </div>
                       </td>
                     </tr>
                   );
                 }) : (
-                  <tr className="border-t border-slate-100">
-                    <td colSpan={10} className="px-4 py-14 text-center">
-                      <p className="text-base font-semibold text-slate-800">No orders found</p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        Try adjusting search or filter values.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={onResetFilters}
-                        className="mt-4 inline-flex h-10 items-center justify-center rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:border-slate-300"
-                      >
-                        Clear Filters
-                      </button>
+                  <tr>
+                    <td colSpan={10} className="orders-empty">
+                      <PackageCheck size={34} />
+                      <strong>No orders found</strong>
+                      <span>Adjust filters or reset the current search.</span>
+                      <button type="button" onClick={resetFilters}>Reset filters</button>
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-        </div>
-      ) : null}
 
-      {rowError ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-600">
-          <p>{rowError}</p>
-          {lastStatusAttempt ? (
-            <button
-              type="button"
-              onClick={retryLastStatusUpdate}
-              disabled={updateMutation.isPending}
-              className="mt-2 inline-flex h-9 items-center justify-center rounded-full border border-rose-200 bg-white px-4 text-xs font-semibold text-rose-700 hover:border-rose-300 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {updateMutation.isPending ? "Retrying..." : "Retry status update"}
-            </button>
-          ) : null}
-        </div>
+          <div className="orders-pagination">
+            <label>
+              Rows per page
+              <select
+                value={pageSize}
+                onChange={(event) => {
+                  setPageSize(Number(event.target.value));
+                  setPage(1);
+                }}
+              >
+                {ROW_LIMIT_OPTIONS.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </label>
+            <div className="orders-pages">
+              <button type="button" disabled={page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>
+                <ChevronLeft size={18} />
+              </button>
+              {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
+                const start = Math.max(1, Math.min(page - 2, totalPages - 4));
+                const pageNumber = start + index;
+                if (pageNumber > totalPages) return null;
+                return (
+                  <button
+                    key={pageNumber}
+                    type="button"
+                    className={pageNumber === page ? "is-active" : ""}
+                    onClick={() => setPage(pageNumber)}
+                  >
+                    {pageNumber}
+                  </button>
+                );
+              })}
+              <button type="button" disabled={page >= totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))}>
+                <ChevronRight size={18} />
+              </button>
+            </div>
+            <form className="orders-go-page" onSubmit={onGoToPage}>
+              <span>Go to page</span>
+              <input
+                type="number"
+                min="1"
+                max={totalPages}
+                value={goToPage}
+                onChange={(event) => setGoToPage(event.target.value)}
+              />
+              <span>of {totalPages}</span>
+            </form>
+          </div>
+        </section>
       ) : null}
-
-      <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] shadow-sm">
-        <button
-          type="button"
-          className="rounded-full border border-slate-200 px-3 py-1 text-slate-700 disabled:opacity-50"
-          disabled={page <= 1}
-          onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-        >
-          Previous
-        </button>
-        <span className="text-slate-500">
-          Page {meta.page} of {totalPages}
-        </span>
-        <button
-          type="button"
-          className="rounded-full border border-slate-200 px-3 py-1 text-slate-700 disabled:opacity-50"
-          disabled={page >= totalPages}
-          onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-        >
-          Next
-        </button>
-      </div>
     </div>
   );
 }

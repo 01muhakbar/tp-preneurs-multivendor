@@ -336,7 +336,15 @@ const normalizeOrdersMeta = (payload, params = {}) => {
   const rawTotalPages =
     meta.totalPages ?? (limit ? Math.ceil(total / limit) : 1);
   const totalPages = Math.max(1, Number(rawTotalPages || 1));
-  return { page, limit, total, totalPages };
+  const summary = meta?.summary && typeof meta.summary === "object"
+    ? {
+        totalOrders: Number(meta.summary.totalOrders || 0),
+        processing: Number(meta.summary.processing || 0),
+        delivered: Number(meta.summary.delivered || 0),
+        paymentIssues: Number(meta.summary.paymentIssues || 0),
+      }
+    : null;
+  return { page, limit, total, totalPages, summary };
 };
 
 const normalizeShipmentAuditMeta = (value) => {
@@ -535,14 +543,21 @@ export const fetchAdminOrders = async (params) => {
   const normalizedParams = Object.fromEntries(
     Object.entries({
       page: params?.page,
+      limit: params?.limit ?? params?.pageSize,
       pageSize: params?.pageSize ?? params?.limit,
+      customer: params?.customer ?? params?.search ?? params?.q,
       search: params?.search ?? params?.q,
       status: params?.status || undefined,
+      paymentStatus: params?.paymentStatus || undefined,
+      paymentMethod: (params?.paymentMethod ?? params?.method) || undefined,
       method: params?.method || undefined,
+      deliveryStatus: params?.deliveryStatus || undefined,
       limitDays: params?.limitDays || undefined,
       startDate: params?.startDate || undefined,
       endDate: params?.endDate || undefined,
       userId: params?.userId || undefined,
+      sortBy: params?.sortBy || undefined,
+      sortDir: params?.sortDir || undefined,
     }).filter(([, value]) => value !== undefined && value !== null && value !== "")
   );
   const { data } = await adminApi.get("/admin/orders", { params: normalizedParams });
@@ -580,9 +595,91 @@ export const updateAdminOrderStatus = async (id, payload) => {
   return data;
 };
 
+const ADMIN_BULK_ACTION_STATUS = {
+  MARK_DELIVERED: "delivered",
+  MARK_CANCELLED: "cancel",
+  MARK_FAILED: "cancel",
+};
+
+const summarizeSequentialResults = (results, fallbackMessage) => {
+  const failures = results.filter((result) => result.status === "rejected");
+  if (failures.length > 0) {
+    const firstError = failures[0]?.reason;
+    const message =
+      firstError?.response?.data?.message ||
+      firstError?.message ||
+      "One or more selected orders could not be updated.";
+    const error = new Error(message);
+    error.failures = failures;
+    throw error;
+  }
+  return {
+    success: true,
+    message: fallbackMessage,
+    data: results.map((result) => result.value),
+  };
+};
+
+export const bulkActionAdminOrders = async ({ ids = [], invoiceNos = [], action }) => {
+  const targets = Array.from(new Set([...ids, ...invoiceNos].filter(Boolean)));
+  const status = ADMIN_BULK_ACTION_STATUS[action];
+  if (!targets.length) throw new Error("Select at least one order.");
+  if (!status) throw new Error("Bulk action is not supported.");
+
+  const results = await Promise.allSettled(
+    targets.map((target) => updateAdminOrderStatus(target, { status }))
+  );
+
+  const actionLabel =
+    action === "MARK_DELIVERED"
+      ? "delivered"
+      : action === "MARK_FAILED"
+        ? "failed"
+        : "cancelled";
+  return summarizeSequentialResults(results, `Selected orders marked as ${actionLabel}.`);
+};
+
+export const assignAdminOrdersDelivery = async ({ ids = [], invoiceNos = [] }) => {
+  const targets = Array.from(new Set([...ids, ...invoiceNos].filter(Boolean)));
+  if (!targets.length) throw new Error("Select at least one order.");
+  const results = await Promise.allSettled(
+    targets.map((target) => updateAdminOrderStatus(target, { status: "shipping" }))
+  );
+  return summarizeSequentialResults(results, "Selected orders assigned to delivery.");
+};
+
+export const unassignAdminOrdersDelivery = async ({ ids = [], invoiceNos = [] }) => {
+  const targets = Array.from(new Set([...ids, ...invoiceNos].filter(Boolean)));
+  if (!targets.length) throw new Error("Select at least one order.");
+  const results = await Promise.allSettled(
+    targets.map((target) => updateAdminOrderStatus(target, { status: "processing" }))
+  );
+  return summarizeSequentialResults(results, "Selected orders moved back to processing.");
+};
+
 export const bulkDeleteAdminOrders = async (ids) => {
   const { data } = await adminApi.post("/admin/orders/bulk-delete", { ids });
   return data;
+};
+
+export const exportAdminOrders = async (params = {}) => {
+  const normalizedParams = Object.fromEntries(
+    Object.entries({
+      customer: params?.customer ?? params?.search ?? params?.q,
+      status: params?.status || undefined,
+      paymentStatus: params?.paymentStatus || undefined,
+      paymentMethod: (params?.paymentMethod ?? params?.method) || undefined,
+      deliveryStatus: params?.deliveryStatus || undefined,
+      startDate: params?.startDate || undefined,
+      endDate: params?.endDate || undefined,
+      sortBy: params?.sortBy || undefined,
+      sortDir: params?.sortDir || undefined,
+    }).filter(([, value]) => value !== undefined && value !== null && value !== "")
+  );
+  return adminApi.get("/admin/orders/export", {
+    params: normalizedParams,
+    responseType: "blob",
+  });
 };
 
 export const correctAdminShipmentException = async (orderId, suborderId, payload) => {

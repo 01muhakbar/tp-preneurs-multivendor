@@ -1,13 +1,15 @@
 import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  BadgePercent,
   Bell,
+  Check,
   ChevronRight,
   CreditCard,
+  ExternalLink,
   Mail,
   PackageCheck,
-  Trash2,
+  SlidersHorizontal,
+  Tag,
   Truck,
   UserRound,
 } from "lucide-react";
@@ -18,40 +20,43 @@ import {
   markUserNotificationAsRead,
 } from "../../api/userNotifications.ts";
 import {
-  normalizeNotification,
+  buildNotificationsViewModel,
   unwrapNotifications,
-} from "../../utils/notificationViewModel.js";
-import "./NotificationPreviewDropdown.css";
+} from "../../pages/account/notifications2026/accountNotifications2026Adapter.js";
+import "./notification-preview-dropdown-2026.css";
 
-const KIND_ICONS = {
-  order: PackageCheck,
-  status: Truck,
-  payment: CreditCard,
-  invitation: Mail,
-  promotion: BadgePercent,
-  account: UserRound,
+const ICONS = {
+  bell: Bell,
+  card: CreditCard,
+  mail: Mail,
+  package: PackageCheck,
+  tag: Tag,
+  truck: Truck,
+  user: UserRound,
 };
 
-const invalidateNotifications = (queryClient) =>
+const invalidateNotifications = (queryClient) => {
   queryClient.invalidateQueries({ queryKey: ["account", "notifications"] });
+  queryClient.invalidateQueries({ queryKey: ["user", "notifications"] });
+};
 
-function PreviewIcon({ kind }) {
-  const Icon = KIND_ICONS[kind] || Bell;
+function PreviewIcon({ item }) {
+  const Icon = ICONS[item.iconName] || Bell;
   return (
-    <span className={`np26-row-icon np26-row-icon--${kind || "account"}`} aria-hidden="true">
-      <Icon size={18} strokeWidth={2} />
+    <span
+      className={`tpn-preview-row-icon tpn-preview-row-icon--${item.iconTone || "blue"}`}
+      aria-hidden="true"
+    >
+      <Icon size={23} strokeWidth={2} />
     </span>
   );
 }
 
-export default function NotificationPreviewDropdown({
-  open,
-  onNavigate,
-}) {
+export default function NotificationPreviewDropdown({ open, onNavigate, onClose }) {
   const queryClient = useQueryClient();
   const previewQuery = useQuery({
-    queryKey: ["account", "notifications", "preview"],
-    queryFn: () => fetchUserNotifications({ limit: 4, offset: 0 }),
+    queryKey: ["account", "notifications", "preview", { limit: 5 }],
+    queryFn: () => fetchUserNotifications({ limit: 5, offset: 0 }),
     enabled: Boolean(open),
     staleTime: 15_000,
     retry: 1,
@@ -73,117 +78,112 @@ export default function NotificationPreviewDropdown({
   });
 
   const payload = useMemo(() => unwrapNotifications(previewQuery.data), [previewQuery.data]);
-  const rows = useMemo(
-    () => payload.items.map(normalizeNotification).filter((item) => item.id > 0).slice(0, 4),
-    [payload.items]
+  const viewModel = useMemo(
+    () =>
+      buildNotificationsViewModel({
+        notifications: payload.items,
+        activeFilter: "all",
+        unreadCount: unreadQuery.data ?? payload.unreadCount,
+      }),
+    [payload.items, payload.unreadCount, unreadQuery.data]
   );
-  const unreadCount = Number(unreadQuery.data ?? payload.unreadCount ?? 0);
+  const rows = viewModel.notifications.slice(0, 5);
+  const unreadCount = Number(viewModel.unreadCount || 0);
 
   if (!open) return null;
 
   const goTo = (url) => {
-    if (typeof onNavigate === "function") {
-      onNavigate(url);
-    }
+    onClose?.();
+    onNavigate?.(url || "/user/notifications");
   };
 
   const handleClickRow = async (item) => {
-    if (!item?.id || markReadMutation.isPending) return;
-    if (!item.isRead) {
-      await markReadMutation.mutateAsync(item.id);
+    if (!item) return;
+    try {
+      if (item.id && item.isUnread) {
+        await markReadMutation.mutateAsync(item.id);
+      }
+    } catch {
+      // Navigation remains available if read state update fails.
+    } finally {
+      goTo(item.route || item.actionUrl || "/user/notifications");
     }
-    goTo(item.actionUrl || "/user/notifications");
-  };
-
-  const handleMarkRead = async (event, item) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (!item?.id || item.isRead || markReadMutation.isPending) return;
-    await markReadMutation.mutateAsync(item.id);
   };
 
   return (
-    <div className="notification-preview-2026" role="dialog" aria-label="Notifications preview">
-      <div className="np26-arrow" aria-hidden="true" />
-      <header className="np26-head">
+    <div className="tpn-preview-dropdown" role="dialog" aria-label="Notifications">
+      <div className="tpn-preview-arrow" aria-hidden="true" />
+      <header className="tpn-preview-header">
         <div>
-          <div className="np26-title-row">
-            <h2>Notifications</h2>
-            <span>{unreadCount} unread</span>
-          </div>
-          <p>
-            <span aria-hidden="true" />
-            Realtime connected
-          </p>
+          <h2>Notifications</h2>
+          <span className="tpn-preview-unread">{unreadCount} unread</span>
         </div>
-        <button
-          type="button"
-          onClick={() => markAllReadMutation.mutate()}
-          disabled={markAllReadMutation.isPending || unreadCount <= 0}
-        >
-          {markAllReadMutation.isPending ? "Clearing..." : "Clear all"}
-        </button>
+        <div className="tpn-preview-actions">
+          <button
+            type="button"
+            onClick={() => markAllReadMutation.mutate()}
+            disabled={markAllReadMutation.isPending || unreadCount <= 0}
+          >
+            <Check size={17} />
+            <span>{markAllReadMutation.isPending ? "Marking..." : "Mark all read"}</span>
+          </button>
+          <button type="button" onClick={() => goTo("/user/notifications")}>
+            <SlidersHorizontal size={17} />
+            <span>Filter</span>
+          </button>
+          <button type="button" onClick={() => goTo("/user/notifications")}>
+            <ExternalLink size={17} />
+            <span>View all</span>
+          </button>
+        </div>
       </header>
 
-      <div className="np26-body">
+      <div className="tpn-preview-list">
         {previewQuery.isLoading ? (
-          Array.from({ length: 4 }).map((_, index) => (
-            <div className="np26-row np26-row--skeleton" key={`notification-preview-skeleton-${index}`}>
-              <span className="np26-row-dot" />
-              <span className="np26-skeleton-icon" />
-              <span className="np26-skeleton-lines" />
+          Array.from({ length: 5 }).map((_, index) => (
+            <div className="tpn-preview-row tpn-preview-row--skeleton" key={index}>
+              <span className="tpn-preview-dot" />
+              <span className="tpn-preview-skeleton-icon" />
+              <span className="tpn-preview-skeleton-main" />
             </div>
           ))
         ) : null}
 
         {!previewQuery.isLoading && previewQuery.isError ? (
-          <div className="np26-state">Notifications are temporarily unavailable.</div>
+          <div className="tpn-preview-state">Notifications are temporarily unavailable.</div>
         ) : null}
 
         {!previewQuery.isLoading && !previewQuery.isError && rows.length === 0 ? (
-          <div className="np26-state">No notifications yet.</div>
+          <div className="tpn-preview-state">No notifications yet.</div>
         ) : null}
 
         {!previewQuery.isLoading && !previewQuery.isError
           ? rows.map((item) => (
               <button
                 type="button"
-                className={`np26-row ${item.isRead ? "is-read" : "is-unread"}`}
-                key={item.id}
+                className={`tpn-preview-row ${item.isUnread ? "is-unread" : "is-read"}`}
+                key={item.id || item.rawId}
                 onClick={() => handleClickRow(item)}
               >
-                <span className="np26-row-dot" aria-hidden="true" />
-                <PreviewIcon kind={item.kind} />
-                <span className="np26-row-main">
+                <span className="tpn-preview-dot" aria-hidden="true" />
+                <PreviewIcon item={item} />
+                <span className="tpn-preview-main">
                   <strong>{item.title}</strong>
-                  <span>
-                    <em className={`np26-chip np26-chip--${item.tone}`}>{item.label}</em>
-                    <time>{item.timeLabel}</time>
-                  </span>
+                  <span>{item.message}</span>
+                  <em className={`tpn-preview-chip tpn-preview-chip--${item.tone || "blue"}`}>
+                    {item.chip || item.label}
+                  </em>
                 </span>
-                <span
-                  role="button"
-                  tabIndex={0}
-                  className="np26-mark-read"
-                  aria-label={item.isRead ? "Already read" : "Mark as read"}
-                  title={item.isRead ? "Already read" : "Mark as read"}
-                  onClick={(event) => handleMarkRead(event, item)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      handleMarkRead(event, item);
-                    }
-                  }}
-                >
-                  <Trash2 size={15} />
-                </span>
+                <time>{item.timeLabel || "Recent"}</time>
+                <ChevronRight size={20} aria-hidden="true" />
               </button>
             ))
           : null}
       </div>
 
-      <button type="button" className="np26-view-all" onClick={() => goTo("/user/notifications")}>
+      <button type="button" className="tpn-preview-footer" onClick={() => goTo("/user/notifications")}>
         <span>View all notifications</span>
-        <ChevronRight size={17} />
+        <ChevronRight size={18} />
       </button>
     </div>
   );

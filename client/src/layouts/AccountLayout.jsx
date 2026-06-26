@@ -1,5 +1,6 @@
 import {
   NavLink,
+  Link,
   Outlet,
   useLocation,
   useNavigate,
@@ -11,6 +12,7 @@ import {
   Bell,
   BriefcaseBusiness,
   ClipboardList,
+  Headphones,
   KeyRound,
   LayoutDashboard,
   LogOut,
@@ -82,8 +84,8 @@ function AccountSidebar({ user, onLogout, isLoggingOut, dashboardSettingCopy }) 
     },
   ];
   return (
-    <aside className="order-2 lg:order-1 lg:sticky lg:top-6">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
+    <aside className="order-2 lg:order-1 lg:sticky lg:top-[172px] lg:self-start">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_18px_44px_rgba(3,76,133,0.07)] dark:border-slate-800 dark:bg-slate-900/80 lg:max-h-[calc(100vh-190px)] lg:overflow-y-auto">
         <div className="flex items-center gap-4">
           <div className="relative">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-xl font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-300">
@@ -113,10 +115,10 @@ function AccountSidebar({ user, onLogout, isLoggingOut, dashboardSettingCopy }) 
               end={item.to === "/user/dashboard"}
               className={({ isActive }) =>
                 [
-                  "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition",
+                  "flex items-center gap-3 rounded-lg border-l-4 px-4 py-3 text-sm font-medium transition",
                   isActive
-                    ? "bg-[var(--tp-primary-soft)] text-[var(--tp-primary)] font-semibold dark:text-sky-200"
-                    : "text-slate-600 hover:bg-[var(--tp-primary-soft)] hover:text-[var(--tp-primary)] dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-sky-200",
+                    ? "border-[var(--tp-primary)] bg-[var(--tp-primary-soft)] pl-3 text-[var(--tp-primary)] font-semibold dark:text-sky-200"
+                    : "border-transparent text-slate-600 hover:bg-[var(--tp-primary-soft)] hover:text-[var(--tp-primary)] dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-sky-200",
                 ].join(" ")
               }
             >
@@ -125,6 +127,26 @@ function AccountSidebar({ user, onLogout, isLoggingOut, dashboardSettingCopy }) 
             </NavLink>
           ))}
         </nav>
+
+        <div className="mt-6 rounded-xl border border-slate-200 bg-[#f7fbff] p-4 dark:border-slate-800 dark:bg-slate-950/60">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--tp-primary-soft)] text-[var(--tp-primary)] dark:bg-slate-800 dark:text-sky-200">
+              <Headphones className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-sm font-black text-slate-900 dark:text-white">Need help?</p>
+              <p className="mt-0.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                We're here 24/7
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/contact-us?topic=account"
+            className="mt-4 inline-flex w-full items-center justify-center rounded-lg border border-[var(--tp-primary)] px-4 py-2.5 text-sm font-black text-[var(--tp-primary)] transition hover:bg-[var(--tp-primary)] hover:text-white dark:border-sky-700 dark:text-sky-200 dark:hover:bg-sky-900/40"
+          >
+            Contact Support
+          </Link>
+        </div>
 
         <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-800">
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
@@ -167,6 +189,7 @@ export default function AccountLayout() {
   const usesStandaloneSurface =
     location.pathname === "/user/dashboard" ||
     location.pathname === "/user/my-orders" ||
+    location.pathname === "/user/notifications" ||
     location.pathname === "/user/store-invitations" ||
     isOrderDetailRoute;
 

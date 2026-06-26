@@ -409,7 +409,7 @@ const adaptOrderRow = (value: unknown) => {
     return {
       id: idValue(itemValue.id ?? itemValue.productId, index),
       label: text(itemValue.productName ?? itemValue.name, `Item ${index + 1}`),
-      imageUrl: text(itemValue.imageUrl ?? itemValue.thumbnailUrl) || null,
+      imageUrl: text(itemValue.imageUrl ?? itemValue.thumbnailUrl ?? itemValue.image ?? object(itemValue.product).imageUrl ?? object(itemValue.product).image ?? object(itemValue.Product).imageUrl ?? object(itemValue.Product).image) || null,
     };
   });
   const paymentLabel = text(paymentMeta.label ?? paymentState.label ?? paymentStatus, paymentStatus);
@@ -513,7 +513,7 @@ export function adaptSeller2026SuborderDetail(value: unknown): Seller2026Suborde
       quantity,
       price,
       subtotal: number(row.totalPrice ?? row.subtotal, price * quantity),
-      imageUrl: text(row.imageUrl ?? row.thumbnailUrl) || null,
+      imageUrl: text(row.imageUrl ?? row.thumbnailUrl ?? row.image ?? object(row.product).imageUrl ?? object(row.product).image ?? object(row.Product).imageUrl ?? object(row.Product).image) || null,
     };
   });
   const shipments = array(detail.shipments).map(object);

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "react-hot-toast";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../../api/axios.ts";
 import { fetchOrderCheckoutPayment } from "../../api/orderPayments.ts";
@@ -6,6 +7,7 @@ import { isOrderContractFinal } from "../../utils/orderContract.ts";
 import { isSplitOperationallyFinal } from "../../utils/splitOperationalTruth.ts";
 import AccountOrderDetail2026View from "./AccountOrderDetail2026View.jsx";
 import { normalizeOrderDetailFor2026 } from "./accountOrderDetail2026Adapter.js";
+import { useAuth } from "../../auth/useAuth.js";
 
 const fetchOrder = async (orderId) => {
   const { data } = await api.get(`/store/orders/my/${orderId}`);
@@ -22,6 +24,8 @@ const shouldPollGroupedOrder = (groupedOrder) => {
 export default function AccountOrderDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const auth = useAuth();
+  const user = auth?.user || null;
   const orderQuery = useQuery({
     queryKey: ["account", "orders", id],
     queryFn: () => fetchOrder(id),
@@ -54,13 +58,68 @@ export default function AccountOrderDetailPage() {
       })
     : null;
 
-  const handlePrint = () => window.print();
-  const handleViewInvoice = () => {
+  const scrollToTimeline = () => {
     document
-      .getElementById("tpo2026-order-summary")
+      .getElementById("aod-order-timeline")
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
-  const handleContactSupport = () => navigate("/contact-us");
+
+  const handlePrint = () => {
+    window.print();
+    toast.success("Print dialog opened.");
+  };
+
+  const openUrl = (url) => {
+    if (!url) return false;
+    if (/^https?:\/\//i.test(url)) {
+      window.open(url, "_blank", "noopener,noreferrer");
+      return true;
+    }
+    navigate(url);
+    return true;
+  };
+
+  const handleInvoice = (action) => {
+    if (action?.url && openUrl(action.url)) {
+      toast.success("Invoice opened.");
+      return;
+    }
+    window.print();
+    toast.success("Invoice print fallback opened.");
+  };
+
+  const handleTrack = (action) => {
+    if (action?.url && openUrl(action.url)) {
+      toast.success("Tracking opened.");
+      return;
+    }
+    if (action?.path && openUrl(action.path)) {
+      return;
+    }
+    scrollToTimeline();
+  };
+
+  const handleCopy = async (value, message = "Copied.") => {
+    const normalized = String(value || "").trim();
+    if (!normalized) return;
+    try {
+      await navigator.clipboard.writeText(normalized);
+      toast.success(message);
+    } catch {
+      toast.error("Copy failed.");
+    }
+  };
+
+  const handleRetry = () => {
+    orderQuery.refetch();
+    groupedQuery.refetch();
+  };
+  const handleContactSupport = () => {
+    const target =
+      orderDetail2026?.actionability?.contactSupport?.path ||
+      `/contact-us?topic=order&ref=${encodeURIComponent(orderDetail2026?.order?.code || id || "")}`;
+    navigate(target);
+  };
   const invalidIdError = !id ? new Error("Invalid order id.") : null;
   const missingOrderError =
     !orderQuery.isLoading && !orderQuery.isError && id && !orderDetail
@@ -74,8 +133,15 @@ export default function AccountOrderDetailPage() {
       error={invalidIdError || (orderQuery.isError ? orderQuery.error : null) || missingOrderError}
       LinkComponent={Link}
       onPrint={handlePrint}
-      onViewInvoice={handleViewInvoice}
+      onInvoice={handleInvoice}
+      onTrack={handleTrack}
+      onTimeline={scrollToTimeline}
       onContactSupport={handleContactSupport}
+      onCopy={handleCopy}
+      onRetry={handleRetry}
+      rawOrder={orderDetail}
+      groupedOrder={paymentReadModel}
+      user={user}
     />
   );
 }

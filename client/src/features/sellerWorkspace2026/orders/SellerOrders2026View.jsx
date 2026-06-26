@@ -228,7 +228,7 @@ export default function SellerOrders2026View({
                       <td>
                         <div className="tpsow2026-cell-order">
                           <div>
-                            <strong>{row.reference}</strong>
+                            <strong title={row.reference}>{row.reference}</strong>
                             <button type="button" onClick={() => copyOrderNumber(row.reference)} aria-label="Copy order number"><Copy size={12} /></button>
                           </div>
                           <small>{row.createdLabel}</small>
@@ -239,7 +239,7 @@ export default function SellerOrders2026View({
                           <span>{row.customer.initials}</span>
                           <div>
                             <strong>{row.customer.name}</strong>
-                            <small>{row.customer.email}</small>
+                            <small title={row.customer.email}>{row.customer.email}</small>
                           </div>
                         </div>
                       </td>

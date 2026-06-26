@@ -175,7 +175,7 @@ export default function Checkout2026View({
     return <main className="co26-page"><div className="co26-skeleton"><i /><i /><i /><i /></div></main>;
   }
   if (status.redirectUrl) {
-    return <main className="co26-page"><div className="co26-empty"><span className="co26-spinner" /><h1>Order created</h1><p>Opening your secure payment page.</p><Link className="co26-primary-button" to={status.redirectUrl}>Continue to Payment</Link></div></main>;
+    return <main className="co26-page"><div className="co26-empty"><span className="co26-spinner" /><h1>Order created</h1><p>Opening your secure payment page.</p><a className="co26-primary-button" href={status.redirectUrl}>Continue to Payment</a></div></main>;
   }
   if (!status.hasItems) return <EmptyState />;
 

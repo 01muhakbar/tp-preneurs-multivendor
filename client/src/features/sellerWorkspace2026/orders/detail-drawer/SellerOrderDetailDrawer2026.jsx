@@ -51,7 +51,8 @@ export default function SellerOrderDetailDrawer2026({
     if (order?.fulfillmentDraft) {
       setFulfillmentDraft(order.fulfillmentDraft);
     }
-  }, [order?.note, order?.fulfillmentDraft]);
+    // Only initialize when opening a new order to prevent overriding user input on re-renders
+  }, [order?.id]);
 
   const changeFulfillmentField = (field) => (event) => {
     setFulfillmentDraft((current) => ({ ...current, [field]: event.target.value }));
@@ -87,6 +88,10 @@ export default function SellerOrderDetailDrawer2026({
   };
 
   if (!order && !isLoading && !error) return null;
+
+  // The inputs should ONLY be active when the order is Packed (PROCESSING)
+  // because that's when the user inputs tracking data to mark it as Shipped.
+  const isShippingReadonly = order?.status?.code !== "PROCESSING" && order?.status?.code !== "PACKED";
 
   return (
     <div className="tpsodd2026-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -214,6 +219,7 @@ export default function SellerOrderDetailDrawer2026({
                           value={fulfillmentDraft?.trackingNumber || ""}
                           onChange={changeFulfillmentField("trackingNumber")}
                           placeholder="Input tracking number"
+                          disabled={isShippingReadonly || isUpdating}
                         />
                       </label>
                       <label>
@@ -222,6 +228,7 @@ export default function SellerOrderDetailDrawer2026({
                           value={fulfillmentDraft?.shippingProvider || ""}
                           onChange={changeFulfillmentField("shippingProvider")}
                           placeholder="JNE"
+                          disabled={isShippingReadonly || isUpdating}
                         />
                       </label>
                       <label>
@@ -230,6 +237,7 @@ export default function SellerOrderDetailDrawer2026({
                           value={fulfillmentDraft?.courierService || ""}
                           onChange={changeFulfillmentField("courierService")}
                           placeholder="REG"
+                          disabled={isShippingReadonly || isUpdating}
                         />
                       </label>
                     </div>

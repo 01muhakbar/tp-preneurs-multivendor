@@ -50,10 +50,23 @@ export const normalizeDrawerOrderDetail = (detailData) => {
   // Make the progress stepper safe
   const progress = base.progress || [];
 
+  const clearVal = (val, defaults = []) => {
+    const norm = (val || "").trim();
+    if (!norm || norm === "PACKED" || norm === "READY_TO_FULFILL" || defaults.includes(norm)) return "";
+    return norm;
+  };
+
+  const fulfillmentDraft = {
+    trackingNumber: clearVal(base.shipping?.trackingNo, ["No tracking number yet.", "No tracking yet"]),
+    shippingProvider: clearVal(base.shipping?.courier, ["Courier not assigned"]),
+    courierService: clearVal(base.shipping?.method, ["Not set"]),
+  };
+
   return {
     ...base,
     rawSuborder,
     note: rawSuborder.internalNote || rawSuborder.note || "",
-    primaryAction
+    primaryAction,
+    fulfillmentDraft
   };
 };
