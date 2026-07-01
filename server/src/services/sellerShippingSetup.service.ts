@@ -57,8 +57,9 @@ export const SELLER_SHIPPING_SETUP_REQUIRED_FIELDS = [
   { key: "originContactName", label: SHIPPING_SETUP_FIELD_LABELS.originContactName },
   { key: "originPhone", label: SHIPPING_SETUP_FIELD_LABELS.originPhone },
   { key: "originAddressLine1", label: SHIPPING_SETUP_FIELD_LABELS.originAddressLine1 },
-  { key: "originCity", label: SHIPPING_SETUP_FIELD_LABELS.originCity },
   { key: "originProvince", label: SHIPPING_SETUP_FIELD_LABELS.originProvince },
+  { key: "originCity", label: SHIPPING_SETUP_FIELD_LABELS.originCity },
+  { key: "originDistrict", label: SHIPPING_SETUP_FIELD_LABELS.originDistrict },
   { key: "originPostalCode", label: SHIPPING_SETUP_FIELD_LABELS.originPostalCode },
   { key: "originCountry", label: SHIPPING_SETUP_FIELD_LABELS.originCountry },
 ] as const;
@@ -244,6 +245,7 @@ export const buildStoreShippingSetupReadiness = (store: any) => {
     effectivePhone.usesFallback ? "originPhone" : null,
     effectiveAddressLine1.usesFallback ? "originAddressLine1" : null,
     effectiveAddressLine2.usesFallback ? "originAddressLine2" : null,
+    effectiveDistrict.usesFallback ? "originDistrict" : null,
     effectiveCity.usesFallback ? "originCity" : null,
     effectiveProvince.usesFallback ? "originProvince" : null,
     effectivePostalCode.usesFallback ? "originPostalCode" : null,

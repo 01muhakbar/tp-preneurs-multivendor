@@ -494,7 +494,7 @@ export function useCart() {
     ) => {
       const id = Number(productId);
       const safeQty = Math.max(1, Number(qty) || 1);
-      if (!Number.isFinite(id) || id <= 0) return;
+      if (!Number.isFinite(id) || id <= 0) return false;
       const fromPath = `${location.pathname}${location.search}${location.hash}`;
       const shouldUseRemoteCart =
         mode === "remote" || hasAuthSessionSignal() || readRemoteHint();
@@ -504,19 +504,20 @@ export function useCart() {
         addGuestItemSnapshot(id, safeQty, snapshot as any);
         refreshGuest();
         setIsLoading(false);
-        return;
+        return true;
       }
       try {
         await cartApi.addToCart(id, safeQty, snapshot);
         setMode("remote");
         await refreshCart(false);
+        return true;
       } catch (err: any) {
         if (isUnauthorized(err)) {
           if (mode !== "remote") {
             writeRemoteHint(false);
             addGuestItemSnapshot(id, safeQty, snapshot as any);
             refreshGuest();
-            return;
+            return true;
           }
           writeRemoteHint(false);
           stashPendingAdd({
@@ -534,15 +535,16 @@ export function useCart() {
               }),
             }
           );
-          return;
+          return false;
         }
         setError(err);
         await refreshCart(false);
+        return false;
       } finally {
         setIsLoading(false);
       }
     },
-    [location, mode, navigate, refreshCart, setMode]
+    [location, mode, navigate, refreshCart, refreshGuest, setMode]
   );
 
   const update = useCallback(

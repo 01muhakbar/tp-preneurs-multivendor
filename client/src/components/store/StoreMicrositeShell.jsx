@@ -172,6 +172,7 @@ export default function StoreMicrositeShell({
   navigationItems = [],
   children,
   compact = false,
+  hideHero = false,
 }) {
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const location = useLocation();
@@ -230,24 +231,27 @@ export default function StoreMicrositeShell({
         brandingLogoUrl={branding.clientLogoUrl}
       />
       <main className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
-        <nav className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
-          <Link to="/" className="hover:text-slate-700">
-            Marketplace
-          </Link>
-          <ChevronRight className="h-4 w-4 text-slate-300" />
-          {hasCurrentLabel ? (
-            <>
-              <Link to={storeHref} className="hover:text-slate-700">
-                {storeName}
-              </Link>
-              <ChevronRight className="h-4 w-4 text-slate-300" />
-              <span className="font-medium text-slate-700">{currentLabel}</span>
-            </>
-          ) : (
-            <span className="font-medium text-slate-700">{storeName}</span>
-          )}
-        </nav>
+        {!hideHero && (
+          <nav className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+            <Link to="/" className="hover:text-slate-700">
+              Marketplace
+            </Link>
+            <ChevronRight className="h-4 w-4 text-slate-300" />
+            {hasCurrentLabel ? (
+              <>
+                <Link to={storeHref} className="hover:text-slate-700">
+                  {storeName}
+                </Link>
+                <ChevronRight className="h-4 w-4 text-slate-300" />
+                <span className="font-medium text-slate-700">{currentLabel}</span>
+              </>
+            ) : (
+              <span className="font-medium text-slate-700">{storeName}</span>
+            )}
+          </nav>
+        )}
 
+        {!hideHero && (
         <section
           id="store-home"
           className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-[0_20px_45px_rgba(15,23,42,0.08)]"
@@ -451,6 +455,7 @@ export default function StoreMicrositeShell({
             ) : null}
           </div>
         </section>
+        )}
 
         {children}
       </main>

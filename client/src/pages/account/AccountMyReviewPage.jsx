@@ -682,6 +682,11 @@ export default function AccountMyReviewPage() {
                   <div className="reviews-2026-card__content">
                     <h3>{item.name}</h3>
                     <p>{item.storeName}</p>
+                    {item.sellerReply ? (
+                      <p className="reviews-2026-card__seller-reply">
+                        <strong>Store reply:</strong> {item.sellerReply}
+                      </p>
+                    ) : null}
                     <StarRating value={item.rating} readonly />
                     <span>
                       <CalendarDays size={14} />

@@ -2,7 +2,15 @@ import "dotenv/config";
 import assert from "node:assert/strict";
 import bcrypt from "bcrypt";
 import { Op } from "sequelize";
-import { StoreApplication, User, sequelize } from "../models/index.js";
+import {
+  Store,
+  StoreApplication,
+  StoreMember,
+  StorePaymentProfile,
+  StorePaymentProfileRequest,
+  User,
+  sequelize,
+} from "../models/index.js";
 import { buildStoreApplicationMutationMetadata } from "../services/storeApplication.js";
 
 const BASE_URL = String(process.env.BASE_URL || "http://localhost:3001").replace(/\/+$/, "");
@@ -158,10 +166,18 @@ async function createSubmittedApplication(applicantUserId: number, label: string
       notes: `Address note ${label}`,
     },
     payoutPaymentSnapshot: {
-      payoutMethod: "bank_transfer",
+      providerCode: "MANUAL_QRIS",
+      paymentType: "QRIS_STATIC",
+      accountName: `Applicant ${label}`,
+      merchantName: `Store ${label}`,
+      merchantId: `MERCHANT-${label}`,
+      qrisImageUrl: `/uploads/products/${RUN_ID}-${label}-qris.png`,
+      qrisPayload: `QRIS-PAYLOAD-${label}`,
+      instructionText: `Scan QRIS for ${label}`,
+      sellerNote: `Seller note ${label}`,
+      payoutMethod: "QRIS_STATIC",
       accountHolderName: `Applicant ${label}`,
-      accountNumber: "1234567890123",
-      bankName: "Bank Smoke",
+      bankName: "MANUAL_QRIS",
       accountHolderMatchesIdentity: true,
     },
     complianceSnapshot: {
@@ -195,6 +211,30 @@ async function createSubmittedApplication(applicantUserId: number, label: string
 }
 
 async function cleanupFixtures() {
+  const stores = await Store.findAll({
+    where: { ownerUserId: { [Op.in]: createdUserIds } } as any,
+    attributes: ["id"],
+  }).catch(() => [] as any[]);
+  const storeIds = stores.map((store: any) => Number(store.getDataValue("id"))).filter(Boolean);
+  if (storeIds.length > 0) {
+    await StorePaymentProfileRequest.destroy({
+      where: { storeId: { [Op.in]: storeIds } } as any,
+      force: true,
+    }).catch(() => null);
+    await StorePaymentProfile.destroy({
+      where: { storeId: { [Op.in]: storeIds } } as any,
+      force: true,
+    }).catch(() => null);
+    await StoreMember.destroy({
+      where: { storeId: { [Op.in]: storeIds } } as any,
+      force: true,
+    }).catch(() => null);
+    await Store.destroy({
+      where: { id: { [Op.in]: storeIds } } as any,
+      force: true,
+    }).catch(() => null);
+  }
+
   if (createdApplicationIds.length > 0) {
     await StoreApplication.destroy({
       where: { id: { [Op.in]: createdApplicationIds } } as any,

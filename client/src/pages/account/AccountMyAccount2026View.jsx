@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   User,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import "./account-my-account-2026.css";
 
 function LoadingBlock() {
@@ -52,13 +53,13 @@ function Avatar({ profile }) {
   );
 }
 
-function Field({ icon: Icon, label, value }) {
+function Field({ icon: Icon, label, value, t }) {
   return (
     <div className="tpacct2026-field">
       <Icon aria-hidden="true" />
       <div>
         <span>{label}</span>
-        <strong>{value || "Not set"}</strong>
+        <strong>{value || t("myAccount.notSet")}</strong>
       </div>
     </div>
   );
@@ -90,33 +91,35 @@ export default function AccountMyAccount2026View({
   onEditProfile,
   onEditAddress,
 }) {
+  const { t } = useTranslation();
+
   const quickLinks = [
     {
       to: "/user/update-profile",
       icon: User,
-      title: "Update Profile",
-      text: "Edit your personal information",
+      title: t("myAccount.updateProfile"),
+      text: t("myAccount.updateProfileDesc"),
       count: 0,
     },
     {
       to: "/user/change-password",
       icon: KeyRound,
-      title: "Change Password",
-      text: "Update your account password",
+      title: t("myAccount.changePassword"),
+      text: t("myAccount.changePasswordDesc"),
       count: 0,
     },
     {
       to: "/user/notifications",
       icon: Bell,
-      title: "Notifications",
-      text: "Manage your notification preferences",
+      title: t("myAccount.notifications"),
+      text: t("myAccount.notificationsDesc"),
       count: notificationCount,
     },
     {
       to: "/user/my-account",
       icon: ShieldCheck,
-      title: "Privacy & Security",
-      text: "Manage your privacy settings",
+      title: t("myAccount.privacySecurity"),
+      text: t("myAccount.privacySecurityDesc"),
       count: 0,
     },
   ];
@@ -125,12 +128,12 @@ export default function AccountMyAccount2026View({
     <section className="tpacct2026-root">
       <header className="tpacct2026-heading">
         <div>
-          <h1>My Account</h1>
-          <p>Manage your profile and preferences</p>
+          <h1>{t("myAccount.title")}</h1>
+          <p>{t("myAccount.subtitle")}</p>
         </div>
-        <IconButton onClick={onEditProfile} label="Edit Profile">
+        <IconButton onClick={onEditProfile} label={t("myAccount.editProfile")}>
           <Pencil aria-hidden="true" />
-          <span>Edit Profile</span>
+          <span>{t("myAccount.editProfile")}</span>
         </IconButton>
       </header>
 
@@ -146,7 +149,7 @@ export default function AccountMyAccount2026View({
         <>
           <article className="tpacct2026-panel tpacct2026-profile">
             <div className="tpacct2026-panel-title">
-              <h2>Profile Overview</h2>
+              <h2>{t("myAccount.profileOverview")}</h2>
             </div>
 
             <div className="tpacct2026-profile-main">
@@ -162,17 +165,17 @@ export default function AccountMyAccount2026View({
             </div>
 
             <div className="tpacct2026-fields">
-              <Field icon={Phone} label="Phone / Mobile" value={profile.phone} />
-              <Field icon={MapPin} label="Address" value={profile.address} />
+              <Field icon={Phone} label={t("myAccount.phone")} value={profile.phone} t={t} />
+              <Field icon={MapPin} label={t("myAccount.address")} value={profile.address} t={t} />
             </div>
           </article>
 
           <article className="tpacct2026-panel tpacct2026-address">
             <div className="tpacct2026-panel-title">
-              <h2>Default Shipping Address</h2>
-              <IconButton onClick={onEditAddress} label="Edit Address">
+              <h2>{t("myAccount.defaultShippingAddress")}</h2>
+              <IconButton onClick={onEditAddress} label={t("myAccount.editAddress")}>
                 <Pencil aria-hidden="true" />
-                <span>Edit Address</span>
+                <span>{t("myAccount.editAddress")}</span>
               </IconButton>
             </div>
 
@@ -191,7 +194,7 @@ export default function AccountMyAccount2026View({
                   <p>{defaultAddress.summary}</p>
                 )}
                 <div className="tpacct2026-tags">
-                  <span>{defaultAddress.isPrimary ? "Primary" : "Default"}</span>
+                  <span>{defaultAddress.isPrimary ? t("myAccount.primary") : t("myAccount.default")}</span>
                   <span>{defaultAddress.label}</span>
                 </div>
               </div>

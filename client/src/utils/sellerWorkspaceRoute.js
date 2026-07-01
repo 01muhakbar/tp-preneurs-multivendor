@@ -53,6 +53,7 @@ export const createSellerWorkspaceRoutes = (storeSlug) => ({
   shippingSetup: () => `${buildSellerWorkspacePath(storeSlug, "/store-profile")}#shipping-setup`,
   profile: () => buildSellerWorkspacePath(storeSlug, "/store-profile"),
   catalog: () => buildSellerWorkspacePath(storeSlug, "/catalog/products"),
+  reviews: () => buildSellerWorkspacePath(storeSlug, "/catalog/reviews"),
   categories: () => buildSellerWorkspacePath(storeSlug, "/catalog/categories"),
   attributes: () => buildSellerWorkspacePath(storeSlug, "/catalog/attributes"),
   attributeValues: (attributeId) =>

@@ -217,6 +217,11 @@ export const ADMIN_NAVIGATION = [
         to: "/admin/store/applications",
         perm: "STORE_APPLICATIONS_REVIEW",
       },
+      {
+        label: "KYC / Legal Audit",
+        to: "/admin/online-store/kyc-audit",
+        perm: "SETTINGS_MANAGE",
+      },
     ],
   },
 ];

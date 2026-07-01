@@ -7,6 +7,8 @@ import {
   Store,
   StoreApplication,
   StoreMember,
+  StorePaymentProfile,
+  StorePaymentProfileRequest,
   User,
 } from "../models/index.js";
 
@@ -70,6 +72,7 @@ const createdUserIds: number[] = [];
 const createdApplicationIds: number[] = [];
 const createdStoreIds: number[] = [];
 const createdMemberIds: number[] = [];
+const createdPaymentRequestIds: number[] = [];
 
 const logStep = (label: string) => {
   console.log(`[mvf-store-activation] ${label}`);
@@ -85,6 +88,11 @@ const assertStatus = (response: JsonResponse, status: number, label: string) => 
     status,
     `${label}: expected HTTP ${status}, received ${response.status} (${response.text})`
   );
+};
+
+const readJsonObject = (value: unknown) => {
+  if (typeof value === "string") return JSON.parse(value);
+  return value as Record<string, any> | null;
 };
 
 async function ensureServerReady() {
@@ -160,10 +168,18 @@ const buildDraftPayload = (label: string) => ({
     notes: `Address note ${label}`,
   },
   payoutPaymentSnapshot: {
-    payoutMethod: "bank_transfer",
+    providerCode: "MANUAL_QRIS",
+    paymentType: "QRIS_STATIC",
+    accountName: `Applicant ${label}`,
+    merchantName: `Store ${label}`,
+    merchantId: `MERCHANT-${label}`,
+    qrisImageUrl: `/uploads/products/${RUN_ID}-${label}-qris.png`,
+    qrisPayload: `QRIS-PAYLOAD-${label}`,
+    instructionText: `Scan QRIS for ${label}`,
+    sellerNote: `Seller note ${label}`,
+    payoutMethod: "QRIS_STATIC",
     accountHolderName: `Applicant ${label}`,
-    accountNumber: "1234567890123",
-    bankName: "Bank Smoke",
+    bankName: "MANUAL_QRIS",
     accountHolderMatchesIdentity: true,
   },
   complianceSnapshot: {
@@ -182,6 +198,31 @@ const buildDraftPayload = (label: string) => ({
     agreedToAdminReview: true,
     agreedToPlatformPolicy: true,
     understandsStoreInactiveUntilApproved: true,
+  },
+  sellerOnboardingSnapshot: {
+    storeLogo: {
+      url: `/uploads/products/${RUN_ID}-${label}-logo.png`,
+      fileName: `${label}-logo.png`,
+    },
+    storeBanner: {
+      url: `/uploads/products/${RUN_ID}-${label}-banner.png`,
+      fileName: `${label}-banner.png`,
+    },
+    residentialAddress: `Jl. Residential ${label} No. 2`,
+    ownerCountry: "Indonesia",
+    ownerProvince: "DKI Jakarta",
+    ownerCity: "Kota Jakarta Selatan",
+    ownerSubdistrict: "Setiabudi",
+    ownerPostalCode: "12910",
+    legalEntity: "Sole Proprietorship",
+    pickupSameAsBusiness: false,
+    pickupAddress: `Gudang ${label}, Jakarta`,
+    timeZone: "Asia/Jakarta",
+    openTime: "09:00",
+    closeTime: "18:00",
+    workingDays: "Monday – Saturday",
+    shippingMethod: "TP Preneurs Logistics",
+    processingTime: "1–2 business days",
   },
 });
 
@@ -214,6 +255,13 @@ async function cleanupFixtures() {
   if (createdMemberIds.length > 0) {
     await StoreMember.destroy({
       where: { id: { [Op.in]: createdMemberIds } } as any,
+      force: true,
+    }).catch(() => null);
+  }
+
+  if (createdPaymentRequestIds.length > 0) {
+    await StorePaymentProfileRequest.destroy({
+      where: { id: { [Op.in]: createdPaymentRequestIds } } as any,
       force: true,
     }).catch(() => null);
   }
@@ -261,6 +309,17 @@ async function trackProvisionedArtifacts(ownerUserId: number) {
         createdMemberIds.push(memberId);
       }
     });
+
+    const paymentRequests = await StorePaymentProfileRequest.findAll({
+      where: { storeId } as any,
+      attributes: ["id"],
+    });
+    paymentRequests.forEach((request: any) => {
+      const requestId = Number(request.getDataValue("id"));
+      if (requestId > 0 && !createdPaymentRequestIds.includes(requestId)) {
+        createdPaymentRequestIds.push(requestId);
+      }
+    });
   }
 }
 
@@ -272,20 +331,24 @@ async function run() {
   const approvedApplicant = await createFixtureUser("approved", "customer");
   const revisionApplicant = await createFixtureUser("revision", "customer");
   const rejectedApplicant = await createFixtureUser("rejected", "customer");
+  const conflictApplicant = await createFixtureUser("conflict", "customer");
 
   const adminClient = new CookieClient();
   const approvedClient = new CookieClient();
   const revisionClient = new CookieClient();
   const rejectedClient = new CookieClient();
+  const conflictClient = new CookieClient();
 
   await loginAdmin(adminClient, admin.email, admin.password, "admin login");
   await login(approvedClient, approvedApplicant.email, approvedApplicant.password, "approved applicant login");
   await login(revisionClient, revisionApplicant.email, revisionApplicant.password, "revision applicant login");
   await login(rejectedClient, rejectedApplicant.email, rejectedApplicant.password, "rejected applicant login");
+  await login(conflictClient, conflictApplicant.email, conflictApplicant.password, "conflict applicant login");
 
   const approvedApplication = await createAndSubmitApplication(approvedClient, "approved");
   const revisionApplication = await createAndSubmitApplication(revisionClient, "revision");
   const rejectedApplication = await createAndSubmitApplication(rejectedClient, "rejected");
+  const conflictApplication = await createAndSubmitApplication(conflictClient, "conflict");
 
   logStep("public boundary safe before approval");
   const publicBeforeApproval = await approvedClient.request(
@@ -318,6 +381,126 @@ async function run() {
   assert.equal(String(approveResponse.body?.data?.status || ""), "approved", "approved application status mismatch");
   await trackProvisionedArtifacts(approvedApplicant.id);
   logPass("admin approve provisions seller activation");
+
+  logStep("approval hands QRIS to Payment Profile as one submitted request");
+  const provisionedStore = await Store.findOne({
+    where: { ownerUserId: approvedApplicant.id } as any,
+    attributes: [
+      "id",
+      "activeStorePaymentProfileId",
+      "logoUrl",
+      "bannerUrl",
+      "district",
+      "shippingSetup",
+      "ownerIdentity",
+      "businessDetails",
+    ],
+  });
+  assert.ok(provisionedStore, "approved store should exist for Payment Profile handoff");
+  const provisionedStoreId = Number(provisionedStore!.getDataValue("id"));
+  const paymentRequest = await StorePaymentProfileRequest.findOne({
+    where: { storeId: provisionedStoreId } as any,
+    order: [["id", "DESC"]],
+  });
+  assert.ok(paymentRequest, "approval should create a Payment Profile request");
+  assert.equal(paymentRequest!.getDataValue("requestStatus"), "SUBMITTED");
+  assert.equal(paymentRequest!.getDataValue("accountName"), "Applicant approved");
+  assert.equal(paymentRequest!.getDataValue("merchantName"), "Store approved");
+  assert.equal(
+    paymentRequest!.getDataValue("qrisImageUrl"),
+    `/uploads/products/${RUN_ID}-approved-qris.png`
+  );
+  assert.equal(
+    Number(provisionedStore!.getDataValue("activeStorePaymentProfileId") || 0),
+    0,
+    "Store Application approval must not activate a Payment Profile"
+  );
+  assert.equal(
+    await StorePaymentProfile.count({ where: { storeId: provisionedStoreId } as any }),
+    0,
+    "Store Application approval must not create an active snapshot"
+  );
+  assert.equal(
+    provisionedStore!.getDataValue("logoUrl"),
+    `/uploads/products/${RUN_ID}-approved-logo.png`
+  );
+  assert.equal(provisionedStore!.getDataValue("district"), "Setiabudi");
+  assert.equal(
+    readJsonObject(provisionedStore!.getDataValue("ownerIdentity"))?.residentialAddress,
+    "Jl. Residential approved No. 2"
+  );
+  assert.equal(
+    readJsonObject(provisionedStore!.getDataValue("businessDetails"))?.timeZone,
+    "Asia/Jakarta"
+  );
+  assert.equal(
+    readJsonObject(provisionedStore!.getDataValue("shippingSetup"))?.originAddressLine1,
+    "Gudang approved, Jakarta"
+  );
+
+  const synchronizedProfileResponse = await approvedClient.request(
+    `/api/seller/stores/${provisionedStoreId}/store-profile`
+  );
+  assertStatus(synchronizedProfileResponse, 200, "synchronized seller store profile");
+  assert.equal(
+    synchronizedProfileResponse.body?.data?.ownerIdentity?.ownerPostalCode ||
+      synchronizedProfileResponse.body?.data?.ownerIdentity?.postalCode,
+    "12910"
+  );
+  assert.equal(
+    synchronizedProfileResponse.body?.data?.businessDetails?.processingTime,
+    "1–2 business days"
+  );
+
+  const updatedProfileResponse = await approvedClient.request(
+    `/api/seller/stores/${provisionedStoreId}/store-profile`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        ownerIdentity: { residentialAddress: "Updated residential address" },
+        businessDetails: { openTime: "08:30" },
+      }),
+    }
+  );
+  assertStatus(updatedProfileResponse, 200, "update synchronized seller store profile");
+  assert.equal(
+    updatedProfileResponse.body?.data?.ownerIdentity?.residentialAddress,
+    "Updated residential address"
+  );
+  assert.equal(
+    updatedProfileResponse.body?.data?.ownerIdentity?.postalCode,
+    "12910",
+    "partial owner update must preserve synchronized application fields"
+  );
+  assert.equal(updatedProfileResponse.body?.data?.businessDetails?.openTime, "08:30");
+  assert.equal(
+    updatedProfileResponse.body?.data?.businessDetails?.processingTime,
+    "1–2 business days",
+    "partial business update must preserve synchronized application fields"
+  );
+
+  const paymentProfileResponse = await approvedClient.request(
+    `/api/seller/stores/${provisionedStoreId}/payment-profile`
+  );
+  assertStatus(paymentProfileResponse, 200, "seller Payment Profile after application approval");
+  assert.equal(paymentProfileResponse.body?.data?.requestStatus?.code, "SUBMITTED");
+  assert.equal(paymentProfileResponse.body?.data?.requestDraft?.merchantName, "Store approved");
+  assert.equal(Boolean(paymentProfileResponse.body?.data?.isActive), false);
+
+  const repeatApproveResponse = await adminClient.request(
+    `/api/admin/store-applications/${approvedApplication.applicationId}/approve`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ internalAdminNote: "Idempotent retry." }),
+    }
+  );
+  assertStatus(repeatApproveResponse, 200, "idempotent admin approve retry");
+  assert.equal(
+    await StorePaymentProfileRequest.count({ where: { storeId: provisionedStoreId } as any }),
+    1,
+    "idempotent approval must not duplicate Payment Profile requests"
+  );
+  logPass("approval hands QRIS to Payment Profile as one submitted request");
 
   logStep("approved user gets seller access");
   const approvedStoresResponse = await approvedClient.request("/api/seller/stores");
@@ -362,6 +545,53 @@ async function run() {
   );
   assertStatus(publicAfterApproval, 404, "public boundary after approval");
   logPass("public storefront boundary still safe after approval");
+
+  logStep("open Payment Profile request rolls back Store Application approval");
+  const conflictStore = await Store.create({
+    ownerUserId: conflictApplicant.id,
+    name: "Store conflict",
+    slug: conflictApplication.slug,
+    status: "INACTIVE",
+  } as any);
+  const conflictStoreId = Number(conflictStore.getDataValue("id"));
+  createdStoreIds.push(conflictStoreId);
+  const existingConflictRequest = await StorePaymentProfileRequest.create({
+    storeId: conflictStoreId,
+    requestStatus: "DRAFT",
+    accountName: "Existing account",
+    merchantName: "Existing merchant",
+    qrisImageUrl: "/uploads/products/existing-qris.png",
+  } as any);
+  createdPaymentRequestIds.push(Number(existingConflictRequest.getDataValue("id")));
+
+  const conflictApproveResponse = await adminClient.request(
+    `/api/admin/store-applications/${conflictApplication.applicationId}/approve`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ internalAdminNote: "Must roll back." }),
+    }
+  );
+  assertStatus(conflictApproveResponse, 409, "Payment Profile request conflict");
+  assert.equal(conflictApproveResponse.body?.code, "PAYMENT_PROFILE_REQUEST_CONFLICT");
+  const conflictApplicationRow = await StoreApplication.findByPk(
+    conflictApplication.applicationId
+  );
+  assert.equal(
+    conflictApplicationRow?.getDataValue("status"),
+    "submitted",
+    "conflicting approval must leave the application submitted"
+  );
+  assert.equal(
+    await StorePaymentProfileRequest.count({ where: { storeId: conflictStoreId } as any }),
+    1,
+    "conflicting approval must not create another Payment Profile request"
+  );
+  assert.equal(
+    await StoreMember.count({ where: { storeId: conflictStoreId } as any }),
+    0,
+    "conflicting approval must roll back owner membership provisioning"
+  );
+  logPass("open Payment Profile request rolls back Store Application approval");
 
   logStep("revision requested does not activate seller store");
   const revisionRequestResponse = await adminClient.request(

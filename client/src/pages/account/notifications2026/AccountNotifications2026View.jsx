@@ -16,6 +16,7 @@ import {
   Truck,
   UserRound,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { NOTIFICATION_FILTERS } from "./accountNotifications2026Adapter.js";
 import "./account-notifications-2026.css";
 
@@ -99,6 +100,7 @@ export default function AccountNotifications2026View({
   onClearNotifications,
   onRefresh,
 }) {
+  const { t } = useTranslation();
   const [openMenuId, setOpenMenuId] = useState("");
   const [pageMenuOpen, setPageMenuOpen] = useState(false);
   const errorMessage =
@@ -133,10 +135,10 @@ export default function AccountNotifications2026View({
       <div className="tpn-panel">
         <header className="tpn-panel-header">
           <div>
-            <h1 id="tpn-notifications-title">Notifications</h1>
-            <p>Order and account updates.</p>
+            <h1 id="tpn-notifications-title">{t("notifications.title")}</h1>
+            <p>{t("notifications.subtitle")}</p>
           </div>
-          <span className="tpn-unread-badge">{Number(unreadCount || 0)} unread</span>
+          <span className="tpn-unread-badge">{t("notifications.unreadCount", { count: Number(unreadCount || 0) })}</span>
         </header>
 
         <div className="tpn-toolbar" aria-label="Notification controls">
@@ -150,7 +152,7 @@ export default function AccountNotifications2026View({
                 className={activeFilter === filter.key ? "is-active" : ""}
                 onClick={() => onFilterChange?.(filter.key)}
               >
-                <span>{filter.label}</span>
+                <span>{t(`notifications.filters.${filter.key}`)}</span>
                 {counts[filter.key] ? <em>{counts[filter.key]}</em> : null}
               </button>
             ))}
@@ -164,11 +166,11 @@ export default function AccountNotifications2026View({
               disabled={isMarkingAllRead || Number(unreadCount || 0) <= 0}
             >
               <Check size={17} />
-              <span>{isMarkingAllRead ? "Marking..." : "Mark all read"}</span>
+              <span>{isMarkingAllRead ? t("notifications.marking") : t("notifications.markAllRead")}</span>
             </button>
             <button type="button" className="tpn-action-button" onClick={onClearFilters}>
               <CheckCheck size={17} />
-              <span>Clear filters</span>
+              <span>{t("notifications.clearFilters")}</span>
             </button>
             <button
               type="button"
@@ -177,7 +179,7 @@ export default function AccountNotifications2026View({
               aria-pressed={filtersActive}
             >
               <SlidersHorizontal size={17} />
-              <span>Filter</span>
+              <span>{t("notifications.filter")}</span>
             </button>
             {onClearNotifications ? (
               <div className="tpn-page-menu-wrap">
@@ -200,7 +202,7 @@ export default function AccountNotifications2026View({
                       disabled={isClearingAll || loading}
                     >
                       <Trash2 size={16} />
-                      <span>{isClearingAll ? "Clearing..." : "Clear all"}</span>
+                      <span>{isClearingAll ? t("notifications.clearing") : t("notifications.clearAll")}</span>
                     </button>
                   </div>
                 ) : null}
@@ -220,18 +222,18 @@ export default function AccountNotifications2026View({
         {!loading && errorMessage ? (
           <StatePanel
             type="error"
-            title="Notifications could not be loaded."
+            title={t("notifications.errorTitle")}
             message={errorMessage}
-            actionLabel="Try again"
+            actionLabel={t("notifications.tryAgain")}
             onAction={onRefresh}
           />
         ) : null}
 
         {!loading && !errorMessage && notifications.length === 0 ? (
           <StatePanel
-            title="No notifications found."
-            message="New order, account, and offer updates will appear here."
-            actionLabel={activeFilter !== "all" || filtersActive ? "Clear filters" : ""}
+            title={t("notifications.emptyTitle")}
+            message={t("notifications.emptyMessage")}
+            actionLabel={activeFilter !== "all" || filtersActive ? t("notifications.clearFilters") : ""}
             onAction={onClearFilters}
           />
         ) : null}
@@ -259,14 +261,14 @@ export default function AccountNotifications2026View({
                   </button>
 
                   <div className="tpn-row-meta">
-                    <time>{item.timeLabel || "Recent"}</time>
+                    <time>{item.timeLabel || t("notifications.recent")}</time>
                     <button
                       type="button"
                       className="tpn-row-cta"
                       onClick={() => handleOpen(item)}
                       disabled={rowBusy || rowDeleting}
                     >
-                      <span>{item.actionLabel || "Open"}</span>
+                      <span>{item.actionLabel || t("notifications.open")}</span>
                     </button>
                   </div>
 
@@ -292,10 +294,10 @@ export default function AccountNotifications2026View({
                           onClick={() => handleMarkRead(item)}
                           disabled={!item.isUnread || rowBusy}
                         >
-                          Mark read
+                          {t("notifications.markRead")}
                         </button>
                         <button type="button" role="menuitem" onClick={() => handleOpen(item)}>
-                          Open
+                          {t("notifications.open")}
                         </button>
                         <button
                           type="button"
@@ -304,7 +306,7 @@ export default function AccountNotifications2026View({
                           onClick={() => handleDelete(item)}
                           disabled={rowDeleting}
                         >
-                          {rowDeleting ? "Deleting..." : "Delete"}
+                          {rowDeleting ? t("notifications.deleting") : t("notifications.delete")}
                         </button>
                       </div>
                     ) : null}
@@ -318,7 +320,7 @@ export default function AccountNotifications2026View({
         {!loading && !errorMessage && notifications.length > 0 ? (
           <footer className="tpn-panel-footer">
             <Bell size={17} />
-            <span>Stay updated on your orders and account activity.</span>
+            <span>{t("notifications.footerText")}</span>
             <ChevronRight size={17} aria-hidden="true" />
           </footer>
         ) : null}

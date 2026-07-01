@@ -6,14 +6,28 @@ import {
   SELLER_EDITABLE_STORE_PROFILE_FIELDS,
   STORE_PROFILE_ATTRIBUTES,
   getStoreProfileAttr,
+  mergeStoredProfileObjectPatch,
   sellerStoreProfilePatchSchema,
   serializeStoreProfileSnapshot,
+  shouldDeactivateStoreForMissingSellerRequirements,
 } from "../services/sharedContracts/storeProfileGovernance.js";
 import { mergeSellerShippingSetupPatch } from "../services/sellerShippingSetup.service.js";
 import { buildPublicStoreOperationalReadiness } from "../services/sharedContracts/publicStoreIdentity.js";
 import { STORE_PAYMENT_PROFILE_BASE_ATTRIBUTES } from "../services/sharedContracts/storePaymentProfileCompat.js";
 
 const router = Router();
+
+const deactivateStoreIfSellerRequirementsMissing = async (store: any) => {
+  if (!store) return store;
+  const currentStatus = String(store.get?.("status") ?? store.status ?? "").toUpperCase();
+  if (
+    currentStatus === "ACTIVE" &&
+    shouldDeactivateStoreForMissingSellerRequirements(store)
+  ) {
+    await store.update({ status: "INACTIVE" } as any);
+  }
+  return store;
+};
 
 const serializeSellerStoreProfilePayload = (store: any, sellerAccess: any) => ({
   ...serializeStoreProfileSnapshot(store, {
@@ -57,6 +71,8 @@ const getSellerStoreProfileResponse = async (req: any, res: any) => {
         message: "Store not found.",
       });
     }
+
+    await deactivateStoreIfSellerRequirementsMissing(store);
 
     return res.json({
       success: true,
@@ -139,6 +155,20 @@ const patchSellerStoreProfileResponse = async (req: any, res: any) => {
       );
     }
 
+    if (parsed.data.ownerIdentity !== undefined) {
+      updatePayload.ownerIdentity = mergeStoredProfileObjectPatch(
+        getStoreProfileAttr(store, "ownerIdentity"),
+        parsed.data.ownerIdentity
+      );
+    }
+
+    if (parsed.data.businessDetails !== undefined) {
+      updatePayload.businessDetails = mergeStoredProfileObjectPatch(
+        getStoreProfileAttr(store, "businessDetails"),
+        parsed.data.businessDetails
+      );
+    }
+
     if (Object.keys(updatePayload).length === 0) {
       return res.status(400).json({
         success: false,
@@ -147,6 +177,7 @@ const patchSellerStoreProfileResponse = async (req: any, res: any) => {
     }
 
     await store.update(updatePayload as any);
+    await deactivateStoreIfSellerRequirementsMissing(store);
 
     return res.json({
       success: true,

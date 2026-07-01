@@ -167,6 +167,15 @@ const normalizeDetail = (value: any) => {
       fullAddress: textOrNull(value?.operationalVerification?.fullAddress),
     },
     financialVerification: {
+      providerCode: textOrNull(value?.financialVerification?.providerCode),
+      paymentType: textOrNull(value?.financialVerification?.paymentType),
+      accountName: textOrNull(value?.financialVerification?.accountName),
+      merchantName: textOrNull(value?.financialVerification?.merchantName),
+      merchantId: textOrNull(value?.financialVerification?.merchantId),
+      qrisImageUrl: textOrNull(value?.financialVerification?.qrisImageUrl),
+      qrisPayload: textOrNull(value?.financialVerification?.qrisPayload),
+      instructionText: textOrNull(value?.financialVerification?.instructionText),
+      sellerNote: textOrNull(value?.financialVerification?.sellerNote),
       payoutMethod: textOrNull(value?.financialVerification?.payoutMethod),
       accountHolderName: textOrNull(value?.financialVerification?.accountHolderName),
       bankChannel: textOrNull(value?.financialVerification?.bankChannel),
@@ -211,6 +220,14 @@ const normalizeDetail = (value: any) => {
         sellerAccessReady: Boolean(value?.workflowSummary?.activation?.sellerAccessReady),
         provisionedAt: textOrNull(value?.workflowSummary?.activation?.provisionedAt),
         provisionedMode: textOrNull(value?.workflowSummary?.activation?.provisionedMode),
+        paymentProfileRequestId:
+          numberOrZero(value?.workflowSummary?.activation?.paymentProfileRequestId) || null,
+        paymentProfileRequestStatus: textOrNull(
+          value?.workflowSummary?.activation?.paymentProfileRequestStatus
+        ),
+        paymentProfileHandoffSource: textOrNull(
+          value?.workflowSummary?.activation?.paymentProfileHandoffSource
+        ),
       },
     },
     contract: {

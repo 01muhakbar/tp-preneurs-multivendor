@@ -14,6 +14,7 @@ import {
   buildNotificationsViewModel,
   unwrapNotifications,
 } from "./notifications2026/accountNotifications2026Adapter.js";
+import { useTranslation } from "react-i18next";
 
 const PAGE_SIZE = 20;
 
@@ -28,6 +29,8 @@ export default function AccountNotificationsPage() {
   const { user } = useOutletContext() || {};
   const [activeFilter, setActiveFilter] = useState("all");
   const [unreadOnly, setUnreadOnly] = useState(false);
+  const { i18n } = useTranslation();
+  const isIndo = i18n.language === "id";
 
   const notificationsQuery = useQuery({
     queryKey: ["account", "notifications", { limit: PAGE_SIZE, offset: 0 }],
@@ -73,8 +76,9 @@ export default function AccountNotificationsPage() {
         notifications: payload.items,
         activeFilter,
         unreadCount: unreadQuery.data ?? payload.unreadCount,
+        isIndo,
       }),
-    [activeFilter, payload.items, payload.unreadCount, unreadQuery.data]
+    [activeFilter, payload.items, payload.unreadCount, unreadQuery.data, isIndo]
   );
   const visibleNotifications = useMemo(
     () =>

@@ -115,7 +115,10 @@ async function installApiMocks(page: any) {
       return route.continue();
     }
 
-    if (path === "/api/auth/me" && method === "GET") {
+    if (
+      ["/api/auth/me", "/api/auth/account/me", "/api/auth/admin/me"].includes(path) &&
+      method === "GET"
+    ) {
       const effectiveAuthMeMode = authMeQueue.length > 0 ? authMeQueue.shift() || authMeMode : authMeMode;
       if (effectiveAuthMeMode === "account" || effectiveAuthMeMode === "admin") {
         return route.fulfill(
@@ -536,20 +539,20 @@ async function runLoginScenario(page: any) {
 async function runRegisterScenario(page: any) {
   log("[auth-frontend-smoke] register pending verification + resend cooldown");
   await gotoRoute(page, "/auth/register");
-  await page.locator("#store-register-name").waitFor({ state: "visible", timeout: 10000 });
+  await page.locator("#sr26-name").waitFor({ state: "visible", timeout: 10000 });
 
-  await page.locator("#store-register-name").fill("QA Register");
-  await page.locator("#store-register-email").fill("qa-register@example.test");
-  await page.locator("#store-register-phone").fill("+6281234567890");
-  await page.locator("#store-register-password").fill("Register123!");
-  await page.locator("#store-register-password-confirm").fill("Register123!");
+  await page.locator("#sr26-name").fill("QA Register");
+  await page.locator("#sr26-email").fill("qa-register@example.test");
+  await page.locator("#sr26-phone").fill("+6281234567890");
+  await page.locator("#sr26-password").fill("Register123!");
+  await page.locator("#sr26-password-confirm").fill("Register123!");
   await page.getByRole("checkbox").check();
-  await page.getByRole("button", { name: "Continue to verification" }).click();
+  await page.getByRole("button", { name: "Create account", exact: true }).click();
 
-  await expectText(page, "#store-register-status", "Verification code sent to your email.");
-  await page.locator("#store-register-otp").fill("123456");
-  await page.getByRole("button", { name: "Resend verification code" }).click();
-  await expectText(page, "#store-register-status", "Please wait");
+  await expectText(page, ".sr26-status", "Verification code sent to your email.");
+  await page.locator("#sr26-otp").fill("123456");
+  await page.getByRole("button", { name: "Resend code", exact: true }).click();
+  await expectText(page, ".sr26-status", "Please wait");
   const resendText = await page.getByRole("button").filter({ hasText: "Resend code in" }).textContent();
   assert.ok(resendText?.includes("90s"), "resend cooldown button label should expose seconds");
 }
@@ -557,12 +560,12 @@ async function runRegisterScenario(page: any) {
 async function runForgotPasswordScenario(page: any) {
   log("[auth-frontend-smoke] forgot password generic success");
   await gotoRoute(page, "/auth/forgot-password");
-  await page.locator("#forgot-password-email").waitFor({ state: "visible", timeout: 10000 });
-  await page.locator("#forgot-password-email").fill("qa-forgot@example.test");
+  await page.locator("#fp26-email").waitFor({ state: "visible", timeout: 10000 });
+  await page.locator("#fp26-email").fill("qa-forgot@example.test");
   await page.getByRole("button", { name: "Send reset link" }).click();
   await expectText(
     page,
-    "#forgot-password-status",
+    ".fp26-status",
     "If the email is registered, we have sent a password reset link."
   );
 }
@@ -587,11 +590,11 @@ async function runChangePasswordScenario(page: any) {
     localStorage.setItem("authSessionHint", "true");
   });
   await gotoRoute(page, "/user/change-password");
-  await page.locator("#account-current-password").waitFor({ state: "visible", timeout: 10000 });
+  await page.locator('input[name="currentPassword"]').waitFor({ state: "visible", timeout: 10000 });
 
-  await page.locator("#account-current-password").fill("Current123!");
-  await page.locator("#account-new-password").fill("NextPass123!");
-  await page.locator("#account-confirm-password").fill("NextPass123!");
+  await page.locator('input[name="currentPassword"]').fill("Current123!");
+  await page.locator('input[name="newPassword"]').fill("NextPass123!");
+  await page.locator('input[name="confirmPassword"]').fill("NextPass123!");
   await page.getByRole("button", { name: /Change Password|Updating password/ }).click();
 
   await page.waitForURL(/\/auth\/login/);

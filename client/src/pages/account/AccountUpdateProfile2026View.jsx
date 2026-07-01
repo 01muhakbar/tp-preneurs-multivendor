@@ -12,6 +12,7 @@ import {
   User,
 } from "lucide-react";
 import { useRef } from "react";
+import { useTranslation } from "react-i18next";
 import "./account-update-profile-2026.css";
 
 function LoadingBlock() {
@@ -83,12 +84,13 @@ function ProfilePicture({
   isSaving,
   onUploadImage,
   onRemoveImage,
+  t,
 }) {
   const inputRef = useRef(null);
 
   return (
     <article className="tpup2026-panel tpup2026-picture-card">
-      <h2>Profile Picture</h2>
+      <h2>{t("updateProfile.profilePicture")}</h2>
       <input
         ref={inputRef}
         type="file"
@@ -102,7 +104,7 @@ function ProfilePicture({
           <ImageUp aria-hidden="true" />
         </i>
       </div>
-      <p>JPG, PNG or WEBP. Max size 2MB.</p>
+      <p>{t("updateProfile.pictureHint")}</p>
       <div className="tpup2026-picture-actions">
         <button
           type="button"
@@ -111,7 +113,7 @@ function ProfilePicture({
           onClick={() => inputRef.current?.click()}
         >
           <ImageUp aria-hidden="true" />
-          <span>{hasAvatar ? "Upload New" : "Upload New"}</span>
+          <span>{hasAvatar ? t("updateProfile.uploadNew") : t("updateProfile.uploadNew")}</span>
         </button>
         <button
           type="button"
@@ -120,7 +122,7 @@ function ProfilePicture({
           onClick={onRemoveImage}
         >
           <Trash2 aria-hidden="true" />
-          <span>Remove</span>
+          <span>{t("updateProfile.remove")}</span>
         </button>
       </div>
     </article>
@@ -145,18 +147,19 @@ export default function AccountUpdateProfile2026View({
   onUploadImage,
   onRemoveImage,
 }) {
+  const { t } = useTranslation();
   const hasAvatar = Boolean(form?.avatarUrl || profile?.avatarUrl);
 
   return (
     <section className="tpup2026-root">
       <header className="tpup2026-heading">
         <div>
-          <h1>Update Profile</h1>
-          <p>Keep your profile information up to date.</p>
+          <h1>{t("updateProfile.title")}</h1>
+          <p>{t("updateProfile.subtitle")}</p>
         </div>
         <LinkComponent className="tpup2026-back-link" to="/user/my-account">
           <ArrowLeft aria-hidden="true" />
-          <span>Back to My Account</span>
+          <span>{t("updateProfile.backToAccount")}</span>
         </LinkComponent>
       </header>
 
@@ -190,53 +193,54 @@ export default function AccountUpdateProfile2026View({
               isSaving={isSaving}
               onUploadImage={onUploadImage}
               onRemoveImage={onRemoveImage}
+              t={t}
             />
 
             <article className="tpup2026-panel tpup2026-info-card">
-              <h2>Personal Information</h2>
+              <h2>{t("updateProfile.personalInfo")}</h2>
               <div className="tpup2026-field-grid">
                 <Field
                   icon={User}
-                  label="Full Name *"
+                  label={t("updateProfile.fullName")}
                   name="name"
                   value={form.name}
-                  placeholder="Full Name"
+                  placeholder={t("updateProfile.fullNamePlaceholder")}
                   error={fieldErrors.name}
                   disabled={isSaving}
                   onFormChange={onFormChange}
                 />
                 <Field
                   icon={Mail}
-                  label="Email Address *"
+                  label={t("updateProfile.emailAddress")}
                   name="email"
                   type="email"
                   value={form.email}
-                  placeholder="name@example.com"
+                  placeholder={t("updateProfile.emailPlaceholder")}
                   error={fieldErrors.email}
                   disabled={isSaving}
                   onFormChange={onFormChange}
                 />
                 <Field
                   icon={Phone}
-                  label="Phone / Mobile"
+                  label={t("updateProfile.phone")}
                   name="phone"
                   value={form.phone}
-                  placeholder="Not set"
+                  placeholder={t("updateProfile.notSet")}
                   disabled={isSaving}
                   onFormChange={onFormChange}
                 />
                 <Field
                   icon={CalendarDays}
-                  label="Date of Birth"
+                  label={t("updateProfile.dateOfBirth")}
                   name="dateOfBirth"
                   type="date"
                   value={form.dateOfBirth}
-                  placeholder="Select date"
+                  placeholder={t("updateProfile.selectDate")}
                   disabled={isSaving}
                   onFormChange={onFormChange}
                 />
                 <SelectField
-                  label="Gender"
+                  label={t("updateProfile.gender")}
                   name="gender"
                   value={form.gender}
                   options={genderOptions}
@@ -244,7 +248,7 @@ export default function AccountUpdateProfile2026View({
                   onFormChange={onFormChange}
                 />
                 <SelectField
-                  label="Preferred Language"
+                  label={t("updateProfile.preferredLanguage")}
                   name="language"
                   value={form.language}
                   options={languageOptions}
@@ -257,8 +261,8 @@ export default function AccountUpdateProfile2026View({
 
           <article className="tpup2026-panel tpup2026-address-card">
             <div className="tpup2026-panel-copy">
-              <h2>Shipping Address</h2>
-              <p>This is your default shipping address for deliveries.</p>
+              <h2>{t("updateProfile.shippingAddress")}</h2>
+              <p>{t("updateProfile.shippingAddressDesc")}</p>
             </div>
             <div
               className={
@@ -276,7 +280,7 @@ export default function AccountUpdateProfile2026View({
                 {defaultAddress.hasAddress ? <small>{defaultAddress.phone}</small> : null}
               </div>
               <LinkComponent className="tpup2026-manage-link" to="/user/shipping-address">
-                Manage Addresses
+                {t("updateProfile.manageAddresses")}
               </LinkComponent>
             </div>
           </article>
@@ -284,7 +288,7 @@ export default function AccountUpdateProfile2026View({
           <div className="tpup2026-actions">
             <button type="submit" className="tpup2026-btn tpup2026-btn-primary" disabled={isSaving}>
               <CheckCircle2 aria-hidden="true" />
-              <span>{isSaving ? "Saving..." : "Save Changes"}</span>
+              <span>{isSaving ? t("updateProfile.saving") : t("updateProfile.saveChanges")}</span>
             </button>
             <button
               type="button"
@@ -293,7 +297,7 @@ export default function AccountUpdateProfile2026View({
               onClick={onCancel}
             >
               <Save aria-hidden="true" />
-              <span>Cancel</span>
+              <span>{t("updateProfile.cancel")}</span>
             </button>
           </div>
         </form>

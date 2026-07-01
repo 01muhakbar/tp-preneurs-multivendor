@@ -7,16 +7,16 @@ import {
   Info,
   Leaf,
   LockKeyhole,
-  Minus,
   PackageCheck,
-  Plus,
   ShieldCheck,
   ShoppingBag,
   Store,
   Trash2,
   Truck,
 } from "lucide-react";
+import CartQuantityControl from "../../../components/store/CartQuantityControl.jsx";
 import { FALLBACK_PRODUCT_IMAGE } from "./storeCart2026Adapter.js";
+import { useTranslation } from "react-i18next";
 import "./store-cart-2026.css";
 
 function formatVariant(item) {
@@ -27,11 +27,12 @@ function formatVariant(item) {
 }
 
 function EmptyCart({ onContinueShopping }) {
+  const { t } = useTranslation();
   return (
     <div className="sc26-empty">
       <span><ShoppingBag aria-hidden="true" /></span>
-      <p className="sc26-eyebrow">Your Cart</p>
-      <h1>Your cart is empty</h1>
+      <p className="sc26-eyebrow">{t("cart.title")}</p>
+      <h1>{t("cart.empty")}</h1>
       <p>Discover something useful and add it to your cart.</p>
       <button type="button" onClick={onContinueShopping}>Continue Shopping</button>
     </div>
@@ -43,7 +44,6 @@ function CartSkeleton() {
 }
 
 function ProductRow({ item, invalidItem, busy, formatMoney, onIncrease, onDecrease, onRemove, onReselect }) {
-  const atStockLimit = Number.isFinite(Number(item.stock)) && Number(item.stock) >= 0 && item.quantity >= Number(item.stock);
   return (
     <div className={`sc26-product${invalidItem ? " sc26-product--invalid" : ""}`} data-cart-page-invalid-item={invalidItem ? "true" : undefined}>
       <div className="sc26-product-main">
@@ -59,7 +59,16 @@ function ProductRow({ item, invalidItem, busy, formatMoney, onIncrease, onDecrea
       <div className="sc26-unit-price"><span>Unit Price</span><strong>{formatMoney(item.unitPrice)}</strong><small>per item</small></div>
       <div className="sc26-quantity">
         <span>Quantity</span>
-        <div><button type="button" onClick={() => onDecrease(item)} disabled={busy} aria-label={`Decrease ${item.name} quantity`}><Minus /></button><strong>{item.quantity}</strong><button type="button" onClick={() => onIncrease(item)} disabled={busy || atStockLimit} aria-label={`Increase ${item.name} quantity`}><Plus /></button></div>
+        <CartQuantityControl
+          quantity={item.quantity}
+          stock={item.stock}
+          disabled={busy}
+          name={item.name}
+          onCommit={(quantity) => {
+            if (quantity > item.quantity) onIncrease(item, quantity);
+            else onDecrease(item, quantity);
+          }}
+        />
       </div>
       <div className="sc26-line-total"><span>Total</span><strong>{formatMoney(item.lineTotal)}</strong></div>
       <button className="sc26-remove" type="button" onClick={() => onRemove(item)} disabled={busy} aria-label={`Remove ${item.name}`}><Trash2 /></button>
@@ -83,6 +92,7 @@ export default function StoreCart2026View({
   onCheckout,
   onContinueShopping,
 }) {
+  const { t } = useTranslation();
   if (status.loading) return <main className="sc26-page"><CartSkeleton /></main>;
   if (status.fatalError) {
     return <main className="sc26-page"><div className="sc26-empty sc26-empty--error"><AlertTriangle /><h1>We couldn’t load your cart</h1><p>{status.errorMessage}</p><button type="button" onClick={onRetry}>Try Again</button></div></main>;
@@ -93,7 +103,7 @@ export default function StoreCart2026View({
     <main className="sc26-page">
       <div className="sc26-shell">
         <header className="sc26-hero">
-          <div><p className="sc26-eyebrow">Your Cart</p><h1>Shopping Cart</h1><p>Review your items and proceed to secure checkout.</p></div>
+          <div><p className="sc26-eyebrow">{t("cart.title")}</p><h1>Shopping Cart</h1><p>Review your items and proceed to secure checkout.</p></div>
           <span><ShoppingBag /> {viewModel.itemCount} active item{viewModel.itemCount === 1 ? "" : "s"}</span>
         </header>
 
@@ -127,9 +137,9 @@ export default function StoreCart2026View({
               <span className={`sc26-ready${status.hasInvalidItems ? " is-blocked" : ""}`}>{status.hasInvalidItems ? <AlertTriangle /> : <CheckCircle2 />} {status.hasInvalidItems ? "Action needed" : "Ready to checkout"}</span>
               <div className="sc26-summary-title"><h2>Order Summary</h2><span>{viewModel.itemCount} item{viewModel.itemCount === 1 ? "" : "s"}</span></div>
               <div className="sc26-estimate"><p>Estimated Total</p><strong>{formatMoney(viewModel.estimatedTotal)}</strong><small>Final shipping and tax are shown on the next step.</small><ShoppingBag /></div>
-              <dl><div><dt>Subtotal</dt><dd>{formatMoney(viewModel.subtotal)}</dd></div><div><dt>Discount</dt><dd>{viewModel.discount > 0 ? `− ${formatMoney(viewModel.discount)}` : `− ${formatMoney(0)}`}</dd></div><div><dt>Shipping</dt><dd>Calculated at checkout</dd></div><div><dt>Tax</dt><dd>Calculated at checkout</dd></div></dl>
+              <dl><div><dt>{t("cart.subtotal")}</dt><dd>{formatMoney(viewModel.subtotal)}</dd></div><div><dt>Discount</dt><dd>{viewModel.discount > 0 ? `− ${formatMoney(viewModel.discount)}` : `− ${formatMoney(0)}`}</dd></div><div><dt>Shipping</dt><dd>Calculated at checkout</dd></div><div><dt>Tax</dt><dd>Calculated at checkout</dd></div></dl>
               <p className="sc26-note"><CircleHelp /> Shipping fees and taxes are calculated from your delivery address.</p>
-              <button className="sc26-checkout" type="button" onClick={onCheckout} disabled={!status.canCheckout}><LockKeyhole /> {status.hasInvalidItems ? "Fix Cart Issues" : "Proceed to Checkout"}</button>
+              <button className="sc26-checkout" type="button" onClick={onCheckout} disabled={!status.canCheckout}><LockKeyhole /> {status.hasInvalidItems ? "Fix Cart Issues" : t("cart.checkout")}</button>
               <button className="sc26-continue" type="button" onClick={onContinueShopping}>Continue Shopping</button>
               <p className="sc26-security"><PackageCheck /> Variant and stock details are revalidated at checkout.</p>
             </div>

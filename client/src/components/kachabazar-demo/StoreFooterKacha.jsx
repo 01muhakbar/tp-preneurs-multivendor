@@ -11,36 +11,60 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
+import { useTranslation } from "react-i18next";
 
-const DEFAULT_FOOTER = {
+const INDO_TRANSLATIONS = {
+  "Company": "Perusahaan",
+  "About Us": "Tentang Kami",
+  "Contact Us": "Hubungi Kami",
+  "Careers": "Karir",
+  "Latest News": "Berita Terbaru",
+  "Categories": "Kategori",
+  "Fish & Meat": "Ikan & Daging",
+  "Soft Drink": "Minuman Ringan",
+  "Milk & Dairy": "Susu & Olahan",
+  "Beauty & Health": "Kecantikan & Kesehatan",
+  "My Account": "Akun Saya",
+  "Dashboard": "Dasbor",
+  "My Orders": "Pesanan Saya",
+  "Recent Orders": "Pesanan Terakhir",
+  "Update Profile": "Perbarui Profil"
+};
+
+const tLabel = (label, isIndo) => {
+  if (!isIndo) return label;
+  return INDO_TRANSLATIONS[label] || label;
+};
+
+const getDefaultFooter = (isIndo) => ({
   block1: {
     enabled: true,
-    title: "Company",
+    title: isIndo ? "Perusahaan" : "Company",
     links: [
-      { label: "About Us", href: "/about-us" },
-      { label: "Contact Us", href: "/contact-us" },
-      { label: "Careers", href: "#" },
-      { label: "Latest News", href: "#" },
+      { label: isIndo ? "Tentang Kami" : "About Us", href: "/about-us" },
+      { label: isIndo ? "Hubungi Kami" : "Contact Us", href: "/contact-us" },
+      { label: isIndo ? "Karir" : "Careers", href: "#" },
+      { label: isIndo ? "Berita Terbaru" : "Latest News", href: "#" },
     ],
   },
   block2: {
     enabled: true,
-    title: "Categories",
+    title: isIndo ? "Kategori" : "Categories",
     links: [
-      { label: "Fish & Meat", href: "/search?category=fish-meat&page=1" },
-      { label: "Soft Drink", href: "/search?category=drinks&page=1" },
-      { label: "Milk & Dairy", href: "/search?category=milk-dairy&page=1" },
-      { label: "Beauty & Health", href: "/search?category=beauty-health&page=1" },
+      { label: isIndo ? "Ikan & Daging" : "Fish & Meat", href: "/search?category=fish-meat&page=1" },
+      { label: isIndo ? "Minuman Ringan" : "Soft Drink", href: "/search?category=drinks&page=1" },
+      { label: isIndo ? "Susu & Olahan" : "Milk & Dairy", href: "/search?category=milk-dairy&page=1" },
+      { label: isIndo ? "Kecantikan & Kesehatan" : "Beauty & Health", href: "/search?category=beauty-health&page=1" },
     ],
   },
   block3: {
     enabled: true,
-    title: "My Account",
+    title: isIndo ? "Akun Saya" : "My Account",
     links: [
-      { label: "Dashboard", href: "/user/dashboard" },
-      { label: "My Orders", href: "/user/my-orders" },
-      { label: "Recent Orders", href: "/user/dashboard" },
-      { label: "Update Profile", href: "/user/update-profile" },
+      { label: isIndo ? "Dasbor" : "Dashboard", href: "/user/dashboard" },
+      { label: isIndo ? "Pesanan Saya" : "My Orders", href: "/user/my-orders" },
+      { label: isIndo ? "Pesanan Terakhir" : "Recent Orders", href: "/user/dashboard" },
+      { label: isIndo ? "Perbarui Profil" : "Update Profile", href: "/user/update-profile" },
     ],
   },
   block4: {
@@ -63,7 +87,7 @@ const DEFAULT_FOOTER = {
     enabled: true,
     contactNumber: "+65 9988 7766",
   },
-};
+});
 
 const SOCIAL_LINKS = [
   { key: "facebook", label: "Facebook", Icon: Facebook },
@@ -92,21 +116,22 @@ const toBool = (value, fallback = false) => {
 const isPlainObject = (value) =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
-const normalizeFooterLinks = (rawLinks, fallbackLinks) => {
+const normalizeFooterLinks = (rawLinks, fallbackLinks, isIndo) => {
   const source = Array.isArray(rawLinks) ? rawLinks : fallbackLinks;
   return source
     .map((item, index) => {
       const sourceItem = isPlainObject(item) ? item : {};
       const fallbackItem = fallbackLinks[index] || { label: "", href: "" };
       return {
-        label: toText(sourceItem.label, fallbackItem.label),
+        label: tLabel(toText(sourceItem.label, fallbackItem.label), isIndo),
         href: toText(sourceItem.href, fallbackItem.href),
       };
     })
     .filter((item) => item.label && item.href);
 };
 
-const normalizeFooterConfig = (rawFooter) => {
+const normalizeFooterConfig = (rawFooter, isIndo) => {
+  const DEFAULT_FOOTER = getDefaultFooter(isIndo);
   const source = isPlainObject(rawFooter) ? rawFooter : {};
   const block1 = isPlainObject(source.block1) ? source.block1 : {};
   const block2 = isPlainObject(source.block2) ? source.block2 : {};
@@ -118,18 +143,18 @@ const normalizeFooterConfig = (rawFooter) => {
   return {
     block1: {
       enabled: toBool(block1.enabled, DEFAULT_FOOTER.block1.enabled),
-      title: toText(block1.title, DEFAULT_FOOTER.block1.title),
-      links: normalizeFooterLinks(block1.links, DEFAULT_FOOTER.block1.links),
+      title: tLabel(toText(block1.title, DEFAULT_FOOTER.block1.title), isIndo),
+      links: normalizeFooterLinks(block1.links, DEFAULT_FOOTER.block1.links, isIndo),
     },
     block2: {
       enabled: toBool(block2.enabled, DEFAULT_FOOTER.block2.enabled),
-      title: toText(block2.title, DEFAULT_FOOTER.block2.title),
-      links: normalizeFooterLinks(block2.links, DEFAULT_FOOTER.block2.links),
+      title: tLabel(toText(block2.title, DEFAULT_FOOTER.block2.title), isIndo),
+      links: normalizeFooterLinks(block2.links, DEFAULT_FOOTER.block2.links, isIndo),
     },
     block3: {
       enabled: toBool(block3.enabled, DEFAULT_FOOTER.block3.enabled),
-      title: toText(block3.title, DEFAULT_FOOTER.block3.title),
-      links: normalizeFooterLinks(block3.links, DEFAULT_FOOTER.block3.links),
+      title: tLabel(toText(block3.title, DEFAULT_FOOTER.block3.title), isIndo),
+      links: normalizeFooterLinks(block3.links, DEFAULT_FOOTER.block3.links, isIndo),
     },
     block4: {
       enabled: toBool(block4.enabled, DEFAULT_FOOTER.block4.enabled),
@@ -224,7 +249,10 @@ export default function StoreFooterKacha({
   brandingLogoUrl = "",
   brandingName = "TP Preneurs",
 }) {
-  const footer = normalizeFooterConfig(footerConfig);
+  const { i18n } = useTranslation();
+  const isIndo = i18n.language === "id";
+  const footer = normalizeFooterConfig(footerConfig, isIndo);
+  const DEFAULT_FOOTER = getDefaultFooter(isIndo);
   const footerLogoSrc =
     resolveAssetUrl(brandingLogoUrl) || resolveAssetUrl(footer.block4.footerLogoDataUrl);
   const socialItems = SOCIAL_LINKS.filter(({ key }) => footer.socialLinks[key]);
@@ -287,7 +315,7 @@ export default function StoreFooterKacha({
             {footer.socialLinks.enabled && socialItems.length > 0 ? (
               <div className="space-y-4">
                 <h3 className="text-sm font-black uppercase tracking-[0.18em] text-[var(--tp-primary)] dark:text-sky-300">
-                  Follow Us
+                  {isIndo ? "Ikuti Kami" : "Follow Us"}
                 </h3>
                 <div className="flex flex-wrap gap-3">
                   {socialItems.map(({ key, label, Icon }) => (
@@ -313,13 +341,13 @@ export default function StoreFooterKacha({
                 </div>
                 <div>
                   <p className="text-lg font-black text-[var(--tp-primary)] dark:text-white">
-                    Need help?{" "}
+                    {isIndo ? "Butuh bantuan?" : "Need help?"}{" "}
                     <a href={`tel:${footer.bottomContact.contactNumber.replace(/\s+/g, "")}`}>
                       {footer.bottomContact.contactNumber}
                     </a>
                   </p>
                   <p className="text-sm font-semibold text-[#31486e] dark:text-slate-300">
-                    We're available <span className="text-[var(--tp-accent)]">24/7</span>
+                    {isIndo ? "Kami tersedia" : "We're available"} <span className="text-[var(--tp-accent)]">24/7</span>
                   </p>
                 </div>
               </div>
@@ -328,16 +356,16 @@ export default function StoreFooterKacha({
         </div>
 
         <div className="flex flex-col gap-4 px-6 py-5 text-sm font-semibold text-[#557099] dark:text-slate-400 md:flex-row md:items-center md:justify-between xl:px-10">
-          <p>© 2026 TP Preneurs. All rights reserved.</p>
+          <p>© 2026 TP Preneurs. {isIndo ? "Hak cipta dilindungi." : "All rights reserved."}</p>
           <div className="flex flex-wrap gap-4 md:gap-8">
             <Link to="/privacy-policy" className="transition hover:text-[var(--tp-accent)]">
-              Privacy Policy
+              {isIndo ? "Kebijakan Privasi" : "Privacy Policy"}
             </Link>
             <Link to="/terms-and-conditions" className="transition hover:text-[var(--tp-accent)]">
-              Terms & Conditions
+              {isIndo ? "Syarat & Ketentuan" : "Terms & Conditions"}
             </Link>
             <Link to="/refund-policy" className="transition hover:text-[var(--tp-accent)]">
-              Refund Policy
+              {isIndo ? "Kebijakan Pengembalian" : "Refund Policy"}
             </Link>
           </div>
         </div>

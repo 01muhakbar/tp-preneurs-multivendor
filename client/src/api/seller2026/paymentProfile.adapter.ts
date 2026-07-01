@@ -1,3 +1,5 @@
+import type { PaymentProfileDraft } from "../paymentProfile.contract.ts";
+
 type UnknownRecord = Record<string, unknown>;
 
 const object = (value: unknown): UnknownRecord =>
@@ -30,15 +32,7 @@ const normalizeMissingFields = (value: unknown) =>
     })
     .filter((field) => field.key);
 
-export type Seller2026PaymentProfileForm = {
-  accountName: string;
-  merchantName: string;
-  merchantId: string;
-  qrisImageUrl: string;
-  qrisPayload: string;
-  instructionText: string;
-  sellerNote: string;
-};
+export type Seller2026PaymentProfileForm = PaymentProfileDraft;
 
 export type Seller2026PaymentProfileModel = {
   store: { id: number | null; name: string; slug: string };

@@ -24,11 +24,17 @@ import {
   Store,
   Truck,
   Twitter,
+  X,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import ProductSellerInfoCard from "../../components/store/ProductSellerInfoCard.jsx";
 import { useCart } from "../../hooks/useCart.ts";
+import { resolveAssetUrl } from "../../lib/assetUrl.js";
 import { useProduct, useProducts } from "../../storefront.jsx";
 import { ensureProductImageUrl, resolveProductImageUrl } from "../../utils/productImage.js";
+import { useStorefrontWishlist } from "../../utils/storefrontWishlist.js";
 import "./store-product-detail-2026.css";
 
 const DEFAULT_LIMIT = 8;
@@ -127,10 +133,10 @@ export const getDiscountPercent = (product) => {
 };
 
 export const getRating = (product) =>
-  Math.min(5, Math.max(0, toNumber(product?.ratingAvg ?? product?.averageRating ?? product?.rating, 4.6)));
+  Math.min(5, Math.max(0, toNumber(product?.ratingAvg ?? product?.averageRating ?? product?.rating, 0)));
 
 export const getReviewCount = (product) =>
-  Math.max(0, Math.round(toNumber(product?.reviewCount ?? product?.reviewsCount ?? product?.ratingCount, 5)));
+  Math.max(0, Math.round(toNumber(product?.reviewCount ?? product?.reviewsCount ?? product?.ratingCount, 0)));
 
 export const getStock = (product, selectedVariant) => {
   const value =
@@ -157,13 +163,6 @@ export const getProductDescription = (product) =>
 
 export const getReviews = (product) => {
   const raw = normalizeArray(product?.reviews, ["items", "reviews"]);
-  if (raw.length === 0) {
-    return [
-      { id: "rina", name: "Rina Pratiwi", rating: 5, date: "Jun 11, 2026", comment: `Great ${getProductName(product).toLowerCase()} quality. Rating 5/5.` },
-      { id: "andi", name: "Andi Saputra", rating: 4, date: "Jun 11, 2026", comment: `Great ${getProductName(product).toLowerCase()} quality. Rating 4/5.` },
-      { id: "maya", name: "Maya Lestari", rating: 5, date: "Jun 11, 2026", comment: `Great ${getProductName(product).toLowerCase()} quality. Rating 5/5.` },
-    ];
-  }
   return raw.map((review, index) => ({
     id: review?.id ?? `review-${index}`,
     name: text(review?.user?.name, review?.customer?.name, review?.name, review?.author, `Customer ${index + 1}`),
@@ -171,7 +170,12 @@ export const getReviews = (product) => {
     date: review?.createdAt
       ? new Date(review.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
       : "",
-    comment: text(review?.comment, review?.review, "Fresh product and good service."),
+    comment: text(review?.comment, review?.review),
+    sellerReply: text(review?.sellerReply, review?.reply),
+    images: (Array.isArray(review?.images) ? review.images : [])
+      .map((image) => resolveAssetUrl(image))
+      .filter(Boolean)
+      .slice(0, 4),
   }));
 };
 
@@ -334,6 +338,82 @@ function Badge({ children, tone = "blue" }) {
   );
 }
 
+function ProductImageLightbox({ images, activeIndex, onChangeIndex, onClose, productName }) {
+  const [zoom, setZoom] = useState(1);
+  const activeImage = images[activeIndex] || "";
+
+  useEffect(() => {
+    setZoom(1);
+  }, [activeIndex]);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") onClose();
+      if (event.key === "ArrowLeft" && images.length > 1) {
+        onChangeIndex((activeIndex - 1 + images.length) % images.length);
+      }
+      if (event.key === "ArrowRight" && images.length > 1) {
+        onChangeIndex((activeIndex + 1) % images.length);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeIndex, images.length, onChangeIndex, onClose]);
+
+  if (!activeImage) return null;
+
+  const handleZoomIn = (e) => { e.stopPropagation(); setZoom((z) => Math.min(z + 0.5, 4)); };
+  const handleZoomOut = (e) => { e.stopPropagation(); setZoom((z) => Math.max(z - 0.5, 1)); };
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/95 p-4" onClick={onClose}>
+      <button type="button" onClick={onClose} className="absolute right-4 top-4 z-20 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/15">
+        <X className="h-5 w-5" />
+      </button>
+
+      <div className="absolute top-4 left-1/2 z-20 flex -translate-x-1/2 gap-2">
+        <button type="button" onClick={handleZoomOut} disabled={zoom <= 1} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/15 disabled:opacity-30">
+          <ZoomOut className="h-5 w-5" />
+        </button>
+        <button type="button" onClick={handleZoomIn} disabled={zoom >= 4} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/15 disabled:opacity-30">
+          <ZoomIn className="h-5 w-5" />
+        </button>
+      </div>
+
+      {images.length > 1 ? (
+        <>
+          <button type="button" onClick={(e) => { e.stopPropagation(); onChangeIndex((activeIndex - 1 + images.length) % images.length); }} className="absolute left-4 top-1/2 z-20 inline-flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/15">
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button type="button" onClick={(e) => { e.stopPropagation(); onChangeIndex((activeIndex + 1) % images.length); }} className="absolute right-4 top-1/2 z-20 inline-flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/15">
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </>
+      ) : null}
+      
+      <div className="h-full w-full overflow-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex min-h-full min-w-full items-center justify-center">
+          <img
+            src={activeImage}
+            alt={productName || "Product image"}
+            className="transition-all duration-200"
+            style={{ 
+               height: zoom === 1 ? "85vh" : `${85 * zoom}vh`,
+               maxWidth: zoom === 1 ? "100%" : "none",
+               objectFit: "contain",
+               cursor: zoom > 1 ? "zoom-out" : "zoom-in",
+            }}
+            onClick={(e) => {
+               if (zoom === 1) handleZoomIn(e);
+               else setZoom(1);
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ImageFallback({ categoryName }) {
   return (
     <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 via-white to-slate-200 text-[var(--tp-primary)] dark:from-slate-800 dark:via-slate-900 dark:to-slate-950 dark:text-slate-200">
@@ -346,13 +426,49 @@ function ImageFallback({ categoryName }) {
 }
 
 function ProductGallery({ product, selectedVariant }) {
+  const wishlist = useStorefrontWishlist();
   const categoryName = getCategoryName(product);
   const images = useMemo(() => {
     const variantImage = selectedVariant?.image ? [selectedVariant.image] : [];
     return Array.from(new Set([...variantImage, ...getProductImages(product)]));
   }, [product, selectedVariant]);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const activeImage = images[activeIndex] || images[0] || "";
+  const productIdentifier = product?.id ?? product?.productId ?? getProductSlug(product);
+  const isWishlisted = wishlist.isWishlisted(productIdentifier);
+
+  const handleWishlistToggle = () => {
+    const variantSelections = Array.isArray(selectedVariant?.selections)
+      ? selectedVariant.selections.map((selection) => ({
+          attributeId: selection.attributeId,
+          attributeName: selection.attributeName,
+          valueId: selection.valueId,
+          value: selection.value,
+        }))
+      : [];
+
+    wishlist.toggle({
+      id: product?.id ?? product?.productId,
+      productId: product?.productId ?? product?.id,
+      slug: getProductSlug(product),
+      name: getProductName(product),
+      category: categoryName,
+      price: getSelectedPrice(product, selectedVariant),
+      originalPrice: getOriginalPrice(product),
+      imageUrl: activeImage,
+      rating: getRating(product),
+      reviewCount: getReviewCount(product),
+      stock: getStock(product, selectedVariant),
+      storeId: product?.storeId ?? product?.store?.id ?? null,
+      storeSlug: text(product?.storeSlug, product?.store?.slug),
+      variantKey: selectedVariant?.variantKey ?? selectedVariant?.combinationKey ?? null,
+      variantLabel: selectedVariant?.variantLabel ?? null,
+      variantSelections,
+      variantSku: selectedVariant?.sku ?? null,
+      variantBarcode: selectedVariant?.barcode ?? null,
+    });
+  };
 
   useEffect(() => {
     setActiveIndex(0);
@@ -361,26 +477,31 @@ function ProductGallery({ product, selectedVariant }) {
   return (
     <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_24px_80px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-slate-900 dark:shadow-none">
       <div className="relative overflow-hidden rounded-[1.6rem] bg-slate-100 dark:bg-slate-950">
-        <div className="aspect-square min-h-[300px] sm:min-h-[420px] lg:min-h-[520px]">
+        <div className="flex h-[300px] w-full items-center justify-center sm:h-[380px] lg:h-[420px]">
           {activeImage ? (
-            <img
-              src={activeImage}
-              alt={getProductName(product)}
-              className="h-full w-full object-contain p-4 sm:p-6"
-            />
+            <button type="button" onClick={() => setIsLightboxOpen(true)} className="h-full w-full cursor-zoom-in outline-none">
+              <img
+                src={activeImage}
+                alt={getProductName(product)}
+                className="h-full w-full object-contain p-4 sm:p-6 transition hover:scale-105"
+              />
+            </button>
           ) : (
             <ImageFallback categoryName={categoryName} />
           )}
         </div>
-        <div className="absolute left-5 top-5 rounded-full border-2 border-lime-400 bg-white/90 px-3 py-2 text-center text-[10px] font-black uppercase text-lime-600 shadow-sm dark:bg-slate-950/80">
-          100%<br />Organic
-        </div>
         <button
           type="button"
-          aria-label="Wishlist"
-          className="absolute right-5 top-5 inline-flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:text-[var(--tp-accent)] dark:border-white/10 dark:bg-slate-900 dark:text-white"
+          onClick={handleWishlistToggle}
+          aria-label={`${isWishlisted ? "Remove" : "Add"} ${getProductName(product)} ${isWishlisted ? "from" : "to"} wishlist`}
+          aria-pressed={isWishlisted}
+          className={`absolute right-5 top-5 inline-flex h-12 w-12 items-center justify-center rounded-full border shadow-sm transition ${
+            isWishlisted
+              ? "border-[var(--tp-accent)] bg-[var(--tp-accent)] text-white hover:bg-[#d95700]"
+              : "border-slate-200 bg-white text-slate-700 hover:border-[var(--tp-accent)]/40 hover:text-[var(--tp-accent)] dark:border-white/10 dark:bg-slate-900 dark:text-white"
+          }`}
         >
-          <Heart className="h-5 w-5" />
+          <Heart className={`h-5 w-5 ${isWishlisted ? "fill-current" : ""}`} />
         </button>
       </div>
       <div className="mt-4 flex items-center gap-3">
@@ -423,6 +544,15 @@ function ProductGallery({ product, selectedVariant }) {
           </button>
         ) : null}
       </div>
+      {isLightboxOpen && (
+        <ProductImageLightbox
+          images={images}
+          activeIndex={activeIndex}
+          onChangeIndex={setActiveIndex}
+          onClose={() => setIsLightboxOpen(false)}
+          productName={getProductName(product)}
+        />
+      )}
     </section>
   );
 }
@@ -464,6 +594,7 @@ function ProductSummary({
   onAddToCart,
   onBuyNow,
   isAdding,
+  t,
 }) {
   const categoryName = getCategoryName(product);
   const groups = normalizeVariationGroups(product);
@@ -485,7 +616,7 @@ function ProductSummary({
     <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-slate-900 dark:shadow-none sm:p-7">
       <div className="space-y-5">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge tone={canPurchase ? "green" : "orange"}>{canPurchase ? "In Stock" : "Unavailable"}</Badge>
+          <Badge tone={canPurchase ? "green" : "orange"}>{canPurchase ? t("productDetail.inStock") : t("productDetail.unavailable")}</Badge>
           <Badge tone="slate">{categoryName}</Badge>
           {discount > 0 ? <Badge tone="orange">-{discount}%</Badge> : null}
         </div>
@@ -495,7 +626,7 @@ function ProductSummary({
           </h1>
           <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
             <Stars rating={getRating(product)} />
-            <span className="font-semibold">{getRating(product).toFixed(1)} ({getReviewCount(product)} reviews)</span>
+            <span className="font-semibold">{getRating(product).toFixed(1)} ({t("productDetail.reviewsCount", { count: getReviewCount(product) })})</span>
           </div>
         </div>
         <div className="flex flex-wrap items-end gap-3">
@@ -511,7 +642,7 @@ function ProductSummary({
               <div key={group.id} className="space-y-2">
                 <div className="flex items-center justify-between text-xs font-bold uppercase text-slate-500 dark:text-slate-400">
                   <span>{group.label}</span>
-                  <span>{group.options.find((option) => option.selectionKey === selectedOptions[group.id])?.value || "Choose"}</span>
+                  <span>{group.options.find((option) => option.selectionKey === selectedOptions[group.id])?.value || t("productDetail.choose")}</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {group.options.map((option) => {
@@ -558,7 +689,7 @@ function ProductSummary({
             className="inline-flex h-12 items-center justify-center gap-2 rounded-[1rem] bg-[var(--tp-accent)] px-6 text-sm font-black text-white shadow-lg shadow-[var(--tp-accent)]/25 transition hover:bg-[#d95700] disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700"
           >
             {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
-            Add to Cart
+            {t("productDetail.addToCart")}
           </button>
         </div>
         <button
@@ -567,7 +698,7 @@ function ProductSummary({
           disabled={!canPurchase || isAdding}
           className="inline-flex h-12 w-full items-center justify-center rounded-[1rem] bg-[var(--tp-primary)] px-6 text-sm font-black text-white shadow-lg shadow-[var(--tp-primary)]/20 transition hover:bg-[#023b68] disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700"
         >
-          Buy Now
+          {t("productDetail.buyNow")}
         </button>
 
         <div className="grid grid-cols-3 gap-2 border-t border-slate-200 pt-5 text-xs font-semibold text-slate-600 dark:border-white/10 dark:text-slate-300">
@@ -585,7 +716,7 @@ function ProductSummary({
   );
 }
 
-function SellerCardFallback({ product }) {
+function SellerCardFallback({ product, t }) {
   const seller = product?.sellerInfo || product?.store || {};
   const name = text(seller?.name, "Super Admin");
   const storeSlug = text(seller?.slug, product?.storeSlug);
@@ -599,46 +730,48 @@ function SellerCardFallback({ product }) {
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-2xl font-black text-slate-950 dark:text-white">{name}</h2>
-              <Badge tone="green">Operational</Badge>
+              <Badge tone="green">{t("productDetail.operational")}</Badge>
             </div>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Sold by this store.</p>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{t("productDetail.soldBy")}</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Link
                 to={storeSlug ? `/store/${encodeURIComponent(storeSlug)}` : "/shop"}
                 className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:border-[var(--tp-primary)]/30 hover:text-[var(--tp-primary)] dark:border-white/10 dark:bg-slate-950 dark:text-slate-200"
               >
-                <Store className="h-4 w-4" /> Visit Store
+                <Store className="h-4 w-4" /> {t("productDetail.visitStore")}
               </Link>
               <button
                 type="button"
                 disabled
                 className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-5 text-sm font-bold text-slate-400 dark:border-white/10 dark:bg-slate-950"
               >
-                <MessageCircle className="h-4 w-4" /> Chat
+                <MessageCircle className="h-4 w-4" /> {t("productDetail.chat")}
               </button>
             </div>
-            <p className="mt-2 text-xs text-[var(--tp-primary)] dark:text-sky-300">Chat not available yet.</p>
+            <p className="mt-2 text-xs text-[var(--tp-primary)] dark:text-sky-300">{t("productDetail.chatNotAvailable")}</p>
           </div>
         </div>
         <div className="grid grid-cols-3 divide-x divide-slate-200 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 text-center dark:divide-white/10 dark:border-white/10 dark:bg-slate-950">
-          <div><p className="text-2xl font-black text-slate-950 dark:text-white">16</p><p className="text-sm text-slate-500 dark:text-slate-400">Products</p></div>
-          <div><p className="text-2xl font-black text-slate-950 dark:text-white">4.4 / 5</p><p className="text-sm text-slate-500 dark:text-slate-400">61 Reviews</p></div>
-          <div><p className="text-2xl font-black text-slate-950 dark:text-white">Jun 2026</p><p className="text-sm text-slate-500 dark:text-slate-400">Joined</p></div>
+          <div><p className="text-2xl font-black text-slate-950 dark:text-white">16</p><p className="text-sm text-slate-500 dark:text-slate-400">{t("productDetail.productsCount")}</p></div>
+          <div><p className="text-2xl font-black text-slate-950 dark:text-white">4.4 / 5</p><p className="text-sm text-slate-500 dark:text-slate-400">61 {t("productDetail.reviewsCount", { count: "" }).replace(" ", "")}</p></div>
+          <div><p className="text-2xl font-black text-slate-950 dark:text-white">Jun 2026</p><p className="text-sm text-slate-500 dark:text-slate-400">{t("productDetail.joined")}</p></div>
         </div>
       </div>
     </section>
   );
 }
 
-function ReviewsAndDetails({ product }) {
+function ReviewsAndDetails({ product, t }) {
   const [tab, setTab] = useState("reviews");
+  const [lightboxImages, setLightboxImages] = useState([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
   const reviews = getReviews(product);
   return (
     <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-slate-900 dark:shadow-none">
       <div className="flex border-b border-slate-200 px-5 pt-4 dark:border-white/10">
         {[
-          ["reviews", `Reviews (${getReviewCount(product)})`],
-          ["details", "Details"],
+          ["reviews", t("productDetail.reviewsTab", { count: getReviewCount(product) })],
+          ["details", t("productDetail.detailsTab")],
         ].map(([value, label]) => (
           <button
             key={value}
@@ -669,13 +802,44 @@ function ReviewsAndDetails({ product }) {
                       <span className="text-xs text-slate-400">{review.date}</span>
                     </div>
                     <Stars rating={review.rating} size="h-3.5 w-3.5" />
-                    <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{review.comment}</p>
+                    {review.comment ? (
+                      <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{review.comment}</p>
+                    ) : (
+                      <p className="mt-2 text-sm italic leading-6 text-slate-400">{t("productDetail.noWrittenComment")}</p>
+                    )}
+                    {review.images.length > 0 ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {review.images.map((image, index) => (
+                          <a 
+                            key={`${review.id}-image-${index}`} 
+                            href={image}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setLightboxImages(review.images);
+                              setLightboxIndex(index);
+                            }}
+                          >
+                            <img
+                              src={image}
+                              alt={`Review photo ${index + 1} from ${review.name}`}
+                              className="h-20 w-20 rounded-xl border border-slate-200 object-cover transition hover:opacity-80 dark:border-white/10"
+                            />
+                          </a>
+                        ))}
+                      </div>
+                    ) : null}
+                    {review.sellerReply ? (
+                      <div className="mt-3 rounded-xl border-l-4 border-[var(--tp-primary)] bg-slate-50 p-3 dark:bg-slate-950">
+                        <p className="text-xs font-black uppercase tracking-wide text-[var(--tp-primary)] dark:text-sky-300">{t("productDetail.storeReply")}</p>
+                        <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">{review.sellerReply}</p>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </article>
             ))
           ) : (
-            <div className="rounded-[1.25rem] border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">No customer reviews yet.</div>
+            <div className="rounded-[1.25rem] border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">{t("productDetail.noReviews")}</div>
           )
         ) : (
           <div className="shop-product-2026-prose text-sm leading-7 text-slate-600 dark:text-slate-300">
@@ -683,24 +847,34 @@ function ReviewsAndDetails({ product }) {
           </div>
         )}
       </div>
+
+      {lightboxImages.length > 0 && (
+        <ProductImageLightbox
+          images={lightboxImages}
+          activeIndex={lightboxIndex}
+          onChangeIndex={setLightboxIndex}
+          onClose={() => setLightboxImages([])}
+          productName="Review photo"
+        />
+      )}
     </section>
   );
 }
 
-function Highlights({ product }) {
+function Highlights({ product, t }) {
   const items = [
-    "Free shipping on orders over Rp100.000",
-    "Home delivery within 1 hour",
-    "Cash on delivery available",
-    "7-day money-back guarantee",
-    "Warranty not available for this item",
-    `100% organic from natural ${getCategoryName(product).toLowerCase()} products`,
-    "Pickup: Boho One, Bridge Street West, Middlesbrough, North Yorkshire, TS2 1AE.",
+    t("productDetail.freeShipping"),
+    t("productDetail.homeDelivery"),
+    t("productDetail.cod"),
+    t("productDetail.moneyBack"),
+    t("productDetail.noWarranty"),
+    t("productDetail.organicDesc", { category: getCategoryName(product).toLowerCase() }),
+    t("productDetail.pickupAddress"),
   ];
   const icons = [Truck, Home, Package, ShieldCheck, BadgeCheck, Sparkles, MapPin];
   return (
     <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-slate-900 dark:shadow-none">
-      <h2 className="text-2xl font-black text-[var(--tp-primary)] dark:text-white">Highlights</h2>
+      <h2 className="text-2xl font-black text-[var(--tp-primary)] dark:text-white">{t("productDetail.highlights")}</h2>
       <ul className="mt-4 divide-y divide-slate-200 text-sm text-slate-600 dark:divide-white/10 dark:text-slate-300">
         {items.map((item, index) => {
           const Icon = icons[index] || Sparkles;
@@ -716,11 +890,11 @@ function Highlights({ product }) {
   );
 }
 
-function ShareCard() {
+function ShareCard({ t }) {
   return (
     <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-slate-900 dark:shadow-none">
-      <h2 className="text-2xl font-black text-[var(--tp-primary)] dark:text-white">Share</h2>
-      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Send this item to someone else.</p>
+      <h2 className="text-2xl font-black text-[var(--tp-primary)] dark:text-white">{t("productDetail.share")}</h2>
+      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{t("productDetail.shareDesc")}</p>
       <div className="mt-4 flex gap-3">
         {[
           ["Facebook", Facebook],
@@ -793,7 +967,7 @@ function RelatedProductCard({ product, onAdd }) {
   );
 }
 
-function RelatedProducts({ products, onAdd }) {
+function RelatedProducts({ products, onAdd, t }) {
   const shelfRef = useRef(null);
   if (products.length === 0) return null;
   const scroll = (direction) => {
@@ -803,11 +977,11 @@ function RelatedProducts({ products, onAdd }) {
     <section className="space-y-4">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black text-slate-950 dark:text-white">Related Products</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">More great items you might love.</p>
+          <h2 className="text-3xl font-black text-slate-950 dark:text-white">{t("productDetail.relatedProducts")}</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{t("productDetail.relatedDesc")}</p>
         </div>
         <Link to="/shop" className="inline-flex items-center gap-1 text-sm font-black text-[var(--tp-primary)] dark:text-sky-300">
-          View more <ChevronRight className="h-4 w-4" />
+          {t("productDetail.viewMore")} <ChevronRight className="h-4 w-4" />
         </Link>
       </div>
       <div className="relative">
@@ -847,21 +1021,21 @@ function LoadingState() {
   );
 }
 
-function ErrorState({ message }) {
+function ErrorState({ message, t }) {
   return (
     <section className="rounded-[2rem] border border-slate-200 bg-white p-10 text-center shadow-sm dark:border-white/10 dark:bg-slate-900">
       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--tp-primary)]/8 text-[var(--tp-primary)] dark:bg-white/10 dark:text-white">
         <SearchX className="h-7 w-7" />
       </div>
-      <h1 className="mt-5 text-2xl font-black text-slate-950 dark:text-white">Product not found</h1>
+      <h1 className="mt-5 text-2xl font-black text-slate-950 dark:text-white">{t("productDetail.notFound")}</h1>
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500 dark:text-slate-300">
-        {message || "Try opening another product from the shop."}
+        {message || t("productDetail.tryAnother")}
       </p>
       <Link
         to="/shop"
         className="mt-5 inline-flex h-11 items-center justify-center rounded-[1rem] bg-[var(--tp-primary)] px-5 text-sm font-black text-white"
       >
-        Back to Shop
+        {t("productDetail.backToShop")}
       </Link>
     </section>
   );
@@ -871,6 +1045,7 @@ export default function StoreProductDetailPage2026() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const cart = useCart();
+  const { t } = useTranslation();
   const productQuery = useProduct(slug);
   const product = normalizePayload(productQuery.data);
   const [quantity, setQuantity] = useState(1);
@@ -943,8 +1118,8 @@ export default function StoreProductDetailPage2026() {
   const addProduct = async (item, qty = 1, variant = null) => {
     const productId = Number(item?.id ?? item?.productId);
     if (!Number.isFinite(productId) || productId <= 0) return false;
-    await cart.add(productId, qty, buildSnapshot(item, variant));
-    return true;
+    const added = await cart.add(productId, qty, buildSnapshot(item, variant));
+    return added !== false;
   };
 
   const handleAddToCart = async () => {
@@ -970,7 +1145,7 @@ export default function StoreProductDetailPage2026() {
 
   if (productQuery.isLoading) return <LoadingState />;
   if (productQuery.isError || !product) {
-    return <ErrorState message={productQuery.error?.response?.data?.message || productQuery.error?.message} />;
+    return <ErrorState message={productQuery.error?.response?.data?.message || productQuery.error?.message} t={t} />;
   }
 
   const categoryName = getCategoryName(product);
@@ -980,7 +1155,7 @@ export default function StoreProductDetailPage2026() {
     <div className="space-y-6 bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-white">
       <nav className="flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
         <Link to="/" className="inline-flex items-center gap-1 font-semibold hover:text-[var(--tp-primary)] dark:hover:text-white">
-          <Home className="h-4 w-4" /> Home
+          <Home className="h-4 w-4" /> {t("productDetail.home")}
         </Link>
         <ChevronRight className="h-4 w-4" />
         <Link to={`/search?category=${encodeURIComponent(categorySlug)}&page=1`} className="font-semibold hover:text-[var(--tp-primary)] dark:hover:text-white">
@@ -1003,26 +1178,28 @@ export default function StoreProductDetailPage2026() {
           onAddToCart={handleAddToCart}
           onBuyNow={handleBuyNow}
           isAdding={isAdding || cart.isLoading}
+          t={t}
         />
       </section>
 
       {product?.sellerInfo?.name ? (
         <ProductSellerInfoCard sellerInfo={product.sellerInfo} />
       ) : (
-        <SellerCardFallback product={product} />
+        <SellerCardFallback product={product} t={t} />
       )}
 
       <section className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)] lg:items-start">
-        <ReviewsAndDetails product={product} />
+        <ReviewsAndDetails product={product} t={t} />
         <div className="space-y-6">
-          <Highlights product={product} />
-          <ShareCard />
+          <Highlights product={product} t={t} />
+          <ShareCard t={t} />
         </div>
       </section>
 
       <RelatedProducts
         products={relatedProducts}
         onAdd={(item) => addProduct(item, 1, null)}
+        t={t}
       />
     </div>
   );

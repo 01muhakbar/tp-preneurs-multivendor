@@ -183,11 +183,14 @@ router.post("/store-applications/draft", async (req, res) => {
       ...createDefaultOwnerIdentitySnapshot(applicantUser),
       ...(normalizedInput.ownerIdentitySnapshot || {}),
     };
+    const sellerOnboardingMetadata = normalizedInput.sellerOnboardingSnapshot
+      ? { sellerOnboarding2026: normalizedInput.sellerOnboardingSnapshot }
+      : {};
 
     const application = await StoreApplication.create({
       applicantUserId: userId,
       status: "draft",
-      currentStep: normalizedInput.currentStep || "owner_identity",
+      currentStep: normalizedInput.currentStep || "store_information",
       ownerIdentitySnapshot,
       storeInformationSnapshot: normalizedInput.storeInformationSnapshot || null,
       operationalAddressSnapshot: normalizedInput.operationalAddressSnapshot || null,
@@ -196,6 +199,7 @@ router.post("/store-applications/draft", async (req, res) => {
       internalMetadata: buildStoreApplicationMutationMetadata(null, {
         createdFrom: "user_self_service",
         submittedCount: 0,
+        ...sellerOnboardingMetadata,
       }),
     } as any);
 
@@ -253,12 +257,19 @@ router.patch("/store-applications/:applicationId/draft", async (req, res) => {
 
     const normalizedInput = normalizeStoreApplicationDraftInput(req.body ?? {});
     const currentSnapshots = normalizeStoreApplicationSnapshots(application);
-    const metadata = buildStoreApplicationMutationMetadata(
-      (application as any).internalMetadata,
-      {
-        lastEditedByUserId: userId,
-      }
-    );
+    const currentMetadata =
+      (application as any).internalMetadata &&
+      typeof (application as any).internalMetadata === "object" &&
+      !Array.isArray((application as any).internalMetadata)
+        ? (application as any).internalMetadata
+        : {};
+    const sellerOnboardingMetadata = normalizedInput.sellerOnboardingSnapshot
+      ? { sellerOnboarding2026: normalizedInput.sellerOnboardingSnapshot }
+      : {};
+    const metadata = buildStoreApplicationMutationMetadata(currentMetadata, {
+      lastEditedByUserId: userId,
+      ...sellerOnboardingMetadata,
+    });
 
     await application.update(
       {

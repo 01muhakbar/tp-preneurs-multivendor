@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
+  AlertTriangle,
   Archive,
   Box,
+  Check,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -43,6 +45,8 @@ const tone = (label) => {
   return "neutral";
 };
 const inventoryLabel = (stock) => stock <= 0 ? "Out of Stock" : stock <= 10 ? "Low Stock" : "In Stock";
+const toErrorMessage = (error, fallback) =>
+  String(error?.response?.data?.message || error?.message || fallback);
 
 function Pill({ children }) {
   return <span className={`seller2026-pill seller2026-pill--${tone(children)}`}>{children}</span>;
@@ -77,6 +81,7 @@ export default function Seller2026LiveProductsPage() {
   const [selected, setSelected] = useState([]);
   const [view, setView] = useState("list");
   const [exporting, setExporting] = useState(false);
+  const [notice, setNotice] = useState(null);
   const data = productsQuery.data;
   const updateQuery = (updates) => {
     const next = new URLSearchParams(searchParams);
@@ -113,6 +118,26 @@ export default function Seller2026LiveProductsPage() {
       setExporting(false);
     }
   };
+  const handlePublish = async (product) => {
+    setNotice(null);
+    try {
+      await productsQuery.setProductPublished({
+        productId: product.id,
+        published: !product.isPublished,
+      });
+      setNotice({
+        type: "success",
+        text: product.isPublished
+          ? `${product.name} is now hidden from the storefront.`
+          : `${product.name} is now published to the storefront.`,
+      });
+    } catch (error) {
+      setNotice({
+        type: "error",
+        text: toErrorMessage(error, "Unable to update product visibility."),
+      });
+    }
+  };
 
   if (!canView) return <div className="seller2026-dashboard"><div className="seller2026-error"><ShieldCheck size={18} />You do not have permission to view products.</div></div>;
   if (productsQuery.isLoading) return <ProductSkeleton />;
@@ -138,7 +163,7 @@ export default function Seller2026LiveProductsPage() {
       <section className="seller2026-product-kpis">
         {[
           ["Total Products", data.summary.total, "All products", Box, "blue"],
-          ["Live", data.summary.active, "Published", CheckCircle2, "green"],
+          ["Live", data.summary.storefrontVisible, "Storefront visible", CheckCircle2, "green"],
           ["Drafts", data.summary.draft, "Unpublished", FileClock, "amber"],
           ["Review Queue", data.summary.pendingReview, "Awaiting review", ShieldCheck, "blue"],
         ].map(([label, value, note, Icon, color]) => (
@@ -147,6 +172,12 @@ export default function Seller2026LiveProductsPage() {
           </div>
         ))}
       </section>
+
+      {notice ? (
+        <div className={`seller2026-profile__notice seller2026-profile__notice--${notice.type}`}>
+          {notice.type === "success" ? <Check size={16} /> : <AlertTriangle size={16} />}{notice.text}
+        </div>
+      ) : null}
 
       <section className="seller2026-products__catalog">
         <div className="seller2026-products-toolbar">
@@ -166,8 +197,23 @@ export default function Seller2026LiveProductsPage() {
             </div>
             {visibleProducts.map((product) => {
               const inventory = inventoryLabel(product.stock);
-              const visibility = product.isPublished || product.visibility?.includes("visible") ? "Visible" : "Hidden";
+              const visibility = product.visibility === "storefront_visible"
+                ? "Visible"
+                : product.visibility === "published_blocked"
+                  ? "Blocked"
+                  : "Hidden";
               const review = product.submissionStatus === "submitted" || product.submissionStatus === "review_queue" ? "Pending" : product.status === "active" ? "Approved" : "Not submitted";
+              const reviewLocked = product.submissionStatus === "submitted" || product.submissionStatus === "needs_revision";
+              const publishDisabled = !data.permissions.canPublish || product.status !== "active" || reviewLocked || productsQuery.isPublishing;
+              const publishTitle = !data.permissions.canPublish
+                ? "You do not have permission to publish products"
+                : reviewLocked
+                  ? "Complete the admin review flow before changing visibility"
+                  : product.status !== "active"
+                    ? "Admin approval is required before publishing"
+                    : product.isPublished
+                      ? "Unpublish product"
+                      : "Publish product";
               return (
                 <article className="seller2026-product-row" key={product.id}>
                   <input type="checkbox" checked={selected.includes(product.id)} onChange={(event) => setSelected((current) => event.target.checked ? [...current, product.id] : current.filter((id) => id !== product.id))} />
@@ -183,7 +229,14 @@ export default function Seller2026LiveProductsPage() {
                   <span data-label="Visibility"><Pill>{visibility}</Pill></span>
                   <span data-label="Review Status"><Pill>{review}</Pill></span>
                   <Link className="seller2026-icon-button" to={workspaceRoutes.productDetail(product.id)} aria-label={`Preview ${product.name}`}><Eye size={17} /></Link>
-                  <button className={`seller2026-switch${product.isPublished ? " is-on" : ""}`} disabled title="Publishing remains approval controlled"><i /></button>
+                  <button
+                    className={`seller2026-switch${product.isPublished ? " is-on" : ""}`}
+                    disabled={publishDisabled}
+                    title={publishTitle}
+                    aria-label={`${product.isPublished ? "Unpublish" : "Publish"} ${product.name}`}
+                    aria-pressed={Boolean(product.isPublished)}
+                    onClick={() => handlePublish(product)}
+                  ><i /></button>
                   <div className="seller2026-product-row__menu">
                     <button aria-label={`Actions for ${product.name}`}><MoreHorizontal size={18} /></button>
                     <div><Link to={workspaceRoutes.productDetail(product.id)}>View Details</Link>{data.permissions.canUpdate ? <Link to={workspaceRoutes.productEdit(product.id)}>Edit Product</Link> : null}<span>Duplicate unavailable</span><span>Archive unavailable</span></div>

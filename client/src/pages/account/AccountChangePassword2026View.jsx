@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import "./account-change-password-2026.css";
 
 function LoadingBlock() {
@@ -33,6 +34,7 @@ function PasswordField({
   error,
   disabled,
   onFormChange,
+  t,
 }) {
   const [visible, setVisible] = useState(false);
   const inputType = visible ? "text" : "password";
@@ -57,8 +59,8 @@ function PasswordField({
           className="tppwd2026-eye-btn"
           onClick={() => setVisible((current) => !current)}
           disabled={disabled}
-          aria-label={visible ? `Hide ${label}` : `Show ${label}`}
-          title={visible ? `Hide ${label}` : `Show ${label}`}
+          aria-label={visible ? `${t("changePassword.hide")} ${label}` : `${t("changePassword.show")} ${label}`}
+          title={visible ? `${t("changePassword.hide")} ${label}` : `${t("changePassword.show")} ${label}`}
         >
           {visible ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
         </button>
@@ -69,14 +71,14 @@ function PasswordField({
   );
 }
 
-function RulesPanel({ rules }) {
+function RulesPanel({ rules, t }) {
   return (
     <article className="tppwd2026-rules">
       <span className="tppwd2026-rules-icon">
         <ShieldCheck aria-hidden="true" />
       </span>
       <div>
-        <h2>Password requirements</h2>
+        <h2>{t("changePassword.passwordRequirements")}</h2>
         <ul>
           {rules.map((rule) => (
             <li key={rule.id} className={rule.isMet ? "tppwd2026-rule-met" : ""}>
@@ -90,11 +92,11 @@ function RulesPanel({ rules }) {
   );
 }
 
-function StrengthMeter({ strength }) {
+function StrengthMeter({ strength, t }) {
   return (
     <div className={`tppwd2026-strength tppwd2026-strength-${strength.level}`} role="status">
       <div className="tppwd2026-strength-head">
-        <span>Password strength:</span>
+        <span>{t("changePassword.passwordStrength")}</span>
         <strong>{strength.label}</strong>
       </div>
       <div className="tppwd2026-strength-bars" aria-hidden="true">
@@ -127,21 +129,23 @@ export default function AccountChangePassword2026View({
   onForgotPassword,
   onContactSupport,
 }) {
+  const { t } = useTranslation();
+
   return (
     <section className="tppwd2026-root">
       <header className="tppwd2026-heading">
         <div>
           <LinkComponent className="tppwd2026-back-link" to="/user/my-account">
             <ArrowLeft aria-hidden="true" />
-            <span>Back to My Account</span>
+            <span>{t("changePassword.backToAccount")}</span>
           </LinkComponent>
           <div className="tppwd2026-title-row">
-            <h1>Change Password</h1>
+            <h1>{t("changePassword.title")}</h1>
             <span>
               <ShieldCheck aria-hidden="true" />
             </span>
           </div>
-          <p>Update your password to keep your account secure.</p>
+          <p>{t("changePassword.subtitle")}</p>
         </div>
         <div className="tppwd2026-hero" aria-hidden="true">
           <span>
@@ -173,7 +177,7 @@ export default function AccountChangePassword2026View({
         <LoadingBlock />
       ) : (
         <>
-          <RulesPanel rules={rules} />
+          <RulesPanel rules={rules} t={t} />
 
           <form className="tppwd2026-form-panel" onSubmit={onSubmit}>
             <div className="tppwd2026-account-strip">
@@ -191,56 +195,59 @@ export default function AccountChangePassword2026View({
             </div>
 
             <PasswordField
-              label="Current Password"
+              label={t("changePassword.currentPassword")}
               name="currentPassword"
               value={form.currentPassword}
-              placeholder="Enter your current password"
+              placeholder={t("changePassword.currentPasswordPlaceholder")}
               autoComplete="current-password"
-              helper="For your security, please enter your current password."
+              helper={t("changePassword.currentPasswordHelper")}
               error={fieldErrors.currentPassword}
               disabled={isSaving}
               onFormChange={onFormChange}
+              t={t}
             />
 
             <PasswordField
-              label="New Password"
+              label={t("changePassword.newPassword")}
               name="newPassword"
               value={form.newPassword}
-              placeholder="Enter your new password"
+              placeholder={t("changePassword.newPasswordPlaceholder")}
               autoComplete="new-password"
               error={fieldErrors.newPassword}
               disabled={isSaving}
               onFormChange={onFormChange}
+              t={t}
             />
-            <StrengthMeter strength={strength} />
+            <StrengthMeter strength={strength} t={t} />
 
             <PasswordField
-              label="Confirm New Password"
+              label={t("changePassword.confirmPassword")}
               name="confirmPassword"
               value={form.confirmPassword}
-              placeholder="Confirm your new password"
+              placeholder={t("changePassword.confirmPasswordPlaceholder")}
               autoComplete="new-password"
-              helper="Enter the same password again to confirm."
+              helper={t("changePassword.confirmPasswordHelper")}
               error={fieldErrors.confirmPassword}
               disabled={isSaving}
               onFormChange={onFormChange}
+              t={t}
             />
 
             <div className="tppwd2026-secondary-actions">
               <button type="button" onClick={onForgotPassword} disabled={isSaving}>
                 <KeyRound aria-hidden="true" />
-                <span>Forgot password</span>
+                <span>{t("changePassword.forgotPassword")}</span>
               </button>
               <button type="button" onClick={onContactSupport} disabled={isSaving}>
                 <HelpCircle aria-hidden="true" />
-                <span>Contact support</span>
+                <span>{t("changePassword.contactSupport")}</span>
               </button>
             </div>
 
             <div className="tppwd2026-actions">
               <button type="submit" className="tppwd2026-btn tppwd2026-btn-primary" disabled={isSaving}>
                 <LockKeyhole aria-hidden="true" />
-                <span>{isSaving ? "Changing..." : "Change Password"}</span>
+                <span>{isSaving ? t("changePassword.changing") : t("changePassword.changeBtn")}</span>
               </button>
               <button
                 type="button"
@@ -248,7 +255,7 @@ export default function AccountChangePassword2026View({
                 disabled={isSaving}
                 onClick={onCancel}
               >
-                <span>Cancel</span>
+                <span>{t("changePassword.cancel")}</span>
               </button>
             </div>
           </form>

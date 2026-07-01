@@ -2,35 +2,34 @@
 
 **Project:** `tp-preneurs-multivendor-main`  
 **Area fokus:** Client / Storefront  
-**Sumber analisis:** ekstraksi langsung `tp-preneurs-multivendor-main(6).zip` + pembaruan atas `system_map_client_storefront(18).md`  
-**Tanggal pembaruan:** 2026-06-20  
+**Sumber analisis:** ekstraksi langsung `tp-preneurs-multivendor-main(9).zip` + pembaruan atas `system_map_client_storefront(39).md`  
+**Tanggal pembaruan:** 2026-06-27  
 **Tujuan dokumen:** memberi konteks utuh kepada AI/engineer tentang arsitektur, fitur, route, API, state, dan alur aplikasi Client / Storefront agar pengembangan berikutnya tetap sinkron dengan sistem aktual di codebase.
 
 ---
 
-## 1. Ringkasan Update dari Analisis Repo 2026-06-20
+## 1. Ringkasan Update dari Analisis Repo 2026-06-27
 
-Repo yang dianalisis berisi monorepo `tp-preneurs-multivendor-main` dengan package `client`, `server`, dan `packages/*`. Ekstraksi zip memuat ±2.230 entry. Area Storefront yang relevan saat audit ini mencakup ±46 file di `client/src/pages/store`, ±41 file di `client/src/pages/account`, ±92 file di `client/src/api`, ±12 file di `client/src/components/store`, ±20 file di `client/src/components/kachabazar-demo`, dan ±64 file route di `server/src/routes`.
+Repo yang dianalisis adalah zip terbaru `tp-preneurs-multivendor-main(9).zip`. Hasil ekstraksi memperlihatkan monorepo `tp-preneurs-multivendor-main` dengan package `client`, `server`, dan `packages/*`. Zip memuat **2.268 entry** dan hasil ekstraksi berisi **±2.051 file**. Area Client / Storefront yang relevan pada audit ini mencakup **46 file** di `client/src/pages/store`, **47 file** di `client/src/pages/account`, **92 file** di `client/src/api`, **13 file** di `client/src/components/store`, **20 file** di `client/src/components/kachabazar-demo`, dan **64 file** route di `server/src/routes`.
 
-Perubahan/koreksi penting terhadap dokumen sebelumnya:
+Dokumen `system_map_client_storefront.md` yang berada di dalam repo ternyata masih identik dengan file input lama dan masih bertanggal 2026-06-20. Karena itu, pembaruan ini mempertahankan fondasi arsitektur lama yang masih valid, lalu menambahkan koreksi dari codebase aktual.
 
-1. **Route `/shop` sudah aktif.** Di `client/src/App.jsx`, `/shop` dan `/search` sama-sama merender `StoreSearchPage`; file `StoreSearchPage.jsx` sekarang re-export ke `StoreShopPage2026.jsx`.
-2. **Route `/wishlist` sudah aktif.** Route ini merender `StoreWishlistPage2026.jsx` dan memakai local wishlist utility `client/src/utils/storefrontWishlist.js`.
-3. **Redirect category berubah.** `LegacyStoreCategoryRedirect` mengarahkan `/category` ke `/shop`, sedangkan `/category/:slug` tetap ke `/search?category=:slug&page=1`.
-4. **Product detail aktif sudah 2026.** `StoreProductDetailPage.jsx` hanya re-export ke `StoreProductDetailPage2026.jsx`.
-5. **Cart page dan cart drawer aktif sudah 2026.** `StoreCartPage.jsx` merender `StoreCart2026View` dan export `StoreCartDrawer` dari `StoreCartDrawer2026.jsx`.
-6. **Checkout tetap di `Checkout.jsx`, tetapi UI akhirnya memakai `Checkout2026View` + `checkout2026Adapter.js`.** File `Checkout.jsx` masih besar dan domain-critical.
-7. **Auth Storefront sebagian sudah 2026.** Login, register, dan forgot password memakai view+adapter 2026; reset password masih memakai komponen form legacy yang lebih sederhana.
-8. **Header Storefront memakai palette brand #034c85 dan #fe6f05.** `StoreHeaderKacha.jsx` memiliki nav aktif `Shop`, `Offers`, `About Us`, dan `Contact Us`, search global, wishlist badge, cart badge, notification/account icon, dan `ThemeToggle`.
-9. **StoreLayout membuka cart drawer via event global.** Event `cart-drawer:open` akan membuka drawer selama route bukan `/cart`; body scroll dikunci saat drawer terbuka.
-10. **Wishlist masih local-only.** Data wishlist disimpan di `localStorage` key `tp_storefront_wishlist_v1`, bukan API backend.
-11. **Notifications API lebih kaya daripada UI utama.** Module `userNotifications.ts` mendukung read/read-all/delete/clear; halaman account saat ini fokus pada list, filter, mark read, dan mark all read.
-12. **Public wrapper API masih penting.** `client/src/api/public/*.ts` tetap menjadi compatibility boundary yang re-export dari module top-level.
-13. **ThemeProvider global tetap source of truth untuk light/dark/system.** Jangan membuat theme store baru.
-14. **Backend tetap source of truth.** Stok, variant, checkout total, coupon, payment readiness, order/payment/shipment actionability, store readiness, dan store application workflow tetap harus mengikuti backend.
-15. **Folder `.tmp/`, `_archive/`, dan artefak slicing/demo tidak boleh dianggap route aktif** kecuali task eksplisit meminta migrasi dari artefak tersebut.
+Perubahan/koreksi penting hasil audit terbaru:
 
----
+1. **Route utama Client / Storefront tetap sama dan sudah diverifikasi dari `client/src/App.jsx`.** `/shop` dan `/search` tetap merender `StoreSearchPage` yang re-export ke `StoreShopPage2026`; `/product/:slug` tetap re-export ke `StoreProductDetailPage2026`; `/cart` memakai `StoreCartPage` + `StoreCart2026View`; `/checkout` tetap domain-critical di `Checkout.jsx` dengan presentasi `Checkout2026View`.
+2. **Account Notifications sudah benar-benar memakai UI 2026.** `AccountNotificationsPage.jsx` sekarang memakai `notifications2026/AccountNotifications2026View.jsx` dan `notifications2026/accountNotifications2026Adapter.js`, bukan hanya list sederhana.
+3. **Notification action sekarang lebih lengkap.** Halaman `/user/notifications` mendukung filter, unread-only toggle, mark one read, mark all read, delete notification, dan clear all melalui `userNotifications.ts`.
+4. **Header notification preview aktif.** `StoreHeaderKacha.jsx` memakai `NotificationPreviewDropdown.jsx`, query unread count `["account", "notifications", "unread-count"]`, dan preview list `["account", "notifications", "preview", { limit: 5 }]`. Guest diarahkan ke `/auth/login`; account user bisa membuka dropdown tanpa meninggalkan halaman.
+5. **Order detail punya invoice print layer.** `AccountOrderDetail2026View.jsx` memakai `invoice/accountOrderInvoiceAdapter.js` dan `invoice/AccountOrderInvoicePrint.jsx` untuk model invoice dan print-friendly hidden invoice view.
+6. **Payment page 2026 memiliki action nyata.** `/user/my-orders/:id/payment` mendukung copy amount/reference, view QR, save QR image, submit payment proof via `/upload` + `/payments/:paymentId/proof`, dan cancel payment via `/payments/:paymentId/cancel`, tetapi action tetap dibatasi oleh `proofActionability` dan `cancelability` dari backend.
+7. **Theme global sudah memakai token brand di `client/src/index.css`.** Token utama adalah `--tp-primary: #034c85` dan `--tp-accent: #fe6f05`; dark mode memakai `.dark` root override dan helper untuk shell `storefront`, `account`, dan `store-microsite`.
+8. **`ThemeProvider` aktual memakai meta color `#07111f` untuk dark dan `#034c85` untuk light.** Storage tetap `tp_storefront_theme`, dengan pilihan `light`, `dark`, dan `system`.
+9. **`StoreLayout.jsx` saat ini mengirim `brandingLogoUrl` ke `StoreHeaderKacha`, bukan seluruh `storeSettings`.** `storeSettings` tetap disediakan ke child route lewat `<Outlet context={{ storeSettings }} />`.
+10. **Server mount map tetap tervalidasi.** Stripe webhook tetap dipasang pada `/api/store` sebelum `express.json()`, lalu route publik, auth, cart, checkout, orders, payments, seller, store, stores, customization, settings, dan user store applications dipasang sesuai `server/src/app.ts`.
+11. **Public notifications punya compatibility endpoint.** Selain `/user/notifications/*`, `server/src/routes/public.ts` juga masih menyediakan `/notifications/*` yang dilindungi auth. Client aktif tetap memakai `/user/notifications/*`.
+12. **Folder `.tmp/`, `_archive/`, artefak slicing/demo, dan file screenshot sementara tetap tidak boleh dianggap route aktif** kecuali task eksplisit meminta migrasi dari artefak tersebut.
+
+Kesimpulan audit: dokumen 2026-06-20 masih valid sebagai fondasi, tetapi perlu disegarkan pada area notifications 2026, invoice print, payment proof/cancel UX, token theme aktual, dan catatan implementasi header notification preview.
 
 ## 2. Prinsip Umum Client / Storefront
 
@@ -139,11 +138,15 @@ pnpm -F server smoke:checkout-variants
 pnpm -F server smoke:shipment-regression
 pnpm -F server smoke:client-registration-otp
 pnpm -F server smoke:user-change-password
+pnpm -F server smoke:store-customization-right-box
 pnpm -F server smoke:store-customization-seo
 pnpm -F server smoke:store-customization-checkout
 pnpm -F server smoke:store-customization-about-us
 pnpm -F server smoke:store-customization-contact-us
 pnpm -F server smoke:store-customization-dashboard-setting
+pnpm -F server smoke:store-customization-faq
+pnpm -F server smoke:store-customization-offers
+pnpm -F server smoke:store-customization-our-team
 pnpm -F server smoke:store-settings
 pnpm -F server smoke:store-application
 pnpm -F server smoke:store-application-activation
@@ -231,13 +234,46 @@ Storage:
 tp_storefront_theme
 ```
 
-DOM behavior:
+DOM behavior aktual:
 
 - Toggle class `dark` di `document.documentElement`.
 - Set `data-theme` sesuai resolved theme.
 - Set `data-theme-preference` sesuai preferensi user.
-- Set `style.colorScheme`.
-- Update `<meta name="theme-color">` ke `#020617` untuk dark dan `#f8fafc` untuk light.
+- Set `style.colorScheme` sesuai resolved theme.
+- Update `<meta name="theme-color">` ke `#07111f` untuk dark dan `#034c85` untuk light.
+
+Token global aktif berada di `client/src/index.css`:
+
+```text
+--tp-primary: #034c85;
+--tp-primary-strong: #013d70;
+--tp-primary-soft: #eaf3fb;
+--tp-primary-rgb: 3 76 133;
+
+--tp-accent: #fe6f05;
+--tp-accent-strong: #d95b00;
+--tp-accent-soft: #fff3e8;
+--tp-accent-rgb: 254 111 5;
+```
+
+Dark mode override:
+
+```text
+.dark {
+  --tp-bg: #07111f;
+  --tp-surface: #0d1b2c;
+  --tp-surface-soft: #13253a;
+  --tp-border: #263a51;
+  --tp-text: #e7f1ff;
+  --tp-muted: #9dafc6;
+}
+```
+
+Guardrail:
+
+- Jangan membuat `ThemeProvider` kedua.
+- Jangan hardcode warna lama seperti emerald/green untuk primary action baru.
+- Komponen Storefront/Account/Microsite baru wajib memakai token `--tp-*`, class Tailwind `dark:*`, atau CSS dark override yang konsisten.
 
 ### 5.2 `client/src/components/store/ThemeToggle.jsx`
 
@@ -363,10 +399,23 @@ components/StoreApplicationWizard2026.jsx
 components/StoreApplicationReview2026.jsx
 ```
 
+Tambahan penting dari audit 2026-06-27:
+
+```text
+notifications2026/AccountNotifications2026View.jsx
+notifications2026/accountNotifications2026Adapter.js
+notifications2026/account-notifications-2026.css
+invoice/AccountOrderInvoicePrint.jsx
+invoice/accountOrderInvoiceAdapter.js
+invoice/account-order-invoice.css
+```
+
 Catatan:
 
 - Banyak `*Page.jsx` adalah container/data layer yang mengirim props ke view 2026.
-- Saat redesign account, cari container, view, adapter, dan CSS terkait.
+- `/user/notifications` sekarang punya view/adapter 2026 terpisah.
+- `/user/my-orders/:id` sekarang menyiapkan model invoice print di view 2026.
+- Saat redesign account, cari container, view, adapter, CSS, dan subfolder fitur terkait (`notifications2026`, `invoice`, `components`).
 
 ### 6.3 Layout dan shell
 
@@ -609,8 +658,8 @@ Behavior penting:
 
 Fitur aktif:
 
-- Sticky header dengan palette `#034c85` dan `#fe6f05`.
-- Logo dari `storeSettings.branding.clientLogoUrl`; fallback logo TP Preneurs.
+- Sticky header dengan palette token `#034c85` dan `#fe6f05`.
+- Logo dari `brandingLogoUrl` yang dikirim `StoreLayout`; fallback logo TP Preneurs bila tidak tersedia.
 - Search global:
   - input kosong → navigate `/shop`
   - input berisi keyword → navigate `/search?q=<keyword>&page=1`
@@ -619,13 +668,31 @@ Fitur aktif:
   - `Offers` → `/offers`
   - `About Us` → `/about-us`
   - `Contact Us` → `/contact-us`
-- Category dropdown dari `useCategories({ parentsOnly: true })`.
+- Category dropdown dari `useCategories({ parentsOnly: true })`, dibatasi 8 kategori awal untuk header.
 - Header actions:
   - `ThemeToggle`
   - wishlist badge → `/wishlist`
-  - cart badge → open drawer
-  - notification icon → `/user/notifications` atau `/auth/login`
-  - account icon → `/user/my-account` atau `/auth/login`
+  - cart badge → open cart drawer
+  - notification icon → dropdown preview jika account session aktif, atau `/auth/login` jika guest
+  - account avatar/icon → `/user/my-account` atau `/auth/login`
+  - logout action untuk account session
+
+Notification behavior aktual:
+
+```text
+fetchUserUnreadNotificationCount()
+NotificationPreviewDropdown({ open, onNavigate, onClose })
+queryKey preview: ["account", "notifications", "preview", { limit: 5 }]
+queryKey unread: ["account", "notifications", "unread-count"]
+```
+
+`NotificationPreviewDropdown.jsx` memakai adapter yang sama dengan halaman notifications 2026, mendukung mark read dan mark all read, lalu meng-invalidasi query `["account", "notifications"]` dan `["user", "notifications"]`.
+
+Guardrail:
+
+- Header notification hanya boleh membuka data jika `isAccountSession` benar.
+- Jangan membuat notification state lokal yang tidak sinkron dengan `userNotifications.ts`.
+- Semua navigasi header harus tetap mempertahankan route publik aktif: `/shop`, `/offers`, `/about-us`, `/contact-us`, `/wishlist`, `/cart`, `/user/*`.
 
 ### 8.3 Mobile bottom nav
 
@@ -1833,6 +1900,9 @@ Komponen:
 client/src/pages/account/AccountOrderDetailPage.jsx
 client/src/pages/account/AccountOrderDetail2026View.jsx
 client/src/pages/account/accountOrderDetail2026Adapter.js
+client/src/pages/account/invoice/AccountOrderInvoicePrint.jsx
+client/src/pages/account/invoice/accountOrderInvoiceAdapter.js
+client/src/pages/account/invoice/account-order-invoice.css
 ```
 
 Query:
@@ -1844,8 +1914,28 @@ Query:
 
 Polling:
 
-- Order detail polling 15 detik sampai contract final.
-- Grouped order polling 15 detik jika split operational truth belum final.
+- Order detail polling 15 detik sampai `isOrderContractFinal(order.contract)` benar.
+- Grouped order polling 15 detik jika `isSplitOperationallyFinal(group)` belum final.
+
+Action utama:
+
+- `onPrint` membuka browser print.
+- `onInvoice` membuka URL invoice bila tersedia, atau fallback ke `window.print()`.
+- `onTrack` membuka URL/path tracking bila tersedia, atau scroll ke timeline.
+- `onCopy` memakai clipboard untuk order code/tracking/reference.
+- `onContactSupport` ke contact page dengan topic order.
+
+Invoice layer aktual:
+
+- `AccountOrderDetail2026View` membangun `invoiceData` memakai `buildAccountOrderInvoiceModel({ order, groupedOrder, user })`.
+- `AccountOrderInvoicePrint` dirender sebagai print-friendly invoice companion.
+- CSS invoice berada di `invoice/account-order-invoice.css` dan perlu dijaga saat mengubah struktur order detail.
+
+Guardrail:
+
+- Invoice harus memakai raw order/grouped order backend, bukan model ringkas yang kehilangan store split/payment detail.
+- Print/download invoice tidak boleh memodifikasi order state.
+- Jangan menghapus grouped payment query karena order detail membutuhkan split operational truth.
 
 ### 18.3 Account payment page
 
@@ -1855,6 +1945,7 @@ Komponen:
 client/src/pages/account/AccountOrderPaymentPage.jsx
 client/src/pages/account/AccountOrderPayment2026View.jsx
 client/src/pages/account/accountOrderPayment2026Adapter.js
+client/src/pages/account/account-order-payment-2026.css
 ```
 
 API:
@@ -1867,13 +1958,39 @@ cancelPaymentTransaction(paymentId)
 uploadPaymentProofImage(file)
 ```
 
-Fungsi:
+Endpoint aktif:
 
-- Tampilkan grouped payment read model.
-- Tampilkan QRIS/payment instruction.
-- Upload proof bila `proofActionability.canStartProof` true.
-- Cancel payment bila `cancelability.canCancel` true.
-- Invalidate query setelah mutation.
+```text
+GET /orders/:orderId/checkout-payment
+GET /payments/:paymentId
+POST /payments/:paymentId/proof
+POST /payments/:paymentId/cancel
+POST /upload
+```
+
+Fungsi aktual:
+
+- Menampilkan grouped payment read model per store.
+- Menampilkan QRIS/payment instruction per store destination.
+- Copy exact amount dan reference menggunakan clipboard fallback.
+- View full QR dan save/download QR image bila `qrImageUrl` tersedia.
+- Upload payment proof image via `/upload`.
+- Submit proof payload:
+  - `proofImageUrl`
+  - `senderName`
+  - `senderBankOrWallet`
+  - `transferAmount`
+  - `transferTime`
+  - `note`
+- Cancel payment transaction bila backend contract mengizinkan.
+- Invalidate/refetch query setelah mutation sukses.
+
+Guardrail:
+
+- Tombol proof hanya boleh muncul bila `proofActionability.canStartProof` benar.
+- Tombol cancel hanya boleh muncul bila `cancelability.canCancel` benar.
+- Jangan mengizinkan submit proof/cancel hanya dari string status frontend.
+- QRIS destination harus mengikuti store payment masing-masing, terutama pada checkout multi-store.
 
 ### 18.4 Public order tracking `/order/:ref`
 
@@ -2096,10 +2213,14 @@ Komponen:
 
 ```text
 AccountNotificationsPage.jsx
+notifications2026/AccountNotifications2026View.jsx
+notifications2026/accountNotifications2026Adapter.js
+notifications2026/account-notifications-2026.css
 NotificationPreviewDropdown.jsx
+notification-preview-dropdown-2026.css
 ```
 
-API module mendukung:
+API module aktif:
 
 ```text
 GET /user/notifications
@@ -2110,10 +2231,49 @@ DELETE /user/notifications/:id
 DELETE /user/notifications
 ```
 
-Catatan:
+Compatibility backend juga menyediakan endpoint protected tanpa prefix `/user`:
 
-- Account notification page saat audit fokus pada list/filter/unread-only/mark read/mark all read.
-- Delete/clear ada di API module; gunakan dengan hati-hati jika menambah action UI.
+```text
+GET /notifications
+GET /notifications/unread-count
+POST/PATCH /notifications/:id/read
+POST/PATCH /notifications/read-all
+DELETE /notifications/:id
+DELETE /notifications
+```
+
+Query key utama:
+
+```text
+["account", "notifications", { limit: 20, offset: 0 }]
+["account", "notifications", "unread-count"]
+["account", "notifications", "preview", { limit: 5 }]
+```
+
+Fitur halaman `/user/notifications`:
+
+- Normalisasi payload melalui `unwrapNotifications`.
+- Build view model melalui `buildNotificationsViewModel`.
+- Filter berdasarkan kategori dari `NOTIFICATION_FILTERS`.
+- Toggle unread-only.
+- Mark single notification as read.
+- Mark all notifications as read.
+- Delete individual notification.
+- Clear all notifications.
+- Open notification akan mark read terlebih dahulu lalu navigate ke `item.route` atau `item.actionUrl`.
+
+Fitur header preview:
+
+- Dibuka dari `StoreHeaderKacha.jsx` jika account session aktif.
+- Menampilkan 5 notifikasi terbaru.
+- Mendukung mark read / mark all read dan navigasi cepat.
+- Meng-invalidasi query notification agar badge/header/page sinkron.
+
+Guardrail:
+
+- Delete/clear adalah action destruktif; UI harus menampilkan affordance jelas dan state disabled saat mutation pending.
+- Jangan menampilkan notification preview untuk guest.
+- Jangan membuat endpoint baru jika `userNotifications.ts` sudah mencakup action yang dibutuhkan.
 
 ### 19.9 Reviews
 
@@ -2536,6 +2696,7 @@ pnpm -F server smoke:auth-forgot-password
 /cart
 /checkout
 /order/:ref
+/checkout/success      // protected account guard
 /auth/login
 /auth/register
 /auth/forgot-password
@@ -2544,7 +2705,13 @@ pnpm -F server smoke:auth-forgot-password
 /user/my-orders
 /user/my-orders/:id
 /user/my-orders/:id/payment
+/user/notifications
+/user/my-reviews
+/user/my-account
+/user/update-profile
 /user/shipping-address
+/user/change-password
+/user/store-invitations
 /user/store-application
 /store/:slug
 /store/:slug/products/:productSlug
@@ -2791,7 +2958,7 @@ Setiap task Storefront dianggap aman bila memenuhi kriteria berikut:
 Gunakan konteks berikut saat meminta AI/Codex/Gemini mengerjakan Storefront:
 
 ```text
-Anda bekerja pada repo tp-preneurs-multivendor-main, fokus Client / Storefront. Storefront berada di client/src dan berbagi aplikasi dengan Admin Workspace dan Seller Workspace. Root app memakai React + Vite + React Router + React Query + Zustand, dibungkus ThemeProvider untuk light/dark/system theme. Route publik utama ada di client/src/App.jsx di bawah StoreLayout. Home aktif adalah KachaBazarDemoHomePage. Route /shop dan /search sama-sama memakai StoreSearchPage yang re-export ke StoreShopPage2026. Route /wishlist memakai StoreWishlistPage2026 dan localStorage key tp_storefront_wishlist_v1. Product detail /product/:slug memakai StoreProductDetailPage2026. Cart /cart memakai StoreCart2026View dan cart drawer global memakai StoreCartDrawer2026. Checkout /checkout tetap di Checkout.jsx tetapi presentasi memakai Checkout2026View. Account dashboard/order/payment/profile/address/change-password banyak memakai Account*2026View + account*2026Adapter. Vendor microsite /store/:slug berada di luar StoreLayout.
+Anda bekerja pada repo tp-preneurs-multivendor-main, fokus Client / Storefront. Storefront berada di client/src dan berbagi aplikasi dengan Admin Workspace dan Seller Workspace. Root app memakai React + Vite + React Router + React Query + Zustand, dibungkus ThemeProvider untuk light/dark/system theme. Route publik utama ada di client/src/App.jsx di bawah StoreLayout. Home aktif adalah KachaBazarDemoHomePage. Route /shop dan /search sama-sama memakai StoreSearchPage yang re-export ke StoreShopPage2026. Route /wishlist memakai StoreWishlistPage2026 dan localStorage key tp_storefront_wishlist_v1. Product detail /product/:slug memakai StoreProductDetailPage2026. Cart /cart memakai StoreCart2026View dan cart drawer global memakai StoreCartDrawer2026. Checkout /checkout tetap di Checkout.jsx tetapi presentasi memakai Checkout2026View. Account dashboard/order/payment/profile/address/change-password banyak memakai Account*2026View + account*2026Adapter. Account notifications sudah memakai notifications2026/AccountNotifications2026View dan adapter khusus; header memakai NotificationPreviewDropdown untuk preview 5 item dan unread badge. Order detail /user/my-orders/:id memakai invoice/AccountOrderInvoicePrint + accountOrderInvoiceAdapter untuk print invoice. Payment page /user/my-orders/:id/payment memiliki action copy/reference, view/save QR, submit proof, dan cancel payment yang wajib mengikuti proofActionability/cancelability backend. Vendor microsite /store/:slug berada di luar StoreLayout.
 
 Backend adalah source of truth untuk catalog purchasability, stock, variant availability, coupon validity, checkout totals, payment profile readiness, order/payment/shipment lifecycle, available actions, store readiness, dan store application workflow. Jangan menghitung final checkout/order/payment state sendiri di client. Gunakan API modules di client/src/api dan wrapper client/src/api/public bila file sekitar memakainya. Gunakan AuthContext/useAccountAuth untuk account session dan useCart untuk cart. Cart store aktual adalah client/src/store/cart.store.ts; pertahankan variant fields seperti variantKey, variantSelections, variantSku, variantBarcode, cartItemId, dan lineId. Wishlist saat ini local-only, jangan menjanjikan backend sync. Jangan menghapus route/file legacy tanpa audit karena ada redirect/compatibility layer.
 
@@ -2800,7 +2967,57 @@ Setiap perubahan Storefront harus sinkron dengan Admin customization/settings/co
 
 ---
 
-## 30. Kesimpulan Arsitektur
+## 30. Catatan Audit Teknis 2026-06-27
+
+Bagian ini merangkum area yang berubah atau lebih jelas setelah membaca `tp-preneurs-multivendor-main(9).zip`.
+
+### 30.1 File dan folder yang diverifikasi
+
+```text
+client/src/App.jsx
+client/src/main.jsx
+client/src/index.css
+client/src/theme/ThemeProvider.jsx
+client/src/components/Layout/StoreLayout.jsx
+client/src/components/kachabazar-demo/StoreHeaderKacha.jsx
+client/src/components/store/NotificationPreviewDropdown.jsx
+client/src/pages/account/AccountNotificationsPage.jsx
+client/src/pages/account/notifications2026/*
+client/src/pages/account/AccountOrderDetailPage.jsx
+client/src/pages/account/AccountOrderDetail2026View.jsx
+client/src/pages/account/invoice/*
+client/src/pages/account/AccountOrderPaymentPage.jsx
+client/src/pages/account/AccountOrderPayment2026View.jsx
+client/src/api/userNotifications.ts
+client/src/api/orderPayments.ts
+server/src/app.ts
+server/src/routes/public.ts
+server/src/routes/store.ts
+server/src/routes/cartRoutes.ts
+server/src/routes/checkout.ts
+server/src/routes/orders.ts
+server/src/routes/payments.ts
+server/src/routes/user.storeApplications.ts
+```
+
+### 30.2 Perbedaan utama terhadap dokumen 2026-06-20
+
+1. Jumlah file account aktif bertambah menjadi 47 karena ada subfolder `notifications2026` dan `invoice`.
+2. Section notifications lama perlu dikoreksi: delete dan clear all sudah benar-benar dipakai oleh UI account page, bukan hanya tersedia di API.
+3. Header notification sekarang bukan link langsung semata; ada dropdown preview yang memakai shared adapter.
+4. Order detail sekarang mempunyai print invoice companion yang harus ikut dipertimbangkan saat redesign.
+5. Theme meta color aktual berbeda dari dokumen lama: dark `#07111f`, light `#034c85`.
+6. `StoreLayout` tidak meneruskan seluruh `storeSettings` ke header; header menerima `brandingLogoUrl`, sedangkan child route memperoleh `storeSettings` melalui outlet context.
+
+### 30.3 Rekomendasi prioritas update berikutnya
+
+- Jika membuat mockup/slicing halaman `/user/notifications`, gunakan struktur `notifications2026` dan jangan modifikasi langsung ke CSS lama `AccountNotificationsPage.css` kecuali memang diperlukan untuk kompatibilitas.
+- Jika membuat mockup/slicing order detail, audit juga invoice print output dengan browser print preview.
+- Jika membuat mockup/slicing payment page, uji minimal: copy amount, copy reference, view QR, save QR, upload proof image, submit proof, dan cancel payment.
+- Jika membuat mockup header, uji notification dropdown di guest, account session tanpa unread, dan account session dengan unread.
+- Jika membuat dark mode cleanup, gunakan token `--tp-*` dan cek shell `storefront-shell`, `account-shell`, dan `store-microsite-shell`.
+
+## 31. Kesimpulan Arsitektur
 
 Client / Storefront dalam repo ini adalah marketplace multi-vendor dengan enam lapisan besar:
 

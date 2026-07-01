@@ -419,7 +419,7 @@ const getDefaultCustomization = () => ({
     },
     popularProducts: {
       enabled: true,
-      title: "Popular Products for Daily Shopping",
+      title: "Popular Products",
       description:
         "See all our popular products in this week. You can choose your daily needs products from this list and get some special offer with free shipping.",
       productsLimit: 18,

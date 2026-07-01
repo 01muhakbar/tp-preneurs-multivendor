@@ -13,39 +13,41 @@ import {
   UserRound,
   Zap,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import "./store-login-2026.css";
 
 const benefits = [
   {
     icon: ShieldCheck,
-    title: "Secure & Protected",
-    text: "Your data is safe with us.",
+    titleKey: "login.benefitSecure",
+    textKey: "login.benefitSecureDesc",
   },
   {
     icon: Zap,
-    title: "Fast & Easy Access",
-    text: "One login for everything.",
+    titleKey: "login.benefitFast",
+    textKey: "login.benefitFastDesc",
   },
   {
     icon: Gift,
-    title: "Exclusive Benefits",
-    text: "Member-only offers & rewards.",
+    titleKey: "login.benefitExclusive",
+    textKey: "login.benefitExclusiveDesc",
   },
 ];
 
 function BenefitList({ compact = false }) {
+  const { t } = useTranslation();
   return (
     <div className={compact ? "sl26-mobile-benefits" : "sl26-benefits"}>
       {benefits.map((item) => {
         const Icon = item.icon;
         return (
-          <div className="sl26-benefit" key={item.title}>
+          <div className="sl26-benefit" key={item.titleKey}>
             <span>
               <Icon aria-hidden="true" />
             </span>
             <div>
-              <strong>{item.title}</strong>
-              <p>{item.text}</p>
+              <strong>{t(item.titleKey)}</strong>
+              <p>{t(item.textKey)}</p>
             </div>
           </div>
         );
@@ -85,17 +87,18 @@ export default function StoreLogin2026View({
 }) {
   const { form, status, submitting, disabled } = viewModel;
   const passwordInputType = form.showPassword ? "text" : "password";
-  const passwordToggleLabel = form.showPassword ? "Hide password" : "Show password";
+  const { t } = useTranslation();
+  const passwordToggleLabel = form.showPassword ? t("login.hidePassword") : t("login.showPassword");
 
   return (
     <main className="sl26-page">
       <div className="sl26-shell">
         <section className="sl26-copy" aria-labelledby="store-login-title">
-          <span className="sl26-chip">Welcome back!</span>
+          <span className="sl26-chip">{t("login.welcomeBack")}</span>
           <h1 id="store-login-title">
-            Sign in to <span>your account</span>
+            {t("login.signInTo")} <span>{t("login.yourAccount")}</span>
           </h1>
-          <p>Access your orders, saved items, and exclusive member benefits.</p>
+          <p>{t("login.subtitle")}</p>
           <BenefitList />
           <div className="sl26-flight" aria-hidden="true">
             <span />
@@ -109,8 +112,8 @@ export default function StoreLogin2026View({
               <UserRound aria-hidden="true" />
             </span>
             <div>
-              <h2>Member Login</h2>
-              <p>Continue to TP Preneurs.</p>
+              <h2>{t("login.memberLogin")}</h2>
+              <p>{t("login.continueTo")}</p>
             </div>
           </div>
 
@@ -123,21 +126,21 @@ export default function StoreLogin2026View({
 
           <form className="sl26-form" onSubmit={onSubmit}>
             <div className="sl26-field">
-              <label htmlFor="store-login-email">Email address</label>
+              <label htmlFor="store-login-email">{t("login.email")}</label>
               <input
                 id="store-login-email"
                 ref={fieldRefs.emailRef}
                 type="email"
                 value={form.email}
                 onChange={(event) => onEmailChange(event.target.value)}
-                placeholder="you@email.com"
+                placeholder={t("login.emailPlaceholder")}
                 autoComplete="email"
                 required
               />
             </div>
 
             <div className="sl26-field">
-              <label htmlFor="store-login-password">Password</label>
+              <label htmlFor="store-login-password">{t("login.password")}</label>
               <div className="sl26-password">
                 <input
                   id="store-login-password"
@@ -163,10 +166,10 @@ export default function StoreLogin2026View({
                   checked={form.remember}
                   onChange={(event) => onRememberChange(event.target.checked)}
                 />
-                <span>Remember me</span>
+                <span>{t("login.rememberMe")}</span>
               </label>
               <button type="button" onClick={onForgotPassword}>
-                Forgot password?
+                {t("login.forgotPassword")}
               </button>
             </div>
 
@@ -186,14 +189,14 @@ export default function StoreLogin2026View({
             </StatusMessage>
 
             <button className="sl26-submit" type="submit" disabled={disabled}>
-              {submitting ? "Signing in..." : status.submitLabel}
+              {submitting ? t("login.signingIn") : status.submitLabel}
             </button>
           </form>
 
           <p className="sl26-register">
-            New here?{" "}
+            {t("login.newHere")}{" "}
             <button type="button" onClick={onCreateAccount}>
-              Create account
+              {t("login.createAccount")}
             </button>
           </p>
         </section>
@@ -210,15 +213,15 @@ export default function StoreLogin2026View({
           <div className="sl26-mini sl26-mini--top">
             <Rocket aria-hidden="true" />
             <div>
-              <strong>Shop faster after login</strong>
-              <p>Cart, checkout, and orders stay in sync.</p>
+              <strong>{t("login.shopFaster")}</strong>
+              <p>{t("login.shopFasterDesc")}</p>
             </div>
           </div>
           <div className="sl26-mini sl26-mini--bottom">
             <Target aria-hidden="true" />
             <div>
-              <strong>Personalized deals</strong>
-              <p>See offers that match your account.</p>
+              <strong>{t("login.personalizedDeals")}</strong>
+              <p>{t("login.personalizedDealsDesc")}</p>
             </div>
           </div>
           <Sparkles className="sl26-spark" aria-hidden="true" />

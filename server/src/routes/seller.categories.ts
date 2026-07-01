@@ -94,6 +94,7 @@ const serializeCategory = (category: any) => {
 
 const categoryCreateSchema = z.object({
   name: z.string().trim().min(1).max(120),
+  code: z.string().trim().max(32).optional().nullable(),
   description: z.string().trim().max(255).optional().nullable(),
   parentId: z.number().int().positive().optional().nullable(),
   image: z.string().trim().max(255).optional().nullable(),
@@ -151,7 +152,17 @@ router.post(
       const body = categoryCreateSchema.parse(req.body);
       const parentId = body.parentId ?? null;
       await ensureParentExists(parentId);
-      const code = await resolveUniqueCategoryCode(body.name);
+      
+      let code = body.code ? toText(body.code).replace(/[^a-z0-9-]+/g, "").slice(0, 32) : "";
+      if (!code) {
+        code = await resolveUniqueCategoryCode(body.name);
+      } else {
+        const existing = await Category.findOne({ where: { code } });
+        if (existing) {
+          code = await resolveUniqueCategoryCode(code);
+        }
+      }
+
       const created = await Category.create({
         code,
         name: body.name,
@@ -196,13 +207,22 @@ router.put(
       if (typeof body.name === "string" && toText(body.name)) {
         patch.name = toText(body.name);
       }
-      if (Object.prototype.hasOwnProperty.call(body, "description") && toText(body.description)) {
-        patch.description = toText(body.description);
+      if (typeof body.code === "string") {
+        let code = toText(body.code).replace(/[^a-z0-9-]+/g, "").slice(0, 32);
+        if (code && code !== category.code) {
+          const existing = await Category.findOne({ where: { code, id: { [Op.ne]: categoryId } } });
+          if (!existing) {
+            patch.code = code;
+          }
+        }
       }
-      if (Object.prototype.hasOwnProperty.call(body, "image") && toText(body.image)) {
-        patch.icon = toText(body.image);
-      } else if (Object.prototype.hasOwnProperty.call(body, "icon") && toText(body.icon)) {
-        patch.icon = toText(body.icon);
+      if (Object.prototype.hasOwnProperty.call(body, "description")) {
+        patch.description = toText(body.description) || null;
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "image")) {
+        patch.icon = toText(body.image) || null;
+      } else if (Object.prototype.hasOwnProperty.call(body, "icon")) {
+        patch.icon = toText(body.icon) || null;
       }
       if (Object.prototype.hasOwnProperty.call(body, "isPublished")) {
         patch.published = Boolean(body.isPublished);

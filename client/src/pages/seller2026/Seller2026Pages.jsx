@@ -82,3 +82,5 @@ export * from "./Seller2026CouponsPreviewPage.jsx";
 export * from "./Seller2026TeamPreviewPage.jsx";
 
 export * from "./Seller2026AnalyticsSyncPreviewPage.jsx";
+
+export { default as Seller2026LiveReviewsPage } from "./Seller2026LiveProductReviewsPage.jsx";

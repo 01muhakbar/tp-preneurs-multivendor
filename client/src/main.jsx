@@ -6,6 +6,7 @@ import { Toaster, toast } from "react-hot-toast";
 import App from "./App.jsx";
 import { ThemeProvider } from "./theme/ThemeProvider.jsx";
 import "./index.css";
+import "./i18n.js";
 
 const ADMIN_AUTH_PATHS = new Set([
   "/admin/login",

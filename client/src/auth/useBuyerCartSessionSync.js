@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useCartStore } from "../store/cart.store.ts";
 import { bootstrapRemoteCart, syncCartOnLogin } from "../utils/cartSync.ts";
+import { clearGuestCart } from "../utils/guestCart.ts";
 
 const CART_SYNC_KEY = "cartSync:lastSyncedUserId";
 const CART_STORAGE_KEY = "kb_cart_v1";
@@ -69,18 +70,24 @@ export function useBuyerCartSessionSync({ user, role, isLoading }) {
       if (user && isStoreUser) {
         const userId = Number(user?.id);
         if (!Number.isFinite(userId)) return;
-        if (cart.mode === "remote" && lastSyncedUserIdRef.current === userId) {
-          return;
-        }
-        if (cart.mode === "remote" && lastSyncedUserIdRef.current !== userId) {
+        
+        const persistedSyncedUserId = readSyncedUserId();
+        
+        if (cart.mode === "remote") {
+          if (lastSyncedUserIdRef.current === userId) return;
+          if (persistedSyncedUserId === userId) {
+            lastSyncedUserIdRef.current = userId;
+            return;
+          }
           cart.setMode("guest");
           lastSyncedUserIdRef.current = null;
           cartSyncInFlightRef.current = false;
           clearSyncedUserId();
         }
+        
         if (cartSyncInFlightRef.current) return;
         if (lastSyncedUserIdRef.current === userId) return;
-        const persistedSyncedUserId = readSyncedUserId();
+        
         cartSyncInFlightRef.current = true;
         if (persistedSyncedUserId === userId) {
           try {
@@ -120,6 +127,7 @@ export function useBuyerCartSessionSync({ user, role, isLoading }) {
           try {
             localStorage.removeItem(CART_STORAGE_KEY);
             localStorage.removeItem(LEGACY_CART_STORAGE_KEY);
+            clearGuestCart();
           } catch {
             // ignore storage errors
           }

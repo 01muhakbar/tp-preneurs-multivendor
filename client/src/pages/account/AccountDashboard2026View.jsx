@@ -14,6 +14,7 @@ import {
   Store,
   Truck,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { formatCurrency } from "../../utils/format.js";
 import { resolvePublicOrderReference } from "../../utils/publicOrderReference.js";
 import "./account-dashboard-2026.css";
@@ -90,6 +91,7 @@ function resolveStoreActions(onboarding) {
 }
 
 function StoreApplicationCard({ onboarding = {}, loading }) {
+  const { t } = useTranslation();
   if (loading) return <article className="tp-store-card"><DashboardSkeleton rows={5} /></article>;
   const total = Math.max(0, asNumber(onboarding.totalFields));
   const completed = Math.min(total || Infinity, Math.max(0, asNumber(onboarding.completedFields)));
@@ -103,16 +105,16 @@ function StoreApplicationCard({ onboarding = {}, loading }) {
           <span className="tp-dashboard-icon tp-dashboard-icon--green"><Store aria-hidden="true" /></span>
           <div>
             <div className="tp-store-card__title">
-              <h2>Start Selling</h2>
+              <h2>{t("dashboard.startSelling")}</h2>
               <StatusPill label={onboarding.applicationStatus?.label} tone={onboarding.applicationStatus?.tone === "rose" ? "danger" : onboarding.applicationStatus?.tone === "emerald" ? "success" : onboarding.applicationStatus?.tone === "sky" ? "info" : onboarding.applicationStatus?.tone === "warning" || onboarding.applicationStatus?.tone === "amber" ? "warning" : "neutral"} />
               <StatusPill label={onboarding.readinessStatus?.label} tone={onboarding.readinessStatus?.tone === "emerald" ? "success" : "neutral"} />
             </div>
-            <p>{onboarding.description || "Complete the required details before you submit."}</p>
+            <p>{onboarding.description || t("dashboard.startSellingDesc")}</p>
           </div>
         </div>
 
         <div className="tp-store-card__progress">
-          <strong>{total ? `${completed} of ${total} fields completed` : "Ready when you are"}</strong>
+          <strong>{total ? t("dashboard.fieldsCompleted", { completed, total }) : t("dashboard.readyWhenYouAre")}</strong>
           <span aria-label={`${percent}% complete`}><i style={{ width: `${percent}%` }} /></span>
         </div>
 
@@ -127,7 +129,7 @@ function StoreApplicationCard({ onboarding = {}, loading }) {
 
         <div className="tp-store-card__updated">
           <CalendarDays aria-hidden="true" />
-          {onboarding.updatedAt ? `Last updated ${formatDateTime(onboarding.updatedAt)}` : "No application started"}
+          {onboarding.updatedAt ? `${t("dashboard.lastUpdated")} ${formatDateTime(onboarding.updatedAt)}` : t("dashboard.noApplicationStarted")}
         </div>
       </div>
       <div className="tp-store-card__visual" aria-hidden="true">
@@ -141,32 +143,34 @@ function StoreApplicationCard({ onboarding = {}, loading }) {
 }
 
 function QuickAction({ label, value, href, Icon, tone }) {
+  const { t } = useTranslation();
   return (
     <Link className="tp-quick-action" to={href} aria-label={`${label}: ${value}`}>
       <span className={`tp-dashboard-icon tp-dashboard-icon--${tone}`}><Icon aria-hidden="true" /></span>
       <div><strong>{label}</strong><span>{value}</span></div>
-      <em>View <ArrowRight aria-hidden="true" /></em>
+      <em>{t("dashboard.view")} <ArrowRight aria-hidden="true" /></em>
     </Link>
   );
 }
 
 function RecentOrders({ orders = [], loading }) {
+  const { t } = useTranslation();
   return (
     <section className="tp-recent-orders" aria-labelledby="tp-recent-orders-title">
       <div className="tp-recent-orders__heading">
-        <h2 id="tp-recent-orders-title">Recent Orders</h2>
-        <Link to="/user/my-orders">View all orders <ArrowRight aria-hidden="true" /></Link>
+        <h2 id="tp-recent-orders-title">{t("dashboard.recentOrders")}</h2>
+        <Link to="/user/my-orders">{t("dashboard.viewAllOrders")} <ArrowRight aria-hidden="true" /></Link>
       </div>
       {loading ? <DashboardSkeleton rows={3} /> : orders.length === 0 ? (
         <div className="tp-recent-orders__empty">
           <ShoppingBag aria-hidden="true" />
-          <div><strong>No recent orders yet</strong><span>Your latest purchases will appear here.</span></div>
-          <Link to="/shop">Start shopping <ArrowRight aria-hidden="true" /></Link>
+          <div><strong>{t("dashboard.noRecentOrders")}</strong><span>{t("dashboard.noRecentOrdersDesc")}</span></div>
+          <Link to="/shop">{t("dashboard.startShopping")} <ArrowRight aria-hidden="true" /></Link>
         </div>
       ) : (
         <div className="tp-recent-orders__scroll">
           <table>
-            <thead><tr><th>Order ID</th><th>Date & Time</th><th>Method</th><th>Status</th><th>Shipping</th><th>Total</th><th>Action</th></tr></thead>
+            <thead><tr><th>{t("dashboard.tableOrderId")}</th><th>{t("dashboard.tableDateTime")}</th><th>{t("dashboard.tableMethod")}</th><th>{t("dashboard.tableStatus")}</th><th>{t("dashboard.tableShipping")}</th><th>{t("dashboard.tableTotal")}</th><th>{t("dashboard.tableAction")}</th></tr></thead>
             <tbody>
               {orders.map(({ order = {}, truthStatus = {} }) => {
                 const orderId = order.id;
@@ -206,26 +210,27 @@ export default function AccountDashboard2026View({
   isOnboardingLoading = false,
   errors = [],
 }) {
+  const { t } = useTranslation();
   const name = user?.name || user?.fullName || user?.email?.split("@")[0] || "there";
   const statCards = [
-    ["Total Orders", stats.total, "All orders", ShoppingBag, "green"],
-    ["Pending Orders", stats.pending, "Awaiting action", Clock3, "orange"],
-    ["Processing Orders", stats.processing, "In progress", Truck, "blue"],
-    ["Completed Orders", stats.completed, "Done", CheckCircle2, "emerald"],
+    [t("dashboard.totalOrders"), stats.total, t("dashboard.allOrders"), ShoppingBag, "green"],
+    [t("dashboard.pendingOrders"), stats.pending, t("dashboard.awaitingAction"), Clock3, "orange"],
+    [t("dashboard.processingOrders"), stats.processing, t("dashboard.inProgress"), Truck, "blue"],
+    [t("dashboard.completedOrders"), stats.completed, t("dashboard.done"), CheckCircle2, "emerald"],
   ];
   const quickLinks = [
-    ["Wishlist", "Browse saved items", "/wishlist", Heart, "green"],
-    ["Addresses", addressCount ? `${addressCount} saved` : "Add address", "/user/shipping-address", MapPin, "blue"],
-    ["Notifications", `${asNumber(notificationCount)} new messages`, "/user/notifications", Bell, "orange"],
-    ["Invitations", `${asNumber(invitationCount)} store invites`, "/user/store-invitations", Store, "purple"],
+    [t("dashboard.wishlist"), t("dashboard.browseSavedItems"), "/wishlist", Heart, "green"],
+    [t("dashboard.addresses"), addressCount ? t("dashboard.savedCount", { count: addressCount }) : t("dashboard.addAddress"), "/user/shipping-address", MapPin, "blue"],
+    [t("dashboard.notifications"), t("dashboard.newMessages", { count: asNumber(notificationCount) }), "/user/notifications", Bell, "orange"],
+    [t("dashboard.invitations"), t("dashboard.storeInvites", { count: asNumber(invitationCount) }), "/user/store-invitations", Store, "purple"],
   ];
 
   return (
     <div className="tp-account-dashboard-2026">
       <header className="tp-account-dashboard-2026__heading">
-        <span>Account Overview</span>
-        <h1>Dashboard</h1>
-        <p>Welcome back, {name}. Here&apos;s what&apos;s happening with your account.</p>
+        <span>{t("dashboard.overview")}</span>
+        <h1>{t("dashboard.title")}</h1>
+        <p>{t("dashboard.welcome", { name })}</p>
       </header>
 
       {errors.length > 0 ? <div className="tp-account-dashboard-2026__alert" role="status">{errors.join(" ")}</div> : null}
@@ -245,7 +250,7 @@ export default function AccountDashboard2026View({
 
       <Link className="tp-account-dashboard-2026__help" to="/contact-us">
         <span className="tp-dashboard-icon tp-dashboard-icon--blue"><Headphones aria-hidden="true" /></span>
-        <div><strong>Need help? +65 9988 7766</strong><span>We&apos;re available <em>24/7</em></span></div>
+        <div><strong>{t("dashboard.needHelp")}</strong><span>{t("dashboard.available247")}</span></div>
         <ArrowRight aria-hidden="true" />
       </Link>
     </div>

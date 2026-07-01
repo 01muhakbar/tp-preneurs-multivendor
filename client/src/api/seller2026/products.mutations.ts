@@ -27,6 +27,8 @@ export type Seller2026ProductDraftPayload = {
   dimensions?: { length?: number; width?: number; height?: number } | null;
   seoTitle?: string | null;
   seoDescription?: string | null;
+  seoKeywords?: string[];
+  ogImageUrl?: string | null;
 };
 
 const optionalText = (value: unknown) => {
@@ -86,7 +88,12 @@ const buildSafeProductDraftPayload = (payload: Seller2026ProductDraftPayload) =>
     tags: textList(payload.tags),
     imageUrls: textList(payload.imageUrls).slice(0, 10),
     hasVariants: false,
-    seo: seoTitle || seoDescription ? { title: seoTitle || "", description: seoDescription || "" } : null,
+    seo: seoTitle || seoDescription || (payload.seoKeywords && payload.seoKeywords.length) || payload.ogImageUrl ? { 
+      metaTitle: seoTitle || "", 
+      metaDescription: seoDescription || "",
+      keywords: textList(payload.seoKeywords),
+      ogImageUrl: optionalText(payload.ogImageUrl) || ""
+    } : null,
   };
 };
 

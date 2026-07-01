@@ -88,6 +88,10 @@ export function AuthProvider({ children }) {
   const currentLoading = currentScope === "admin" ? isAdminLoading : isAccountLoading;
 
   const clearSession = (scope = currentScope) => {
+    try {
+      localStorage.setItem("demoSellerLastLogout", new Date().toISOString());
+    } catch {}
+
     if (scope === "admin") {
       setAdminUser(null);
       setAdminRole(null);

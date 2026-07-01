@@ -28,6 +28,10 @@ import {
   Truck,
   UserRound,
   Users,
+  ShieldCheck,
+  ShieldAlert,
+  Lock,
+  Star
 } from "lucide-react";
 import {
   getSellerWorkspaceContext,
@@ -241,6 +245,16 @@ const getSellerPageMeta = (pathname) => {
     };
   }
 
+  if (
+    pathname.endsWith("/catalog/reviews") ||
+    pathname.endsWith("/catalog/products/reviews")
+  ) {
+    return {
+      title: "Product Reviews",
+      subtitle: "Monitor and respond to customer feedback.",
+    };
+  }
+
   if (pathname.includes("/catalog/products/")) {
     return {
       title: "Product Detail",
@@ -310,22 +324,39 @@ const getSellerPageMeta = (pathname) => {
   };
 };
 
-function SellerShellState({ title, description, tone = "neutral", children }) {
+function SellerShellState({ title, description, tone = "neutral", children, icon: Icon }) {
   const toneClass =
     tone === "danger"
-      ? "border-rose-200 bg-rose-50 text-rose-700"
-      : "border-slate-200 bg-white text-slate-700";
+      ? "border-rose-200/50 bg-rose-50/80 text-rose-800 dark:border-rose-500/20 dark:bg-rose-950/40 dark:text-rose-200"
+      : "border-slate-200/50 bg-white/80 text-slate-700 dark:border-slate-700/50 dark:bg-slate-900/80 dark:text-slate-200";
+      
+  const iconTone = 
+    tone === "danger"
+      ? "bg-rose-100 text-rose-600 dark:bg-rose-900/50 dark:text-rose-400"
+      : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400";
 
   return (
-    <div className={`${sellerShellPageClass} px-4 py-6 sm:px-6`}>
-      <div className="mx-auto max-w-4xl">
-        <SellerWorkspacePanel className={`${toneClass} px-4 py-5 sm:px-5`}>
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] opacity-70">
-            Seller Workspace
-          </p>
-          <h1 className="mt-2.5 text-[1.8rem] font-semibold text-slate-950">{title}</h1>
-          <p className="mt-2.5 max-w-2xl text-sm leading-5 text-slate-600">{description}</p>
-          {children ? <div className="mt-5">{children}</div> : null}
+    <div className={`flex min-h-[80vh] items-center justify-center p-4 sm:p-6`}>
+      <div className="w-full max-w-md animate-[fade-in_0.3s_ease-out]">
+        <SellerWorkspacePanel className={`relative overflow-hidden shadow-2xl shadow-slate-200/40 backdrop-blur-xl dark:shadow-none ${toneClass} rounded-3xl p-8 sm:p-10 text-center`}>
+          {/* Subtle gradient glow */}
+          <div className={`absolute -top-24 -right-24 h-48 w-48 rounded-full blur-3xl opacity-20 ${tone === "danger" ? "bg-rose-500" : "bg-sky-500"}`} />
+          
+          <div className="relative z-10 flex flex-col items-center">
+            {Icon && (
+              <div className={`mb-6 flex h-16 w-16 items-center justify-center rounded-2xl ${iconTone} shadow-inner`}>
+                <Icon size={32} strokeWidth={1.5} />
+              </div>
+            )}
+            
+            <p className="text-[0.65rem] font-bold uppercase tracking-[0.3em] opacity-60">
+              Seller Workspace
+            </p>
+            <h1 className="mt-3 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">{title}</h1>
+            <p className="mt-3 text-sm leading-relaxed opacity-80">{description}</p>
+            
+            {children ? <div className="mt-8 flex w-full flex-col gap-3">{children}</div> : null}
+          </div>
         </SellerWorkspacePanel>
       </div>
     </div>
@@ -535,10 +566,17 @@ function SellerSidebar({
   const shippingSetupMeta = sellerContext?.store?.shippingSetupMeta || null;
 
   const normalizeActivePath = (to) => String(to || "").split("#")[0].split("?")[0];
-  const isPathActive = (to) =>
-    pathname === normalizeActivePath(to) ||
-    (normalizeActivePath(to) !== sellerRoutes.home() &&
-      pathname.startsWith(`${normalizeActivePath(to)}/`));
+  const isPathActive = (to) => {
+    const normalized = normalizeActivePath(to);
+    if (
+      normalized === sellerRoutes.reviews() &&
+      pathname.endsWith("/catalog/products/reviews")
+    ) {
+      return true;
+    }
+    return pathname === normalized ||
+      (normalized !== sellerRoutes.home() && pathname.startsWith(`${normalized}/`));
+  };
   const handleNavLinkClick = (event, to) => {
     event.preventDefault();
     onNavigate?.();
@@ -562,6 +600,13 @@ function SellerSidebar({
           label: "Store Profile",
           to: sellerRoutes.storeProfile(),
           Icon: Store,
+          enabled: hasPermission("STORE_VIEW"),
+          implemented: true,
+        },
+        {
+          label: "Legal & Tax Settings",
+          to: `${sellerRoutes.home()}/legal-tax`,
+          Icon: ShieldCheck,
           enabled: hasPermission("STORE_VIEW"),
           implemented: true,
         },
@@ -609,6 +654,13 @@ function SellerSidebar({
           label: "Coupons",
           to: sellerRoutes.coupons(),
           Icon: TicketPercent,
+          enabled: hasPermission("PRODUCT_VIEW"),
+          implemented: true,
+        },
+        {
+          label: "Reviews",
+          to: sellerRoutes.reviews(),
+          Icon: Star,
           enabled: hasPermission("PRODUCT_VIEW"),
           implemented: true,
         },
@@ -1097,7 +1149,15 @@ export default function SellerLayout() {
   ).trim();
 
   const navigateToSellerLogin = () => {
-    navigate("/auth/login", {
+    let loginPath = "/auth/login";
+    try {
+      const storedPath = localStorage.getItem("seller_login_path");
+      if (storedPath) {
+        loginPath = storedPath;
+      }
+    } catch {}
+
+    navigate(loginPath, {
       replace: true,
       state: {
         from: `${pathname}${search}${hash}`,
@@ -1281,23 +1341,22 @@ export default function SellerLayout() {
     if (status === 401) {
       return (
         <SellerShellState
-          title="Seller Session Required"
+          title="Sesi Penjual Diperlukan"
           description={
             sellerAuth.isAdminSession
-              ? "This current session is admin-oriented. Sign in with a storefront account that already has seller workspace access for this store."
-              : "Sign in with a storefront account that already has seller workspace access for this store."
+              ? "Sesi saat ini adalah sesi Admin. Silakan masuk menggunakan akun Storefront yang memiliki akses penjual (Seller Workspace) ke toko ini."
+              : "Silakan masuk menggunakan akun Storefront yang memiliki akses penjual (Seller Workspace) ke toko ini."
           }
           tone="danger"
+          icon={Lock}
         >
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={navigateToSellerLogin}
-              className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
-            >
-              Storefront Login
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={navigateToSellerLogin}
+            className="w-full rounded-2xl bg-slate-950 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/20 active:scale-[0.98] dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
+          >
+            Login ke Storefront
+          </button>
         </SellerShellState>
       );
     }
@@ -1305,59 +1364,59 @@ export default function SellerLayout() {
     if (status === 403) {
       return (
         <SellerShellState
-          title="Access Forbidden"
+          title="Akses Ditolak"
           description={getErrorMessage(
             sellerContextQuery.error,
-            "This account does not have access to the selected seller workspace."
+            "Akun ini tidak memiliki akses ke Seller Workspace toko yang dipilih."
           )}
           tone="danger"
+          icon={ShieldAlert}
         >
-          <div className="flex flex-col gap-3">
-            {sellerAuth.isAdminSession ? (
-              <p className="text-sm leading-5 text-slate-600">
-                Admin session remains valid for admin workspace only. Seller workspace requires a
-                storefront account with seller membership on this store.
-              </p>
-            ) : sellerAuth.isAuthenticated ? (
-              <p className="text-sm leading-5 text-slate-600">
-                The current storefront account is signed in, but it is not attached to this seller
-                store. Switch account to continue.
-              </p>
-            ) : null}
-            <div className="flex flex-wrap gap-3">
-              {sellerAuth.isAuthenticated ? (
-                <button
-                  type="button"
-                  onClick={handleSellerLogout}
-                  className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
-                >
-                  Switch Account
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={navigateToSellerLogin}
-                  className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
-                >
-                  Storefront Login
-                </button>
-              )}
+          {sellerAuth.isAdminSession ? (
+            <p className="text-sm leading-relaxed opacity-80 mb-2">
+              Sesi Admin hanya berlaku untuk Admin Workspace. Seller Workspace membutuhkan akun Storefront yang terdaftar sebagai penjual di toko ini.
+            </p>
+          ) : sellerAuth.isAuthenticated ? (
+            <p className="text-sm leading-relaxed opacity-80 mb-2">
+              Akun Storefront saat ini sedang masuk, tetapi tidak terhubung ke toko ini. Ganti akun untuk melanjutkan.
+            </p>
+          ) : null}
+          
+          <div className="flex w-full flex-col gap-3">
+            {sellerAuth.isAuthenticated ? (
               <button
                 type="button"
-                onClick={() => sellerContextQuery.refetch()}
-                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
+                onClick={handleSellerLogout}
+                className="w-full rounded-2xl bg-slate-950 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/20 active:scale-[0.98] dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
               >
-                Retry
+                Ganti Akun
               </button>
-              {sellerAuth.isAdminSession ? (
-                <Link
-                  to="/admin"
-                  className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
-                >
-                  Open Admin Workspace
-                </Link>
-              ) : null}
-            </div>
+            ) : (
+              <button
+                type="button"
+                onClick={navigateToSellerLogin}
+                className="w-full rounded-2xl bg-slate-950 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/20 active:scale-[0.98] dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
+              >
+                Login ke Storefront
+              </button>
+            )}
+            
+            {sellerAuth.isAdminSession ? (
+              <Link
+                to="/admin"
+                className="w-full rounded-2xl border-2 border-slate-200 px-5 py-3.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 active:scale-[0.98] dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800/50"
+              >
+                Buka Admin Workspace
+              </Link>
+            ) : null}
+            
+            <button
+              type="button"
+              onClick={() => sellerContextQuery.refetch()}
+              className="w-full rounded-2xl bg-transparent px-5 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 active:scale-[0.98] dark:hover:bg-slate-800"
+            >
+              Coba Lagi
+            </button>
           </div>
         </SellerShellState>
       );
@@ -1366,31 +1425,33 @@ export default function SellerLayout() {
     if (status === 404) {
       return (
         <SellerShellState
-          title="Store Not Found"
+          title="Toko Tidak Ditemukan"
           description={getErrorMessage(
             sellerContextQuery.error,
-            "The selected store could not be found."
+            "Toko yang Anda pilih tidak dapat ditemukan."
           )}
           tone="danger"
+          icon={Store}
         />
       );
     }
 
     return (
       <SellerShellState
-        title="Workspace Unavailable"
+        title="Workspace Tidak Tersedia"
         description={getErrorMessage(
           sellerContextQuery.error,
-          "Seller workspace context could not be loaded."
+          "Konteks Seller Workspace tidak dapat dimuat."
         )}
         tone="danger"
+        icon={ShieldAlert}
       >
         <button
           type="button"
           onClick={() => sellerContextQuery.refetch()}
-          className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+          className="w-full rounded-2xl bg-slate-950 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/20 active:scale-[0.98] dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
         >
-          Retry
+          Coba Lagi
         </button>
       </SellerShellState>
     );

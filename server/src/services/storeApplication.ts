@@ -103,11 +103,19 @@ export const operationalAddressSnapshotSchema = z
 
 export const payoutPaymentSnapshotSchema = z
   .object({
+    providerCode: z.literal("MANUAL_QRIS").nullable().optional(),
+    paymentType: z.literal("QRIS_STATIC").nullable().optional(),
+    accountName: nullableTrimmedString(160),
+    merchantName: nullableTrimmedString(160),
+    merchantId: nullableTrimmedString(160),
+    qrisPayload: nullableTrimmedString(2_000_000),
+    instructionText: nullableTrimmedString(4_000),
+    sellerNote: nullableTrimmedString(4_000),
     payoutMethod: nullableTrimmedString(80),
     accountHolderName: nullableTrimmedString(160),
     accountNumber: nullableTrimmedString(120),
     bankName: nullableTrimmedString(160),
-    qrisImageUrl: nullableTrimmedString(2048),
+    qrisImageUrl: nullableTrimmedString(2_000_000),
     accountHolderMatchesIdentity: z.boolean().optional(),
   })
   .strict();
@@ -132,6 +140,17 @@ export const complianceSnapshotSchema = z
   })
   .strict();
 
+const sellerOnboardingSnapshotSchema = z
+  .record(z.string(), z.unknown())
+  .superRefine((value, context) => {
+    if (JSON.stringify(value).length > 150_000) {
+      context.addIssue({
+        code: "custom",
+        message: "Seller onboarding metadata is too large.",
+      });
+    }
+  });
+
 type OwnerIdentitySnapshot = z.infer<typeof ownerIdentitySnapshotSchema>;
 type StoreInformationSnapshot = z.infer<typeof storeInformationSnapshotSchema>;
 type OperationalAddressSnapshot = z.infer<typeof operationalAddressSnapshotSchema>;
@@ -146,6 +165,7 @@ export const storeApplicationDraftPatchSchema = z
     operationalAddressSnapshot: operationalAddressSnapshotSchema.partial().optional(),
     payoutPaymentSnapshot: payoutPaymentSnapshotSchema.partial().optional(),
     complianceSnapshot: complianceSnapshotSchema.partial().optional(),
+    sellerOnboardingSnapshot: sellerOnboardingSnapshotSchema.optional(),
   })
   .strict();
 
@@ -183,6 +203,14 @@ const DEFAULT_OPERATIONAL_ADDRESS_SNAPSHOT: OperationalAddressSnapshot = {
 };
 
 const DEFAULT_PAYOUT_PAYMENT_SNAPSHOT: PayoutPaymentSnapshot = {
+  providerCode: "MANUAL_QRIS",
+  paymentType: "QRIS_STATIC",
+  accountName: null,
+  merchantName: null,
+  merchantId: null,
+  qrisPayload: null,
+  instructionText: null,
+  sellerNote: null,
   payoutMethod: null,
   accountHolderName: null,
   accountNumber: null,
@@ -287,9 +315,9 @@ const STEP_META: Record<
     description: "Store operations address snapshot for onboarding review.",
   },
   payout_payment: {
-    label: "Payout and payment",
+    label: "Payment profile",
     lane: "APPLICATION",
-    description: "Seller payout and payment setup intent captured before activation.",
+    description: "Static QRIS payment profile captured before store activation.",
   },
   compliance: {
     label: "Compliance",
@@ -391,10 +419,22 @@ export function normalizeStoreApplicationDraftInput(input: unknown) {
           mergeSnapshot(DEFAULT_COMPLIANCE_SNAPSHOT, parsed.complianceSnapshot)
         )
       : undefined,
+    sellerOnboardingSnapshot: parsed.sellerOnboardingSnapshot,
   };
 }
 
 export function normalizeStoreApplicationSnapshots(application: any) {
+  const metadata = normalizeMetadata(getAttr(application, "internalMetadata"));
+  const onboarding = normalizeMetadata(metadata.sellerOnboarding2026);
+  const rawPayout = normalizeObject(getAttr(application, "payoutPaymentSnapshot"));
+  const payout = payoutPaymentSnapshotSchema.parse(
+    mergeSnapshot(DEFAULT_PAYOUT_PAYMENT_SNAPSHOT, rawPayout)
+  );
+  const isLegacyQris =
+    String(payout.payoutMethod || "").toUpperCase() === "QRIS_STATIC" ||
+    String(payout.bankName || "").toUpperCase() === "MANUAL_QRIS" ||
+    Boolean(payout.qrisImageUrl);
+
   return {
     ownerIdentitySnapshot: ownerIdentitySnapshotSchema.parse(
       mergeSnapshot(
@@ -414,12 +454,33 @@ export function normalizeStoreApplicationSnapshots(application: any) {
         normalizeObject(getAttr(application, "operationalAddressSnapshot"))
       )
     ),
-    payoutPaymentSnapshot: payoutPaymentSnapshotSchema.parse(
-      mergeSnapshot(
-        DEFAULT_PAYOUT_PAYMENT_SNAPSHOT,
-        normalizeObject(getAttr(application, "payoutPaymentSnapshot"))
-      )
-    ),
+    payoutPaymentSnapshot: {
+      ...payout,
+      providerCode: "MANUAL_QRIS" as const,
+      paymentType: "QRIS_STATIC" as const,
+      accountName:
+        payout.accountName ||
+        (isLegacyQris ? payout.accountHolderName : null) ||
+        (onboarding.paymentAccountName ? String(onboarding.paymentAccountName) : null),
+      merchantName:
+        payout.merchantName ||
+        (onboarding.paymentMerchantName ? String(onboarding.paymentMerchantName) : null),
+      merchantId:
+        payout.merchantId ||
+        (onboarding.paymentMerchantId ? String(onboarding.paymentMerchantId) : null) ||
+        (isLegacyQris ? payout.accountNumber : null),
+      qrisPayload:
+        payout.qrisPayload ||
+        (onboarding.paymentQrisPayload ? String(onboarding.paymentQrisPayload) : null),
+      instructionText:
+        payout.instructionText ||
+        (onboarding.paymentInstructionText
+          ? String(onboarding.paymentInstructionText)
+          : null),
+      sellerNote:
+        payout.sellerNote ||
+        (onboarding.paymentSellerNote ? String(onboarding.paymentSellerNote) : null),
+    },
     complianceSnapshot: complianceSnapshotSchema.parse(
       mergeSnapshot(
         DEFAULT_COMPLIANCE_SNAPSHOT,
@@ -482,17 +543,24 @@ export function buildStoreApplicationCompleteness(application: any) {
       step: "operational_address",
     });
   }
-  if (!snapshots.payoutPaymentSnapshot.payoutMethod) {
+  if (!snapshots.payoutPaymentSnapshot.accountName) {
     missingFields.push({
-      key: "payoutPaymentSnapshot.payoutMethod",
-      label: "Payout method",
+      key: "payoutPaymentSnapshot.accountName",
+      label: "Payment account name",
       step: "payout_payment",
     });
   }
-  if (!snapshots.payoutPaymentSnapshot.accountHolderName) {
+  if (!snapshots.payoutPaymentSnapshot.merchantName) {
     missingFields.push({
-      key: "payoutPaymentSnapshot.accountHolderName",
-      label: "Account holder name",
+      key: "payoutPaymentSnapshot.merchantName",
+      label: "QRIS merchant name",
+      step: "payout_payment",
+    });
+  }
+  if (!snapshots.payoutPaymentSnapshot.qrisImageUrl) {
+    missingFields.push({
+      key: "payoutPaymentSnapshot.qrisImageUrl",
+      label: "QRIS image",
       step: "payout_payment",
     });
   }
@@ -511,7 +579,7 @@ export function buildStoreApplicationCompleteness(application: any) {
     });
   }
 
-  const totalFields = 11;
+  const totalFields = 12;
   const completedFields = totalFields - missingFields.length;
   const isComplete = missingFields.length === 0;
 
@@ -635,6 +703,14 @@ export function serializeStoreApplication(application: any) {
         : null,
       provisionedMode: activationMetadata.provisionedMode
         ? String(activationMetadata.provisionedMode)
+        : null,
+      paymentProfileRequestId:
+        Number(activationMetadata.paymentProfileRequestId || 0) || null,
+      paymentProfileRequestStatus: activationMetadata.paymentProfileRequestStatus
+        ? String(activationMetadata.paymentProfileRequestStatus)
+        : null,
+      paymentProfileHandoffSource: activationMetadata.paymentProfileHandoffSource
+        ? String(activationMetadata.paymentProfileHandoffSource)
         : null,
     },
     internalMetadata,

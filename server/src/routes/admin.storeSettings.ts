@@ -14,7 +14,7 @@ import {
 const router = Router();
 
 const BRANDING_UPLOAD_DIR = path.resolve(process.cwd(), "uploads", "branding");
-const BRANDING_UPLOAD_LIMIT_BYTES = 1024 * 1024;
+const BRANDING_UPLOAD_LIMIT_BYTES = 5 * 1024 * 1024;
 const BRANDING_TARGET_FIELD_BY_KEY = {
   client: "clientLogoUrl",
   admin: "adminLogoUrl",

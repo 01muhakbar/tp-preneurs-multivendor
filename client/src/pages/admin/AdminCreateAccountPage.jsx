@@ -26,6 +26,16 @@ const toFieldErrors = (error) => {
 const firstFieldError = (fieldErrors, key) =>
   Array.isArray(fieldErrors?.[key]) && fieldErrors[key].length > 0 ? fieldErrors[key][0] : "";
 
+const getPhoneNumber = (phone) => {
+  let digits = String(phone || "").replace(/\D/g, "");
+  if (digits.startsWith("62")) {
+    digits = digits.slice(2);
+  } else if (digits.startsWith("0")) {
+    digits = digits.slice(1);
+  }
+  return `+62${digits}`;
+};
+
 export default function AdminCreateAccountPage() {
   const startedAtRef = useRef(Date.now());
   const { branding } = useStoreBranding();
@@ -88,8 +98,15 @@ export default function AdminCreateAccountPage() {
     setStatusMessage("");
     setStatusTone("neutral");
 
+    const cleanPhone = String(form.phoneNumber || "").trim().replace(/[- ]/g, "");
+    if (!/^(?:\+62|62|0)8[1-9][0-9]{6,11}$/.test(cleanPhone)) {
+      setFieldErrors({ phoneNumber: ["Enter a valid Indonesian phone number starting with +62 or 08."] });
+      return;
+    }
+
     const payload = {
       ...form,
+      phoneNumber: getPhoneNumber(form.phoneNumber),
       startedAt: startedAtRef.current,
     };
     const parsed = adminStaffSignupSchema.safeParse(payload);
@@ -232,19 +249,28 @@ export default function AdminCreateAccountPage() {
                     >
                       WhatsApp / phone number
                     </label>
-                    <input
-                      id="admin-create-account-phone"
-                      ref={(node) => {
-                        fieldRefs.current.phoneNumber = node;
-                      }}
-                      type="tel"
-                      value={form.phoneNumber}
-                      onChange={(event) => setField("phoneNumber", event.target.value)}
-                      className="mt-1.5 h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-teal-500/10"
-                      placeholder="+62 812 3456 7890"
-                      autoComplete="tel"
-                      required
-                    />
+                    <div className="mt-1.5 flex h-11 w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 focus-within:border-teal-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-teal-500/10 transition">
+                      <div className="flex flex-none items-center gap-2 border-r border-slate-200 px-3 bg-slate-100">
+                        <svg aria-hidden="true" viewBox="0 0 3 2" className="block w-[18px] overflow-hidden rounded-[1.5px] border border-black/10">
+                          <rect width="3" height="1" fill="#ed2939" />
+                          <rect y="1" width="3" height="1" fill="#ffffff" />
+                        </svg>
+                        <span className="text-sm font-semibold text-slate-700">+62</span>
+                      </div>
+                      <input
+                        id="admin-create-account-phone"
+                        ref={(node) => {
+                          fieldRefs.current.phoneNumber = node;
+                        }}
+                        type="tel"
+                        value={form.phoneNumber}
+                        onChange={(event) => setField("phoneNumber", event.target.value)}
+                        className="h-full w-full bg-transparent px-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                        placeholder="Enter your phone number"
+                        autoComplete="tel"
+                        required
+                      />
+                    </div>
                     {firstFieldError(fieldErrors, "phoneNumber") && (
                       <p className="mt-1.5 text-xs leading-5 text-rose-600">
                         {firstFieldError(fieldErrors, "phoneNumber")}

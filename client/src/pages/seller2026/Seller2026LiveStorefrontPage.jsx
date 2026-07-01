@@ -39,10 +39,13 @@ function Pill({ children, tone = "neutral" }) {
   return <span className={`seller2026-pill seller2026-pill--${tone}`}>{children}</span>;
 }
 
-function Field({ label, multiline = false, children, ...props }) {
+function Field({ label, multiline = false, required = false, children, ...props }) {
   return (
     <label className="seller2026-profile-field">
-      <span>{label}</span>
+      <span>
+        {label}
+        {required && <span style={{ color: "#ef4444", fontWeight: "bold", marginLeft: "4px" }}>*</span>}
+      </span>
       {children ||
         (multiline ? <textarea {...props} /> : <input {...props} />)}
     </label>
@@ -90,8 +93,10 @@ export default function Seller2026LiveStorefrontPage() {
   const [uploading, setUploading] = useState("");
 
   useEffect(() => {
-    if (profileQuery.data?.form && !editing) setForm(profileQuery.data.form);
-  }, [editing, profileQuery.data]);
+    if (profileQuery.data?.form && (!editing || !form)) {
+      setForm(profileQuery.data.form);
+    }
+  }, [editing, form, profileQuery.data]);
 
   useEffect(() => {
     if (location.hash === "#shipping-setup" && canUpdate) setEditing(true);
@@ -114,6 +119,11 @@ export default function Seller2026LiveStorefrontPage() {
   const provinces = getProvinceOptions(form?.originProvince);
   const cities = getCityOptions(form?.originProvince, form?.originCity);
   const districts = getDistrictOptions(form?.originProvince, form?.originCity, form?.originDistrict);
+  
+  const addressProvinces = getProvinceOptions(form?.province);
+  const addressCities = getCityOptions(form?.province, form?.city);
+  const addressDistricts = getDistrictOptions(form?.province, form?.city, form?.district);
+
   const setValue = (key) => (event) =>
     setForm((current) => ({ ...current, [key]: event.target.value }));
 
@@ -154,14 +164,9 @@ export default function Seller2026LiveStorefrontPage() {
         description: emptyToNull(form.description),
         logoUrl: emptyToNull(form.logoUrl),
         bannerUrl: emptyToNull(form.bannerUrl),
-        email: emptyToNull(form.email),
-        phone: emptyToNull(form.phone),
-        whatsapp: emptyToNull(form.whatsapp),
-        websiteUrl: emptyToNull(form.websiteUrl),
-        instagramUrl: emptyToNull(form.instagramUrl),
-        tiktokUrl: emptyToNull(form.tiktokUrl),
         addressLine1: emptyToNull(form.addressLine1),
         addressLine2: emptyToNull(form.addressLine2),
+        district: emptyToNull(form.district),
         city: emptyToNull(form.city),
         province: emptyToNull(form.province),
         postalCode: emptyToNull(form.postalCode),
@@ -238,8 +243,8 @@ export default function Seller2026LiveStorefrontPage() {
         <form id="seller2026-profile-form" onSubmit={handleSave}>
           <div className="seller2026-profile__admin-note"><Info size={15} />Store name, slug, and status are managed by admin.</div>
           <nav className="seller2026-profile__tabs" aria-label="Profile sections">
-            {["Media", "Public", "Contact", "Address", "Shipping"].map((label) => (
-              <a key={label} href={`#${label.toLowerCase()}`}>{label}</a>
+            {["Media", "Store Identity", "Owner Information", "Business Details", "Contact", "Address", "Shipping"].map((label) => (
+              <a key={label} href={`#${label.toLowerCase().replace(/ /g, "-")}`}>{label}</a>
             ))}
           </nav>
 
@@ -268,16 +273,23 @@ export default function Seller2026LiveStorefrontPage() {
           </section>
 
           <div className="seller2026-profile__form-grid">
-            <section className="seller2026-card seller2026-profile__form-card" id="public">
-              <h2>Public Details</h2>
-              <Field label="Store Name" value={data.name} disabled />
-              <Field label="Description" multiline rows={4} maxLength={4000} value={form.description} onChange={setValue("description")} />
+            <section className="seller2026-card seller2026-profile__form-card" id="store-identity">
+              <h2>Store Identity</h2>
+              <Field required label="Store Name" value={data.name} disabled />
+              <Field required label="Store Slug" value={data.slug} disabled />
+              <Field required label="Business Category">
+                <select value={form.category} onChange={setValue("category")}>
+                  <option value="">Select category</option>
+                  {["Fashion & Apparel", "Food & Beverage", "Beauty & Personal Care", "Home & Living", "Electronics", "Services", "Other"].map(item => <option key={item} value={item}>{item}</option>)}
+                </select>
+              </Field>
+              <Field required label="Short Description" multiline rows={4} maxLength={200} value={form.description} onChange={setValue("description")} placeholder="Describe your store, products, and what makes your brand special." />
             </section>
             <section className="seller2026-card seller2026-profile__form-card" id="contact">
               <h2>Contact</h2>
               <div className="seller2026-profile__fields-two">
-                <Field label="Store Email" type="email" value={form.email} onChange={setValue("email")} />
-                <Field label="Phone" value={form.phone} onChange={setValue("phone")} />
+                <Field required label="Store Email" type="email" value={form.email} onChange={setValue("email")} />
+                <Field required label="Phone" value={form.phone} onChange={setValue("phone")} />
               </div>
               <Field label="WhatsApp" value={form.whatsapp} onChange={setValue("whatsapp")} />
               <div className="seller2026-profile__fields-two">
@@ -289,45 +301,63 @@ export default function Seller2026LiveStorefrontPage() {
             <section className="seller2026-card seller2026-profile__form-card" id="address">
               <h2>Address</h2>
               <div className="seller2026-profile__fields-two">
-                <Field label="Address Line 1" value={form.addressLine1} onChange={setValue("addressLine1")} />
+                <Field required label="Address Line 1" value={form.addressLine1} onChange={setValue("addressLine1")} />
                 <Field label="Address Line 2" value={form.addressLine2} onChange={setValue("addressLine2")} placeholder="Optional" />
-                <Field label="City" value={form.city} onChange={setValue("city")} />
-                <Field label="Province" value={form.province} onChange={setValue("province")} />
+                
+                <Field required label="Province">
+                  <select value={form.province} onChange={(event) => setForm((current) => ({ ...current, province: event.target.value, city: "", district: "" }))}>
+                    <option value="">Select province</option>{addressProvinces.map((item) => <option key={item}>{item}</option>)}
+                  </select>
+                </Field>
+                <Field required label="City/Regency">
+                  <select value={form.city} onChange={(event) => setForm((current) => ({ ...current, city: event.target.value, district: "" }))}>
+                    <option value="">Select city/regency</option>{addressCities.map((item) => <option key={item}>{item}</option>)}
+                  </select>
+                </Field>
+                
+                <Field required label="Subdistrict">
+                  <select value={form.district} onChange={setValue("district")}>
+                    <option value="">Select subdistrict</option>{addressDistricts.map((item) => <option key={item}>{item}</option>)}
+                  </select>
+                </Field>
                 <Field label="Postal Code" value={form.postalCode} onChange={setValue("postalCode")} />
-                <Field label="Country" value={form.country} onChange={setValue("country")} />
+                
+                <Field required label="Country" value={form.country} onChange={setValue("country")} />
+                <div />
               </div>
             </section>
           </div>
 
-          <section className="seller2026-card seller2026-profile__form-card" id="shipping-setup">
+          <section className="seller2026-card seller2026-profile__form-card seller2026-profile__form-card--full" id="shipping">
             <h2>Shipping Origin</h2>
-            <div className="seller2026-profile__shipping-grid">
+            <div className="seller2026-profile__fields-two">
               <Field label="Shipping Mode">
                 <select value={form.shippingEnabled ? "enabled" : "disabled"} onChange={(event) => setForm((current) => ({ ...current, shippingEnabled: event.target.value === "enabled" }))}>
                   <option value="enabled">Enabled</option><option value="disabled">Disabled</option>
                 </select>
               </Field>
-              <Field label="Origin Province">
+              <div />
+              <Field required={form.shippingEnabled} label="Origin Province">
                 <select value={form.originProvince} onChange={(event) => setForm((current) => ({ ...current, originProvince: event.target.value, originCity: "", originDistrict: "" }))}>
                   <option value="">Select province</option>{provinces.map((item) => <option key={item}>{item}</option>)}
                 </select>
               </Field>
-              <Field label="Origin City/Regency">
+              <Field required={form.shippingEnabled} label="Origin City/Regency">
                 <select value={form.originCity} onChange={(event) => setForm((current) => ({ ...current, originCity: event.target.value, originDistrict: "" }))}>
                   <option value="">Select city/regency</option>{cities.map((item) => <option key={item}>{item}</option>)}
                 </select>
               </Field>
-              <Field label="Origin Subdistrict">
+              <Field required={form.shippingEnabled} label="Origin Subdistrict">
                 <select value={form.originDistrict} onChange={setValue("originDistrict")}>
                   <option value="">Select subdistrict</option>{districts.map((item) => <option key={item}>{item}</option>)}
                 </select>
               </Field>
-              <Field label="Origin Postal Code" value={form.originPostalCode} onChange={setValue("originPostalCode")} />
-              <Field label="Origin Address Line 1" value={form.originAddressLine1} onChange={setValue("originAddressLine1")} />
+              <Field required={form.shippingEnabled} label="Origin Postal Code" value={form.originPostalCode} onChange={setValue("originPostalCode")} />
+              <Field required={form.shippingEnabled} label="Origin Address Line 1" value={form.originAddressLine1} onChange={setValue("originAddressLine1")} />
               <Field label="Origin Address Line 2" value={form.originAddressLine2} onChange={setValue("originAddressLine2")} placeholder="Optional" />
-              <Field label="Origin Contact Name" value={form.originContactName} onChange={setValue("originContactName")} />
-              <Field label="Origin Phone" value={form.originPhone} onChange={setValue("originPhone")} />
-              <Field label="Origin Country" value={form.originCountry} onChange={setValue("originCountry")} />
+              <Field required={form.shippingEnabled} label="Origin Contact Name" value={form.originContactName} onChange={setValue("originContactName")} />
+              <Field required={form.shippingEnabled} label="Origin Phone" value={form.originPhone} onChange={setValue("originPhone")} />
+              <Field required={form.shippingEnabled} label="Origin Country" value={form.originCountry} onChange={setValue("originCountry")} />
               <Field label="Pickup Notes" multiline rows={2} value={form.pickupNotes} onChange={setValue("pickupNotes")} />
             </div>
           </section>

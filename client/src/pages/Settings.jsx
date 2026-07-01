@@ -58,7 +58,7 @@ const DEFAULT_BRANDING_SETTINGS = {
   workspaceBrandName: "TP PRENEURS",
 };
 
-const BRANDING_MAX_FILE_BYTES = 1024 * 1024;
+const BRANDING_MAX_FILE_BYTES = 5 * 1024 * 1024;
 const BRANDING_ACCEPT = "image/png,image/jpeg,image/webp";
 const BRANDING_ITEMS = [
   {
@@ -554,7 +554,7 @@ export default function Settings() {
     if (Number(file.size || 0) > BRANDING_MAX_FILE_BYTES) {
       setBrandingFeedback({
         type: "error",
-        message: `${item.label} must be 1MB or smaller.`,
+        message: `${item.label} must be 5MB or smaller.`,
       });
       return;
     }
@@ -711,7 +711,7 @@ export default function Settings() {
               </div>
             </div>
             <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-              Upload PNG, JPG, atau WEBP maksimal 1MB. Preview dan status asset diperbarui setelah upload berhasil.
+              Upload PNG, JPG, atau WEBP maksimal 5MB. Preview dan status asset diperbarui setelah upload berhasil.
             </div>
             {brandingFeedback ? (
               <div className={`${brandingStatusBoxClass} mb-4`}>{brandingFeedback.message}</div>

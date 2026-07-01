@@ -909,6 +909,9 @@ const toReviewResponse = (review: any, product: any) => {
     rating: review?.rating ?? review?.get?.("rating"),
     comment: review?.comment ?? review?.get?.("comment") ?? null,
     images: normalizedImages.length > 0 ? normalizedImages : null,
+    status: review?.status ?? review?.get?.("status") ?? "published",
+    sellerReply: review?.sellerReply ?? review?.get?.("sellerReply") ?? null,
+    repliedAt: review?.repliedAt ?? review?.get?.("repliedAt") ?? null,
     createdAt,
     updatedAt,
     user: userName
@@ -1186,7 +1189,7 @@ router.get(
         "(CASE WHEN Product.sale_price IS NOT NULL AND Product.sale_price > 0 AND Product.sale_price < Product.price THEN Product.sale_price ELSE Product.price END)"
       );
       const ratingExpr = sequelize.literal(
-        "(SELECT COALESCE(ROUND(AVG(pr.rating), 1), 0) FROM product_reviews pr WHERE pr.product_id = Product.id)"
+        "(SELECT COALESCE(ROUND(AVG(pr.rating), 1), 0) FROM product_reviews pr WHERE pr.product_id = Product.id AND COALESCE(pr.status, 'published') = 'published')"
       );
 
       const where: any = buildPublicProductWhere();
@@ -1346,13 +1349,13 @@ router.get(
           "updatedAt",
           [
             sequelize.literal(
-              "(SELECT ROUND(AVG(pr.rating), 1) FROM product_reviews pr WHERE pr.product_id = Product.id)"
+              "(SELECT ROUND(AVG(pr.rating), 1) FROM product_reviews pr WHERE pr.product_id = Product.id AND COALESCE(pr.status, 'published') = 'published')"
             ),
             "ratingAvg",
           ],
           [
             sequelize.literal(
-              "(SELECT COUNT(*) FROM product_reviews pr WHERE pr.product_id = Product.id)"
+              "(SELECT COUNT(*) FROM product_reviews pr WHERE pr.product_id = Product.id AND COALESCE(pr.status, 'published') = 'published')"
             ),
             "reviewCount",
           ],
@@ -1500,7 +1503,7 @@ router.get(
       if (Number.isFinite(productId) && productId > 0) {
         try {
           const statsRows = (await ProductReview.findAll({
-            where: { productId },
+            where: { productId, status: "published" },
             attributes: [
               [sequelize.fn("AVG", sequelize.col("rating")), "ratingAvg"],
               [sequelize.fn("COUNT", sequelize.col("id")), "reviewCount"],
@@ -1519,8 +1522,8 @@ router.get(
         }
         try {
           const reviewRows = await ProductReview.findAll({
-            where: { productId },
-            attributes: ["id", "userId", "productId", "rating", "comment", "images", "createdAt", "updatedAt"],
+            where: { productId, status: "published" },
+            attributes: ["id", "userId", "productId", "rating", "comment", "images", "status", "sellerReply", "repliedAt", "createdAt", "updatedAt"],
             include: [{ model: User, as: "user", attributes: ["id", "name"] }],
             order: [["updatedAt", "DESC"]],
             limit: 30,

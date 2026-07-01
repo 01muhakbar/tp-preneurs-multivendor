@@ -50,6 +50,14 @@ export type StoreApplicationSnapshotState = {
     notes: string | null;
   };
   payoutPaymentSnapshot: {
+    providerCode: "MANUAL_QRIS" | null;
+    paymentType: "QRIS_STATIC" | null;
+    accountName: string | null;
+    merchantName: string | null;
+    merchantId: string | null;
+    qrisPayload: string | null;
+    instructionText: string | null;
+    sellerNote: string | null;
     payoutMethod: string | null;
     accountHolderName: string | null;
     accountNumber: string | null;
@@ -135,6 +143,9 @@ export type StoreApplicationRecord = StoreApplicationSnapshotState & {
     sellerAccessReady: boolean;
     provisionedAt: string | null;
     provisionedMode: string | null;
+    paymentProfileRequestId: number | null;
+    paymentProfileRequestStatus: string | null;
+    paymentProfileHandoffSource: string | null;
   };
   contract: {
     sourceOfTruth: string | null;
@@ -200,6 +211,14 @@ export const createEmptyStoreApplicationSnapshots = (): StoreApplicationSnapshot
     notes: null,
   },
   payoutPaymentSnapshot: {
+    providerCode: "MANUAL_QRIS",
+    paymentType: "QRIS_STATIC",
+    accountName: null,
+    merchantName: null,
+    merchantId: null,
+    qrisPayload: null,
+    instructionText: null,
+    sellerNote: null,
     payoutMethod: null,
     accountHolderName: null,
     accountNumber: null,
@@ -269,6 +288,14 @@ const normalizeSnapshots = (payload: any): StoreApplicationSnapshotState => {
       notes: textOrNull(address.notes),
     },
     payoutPaymentSnapshot: {
+      providerCode: "MANUAL_QRIS",
+      paymentType: "QRIS_STATIC",
+      accountName: textOrNull(payout.accountName ?? payout.accountHolderName),
+      merchantName: textOrNull(payout.merchantName),
+      merchantId: textOrNull(payout.merchantId ?? payout.accountNumber),
+      qrisPayload: textOrNull(payout.qrisPayload),
+      instructionText: textOrNull(payout.instructionText),
+      sellerNote: textOrNull(payout.sellerNote),
       payoutMethod: textOrNull(payout.payoutMethod),
       accountHolderName: textOrNull(payout.accountHolderName),
       accountNumber: textOrNull(payout.accountNumber),
@@ -384,6 +411,9 @@ const normalizeStoreApplication = (payload: any): StoreApplicationRecord | null 
       sellerAccessReady: Boolean(activation.sellerAccessReady),
       provisionedAt: textOrNull(activation.provisionedAt),
       provisionedMode: textOrNull(activation.provisionedMode),
+      paymentProfileRequestId: numberOrNull(activation.paymentProfileRequestId),
+      paymentProfileRequestStatus: textOrNull(activation.paymentProfileRequestStatus),
+      paymentProfileHandoffSource: textOrNull(activation.paymentProfileHandoffSource),
     },
     contract: {
       sourceOfTruth: textOrNull(contract.sourceOfTruth),

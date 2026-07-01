@@ -146,6 +146,7 @@ const normalizeStoreProfile = (payload: any) => {
     addressLine1: textOrNull(payload?.addressLine1),
     addressLine2: textOrNull(payload?.addressLine2),
     city: textOrNull(payload?.city),
+    district: textOrNull(payload?.district),
     province: textOrNull(payload?.province),
     postalCode: textOrNull(payload?.postalCode),
     country: textOrNull(payload?.country),
@@ -217,6 +218,8 @@ const normalizeStoreProfile = (payload: any) => {
     isShippingReady: Boolean(payload?.isShippingReady),
     missingShippingFields: normalizeMissingFields(payload?.missingShippingFields),
     shippingSetupSummary: normalizeShippingSetupSummary(payload?.shippingSetupSummary),
+    ownerIdentity: payload?.ownerIdentity || null,
+    businessDetails: payload?.businessDetails || null,
     createdAt: payload?.createdAt || null,
     updatedAt: payload?.updatedAt || null,
   };

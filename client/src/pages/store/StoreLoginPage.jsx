@@ -154,6 +154,9 @@ export default function StoreLoginPage() {
       const pendingFrom = await mergePendingAdd();
       await refreshSession();
       await refreshCart(false);
+      try {
+        localStorage.setItem("seller_login_path", "/auth/login");
+      } catch {}
       const authenticatedRole = normalizeRole(
         response?.data?.data?.user?.role || response?.data?.user?.role
       );
@@ -169,12 +172,30 @@ export default function StoreLoginPage() {
           : fromState && fromState.pathname
             ? `${fromState.pathname || ""}${fromState.search || ""}${fromState.hash || ""}`
             : null;
-      const target =
+      let target =
         pendingFrom && pendingFrom !== "/auth/login"
           ? pendingFrom
           : resolvedFrom && resolvedFrom !== "/auth/login"
             ? resolvedFrom
             : "/account";
+
+      if (target === "/account") {
+        try {
+          const storesResponse = await api.get("/seller/stores");
+          const storesData = storesResponse?.data;
+          const stores = Array.isArray(storesData?.stores) ? storesData.stores 
+                       : Array.isArray(storesData?.data?.stores) ? storesData.data.stores
+                       : Array.isArray(storesData?.items) ? storesData.items
+                       : Array.isArray(storesData?.data?.items) ? storesData.data.items 
+                       : Array.isArray(storesData) ? storesData : [];
+          if (stores.length > 0) {
+            target = "/user/dashboard";
+          }
+        } catch (err) {
+          // ignore
+        }
+      }
+
       const postLoginState =
         location.state?.postLoginState &&
         typeof location.state.postLoginState === "object"

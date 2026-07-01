@@ -26,8 +26,9 @@ type SellerCategoryListParams = {
   limit?: number;
 };
 
-type SellerCategoryWritePayload = {
+export type SellerCategoryWritePayload = {
   name: string;
+  code?: string;
   description?: string;
   parentId?: number | null;
   image?: string | null;
@@ -45,15 +46,18 @@ const normalizeCategoryWritePayload = (
   options: { includePublish?: boolean; includeImage?: boolean; requireName?: boolean } = {},
 ): Partial<SellerCategoryWritePayload> => {
   const name = toPayloadText(payload.name);
+  const code = toPayloadText(payload.code);
   const description = toPayloadText(payload.description);
   const parentId = Number(payload.parentId || 0) || null;
   const nextPayload: Partial<SellerCategoryWritePayload> = { parentId };
 
   if (name || options.requireName) nextPayload.name = name;
+  if (code) nextPayload.code = code;
   if (description) nextPayload.description = description;
   if (options.includeImage) {
-    const image = toPayloadText(payload.image);
-    if (image) nextPayload.image = image;
+    if (Object.prototype.hasOwnProperty.call(payload, "image")) {
+      nextPayload.image = toPayloadText(payload.image);
+    }
   }
   if (options.includePublish) {
     nextPayload.isPublished = Boolean(payload.isPublished ?? payload.published);
@@ -172,7 +176,7 @@ export const setSellerCategoryPublished = async (
 
 export const uploadSellerCategoryImage = async (file: File) => {
   const form = new FormData();
-  form.append("image", file);
+  form.append("file", file);
   const { data } = await api.post<{ data?: { url?: string } }>("/upload", form, {
     headers: { "Content-Type": "multipart/form-data" },
   });

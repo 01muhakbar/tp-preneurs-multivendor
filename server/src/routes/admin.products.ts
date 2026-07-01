@@ -2288,13 +2288,13 @@ router.get("/", async (req: Request, res: Response, next: NextFunction) => {
           "updatedAt",
           [
             sequelize.literal(
-              "(SELECT ROUND(AVG(pr.rating), 1) FROM product_reviews pr WHERE pr.product_id = Product.id)"
+              "(SELECT ROUND(AVG(pr.rating), 1) FROM product_reviews pr WHERE pr.product_id = Product.id AND COALESCE(pr.status, 'published') = 'published')"
             ),
             "ratingAvg",
           ],
           [
             sequelize.literal(
-              "(SELECT COUNT(*) FROM product_reviews pr WHERE pr.product_id = Product.id)"
+              "(SELECT COUNT(*) FROM product_reviews pr WHERE pr.product_id = Product.id AND COALESCE(pr.status, 'published') = 'published')"
             ),
             "reviewCount",
           ],

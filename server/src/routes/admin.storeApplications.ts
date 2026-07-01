@@ -8,7 +8,10 @@ import {
   canTransitionStoreApplicationStatus,
   normalizeStoreApplicationSnapshots,
 } from "../services/storeApplication.js";
-import { provisionApprovedStoreApplication } from "../services/storeApplicationActivation.js";
+import {
+  provisionApprovedStoreApplication,
+  StoreApplicationActivationError,
+} from "../services/storeApplicationActivation.js";
 
 const router = Router();
 
@@ -218,7 +221,7 @@ const serializeCurrentStepMeta = (application: any) => {
     owner_identity: "Owner identity",
     store_information: "Store information",
     operational_address: "Operational address",
-    payout_payment: "Payout and payment",
+    payout_payment: "Payment profile",
     compliance: "Compliance",
     review: "Review",
   };
@@ -299,6 +302,15 @@ const serializeAdminStoreApplicationDetail = (application: any) => {
         .join(", "),
     },
     financialVerification: {
+      providerCode: toText(snapshots.payoutPaymentSnapshot.providerCode),
+      paymentType: toText(snapshots.payoutPaymentSnapshot.paymentType),
+      accountName: toText(snapshots.payoutPaymentSnapshot.accountName),
+      merchantName: toText(snapshots.payoutPaymentSnapshot.merchantName),
+      merchantId: toText(snapshots.payoutPaymentSnapshot.merchantId),
+      qrisImageUrl: toText(snapshots.payoutPaymentSnapshot.qrisImageUrl),
+      qrisPayload: toText(snapshots.payoutPaymentSnapshot.qrisPayload),
+      instructionText: toText(snapshots.payoutPaymentSnapshot.instructionText),
+      sellerNote: toText(snapshots.payoutPaymentSnapshot.sellerNote),
       payoutMethod: toText(snapshots.payoutPaymentSnapshot.payoutMethod),
       accountHolderName: toText(snapshots.payoutPaymentSnapshot.accountHolderName),
       bankChannel: toText(snapshots.payoutPaymentSnapshot.bankName),
@@ -348,6 +360,9 @@ const serializeAdminStoreApplicationDetail = (application: any) => {
         sellerAccessReady: Boolean(activation.sellerAccessReady),
         provisionedAt: toText(activation.provisionedAt),
         provisionedMode: toText(activation.provisionedMode),
+        paymentProfileRequestId: toNumber(activation.paymentProfileRequestId),
+        paymentProfileRequestStatus: toText(activation.paymentProfileRequestStatus),
+        paymentProfileHandoffSource: toText(activation.paymentProfileHandoffSource),
       },
     },
     contract: {
@@ -553,6 +568,17 @@ router.patch("/store-applications/:applicationId/approve", async (req, res) => {
     if (!application) return sendNotFound(res);
 
     const currentStatus = textOrFallback(getAttr(application, "status"), "draft");
+    const existingActivation = getActivationMetadata(application);
+    if (
+      currentStatus === "approved" &&
+      Number(existingActivation.paymentProfileRequestId || 0) > 0
+    ) {
+      return res.json({
+        success: true,
+        message: "Store application was already approved.",
+        data: serializeAdminStoreApplicationDetail(application),
+      });
+    }
     if (!canTransitionStoreApplicationStatus(currentStatus as any, "approved")) {
       return res.status(409).json({
         success: false,
@@ -562,21 +588,10 @@ router.patch("/store-applications/:applicationId/approve", async (req, res) => {
       });
     }
 
-    await application.update(
-      {
-        status: "approved",
-        reviewedAt: new Date(),
-        reviewedByUserId: adminUserId,
-        revisionNote: null,
-        rejectReason: null,
-        internalMetadata: buildAdminReviewMetadata(application, {
-          action: "approved",
-          internalAdminNote: parsed.data.internalAdminNote || null,
-        }),
-      } as any
-    );
-
-    await provisionApprovedStoreApplication(application);
+    await provisionApprovedStoreApplication(application, {
+      adminUserId,
+      internalAdminNote: parsed.data.internalAdminNote || null,
+    });
 
     const updated = await loadStoreApplicationById(applicationId);
 
@@ -586,6 +601,13 @@ router.patch("/store-applications/:applicationId/approve", async (req, res) => {
       data: serializeAdminStoreApplicationDetail(updated),
     });
   } catch (error) {
+    if (error instanceof StoreApplicationActivationError) {
+      return res.status(error.status).json({
+        success: false,
+        code: error.code,
+        message: error.message,
+      });
+    }
     console.error("[admin.store-applications:approve] error", error);
     return res.status(500).json({
       success: false,

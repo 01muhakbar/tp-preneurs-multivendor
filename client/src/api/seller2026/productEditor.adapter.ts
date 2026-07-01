@@ -3,7 +3,6 @@ import type { Seller2026ProductDetailViewModel } from "./products.adapter.ts";
 export type Seller2026ProductEditorForm = {
   id?: string | number | null;
   name: string;
-  shortDescription: string;
   description: string;
   categoryIds: string[];
   defaultCategoryId: string;
@@ -18,6 +17,8 @@ export type Seller2026ProductEditorForm = {
   hasVariants: boolean;
   seoTitle: string;
   seoDescription: string;
+  seoKeywords: string[];
+  ogImageUrl: string;
   imageAlt: string;
 };
 
@@ -43,7 +44,6 @@ export function createSeller2026ProductEditorForm(
   return {
     id: product?.id ?? null,
     name: text(editable?.name),
-    shortDescription: text(product?.shortDescription),
     description: text(editable?.description),
     categoryIds: array(editable?.categoryIds).map(String),
     defaultCategoryId: String(editable?.categoryIds?.[0] ?? ""),
@@ -56,8 +56,10 @@ export function createSeller2026ProductEditorForm(
     tags: array(editable?.tags).map(String),
     images: array(product?.gallery).map(String),
     hasVariants: Boolean(detail?.variants?.length),
-    seoTitle: text(editable?.seoTitle),
-    seoDescription: text(editable?.seoDescription),
+    seoTitle: text((editable as any)?.seo?.metaTitle || (editable as any)?.seo?.title || (editable as any)?.seoTitle),
+    seoDescription: text((editable as any)?.seo?.metaDescription || (editable as any)?.seo?.description || (editable as any)?.seoDescription),
+    seoKeywords: array((editable as any)?.seo?.keywords).map(String),
+    ogImageUrl: text((editable as any)?.seo?.ogImageUrl),
     imageAlt: text((editable as any)?.imageAlt), // TODO: Map from actual API if supported
   };
 }
@@ -104,6 +106,8 @@ export function buildSeller2026ProductDraftPayload(form: Seller2026ProductEditor
     hasVariants: false,
     seoTitle: text(form.seoTitle) || null,
     seoDescription: text(form.seoDescription) || null,
+    seoKeywords: form.seoKeywords,
+    ogImageUrl: text(form.ogImageUrl) || null,
     // imageAlt: text(form.imageAlt) || null, // TODO: Send to API when endpoint supports image alt
   };
 }

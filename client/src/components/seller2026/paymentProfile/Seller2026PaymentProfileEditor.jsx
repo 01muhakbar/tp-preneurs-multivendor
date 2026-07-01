@@ -8,6 +8,7 @@ import {
   X,
 } from "lucide-react";
 import { resolveAssetUrl } from "../../../lib/assetUrl.js";
+import { PAYMENT_PROFILE_LIMITS } from "../../../api/paymentProfile.contract.ts";
 
 const requiredComplete = (form) =>
   Boolean(
@@ -104,7 +105,7 @@ export default function Seller2026PaymentProfileEditor({
             <FileImage size={20} />
             <span>
               <strong>QRIS image</strong>
-              <small>PNG or JPEG. Upload does not auto-save.</small>
+              <small>PNG or JPEG, maximum 5MB. Upload does not auto-save.</small>
             </span>
           </div>
           <input
@@ -143,18 +144,21 @@ export default function Seller2026PaymentProfileEditor({
               <Field
                 label="Account name"
                 value={form.accountName}
+                maxLength={PAYMENT_PROFILE_LIMITS.accountName}
                 disabled={locked || busy}
                 onChange={(event) => setField("accountName", event.target.value)}
               />
               <Field
                 label="Merchant name"
                 value={form.merchantName}
+                maxLength={PAYMENT_PROFILE_LIMITS.merchantName}
                 disabled={locked || busy}
                 onChange={(event) => setField("merchantName", event.target.value)}
               />
               <Field
                 label="QRIS image URL"
                 value={form.qrisImageUrl}
+                maxLength={PAYMENT_PROFILE_LIMITS.qrisImageUrl}
                 disabled={locked || busy}
                 onChange={(event) => setField("qrisImageUrl", event.target.value)}
                 hint="The image buyers will see after Admin approval."
@@ -168,6 +172,7 @@ export default function Seller2026PaymentProfileEditor({
               <Field
                 label="Merchant ID"
                 value={form.merchantId}
+                maxLength={PAYMENT_PROFILE_LIMITS.merchantId}
                 disabled={locked || busy}
                 onChange={(event) => setField("merchantId", event.target.value)}
               />
@@ -176,6 +181,7 @@ export default function Seller2026PaymentProfileEditor({
                 multiline
                 rows={3}
                 value={form.qrisPayload}
+                maxLength={PAYMENT_PROFILE_LIMITS.qrisPayload}
                 disabled={locked || busy}
                 onChange={(event) => setField("qrisPayload", event.target.value)}
               />
@@ -184,6 +190,7 @@ export default function Seller2026PaymentProfileEditor({
                 multiline
                 rows={3}
                 value={form.instructionText}
+                maxLength={PAYMENT_PROFILE_LIMITS.instructionText}
                 disabled={locked || busy}
                 onChange={(event) =>
                   setField("instructionText", event.target.value)
@@ -194,6 +201,7 @@ export default function Seller2026PaymentProfileEditor({
                 multiline
                 rows={3}
                 value={form.sellerNote}
+                maxLength={PAYMENT_PROFILE_LIMITS.sellerNote}
                 disabled={locked || busy}
                 onChange={(event) => setField("sellerNote", event.target.value)}
               />

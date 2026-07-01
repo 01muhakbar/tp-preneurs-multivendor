@@ -211,6 +211,7 @@ export function validateSeller2026CategoryForm(form: Seller2026CategoryForm) {
 export function buildSeller2026CategoryPayload(form: Seller2026CategoryForm) {
   return {
     name: text(form.name),
+    code: text(form.slug) || undefined,
     description: text(form.description) || undefined,
     parentId: Number(form.parentId || 0) || null,
     image: text(form.imageUrl) || null,

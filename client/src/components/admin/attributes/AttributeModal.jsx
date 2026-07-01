@@ -35,6 +35,7 @@ export default function AttributeModal({
   const [name, setName] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [optionType, setOptionType] = useState("dropdown");
+  const [published, setPublished] = useState(true);
   const [variants, setVariants] = useState([]);
   const [validationError, setValidationError] = useState("");
 
@@ -44,6 +45,7 @@ export default function AttributeModal({
     setName(nextName);
     setDisplayName(toText(attribute?.displayName ?? attribute?.display_name) || nextName);
     setOptionType(toText(attribute?.type).toLowerCase() || "dropdown");
+    setPublished(attribute?.published ?? true);
     setVariants(
       Array.isArray(attribute?.values)
         ? attribute.values.map((entry) => toText(entry)).filter(Boolean)
@@ -95,6 +97,7 @@ export default function AttributeModal({
       name: trimmedName,
       displayName: toText(displayName) || trimmedName,
       type: optionType,
+      published,
       values: variants,
     });
   };
@@ -180,6 +183,18 @@ export default function AttributeModal({
                     {option.label}
                   </option>
                 ))}
+              </select>
+            </FieldRow>
+
+            <FieldRow label="Status">
+              <select
+                value={published ? "published" : "draft"}
+                onChange={(event) => setPublished(event.target.value === "published")}
+                disabled={isSubmitting}
+                className={`${fieldClass} appearance-none`}
+              >
+                <option value="published">Published</option>
+                <option value="draft">Draft</option>
               </select>
             </FieldRow>
 

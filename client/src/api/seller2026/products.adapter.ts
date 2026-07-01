@@ -11,6 +11,9 @@ export type Seller2026ProductsViewModel = {
     draft: number;
     submitted: number;
     active: number;
+    storefrontVisible: number;
+    publishedBlocked: number;
+    internalOnly: number;
     needsRevision: number;
     inactive: number;
     pendingReview: number;
@@ -55,6 +58,7 @@ export type Seller2026ProductsViewModel = {
     canUpdate: boolean;
     canDelete: boolean;
     canSubmit: boolean;
+    canPublish: boolean;
   };
 };
 
@@ -160,6 +164,9 @@ const EMPTY_PRODUCTS: Seller2026ProductsViewModel = {
     draft: 0,
     submitted: 0,
     active: 0,
+    storefrontVisible: 0,
+    publishedBlocked: 0,
+    internalOnly: 0,
     needsRevision: 0,
     inactive: 0,
     pendingReview: 0,
@@ -189,6 +196,7 @@ const EMPTY_PRODUCTS: Seller2026ProductsViewModel = {
     canUpdate: false,
     canDelete: false,
     canSubmit: false,
+    canPublish: false,
   },
 };
 
@@ -318,6 +326,7 @@ const productSubmitEligibility = (product: Record<string, unknown>) => {
 
 export function adaptSellerProduct(value: unknown) {
   const product = object(value);
+  const visibility = object(product.visibility);
   const id = idValue(product.id ?? product.productId ?? product.uuid, "") as string | number;
   const submit = productSubmitEligibility(product);
   const status = normalizeProductStatus(productSubmissionStatus(product) ?? productOperationalStatus(product));
@@ -337,10 +346,13 @@ export function adaptSellerProduct(value: unknown) {
     sales: number(product.salesCount ?? product.soldCount ?? product.sold ?? product.sales, 0),
     views: number(product.viewCount ?? product.views, 0),
     status,
-    visibility: text(product.visibility, "hidden"),
+    visibility: text(
+      product.storefrontVisibilityState ?? visibility.stateCode,
+      "INTERNAL_ONLY"
+    ).toLowerCase(),
     submissionStatus: productSubmissionState(product),
     approvalStatus: text(object(product.submission).status, "pending"),
-    isPublished: status === "active",
+    isPublished: Boolean(product.published ?? visibility.isPublished),
     isDraft: status === "draft",
     isArchived: status === "inactive",
     createdAt: text(product.createdAt, "Recently"),
@@ -381,6 +393,7 @@ export function adaptSeller2026Products(
       ? data.items
       : [];
   const rawSummary = object(response.summary ?? data.summary);
+  const governance = object(response.governance ?? data.governance);
   const rawPagination = object(response.pagination ?? data.pagination);
   const limit = number(rawPagination.limit ?? query.limit, EMPTY_PRODUCTS.pagination.limit);
   const total = number(rawPagination.total, rawItems.length);
@@ -392,6 +405,9 @@ export function adaptSeller2026Products(
       draft: number(rawSummary.draft ?? rawSummary.drafts, 0),
       submitted: number(rawSummary.submitted ?? rawSummary.reviewQueue, 0),
       active: number(rawSummary.active, 0),
+      storefrontVisible: number(rawSummary.storefrontVisible, 0),
+      publishedBlocked: number(rawSummary.publishedBlocked, 0),
+      internalOnly: number(rawSummary.internalOnly, 0),
       needsRevision: number(rawSummary.needsRevision ?? rawSummary.needs_revision, 0),
       inactive: number(rawSummary.inactive, 0),
       pendingReview: number(rawSummary.submitted ?? rawSummary.reviewQueue, 0),
@@ -414,6 +430,7 @@ export function adaptSeller2026Products(
       canUpdate: Boolean(permissions.canUpdate),
       canDelete: Boolean(permissions.canDelete),
       canSubmit: Boolean(permissions.canSubmit),
+      canPublish: Boolean(governance.canPublish ?? permissions.canPublish),
     },
   };
 }
@@ -545,7 +562,9 @@ export function adaptSeller2026ProductDetail(value: unknown): Seller2026ProductD
       visibility: text(product.visibility, "public"),
       submissionStatus: productSubmissionState(product),
       approvalStatus: text(submission.approvalStatus ?? product.approvalStatus, "pending"),
-      isPublished: Boolean(product.isPublished ?? (normalizeProductStatus(productOperationalStatus(product)) === 'active')),
+      isPublished: Boolean(
+        product.published ?? product.isPublished ?? object(product.visibility).isPublished
+      ),
       isDraft: Boolean(product.isDraft ?? (normalizeProductStatus(productOperationalStatus(product)) === 'draft')),
       isArchived: Boolean(product.isArchived ?? (normalizeProductStatus(productOperationalStatus(product)) === 'inactive')),
       needsAttention: Boolean(product.needsAttention ?? false),

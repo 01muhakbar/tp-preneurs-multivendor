@@ -15,11 +15,19 @@ export type ReviewResponse = {
   images?: string[] | null;
   createdAt?: string;
   updatedAt?: string;
+  status?: "pending" | "published" | "hidden" | string;
+  sellerReply?: string | null;
+  repliedAt?: string | null;
+  user?: {
+    id?: number | null;
+    name: string;
+  } | null;
   product?: {
     id: number;
     name: string;
     slug?: string | null;
     imageUrl?: string | null;
+    sku?: string | null;
   } | null;
 };
 

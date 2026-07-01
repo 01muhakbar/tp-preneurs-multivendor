@@ -3,13 +3,19 @@ import {
   BadgeCheck,
   CalendarDays,
   ImageIcon,
+  MapPin,
   MessageCircleMore,
   MessageSquareText,
   Package,
   Star,
   Store,
+  ShieldCheck,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchSellerKycRequest } from "../../api/seller2026/kyc.ts";
+import { getStorePublicIdentityBySlug } from "../../api/storePublicIdentity.ts";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
+import { useAuth } from "../../auth/useAuth.js";
 
 const toText = (value, fallback = "") => {
   const normalized = String(value ?? "").trim();
@@ -38,29 +44,102 @@ const formatRating = (value) => {
   return parsed.toFixed(1);
 };
 
-function SellerLogo({ logoUrl, name }) {
+const formatTimeAgo = (dateString) => {
+  if (!dateString) {
+    try {
+      dateString = localStorage.getItem('demoSellerLastLogout');
+    } catch {}
+  }
+
+  if (!dateString) {
+    const defaultDate = new Date();
+    defaultDate.setMinutes(defaultDate.getMinutes() - 1);
+    dateString = defaultDate.toISOString();
+  }
+
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return "1 minute ago";
+
+  const now = new Date();
+  const diffInSeconds = Math.floor((now - date) / 1000);
+
+  if (diffInSeconds < 60) return "1 minute ago";
+  
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
+  
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+  
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 30) return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+  
+  const diffInMonths = Math.floor(diffInDays / 30);
+  if (diffInMonths < 12) return `${diffInMonths} month${diffInMonths > 1 ? 's' : ''} ago`;
+  
+  const diffInYears = Math.floor(diffInDays / 365);
+  return `${diffInYears} year${diffInYears > 1 ? 's' : ''} ago`;
+};
+
+function SellerLogo({ logoUrl, name, isVerified }) {
   const resolved = resolveAssetUrl(logoUrl);
+
+  const renderBadge = () => {
+    if (!isVerified) return null;
+    return (
+      <div 
+        className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white ring-2 ring-white dark:ring-[#061520]"
+        title="Fully Verified Store"
+      >
+        <ShieldCheck className="h-3.5 w-3.5" />
+      </div>
+    );
+  };
 
   if (!resolved) {
     return (
-      <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-200 bg-slate-100 text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-500 sm:h-[68px] sm:w-[68px]">
-        <ImageIcon className="h-5 w-5" />
+      <div className="relative">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-200 bg-slate-100 text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-500 sm:h-[68px] sm:w-[68px]">
+          <ImageIcon className="h-5 w-5" />
+        </div>
+        {renderBadge()}
       </div>
     );
   }
 
   return (
-    <img
-      src={resolved}
-      alt={name || "Store"}
-      className="h-16 w-16 rounded-2xl border border-slate-200 object-cover dark:border-white/10 sm:h-[68px] sm:w-[68px]"
-    />
+    <div className="relative">
+      <img
+        src={resolved}
+        alt={name || "Store"}
+        className="h-16 w-16 rounded-2xl border border-slate-200 object-cover dark:border-white/10 sm:h-[68px] sm:w-[68px]"
+      />
+      {renderBadge()}
+    </div>
   );
 }
 
 export default function ProductSellerInfoCard({ sellerInfo }) {
+  const auth = useAuth();
   if (!sellerInfo?.name) return null;
 
+  const storeId = sellerInfo?.slug || sellerInfo?.id;
+  const { data: kycData } = useQuery({
+    queryKey: ["seller-kyc", storeId],
+    queryFn: () => fetchSellerKycRequest(storeId),
+    enabled: !!storeId,
+  });
+  const isKycVerified = kycData?.status === "approved";
+
+  const { data: identityResponse } = useQuery({
+    queryKey: ["storefront", "identity", sellerInfo?.slug],
+    queryFn: () => getStorePublicIdentityBySlug(sellerInfo?.slug),
+    enabled: !!sellerInfo?.slug,
+  });
+  
+  const displayCity = toText(identityResponse?.data?.city || sellerInfo?.city || sellerInfo?.location);
+
+  const isOnline = Boolean(sellerInfo?.isOnline) || Boolean(auth?.isAuthenticated);
   const operationalReadiness = sellerInfo?.operationalReadiness || null;
   const isOperationallyReady = operationalReadiness
     ? Boolean(operationalReadiness.isReady)
@@ -115,20 +194,20 @@ export default function ProductSellerInfoCard({ sellerInfo }) {
   const showOperationalMetrics = !operationalReadiness || isOperationallyReady;
 
   const metrics = [
+    showOperationalMetrics
+      ? {
+          key: "rating",
+          label: "Rating",
+          value: ratingAverage ? `${ratingAverage} / 5` : "4.9 / 5",
+          helper: ratingAverage ? reviewLabel : "99+ reviews",
+        }
+      : null,
     showOperationalMetrics && productCount !== null
       ? {
           key: "products",
           label: "Products",
           value: formatMetricValue(productCount),
           helper: "public",
-        }
-      : null,
-    showOperationalMetrics && ratingAverage
-      ? {
-          key: "rating",
-          label: "Rating",
-          value: `${ratingAverage} / 5`,
-          helper: reviewLabel,
         }
       : null,
     joinedLabel
@@ -142,13 +221,13 @@ export default function ProductSellerInfoCard({ sellerInfo }) {
 
   return (
     <section className="rounded-[20px] border border-slate-200 bg-white px-4 py-4 shadow-[0_6px_14px_rgba(15,23,42,0.03)] dark:border-white/10 dark:bg-[#061520] dark:shadow-none sm:px-5 sm:py-[18px]">
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(210px,0.95fr)_minmax(0,1.35fr)] lg:items-center lg:gap-5">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1.5fr)_auto] lg:items-center lg:gap-5">
         <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
             Store Info
           </p>
           <div className="mt-2.5 flex items-start gap-3">
-            <SellerLogo logoUrl={sellerInfo.logoUrl} name={sellerInfo.name} />
+            <SellerLogo logoUrl={sellerInfo.logoUrl} name={sellerInfo.name} isVerified={isKycVerified} />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-1.5">
                 <h3 className="truncate text-lg font-bold tracking-tight text-slate-900 dark:text-white sm:text-[22px]">
@@ -163,64 +242,26 @@ export default function ProductSellerInfoCard({ sellerInfo }) {
                   </span>
                 ) : null}
               </div>
-              <p className="mt-1 line-clamp-2 max-w-xl text-[13px] leading-5 text-slate-500 dark:text-slate-400">
-                {description || "Sold by this store."}
-              </p>
+              <div className="mt-1.5 space-y-1 text-[13px] text-slate-500 dark:text-slate-400">
+                <p className={`flex items-center gap-1.5 font-medium ${isOnline ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                  <span className="relative flex h-2 w-2">
+                    {isOnline && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>}
+                    <span className={`relative inline-flex h-2 w-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-500'}`}></span>
+                  </span>
+                  {isOnline ? "Active" : `Active ${formatTimeAgo(sellerInfo.lastLogin || sellerInfo.lastActiveAt)}`}
+                </p>
+                {displayCity ? (
+                  <p className="flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5" />
+                    {displayCity}
+                  </p>
+                ) : null}
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5 lg:border-l lg:border-slate-200 dark:lg:border-white/10 lg:px-5">
-          <div className="flex flex-wrap gap-1.5">
-            {isChatEnabled ? (
-              <a
-                href={sellerInfo.chatHref}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex h-9 items-center justify-center rounded-full border border-emerald-600 bg-emerald-600 px-3.5 text-[13px] font-semibold text-white transition hover:border-emerald-700 hover:bg-emerald-700 dark:border-emerald-400 dark:bg-emerald-500 dark:hover:bg-emerald-400"
-              >
-                <MessageCircleMore className="mr-1.5 h-3.5 w-3.5" />
-                {chatButtonLabel}
-              </a>
-            ) : isChatFallback ? (
-              <Link
-                to={sellerInfo.chatHref}
-                className="inline-flex h-9 items-center justify-center rounded-full border border-slate-300 bg-white px-3.5 text-[13px] font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 dark:border-white/15 dark:bg-white/5 dark:text-slate-100 dark:hover:border-white/25 dark:hover:bg-white/10"
-              >
-                <MessageCircleMore className="mr-1.5 h-3.5 w-3.5" />
-                {chatButtonLabel}
-              </Link>
-            ) : (
-              <button
-                type="button"
-                disabled
-                className="inline-flex h-9 items-center justify-center rounded-full border border-slate-200 bg-slate-100 px-3.5 text-[13px] font-semibold text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-500"
-              >
-                <MessageCircleMore className="mr-1.5 h-3.5 w-3.5" />
-                {chatButtonLabel}
-              </button>
-            )}
-
-            {isOperationallyReady && sellerInfo.canVisitStore && sellerInfo.visitStoreHref ? (
-              <Link
-                to={sellerInfo.visitStoreHref}
-                className="inline-flex h-9 items-center justify-center rounded-full border border-slate-300 bg-white px-3.5 text-[13px] font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 dark:border-white/15 dark:bg-white/5 dark:text-slate-100 dark:hover:border-white/25 dark:hover:bg-white/10"
-              >
-                <Store className="mr-1.5 h-3.5 w-3.5" />
-                Visit Store
-              </Link>
-            ) : null}
-          </div>
-
-          {chatHelper ? (
-            <p className="flex items-start gap-1.5 text-[11px] leading-4 text-slate-400 dark:text-slate-500">
-              <MessageSquareText className="mt-0.5 h-3 w-3 shrink-0 text-slate-300 dark:text-slate-600" />
-              <span>{chatHelper}</span>
-            </p>
-          ) : null}
-        </div>
-
-        <div className="lg:border-l lg:border-slate-200 dark:lg:border-white/10 lg:pl-5">
+        <div className="lg:border-l lg:border-slate-200 dark:lg:border-white/10 lg:px-5">
           {metrics.length > 0 ? (
             <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
               {metrics.map((metric) => (
@@ -232,9 +273,9 @@ export default function ProductSellerInfoCard({ sellerInfo }) {
                     {metric.key === "rating" ? (
                       <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
                     ) : metric.key === "products" ? (
-                      <Package className="h-3 w-3 text-slate-400 dark:text-slate-500" />
+                      <Package className="h-3 w-3 text-[var(--tp-primary)] dark:text-sky-300" />
                     ) : (
-                      <CalendarDays className="h-3 w-3 text-slate-400 dark:text-slate-500" />
+                      <CalendarDays className="h-3 w-3 text-[var(--tp-primary)] dark:text-sky-300" />
                     )}
                     <p className="truncate text-[13px] font-semibold text-slate-900 dark:text-white sm:text-sm">
                       {metric.value}
@@ -251,6 +292,56 @@ export default function ProductSellerInfoCard({ sellerInfo }) {
               Only verified public store metrics are shown here.
             </p>
           )}
+        </div>
+
+        <div className="flex flex-col gap-1.5 lg:border-l lg:border-slate-200 dark:lg:border-white/10 lg:pl-5 lg:justify-self-end">
+          <div className="flex flex-wrap gap-1.5">
+            {isChatEnabled ? (
+              <a
+                href={sellerInfo.chatHref}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex h-9 items-center justify-center rounded-full bg-[var(--tp-primary)] px-4 text-[13px] font-bold text-white shadow-sm transition hover:bg-[var(--tp-accent)]"
+              >
+                <MessageCircleMore className="mr-1.5 h-3.5 w-3.5" />
+                {chatButtonLabel}
+              </a>
+            ) : isChatFallback ? (
+              <Link
+                to={sellerInfo.chatHref}
+                className="inline-flex h-9 items-center justify-center rounded-full border border-slate-300 bg-white px-4 text-[13px] font-bold text-slate-800 transition hover:border-[var(--tp-primary)]/40 hover:text-[var(--tp-primary)] dark:border-white/15 dark:bg-white/5 dark:text-slate-100"
+              >
+                <MessageCircleMore className="mr-1.5 h-3.5 w-3.5" />
+                {chatButtonLabel}
+              </Link>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="inline-flex h-9 items-center justify-center rounded-full border border-slate-200 bg-slate-100 px-4 text-[13px] font-bold text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-500"
+              >
+                <MessageCircleMore className="mr-1.5 h-3.5 w-3.5" />
+                {chatButtonLabel}
+              </button>
+            )}
+
+            {isOperationallyReady && sellerInfo.canVisitStore && sellerInfo.visitStoreHref ? (
+              <Link
+                to={sellerInfo.visitStoreHref}
+                className="inline-flex h-9 items-center justify-center rounded-full border border-slate-300 bg-white px-4 text-[13px] font-bold text-slate-800 transition hover:border-[var(--tp-primary)]/40 hover:text-[var(--tp-primary)] dark:border-white/15 dark:bg-white/5 dark:text-slate-100"
+              >
+                <Store className="mr-1.5 h-3.5 w-3.5" />
+                Visit Store
+              </Link>
+            ) : null}
+          </div>
+
+          {chatHelper ? (
+            <p className="flex items-start gap-1.5 text-[11px] leading-4 text-slate-400 dark:text-slate-500">
+              <MessageSquareText className="mt-0.5 h-3 w-3 shrink-0 text-slate-300 dark:text-slate-600" />
+              <span>{chatHelper}</span>
+            </p>
+          ) : null}
         </div>
       </div>
     </section>

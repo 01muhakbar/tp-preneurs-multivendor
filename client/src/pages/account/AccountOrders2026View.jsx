@@ -12,6 +12,7 @@ import {
   Search,
   Truck,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { formatCurrency } from "../../utils/format.js";
 import "./account-orders-2026.css";
 
@@ -104,20 +105,20 @@ function PaymentPill({ payment }) {
   );
 }
 
-function OrderCard({ order, LinkComponent }) {
+function OrderCard({ order, LinkComponent, t }) {
   const placed = formatDateTime(order.date || order.createdAt);
   const status = order.status || {
-    label: "Unknown",
+    label: t("orders.unknownStatus"),
     tone: "neutral",
     bucket: "pending",
   };
   const paymentState = order.paymentState || order.payment || {
-    label: "Unpaid",
+    label: t("orders.unpaid"),
     tone: "neutral",
   };
   const storeSearchLabel = order.storeNames?.length
     ? order.storeNames.join(", ")
-    : order.checkoutMode?.label || order.storeMode || "Store";
+    : order.checkoutMode?.label || order.storeMode || t("orders.store");
 
   return (
     <article className={`tp-order-card tp-order-card--${status.tone || "neutral"}`}>
@@ -137,7 +138,7 @@ function OrderCard({ order, LinkComponent }) {
             ) : null}
           </p>
           <span className="tp-order-card__mode">
-            {order.storeMode || order.checkoutMode?.shortLabel || "SINGLE STORE"}
+            {order.storeMode || order.checkoutMode?.shortLabel || t("orders.singleStore")}
           </span>
           <span className="tp-order-card__store">{storeSearchLabel}</span>
         </div>
@@ -147,40 +148,40 @@ function OrderCard({ order, LinkComponent }) {
         <div>
           <CreditCard aria-hidden="true" />
           <span>
-            <small>Payment</small>
+            <small>{t("orders.payment")}</small>
             <strong>{order.paymentMethod}</strong>
           </span>
         </div>
         <div>
           <Truck aria-hidden="true" />
           <span>
-            <small>Shipping</small>
+            <small>{t("orders.shipping")}</small>
             <strong>{formatCurrency(order.shipping ?? order.shippingAmount)}</strong>
           </span>
         </div>
       </div>
 
       <div className="tp-order-card__state">
-        <small>Status</small>
+        <small>{t("orders.status")}</small>
         <StatusPill status={status} />
         <PaymentPill payment={paymentState} />
         {order.note ? <p>{order.note}</p> : null}
       </div>
 
       <div className="tp-order-card__total">
-        <small>Total Amount</small>
+        <small>{t("orders.totalAmount")}</small>
         <strong>{formatCurrency(order.total ?? order.totalAmount)}</strong>
       </div>
 
       <div className="tp-order-card__actions">
         {order.href ? (
           <LinkComponent className="tp-order-card__cta" to={order.href}>
-            View Details
+            {t("orders.viewDetails")}
           </LinkComponent>
         ) : null}
         {order.paymentAction?.path ? (
           <LinkComponent className="tp-order-card__payment-cta" to={order.paymentAction.path}>
-            {order.paymentAction.label || "Payment"}
+            {order.paymentAction.label || t("orders.payment")}
           </LinkComponent>
         ) : null}
       </div>
@@ -188,35 +189,35 @@ function OrderCard({ order, LinkComponent }) {
   );
 }
 
-function EmptyOrders({ hasFilters, onClearFilters, LinkComponent }) {
+function EmptyOrders({ hasFilters, onClearFilters, LinkComponent, t }) {
   return (
     <div className="tp-orders-2026__empty">
       <Package aria-hidden="true" />
-      <h2>{hasFilters ? "No matching orders" : "No orders yet"}</h2>
+      <h2>{hasFilters ? t("orders.emptyTitle") : t("orders.emptyTitleNoFilter")}</h2>
       <p>
         {hasFilters
-          ? "Try another status, date, order ID, or store."
-          : "Your order history will appear here after checkout."}
+          ? t("orders.emptyDesc")
+          : t("orders.emptyDescNoFilter")}
       </p>
       {hasFilters ? (
         <button type="button" onClick={onClearFilters}>
-          Clear filters
+          {t("orders.clearFilters")}
         </button>
       ) : (
-        <LinkComponent to="/shop">Start Shopping</LinkComponent>
+        <LinkComponent to="/shop">{t("orders.startShopping")}</LinkComponent>
       )}
     </div>
   );
 }
 
-function HelpCard() {
+function HelpCard({ t }) {
   return (
     <a className="tp-orders-2026__help" href="tel:+6599887766">
       <span aria-hidden="true">
         <Headphones />
       </span>
-      <strong>Need help? +65 9988 7766</strong>
-      <small>We're available 24/7</small>
+      <strong>{t("orders.needHelp")}</strong>
+      <small>{t("orders.available247")}</small>
       <ArrowRight aria-hidden="true" />
     </a>
   );
@@ -235,6 +236,16 @@ export default function AccountOrders2026View({
   onPageChange,
   cartSummary,
 }) {
+  const { t } = useTranslation();
+  
+  const FILTERS = useMemo(() => [
+    { code: "all", label: t("orders.filterAll") },
+    { code: "pending", label: t("orders.filterPending") },
+    { code: "processing", label: t("orders.filterProcessing") },
+    { code: "completed", label: t("orders.filterCompleted") },
+    { code: "cancelled", label: t("orders.filterCancelled") },
+  ], [t]);
+
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchValue, setSearchValue] = useState("");
   const [statusValue, setStatusValue] = useState("all");
@@ -289,8 +300,8 @@ export default function AccountOrders2026View({
   return (
     <section className="tp-orders-2026 tporders2026-root">
       <header className="tp-orders-2026__heading">
-        <h1>My Orders</h1>
-        <p>Track and manage all your orders in one place.</p>
+        <h1>{t("orders.title")}</h1>
+        <p>{t("orders.subtitle")}</p>
       </header>
 
       <div className="tp-orders-2026__tabs" aria-label="Order status filters">
@@ -314,7 +325,7 @@ export default function AccountOrders2026View({
             type="search"
             value={searchValue}
             onChange={(event) => setSearchValue(event.target.value)}
-            placeholder="Search by order ID or store"
+            placeholder={t("orders.searchPlaceholder")}
           />
           <Search aria-hidden="true" />
         </label>
@@ -328,7 +339,7 @@ export default function AccountOrders2026View({
             }}
             aria-label="Filter by status"
           >
-            <option value="all">All statuses</option>
+            <option value="all">{t("orders.allStatuses")}</option>
             {FILTERS.slice(1).map((filter) => (
               <option value={filter.code} key={filter.code}>
                 {filter.label}
@@ -355,15 +366,15 @@ export default function AccountOrders2026View({
           disabled={!hasFilters}
         >
           <RotateCcw aria-hidden="true" />
-          Clear
+          {t("orders.clearBtn")}
         </button>
       </div>
 
       {error ? (
         <div className="tp-orders-2026__alert" role="alert">
           {error?.response?.status === 401
-            ? "Please sign in again to view your orders."
-            : error?.response?.data?.message || error?.message || "Failed to load orders."}
+            ? t("orders.authError")
+            : error?.response?.data?.message || error?.message || t("orders.loadError")}
         </div>
       ) : isLoading ? (
         <LoadingCards />
@@ -372,6 +383,7 @@ export default function AccountOrders2026View({
           hasFilters={hasFilters}
           onClearFilters={clearFilters}
           LinkComponent={LinkComponent}
+          t={t}
         />
       ) : (
         <div className="tp-orders-2026__list">
@@ -380,6 +392,7 @@ export default function AccountOrders2026View({
               order={order}
               LinkComponent={LinkComponent}
               key={order.id || order.displayId || order.reference}
+              t={t}
             />
           ))}
         </div>
@@ -388,8 +401,8 @@ export default function AccountOrders2026View({
       {!error && !isLoading && totalOrders > 0 ? (
         <footer className="tp-orders-2026__pagination">
           <p>
-            Showing {firstVisible} to {lastVisible} of {totalOrders} orders
-            {hasFilters ? `, ${filteredOrders.length} matching this page` : ""}
+            {t("orders.showing", { start: firstVisible, end: lastVisible, total: totalOrders })}
+            {hasFilters ? t("orders.matching", { count: filteredOrders.length }) : ""}
           </p>
           <nav aria-label="Order pagination">
             <button
@@ -423,7 +436,7 @@ export default function AccountOrders2026View({
         </footer>
       ) : null}
 
-      <HelpCard />
+      <HelpCard t={t} />
       {cartSummary ? <aside className="tp-orders-2026__cart">{cartSummary}</aside> : null}
     </section>
   );

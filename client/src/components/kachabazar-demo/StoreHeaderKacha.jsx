@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import {
   ChevronDown,
   Globe2,
@@ -15,7 +16,10 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAccountAuth } from "../../auth/authDomainHooks.js";
 import { useCart } from "../../hooks/useCart.ts";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
-import { useCategories } from "../../storefront.jsx";
+import { useCategories, useProducts } from "../../storefront.jsx";
+import { formatCurrency } from "../../utils/format.js";
+import { resolveProductImageUrl } from "../../utils/productImage.js";
+import { useDebounce } from "../../hooks/useDebounce.ts";
 import ThemeToggle from "../store/ThemeToggle.jsx";
 import NotificationPreviewDropdown from "../store/NotificationPreviewDropdown.jsx";
 import { useStorefrontWishlist } from "../../utils/storefrontWishlist.js";
@@ -45,11 +49,11 @@ const getInitials = (value) => {
   return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
 };
 
-const navItems = [
-  { label: "Shop", href: "/shop", hasChevron: true },
-  { label: "Offers", href: "/offers", hasDot: true },
-  { label: "About Us", href: "/about-us" },
-  { label: "Contact Us", href: "/contact-us" },
+const getNavItems = (t) => [
+  { label: t("header.shop"), href: "/shop", hasChevron: true },
+  { label: t("header.offers"), href: "/offers", hasDot: true },
+  { label: t("header.aboutUs"), href: "/about-us" },
+  { label: t("header.contactUs"), href: "/contact-us" },
 ];
 
 function LogoMark({ logoUrl, logoVersion }) {
@@ -136,6 +140,53 @@ function IconButton({ as: Component = "button", to, children, label, badge, onCl
   );
 }
 
+function LiveSearchDropdown({ searchFocused, debouncedSearch, searchFetching, searchResults, submitSearch, setSearchFocused, setSearch }) {
+  if (!searchFocused || debouncedSearch.trim().length === 0) return null;
+  return (
+    <div className="absolute left-0 top-[calc(100%+8px)] z-50 w-full overflow-hidden rounded-[22px] border border-[#d8e4f2] bg-white py-2 shadow-[0_22px_45px_rgba(var(--tp-primary-rgb)/0.16)] dark:border-slate-700 dark:bg-slate-900">
+      {searchFetching ? (
+        <div className="px-5 py-4 text-sm font-medium text-slate-500">Searching...</div>
+      ) : searchResults.length > 0 ? (
+        <div>
+          {searchResults.map((product) => (
+            <Link
+              key={product.id}
+              to={`/product/${product.routeSlug || product.slug || product.id}`}
+              onClick={() => { setSearchFocused(false); setSearch(""); }}
+              className="flex items-center gap-4 px-4 py-2.5 transition hover:bg-[var(--tp-primary-soft)] dark:hover:bg-slate-800"
+            >
+              <div className="h-10 w-10 shrink-0 overflow-hidden rounded-[10px] border border-slate-100 bg-[#f7fbff] dark:border-slate-700 dark:bg-slate-800">
+                {resolveProductImageUrl(product) ? (
+                  <img src={resolveProductImageUrl(product)} alt={product.name} className="h-full w-full object-contain" />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center text-xl">{product.emoji || "🛒"}</span>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h4 className="truncate text-[13px] font-bold text-[#071a3f] dark:text-slate-100">{product.name}</h4>
+                <div className="mt-0.5 text-xs font-black text-[var(--tp-primary)]">
+                  {formatCurrency(product.price)}
+                </div>
+              </div>
+            </Link>
+          ))}
+          <div className="border-t border-slate-100 px-3 pb-1 pt-2 dark:border-slate-800 mt-1">
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); submitSearch({ preventDefault: () => {} }); setSearchFocused(false); }}
+              className="w-full rounded-xl py-2.5 text-center text-[13px] font-bold text-[#557099] transition hover:bg-slate-50 hover:text-[var(--tp-primary)] dark:text-slate-400 dark:hover:bg-slate-800"
+            >
+              View all results for "{debouncedSearch}"
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="px-5 py-4 text-sm font-medium text-slate-500">No products found for "{debouncedSearch}"</div>
+      )}
+    </div>
+  );
+}
+
 export default function StoreHeaderKacha({
   onCartClick,
   publicIdentityOverride = null,
@@ -149,6 +200,7 @@ export default function StoreHeaderKacha({
   void customization;
   void identity;
 
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { count } = useCart();
@@ -158,10 +210,60 @@ export default function StoreHeaderKacha({
     parentsOnly: true,
   });
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const searchRootRef = useRef(null);
+
+  const { data: searchResultsData, isFetching: searchFetching } = useProducts({
+    search: debouncedSearch,
+    limit: 5,
+    enabled: Boolean(debouncedSearch.trim().length > 0 && searchFocused),
+  });
+  const searchResults = useMemo(() => extractList(searchResultsData), [searchResultsData]);
+
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const notificationRootRef = useRef(null);
+
+  // LANGUAGE STATE
+  const [languageOpen, setLanguageOpen] = useState(false);
+  const languageRootRef = useRef(null);
+  const [language, setLanguage] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("store_language") || "English";
+    }
+    return "English";
+  });
+  
+  const changeLanguage = (lang) => {
+    setLanguage(lang);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("store_language", lang);
+      i18n.changeLanguage(lang === "Indonesia" ? "id" : "en");
+    }
+    setLanguageOpen(false);
+  };
+  
+  useEffect(() => {
+    if (!languageOpen) return undefined;
+    const handlePointerDown = (event) => {
+      if (!(event.target instanceof Node)) return;
+      if (!languageRootRef.current?.contains(event.target)) {
+        setLanguageOpen(false);
+      }
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") setLanguageOpen(false);
+    };
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [languageOpen]);
+
   const categories = useMemo(() => extractList(categoriesData).slice(0, 8), [categoriesData]);
   const accountDisplayName = user?.name || user?.fullName || user?.email || "Account";
   const accountAvatarSrc = resolveAssetUrl(user?.avatarUrl || user?.avatar || "");
@@ -179,6 +281,18 @@ export default function StoreHeaderKacha({
   useEffect(() => {
     setSearch(searchParams.get("q") ?? "");
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!searchFocused) return undefined;
+    const handlePointerDown = (event) => {
+      if (!(event.target instanceof Node)) return;
+      if (!searchRootRef.current?.contains(event.target)) {
+        setSearchFocused(false);
+      }
+    };
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [searchFocused]);
 
   useEffect(() => {
     if (!notificationsOpen) return undefined;
@@ -243,16 +357,16 @@ export default function StoreHeaderKacha({
   };
 
   const utilityItems = [
-    { key: "about-us", label: "About Us", href: "/about-us" },
-    { key: "contact-us", label: "Contact Us", href: "/contact-us" },
+    { key: "about-us", label: t("header.aboutUs"), href: "/about-us" },
+    { key: "contact-us", label: t("header.contactUs"), href: "/contact-us" },
     {
       key: "my-account",
-      label: "My Account",
+      label: t("header.myAccount"),
       href: isAccountSession ? "/user/my-account" : "/auth/login",
     },
     isAccountSession
-      ? { key: "session-action", label: isLoggingOut ? "Logging out..." : "Logout", action: handleLogout }
-      : { key: "session-action", label: "Login", href: "/auth/login" },
+      ? { key: "session-action", label: isLoggingOut ? t("header.loggingOut") : t("header.logout"), action: handleLogout }
+      : { key: "session-action", label: t("header.login"), href: "/auth/login" },
   ];
 
   return (
@@ -260,7 +374,7 @@ export default function StoreHeaderKacha({
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-1.5 text-xs text-slate-600 sm:px-5 lg:px-6 dark:text-slate-300">
         <div className="flex min-w-0 items-center gap-3">
           <Headphones className="h-[18px] w-[18px] shrink-0 text-[var(--tp-primary)] dark:text-sky-300" />
-          <span className="truncate">We are available 24/7, Need help?</span>
+          <span className="truncate">{t("header.help")}</span>
           <a href="tel:565555" className="font-black text-[var(--tp-accent)]">
             565555
           </a>
@@ -295,25 +409,37 @@ export default function StoreHeaderKacha({
               <LogoMark logoUrl={brandingLogoUrl} />
             </div>
 
-            <form onSubmit={submitSearch} className="hidden min-w-0 flex-1 md:block">
-              <label className="relative block">
-                <span className="sr-only">Search products</span>
-                <input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search for products (e.g. fish, apple, baby care)"
-                  className="h-11 w-full rounded-full border border-[#c8d7ea] bg-white px-6 pr-[58px] text-sm font-semibold text-[#42577b] outline-none transition placeholder:text-[#667798] focus:border-[var(--tp-primary)] focus:ring-4 focus:ring-[rgb(var(--tp-primary-rgb)/0.1)] dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
-                />
-                <button
-                  type="submit"
-                  aria-label="Search"
-                  className="absolute right-1.5 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-white shadow-[0_10px_20px_rgba(var(--tp-primary-rgb)/0.2)] transition hover:scale-[1.03]"
-                  style={{ background: PRIMARY }}
-                >
-                  <Search className="h-5 w-5" />
-                </button>
-              </label>
-            </form>
+            <div ref={searchRootRef} className="hidden min-w-0 flex-1 md:block relative">
+              <form onSubmit={submitSearch}>
+                <label className="relative block">
+                  <span className="sr-only">Search products</span>
+                  <input
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    onFocus={() => setSearchFocused(true)}
+                    placeholder={t("header.searchPlaceholder")}
+                    className="h-11 w-full rounded-full border border-[#c8d7ea] bg-white px-6 pr-[58px] text-sm font-semibold text-[#42577b] outline-none transition placeholder:text-[#667798] focus:border-[var(--tp-primary)] focus:ring-4 focus:ring-[rgb(var(--tp-primary-rgb)/0.1)] dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
+                  />
+                  <button
+                    type="submit"
+                    aria-label="Search"
+                    className="absolute right-1.5 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-white shadow-[0_10px_20px_rgba(var(--tp-primary-rgb)/0.2)] transition hover:scale-[1.03]"
+                    style={{ background: PRIMARY }}
+                  >
+                    <Search className="h-5 w-5" />
+                  </button>
+                </label>
+              </form>
+              <LiveSearchDropdown
+                searchFocused={searchFocused}
+                debouncedSearch={debouncedSearch}
+                searchFetching={searchFetching}
+                searchResults={searchResults}
+                submitSearch={submitSearch}
+                setSearchFocused={setSearchFocused}
+                setSearch={setSearch}
+              />
+            </div>
 
             <div className="ml-auto flex items-center gap-2 sm:gap-3">
               <div className="hidden sm:block">
@@ -381,25 +507,37 @@ export default function StoreHeaderKacha({
             </div>
           </div>
 
-          <form onSubmit={submitSearch} className="mt-3 md:hidden">
-            <label className="relative block">
-              <span className="sr-only">Search products</span>
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search products"
-                className="h-12 w-full rounded-full border border-[#c8d7ea] bg-white px-5 pr-14 text-base font-semibold text-[#42577b] outline-none focus:border-[var(--tp-primary)] focus:ring-4 focus:ring-[rgb(var(--tp-primary-rgb)/0.1)] dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-              />
-              <button
-                type="submit"
-                aria-label="Search"
-                className="absolute right-1.5 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-white"
-                style={{ background: PRIMARY }}
-              >
-                <Search className="h-5 w-5" />
-              </button>
-            </label>
-          </form>
+          <div className="mt-3 md:hidden relative">
+            <form onSubmit={submitSearch}>
+              <label className="relative block">
+                <span className="sr-only">Search products</span>
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  onFocus={() => setSearchFocused(true)}
+                  placeholder="Search products"
+                  className="h-12 w-full rounded-full border border-[#c8d7ea] bg-white px-5 pr-14 text-base font-semibold text-[#42577b] outline-none focus:border-[var(--tp-primary)] focus:ring-4 focus:ring-[rgb(var(--tp-primary-rgb)/0.1)] dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                />
+                <button
+                  type="submit"
+                  aria-label="Search"
+                  className="absolute right-1.5 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-white"
+                  style={{ background: PRIMARY }}
+                >
+                  <Search className="h-5 w-5" />
+                </button>
+              </label>
+            </form>
+            <LiveSearchDropdown
+              searchFocused={searchFocused}
+              debouncedSearch={debouncedSearch}
+              searchFetching={searchFetching}
+              searchResults={searchResults}
+              submitSearch={submitSearch}
+              setSearchFocused={setSearchFocused}
+              setSearch={setSearch}
+            />
+          </div>
         </div>
       </div>
 
@@ -415,7 +553,7 @@ export default function StoreHeaderKacha({
                 aria-expanded={categoriesOpen}
               >
                 <Menu className="h-5 w-5" />
-                <span>Categories</span>
+                <span>{t("header.categories")}</span>
                 <ChevronDown className="h-4 w-4" />
               </button>
               {categoriesOpen ? (
@@ -439,7 +577,7 @@ export default function StoreHeaderKacha({
                       onClick={closeCategories}
                       className="block rounded-2xl px-4 py-3 text-sm font-bold text-[#071a3f] transition hover:bg-[var(--tp-primary-soft)] hover:text-[var(--tp-accent)] dark:text-slate-100"
                     >
-                      Browse all products
+                      {t("header.browseAll")}
                     </Link>
                   )}
                 </div>
@@ -447,7 +585,7 @@ export default function StoreHeaderKacha({
             </div>
 
             <nav className="hidden items-center gap-2 lg:flex">
-              {navItems.map((item) => (
+              {getNavItems(t).map((item) => (
                 <Link
                   key={item.label}
                   to={item.href}
@@ -463,14 +601,36 @@ export default function StoreHeaderKacha({
             </nav>
           </div>
 
-          <button
-            type="button"
-            className="inline-flex h-9 shrink-0 items-center gap-2.5 rounded-full px-3 text-sm font-black text-[#071a3f] transition hover:bg-[var(--tp-primary-soft)] dark:text-slate-100 dark:hover:bg-slate-800 sm:px-4"
-          >
-            <Globe2 className="h-5 w-5" />
-            <span className="hidden sm:inline">English</span>
-            <ChevronDown className="h-4 w-4" />
-          </button>
+          <div className="relative" ref={languageRootRef}>
+            <button
+              type="button"
+              onClick={() => setLanguageOpen(!languageOpen)}
+              className="inline-flex h-9 shrink-0 items-center gap-2.5 rounded-full px-3 text-sm font-black text-[#071a3f] transition hover:bg-[var(--tp-primary-soft)] dark:text-slate-100 dark:hover:bg-slate-800 sm:px-4"
+              aria-expanded={languageOpen}
+            >
+              <Globe2 className="h-5 w-5" />
+              <span className="hidden sm:inline">{language}</span>
+              <ChevronDown className="h-4 w-4" />
+            </button>
+            {languageOpen && (
+              <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-40 overflow-hidden rounded-[18px] border border-[#d8e4f2] bg-white p-2 shadow-[0_22px_45px_rgba(var(--tp-primary-rgb)/0.16)] dark:border-slate-700 dark:bg-slate-900">
+                <button
+                  type="button"
+                  onClick={() => changeLanguage("English")}
+                  className={`block w-full rounded-xl px-4 py-2.5 text-left text-sm font-bold transition hover:bg-[var(--tp-primary-soft)] hover:text-[var(--tp-accent)] dark:hover:bg-slate-800 ${language === "English" ? "text-[var(--tp-accent)] bg-[var(--tp-primary-soft)] dark:bg-slate-800" : "text-[#071a3f] dark:text-slate-100"}`}
+                >
+                  English
+                </button>
+                <button
+                  type="button"
+                  onClick={() => changeLanguage("Indonesia")}
+                  className={`block w-full rounded-xl px-4 py-2.5 text-left text-sm font-bold transition hover:bg-[var(--tp-primary-soft)] hover:text-[var(--tp-accent)] dark:hover:bg-slate-800 ${language === "Indonesia" ? "text-[var(--tp-accent)] bg-[var(--tp-primary-soft)] dark:bg-slate-800" : "text-[#071a3f] dark:text-slate-100"}`}
+                >
+                  Indonesia
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>

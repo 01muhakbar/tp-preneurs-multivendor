@@ -95,7 +95,7 @@ function CategoryModal({
               placeholder="Enter category name"
               onChange={(event) => {
                 const name = event.target.value;
-                onChange({ name, slug: form.slug || slugifySeller2026Category(name) });
+                onChange({ name, slug: slugifySeller2026Category(name) });
               }}
             />
             {errors.name ? <small>{errors.name}</small> : null}

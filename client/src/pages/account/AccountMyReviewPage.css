@@ -231,6 +231,15 @@
   white-space: nowrap;
 }
 
+.reviews-2026-card__content .reviews-2026-card__seller-reply {
+  border-left: 3px solid var(--reviews-2026-green);
+  color: var(--reviews-2026-ink);
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 7px;
+  padding-left: 9px;
+}
+
 .reviews-2026-card__content > span {
   display: inline-flex;
   gap: 7px;

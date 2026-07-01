@@ -17,6 +17,7 @@ import {
   X,
   MessageCircle,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
 import "./account-order-payment-2026.css";
 
@@ -25,11 +26,11 @@ const qrTypeLabel = (value) =>
     ? "QRIS Static"
     : String(value || "QRIS").replaceAll("_", " ");
 
-function StatusBadge({ status }) {
+function StatusBadge({ status, t }) {
   return (
     <span className={`tp-payment-2026__badge is-${status?.tone || "stone"}`}>
       <Clock3 aria-hidden="true" />
-      {status?.label || "Unpaid"}
+      {status?.label || t("orderPayment.unpaid")}
     </span>
   );
 }
@@ -84,13 +85,13 @@ function PaymentDestinationCard({ destination, selected, onSelect }) {
   );
 }
 
-function StorePayments({ destinations, selectedId, onSelect }) {
+function StorePayments({ destinations, selectedId, onSelect, t }) {
   if (!destinations?.length) return null;
   return (
     <section className="tp-payment-2026__store-payments">
       <div className="tp-payment-2026__section-heading">
-        <h2>Store Payments</h2>
-        <p>Each QRIS destination belongs to its matching store payment.</p>
+        <h2>{t("orderPayment.storePaymentsTitle")}</h2>
+        <p>{t("orderPayment.storePaymentsDesc")}</p>
       </div>
       <div className="tp-payment-2026__destination-list">
         {destinations.map((destination) => (
@@ -106,7 +107,7 @@ function StorePayments({ destinations, selectedId, onSelect }) {
   );
 }
 
-function QrModal({ payment, open, onClose, onCopyAmount }) {
+function QrModal({ payment, open, onClose, onCopyAmount, t }) {
   const closeRef = useRef(null);
   const imageUrl = payment?.qr?.imageUrl ? resolveAssetUrl(payment.qr.imageUrl) : "";
 
@@ -139,50 +140,50 @@ function QrModal({ payment, open, onClose, onCopyAmount }) {
         </button>
         <div className="tp-payment-modal__image"><img src={imageUrl} alt={`QRIS payment for ${payment.qr.storeName}`} /></div>
         <div className="tp-payment-modal__details">
-          <div><small>Merchant</small><h2 id="tp-payment-modal-title">{payment.qr.storeName}</h2><p>{payment.qr.merchantName}</p></div>
+          <div><small>{t("orderPayment.merchant")}</small><h2 id="tp-payment-modal-title">{payment.qr.storeName}</h2><p>{payment.qr.merchantName}</p></div>
           <dl>
-            <div><dt>Amount</dt><dd>{payment.amountDisplay}</dd></div>
-            <div><dt>Destination</dt><dd>{payment.qr.destination}</dd></div>
-            <div><dt>Reference</dt><dd>{payment.paymentReference}</dd></div>
+            <div><dt>{t("orderPayment.amount")}</dt><dd>{payment.amountDisplay}</dd></div>
+            <div><dt>{t("orderPayment.destination")}</dt><dd>{payment.qr.destination}</dd></div>
+            <div><dt>{t("orderPayment.reference")}</dt><dd>{payment.paymentReference}</dd></div>
           </dl>
-          <button type="button" className="tp-payment-modal__copy" onClick={onCopyAmount}><Copy aria-hidden="true" />Copy Amount</button>
+          <button type="button" className="tp-payment-modal__copy" onClick={onCopyAmount}><Copy aria-hidden="true" />{t("orderPayment.copyAmount")}</button>
         </div>
       </section>
     </div>
   );
 }
 
-function QrPaymentCard({ payment, isSubmitting, onCopyAmount, onCopyReference, onSaveQr, onConfirmTransfer, onCancelPayment }) {
+function QrPaymentCard({ payment, isSubmitting, onCopyAmount, onCopyReference, onSaveQr, onConfirmTransfer, onCancelPayment, t }) {
   const [modalOpen, setModalOpen] = useState(false);
   const imageUrl = payment?.qr?.imageUrl ? resolveAssetUrl(payment.qr.imageUrl) : "";
   return (
     <article className="tp-payment-qr-card">
       <div className="tp-payment-qr-card__heading">
-        <div><h2>QR Payment</h2><p>Scan the assigned code and transfer the exact amount.</p></div>
+        <div><h2>{t("orderPayment.qrPaymentTitle")}</h2><p>{t("orderPayment.qrPaymentDesc")}</p></div>
         <span>{qrTypeLabel(payment?.primaryPayment?.method)}</span>
       </div>
       <div className="tp-payment-qr-card__body">
         <button type="button" className="tp-payment-qr-card__preview" disabled={!imageUrl} onClick={() => setModalOpen(true)} aria-label="Open full QR code">
-          {imageUrl ? <img src={imageUrl} alt={`QRIS payment for ${payment.qr.storeName}`} /> : <span><QrCode aria-hidden="true" />{import.meta.env.DEV ? "QR preview is not available in this development state." : "QR payment image is unavailable."}</span>}
-          {imageUrl ? <em><Expand aria-hidden="true" />View Full QR</em> : null}
+          {imageUrl ? <img src={imageUrl} alt={`QRIS payment for ${payment.qr.storeName}`} /> : <span><QrCode aria-hidden="true" />{import.meta.env.DEV ? t("orderPayment.qrPreviewDev") : t("orderPayment.qrPreviewUnavailable")}</span>}
+          {imageUrl ? <em><Expand aria-hidden="true" />{t("orderPayment.viewFullQr")}</em> : null}
         </button>
         <dl className="tp-payment-qr-card__details">
-          <div><dt>Amount</dt><dd className="is-amount">{payment.amountDisplay}</dd></div>
-          <div><dt>Time Remaining / Expiry</dt><dd className="is-due">{payment.dueAtLabel}</dd></div>
-          <div><dt>Destination</dt><dd>{payment.qr.destination}</dd><small>{payment.qr.accountName}</small></div>
-          <div><dt>Merchant</dt><dd>{payment.qr.storeName}</dd><small>{payment.qr.merchantName}</small></div>
-          <div><dt>Reference ID</dt><dd title={payment.paymentReference}>{payment.paymentReference}</dd><button type="button" onClick={onCopyReference} aria-label="Copy payment reference"><Copy aria-hidden="true" /></button></div>
+          <div><dt>{t("orderPayment.amount")}</dt><dd className="is-amount">{payment.amountDisplay}</dd></div>
+          <div><dt>{t("orderPayment.timeRemaining")}</dt><dd className="is-due">{payment.dueAtLabel}</dd></div>
+          <div><dt>{t("orderPayment.destination")}</dt><dd>{payment.qr.destination}</dd><small>{payment.qr.accountName}</small></div>
+          <div><dt>{t("orderPayment.merchant")}</dt><dd>{payment.qr.storeName}</dd><small>{payment.qr.merchantName}</small></div>
+          <div><dt>{t("orderPayment.referenceId")}</dt><dd title={payment.paymentReference}>{payment.paymentReference}</dd><button type="button" onClick={onCopyReference} aria-label="Copy payment reference"><Copy aria-hidden="true" /></button></div>
         </dl>
       </div>
       <div className="tp-payment-qr-card__utilities">
-        <button type="button" onClick={onCopyAmount}><Copy aria-hidden="true" />Copy Amount</button>
-        <button type="button" onClick={onCopyReference}><Copy aria-hidden="true" />Copy Reference</button>
-        {imageUrl ? <button type="button" onClick={() => setModalOpen(true)}><Expand aria-hidden="true" />View QR</button> : null}
-        {imageUrl ? <button type="button" onClick={onSaveQr}><Download aria-hidden="true" />Save QR</button> : null}
+        <button type="button" onClick={onCopyAmount}><Copy aria-hidden="true" />{t("orderPayment.copyAmount")}</button>
+        <button type="button" onClick={onCopyReference}><Copy aria-hidden="true" />{t("orderPayment.copyReference")}</button>
+        {imageUrl ? <button type="button" onClick={() => setModalOpen(true)}><Expand aria-hidden="true" />{t("orderPayment.viewQr")}</button> : null}
+        {imageUrl ? <button type="button" onClick={onSaveQr}><Download aria-hidden="true" />{t("orderPayment.saveQr")}</button> : null}
       </div>
       {(onConfirmTransfer || onCancelPayment || payment?.primaryPayment?.whatsappContact) ? (
         <div className="tp-payment-qr-card__actions">
-          {onConfirmTransfer ? <button type="button" className="is-primary" onClick={onConfirmTransfer} disabled={isSubmitting}><Check aria-hidden="true" />{isSubmitting ? "Submitting..." : "I Have Transferred"}</button> : null}
+          {onConfirmTransfer ? <button type="button" className="is-primary" onClick={onConfirmTransfer} disabled={isSubmitting}><Check aria-hidden="true" />{isSubmitting ? t("orderPayment.submitting") : t("orderPayment.transferred")}</button> : null}
           {payment?.primaryPayment?.whatsappContact ? (
             <a
               href={payment.primaryPayment.whatsappContact.href}
@@ -191,29 +192,29 @@ function QrPaymentCard({ payment, isSubmitting, onCopyAmount, onCopyReference, o
               className="is-whatsapp"
             >
               <MessageCircle aria-hidden="true" />
-              Notify Store via WhatsApp
+              {t("orderPayment.notifyWhatsapp")}
             </a>
           ) : null}
-          {onCancelPayment ? <button type="button" className="is-danger" onClick={onCancelPayment} disabled={isSubmitting}><X aria-hidden="true" />Cancel Payment</button> : null}
+          {onCancelPayment ? <button type="button" className="is-danger" onClick={onCancelPayment} disabled={isSubmitting}><X aria-hidden="true" />{t("orderPayment.cancelPayment")}</button> : null}
         </div>
       ) : null}
-      <div className="tp-payment-qr-card__notice"><ShieldCheck aria-hidden="true" /><span>{payment.qr.instruction || "Pay to this payment destination only."}</span></div>
-      <QrModal payment={payment} open={modalOpen} onClose={() => setModalOpen(false)} onCopyAmount={onCopyAmount} />
+      <div className="tp-payment-qr-card__notice"><ShieldCheck aria-hidden="true" /><span>{payment.qr.instruction || t("orderPayment.payDestinationOnly")}</span></div>
+      <QrModal payment={payment} open={modalOpen} onClose={() => setModalOpen(false)} onCopyAmount={onCopyAmount} t={t} />
     </article>
   );
 }
 
-function PaymentSummary({ payment }) {
+function PaymentSummary({ payment, t }) {
   return (
     <aside className="tp-payment-side-summary">
-      <div className="tp-payment-summary-card__heading"><span><WalletCards aria-hidden="true" /></span><h2>Payment Summary</h2></div>
+      <div className="tp-payment-summary-card__heading"><span><WalletCards aria-hidden="true" /></span><h2>{t("orderPayment.paymentSummary")}</h2></div>
       <dl>
-        <div><dt>Items</dt><dd>{payment.totals.items}</dd></div>
-        <div><dt>Subtotal</dt><dd>{payment.totals.subtotalDisplay}</dd></div>
-        <div><dt>Shipping</dt><dd>{payment.totals.shippingDisplay}</dd></div>
-        <div className="is-total"><dt>Total</dt><dd>{payment.totals.grandTotalDisplay}</dd></div>
+        <div><dt>{t("orderPayment.items")}</dt><dd>{payment.totals.items}</dd></div>
+        <div><dt>{t("orderPayment.subtotal")}</dt><dd>{payment.totals.subtotalDisplay}</dd></div>
+        <div><dt>{t("orderPayment.shipping")}</dt><dd>{payment.totals.shippingDisplay}</dd></div>
+        <div className="is-total"><dt>{t("orderPayment.total")}</dt><dd>{payment.totals.grandTotalDisplay}</dd></div>
       </dl>
-      <div className="tp-payment-summary-card__safe"><ShieldCheck aria-hidden="true" />Pay to this QRIS only.</div>
+      <div className="tp-payment-summary-card__safe"><ShieldCheck aria-hidden="true" />{t("orderPayment.payQrisOnly")}</div>
     </aside>
   );
 }
@@ -222,44 +223,45 @@ function LoadingState() {
   return <section className="tp-payment-2026" aria-label="Loading payment"><div className="tp-payment-2026__loading"><span /><span /><span /><span /></div></section>;
 }
 
-function StateMessage({ title, message, LinkComponent }) {
+function StateMessage({ title, message, LinkComponent, t }) {
   return (
-    <section className="tp-payment-2026"><div className="tp-payment-2026__state" role="alert"><WalletCards aria-hidden="true" /><h1>{title}</h1><p>{message}</p><LinkComponent to="/user/my-orders"><ArrowLeft aria-hidden="true" />Back to Orders</LinkComponent></div></section>
+    <section className="tp-payment-2026"><div className="tp-payment-2026__state" role="alert"><WalletCards aria-hidden="true" /><h1>{title}</h1><p>{message}</p><LinkComponent to="/user/my-orders"><ArrowLeft aria-hidden="true" />{t("orderPayment.backToOrders")}</LinkComponent></div></section>
   );
 }
 
 export default function AccountOrderPayment2026View({ payment, isLoading, error, status, isSubmitting = false, LinkComponent = "a", onSelectDestination, onCopyAmount, onCopyReference, onSaveQr, onConfirmTransfer, onCancelPayment }) {
+  const { t } = useTranslation();
   if (isLoading) return <LoadingState />;
-  if (error) return <StateMessage LinkComponent={LinkComponent} title="Payment details are unavailable" message={error?.response?.data?.message || error?.message || "The latest grouped payment read model could not be loaded."} />;
-  if (!payment) return <StateMessage LinkComponent={LinkComponent} title="Order payment view not found" message="Open this page from your order history to load the correct store payment." />;
+  if (error) return <StateMessage LinkComponent={LinkComponent} title={t("orderPayment.unavailableTitle")} message={error?.response?.data?.message || error?.message || t("orderPayment.unavailableDesc")} t={t} />;
+  if (!payment) return <StateMessage LinkComponent={LinkComponent} title={t("orderPayment.notFoundTitle")} message={t("orderPayment.notFoundDesc")} t={t} />;
 
   return (
     <section className="tp-payment-2026">
-      <LinkComponent className="tp-payment-2026__back" to="/user/my-orders"><ArrowLeft aria-hidden="true" />Back to Orders</LinkComponent>
+      <LinkComponent className="tp-payment-2026__back" to="/user/my-orders"><ArrowLeft aria-hidden="true" />{t("orderPayment.backToOrders")}</LinkComponent>
       <header className="tp-payment-2026__hero">
-        <div><p className="tp-payment-2026__breadcrumb">My Orders <span>/</span> <b>{payment.reference}</b> <span>/</span> Payment</p><div className="tp-payment-2026__title"><h1>Order Payment</h1><StatusBadge status={payment.status} /></div></div>
+        <div><p className="tp-payment-2026__breadcrumb">{t("orderPayment.myOrders")} <span>/</span> <b>{payment.reference}</b> <span>/</span> {t("orderPayment.payment")}</p><div className="tp-payment-2026__title"><h1>{t("orderPayment.orderPaymentTitle")}</h1><StatusBadge status={payment.status} t={t} /></div></div>
         <span className="tp-payment-2026__shield"><ShieldCheck aria-hidden="true" /></span>
       </header>
       {status?.message ? <div className={`tp-payment-2026__alert is-${status.tone || "slate"}`} role="status">{status.message}</div> : null}
       {payment.warnings?.map((warning) => <div className="tp-payment-2026__alert is-amber" key={warning}>{warning}</div>)}
       <div className="tp-payment-2026__metrics">
-        <SummaryCard icon={ReceiptText} label="Total" value={payment.totals.grandTotalDisplay} />
-        <SummaryCard icon={CalendarDays} label="Due" value={payment.dueAtLabel} />
-        <SummaryCard icon={UsersRound} label="Store Groups" value={payment.totals.storeGroups} />
-        <SummaryCard icon={CalendarDays} label="Created" value={payment.createdAtLabel} />
+        <SummaryCard icon={ReceiptText} label={t("orderPayment.total")} value={payment.totals.grandTotalDisplay} />
+        <SummaryCard icon={CalendarDays} label={t("orderPayment.due")} value={payment.dueAtLabel} />
+        <SummaryCard icon={UsersRound} label={t("orderPayment.storeGroups")} value={payment.totals.storeGroups} />
+        <SummaryCard icon={CalendarDays} label={t("orderPayment.created")} value={payment.createdAtLabel} />
       </div>
       <section className="tp-payment-2026__reference-progress">
-        <div className="tp-payment-2026__reference"><small>Order Reference</small><button type="button" onClick={onCopyReference} title={payment.reference}><span>{payment.reference}</span><Copy aria-hidden="true" /></button></div>
-        <div className="tp-payment-2026__progress-wrap"><small>Payment Progress</small><PaymentProgress progress={payment.progress} /></div>
+        <div className="tp-payment-2026__reference"><small>{t("orderPayment.orderReference")}</small><button type="button" onClick={onCopyReference} title={payment.reference}><span>{payment.reference}</span><Copy aria-hidden="true" /></button></div>
+        <div className="tp-payment-2026__progress-wrap"><small>{t("orderPayment.paymentProgress")}</small><PaymentProgress progress={payment.progress} /></div>
       </section>
       <div className="tp-payment-2026__content-grid">
         <div className="tp-payment-2026__main-column">
-          <StorePayments destinations={payment.destinations} selectedId={payment.primaryPayment?.paymentId} onSelect={onSelectDestination} />
-          <QrPaymentCard payment={payment} isSubmitting={isSubmitting} onCopyAmount={onCopyAmount} onCopyReference={onCopyReference} onSaveQr={onSaveQr} onConfirmTransfer={onConfirmTransfer} onCancelPayment={onCancelPayment} />
+          <StorePayments destinations={payment.destinations} selectedId={payment.primaryPayment?.paymentId} onSelect={onSelectDestination} t={t} />
+          <QrPaymentCard payment={payment} isSubmitting={isSubmitting} onCopyAmount={onCopyAmount} onCopyReference={onCopyReference} onSaveQr={onSaveQr} onConfirmTransfer={onConfirmTransfer} onCancelPayment={onCancelPayment} t={t} />
         </div>
-        <PaymentSummary payment={payment} />
+        <PaymentSummary payment={payment} t={t} />
       </div>
-      <LinkComponent className="tp-payment-2026__order-link" to={`/user/my-orders/${payment.orderId || ""}`}><ArrowLeft aria-hidden="true" />Back to Order</LinkComponent>
+      <LinkComponent className="tp-payment-2026__order-link" to={`/user/my-orders/${payment.orderId || ""}`}><ArrowLeft aria-hidden="true" />{t("orderPayment.backToOrder")}</LinkComponent>
     </section>
   );
 }

@@ -17,6 +17,7 @@ import {
   UsersRound,
   XCircle,
 } from "lucide-react";
+import { resolveAssetUrl } from "../../lib/assetUrl.js";
 import {
   approveAdminStoreApplication,
   fetchAdminStoreApplicationDetail,
@@ -237,10 +238,15 @@ const normalizeDetail = (payload, fallbackId) => {
       country: operational.country,
     },
     financial: {
-      method: payout.payoutMethod || payout.method,
-      holder: payout.accountHolderName,
-      bank: payout.bankChannel || payout.bankName,
-      accountNumber: payout.accountNumberMasked || payout.accountNumber,
+      provider: payout.providerCode || payout.bankChannel || payout.bankName,
+      paymentType: payout.paymentType || payout.payoutMethod || payout.method,
+      accountName: payout.accountName || payout.accountHolderName,
+      merchantName: payout.merchantName,
+      merchantId: payout.merchantId || payout.accountNumberMasked || payout.accountNumber,
+      qrisImageUrl: payout.qrisImageUrl,
+      qrisPayload: payout.qrisPayload,
+      instructionText: payout.instructionText,
+      sellerNote: payout.sellerNote,
       nameMatch: payout.accountHolderMatchesIdentity,
       taxId: payout.taxId || compliance.taxId,
     },
@@ -584,15 +590,37 @@ export default function AdminStoreApplicationDetailPage() {
           />
         </Section>
 
-        <Section title="Financial Verification" subtitle="Payout details.">
+        <Section title="Payment Profile" subtitle="Static QRIS request prepared during onboarding.">
+          {detail.financial.qrisImageUrl ? (
+            <div className="asad-qris-preview">
+              <img
+                src={resolveAssetUrl(detail.financial.qrisImageUrl)}
+                alt="Store application QRIS preview"
+              />
+              <div>
+                <span>QRIS image</span>
+                <strong>Ready for Payment Profile review</strong>
+                <a
+                  href={resolveAssetUrl(detail.financial.qrisImageUrl)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Open full image
+                </a>
+              </div>
+            </div>
+          ) : null}
           <FieldGrid
             fields={[
-              { label: "Payout Method", value: detail.financial.method },
-              { label: "Account Holder", value: detail.financial.holder },
-              { label: "Bank / Channel", value: detail.financial.bank },
-              { label: "Account Number", value: detail.financial.accountNumber },
+              { label: "Payment Type", value: detail.financial.paymentType },
+              { label: "Provider", value: detail.financial.provider },
+              { label: "Account Name", value: detail.financial.accountName },
+              { label: "Merchant Name", value: detail.financial.merchantName },
+              { label: "Merchant ID", value: detail.financial.merchantId },
               { label: "Name Match", value: boolText(detail.financial.nameMatch) },
-              { label: "Tax ID", value: detail.financial.taxId },
+              { label: "QRIS Payload", value: detail.financial.qrisPayload, wide: true },
+              { label: "Instruction Text", value: detail.financial.instructionText, wide: true },
+              { label: "Seller Note", value: detail.financial.sellerNote, wide: true },
             ]}
           />
         </Section>

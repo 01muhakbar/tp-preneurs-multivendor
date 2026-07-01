@@ -11,6 +11,11 @@ import {
   emptySeller2026PaymentProfile,
   type Seller2026PaymentProfileForm,
 } from "../../api/seller2026/paymentProfile.adapter.ts";
+import {
+  buildPaymentProfilePayload,
+  validatePaymentProfileDraft,
+  validatePaymentProfileImage,
+} from "../../api/paymentProfile.contract.ts";
 
 type Options = {
   enabled?: boolean;
@@ -21,19 +26,9 @@ const fail = (message: string): never => {
   throw new Error(message);
 };
 
-const textOrNull = (value: unknown) => String(value ?? "").trim() || null;
-
 export const buildSeller2026PaymentProfilePayload = (
   form: Seller2026PaymentProfileForm
-) => ({
-  accountName: String(form.accountName || "").trim(),
-  merchantName: String(form.merchantName || "").trim(),
-  merchantId: textOrNull(form.merchantId),
-  qrisImageUrl: String(form.qrisImageUrl || "").trim(),
-  qrisPayload: textOrNull(form.qrisPayload),
-  instructionText: textOrNull(form.instructionText),
-  sellerNote: textOrNull(form.sellerNote),
-});
+) => buildPaymentProfilePayload(form);
 
 const mutationMessage = (error: unknown, fallback: string) => {
   const response = (error as { response?: { data?: { code?: string; message?: string } } })
@@ -111,9 +106,9 @@ export function useSeller2026PaymentProfile(
     mutationFn: async (form: Seller2026PaymentProfileForm) => {
       assertEditable();
       const payload = buildSeller2026PaymentProfilePayload(form);
-      if (!payload.accountName) fail("Account name is required.");
-      if (!payload.merchantName) fail("Merchant name is required.");
-      if (!payload.qrisImageUrl) fail("QRIS image URL is required.");
+      const validationErrors = validatePaymentProfileDraft(form);
+      const firstError = Object.values(validationErrors)[0];
+      if (firstError) fail(firstError);
       return submitSellerPaymentProfileRequest(
         storeId as number | string,
         payload
@@ -125,9 +120,8 @@ export function useSeller2026PaymentProfile(
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
       assertEditable();
-      if (!["image/png", "image/jpeg"].includes(file.type)) {
-        fail("Upload a PNG or JPEG QRIS image.");
-      }
+      const validationError = validatePaymentProfileImage(file);
+      if (validationError) fail(validationError);
       return uploadSellerPaymentProfileImage(file);
     },
   });

@@ -141,6 +141,15 @@ const resolveVerifyErrorPresentation = (error) => {
     statusTone: "error",
   };
 };
+const getPhoneNumber = (phone) => {
+  let digits = String(phone || "").replace(/\D/g, "");
+  if (digits.startsWith("62")) {
+    digits = digits.slice(2);
+  } else if (digits.startsWith("0")) {
+    digits = digits.slice(1);
+  }
+  return `+62${digits}`;
+};
 
 export default function StoreRegisterPage() {
   const navigate = useNavigate();
@@ -316,8 +325,16 @@ export default function StoreRegisterPage() {
     setStatusMessage("");
     setStatusTone("neutral");
     setFieldErrors({});
+
+    const cleanPhone = String(form.phoneNumber || "").trim().replace(/[- ]/g, "");
+    if (!/^(?:\+62|62|0)8[1-9][0-9]{6,11}$/.test(cleanPhone)) {
+      setFieldErrors({ phoneNumber: ["Enter a valid Indonesian phone number starting with +62 or 08."] });
+      return;
+    }
+
     const payload = {
       ...form,
+      phoneNumber: getPhoneNumber(form.phoneNumber),
       startedAt: startedAtRef.current,
     };
     const parsed = clientRegistrationSchema.safeParse(payload);

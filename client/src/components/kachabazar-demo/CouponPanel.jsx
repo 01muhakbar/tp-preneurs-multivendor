@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const toneClassMap = {
   rose: "bg-rose-50 text-rose-700 ring-1 ring-rose-100",
@@ -46,7 +47,7 @@ const resolveCountdownToneClass = (expiresAt, now, fallbackTone) => {
   return fallbackTone === "rose" ? "bg-rose-500 text-white" : "bg-emerald-500 text-white";
 };
 
-function CouponRow({ coupon, copiedCode, onCopy, now, featured = false }) {
+function CouponRow({ coupon, copiedCode, onCopy, now, featured = false, isIndo }) {
   const discount = splitDiscountLabel(coupon?.discountLabel);
   const isCopied = copiedCode === coupon?.code;
   const bannerSrc = String(coupon?.bannerImageUrl || "").trim();
@@ -103,23 +104,23 @@ function CouponRow({ coupon, copiedCode, onCopy, now, featured = false }) {
               <div className={`mt-1 text-slate-500 ${featured ? "text-[11px] leading-4" : "text-[10px] leading-4"}`}>
                 {coupon?.scopeType === "STORE" ? (
                   <p>
-                    Valid only for{" "}
+                    {isIndo ? "Berlaku khusus untuk " : "Valid only for "}
                     {storeHref ? (
                       <Link
                         to={storeHref}
                         className="font-semibold text-emerald-700 underline decoration-emerald-400 underline-offset-2 hover:text-emerald-800"
                       >
-                        {coupon?.storeName || "this store"}
+                        {coupon?.storeName || (isIndo ? "toko ini" : "this store")}
                       </Link>
                     ) : (
                       <span className="font-semibold text-slate-700">
-                        {coupon?.storeName || "this store"}
+                        {coupon?.storeName || (isIndo ? "toko ini" : "this store")}
                       </span>
                     )}
                     .
                   </p>
                 ) : (
-                  <p>Valid for orders from all eligible stores.</p>
+                  <p>{isIndo ? "Berlaku untuk semua toko yang berpartisipasi." : "Valid for orders from all eligible stores."}</p>
                 )}
               </div>
               <div className="mt-3 grid max-w-[152px] grid-cols-4 gap-1.5">
@@ -153,26 +154,26 @@ function CouponRow({ coupon, copiedCode, onCopy, now, featured = false }) {
             title={`Copy ${coupon.code}`}
           >
             <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-emerald-700/75">
-              {isCopied ? "Copied!" : "Coupon Code"}
+              {isCopied ? (isIndo ? "Tersalin!" : "Copied!") : (isIndo ? "Kode Kupon" : "Coupon Code")}
             </p>
             <code className={`mt-1.5 block font-bold tracking-[0.14em] text-emerald-700 ${featured ? "text-[14px]" : "text-[13px]"}`}>
               {coupon.code}
             </code>
           </button>
           <p className={`mt-2 text-slate-500 ${featured ? "text-[10px] leading-4" : "text-[9px] leading-4"}`}>
-            Click the code box to copy this active coupon.
+            {isIndo ? "Klik kotak kode untuk menyalin kupon ini." : "Click the code box to copy this active coupon."}
           </p>
           <div className={`mt-2.5 space-y-1.5 ${featured ? "text-[10px]" : "text-[9px]"} text-slate-600`}>
             <p>
-              <span className="font-semibold text-slate-500">Min Order:</span>{" "}
+              <span className="font-semibold text-slate-500">{isIndo ? "Min Order:" : "Min Order:"}</span>{" "}
               <span className="font-semibold text-slate-700">
-                {coupon.minimumOrderLabel || "No minimum order"}
+                {coupon.minimumOrderLabel || (isIndo ? "Tanpa minimum order" : "No minimum order")}
               </span>
             </p>
             <p>
-              <span className="font-semibold text-slate-500">Validity:</span>{" "}
+              <span className="font-semibold text-slate-500">{isIndo ? "Masa Berlaku:" : "Validity:"}</span>{" "}
               <span className="font-semibold text-slate-700">
-                {coupon.validityLabel || "No expiry limit"}
+                {coupon.validityLabel || (isIndo ? "Tanpa batas kedaluwarsa" : "No expiry limit")}
               </span>
             </p>
           </div>
@@ -191,6 +192,9 @@ export default function CouponPanel({
   copiedCode,
   onCopy,
 }) {
+  const { i18n } = useTranslation();
+  const isIndo = i18n.language === 'id' || i18n.language === 'id-ID';
+  const displayTitle = isIndo && title === "Latest Super Discount Active Coupon Code" ? "Kode Kupon Diskon Super Terbaru" : title;
   const [now, setNow] = useState(() => Date.now());
   const safeCoupons = Array.isArray(couponList) ? couponList.slice(0, 2) : [];
   const hasCoupons = safeCoupons.length > 0;
@@ -207,7 +211,7 @@ export default function CouponPanel({
     <aside className="overflow-hidden rounded-[24px] border border-emerald-100 bg-white shadow-[0_18px_44px_-42px_rgba(15,23,42,0.2)]">
       <div className="border-b border-emerald-100/70 bg-[linear-gradient(180deg,rgba(241,253,249,0.94),rgba(255,255,255,0.98))] px-4 py-3 text-center sm:px-5">
         <h2 className="mx-auto whitespace-nowrap text-[11px] font-bold leading-5 text-slate-900 sm:text-[13px]">
-          {title}
+          {displayTitle}
         </h2>
       </div>
 
@@ -215,19 +219,19 @@ export default function CouponPanel({
         {isLoading ? (
           <div className="rounded-[22px] border border-dashed border-slate-200 bg-slate-50/90 px-4 py-7 text-center">
             <div className="mx-auto h-10 w-10 animate-pulse rounded-2xl bg-slate-200" />
-            <p className="mt-3 text-xs font-medium text-slate-500">Loading active coupons...</p>
+            <p className="mt-3 text-xs font-medium text-slate-500">{isIndo ? "Memuat kupon..." : "Loading active coupons..."}</p>
           </div>
         ) : !hasCoupons ? (
           <div className="rounded-[22px] border border-dashed border-slate-200 bg-slate-50/90 px-4 py-7 text-center">
             <div className="mx-auto inline-flex h-10 min-w-10 items-center justify-center rounded-2xl bg-slate-200/80 px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
               0
             </div>
-            <p className="mt-3 text-sm font-semibold text-slate-800">No active coupons right now</p>
+            <p className="mt-3 text-sm font-semibold text-slate-800">{isIndo ? "Belum ada kupon aktif saat ini" : "No active coupons right now"}</p>
             <p className="mt-1 text-xs leading-5 text-slate-500">
               {couponError ||
                 (storeName
-                  ? `This storefront currently has no valid active coupons for ${storeName}.`
-                  : "This storefront currently has no valid active coupons.")}
+                  ? (isIndo ? `Toko ini belum memiliki kupon aktif untuk ${storeName}.` : `This storefront currently has no valid active coupons for ${storeName}.`)
+                  : (isIndo ? "Toko ini belum memiliki kupon aktif." : "This storefront currently has no valid active coupons."))}
             </p>
           </div>
         ) : (
@@ -239,6 +243,7 @@ export default function CouponPanel({
               onCopy={onCopy}
               now={now}
               featured={index === 0}
+              isIndo={isIndo}
             />
           ))
         )}

@@ -12,6 +12,7 @@ export type Seller2026StoreProfileUpdatePayload = {
   tiktokUrl?: string | null;
   addressLine1?: string | null;
   addressLine2?: string | null;
+  district?: string | null;
   city?: string | null;
   province?: string | null;
   postalCode?: string | null;
@@ -43,6 +44,7 @@ const allowedTopLevelFields = new Set([
   "tiktokUrl",
   "addressLine1",
   "addressLine2",
+  "district",
   "city",
   "province",
   "postalCode",

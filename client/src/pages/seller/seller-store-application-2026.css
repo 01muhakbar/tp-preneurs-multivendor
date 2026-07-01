@@ -1,0 +1,229 @@
+.ssa-page {
+  --tp-primary: #034c85;
+  --tp-accent: #fe6f05;
+  --tp-bg: #f7f9fc;
+  --tp-surface: #ffffff;
+  --tp-surface-soft: #f5f8fc;
+  --tp-border: #dbe4ef;
+  --tp-text: #10254a;
+  --tp-muted: #647594;
+  --tp-success: #13a665;
+  --tp-danger: #d33b46;
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+  color: var(--tp-text);
+  background: var(--tp-bg);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  display: grid;
+  grid-template-columns: 252px minmax(0, 1fr);
+}
+
+.dark .ssa-page {
+  --tp-bg: #07111f;
+  --tp-surface: #0d1b2d;
+  --tp-surface-soft: #122238;
+  --tp-border: #243752;
+  --tp-text: #eef5ff;
+  --tp-muted: #a7b7cd;
+  --tp-success: #3ddc91;
+  --tp-danger: #ff7c85;
+}
+
+.ssa-page *, .ssa-page *::before, .ssa-page *::after { box-sizing: border-box; }
+.ssa-page button, .ssa-page input, .ssa-page select, .ssa-page textarea { font: inherit; }
+.ssa-page button, .ssa-page a { -webkit-tap-highlight-color: transparent; }
+.ssa-page button:focus-visible, .ssa-page a:focus-visible, .ssa-page input:focus-visible, .ssa-page select:focus-visible, .ssa-page textarea:focus-visible { outline: 3px solid color-mix(in srgb, var(--tp-accent) 42%, transparent); outline-offset: 2px; }
+
+.ssa-sidebar {
+  position: sticky;
+  inset-block-start: 0;
+  height: 100vh;
+  overflow: hidden;
+  padding: 28px 20px 22px;
+  background: linear-gradient(155deg, #023663 0%, var(--tp-primary) 52%, #012e5d 100%);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  z-index: 3;
+}
+
+.ssa-sidebar::before { content: ""; position: absolute; width: 360px; height: 360px; border-radius: 50%; border: 1px solid rgba(254, 111, 5, .35); left: -72px; top: 38%; box-shadow: 0 0 0 28px rgba(50, 132, 218, .16), 0 0 0 55px rgba(50, 132, 218, .11), 0 0 0 82px rgba(50, 132, 218, .07); }
+.ssa-brand { position: relative; display: inline-flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; z-index: 1; }
+.ssa-brand-mark { width: 43px; height: 35px; display: grid; place-items: center; font-size: 18px; font-weight: 900; font-style: italic; letter-spacing: -2px; color: #fff; border-right: 7px solid var(--tp-accent); border-radius: 5px 10px 10px 5px; }
+.ssa-brand > span:last-child { display: flex; flex-direction: column; line-height: 1; }
+.ssa-brand strong { font-size: 18px; letter-spacing: -.4px; }
+.ssa-brand strong b { color: var(--tp-accent); }
+.ssa-brand small { margin-top: 6px; font-size: 8px; letter-spacing: 3px; font-weight: 700; }
+.ssa-sidebar-copy { position: relative; margin-top: 74px; z-index: 1; }
+.ssa-sidebar-copy i { display: block; width: 28px; height: 2px; background: rgba(255,255,255,.75); margin-bottom: 18px; }
+.ssa-sidebar-copy p { font-size: 20px; line-height: 1.42; margin: 0; font-weight: 450; }
+.ssa-sidebar-copy strong { color: var(--tp-accent); }
+
+.ssa-store-art { position: relative; height: 300px; margin: 40px -20px 0; z-index: 1; }
+.ssa-art-cloud { position: absolute; background: #075aa0; border-radius: 48px; filter: drop-shadow(0 18px 22px rgba(0, 13, 39, .24)); }
+.ssa-art-cloud--one { width: 190px; height: 84px; left: -10px; bottom: 43px; }
+.ssa-art-cloud--two { width: 130px; height: 62px; right: -17px; bottom: 61px; }
+.ssa-art-cloud::before, .ssa-art-cloud::after { content: ""; position: absolute; border-radius: 50%; background: inherit; }
+.ssa-art-cloud::before { width: 82px; height: 82px; left: 24px; top: -37px; }
+.ssa-art-cloud::after { width: 62px; height: 62px; right: 18px; top: -28px; }
+.ssa-art-arrow { position: absolute; width: 50px; height: 8px; background: #2c7bc6; transform: rotate(-34deg); opacity: .8; }
+.ssa-art-arrow::after { content: ""; position: absolute; right: -4px; top: -8px; border-left: 15px solid #2c7bc6; border-top: 11px solid transparent; border-bottom: 11px solid transparent; }
+.ssa-art-arrow--one { left: 42px; top: 70px; }
+.ssa-art-arrow--two { right: 27px; top: 35px; transform: rotate(-45deg) scale(.8); }
+.ssa-art-shop { position: absolute; width: 145px; height: 145px; left: 50%; bottom: 38px; transform: translateX(-50%); background: linear-gradient(90deg, #064476, #07599a); border: 8px solid #0a3f72; border-top: 0; border-radius: 2px 2px 8px 8px; box-shadow: 0 20px 28px rgba(0, 20, 55, .5); }
+.ssa-art-awning { position: absolute; display: flex; width: 169px; height: 43px; left: -20px; top: -14px; border-radius: 4px 4px 15px 15px; overflow: hidden; transform: perspective(100px) rotateX(-5deg); box-shadow: 0 8px 12px rgba(0,0,0,.25); }
+.ssa-art-awning i { flex: 1; background: #fff; }
+.ssa-art-awning i:nth-child(odd) { background: var(--tp-accent); }
+.ssa-art-door { position: absolute; width: 49px; height: 72px; bottom: 0; left: 19px; background: #063765; border: 4px solid #0d65ac; display: grid; place-items: start center; padding-top: 12px; color: #fff; font-size: 22px; font-weight: 900; }
+.ssa-art-door::first-letter { color: var(--tp-accent); }
+.ssa-art-window { position: absolute; width: 49px; height: 47px; right: 15px; bottom: 19px; background: linear-gradient(135deg, #87c9ed, #267ab7); border: 5px solid #063765; }
+.ssa-art-box { position: absolute; width: 38px; height: 33px; bottom: 29px; background: #bd8252; border: 2px solid #925c34; box-shadow: inset 0 8px #daa574; }
+.ssa-art-box--one { left: 27px; }
+.ssa-art-box--two { left: 58px; bottom: 18px; transform: scale(.86); }
+.ssa-art-bag { position: absolute; right: 25px; bottom: 18px; width: 55px; height: 65px; background: var(--tp-accent); color: #fff; display: grid; place-items: center; font-weight: 900; font-size: 19px; transform: rotate(4deg); box-shadow: 0 12px 18px rgba(0,0,0,.27); }
+.ssa-art-bag::before { content: ""; position: absolute; width: 27px; height: 19px; border: 3px solid var(--tp-accent); border-bottom: 0; border-radius: 20px 20px 0 0; top: -17px; }
+
+.ssa-help-card { position: relative; z-index: 2; margin-top: auto; padding: 17px 14px; border: 1px solid rgba(255,255,255,.15); background: rgba(9, 87, 154, .48); border-radius: 11px; display: grid; grid-template-columns: 31px 1fr; gap: 10px; }
+.ssa-help-card > svg { color: #fff; }
+.ssa-help-card > div { display: flex; flex-direction: column; gap: 5px; }
+.ssa-help-card strong { font-size: 13px; }
+.ssa-help-card span { font-size: 10px; line-height: 1.45; opacity: .82; }
+.ssa-help-card a { grid-column: 1 / -1; color: #fff; border: 1px solid rgba(255,255,255,.85); border-radius: 7px; height: 36px; display: flex; justify-content: center; align-items: center; gap: 9px; text-decoration: none; font-size: 11px; font-weight: 700; margin-top: 4px; }
+.ssa-help-card a:hover { background: #fff; color: var(--tp-primary); }
+
+.ssa-main { min-width: 0; background: radial-gradient(circle at 55% 2%, color-mix(in srgb, #dcecff 32%, transparent), transparent 33%), var(--tp-bg); }
+.ssa-topbar { min-height: 126px; padding: 27px 34px 16px; display: flex; align-items: flex-start; gap: 35px; }
+.ssa-journey { display: flex; align-items: flex-start; flex: 1; max-width: 720px; margin: 12px auto 0; }
+.ssa-journey-step { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--tp-muted); }
+.ssa-journey-step:not(:last-child)::after { content: ""; position: absolute; height: 2px; left: calc(50% + 19px); right: calc(-50% + 19px); top: 17px; background: var(--tp-border); }
+.ssa-journey-step.is-done:not(:last-child)::after, .ssa-journey-step.is-active:not(:last-child)::after { background: #2c70c7; }
+.ssa-journey-step > span { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid var(--tp-border); background: var(--tp-surface); border-radius: 50%; font-size: 13px; font-weight: 700; z-index: 1; }
+.ssa-journey-step.is-done > span, .ssa-journey-step.is-active > span, .ssa-journey-step.is-current > span { background: #0755b7; color: #fff; border-color: #0755b7; box-shadow: 0 4px 12px rgba(3, 76, 133, .2); }
+.ssa-journey-step.is-active { color: #0755b7; font-weight: 700; }
+.dark .ssa-journey-step.is-active { color: #75aefd; }
+.ssa-journey-step small { font-size: 11px; text-align: center; white-space: nowrap; }
+.ssa-top-actions { display: flex; gap: 15px; align-items: center; }
+.ssa-theme-switch { display: flex; border: 1px solid var(--tp-border); border-radius: 8px; padding: 2px; background: var(--tp-surface-soft); box-shadow: 0 3px 10px rgba(15, 35, 65, .06); }
+.ssa-theme-switch button { border: 0; background: transparent; color: var(--tp-muted); height: 32px; padding: 0 12px; border-radius: 6px; display: flex; gap: 7px; align-items: center; cursor: pointer; font-size: 11px; }
+.ssa-theme-switch button.is-active { background: var(--tp-surface); color: #0755b7; box-shadow: 0 2px 7px rgba(0,0,0,.07); font-weight: 700; }
+.dark .ssa-theme-switch button.is-active { color: #82b7ff; }
+.ssa-language { display: flex; align-items: center; gap: 7px; height: 37px; padding: 0 13px; border: 1px solid var(--tp-border); border-radius: 8px; background: var(--tp-surface); font-size: 11px; font-weight: 700; }
+
+.ssa-content-grid { width: min(1180px, calc(100% - 56px)); margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) 294px; gap: 28px; align-items: start; }
+.ssa-workspace { min-width: 0; }
+.ssa-page-heading { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 0 8px 19px; }
+.ssa-page-heading h1 { margin: 0 0 4px; font-size: clamp(27px, 3vw, 35px); line-height: 1.15; letter-spacing: -1.2px; color: var(--tp-text); }
+.ssa-page-heading p { margin: 0 0 11px; color: #42608b; font-size: 14px; }
+.dark .ssa-page-heading p { color: #9ab7df; }
+.ssa-page-heading p b { margin: 0 6px; }
+.ssa-page-heading > div > span { color: var(--tp-muted); font-size: 12px; }
+.ssa-heading-icon { flex: 0 0 auto; width: 136px; height: 86px; border-radius: 46% 54% 40% 60%; background: linear-gradient(145deg, #e6f0ff, #bfd8ff); color: #0755b7; display: grid; place-items: center; position: relative; overflow: hidden; }
+.ssa-heading-icon::before, .ssa-heading-icon::after { content: ""; position: absolute; width: 20px; height: 70px; border-radius: 50%; background: rgba(255,255,255,.55); transform: rotate(40deg); }
+.ssa-heading-icon::before { left: 17px; top: 31px; }.ssa-heading-icon::after { right: 17px; top: 40px; transform: rotate(-40deg); }
+.ssa-heading-icon svg { position: relative; z-index: 1; }
+
+.ssa-form-card, .ssa-summary-card, .ssa-workflow-message { border: 1px solid var(--tp-border); background: var(--tp-surface); border-radius: 14px; box-shadow: 0 8px 28px rgba(21, 50, 88, .055); }
+.ssa-form-card { padding: 22px; }
+.ssa-card-title { display: flex; align-items: center; gap: 10px; margin: -3px 0 22px; color: var(--tp-text); }
+.ssa-card-title > svg { color: #0755b7; }
+.dark .ssa-card-title > svg { color: #82b7ff; }
+.ssa-card-title > strong { font-size: 15px; }
+.ssa-card-title > span { margin-left: auto; padding: 4px 9px; border-radius: 100px; background: color-mix(in srgb, var(--tp-primary) 10%, transparent); color: var(--tp-primary); text-transform: capitalize; font-size: 10px; font-weight: 700; }
+.dark .ssa-card-title > span { color: #8bc1ff; }
+
+.ssa-workflow-message { margin: 0 0 13px; padding: 14px 17px; display: flex; align-items: center; gap: 11px; border-left: 4px solid #2879c7; }
+.ssa-workflow-message strong { font-size: 12px; }.ssa-workflow-message span { font-size: 11px; color: var(--tp-muted); }.ssa-workflow-message a { margin-left: auto; display: inline-flex; gap: 7px; align-items: center; color: var(--tp-primary); text-decoration: none; font-weight: 700; font-size: 11px; }
+.ssa-workflow-message--warning { border-left-color: #e5a400; }.ssa-workflow-message--danger { border-left-color: var(--tp-danger); }.ssa-workflow-message--success { border-left-color: var(--tp-success); }
+
+.ssa-form-grid { display: grid; gap: 18px 20px; }.ssa-form-grid--two { grid-template-columns: repeat(2, minmax(0, 1fr)); }.ssa-form-grid--three { grid-template-columns: repeat(3, minmax(0, 1fr)); }.ssa-form-grid--four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.ssa-span-two { grid-column: span 2; }.ssa-span-three { grid-column: span 3; }
+.ssa-field { min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.ssa-field > label, .ssa-upload-label { font-size: 11px; font-weight: 700; color: var(--tp-text); }
+.ssa-field > label span, .ssa-upload-label b { color: #f04e2a; }.ssa-upload-label small { color: var(--tp-muted); font-weight: 500; }
+.ssa-control-wrap { position: relative; }.ssa-control-wrap > svg { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--tp-muted); pointer-events: none; }
+.ssa-field input, .ssa-field select, .ssa-field textarea { width: 100%; color: var(--tp-text); background: var(--tp-surface); border: 1px solid var(--tp-border); border-radius: 7px; min-height: 41px; padding: 0 12px; font-size: 11px; transition: border-color .2s, box-shadow .2s; }
+.ssa-field select { appearance: none; padding-right: 34px; }.ssa-field textarea { min-height: 86px; resize: vertical; padding-block: 11px; line-height: 1.5; }
+.ssa-field input:focus, .ssa-field select:focus, .ssa-field textarea:focus { border-color: #2b72c4; box-shadow: 0 0 0 3px color-mix(in srgb, #2b72c4 13%, transparent); outline: none; }
+.ssa-field input:disabled, .ssa-field select:disabled, .ssa-field textarea:disabled { opacity: .66; cursor: not-allowed; background: var(--tp-surface-soft); }
+.ssa-field--error input, .ssa-field--error select, .ssa-field--error textarea { border-color: var(--tp-danger); }
+.ssa-field-hint { font-size: 10px; color: var(--tp-muted); line-height: 1.35; }.ssa-field-error { display: block; font-size: 10px; color: var(--tp-danger); line-height: 1.35; }
+
+.ssa-upload-grid { margin-top: 22px; display: grid; grid-template-columns: minmax(170px, .75fr) minmax(250px, 1.4fr); gap: 20px; }
+.ssa-upload-field { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.ssa-upload-box { min-height: 115px; border: 1px dashed #9fb9d7; background: color-mix(in srgb, var(--tp-surface-soft) 70%, transparent); border-radius: 9px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; text-align: center; color: #1265bd; cursor: pointer; padding: 14px; }
+.ssa-upload-box input { position: absolute; opacity: 0; pointer-events: none; }.ssa-upload-box strong { font-size: 11px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.ssa-upload-box span { color: var(--tp-muted); font-size: 9px; }.ssa-upload-box:hover { border-color: #1265bd; background: color-mix(in srgb, #1265bd 5%, var(--tp-surface)); }.ssa-upload-box--done { color: var(--tp-success); border-color: color-mix(in srgb, var(--tp-success) 55%, var(--tp-border)); }.ssa-upload-box--error { border-color: var(--tp-danger); }
+
+.ssa-payment-profile { display: flex; flex-direction: column; gap: 0; }
+.ssa-payment-contract { display: flex; gap: 22px; margin-bottom: 20px; }
+.ssa-payment-contract > span { display: flex; align-items: center; gap: 9px; }
+.ssa-payment-contract > span > svg { color: #0755b7; }
+.dark .ssa-payment-contract > span > svg { color: #75aefd; }
+.ssa-payment-contract small { font-size: 9px; color: var(--tp-muted); }
+.ssa-payment-contract strong { font-size: 12px; }
+.ssa-payment-grid { display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 22px; align-items: start; }
+.ssa-qris-panel { display: flex; flex-direction: column; gap: 14px; }
+.ssa-qris-upload-card { border: 1px solid var(--tp-border); background: var(--tp-surface-soft); border-radius: 11px; padding: 16px; }
+.ssa-qris-upload-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
+.ssa-qris-upload-header > svg { color: #0755b7; flex-shrink: 0; margin-top: 2px; }
+.dark .ssa-qris-upload-header > svg { color: #75aefd; }
+.ssa-qris-upload-header span { display: flex; flex-direction: column; gap: 3px; }
+.ssa-qris-upload-header strong { font-size: 12px; font-weight: 700; color: var(--tp-text); }
+.ssa-qris-upload-header small { font-size: 10px; color: var(--tp-muted); line-height: 1.4; }
+.ssa-qris-upload-card .ssa-upload-field { margin: 0; }
+.ssa-qris-upload-card .ssa-upload-label { display: none; }
+.ssa-qris-preview { border: 1px solid var(--tp-border); border-radius: 11px; overflow: hidden; background: var(--tp-surface); padding: 10px; }
+.ssa-qris-preview img { width: 100%; max-height: 340px; object-fit: contain; border-radius: 8px; display: block; }
+.ssa-qris-preview > span { display: flex; align-items: center; gap: 7px; margin-top: 10px; font-size: 10px; color: var(--tp-success); font-weight: 600; }
+.ssa-qris-empty { min-height: 150px; border: 1px dashed var(--tp-border); border-radius: 11px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: var(--tp-muted); text-align: center; padding: 20px; }
+.ssa-qris-empty > svg { opacity: .4; }
+.ssa-qris-empty strong { font-size: 12px; color: var(--tp-text); }
+.ssa-qris-empty span { font-size: 10px; }
+.ssa-payment-fields { display: flex; flex-direction: column; gap: 20px; }
+.ssa-payment-section { border: 1px solid var(--tp-border); border-radius: 11px; padding: 18px; background: var(--tp-surface); }
+.ssa-payment-section h3 { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 0 0 4px; }
+.ssa-payment-section > p { margin: 0 0 16px; font-size: 10px; color: var(--tp-muted); }
+
+.ssa-section-stack { display: flex; flex-direction: column; gap: 22px; }.ssa-form-section + .ssa-form-section { padding-top: 20px; border-top: 1px solid var(--tp-border); }.ssa-form-section h3, .ssa-review-step h3 { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 0 0 17px; }.ssa-form-section h3 svg, .ssa-review-step h3 svg { color: #1265bd; }.ssa-radio-row { display: flex; flex-wrap: wrap; gap: 22px; margin: -39px 0 18px 270px; }.ssa-radio-row label { display: flex; gap: 7px; align-items: center; color: var(--tp-muted); font-size: 10px; cursor: pointer; }.ssa-radio-row input { accent-color: #0755b7; }
+.ssa-info-banner { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; margin-top: 22px; background: color-mix(in srgb, #eaf3ff 65%, var(--tp-surface)); border: 1px solid #bdd7f5; border-radius: 8px; color: #0755b7; }.ssa-info-banner > div { display: flex; flex-direction: column; gap: 4px; }.ssa-info-banner strong { font-size: 11px; }.ssa-info-banner span { color: var(--tp-muted); font-size: 10px; }
+.ssa-security-note { display: flex; align-items: center; gap: 11px; margin-top: 15px; padding: 12px 15px; border: 1px solid var(--tp-border); border-radius: 8px; color: #31587d; font-size: 10px; }.dark .ssa-security-note { color: #a9c9eb; }.ssa-security-note b { margin-left: auto; display: flex; align-items: center; gap: 5px; padding: 5px 9px; border-radius: 5px; color: var(--tp-success); background: color-mix(in srgb, var(--tp-success) 10%, transparent); }
+
+.ssa-review-step > section > p, .ssa-final-checklist > p { margin: -11px 0 15px 27px; font-size: 10px; color: var(--tp-muted); }.ssa-document-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }.ssa-document-card { position: relative; min-height: 138px; border: 1px dashed #afc2da; border-radius: 9px; padding: 14px; display: grid; grid-template-columns: 29px minmax(0,1fr); gap: 9px; align-content: start; }.ssa-document-card > svg { color: #6e4bd5; }.ssa-document-card > div { min-width: 0; display: flex; flex-direction: column; gap: 6px; }.ssa-document-card strong { font-size: 10px; line-height: 1.35; }.ssa-document-card span { color: var(--tp-muted); font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.ssa-document-card > button { position: absolute; right: 7px; top: 7px; border: 0; background: var(--tp-surface-soft); color: var(--tp-muted); border-radius: 50%; width: 25px; height: 25px; display: grid; place-items: center; cursor: pointer; }.ssa-document-card > label { grid-column: 1 / -1; align-self: end; margin-top: 12px; height: 31px; border-radius: 6px; display: flex; gap: 6px; align-items: center; justify-content: center; color: #1265bd; background: color-mix(in srgb, #1265bd 8%, transparent); font-size: 9px; font-weight: 700; cursor: pointer; }.ssa-document-card > label input { position: absolute; opacity: 0; pointer-events: none; }.ssa-document-card > .ssa-field-error { grid-column: 1 / -1; color: var(--tp-danger); white-space: normal; }.ssa-document-card--done { border-style: solid; border-color: color-mix(in srgb, var(--tp-success) 40%, var(--tp-border)); }.ssa-document-card--done > svg, .ssa-document-card--done > label { color: var(--tp-success); }
+.ssa-final-checklist { border-top: 1px solid var(--tp-border); margin-top: 20px; padding-top: 19px; }.ssa-final-checklist > div { display: grid; grid-template-columns: repeat(3, 1fr); }.ssa-final-checklist button, .ssa-check-item { border: 0; background: transparent; text-align: left; display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; color: var(--tp-text); cursor: pointer; }.ssa-final-checklist button:nth-child(3n+2), .ssa-check-item:nth-child(3n+2) { border-left: 1px solid var(--tp-border); border-right: 1px solid var(--tp-border); }.ssa-final-checklist svg { color: var(--tp-success); }.ssa-final-checklist button > span, .ssa-check-item > span { display: flex; flex-direction: column; gap: 3px; }.ssa-final-checklist strong { font-size: 10px; }.ssa-final-checklist small { color: var(--tp-muted); font-size: 9px; }.ssa-empty-dot { width: 17px; height: 17px; flex: 0 0 auto; border: 1px solid var(--tp-border); border-radius: 50%; }
+.ssa-confirm { display: flex; gap: 10px; align-items: flex-start; border-top: 1px solid var(--tp-border); padding-top: 16px; margin-top: 10px; cursor: pointer; }.ssa-confirm input { margin-top: 2px; accent-color: #0755b7; }.ssa-confirm > span { display: flex; flex-direction: column; gap: 4px; }.ssa-confirm strong { font-size: 10px; }.ssa-confirm small { font-size: 9px; color: var(--tp-muted); }.ssa-confirm--error { color: var(--tp-danger); }
+
+.ssa-action-message { margin-top: 17px; border-radius: 7px; padding: 10px 13px; font-size: 10px; }.ssa-action-message.is-error { background: color-mix(in srgb, var(--tp-danger) 10%, transparent); color: var(--tp-danger); }.ssa-action-message.is-success { background: color-mix(in srgb, var(--tp-success) 10%, transparent); color: var(--tp-success); }
+.ssa-form-actions { border-top: 1px solid var(--tp-border); padding-top: 17px; margin-top: 22px; display: grid; grid-template-columns: 1fr 1fr 1.1fr; gap: 12px; }.ssa-button { min-height: 43px; border-radius: 7px; border: 1px solid #1761ba; background: transparent; color: #0b56ad; display: inline-flex; align-items: center; justify-content: center; gap: 9px; font-size: 11px; font-weight: 700; cursor: pointer; transition: transform .16s, box-shadow .16s, background .16s; }.dark .ssa-button--secondary { color: #80b6fa; }.ssa-button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 7px 15px rgba(3, 76, 133, .14); }.ssa-button--primary { color: #fff; border-color: #0755b7; background: linear-gradient(100deg, var(--tp-primary), #0861c5); }.ssa-button--submit { color: #fff; border-color: var(--tp-accent); background: linear-gradient(100deg, var(--tp-accent), #ff5108); }.ssa-button:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }.ssa-cancel-link { display: block; margin: 13px auto -4px; border: 0; background: transparent; color: var(--tp-danger); text-decoration: underline; font-size: 10px; cursor: pointer; }
+
+.ssa-summary { display: flex; flex-direction: column; gap: 14px; }.ssa-summary-card { padding: 18px; }.ssa-summary-card h2 { margin: 0 0 16px; font-size: 13px; }.ssa-progress-row { display: flex; gap: 15px; align-items: center; }.ssa-progress-ring { --ssa-progress: 0deg; width: 102px; height: 102px; border-radius: 50%; flex: 0 0 auto; display: grid; place-items: center; background: conic-gradient(var(--tp-accent) var(--ssa-progress), #e5eaf1 0); position: relative; }.ssa-progress-ring::before { content: ""; position: absolute; inset: 9px; border-radius: 50%; background: var(--tp-surface); }.ssa-progress-ring > span { position: relative; display: flex; flex-direction: column; align-items: center; }.ssa-progress-ring strong { font-size: 24px; line-height: 1; }.ssa-progress-ring small { font-size: 9px; margin-top: 4px; }.ssa-progress-row p { margin: 0; color: var(--tp-muted); font-size: 10px; line-height: 1.6; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }.ssa-progress-row p b { color: var(--tp-accent); background: color-mix(in srgb, var(--tp-accent) 10%, transparent); border-radius: 5px; padding: 3px 7px; text-transform: capitalize; font-size: 9px; }
+.ssa-verification { display: flex; gap: 14px; align-items: center; }.ssa-verification > svg { color: var(--tp-success); }.ssa-verification > div { min-width: 0; display: flex; flex-direction: column; gap: 4px; }.ssa-verification strong { font-size: 12px; }.ssa-verification span { font-size: 9px; color: var(--tp-muted); overflow: hidden; text-overflow: ellipsis; }.ssa-verification small { color: var(--tp-success); font-size: 9px; }
+.ssa-requirements { display: flex; flex-direction: column; gap: 7px; }.ssa-requirements button { border: 0; background: transparent; color: var(--tp-muted); display: flex; align-items: center; gap: 9px; padding: 4px 1px; font-size: 10px; cursor: pointer; text-align: left; }.ssa-requirements button > span { width: 15px; height: 15px; border: 1px solid var(--tp-border); border-radius: 50%; }.ssa-requirements button svg { color: var(--tp-success); }.ssa-requirements button.is-active { color: #0755b7; font-weight: 700; }.dark .ssa-requirements button.is-active { color: #82b7ff; }
+.ssa-timeline { display: flex; flex-direction: column; }.ssa-timeline > span { position: relative; display: grid; grid-template-columns: 21px 1fr; column-gap: 8px; padding-bottom: 16px; }.ssa-timeline > span:not(:last-child)::after { content: ""; position: absolute; width: 1px; background: var(--tp-border); left: 9px; top: 20px; bottom: 1px; }.ssa-timeline i { width: 19px; height: 19px; border: 1px solid var(--tp-border); border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 8px; grid-row: span 2; }.ssa-timeline b { font-size: 10px; line-height: 18px; }.ssa-timeline small { font-size: 8px; color: var(--tp-muted); line-height: 1.45; }.ssa-timeline .is-active i, .ssa-timeline .is-done i { background: #0755b7; border-color: #0755b7; color: #fff; }
+.ssa-summary-help { display: grid; grid-template-columns: 30px 1fr; gap: 9px; align-items: start; }.ssa-summary-help > svg { color: #0755b7; }.ssa-summary-help h2 { margin: 0 0 4px; }.ssa-summary-help p { margin: 0; font-size: 9px; color: var(--tp-muted); }.ssa-summary-help a { grid-column: 1 / -1; height: 36px; border: 1px solid #1761ba; color: #0755b7; border-radius: 7px; display: flex; align-items: center; justify-content: center; gap: 7px; font-weight: 700; font-size: 10px; text-decoration: none; }
+.ssa-footer { width: min(1180px, calc(100% - 56px)); margin: 18px auto 0; border-top: 1px solid var(--tp-border); padding: 18px 3px 30px; display: flex; justify-content: space-between; color: var(--tp-muted); font-size: 9px; }.ssa-footer nav { display: flex; gap: 18px; }.ssa-footer a { color: inherit; text-decoration: none; }
+
+.ssa-loading { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 12px; color: #034c85; background: #f7f9fc; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }.dark .ssa-loading { background: #07111f; color: #8cc3ff; }.ssa-loading p { margin: 0; font-size: 13px; }.ssa-spin { animation: ssa-spin .85s linear infinite; } @keyframes ssa-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 1180px) {
+  .ssa-page { grid-template-columns: 210px minmax(0, 1fr); }
+  .ssa-sidebar { padding-inline: 16px; }.ssa-store-art { transform: scale(.88); transform-origin: center bottom; margin-inline: -32px; }.ssa-topbar { padding-inline: 24px; }.ssa-content-grid { width: calc(100% - 40px); grid-template-columns: minmax(0, 1fr) 260px; gap: 18px; }.ssa-footer { width: calc(100% - 40px); }.ssa-document-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.ssa-form-grid--four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 940px) {
+  .ssa-page { display: block; }.ssa-sidebar { position: relative; height: auto; min-height: 160px; padding: 20px 24px; display: grid; grid-template-columns: 1fr 1fr; align-items: center; }.ssa-sidebar::before, .ssa-store-art { display: none; }.ssa-sidebar-copy { margin: 0; justify-self: end; }.ssa-sidebar-copy i { display: none; }.ssa-sidebar-copy p { font-size: 16px; }.ssa-help-card { display: none; }.ssa-topbar { min-height: auto; padding: 21px 24px; flex-wrap: wrap-reverse; }.ssa-top-actions { margin-left: auto; }.ssa-journey { flex-basis: 100%; max-width: none; margin-top: 6px; }.ssa-content-grid { grid-template-columns: minmax(0, 1fr); }.ssa-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }.ssa-summary-help { display: none; }
+}
+
+@media (max-width: 680px) {
+  .ssa-sidebar { min-height: 110px; grid-template-columns: 1fr auto; padding: 18px; }.ssa-sidebar-copy p { font-size: 13px; }.ssa-brand strong { font-size: 16px; }.ssa-brand small { letter-spacing: 2px; }.ssa-topbar { padding: 14px 16px 18px; }.ssa-theme-switch button { padding-inline: 9px; }.ssa-language { display: none; }.ssa-journey-step small { font-size: 8px; white-space: normal; }.ssa-journey-step > span { width: 29px; height: 29px; }.ssa-journey-step:not(:last-child)::after { top: 14px; left: calc(50% + 16px); right: calc(-50% + 16px); }.ssa-content-grid { width: calc(100% - 24px); }.ssa-page-heading { padding-inline: 3px; }.ssa-page-heading h1 { font-size: 27px; }.ssa-page-heading > div > span { display: block; line-height: 1.45; }.ssa-heading-icon { display: none; }.ssa-form-card { padding: 16px 14px; }.ssa-form-grid--two, .ssa-form-grid--three, .ssa-form-grid--four, .ssa-upload-grid { grid-template-columns: minmax(0, 1fr); }.ssa-span-two, .ssa-span-three { grid-column: auto; }.ssa-radio-row { margin: 0 0 17px; gap: 13px; }.ssa-document-grid, .ssa-final-checklist > div, .ssa-summary { grid-template-columns: minmax(0, 1fr); }.ssa-final-checklist button:nth-child(3n+2), .ssa-check-item:nth-child(3n+2) { border: 0; }.ssa-form-actions { grid-template-columns: 1fr 1fr; }.ssa-form-actions .ssa-button--primary, .ssa-form-actions .ssa-button--submit { grid-column: 1 / -1; grid-row: 1; }.ssa-workflow-message { align-items: flex-start; flex-direction: column; }.ssa-workflow-message a { margin-left: 0; }.ssa-security-note { flex-wrap: wrap; }.ssa-security-note b { margin-left: 30px; }.ssa-footer { width: calc(100% - 24px); flex-direction: column; gap: 12px; padding-bottom: 22px; }.ssa-payment-grid { grid-template-columns: minmax(0, 1fr); }.ssa-payment-contract { flex-wrap: wrap; gap: 12px; }
+}
+
+@media (max-width: 420px) {
+  .ssa-sidebar-copy { display: none; }.ssa-top-actions { width: 100%; justify-content: flex-end; }.ssa-theme-switch { width: 100%; }.ssa-theme-switch button { flex: 1; justify-content: center; }.ssa-page-heading p { font-size: 12px; }.ssa-progress-row { align-items: flex-start; }.ssa-progress-ring { width: 88px; height: 88px; }.ssa-progress-ring strong { font-size: 20px; }.ssa-form-actions { grid-template-columns: 1fr; }.ssa-form-actions .ssa-button--primary, .ssa-form-actions .ssa-button--submit { grid-column: auto; grid-row: auto; }.ssa-summary { display: flex; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ssa-page *, .ssa-page *::before, .ssa-page *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}
+
+.ssa-logout-btn { display: flex; align-items: center; gap: 6px; border: 0; background: transparent; color: var(--tp-muted); font-size: 11px; font-weight: 600; cursor: pointer; transition: color 0.15s; }
+.ssa-logout-btn:hover { color: var(--tp-danger); }

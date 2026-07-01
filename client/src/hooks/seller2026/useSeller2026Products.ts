@@ -1,8 +1,9 @@
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getSellerProductAuthoringMeta,
   getSellerProducts,
+  setSellerProductPublished,
 } from "../../api/sellerProducts.ts";
 import {
   adaptSeller2026Products,
@@ -25,6 +26,7 @@ type UseSeller2026ProductsOptions = {
     canUpdate?: boolean;
     canDelete?: boolean;
     canSubmit?: boolean;
+    canPublish?: boolean;
   };
 };
 
@@ -73,6 +75,7 @@ export function useSeller2026Products(
   query: Seller2026ProductsQuery,
   options: UseSeller2026ProductsOptions = {}
 ) {
+  const queryClient = useQueryClient();
   const enabled = Boolean(storeId) && options.enabled !== false;
 
   const productsQuery = useQuery({
@@ -89,6 +92,19 @@ export function useSeller2026Products(
     retry: false,
   });
 
+  const publishMutation = useMutation({
+    mutationFn: ({ productId, published }: { productId: string | number; published: boolean }) =>
+      setSellerProductPublished(storeId as number | string, productId, published),
+    onSuccess: async (_result, variables) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["seller2026", "products", storeId] }),
+        queryClient.invalidateQueries({ queryKey: ["seller2026", "product", storeId, variables.productId] }),
+        queryClient.invalidateQueries({ queryKey: ["storefront", "products"] }),
+        queryClient.invalidateQueries({ queryKey: ["storefront", "product"] }),
+      ]);
+    },
+  });
+
   const data = useMemo(() => {
     if (!enabled && !productsQuery.data) {
       return {
@@ -98,6 +114,7 @@ export function useSeller2026Products(
           canUpdate: Boolean(options.permissions?.canUpdate),
           canDelete: Boolean(options.permissions?.canDelete),
           canSubmit: Boolean(options.permissions?.canSubmit),
+          canPublish: Boolean(options.permissions?.canPublish),
         },
       };
     }
@@ -119,5 +136,8 @@ export function useSeller2026Products(
       void productsQuery.refetch();
       void authoringMetaQuery.refetch();
     },
+    setProductPublished: publishMutation.mutateAsync,
+    isPublishing: publishMutation.isPending,
+    publishingProductId: publishMutation.variables?.productId ?? null,
   };
 }

@@ -371,6 +371,7 @@ async function issueVerificationCode(
     await verification.update({
       status: VERIFICATION_STATUS_DELIVERY_FAILED,
       lastDeliveryError: String((error as Error)?.message || "Email delivery failed"),
+      resendAvailableAt: new Date(Date.now() - 1000), // Reset cooldown so user can retry immediately
     });
     verification.setDataValue("status", VERIFICATION_STATUS_DELIVERY_FAILED);
     return {

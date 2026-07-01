@@ -146,7 +146,7 @@ export class StoreApplication
             "review"
           ),
           allowNull: false,
-          defaultValue: "owner_identity",
+          defaultValue: "store_information",
           field: "current_step",
         },
         ownerIdentitySnapshot: {

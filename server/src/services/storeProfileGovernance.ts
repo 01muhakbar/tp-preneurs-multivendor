@@ -13,10 +13,14 @@ import {
 export const STORE_PROFILE_ATTRIBUTES = [
   ...PUBLIC_STORE_IDENTITY_ATTRIBUTES,
   "shippingSetup",
+  "ownerIdentity",
+  "businessDetails",
 ] as const;
 
 export const SELLER_EDITABLE_STORE_PROFILE_FIELDS = [
   ...PUBLIC_STORE_IDENTITY_SELLER_OWNED_FIELDS,
+  "ownerIdentity",
+  "businessDetails",
 ] as const;
 
 export const ADMIN_OWNED_STORE_PROFILE_FIELDS = [
@@ -146,6 +150,12 @@ const storeProfileFieldMatrix: StoreProfileFieldContract[] = [
   {
     key: "city",
     label: "City",
+    storefrontUsage: STOREFRONT_USAGE.PUBLIC_STOREFRONT,
+    notes: "Rendered with the store microsite address block when present.",
+  },
+  {
+    key: "district",
+    label: "Subdistrict",
     storefrontUsage: STOREFRONT_USAGE.PUBLIC_STOREFRONT,
     notes: "Rendered with the store microsite address block when present.",
   },
@@ -319,6 +329,40 @@ const nullableSocialUrlField = (hosts: string[], label: string) =>
       .optional()
   );
 
+const ownerIdentityProfileSchema = z
+  .object({
+    fullName: nullableStringField(160),
+    email: nullableEmailField(),
+    phoneNumber: nullablePhoneField("Owner phone"),
+    birthDate: nullableStringField(32),
+    identityType: nullableStringField(64),
+    identityNumber: nullableStringField(64),
+    taxNumber: nullableStringField(64),
+    residentialAddress: nullableStringField(255),
+    country: nullableStringField(120),
+    province: nullableStringField(120),
+    city: nullableStringField(120),
+    subdistrict: nullableStringField(120),
+    postalCode: nullablePostalCodeField(),
+  })
+  .strict();
+
+const businessDetailsProfileSchema = z
+  .object({
+    category: nullableStringField(120),
+    businessType: nullableStringField(80),
+    legalEntity: nullableStringField(80),
+    pickupSameAsBusiness: z.boolean().optional(),
+    pickupAddress: nullableStringField(255),
+    timeZone: nullableStringField(64),
+    openTime: nullableStringField(16),
+    closeTime: nullableStringField(16),
+    workingDays: nullableStringField(80),
+    shippingMethod: nullableStringField(120),
+    processingTime: nullableStringField(80),
+  })
+  .strict();
+
 export const sellerStoreProfilePatchSchema = z
   .object({
     description: nullableStringField(4000),
@@ -333,10 +377,13 @@ export const sellerStoreProfilePatchSchema = z
     addressLine1: nullableStringField(255),
     addressLine2: nullableStringField(255),
     city: nullableStringField(120),
+    district: nullableStringField(120),
     province: nullableStringField(120),
     postalCode: nullablePostalCodeField(),
     country: nullableStringField(120),
     shippingSetup: sellerShippingSetupPatchSchema.optional(),
+    ownerIdentity: ownerIdentityProfileSchema.nullable().optional(),
+    businessDetails: businessDetailsProfileSchema.nullable().optional(),
   })
   .strict();
 
@@ -363,6 +410,33 @@ export const adminStoreProfilePatchSchema = z
 
 export const getStoreProfileAttr = (row: any, key: string) =>
   row?.getDataValue?.(key) ?? row?.get?.(key) ?? row?.dataValues?.[key];
+
+export const normalizeStoredProfileObject = (value: unknown) => {
+  let normalizedValue = value;
+  if (typeof normalizedValue === "string" && normalizedValue.trim()) {
+    try {
+      normalizedValue = JSON.parse(normalizedValue);
+    } catch {
+      return null;
+    }
+  }
+  return normalizedValue &&
+    typeof normalizedValue === "object" &&
+    !Array.isArray(normalizedValue)
+    ? normalizedValue
+    : null;
+};
+
+export const mergeStoredProfileObjectPatch = (
+  current: unknown,
+  patch: Record<string, unknown> | null
+) => {
+  if (patch === null) return null;
+  return {
+    ...(normalizeStoredProfileObject(current) || {}),
+    ...patch,
+  };
+};
 
 const hasText = (value: unknown) => String(value || "").trim().length > 0;
 
@@ -469,6 +543,26 @@ export const buildStoreProfileCompleteness = (store: any) => {
   };
 };
 
+export const buildSellerStoreActivationRequirements = (store: any) => {
+  const completeness = buildStoreProfileCompleteness(store);
+  const shippingSetupReadiness = buildStoreShippingSetupReadiness(store);
+  const isComplete = Boolean(completeness.isComplete && shippingSetupReadiness.isShippingReady);
+
+  return {
+    isComplete,
+    profileCompleteness: completeness,
+    shippingSetupStatus: shippingSetupReadiness.shippingSetupStatus,
+    missingProfileFields: completeness.missingFields,
+    missingShippingFields: shippingSetupReadiness.missingShippingFields,
+    inactiveReason: isComplete
+      ? null
+      : "Store remains inactive until seller profile and shipping setup requirements are complete.",
+  };
+};
+
+export const shouldDeactivateStoreForMissingSellerRequirements = (store: any) =>
+  !buildSellerStoreActivationRequirements(store).isComplete;
+
 export const serializeStoreProfileSnapshot = (
   store: any,
   options: { actor: "seller" | "admin"; canEdit?: boolean } = { actor: "seller" }
@@ -478,6 +572,7 @@ export const serializeStoreProfileSnapshot = (
   const status = String(getStoreProfileAttr(store, "status") || "ACTIVE");
   const isAdminActor = options.actor === "admin";
   const shippingSetupReadiness = buildStoreShippingSetupReadiness(store);
+  const activationRequirements = buildSellerStoreActivationRequirements(store);
 
   return {
     id: Number(getStoreProfileAttr(store, "id")),
@@ -511,6 +606,7 @@ export const serializeStoreProfileSnapshot = (
       ? String(getStoreProfileAttr(store, "addressLine2"))
       : null,
     city: getStoreProfileAttr(store, "city") ? String(getStoreProfileAttr(store, "city")) : null,
+    district: getStoreProfileAttr(store, "district") ? String(getStoreProfileAttr(store, "district")) : null,
     province: getStoreProfileAttr(store, "province")
       ? String(getStoreProfileAttr(store, "province"))
       : null,
@@ -548,12 +644,19 @@ export const serializeStoreProfileSnapshot = (
     },
     contract: buildStoreProfileContract(),
     completeness: buildStoreProfileCompleteness(store),
+    activationRequirements,
     shippingSetup: shippingSetupReadiness.shippingSetup,
     shippingSetupStatus: shippingSetupReadiness.shippingSetupStatus,
     shippingSetupMeta: shippingSetupReadiness.shippingSetupMeta,
     isShippingReady: shippingSetupReadiness.isShippingReady,
     missingShippingFields: shippingSetupReadiness.missingShippingFields,
     shippingSetupSummary: shippingSetupReadiness.shippingSetupSummary,
+    ownerIdentity: normalizeStoredProfileObject(
+      getStoreProfileAttr(store, "ownerIdentity")
+    ),
+    businessDetails: normalizeStoredProfileObject(
+      getStoreProfileAttr(store, "businessDetails")
+    ),
     createdAt: getStoreProfileAttr(store, "createdAt") || null,
     updatedAt: getStoreProfileAttr(store, "updatedAt") || null,
   };

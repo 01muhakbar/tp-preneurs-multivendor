@@ -196,25 +196,28 @@ export default function StoreCartPage() {
     },
   });
 
-  const handleDecrease = (item) => {
+  const handleDecrease = (item, quantity = item.quantity - 1) => {
     const target = resolveCartTarget(item.raw || item);
     if (!target.productId) return;
-    if (item.quantity <= 1) {
+    if (quantity < 1) {
       remove(target);
       return;
     }
-    update(target, item.quantity - 1);
+    return update(target, quantity);
   };
 
-  const handleIncrease = (item) => {
+  const handleIncrease = (item, quantity = item.quantity + 1) => {
     const target = resolveCartTarget(item.raw || item);
     if (!target.productId) return;
+    const hasStockValue = item.stock !== null && item.stock !== undefined && item.stock !== "";
     const stockValue = Number(item.stock);
-    const stock = Number.isFinite(stockValue) && stockValue >= 0 ? stockValue : null;
+    const stock = hasStockValue && Number.isFinite(stockValue) && stockValue >= 0
+      ? stockValue
+      : null;
     const nextQuantity = stock === null
-      ? item.quantity + 1
-      : Math.min(stock, item.quantity + 1);
-    if (nextQuantity > item.quantity) update(target, nextQuantity);
+      ? quantity
+      : Math.min(stock, quantity);
+    if (nextQuantity > item.quantity) return update(target, nextQuantity);
   };
 
   const handleRemove = (item) => {

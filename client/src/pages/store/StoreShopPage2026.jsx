@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   Apple,
   Beef,
@@ -23,6 +24,7 @@ import {
   Star,
   Wheat,
   X,
+  Zap,
 } from "lucide-react";
 import { useCategories, useProducts } from "../../storefront.jsx";
 import { useCart } from "../../hooks/useCart.ts";
@@ -447,9 +449,9 @@ function ProductImageFallback() {
   );
 }
 
-function ProductCard({ product, viewMode, onAdd }) {
+function ProductCard({ product, viewMode, onAdd, onBuyNow }) {
   const [imageFailed, setImageFailed] = useState(false);
-  const [isAdding, setIsAdding] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
   const wishlist = useStorefrontWishlist();
   const timerRef = useRef(null);
   const image = getProductImage(product);
@@ -470,6 +472,7 @@ function ProductCard({ product, viewMode, onAdd }) {
   const productId = Number(product?.id ?? product?.productId);
   const productHref = slug ? `/product/${encodeURIComponent(slug)}` : "#";
   const isList = viewMode === "list";
+  const isAdding = pendingAction !== null;
 
   useEffect(
     () => () => {
@@ -478,14 +481,20 @@ function ProductCard({ product, viewMode, onAdd }) {
     []
   );
 
-  const handleAdd = async (event) => {
+  const runAction = async (event, action, callback) => {
     event.preventDefault();
     event.stopPropagation();
     if (!Number.isFinite(productId) || !isPurchasable || isAdding) return;
-    setIsAdding(true);
-    await onAdd(product, image);
-    timerRef.current = setTimeout(() => setIsAdding(false), 650);
+    setPendingAction(action);
+    try {
+      await callback(product, image);
+    } finally {
+      timerRef.current = setTimeout(() => setPendingAction(null), 650);
+    }
   };
+
+  const handleAdd = (event) => runAction(event, "cart", onAdd);
+  const handleBuyNow = (event) => runAction(event, "buy", onBuyNow);
 
   return (
     <article
@@ -534,17 +543,15 @@ function ProductCard({ product, viewMode, onAdd }) {
         >
           <Eye className="h-4 w-4" />
         </Link>
-        {!isList ? (
-          <button
-            type="button"
-            onClick={handleAdd}
-            disabled={!Number.isFinite(productId) || !isPurchasable || isAdding}
-            aria-label={`Add ${name} to cart`}
-            className="absolute bottom-3 right-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--tp-primary)] text-white shadow-lg shadow-[var(--tp-primary)]/20 transition hover:bg-[#023b68] disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700"
-          >
-            {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
-          </button>
-        ) : null}
+        <button
+          type="button"
+          onClick={handleAdd}
+          disabled={!Number.isFinite(productId) || !isPurchasable || isAdding}
+          aria-label={`Add ${name} to cart`}
+          className="absolute bottom-3 right-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--tp-primary)] text-white shadow-lg shadow-[var(--tp-primary)]/20 transition hover:bg-[#023b68] disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700"
+        >
+          {pendingAction === "cart" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
+        </button>
       </div>
 
       <div className={`min-w-0 ${isList ? "flex flex-col justify-between" : "mt-4"}`}>
@@ -587,18 +594,19 @@ function ProductCard({ product, viewMode, onAdd }) {
           </div>
           <button
             type="button"
-            onClick={handleAdd}
+            onClick={handleBuyNow}
             disabled={!Number.isFinite(productId) || !isPurchasable || isAdding}
+            aria-label={`Buy ${name} now`}
             className={`inline-flex h-11 w-full items-center justify-center gap-2 rounded-[1rem] px-4 text-sm font-bold text-white shadow-lg transition disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 dark:disabled:bg-slate-700 ${
               isPurchasable ? "bg-[var(--tp-primary)] shadow-[var(--tp-primary)]/20 hover:bg-[#023b68]" : "bg-slate-300"
             }`}
           >
-            {isAdding ? (
+            {pendingAction === "buy" ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <ShoppingCart className="h-4 w-4" />
+              <Zap className="h-4 w-4" />
             )}
-            <span>{isPurchasable ? "Add to Cart" : purchaseState?.label || "Unavailable"}</span>
+            <span>{isPurchasable ? "Buy Now" : purchaseState?.label || "Unavailable"}</span>
           </button>
         </div>
       </div>
@@ -667,7 +675,9 @@ function Pagination2026({ page, total, limit, onPageChange }) {
 }
 
 export default function StoreShopPage2026() {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState("grid");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const cart = useCart();
@@ -760,9 +770,13 @@ export default function StoreShopPage2026() {
 
   const handleAdd = async (product, imageUrl) => {
     const productId = Number(product?.id ?? product?.productId);
-    if (!Number.isFinite(productId) || productId <= 0) return;
+    if (!Number.isFinite(productId) || productId <= 0) return false;
     const slug = getProductSlug(product);
-    await cart.add(productId, 1, {
+    if (productHasVariantSelections(product?.variations)) {
+      if (slug) navigate(`/product/${encodeURIComponent(slug)}`);
+      return false;
+    }
+    const added = await cart.add(productId, 1, {
       name: readText(product?.name, product?.title, "Product"),
       price: getProductPrice(product),
       imageUrl,
@@ -774,6 +788,18 @@ export default function StoreShopPage2026() {
       storeSlug: readText(product?.storeSlug, product?.store?.slug),
       category: getCategoryName(product),
     });
+    return added !== false;
+  };
+
+  const handleBuyNow = async (product, imageUrl) => {
+    const slug = getProductSlug(product);
+    if (productHasVariantSelections(product?.variations)) {
+      if (slug) navigate(`/product/${encodeURIComponent(slug)}`);
+      return false;
+    }
+    const added = await handleAdd(product, imageUrl);
+    if (added) navigate("/cart");
+    return added;
   };
 
   const filterPanel = (
@@ -869,7 +895,7 @@ export default function StoreShopPage2026() {
                     className="inline-flex h-11 items-center justify-center gap-2 rounded-[1rem] border border-slate-200 bg-white px-4 text-sm font-bold text-[var(--tp-primary)] shadow-sm transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-950 dark:text-white lg:hidden"
                   >
                     <Filter className="h-4 w-4" />
-                    Filters
+                    {t("shop.filters")}
                   </button>
                   <label htmlFor="shop-sort" className="text-sm text-slate-500 dark:text-slate-400">
                     Sort by:
@@ -935,7 +961,7 @@ export default function StoreShopPage2026() {
                   <SearchX className="h-7 w-7" />
                 </div>
                 <h2 className="mt-5 text-2xl font-bold text-slate-950 dark:text-white">
-                  No products found
+                  {t("shop.noProducts")}
                 </h2>
                 <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500 dark:text-slate-300">
                   Try another keyword, category, price range, or rating filter.
@@ -972,6 +998,7 @@ export default function StoreShopPage2026() {
                       product={product}
                       viewMode={viewMode}
                       onAdd={handleAdd}
+                      onBuyNow={handleBuyNow}
                     />
                   ))}
                 </div>

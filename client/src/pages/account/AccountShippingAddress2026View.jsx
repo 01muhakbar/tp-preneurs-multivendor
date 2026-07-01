@@ -11,6 +11,7 @@ import {
   Star,
   Trash2,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import "./account-shipping-address-2026.css";
 
 function LoadingState() {
@@ -92,17 +93,18 @@ function AddressCard({
   onDeleteAddress,
   onMakePrimary,
   isSaving,
+  t,
 }) {
   const TypeIcon = address.label === "OFFICE" ? Building2 : Home;
   return (
     <article className="tpship2026-card">
       <div className="tpship2026-card-top">
         <div className="tpship2026-badges">
-          {address.isPrimary ? <span className="tpship2026-badge-primary">Primary</span> : null}
-          {address.isStore ? <span>Store</span> : null}
-          {address.isReturn ? <span>Return</span> : null}
+          {address.isPrimary ? <span className="tpship2026-badge-primary">{t("shippingAddress.primary")}</span> : null}
+          {address.isStore ? <span>{t("shippingAddress.store")}</span> : null}
+          {address.isReturn ? <span>{t("shippingAddress.return")}</span> : null}
         </div>
-        <button type="button" className="tpship2026-icon-button" aria-label="Address actions">
+        <button type="button" className="tpship2026-icon-button" aria-label={t("shippingAddress.addressActions")}>
           <MoreVertical aria-hidden="true" />
         </button>
       </div>
@@ -123,7 +125,7 @@ function AddressCard({
       <div className="tpship2026-card-actions">
         <button type="button" onClick={() => onEditAddress(address.raw)} disabled={isSaving}>
           <Pencil aria-hidden="true" />
-          Edit
+          {t("shippingAddress.edit")}
         </button>
         <button
           type="button"
@@ -131,7 +133,7 @@ function AddressCard({
           disabled={isSaving || address.isPrimary}
         >
           <Star aria-hidden="true" />
-          Make Primary
+          {t("shippingAddress.makePrimary")}
         </button>
         <button
           type="button"
@@ -140,7 +142,7 @@ function AddressCard({
           disabled={isSaving}
         >
           <Trash2 aria-hidden="true" />
-          Delete
+          {t("shippingAddress.delete")}
         </button>
       </div>
     </article>
@@ -170,6 +172,7 @@ export default function AccountShippingAddress2026View({
   onMakePrimary,
   onResetForm,
 }) {
+  const { t } = useTranslation();
   const isEditing = Boolean(form?.id);
   const savedCount = addresses.length;
 
@@ -177,12 +180,12 @@ export default function AccountShippingAddress2026View({
     <section className="tpship2026-root">
       <header className="tpship2026-heading">
         <div>
-          <h1>Shipping Addresses</h1>
-          <p>Manage your delivery, store, and return addresses.</p>
+          <h1>{t("shippingAddress.title")}</h1>
+          <p>{t("shippingAddress.subtitle")}</p>
         </div>
         <LinkComponent className="tpship2026-back" to="/user/my-account">
           <ArrowLeft aria-hidden="true" />
-          Back to My Account
+          {t("shippingAddress.backToAccount")}
         </LinkComponent>
       </header>
 
@@ -192,14 +195,14 @@ export default function AccountShippingAddress2026View({
           className={activeTab === "saved" ? "tpship2026-active" : ""}
           onClick={() => onTabChange("saved")}
         >
-          Saved Addresses <span>{savedCount}</span>
+          {t("shippingAddress.savedAddresses")} <span>{savedCount}</span>
         </button>
         <button
           type="button"
           className={activeTab === "form" ? "tpship2026-active" : ""}
           onClick={onFocusForm}
         >
-          {isEditing ? "Edit Address" : "Add New Address"}
+          {isEditing ? t("shippingAddress.editAddress") : t("shippingAddress.addNewAddress")}
         </button>
       </div>
 
@@ -226,23 +229,23 @@ export default function AccountShippingAddress2026View({
           >
             <div className="tpship2026-saved-head">
               <div>
-                <h2>Saved Addresses</h2>
+                <h2>{t("shippingAddress.savedAddresses")}</h2>
                 <p>{account.email}</p>
               </div>
               <button type="button" onClick={() => onResetForm("form")}>
                 <Plus aria-hidden="true" />
-                Add Address
+                {t("shippingAddress.addAddress")}
               </button>
             </div>
 
             {addresses.length === 0 ? (
               <div className="tpship2026-empty">
                 <MapPin aria-hidden="true" />
-                <h2>No address saved yet</h2>
-                <p>Add your first shipping address to use it at checkout.</p>
+                <h2>{t("shippingAddress.noAddressTitle")}</h2>
+                <p>{t("shippingAddress.noAddressDesc")}</p>
                 <button type="button" onClick={() => onResetForm("form")}>
                   <Plus aria-hidden="true" />
-                  Add New Address
+                  {t("shippingAddress.addNewAddress")}
                 </button>
               </div>
             ) : (
@@ -255,6 +258,7 @@ export default function AccountShippingAddress2026View({
                     onDeleteAddress={onDeleteAddress}
                     onMakePrimary={onMakePrimary}
                     isSaving={isSaving}
+                    t={t}
                   />
                 ))}
               </div>
@@ -272,30 +276,30 @@ export default function AccountShippingAddress2026View({
                 <MapPin aria-hidden="true" />
               </span>
               <div>
-                <h2>{isEditing ? "Edit Address" : "Add New Address"}</h2>
+                <h2>{isEditing ? t("shippingAddress.editAddress") : t("shippingAddress.addNewAddress")}</h2>
                 <p>{account.name}</p>
               </div>
             </div>
 
             <div className="tpship2026-form-grid">
               <TextField
-                label="First Name *"
+                label={t("shippingAddress.firstName")}
                 name="firstName"
                 value={form.firstName}
                 onFormChange={onFormChange}
                 error={fieldErrors.firstName}
-                placeholder="First Name"
+                placeholder={t("shippingAddress.firstNamePlaceholder")}
               />
               <TextField
-                label="Last Name *"
+                label={t("shippingAddress.lastName")}
                 name="lastName"
                 value={form.lastName}
                 onFormChange={onFormChange}
                 error={fieldErrors.lastName}
-                placeholder="Last Name"
+                placeholder={t("shippingAddress.lastNamePlaceholder")}
               />
               <TextField
-                label="Phone Number *"
+                label={t("shippingAddress.phoneNumber")}
                 name="phoneNumber"
                 value={form.phoneNumber}
                 onFormChange={onFormChange}
@@ -303,46 +307,46 @@ export default function AccountShippingAddress2026View({
                 placeholder="08xxxxxxxxxx"
               />
               <TextField
-                label="Email *"
+                label={t("shippingAddress.email")}
                 name="emailAddress"
                 value={form.emailAddress}
                 onFormChange={onFormChange}
                 error={fieldErrors.emailAddress}
-                placeholder="Email"
+                placeholder={t("shippingAddress.emailPlaceholder")}
                 type="email"
                 readOnly={Boolean(account.email && account.email !== "Not set")}
               />
               <SelectField
-                label="Province *"
+                label={t("shippingAddress.province")}
                 name="province"
                 value={form.province}
                 options={provinceOptions}
                 onFormChange={onFormChange}
                 error={fieldErrors.province}
-                placeholder="Select Province"
+                placeholder={t("shippingAddress.selectProvince")}
               />
               <SelectField
-                label="City / Regency *"
+                label={t("shippingAddress.cityRegency")}
                 name="city"
                 value={form.city}
                 options={cityOptions}
                 onFormChange={onFormChange}
                 error={fieldErrors.city}
-                placeholder={form.province ? "Select City / Regency" : "Select Province first"}
+                placeholder={form.province ? t("shippingAddress.selectCity") : t("shippingAddress.selectProvinceFirst")}
                 disabled={!form.province}
               />
               <SelectField
-                label="Subdistrict *"
+                label={t("shippingAddress.subdistrict")}
                 name="district"
                 value={form.district}
                 options={districtOptions}
                 onFormChange={onFormChange}
                 error={fieldErrors.district}
-                placeholder={form.city ? "Select Subdistrict" : "Select City / Regency first"}
+                placeholder={form.city ? t("shippingAddress.selectSubdistrict") : t("shippingAddress.selectCityFirst")}
                 disabled={!form.city}
               />
               <TextField
-                label="Postal Code *"
+                label={t("shippingAddress.postalCode")}
                 name="postalCode"
                 value={form.postalCode}
                 onFormChange={onFormChange}
@@ -351,34 +355,34 @@ export default function AccountShippingAddress2026View({
                 inputMode="numeric"
               />
               <TextField
-                label="Street Name *"
+                label={t("shippingAddress.streetName")}
                 name="streetName"
                 value={form.streetName}
                 onFormChange={onFormChange}
                 error={fieldErrors.streetName}
-                placeholder="Street Name"
+                placeholder={t("shippingAddress.streetNamePlaceholder")}
               />
               <TextField
-                label="House Number *"
+                label={t("shippingAddress.houseNumber")}
                 name="houseNumber"
                 value={form.houseNumber}
                 onFormChange={onFormChange}
                 error={fieldErrors.houseNumber}
-                placeholder="House Number"
+                placeholder={t("shippingAddress.houseNumberPlaceholder")}
               />
               <TextField
-                label="Building"
+                label={t("shippingAddress.building")}
                 name="building"
                 value={form.building}
                 onFormChange={onFormChange}
-                placeholder="Building / Floor / Unit"
+                placeholder={t("shippingAddress.buildingPlaceholder")}
               />
               <label className="tpship2026-field tpship2026-wide-field">
-                <span>Other Details</span>
+                <span>{t("shippingAddress.otherDetails")}</span>
                 <textarea
                   value={form.otherDetails || ""}
                   onChange={(event) => onFormChange("otherDetails", event.target.value)}
-                  placeholder="E.g. Near the mosque, unit 5A"
+                  placeholder={t("shippingAddress.otherDetailsPlaceholder")}
                 />
               </label>
             </div>
@@ -391,7 +395,7 @@ export default function AccountShippingAddress2026View({
                   onClick={() => onFormChange("markAs", "HOME")}
                 >
                   <Home aria-hidden="true" />
-                  Home
+                  {t("shippingAddress.home")}
                 </button>
                 <button
                   type="button"
@@ -399,15 +403,15 @@ export default function AccountShippingAddress2026View({
                   onClick={() => onFormChange("markAs", "OFFICE")}
                 >
                   <Building2 aria-hidden="true" />
-                  Office
+                  {t("shippingAddress.office")}
                 </button>
               </div>
 
               <div className="tpship2026-checks">
                 {[
-                  ["isPrimary", "Set as Primary"],
-                  ["isStore", "Set as Store Address"],
-                  ["isReturn", "Set as Return Address"],
+                  ["isPrimary", t("shippingAddress.setAsPrimary")],
+                  ["isStore", t("shippingAddress.setAsStore")],
+                  ["isReturn", t("shippingAddress.setAsReturn")],
                 ].map(([name, label]) => (
                   <label key={name}>
                     <input
@@ -432,12 +436,12 @@ export default function AccountShippingAddress2026View({
                   onClick={() => onResetForm("saved")}
                   disabled={isSaving}
                 >
-                  Cancel Edit
+                  {t("shippingAddress.cancelEdit")}
                 </button>
               ) : null}
               <button type="submit" disabled={isSaving}>
                 <Save aria-hidden="true" />
-                {isSaving ? "Saving..." : isEditing ? "Update Address" : "Save Address"}
+                {isSaving ? t("shippingAddress.saving") : isEditing ? t("shippingAddress.updateAddress") : t("shippingAddress.saveAddress")}
               </button>
             </div>
           </form>

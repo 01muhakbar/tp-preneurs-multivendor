@@ -352,8 +352,13 @@ router.get("/products/:slug", async (req: Request, res: Response) => {
 });
 
 const UPLOAD_BASE_DIR = path.resolve(process.cwd(), "uploads");
-const MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
-const ALLOWED_UPLOAD_MIME_TYPES = new Set(["image/jpeg", "image/png"]);
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+const ALLOWED_UPLOAD_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "application/pdf",
+]);
 const uploadStorage = multer.diskStorage({
   destination: (_req, _file, cb) => {
     const targetDir = path.join(UPLOAD_BASE_DIR, "products");
@@ -375,7 +380,7 @@ const upload = multer({
   limits: { fileSize: MAX_UPLOAD_BYTES },
   fileFilter: (_req, file, cb) => {
     if (!ALLOWED_UPLOAD_MIME_TYPES.has(file.mimetype)) {
-      cb(new Error("Only .jpeg and .png files are allowed."));
+      cb(new Error("Only JPG, PNG, WEBP, and PDF files are allowed."));
       return;
     }
     cb(null, true);
@@ -389,7 +394,7 @@ router.post("/upload", (req: Request, res: Response) => {
       if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
         return res.status(400).json({
           success: false,
-          message: "Image too large (max 2MB).",
+          message: "File too large (max 5MB).",
         });
       }
       return res.status(400).json({

@@ -19,10 +19,13 @@ export interface StoreAttributes {
   addressLine1?: string | null;
   addressLine2?: string | null;
   city?: string | null;
+  district?: string | null;
   province?: string | null;
   postalCode?: string | null;
   country?: string | null;
   shippingSetup?: Record<string, any> | null;
+  ownerIdentity?: Record<string, any> | null;
+  businessDetails?: Record<string, any> | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -44,10 +47,13 @@ type StoreCreationAttributes = Optional<
   | "addressLine1"
   | "addressLine2"
   | "city"
+  | "district"
   | "province"
   | "postalCode"
   | "country"
   | "shippingSetup"
+  | "ownerIdentity"
+  | "businessDetails"
 >;
 
 export class Store
@@ -72,10 +78,13 @@ export class Store
   declare addressLine1: string | null;
   declare addressLine2: string | null;
   declare city: string | null;
+  declare district: string | null;
   declare province: string | null;
   declare postalCode: string | null;
   declare country: string | null;
   declare shippingSetup: Record<string, any> | null;
+  declare ownerIdentity: Record<string, any> | null;
+  declare businessDetails: Record<string, any> | null;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
 
@@ -218,6 +227,10 @@ export class Store
           type: DataTypes.STRING(120),
           allowNull: true,
         },
+        district: {
+          type: DataTypes.STRING(120),
+          allowNull: true,
+        },
         province: {
           type: DataTypes.STRING(120),
           allowNull: true,
@@ -235,6 +248,16 @@ export class Store
           type: DataTypes.JSON,
           allowNull: true,
           field: "shipping_setup",
+        },
+        ownerIdentity: {
+          type: DataTypes.JSON,
+          allowNull: true,
+          field: "owner_identity",
+        },
+        businessDetails: {
+          type: DataTypes.JSON,
+          allowNull: true,
+          field: "business_details",
         },
         createdAt: {
           type: DataTypes.DATE,

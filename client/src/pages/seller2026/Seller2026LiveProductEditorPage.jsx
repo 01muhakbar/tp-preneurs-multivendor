@@ -61,6 +61,7 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
   const [notice, setNotice] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [tagInput, setTagInput] = useState("");
+  const [seoKeywordInput, setSeoKeywordInput] = useState("");
   const initial = useMemo(() => JSON.stringify(editor.detail ? editor.form : editor.form), [editor.detail]);
   const dirty = JSON.stringify(editor.form) !== initial || mode === "create";
   const setValue = (key) => (event) => editor.setForm((current) => ({ ...current, [key]: event.target.value }));
@@ -82,6 +83,12 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
+  const addSeoKeyword = () => {
+    const value = seoKeywordInput.trim();
+    if (!value) return;
+    editor.setForm((current) => ({ ...current, seoKeywords: Array.from(new Set([...current.seoKeywords, value])).slice(0, 20) }));
+    setSeoKeywordInput("");
+  };
   const addTag = () => {
     const value = tagInput.trim();
     if (!value) return;
@@ -169,13 +176,12 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
         <div style={{ display: activeTab === "details" ? "block" : "none" }}>
           <section className="seller2026-editor__details" id="editor-details">
             <div className="seller2026-editor__column">
-              <Field label="Product Name *" error={editor.validation.name} value={editor.form.name} onChange={(event) => editor.setForm((current) => ({ ...current, name: event.target.value, slug: current.slug || slugifySeller2026Product(event.target.value) }))} />
+              <Field label="Product Title/Name *" error={editor.validation.name} value={editor.form.name} onChange={(event) => editor.setForm((current) => ({ ...current, name: event.target.value, slug: slugifySeller2026Product(event.target.value) }))} />
               <Field label="Product Description"><textarea rows={4} value={editor.form.description} onChange={setValue("description")} /></Field>
             </div>
 
             <div className="seller2026-editor__column">
-              <Field label="Short Description" value={editor.form.shortDescription} disabled title="Short description is not supported by the current seller draft API" />
-              <Field label="Categories *" error={editor.validation.categoryIds}>
+              <Field label="Category *" error={editor.validation.categoryIds}>
                 <div className="seller2026-editor__category-picker">
                   {editor.categories.map((category) => <label key={category.value}><input type="checkbox" checked={editor.form.categoryIds.includes(category.value)} onChange={(event) => editor.setForm((current) => {
                     const categoryIds = event.target.checked ? [...current.categoryIds, category.value] : current.categoryIds.filter((id) => id !== category.value);
@@ -198,11 +204,11 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
           <section className="seller2026-editor__fields" id="editor-pricing">
             <Field label="Product Price *" error={editor.validation.price}><div className="seller2026-editor__money"><span>Rp</span><input type="number" min="0" value={editor.form.price} onChange={setValue("price")} /></div></Field>
             <Field label="Sale Price" error={editor.validation.salePrice}><div className="seller2026-editor__money"><span>Rp</span><input type="number" min="0" value={editor.form.salePrice} onChange={setValue("salePrice")} /></div></Field>
-            <Field label="Quantity *" error={editor.validation.quantity} type="number" min="0" value={editor.form.quantity} onChange={setValue("quantity")} />
-            <Field label="SKU" value={editor.form.sku} onChange={setValue("sku")} />
-            <Field label="Barcode (ISBN / EAN)" value={editor.form.barcode} onChange={setValue("barcode")} />
+            <Field label="Product Quantity *" error={editor.validation.quantity} type="number" min="0" value={editor.form.quantity} onChange={setValue("quantity")} />
+            <Field label="Product SKU" value={editor.form.sku} onChange={setValue("sku")} />
+            <Field label="Product Barcode" value={editor.form.barcode} onChange={setValue("barcode")} />
             <Field label="Product Slug *" value={editor.form.slug} onChange={setValue("slug")} />
-            <Field label="Tags">
+            <Field label="Product Tags">
               <div className="seller2026-editor__tags">{editor.form.tags.map((tag) => <span key={tag}>{tag}<button type="button" aria-label={`Remove ${tag}`} onClick={() => editor.setForm((current) => ({ ...current, tags: current.tags.filter((item) => item !== tag) }))}>x</button></span>)}<input value={tagInput} onChange={(event) => setTagInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addTag(); } }} placeholder="Press Enter to add" /></div>
             </Field>
           </section>
@@ -216,8 +222,12 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
 
         <div style={{ display: activeTab === "seo" ? "block" : "none" }}>
           <section className="seller2026-editor__seo" id="editor-seo">
-            <Field label="SEO Title" value={editor.form.seoTitle} onChange={setValue("seoTitle")} />
-            <Field label="SEO Description"><textarea rows={3} value={editor.form.seoDescription} onChange={setValue("seoDescription")} /></Field>
+            <Field label="Meta Title" value={editor.form.seoTitle} onChange={setValue("seoTitle")} />
+            <Field label="Meta Description"><textarea rows={3} value={editor.form.seoDescription} onChange={setValue("seoDescription")} /></Field>
+            <Field label="SEO Keywords">
+              <div className="seller2026-editor__tags">{editor.form.seoKeywords.map((keyword) => <span key={keyword}>{keyword}<button type="button" aria-label={`Remove ${keyword}`} onClick={() => editor.setForm((current) => ({ ...current, seoKeywords: current.seoKeywords.filter((item) => item !== keyword) }))}>x</button></span>)}<input value={seoKeywordInput} onChange={(event) => setSeoKeywordInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addSeoKeyword(); } }} placeholder="Press Enter to add" /></div>
+            </Field>
+            <Field label="OG Image URL" value={editor.form.ogImageUrl} onChange={setValue("ogImageUrl")} type="url" />
           </section>
         </div>
       </form>

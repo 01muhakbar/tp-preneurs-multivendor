@@ -24,6 +24,7 @@ import {
   unwrapNotifications,
 } from "../../pages/account/notifications2026/accountNotifications2026Adapter.js";
 import "./notification-preview-dropdown-2026.css";
+import { useTranslation } from "react-i18next";
 
 const ICONS = {
   bell: Bell,
@@ -54,6 +55,8 @@ function PreviewIcon({ item }) {
 
 export default function NotificationPreviewDropdown({ open, onNavigate, onClose }) {
   const queryClient = useQueryClient();
+  const { i18n } = useTranslation();
+  const isIndo = i18n.language === "id";
   const previewQuery = useQuery({
     queryKey: ["account", "notifications", "preview", { limit: 5 }],
     queryFn: () => fetchUserNotifications({ limit: 5, offset: 0 }),
@@ -84,8 +87,9 @@ export default function NotificationPreviewDropdown({ open, onNavigate, onClose 
         notifications: payload.items,
         activeFilter: "all",
         unreadCount: unreadQuery.data ?? payload.unreadCount,
+        isIndo,
       }),
-    [payload.items, payload.unreadCount, unreadQuery.data]
+    [payload.items, payload.unreadCount, unreadQuery.data, isIndo]
   );
   const rows = viewModel.notifications.slice(0, 5);
   const unreadCount = Number(viewModel.unreadCount || 0);

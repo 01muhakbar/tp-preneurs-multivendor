@@ -23,6 +23,7 @@ export const PUBLIC_STORE_IDENTITY_ATTRIBUTES = [
   "addressLine1",
   "addressLine2",
   "city",
+  "district",
   "province",
   "postalCode",
   "country",
@@ -43,6 +44,7 @@ export const PUBLIC_STORE_IDENTITY_SELLER_OWNED_FIELDS = [
   "addressLine1",
   "addressLine2",
   "city",
+  "district",
   "province",
   "postalCode",
   "country",
@@ -337,6 +339,7 @@ export const buildPublicStoreSummary = async (store: any) => {
       FROM product_reviews pr
       INNER JOIN products p ON p.id = pr.product_id
       WHERE p.store_id = :storeId
+        AND COALESCE(pr.status, 'published') = 'published'
         AND p.status = 'active'
         AND p.published IN (1, true)
         AND COALESCE(p.seller_submission_status, 'none') = 'none'
@@ -398,6 +401,7 @@ export const serializePublicStoreIdentity = async (store: any) => {
       addressLine1: "",
       addressLine2: "",
       city: "",
+      district: "",
       province: "",
       postalCode: "",
       country: "",
@@ -424,6 +428,7 @@ export const serializePublicStoreIdentity = async (store: any) => {
     addressLine1: toText(readStoreIdentityAttr(store, "addressLine1")),
     addressLine2: toText(readStoreIdentityAttr(store, "addressLine2")),
     city: toText(readStoreIdentityAttr(store, "city")),
+    district: toText(readStoreIdentityAttr(store, "district")),
     province: toText(readStoreIdentityAttr(store, "province")),
     postalCode: toText(readStoreIdentityAttr(store, "postalCode")),
     country: toText(readStoreIdentityAttr(store, "country")),

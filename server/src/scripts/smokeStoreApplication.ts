@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import bcrypt from "bcrypt";
 import { Op } from "sequelize";
 import { Store, StoreApplication, User, sequelize } from "../models/index.js";
+import { normalizeStoreApplicationSnapshots } from "../services/storeApplication.js";
 
 const BASE_URL = String(process.env.BASE_URL || "http://localhost:3001").replace(/\/+$/, "");
 const DEFAULT_PASSWORD = process.env.MVF_SMOKE_PASSWORD || "mvf-smoke-123";
@@ -138,6 +139,26 @@ async function cleanupFixtures() {
 }
 
 async function run() {
+  const legacyPaymentSnapshot = normalizeStoreApplicationSnapshots({
+    payoutPaymentSnapshot: {
+      payoutMethod: "QRIS_STATIC",
+      accountHolderName: "Legacy account",
+      accountNumber: "LEGACY-MERCHANT",
+      bankName: "MANUAL_QRIS",
+      qrisImageUrl: "/uploads/products/legacy-qris.png",
+    },
+    internalMetadata: {
+      sellerOnboarding2026: {
+        paymentMerchantName: "Legacy merchant",
+        paymentQrisPayload: "LEGACY-PAYLOAD",
+      },
+    },
+  }).payoutPaymentSnapshot;
+  assert.equal(legacyPaymentSnapshot.accountName, "Legacy account");
+  assert.equal(legacyPaymentSnapshot.merchantName, "Legacy merchant");
+  assert.equal(legacyPaymentSnapshot.merchantId, "LEGACY-MERCHANT");
+  assert.equal(legacyPaymentSnapshot.qrisPayload, "LEGACY-PAYLOAD");
+
   await ensureServerReady();
   await sequelize.authenticate();
 
@@ -206,8 +227,11 @@ async function run() {
           country: "Indonesia",
         },
         payoutPaymentSnapshot: {
-          payoutMethod: "bank_transfer",
-          accountHolderName: "MVF Applicant",
+          providerCode: "MANUAL_QRIS",
+          paymentType: "QRIS_STATIC",
+          accountName: "MVF Applicant",
+          merchantName: `${RUN_ID} Store`,
+          qrisImageUrl: "/uploads/products/smoke-qris.png",
         },
         complianceSnapshot: {
           supportEmail: applicant.email,
@@ -276,10 +300,15 @@ async function run() {
       body: JSON.stringify({
         currentStep: "payout_payment",
         payoutPaymentSnapshot: {
-          payoutMethod: "bank_transfer",
-          accountHolderName: "MVF Applicant",
-          accountNumber: "1234567890",
-          bankName: "Bank Smoke",
+          providerCode: "MANUAL_QRIS",
+          paymentType: "QRIS_STATIC",
+          accountName: "MVF Applicant",
+          merchantName: `${RUN_ID} Store`,
+          merchantId: "SMOKE-MERCHANT-01",
+          qrisImageUrl: "/uploads/products/smoke-qris.png",
+          qrisPayload: "SMOKE-QRIS-PAYLOAD",
+          instructionText: "Scan this QRIS image.",
+          sellerNote: "Revision QRIS note.",
         },
       }),
     }

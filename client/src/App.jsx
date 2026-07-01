@@ -7,25 +7,13 @@ import AdminGuard from "./components/AdminGuard.jsx";
 import RequirePerm from "./components/guards/RequirePerm.jsx";
 import AccountGuard from "./components/AccountGuard.jsx";
 import SeoCustomizationBridge from "./components/SeoCustomizationBridge.jsx";
-import {
-  isSeller2026AnalyticsProductionEnabled,
-  isSeller2026AttributeValuesProductionEnabled,
-  isSeller2026AttributesProductionEnabled,
-  isSeller2026AuthoringProductionEnabled,
-  isSeller2026CatalogProductionEnabled,
-  isSeller2026CategoriesProductionEnabled,
-  isSeller2026DashboardProductionEnabled,
-  isSeller2026NotificationsProductionEnabled,
-  isSeller2026OrdersProductionEnabled,
-  isSeller2026PaymentProfileProductionEnabled,
-  isSeller2026PaymentReviewProductionEnabled,
-  isSeller2026ProductDetailProductionEnabled,
-  isSeller2026StoreProfileProductionEnabled,
-  isSeller2026TeamAuditProductionEnabled,
-  isSeller2026TeamProductionEnabled,
-} from "./features/sellerWorkspace2026/sellerWorkspace2026Flags.js";
+import SellerLoginPage from "./pages/seller/SellerLoginPage.jsx";
+import SellerForgotPasswordPage from "./pages/seller/SellerForgotPasswordPage.jsx";
+import SellerCreateAccountPage from "./pages/seller/SellerCreateAccountPage.jsx";
+import SellerVerifyEmailPage from "./pages/seller/SellerVerifyEmailPage.jsx";
+import SellerStoreApplicationPage from "./pages/seller/SellerStoreApplicationPage.jsx";
+import { buildSellerWorkspacePath } from "./utils/sellerWorkspaceRoute.js";
 import { seller2026PreviewRoutes } from "./routes/seller2026RouteConfig.jsx";
-const SellerAnalyticsPage = lazy(() => import("./pages/seller/SellerAnalyticsPage.jsx"));
 const Seller2026LiveAnalyticsPage = lazy(() => import("./pages/seller2026/Seller2026LiveAnalyticsPage.jsx"));
 const StoreProductDetailPage = lazy(() => import("./pages/store/StoreProductDetailPage.jsx"));
 const CheckoutPage = lazy(() => import("./pages/store/Checkout.jsx"));
@@ -48,7 +36,7 @@ const StoreMicrositePage = lazy(() => import("./pages/store/StoreMicrositePage.j
 const StoreMicrositeProductDetailPage = lazy(() =>
   import("./pages/store/StoreMicrositeProductDetailPage.jsx")
 );
-const KachaBazarDemoHomePage = lazy(() => import("./pages/store/KachaBazarDemoHomePage.jsx"));
+const TPPreneurHomePage = lazy(() => import("./pages/store/TPPreneurHomePage.jsx"));
 const StoreWishlistPage2026 = lazy(() => import("./pages/store/StoreWishlistPage2026.jsx"));
 const isProductionBuild = import.meta.env.PROD;
 const AdminLayout = lazy(() => import("./components/layouts/AdminLayout.jsx"));
@@ -118,9 +106,6 @@ const AccountStoreInvitationsPage = lazy(() =>
 const AccountLegacySellerRoutePage = lazy(() =>
   import("./pages/account/AccountLegacySellerRoutePage.jsx")
 );
-const AccountStoreApplicationPage = lazy(() =>
-  import("./pages/account/AccountStoreApplicationPage.jsx")
-);
 const AdminStorePaymentPage = lazy(() => import("./pages/admin/AdminStorePaymentPage.jsx"));
 const AdminStorePaymentReviewPage = lazy(() =>
   import("./pages/admin/AdminStorePaymentReviewPage.jsx")
@@ -132,25 +117,14 @@ const AdminStoreApplicationsPage = lazy(() =>
 const AdminStoreApplicationDetailPage = lazy(() =>
   import("./pages/admin/AdminStoreApplicationDetailPage.jsx")
 );
+const AdminStoreKycPage = lazy(() => import("./pages/admin/AdminStoreKycPage.jsx"));
+const AdminStoreKycDetailPage = lazy(() => import("./pages/admin/AdminStoreKycDetailPage.jsx"));
 const SellerLayout = lazy(() => import("./layouts/SellerLayout.jsx"));
-const SellerWorkspaceHome = lazy(() => import("./pages/seller/SellerWorkspaceHome.jsx"));
-const SellerStoreProfilePage = lazy(() => import("./pages/seller/SellerStoreProfilePage.jsx"));
-const SellerCatalogPage = lazy(() => import("./pages/seller/SellerCatalogPage.jsx"));
-const SellerProductAuthoringPage = lazy(() => import("./pages/seller/SellerProductAuthoringPage.jsx"));
-const SellerProductDetailPage = lazy(() => import("./pages/seller/SellerProductDetailPage.jsx"));
-const SellerProductEditPage = lazy(() => import("./pages/seller/SellerProductEditPage.jsx"));
-const SellerCategoriesPage = lazy(() => import("./pages/seller/SellerCategoriesPage.jsx"));
-const SellerAttributesPage = lazy(() => import("./pages/seller/SellerAttributesPage.jsx"));
-const SellerAttributeValuesPage = lazy(() => import("./pages/seller/SellerAttributeValuesPage.jsx"));
-const SellerOrdersPage = lazy(() => import("./pages/seller/SellerOrdersPage.jsx"));
-const SellerOrderDetailPage = lazy(() => import("./pages/seller/SellerOrderDetailPage.jsx"));
-const SellerPaymentReviewPage = lazy(() => import("./pages/seller/SellerPaymentReviewPage.jsx"));
-const SellerPaymentProfilePage = lazy(() => import("./pages/seller/SellerPaymentProfilePage.jsx"));
-const SellerTeamPage = lazy(() => import("./pages/seller/SellerTeamPage.jsx"));
-const SellerMemberLifecyclePage = lazy(() => import("./pages/seller/SellerMemberLifecyclePage.jsx"));
-const SellerTeamAuditPage = lazy(() => import("./pages/seller/SellerTeamAuditPage.jsx"));
 const Seller2026LiveDashboardPage = lazy(() =>
   import("./pages/seller2026/Seller2026LiveDashboardPage.jsx")
+);
+const Seller2026LiveLegalTaxPage = lazy(() =>
+  import("./pages/seller2026/Seller2026LiveLegalTaxPage.jsx")
 );
 const Seller2026LiveStorefrontPage = lazy(() =>
   import("./pages/seller2026/Seller2026LiveStorefrontPage.jsx")
@@ -166,6 +140,9 @@ const Seller2026LiveProductEditorPage = lazy(() =>
 );
 const Seller2026LiveCategoriesPage = lazy(() =>
   import("./pages/seller2026/Seller2026LiveCategoriesPage.jsx")
+);
+const Seller2026LiveProductReviewsPage = lazy(() =>
+  import("./pages/seller2026/Seller2026LiveProductReviewsPage.jsx")
 );
 const Seller2026LiveAttributesPage = lazy(() =>
   import("./pages/seller2026/Seller2026LiveAttributesPage.jsx")
@@ -241,6 +218,11 @@ function LegacySellerCouponsRedirect() {
     ? `/seller/stores/${encodeURIComponent(storeSlug)}/catalog/coupons`
     : "/seller/stores";
   return <Navigate to={target} replace />;
+}
+
+function LegacySellerReviewsRedirect() {
+  const { storeSlug } = useParams();
+  return <Navigate to={buildSellerWorkspacePath(storeSlug, "/catalog/reviews")} replace />;
 }
 
 function LegacySellerProductCreateRedirect() {
@@ -357,7 +339,7 @@ export default function App() {
               isProductionBuild ? (
                 <Navigate to="/" replace />
               ) : (
-                <KachaBazarDemoHomePage />
+                <TPPreneurHomePage />
               )
             }
           />
@@ -367,7 +349,7 @@ export default function App() {
           />
           <Route path="/store/:slug" element={<StoreMicrositePage />} />
           <Route path="/" element={<StoreLayout />}>
-            <Route index element={<KachaBazarDemoHomePage />} />
+            <Route index element={<TPPreneurHomePage />} />
             <Route path="shop" element={<StoreSearchPage />} />
             <Route path="search" element={<StoreSearchPage />} />
             <Route path="wishlist" element={<StoreWishlistPage2026 />} />
@@ -419,7 +401,10 @@ export default function App() {
                   element={<AccountLegacySellerRoutePage lane="paymentReview" />}
                 />
                 <Route path="store-invitations" element={<AccountStoreInvitationsPage />} />
-                <Route path="store-application" element={<AccountStoreApplicationPage />} />
+                <Route
+                  path="store-application"
+                  element={<Navigate to="/seller/store-application" replace />}
+                />
                 <Route path="update-profile" element={<AccountProfilePage />} />
                 <Route path="change-password" element={<AccountChangePasswordPage />} />
               </Route>
@@ -452,6 +437,15 @@ export default function App() {
           <Route path="/admin/forgot-password" element={<AdminForgotPasswordPage />} />
           <Route path="/admin/reset-password" element={<AdminResetPasswordPage />} />
           <Route path="/admin/forbidden" element={<AdminForbiddenPage />} />
+          <Route path="/seller" element={<Navigate to="/seller/login" replace />} />
+          <Route path="/seller/login" element={<SellerLoginPage />} />
+          <Route path="/seller/create-account" element={<SellerCreateAccountPage />} />
+          <Route path="/seller/verify-email" element={<SellerVerifyEmailPage />} />
+          <Route path="/seller/store-application" element={<SellerStoreApplicationPage />} />
+          <Route
+            path="/seller/forgot-password"
+            element={<SellerForgotPasswordPage />}
+          />
           <Route
             path="/seller/stores/:storeSlug/profile"
             element={<LegacySellerStoreProfileRedirect />}
@@ -477,204 +471,33 @@ export default function App() {
             element={<LegacySellerCouponsRedirect />}
           />
           <Route path="/seller/stores/:storeSlug" element={<SellerLayout />}>
-            <Route
-              index
-              element={
-                isSeller2026DashboardProductionEnabled() ? (
-                  <Seller2026LiveDashboardPage />
-                ) : (
-                  <SellerWorkspaceHome />
-                )
-              }
-            />
-            <Route
-              path="dashboard"
-              element={
-                isSeller2026DashboardProductionEnabled() ? (
-                  <Seller2026LiveDashboardPage />
-                ) : (
-                  <SellerWorkspaceHome />
-                )
-              }
-            />
-            <Route
-              path="store-profile"
-              element={
-                isSeller2026StoreProfileProductionEnabled() ? (
-                  <Seller2026LiveStorefrontPage />
-                ) : (
-                  <SellerStoreProfilePage />
-                )
-              }
-            />
+            <Route index element={<Seller2026LiveDashboardPage />} />
+            <Route path="dashboard" element={<Seller2026LiveDashboardPage />} />
+            <Route path="store-profile" element={<Seller2026LiveStorefrontPage />} />
+            <Route path="legal-tax" element={<Seller2026LiveLegalTaxPage />} />
             <Route path="microsite-preview" element={<Seller2026LiveStorefrontPage />} />
-            <Route 
-              path="analytics" 
-              element={
-                isSeller2026AnalyticsProductionEnabled() ? (
-                  <Seller2026LiveAnalyticsPage />
-                ) : (
-                  <SellerAnalyticsPage />
-                )
-              } 
-            />
-            <Route 
-              path="team" 
-              element={
-                isSeller2026TeamProductionEnabled() ? (
-                  <Seller2026LiveTeamPage />
-                ) : (
-                  <SellerTeamPage />
-                )
-              } 
-            />
-            <Route
-              path="team/audit"
-              element={
-                isSeller2026TeamAuditProductionEnabled() ? (
-                  <Seller2026LiveTeamAuditPage />
-                ) : (
-                  <SellerTeamAuditPage />
-                )
-              }
-            />
-            <Route
-              path="team/:memberId"
-              element={
-                isSeller2026TeamProductionEnabled() ? (
-                  <Seller2026LiveMemberDetailPage />
-                ) : (
-                  <SellerMemberLifecyclePage />
-                )
-              }
-            />
-            <Route
-              path="notifications"
-              element={
-                isSeller2026NotificationsProductionEnabled() ? (
-                  <Seller2026LiveNotificationsPage />
-                ) : (
-                  <SellerWorkspaceHome />
-                )
-              }
-            />
+            <Route path="analytics" element={<Seller2026LiveAnalyticsPage />} />
+            <Route path="team" element={<Seller2026LiveTeamPage />} />
+            <Route path="team/audit" element={<Seller2026LiveTeamAuditPage />} />
+            <Route path="team/:memberId" element={<Seller2026LiveMemberDetailPage />} />
+            <Route path="notifications" element={<Seller2026LiveNotificationsPage />} />
             <Route path="catalog" element={<LegacySellerCatalogRedirect />} />
             <Route path="catalog/new" element={<LegacySellerProductCreateRedirect />} />
-            <Route
-              path="catalog/products"
-              element={
-                isSeller2026CatalogProductionEnabled() ? (
-                  <Seller2026LiveProductsPage />
-                ) : (
-                  <SellerCatalogPage />
-                )
-              }
-            />
-            <Route
-              path="catalog/categories"
-              element={
-                isSeller2026CategoriesProductionEnabled() ? (
-                  <Seller2026LiveCategoriesPage />
-                ) : (
-                  <SellerCategoriesPage />
-                )
-              }
-            />
-            <Route
-              path="catalog/attributes"
-              element={
-                isSeller2026AttributesProductionEnabled() ? (
-                  <Seller2026LiveAttributesPage />
-                ) : (
-                  <SellerAttributesPage />
-                )
-              }
-            />
-            <Route
-              path="catalog/attributes/:attributeId/values"
-              element={
-                isSeller2026AttributeValuesProductionEnabled() ? (
-                  <Seller2026LiveAttributeValuesPage />
-                ) : (
-                  <SellerAttributeValuesPage />
-                )
-              }
-            />
-            <Route
-              path="catalog/products/new"
-              element={
-                isSeller2026AuthoringProductionEnabled() ? (
-                  <Seller2026LiveProductEditorPage mode="create" />
-                ) : (
-                  <SellerProductAuthoringPage />
-                )
-              }
-            />
-            <Route
-              path="catalog/:productId/edit"
-              element={<LegacySellerProductEditRedirect />}
-            />
-            <Route
-              path="catalog/products/:productId/edit"
-              element={
-                isSeller2026AuthoringProductionEnabled() ? (
-                  <Seller2026LiveProductEditorPage mode="edit" />
-                ) : (
-                  <SellerProductEditPage />
-                )
-              }
-            />
-            <Route
-              path="catalog/products/:productId"
-              element={
-                isSeller2026ProductDetailProductionEnabled() ? (
-                  <Seller2026LiveProductDetailPage />
-                ) : (
-                  <SellerProductDetailPage />
-                )
-              }
-            />
+            <Route path="catalog/products" element={<Seller2026LiveProductsPage />} />
+            <Route path="catalog/categories" element={<Seller2026LiveCategoriesPage />} />
+            <Route path="catalog/attributes" element={<Seller2026LiveAttributesPage />} />
+            <Route path="catalog/attributes/:attributeId/values" element={<Seller2026LiveAttributeValuesPage />} />
+            <Route path="catalog/reviews" element={<Seller2026LiveProductReviewsPage />} />
+            <Route path="catalog/products/new" element={<Seller2026LiveProductEditorPage mode="create" />} />
+            <Route path="catalog/:productId/edit" element={<LegacySellerProductEditRedirect />} />
+            <Route path="catalog/products/:productId/edit" element={<Seller2026LiveProductEditorPage mode="edit" />} />
+            <Route path="catalog/products/reviews" element={<LegacySellerReviewsRedirect />} />
+            <Route path="catalog/products/:productId" element={<Seller2026LiveProductDetailPage />} />
             <Route path="catalog/:productId" element={<LegacySellerProductDetailRedirect />} />
-            <Route
-              path="orders"
-              element={
-                isSeller2026OrdersProductionEnabled() ? (
-                  <Seller2026LiveOrdersPage />
-                ) : (
-                  <SellerOrdersPage />
-                )
-              }
-            />
-            <Route
-              path="orders/:suborderId"
-              element={
-                isSeller2026OrdersProductionEnabled() ? (
-                  <Seller2026LiveSuborderDetailPage />
-                ) : (
-                  <SellerOrderDetailPage />
-                )
-              }
-            />
-            <Route 
-              path="payment-review" 
-              element={
-                isSeller2026PaymentReviewProductionEnabled() ? (
-                  <Seller2026LivePaymentReviewPage />
-                ) : (
-                  <SellerPaymentReviewPage />
-                )
-              } 
-            />
-            <Route 
-              path="payment-profile" 
-              element={
-                isSeller2026PaymentProfileProductionEnabled() ? (
-                  <Seller2026LivePaymentProfilePage />
-                ) : (
-                  <SellerPaymentProfilePage />
-                )
-              } 
-            />
+            <Route path="orders" element={<Seller2026LiveOrdersPage />} />
+            <Route path="orders/:suborderId" element={<Seller2026LiveSuborderDetailPage />} />
+            <Route path="payment-review" element={<Seller2026LivePaymentReviewPage />} />
+            <Route path="payment-profile" element={<Seller2026LivePaymentProfilePage />} />
             <Route path="coupons" element={<LegacySellerCouponsRedirect />} />
             <Route path="catalog/coupons" element={<Seller2026LiveCouponsPage />} />
           </Route>
@@ -919,6 +742,66 @@ export default function App() {
                     <AdminStorePaymentPage />
                   </RequirePerm>
                 }
+              />
+              <Route
+                path="online-store/payment-review"
+                element={
+                  <RequirePerm perm="SETTINGS_MANAGE">
+                    <AdminStorePaymentReviewPage />
+                  </RequirePerm>
+                }
+              />
+              <Route
+                path="online-store/payment-audit"
+                element={
+                  <RequirePerm perm="DASHBOARD_VIEW">
+                    <AdminPaymentAuditPage />
+                  </RequirePerm>
+                }
+              />
+              <Route
+                path="online-store/payment-audit/:orderId"
+                element={
+                  <RequirePerm perm="DASHBOARD_VIEW">
+                    <AdminPaymentAuditDetailPage />
+                  </RequirePerm>
+                }
+              />
+              <Route
+                path="online-store/store-applications"
+                element={
+                  <RequirePerm perm="SETTINGS_MANAGE">
+                    <AdminStoreApplicationsPage />
+                  </RequirePerm>
+                }
+              />
+              <Route
+                path="online-store/store-applications/:id"
+                element={
+                  <RequirePerm perm="SETTINGS_MANAGE">
+                    <AdminStoreApplicationDetailPage />
+                  </RequirePerm>
+                }
+              />
+              <Route
+                path="online-store/kyc-audit"
+                element={
+                  <RequirePerm perm="SETTINGS_MANAGE">
+                    <AdminStoreKycPage />
+                  </RequirePerm>
+                }
+              />
+              <Route
+                path="online-store/kyc-audit/:id"
+                element={
+                  <RequirePerm perm="SETTINGS_MANAGE">
+                    <AdminStoreKycDetailPage />
+                  </RequirePerm>
+                }
+              />
+              <Route
+                path="admin-profile"
+                element={<AdminProfilePage />}
               />
               <Route
                 path="online-store/payment-review"

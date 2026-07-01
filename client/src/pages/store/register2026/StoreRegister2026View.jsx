@@ -18,6 +18,7 @@ import {
   UserRound,
   Zap,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import "./store-register-2026.css";
 
 const assignRef = (fieldRefs, key) => (node) => {
@@ -29,30 +30,30 @@ const assignRef = (fieldRefs, key) => (node) => {
 const benefitItems = [
   {
     icon: ShieldCheck,
-    title: "Secure Account",
-    text: "Your data is safe with us",
+    titleKey: "register.benefitSecure",
+    textKey: "register.benefitSecureDesc",
   },
   {
     icon: Zap,
-    title: "Faster Checkout",
-    text: "Save time on every order",
+    titleKey: "register.benefitFast",
+    textKey: "register.benefitFastDesc",
   },
   {
     icon: PackageCheck,
-    title: "Order Tracking",
-    text: "Stay updated in real time",
+    titleKey: "register.benefitTrack",
+    textKey: "register.benefitTrackDesc",
   },
   {
     icon: MapPin,
-    title: "Saved Addresses",
-    text: "Keep delivery details ready",
+    titleKey: "register.benefitAddress",
+    textKey: "register.benefitAddressDesc",
   },
 ];
 
 const mobileBenefits = [
-  { icon: Box, label: "Local Products" },
-  { icon: Truck, label: "Fast Delivery" },
-  { icon: ShieldCheck, label: "Secure Payment" },
+  { icon: Box, labelKey: "register.mobileLocal" },
+  { icon: Truck, labelKey: "register.mobileFast" },
+  { icon: ShieldCheck, labelKey: "register.mobileSecure" },
 ];
 
 function FieldError({ id, message }) {
@@ -80,8 +81,20 @@ function StatusNotice({ status, statusRef }) {
 }
 
 function PasswordStrength({ strength }) {
+  const { t } = useTranslation();
+
+  const labelKeyMap = {
+    "Weak": "register.strengthWeak",
+    "Fair": "register.strengthFair",
+    "Good": "register.strengthGood",
+    "Strong": "register.strengthStrong"
+  };
+
+  const translatedLabel = strength.label ? t(labelKeyMap[strength.label] || strength.label) : "";
+  const translatedHelper = strength.helper === "Use at least 8 characters, including at least 1 letter and 1 number." ? t("register.passwordHelper") : strength.helper;
+
   return (
-    <div className="sr26-strength" aria-label={`Password strength: ${strength.label || "empty"}`}>
+    <div className="sr26-strength" aria-label={`Password strength: ${translatedLabel || "empty"}`}>
       <div className="sr26-strength-bars" aria-hidden="true">
         {strength.segments.map((active, index) => (
           <span
@@ -92,8 +105,8 @@ function PasswordStrength({ strength }) {
         ))}
       </div>
       <div className="sr26-strength-row">
-        <span>{strength.helper}</span>
-        {strength.label ? <strong>{strength.label}</strong> : null}
+        <span>{translatedHelper}</span>
+        {translatedLabel ? <strong>{translatedLabel}</strong> : null}
       </div>
     </div>
   );
@@ -110,24 +123,25 @@ function RegisterForm({
   onToggleConfirmPassword,
 }) {
   const { form, status, errors, passwordStrength } = viewModel;
+  const { t } = useTranslation();
 
   return (
     <form className="sr26-card sr26-register-card" onSubmit={onSubmit} noValidate>
       <div className="sr26-card-head">
         <div>
-          <h1>Create your account</h1>
-          <p>Join TP Preneurs and start shopping.</p>
+          <h1>{t("register.title")}</h1>
+          <p>{t("register.subtitle")}</p>
         </div>
         <span className="sr26-secure-badge">
           <ShieldCheck aria-hidden="true" size={18} />
-          100% Secure
+          {t("register.secureBadge")}
         </span>
       </div>
 
       <StatusNotice status={status} statusRef={statusRef} />
 
       <div className="sr26-honeypot" aria-hidden="true">
-        <label htmlFor="sr26-company">Company</label>
+        <label htmlFor="sr26-company">{t("register.company")}</label>
         <input
           id="sr26-company"
           tabIndex={-1}
@@ -139,7 +153,7 @@ function RegisterForm({
 
       <div className="sr26-field-grid">
         <div className="sr26-field">
-          <label htmlFor="sr26-name">Full name</label>
+          <label htmlFor="sr26-name">{t("register.fullName")}</label>
           <div className="sr26-input-wrap">
             <UserRound aria-hidden="true" size={19} />
             <input
@@ -148,7 +162,7 @@ function RegisterForm({
               type="text"
               value={form.name}
               onChange={(event) => onChange("name", event.target.value)}
-              placeholder="Your full name"
+              placeholder={t("register.fullNamePlaceholder")}
               autoComplete="name"
               aria-invalid={Boolean(errors.name)}
               aria-describedby={errors.name ? "sr26-name-error" : undefined}
@@ -159,7 +173,7 @@ function RegisterForm({
         </div>
 
         <div className="sr26-field">
-          <label htmlFor="sr26-email">Email</label>
+          <label htmlFor="sr26-email">{t("register.email")}</label>
           <div className="sr26-input-wrap">
             <Mail aria-hidden="true" size={19} />
             <input
@@ -168,7 +182,7 @@ function RegisterForm({
               type="email"
               value={form.email}
               onChange={(event) => onChange("email", event.target.value)}
-              placeholder="you@email.com"
+              placeholder={t("register.emailPlaceholder")}
               autoComplete="email"
               aria-invalid={Boolean(errors.email)}
               aria-describedby={errors.email ? "sr26-email-error" : undefined}
@@ -180,11 +194,14 @@ function RegisterForm({
       </div>
 
       <div className="sr26-field">
-        <label htmlFor="sr26-phone">WhatsApp / Phone number</label>
+        <label htmlFor="sr26-phone">{t("register.phone")}</label>
         <div className="sr26-phone-wrap">
-          <span className="sr26-country-pill" aria-label="Singapore country code">
-            🇸🇬
-            <span>⌄</span>
+          <span className="sr26-country-pill" aria-label="Indonesia country code" style={{ padding: '0 12px', gap: '8px' }}>
+            <svg aria-hidden="true" viewBox="0 0 3 2" width="18" height="13" style={{ borderRadius: '1.5px', border: '1px solid rgba(128, 128, 128, 0.15)', display: 'block', overflow: 'hidden', flex: '0 0 auto' }}>
+              <rect width="3" height="1" fill="#ed2939" />
+              <rect y="1" width="3" height="1" fill="#ffffff" />
+            </svg>
+            <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--tp-text)' }}>+62</span>
           </span>
           <div className="sr26-input-wrap">
             <Phone aria-hidden="true" size={18} />
@@ -194,7 +211,7 @@ function RegisterForm({
               type="tel"
               value={form.phoneNumber}
               onChange={(event) => onChange("phoneNumber", event.target.value)}
-              placeholder="+65 8123 4567"
+              placeholder={t("register.phonePlaceholder")}
               autoComplete="tel"
               aria-invalid={Boolean(errors.phoneNumber)}
               aria-describedby={errors.phoneNumber ? "sr26-phone-error" : "sr26-phone-helper"}
@@ -205,14 +222,14 @@ function RegisterForm({
         <FieldError id="sr26-phone-error" message={errors.phoneNumber} />
         {!errors.phoneNumber ? (
           <p className="sr26-field-helper" id="sr26-phone-helper">
-            Use an active number for account recovery and order updates.
+            {t("register.phoneHelper")}
           </p>
         ) : null}
       </div>
 
       <div className="sr26-field-grid">
         <div className="sr26-field">
-          <label htmlFor="sr26-password">Password</label>
+          <label htmlFor="sr26-password">{t("register.password")}</label>
           <div className="sr26-input-wrap">
             <LockKeyhole aria-hidden="true" size={18} />
             <input
@@ -232,7 +249,7 @@ function RegisterForm({
               className="sr26-eye-btn"
               type="button"
               onClick={onTogglePassword}
-              aria-label={form.showPassword ? "Hide password" : "Show password"}
+              aria-label={form.showPassword ? t("register.hidePassword") : t("register.showPassword")}
             >
               {form.showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
@@ -241,7 +258,7 @@ function RegisterForm({
         </div>
 
         <div className="sr26-field">
-          <label htmlFor="sr26-password-confirm">Confirm password</label>
+          <label htmlFor="sr26-password-confirm">{t("register.confirmPassword")}</label>
           <div className="sr26-input-wrap">
             <LockKeyhole aria-hidden="true" size={18} />
             <input
@@ -265,7 +282,7 @@ function RegisterForm({
               className="sr26-eye-btn"
               type="button"
               onClick={onToggleConfirmPassword}
-              aria-label={form.showPasswordConfirm ? "Hide password confirmation" : "Show password confirmation"}
+              aria-label={form.showPasswordConfirm ? t("register.hidePasswordConfirm") : t("register.showPasswordConfirm")}
             >
               {form.showPasswordConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
@@ -277,7 +294,9 @@ function RegisterForm({
       <PasswordStrength strength={passwordStrength} />
       {!errors.passwordConfirm ? (
         <p className="sr26-field-helper" id="sr26-password-confirm-helper">
-          {status.passwordConfirmHelper}
+          {status.passwordConfirmHelper === "Enter the same password again to confirm it." || status.passwordConfirmHelper === "Repeat the same password to continue."
+            ? t("register.passwordConfirmHelperText")
+            : status.passwordConfirmHelper}
         </p>
       ) : null}
 
@@ -291,22 +310,22 @@ function RegisterForm({
           required
         />
         <span>
-          I agree to the{" "}
-          <a href="/terms-and-conditions">terms</a> and{" "}
-          <a href="/privacy-policy">privacy policy</a>.
+          {t("register.agreeTo")}{" "}
+          <a href="/terms-and-conditions">{t("register.terms")}</a> {t("register.and")}{" "}
+          <a href="/privacy-policy">{t("register.privacyPolicy")}</a>.
         </span>
       </label>
       <FieldError id="sr26-terms-error" message={errors.termsAccepted} />
 
       <button className="sr26-primary-btn" type="submit" disabled={status.isSubmitting}>
-        <span>{status.submitLabel}</span>
+        <span>{status.submitLabel === "Create account" ? t("register.createAccountBtn") : status.submitLabel}</span>
         <ArrowRight aria-hidden="true" size={19} />
       </button>
 
       <p className="sr26-switch">
-        Already have an account?{" "}
+        {t("register.alreadyHaveAccount")}{" "}
         <button type="button" onClick={onSignIn}>
-          Sign in
+          {t("register.signIn")}
         </button>
       </p>
     </form>
@@ -324,13 +343,14 @@ function OtpForm({
 }) {
   const { status, otp, errors } = viewModel;
   const destination = otp.destinationMasked || "your email";
+  const { t } = useTranslation();
 
   return (
     <form className="sr26-card sr26-otp-card" onSubmit={onVerifyOtp}>
       <div className="sr26-card-head">
         <div>
-          <h1>Verify your email</h1>
-          <p>Enter the code we sent to {destination}.</p>
+          <h1>{t("register.verifyEmail")}</h1>
+          <p>{t("register.enterCodeSent", { destination })}</p>
         </div>
         <span className="sr26-secure-badge">
           <Mail aria-hidden="true" size={18} />
@@ -342,20 +362,14 @@ function OtpForm({
 
       <div className="sr26-otp-info">
         {status.deliveryFailed ? (
-          <p>
-            We could not deliver the latest verification code. Request a new code when resend is
-            available.
-          </p>
+          <p>{t("register.otpFailed")}</p>
         ) : (
-          <p>
-            Your code expires in <strong>{otp.expiresInSeconds || 0} seconds</strong>. Keep this
-            page open until verification is complete.
-          </p>
+          <p>{t("register.otpExpires", { seconds: otp.expiresInSeconds || 0 })}</p>
         )}
       </div>
 
       <div className="sr26-field">
-        <label htmlFor="sr26-otp">Verification code</label>
+        <label htmlFor="sr26-otp">{t("register.verificationCode")}</label>
         <input
           id="sr26-otp"
           className="sr26-otp-input"
@@ -374,7 +388,7 @@ function OtpForm({
         <FieldError id="sr26-otp-error" message={errors.otpCode} />
         {!errors.otpCode ? (
           <p className="sr26-field-helper" id="sr26-otp-helper">
-            We only activate your account after this code is verified.
+            {t("register.otpHelperText")}
           </p>
         ) : null}
       </div>
@@ -399,7 +413,7 @@ function OtpForm({
 
       <button className="sr26-link-btn" type="button" onClick={onBackToRegister}>
         <ArrowLeft aria-hidden="true" size={17} />
-        Back to register
+        {t("register.backToRegister")}
       </button>
     </form>
   );
@@ -420,6 +434,7 @@ export default function StoreRegister2026View({
   onBackToRegister,
 }) {
   const isOtp = viewModel.mode === "verify";
+  const { t } = useTranslation();
 
   return (
     <main className="sr26-page">
@@ -428,21 +443,21 @@ export default function StoreRegister2026View({
 
       <section className="sr26-shell" aria-label="Create account">
         <aside className="sr26-left-card">
-          <span className="sr26-kicker">Welcome to TP Preneurs</span>
-          <h2>Create your account and start shopping</h2>
-          <p>Join happy customers and unlock the best local products.</p>
+          <span className="sr26-kicker">{t("register.welcomeKicker")}</span>
+          <h2>{t("register.welcomeTitle")}</h2>
+          <p>{t("register.welcomeDesc")}</p>
 
           <div className="sr26-benefits">
             {benefitItems.map((item) => {
               const Icon = item.icon;
               return (
-                <div className="sr26-benefit" key={item.title}>
+                <div className="sr26-benefit" key={item.titleKey}>
                   <span>
                     <Icon aria-hidden="true" size={24} />
                   </span>
                   <div>
-                    <h3>{item.title}</h3>
-                    <p>{item.text}</p>
+                    <h3>{t(item.titleKey)}</h3>
+                    <p>{t(item.textKey)}</p>
                   </div>
                 </div>
               );
@@ -502,11 +517,11 @@ export default function StoreRegister2026View({
         {mobileBenefits.map((item) => {
           const Icon = item.icon;
           return (
-            <div className="sr26-mobile-benefit" key={item.label}>
+            <div className="sr26-mobile-benefit" key={item.labelKey}>
               <span>
                 <Icon aria-hidden="true" size={22} />
               </span>
-              <p>{item.label}</p>
+              <p>{t(item.labelKey)}</p>
             </div>
           );
         })}

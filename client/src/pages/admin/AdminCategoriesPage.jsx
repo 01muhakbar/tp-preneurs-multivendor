@@ -1183,9 +1183,29 @@ export default function AdminCategoriesPage() {
                 </div>
 
                 <div className="mt-2.5">
+                  <label className="text-xs font-semibold text-slate-500">Slug (Handle)</label>
+                  <div className="mt-2 flex overflow-hidden rounded-lg border border-slate-200 focus-within:border-[var(--admin-primary)]">
+                    <span className="flex items-center bg-slate-50 px-3 text-sm text-slate-500 border-r border-slate-200">
+                      /categories/
+                    </span>
+                    <input
+                      value={form.code}
+                      onChange={(event) => {
+                        const val = event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+                        setForm((prev) => ({ ...prev, code: val }));
+                      }}
+                      className="h-10 w-full px-3 text-sm focus:outline-none"
+                      placeholder="category-handle"
+                    />
+                  </div>
+                  <p className="mt-1 text-[11px] text-slate-500">Use lowercase letters, numbers, and hyphens.</p>
+                </div>
+
+                <div className="mt-2.5">
                   <label className="text-xs font-semibold text-slate-500">Description</label>
                   <textarea
                     value={form.description}
+                    maxLength={160}
                     onChange={(event) =>
                       setForm((prev) => ({ ...prev, description: event.target.value }))
                     }
@@ -1193,6 +1213,9 @@ export default function AdminCategoriesPage() {
                     className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[var(--admin-primary)] focus:outline-none"
                     placeholder="Category Description"
                   />
+                  <p className="mt-1 text-right text-[11px] text-slate-500">
+                    {form.description.length}/160
+                  </p>
                 </div>
               </div>
 

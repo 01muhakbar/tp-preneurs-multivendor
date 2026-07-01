@@ -153,6 +153,8 @@ export const normalizeReviewedItem = (review = {}) => {
     imageUrl: getAssetUrl({ ...review, product }),
     rating,
     comment: toText(review.comment) || "",
+    sellerReply: toText(review.sellerReply ?? review.reply) || "",
+    repliedAt: review.repliedAt ?? review.replied_at ?? null,
     images: getReviewImageUrls(review),
     createdAt: review.createdAt ?? review.created_at ?? null,
     updatedAt: review.updatedAt ?? review.updated_at ?? null,

@@ -199,119 +199,119 @@ const resolveRoute = (item, meta, kind, orderId) => {
   return "/user/notifications";
 };
 
-const getPresentation = (kind, item, meta) => {
+const getPresentation = (kind, item, meta, isIndo) => {
   const delivered = isDeliveredUpdate(item, meta);
   if (delivered) {
     return {
-      chip: "Delivered",
+      chip: isIndo ? "Terkirim" : "Delivered",
       tone: "success",
       iconTone: "success",
       iconName: "package",
-      actionLabel: "View order",
+      actionLabel: isIndo ? "Lihat pesanan" : "View order",
     };
   }
 
   const map = {
     order: {
-      chip: "Order Update",
+      chip: isIndo ? "Update Pesanan" : "Order Update",
       tone: "blue",
       iconTone: "blue",
       iconName: "truck",
-      actionLabel: "View order",
+      actionLabel: isIndo ? "Lihat pesanan" : "View order",
     },
     payment: {
-      chip: "Payment Done",
+      chip: isIndo ? "Pembayaran Selesai" : "Payment Done",
       tone: "success",
       iconTone: "success",
       iconName: "card",
-      actionLabel: "View order",
+      actionLabel: isIndo ? "Lihat pesanan" : "View order",
     },
     invitation: {
-      chip: "Account",
+      chip: isIndo ? "Akun" : "Account",
       tone: "purple",
       iconTone: "purple",
       iconName: "mail",
-      actionLabel: "Open",
+      actionLabel: isIndo ? "Buka" : "Open",
     },
     promotion: {
-      chip: "Promotion",
+      chip: isIndo ? "Promosi" : "Promotion",
       tone: "orange",
       iconTone: "orange",
       iconName: "tag",
-      actionLabel: "View deals",
+      actionLabel: isIndo ? "Lihat promo" : "View deals",
     },
     account: {
-      chip: "Account Update",
+      chip: isIndo ? "Update Akun" : "Account Update",
       tone: "blue",
       iconTone: "blue",
       iconName: "user",
-      actionLabel: "Open",
+      actionLabel: isIndo ? "Buka" : "Open",
     },
     general: {
       chip: "Update",
       tone: "blue",
       iconTone: "blue",
       iconName: "bell",
-      actionLabel: "Open",
+      actionLabel: isIndo ? "Buka" : "Open",
     },
   };
 
   return map[kind] || map.general;
 };
 
-const getStatusCopy = (kind, item, meta) => {
+const getStatusCopy = (kind, item, meta, isIndo) => {
   const haystack = getHaystack(item, meta);
   if (/\b(delivered|delivery complete)\b/.test(haystack)) {
     return {
-      title: "Order delivered",
-      message: "Your order has been delivered.",
+      title: isIndo ? "Pesanan terkirim" : "Order delivered",
+      message: isIndo ? "Pesanan Anda telah terkirim." : "Your order has been delivered.",
     };
   }
   if (/\b(shipped|shipping|on the way|tracking)\b/.test(haystack)) {
     return {
-      title: "Order shipped",
-      message: "Your order is on the way.",
+      title: isIndo ? "Pesanan dikirim" : "Order shipped",
+      message: isIndo ? "Pesanan Anda sedang dalam perjalanan." : "Your order is on the way.",
     };
   }
   if (/\b(packed|ready to ship|ready_to_ship)\b/.test(haystack)) {
     return {
-      title: "Order packed",
-      message: "Packed and ready.",
+      title: isIndo ? "Pesanan dikemas" : "Order packed",
+      message: isIndo ? "Dikemas dan siap." : "Packed and ready.",
     };
   }
   if (/\b(payment|paid|approved|confirmed|qris|proof)\b/.test(haystack) || kind === "payment") {
     return {
-      title: "Payment confirmed",
-      message: "We've received your payment.",
+      title: isIndo ? "Pembayaran dikonfirmasi" : "Payment confirmed",
+      message: isIndo ? "Kami telah menerima pembayaran Anda." : "We've received your payment.",
     };
   }
   if (kind === "invitation") {
     return {
-      title: "Store invitation received",
-      message: "You have a new store invitation.",
+      title: isIndo ? "Undangan toko diterima" : "Store invitation received",
+      message: isIndo ? "Anda memiliki undangan toko baru." : "You have a new store invitation.",
     };
   }
   if (kind === "promotion") {
     return {
-      title: "Promotion update",
-      message: "A new offer is available.",
+      title: isIndo ? "Pembaruan promosi" : "Promotion update",
+      message: isIndo ? "Penawaran baru tersedia." : "A new offer is available.",
     };
   }
   if (kind === "account") {
     return {
-      title: "Account updated",
-      message: "Your account information was updated.",
+      title: isIndo ? "Akun diperbarui" : "Account updated",
+      message: isIndo ? "Informasi akun Anda telah diperbarui." : "Your account information was updated.",
     };
   }
   if (kind === "order") {
     return {
-      title: "Order update",
-      message: "Your order status changed.",
+      title: isIndo ? "Update pesanan" : "Order update",
+      message: isIndo ? "Status pesanan Anda berubah." : "Your order status changed.",
     };
   }
   return {
-    title: "Notification update",
-    message: "You have a new update.",
+    title: isIndo ? "Update notifikasi" : "Notification update",
+    message: isIndo ? "Anda memiliki pembaruan baru." : "You have a new update.",
   };
 };
 
@@ -320,7 +320,7 @@ const isGenericMessage = (value) => {
   return !text || text === "you have a new update." || text === "we have an update for you.";
 };
 
-export const normalizeNotification = (notification) => {
+export const normalizeNotification = (notification, isIndo = false) => {
   const item = toObject(notification);
   const meta = getNotificationMeta(item);
   const kind = detectNotificationKind(item);
@@ -337,8 +337,8 @@ export const normalizeNotification = (notification) => {
       meta.invoice ||
       meta.ref
   );
-  const presentation = getPresentation(kind, item, meta);
-  const statusCopy = getStatusCopy(kind, item, meta);
+  const presentation = getPresentation(kind, item, meta, isIndo);
+  const statusCopy = getStatusCopy(kind, item, meta, isIndo);
   const providedTitle = toText(item.title || meta.title);
   const providedMessage = toText(
     item.message || item.description || item.body || meta.message || meta.description
@@ -394,12 +394,13 @@ export const buildNotificationsViewModel = ({
   notifications = [],
   activeFilter = "all",
   unreadCount,
+  isIndo = false,
 } = {}) => {
   const filterKey = NOTIFICATION_FILTERS.some((item) => item.key === activeFilter)
     ? activeFilter
     : "all";
   const allNotifications = notifications
-    .map(normalizeNotification)
+    .map((item) => normalizeNotification(item, isIndo))
     .filter((item) => item.id > 0 || item.rawId);
   const counts = allNotifications.reduce(
     (acc, item) => {
