@@ -11,6 +11,8 @@ import { buildCategoryTree } from "../../utils/categoryTree.ts";
 
 const PAGE_LINKS = [
   { label: "Home", to: "/" },
+  { label: "Shop", to: "/shop" },
+  { label: "Categories", to: "/categories" },
   { label: "Offers", to: "/offers" },
   { label: "About Us", to: "/about-us" },
   { label: "Contact Us", to: "/contact-us" },

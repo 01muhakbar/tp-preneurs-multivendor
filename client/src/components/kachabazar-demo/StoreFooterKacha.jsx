@@ -2,11 +2,9 @@ import {
   Facebook,
   Headphones,
   Instagram,
-  Linkedin,
   Mail,
   MapPin,
   Phone,
-  Twitter,
   Youtube,
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -24,6 +22,18 @@ const INDO_TRANSLATIONS = {
   "Soft Drink": "Minuman Ringan",
   "Milk & Dairy": "Susu & Olahan",
   "Beauty & Health": "Kecantikan & Kesehatan",
+  "Electronics": "Elektronik",
+  "Fashion": "Fashion",
+  "Grocery": "Kebutuhan Pokok",
+  "Home & Living": "Rumah & Tempat Tinggal",
+  "Beauty": "Kecantikan",
+  "Sports": "Olahraga",
+  "Books": "Buku",
+  "Kids & Toys": "Anak & Mainan",
+  "Health": "Kesehatan",
+  "Automotive": "Otomotif",
+  "Office": "Kantor",
+  "Gift Ideas": "Ide Hadiah",
   "My Account": "Akun Saya",
   "Dashboard": "Dasbor",
   "My Orders": "Pesanan Saya",
@@ -70,9 +80,9 @@ const getDefaultFooter = (isIndo) => ({
   block4: {
     enabled: true,
     footerLogoDataUrl: "",
-    address: "987 Andre Plain Suite High Street 838, Lake Hestertown, USA",
-    phone: "02.356.1666",
-    email: "cruide@test.com",
+    address: "Fakultas Ilmu Pendidikan Kampus UNM Tidung Jl. Tamalate 1 Makassar",
+    phone: "0411-0884457",
+    email: "tp.fip@unm.ac.id",
   },
   socialLinks: {
     enabled: true,
@@ -91,10 +101,8 @@ const getDefaultFooter = (isIndo) => ({
 
 const SOCIAL_LINKS = [
   { key: "facebook", label: "Facebook", Icon: Facebook },
-  { key: "twitter", label: "X", Icon: Twitter },
   { key: "instagram", label: "Instagram", Icon: Instagram },
   { key: "youtube", label: "YouTube", Icon: Youtube },
-  { key: "linkedin", label: "LinkedIn", Icon: Linkedin },
 ];
 
 const toText = (value, fallback = "") => {
@@ -159,9 +167,9 @@ const normalizeFooterConfig = (rawFooter, isIndo) => {
     block4: {
       enabled: toBool(block4.enabled, DEFAULT_FOOTER.block4.enabled),
       footerLogoDataUrl: toText(block4.footerLogoDataUrl),
-      address: toText(block4.address, DEFAULT_FOOTER.block4.address),
-      phone: toText(block4.phone, DEFAULT_FOOTER.block4.phone),
-      email: toText(block4.email, DEFAULT_FOOTER.block4.email),
+      address: DEFAULT_FOOTER.block4.address,
+      phone: DEFAULT_FOOTER.block4.phone,
+      email: DEFAULT_FOOTER.block4.email,
     },
     socialLinks: {
       ...DEFAULT_FOOTER.socialLinks,
@@ -250,7 +258,7 @@ export default function StoreFooterKacha({
   brandingName = "TP Preneurs",
 }) {
   const { i18n } = useTranslation();
-  const isIndo = i18n.language === "id";
+  const isIndo = i18n.language === "id" || i18n.language === "id-ID" || i18n.language?.startsWith("id") || (typeof window !== "undefined" && localStorage.getItem("store_language") === "Indonesia");
   const footer = normalizeFooterConfig(footerConfig, isIndo);
   const DEFAULT_FOOTER = getDefaultFooter(isIndo);
   const footerLogoSrc =
@@ -258,9 +266,9 @@ export default function StoreFooterKacha({
   const socialItems = SOCIAL_LINKS.filter(({ key }) => footer.socialLinks[key]);
 
   return (
-    <footer className="bg-[#f7fbff] px-4 pb-6 pt-0 dark:bg-slate-950 sm:px-6">
-      <div className="mx-auto max-w-[1540px] overflow-hidden rounded-[28px] border border-white bg-white shadow-[0_18px_42px_rgba(var(--tp-primary-rgb)/0.10)] dark:border-slate-800 dark:bg-slate-900">
-        <div className="grid gap-10 border-b border-[#dbe6f3] px-6 py-8 dark:border-slate-800 md:grid-cols-2 xl:grid-cols-[1.35fr_0.7fr_0.7fr_0.8fr_1.35fr] xl:px-10">
+    <footer className="bg-[#f7fbff] px-4 pb-6 pt-0 dark:bg-slate-950 sm:px-5 lg:px-6">
+      <div className="mx-auto max-w-[1232px] overflow-hidden rounded-[28px] border border-white bg-white shadow-[0_18px_42px_rgba(var(--tp-primary-rgb)/0.10)] dark:border-slate-800 dark:bg-slate-900">
+        <div className="grid gap-10 border-b border-[#dbe6f3] px-6 py-8 dark:border-slate-800 md:grid-cols-2 xl:grid-cols-[1.35fr_0.7fr_0.8fr_1.35fr] xl:px-10">
           {footer.block4.enabled ? (
             <section className="space-y-5">
               {footerLogoSrc ? (
@@ -303,9 +311,6 @@ export default function StoreFooterKacha({
 
           {footer.block1.enabled ? (
             <FooterLinkBlock title={footer.block1.title} links={footer.block1.links} />
-          ) : null}
-          {footer.block2.enabled ? (
-            <FooterLinkBlock title={footer.block2.title} links={footer.block2.links} />
           ) : null}
           {footer.block3.enabled ? (
             <FooterLinkBlock title={footer.block3.title} links={footer.block3.links} />

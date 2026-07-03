@@ -24,6 +24,7 @@ const StoreResetPasswordPage = lazy(() => import("./pages/store/StoreResetPasswo
 const StoreCheckoutSuccessPage = lazy(() => import("./pages/store/StoreCheckoutSuccessPage.jsx"));
 const StoreOrderTrackingPage = lazy(() => import("./pages/store/StoreOrderTrackingPage.jsx"));
 const StoreSearchPage = lazy(() => import("./pages/store/StoreSearchPage.jsx"));
+const StoreCategoriesPage2026 = lazy(() => import("./pages/store/StoreCategoriesPage2026.jsx"));
 const StoreOffersPage = lazy(() => import("./pages/store/StoreOffersPage.jsx"));
 const StoreAboutUsPage = lazy(() => import("./pages/store/StoreAboutUsPage.jsx"));
 const StoreContactUsPage = lazy(() => import("./pages/store/StoreContactUsPage.jsx"));
@@ -352,6 +353,7 @@ export default function App() {
             <Route index element={<TPPreneurHomePage />} />
             <Route path="shop" element={<StoreSearchPage />} />
             <Route path="search" element={<StoreSearchPage />} />
+            <Route path="categories" element={<StoreCategoriesPage2026 />} />
             <Route path="wishlist" element={<StoreWishlistPage2026 />} />
             <Route path="category" element={<LegacyStoreCategoryRedirect />} />
             <Route path="category/:slug" element={<LegacyStoreCategoryRedirect />} />

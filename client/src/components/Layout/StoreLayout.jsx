@@ -5,6 +5,7 @@ import { Link, Outlet, useLocation } from "react-router-dom";
 import StoreHeaderKacha from "../kachabazar-demo/StoreHeaderKacha.jsx";
 import FloatingCartWidget from "../kachabazar-demo/FloatingCartWidget.jsx";
 import StoreFooterKacha from "../kachabazar-demo/StoreFooterKacha.jsx";
+import ShopCompactFooter2026 from "../../pages/store/shop2026/ShopCompactFooter2026.jsx";
 import { StoreCartDrawer } from "../../pages/store/StoreCartPage.jsx";
 import { useCart } from "../../hooks/useCart.ts";
 import MobileMenuDrawer from "./MobileMenuDrawer.jsx";
@@ -170,6 +171,10 @@ const isScriptInjectionBlocked = () =>
 export default function StoreLayout() {
   const location = useLocation();
   const isCheckoutRoute = location.pathname.startsWith("/checkout");
+  const isShopRoute =
+    location.pathname === "/shop" ||
+    location.pathname === "/search" ||
+    location.pathname === "/categories";
   const { count: totalQty } = useCart();
   const isHomeActive = location.pathname === "/";
   const isCartRoute = location.pathname.startsWith("/cart");
@@ -310,8 +315,8 @@ gtag('config', '${key}');`;
         onCartClick={openCartDrawer}
         brandingLogoUrl={storeSettings.branding.clientLogoUrl}
       />
-      <main className="mx-auto w-full max-w-7xl px-4 py-6 pb-24 sm:pb-8">
-        <Outlet context={{ storeSettings }} />
+      <main className={isShopRoute ? "w-full" : "mx-auto w-full max-w-7xl px-4 py-6 pb-24 sm:pb-8"}>
+        <Outlet context={{ storeSettings, footerConfig }} />
       </main>
       {!isCheckoutRoute ? (
         <StoreFooterKacha

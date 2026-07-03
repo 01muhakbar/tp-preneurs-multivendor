@@ -12,7 +12,7 @@ import {
   UserRound,
   Bell,
 } from "lucide-react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAccountAuth } from "../../auth/authDomainHooks.js";
 import { useCart } from "../../hooks/useCart.ts";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
@@ -49,12 +49,44 @@ const getInitials = (value) => {
   return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
 };
 
+const INDO_HEADER_CATS = {
+  "Electronics": "Elektronik",
+  "Fashion": "Fashion",
+  "Grocery": "Kebutuhan Pokok",
+  "Home & Living": "Rumah & Tempat Tinggal",
+  "Beauty": "Kecantikan",
+  "Sports": "Olahraga",
+  "Books": "Buku",
+  "Kids & Toys": "Anak & Mainan",
+  "Health": "Kesehatan",
+  "Automotive": "Otomotif",
+  "Office": "Kantor",
+  "Gift Ideas": "Ide Hadiah",
+  "Fish & Meat": "Ikan & Daging",
+  "Soft Drink": "Minuman Ringan",
+  "Milk & Dairy": "Susu & Olahan",
+  "Beauty & Health": "Kecantikan & Kesehatan",
+  "Snacks": "Camilan",
+  "Beverages": "Minuman",
+  "Baby Care": "Perawatan Bayi",
+  "Fruits & Vegetables": "Buah & Sayur",
+  "Fresh Produce": "Produk Segar",
+  "Rice & Grains": "Beras & Biji-bijian",
+};
+
 const getNavItems = (t) => [
+  { label: t("header.home", "Home"), href: "/" },
   { label: t("header.shop"), href: "/shop", hasChevron: true },
   { label: t("header.offers"), href: "/offers", hasDot: true },
   { label: t("header.aboutUs"), href: "/about-us" },
   { label: t("header.contactUs"), href: "/contact-us" },
 ];
+
+const isNavItemActive = (pathname, href) => {
+  if (href === "/") return pathname === "/";
+  if (href === "/shop") return pathname === "/shop" || pathname === "/search";
+  return pathname === href || pathname.startsWith(`${href}/`);
+};
 
 function LogoMark({ logoUrl, logoVersion }) {
   const src = resolveAssetUrl(logoUrl);
@@ -140,12 +172,12 @@ function IconButton({ as: Component = "button", to, children, label, badge, onCl
   );
 }
 
-function LiveSearchDropdown({ searchFocused, debouncedSearch, searchFetching, searchResults, submitSearch, setSearchFocused, setSearch }) {
+function LiveSearchDropdown({ searchFocused, debouncedSearch, searchFetching, searchResults, submitSearch, setSearchFocused, setSearch, isIndo }) {
   if (!searchFocused || debouncedSearch.trim().length === 0) return null;
   return (
     <div className="absolute left-0 top-[calc(100%+8px)] z-50 w-full overflow-hidden rounded-[22px] border border-[#d8e4f2] bg-white py-2 shadow-[0_22px_45px_rgba(var(--tp-primary-rgb)/0.16)] dark:border-slate-700 dark:bg-slate-900">
       {searchFetching ? (
-        <div className="px-5 py-4 text-sm font-medium text-slate-500">Searching...</div>
+        <div className="px-5 py-4 text-sm font-medium text-slate-500">{isIndo ? "Mencari..." : "Searching..."}</div>
       ) : searchResults.length > 0 ? (
         <div>
           {searchResults.map((product) => (
@@ -176,12 +208,12 @@ function LiveSearchDropdown({ searchFocused, debouncedSearch, searchFetching, se
               onClick={(e) => { e.preventDefault(); submitSearch({ preventDefault: () => {} }); setSearchFocused(false); }}
               className="w-full rounded-xl py-2.5 text-center text-[13px] font-bold text-[#557099] transition hover:bg-slate-50 hover:text-[var(--tp-primary)] dark:text-slate-400 dark:hover:bg-slate-800"
             >
-              View all results for "{debouncedSearch}"
+              {isIndo ? `Lihat semua hasil untuk "${debouncedSearch}"` : `View all results for "${debouncedSearch}"`}
             </button>
           </div>
         </div>
       ) : (
-        <div className="px-5 py-4 text-sm font-medium text-slate-500">No products found for "{debouncedSearch}"</div>
+        <div className="px-5 py-4 text-sm font-medium text-slate-500">{isIndo ? `Produk tidak ditemukan untuk "${debouncedSearch}"` : `No products found for "${debouncedSearch}"`}</div>
       )}
     </div>
   );
@@ -201,7 +233,9 @@ export default function StoreHeaderKacha({
   void identity;
 
   const { t, i18n } = useTranslation();
+  const isIndo = i18n.language === "id" || i18n.language === "id-ID" || i18n.language?.startsWith("id") || (typeof window !== "undefined" && localStorage.getItem("store_language") === "Indonesia");
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { count } = useCart();
   const wishlist = useStorefrontWishlist();
@@ -371,7 +405,7 @@ export default function StoreHeaderKacha({
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#e3edf8] bg-[#f7fbff]/95 text-[#071a3f] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95 dark:text-slate-100">
-      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-1.5 text-xs text-slate-600 sm:px-5 lg:px-6 dark:text-slate-300">
+      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-1.5 text-sm text-slate-600 sm:px-5 lg:px-6 dark:text-slate-300">
         <div className="flex min-w-0 items-center gap-3">
           <Headphones className="h-[18px] w-[18px] shrink-0 text-[var(--tp-primary)] dark:text-sky-300" />
           <span className="truncate">{t("header.help")}</span>
@@ -418,7 +452,7 @@ export default function StoreHeaderKacha({
                     onChange={(event) => setSearch(event.target.value)}
                     onFocus={() => setSearchFocused(true)}
                     placeholder={t("header.searchPlaceholder")}
-                    className="h-11 w-full rounded-full border border-[#c8d7ea] bg-white px-6 pr-[58px] text-sm font-semibold text-[#42577b] outline-none transition placeholder:text-[#667798] focus:border-[var(--tp-primary)] focus:ring-4 focus:ring-[rgb(var(--tp-primary-rgb)/0.1)] dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
+                    className="h-11 w-full rounded-full border border-[#c8d7ea] bg-white px-6 pr-[58px] text-base font-semibold text-[#42577b] outline-none transition placeholder:text-[#667798] focus:border-[var(--tp-primary)] focus:ring-4 focus:ring-[rgb(var(--tp-primary-rgb)/0.1)] dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
                   <button
                     type="submit"
@@ -438,6 +472,7 @@ export default function StoreHeaderKacha({
                 submitSearch={submitSearch}
                 setSearchFocused={setSearchFocused}
                 setSearch={setSearch}
+                isIndo={isIndo}
               />
             </div>
 
@@ -548,7 +583,7 @@ export default function StoreHeaderKacha({
               <button
                 type="button"
                 onClick={() => setCategoriesOpen((value) => !value)}
-                className="inline-flex h-10 items-center gap-2.5 rounded-full px-4 text-sm font-black text-white shadow-[0_10px_22px_rgba(var(--tp-primary-rgb)/0.17)] sm:px-5"
+                className="inline-flex h-10 items-center gap-2.5 rounded-full px-4 text-base font-black text-white shadow-[0_10px_22px_rgba(var(--tp-primary-rgb)/0.17)] sm:px-5"
                 style={{ background: PRIMARY }}
                 aria-expanded={categoriesOpen}
               >
@@ -559,25 +594,34 @@ export default function StoreHeaderKacha({
               {categoriesOpen ? (
                 <div className="absolute left-0 top-[calc(100%+10px)] z-50 w-72 overflow-hidden rounded-[22px] border border-[#d8e4f2] bg-white p-2 shadow-[0_22px_45px_rgba(var(--tp-primary-rgb)/0.16)] dark:border-slate-700 dark:bg-slate-900">
                   {categoriesLoading ? (
-                    <div className="px-3 py-3 text-sm text-slate-500">Loading categories...</div>
+                    <div className="px-3 py-3 text-sm text-slate-500">{isIndo ? "Memuat kategori..." : "Loading categories..."}</div>
                   ) : categories.length > 0 ? (
-                    categories.map((category) => (
+                    <>
+                      {categories.map((category) => (
+                        <Link
+                          key={category.id ?? category.slug ?? category.name}
+                          to={`/search?category=${encodeURIComponent(category.slug ?? category.id ?? category.name)}&page=1`}
+                          onClick={closeCategories}
+                          className="block rounded-2xl px-4 py-3 text-sm font-bold text-[#071a3f] transition hover:bg-[var(--tp-primary-soft)] hover:text-[var(--tp-accent)] dark:text-slate-100 dark:hover:bg-slate-800"
+                        >
+                          {isIndo ? (INDO_HEADER_CATS[category.name] || category.name) : category.name}
+                        </Link>
+                      ))}
                       <Link
-                        key={category.id ?? category.slug ?? category.name}
-                        to={`/search?category=${encodeURIComponent(category.slug ?? category.id ?? category.name)}&page=1`}
+                        to="/categories"
                         onClick={closeCategories}
-                        className="block rounded-2xl px-4 py-3 text-sm font-bold text-[#071a3f] transition hover:bg-[var(--tp-primary-soft)] hover:text-[var(--tp-accent)] dark:text-slate-100 dark:hover:bg-slate-800"
+                        className="mt-1 block border-t border-slate-100 px-4 py-3 text-sm font-black text-[var(--tp-primary)] transition hover:bg-[var(--tp-primary-soft)] hover:text-[var(--tp-accent)] dark:border-slate-800 dark:text-sky-200 dark:hover:bg-slate-800"
                       >
-                        {category.name}
+                        {isIndo ? "Semua Kategori" : "All Categories"}
                       </Link>
-                    ))
+                    </>
                   ) : (
                     <Link
-                      to="/shop"
+                      to="/categories"
                       onClick={closeCategories}
-                      className="block rounded-2xl px-4 py-3 text-sm font-bold text-[#071a3f] transition hover:bg-[var(--tp-primary-soft)] hover:text-[var(--tp-accent)] dark:text-slate-100"
+                      className="block rounded-2xl px-4 py-3 text-sm font-black text-[var(--tp-primary)] transition hover:bg-[var(--tp-primary-soft)] hover:text-[var(--tp-accent)] dark:text-sky-200"
                     >
-                      {t("header.browseAll")}
+                      {isIndo ? "Semua Kategori" : "All Categories"}
                     </Link>
                   )}
                 </div>
@@ -585,11 +629,18 @@ export default function StoreHeaderKacha({
             </div>
 
             <nav className="hidden items-center gap-2 lg:flex">
-              {getNavItems(t).map((item) => (
+              {getNavItems(t).map((item) => {
+                const isActive = isNavItemActive(location.pathname, item.href);
+                return (
                 <Link
                   key={item.label}
                   to={item.href}
-                  className="relative inline-flex h-9 items-center gap-2 rounded-full px-3.5 text-sm font-black text-[#071a3f] transition hover:bg-[var(--tp-primary-soft)] hover:text-[var(--tp-primary)] dark:text-slate-100 dark:hover:bg-slate-800"
+                  aria-current={isActive ? "page" : undefined}
+                  className={`relative inline-flex h-9 items-center gap-2 rounded-full px-3.5 text-base font-black transition hover:bg-[var(--tp-primary-soft)] hover:text-[var(--tp-primary)] dark:hover:bg-slate-800 ${
+                    isActive
+                      ? "bg-[var(--tp-primary-soft)] text-[var(--tp-primary)] dark:text-sky-200"
+                      : "text-[#071a3f] dark:text-slate-100"
+                  }`}
                 >
                   <span>{item.label}</span>
                   {item.hasChevron ? <ChevronDown className="h-4 w-4" /> : null}
@@ -597,7 +648,8 @@ export default function StoreHeaderKacha({
                     <span className="absolute right-1 top-2 h-2.5 w-2.5 rounded-full" style={{ background: ACCENT }} />
                   ) : null}
                 </Link>
-              ))}
+                );
+              })}
             </nav>
           </div>
 
@@ -605,7 +657,7 @@ export default function StoreHeaderKacha({
             <button
               type="button"
               onClick={() => setLanguageOpen(!languageOpen)}
-              className="inline-flex h-9 shrink-0 items-center gap-2.5 rounded-full px-3 text-sm font-black text-[#071a3f] transition hover:bg-[var(--tp-primary-soft)] dark:text-slate-100 dark:hover:bg-slate-800 sm:px-4"
+              className="inline-flex h-9 shrink-0 items-center gap-2.5 rounded-full px-3 text-base font-black text-[#071a3f] transition hover:bg-[var(--tp-primary-soft)] dark:text-slate-100 dark:hover:bg-slate-800 sm:px-4"
               aria-expanded={languageOpen}
             >
               <Globe2 className="h-5 w-5" />

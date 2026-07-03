@@ -19,9 +19,11 @@ import {
   Truck,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import toast from "react-hot-toast";
 import { useCart } from "../../hooks/useCart.ts";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
 import VariantQuickAddModal from "../../components/store/VariantQuickAddModal.jsx";
+import DiscoverDigitalProductsHero from "../../components/store/DiscoverDigitalProductsHero.jsx";
 import { getStoreCustomization } from "../../api/public/storeCustomizationPublic.ts";
 import { fetchStoreCoupons } from "../../api/public/storeCoupons.ts";
 import { useCategories, useProducts } from "../../storefront.jsx";
@@ -524,18 +526,18 @@ function CompactHeroCouponCard({
   const displayTitle = isIndo && title === "Latest Super Discount Active Coupon Code" ? "Kode Kupon Diskon Super Terbaru" : title;
 
   return (
-    <aside className="relative mx-auto flex min-h-[338px] w-full max-w-[252px] flex-col overflow-hidden rounded-[26px] border border-[#cdebdc] bg-white p-4 text-[#071a3f] shadow-[0_18px_34px_rgba(3,76,133,0.13)] dark:border-slate-700 dark:bg-slate-950 dark:text-white lg:mx-0 2xl:max-w-[260px]">
+    <aside className="relative mx-auto flex min-h-0 w-full max-w-none flex-col overflow-hidden rounded-[22px] border border-[#cdebdc] bg-white p-3 text-[#071a3f] shadow-[0_18px_34px_rgba(3,76,133,0.13)] dark:border-slate-700 dark:bg-slate-950 dark:text-white sm:min-h-[300px] sm:max-w-[360px] sm:rounded-[26px] sm:p-4 lg:mx-0 lg:min-h-[338px] lg:max-w-[252px] 2xl:max-w-[260px]">
       <div className="absolute inset-x-0 top-0 h-1 bg-[var(--tp-accent)]" />
       <div className="text-left">
         <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--tp-accent)]">
           {isIndo ? "Kotak Kupon" : "Coupon Box"}
         </p>
-        <h3 className="mt-2 text-[17px] font-black leading-5 text-[#071a3f] dark:text-white">
+        <h3 className="mt-1.5 text-[14px] font-black leading-5 text-[#071a3f] dark:text-white sm:mt-2 sm:text-[17px]">
           {displayTitle}
         </h3>
       </div>
 
-      <div className="mt-4 flex flex-1 flex-col justify-between gap-3">
+      <div className="mt-3 flex flex-1 flex-col justify-between gap-3 sm:mt-4">
         {isLoading ? (
           <div className="flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-[#cdebdc] bg-[#f7fbff] px-4 text-center dark:border-slate-700 dark:bg-slate-900">
             <div className="h-9 w-9 animate-pulse rounded-full bg-[#dbe6f3]" />
@@ -548,19 +550,19 @@ function CompactHeroCouponCard({
             <button
               type="button"
               onClick={() => onCopy?.(primaryCoupon.code)}
-              className="rounded-[20px] border-2 border-dashed border-[#00b876]/45 bg-[#f2fff8] px-3 py-4 text-center transition hover:border-[#00b876] hover:bg-[#ecfff5] dark:bg-slate-900"
+              className="rounded-[18px] border-2 border-dashed border-[#00b876]/45 bg-[#f2fff8] px-3 py-2.5 text-center transition hover:border-[#00b876] hover:bg-[#ecfff5] dark:bg-slate-900 sm:rounded-[20px] sm:py-4"
               aria-label={`Copy coupon code ${primaryCoupon.code}`}
               title={`Copy ${primaryCoupon.code}`}
             >
               <span className="text-[9px] font-black uppercase tracking-[0.24em] text-[#00a46c]">
                 {copiedCode === primaryCoupon.code ? (isIndo ? "Tersalin!" : "Copied!") : (isIndo ? "Kode Kupon" : "Coupon Code")}
               </span>
-              <span className="mt-2 block break-all text-[22px] font-black leading-none tracking-[0.14em] text-[var(--tp-primary)] dark:text-sky-300">
+              <span className="mt-2 block break-all text-[18px] font-black leading-none tracking-[0.14em] text-[var(--tp-primary)] dark:text-sky-300 sm:text-[22px]">
                 {primaryCoupon.code}
               </span>
             </button>
 
-            <div className="rounded-2xl bg-[#f7fbff] p-3 text-left dark:bg-slate-900">
+            <div className="hidden rounded-2xl bg-[#f7fbff] p-3 text-left dark:bg-slate-900 sm:block">
               <p className="text-[13px] font-black text-[var(--tp-accent)]">
                 {primaryCoupon.discountLabel || (isIndo ? "Diskon aktif" : "Active discount")}
               </p>
@@ -573,7 +575,7 @@ function CompactHeroCouponCard({
             </div>
 
             {safeCoupons.length > 1 ? (
-              <div className="flex flex-wrap gap-2">
+              <div className="hidden flex-wrap gap-2 sm:flex">
                 {safeCoupons.slice(1, 5).map((coupon) => (
                   <button
                     key={coupon.code}
@@ -664,7 +666,7 @@ function MainSliderSection({
   };
 
   return (
-    <section className="relative overflow-hidden rounded-[34px] bg-[#eef6ff] p-5 shadow-[0_18px_42px_rgba(3,76,133,0.08)] dark:bg-slate-900 sm:p-6 2xl:p-8">
+    <section className="relative overflow-hidden rounded-[24px] bg-[#eef6ff] p-3 shadow-[0_18px_42px_rgba(3,76,133,0.08)] dark:bg-slate-900 sm:rounded-[34px] sm:p-6 2xl:p-8">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_58%_45%,rgba(3,76,133,0.12),transparent_35%)]" />
 
       {showArrows ? (
@@ -689,17 +691,17 @@ function MainSliderSection({
       ) : null}
 
       <div
-        className={`relative grid gap-6 2xl:gap-8 ${
+        className={`relative grid gap-4 sm:gap-6 2xl:gap-8 ${
           imageSrc
             ? showCouponBox
-              ? "min-h-[340px] items-stretch lg:min-h-[340px] lg:grid-cols-[minmax(0,1fr)_252px] 2xl:min-h-[360px] 2xl:grid-cols-[minmax(0,1fr)_260px]"
-              : "min-h-[340px] items-stretch lg:min-h-[340px] 2xl:min-h-[360px]"
+              ? "items-stretch lg:min-h-[340px] lg:grid-cols-[minmax(0,1fr)_252px] 2xl:min-h-[360px] 2xl:grid-cols-[minmax(0,1fr)_260px]"
+              : "items-stretch lg:min-h-[340px] 2xl:min-h-[360px]"
             : showCouponBox
               ? "lg:grid-cols-[minmax(320px,0.95fr)_minmax(340px,1fr)_252px] 2xl:grid-cols-[0.9fr_1.08fr_260px] lg:items-center"
               : "lg:grid-cols-[minmax(320px,0.95fr)_minmax(340px,1fr)] lg:items-center"
         }`}
       >
-        <div className={`relative flex flex-col justify-center overflow-hidden rounded-[24px] ${imageSrc ? "w-full h-full" : "max-w-xl"} space-y-5 2xl:space-y-7`}>
+        <div className={`relative flex flex-col justify-center overflow-hidden rounded-[18px] sm:rounded-[24px] ${imageSrc ? "aspect-[2/1] min-h-[150px] w-full sm:min-h-[260px] lg:aspect-auto lg:h-full lg:min-h-0" : "max-w-xl"} space-y-5 2xl:space-y-7`}>
           {imageSrc ? (
             <img
               src={imageSrc}
@@ -707,7 +709,7 @@ function MainSliderSection({
               className={`absolute inset-0 h-full w-full object-contain ${getSliderImageFocusClass(slide.imageFocus)}`}
             />
           ) : null}
-          <div className={`relative z-10 ${imageSrc ? "p-6 sm:p-8" : ""} flex flex-col h-full justify-center space-y-5 2xl:space-y-7`}>
+          <div className={`relative z-10 ${imageSrc ? "p-4 sm:p-8" : ""} flex flex-col h-full justify-center space-y-5 2xl:space-y-7`}>
             <div className="space-y-4 2xl:space-y-5">
               {titleText ? (
                 <h1 className="max-w-2xl text-5xl font-black leading-[1.05] tracking-tight text-[#071a3f] dark:text-white 2xl:text-6xl">
@@ -753,7 +755,7 @@ function MainSliderSection({
             </div>
           ) : null}
           {showDots ? (
-            <div className="absolute bottom-6 left-6 z-20 flex gap-2 sm:bottom-8 sm:left-8">
+            <div className="absolute bottom-4 left-4 z-20 flex gap-2 sm:bottom-8 sm:left-8">
               {slides.map((_, index) => (
                 <button
                   key={`main-slider-dot-${index}`}
@@ -813,18 +815,18 @@ function BenefitStrip({ isIndo }) {
   ] : benefitItems;
 
   return (
-    <section className="grid gap-4 rounded-[28px] bg-white p-5 shadow-[0_14px_34px_rgba(3,76,133,0.08)] dark:bg-slate-900 md:grid-cols-2 xl:grid-cols-4">
+    <section className="grid gap-3 rounded-[24px] bg-white p-3 shadow-[0_14px_34px_rgba(3,76,133,0.08)] dark:bg-slate-900 sm:rounded-[28px] sm:p-5 md:grid-cols-2 xl:grid-cols-4">
       {items.map(({ title, text, Icon }) => (
-        <div key={title} className="flex gap-5 border-[#dbe6f3] p-3 xl:border-r xl:last:border-r-0 dark:border-slate-800">
-          <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-[#f7fbff] text-[var(--tp-primary)] dark:bg-slate-800 dark:text-sky-300">
-            <Icon className="h-8 w-8" />
+        <div key={title} className="flex gap-3 border-[#dbe6f3] p-2 xl:border-r xl:last:border-r-0 dark:border-slate-800 sm:gap-5 sm:p-3">
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#f7fbff] text-[var(--tp-primary)] dark:bg-slate-800 dark:text-sky-300 sm:h-16 sm:w-16">
+            <Icon className="h-6 w-6 sm:h-8 sm:w-8" />
           </div>
           <div>
-            <h3 className="font-black text-[var(--tp-primary)] dark:text-white">{title}</h3>
-            <p className="mt-2 text-sm font-medium leading-6 text-[#557099] dark:text-slate-300">
+            <h3 className="text-sm font-black text-[var(--tp-primary)] dark:text-white sm:text-base">{title}</h3>
+            <p className="mt-1 text-sm font-medium leading-6 text-[#557099] dark:text-slate-300 sm:mt-2">
               {text}
             </p>
-            <span className="mt-4 block h-1 w-7 rounded-full bg-[var(--tp-accent)]" />
+            <span className="mt-2 block h-1 w-7 rounded-full bg-[var(--tp-accent)] sm:mt-4" />
           </div>
         </div>
       ))}
@@ -1040,31 +1042,21 @@ function ProductCard({ product, compact = false, showDiscount = false }) {
 }
 
 function PromoStrip({ isIndo }) {
-  return (
-    <section className="grid gap-6 rounded-[28px] bg-white p-6 shadow-[0_14px_34px_rgba(3,76,133,0.08)] dark:bg-slate-900 xl:grid-cols-3">
-      <div className="flex items-center gap-5">
-        <div className="grid h-24 w-20 shrink-0 place-items-center rounded-[22px] border border-[#dbe6f3] bg-[#f7fbff] text-5xl dark:border-slate-800 dark:bg-slate-950">
-          📱
-        </div>
-        <div>
-          <h3 className="text-lg font-black text-[var(--tp-primary)] dark:text-white">
-            {isIndo ? "Unduh Aplikasi TP Preneurs" : "Download the TP Preneurs App"}
-          </h3>
-          <p className="mt-1 text-sm font-medium text-[#557099] dark:text-slate-300">
-            {isIndo ? "Belanja di mana saja & dapatkan promo eksklusif khusus aplikasi." : "Shop on the go & get exclusive app-only offers."}
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <span className="inline-flex h-10 items-center gap-2 rounded-lg bg-black px-3 text-xs font-black text-white">
-              <Download className="h-4 w-4" /> Google Play
-            </span>
-            <span className="inline-flex h-10 items-center gap-2 rounded-lg bg-black px-3 text-xs font-black text-white">
-              <Download className="h-4 w-4" /> App Store
-            </span>
-          </div>
-        </div>
-      </div>
+  const [email, setEmail] = useState("");
 
-      <div className="flex items-center gap-5 border-[#dbe6f3] xl:border-x xl:px-10 dark:border-slate-800">
+  const handleSubscribe = (e) => {
+    e.preventDefault();
+    if (!email) {
+      toast.error(isIndo ? "Silakan masukkan alamat email." : "Please enter an email address.");
+      return;
+    }
+    toast.success(isIndo ? "Berhasil berlangganan newsletter!" : "Successfully subscribed to our newsletter!");
+    setEmail("");
+  };
+
+  return (
+    <section className="grid gap-6 rounded-[24px] bg-white p-4 shadow-[0_14px_34px_rgba(3,76,133,0.08)] dark:bg-slate-900 sm:rounded-[28px] sm:p-6 xl:grid-cols-2">
+      <div className="flex flex-col gap-4 border-[#dbe6f3] dark:border-slate-800 sm:flex-row sm:items-center sm:gap-5 xl:border-r xl:pr-10">
         <div className="flex -space-x-3">
           {["A", "K", "M", "S"].map((item, index) => (
             <span
@@ -1100,23 +1092,25 @@ function PromoStrip({ isIndo }) {
           <p className="mt-1 text-sm font-medium text-[#557099] dark:text-slate-300">
             {isIndo ? "Dapatkan penawaran, tips & pembaruan terbaru." : "Get the latest offers, tips & updates."}
           </p>
-          <form className="mt-4 flex overflow-hidden rounded-xl border border-[#dbe6f3] bg-white dark:border-slate-700 dark:bg-slate-950">
+          <form onSubmit={handleSubscribe} className="mt-4 flex flex-col overflow-hidden rounded-xl border border-[#dbe6f3] bg-white dark:border-slate-700 dark:bg-slate-950 sm:flex-row">
             <label className="sr-only" htmlFor="newsletter-email">
               Email address
             </label>
+            <div className="hidden items-center pl-4 pr-2 text-[#557099] dark:text-slate-400 sm:flex">
+              <Mail className="h-5 w-5" />
+            </div>
             <input
               id="newsletter-email"
               type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder={isIndo ? "Masukkan alamat email Anda" : "Enter your email address"}
-              className="min-w-0 flex-1 bg-transparent px-4 text-sm font-semibold text-[#071a3f] outline-none dark:text-white"
+              className="min-w-0 flex-1 bg-transparent px-4 py-3 text-sm font-semibold text-[#071a3f] outline-none dark:text-white sm:px-0 sm:py-2.5 sm:pr-4"
             />
-            <button type="submit" className="bg-[var(--tp-accent)] px-5 text-sm font-black text-white">
+            <button type="submit" className="bg-[var(--tp-accent)] px-5 py-3 text-sm font-black text-white sm:py-0">
               {isIndo ? "Berlangganan" : "Subscribe"}
             </button>
           </form>
-        </div>
-        <div className="hidden text-7xl md:block">
-          <Mail className="h-20 w-20 text-[var(--tp-primary)]" />
         </div>
       </div>
     </section>
@@ -1296,7 +1290,7 @@ export default function TPPreneurHomePage() {
   };
 
   return (
-    <div className="-mx-1 space-y-6 bg-[#f7fbff] text-[#071a3f] dark:bg-slate-950 sm:-mx-2">
+    <div className="mx-0 space-y-5 bg-[#f7fbff] pb-8 text-[#071a3f] dark:bg-slate-950 sm:mx-1 sm:space-y-6 sm:pb-0 lg:mx-2">
       <MainSliderSection
         mainSlider={mainSlider}
         products={popularProducts}
@@ -1422,7 +1416,7 @@ export default function TPPreneurHomePage() {
           </div>
 
           {popularLoading && popularProducts.length === 0 ? (
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5" aria-label="Loading products">
+            <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-5" aria-label="Loading products">
               {Array.from({ length: Math.min(popularProductsConfig.limit, 10) }).map((_, index) => (
                 <div key={index} className="h-72 animate-pulse rounded-[18px] bg-[#f0f6fd] dark:bg-slate-800" />
               ))}
@@ -1451,7 +1445,7 @@ export default function TPPreneurHomePage() {
                   <button type="button" onClick={() => refetchPopular()} className="underline">Try again</button>
                 </div>
               ) : null}
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
+              <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
                 {popularProducts.map((product) => (
                   <ProductCard key={product.id} product={product} showDiscount />
                 ))}
@@ -1483,13 +1477,13 @@ export default function TPPreneurHomePage() {
           </div>
         </div>
         {discountedLoading && extractList(discountedData).length === 0 ? (
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+          <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 lg:grid-cols-5">
             {Array.from({ length: 5 }).map((_, index) => (
               <div key={index} className="h-56 animate-pulse rounded-[18px] bg-white dark:bg-slate-800" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
+          <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
             {discountedProducts.map((product) => (
               <ProductCard key={product.id} product={product} showDiscount />
             ))}
@@ -1497,73 +1491,7 @@ export default function TPPreneurHomePage() {
         )}
       </section>
 
-      <section className="relative overflow-hidden rounded-[34px] bg-[var(--tp-primary)] px-7 py-8 text-white shadow-[0_24px_50px_rgba(3,76,133,0.2)] sm:p-10">
-        {/* Decorative background elements */}
-        <div className="absolute inset-0 bg-[url('/demo/noise.png')] opacity-[0.03] mix-blend-overlay" />
-        <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/20" />
-        <div className="absolute -right-40 -top-40 h-[400px] w-[400px] rounded-full bg-[var(--tp-accent)]/20 blur-[80px]" />
-        <div className="absolute -bottom-40 -left-20 h-[300px] w-[300px] rounded-full bg-[#4facfe]/20 blur-[80px]" />
-        
-        <div className="relative z-10 grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-          <div className="space-y-5">
-            <div className="inline-flex items-center gap-2.5 rounded-full border border-[var(--tp-accent)]/30 bg-[var(--tp-accent)]/15 px-4 py-2 backdrop-blur-md">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--tp-accent)] opacity-75"></span>
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--tp-accent)]"></span>
-              </span>
-              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--tp-accent)] sm:text-xs">
-                {t("home.eyebrow")}
-              </p>
-            </div>
-            
-            <h2 className="max-w-2xl text-3xl font-black leading-[1.15] tracking-tight sm:text-4xl lg:text-5xl">
-              {t("home.heading1")} <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ffd89e] to-white">{t("home.heading2")}</span>{t("home.heading3")}
-            </h2>
-            
-            <p className="max-w-xl text-base font-medium leading-relaxed text-blue-100/90">
-              {t("home.description")}
-            </p>
-            
-            <div className="pt-2">
-              <Link
-                to="/shop"
-                className="group relative inline-flex h-12 items-center gap-3 overflow-hidden rounded-full bg-white dark:bg-slate-900 px-8 text-sm font-black text-black dark:text-white shadow-[0_8px_25px_rgba(255,255,255,0.2)] transition-all hover:-translate-y-1 hover:shadow-[0_15px_35px_rgba(255,255,255,0.3)]"
-              >
-                <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-[var(--tp-primary)]/10 dark:via-white/10 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
-                <span className="relative z-10 text-black dark:text-white">{t("home.startShopping")}</span>
-                <ArrowRight className="relative z-10 h-5 w-5 text-[#071a3f] dark:text-white transition-transform group-hover:translate-x-1" />
-              </Link>
-            </div>
-          </div>
-          
-          <div className="relative min-h-[300px] sm:min-h-[340px]">
-            {/* Glassmorphic backdrop */}
-            <div className="absolute inset-0 rounded-[40px] border border-white/10 bg-white/5 backdrop-blur-md shadow-2xl transition-transform duration-700 hover:scale-[1.02]" />
-            
-            {/* Floating emojis with glass rings */}
-            <div className="absolute left-[12%] top-[10%] flex h-20 w-20 -rotate-12 items-center justify-center rounded-full border border-white/20 bg-white/10 text-4xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] backdrop-blur-xl transition-transform duration-500 hover:scale-110 hover:rotate-0 sm:h-24 sm:w-24 sm:text-5xl">
-              🥬
-            </div>
-            <div className="absolute right-[12%] top-[15%] flex h-16 w-16 rotate-12 items-center justify-center rounded-full border border-white/20 bg-white/10 text-3xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] backdrop-blur-xl transition-transform duration-500 hover:scale-110 hover:rotate-0 sm:h-20 sm:w-20 sm:text-4xl">
-              🍊
-            </div>
-            <div className="absolute bottom-[28%] left-[22%] flex h-24 w-24 -rotate-6 items-center justify-center rounded-full border border-white/20 bg-white/10 text-5xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] backdrop-blur-xl transition-transform duration-500 hover:scale-110 hover:rotate-0 sm:h-28 sm:w-28 sm:text-6xl">
-              🥛
-            </div>
-            
-            {/* Floating badge */}
-            <div className="group absolute bottom-4 right-4 flex items-center gap-3 rounded-[24px] border border-white/30 bg-white/20 p-4 pr-6 shadow-[0_20px_40px_rgba(0,0,0,0.2)] backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 hover:bg-white/30 hover:shadow-[0_25px_50px_rgba(0,0,0,0.3)] sm:bottom-6 sm:right-6">
-              <div className="grid h-12 w-12 place-items-center rounded-[16px] bg-white text-[var(--tp-primary)] shadow-inner transition-transform duration-500 group-hover:scale-110">
-                <Truck className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.15em] text-white/80">Delivery</p>
-                <p className="mt-0.5 text-base font-black text-white sm:text-lg">Same-day ready</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <DiscoverDigitalProductsHero />
 
       <PromoStrip isIndo={isIndo} />
     </div>
