@@ -142,6 +142,15 @@ function PaymentProofForm({
     event.target.value = "";
     if (!file) return;
 
+    if (!file.type.startsWith("image/")) {
+      setError("Please select a valid image file (JPG or PNG).");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image size must be less than 5MB.");
+      return;
+    }
+
     setIsUploading(true);
     try {
       const proofImageUrl = await uploadPaymentProofImage(file);

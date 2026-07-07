@@ -245,6 +245,7 @@ async function runCreateAccountScenario(page: any) {
   await page.locator("#admin-create-account-phone").fill("+6281234567890");
   await page.locator("#admin-create-account-password").fill("StaffPass123!");
   await page.locator("#admin-create-account-password-confirm").fill("StaffPass123!");
+  await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: "Create account" }).click();
   await expectText(
     page,

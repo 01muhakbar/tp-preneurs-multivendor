@@ -5,6 +5,8 @@ import { getStoreCustomization } from "../api/public/storeCustomizationPublic.ts
 import useStoreBranding from "../hooks/useStoreBranding.js";
 import { getWorkspaceFaviconUrl } from "../lib/branding.js";
 import { normalizeSeoSettings, resolveSeoAbsoluteUrl } from "../utils/seoSettings.js";
+import { useTranslation } from "react-i18next";
+import { resolveAssetUrl } from "../lib/assetUrl.js";
 
 const ensureMetaTag = (selector, attrs = {}) => {
   let element = document.head.querySelector(selector);
@@ -48,11 +50,14 @@ const buildDocumentTitle = (pathname, metaTitle, fallbackTitle, branding = {}) =
 };
 
 export default function SeoCustomizationBridge() {
+  const { i18n } = useTranslation();
+  const isIndo = i18n.language === "id" || i18n.language === "id-ID" || i18n.language?.startsWith("id") || (typeof window !== "undefined" && localStorage.getItem("store_language") === "Indonesia");
+  const currentLang = isIndo ? "id" : "en";
   const location = useLocation();
   const { branding } = useStoreBranding();
   const seoSettingsQuery = useQuery({
-    queryKey: ["store-customization", "seo-settings", "en"],
-    queryFn: () => getStoreCustomization({ lang: "en", include: "seoSettings" }),
+    queryKey: ["store-customization", "seo-settings", currentLang],
+    queryFn: () => getStoreCustomization({ lang: currentLang, include: "seoSettings" }),
     staleTime: 60_000,
   });
   const seoSettings = normalizeSeoSettings(
@@ -119,11 +124,10 @@ export default function SeoCustomizationBridge() {
     canonicalLink.setAttribute("href", nextUrl);
     faviconLink.setAttribute(
       "href",
-      workspaceFaviconHref || seoSettings.faviconDataUrl || originalFaviconHref
+      resolveAssetUrl(seoSettings.faviconDataUrl) || workspaceFaviconHref || originalFaviconHref
     );
 
     return () => {
-      document.title = existingTitle;
       faviconLink.setAttribute("href", originalFaviconHref);
     };
   }, [

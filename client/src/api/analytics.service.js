@@ -7,10 +7,11 @@ const toYmd = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-const getLastSevenDates = () => {
+const getLastDates = (days = 7) => {
+  const safeDays = [7, 30, 90].includes(Number(days)) ? Number(days) : 7;
   const today = new Date();
   const dates = [];
-  for (let offset = 6; offset >= 0; offset -= 1) {
+  for (let offset = safeDays - 1; offset >= 0; offset -= 1) {
     const d = new Date(today);
     d.setDate(today.getDate() - offset);
     dates.push(toYmd(d));
@@ -18,8 +19,8 @@ const getLastSevenDates = () => {
   return dates;
 };
 
-export async function getOverview() {
-  const { data } = await api.get("/admin/stats/overview");
+export async function getOverview(days = 7) {
+  const { data } = await api.get("/admin/stats/overview", { params: { days } });
   const statusCounts = data?.statusCounts || {};
   const delivered = Number(statusCounts.delivered || 0);
   const pending = Number(statusCounts.pending || 0);
@@ -73,7 +74,7 @@ export async function getWeeklySales(days = 7) {
       },
     ])
   );
-  const normalized = getLastSevenDates().map((date) => {
+  const normalized = getLastDates(days).map((date) => {
     const match = rowByDate.get(date) || { sales: 0, orders: 0 };
     return { date, sales: match.sales, orders: match.orders };
   });
@@ -92,7 +93,8 @@ export async function getBestSelling(days = 7, limit = 5) {
       .map((item) => ({
         name: item.name,
         qty: Number(item.qty || 0),
-        revenue: 0,
+        revenue: Number(item.revenue || 0),
+        productId: item.productId ?? null,
       }))
       .slice(0, limit),
   };

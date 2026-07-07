@@ -398,11 +398,17 @@ export default function AccountOrders2026View({
         </div>
       )}
 
-      {!error && !isLoading && totalOrders > 0 ? (
+      {!error && !isLoading && totalOrders > 0 && filteredOrders.length > 0 ? (
         <footer className="tp-orders-2026__pagination">
           <p>
-            {t("orders.showing", { start: firstVisible, end: lastVisible, total: totalOrders })}
-            {hasFilters ? t("orders.matching", { count: filteredOrders.length }) : ""}
+            {t("orders.showing", {
+              start: hasFilters ? 1 : firstVisible,
+              end: hasFilters ? filteredOrders.length : lastVisible,
+              total: hasFilters ? filteredOrders.length : totalOrders,
+            })}
+            {hasFilters && totalOrders !== filteredOrders.length
+              ? ` (${t("orders.matching", { count: filteredOrders.length })})`
+              : ""}
           </p>
           <nav aria-label="Order pagination">
             <button

@@ -1119,7 +1119,8 @@ function PromoStrip({ isIndo }) {
 
 export default function TPPreneurHomePage() {
   const { t, i18n } = useTranslation();
-  const isIndo = i18n.language === 'id' || i18n.language === 'id-ID';
+  const isIndo = i18n.language === 'id' || i18n.language === 'id-ID' || i18n.language?.startsWith("id") || (typeof window !== "undefined" && localStorage.getItem("store_language") === "Indonesia");
+  const currentLang = isIndo ? "id" : "en";
   const [copiedCode, setCopiedCode] = useState("");
   const [popularCategory, setPopularCategory] = useState("all");
   const [popularSort, setPopularSort] = useState("featured");
@@ -1130,8 +1131,8 @@ export default function TPPreneurHomePage() {
     refetch: refetchCategories,
   } = useCategories({ parentsOnly: true });
   const { data: homeCustomizationData } = useQuery({
-    queryKey: ["store-customization", "home-page", "en"],
-    queryFn: () => getStoreCustomization({ lang: "en", include: "home" }),
+    queryKey: ["store-customization", "home-page", currentLang],
+    queryFn: () => getStoreCustomization({ lang: currentLang, include: "home" }),
     staleTime: 60_000,
     retry: 1,
     refetchOnWindowFocus: false,
@@ -1219,11 +1220,11 @@ export default function TPPreneurHomePage() {
   }, [popularData, popularProductsConfig.limit]);
 
   useEffect(() => {
-    if (popularCategory === "all") return;
+    if (popularCategory === "all" || categoriesLoading || categories.length === 0) return;
     if (!categories.some((category) => category.slug === popularCategory)) {
       setPopularCategory("all");
     }
-  }, [categories, popularCategory]);
+  }, [categories, popularCategory, categoriesLoading]);
 
   const displayFeaturedTitle = isIndo && featuredCategoriesConfig.title === "Featured Categories" ? "Kategori Unggulan" : (isIndo && featuredCategoriesConfig.title === "Shop by Category" ? "Belanja berdasarkan Kategori" : featuredCategoriesConfig.title);
   const displayFeaturedDesc = isIndo && featuredCategoriesConfig.description === "Choose your necessary products from this feature categories." ? "Pilih produk kebutuhan Anda dari kategori unggulan ini." : (isIndo && featuredCategoriesConfig.description === "Explore the categories currently available in our marketplace." ? "Jelajahi kategori yang tersedia saat ini di pasar kami." : featuredCategoriesConfig.description);
@@ -1287,6 +1288,7 @@ export default function TPPreneurHomePage() {
       // Clipboard permission can be unavailable; the visual feedback still confirms the click.
     }
     setCopiedCode(normalizedCode);
+    setTimeout(() => setCopiedCode(""), 3000);
   };
 
   return (

@@ -243,6 +243,13 @@ export default function AccountShippingAddressPage() {
   const handleDeleteAddress = async (item) => {
     const id = Number(item?.id || 0);
     if (!id) return;
+    if (item?.isPrimary || id === Number(defaultAddress?.id)) {
+      setStatus({
+        type: "error",
+        message: "Cannot delete default shipping address. Please set another address as default first.",
+      });
+      return;
+    }
     setStatus(null);
     setIsSaving(true);
     try {

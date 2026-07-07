@@ -27,7 +27,7 @@ const IconLogout = (props) => (
   </svg>
 );
 
-export default function Sidebar({ collapsed = false }) {
+export default function Sidebar({ collapsed = false, mobileOpen = false }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -87,7 +87,7 @@ export default function Sidebar({ collapsed = false }) {
   const allowedMenu = getAllowedAdminNavigation(user);
 
   return (
-    <aside className={`sidebar ${collapsed ? "is-collapsed" : ""}`}>
+    <aside className={`sidebar ${collapsed ? "is-collapsed" : ""} ${mobileOpen ? "is-mobile-open" : ""}`}>
       <div className="sidebar__brand">
         <WorkspaceSidebarBrand
           brandName="TP PRENEURS"

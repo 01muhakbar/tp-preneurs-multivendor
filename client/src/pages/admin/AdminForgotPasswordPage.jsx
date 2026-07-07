@@ -1,17 +1,34 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { adminForgotPasswordSchema } from "@ecommerce/schemas";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  KeyRound,
+  LockKeyhole,
+  Mail,
+  Moon,
+  RefreshCcw,
+  ShieldCheck,
+  Sun,
+  UserRound,
+} from "lucide-react";
 import { requestAdminPasswordReset } from "../../api/adminPublicAuth.ts";
-import AuthNotice from "../../components/auth/AuthNotice.jsx";
+import useStoreBranding from "../../hooks/useStoreBranding.js";
+import { resolveAssetUrl } from "../../lib/assetUrl.js";
+import { getWorkspaceLogoUrl } from "../../lib/branding.js";
+import { useTheme } from "../../theme/ThemeProvider.jsx";
 import { getRetryAfterSeconds } from "../../utils/authRateLimit.js";
 import {
-  FORGOT_PASSWORD_GENERIC_MESSAGE,
   buildCooldownButtonLabel,
   buildRetryAfterMessage,
 } from "../../utils/authUi.js";
-import adminLoginHero from "../../assets/admin-login-hero.jpg";
-import useStoreBranding from "../../hooks/useStoreBranding.js";
-import { resolveAssetUrl } from "../../lib/assetUrl.js";
+import "./admin-forgot-password-2026.css";
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const ADMIN_FORGOT_PASSWORD_SUCCESS_MESSAGE =
+  "If this email is registered, a secure reset link has been sent.";
 
 const toFieldErrors = (error) => {
   const flattened =
@@ -22,14 +39,86 @@ const toFieldErrors = (error) => {
   return flattened && typeof flattened === "object" ? flattened : {};
 };
 
-const firstFieldError = (fieldErrors, key) =>
-  Array.isArray(fieldErrors?.[key]) && fieldErrors[key].length > 0 ? fieldErrors[key][0] : "";
+const firstFieldError = (fieldErrors, key) => {
+  const error = fieldErrors?.[key];
+  if (Array.isArray(error)) return error[0] || "";
+  return typeof error === "string" ? error : "";
+};
+
+const validateEmail = (value) => {
+  const normalized = String(value || "").trim();
+  if (!normalized) return "Email is required.";
+  if (!EMAIL_PATTERN.test(normalized)) return "Enter a valid email address.";
+  return "";
+};
+
+function AdminRecoveryBrand({ logoSrc, compact = false }) {
+  return (
+    <div className={`admin-forgot-2026__brand${compact ? " is-compact" : ""}`}>
+      <span className="admin-forgot-2026__brand-mark">
+        <img src={logoSrc} alt="" />
+      </span>
+      <span className="admin-forgot-2026__brand-copy">
+        <strong>TP Preneurs</strong>
+        <small>Admin Workspace</small>
+      </span>
+    </div>
+  );
+}
+
+function RecoveryIllustration() {
+  return (
+    <div className="admin-forgot-2026__illustration" aria-hidden="true">
+      <span className="admin-forgot-2026__orbit is-one" />
+      <span className="admin-forgot-2026__orbit is-two" />
+
+      <div className="admin-forgot-2026__dashboard-card">
+        <div className="admin-forgot-2026__dashboard-title">
+          <span><UserRound size={18} /></span>
+          <strong>Admin</strong>
+        </div>
+        <i /><i /><i />
+        <span className="is-selected"><ShieldCheck size={20} /></span>
+      </div>
+
+      <div className="admin-forgot-2026__mail-card">
+        <Mail size={54} strokeWidth={1.8} />
+        <span>1</span>
+      </div>
+
+      <div className="admin-forgot-2026__shield">
+        <ShieldCheck size={202} strokeWidth={1.25} />
+        <span><LockKeyhole size={70} strokeWidth={1.8} /></span>
+      </div>
+
+      <span className="admin-forgot-2026__refresh">
+        <RefreshCcw size={50} strokeWidth={2.2} />
+      </span>
+
+      <div className="admin-forgot-2026__key-card">
+        <span><KeyRound size={24} /></span>
+        <div><strong>Reset Link</strong><i /><i /></div>
+      </div>
+
+      <div className="admin-forgot-2026__password-card">
+        <LockKeyhole size={17} />
+        <strong>********</strong>
+      </div>
+
+      <div className="admin-forgot-2026__verified-card">
+        <CheckCircle2 size={30} />
+        <i /><i />
+      </div>
+    </div>
+  );
+}
 
 export default function AdminForgotPasswordPage() {
   const startedAtRef = useRef(Date.now());
-  const { branding } = useStoreBranding();
   const emailRef = useRef(null);
   const statusRef = useRef(null);
+  const { branding } = useStoreBranding();
+  const { resolvedTheme, toggleTheme } = useTheme();
   const [email, setEmail] = useState("");
   const [honeypot, setHoneypot] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
@@ -37,6 +126,13 @@ export default function AdminForgotPasswordPage() {
   const [statusTone, setStatusTone] = useState("neutral");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
+
+  const isDark = resolvedTheme === "dark";
+  const adminLogoSrc = getWorkspaceLogoUrl("admin", branding?.adminLogoUrl);
+  const customHeroSrc = resolveAssetUrl(branding?.adminForgotPasswordHeroUrl);
+  const emailValidationMessage = useMemo(() => validateEmail(email), [email]);
+  const visibleEmailError = firstFieldError(fieldErrors, "email");
+  const isEmailValid = !emailValidationMessage;
 
   useEffect(() => {
     if (cooldownSeconds <= 0) return undefined;
@@ -46,42 +142,73 @@ export default function AdminForgotPasswordPage() {
     return () => window.clearTimeout(timer);
   }, [cooldownSeconds]);
 
-  useEffect(() => {
-    if (firstFieldError(fieldErrors, "email") && emailRef.current) {
-      emailRef.current.focus();
-    }
-  }, [fieldErrors]);
+  const focusEmail = () => {
+    window.requestAnimationFrame(() => emailRef.current?.focus());
+  };
 
-  useEffect(() => {
-    if (statusMessage && statusRef.current) {
-      statusRef.current.focus();
+  const focusStatus = () => {
+    window.requestAnimationFrame(() => statusRef.current?.focus());
+  };
+
+  const handleEmailChange = (event) => {
+    const value = event.target.value;
+    setEmail(value);
+    setFieldErrors((current) => {
+      if (!current.email) return current;
+      const next = { ...current };
+      delete next.email;
+      return next;
+    });
+    if (statusTone === "error") {
+      setStatusMessage("");
+      setStatusTone("neutral");
     }
-  }, [statusMessage]);
+  };
+
+  const handleEmailBlur = () => {
+    const message = validateEmail(email);
+    setFieldErrors((current) => {
+      const next = { ...current };
+      if (message) next.email = [message];
+      else delete next.email;
+      return next;
+    });
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setFieldErrors({});
     setStatusMessage("");
     setStatusTone("neutral");
 
+    const validationMessage = validateEmail(email);
+    if (validationMessage) {
+      setFieldErrors({ email: [validationMessage] });
+      focusEmail();
+      return;
+    }
+
     const payload = {
-      email,
+      email: email.trim().toLowerCase(),
       honeypot,
       startedAt: startedAtRef.current,
     };
     const parsed = adminForgotPasswordSchema.safeParse(payload);
     if (!parsed.success) {
       setFieldErrors(toFieldErrors(parsed.error));
+      focusEmail();
       return;
     }
 
+    setFieldErrors({});
     setIsSubmitting(true);
     try {
       const result = await requestAdminPasswordReset(parsed.data);
-      setStatusMessage(result?.message || FORGOT_PASSWORD_GENERIC_MESSAGE);
+      setStatusMessage(result?.message || ADMIN_FORGOT_PASSWORD_SUCCESS_MESSAGE);
       setStatusTone("success");
+      focusStatus();
     } catch (error) {
-      setFieldErrors(toFieldErrors(error));
+      const backendFieldErrors = toFieldErrors(error);
+      setFieldErrors(backendFieldErrors);
       const retryAfterSeconds = getRetryAfterSeconds(error);
       setStatusMessage(
         error?.response?.status === 429 && retryAfterSeconds > 0
@@ -89,113 +216,140 @@ export default function AdminForgotPasswordPage() {
           : error?.response?.data?.message || "We couldn't process that request right now."
       );
       setStatusTone("error");
-      if (retryAfterSeconds > 0) {
-        setCooldownSeconds(retryAfterSeconds);
-      }
+      if (retryAfterSeconds > 0) setCooldownSeconds(retryAfterSeconds);
+      if (firstFieldError(backendFieldErrors, "email")) focusEmail();
+      else focusStatus();
     } finally {
       setIsSubmitting(false);
     }
   };
-  const heroSrc = resolveAssetUrl(branding?.adminForgotPasswordHeroUrl) || adminLoginHero;
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)] px-4 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-4">
-      <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-5xl items-center justify-center">
-        <section className="grid w-full overflow-hidden rounded-[32px] border border-white/70 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.12)] lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="relative min-h-[220px] bg-slate-200 sm:min-h-[300px] lg:min-h-[560px]">
-            <img
-              src={heroSrc}
-              alt="Admin workspace recovery preview"
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,23,42,0.08)_0%,rgba(15,23,42,0.45)_100%)]" />
+    <main
+      className={`admin-forgot-2026${isDark ? " admin-forgot-2026--dark" : ""}`}
+    >
+      <button
+        className="admin-forgot-2026__theme-toggle"
+        type="button"
+        onClick={toggleTheme}
+        aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+        title={isDark ? "Switch to light theme" : "Switch to dark theme"}
+      >
+        {isDark ? <Sun size={19} aria-hidden="true" /> : <Moon size={19} aria-hidden="true" />}
+      </button>
+
+      <section className="admin-forgot-2026__shell" aria-labelledby="admin-recovery-title">
+        <div className={`admin-forgot-2026__hero${customHeroSrc ? " has-custom-media" : ""}`}>
+          <AdminRecoveryBrand logoSrc={adminLogoSrc} />
+          {customHeroSrc ? (
+            <div className="admin-forgot-2026__custom-media">
+              <img src={customHeroSrc} alt="Admin account recovery" />
+              <span aria-hidden="true" />
+            </div>
+          ) : (
+            <RecoveryIllustration />
+          )}
+        </div>
+
+        <div className="admin-forgot-2026__panel">
+          <div className="admin-forgot-2026__mobile-brand">
+            <AdminRecoveryBrand logoSrc={adminLogoSrc} compact />
           </div>
 
-          <div className="flex items-center bg-white">
-            <div className="w-full px-6 py-7 sm:px-8 sm:py-8 lg:px-10 lg:py-9">
-              <div className="mx-auto max-w-md">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-teal-700">
-                  Account Recovery
-                </p>
-                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-                  Forgot password
-                </h1>
+          <div className="admin-forgot-2026__card">
+            <p className="admin-forgot-2026__kicker">Account Recovery</p>
+            <h1 id="admin-recovery-title">Forgot password</h1>
+            <p className="admin-forgot-2026__intro">
+              We'll send a secure reset link to your email.
+            </p>
 
-                <AuthNotice
-                  id="admin-forgot-password-status"
-                  tone={statusTone}
-                  live={statusTone === "error" ? "assertive" : "polite"}
-                  focusRef={statusRef}
-                  className="mt-4 rounded-2xl text-xs"
-                >
-                  {statusMessage}
-                </AuthNotice>
-
-                <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-                  <div className="hidden" aria-hidden="true">
-                    <label htmlFor="admin-forgot-password-company">Company</label>
-                    <input
-                      id="admin-forgot-password-company"
-                      type="text"
-                      tabIndex={-1}
-                      autoComplete="off"
-                      value={honeypot}
-                      onChange={(event) => setHoneypot(event.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="admin-forgot-password-email"
-                      className="text-sm font-medium text-slate-700"
-                    >
-                      Email
-                    </label>
-                    <input
-                      id="admin-forgot-password-email"
-                      ref={emailRef}
-                      type="email"
-                      value={email}
-                      onChange={(event) => setEmail(event.target.value)}
-                      className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-teal-500/10"
-                      placeholder="staff@example.com"
-                      autoComplete="email"
-                      required
-                    />
-                    {firstFieldError(fieldErrors, "email") && (
-                      <p className="mt-2 text-xs leading-6 text-rose-600">
-                        {firstFieldError(fieldErrors, "email")}
-                      </p>
-                    )}
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isSubmitting || cooldownSeconds > 0}
-                    className="w-full rounded-2xl bg-teal-700 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-teal-500/70"
-                  >
-                    {isSubmitting
-                      ? "Sending reset link..."
-                      : buildCooldownButtonLabel(cooldownSeconds, "Send reset link")}
-                  </button>
-                </form>
-
-                <div className="mt-5 border-t border-slate-200 pt-4">
-                  <p className="text-sm text-slate-500">
-                    Already have an account?{" "}
-                    <Link
-                      to="/admin/login"
-                      className="font-semibold text-teal-700 transition hover:text-teal-800 hover:underline"
-                    >
-                      Login
-                    </Link>
-                  </p>
-                </div>
+            {statusMessage ? (
+              <div
+                id="admin-forgot-password-status"
+                ref={statusRef}
+                className={`admin-forgot-2026__notice is-${statusTone}`}
+                tabIndex={-1}
+                role={statusTone === "error" ? "alert" : "status"}
+                aria-live={statusTone === "error" ? "assertive" : "polite"}
+              >
+                {statusTone === "success" ? (
+                  <CheckCircle2 size={19} aria-hidden="true" />
+                ) : (
+                  <ShieldCheck size={19} aria-hidden="true" />
+                )}
+                <span>{statusMessage}</span>
               </div>
+            ) : null}
+
+            <form className="admin-forgot-2026__form" onSubmit={handleSubmit} noValidate>
+              <div className="admin-forgot-2026__honeypot" aria-hidden="true">
+                <label htmlFor="admin-forgot-password-company">Company</label>
+                <input
+                  id="admin-forgot-password-company"
+                  type="text"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={honeypot}
+                  onChange={(event) => setHoneypot(event.target.value)}
+                />
+              </div>
+
+              <div className="admin-forgot-2026__field">
+                <label htmlFor="admin-forgot-password-email">Email</label>
+                <div className={`admin-forgot-2026__input${visibleEmailError ? " has-error" : ""}`}>
+                  <Mail size={20} aria-hidden="true" />
+                  <input
+                    id="admin-forgot-password-email"
+                    ref={emailRef}
+                    type="email"
+                    value={email}
+                    onChange={handleEmailChange}
+                    onBlur={handleEmailBlur}
+                    placeholder="staff@example.com"
+                    autoComplete="email"
+                    aria-invalid={Boolean(visibleEmailError)}
+                    aria-describedby={visibleEmailError ? "admin-forgot-password-email-error" : undefined}
+                    required
+                  />
+                </div>
+                {visibleEmailError ? (
+                  <p
+                    className="admin-forgot-2026__field-error"
+                    id="admin-forgot-password-email-error"
+                    role="alert"
+                  >
+                    {visibleEmailError}
+                  </p>
+                ) : null}
+              </div>
+
+              <button
+                className="admin-forgot-2026__submit"
+                type="submit"
+                disabled={!isEmailValid || isSubmitting || cooldownSeconds > 0}
+                aria-busy={isSubmitting}
+              >
+                <span>
+                  {isSubmitting
+                    ? "Sending link..."
+                    : buildCooldownButtonLabel(cooldownSeconds, "Send reset link")}
+                </span>
+                <ArrowRight size={19} aria-hidden="true" />
+              </button>
+            </form>
+
+            <div className="admin-forgot-2026__links">
+              <Link to="/admin/login">
+                <ArrowLeft size={17} aria-hidden="true" /> Back to login
+              </Link>
             </div>
           </div>
-        </section>
-      </div>
-    </div>
+        </div>
+
+        <footer className="admin-forgot-2026__footer">
+          &copy; 2026 TP Preneurs. All rights reserved.
+        </footer>
+      </section>
+    </main>
   );
 }

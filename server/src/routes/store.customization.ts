@@ -121,14 +121,13 @@ router.get("/header", async (req, res, next) => {
     const sanitized = sourceRow
       ? parseStoredCustomization(sourceRow.data)
       : sanitizeStoreCustomization({});
-    const store = await resolvePrimaryPublicStore();
 
     return res.json({
       success: true,
       data: buildPublicStoreCustomizationHeaderSettings(
         lang,
         sanitized,
-        store,
+        null,
         sourceRow?.updatedAt
       ),
     });
@@ -274,28 +273,33 @@ router.get("/", async (req, res, next) => {
       includeSet.has("about-us") ||
       includeSet.has("about_us");
     const includeHome =
+      !includeProvided ||
       includeSet.has("home") ||
       includeSet.has("homesettings") ||
       includeSet.has("home-settings") ||
       includeSet.has("home_settings");
-    const includePolicy = includeSet.has("policy");
-    const includeFaq = includeSet.has("faq") || includeSet.has("faqs");
-    const includeOffers = includeSet.has("offer") || includeSet.has("offers");
+    const includePolicy = !includeProvided || includeSet.has("policy");
+    const includeFaq = !includeProvided || includeSet.has("faq") || includeSet.has("faqs");
+    const includeOffers = !includeProvided || includeSet.has("offer") || includeSet.has("offers");
     const includeContactUs =
+      !includeProvided ||
       includeSet.has("contactus") ||
       includeSet.has("contact-us") ||
       includeSet.has("contact_us");
-    const includeCheckout = includeSet.has("checkout");
+    const includeCheckout = !includeProvided || includeSet.has("checkout");
     const includeSeoSettings =
+      !includeProvided ||
       includeSet.has("seo") ||
       includeSet.has("seosettings") ||
       includeSet.has("seo-settings") ||
       includeSet.has("seo_settings");
     const includeDashboardSetting =
+      !includeProvided ||
       includeSet.has("dashboardsetting") ||
       includeSet.has("dashboard-setting") ||
       includeSet.has("dashboard_setting");
     const includeProductSlugPage =
+      !includeProvided ||
       includeSet.has("productslugpage") ||
       includeSet.has("product-slug-page") ||
       includeSet.has("product_slug_page");

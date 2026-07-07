@@ -200,12 +200,29 @@ export default function StoreMicrositePage() {
     );
   }
 
-  if (isNotFound || isStoreOperationallyGated) {
+  if (isNotFound) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
         <UiEmptyState
           title="Store not found."
           description={`We could not find an eligible public store for "${safeSlug}".`}
+          actions={
+            <Link to="/" className="inline-flex h-11 items-center justify-center rounded-full border border-slate-200 px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+              Back to Marketplace
+            </Link>
+          }
+        />
+      </div>
+    );
+  }
+
+  if (isStoreOperationallyGated) {
+    const readiness = micrositeQuery.data?.data?.summary?.operationalReadiness || {};
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+        <UiEmptyState
+          title={readiness.label || "Store Currently Unavailable"}
+          description={readiness.description || `The store "${safeSlug}" is not operational yet and cannot be accessed on public storefront routes.`}
           actions={
             <Link to="/" className="inline-flex h-11 items-center justify-center rounded-full border border-slate-200 px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
               Back to Marketplace

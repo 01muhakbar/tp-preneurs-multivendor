@@ -797,7 +797,17 @@ router.get("/invitations", requireAuth, async (req, res) => {
     const invitations = await StoreMember.findAll({
       where: {
         userId,
-        status: SELLER_TEAM_PERSISTENCE_STATUS.INVITED,
+        // Include all membership records that originated from an invitation
+        // (INVITED = pending, ACTIVE = accepted, REMOVED = declined)
+        status: {
+          [Op.in]: [
+            SELLER_TEAM_PERSISTENCE_STATUS.INVITED,
+            SELLER_TEAM_PERSISTENCE_STATUS.ACTIVE,
+            SELLER_TEAM_PERSISTENCE_STATUS.REMOVED,
+          ],
+        },
+        // Only include records that were actually invited (not direct owner memberships)
+        invitedAt: { [Op.ne]: null },
       } as any,
       attributes: [
         "id",
@@ -808,6 +818,7 @@ router.get("/invitations", requireAuth, async (req, res) => {
         "invitedAt",
         "invitedByUserId",
         "acceptedAt",
+        "removedAt",
         "createdAt",
         "updatedAt",
       ],

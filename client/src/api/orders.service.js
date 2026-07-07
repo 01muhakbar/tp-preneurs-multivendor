@@ -28,7 +28,18 @@ export async function listOrders(params = {}) {
   try {
     const response = await api.get("/admin/orders", { params: query });
     const payload = response?.data;
-    if (payload && payload.data && payload.meta) {
+    if (payload && Array.isArray(payload?.data?.items)) {
+      return {
+        data: payload.data.items.map(mapOrderForUi),
+        meta: {
+          page: payload.data.page ?? query.page,
+          limit: payload.data.pageSize ?? query.limit,
+          total: payload.data.total ?? payload.data.items.length,
+          totalPages: payload.data.totalPages ?? 1,
+        },
+      };
+    }
+    if (payload && Array.isArray(payload.data) && payload.meta) {
       const mapped = payload.data.map(mapOrderForUi);
       return { ...payload, data: mapped };
     }

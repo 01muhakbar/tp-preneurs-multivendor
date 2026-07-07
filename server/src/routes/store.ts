@@ -1174,7 +1174,7 @@ router.get(
         Math.max(1, parseInt(String(req.query.pageSize || req.query.limit || "12"), 10))
       );
       const limit = pageSize;
-      const search = String(req.query.search || "").trim();
+      const search = String(req.query.search || req.query.q || req.query.query || "").trim();
       const categoryParam = String(req.query.category || "").trim();
       const minPriceParam = Number(req.query.minPrice);
       const maxPriceParam = Number(req.query.maxPrice);
@@ -1240,14 +1240,25 @@ router.get(
       if (categoryParam) {
         const categoryId = Number(categoryParam);
         let category: any = null;
-        if (Number.isFinite(categoryId)) {
+        if (Number.isFinite(categoryId) && categoryId > 0) {
           category = await Category.findByPk(categoryId);
-        } else {
-          category = await Category.findOne({
-            where: {
-              published: true,
-              [Op.or]: [{ code: categoryParam }, { name: categoryParam }],
-            },
+        }
+        if (!category) {
+          const lowerParam = categoryParam.toLowerCase().trim();
+          const unslugged = lowerParam.replace(/-/g, " ");
+          const allCategories = await Category.findAll({ where: { published: true } as any });
+          category = allCategories.find((cat: any) => {
+            const catId = String(cat.id || "");
+            const catCode = String(cat.code || "").toLowerCase().trim();
+            const catName = String(cat.name || "").toLowerCase().trim();
+            const catSlug = (catCode || catName.replace(/[^a-z0-9]+/g, "-")).trim();
+            return (
+              catId === lowerParam ||
+              catCode === lowerParam ||
+              catName === lowerParam ||
+              catName === unslugged ||
+              catSlug === lowerParam
+            );
           });
         }
         if (!category) {
@@ -2079,6 +2090,20 @@ router.put(
 
       const name = typeof req.body?.name === "string" ? req.body.name.trim() : null;
       const email = typeof req.body?.email === "string" ? req.body.email.trim() : null;
+      const phoneProvided =
+        Object.prototype.hasOwnProperty.call(req.body || {}, "phone") ||
+        Object.prototype.hasOwnProperty.call(req.body || {}, "phoneNumber");
+      const phoneRaw = phoneProvided
+        ? Object.prototype.hasOwnProperty.call(req.body || {}, "phone")
+          ? req.body?.phone
+          : req.body?.phoneNumber
+        : undefined;
+      const phone =
+        phoneRaw === undefined || phoneRaw == null || String(phoneRaw).trim() === ""
+          ? phoneProvided
+            ? null
+            : undefined
+          : String(phoneRaw).trim();
       const avatarProvided =
         Object.prototype.hasOwnProperty.call(req.body || {}, "avatarUrl") ||
         Object.prototype.hasOwnProperty.call(req.body || {}, "avatar");
@@ -2094,7 +2119,7 @@ router.put(
             : undefined
           : String(avatarRaw).trim();
 
-      if (!name && !email && avatarUrl === undefined) {
+      if (!name && !email && phone === undefined && avatarUrl === undefined) {
         return res.status(400).json({ message: "No updates provided." });
       }
 
@@ -2105,6 +2130,9 @@ router.put(
 
       if (name) user.name = name;
       if (email) user.email = email;
+      if (phone !== undefined) {
+        (user as any).phoneNumber = phone;
+      }
       if (avatarUrl !== undefined) {
         (user as any).avatarUrl = avatarUrl;
       }
@@ -2116,12 +2144,26 @@ router.put(
           id: user.id,
           name: user.name,
           email: user.email,
+          phone: (user as any).phoneNumber ?? null,
           role: (user as any).role,
           avatarUrl: (user as any).avatarUrl ?? null,
         },
       });
     } catch (error: any) {
       if (error?.name === "SequelizeUniqueConstraintError") {
+        const errString =
+          JSON.stringify(error?.fields || {}) +
+          " " +
+          JSON.stringify(error?.errors || []) +
+          " " +
+          String(error?.message || "") +
+          " " +
+          String(error?.parent?.message || "") +
+          " " +
+          String(error?.original?.message || "");
+        if (/phone|mobile/i.test(errString)) {
+          return res.status(409).json({ message: "Phone number already in use." });
+        }
         return res.status(409).json({ message: "Email already in use." });
       }
       next(error);

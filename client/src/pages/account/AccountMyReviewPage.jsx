@@ -268,7 +268,7 @@ function ReviewModal({
         aria-labelledby="review-modal-title"
       >
         <header className="reviews-2026-modal__header">
-          <h2 id="review-modal-title">Review Product</h2>
+          <h2 id="review-modal-title">{mode === "edit" ? "Edit Review" : "Review Product"}</h2>
           <button
             type="button"
             className="reviews-2026-icon-button"
@@ -694,7 +694,7 @@ export default function AccountMyReviewPage() {
                     </span>
                   </div>
                   <button type="button" onClick={() => openEditModal(item)}>
-                    View Review
+                    Edit Review
                   </button>
                 </article>
               )

@@ -2137,26 +2137,26 @@ export const buildPublicStoreCustomizationHeaderSettings = (
   return {
     language: lang,
     headerText: toText(headerSource.headerText, "Need help?"),
-    phoneNumber: storePhone || customizationPhone,
-    whatsAppLink: storeWhatsApp || customizationWhatsApp,
-    headerLogoUrl: storeLogoUrl || customizationHeaderLogoUrl,
+    phoneNumber: customizationPhone || storePhone,
+    whatsAppLink: customizationWhatsApp || storeWhatsApp,
+    headerLogoUrl: customizationHeaderLogoUrl || (storeLogoUrl ? "" : ""),
     updatedAt:
       pickLatestIsoString(store?.updatedAt, updatedAt) || new Date().toISOString(),
     contract: {
       authoritativeFields: {
         headerText: "STORE_CUSTOMIZATION",
-        phoneNumber: storePhone ? "STORE" : "STORE_CUSTOMIZATION",
-        whatsAppLink: storeWhatsApp ? "STORE" : "STORE_CUSTOMIZATION",
-        headerLogoUrl: storeLogoUrl ? "STORE" : "STORE_CUSTOMIZATION",
+        phoneNumber: customizationPhone ? "STORE_CUSTOMIZATION" : "STORE",
+        whatsAppLink: customizationWhatsApp ? "STORE_CUSTOMIZATION" : "STORE",
+        headerLogoUrl: customizationHeaderLogoUrl ? "STORE_CUSTOMIZATION" : "STORE_SETTINGS",
       },
       fallbackOrder: {
-        phoneNumber: ["STORE.phone", "customization.home.header.phoneNumber"],
-        whatsAppLink: ["STORE.whatsapp", "customization.home.header.whatsAppLink"],
-        headerLogoUrl: ["STORE.logoUrl", "customization.home.header.headerLogoUrl"],
+        phoneNumber: ["customization.home.header.phoneNumber", "STORE.phone"],
+        whatsAppLink: ["customization.home.header.whatsAppLink", "STORE.whatsapp"],
+        headerLogoUrl: ["customization.home.header.headerLogoUrl", "STORE_SETTINGS.branding.clientLogoUrl"],
       },
       notes: [
         "Marketplace header copy stays admin customization-managed.",
-        "Seller-owned store phone, WhatsApp, and logo override customization header fallback when present.",
+        "Customization header logo URL overrides global client logo setting when explicitly configured.",
       ],
     },
   };

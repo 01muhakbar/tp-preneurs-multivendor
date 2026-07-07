@@ -42,6 +42,10 @@ import {
   buildAuthSessionClaims,
   resolveAuthenticatedUserFromToken,
 } from "../services/authSession.service.js";
+import {
+  isAdminWorkspaceRole,
+  normalizeCanonicalRole,
+} from "../utils/role.js";
 
 const { User } = models as { User?: any };
 const AUTH_DEBUG_COOKIES = process.env.AUTH_DEBUG_COOKIES === "true";
@@ -66,16 +70,12 @@ const toAuthUser = (user: any) => ({
   id: user.id,
   email: user.email,
   name: user.name,
-  role: user.role,
+  role: normalizeCanonicalRole(user.role),
   avatarUrl: user.avatarUrl ?? null,
+  phone: user.phoneNumber ?? null,
   phoneNumber: user.phoneNumber ?? null,
   status: user.status ?? null,
 });
-
-const isAdminWorkspaceRole = (role: unknown) =>
-  ["staff", "admin", "super_admin", "superadmin"].includes(
-    String(role || "").trim().toLowerCase()
-  );
 
 const getStorefrontAuthCookieName = () => process.env.AUTH_COOKIE_NAME || "token";
 const getAdminAuthCookieName = () =>
@@ -480,7 +480,8 @@ router.post("/admin/login", async (req, res) => {
   }
 
   try {
-    const user = await User.findOne({ where: { email } });
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    const user = await User.findOne({ where: { email: normalizedEmail } });
 
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials" });
@@ -528,7 +529,7 @@ router.post("/admin/login", async (req, res) => {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role,
+        role: normalizeCanonicalRole(user.role),
         avatarUrl: user.avatarUrl ?? null,
       },
     });

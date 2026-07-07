@@ -17,6 +17,16 @@ const fetchMe = async () => {
   return res.json();
 };
 
+const normalizeRole = (role) => {
+  const raw = String(role || "").trim().toLowerCase();
+  if (!raw) return "";
+  const compact = raw.replace(/[^a-z0-9]+/g, "");
+  if (compact === "superadmin") return "super_admin";
+  if (compact === "administrator" || compact === "admin") return "admin";
+  if (compact === "staf" || compact === "staff") return "staff";
+  return raw.replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+};
+
 export default function AdminGuard() {
   const location = useLocation();
   const { isLoading: authLoading, isAuthenticated } = useAdminAuth();
@@ -93,8 +103,8 @@ export default function AdminGuard() {
     return <Navigate to="/admin/login" replace state={{ from: location, authNotice }} />;
   }
 
-  const role = String(me?.role || "").toLowerCase();
-  const isAdmin = ["admin", "super_admin", "superadmin", "staff"].includes(role);
+  const role = normalizeRole(me?.role);
+  const isAdmin = ["admin", "super_admin", "staff"].includes(role);
 
   if (!isAdmin) {
     const authNotice = readPendingAuthNotice();

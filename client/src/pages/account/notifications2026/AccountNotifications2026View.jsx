@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Bell,
   Check,
@@ -103,6 +103,29 @@ export default function AccountNotifications2026View({
   const { t } = useTranslation();
   const [openMenuId, setOpenMenuId] = useState("");
   const [pageMenuOpen, setPageMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!openMenuId && !pageMenuOpen) return undefined;
+    const handleClickOutside = (event) => {
+      if (!event.target?.closest?.(".tpn-row-menu-wrap") && !event.target?.closest?.(".tpn-page-menu-wrap")) {
+        setOpenMenuId("");
+        setPageMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setOpenMenuId("");
+        setPageMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [openMenuId, pageMenuOpen]);
+
   const errorMessage =
     error?.response?.data?.message || error?.message || (typeof error === "string" ? error : "");
   const mutationMessage =

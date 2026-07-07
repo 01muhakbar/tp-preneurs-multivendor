@@ -1498,7 +1498,7 @@ const buildAdminProductIncludes = () => [
   {
     model: Store,
     as: "store",
-    attributes: ["id", "slug", "status", "activeStorePaymentProfileId"],
+    attributes: ["id", "name", "slug", "status", "activeStorePaymentProfileId"],
     include: [
       {
         association: "paymentProfile",
@@ -1719,6 +1719,15 @@ const toAdminProductListItem = (product: any, storeOperationalReadiness: any = n
     id: plain?.id,
     name: plain?.name,
     slug: plain?.slug,
+    storeId: plain?.storeId ?? plain?.store?.id ?? null,
+    store: plain?.store
+      ? {
+          id: plain.store.id,
+          name: plain.store.name ?? null,
+          slug: plain.store.slug ?? null,
+          status: plain.store.status ?? null,
+        }
+      : null,
     categoryId: plain?.defaultCategoryId ?? plain?.categoryId ?? null,
     defaultCategoryId: plain?.defaultCategoryId ?? plain?.categoryId ?? null,
     category: resolveProductDefaultCategory(plain),
@@ -1735,6 +1744,11 @@ const toAdminProductListItem = (product: any, storeOperationalReadiness: any = n
     reviewCount,
     unit,
     stock: plain?.stock ?? 0,
+    weight: plain?.weight ?? null,
+    notes: plain?.notes ?? null,
+    length: plain?.length ?? null,
+    width: plain?.width ?? null,
+    height: plain?.height ?? null,
     status: plain?.status ?? "draft",
     sellerSubmission: serializeAdminSellerSubmission(plain),
     published,
@@ -1774,10 +1788,24 @@ const toAdminProductDetail = (product: any, storeOperationalReadiness: any = nul
     slug: plain?.slug,
     sku: plain?.sku ?? null,
     barcode: plain?.barcode ?? null,
+    storeId: plain?.storeId ?? plain?.store?.id ?? null,
+    store: plain?.store
+      ? {
+          id: plain.store.id,
+          name: plain.store.name ?? null,
+          slug: plain.store.slug ?? null,
+          status: plain.store.status ?? null,
+        }
+      : null,
     description: plain?.description ?? "",
     price: priceFields.price,
     salePrice: priceFields.salePrice,
     stock: plain?.stock ?? 0,
+    weight: plain?.weight ?? null,
+    notes: plain?.notes ?? null,
+    length: plain?.length ?? null,
+    width: plain?.width ?? null,
+    height: plain?.height ?? null,
     status: plain?.status ?? "draft",
     sellerSubmission: serializeAdminSellerSubmission(plain),
     published,
@@ -2207,6 +2235,11 @@ const createSchema = z.object({
   imageUrls: z.array(z.string().max(255)).optional(),
   seo: z.unknown().nullable().optional(),
   variations: z.unknown().nullable().optional(),
+  weight: z.coerce.number().nonnegative().nullable().optional(),
+  notes: z.string().max(5000).nullable().optional(),
+  length: z.coerce.number().nonnegative().nullable().optional(),
+  width: z.coerce.number().nonnegative().nullable().optional(),
+  height: z.coerce.number().nonnegative().nullable().optional(),
 });
 
 const updateSchema = createSchema.partial();
@@ -2903,6 +2936,11 @@ router.post(
             promoImagePath: imageUrls[0] || null,
             imagePaths: imageUrls,
             variations,
+            weight: body.weight ?? null,
+            notes: body.notes ?? null,
+            length: body.length ?? null,
+            width: body.width ?? null,
+            height: body.height ?? null,
             status: body.status || "active",
             userId: storeOwnership?.ownerUserId ?? ((req as any).user?.id ?? 0),
             storeId: storeOwnership?.storeId ?? null,
@@ -3027,9 +3065,7 @@ router.patch(
       if (body.stock !== undefined) patch.stock = body.stock;
       if (typeof body.storeId !== "undefined") {
         patch.storeId = nextStoreOwnership?.storeId ?? null;
-        if (nextStoreOwnership?.ownerUserId) {
-          patch.userId = nextStoreOwnership.ownerUserId;
-        }
+        patch.userId = nextStoreOwnership?.ownerUserId ?? Number((req as any).user?.id || 0);
       }
       if (categorySelection) {
         patch.categoryId = categorySelection.categoryId;
@@ -3041,6 +3077,11 @@ router.patch(
       if (body.tags !== undefined) patch.tags = body.tags;
       if (typeof seo !== "undefined") patch.seo = seo;
       if (typeof variations !== "undefined") patch.variations = variations;
+      if (body.weight !== undefined) patch.weight = body.weight;
+      if (body.notes !== undefined) patch.notes = body.notes;
+      if (body.length !== undefined) patch.length = body.length;
+      if (body.width !== undefined) patch.width = body.width;
+      if (body.height !== undefined) patch.height = body.height;
       if (body.imageUrls !== undefined) {
         patch.imagePaths = body.imageUrls;
         patch.promoImagePath = body.imageUrls?.[0] || null;

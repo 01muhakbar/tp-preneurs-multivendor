@@ -167,9 +167,9 @@ const normalizeFooterConfig = (rawFooter, isIndo) => {
     block4: {
       enabled: toBool(block4.enabled, DEFAULT_FOOTER.block4.enabled),
       footerLogoDataUrl: toText(block4.footerLogoDataUrl),
-      address: DEFAULT_FOOTER.block4.address,
-      phone: DEFAULT_FOOTER.block4.phone,
-      email: DEFAULT_FOOTER.block4.email,
+      address: toText(block4.address, DEFAULT_FOOTER.block4.address),
+      phone: toText(block4.phone, DEFAULT_FOOTER.block4.phone),
+      email: toText(block4.email, DEFAULT_FOOTER.block4.email),
     },
     socialLinks: {
       ...DEFAULT_FOOTER.socialLinks,

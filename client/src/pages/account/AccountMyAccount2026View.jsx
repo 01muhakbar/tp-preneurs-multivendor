@@ -116,7 +116,7 @@ export default function AccountMyAccount2026View({
       count: notificationCount,
     },
     {
-      to: "/user/my-account",
+      to: "/user/change-password",
       icon: ShieldCheck,
       title: t("myAccount.privacySecurity"),
       text: t("myAccount.privacySecurityDesc"),

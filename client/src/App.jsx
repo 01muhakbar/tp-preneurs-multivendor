@@ -335,7 +335,7 @@ export default function App() {
       >
         <Routes>
           <Route
-            path="/demo/kachabazar"
+            path="/demo/tppreneurs"
             element={
               isProductionBuild ? (
                 <Navigate to="/" replace />

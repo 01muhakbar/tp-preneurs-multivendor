@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Home, Menu, ShoppingCart, UserRound } from "lucide-react";
 import { Link, Outlet, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import StoreHeaderKacha from "../kachabazar-demo/StoreHeaderKacha.jsx";
 import FloatingCartWidget from "../kachabazar-demo/FloatingCartWidget.jsx";
 import StoreFooterKacha from "../kachabazar-demo/StoreFooterKacha.jsx";
@@ -191,9 +192,13 @@ export default function StoreLayout() {
     staleTime: 60_000,
     retry: 1,
   });
+  const { i18n } = useTranslation();
+  const isIndo = i18n.language === "id" || i18n.language === "id-ID" || i18n.language?.startsWith("id") || (typeof window !== "undefined" && localStorage.getItem("store_language") === "Indonesia");
+  const currentLang = isIndo ? "id" : "en";
+
   const homeCustomizationQuery = useQuery({
-    queryKey: ["store-customization", "store-layout", "en"],
-    queryFn: () => getStoreCustomization({ lang: "en", include: "home" }),
+    queryKey: ["store-customization", "store-layout", currentLang],
+    queryFn: () => getStoreCustomization({ lang: currentLang, include: "home" }),
     staleTime: 60_000,
     retry: 1,
     refetchOnWindowFocus: false,
@@ -314,6 +319,7 @@ gtag('config', '${key}');`;
       <StoreHeaderKacha
         onCartClick={openCartDrawer}
         brandingLogoUrl={storeSettings.branding.clientLogoUrl}
+        storeSettings={storeSettings}
       />
       <main className={isShopRoute ? "w-full" : "mx-auto w-full max-w-7xl px-4 py-6 pb-24 sm:pb-8"}>
         <Outlet context={{ storeSettings, footerConfig }} />

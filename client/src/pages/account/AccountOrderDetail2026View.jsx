@@ -340,6 +340,11 @@ function OrderActions({
         title={actions.invoice.reason}
       />
       <RailAction
+        icon={Printer}
+        label={t("orderDetail.printOrder", "Print Order")}
+        onClick={onPrint}
+      />
+      <RailAction
         icon={Truck}
         label={t("orderDetail.trackOrder")}
         onClick={() => onTrack(actions.track)}

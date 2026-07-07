@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import {
   createAdminProduct,
   fetchAdminAttributes,
@@ -13,9 +14,17 @@ import {
 import { fetchAdminStoreProfiles } from "../../api/adminStoreProfile.ts";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
 import { AlertTriangle, ChevronDown, ChevronRight, UploadCloud, X } from "lucide-react";
+import "./products2026/admin-products-2026.css";
+import AdminProductForm2026View from "./productForm2026/AdminProductForm2026View.jsx";
+import {
+  createInitialProductForm2026Meta,
+  getCreatedAdminProductId,
+  toOptionalNumber,
+} from "./productForm2026/adminProductForm2026Adapter.js";
 
 const ACCEPTED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const MAX_PRODUCT_IMAGES = 5;
+const MAX_PRODUCT_IMAGE_SIZE = 5 * 1024 * 1024;
 const readImageDimensions = (file) =>
   new Promise((resolve, reject) => {
     const objectUrl = URL.createObjectURL(file);
@@ -114,6 +123,13 @@ const PRODUCT_EDIT_TABS = [
   { id: "basic", label: "Basic Info" },
   { id: "combination", label: "Combination" },
   { id: "seo", label: "SEO" },
+];
+const PRODUCT_2026_STEPS = [
+  { id: "basic", label: "Basic Info", helper: "Product details" },
+  { id: "media", label: "Media", helper: "Images & gallery" },
+  { id: "pricing", label: "Pricing & Stock", helper: "Price and inventory" },
+  { id: "details", label: "Details", helper: "Additional information" },
+  { id: "review", label: "Review", helper: "Review and publish" },
 ];
 const defaultSeoState = {
   metaTitle: "",
@@ -295,11 +311,18 @@ const isLikelySeoImageUrl = (value) => {
   return /^https?:\/\//i.test(normalized) || normalized.startsWith("/");
 };
 
-function FormRow({ label, helper, children }) {
+function FormRow({ label, helper, required = false, children }) {
   return (
     <div className="grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start lg:gap-5">
       <div className="pt-2">
-        <p className="text-sm font-semibold text-slate-700">{label}</p>
+        <p className="text-sm font-semibold text-slate-700">
+          {label}
+          {required ? (
+            <span className="ml-1 text-rose-500" aria-label="required">
+              *
+            </span>
+          ) : null}
+        </p>
         {helper ? <p className="mt-1 text-xs text-slate-500">{helper}</p> : null}
       </div>
       <div className="min-w-0">{children}</div>
@@ -318,6 +341,37 @@ function SectionHeader({ eyebrow, title, description, meta = null }) {
         <p className="mt-1 text-xs text-slate-500">{description}</p>
       </div>
       {meta ? <div className="shrink-0">{meta}</div> : null}
+    </div>
+  );
+}
+
+function ProductForm2026Steps({ activeTab, hasVariants }) {
+  const activeIndex =
+    activeTab === "seo" ? 4 : activeTab === "combination" ? 3 : 0;
+  const completeThrough = activeTab === "seo" ? 3 : activeTab === "combination" ? 2 : -1;
+
+  return (
+    <div className="ap26-form-steps" aria-label="Product form progress">
+      {PRODUCT_2026_STEPS.map((step, index) => {
+        const isActive =
+          index === activeIndex ||
+          (activeTab === "basic" && ["media", "pricing"].includes(step.id)) ||
+          (!hasVariants && activeTab === "seo" && step.id === "details");
+        const isComplete = index <= completeThrough;
+
+        return (
+          <div
+            key={step.id}
+            className={`ap26-form-step ${isActive ? "is-active" : ""} ${isComplete ? "is-complete" : ""}`}
+          >
+            <span className="ap26-form-step__number">{index + 1}</span>
+            <div>
+              <strong>{step.label}</strong>
+              <span>{step.helper}</span>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -388,9 +442,11 @@ function CategoryTree({ tree, selectedIds, onToggle }) {
 
 export default function ProductForm({ mode = "page", onClose, onSuccess, productId = null }) {
   const { id: routeId } = useParams();
+  const location = useLocation();
   const activeProductId = productId ?? routeId ?? null;
   const isEdit = Boolean(activeProductId);
   const isDrawerMode = mode === "drawer";
+  const useLegacyVariantEditor = isEdit && location.hash === "#variants";
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const fileInputRef = useRef(null);
@@ -418,7 +474,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
     description: "",
     sku: "",
     barcode: "",
-    storeId: "",
+    storeId: "global",
     categoryIds: [],
     defaultCategoryId: null,
     price: "",
@@ -429,6 +485,11 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
     status: "active",
     imageUrl: "",
   });
+  const [form2026Meta, setForm2026Meta] = useState(createInitialProductForm2026Meta);
+  const [wizardStep, setWizardStep] = useState(1);
+  const [maxVisitedWizardStep, setMaxVisitedWizardStep] = useState(1);
+  const [createdProduct, setCreatedProduct] = useState(null);
+  const submitIntentRef = useRef("publish");
   const activeSectionClass = isDrawerMode
     ? "border-t border-slate-200 px-0 py-5 first:border-t-0"
     : sectionCardClass;
@@ -471,6 +532,13 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
           String(left?.name || "").localeCompare(String(right?.name || ""), "id")
         ),
     [storeProfilesQuery.data]
+  );
+  const selectedStore = useMemo(
+    () =>
+      form.storeId === "global"
+        ? { id: null, name: "Global (Admin)", slug: "" }
+        : storeOptions.find((store) => Number(store?.id) === Number(form.storeId)) || null,
+    [form.storeId, storeOptions]
   );
   const visibleTabs = useMemo(
     () => PRODUCT_EDIT_TABS.filter((tab) => tab.id !== "combination" || hasVariants),
@@ -526,6 +594,41 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
     return Array.isArray(warnings) ? warnings.filter(Boolean) : [];
   }, [productQuery.data?.data?.attributeOwnershipWarnings]);
   const defaultCategoryOptions = selectedCategories;
+  const resetCreateForm2026 = () => {
+    localImagesRef.current.forEach((image) => {
+      if (!image.remote && image.url) URL.revokeObjectURL(image.url);
+    });
+    setNotice(null);
+    setCreatedProduct(null);
+    setWizardStep(1);
+    setMaxVisitedWizardStep(1);
+    setSlugTouched(false);
+    setTagInput("");
+    setSeoKeywordInput("");
+    setLocalImages([]);
+    setSeo(defaultSeoState);
+    setHasVariants(false);
+    setSelectedAttributes([]);
+    setSelectedAttributeValues([]);
+    setVariants([]);
+    setForm({
+      name: "",
+      description: "",
+      sku: "",
+      barcode: "",
+      storeId: "global",
+      categoryIds: [],
+      defaultCategoryId: null,
+      price: "",
+      salePrice: "",
+      stock: "",
+      slug: "",
+      tags: [],
+      status: "active",
+      imageUrl: "",
+    });
+    setForm2026Meta(createInitialProductForm2026Meta());
+  };
   const closeForm = () => {
     if (typeof onClose === "function") {
       onClose();
@@ -533,8 +636,17 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
     }
     navigate("/admin/catalog/products", { replace: true });
   };
-  const handleSubmitSuccess = () => {
-    if (typeof onSuccess === "function") onSuccess();
+  const handleSubmitSuccess = (payload) => {
+    if (!isEdit && !isDrawerMode) {
+      setCreatedProduct(payload?.data || payload?.product || payload || {});
+      setWizardStep(5);
+      setMaxVisitedWizardStep(5);
+      return;
+    }
+    if (typeof onSuccess === "function") {
+      onSuccess();
+      return;
+    }
     closeForm();
   };
 
@@ -587,7 +699,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
       description: product.description || "",
       sku: product.sku || "",
       barcode: product.barcode || "",
-      storeId: product.storeId ? String(product.storeId) : "",
+      storeId: product.storeId ? String(product.storeId) : "global",
       categoryIds: initialCategoryIds,
       defaultCategoryId: initialDefaultCategoryId,
       price: String(product.price ?? ""),
@@ -603,6 +715,18 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
     setSelectedAttributeValues(variationState.selectedAttributeValues);
     setVariants(variationState.variants);
     setSeo(initialSeo);
+    setForm2026Meta((prev) => ({
+      ...prev,
+      enablePromoPrice:
+        product.salePrice !== null &&
+        typeof product.salePrice !== "undefined" &&
+        Number(product.salePrice) > 0,
+      weight: product.weight == null ? "" : String(product.weight),
+      length: product.length == null ? "" : String(product.length),
+      width: product.width == null ? "" : String(product.width),
+      height: product.height == null ? "" : String(product.height),
+      additionalNotes: String(product.notes || ""),
+    }));
     setSlugTouched(Boolean(initialSlug));
 
     setLocalImages(
@@ -616,6 +740,17 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
       }))
     );
   }, [isEdit, productQuery.data]);
+
+  useEffect(() => {
+    if (!isEdit) return;
+    if (location.hash === "#pricing-stock") {
+      setWizardStep(3);
+      setMaxVisitedWizardStep((current) => Math.max(current, 3));
+    }
+    if (location.hash === "#variants") {
+      setActiveTab("combination");
+    }
+  }, [isEdit, location.hash]);
 
   useEffect(() => {
     localImagesRef.current = localImages;
@@ -675,11 +810,14 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
 
   const createMutation = useMutation({
     mutationFn: createAdminProduct,
-    onSuccess: () => {
+    onSuccess: (payload) => {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
-      handleSubmitSuccess();
+      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+      toast.success(submitIntentRef.current === "draft" ? "Product draft saved." : "Product created.");
+      handleSubmitSuccess(payload);
     },
     onError: (error) => {
+      toast.error(error?.response?.data?.message || "Failed to create product.");
       setNotice({
         type: "error",
         message: error?.response?.data?.message || "Failed to create product.",
@@ -689,12 +827,18 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
 
   const updateMutation = useMutation({
     mutationFn: ({ productId, payload }) => updateAdminProduct(productId, payload),
-    onSuccess: () => {
+    onSuccess: (payload) => {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
       queryClient.invalidateQueries({ queryKey: ["admin-product", activeProductId] });
-      handleSubmitSuccess();
+      queryClient.invalidateQueries({
+        queryKey: ["admin", "products", "detail", String(activeProductId)],
+      });
+      toast.success("Product updated.");
+      handleSubmitSuccess(payload);
     },
     onError: (error) => {
+      toast.error(error?.response?.data?.message || "Failed to update product.");
       setNotice({
         type: "error",
         message: error?.response?.data?.message || "Failed to update product.",
@@ -721,6 +865,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
 
     const nextImages = [];
     let rejectedTypeCount = 0;
+    let rejectedSizeCount = 0;
     let rejectedSquareCount = 0;
     let skippedDuplicateCount = 0;
     let skippedOverflowCount = 0;
@@ -732,6 +877,10 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
       }
       if (!ACCEPTED_IMAGE_TYPES.has(file.type)) {
         rejectedTypeCount += 1;
+        continue;
+      }
+      if (Number(file.size || 0) > MAX_PRODUCT_IMAGE_SIZE) {
+        rejectedSizeCount += 1;
         continue;
       }
 
@@ -763,12 +912,22 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
     }
 
     if (nextImages.length > 0) {
-      setLocalImages((prev) => [...prev, ...nextImages]);
+      setLocalImages((prev) => {
+        const merged = [...prev, ...nextImages];
+        setForm2026Meta((meta) => ({
+          ...meta,
+          coverImageId: meta.coverImageId || merged[0]?.id || null,
+        }));
+        return merged;
+      });
     }
 
     const messageParts = [];
     if (rejectedTypeCount > 0) {
       messageParts.push(`${rejectedTypeCount} file harus JPG, PNG, atau WEBP`);
+    }
+    if (rejectedSizeCount > 0) {
+      messageParts.push(`${rejectedSizeCount} file melebihi batas 5MB`);
     }
     if (rejectedSquareCount > 0) {
       messageParts.push(`${rejectedSquareCount} file ditolak karena bukan rasio 1:1`);
@@ -797,8 +956,40 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
       if (target && !target.remote && target.url) {
         URL.revokeObjectURL(target.url);
       }
-      return prev.filter((item) => item.id !== imageId);
+      const next = prev.filter((item) => item.id !== imageId);
+      setForm2026Meta((meta) => {
+        const nextMediaDetails = { ...meta.mediaDetails };
+        delete nextMediaDetails[imageId];
+        return {
+          ...meta,
+          coverImageId: meta.coverImageId === imageId ? next[0]?.id || null : meta.coverImageId,
+          mediaDetails: nextMediaDetails,
+        };
+      });
+      return next;
     });
+  };
+
+  const setCoverImage = (imageId) => {
+    setForm2026Meta((prev) => ({ ...prev, coverImageId: imageId }));
+    setLocalImages((prev) => {
+      const target = prev.find((item) => item.id === imageId);
+      if (!target) return prev;
+      return [target, ...prev.filter((item) => item.id !== imageId)];
+    });
+  };
+
+  const updateMediaDetail = (imageId, patch) => {
+    setForm2026Meta((prev) => ({
+      ...prev,
+      mediaDetails: {
+        ...prev.mediaDetails,
+        [imageId]: {
+          ...(prev.mediaDetails[imageId] || {}),
+          ...patch,
+        },
+      },
+    }));
   };
 
   const uploadSelectedImages = async () => {
@@ -1061,17 +1252,22 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
     }
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const submitProduct = async ({ intent = "publish" } = {}) => {
     setNotice(null);
+    submitIntentRef.current = intent;
 
     const name = String(form.name || "").trim();
+    const sku = String(form.sku || "").trim();
     const price = Number(form.price);
     const stock = Number(form.stock || 0);
     const salePrice = resolveSalePriceValue(form.salePrice);
 
     if (!name) {
       setNotice({ type: "error", message: "Product title is required." });
+      return;
+    }
+    if (!sku) {
+      setNotice({ type: "error", message: "Product SKU is required." });
       return;
     }
     if (!Number.isFinite(price) || price <= 0) {
@@ -1134,6 +1330,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
     try {
       const uploadedUrls = await uploadSelectedImages();
       const imageUrl = uploadedUrls[0] || undefined;
+      const normalizedStatus = form.status === "draft" ? "inactive" : form.status;
       const variationPayload = hasVariants
         ? {
             hasVariants: true,
@@ -1172,19 +1369,42 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
         price,
         salePrice: salePrice ?? undefined,
         stock,
-        status: form.status,
-        storeId: Number(form.storeId),
+        status: intent === "draft" ? "inactive" : normalizedStatus,
+        ...(isEdit
+          ? {}
+          : { published: intent === "publish" && normalizedStatus === "active" }),
+        storeId: form.storeId === "global" ? null : Number(form.storeId),
         categoryIds: normalizeSelectedCategoryIds(form.categoryIds),
         defaultCategoryId: Number(form.defaultCategoryId),
         categoryId: Number(form.defaultCategoryId),
         imageUrl,
         imageUrls: uploadedUrls,
-        sku: form.sku || undefined,
+        sku,
         barcode: form.barcode || undefined,
         slug: form.slug || slugify(name),
         tags: form.tags.length > 0 ? form.tags : undefined,
         seo: seoPayload,
         variations: variationPayload,
+        brand: form2026Meta.brand || undefined,
+        productType: form2026Meta.productType || undefined,
+        lowStockThreshold: toOptionalNumber(form2026Meta.lowStockThreshold),
+        weight: toOptionalNumber(form2026Meta.weight),
+        notes: form2026Meta.additionalNotes || undefined,
+        length: toOptionalNumber(form2026Meta.length),
+        width: toOptionalNumber(form2026Meta.width),
+        height: toOptionalNumber(form2026Meta.height),
+        weightUnit: form2026Meta.weightUnit || undefined,
+        dimensions:
+          form2026Meta.length || form2026Meta.width || form2026Meta.height
+            ? {
+                length: toOptionalNumber(form2026Meta.length),
+                width: toOptionalNumber(form2026Meta.width),
+                height: toOptionalNumber(form2026Meta.height),
+                unit: form2026Meta.dimensionUnit,
+              }
+            : undefined,
+        additionalNotes: form2026Meta.additionalNotes || undefined,
+        mediaDetails: form2026Meta.mediaDetails,
       };
 
       if (isEdit) {
@@ -1200,12 +1420,190 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
     }
   };
 
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    await submitProduct({ intent: isEdit ? "update" : "publish" });
+  };
+
+  const updateFormFields = (patch) => {
+    if (Object.prototype.hasOwnProperty.call(patch, "slug")) {
+      setSlugTouched(true);
+      patch.slug = slugify(patch.slug);
+    }
+    setForm((prev) => ({ ...prev, ...patch }));
+  };
+
+  const updateForm2026Meta = (patch) => {
+    setForm2026Meta((prev) => ({ ...prev, ...patch }));
+  };
+
+  const updateSeoFields = (patch) => {
+    setSeo((prev) => ({ ...prev, ...patch }));
+  };
+
+  const removeTag = (targetTag) => {
+    setForm((prev) => ({
+      ...prev,
+      tags: prev.tags.filter((tag) => tag !== targetTag),
+    }));
+  };
+
+  const validateWizardStep = (step) => {
+    setNotice(null);
+    if (step === 1) {
+      if (!String(form.name || "").trim()) {
+        setNotice({ type: "error", message: "Product name is required." });
+        return false;
+      }
+      if (!String(form.storeId || "").trim()) {
+        setNotice({ type: "error", message: "Store ownership is required." });
+        return false;
+      }
+      if (!String(form.sku || "").trim()) {
+        setNotice({ type: "error", message: "Product SKU is required." });
+        return false;
+      }
+    }
+
+    if (step === 3) {
+      const price = Number(form.price);
+      const stock = Number(form.stock || 0);
+      const salePrice = resolveSalePriceValue(form.salePrice);
+      if (!Number.isFinite(price) || price <= 0) {
+        setNotice({ type: "error", message: "Base price must be a valid number greater than 0." });
+        return false;
+      }
+      if (!Number.isFinite(stock) || stock < 0) {
+        setNotice({ type: "error", message: "Stock quantity cannot be negative." });
+        return false;
+      }
+      if (salePrice != null && (!Number.isFinite(salePrice) || salePrice < 0)) {
+        setNotice({ type: "error", message: "Sale price must be a valid number." });
+        return false;
+      }
+      if (salePrice != null && salePrice >= price) {
+        setNotice({ type: "error", message: "Sale price must be lower than base price." });
+        return false;
+      }
+    }
+
+    if (step === 4) {
+      if (form.categoryIds.length === 0) {
+        setNotice({ type: "error", message: "Select at least one category." });
+        return false;
+      }
+      if (!form.defaultCategoryId || !form.categoryIds.includes(Number(form.defaultCategoryId))) {
+        setNotice({ type: "error", message: "Choose one default category from selected categories." });
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const goToWizardStep = (step) => {
+    if (step > maxVisitedWizardStep) return;
+    setWizardStep(step);
+    setNotice(null);
+  };
+
+  const goToNextWizardStep = () => {
+    if (!validateWizardStep(wizardStep)) return;
+    setWizardStep((prev) => {
+      const next = Math.min(5, prev + 1);
+      setMaxVisitedWizardStep((visited) => Math.max(visited, next));
+      return next;
+    });
+  };
+
+  const goToPreviousWizardStep = () => {
+    setWizardStep((prev) => Math.max(1, prev - 1));
+    setNotice(null);
+  };
+
+  const saveDraftProduct = async () => {
+    if (![1, 3, 4].every(validateWizardStep)) return;
+    await submitProduct({ intent: "draft" });
+  };
+
+  const publishProduct = async () => {
+    if (![1, 3, 4].every(validateWizardStep)) return;
+    await submitProduct({ intent: "publish" });
+  };
+
+  const saveProductChanges = async () => {
+    if (![1, 3, 4].every(validateWizardStep)) return;
+    await submitProduct({ intent: "update" });
+  };
+
+  const createdProductId = getCreatedAdminProductId(createdProduct);
+
+  if (!isDrawerMode && !useLegacyVariantEditor) {
+    return (
+      <AdminProductForm2026View
+        isEdit={isEdit}
+        isLoading={isEdit && productQuery.isLoading}
+        loadError={
+          isEdit && productQuery.isError
+            ? productQuery.error?.response?.data?.message || "Failed to load product data."
+            : ""
+        }
+        activeStep={wizardStep}
+        maxVisitedStep={maxVisitedWizardStep}
+        form={form}
+        seo={seo}
+        meta={form2026Meta}
+        notice={notice}
+        stores={storeOptions}
+        categories={categories}
+        selectedCategories={selectedCategories}
+        selectedStore={selectedStore}
+        defaultCategoryOptions={defaultCategoryOptions}
+        localImages={localImages}
+        tagInput={tagInput}
+        seoKeywordInput={seoKeywordInput}
+        isSubmitting={isSubmitting}
+        createdProductId={createdProductId}
+        fileInputRef={fileInputRef}
+        onClose={closeForm}
+        onRetry={() => productQuery.refetch()}
+        onStepClick={goToWizardStep}
+        onNext={goToNextWizardStep}
+        onPrevious={goToPreviousWizardStep}
+        onSaveDraft={saveDraftProduct}
+        onPublish={isEdit ? saveProductChanges : publishProduct}
+        onViewProduct={() => {
+          if (createdProductId) {
+            navigate(`/admin/catalog/products/${encodeURIComponent(String(createdProductId))}`);
+          }
+        }}
+        onAddAnother={resetCreateForm2026}
+        onBackToList={() => navigate("/admin/catalog/products")}
+        onFormChange={updateFormFields}
+        onNameChange={handleNameChange}
+        onMetaChange={updateForm2026Meta}
+        onSeoChange={updateSeoFields}
+        onAddFiles={addFiles}
+        onRemoveImage={removeImage}
+        onSetCover={setCoverImage}
+        onMediaDetailChange={updateMediaDetail}
+        onToggleCategory={onToggleCategory}
+        onTagInputChange={setTagInput}
+        onTagKeyDown={handleTagKeyDown}
+        onRemoveTag={removeTag}
+        onSeoKeywordInputChange={setSeoKeywordInput}
+        onSeoKeywordKeyDown={handleSeoKeywordKeyDown}
+        onRemoveSeoKeyword={removeSeoKeyword}
+      />
+    );
+  }
+
   return (
     <div
       className={
         isDrawerMode
-          ? "h-full bg-white"
-          : "space-y-5 rounded-2xl bg-slate-50/70 p-4 md:p-6"
+          ? "admin-product-form-2026 h-full bg-white"
+          : "admin-product-form-2026 space-y-5 rounded-2xl bg-slate-50/70 p-4 md:p-6"
       }
     >
         <div
@@ -1219,12 +1617,12 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="space-y-1">
               <h1 className="text-2xl font-semibold leading-tight text-slate-900">
-                {isEdit ? "Update Products" : "Add Product"}
+                {isEdit ? "Update Product" : "Add New Product"}
               </h1>
               <p className="text-sm text-slate-500">
                 {isEdit
                   ? "Update products info, combinations and extras."
-                  : "Add your product and necessary information from here"}
+                  : "Create a new product and add it to your catalog"}
               </p>
             </div>
             <div className="flex items-center gap-3 self-start md:self-auto">
@@ -1248,6 +1646,8 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
             </div>
           </div>
         </div>
+
+        <ProductForm2026Steps activeTab={activeTab} hasVariants={hasVariants} />
 
         {notice ? (
           <div
@@ -1357,10 +1757,11 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
                 <section className={activeSectionClass}>
                   <div className="grid gap-4 lg:grid-cols-2">
                     <div className="lg:col-span-2">
-                      <FormRow label="Product Title/Name">
+                      <FormRow label="Product Title/Name" required>
                         <input
                           type="text"
                           required
+                          aria-required="true"
                           value={form.name}
                           onChange={(event) => handleNameChange(event.target.value)}
                           placeholder="Product Title/Name"
@@ -1381,7 +1782,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
                         />
                       </FormRow>
                     </div>
-                    <FormRow label="Store Ownership">
+                    <FormRow label="Store Ownership" required>
                       <div className="space-y-2">
                         <select
                           value={form.storeId}
@@ -1391,6 +1792,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
                           className={fieldInputClass}
                           disabled={storeProfilesQuery.isLoading}
                           required
+                          aria-required="true"
                         >
                           <option value="">
                             {storeProfilesQuery.isLoading ? "Loading stores..." : "Select store"}
@@ -1451,11 +1853,12 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
                   ) : null}
                   <div className="grid gap-4 lg:grid-cols-2">
                       <div className="lg:col-span-2">
-                        <FormRow label="Category">
+                        <FormRow label="Category" required>
                         <div className="space-y-2">
                           <input
                             type="text"
                             readOnly
+                            aria-required="true"
                             value={selectedCategories.map((category) => category.name).join(", ")}
                             placeholder="Select one or more categories"
                             className={fieldInputClass}
@@ -1482,7 +1885,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
                         </div>
                       </FormRow>
                     </div>
-                      <FormRow label="Default Category">
+                      <FormRow label="Default Category" required>
                       <select
                         value={form.defaultCategoryId ? String(form.defaultCategoryId) : ""}
                         onChange={(event) =>
@@ -1494,6 +1897,8 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
                           }))
                         }
                         disabled={defaultCategoryOptions.length === 0}
+                        required
+                        aria-required="true"
                         className={fieldInputClass}
                       >
                         <option value="">Default Category</option>
@@ -1521,7 +1926,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
                     />
                   ) : null}
                   <div className="grid gap-4 lg:grid-cols-2">
-                    <FormRow label="Product Price">
+                    <FormRow label="Product Price" required>
                       <div className="flex items-center overflow-hidden rounded-lg border border-slate-200 bg-white">
                         <span className="inline-flex h-11 w-14 items-center justify-center border-r border-slate-200 bg-slate-50 text-xs font-semibold text-slate-500">
                           Rp
@@ -1531,6 +1936,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
                           min="0"
                           step="0.01"
                           required
+                          aria-required="true"
                           value={form.price}
                           onChange={(event) =>
                             setForm((prev) => ({ ...prev, price: event.target.value }))
@@ -1569,12 +1975,13 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
                     />
                   ) : null}
                   <div className="grid gap-4 lg:grid-cols-2">
-                    <FormRow label="Product Quantity">
+                    <FormRow label="Product Quantity" required>
                       <input
                         type="number"
                         min="0"
                         step="1"
                         required
+                        aria-required="true"
                         value={form.stock}
                         onChange={(event) =>
                           setForm((prev) => ({ ...prev, stock: event.target.value }))

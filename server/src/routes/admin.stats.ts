@@ -4,6 +4,7 @@ import { Op, fn, col, literal } from "sequelize";
 import { Order } from "../models/Order.js";
 import { OrderItem } from "../models/OrderItem.js";
 import { Product } from "../models/Product.js";
+import { Store } from "../models/Store.js";
 import { requireStaffOrAdmin } from "../middleware/requireRole.js";
 
 const router = Router();
@@ -65,12 +66,13 @@ async function buildOverview() {
     if (key in statusCounts) statusCounts[key] = count;
   });
 
-  const [today, yesterday, month, lastMonth, allTime] = await Promise.all([
+  const [today, yesterday, month, lastMonth, allTime, activeStores] = await Promise.all([
     getCountAndRevenue({ createdAt: range(startToday, endToday) }),
     getCountAndRevenue({ createdAt: range(startYesterday, endYesterday) }),
     getCountAndRevenue({ createdAt: range(startMonth, endMonth) }),
     getCountAndRevenue({ createdAt: range(startLastMonth, endLastMonth) }),
     getCountAndRevenue({}),
+    Store.count({ where: { status: "ACTIVE" } }),
   ]);
 
   return {
@@ -85,6 +87,7 @@ async function buildOverview() {
     allTimeOrdersCount: allTime.count,
     allTimeRevenue: allTime.revenue,
     statusCounts,
+    activeStoresCount: Number(activeStores || 0),
   };
 }
 
@@ -100,10 +103,12 @@ router.get("/statistics", requireStaffOrAdmin, async (_req, res) => {
   res.json(await buildOverview());
 });
 
-router.get("/weekly", requireStaffOrAdmin, async (_req, res) => {
+router.get("/weekly", requireStaffOrAdmin, async (req, res) => {
+  const requestedDays = Number(req.query.days || 7);
+  const days = [7, 30, 90].includes(requestedDays) ? requestedDays : 7;
   const today = new Date();
   const start = new Date(today);
-  start.setDate(start.getDate() - 6);
+  start.setDate(start.getDate() - (days - 1));
   start.setHours(0, 0, 0, 0);
   const end = new Date(today);
   end.setHours(23, 59, 59, 999);
@@ -130,7 +135,7 @@ router.get("/weekly", requireStaffOrAdmin, async (_req, res) => {
   });
 
   const data: { day: string; orders: number; sales: number }[] = [];
-  for (let i = 0; i < 7; i += 1) {
+  for (let i = 0; i < days; i += 1) {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
     const day = d.toISOString().slice(0, 10);
@@ -140,12 +145,20 @@ router.get("/weekly", requireStaffOrAdmin, async (_req, res) => {
   res.json({ data });
 });
 
-router.get("/best-sellers", requireStaffOrAdmin, async (_req, res) => {
+router.get("/best-sellers", requireStaffOrAdmin, async (req, res) => {
+  const requestedDays = Number(req.query.days || 7);
+  const days = [7, 30, 90].includes(requestedDays) ? requestedDays : 7;
+  const limit = Math.min(10, Math.max(1, Number(req.query.limit || 5)));
+  const start = new Date();
+  start.setDate(start.getDate() - (days - 1));
+  start.setHours(0, 0, 0, 0);
   const rows = await OrderItem.findAll({
     attributes: [
       "productId",
       [fn("SUM", col("quantity")), "qty"],
+      [fn("SUM", literal("`OrderItem`.`quantity` * `OrderItem`.`price`")), "revenue"],
     ],
+    where: { createdAt: { [Op.gte]: start } },
     include: [
       {
         model: Product,
@@ -155,13 +168,14 @@ router.get("/best-sellers", requireStaffOrAdmin, async (_req, res) => {
     ],
     group: ["productId"],
     order: [[fn("SUM", col("quantity")), "DESC"]],
-    limit: 5,
+    limit,
   });
 
   const data = rows.map((row: any) => ({
     productId: row.productId ?? row.get?.("productId"),
     name: row.product?.name ?? row.get?.("product")?.name ?? null,
     qty: Number(row.get?.("qty") ?? row.qty ?? 0),
+    revenue: Number(row.get?.("revenue") ?? 0),
   }));
 
   res.json({ data });

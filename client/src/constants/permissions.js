@@ -13,10 +13,11 @@ const ROLE_RANK = {
 const getRole = (user) => {
   const raw = String(user?.role || user || "").toLowerCase();
   if (!raw) return null;
+  const compact = raw.replace(/[^a-z0-9]+/g, "");
   if (raw === "staf") return ROLES.STAFF;
-  if (raw === "superadmin") return ROLES.SUPER_ADMIN;
-  if (raw === "super admin") return ROLES.SUPER_ADMIN;
-  return raw;
+  if (compact === "superadmin") return ROLES.SUPER_ADMIN;
+  if (compact === "administrator") return ROLES.ADMIN;
+  return raw.replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
 };
 
 export const canMinRole = (user, minRole) => {

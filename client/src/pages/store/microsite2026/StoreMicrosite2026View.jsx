@@ -45,8 +45,17 @@ function StoreHero({
   onCall,
 }) {
   const logoSrc = resolveAssetUrl(store.logoUrl);
+  const bannerSrc = resolveAssetUrl(store.bannerUrl);
   return (
     <div className="relative overflow-hidden rounded-[32px] text-white hero-gradient shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
+      {bannerSrc ? (
+        <img
+          src={bannerSrc}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-cover opacity-30 mix-blend-overlay"
+        />
+      ) : null}
       <div className="absolute inset-0 opacity-20 bg-[url('/pattern-dots.svg')] bg-repeat"></div>
       
       {/* Accent Wave */}

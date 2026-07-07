@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "../Layout/Sidebar.jsx";
 import Navbar from "../Layout/Navbar.jsx";
 import AdminSearchPalette from "../admin/AdminSearchPalette.jsx";
@@ -16,13 +16,33 @@ const readStoredTheme = () => {
 };
 
 export default function AdminLayout() {
+  const { pathname } = useLocation();
   const [theme, setTheme] = useState(readStoredTheme);
   const [searchPaletteOpen, setSearchPaletteOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia("(max-width: 760px)").matches
+  );
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useStoredBoolean(
     ADMIN_SIDEBAR_COLLAPSED_KEY,
     false
   );
   const isDark = theme === "dark";
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 760px)");
+    const sync = (event) => {
+      setIsMobile(event.matches);
+      if (!event.matches) setMobileSidebarOpen(false);
+    };
+    sync(media);
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    setMobileSidebarOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -51,13 +71,25 @@ export default function AdminLayout() {
       data-admin-theme={theme}
       data-sidebar-collapsed={sidebarCollapsed ? "true" : "false"}
     >
-      <Sidebar collapsed={sidebarCollapsed} />
+      <Sidebar collapsed={isMobile ? false : sidebarCollapsed} mobileOpen={mobileSidebarOpen} />
+      {isMobile && mobileSidebarOpen ? (
+        <button
+          type="button"
+          className="admin-mobile-sidebar-backdrop"
+          aria-label="Close navigation"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      ) : null}
       <div className="layout__content admin-content">
         <Navbar
           theme={theme}
           onToggleTheme={handleToggleTheme}
-          isSidebarCollapsed={sidebarCollapsed}
-          onToggleSidebar={() => setSidebarCollapsed((prev) => !prev)}
+          isSidebarCollapsed={isMobile ? !mobileSidebarOpen : sidebarCollapsed}
+          onToggleSidebar={() =>
+            isMobile
+              ? setMobileSidebarOpen((prev) => !prev)
+              : setSidebarCollapsed((prev) => !prev)
+          }
           isSearchPaletteOpen={searchPaletteOpen}
           onOpenSearchPalette={() => setSearchPaletteOpen(true)}
         />

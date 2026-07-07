@@ -18,6 +18,7 @@ export const getUserMe = async () => {
 
 export const updateUserMe = async (payload: {
   name: string;
+  email?: string;
   phone?: string | null;
   avatarUrl?: string | null;
 }) => {

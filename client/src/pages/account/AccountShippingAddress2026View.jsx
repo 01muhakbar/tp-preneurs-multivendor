@@ -139,7 +139,8 @@ function AddressCard({
           type="button"
           className="tpship2026-danger"
           onClick={() => onDeleteAddress(address.raw)}
-          disabled={isSaving}
+          disabled={isSaving || address.isPrimary}
+          title={address.isPrimary ? "Cannot delete primary address" : ""}
         >
           <Trash2 aria-hidden="true" />
           {t("shippingAddress.delete")}

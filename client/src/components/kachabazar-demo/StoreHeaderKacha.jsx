@@ -24,6 +24,7 @@ import ThemeToggle from "../store/ThemeToggle.jsx";
 import NotificationPreviewDropdown from "../store/NotificationPreviewDropdown.jsx";
 import { useStorefrontWishlist } from "../../utils/storefrontWishlist.js";
 import { fetchUserUnreadNotificationCount } from "../../api/userNotifications.ts";
+import { getStoreHeaderCustomization } from "../../api/public/storeCustomizationPublic.ts";
 
 const PRIMARY = "var(--tp-primary)";
 const ACCENT = "var(--tp-accent)";
@@ -227,13 +228,22 @@ export default function StoreHeaderKacha({
   customization = null,
   identity = null,
 }) {
-  void publicIdentityOverride;
-  void storeSettings;
-  void customization;
-  void identity;
-
   const { t, i18n } = useTranslation();
   const isIndo = i18n.language === "id" || i18n.language === "id-ID" || i18n.language?.startsWith("id") || (typeof window !== "undefined" && localStorage.getItem("store_language") === "Indonesia");
+  const currentLang = isIndo ? "id" : "en";
+
+  const headerCustomizationQuery = useQuery({
+    queryKey: ["store-customization", "header", currentLang],
+    queryFn: () => getStoreHeaderCustomization({ lang: currentLang }),
+    staleTime: 60_000,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
+  const headerCust = headerCustomizationQuery.data?.data || customization?.header || {};
+  const activeIdentity = publicIdentityOverride || identity || null;
+  const displayPhone = activeIdentity?.phone || headerCust.phoneNumber || storeSettings?.contact?.phone || "565555";
+  const displayHeaderText = headerCust.headerText || t("header.help");
+  const displayLogoUrl = activeIdentity?.logoUrl || headerCust.headerLogoUrl || brandingLogoUrl;
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -408,9 +418,9 @@ export default function StoreHeaderKacha({
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-1.5 text-sm text-slate-600 sm:px-5 lg:px-6 dark:text-slate-300">
         <div className="flex min-w-0 items-center gap-3">
           <Headphones className="h-[18px] w-[18px] shrink-0 text-[var(--tp-primary)] dark:text-sky-300" />
-          <span className="truncate">{t("header.help")}</span>
-          <a href="tel:565555" className="font-black text-[var(--tp-accent)]">
-            565555
+          <span className="truncate">{displayHeaderText}</span>
+          <a href={`tel:${String(displayPhone).replace(/\s+/g, "")}`} className="font-black text-[var(--tp-accent)]">
+            {displayPhone}
           </a>
         </div>
         <nav className="hidden items-center gap-5 lg:flex">
@@ -440,7 +450,7 @@ export default function StoreHeaderKacha({
         <div className="rounded-[18px] border border-white/80 bg-white px-4 py-2 shadow-[0_10px_24px_rgba(var(--tp-primary-rgb)/0.08)] dark:border-slate-800 dark:bg-slate-900 dark:shadow-[0_14px_30px_rgba(0,0,0,0.22)]">
           <div className="flex items-center gap-3 lg:gap-5">
             <div className="shrink-0">
-              <LogoMark logoUrl={brandingLogoUrl} />
+              <LogoMark logoUrl={displayLogoUrl} />
             </div>
 
             <div ref={searchRootRef} className="hidden min-w-0 flex-1 md:block relative">

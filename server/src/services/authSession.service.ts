@@ -1,27 +1,9 @@
 import crypto from "node:crypto";
 import jwt from "jsonwebtoken";
 import { User } from "../models/index.js";
+import { normalizeCanonicalRole } from "../utils/role.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret";
-
-function normalizeRole(input: unknown) {
-  const raw = String(input ?? "").toLowerCase().trim();
-  if (!raw) return null;
-  const snake = raw.replace(/[^a-z0-9]+/g, "_");
-  if (
-    ["super_admin", "super-admin", "super admin", "superadmin"].includes(raw) ||
-    snake === "super_admin"
-  ) {
-    return "super_admin";
-  }
-  if (["admin", "administrator"].includes(raw) || snake === "admin") {
-    return "admin";
-  }
-  if (["staf", "staff"].includes(raw) || snake === "staf" || snake === "staff") {
-    return "staff";
-  }
-  return snake;
-}
 
 function normalizeUserId(payload: any) {
   const candidate = payload?.id ?? payload?.userId ?? payload?.sub;
@@ -110,7 +92,7 @@ export async function resolveAuthenticatedUserFromToken(token: string) {
       id: Number(user.get?.("id") ?? user.id),
       email: String(user.get?.("email") ?? user.email ?? ""),
       name: String(user.get?.("name") ?? user.name ?? ""),
-      role: normalizeRole(user.get?.("role") ?? user.role),
+      role: normalizeCanonicalRole(user.get?.("role") ?? user.role),
       status: user.get?.("status") ?? user.status ?? null,
     },
   };

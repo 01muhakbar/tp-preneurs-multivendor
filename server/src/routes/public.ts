@@ -110,6 +110,8 @@ const buildPublicProductWhere = (extraWhere: Record<string, any> = {}) => ({
 const listQuerySchema = z.object({
   category: z.string().optional(),
   q: z.string().optional(),
+  search: z.string().optional(),
+  query: z.string().optional(),
   page: z.coerce.number().int().positive().optional(),
   limit: z.coerce.number().int().positive().optional(),
   pageSize: z.coerce.number().int().positive().optional(),
@@ -154,6 +156,16 @@ router.post("/user/change-password", protect, async (req: Request, res: Response
       return res
         .status(422)
         .json({ success: false, message: "Current password is incorrect" });
+    }
+
+    if (
+      currentPassword === newPassword ||
+      (await bcrypt.compare(newPassword, String(user.password || "")))
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "New password must be different from current password",
+      });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -249,7 +261,7 @@ router.get("/products", async (req: Request, res: Response) => {
   const page = Math.max(1, parsed.data.page ?? 1);
   const pageSize = Math.min(100, parsed.data.pageSize ?? parsed.data.limit ?? 12);
   const limit = pageSize;
-  const search = (parsed.data.q ?? "").trim();
+  const search = (parsed.data.q ?? (parsed.data as any).search ?? (parsed.data as any).query ?? "").trim();
   const categoryParam = (parsed.data.category ?? "").trim();
 
   try {
@@ -260,23 +272,35 @@ router.get("/products", async (req: Request, res: Response) => {
 
     if (categoryParam) {
       const categoryId = Number(categoryParam);
-      if (Number.isFinite(categoryId)) {
-        where.categoryId = categoryId;
-      } else {
-          const category = await Category.findOne({
-            where: {
-              published: true,
-              [Op.or]: [{ code: categoryParam }, { name: categoryParam }],
-            },
-          });
-        if (!category) {
-          return res.json({
-            success: true,
-            data: { items: [], meta: { page, limit, total: 0 } },
-          });
-        }
-        where.categoryId = category.id;
+      let category: any = null;
+      if (Number.isFinite(categoryId) && categoryId > 0) {
+        category = await Category.findByPk(categoryId);
       }
+      if (!category) {
+        const lowerParam = categoryParam.toLowerCase().trim();
+        const unslugged = lowerParam.replace(/-/g, " ");
+        const allCategories = await Category.findAll({ where: { published: true } as any });
+        category = allCategories.find((cat: any) => {
+          const catId = String(cat.id || "");
+          const catCode = String(cat.code || "").toLowerCase().trim();
+          const catName = String(cat.name || "").toLowerCase().trim();
+          const catSlug = (catCode || catName.replace(/[^a-z0-9]+/g, "-")).trim();
+          return (
+            catId === lowerParam ||
+            catCode === lowerParam ||
+            catName === lowerParam ||
+            catName === unslugged ||
+            catSlug === lowerParam
+          );
+        });
+      }
+      if (!category) {
+        return res.json({
+          success: true,
+          data: { items: [], meta: { page, limit, total: 0 } },
+        });
+      }
+      where.categoryId = category.id;
     }
 
     const offset = (page - 1) * limit;

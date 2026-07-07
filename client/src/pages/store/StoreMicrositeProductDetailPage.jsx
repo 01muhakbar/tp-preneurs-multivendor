@@ -1,7 +1,7 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useParams } from "react-router-dom";
-import { ImageIcon, Star } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { Heart, ImageIcon, Loader2, Minus, Plus, ShoppingCart, Star } from "lucide-react";
 import { fetchStoreProductById } from "../../api/public/storeProducts.ts";
 import { getStorePublicIdentityBySlug } from "../../api/public/storePublicIdentity.ts";
 import { formatCurrency } from "../../utils/format.js";
@@ -12,6 +12,15 @@ import {
 } from "../../utils/storePublicIdentity.ts";
 import { UiEmptyState, UiErrorState } from "../../components/primitives/state/index.js";
 import StoreMicrositeShell from "../../components/store/StoreMicrositeShell.jsx";
+import { useCart } from "../../hooks/useCart.ts";
+import { useStorefrontWishlist } from "../../utils/storefrontWishlist.js";
+import {
+  getSelectedOriginalPrice,
+  getSelectedPrice,
+  isPurchasable,
+  normalizeVariationGroups,
+  resolveSelectedVariant,
+} from "./StoreProductDetailPage2026.jsx";
 
 const toText = (value, fallback = "") => {
   const normalized = String(value ?? "").trim();
@@ -63,6 +72,12 @@ function DetailMetaCard({ label, value, tone = "default" }) {
 
 export default function StoreMicrositeProductDetailPage() {
   const { slug, productSlug } = useParams();
+  const navigate = useNavigate();
+  const cart = useCart();
+  const wishlist = useStorefrontWishlist();
+  const [quantity, setQuantity] = useState(1);
+  const [selectedOptions, setSelectedOptions] = useState({});
+  const [isAdding, setIsAdding] = useState(false);
   const safeSlug = useMemo(() => toText(slug).toLowerCase(), [slug]);
   const safeProductSlug = useMemo(() => toText(productSlug), [productSlug]);
 
@@ -100,6 +115,21 @@ export default function StoreMicrositeProductDetailPage() {
     store.description,
     "Shop public products from this store."
   );
+
+  const variationGroups = useMemo(() => normalizeVariationGroups(product), [product]);
+  const selectedVariant = useMemo(
+    () => resolveSelectedVariant(product, selectedOptions),
+    [product, selectedOptions]
+  );
+
+  useEffect(() => {
+    const defaults = {};
+    variationGroups.forEach((group) => {
+      if (group?.options?.[0]) defaults[group.id] = group.options[0].selectionKey;
+    });
+    setSelectedOptions(defaults);
+    setQuantity(1);
+  }, [product?.id, product?.slug, variationGroups.length]);
 
   if (!safeSlug || !safeProductSlug) {
     return (
@@ -202,14 +232,77 @@ export default function StoreMicrositeProductDetailPage() {
     );
   }
 
-  const currentPrice = toSafeNumber(product?.price, 0);
-  const originalPrice = toSafeNumber(product?.originalPrice, 0);
+  const currentPrice = getSelectedPrice(product, selectedVariant) || toSafeNumber(product?.price, 0);
+  const originalPrice = getSelectedOriginalPrice(product, selectedVariant) || toSafeNumber(product?.originalPrice, 0);
   const hasDiscount = originalPrice > currentPrice && currentPrice > 0;
   const ratingAvg = toSafeNumber(product?.ratingAvg, 0);
   const reviewCount = Math.max(0, Math.round(toSafeNumber(product?.reviewCount, 0)));
   const unit = toText(product?.unit, "Unit not specified");
   const categoryName = toText(product?.category?.name, "Uncategorized");
-  const stockLabel = formatStockLabel(product?.stock);
+  const stock = selectedVariant?.stock !== undefined && selectedVariant?.stock !== null
+    ? Number(selectedVariant.stock)
+    : (product?.stock !== undefined && product?.stock !== null ? Number(product.stock) : null);
+  const stockLabel = formatStockLabel(stock);
+  const canPurchase = isPurchasable(product, selectedVariant, quantity);
+
+  const buildSnapshot = () => {
+    const variantSelections = Array.isArray(selectedVariant?.selections)
+      ? selectedVariant.selections.map((s) => ({
+          attributeId: s.attributeId,
+          attributeName: s.attributeName,
+          valueId: s.valueId,
+          value: s.value,
+        }))
+      : [];
+    return {
+      name: product?.name || "Product",
+      price: currentPrice,
+      imageUrl: resolveAssetUrl(selectedVariant?.image || product?.imageUrl) || "",
+      stock: stock,
+      slug: product?.routeSlug || product?.slug || safeProductSlug,
+      storeId: product?.storeId ?? store?.id ?? null,
+      storeSlug: store?.slug || safeSlug,
+      category: categoryName,
+      variantKey: selectedVariant?.variantKey ?? selectedVariant?.combinationKey ?? null,
+      variantLabel: selectedVariant?.variantLabel ?? null,
+      variantSelections,
+      variantSku: selectedVariant?.sku ?? null,
+      variantBarcode: selectedVariant?.barcode ?? null,
+      variantPrice: selectedVariant?.price ?? null,
+      variantSalePrice: selectedVariant?.salePrice ?? null,
+      variantImage: selectedVariant?.image ?? null,
+    };
+  };
+
+  const handleAddToCart = async () => {
+    if (!canPurchase || isAdding) return;
+    setIsAdding(true);
+    try {
+      const productId = Number(product?.id ?? product?.productId);
+      if (Number.isFinite(productId) && productId > 0) {
+        await cart.add(productId, quantity, buildSnapshot());
+        window.dispatchEvent(new Event("cart-drawer:open"));
+      }
+    } finally {
+      setTimeout(() => setIsAdding(false), 500);
+    }
+  };
+
+  const handleBuyNow = async () => {
+    if (!canPurchase || isAdding) return;
+    setIsAdding(true);
+    try {
+      const productId = Number(product?.id ?? product?.productId);
+      if (Number.isFinite(productId) && productId > 0) {
+        const added = await cart.add(productId, quantity, buildSnapshot());
+        if (added !== false) {
+          navigate("/cart");
+        }
+      }
+    } finally {
+      setTimeout(() => setIsAdding(false), 500);
+    }
+  };
   return (
     <StoreMicrositeShell
       identity={store}
@@ -219,7 +312,7 @@ export default function StoreMicrositeProductDetailPage() {
       description={storeIdentityDescription}
     >
       <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-          <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
+          <section className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
             <div className="aspect-square bg-slate-100">
               {productImageSrc ? (
                 <img
@@ -233,6 +326,49 @@ export default function StoreMicrositeProductDetailPage() {
                 </div>
               )}
             </div>
+            {product && (
+              <button
+                type="button"
+                onClick={() => {
+                  const variantSelections = Array.isArray(selectedVariant?.selections)
+                    ? selectedVariant.selections.map((s) => ({
+                        attributeId: s.attributeId,
+                        attributeName: s.attributeName,
+                        valueId: s.valueId,
+                        value: s.value,
+                      }))
+                    : [];
+                  wishlist.toggle({
+                    id: product?.id ?? product?.productId,
+                    productId: product?.productId ?? product?.id,
+                    slug: product?.routeSlug || product?.slug || safeProductSlug,
+                    name: product?.name || "Product",
+                    category: categoryName,
+                    price: currentPrice,
+                    originalPrice: originalPrice,
+                    imageUrl: productImageSrc || "",
+                    rating: ratingAvg,
+                    reviewCount: reviewCount,
+                    stock: stock,
+                    storeId: product?.storeId ?? store?.id ?? null,
+                    storeSlug: store?.slug || safeSlug,
+                    variantKey: selectedVariant?.variantKey ?? selectedVariant?.combinationKey ?? null,
+                    variantLabel: selectedVariant?.variantLabel ?? null,
+                    variantSelections,
+                    variantSku: selectedVariant?.sku ?? null,
+                    variantBarcode: selectedVariant?.barcode ?? null,
+                  });
+                }}
+                aria-label="Toggle wishlist"
+                className={`absolute right-5 top-5 inline-flex h-12 w-12 items-center justify-center rounded-full border shadow-sm transition ${
+                  wishlist.isWishlisted(product?.id ?? product?.productId ?? safeProductSlug)
+                    ? "border-rose-500 bg-rose-500 text-white hover:bg-rose-600"
+                    : "border-slate-200 bg-white text-slate-700 hover:border-rose-500/40 hover:text-rose-500"
+                }`}
+              >
+                <Heart className={`h-5 w-5 ${wishlist.isWishlisted(product?.id ?? product?.productId ?? safeProductSlug) ? "fill-current" : ""}`} />
+              </button>
+            )}
           </section>
 
           <section className="space-y-5 rounded-[32px] border border-slate-200 bg-white p-6 shadow-[0_20px_45px_rgba(15,23,42,0.08)] sm:p-8">
@@ -270,6 +406,85 @@ export default function StoreMicrositeProductDetailPage() {
                   </span>
                 ) : null}
               </div>
+            </div>
+
+            {variationGroups.length > 0 ? (
+              <div className="space-y-4 rounded-[28px] border border-slate-200 bg-white p-5">
+                {variationGroups.map((group) => (
+                  <div key={group.id} className="space-y-2.5">
+                    <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-500">
+                      <span>{group.label}</span>
+                      {selectedOptions[group.id] ? (
+                        <span className="text-emerald-600">
+                          {group.options.find((item) => item.selectionKey === selectedOptions[group.id])?.value}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {group.options.map((option) => {
+                        const active = selectedOptions[group.id] === option.selectionKey;
+                        return (
+                          <button
+                            key={option.id}
+                            type="button"
+                            onClick={() => setSelectedOptions((current) => ({ ...current, [group.id]: option.selectionKey }))}
+                            className={`rounded-full border px-4 py-2 text-sm font-bold transition ${
+                              active
+                                ? "border-emerald-600 bg-emerald-600 text-white shadow-sm"
+                                : "border-slate-200 bg-white text-slate-700 hover:border-emerald-600/30 hover:bg-slate-50"
+                            }`}
+                          >
+                            {option.value}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            <div className="space-y-3 rounded-[28px] border border-slate-200 bg-slate-50/50 p-5">
+              <div className="grid gap-3 sm:grid-cols-[160px_minmax(0,1fr)]">
+                <div className="grid h-12 grid-cols-3 overflow-hidden rounded-[1rem] border border-slate-200 bg-white shadow-sm">
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((value) => Math.max(1, value - 1))}
+                    disabled={!canPurchase || isAdding || quantity <= 1}
+                    className="inline-flex items-center justify-center border-r border-slate-200 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <span className="inline-flex items-center justify-center text-base font-bold text-slate-900">
+                    {quantity}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((value) => (stock === null ? value + 1 : Math.min(stock, value + 1)))}
+                    disabled={!canPurchase || isAdding || (stock !== null && quantity >= stock)}
+                    className="inline-flex items-center justify-center border-l border-slate-200 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddToCart}
+                  disabled={!canPurchase || isAdding}
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-[1rem] bg-emerald-600 px-6 text-sm font-bold text-white shadow-lg shadow-emerald-600/25 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                >
+                  {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
+                  Add to Cart
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={handleBuyNow}
+                disabled={!canPurchase || isAdding}
+                className="inline-flex h-12 w-full items-center justify-center rounded-[1rem] border border-slate-300 bg-white px-6 text-sm font-bold text-slate-900 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+              >
+                Buy Now
+              </button>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">

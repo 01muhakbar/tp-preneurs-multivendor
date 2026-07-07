@@ -155,12 +155,16 @@ export const validateUpdateProfile2026Form = (form = {}) => {
   const errors = {};
   const name = text(data.name);
   const email = text(data.email);
+  const phone = text(data.phone);
 
   if (!name) errors.name = "Full name is required.";
   if (!email) {
     errors.email = "Email address is required.";
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     errors.email = "Enter a valid email address.";
+  }
+  if (phone && !/^[0-9+\-\s()]{6,25}$/.test(phone)) {
+    errors.phone = "Enter a valid phone number.";
   }
 
   return {
@@ -175,6 +179,7 @@ export const buildUpdateProfilePayloadFrom2026Form = (form = {}) => {
   return {
     name: text(data.name),
     email: text(data.email),
+    phone: text(data.phone) || null,
     avatarUrl: text(data.avatarUrl) || null,
   };
 };

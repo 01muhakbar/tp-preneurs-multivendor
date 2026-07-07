@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
 import StoreHeaderKacha from "../kachabazar-demo/StoreHeaderKacha.jsx";
+import StoreFooterKacha from "../kachabazar-demo/StoreFooterKacha.jsx";
+import FloatingCartWidget from "../kachabazar-demo/FloatingCartWidget.jsx";
 import { StoreCartDrawer } from "../../pages/store/StoreCartPage.jsx";
 import useStoreBranding from "../../hooks/useStoreBranding.js";
 
@@ -222,6 +224,12 @@ export default function StoreMicrositeShell({
 
     return () => window.cancelAnimationFrame(frame);
   }, [location.hash]);
+
+  useEffect(() => {
+    const handleOpen = () => setIsCartDrawerOpen(true);
+    window.addEventListener("cart-drawer:open", handleOpen);
+    return () => window.removeEventListener("cart-drawer:open", handleOpen);
+  }, []);
 
   return (
     <div className="store-microsite-shell min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
@@ -459,6 +467,11 @@ export default function StoreMicrositeShell({
 
         {children}
       </main>
+      <StoreFooterKacha
+        brandingLogoUrl={branding.clientLogoUrl}
+        brandingName={branding.workspaceBrandName}
+      />
+      <FloatingCartWidget />
       <StoreCartDrawer
         isOpen={isCartDrawerOpen}
         onClose={() => setIsCartDrawerOpen(false)}

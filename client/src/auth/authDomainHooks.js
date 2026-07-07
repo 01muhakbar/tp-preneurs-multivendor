@@ -1,8 +1,17 @@
 import { useAuth } from "./useAuth.js";
 
-const toRole = (auth) => String(auth?.role ?? auth?.user?.role ?? "").toLowerCase();
+const normalizeRole = (role) => {
+  const raw = String(role || "").trim().toLowerCase();
+  if (!raw) return "";
+  const compact = raw.replace(/[^a-z0-9]+/g, "");
+  if (compact === "superadmin") return "super_admin";
+  if (compact === "administrator" || compact === "admin") return "admin";
+  if (compact === "staf" || compact === "staff") return "staff";
+  return raw.replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+};
+const toRole = (auth) => normalizeRole(auth?.role ?? auth?.user?.role);
 const isAdminRoleValue = (role) =>
-  ["admin", "super_admin", "superadmin", "staff"].includes(String(role || "").toLowerCase());
+  ["admin", "super_admin", "staff"].includes(normalizeRole(role));
 
 export function useAdminAuth() {
   const auth = useAuth() || {};

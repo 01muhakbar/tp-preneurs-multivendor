@@ -395,6 +395,7 @@ async function runLiveSubsetScenario(browser: any, smtpSink: SmtpSink) {
     await staffPage.locator("#admin-create-account-phone").fill(staffPhone);
     await staffPage.locator("#admin-create-account-password").fill(staffPassword);
     await staffPage.locator("#admin-create-account-password-confirm").fill(staffPassword);
+    await staffPage.getByRole("checkbox").check();
     await delay(ADMIN_SIGNUP_MIN_DELAY_MS);
     await staffPage.getByRole("button", { name: "Create account" }).click();
     await expectText(

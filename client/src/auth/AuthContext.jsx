@@ -64,6 +64,16 @@ const normalizeAuthUser = (response) =>
   response?.data ??
   (response && response.id ? response : null);
 
+const normalizeRole = (role) => {
+  const raw = String(role || "").trim().toLowerCase();
+  if (!raw) return null;
+  const compact = raw.replace(/[^a-z0-9]+/g, "");
+  if (compact === "superadmin") return "super_admin";
+  if (compact === "administrator" || compact === "admin") return "admin";
+  if (compact === "staf" || compact === "staff") return "staff";
+  return raw.replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || null;
+};
+
 export function AuthProvider({ children }) {
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -137,7 +147,7 @@ export function AuthProvider({ children }) {
         return;
       }
 
-      const nextRole = String(nextUser?.role ?? "").toLowerCase() || null;
+      const nextRole = normalizeRole(nextUser?.role);
       if (scope === "admin") {
         setAdminUser(nextUser);
         setAdminRole(nextRole);
@@ -186,7 +196,7 @@ export function AuthProvider({ children }) {
     try {
       const response = await adminLoginRequest({ email, password });
       const nextUser = response?.user || response?.data?.user || null;
-      const nextRole = nextUser?.role || response?.role || response?.data?.role || null;
+      const nextRole = normalizeRole(nextUser?.role || response?.role || response?.data?.role);
       const token = response?.token || response?.data?.token || null;
 
       if (token) {

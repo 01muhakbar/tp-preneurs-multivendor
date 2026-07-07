@@ -43,7 +43,7 @@ const toManualVendorChunk = (id: string) => {
 
 export default defineConfig(({ mode }) => {
   const analyze = mode === "analyze";
-  const proxyApiHost = process.env.VITE_PROXY_API_HOST || "localhost";
+  const proxyApiHost = process.env.VITE_PROXY_API_HOST || "127.0.0.1";
   const proxyApiPort = Number(process.env.VITE_PROXY_API_PORT || 3001);
 
   return {

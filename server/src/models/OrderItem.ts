@@ -12,6 +12,8 @@ interface OrderItemAttributes {
   skuSnapshot?: string | null;
   barcodeSnapshot?: string | null;
   imageSnapshot?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 interface OrderItemCreationAttributes

@@ -9,6 +9,10 @@ import {
   UserRegistrationVerification,
   sequelize,
 } from "../models/index.js";
+import {
+  fetchRawSystemSettingsMap,
+  upsertSystemSetting,
+} from "../services/systemSettings.js";
 
 type JsonResponse = {
   status: number;
@@ -487,23 +491,35 @@ async function run() {
       }
     );
 
-    await withEnv(
-      {
-        EMAIL_HOST: undefined,
-        EMAIL_PORT: undefined,
-        EMAIL_USER: undefined,
-        EMAIL_PASS: undefined,
-        EMAIL_FROM: undefined,
-        COOKIE_SECURE: "false",
-        NODE_ENV: "development",
-      },
-      async () => {
-        const deliveryFailedClient = new CookieClient(
-          `http://127.0.0.1:${Number(address.port)}`
-        );
-        await runDeliveryFailedScenario(deliveryFailedClient);
+    const originalSettings = await fetchRawSystemSettingsMap();
+    try {
+      await upsertSystemSetting("smtpHost", "");
+      await upsertSystemSetting("smtpUser", "");
+      await upsertSystemSetting("smtpPassword", "");
+      await upsertSystemSetting("smtpFromEmail", "");
+
+      await withEnv(
+        {
+          EMAIL_HOST: undefined,
+          EMAIL_PORT: undefined,
+          EMAIL_USER: undefined,
+          EMAIL_PASS: undefined,
+          EMAIL_FROM: undefined,
+          COOKIE_SECURE: "false",
+          NODE_ENV: "development",
+        },
+        async () => {
+          const deliveryFailedClient = new CookieClient(
+            `http://127.0.0.1:${Number(address.port)}`
+          );
+          await runDeliveryFailedScenario(deliveryFailedClient);
+        }
+      );
+    } finally {
+      for (const [key, val] of Object.entries(originalSettings)) {
+        await upsertSystemSetting(key, val);
       }
-    );
+    }
 
     console.log("[mvf-client-registration-otp] OK");
   } finally {

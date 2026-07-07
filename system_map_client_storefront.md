@@ -519,7 +519,7 @@ client/src/utils/sanitizeRichTextHtml.js
 
 | Route | Komponen | Catatan |
 |---|---|---|
-| `/demo/kachabazar` | `KachaBazarDemoHomePage` | Dev-only; production build redirect ke `/`. |
+| `/demo/tppreneurs` | `TPPreneurHomePage` | Dev-only; production build redirect ke `/`. |
 
 ### 7.2 Vendor public microsite routes di luar `StoreLayout`
 
@@ -2688,7 +2688,7 @@ pnpm -F server smoke:auth-forgot-password
 
 ```text
 /
-/demo/kachabazar       // dev only
+/demo/tppreneurs       // dev only
 /shop
 /search
 /wishlist
