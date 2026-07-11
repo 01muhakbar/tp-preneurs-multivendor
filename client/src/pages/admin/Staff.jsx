@@ -125,7 +125,7 @@ function ActiveStatusBadge({ isActive }) {
     >
       <span
         className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-          isActive ? "bg-[var(--admin-primary-soft)]0" : "bg-rose-500"
+          isActive ? "bg-[var(--admin-primary)]" : "bg-rose-500"
         }`}
       />
       {isActive ? "Active" : "Inactive"}
@@ -649,7 +649,7 @@ export default function AdminStaffPage() {
                               onClick={() => onTogglePublished(staff)}
                               disabled={isPublishing}
                               className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition ${
-                                getPublished(staff) ? "bg-[var(--admin-primary-soft)]0" : "bg-slate-300"
+                                getPublished(staff) ? "bg-[var(--admin-primary)]" : "bg-slate-300"
                               } ${isPublishing ? "cursor-not-allowed opacity-60" : ""}`}
                               aria-label={`Toggle publish for ${getStaffName(staff)}`}
                             >

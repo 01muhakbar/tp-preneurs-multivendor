@@ -766,3 +766,61 @@
     height: 180px;
   }
 }
+
+.spp-edit-identity-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--spp-border);
+  border-radius: 999px;
+  background: var(--spp-card-soft);
+  color: var(--spp-text);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.spp-edit-identity-btn:hover {
+  background: var(--spp-primary);
+  color: #fff;
+  border-color: var(--spp-primary);
+}
+
+.spp-identity-editor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--spp-card-soft);
+  border: 1px dashed var(--spp-border);
+  width: 100%;
+}
+
+.spp-identity-editor input,
+.spp-identity-editor select {
+  padding: 6px 10px;
+  border: 1px solid var(--spp-border);
+  border-radius: 8px;
+  background: var(--spp-card);
+  color: var(--spp-text);
+  font-size: 0.85rem;
+}
+
+.spp-identity-editor input {
+  flex: 1;
+  min-width: 160px;
+}
+
+.spp-identity-editor button {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+

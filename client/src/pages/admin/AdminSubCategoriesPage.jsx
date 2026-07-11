@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ChevronRight,
   Filter,
@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import QueryState from "../../components/primitives/ui/QueryState.jsx";
 import {
+  bulkAdminCategories,
   createAdminCategory,
   deleteAdminCategory,
   fetchAdminCategories,
@@ -26,6 +27,21 @@ import {
 
 const toStringSafe = (value) => String(value ?? "").trim();
 const normalizeCode = (value) => toStringSafe(value).toLowerCase();
+
+const slugifyCategory = (category) => {
+  const source =
+    toStringSafe(category?.code) || toStringSafe(category?.name) || `category-${category?.id || ""}`;
+  const slug = source
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return slug || `category-${category?.id || "detail"}`;
+};
+
+const getSubcategoriesPath = (category) =>
+  `/admin/catalog/categories/${encodeURIComponent(String(category.id))}/${encodeURIComponent(
+    slugifyCategory(category)
+  )}/subcategories`;
 
 const getCategoryParentId = (category) =>
   category?.parentId ?? category?.parent_id ?? category?.parent?.id ?? null;
@@ -52,30 +68,30 @@ const isEmojiLike = (value) => {
 
 const btnBase =
   "inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-semibold transition";
-const btnOutline = `${btnBase} border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50`;
-const btnGreen = `${btnBase} bg-[var(--admin-primary)] text-white hover:bg-[var(--admin-primary-strong)]`;
+const btnOutline = `${btnBase} border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800`;
+const btnGreen = `${btnBase} bg-[#034c85] text-white hover:bg-[#013d70]`;
 const btnDanger = `${btnBase} bg-rose-600 text-white hover:bg-rose-700`;
-const btnAmber = `${btnBase} bg-amber-500 text-white hover:bg-amber-600`;
+const btnAmber = `${btnBase} border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800`;
 const fieldClass =
-  "h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-[var(--admin-primary)] focus:outline-none";
+  "h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-[#034c85] focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
 const statCardClass =
-  "rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-right shadow-sm";
+  "rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-right shadow-sm dark:border-slate-800 dark:bg-slate-900";
 const tableHeadCell =
-  "whitespace-nowrap px-4 py-3.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500";
-const tableCell = "px-4 py-3.5 align-middle text-sm text-slate-700";
+  "whitespace-nowrap px-4 py-3.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400";
+const tableCell = "px-4 py-3.5 align-middle text-sm text-slate-700 dark:text-slate-200";
 
 function CategoryPublishedBadge({ published }) {
   return (
     <span
       className={`inline-flex min-h-7 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
         published
-          ? "border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]"
-          : "border-slate-200 bg-slate-100 text-slate-600"
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200"
+          : "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
       }`}
     >
       <span
         className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-          published ? "bg-[var(--admin-primary-soft)]0" : "bg-slate-400"
+          published ? "bg-emerald-500" : "bg-slate-400"
         }`}
       />
       {published ? "Active" : "Inactive"}
@@ -86,6 +102,8 @@ function CategoryPublishedBadge({ published }) {
 export default function AdminSubCategoriesPage({ resolveMode = "code" }) {
   const qc = useQueryClient();
   const params = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [notice, setNotice] = useState("");
@@ -151,7 +169,22 @@ export default function AdminSubCategoriesPage({ resolveMode = "code" }) {
       qc.invalidateQueries({ queryKey: ["admin-categories"] });
       qc.invalidateQueries({ queryKey: ["storeCategories"] });
       qc.invalidateQueries({ queryKey: ["storefront", "categories"] });
+      qc.invalidateQueries({ queryKey: ["seller-categories"] });
+      qc.invalidateQueries({ queryKey: ["categories"] });
       setNotice("Sub category deleted.");
+    },
+  });
+
+  const bulkMutation = useMutation({
+    mutationFn: ({ action, ids }) => bulkAdminCategories(action, ids),
+    onSuccess: (_response, variables) => {
+      qc.invalidateQueries({ queryKey: ["admin-categories"] });
+      qc.invalidateQueries({ queryKey: ["storeCategories"] });
+      qc.invalidateQueries({ queryKey: ["storefront", "categories"] });
+      qc.invalidateQueries({ queryKey: ["seller-categories"] });
+      qc.invalidateQueries({ queryKey: ["categories"] });
+      setSelectedIds([]);
+      setNotice(`${variables.ids.length} categories processed successfully.`);
     },
   });
 
@@ -186,7 +219,7 @@ export default function AdminSubCategoriesPage({ resolveMode = "code" }) {
 
   const parentCategory = useMemo(() => {
     if (!Array.isArray(categories) || categories.length === 0) return null;
-    if (resolveMode === "id") {
+    if (resolveMode === "id" || resolveMode === "hybrid") {
       if (!idParam) return null;
       return categories.find((category) => String(category?.id) === idParam) || null;
     }
@@ -194,6 +227,14 @@ export default function AdminSubCategoriesPage({ resolveMode = "code" }) {
     const key = normalizeCode(codeParam);
     return categories.find((category) => normalizeCode(category?.code) === key) || null;
   }, [categories, codeParam, idParam, resolveMode]);
+
+  useEffect(() => {
+    if (!parentCategory?.id) return;
+    const canonicalPath = getSubcategoriesPath(parentCategory);
+    if (location.pathname !== canonicalPath) {
+      navigate(canonicalPath, { replace: true });
+    }
+  }, [location.pathname, navigate, parentCategory]);
 
   const parentId = Number(parentCategory?.id);
   const subCategories = useMemo(() => {
@@ -416,19 +457,29 @@ export default function AdminSubCategoriesPage({ resolveMode = "code" }) {
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => handleDemoAction("Bulk Action")}
-                    className={btnAmber}
+                    disabled={selectedIds.length === 0 || bulkMutation.isPending}
+                    onClick={() => {
+                      if (selectedIds.length === 0) return;
+                      bulkMutation.mutate({ action: "publish", ids: selectedIds });
+                    }}
+                    className={`${btnAmber} disabled:opacity-50`}
                   >
                     <Layers3 className="h-4 w-4" />
-                    Bulk Action
+                    Publish ({selectedIds.length})
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleDemoAction("Delete")}
-                    className={btnDanger}
+                    disabled={selectedIds.length === 0 || bulkMutation.isPending}
+                    onClick={() => {
+                      if (selectedIds.length === 0) return;
+                      if (window.confirm(`Delete ${selectedIds.length} selected categories?`)) {
+                        bulkMutation.mutate({ action: "delete", ids: selectedIds });
+                      }
+                    }}
+                    className={`${btnDanger} disabled:opacity-50`}
                   >
                     <Trash2 className="h-4 w-4" />
-                    Delete
+                    Delete ({selectedIds.length})
                   </button>
                   <button type="button" onClick={openCreate} className={btnGreen}>
                     <Plus className="h-4 w-4" />
@@ -540,7 +591,7 @@ export default function AdminSubCategoriesPage({ resolveMode = "code" }) {
                                 type="button"
                                 onClick={() => handleTogglePublished(category)}
                                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
-                                  category.published ? "bg-[var(--admin-primary-soft)]0" : "bg-slate-300"
+                                  category.published ? "bg-[#034c85]" : "bg-slate-300 dark:bg-slate-700"
                                 }`}
                                 aria-label={`Toggle publish for ${category.name}`}
                               >
@@ -605,11 +656,11 @@ export default function AdminSubCategoriesPage({ resolveMode = "code" }) {
             onClick={closeForm}
             aria-label="Close category drawer"
           />
-          <aside className="absolute right-0 top-0 flex h-full w-full max-w-xl flex-col border-l border-slate-200 bg-white shadow-2xl">
-            <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-6 py-4">
+          <aside className="absolute right-0 top-0 flex h-full w-full max-w-xl flex-col border-l border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+            <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-6 py-4 dark:border-slate-800 dark:bg-slate-900">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-900">
+                  <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                     {editing ? "Edit Category" : "Add Category"}
                   </h2>
                   <p className="mt-1 text-xs text-slate-500">
@@ -733,7 +784,7 @@ export default function AdminSubCategoriesPage({ resolveMode = "code" }) {
                       setForm((prev) => ({ ...prev, published: !Boolean(prev.published) }))
                     }
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
-                      form.published ? "bg-[var(--admin-primary-soft)]0" : "bg-slate-300"
+                      form.published ? "bg-[#034c85]" : "bg-slate-300 dark:bg-slate-700"
                     }`}
                     aria-label="Toggle published"
                   >

@@ -174,8 +174,8 @@ export default function EditCouponDrawer({
       setValidationError("Wait for the banner image upload to finish before updating.");
       return;
     }
-    if (!normalizedCampaignName) {
-      setValidationError("Campaign Name is required.");
+    if (!normalizedCampaignName && !normalizedCode) {
+      setValidationError("Campaign Name or Campaign Code is required.");
       return;
     }
     if (!normalizedCode) {
@@ -223,7 +223,7 @@ export default function EditCouponDrawer({
 
     setValidationError("");
     onSubmit({
-      campaignName: normalizedCampaignName,
+      campaignName: normalizedCampaignName || normalizedCode,
       code: normalizedCode,
       scopeType,
       storeId: scopeType === "STORE" ? Number(storeId) : null,

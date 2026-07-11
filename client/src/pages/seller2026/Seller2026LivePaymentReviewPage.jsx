@@ -443,7 +443,7 @@ export default function Seller2026LivePaymentReviewPage() {
                               <button type="button" className="s26-pr-primary-btn" onClick={() => setSelectedPaymentId(row.paymentId)}>
                                 {row.canReview && review.canReview ? "Review Proof" : "View Proof"}
                               </button>
-                              <button type="button" className="s26-pr-icon-btn" title="View Order" onClick={() => navigate(row.canonicalDetailHref || `/seller/stores/${workspaceStoreId}/orders/${row.id}`)}>
+                              <button type="button" className="s26-pr-icon-btn" title="View Order" onClick={() => navigate(workspaceRoutes.orderDetail(row.suborderId))}>
                                 <MoreVertical size={14} />
                               </button>
                             </div>

@@ -375,3 +375,12 @@ export const reviewAdminStorePaymentProfile = async (
   });
   return normalizeAdminStorePaymentProfile(data?.data ?? null);
 };
+
+export const updateAdminStoreIdentity = async (
+  storeId: number | string,
+  payload: { name?: string; status?: "ACTIVE" | "INACTIVE" }
+) => {
+  const { data } = await api.patch(`/admin/stores/${storeId}/identity`, payload);
+  return normalizeAdminStorePaymentProfile(data?.data ?? null);
+};
+

@@ -4,6 +4,8 @@ export type SellerReviewsQuery = {
   status?: "all" | "pending" | "published" | "hidden";
   search?: string;
   sort?: "newest" | "oldest" | "rating_high" | "rating_low";
+  productId?: number | string;
+  rating?: number | string;
   page?: number;
   limit?: number;
 };

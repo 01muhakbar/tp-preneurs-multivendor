@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, Plus, Trash2 } from "lucide-react";
+import { Boxes, CheckCircle2, ChevronDown, Database, Layers3, Moon, Plus, Sun, Trash2 } from "lucide-react";
 import { useAdminAuth } from "../../../auth/authDomainHooks.js";
 import { UiErrorState, UiSkeleton } from "../../primitives/state/index.js";
 import {
@@ -17,6 +17,7 @@ import AttributeModal from "./AttributeModal.jsx";
 import AttributeTable from "./AttributeTable.jsx";
 import AttributeToolbar from "./AttributeToolbar.jsx";
 import ImportExportDropdown from "./ImportExportDropdown.jsx";
+import AdminAttributes2026View from "./AdminAttributes2026View.jsx";
 
 const defaultFilters = {
   q: "",
@@ -43,11 +44,11 @@ const DEFAULT_COLUMN_VISIBILITY = {
 };
 
 const btnBase =
-  "inline-flex h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-[11px] font-medium transition";
-const btnSoft = `${btnBase} bg-slate-50 text-slate-600 hover:bg-slate-100`;
-const btnAmber = `${btnBase} bg-amber-400 text-white hover:bg-amber-500`;
-const btnDanger = `${btnBase} bg-slate-100 text-slate-400 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-70`;
-const btnGreen = `${btnBase} bg-teal-700 text-white hover:bg-teal-800`;
+  "inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-[#fe6f05]/25";
+const btnSoft = `${btnBase} border border-slate-200 bg-white text-slate-700 hover:border-[#034c85]/30 hover:bg-[#034c85]/5`;
+const btnAmber = `${btnBase} bg-[#fe6f05] text-white shadow-sm shadow-[#fe6f05]/25 hover:bg-[#e86200]`;
+const btnDanger = `${btnBase} border border-slate-200 bg-slate-50 text-slate-400 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70`;
+const btnGreen = `${btnBase} bg-[#034c85] text-white shadow-sm shadow-[#034c85]/25 hover:bg-[#023e6d]`;
 
 const noticeStyles = {
   success: "border-emerald-200 bg-emerald-50 text-emerald-700",
@@ -144,6 +145,7 @@ export default function AttributePage() {
   const [pendingImportFile, setPendingImportFile] = useState(null);
   const [pendingImportCount, setPendingImportCount] = useState(0);
   const [exportingFormat, setExportingFormat] = useState("");
+  const [visualMode, setVisualMode] = useState("light");
 
   const queryParams = useMemo(
     () => ({
@@ -179,12 +181,29 @@ export default function AttributePage() {
     totalPages: 1,
   };
   const warning = attributesQuery.data?.warning || "";
+  const canManageAttribute = (attribute) =>
+    String(attribute?.scope || "global") !== "store" || isSuperAdmin;
+  const pageStats = useMemo(() => {
+    const published = attributes.filter((attribute) => Boolean(attribute.published)).length;
+    const global = attributes.filter((attribute) => String(attribute.scope || "global") !== "store").length;
+    const store = attributes.length - global;
+    const withValues = attributes.filter(
+      (attribute) =>
+        Number(attribute.valueCount || 0) > 0 ||
+        (Array.isArray(attribute.values) && attribute.values.length > 0)
+    ).length;
+    return { published, global, store, withValues };
+  }, [attributes]);
 
   useEffect(() => {
     setSelectedIds((prev) =>
-      prev.filter((id) => attributes.some((attribute) => Number(attribute.id) === Number(id)))
+      prev.filter((id) =>
+        attributes.some(
+          (attribute) => Number(attribute.id) === Number(id) && canManageAttribute(attribute)
+        )
+      )
     );
-  }, [attributes]);
+  }, [attributes, isSuperAdmin]);
 
   useEffect(() => {
     if (!bulkMenuOpen) return undefined;
@@ -352,19 +371,25 @@ export default function AttributePage() {
   };
 
   const handleToggleSelectAll = () => {
+    const manageableIds = attributes
+      .filter(canManageAttribute)
+      .map((attribute) => Number(attribute.id))
+      .filter(Boolean);
     if (
-      attributes.length > 0 &&
-      attributes.every((attribute) => selectedIds.includes(Number(attribute.id)))
+      manageableIds.length > 0 &&
+      manageableIds.every((id) => selectedIds.includes(Number(id)))
     ) {
       setSelectedIds([]);
       return;
     }
-    setSelectedIds(attributes.map((attribute) => Number(attribute.id)).filter(Boolean));
+    setSelectedIds(manageableIds);
   };
 
   const handleToggleSelectRow = (id) => {
     const numericId = Number(id);
     if (!numericId) return;
+    const attribute = attributes.find((entry) => Number(entry.id) === numericId);
+    if (!attribute || !canManageAttribute(attribute)) return;
     setSelectedIds((prev) =>
       prev.includes(numericId)
         ? prev.filter((entry) => Number(entry) !== numericId)
@@ -450,120 +475,11 @@ export default function AttributePage() {
     }
   };
 
-  const showEmptyState =
-    !attributesQuery.isLoading &&
-    !attributesQuery.isError &&
-    attributes.length === 0;
-
   return (
-    <div className="space-y-4">
-      <div className="rounded-[22px] border border-slate-200 bg-white px-5 py-4 shadow-sm">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div className="space-y-0.5">
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Attributes</h1>
-            <p className="text-sm text-slate-500">Manage product attributes</p>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <ImportExportDropdown
-              pendingImportFileName={pendingImportFile?.name || ""}
-              pendingImportCount={pendingImportCount}
-              isImporting={importMutation.isPending}
-              exportingFormat={exportingFormat}
-              onImportFileSelect={handleImportFileSelect}
-              onImportNow={handleImportNow}
-              onExport={handleExport}
-            />
-
-            <div ref={bulkMenuRef} className="relative">
-              <button
-                type="button"
-                onClick={() => setBulkMenuOpen((prev) => !prev)}
-                disabled={selectedIds.length === 0 || bulkMutation.isPending}
-                className={selectedIds.length > 0 ? btnAmber : btnSoft}
-              >
-                Bulk Action
-                <ChevronDown className="h-3.5 w-3.5" />
-              </button>
-
-              {bulkMenuOpen ? (
-                <div className="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-xl border border-amber-200 bg-white shadow-lg">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBulkMenuOpen(false);
-                      handleBulkAction("publish");
-                    }}
-                    className="block w-full px-3 py-2.5 text-left text-xs font-medium text-slate-700 transition hover:bg-amber-50"
-                  >
-                    Publish selected
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBulkMenuOpen(false);
-                      handleBulkAction("unpublish");
-                    }}
-                    className="block w-full px-3 py-2.5 text-left text-xs font-medium text-slate-700 transition hover:bg-amber-50"
-                  >
-                    Unpublish selected
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBulkMenuOpen(false);
-                      handleBulkAction("delete");
-                    }}
-                    className="block w-full px-3 py-2.5 text-left text-xs font-medium text-slate-700 transition hover:bg-amber-50"
-                  >
-                    Delete selected
-                  </button>
-                </div>
-              ) : null}
-            </div>
-
-            <button
-              type="button"
-              onClick={handleDeleteSelected}
-              disabled={selectedIds.length === 0 || bulkMutation.isPending}
-              className={selectedIds.length > 0 ? `${btnBase} bg-slate-100 text-slate-500 hover:bg-slate-200` : btnDanger}
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete
-            </button>
-
-            <button type="button" onClick={openCreateModal} className={btnGreen}>
-              <Plus className="h-4 w-4" />
-              Add Attribute
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <AttributeToolbar
-        draftFilters={draftFilters}
-        onDraftFiltersChange={setDraftFilters}
-        onApplyFilters={handleApplyFilters}
-        onResetFilters={handleResetFilters}
-        columnVisibility={columnVisibility}
-        onToggleColumn={(key) =>
-          setColumnVisibility((prev) => ({
-            ...prev,
-            [key]: !prev[key],
-          }))
-        }
-        onResetColumns={() => setColumnVisibility(DEFAULT_COLUMN_VISIBILITY)}
-      />
-
-      {warning ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-          Warning: {warning}
-        </div>
-      ) : null}
-
+    <>
       {notice ? (
         <div
-          className={`rounded-2xl border px-4 py-3 text-sm ${
+          className={`mb-4 rounded-2xl border px-4 py-3 text-sm ${
             noticeStyles[notice.type] || noticeStyles.success
           }`}
         >
@@ -571,67 +487,56 @@ export default function AttributePage() {
         </div>
       ) : null}
 
-      {attributesQuery.isLoading && !attributesQuery.data ? (
-        <UiSkeleton variant="table" rows={8} />
-      ) : null}
-
-      {attributesQuery.isError && !attributesQuery.data ? (
-        <UiErrorState
-          title="Failed to load attributes"
-          message="Please retry to load the latest attribute truth from the backend."
-          onRetry={attributesQuery.refetch}
-        />
-      ) : null}
-
-      {showEmptyState ? (
-        <div className="rounded-[22px] border border-slate-200 bg-white px-5 py-8 text-center shadow-sm">
-          <p className="text-base font-semibold text-slate-900">No attributes found</p>
-          <p className="mt-1 text-sm text-slate-500">
-            Create your first attribute or adjust the current search and filters.
-          </p>
-          <button
-            type="button"
-            onClick={openCreateModal}
-            className="mt-4 inline-flex h-10 items-center justify-center rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700"
-          >
-            Add Attribute
-          </button>
-        </div>
-      ) : null}
-
-      {!showEmptyState && !attributesQuery.isError ? (
-        <AttributeTable
-          attributes={attributes}
-          meta={meta}
-          columnVisibility={columnVisibility}
-          selectedIds={selectedIds}
-          onToggleSelectAll={handleToggleSelectAll}
-          onToggleSelectRow={handleToggleSelectRow}
-          onEdit={openEditModal}
-          onDelete={handleDeleteAttribute}
-          onOpenValues={(attribute) =>
-            navigate(`/admin/catalog/attributes/${encodeURIComponent(String(attribute.id))}/values`, {
-              state: { attribute },
-            })
-          }
-          onTogglePublished={togglePublishedMutation.mutate}
-          onPageChange={(page) =>
-            setAppliedFilters((prev) => ({ ...prev, page: Math.max(1, Number(page) || 1) }))
-          }
-          onLimitChange={(limit) =>
-            setAppliedFilters((prev) => ({
-              ...prev,
-              page: 1,
-              limit: Number(limit) || 20,
-            }))
-          }
-          deletePendingId={deleteMutation.isPending ? deleteMutation.variables : null}
-          togglePendingId={
-            togglePublishedMutation.isPending ? togglePublishedMutation.variables?.id : null
-          }
-          canManageStoreAttributes={isSuperAdmin}
-        />
-      ) : null}
+      <AdminAttributes2026View
+        attributes={attributes}
+        stats={{
+          total: meta.total || attributes.length,
+          published: pageStats.published,
+          global: pageStats.global,
+          store: pageStats.store,
+        }}
+        meta={meta}
+        filters={appliedFilters}
+        selectedIds={selectedIds}
+        isLoading={attributesQuery.isLoading}
+        isError={attributesQuery.isError}
+        errorMessage={attributesQuery.error?.message || ""}
+        canManageRow={canManageAttribute}
+        onRetry={() => attributesQuery.refetch()}
+        onFilterChange={(newFilter) =>
+          setAppliedFilters((prev) => ({
+            ...prev,
+            ...newFilter,
+            page: 1,
+          }))
+        }
+        onResetFilters={handleResetFilters}
+        onSelectOne={handleToggleSelectRow}
+        onSelectAll={handleToggleSelectAll}
+        onAddAttribute={openCreateModal}
+        onEditAttribute={openEditModal}
+        onManageValues={(attribute) =>
+          navigate(`/admin/catalog/attributes/${encodeURIComponent(String(attribute.id))}/values`, {
+            state: { attribute },
+          })
+        }
+        onDeleteAttribute={handleDeleteAttribute}
+        onTogglePublished={(attribute) =>
+          togglePublishedMutation.mutate({
+            id: attribute.id,
+            published: !attribute.published,
+          })
+        }
+        onExport={handleExport}
+        onImportFile={(file) => importMutation.mutate(file)}
+        onBulkAction={(action) => handleBulkAction(action)}
+        onPageChange={(page) =>
+          setAppliedFilters((prev) => ({
+            ...prev,
+            page: Math.max(1, Number(page) || 1),
+          }))
+        }
+      />
 
       <AttributeModal
         open={modalState.open}
@@ -642,6 +547,6 @@ export default function AttributePage() {
         isSubmitting={saveMutation.isPending}
         submitError={modalSubmitError}
       />
-    </div>
+    </>
   );
 }

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import {
@@ -15,6 +16,7 @@ import {
 import {
   fetchAdminStorePaymentProfiles,
   reviewAdminStorePaymentProfile,
+  updateAdminStoreIdentity,
 } from "../../api/storePaymentProfiles.ts";
 import "./AdminStorePaymentProfilesPage.css";
 
@@ -222,7 +224,7 @@ function ActionForm({ action, note, setNote, onCancel, onSubmit, isBusy }) {
   );
 }
 
-function StorePaymentCard({ entry, mutation, activeDraft, setActiveDraft }) {
+function StorePaymentCard({ entry, mutation, identityMutation, activeDraft, setActiveDraft }) {
   const profile = entry.paymentProfile;
   const pendingRequest = entry.pendingRequest;
   const lane = getLane(entry);
@@ -239,6 +241,14 @@ function StorePaymentCard({ entry, mutation, activeDraft, setActiveDraft }) {
   const isCurrentDraft = activeDraft?.storeId === storeId;
   const note = isCurrentDraft ? activeDraft.note : "";
   const setNote = (value) => setActiveDraft((current) => ({ ...(current || {}), storeId, note: value }));
+
+  const [isEditingIdentity, setIsEditingIdentity] = useState(false);
+  const [identityName, setIdentityName] = useState(entry.store?.name || "");
+  const [identityStatus, setIdentityStatus] = useState(
+    String(entry.store?.status?.code || entry.store?.status?.label || "ACTIVE").toUpperCase() === "INACTIVE"
+      ? "INACTIVE"
+      : "ACTIVE"
+  );
 
   const submitReview = (action, noteValue = "") => {
     mutation.mutate({
@@ -275,8 +285,71 @@ function StorePaymentCard({ entry, mutation, activeDraft, setActiveDraft }) {
           </Badge>
           <Badge tone={lane.action ? "warning" : "success"}>{lane.action ? "Action" : "Clear"}</Badge>
           <Badge tone={lane.key === "active" ? "success" : lane.tone}>{lane.label}</Badge>
+          <button
+            type="button"
+            className="spp-edit-identity-btn"
+            onClick={() => {
+              setIdentityName(entry.store?.name || "");
+              setIdentityStatus(
+                String(entry.store?.status?.code || entry.store?.status?.label || "ACTIVE").toUpperCase() === "INACTIVE"
+                  ? "INACTIVE"
+                  : "ACTIVE"
+              );
+              setIsEditingIdentity(!isEditingIdentity);
+            }}
+          >
+            <Wrench size={13} aria-hidden="true" />
+            <span>Edit Identity</span>
+          </button>
         </div>
       </header>
+
+      {isEditingIdentity ? (
+        <div className="spp-identity-editor">
+          <input
+            type="text"
+            value={identityName}
+            onChange={(e) => setIdentityName(e.target.value)}
+            placeholder="Store Name"
+          />
+          <select
+            value={identityStatus}
+            onChange={(e) => setIdentityStatus(e.target.value)}
+          >
+            <option value="ACTIVE">ACTIVE</option>
+            <option value="INACTIVE">INACTIVE</option>
+          </select>
+          <button
+            type="button"
+            className="spp-primary"
+            disabled={identityMutation?.isPending}
+            onClick={() => {
+              if (!identityName.trim()) {
+                toast.error("Store name is required");
+                return;
+              }
+              identityMutation?.mutate(
+                {
+                  storeId,
+                  payload: { name: identityName.trim(), status: identityStatus },
+                },
+                {
+                  onSuccess: () => setIsEditingIdentity(false),
+                }
+              );
+            }}
+          >
+            {identityMutation?.isPending ? "Saving..." : "Save Identity"}
+          </button>
+          <button
+            type="button"
+            className="spp-secondary"
+            onClick={() => setIsEditingIdentity(false)}
+          >
+            Cancel
+          </button>
+        </div>
+      ) : null}
 
       <div className="spp-card-grid">
         <div className="spp-left-column">
@@ -374,7 +447,7 @@ function StorePaymentCard({ entry, mutation, activeDraft, setActiveDraft }) {
             isBusy={isBusy}
             onCancel={() => setActiveDraft(null)}
             onSubmit={() => {
-              const action = activeDraft?.action === "revision" ? "REJECTED" : "REJECTED";
+              const action = activeDraft?.action === "revision" ? "REVISION" : "REJECTED";
               submitReview(action, note);
             }}
           />
@@ -403,7 +476,11 @@ function StorePaymentCard({ entry, mutation, activeDraft, setActiveDraft }) {
 
 export default function AdminStorePaymentProfilesPage() {
   const queryClient = useQueryClient();
-  const [activeFilter, setActiveFilter] = useState("all");
+  const [searchParams] = useSearchParams();
+  const initialFilter = searchParams.get("filter");
+  const [activeFilter, setActiveFilter] = useState(() =>
+    FILTERS.some((f) => f.value === initialFilter) ? initialFilter : "all"
+  );
   const [activeDraft, setActiveDraft] = useState(null);
 
   const profilesQuery = useQuery({
@@ -422,6 +499,20 @@ export default function AdminStorePaymentProfilesPage() {
     onError: (error) => {
       toast.error(
         error?.response?.data?.message || error?.message || "Failed to update store payment."
+      );
+    },
+  });
+
+  const identityMutation = useMutation({
+    mutationFn: ({ storeId, payload }) => updateAdminStoreIdentity(storeId, payload),
+    onSuccess: async () => {
+      toast.success("Store identity updated");
+      await queryClient.invalidateQueries({ queryKey: ["admin-store-payment-profiles"] });
+      profilesQuery.refetch();
+    },
+    onError: (error) => {
+      toast.error(
+        error?.response?.data?.message || error?.message || "Failed to update store identity."
       );
     },
   });
@@ -527,6 +618,7 @@ export default function AdminStorePaymentProfilesPage() {
             key={entry.store.id}
             entry={entry}
             mutation={mutation}
+            identityMutation={identityMutation}
             activeDraft={activeDraft}
             setActiveDraft={setActiveDraft}
           />

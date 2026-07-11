@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Download,
   Eye,
   Flag,
   MoreHorizontal,
@@ -417,6 +418,52 @@ export default function AdminPaymentAuditPage() {
   const end = Math.min(meta.total || items.length, (meta.page || 1) * (meta.pageSize || 10));
   const totalPages = Math.max(1, Number(meta.totalPages || 1));
 
+  const handleExportCsv = () => {
+    if (!locallyFilteredItems.length) return;
+    const headers = [
+      "Order Number",
+      "Created At",
+      "Buyer Name",
+      "Buyer Email",
+      "Parent Reference",
+      "Amount",
+      "Split Status",
+      "Proof Review",
+      "Checkout Mode",
+      "Stores Count",
+    ];
+    const rows = locallyFilteredItems.map((entry) => {
+      const buyer = getBuyer(entry);
+      const parent = getParentPayment(entry);
+      return [
+        getOrderNumber(entry),
+        formatDateTime(entry?.createdAt),
+        buyer.name,
+        buyer.email || "",
+        parent.reference,
+        parent.amount,
+        getSplitStatus(entry),
+        getProofReviewStatus(entry),
+        getCheckoutMode(entry).label,
+        getStores(entry).length,
+      ];
+    });
+
+    const csvContent = [
+      headers.map((h) => `"${h}"`).join(","),
+      ...rows.map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `payment_audit_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="admin-payment-audit-page">
       <section className="paa-hero">
@@ -431,6 +478,16 @@ export default function AdminPaymentAuditPage() {
         </div>
         <div className="paa-hero__actions">
           <span className="paa-total">{meta.total || 0} orders</span>
+          <button
+            type="button"
+            className="paa-refresh"
+            onClick={handleExportCsv}
+            disabled={locallyFilteredItems.length === 0}
+            title="Export filtered audit list to CSV"
+          >
+            <Download size={17} aria-hidden="true" />
+            Export CSV
+          </button>
           <button type="button" className="paa-refresh" onClick={() => auditQuery.refetch()}>
             <RefreshCw size={17} aria-hidden="true" />
             Refresh
@@ -651,9 +708,10 @@ export default function AdminPaymentAuditPage() {
                         <Link
                           className="paa-action"
                           to={`/admin/online-store/payment-audit/${encodeURIComponent(String(orderId))}`}
-                          aria-label={`Open payment audit ${orderNumber}`}
+                          aria-label={`Inspect proof & audit detail ${orderNumber}`}
+                          title="Inspect Proof & Audit Detail"
                         >
-                          <MoreHorizontal size={20} aria-hidden="true" />
+                          <Eye size={18} aria-hidden="true" />
                         </Link>
                       </td>
                     </tr>

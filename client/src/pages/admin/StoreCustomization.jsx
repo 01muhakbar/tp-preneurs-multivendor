@@ -5912,11 +5912,28 @@ export default function StoreCustomizationPage() {
               </button>
               <button
                 type="button"
-                onClick={onSave}
-                disabled={isSaving || isLoadingHeader || !lang}
-                className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--admin-primary)] px-4 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[var(--admin-primary-strong)] hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+                onClick={onPreviewStorefront}
+                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                title="Preview Storefront"
               >
-                {isSaving ? "Updating..." : "Update"}
+                <Eye className="h-3.5 w-3.5" />
+                <span>Preview</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onSave({ publish: false })}
+                disabled={isSaving || isLoadingHeader || !lang}
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-xs font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSaving && !isPublishing ? "Saving..." : "Save Draft"}
+              </button>
+              <button
+                type="button"
+                onClick={onPublish}
+                disabled={isSaving || isLoadingHeader || !lang}
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--admin-primary)] px-4 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[var(--admin-primary-strong)] hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+              >
+                {isPublishing ? "Publishing..." : "Publish"}
               </button>
             </div>
           }

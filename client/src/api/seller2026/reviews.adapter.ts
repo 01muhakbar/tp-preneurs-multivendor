@@ -66,6 +66,11 @@ const number = (value: unknown, fallback = 0) => {
 };
 const list = (value: unknown) => (Array.isArray(value) ? value : []);
 
+const safeImageUrl = (value: unknown): string => {
+  const url = resolveAssetUrl(text(value));
+  return /^(javascript:|vbscript:|data:(?!image\/))/i.test(url) ? "" : url;
+};
+
 const initials = (name: string) =>
   name
     .split(/\s+/)
@@ -115,8 +120,8 @@ export function normalizeSellerReview(raw: unknown): Seller2026Review {
     productName: text(product.name ?? review.productName, "Product"),
     productSku: text(product.sku ?? review.productSku, "No SKU"),
     productPrice: number(product.price ?? review.productPrice),
-    productImageUrl: resolveAssetUrl(
-      text(product.imageUrl ?? product.image ?? product.promoImagePath ?? review.productImageUrl)
+    productImageUrl: safeImageUrl(
+      product.imageUrl ?? product.image ?? product.promoImagePath ?? review.productImageUrl
     ),
     reviewerName,
     reviewerInitials: initials(reviewerName),
@@ -125,7 +130,7 @@ export function normalizeSellerReview(raw: unknown): Seller2026Review {
     ratingLabel: `${rating} out of 5 stars`,
     comment: text(review.comment ?? review.review),
     images: list(review.images)
-      .map((image) => resolveAssetUrl(text(image)))
+      .map(safeImageUrl)
       .filter(Boolean)
       .slice(0, 4),
     status: reviewStatus,

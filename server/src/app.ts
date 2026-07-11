@@ -177,7 +177,7 @@ app.use("/api/admin/categories", requireAdmin, adminCategoriesRouter);
 app.use("/api/admin/coupons", requireAdmin, adminCouponsRouter);
 app.use("/api/admin/attributes", requireAdmin, adminAttributesRouter);
 app.use("/api/admin/settings", requireAdmin, adminSettingsRouter);
-app.use("/api/admin/languages", requireAdmin, adminLanguagesRouter);
+app.use("/api/admin/languages", requireStaffOrAdmin, adminLanguagesRouter);
 app.use("/api/admin/currencies", requireAdmin, adminCurrenciesRouter);
 app.use(
   "/api/admin/store/customization",

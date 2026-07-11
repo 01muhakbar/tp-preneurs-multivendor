@@ -28,6 +28,7 @@ import DeleteCouponModal from "../../components/admin/coupons/DeleteCouponModal.
 import CouponFilterMenu from "../../components/coupons/CouponFilterMenu.jsx";
 import EditCouponDrawer from "../../components/admin/coupons/EditCouponDrawer.jsx";
 import CouponImportModal from "../../components/coupons/CouponImportModal.jsx";
+import AdminCoupons2026View from "../../components/admin/coupons/AdminCoupons2026View.jsx";
 import {
   UiErrorState,
   UiSkeleton,
@@ -263,6 +264,8 @@ export default function AdminCouponsPage() {
   const [appliedSearch, setAppliedSearch] = useState("");
   const [publishedFilter, setPublishedFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [discountTypeFilter, setDiscountTypeFilter] = useState("all");
+  const [scopeTypeFilter, setScopeTypeFilter] = useState("all");
 
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [bulkMenuOpen, setBulkMenuOpen] = useState(false);
@@ -389,6 +392,12 @@ export default function AdminCouponsPage() {
       items.filter((coupon) => {
         const published = resolvePublished(coupon, publishedOverrides);
         const status = resolveStatus(coupon, published);
+        if (discountTypeFilter !== "all" && coupon.discountType !== discountTypeFilter) return false;
+        if (
+          scopeTypeFilter !== "all" &&
+          String(coupon.scopeType || "PLATFORM").toUpperCase() !== scopeTypeFilter
+        )
+          return false;
         if (publishedFilter === "published" && !published) return false;
         if (publishedFilter === "unpublished" && published) return false;
         if (statusFilter === "active" && status.label !== "Active") return false;
@@ -397,11 +406,12 @@ export default function AdminCouponsPage() {
         if (statusFilter === "scheduled" && status.label !== "Scheduled") return false;
         return true;
       }),
-    [items, publishedFilter, publishedOverrides, statusFilter]
+    [items, discountTypeFilter, scopeTypeFilter, publishedFilter, publishedOverrides, statusFilter]
   );
   const storeOptions = Array.isArray(couponMetaQuery.data?.data?.stores)
     ? couponMetaQuery.data.data.stores
     : [];
+
   const meta = couponsQuery.data?.data?.meta || {
     page: 1,
     limit,
@@ -412,6 +422,23 @@ export default function AdminCouponsPage() {
     1,
     Number(meta.totalPages || Math.ceil(Number(meta.total || 0) / Number(meta.limit || limit)) || 1)
   );
+
+  const stats = useMemo(() => {
+    const total = meta?.total || items.length;
+    let published = 0;
+    let platform = 0;
+    let store = 0;
+    items.forEach((coupon) => {
+      const isPub = resolvePublished(coupon, publishedOverrides);
+      if (isPub) published++;
+      if (String(coupon.scopeType || "PLATFORM").toUpperCase() === "STORE") {
+        store++;
+      } else {
+        platform++;
+      }
+    });
+    return { total, published, platform, store };
+  }, [items, meta?.total, publishedOverrides]);
   const isDeletePending = deleteMutation.isPending || bulkDeleteMutation.isPending;
   const isBulkPending = bulkMutation.isPending;
   const isCreateBusy = Boolean(createMutation.isPending || createMutation.isLoading);
@@ -787,475 +814,78 @@ export default function AdminCouponsPage() {
         "This coupon will be removed from the promotion list and can no longer be used at checkout.";
 
   return (
-    <div className="space-y-4 bg-slate-50">
-      <section className="rounded-[10px] border border-slate-200 bg-white shadow-none">
-        <div className="flex flex-col gap-4 px-4 py-3.5">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="space-y-1">
-              <h1 className="text-[20px] font-semibold leading-6 text-slate-900">Coupon</h1>
-              <p className="text-[13px] font-normal text-slate-500">Manage discount coupons</p>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-start gap-2.5 xl:justify-end">
-              <div ref={exportMenuRef} className="relative">
-                <button
-                  type="button"
-                  className={headerBtnOutline}
-                  onClick={() => setExportMenuOpen((prev) => !prev)}
-                >
-                  <Upload className="h-4 w-4" />
-                  Export
-                </button>
-                {exportMenuOpen ? (
-                  <div className="absolute left-0 top-12 z-20 w-48 overflow-hidden rounded-lg border border-slate-200 bg-white p-1 shadow-[0_12px_24px_rgba(15,23,42,0.08)]">
-                    <button
-                      type="button"
-                      onClick={() => handleExport("csv")}
-                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] font-medium text-slate-700 hover:bg-slate-50"
-                    >
-                      <Download className="h-4 w-4" />
-                      Export to CSV
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleExport("json")}
-                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] font-medium text-slate-700 hover:bg-slate-50"
-                    >
-                      <Download className="h-4 w-4" />
-                      Export to JSON
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-              <button
-                type="button"
-                className={headerBtnOutline}
-                onClick={() => setIsImportModalOpen(true)}
-                disabled={importMutation.isPending}
-              >
-                <Download className="h-4 w-4" />
-                Import
-              </button>
-
-              <div ref={bulkMenuRef} className="relative">
-                <button
-                  type="button"
-                  className={selectedIds.size > 0 ? headerBtnAmber : headerBtnSoft}
-                  disabled={selectedIds.size === 0 || isDeletePending || isBulkPending}
-                  onClick={() => setBulkMenuOpen((prev) => !prev)}
-                >
-                  <Layers3 className="h-4 w-4" />
-                  Bulk Action
-                </button>
-                {bulkMenuOpen ? (
-                  <div className="absolute right-0 top-12 z-20 w-48 overflow-hidden rounded-lg border border-slate-200 bg-white p-1 shadow-[0_12px_24px_rgba(15,23,42,0.08)]">
-                    <button
-                      type="button"
-                      onClick={() => handleBulkAction("activate")}
-                      className="block w-full rounded-lg px-2.5 py-2 text-left text-[13px] font-medium text-slate-700 hover:bg-slate-50"
-                    >
-                      Activate Selected
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleBulkAction("deactivate")}
-                      className="block w-full rounded-lg px-2.5 py-2 text-left text-[13px] font-medium text-slate-700 hover:bg-slate-50"
-                    >
-                      Deactivate Selected
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleBulkAction("delete")}
-                      className="block w-full rounded-lg px-2.5 py-2 text-left text-[13px] font-medium text-rose-700 hover:bg-rose-50"
-                    >
-                      Delete Selected
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-
-              <button
-                type="button"
-                className={selectedIds.size > 0 ? headerBtnDanger : `${headerBtnDanger} cursor-not-allowed`}
-                disabled={selectedIds.size === 0 || isDeletePending}
-                onClick={handleDeleteSelected}
-              >
-                <Trash2 className="h-4 w-4" />
-                Delete
-              </button>
-
-              <button type="button" onClick={openCreate} className={headerBtnGreen}>
-                <Plus className="h-4 w-4" />
-                Add Coupon
-              </button>
-            </div>
-          </div>
-
-          <div className="border-t border-slate-200" />
-
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex flex-1 flex-col gap-3 md:flex-row md:items-center">
-              <div className="w-full min-w-[240px] flex-1 xl:max-w-[360px]">
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="search"
-                    value={searchInput}
-                    onChange={(event) => setSearchInput(event.target.value)}
-                    placeholder="Search by name or code..."
-                    className={`${fieldClass} pl-9`}
-                  />
-                </div>
-              </div>
-              <CouponFilterMenu
-                label="Published"
-                value={publishedFilter}
-                options={publishedFilterOptions}
-                onChange={setPublishedFilter}
-                widthClass="min-w-[156px]"
-              />
-              <CouponFilterMenu
-                label="Status"
-                value={statusFilter}
-                options={statusFilterOptions}
-                onChange={setStatusFilter}
-                widthClass="min-w-[148px]"
-              />
-            </div>
-
-            <div ref={viewMenuRef} className="relative flex items-center justify-end xl:ml-3">
-              <button
-                type="button"
-                className={headerBtnGhost}
-                onClick={() => setViewMenuOpen((prev) => !prev)}
-                aria-expanded={viewMenuOpen}
-                title={`Toggle columns (${visibleColumnCount}/8 visible)`}
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-                View
-              </button>
-              {viewMenuOpen ? (
-                <div className="absolute right-0 top-11 z-20 w-48 overflow-hidden rounded-lg border border-slate-200 bg-white p-1 shadow-[0_12px_24px_rgba(15,23,42,0.08)]">
-                  <button
-                    type="button"
-                    onClick={() => setColumnVisibility({ ...DEFAULT_COLUMN_VISIBILITY })}
-                    className="mb-1 flex h-8 w-full items-center justify-between rounded-lg px-2.5 text-[12px] font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-                  >
-                    <span>Reset view</span>
-                    <span>{visibleColumnCount}/8</span>
-                  </button>
-                  {VIEW_COLUMNS.map(([key, label]) => (
-                    <label
-                      key={key}
-                      className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] text-slate-700 transition hover:bg-slate-50"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={Boolean(columnVisibility[key])}
-                        onChange={() =>
-                          setColumnVisibility((prev) => ({ ...prev, [key]: !prev[key] }))
-                        }
-                        className="h-3.5 w-3.5 rounded border-slate-300 text-[var(--admin-primary)] focus:ring-[var(--admin-primary)]"
-                      />
-                      <span>{label}</span>
-                    </label>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {notice?.message ? (
+    <>
+      {notice.message ? (
         <div
-          className={`rounded-2xl px-4 py-2 text-sm ${
+          className={`mb-4 rounded-2xl border px-4 py-3 text-sm ${
             notice.type === "error"
-              ? "border border-rose-200 bg-rose-50 text-rose-700"
-              : "border border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]"
+              ? "border-rose-200 bg-rose-50 text-rose-700"
+              : "border-emerald-200 bg-emerald-50 text-emerald-700"
           }`}
         >
           {notice.message}
         </div>
       ) : null}
-
       {operationError ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">
+        <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {operationError}
         </div>
       ) : null}
 
-      {couponsQuery.isLoading && !couponsQuery.data ? <UiSkeleton variant="table" rows={8} /> : null}
-
-      {couponsQuery.isError && !couponsQuery.data ? (
-        <UiErrorState title={GENERIC_ERROR} message={tableErrorMessage} onRetry={couponsQuery.refetch} />
-      ) : null}
-
-      {!couponsQuery.isLoading && !couponsQuery.isError && filteredItems.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-center shadow-sm">
-          <p className="text-sm font-semibold text-slate-800">{NO_COUPONS_FOUND}</p>
-          <p className="mt-1 text-xs text-slate-500">
-            {appliedSearch
-              ? "No campaigns match the current search. Try another code or adjust the filters."
-              : "Create your first coupon to enable checkout discounts."}
-          </p>
-          <button
-            type="button"
-            onClick={openCreate}
-            className="mt-2.5 inline-flex h-8 items-center justify-center rounded-lg bg-[var(--admin-primary)] px-3 text-[11px] font-medium text-white hover:bg-[var(--admin-primary-strong)]"
-          >
-            Add Coupon
-          </button>
-        </div>
-      ) : null}
-
-      {!couponsQuery.isLoading && !couponsQuery.isError && filteredItems.length > 0 ? (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 bg-slate-50/70 px-4 py-2 text-[11px] text-slate-400">
-            <span className="font-semibold text-slate-700">{filteredItems.length}</span> /{" "}
-            <span className="font-semibold text-slate-700">{meta.total || 0}</span>
-            {selectedIds.size > 0 ? <span className="ml-2 text-slate-400">{selectedIds.size} selected</span> : null}
-          </div>
-          <div className="-mx-3 w-auto overflow-x-auto px-3 pb-1 md:mx-0 md:w-full md:px-0">
-            <table className="w-full min-w-[980px] text-left text-sm">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className={`${tableHeadCell} w-[4%]`}>
-                    <input
-                      type="checkbox"
-                      checked={allSelected}
-                      onChange={toggleSelectAll}
-                      className="h-4 w-4 rounded border-slate-300 text-[var(--admin-primary)] focus:ring-[var(--admin-primary)]"
-                    />
-                  </th>
-                  {columnVisibility.campaign ? (
-                    <th className={`${tableHeadCell} w-[28%] min-w-[220px]`}>Campaign Name</th>
-                  ) : null}
-                  {columnVisibility.code ? <th className={`${tableHeadCell} w-[12%]`}>Code</th> : null}
-                  {columnVisibility.discount ? (
-                    <th className={`${tableHeadCell} w-[16%] text-right`}>Discount</th>
-                  ) : null}
-                  {columnVisibility.published ? (
-                    <th className={`${tableHeadCell} w-[12%]`}>Published</th>
-                  ) : null}
-                  {columnVisibility.startDate ? (
-                    <th className={`${tableHeadCell} w-[12%]`}>Start Date</th>
-                  ) : null}
-                  {columnVisibility.endDate ? (
-                    <th className={`${tableHeadCell} w-[12%]`}>End Date</th>
-                  ) : null}
-                  {columnVisibility.status ? (
-                    <th className={`${tableHeadCell} w-[12%] min-w-[160px]`}>Status</th>
-                  ) : null}
-                  {columnVisibility.actions ? (
-                    <th className={`${tableHeadCell} w-[8%] text-right`}>Actions</th>
-                  ) : null}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredItems.map((coupon) => {
-                  const id = Number(coupon?.id);
-                  const campaignName = resolveCampaignName(coupon);
-                  const initial = campaignName.charAt(0).toUpperCase() || "C";
-                  const bannerSrc = resolveAssetUrl(coupon?.bannerImageUrl || "");
-                  const published = resolvePublished(coupon, publishedOverrides);
-                  const status = resolveStatus(coupon, published);
-                  const startDate = resolveStartDate(coupon);
-                  const endDate = resolveEndDate(coupon);
-                  const scope = resolveCouponScope(coupon);
-
-                  return (
-                    <tr
-                      key={coupon.id}
-                      className="h-14 border-t border-slate-100 text-slate-700 transition hover:bg-slate-50/80"
-                    >
-                      <td className={`${tableCell} w-[4%]`}>
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.has(id)}
-                          onChange={() => toggleSelectRow(id)}
-                          className="h-4 w-4 rounded border-slate-300 text-[var(--admin-primary)] focus:ring-[var(--admin-primary)]"
-                        />
-                      </td>
-
-                      {columnVisibility.campaign ? (
-                      <td className={`${tableCell} w-[28%]`}>
-                        <div className="flex items-center gap-3">
-                          {bannerSrc ? (
-                            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm">
-                              <img
-                                src={bannerSrc}
-                                alt={`${coupon.code || campaignName} banner`}
-                                className="h-full w-full object-cover"
-                                loading="lazy"
-                              />
-                              <span className="absolute bottom-1 left-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/90 text-[10px] font-semibold text-[var(--admin-primary)] shadow-sm ring-1 ring-slate-200">
-                                {initial}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--admin-primary-soft)] text-sm font-semibold text-[var(--admin-primary)]">
-                              {initial}
-                            </span>
-                          )}
-                          <div className="min-w-0 max-w-[220px]">
-                            <p className="truncate text-sm font-semibold text-slate-900">{campaignName}</p>
-                            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500">
-                              <span className="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600">
-                                {scope.label}
-                              </span>
-                              <span className="truncate">{scope.storeLabel}</span>
-                            </div>
-                            {bannerSrc ? (
-                              <div className="mt-1 text-[10px] font-medium text-[var(--admin-primary)]">
-                                Banner linked
-                              </div>
-                            ) : null}
-                          </div>
-                        </div>
-                      </td>
-                      ) : null}
-
-                      {columnVisibility.code ? (
-                      <td className={`${tableCell} w-[12%]`}>
-                        <span className="font-semibold uppercase text-slate-700">{coupon.code || "-"}</span>
-                      </td>
-                      ) : null}
-
-                      {columnVisibility.discount ? (
-                      <td className={`${tableCell} w-[16%] text-right`}>
-                        <div className="space-y-1">
-                          <div className="font-semibold tabular-nums text-slate-900">
-                            {formatDiscount(coupon)}
-                          </div>
-                          <div className="flex flex-col items-end gap-1">
-                            <CouponDiscountTypeBadge coupon={coupon} />
-                            <span className="text-[11px] text-slate-500">
-                              {Number(coupon?.minSpend || 0) > 0
-                                ? `Minimum ${formatCurrency(Number(coupon.minSpend || 0))}`
-                                : "No minimum"}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      ) : null}
-
-                      {columnVisibility.published ? (
-                      <td className={`${tableCell} w-[12%]`}>
-                        <div className="space-y-1">
-                          <button
-                            type="button"
-                            onClick={() => handleTogglePublished(coupon)}
-                            disabled={togglingIds.has(id)}
-                            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition ${
-                              published ? "bg-fuchsia-500" : "bg-slate-300"
-                            } disabled:cursor-not-allowed disabled:opacity-60`}
-                            aria-label={`Toggle publish for ${campaignName}`}
-                          >
-                            <span
-                              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition ${
-                                published ? "translate-x-4" : "translate-x-0.5"
-                              }`}
-                            />
-                          </button>
-                        </div>
-                      </td>
-                      ) : null}
-
-                      {columnVisibility.startDate ? (
-                      <td className={`${tableCell} w-[12%] whitespace-nowrap`}>
-                        {formatDateLabel(startDate)}
-                      </td>
-                      ) : null}
-
-                      {columnVisibility.endDate ? (
-                      <td className={`${tableCell} w-[12%] whitespace-nowrap`}>
-                        {formatDateLabel(endDate)}
-                      </td>
-                      ) : null}
-
-                      {columnVisibility.status ? (
-                      <td className={`${tableCell} w-[12%]`}>
-                        <CouponStatusBadge status={status} />
-                      </td>
-                      ) : null}
-
-                      {columnVisibility.actions ? (
-                      <td className={`${tableCell} w-[8%] text-right`}>
-                        <div className="relative inline-flex" data-coupon-action-menu>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setActionMenuCouponId((prev) => (prev === id ? null : id))
-                            }
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 shadow-sm hover:border-slate-300 hover:bg-slate-50"
-                            aria-label={`Open actions for ${coupon.code || campaignName}`}
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </button>
-                          {actionMenuCouponId === id ? (
-                            <div className="absolute right-0 top-11 z-20 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-lg">
-                              <button
-                                type="button"
-                                onClick={() => openEdit(coupon)}
-                                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13px] font-medium text-slate-700 hover:bg-slate-50"
-                              >
-                                <Pencil className="h-4 w-4 text-slate-400" />
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteOne(coupon)}
-                                disabled={isDeletePending}
-                                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13px] font-medium text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
-                              >
-                                <Trash2 className="h-4 w-4 text-rose-500" />
-                                Delete
-                              </button>
-                            </div>
-                          ) : null}
-                        </div>
-                      </td>
-                      ) : null}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : null}
-
-      <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-1 text-[11px] shadow-sm">
-        <button
-          type="button"
-          className="rounded-full border border-slate-200 px-2.5 py-1 text-slate-700 disabled:opacity-50"
-          disabled={meta.page <= 1}
-          onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-        >
-          Previous
-        </button>
-        <span className="text-[10px] text-slate-500">
-          Page {meta.page} of {totalPages}
-        </span>
-        <button
-          type="button"
-          className="rounded-full border border-slate-200 px-2.5 py-1 text-slate-700 disabled:opacity-50"
-          disabled={meta.page >= totalPages}
-          onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-        >
-          Next
-        </button>
-      </div>
+      <AdminCoupons2026View
+        coupons={filteredItems}
+        stats={stats}
+        meta={meta}
+        filters={{
+          q: searchInput,
+          discountType: discountTypeFilter,
+          scopeType: scopeTypeFilter,
+          status: statusFilter,
+        }}
+        selectedIds={Array.from(selectedIds)}
+        isLoading={couponsQuery.isLoading}
+        isError={couponsQuery.isError}
+        errorMessage={tableErrorMessage}
+        onRetry={() => couponsQuery.refetch()}
+        onFilterChange={(newFilter) => {
+          if (newFilter.q !== undefined) {
+            setSearchInput(newFilter.q);
+            setAppliedSearch(newFilter.q);
+          }
+          if (newFilter.discountType !== undefined) setDiscountTypeFilter(newFilter.discountType);
+          if (newFilter.scopeType !== undefined) setScopeTypeFilter(newFilter.scopeType);
+          if (newFilter.status !== undefined) setStatusFilter(newFilter.status);
+          setPage(1);
+        }}
+        onResetFilters={() => {
+          setSearchInput("");
+          setAppliedSearch("");
+          setPublishedFilter("all");
+          setStatusFilter("all");
+          setDiscountTypeFilter("all");
+          setScopeTypeFilter("all");
+          setPage(1);
+        }}
+        onSelectOne={toggleSelectRow}
+        onSelectAll={toggleSelectAll}
+        onAddCoupon={openCreate}
+        onEditCoupon={openEdit}
+        onDeleteCoupon={handleDeleteOne}
+        onToggleActive={handleTogglePublished}
+        onExport={handleExport}
+        onImport={() => setIsImportModalOpen(true)}
+        onBulkAction={handleBulkAction}
+        onPageChange={(p) => setPage(Math.max(1, Number(p) || 1))}
+      />
 
       <DeleteCouponModal
         open={isDeleteModalOpen}
-        onClose={closeDeleteModal}
-        onConfirm={confirmDelete}
         title={deleteTitle}
         description={deleteDescription}
-        isLoading={isDeletePending}
         errorMessage={deleteModalError}
+        isSubmitting={isDeletePending}
+        onClose={closeDeleteModal}
+        onConfirm={confirmDelete}
       />
       <CouponImportModal
         open={isImportModalOpen}
@@ -1291,6 +921,6 @@ export default function AdminCouponsPage() {
           (updateMutation.isError ? GENERIC_ERROR : "")
         }
       />
-    </div>
+    </>
   );
 }

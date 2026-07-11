@@ -46,7 +46,8 @@ const imageList = (value: unknown): string[] => {
 const normalizeImage = (value: unknown) => {
   const raw = text(value);
   if (!raw) return "";
-  if (/^(https?:\/\/|data:|blob:)/i.test(raw)) return raw;
+  if (/^(javascript:|vbscript:|data:(?!image\/))/i.test(raw)) return "";
+  if (/^(https?:\/\/|data:image\/|blob:)/i.test(raw)) return raw;
   if (raw.startsWith("/uploads/")) return raw;
   if (raw.startsWith("uploads/")) return `/${raw}`;
   return raw.startsWith("/") ? raw : `/uploads/${raw}`;
@@ -175,9 +176,13 @@ router.get(
       const status = text(req.query.status).toLowerCase();
       const search = text(req.query.search);
       const sort = text(req.query.sort).toLowerCase() || "newest";
+      const productId = positiveInt(req.query.productId, 0, 10_000_000);
+      const rating = positiveInt(req.query.rating, 0, 5);
       const where: Record<PropertyKey, unknown> = {};
 
       if (REVIEW_STATUSES.has(status)) where.status = status;
+      if (productId > 0) where.productId = productId;
+      if (rating > 0) where.rating = rating;
       if (search) {
         const like = `%${search}%`;
         where[Op.or] = [

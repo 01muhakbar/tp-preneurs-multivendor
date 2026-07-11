@@ -27,6 +27,7 @@ import {
   useSeller2026ReviewMutations,
   useSeller2026Reviews,
 } from "../../hooks/seller2026/useSeller2026Reviews.ts";
+import { useSeller2026Products } from "../../hooks/seller2026/useSeller2026Products.ts";
 import { getSeller2026PagePermissions } from "./seller2026PagePermissions.js";
 import "../../features/sellerWorkspace2026/Seller2026Reviews.css";
 
@@ -90,6 +91,7 @@ function ProductThumb({ review, large = false }) {
       className={large ? "s26-review-product-image is-large" : "s26-review-product-image"}
       src={review.productImageUrl}
       alt={review.productName}
+      onError={(event) => { event.currentTarget.style.display = "none"; }}
     />
   ) : (
     <span className={large ? "s26-review-product-image is-large is-empty" : "s26-review-product-image is-empty"}>
@@ -223,8 +225,8 @@ function ReviewDrawer({ storeId, reviewId, canMutate, onClose }) {
               {review.images.length ? (
                 <div className="s26-review-detail-images">
                   {review.images.map((image, index) => (
-                    <a href={image} target="_blank" rel="noreferrer" key={`${review.id}-${index}`}>
-                      <img src={image} alt={`Customer review ${index + 1}`} />
+                    <a href={image} target="_blank" rel="noopener noreferrer" key={`${review.id}-${index}`}>
+                      <img src={image} alt={`Customer review ${index + 1}`} onError={(event) => { event.currentTarget.style.display = "none"; }} />
                     </a>
                   ))}
                 </div>
@@ -327,10 +329,22 @@ export default function Seller2026LiveProductReviewsPage() {
     : "newest";
   const page = readPositive(searchParams.get("page"), 1);
   const limit = Math.min(50, readPositive(searchParams.get("limit"), 10));
+  const productId = readPositive(searchParams.get("productId"), 0);
+  const rating = readPositive(searchParams.get("rating"), 0);
   const search = searchParams.get("search") || "";
-  const query = useMemo(() => ({ status, sort, page, limit, search: search || undefined }), [limit, page, search, sort, status]);
+  const query = useMemo(() => ({
+    status,
+    sort,
+    page,
+    limit,
+    search: search || undefined,
+    productId: productId || undefined,
+    rating: rating || undefined,
+  }), [limit, page, search, sort, status, productId, rating]);
   const reviewsQuery = useSeller2026Reviews(storeId, query);
   const view = reviewsQuery.data;
+  const productsQuery = useSeller2026Products(storeId, { limit: 100 });
+  const products = productsQuery.data?.items || [];
 
   useEffect(() => setSearchDraft(search), [search]);
 
@@ -342,7 +356,9 @@ export default function Seller2026LiveProductReviewsPage() {
         (key === "status" && value === "all") ||
         (key === "sort" && value === "newest") ||
         (key === "page" && Number(value) === 1) ||
-        (key === "limit" && Number(value) === 10);
+        (key === "limit" && Number(value) === 10) ||
+        (key === "productId" && Number(value) === 0) ||
+        (key === "rating" && Number(value) === 0);
       if (isDefault) next.delete(key);
       else next.set(key, String(value));
     });
@@ -416,9 +432,28 @@ export default function Seller2026LiveProductReviewsPage() {
       {filtersOpen ? (
         <section className="s26-reviews-filter-panel">
           <label>Status<select value={status} onChange={(event) => updateQuery({ status: event.target.value, page: 1 })}>{STATUS_TABS.map((tab) => <option value={tab.id} key={tab.id}>{tab.label}</option>)}</select></label>
+          <label>Product<select value={productId || ""} onChange={(event) => updateQuery({ productId: event.target.value, page: 1 })}><option value="">All Products</option>{products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+          <label>Rating<select value={rating || ""} onChange={(event) => updateQuery({ rating: event.target.value, page: 1 })}><option value="">All Ratings</option>{[5, 4, 3, 2, 1].map((value) => <option value={value} key={value}>{value} Star{value > 1 ? "s" : ""}</option>)}</select></label>
           <label>Rows per page<select value={limit} onChange={(event) => updateQuery({ limit: Number(event.target.value), page: 1 })}>{[10, 20, 50].map((value) => <option value={value} key={value}>{value}</option>)}</select></label>
           <button type="button" onClick={() => { setSearchDraft(""); setSearchParams({}); }}>Reset filters</button>
         </section>
+      ) : null}
+
+      {productId || rating ? (
+        <div className="s26-reviews-active-filters" style={{ display: "flex", gap: "8px", alignItems: "center", margin: "10px 0", flexWrap: "wrap" }}>
+          <span style={{ fontSize: "13px", color: "var(--s26-text-muted, #64748b)" }}>Active Filters:</span>
+          {productId ? (
+            <span className="s26-review-status is-published" style={{ display: "inline-flex", alignItems: "center", gap: "4px", cursor: "pointer" }} onClick={() => updateQuery({ productId: "" })}>
+              Product Filter <X size={13} />
+            </span>
+          ) : null}
+          {rating ? (
+            <span className="s26-review-status is-published" style={{ display: "inline-flex", alignItems: "center", gap: "4px", cursor: "pointer" }} onClick={() => updateQuery({ rating: "" })}>
+              {rating} Star{rating > 1 ? "s" : ""} <X size={13} />
+            </span>
+          ) : null}
+          <button type="button" style={{ border: "none", background: "none", color: "var(--s26-primary, #3b82f6)", fontSize: "13px", cursor: "pointer", textDecoration: "underline" }} onClick={() => { setSearchDraft(""); setSearchParams({}); }}>Clear All</button>
+        </div>
       ) : null}
 
       {reviewsQuery.isError ? (
@@ -428,8 +463,8 @@ export default function Seller2026LiveProductReviewsPage() {
         </section>
       ) : view?.items.length === 0 ? (
         <section className="s26-reviews-state">
-          <PackageOpen size={38} /><h2>No reviews found</h2><p>{search || status !== "all" ? "Try another search or review status." : "Customer reviews for this store will appear here."}</p>
-          {search || status !== "all" ? <button type="button" onClick={() => { setSearchDraft(""); setSearchParams({}); }}>Clear filters</button> : null}
+          <PackageOpen size={38} /><h2>No reviews found</h2><p>{search || status !== "all" || productId || rating ? "Try another search or review status." : "Customer reviews for this store will appear here."}</p>
+          {search || status !== "all" || productId || rating ? <button type="button" onClick={() => { setSearchDraft(""); setSearchParams({}); }}>Clear filters</button> : null}
         </section>
       ) : (
         <section className="s26-reviews-table-wrap">
@@ -438,7 +473,7 @@ export default function Seller2026LiveProductReviewsPage() {
             <tbody>
               {view.items.map((review) => (
                 <tr key={review.id}>
-                  <td data-label="Product"><div className="s26-review-product"><ProductThumb review={review} /><div><strong>{review.productName}</strong><span>SKU: {review.productSku}</span><small>{rupiah(review.productPrice)}</small></div></div></td>
+                  <td data-label="Product"><div className="s26-review-product" style={{ cursor: "pointer" }} onClick={() => updateQuery({ productId: review.productId, page: 1 })} title="Filter by this product"><ProductThumb review={review} /><div><strong>{review.productName}</strong><span>SKU: {review.productSku}</span><small>{rupiah(review.productPrice)}</small></div></div></td>
                   <td data-label="Reviewer"><div className="s26-review-reviewer"><span className="s26-review-avatar">{review.reviewerInitials}</span><div><strong>{review.reviewerName}</strong>{review.verifiedBuyer ? <span>Verified Buyer</span> : null}</div></div></td>
                   <td data-label="Rating"><Stars rating={review.rating} compact /></td>
                   <td data-label="Comment"><p className="s26-review-comment">{review.comment || "No written comment."}</p>{review.reply ? <small className="s26-review-replied">Store replied</small> : null}</td>

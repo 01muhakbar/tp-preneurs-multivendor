@@ -758,12 +758,12 @@ export default function AdminShippingReconciliationPage() {
     toast.success("Tracking number copied.");
   };
 
-  const handleCorrect = (row) => {
+  const handleCorrect = (row, explicitTargetStatus) => {
     if (!row.orderId || !row.suborderId) {
       toast.error("This row is missing order or suborder information.");
       return;
     }
-    const targetStatus = getCorrectionTarget(row);
+    const targetStatus = explicitTargetStatus || getCorrectionTarget(row);
     if (!targetStatus) {
       toast.error("No safe correction target is available for this shipment status.");
       return;
@@ -1313,19 +1313,79 @@ export default function AdminShippingReconciliationPage() {
               </div>
 
               <div className="mt-6 grid gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleCorrect(selectedRow)}
-                  disabled={!getCorrectionTarget(selectedRow) || correctionMutation.isPending}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--admin-primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {correctionMutation.isPending ? (
-                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                  ) : (
-                    <Truck className="size-4" aria-hidden="true" />
-                  )}
-                  Add Reconciliation Note
-                </button>
+                {selectedRow.status === "FAILED_DELIVERY" ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleCorrect(selectedRow, "DELIVERED")}
+                      disabled={correctionMutation.isPending}
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--admin-primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+                      title="Reconcile as Delivered"
+                    >
+                      {correctionMutation.isPending ? (
+                        <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <Truck className="size-4" aria-hidden="true" />
+                      )}
+                      Reconcile as Delivered
+                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleCorrect(selectedRow, "RETURNED")}
+                        disabled={correctionMutation.isPending}
+                        className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+                        title="Reconcile as Returned"
+                      >
+                        <RotateCcw className="size-3.5" aria-hidden="true" />
+                        Reconcile Returned
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCorrect(selectedRow, "SHIPPED")}
+                        disabled={correctionMutation.isPending}
+                        className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+                        title="Reconcile as Re-dispatched (In Transit)"
+                      >
+                        <Truck className="size-3.5" aria-hidden="true" />
+                        Reconcile In Transit
+                      </button>
+                    </div>
+                  </>
+                ) : selectedRow.status === "RETURNED" ? (
+                  <button
+                    type="button"
+                    onClick={() => handleCorrect(selectedRow, "CANCELLED")}
+                    disabled={correctionMutation.isPending}
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--admin-primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+                    title="Reconcile as Cancelled"
+                  >
+                    {correctionMutation.isPending ? (
+                      <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Check className="size-4" aria-hidden="true" />
+                    )}
+                    Reconcile as Cancelled
+                  </button>
+                ) : getCorrectionTarget(selectedRow) ? (
+                  <button
+                    type="button"
+                    onClick={() => handleCorrect(selectedRow)}
+                    disabled={correctionMutation.isPending}
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--admin-primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {correctionMutation.isPending ? (
+                      <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Truck className="size-4" aria-hidden="true" />
+                    )}
+                    Reconcile Shipment ({getCorrectionTarget(selectedRow)})
+                  </button>
+                ) : (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+                    No automated status correction target is available for status &quot;{selectedRow.statusLabel}&quot;. Use Open Order below for full management.
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={() => selectedRow.invoiceNo !== EMPTY_TEXT && navigate(`/admin/orders/${encodeURIComponent(selectedRow.invoiceNo)}`)}

@@ -715,7 +715,7 @@ export const updateSellerSuborderInternalNote = async (
   payload: { note: string }
 ) => {
   const { data } = await api.post(
-    `/seller/stores/${storeId}/orders/${suborderId}/internal-notes`,
+    `/seller/stores/${storeId}/suborders/${suborderId}/internal-notes`,
     payload
   );
   return data;

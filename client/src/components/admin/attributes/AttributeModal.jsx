@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, X } from "lucide-react";
+import { CheckCircle2, ChevronDown, X } from "lucide-react";
 import VariantInput from "./VariantInput.jsx";
 
 const toText = (value) => String(value ?? "").trim();
@@ -11,12 +11,12 @@ const optionTypeOptions = [
 ];
 
 const fieldClass =
-  "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-50";
+  "h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 placeholder:text-slate-400 shadow-sm shadow-slate-200/40 transition focus:border-[#034c85]/60 focus:outline-none focus:ring-4 focus:ring-[#034c85]/10 disabled:cursor-not-allowed disabled:bg-slate-50";
 
 function FieldRow({ label, children }) {
   return (
-    <div className="grid gap-3 px-5 py-4 md:grid-cols-[180px_minmax(0,1fr)] md:items-start">
-      <label className="pt-2 text-sm font-medium text-slate-700">{label}</label>
+    <div className="grid gap-3 px-5 py-4 md:grid-cols-[150px_minmax(0,1fr)] md:items-start">
+      <label className="pt-2 text-sm font-semibold text-slate-700">{label}</label>
       <div>{children}</div>
     </div>
   );
@@ -55,17 +55,15 @@ export default function AttributeModal({
     setLanguage("en");
   }, [open, attribute]);
 
-  const heading = mode === "edit" ? "Update Attribute" : "Add Attribute";
-  const actionLabel = mode === "edit" ? "Update Attribute" : "Add Attribute";
-  const finalError = validationError || submitError;
+  const heading = mode === "edit" ? "Edit Attribute" : "New Attribute";
+  const actionLabel = mode === "edit" ? "Save Changes" : "Create Attribute";
   const isValid = useMemo(
     () =>
       Boolean(toText(name)) &&
-      Boolean(toText(optionType)) &&
-      Array.isArray(variants) &&
-      variants.length > 0,
-    [name, optionType, variants]
+      Boolean(toText(optionType)),
+    [name, optionType]
   );
+  const finalError = validationError || submitError;
 
   if (!open) return null;
 
@@ -87,10 +85,6 @@ export default function AttributeModal({
       setValidationError("Option type is required.");
       return;
     }
-    if (!Array.isArray(variants) || variants.length === 0) {
-      setValidationError("Add at least one variant value.");
-      return;
-    }
 
     setValidationError("");
     onSubmit?.({
@@ -103,7 +97,7 @@ export default function AttributeModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/35">
+    <div className="fixed inset-0 z-50 bg-slate-950/45 backdrop-blur-[2px]">
       <button
         type="button"
         onClick={handleClose}
@@ -112,15 +106,17 @@ export default function AttributeModal({
       />
 
       <aside className="absolute right-0 top-0 z-10 flex h-full w-full max-w-[820px] flex-col border-l border-slate-200 bg-white shadow-2xl">
-        <div className="border-b border-slate-200 px-5 py-4">
+        <div className="border-b border-slate-200 bg-gradient-to-r from-white via-[#034c85]/5 to-[#fe6f05]/10 px-5 py-4">
           <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-[31px] leading-none font-semibold tracking-tight text-slate-900">
+            <div className="min-w-0">
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#034c85]/15 bg-white/80 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-[#034c85]">
+                <CheckCircle2 className="h-3.5 w-3.5 text-[#fe6f05]" />
+                Catalog Attribute
+              </div>
+              <h2 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-[30px]">
                 {heading}
               </h2>
-              <p className="mt-2 text-sm text-slate-500">
-                Add your attribute values and necessary information from here
-              </p>
+              <p className="mt-1 text-sm text-slate-500">Name, option type, publish state, and values.</p>
             </div>
 
             <div className="flex items-center gap-2">
@@ -129,7 +125,7 @@ export default function AttributeModal({
                   value={language}
                   onChange={(event) => setLanguage(event.target.value)}
                   disabled={isSubmitting}
-                  className="h-10 appearance-none rounded-lg border border-emerald-200 bg-white pl-3 pr-9 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-50"
+                  className="h-10 appearance-none rounded-lg border border-[#034c85]/20 bg-white pl-3 pr-9 text-sm font-semibold text-slate-700 focus:border-[#034c85]/60 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-50"
                 >
                   <option value="en">en</option>
                 </select>
@@ -140,7 +136,7 @@ export default function AttributeModal({
                 type="button"
                 onClick={handleClose}
                 disabled={isSubmitting}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-rose-50 text-rose-500 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-white text-slate-500 shadow-sm transition hover:bg-rose-50 hover:text-rose-500 disabled:cursor-not-allowed disabled:opacity-60"
                 aria-label="Close attribute modal"
               >
                 <X className="h-5 w-5" />
@@ -151,27 +147,27 @@ export default function AttributeModal({
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
           <div className="divide-y divide-slate-200">
-            <FieldRow label="Attribute Title">
+            <FieldRow label="Name">
               <input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 disabled={isSubmitting}
-                placeholder="Color or Size or Dimension or Material or Fabric"
+                placeholder="Color, Size, Material"
                 className={fieldClass}
               />
             </FieldRow>
 
-            <FieldRow label="Display Name">
+            <FieldRow label="Display">
               <input
                 value={displayName}
                 onChange={(event) => setDisplayName(event.target.value)}
                 disabled={isSubmitting}
-                placeholder="Display Name"
+                placeholder="Customer-facing label"
                 className={fieldClass}
               />
             </FieldRow>
 
-            <FieldRow label="Options">
+            <FieldRow label="Input Type">
               <select
                 value={optionType}
                 onChange={(event) => setOptionType(event.target.value)}
@@ -198,7 +194,7 @@ export default function AttributeModal({
               </select>
             </FieldRow>
 
-            <FieldRow label="Variants">
+            <FieldRow label="Values">
               <VariantInput
                 value={variants}
                 onChange={setVariants}
@@ -221,7 +217,7 @@ export default function AttributeModal({
               type="button"
               onClick={handleClose}
               disabled={isSubmitting}
-              className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
               Cancel
             </button>
@@ -229,7 +225,7 @@ export default function AttributeModal({
               type="submit"
               onClick={handleSubmit}
               disabled={isSubmitting || !isValid}
-              className="inline-flex h-10 items-center justify-center rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-10 items-center justify-center rounded-lg bg-[#034c85] px-4 text-sm font-semibold text-white shadow-sm shadow-[#034c85]/25 transition hover:bg-[#023e6d] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? "Saving..." : actionLabel}
             </button>

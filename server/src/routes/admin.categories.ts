@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { requireAdmin, requireStaffOrAdmin } from "../middleware/requireRole.js";
-import { Category } from "../models/index.js";
+import { Category, Product, ProductCategory } from "../models/index.js";
 import { z } from "zod";
 import multer from "multer";
 import { Op } from "sequelize";
@@ -16,17 +16,78 @@ function parseBool(v: any): boolean | undefined {
   return undefined;
 }
 
+async function getCategoryProductCountMap(categoryIds: number[]) {
+  const ids = Array.from(
+    new Set(
+      categoryIds
+        .map((id) => Number(id))
+        .filter((id) => Number.isFinite(id) && id > 0)
+    )
+  );
+  const counts = new Map<number, Set<number>>();
+  ids.forEach((id) => counts.set(id, new Set<number>()));
+  if (ids.length === 0) return new Map<number, number>();
+
+  const directProducts = await Product.findAll({
+    attributes: ["id", "categoryId", "defaultCategoryId"],
+    where: {
+      [Op.or]: [
+        { categoryId: { [Op.in]: ids } },
+        { defaultCategoryId: { [Op.in]: ids } },
+      ],
+    } as any,
+    raw: true,
+  });
+
+  directProducts.forEach((product: any) => {
+    const productId = Number(product.id);
+    [product.categoryId, product.defaultCategoryId].forEach((categoryId) => {
+      const normalizedCategoryId = Number(categoryId);
+      if (counts.has(normalizedCategoryId) && Number.isFinite(productId)) {
+        counts.get(normalizedCategoryId)!.add(productId);
+      }
+    });
+  });
+
+  const joinRows = await ProductCategory.findAll({
+    attributes: ["productId", "categoryId"],
+    where: { categoryId: { [Op.in]: ids } } as any,
+    raw: true,
+  });
+
+  joinRows.forEach((row: any) => {
+    const productId = Number(row.productId);
+    const categoryId = Number(row.categoryId);
+    if (counts.has(categoryId) && Number.isFinite(productId)) {
+      counts.get(categoryId)!.add(productId);
+    }
+  });
+
+  return new Map(ids.map((id) => [id, counts.get(id)?.size ?? 0]));
+}
+
+function serializeCategory(category: any, productCountMap = new Map<number, number>()) {
+  const plain = category?.get ? category.get({ plain: true }) : category;
+  const id = Number(plain?.id);
+  return {
+    ...plain,
+    productCount: productCountMap.get(id) ?? Number(plain?.productCount ?? 0),
+  };
+}
+
 // GET /api/admin/categories
-// supports: q, page, pageSize, parentsOnly, published, sort (e.g. "created_at:desc")
+// supports: q, page, pageSize, parentsOnly, parentId, published, sort (e.g. "created_at:desc")
 router.get("/", requireStaffOrAdmin, async (req, res, next) => {
   try {
     const q = String(req.query.q || "").trim();
     const page = Math.max(1, parseInt(String(req.query.page || 1), 10));
     const limit = Math.min(
-      100,
+      500,
       Math.max(1, parseInt(String(req.query.limit || req.query.pageSize || 10), 10))
     );
     const parentsOnly = parseBool(req.query.parentsOnly);
+    const parentIdRaw = String(req.query.parentId ?? "").trim();
+    const parentId = parentIdRaw ? Number(parentIdRaw) : null;
     const published = parseBool(req.query.published);
     const sort = String(req.query.sort || "created_at:desc");
     const [sortKey, sortDirRaw] = sort.split(":");
@@ -34,7 +95,11 @@ router.get("/", requireStaffOrAdmin, async (req, res, next) => {
 
     const where: any = {};
     if (q) where.name = { [Op.like]: `%${q}%` };
-    if (parentsOnly === true) where.parent_id = { [Op.is]: null };
+    if (Number.isFinite(parentId) && Number(parentId) > 0) {
+      where.parent_id = Number(parentId);
+    } else if (parentsOnly === true) {
+      where.parent_id = { [Op.is]: null };
+    }
     if (published !== undefined) where.published = published;
 
     const offset = (page - 1) * limit;
@@ -45,9 +110,32 @@ router.get("/", requireStaffOrAdmin, async (req, res, next) => {
       order: [[sortKey, sortDir]],
       include: [{ model: Category, as: "parent", attributes: ["id", "name", "code"] }],
     });
+    const productCountMap = await getCategoryProductCountMap(rows.map((row: any) => Number(row.id)));
     res.json({
-      data: rows,
+      data: rows.map((row: any) => serializeCategory(row, productCountMap)),
       meta: { page, limit, total: count, totalPages: Math.max(1, Math.ceil(count / limit)) },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/admin/categories/stats
+router.get("/stats", requireStaffOrAdmin, async (_req, res, next) => {
+  try {
+    const [total, active, subcategories, draft] = await Promise.all([
+      Category.count(),
+      Category.count({ where: { published: true } as any }),
+      Category.count({ where: { parent_id: { [Op.not]: null } } as any }),
+      Category.count({ where: { published: false } as any }),
+    ]);
+    res.json({
+      data: {
+        total,
+        active,
+        subcategories,
+        draft,
+      },
     });
   } catch (err) {
     next(err);
@@ -99,6 +187,8 @@ router.get("/export", requireStaffOrAdmin, async (req, res, next) => {
   try {
     const q = String(req.query.q || "").trim();
     const parentsOnly = parseBool(req.query.parentsOnly);
+    const parentIdRaw = String(req.query.parentId ?? "").trim();
+    const parentId = parentIdRaw ? Number(parentIdRaw) : null;
     const published = parseBool(req.query.published);
     const sort = String(req.query.sort || "created_at:desc");
     const [sortKey, sortDirRaw] = sort.split(":");
@@ -108,7 +198,11 @@ router.get("/export", requireStaffOrAdmin, async (req, res, next) => {
 
     const where: any = {};
     if (q) where.name = { [Op.like]: `%${q}%` };
-    if (parentsOnly === true) where.parent_id = { [Op.is]: null };
+    if (Number.isFinite(parentId) && Number(parentId) > 0) {
+      where.parent_id = Number(parentId);
+    } else if (parentsOnly === true) {
+      where.parent_id = { [Op.is]: null };
+    }
     if (published !== undefined) where.published = published;
 
     const rows = await Category.findAll({
@@ -131,6 +225,7 @@ router.get("/export", requireStaffOrAdmin, async (req, res, next) => {
         filters: {
           q: q || null,
           parentsOnly: typeof parentsOnly === "boolean" ? parentsOnly : null,
+          parentId: Number.isFinite(parentId) && Number(parentId) > 0 ? Number(parentId) : null,
           published: typeof published === "boolean" ? published : null,
           sort,
         },
@@ -175,7 +270,7 @@ router.get("/export", requireStaffOrAdmin, async (req, res, next) => {
 });
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 } });
-router.post("/import", upload.single("file"), async (req, res, next) => {
+router.post("/import", requireAdmin, upload.single("file"), async (req, res, next) => {
   try {
     const buf = req.file?.buffer;
     if (!buf) return res.status(400).json({ success: false, message: "No file uploaded" });
@@ -217,7 +312,8 @@ router.get("/:id", requireStaffOrAdmin, async (req, res, next) => {
       include: [{ model: Category, as: "parent", attributes: ["id", "name", "code"] }],
     });
     if (!cat) return res.status(404).json({ success: false, message: "Not found" });
-    res.json({ data: cat });
+    const productCountMap = await getCategoryProductCountMap([id]);
+    res.json({ data: serializeCategory(cat, productCountMap) });
   } catch (err) {
     next(err);
   }
@@ -353,5 +449,3 @@ function parseCsvLine(line: string): string[] {
 }
 
 export default router;
-
-

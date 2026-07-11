@@ -131,8 +131,20 @@ export default function AdminPaymentAuditDetailPage() {
     enabled: Boolean(orderId),
   });
 
-  if (!orderId) {
-    return <div className="text-sm text-slate-500">Invalid audit order id.</div>;
+  const numericId = Number(orderId);
+  if (!orderId || !Number.isInteger(numericId) || numericId <= 0) {
+    return (
+      <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700">
+        <p className="font-semibold">Invalid audit order id: &quot;{orderId}&quot;</p>
+        <p className="mt-1 text-xs text-rose-600">Order ID must be a positive integer.</p>
+        <Link
+          to="/admin/online-store/payment-audit"
+          className="mt-4 inline-block rounded-lg border border-rose-200 bg-white px-4 py-2 text-xs font-semibold text-rose-700 shadow-sm"
+        >
+          &larr; Back to Payment Audit List
+        </Link>
+      </div>
+    );
   }
 
   if (auditQuery.isLoading) {
@@ -146,9 +158,17 @@ export default function AdminPaymentAuditDetailPage() {
   if (auditQuery.isError) {
     return (
       <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700">
-        {auditQuery.error?.response?.data?.message ||
-          auditQuery.error?.message ||
-          "Failed to load payment audit detail."}
+        <p className="font-semibold">
+          {auditQuery.error?.response?.data?.message ||
+            auditQuery.error?.message ||
+            "Failed to load payment audit detail."}
+        </p>
+        <Link
+          to="/admin/online-store/payment-audit"
+          className="mt-4 inline-block rounded-lg border border-rose-200 bg-white px-4 py-2 text-xs font-semibold text-rose-700 shadow-sm"
+        >
+          &larr; Back to Payment Audit List
+        </Link>
       </div>
     );
   }
@@ -157,7 +177,13 @@ export default function AdminPaymentAuditDetailPage() {
   if (!detail) {
     return (
       <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
-        Audit detail not found.
+        <p className="font-semibold text-slate-700">Audit detail not found for Order #{orderId}.</p>
+        <Link
+          to="/admin/online-store/payment-audit"
+          className="mt-4 inline-block rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm"
+        >
+          &larr; Back to Payment Audit List
+        </Link>
       </div>
     );
   }
@@ -167,6 +193,14 @@ export default function AdminPaymentAuditDetailPage() {
 
   return (
     <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link
+          to="/admin/online-store/payment-audit"
+          className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900"
+        >
+          &larr; Back to Payment Audit List
+        </Link>
+      </div>
       <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
         <div>
           <p className="text-sm text-slate-500">Payment Audit Detail</p>
@@ -485,16 +519,35 @@ export default function AdminPaymentAuditDetailPage() {
                             <p>Uploaded By: {paymentRecord.proof.uploadedByName || "-"}</p>
                             <p>Reviewed By: {paymentRecord.proof.reviewedByName || "-"}</p>
                             <p>Reviewed At: {formatDateTime(paymentRecord.proof.reviewedAt)}</p>
-                            {paymentRecord.proof.proofImageUrl ? (
-                              <a
-                                href={paymentRecord.proof.proofImageUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex text-sm font-semibold text-[var(--admin-primary)] underline"
-                              >
-                                Open proof image
-                              </a>
-                            ) : null}
+                            {paymentRecord.proof.proofImageUrl ? (() => {
+                              const isPdf = /\.pdf($|\?)/i.test(String(paymentRecord.proof.proofImageUrl));
+                              return (
+                                <div className="mt-3 space-y-2">
+                                  <a
+                                    href={paymentRecord.proof.proofImageUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-50"
+                                  >
+                                    {isPdf ? "Open Proof PDF Document ↗" : "Open Full Proof Image ↗"}
+                                  </a>
+                                  {!isPdf ? (
+                                    <a
+                                      href={paymentRecord.proof.proofImageUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="block max-w-xs overflow-hidden rounded-lg border border-slate-200"
+                                    >
+                                      <img
+                                        src={paymentRecord.proof.proofImageUrl}
+                                        alt="Payment Proof"
+                                        className="h-32 w-full object-cover"
+                                      />
+                                    </a>
+                                  ) : null}
+                                </div>
+                              );
+                            })() : null}
                           </div>
                         </div>
                       ) : (

@@ -59,7 +59,6 @@ export const SELLER_SHIPPING_SETUP_REQUIRED_FIELDS = [
   { key: "originAddressLine1", label: SHIPPING_SETUP_FIELD_LABELS.originAddressLine1 },
   { key: "originProvince", label: SHIPPING_SETUP_FIELD_LABELS.originProvince },
   { key: "originCity", label: SHIPPING_SETUP_FIELD_LABELS.originCity },
-  { key: "originDistrict", label: SHIPPING_SETUP_FIELD_LABELS.originDistrict },
   { key: "originPostalCode", label: SHIPPING_SETUP_FIELD_LABELS.originPostalCode },
   { key: "originCountry", label: SHIPPING_SETUP_FIELD_LABELS.originCountry },
 ] as const;

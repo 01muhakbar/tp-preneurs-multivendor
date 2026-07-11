@@ -144,6 +144,11 @@ export const fetchAdminCategory = async (id) => {
   return { data: category };
 };
 
+export const fetchAdminCategoryStats = async () => {
+  const { data } = await adminApi.get("/admin/categories/stats");
+  return data?.data ?? data;
+};
+
 export const createAdminCategory = async (payload) => {
   const { data } = await adminApi.post("/admin/categories", payload);
   return data;
@@ -151,6 +156,13 @@ export const createAdminCategory = async (payload) => {
 
 export const updateAdminCategory = async (id, payload) => {
   const { data } = await adminApi.patch(`/admin/categories/${id}`, payload);
+  return data;
+};
+
+export const updateAdminCategoryPublished = async (id, published) => {
+  const { data } = await adminApi.patch(`/admin/categories/${id}/publish`, {
+    published: Boolean(published),
+  });
   return data;
 };
 
@@ -171,6 +183,7 @@ export const exportAdminCategories = async (params = {}) => {
   if (typeof params?.parentsOnly === "boolean") {
     queryParams.set("parentsOnly", String(params.parentsOnly));
   }
+  if (params?.parentId) queryParams.set("parentId", String(params.parentId));
   if (typeof params?.published === "boolean") {
     queryParams.set("published", String(params.published));
   }

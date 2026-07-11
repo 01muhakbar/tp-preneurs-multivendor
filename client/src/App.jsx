@@ -81,7 +81,13 @@ const CurrenciesPage = lazy(() => import("./pages/Currencies.jsx"));
 const StoreCustomizationPage = lazy(() =>
   import("./pages/admin/StoreCustomization.jsx")
 );
+const AdminStoreCustomizationRedirectPage = lazy(() =>
+  import("./pages/admin/AdminStoreCustomizationRedirectPage.jsx")
+);
 const StoreSettingsPage = lazy(() => import("./pages/admin/StoreSettings.jsx"));
+const AdminStoreSettingsRedirectPage = lazy(() =>
+  import("./pages/admin/AdminStoreSettingsRedirectPage.jsx")
+);
 const AdminStaffPage = lazy(() => import("./pages/admin/Staff.jsx"));
 const AdminForbiddenPage = lazy(() => import("./pages/admin/Forbidden.jsx"));
 const AccountLayout = lazy(() => import("./layouts/AccountLayout.jsx"));
@@ -117,6 +123,9 @@ const AdminStoreApplicationsPage = lazy(() =>
 );
 const AdminStoreApplicationDetailPage = lazy(() =>
   import("./pages/admin/AdminStoreApplicationDetailPage.jsx")
+);
+const AdminStoreApplicationDetailRedirectPage = lazy(() =>
+  import("./pages/admin/AdminStoreApplicationDetailRedirectPage.jsx")
 );
 const AdminStoreKycPage = lazy(() => import("./pages/admin/AdminStoreKycPage.jsx"));
 const AdminStoreKycDetailPage = lazy(() => import("./pages/admin/AdminStoreKycDetailPage.jsx"));
@@ -626,6 +635,14 @@ export default function App() {
                 element={<LegacyAdminCategoriesRedirect />}
               />
               <Route
+                path="catalog/categories/:id/:slug/subcategories"
+                element={
+                  <RequirePerm perm="CATEGORIES_CRUD">
+                    <AdminSubCategoriesPage resolveMode="hybrid" />
+                  </RequirePerm>
+                }
+              />
+              <Route
                 path="catalog/categories/id/:id"
                 element={
                   <RequirePerm perm="CATEGORIES_CRUD">
@@ -655,6 +672,14 @@ export default function App() {
               />
               <Route
                 path="catalog/coupons"
+                element={
+                  <RequirePerm perm="COUPONS_CRUD">
+                    <AdminCouponsPage />
+                  </RequirePerm>
+                }
+              />
+              <Route
+                path="catalog/coupon"
                 element={
                   <RequirePerm perm="COUPONS_CRUD">
                     <AdminCouponsPage />
@@ -772,16 +797,16 @@ export default function App() {
               <Route
                 path="online-store/store-applications"
                 element={
-                  <RequirePerm perm="SETTINGS_MANAGE">
-                    <AdminStoreApplicationsPage />
+                  <RequirePerm perm="STORE_APPLICATIONS_REVIEW">
+                    <Navigate to="/admin/store/applications" replace />
                   </RequirePerm>
                 }
               />
               <Route
                 path="online-store/store-applications/:id"
                 element={
-                  <RequirePerm perm="SETTINGS_MANAGE">
-                    <AdminStoreApplicationDetailPage />
+                  <RequirePerm perm="STORE_APPLICATIONS_REVIEW">
+                    <AdminStoreApplicationDetailRedirectPage />
                   </RequirePerm>
                 }
               />
@@ -804,30 +829,6 @@ export default function App() {
               <Route
                 path="admin-profile"
                 element={<AdminProfilePage />}
-              />
-              <Route
-                path="online-store/payment-review"
-                element={
-                  <RequirePerm perm="SETTINGS_MANAGE">
-                    <AdminStorePaymentReviewPage />
-                  </RequirePerm>
-                }
-              />
-              <Route
-                path="online-store/payment-audit"
-                element={
-                  <RequirePerm perm="DASHBOARD_VIEW">
-                    <AdminPaymentAuditPage />
-                  </RequirePerm>
-                }
-              />
-              <Route
-                path="online-store/payment-audit/:orderId"
-                element={
-                  <RequirePerm perm="DASHBOARD_VIEW">
-                    <AdminPaymentAuditDetailPage />
-                  </RequirePerm>
-                }
               />
               <Route
                 path="online-store/shipping-reconciliation"
@@ -857,7 +858,7 @@ export default function App() {
                 path="store-customization"
                 element={
                   <RequirePerm perm="SETTINGS_MANAGE">
-                    <Navigate to="/admin/store/customization" replace />
+                    <AdminStoreCustomizationRedirectPage />
                   </RequirePerm>
                 }
               />
@@ -873,7 +874,7 @@ export default function App() {
                 path="online-store/store-settings"
                 element={
                   <RequirePerm perm="SETTINGS_MANAGE">
-                    <Navigate to="/admin/store/store-settings" replace />
+                    <AdminStoreSettingsRedirectPage />
                   </RequirePerm>
                 }
               />
@@ -902,6 +903,14 @@ export default function App() {
                 }
               />
               <Route
+                path="store-applications/:applicationId"
+                element={
+                  <RequirePerm perm="STORE_APPLICATIONS_REVIEW">
+                    <AdminStoreApplicationDetailRedirectPage />
+                  </RequirePerm>
+                }
+              />
+              <Route
                 path="store/applications/:applicationId"
                 element={
                   <RequirePerm perm="STORE_APPLICATIONS_REVIEW">
@@ -913,7 +922,7 @@ export default function App() {
                 path="store-settings"
                 element={
                   <RequirePerm perm="SETTINGS_MANAGE">
-                    <Navigate to="/admin/store/store-settings" replace />
+                    <AdminStoreSettingsRedirectPage />
                   </RequirePerm>
                 }
               />

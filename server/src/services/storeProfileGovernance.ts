@@ -405,6 +405,9 @@ export const adminStoreProfilePatchSchema = z
         .optional()
     ),
     status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
+    logoUrl: nullableAssetUrlField(),
+    bannerUrl: nullableAssetUrlField(),
+    description: nullableStringField(4000),
   })
   .strict();
 
@@ -560,8 +563,10 @@ export const buildSellerStoreActivationRequirements = (store: any) => {
   };
 };
 
-export const shouldDeactivateStoreForMissingSellerRequirements = (store: any) =>
-  !buildSellerStoreActivationRequirements(store).isComplete;
+export const shouldDeactivateStoreForMissingSellerRequirements = (store: any) => {
+  const requiredKeys = ["phone", "addressLine1", "city", "province", "country"];
+  return requiredKeys.some((key) => !hasText(getStoreProfileAttr(store, key)));
+};
 
 export const serializeStoreProfileSnapshot = (
   store: any,
@@ -623,7 +628,7 @@ export const serializeStoreProfileSnapshot = (
       canView: true,
       canEdit: Boolean(options.canEdit),
       editableFields: isAdminActor
-        ? [...ADMIN_OWNED_STORE_PROFILE_FIELDS]
+        ? [...ADMIN_OWNED_STORE_PROFILE_FIELDS, "logoUrl", "bannerUrl", "description"]
         : [...SELLER_EDITABLE_STORE_PROFILE_FIELDS],
       readOnlyFields: isAdminActor
         ? [...READ_ONLY_STORE_PROFILE_FIELDS, ...SELLER_EDITABLE_STORE_PROFILE_FIELDS]

@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, Filter, PlusCircle, RotateCcw, Search, SlidersHorizontal } from "lucide-react";
 
 const btnBase =
-  "inline-flex h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-[10px] font-medium transition";
-const btnOutline = `${btnBase} border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50`;
-const btnSoft = `${btnBase} bg-slate-50 text-slate-600 hover:bg-slate-100`;
+  "inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-[#fe6f05]/25";
+const btnOutline = `${btnBase} border border-[#034c85]/20 bg-white text-[#034c85] hover:border-[#034c85]/40 hover:bg-[#034c85]/5`;
+const btnSoft = `${btnBase} border border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:bg-white`;
 
 const FILTER_OPTIONS = [
   { value: "dropdown", label: "Dropdown" },
@@ -45,7 +45,7 @@ function FilterPopover({
   if (!open) return null;
 
   return (
-    <div className="absolute left-0 top-full z-30 mt-2 w-[182px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_18px_38px_rgba(15,23,42,0.12)]">
+    <div className="absolute left-0 top-full z-30 mt-2 w-[190px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_18px_38px_rgba(15,23,42,0.14)]">
       <div className="border-b border-slate-100 px-3 py-3">
         <div className="relative">
           <Search className="pointer-events-none absolute left-0 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -72,14 +72,14 @@ function FilterPopover({
                 onClick={() => onSelect?.(checked ? "" : option.value)}
                 className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition ${
                   checked
-                    ? "bg-teal-50 text-teal-700"
+                    ? "bg-[#034c85]/5 text-[#034c85]"
                     : "text-slate-700 hover:bg-slate-50"
                 }`}
               >
                 <span
                   className={`inline-flex h-4 w-4 items-center justify-center rounded border text-[10px] ${
                     checked
-                      ? "border-teal-500 bg-white text-teal-600"
+                      ? "border-[#fe6f05] bg-white text-[#fe6f05]"
                       : "border-slate-300 bg-white text-transparent"
                   }`}
                 >
@@ -229,11 +229,11 @@ export default function AttributeToolbar({
   }, [statusSearch]);
 
   return (
-    <div className="rounded-[22px] border border-slate-200 bg-white p-3 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm shadow-slate-200/60">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="grid gap-2 xl:flex-1 xl:grid-cols-[minmax(0,1.2fr)_auto_auto_auto_auto_auto_auto]">
           <div className="relative min-w-0">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#034c85]/55" />
             <input
               type="search"
               value={draftFilters.q}
@@ -244,7 +244,7 @@ export default function AttributeToolbar({
                 if (event.key === "Enter") onApplyFilters?.();
               }}
               placeholder="Search by attribute name"
-              className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
+              className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 shadow-sm shadow-slate-200/40 focus:border-[#034c85]/60 focus:outline-none focus:ring-4 focus:ring-[#034c85]/10"
             />
           </div>
 
@@ -254,10 +254,13 @@ export default function AttributeToolbar({
               onClick={() => {
                 setOptionFilterOpen((prev) => !prev);
                 setPublishedFilterOpen(false);
+                setScopeFilterOpen(false);
+                setCreatedByFilterOpen(false);
+                setStatusFilterOpen(false);
               }}
-              className={`inline-flex h-9 min-w-[126px] items-center gap-1.5 rounded-lg border border-dashed px-2.5 text-[13px] font-medium transition ${
+              className={`inline-flex h-10 min-w-[126px] items-center gap-1.5 rounded-lg border border-dashed px-2.5 text-[13px] font-semibold transition ${
                 optionFilterOpen || draftFilters.type
-                  ? "border-teal-300 bg-teal-50 text-teal-700"
+                  ? "border-[#034c85]/35 bg-[#034c85]/5 text-[#034c85]"
                   : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
               }`}
             >
@@ -292,9 +295,9 @@ export default function AttributeToolbar({
                 setCreatedByFilterOpen(false);
                 setStatusFilterOpen(false);
               }}
-              className={`inline-flex h-9 min-w-[108px] items-center gap-1.5 rounded-lg border border-dashed px-2.5 text-[13px] font-medium transition ${
+              className={`inline-flex h-10 min-w-[108px] items-center gap-1.5 rounded-lg border border-dashed px-2.5 text-[13px] font-semibold transition ${
                 publishedFilterOpen || draftFilters.published
-                  ? "border-teal-300 bg-teal-50 text-teal-700"
+                  ? "border-[#034c85]/35 bg-[#034c85]/5 text-[#034c85]"
                   : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
               }`}
             >
@@ -331,9 +334,9 @@ export default function AttributeToolbar({
                 setCreatedByFilterOpen(false);
                 setStatusFilterOpen(false);
               }}
-              className={`inline-flex h-9 min-w-[110px] items-center gap-1.5 rounded-lg border border-dashed px-2.5 text-[13px] font-medium transition ${
+              className={`inline-flex h-10 min-w-[110px] items-center gap-1.5 rounded-lg border border-dashed px-2.5 text-[13px] font-semibold transition ${
                 scopeFilterOpen || draftFilters.scope
-                  ? "border-teal-300 bg-teal-50 text-teal-700"
+                  ? "border-[#034c85]/35 bg-[#034c85]/5 text-[#034c85]"
                   : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
               }`}
             >
@@ -371,9 +374,9 @@ export default function AttributeToolbar({
                 setScopeFilterOpen(false);
                 setStatusFilterOpen(false);
               }}
-              className={`inline-flex h-9 min-w-[126px] items-center gap-1.5 rounded-lg border border-dashed px-2.5 text-[13px] font-medium transition ${
+              className={`inline-flex h-10 min-w-[126px] items-center gap-1.5 rounded-lg border border-dashed px-2.5 text-[13px] font-semibold transition ${
                 createdByFilterOpen || draftFilters.createdByRole
-                  ? "border-teal-300 bg-teal-50 text-teal-700"
+                  ? "border-[#034c85]/35 bg-[#034c85]/5 text-[#034c85]"
                   : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
               }`}
             >
@@ -411,9 +414,9 @@ export default function AttributeToolbar({
                 setScopeFilterOpen(false);
                 setCreatedByFilterOpen(false);
               }}
-              className={`inline-flex h-9 min-w-[112px] items-center gap-1.5 rounded-lg border border-dashed px-2.5 text-[13px] font-medium transition ${
+              className={`inline-flex h-10 min-w-[112px] items-center gap-1.5 rounded-lg border border-dashed px-2.5 text-[13px] font-semibold transition ${
                 statusFilterOpen || draftFilters.status
-                  ? "border-teal-300 bg-teal-50 text-teal-700"
+                  ? "border-[#034c85]/35 bg-[#034c85]/5 text-[#034c85]"
                   : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
               }`}
             >
@@ -448,7 +451,7 @@ export default function AttributeToolbar({
               onDraftFiltersChange?.((prev) => ({ ...prev, storeId: event.target.value }))
             }
             placeholder="Store ID"
-            className="h-9 min-w-[100px] rounded-lg border border-slate-200 bg-white px-3 text-[13px] text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none"
+            className="h-10 min-w-[100px] rounded-lg border border-slate-200 bg-white px-3 text-[13px] text-slate-700 placeholder:text-slate-400 shadow-sm shadow-slate-200/40 focus:border-[#034c85]/60 focus:outline-none focus:ring-4 focus:ring-[#034c85]/10"
           />
         </div>
 
@@ -465,13 +468,13 @@ export default function AttributeToolbar({
             <button
               type="button"
               onClick={() => setViewMenuOpen((prev) => !prev)}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+            className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-[13px] font-semibold text-slate-700 transition hover:border-[#034c85]/30 hover:bg-[#034c85]/5"
             >
               <SlidersHorizontal className="h-4 w-4" />
               View
             </button>
             {viewMenuOpen ? (
-              <div className="absolute right-0 z-30 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+              <div className="absolute right-0 z-30 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-3 shadow-[0_20px_50px_rgba(15,23,42,0.14)]">
                 <div className="flex items-center justify-between">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
                     Toggle columns
@@ -504,7 +507,7 @@ export default function AttributeToolbar({
                         type="checkbox"
                         checked={Boolean(columnVisibility?.[key])}
                         onChange={() => onToggleColumn?.(key)}
-                        className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-300"
+                        className="h-4 w-4 rounded border-slate-300 text-[#034c85] focus:ring-[#034c85]/25"
                       />
                       <span className="text-sm text-slate-700">{label}</span>
                     </label>

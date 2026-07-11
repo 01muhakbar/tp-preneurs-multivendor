@@ -374,6 +374,77 @@ async function backfillStorePaymentProfileFoundation() {
   }
 }
 
+async function hasTable(queryInterface: any, tableName: string): Promise<boolean> {
+  try {
+    await queryInterface.describeTable(tableName);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function hasColumn(queryInterface: any, tableName: string, columnName: string): Promise<boolean> {
+  try {
+    const description = await queryInterface.describeTable(tableName);
+    return Boolean(description?.[columnName]);
+  } catch {
+    return false;
+  }
+}
+
+async function ensureAttributeValueTables(queryInterface: any) {
+  if (!(await hasTable(queryInterface, "attribute_values"))) {
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS attribute_values (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        attribute_id INT UNSIGNED NOT NULL,
+        value VARCHAR(120) NOT NULL,
+        status ENUM('active', 'archived') NOT NULL DEFAULT 'active',
+        created_at DATETIME NOT NULL,
+        updated_at DATETIME NOT NULL,
+        UNIQUE KEY uniq_attribute_value (attribute_id, value),
+        INDEX idx_attribute_id (attribute_id),
+        INDEX idx_attribute_values_attribute_status (attribute_id, status),
+        CONSTRAINT fk_attribute_values_attribute
+          FOREIGN KEY (attribute_id) REFERENCES attributes(id)
+          ON DELETE CASCADE
+      )
+    `);
+  } else if (!(await hasColumn(queryInterface, "attribute_values", "status"))) {
+    await sequelize.query(`
+      ALTER TABLE attribute_values
+      ADD COLUMN status ENUM('active', 'archived') NOT NULL DEFAULT 'active'
+    `);
+    await sequelize.query("UPDATE attribute_values SET status = 'active' WHERE status IS NULL");
+  }
+
+  if (!(await hasTable(queryInterface, "product_attribute_values"))) {
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS product_attribute_values (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        product_id INT UNSIGNED NOT NULL,
+        attribute_id INT UNSIGNED NOT NULL,
+        attribute_value_id INT UNSIGNED NOT NULL,
+        created_at DATETIME NOT NULL,
+        updated_at DATETIME NOT NULL,
+        UNIQUE KEY uniq_product_attribute (product_id, attribute_id),
+        INDEX idx_product_id (product_id),
+        INDEX idx_attribute_id (attribute_id),
+        INDEX idx_value_id (attribute_value_id),
+        CONSTRAINT fk_pav_product
+          FOREIGN KEY (product_id) REFERENCES products(id)
+          ON DELETE CASCADE,
+        CONSTRAINT fk_pav_attribute
+          FOREIGN KEY (attribute_id) REFERENCES attributes(id)
+          ON DELETE CASCADE,
+        CONSTRAINT fk_pav_value
+          FOREIGN KEY (attribute_value_id) REFERENCES attribute_values(id)
+          ON DELETE CASCADE
+      )
+    `);
+  }
+}
+
 // Helper untuk sync schema → langsung terlihat di phpMyAdmin
 export async function syncDb() {
   const queryInterface = sequelize.getQueryInterface() as any;
@@ -407,6 +478,7 @@ export async function syncDb() {
   try {
     // gunakan alter agar kolom baru otomatis disesuaikan (aman untuk dev)
     await sequelize.sync({ alter: true });
+    await ensureAttributeValueTables(queryInterface);
     await ensureSystemStoreRoles();
     await backfillProductCategoryAssignments();
     await backfillStoreAssignments();
@@ -426,6 +498,7 @@ export async function resetDbDev() {
   try {
     await sequelize.drop();
     await sequelize.sync({ force: true });
+    await ensureAttributeValueTables(sequelize.getQueryInterface() as any);
     await ensureSystemStoreRoles();
     await backfillStoreAssignments();
     await backfillStorePaymentProfileFoundation();

@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Download, Plus, Upload } from "lucide-react";
 
 const btnBase =
-  "inline-flex h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-[11px] font-medium transition";
-const btnOutline = `${btnBase} border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50`;
-const btnSoft = `${btnBase} bg-slate-50 text-slate-600 hover:bg-slate-100`;
-const btnBlue = `${btnBase} bg-sky-500 text-white hover:bg-sky-600`;
+  "inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-[#fe6f05]/25 disabled:cursor-not-allowed disabled:opacity-60";
+const btnOutline = `${btnBase} border border-slate-200 bg-white text-slate-700 hover:border-[#034c85]/30 hover:bg-[#034c85]/5`;
+const btnSoft = `${btnBase} border border-slate-200 bg-slate-50 text-slate-700 hover:border-[#fe6f05]/30 hover:bg-[#fe6f05]/5`;
+const btnBlue = `${btnBase} bg-[#034c85] text-white shadow-sm shadow-[#034c85]/20 hover:bg-[#023e6d]`;
 
 export default function ImportExportDropdown({
   pendingImportFileName = "",
@@ -48,14 +48,14 @@ export default function ImportExportDropdown({
         </button>
 
         {exportMenuOpen ? (
-          <div className="absolute right-0 z-30 mt-2 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+          <div className="absolute right-0 z-30 mt-2 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.16)]">
             <button
               type="button"
               onClick={() => {
                 setExportMenuOpen(false);
                 onExport?.("csv");
               }}
-              className="block w-full px-3 py-2.5 text-left text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+              className="block w-full px-3 py-2.5 text-left text-xs font-semibold text-slate-700 transition hover:bg-[#034c85]/5"
             >
               Export to CSV
             </button>
@@ -65,7 +65,7 @@ export default function ImportExportDropdown({
                 setExportMenuOpen(false);
                 onExport?.("json");
               }}
-              className="block w-full px-3 py-2.5 text-left text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+              className="block w-full px-3 py-2.5 text-left text-xs font-semibold text-slate-700 transition hover:bg-[#034c85]/5"
             >
               Export to JSON
             </button>
@@ -103,11 +103,11 @@ export default function ImportExportDropdown({
           <button
             type="button"
             onClick={() => importInputRef.current?.click()}
-            className="inline-flex h-9 min-w-[168px] max-w-[260px] items-center rounded-lg border border-dashed border-teal-400 bg-white px-3 text-[11px] font-medium text-slate-500 transition hover:border-teal-500 hover:bg-teal-50"
+            className="inline-flex h-10 min-w-[168px] max-w-[260px] items-center rounded-lg border border-dashed border-[#034c85]/35 bg-white px-3 text-xs font-semibold text-slate-500 transition hover:border-[#fe6f05]/60 hover:bg-[#fe6f05]/5"
             title={pendingImportFileName || "Select JSON attribute file"}
           >
             <span className="truncate">
-              {pendingImportFileName || "SelectYourJSON Attribute File"}
+              {pendingImportFileName || "Choose JSON"}
             </span>
           </button>
 

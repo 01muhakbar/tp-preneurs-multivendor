@@ -17,11 +17,13 @@ import {
   ShieldCheck,
   Store,
   Truck,
+  Upload,
   UserRound,
 } from "lucide-react";
 import {
   fetchAdminStoreProfiles,
   updateAdminStoreProfile,
+  uploadAdminStoreProfileImage,
 } from "../../api/adminStoreProfile.ts";
 import {
   AdminOpsEmptyState,
@@ -264,6 +266,8 @@ const getIssueList = (entry) => {
 };
 
 const getPreviewRows = (entry) => {
+  const hasLogo = isPresent(readValue(entry, "logoUrl"));
+  const hasBanner = isPresent(readValue(entry, "bannerUrl"));
   const hasDescription = isPresent(readValue(entry, "description"));
   const hasContact =
     isPresent(readValue(entry, "email")) ||
@@ -273,6 +277,8 @@ const getPreviewRows = (entry) => {
     isPresent(readValue(entry, "addressLine1")) ||
     isPresent(readValue(entry, "originAddressLine"));
   return [
+    { label: "Logo", ready: hasLogo },
+    { label: "Banner", ready: hasBanner },
     { label: "Description", ready: hasDescription },
     { label: "Contact", ready: hasContact },
     { label: "Address", ready: hasAddress },
@@ -339,6 +345,27 @@ function StoreReviewCard({
   const summaryId = `asp2026-store-summary-${storeId}`;
   const detailId = `asp2026-store-detail-${storeId}`;
 
+  const logoUrl = textValue(readValue(entry, "logoUrl"));
+  const [uploadingField, setUploadingField] = useState(null);
+
+  const handleUpload = async (event, fieldName) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setUploadingField(fieldName);
+    try {
+      const url = await uploadAdminStoreProfileImage(file);
+      if (url) {
+        onDraftChange({ [fieldName]: url });
+        toast.success(`${fieldName === "logoUrl" ? "Logo" : "Banner"} uploaded`);
+      }
+    } catch (error) {
+      toast.error(getErrorMessage(error) || "Upload failed");
+    } finally {
+      setUploadingField(null);
+      event.target.value = "";
+    }
+  };
+
   const priorityTone =
     priority === "High" ? "danger" : priority === "Medium" ? "warning" : "success";
 
@@ -352,7 +379,19 @@ function StoreReviewCard({
         aria-controls={detailId}
         onClick={onToggle}
       >
-        <span className="asp2026-avatar">{getInitials(name)}</span>
+        <span className="asp2026-avatar">
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt={name}
+              className="asp2026-avatar__img"
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
+            />
+          ) : null}
+          {getInitials(name)}
+        </span>
         <span className="asp2026-store-title">
           <strong>{name}</strong>
           <small>{slug || "no-slug"}</small>
@@ -488,6 +527,74 @@ function StoreReviewCard({
                   <option value="INACTIVE">Inactive</option>
                 </select>
               </label>
+              <label className="asp2026-media-field">
+                <span>Logo URL</span>
+                <div className="asp2026-media-row">
+                  <input
+                    type="text"
+                    value={draft.logoUrl || ""}
+                    onChange={(event) => onDraftChange({ logoUrl: event.target.value })}
+                    placeholder="/uploads/... or https://..."
+                    disabled={saving}
+                  />
+                  <label className="asp2026-upload-btn">
+                    <Upload size={14} aria-hidden="true" />
+                    <span>{uploadingField === "logoUrl" ? "Uploading..." : "Upload"}</span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      style={{ display: "none" }}
+                      disabled={saving || Boolean(uploadingField)}
+                      onChange={(e) => handleUpload(e, "logoUrl")}
+                    />
+                  </label>
+                </div>
+                {draft.logoUrl ? (
+                  <div className="asp2026-media-preview">
+                    <img
+                      src={draft.logoUrl}
+                      alt="Logo preview"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  </div>
+                ) : null}
+              </label>
+              <label className="asp2026-media-field">
+                <span>Banner URL</span>
+                <div className="asp2026-media-row">
+                  <input
+                    type="text"
+                    value={draft.bannerUrl || ""}
+                    onChange={(event) => onDraftChange({ bannerUrl: event.target.value })}
+                    placeholder="/uploads/... or https://..."
+                    disabled={saving}
+                  />
+                  <label className="asp2026-upload-btn">
+                    <Upload size={14} aria-hidden="true" />
+                    <span>{uploadingField === "bannerUrl" ? "Uploading..." : "Upload"}</span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      style={{ display: "none" }}
+                      disabled={saving || Boolean(uploadingField)}
+                      onChange={(e) => handleUpload(e, "bannerUrl")}
+                    />
+                  </label>
+                </div>
+                {draft.bannerUrl ? (
+                  <div className="asp2026-media-preview">
+                    <img
+                      src={draft.bannerUrl}
+                      alt="Banner preview"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  </div>
+                ) : null}
+              </label>
               <button type="submit" className="asp2026-primary-button" disabled={saving}>
                 <Save size={16} aria-hidden="true" />
                 {saving ? "Saving" : "Save Core"}
@@ -566,6 +673,8 @@ export default function AdminStoreProfilePage() {
           name: getStoreName(entry),
           slug: getStoreSlug(entry),
           status: String(readValue(entry, "status") || "ACTIVE").toUpperCase(),
+          logoUrl: textValue(readValue(entry, "logoUrl")),
+          bannerUrl: textValue(readValue(entry, "bannerUrl")),
         };
       });
       return next;
@@ -659,6 +768,8 @@ export default function AdminStoreProfilePage() {
         name: textValue(draft.name),
         slug: textValue(draft.slug),
         status: textValue(draft.status, "ACTIVE"),
+        logoUrl: textValue(draft.logoUrl) || null,
+        bannerUrl: textValue(draft.bannerUrl) || null,
       },
     });
   };

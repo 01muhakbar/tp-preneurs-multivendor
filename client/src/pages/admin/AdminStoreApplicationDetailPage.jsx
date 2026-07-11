@@ -360,7 +360,11 @@ function ErrorState({ message, onRetry }) {
 }
 
 export default function AdminStoreApplicationDetailPage() {
-  const { applicationId } = useParams();
+  const params = useParams();
+  const applicationId = params.applicationId || params.id;
+  const numericId = Number(applicationId);
+  const isInvalidId = !Number.isInteger(numericId) || numericId <= 0;
+
   const queryClient = useQueryClient();
   const reviewRef = useRef(null);
   const [activeAction, setActiveAction] = useState("");
@@ -374,7 +378,7 @@ export default function AdminStoreApplicationDetailPage() {
   const detailQuery = useQuery({
     queryKey: [DETAIL_QUERY_KEY, applicationId],
     queryFn: () => fetchAdminStoreApplicationDetail(applicationId),
-    enabled: Boolean(applicationId),
+    enabled: Boolean(applicationId) && !isInvalidId,
   });
 
   const detail = useMemo(
@@ -438,6 +442,15 @@ export default function AdminStoreApplicationDetailPage() {
 
   const isBusy =
     approveMutation.isPending || revisionMutation.isPending || rejectMutation.isPending;
+
+  if (isInvalidId) {
+    return (
+      <ErrorState
+        message={`Invalid store application ID "${applicationId}". Application ID must be a positive integer.`}
+        onRetry={() => {}}
+      />
+    );
+  }
 
   if (detailQuery.isLoading) return <LoadingState />;
 

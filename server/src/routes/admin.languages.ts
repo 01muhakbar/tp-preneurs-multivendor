@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../models/index.js";
+import { requireSuperAdmin } from "../middleware/requireRole.js";
 
 const router = Router();
 
@@ -124,6 +125,22 @@ const getLanguageById = async (id: number) => {
   return rows[0] ? mapLanguageRow(rows[0]) : null;
 };
 
+const getLanguagesStats = async () => {
+  const rows = (await sequelize.query(
+    `
+      SELECT
+        COUNT(*) AS total,
+        SUM(CASE WHEN published = 1 THEN 1 ELSE 0 END) AS totalPublished
+      FROM languages
+    `,
+    { type: QueryTypes.SELECT }
+  )) as Array<{ total: number | string; totalPublished: number | string }>;
+  return {
+    total: Number(rows[0]?.total || 0),
+    totalPublished: Number(rows[0]?.totalPublished || 0),
+  };
+};
+
 // GET /api/admin/languages
 router.get("/", async (req, res, next) => {
   try {
@@ -159,7 +176,7 @@ router.get("/", async (req, res, next) => {
 });
 
 // POST /api/admin/languages
-router.post("/", async (req, res, next) => {
+router.post("/", requireSuperAdmin, async (req, res, next) => {
   try {
     await ensureLanguagesTableAndDefaults();
 
@@ -220,7 +237,7 @@ router.post("/", async (req, res, next) => {
 });
 
 // PUT /api/admin/languages/:id
-router.put("/:id", async (req, res, next) => {
+router.put("/:id", requireSuperAdmin, async (req, res, next) => {
   try {
     await ensureLanguagesTableAndDefaults();
 
@@ -264,6 +281,16 @@ router.put("/:id", async (req, res, next) => {
         .json({ success: false, message: "isoCode is required" });
     }
 
+    if (existing.published && !nextPublished) {
+      const stats = await getLanguagesStats();
+      if (stats.totalPublished <= 1) {
+        return res.status(409).json({
+          success: false,
+          message: "Cannot unpublish the last published language. At least one language must remain published.",
+        });
+      }
+    }
+
     try {
       await sequelize.query(
         `
@@ -304,13 +331,32 @@ router.put("/:id", async (req, res, next) => {
 });
 
 // DELETE /api/admin/languages/:id
-router.delete("/:id", async (req, res, next) => {
+router.delete("/:id", requireSuperAdmin, async (req, res, next) => {
   try {
     await ensureLanguagesTableAndDefaults();
 
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0) {
       return res.status(400).json({ success: false, message: "Invalid id" });
+    }
+
+    const existing = await getLanguageById(id);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: "Language not found" });
+    }
+
+    const stats = await getLanguagesStats();
+    if (stats.total <= 1) {
+      return res.status(409).json({
+        success: false,
+        message: "Cannot delete the last remaining language. At least one language must exist.",
+      });
+    }
+    if (existing.published && stats.totalPublished <= 1) {
+      return res.status(409).json({
+        success: false,
+        message: "Cannot delete the last published language. At least one language must remain published.",
+      });
     }
 
     const [_rows, meta] = await sequelize.query(
@@ -330,7 +376,7 @@ router.delete("/:id", async (req, res, next) => {
 });
 
 // POST /api/admin/languages/bulk-delete
-router.post("/bulk-delete", async (req, res, next) => {
+router.post("/bulk-delete", requireSuperAdmin, async (req, res, next) => {
   try {
     await ensureLanguagesTableAndDefaults();
 
@@ -350,6 +396,27 @@ router.post("/bulk-delete", async (req, res, next) => {
     }
 
     const placeholders = ids.map(() => "?").join(", ");
+    const stats = await getLanguagesStats();
+    const targetRows = (await sequelize.query(
+      `SELECT id, published FROM languages WHERE id IN (${placeholders})`,
+      { type: QueryTypes.SELECT, replacements: ids }
+    )) as Array<{ id: number; published: number }>;
+
+    if (targetRows.length >= stats.total) {
+      return res.status(409).json({
+        success: false,
+        message: "Cannot delete all remaining languages. At least one language must exist.",
+      });
+    }
+
+    const publishedDeletingCount = targetRows.filter((r) => Number(r.published) === 1).length;
+    if (stats.totalPublished - publishedDeletingCount <= 0) {
+      return res.status(409).json({
+        success: false,
+        message: "Cannot delete all published languages. At least one published language must remain active.",
+      });
+    }
+
     const [_rows, meta] = await sequelize.query(
       `DELETE FROM languages WHERE id IN (${placeholders})`,
       { replacements: ids }

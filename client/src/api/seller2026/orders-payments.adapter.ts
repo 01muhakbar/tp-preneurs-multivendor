@@ -567,10 +567,7 @@ export function adaptSeller2026SuborderDetail(value: unknown): Seller2026Suborde
       discount: number(totals.discountAmount, 0),
       total: number(totals.totalAmount ?? sellerScope.totalAmount ?? paymentSummary.amount, 0),
     },
-    timeline: (trackingEvents.length ? trackingEvents : [
-      { id: "created", status: "Created", description: "Order was created.", createdAt: detail.createdAt ?? order.createdAt },
-      { id: "paid", status: "Paid", description: text(detail.paymentStatus, "Payment snapshot."), createdAt: detail.paidAt },
-    ]).map((item, index) => {
+    timeline: trackingEvents.map((item, index) => {
       const event = object(item);
       return {
         id: idValue(event.id, index),

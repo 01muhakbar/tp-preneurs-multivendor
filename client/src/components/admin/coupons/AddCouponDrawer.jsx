@@ -152,8 +152,8 @@ export default function AddCouponDrawer({
     const hasStartDate = Boolean(form.startDate);
     const hasEndDate = Boolean(form.endDate);
 
-    if (!campaignName) {
-      setValidationError("Campaign Name is required.");
+    if (!campaignName && !code) {
+      setValidationError("Campaign Name or Campaign Code is required.");
       return;
     }
     if (bannerUploading) {
@@ -194,7 +194,7 @@ export default function AddCouponDrawer({
     }
 
     onSubmit({
-      campaignName,
+      campaignName: campaignName || code,
       code,
       scopeType: form.scopeType,
       storeId: form.scopeType === "STORE" ? Number(form.storeId) : null,

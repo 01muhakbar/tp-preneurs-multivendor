@@ -1918,44 +1918,58 @@ router.patch(
   }
 );
 
-router.post(
-  "/:storeId/orders/:suborderId/internal-notes",
-  requireSellerStoreAccess,
-  async (req: any, res: any) => {
-    try {
-      const { storeId, suborderId } = req.params;
-      const { note } = req.body;
+const handleUpdateInternalNote = async (req: any, res: any) => {
+  try {
+    const { storeId, suborderId } = req.params;
+    const { note } = req.body;
 
-      if (!sellerHasPermission(req.sellerAccess, ORDER_FULFILLMENT_PERMISSION)) {
-        return res.status(403).json({
-          success: false,
-          message: "You don't have permission to manage order fulfillment and notes.",
-        });
-      }
-
-      const suborder = await Suborder.findOne({
-        where: { id: suborderId, storeId },
-      });
-
-      if (!suborder) {
-        return res.status(404).json({ success: false, message: "Suborder not found." });
-      }
-
-      await suborder.update({ internalNotes: note || null });
-
-      return res.json({
-        success: true,
-        message: "Internal note saved successfully.",
-        data: { internalNotes: suborder.internalNotes },
-      });
-    } catch (error) {
-      console.error("[seller/orders:internal-notes] error", error);
-      return res.status(500).json({
+    if (!sellerHasPermission(req.sellerAccess, ORDER_FULFILLMENT_PERMISSION)) {
+      return res.status(403).json({
         success: false,
-        message: "Failed to save internal note.",
+        message: "You don't have permission to manage order fulfillment and notes.",
       });
     }
+
+    const suborder = await Suborder.findOne({
+      where: { id: suborderId, storeId },
+    });
+
+    if (!suborder) {
+      return res.status(404).json({ success: false, message: "Suborder not found." });
+    }
+
+    await suborder.update({ internalNotes: note || null });
+
+    return res.json({
+      success: true,
+      message: "Internal note saved successfully.",
+      data: { internalNotes: suborder.internalNotes },
+    });
+  } catch (error) {
+    console.error("[seller/orders:internal-notes] error", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to save internal note.",
+    });
   }
+};
+
+router.post(
+  "/stores/:storeId/suborders/:suborderId/internal-notes",
+  requireSellerStoreAccess(["ORDER_VIEW", "ORDER_FULFILLMENT_MANAGE"]),
+  handleUpdateInternalNote
+);
+
+router.post(
+  "/stores/:storeId/orders/:suborderId/internal-notes",
+  requireSellerStoreAccess(["ORDER_VIEW", "ORDER_FULFILLMENT_MANAGE"]),
+  handleUpdateInternalNote
+);
+
+router.post(
+  "/:storeId/orders/:suborderId/internal-notes",
+  requireSellerStoreAccess(["ORDER_VIEW", "ORDER_FULFILLMENT_MANAGE"]),
+  handleUpdateInternalNote
 );
 
 export default router;
