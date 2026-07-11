@@ -187,17 +187,22 @@ export default function Navbar({
       flag: fallbackLanguage.flag,
     };
 
-    if (
+    const needsSelectedLanguageSync =
       !selectedLanguage ||
       selectedLanguage.isoCode !== nextValue.isoCode ||
       selectedLanguage.name !== nextValue.name ||
-      selectedLanguage.flag !== nextValue.flag
-    ) {
+      selectedLanguage.flag !== nextValue.flag;
+    const isI18nSynced = i18n.language?.toLowerCase() === nextValue.isoCode;
+
+    if (needsSelectedLanguageSync) {
       setSelectedLanguage(nextValue);
       persistLanguage(nextValue);
+    }
+
+    if (!isI18nSynced) {
       i18n.changeLanguage(nextValue.isoCode);
     }
-  }, [publishedLanguages, selectedLanguage, i18n]);
+  }, [publishedLanguages, selectedLanguage, i18n, i18n.language]);
 
   const chipText = selectedLanguage
     ? `${selectedLanguage.flag || selectedLanguage.isoCode.toUpperCase()} ${selectedLanguage.name.toUpperCase()}`

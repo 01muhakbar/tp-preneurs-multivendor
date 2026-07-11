@@ -6,12 +6,28 @@ import idStorefront from './locales/id/storefront.json';
 import enAdmin from './locales/en/admin.json';
 import idAdmin from './locales/id/admin.json';
 
+const normalizeLanguageCode = (value) => {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (normalized === "id" || normalized === "id-id" || normalized === "indonesia") return "id";
+  return "en";
+};
+
+const readJsonStorage = (key) => {
+  if (typeof window === "undefined") return null;
+  try {
+    return JSON.parse(localStorage.getItem(key) || "null");
+  } catch {
+    return null;
+  }
+};
+
 // Get language from localStorage, mapped to standard codes
 const getStoredLanguage = () => {
   if (typeof window === "undefined") return 'en';
-  const lang = localStorage.getItem('store_language');
-  if (lang === 'Indonesia') return 'id';
-  return 'en';
+  if (window.location.pathname === "/admin" || window.location.pathname.startsWith("/admin/")) {
+    return normalizeLanguageCode(readJsonStorage("adminLanguage")?.isoCode);
+  }
+  return normalizeLanguageCode(localStorage.getItem('store_language'));
 };
 
 i18n

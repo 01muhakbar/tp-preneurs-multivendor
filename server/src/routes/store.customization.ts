@@ -80,6 +80,74 @@ const parseRawCustomization = (raw: string | null) => {
   }
 };
 
+const toText = (value: unknown) => String(value ?? "").trim();
+
+const hasSliderContent = (slide: unknown) => {
+  if (!slide || typeof slide !== "object" || Array.isArray(slide)) return false;
+  const source = slide as Record<string, unknown>;
+  return Boolean(
+    toText(source.imageDataUrl) ||
+      toText(source.image) ||
+      toText(source.title) ||
+      toText(source.description) ||
+      toText(source.subtitle) ||
+      toText(source.buttonName) ||
+      toText(source.cta)
+  );
+};
+
+const mergeMainSliderMediaFallback = (
+  localized: Record<string, any>,
+  fallback: Record<string, any>
+) => {
+  const localizedSlides = Array.isArray(localized?.home?.mainSlider?.sliders)
+    ? localized.home.mainSlider.sliders
+    : [];
+  const fallbackSlides = Array.isArray(fallback?.home?.mainSlider?.sliders)
+    ? fallback.home.mainSlider.sliders
+    : [];
+  if (fallbackSlides.length === 0) return localized;
+
+  const hasLocalizedSliderContent = localizedSlides.some(hasSliderContent);
+  const nextSlides = fallbackSlides.map((fallbackSlide: any, index: number) => {
+    const localizedSlide =
+      localizedSlides[index] && typeof localizedSlides[index] === "object"
+        ? localizedSlides[index]
+        : {};
+    const localizedImage = toText(
+      localizedSlide.imageDataUrl ?? localizedSlide.image
+    );
+
+    if (localizedImage || hasSliderContent(localizedSlide)) {
+      return {
+        ...localizedSlide,
+        imageDataUrl: localizedImage || toText(fallbackSlide?.imageDataUrl),
+        imageFocus: toText(localizedSlide.imageFocus) || fallbackSlide?.imageFocus,
+      };
+    }
+
+    return {
+      ...localizedSlide,
+      imageDataUrl: toText(fallbackSlide?.imageDataUrl),
+      imageFocus: toText(fallbackSlide?.imageFocus) || localizedSlide.imageFocus,
+    };
+  });
+
+  return {
+    ...localized,
+    home: {
+      ...localized.home,
+      mainSlider: {
+        ...localized.home?.mainSlider,
+        sliders: nextSlides,
+        options: hasLocalizedSliderContent
+          ? localized.home?.mainSlider?.options
+          : fallback.home?.mainSlider?.options || localized.home?.mainSlider?.options,
+      },
+    },
+  };
+};
+
 const normalizeSlug = (value: unknown) =>
   String(value || "")
     .trim()
@@ -305,13 +373,20 @@ router.get("/", async (req, res, next) => {
       includeSet.has("product_slug_page");
 
     const row = await getCustomizationRow(lang);
-    const fallbackRow = !row && lang !== "en" ? await getCustomizationRow("en") : null;
+    const fallbackRow = lang !== "en" ? await getCustomizationRow("en") : null;
     const sourcePayload = row
       ? parseStoredCustomization(row.data)
       : fallbackRow
         ? parseStoredCustomization(fallbackRow.data)
         : sanitizeStoreCustomization({});
-    const sanitized = sanitizeStoreCustomization(sourcePayload);
+    const sanitizedSource = sanitizeStoreCustomization(sourcePayload);
+    const sanitized =
+      row && fallbackRow
+        ? mergeMainSliderMediaFallback(
+            sanitizedSource,
+            sanitizeStoreCustomization(parseStoredCustomization(fallbackRow.data))
+          )
+        : sanitizedSource;
     const customization: Record<string, unknown> = {};
 
     if (includeHome) {

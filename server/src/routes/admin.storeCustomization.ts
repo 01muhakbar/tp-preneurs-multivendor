@@ -299,27 +299,30 @@ const DEFAULT_CUSTOMIZATION = {
     pageHeader: {
       enabled: true,
       backgroundImageDataUrl: "",
-      pageTitle: "About Us",
+      pageTitle: "About TP Preneurs",
     },
     topContentLeft: {
       enabled: true,
-      topTitle: "Welcome to our KachaBazar shop",
+      topTitle: "Turning learning challenges into EdTech opportunities",
       topDescription:
-        "KachaBazar helps shoppers discover fresh groceries, household essentials, and daily deals with a smooth shopping flow.",
+        "Behind TP Preneur is a team driven by a shared passion: transforming challenges into valuable business opportunities. We come from diverse backgrounds and expertise, yet unite to create impactful work, build an inclusive entrepreneurial ecosystem, and inspire one another to keep growing.",
       boxOne: {
-        title: "10K",
-        subtitle: "Listed Products",
-        description: "Carefully curated products across grocery and daily needs.",
+        title: "Pedagogically Sound",
+        subtitle: "Learning-first design",
+        description:
+          "Every product, media, and service is developed on learning theory, curriculum alignment, and instructional design.",
       },
       boxTwo: {
-        title: "8K",
-        subtitle: "Lovely Customer",
-        description: "Customers trust our fast fulfillment and product quality.",
+        title: "Young EdTech Builders",
+        subtitle: "Student-crafted innovation",
+        description:
+          "Created by Educational Technology students who understand e-learning trends, current curriculum needs, and digital media.",
       },
       boxThree: {
-        title: "18K",
-        subtitle: "Orders Delivered",
-        description: "Orders delivered with reliable support and transparent updates.",
+        title: "Innovation to Industry",
+        subtitle: "Adaptive solutions",
+        description:
+          "Flexible multimedia, LMS, and digital teaching materials that connect campus work with the EdTech industry.",
       },
     },
     topContentRight: {
@@ -329,23 +332,42 @@ const DEFAULT_CUSTOMIZATION = {
     contentSection: {
       enabled: true,
       firstParagraph:
-        "Our mission is to make daily shopping simpler, faster, and more affordable for every household.",
+        "To become a center of innovation and entrepreneurship for Educational Technology students, producing high-quality, practical, and competitive digital learning media solutions for society.",
       secondParagraph:
-        "We continue improving operations, product quality, and customer support to provide a dependable shopping experience.",
+        "Our mission focuses on collaborative creation, educational quality, edupreneurial growth, and accessible interactive learning solutions for contemporary education.",
       contentImageDataUrl: "",
     },
     ourTeam: {
       enabled: true,
-      title: "Our Team",
+      title: "Mission in Action",
       description:
-        "Meet the people behind our operations, customer support, and product experience.",
+        "Four operating commitments that keep TP Preneurs relevant, useful, and ready to grow.",
       members: [
-        { imageDataUrl: "", title: "Name 1", subTitle: "Role 1" },
-        { imageDataUrl: "", title: "Name 2", subTitle: "Role 2" },
-        { imageDataUrl: "", title: "Name 3", subTitle: "Role 3" },
-        { imageDataUrl: "", title: "Name 4", subTitle: "Role 4" },
-        { imageDataUrl: "", title: "Name 5", subTitle: "Role 5" },
-        { imageDataUrl: "", title: "Name 6", subTitle: "Role 6" },
+        {
+          imageDataUrl: "",
+          title: "Collaborative Creation Space",
+          subTitle:
+            "Providing a platform for students to develop creative ideas into tangible educational products.",
+        },
+        {
+          imageDataUrl: "",
+          title: "Educational Quality First",
+          subTitle:
+            "Ensuring every product prioritizes learning effectiveness and targeted technology use.",
+        },
+        {
+          imageDataUrl: "",
+          title: "Edupreneurial Spirit",
+          subTitle: "Helping students manage, package, and market their work professionally.",
+        },
+        {
+          imageDataUrl: "",
+          title: "Learning Solutions",
+          subTitle:
+            "Providing accessible interactive media that answers contemporary education challenges.",
+        },
+        { imageDataUrl: "", title: "", subTitle: "" },
+        { imageDataUrl: "", title: "", subTitle: "" },
       ],
     },
   },

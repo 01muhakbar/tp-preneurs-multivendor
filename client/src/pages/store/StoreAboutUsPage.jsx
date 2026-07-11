@@ -1,12 +1,27 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getStoreCustomization } from "../../api/public/storeCustomizationPublic.ts";
+import { useTranslation } from "react-i18next";
+import {
+  ArrowRight,
+  BookOpenCheck,
+  GraduationCap,
+  Handshake,
+  Lightbulb,
+  Rocket,
+  Sparkles,
+  Target,
+} from "lucide-react";
+import { Link } from "react-router-dom";
+import {
+  getStoreCustomization,
+  getStoreSettings,
+} from "../../api/public/storeCustomizationPublic.ts";
 import {
   UiEmptyState,
   UiErrorState,
 } from "../../components/primitives/state/index.js";
+import { resolveAssetUrl } from "../../lib/assetUrl.js";
 
-const DEFAULT_LANG = "en";
 const DEFAULT_ABOUT_US_DISABLED = {
   pageHeader: {
     enabled: false,
@@ -47,13 +62,16 @@ const DEFAULT_ABOUT_US_DISABLED = {
     enabled: false,
     title: "",
     description: "",
-    members: Array.from({ length: 6 }, (_, index) => ({
+    members: Array.from({ length: 6 }, () => ({
       imageDataUrl: "",
       title: "",
       subTitle: "",
     })),
   },
 };
+
+const BRAND_BLUE = "#034c85";
+const BRAND_ORANGE = "#fe6f05";
 
 const toText = (value, fallback = "") => {
   const normalized = String(value ?? "").trim();
@@ -74,7 +92,7 @@ const toBool = (value, fallback = false) => {
 const toImageDataUrl = (...values) => {
   for (const value of values) {
     const normalized = String(value ?? "").trim();
-    if (normalized) return normalized;
+    if (normalized) return resolveAssetUrl(normalized);
   }
   return "";
 };
@@ -88,21 +106,13 @@ const isPlaceholderTeamTitle = (value) => /^name\s+\d+$/i.test(String(value ?? "
 
 const isPlaceholderTeamSubtitle = (value) => /^role\s+\d+$/i.test(String(value ?? "").trim());
 
-const buildDisplayOurTeamMember = (member) => {
-  const title = isPlaceholderTeamTitle(member?.title) ? "" : toText(member?.title, "");
-  const subTitle = isPlaceholderTeamSubtitle(member?.subTitle)
-    ? ""
-    : toText(member?.subTitle, "");
-  const imageDataUrl = toImageDataUrl(member?.imageDataUrl, member?.image);
-  return {
-    imageDataUrl,
-    title,
-    subTitle,
-  };
+const getStoreLang = (i18n) => {
+  const activeLanguage = String(i18n?.language || "").toLowerCase();
+  const storedLanguage =
+    typeof window !== "undefined" ? String(localStorage.getItem("store_language") || "") : "";
+  const normalizedStored = storedLanguage.toLowerCase();
+  return activeLanguage.startsWith("id") || normalizedStored === "indonesia" ? "id" : "en";
 };
-
-const hasDisplayOurTeamMemberContent = (member) =>
-  hasText(member?.imageDataUrl) || hasText(member?.title) || hasText(member?.subTitle);
 
 const normalizeAboutUs = (raw) => {
   const source = raw && typeof raw === "object" ? raw : {};
@@ -144,21 +154,36 @@ const normalizeAboutUs = (raw) => {
     topContentLeft: {
       enabled: toBool(topContentLeft.enabled, DEFAULT_ABOUT_US_DISABLED.topContentLeft.enabled),
       topTitle: toText(topContentLeft.topTitle, DEFAULT_ABOUT_US_DISABLED.topContentLeft.topTitle),
-      topDescription: toText(topContentLeft.topDescription, DEFAULT_ABOUT_US_DISABLED.topContentLeft.topDescription),
+      topDescription: toText(
+        topContentLeft.topDescription,
+        DEFAULT_ABOUT_US_DISABLED.topContentLeft.topDescription
+      ),
       boxOne: {
         title: toText(boxOne.title, DEFAULT_ABOUT_US_DISABLED.topContentLeft.boxOne.title),
         subtitle: toText(boxOne.subtitle, DEFAULT_ABOUT_US_DISABLED.topContentLeft.boxOne.subtitle),
-        description: toText(boxOne.description, DEFAULT_ABOUT_US_DISABLED.topContentLeft.boxOne.description),
+        description: toText(
+          boxOne.description,
+          DEFAULT_ABOUT_US_DISABLED.topContentLeft.boxOne.description
+        ),
       },
       boxTwo: {
         title: toText(boxTwo.title, DEFAULT_ABOUT_US_DISABLED.topContentLeft.boxTwo.title),
         subtitle: toText(boxTwo.subtitle, DEFAULT_ABOUT_US_DISABLED.topContentLeft.boxTwo.subtitle),
-        description: toText(boxTwo.description, DEFAULT_ABOUT_US_DISABLED.topContentLeft.boxTwo.description),
+        description: toText(
+          boxTwo.description,
+          DEFAULT_ABOUT_US_DISABLED.topContentLeft.boxTwo.description
+        ),
       },
       boxThree: {
         title: toText(boxThree.title, DEFAULT_ABOUT_US_DISABLED.topContentLeft.boxThree.title),
-        subtitle: toText(boxThree.subtitle, DEFAULT_ABOUT_US_DISABLED.topContentLeft.boxThree.subtitle),
-        description: toText(boxThree.description, DEFAULT_ABOUT_US_DISABLED.topContentLeft.boxThree.description),
+        subtitle: toText(
+          boxThree.subtitle,
+          DEFAULT_ABOUT_US_DISABLED.topContentLeft.boxThree.subtitle
+        ),
+        description: toText(
+          boxThree.description,
+          DEFAULT_ABOUT_US_DISABLED.topContentLeft.boxThree.description
+        ),
       },
     },
     topContentRight: {
@@ -167,8 +192,14 @@ const normalizeAboutUs = (raw) => {
     },
     contentSection: {
       enabled: toBool(contentSection.enabled, DEFAULT_ABOUT_US_DISABLED.contentSection.enabled),
-      firstParagraph: toText(contentSection.firstParagraph, DEFAULT_ABOUT_US_DISABLED.contentSection.firstParagraph),
-      secondParagraph: toText(contentSection.secondParagraph, DEFAULT_ABOUT_US_DISABLED.contentSection.secondParagraph),
+      firstParagraph: toText(
+        contentSection.firstParagraph,
+        DEFAULT_ABOUT_US_DISABLED.contentSection.firstParagraph
+      ),
+      secondParagraph: toText(
+        contentSection.secondParagraph,
+        DEFAULT_ABOUT_US_DISABLED.contentSection.secondParagraph
+      ),
       contentImageDataUrl: toImageDataUrl(
         contentSection.contentImageDataUrl,
         contentSection.imageDataUrl,
@@ -191,42 +222,127 @@ const normalizeAboutUs = (raw) => {
   };
 };
 
+const buildDisplayOurTeamMember = (member) => {
+  const title = isPlaceholderTeamTitle(member?.title) ? "" : toText(member?.title, "");
+  const subTitle = isPlaceholderTeamSubtitle(member?.subTitle)
+    ? ""
+    : toText(member?.subTitle, "");
+  return {
+    imageDataUrl: toImageDataUrl(member?.imageDataUrl, member?.image),
+    title,
+    subTitle,
+  };
+};
+
+const hasDisplayOurTeamMemberContent = (member) =>
+  hasText(member?.imageDataUrl) || hasText(member?.title) || hasText(member?.subTitle);
+
+const boxIcons = [BookOpenCheck, GraduationCap, Rocket];
+const missionIcons = [Handshake, Target, Lightbulb, Sparkles, BookOpenCheck, Rocket];
+
 function AboutUsSkeleton() {
   return (
     <div className="mx-auto max-w-7xl space-y-8 px-3 py-6 sm:px-4 sm:py-8 lg:px-6">
-      <div className="h-44 animate-pulse rounded-3xl bg-slate-200 sm:h-56" />
-      <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="space-y-3">
-          <div className="h-4 w-48 animate-pulse rounded bg-slate-200" />
-          <div className="h-10 w-4/5 animate-pulse rounded bg-slate-200" />
-          <div className="h-24 animate-pulse rounded bg-slate-100" />
-        </div>
-        <div className="h-64 animate-pulse rounded-2xl bg-slate-100" />
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="h-[430px] animate-pulse rounded-[2rem] bg-slate-200 sm:h-[500px]" />
+      <div className="grid gap-4 md:grid-cols-3">
         {Array.from({ length: 3 }).map((_, index) => (
-          <div key={`about-skeleton-stat-${index}`} className="h-36 animate-pulse rounded-2xl bg-slate-100" />
+          <div key={`about-skeleton-stat-${index}`} className="h-48 animate-pulse rounded-2xl bg-slate-100" />
         ))}
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <div key={`about-skeleton-team-${index}`} className="h-64 animate-pulse rounded-2xl bg-slate-100" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={`about-skeleton-team-${index}`} className="h-44 animate-pulse rounded-2xl bg-slate-100" />
         ))}
       </div>
     </div>
   );
 }
 
+function BrandMark({ logoUrl, isIndonesian }) {
+  return (
+    <div className="relative min-h-[310px] overflow-hidden rounded-[2rem] border border-white/60 bg-white shadow-2xl shadow-[#034c85]/15 dark:border-white/10 dark:bg-slate-900">
+      <div className="absolute inset-x-0 top-0 h-1.5 bg-[#fe6f05]" />
+      <div className="absolute -right-14 -top-16 h-44 w-44 rounded-full bg-[#fe6f05]/15" />
+      <div className="absolute -bottom-20 -left-16 h-52 w-52 rounded-full bg-[#034c85]/15" />
+      <div className="relative flex h-full min-h-[310px] flex-col justify-between p-6 sm:p-8">
+        <div className="flex items-center justify-between gap-4">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
+            {logoUrl ? (
+              <img src={logoUrl} alt="TP Preneurs" className="h-11 w-auto max-w-[180px] object-contain" />
+            ) : (
+              <span className="text-lg font-black text-[#034c85] dark:text-white">TP Preneurs</span>
+            )}
+          </div>
+          <span className="rounded-full border border-[#fe6f05]/25 bg-[#fe6f05]/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-[#fe6f05]">
+            EdTech
+          </span>
+        </div>
+        <div className="py-6">
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#fe6f05] text-white shadow-lg shadow-[#fe6f05]/25">
+            <Lightbulb className="h-7 w-7" />
+          </div>
+          <p className="mt-5 max-w-sm text-3xl font-black leading-tight text-[#034c85] dark:text-white">
+            {isIndonesian
+              ? "Media pembelajaran digital yang siap bertumbuh."
+              : "Digital learning media built to grow."}
+          </p>
+          <p className="mt-3 max-w-sm text-sm leading-6 text-slate-600 dark:text-slate-300">
+            {isIndonesian
+              ? "Dari teori, kolaborasi, hingga peluang pasar EdTech."
+              : "From theory and collaboration to real EdTech opportunities."}
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {(isIndonesian
+            ? [
+                ["Pembelajaran", "Teori"],
+                ["Digital", "Media"],
+                ["Kampus", "Pasar"],
+                ["Dampak", "Pertumbuhan"],
+              ]
+            : [
+                ["Learning", "Theory"],
+                ["Digital", "Media"],
+                ["Campus", "Market"],
+                ["Impact", "Growth"],
+              ]
+          ).map(([title, subtitle]) => (
+            <div key={`${title}-${subtitle}`} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
+              <p className="text-lg font-black text-[#034c85] dark:text-white">{title}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                {subtitle}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function StoreAboutUsPage() {
-  const lang = DEFAULT_LANG;
+  const { i18n } = useTranslation();
+  const lang = getStoreLang(i18n);
+  const isIndonesian = lang === "id";
   const aboutUsQuery = useQuery({
     queryKey: ["store-customization", "about-us", lang],
-    queryFn: () => getStoreCustomization({ lang, include: "about-us" }),
+    queryFn: () => getStoreCustomization({ lang, include: "about-us,home" }),
+    staleTime: 60_000,
+  });
+  const storeSettingsQuery = useQuery({
+    queryKey: ["store-settings", "about-us-branding"],
+    queryFn: getStoreSettings,
     staleTime: 60_000,
   });
 
-  const aboutUsRaw = aboutUsQuery.data?.customization?.aboutUs;
+  const customization = aboutUsQuery.data?.customization;
+  const aboutUsRaw = customization?.aboutUs;
   const aboutUs = useMemo(() => normalizeAboutUs(aboutUsRaw), [aboutUsRaw]);
+  const headerLogoUrl = toImageDataUrl(
+    storeSettingsQuery.data?.data?.storeSettings?.branding?.clientLogoUrl,
+    customization?.home?.header?.headerLogoUrl,
+    customization?.home?.header?.logoDataUrl
+  );
   const topContentLeftBoxes = useMemo(
     () =>
       [aboutUs.topContentLeft.boxOne, aboutUs.topContentLeft.boxTwo, aboutUs.topContentLeft.boxThree].filter(
@@ -310,163 +426,211 @@ export default function StoreAboutUsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-10 px-3 py-6 sm:px-4 sm:py-8 lg:px-6">
-      {aboutUs.pageHeader.enabled ? (
-        <section
-          className="relative overflow-hidden rounded-3xl border border-slate-200"
-          style={
-            aboutUs.pageHeader.backgroundImageDataUrl
-              ? {
-                  backgroundImage: `url(${aboutUs.pageHeader.backgroundImageDataUrl})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                }
-              : undefined
-          }
-        >
-          <div
-            className={`absolute inset-0 ${
-              aboutUs.pageHeader.backgroundImageDataUrl
-                ? "bg-slate-900/55"
-                : "bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100"
-            }`}
-          />
-          <div className="relative px-4 py-12 text-center sm:px-8 sm:py-16">
-            <h1
-              className={`text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl ${
-                aboutUs.pageHeader.backgroundImageDataUrl ? "text-white" : "text-slate-900"
-              }`}
-            >
-              {aboutUs.pageHeader.pageTitle}
-            </h1>
+    <div
+      className="bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-white"
+      style={{
+        "--about-brand-blue": BRAND_BLUE,
+        "--about-brand-orange": BRAND_ORANGE,
+      }}
+    >
+      <section
+        className="relative overflow-hidden border-b border-slate-200 bg-[radial-gradient(circle_at_top_left,rgba(254,111,5,0.16),transparent_28%),linear-gradient(135deg,#f8fbff_0%,#eef6ff_48%,#fff7ed_100%)] dark:border-white/10 dark:bg-[radial-gradient(circle_at_top_left,rgba(254,111,5,0.18),transparent_28%),linear-gradient(135deg,#061423_0%,#071d33_48%,#1c120b_100%)]"
+        style={
+          aboutUs.pageHeader.enabled && aboutUs.pageHeader.backgroundImageDataUrl
+            ? {
+                backgroundImage: `linear-gradient(135deg, rgba(3,76,133,0.88), rgba(3,76,133,0.58)), url(${aboutUs.pageHeader.backgroundImageDataUrl})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }
+            : undefined
+        }
+      >
+        <div className="mx-auto grid max-w-7xl gap-10 px-3 py-10 sm:px-4 sm:py-14 lg:grid-cols-[1.05fr_0.95fr] lg:px-6 lg:py-16">
+          <div className="flex flex-col justify-center">
+            <span className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-[#034c85]/15 bg-white/80 px-4 py-2 text-xs font-black uppercase tracking-wide text-[#034c85] shadow-sm dark:border-white/10 dark:bg-white/10 dark:text-white">
+              <Sparkles className="h-4 w-4 text-[#fe6f05]" />
+              {isIndonesian ? "Ekosistem Edupreneur" : "Edupreneur Ecosystem"}
+            </span>
+            {aboutUs.pageHeader.enabled && hasText(aboutUs.pageHeader.pageTitle) ? (
+              <h1 className="max-w-3xl text-4xl font-black leading-tight text-[#034c85] sm:text-5xl lg:text-6xl dark:text-white">
+                {aboutUs.pageHeader.pageTitle}
+              </h1>
+            ) : null}
+            {shouldRenderTopContentLeft && hasText(aboutUs.topContentLeft.topTitle) ? (
+              <p className="mt-5 max-w-3xl text-xl font-extrabold leading-snug text-slate-900 sm:text-2xl dark:text-slate-100">
+                {aboutUs.topContentLeft.topTitle}
+              </p>
+            ) : null}
+            {shouldRenderTopContentLeft && hasText(aboutUs.topContentLeft.topDescription) ? (
+              <p className="mt-5 max-w-3xl text-base leading-8 text-slate-700 sm:text-lg dark:text-slate-300">
+                {aboutUs.topContentLeft.topDescription}
+              </p>
+            ) : null}
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link
+                to="/shop"
+                className="inline-flex items-center gap-2 rounded-full bg-[#034c85] px-5 py-3 text-sm font-black !text-white shadow-lg shadow-[#034c85]/20 transition hover:bg-[#023c69]"
+              >
+                {isIndonesian ? "Jelajahi Produk" : "Explore Products"}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                to="/contact-us"
+                className="inline-flex items-center gap-2 rounded-full border border-[#034c85]/20 bg-white px-5 py-3 text-sm font-black text-[#034c85] transition hover:border-[#fe6f05]/35 hover:text-[#fe6f05] dark:border-white/10 dark:bg-white/10 dark:text-white"
+              >
+                {isIndonesian ? "Hubungi Kami" : "Contact Us"}
+              </Link>
+            </div>
           </div>
-        </section>
-      ) : null}
 
-      {hasTopContent ? (
-        <section className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-10">
-          {shouldRenderTopContentLeft ? (
-            <div className="space-y-4">
-              {hasText(aboutUs.topContentLeft.topTitle) ? (
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600">
-                  {aboutUs.topContentLeft.topTitle}
+          {shouldRenderTopContentRight && aboutUs.topContentRight.imageDataUrl ? (
+            <div className="relative min-h-[310px] overflow-hidden rounded-[2rem] border border-white/60 bg-white shadow-2xl shadow-[#034c85]/15 dark:border-white/10 dark:bg-slate-900">
+              <img
+                src={aboutUs.topContentRight.imageDataUrl}
+                alt={aboutUs.pageHeader.pageTitle || "About TP Preneurs"}
+                className="h-full min-h-[310px] w-full object-cover"
+              />
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#034c85]/90 to-transparent p-6">
+                <p className="max-w-sm text-sm font-semibold leading-6 text-white">
+                  {isIndonesian
+                    ? "Karya pembelajaran digital yang lahir dari kolaborasi mahasiswa dan kebutuhan industri."
+                    : "Digital learning work shaped by student collaboration and industry needs."}
                 </p>
-              ) : null}
-              {hasText(aboutUs.topContentLeft.topDescription) ? (
-                <p className="text-sm leading-7 text-slate-600 sm:text-base">
-                  {aboutUs.topContentLeft.topDescription}
-                </p>
-              ) : null}
-              {topContentLeftBoxes.length > 0 ? (
-                <div className="grid gap-4 sm:grid-cols-3">
-                  {topContentLeftBoxes.map((item, index) => (
+              </div>
+            </div>
+          ) : (
+            <BrandMark logoUrl={headerLogoUrl} isIndonesian={isIndonesian} />
+          )}
+        </div>
+      </section>
+
+      <main className="mx-auto max-w-7xl space-y-12 px-3 py-12 sm:px-4 lg:px-6">
+        {shouldRenderTopContentLeft && topContentLeftBoxes.length > 0 ? (
+          <section className="grid gap-4 md:grid-cols-3">
+            {topContentLeftBoxes.map((item, index) => {
+              const Icon = boxIcons[index] || Sparkles;
+              return (
+                <article
+                  key={`about-top-box-${index}`}
+                  className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-[#fe6f05]/35 hover:shadow-xl hover:shadow-[#034c85]/10 dark:border-white/10 dark:bg-white/5"
+                >
+                  <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#034c85]/10 text-[#034c85] dark:bg-white/10 dark:text-white">
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  {hasText(item.title) ? (
+                    <h2 className="text-xl font-black text-slate-950 dark:text-white">{item.title}</h2>
+                  ) : null}
+                  {hasText(item.subtitle) ? (
+                    <p className="mt-2 text-sm font-bold uppercase tracking-wide text-[#fe6f05]">
+                      {item.subtitle}
+                    </p>
+                  ) : null}
+                  {hasText(item.description) ? (
+                    <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">
+                      {item.description}
+                    </p>
+                  ) : null}
+                </article>
+              );
+            })}
+          </section>
+        ) : null}
+
+        {shouldRenderContentSection ? (
+          <section className="grid gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-stretch">
+            {aboutUs.contentSection.contentImageDataUrl ? (
+              <img
+                src={aboutUs.contentSection.contentImageDataUrl}
+                alt={isIndonesian ? "Visi TP Preneurs" : "TP Preneurs vision"}
+                className="min-h-[280px] w-full rounded-[1.75rem] object-cover shadow-xl shadow-[#034c85]/10"
+              />
+            ) : (
+              <div className="flex min-h-[280px] flex-col justify-between rounded-[1.75rem] bg-[#034c85] p-7 text-white shadow-xl shadow-[#034c85]/20">
+                <Target className="h-10 w-10 text-[#fe6f05]" />
+                <div>
+                  <p className="text-sm font-black uppercase tracking-[0.2em] text-white/70">
+                    {isIndonesian ? "Visi" : "Vision"}
+                  </p>
+                  <p className="mt-3 text-3xl font-black leading-tight">
+                    {isIndonesian ? "Inovasi yang bernilai guna" : "Innovation with practical value"}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5 sm:p-8">
+              <span className="inline-flex items-center gap-2 rounded-full bg-[#fe6f05]/10 px-3 py-1 text-xs font-black uppercase tracking-wide text-[#fe6f05]">
+                <Target className="h-4 w-4" />
+                {isIndonesian ? "Visi & Misi" : "Vision & Mission"}
+              </span>
+              <div className="mt-6 space-y-5 text-base leading-8 text-slate-700 dark:text-slate-300">
+                {contentParagraphs.map((paragraph, index) => (
+                  <p
+                    key={`about-content-paragraph-${index}`}
+                    className={index === 0 ? "text-xl font-extrabold leading-9 text-[#034c85] dark:text-white" : ""}
+                  >
+                    {paragraph}
+                  </p>
+                ))}
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        {shouldRenderOurTeam ? (
+          <section className="space-y-6">
+            {hasOurTeamText ? (
+              <div className="max-w-3xl">
+                {hasText(aboutUs.ourTeam.title) ? (
+                  <h2 className="text-3xl font-black text-[#034c85] sm:text-4xl dark:text-white">
+                    {aboutUs.ourTeam.title}
+                  </h2>
+                ) : null}
+                {hasText(aboutUs.ourTeam.description) ? (
+                  <p className="mt-3 text-base leading-7 text-slate-600 dark:text-slate-300">
+                    {aboutUs.ourTeam.description}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+            {displayOurTeamMembers.length > 0 ? (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {displayOurTeamMembers.map((member, index) => {
+                  const Icon = missionIcons[index] || Sparkles;
+                  return (
                     <article
-                      key={`about-top-box-${index}`}
-                      className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                      key={`about-team-${index}`}
+                      className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/5"
                     >
-                      {hasText(item.title) ? (
-                        <div className="text-3xl font-extrabold text-slate-900">{item.title}</div>
+                      {member.imageDataUrl ? (
+                        <img
+                          src={member.imageDataUrl}
+                          alt={member.title}
+                          className="mb-4 h-36 w-full rounded-xl object-cover"
+                        />
+                      ) : (
+                        <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fe6f05]/10 text-[#fe6f05]">
+                          <Icon className="h-5 w-5" />
+                        </div>
+                      )}
+                      {hasText(member.title) ? (
+                        <h3 className="text-base font-black text-slate-950 dark:text-white">
+                          {member.title}
+                        </h3>
                       ) : null}
-                      {hasText(item.subtitle) ? (
-                        <div className="mt-1 text-sm font-semibold text-slate-800">{item.subtitle}</div>
-                      ) : null}
-                      {hasText(item.description) ? (
-                        <p className="mt-2 text-xs leading-6 text-slate-500 sm:text-sm">
-                          {item.description}
+                      {hasText(member.subTitle) ? (
+                        <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                          {member.subTitle}
                         </p>
                       ) : null}
                     </article>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
-          {shouldRenderTopContentRight ? (
-            <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-              {aboutUs.topContentRight.imageDataUrl ? (
-                <img
-                  src={aboutUs.topContentRight.imageDataUrl}
-                  alt="About Us top content"
-                  className="h-full min-h-[260px] w-full rounded-xl object-cover"
-                />
-              ) : (
-                <div className="flex min-h-[260px] items-center justify-center rounded-xl bg-slate-100 text-sm font-medium text-slate-400">
-                  Image not configured
-                </div>
-              )}
-            </div>
-          ) : null}
-        </section>
-      ) : null}
-
-      {shouldRenderContentSection ? (
-        <section className="grid gap-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="space-y-4 text-sm leading-7 text-slate-600 sm:text-base">
-            {contentParagraphs.map((paragraph, index) => (
-              <p key={`about-content-paragraph-${index}`}>{paragraph}</p>
-            ))}
-          </div>
-          {aboutUs.contentSection.contentImageDataUrl ? (
-            <img
-              src={aboutUs.contentSection.contentImageDataUrl}
-              alt="About Us content"
-              className="h-full min-h-[240px] w-full rounded-xl object-cover"
-            />
-          ) : (
-            <div className="flex min-h-[240px] items-center justify-center rounded-xl bg-slate-100 text-sm font-medium text-slate-400">
-              Content image not configured
-            </div>
-          )}
-        </section>
-      ) : null}
-
-      {shouldRenderOurTeam ? (
-        <section className="space-y-5">
-          {hasOurTeamText ? (
-            <div>
-              {hasText(aboutUs.ourTeam.title) ? (
-                <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
-                  {aboutUs.ourTeam.title}
-                </h2>
-              ) : null}
-              {hasText(aboutUs.ourTeam.description) ? (
-                <p className="mt-2 text-sm text-slate-500">{aboutUs.ourTeam.description}</p>
-              ) : null}
-            </div>
-          ) : null}
-          {displayOurTeamMembers.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {displayOurTeamMembers.map((member, index) => (
-              <article
-                key={`about-team-${index}`}
-                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-              >
-                {member.imageDataUrl ? (
-                  <img
-                    src={member.imageDataUrl}
-                    alt={member.title}
-                    className="h-44 w-full rounded-xl object-cover"
-                  />
-                ) : (
-                  <div className="flex h-44 w-full items-center justify-center rounded-xl bg-slate-100 text-sm font-medium text-slate-400">
-                    No image
-                  </div>
-                )}
-                <div className="mt-4">
-                  {hasText(member.title) ? (
-                    <h3 className="text-base font-semibold text-slate-900">{member.title}</h3>
-                  ) : null}
-                  {hasText(member.subTitle) ? (
-                    <p className="mt-1 text-sm text-slate-500">{member.subTitle}</p>
-                  ) : null}
-                </div>
-              </article>
-              ))}
-            </div>
-          ) : null}
-        </section>
-      ) : null}
+                  );
+                })}
+              </div>
+            ) : null}
+          </section>
+        ) : null}
+      </main>
     </div>
   );
 }

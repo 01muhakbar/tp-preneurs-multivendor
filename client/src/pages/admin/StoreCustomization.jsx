@@ -565,27 +565,30 @@ const getDefaultCustomization = () => ({
     pageHeader: {
       enabled: true,
       backgroundImageDataUrl: "",
-      pageTitle: "About Us",
+      pageTitle: "About TP Preneurs",
     },
     topContentLeft: {
       enabled: true,
-      topTitle: "Welcome to our KachaBazar shop",
+      topTitle: "Turning learning challenges into EdTech opportunities",
       topDescription:
-        "KachaBazar helps shoppers discover fresh groceries, household essentials, and daily deals with a smooth shopping flow.",
+        "Behind TP Preneur is a team driven by a shared passion: transforming challenges into valuable business opportunities. We come from diverse backgrounds and expertise, yet unite to create impactful work, build an inclusive entrepreneurial ecosystem, and inspire one another to keep growing.",
       boxOne: {
-        title: "10K",
-        subtitle: "Listed Products",
-        description: "Carefully curated products across grocery and daily needs.",
+        title: "Pedagogically Sound",
+        subtitle: "Learning-first design",
+        description:
+          "Every product, media, and service is developed on learning theory, curriculum alignment, and instructional design.",
       },
       boxTwo: {
-        title: "8K",
-        subtitle: "Lovely Customer",
-        description: "Customers trust our fast fulfillment and product quality.",
+        title: "Young EdTech Builders",
+        subtitle: "Student-crafted innovation",
+        description:
+          "Created by Educational Technology students who understand e-learning trends, current curriculum needs, and digital media.",
       },
       boxThree: {
-        title: "18K",
-        subtitle: "Orders Delivered",
-        description: "Orders delivered with reliable support and transparent updates.",
+        title: "Innovation to Industry",
+        subtitle: "Adaptive solutions",
+        description:
+          "Flexible multimedia, LMS, and digital teaching materials that connect campus work with the EdTech industry.",
       },
     },
     topContentRight: {
@@ -595,21 +598,43 @@ const getDefaultCustomization = () => ({
     contentSection: {
       enabled: true,
       firstParagraph:
-        "Our mission is to make daily shopping simpler, faster, and more affordable for every household.",
+        "To become a center of innovation and entrepreneurship for Educational Technology students, producing high-quality, practical, and competitive digital learning media solutions for society.",
       secondParagraph:
-        "We continue improving operations, product quality, and customer support to provide a dependable shopping experience.",
+        "Our mission focuses on collaborative creation, educational quality, edupreneurial growth, and accessible interactive learning solutions for contemporary education.",
       contentImageDataUrl: "",
     },
     ourTeam: {
       enabled: true,
-      title: "Our Team",
+      title: "Mission in Action",
       description:
-        "Meet the people behind our operations, customer support, and product experience.",
-      members: Array.from({ length: ABOUT_US_MEMBER_LENGTH }, (_, index) => ({
-        imageDataUrl: "",
-        title: `Name ${index + 1}`,
-        subTitle: `Role ${index + 1}`,
-      })),
+        "Four operating commitments that keep TP Preneurs relevant, useful, and ready to grow.",
+      members: [
+        {
+          imageDataUrl: "",
+          title: "Collaborative Creation Space",
+          subTitle: "Providing a platform for students to develop creative ideas into tangible educational products.",
+        },
+        {
+          imageDataUrl: "",
+          title: "Educational Quality First",
+          subTitle: "Ensuring every product prioritizes learning effectiveness and targeted technology use.",
+        },
+        {
+          imageDataUrl: "",
+          title: "Edupreneurial Spirit",
+          subTitle: "Helping students manage, package, and market their work professionally.",
+        },
+        {
+          imageDataUrl: "",
+          title: "Learning Solutions",
+          subTitle: "Providing accessible interactive media that answers contemporary education challenges.",
+        },
+        ...Array.from({ length: ABOUT_US_MEMBER_LENGTH - 4 }, () => ({
+          imageDataUrl: "",
+          title: "",
+          subTitle: "",
+        })),
+      ],
     },
   },
   privacyPolicy: {
@@ -6112,7 +6137,7 @@ export default function StoreCustomizationPage() {
                 <Settings className="h-4 w-4" />
               </span>
               <h2 className="text-base font-semibold text-slate-900">
-                About Page Top Content Left
+                About Page Hero Content
               </h2>
             </div>
             <div className="mt-4 h-px w-full bg-slate-200" />
@@ -6235,7 +6260,7 @@ export default function StoreCustomizationPage() {
                 <Settings className="h-4 w-4" />
               </span>
               <h2 className="text-base font-semibold text-slate-900">
-                Page Top Content Right
+                Hero Visual
               </h2>
             </div>
             <div className="mt-4 h-px w-full bg-slate-200" />
@@ -6252,7 +6277,7 @@ export default function StoreCustomizationPage() {
               </div>
               <ImageUploadField
                 id="about-us-top-content-right-image-input"
-                label="Top Content Right Image"
+                label="Hero Visual Image"
                 error={aboutUsImageErrors[ABOUT_US_IMAGE_FIELD_KEYS.topContentRightImage]}
                 dropActive={Boolean(
                   aboutUsDropActive[ABOUT_US_IMAGE_FIELD_KEYS.topContentRightImage]
@@ -6283,7 +6308,7 @@ export default function StoreCustomizationPage() {
               <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
                 <Settings className="h-4 w-4" />
               </span>
-              <h2 className="text-base font-semibold text-slate-900">Content Section</h2>
+              <h2 className="text-base font-semibold text-slate-900">Vision & Mission</h2>
             </div>
             <div className="mt-4 h-px w-full bg-slate-200" />
 
@@ -6354,7 +6379,7 @@ export default function StoreCustomizationPage() {
               <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
                 <Settings className="h-4 w-4" />
               </span>
-              <h2 className="text-base font-semibold text-slate-900">Our Team</h2>
+              <h2 className="text-base font-semibold text-slate-900">Mission Cards</h2>
             </div>
             <div className="mt-4 h-px w-full bg-slate-200" />
 
@@ -6371,7 +6396,7 @@ export default function StoreCustomizationPage() {
 
               <label className="block">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Our Team Title
+                  Mission Section Title
                 </span>
                 <input
                   type="text"
@@ -6385,7 +6410,7 @@ export default function StoreCustomizationPage() {
 
               <label className="block">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Our Team Description
+                  Mission Section Description
                 </span>
                 <textarea
                   value={aboutUs.ourTeam.description}
@@ -6418,7 +6443,7 @@ export default function StoreCustomizationPage() {
                   <div className="grid grid-cols-1 gap-4 xl:grid-cols-[320px_1fr]">
                     <ImageUploadField
                       id={`about-us-team-member-image-input-${activeAboutUsMemberIndex}`}
-                      label={`Our Team ${activeAboutUsMemberIndex + 1} Image`}
+                      label={`Mission Card ${activeAboutUsMemberIndex + 1} Image`}
                       error={aboutUsImageErrors[activeAboutUsMemberImageField]}
                       dropActive={Boolean(aboutUsDropActive[activeAboutUsMemberImageField])}
                       onDropActiveChange={(value) =>
@@ -6438,7 +6463,7 @@ export default function StoreCustomizationPage() {
                     <div className="grid grid-cols-1 gap-4">
                       <label className="block">
                         <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          Our Team {activeAboutUsMemberIndex + 1} Title
+                          Mission Card {activeAboutUsMemberIndex + 1} Title
                         </span>
                         <input
                           type="text"
@@ -6455,7 +6480,7 @@ export default function StoreCustomizationPage() {
                       </label>
                       <label className="block">
                         <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          Our Team {activeAboutUsMemberIndex + 1} Sub Title
+                          Mission Card {activeAboutUsMemberIndex + 1} Description
                         </span>
                         <input
                           type="text"
