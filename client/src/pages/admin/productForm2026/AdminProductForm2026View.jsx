@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
   Box,
@@ -52,6 +53,7 @@ function TextField({
 }
 
 function Stepper({ activeStep, maxVisitedStep, onStepClick, success = false }) {
+  const { t } = useTranslation("admin");
   return (
     <div className="apf26-stepper">
       {PRODUCT_FORM_2026_STEPS.map((step) => {
@@ -71,8 +73,8 @@ function Stepper({ activeStep, maxVisitedStep, onStepClick, success = false }) {
               {isComplete ? <Check size={22} /> : step.id}
             </span>
             <span>
-              <strong>{step.label}</strong>
-              <span>{step.helper}</span>
+              <strong>{t("productForm." + step.label)}</strong>
+              <span>{t("productForm." + step.helper)}</span>
             </span>
           </button>
         );
@@ -82,17 +84,18 @@ function Stepper({ activeStep, maxVisitedStep, onStepClick, success = false }) {
 }
 
 function Header({ isEdit, subtitle, onClose }) {
+  const { t } = useTranslation("admin");
   return (
     <header className="apf26-header">
       <div>
-        <h1>{isEdit ? "Edit Product" : "Add New Product"}</h1>
-        <p>{subtitle || "Create a new product and add it to your catalog."}</p>
+        <h1>{isEdit ? t("productForm.Edit Product") : t("productForm.Add New Product")}</h1>
+        <p>{subtitle || t("productForm.Create a new product and add it to your catalog.")}</p>
       </div>
       <button
         type="button"
         className="apf26-close"
         onClick={onClose}
-        aria-label={isEdit ? "Close edit product page" : "Close add product page"}
+        aria-label={isEdit ? t("productForm.Close edit product page") : t("productForm.Close add product page")}
       >
         <X size={22} />
       </button>
@@ -101,12 +104,13 @@ function Header({ isEdit, subtitle, onClose }) {
 }
 
 function FormState({ type, message, onRetry }) {
+  const { t } = useTranslation("admin");
   return (
     <main className={`apf26-form-state is-${type}`} role={type === "error" ? "alert" : "status"}>
       <span className="apf26-form-state__icon">
         {type === "loading" ? <span className="apf26-loader" /> : <Package size={28} />}
       </span>
-      <h2>{type === "loading" ? "Loading product data" : "Unable to load product"}</h2>
+      <h2>{type === "loading" ? t("productForm.Loading product data") : t("productForm.Unable to load product")}</h2>
       <p>{message}</p>
       {type === "error" ? (
         <button type="button" className="apf26-button apf26-button--primary" onClick={onRetry}>
@@ -136,6 +140,7 @@ function BasicStep({
   onSeoKeywordKeyDown,
   onRemoveSeoKeyword,
 }) {
+  const { t } = useTranslation("admin");
   const [activeBasicTab, setActiveBasicTab] = useState("basic");
 
   return (
@@ -160,23 +165,23 @@ function BasicStep({
         {activeBasicTab === "basic" ? (
           <>
             <TextField
-              label="Product Name"
+              label={t("productForm.Product Name")}
               required
-              placeholder="Enter product name"
+              placeholder={t("productForm.Enter product name")}
               value={form.name}
               onChange={(event) => onNameChange(event.target.value)}
             />
             <TextField
-              label="Short Description"
+              label={t("productForm.Short Description")}
               as="textarea"
               maxLength={300}
-              placeholder="Enter a short description about this product..."
+              placeholder={t("productForm.Enter a short description about this product...")}
               value={form.description}
               onChange={(event) => onFormChange({ description: event.target.value })}
               helper={`${String(form.description || "").length} / 300`}
             />
             <div className="apf26-grid apf26-grid--3">
-              <TextField label="Store Ownership" required helper="Product ownership uses storeId as the source of truth.">
+              <TextField label={t("productForm.Store Ownership")} required helper={t("productForm.Product ownership uses storeId as the source of truth.")}>
                 <select
                   className="apf26-select"
                   required
@@ -184,7 +189,7 @@ function BasicStep({
                   value={selectedStoreId}
                   onChange={(event) => onFormChange({ storeId: event.target.value })}
                 >
-                  <option value="global">Global (Admin)</option>
+                  <option value="global">{t("productForm.Global (Admin)")}</option>
                   {stores.map((store) => (
                     <option key={store.id} value={String(store.id)}>
                       {store.name}
@@ -194,31 +199,31 @@ function BasicStep({
                 </select>
               </TextField>
               <TextField
-                label="Product SKU"
+                label={t("productForm.Product SKU")}
                 required
-                placeholder="Enter product SKU"
+                placeholder={t("productForm.Enter product SKU")}
                 value={form.sku}
                 onChange={(event) => onFormChange({ sku: event.target.value })}
               />
               <TextField
-                label="Barcode (ISBN, EAN, UPC)"
-                placeholder="Enter barcode (optional)"
+                label={t("productForm.Barcode (ISBN, EAN, UPC)")}
+                placeholder={t("productForm.Enter barcode (optional)")}
                 value={form.barcode}
                 onChange={(event) => onFormChange({ barcode: event.target.value })}
               />
             </div>
             <div className="apf26-grid apf26-grid--2">
-              <TextField label="Brand" helper="Choose the brand this product belongs to.">
+              <TextField label={t("productForm.Brand")} helper={t("productForm.Choose the brand this product belongs to.")}>
                 <input
                   className="apf26-input"
                   value={meta.brand}
-                  placeholder="Brand (optional)"
+                  placeholder={t("productForm.Brand (optional)")}
                   onChange={(event) => onMetaChange({ brand: event.target.value })}
                 />
               </TextField>
               <TextField
-                label="Product Slug"
-                helper="Auto-generated from product name unless edited."
+                label={t("productForm.Product Slug")}
+                helper={t("productForm.Auto-generated from product name unless edited.")}
                 value={form.slug}
                 onChange={(event) => onFormChange({ slug: event.target.value })}
               />
@@ -229,26 +234,26 @@ function BasicStep({
           <>
             <div className="apf26-grid apf26-grid--2">
               <TextField
-                label="SEO Title"
-                placeholder="Leave empty to use product name"
+                label={t("productForm.SEO Title")}
+                placeholder={t("productForm.Leave empty to use product name")}
                 value={seo.metaTitle}
                 onChange={(event) => onSeoChange({ metaTitle: event.target.value })}
               />
               <TextField
-                label="SEO Description"
+                label={t("productForm.SEO Description")}
                 as="textarea"
-                placeholder="Search result description"
+                placeholder={t("productForm.Search result description")}
                 value={seo.metaDescription}
                 onChange={(event) => onSeoChange({ metaDescription: event.target.value })}
               />
             </div>
-            <TextField label="SEO Keywords">
+            <TextField label={t("productForm.SEO Keywords")}>
               <input
                 className="apf26-input"
                 value={seoKeywordInput}
                 onChange={(event) => onSeoKeywordInputChange(event.target.value)}
                 onKeyDown={onSeoKeywordKeyDown}
-                placeholder="Type keyword and press Enter"
+                placeholder={t("productForm.Type keyword and press Enter")}
               />
               <div className="apf26-chip-row">
                 {seo.keywords.map((keyword) => (
@@ -261,13 +266,13 @@ function BasicStep({
                 ))}
               </div>
             </TextField>
-            <TextField label="Product Tags">
+            <TextField label={t("productForm.Product Tags")}>
               <input
                 className="apf26-input"
                 value={tagInput}
                 onChange={(event) => onTagInputChange(event.target.value)}
                 onKeyDown={onTagKeyDown}
-                placeholder="Add tags and press Enter"
+                placeholder={t("productForm.Add tags and press Enter")}
               />
               <div className="apf26-chip-row">
                 {form.tags.map((tag) => (
@@ -302,6 +307,7 @@ function MediaStep({
   onTagKeyDown,
   onRemoveTag,
 }) {
+  const { t } = useTranslation("admin");
   const coverImage =
     localImages.find((image) => image.id === meta.coverImageId) || localImages[0] || null;
   const selectedDetails = coverImage ? meta.mediaDetails[coverImage.id] || {} : {};
@@ -311,11 +317,11 @@ function MediaStep({
       <section className="apf26-card">
         <div className="apf26-section-title">
           <div>
-            <p className="apf26-eyebrow">Media</p>
-            <h2>Images</h2>
-            <p>Upload product visuals and review selected previews.</p>
+            <p className="apf26-eyebrow">{t("productForm.Media")}</p>
+            <h2>{t("productForm.Images")}</h2>
+            <p>{t("productForm.Upload product visuals and review selected previews.")}</p>
           </div>
-          <span className="apf26-chip">{localImages.length} / 5 image(s)</span>
+          <span className="apf26-chip">{localImages.length} / 5 {t("productForm.image(s)")}</span>
         </div>
         <div
           className="apf26-uploader"
@@ -333,9 +339,9 @@ function MediaStep({
         >
           <div>
             <UploadCloud size={34} />
-            <strong>Drag & drop images here</strong>
-            <p>Only JPG, PNG, and WEBP images are accepted.</p>
-            <p>Up to 5 images. Square 1:1 previews are recommended.</p>
+            <strong>{t("productForm.Drag & drop images here")}</strong>
+            <p>{t("productForm.Only JPG, PNG, and WEBP images are accepted.")}</p>
+            <p>{t("productForm.Up to 5 images. Square 1:1 previews are recommended.")}</p>
           </div>
         </div>
         <input
@@ -359,7 +365,7 @@ function MediaStep({
                   type="button"
                   className="apf26-thumb__remove"
                   onClick={() => onRemoveImage(image.id)}
-                  aria-label="Remove image"
+                  aria-label={t("productForm.Remove image")}
                 >
                   <X size={14} />
                 </button>
@@ -367,7 +373,7 @@ function MediaStep({
                   type="button"
                   className="apf26-thumb__cover"
                   onClick={() => onSetCover(image.id)}
-                  aria-label="Set cover image"
+                  aria-label={t("productForm.Set cover image")}
                 />
               </div>
             );
@@ -375,7 +381,7 @@ function MediaStep({
         </div>
       </section>
       <aside className="apf26-panel">
-        <h3>Image Details</h3>
+        <h3>{t("productForm.Image Details")}</h3>
         {coverImage ? (
           <div className="mt-4 apf26-product-preview">
             <div className="apf26-thumb is-cover">
@@ -384,26 +390,26 @@ function MediaStep({
             <p>{coverImage.name}</p>
           </div>
         ) : (
-          <p>No image selected yet.</p>
+          <p>{t("productForm.No image selected yet.")}</p>
         )}
         <div className="apf26-grid mt-4">
-          <TextField label="Alt Text">
+          <TextField label={t("productForm.Alt Text")}>
             <input
               className="apf26-input"
               value={selectedDetails.alt || ""}
-              placeholder="Enter alt text for accessibility"
+              placeholder={t("productForm.Enter alt text for accessibility")}
               disabled={!coverImage}
               onChange={(event) =>
                 coverImage ? onMediaDetailChange(coverImage.id, { alt: event.target.value }) : null
               }
             />
           </TextField>
-          <TextField label="Caption">
+          <TextField label={t("productForm.Caption")}>
             <textarea
               className="apf26-textarea"
               maxLength={200}
               value={selectedDetails.caption || ""}
-              placeholder="Enter a caption or note about this image"
+              placeholder={t("productForm.Enter a caption or note about this image")}
               disabled={!coverImage}
               onChange={(event) =>
                 coverImage ? onMediaDetailChange(coverImage.id, { caption: event.target.value }) : null
@@ -411,17 +417,17 @@ function MediaStep({
             />
           </TextField>
           <TextField
-            label="Product Slug"
+            label={t("productForm.Product Slug")}
             value={form.slug}
             onChange={(event) => onFormChange({ slug: event.target.value })}
           />
-          <TextField label="Product Tags">
+          <TextField label={t("productForm.Product Tags")}>
             <input
               className="apf26-input"
               value={tagInput}
               onChange={(event) => onTagInputChange(event.target.value)}
               onKeyDown={onTagKeyDown}
-              placeholder="Add tags and press Enter"
+              placeholder={t("productForm.Add tags and press Enter")}
             />
             <div className="apf26-chip-row">
               {form.tags.map((tag) => (
@@ -441,19 +447,20 @@ function MediaStep({
 }
 
 function PricingStep({ form, meta, onFormChange, onMetaChange }) {
+  const { t } = useTranslation("admin");
   return (
     <div className="apf26-grid">
       <section className="apf26-card">
         <div className="apf26-section-title">
           <div>
-            <p className="apf26-eyebrow">Pricing</p>
-            <h2>Pricing</h2>
-            <p>Configure base price and sale price for your product.</p>
+            <p className="apf26-eyebrow">{t("productForm.Pricing")}</p>
+            <h2>{t("productForm.Pricing")}</h2>
+            <p>{t("productForm.Configure base price and sale price for your product.")}</p>
           </div>
-          <span className="apf26-chip">Base + promo pricing</span>
+          <span className="apf26-chip">{t("productForm.Base + promo pricing")}</span>
         </div>
         <div className="apf26-grid apf26-grid--2">
-          <TextField label="Base Price" required helper="Enter the original price of the product.">
+          <TextField label={t("productForm.Base Price")} required helper={t("productForm.Enter the original price of the product.")}>
             <div className="apf26-price-input">
               <span>Rp</span>
               <input
@@ -467,7 +474,7 @@ function PricingStep({ form, meta, onFormChange, onMetaChange }) {
               />
             </div>
           </TextField>
-          <TextField label="Sale Price" helper="Optional. Leave empty if no sale.">
+          <TextField label={t("productForm.Sale Price")} helper={t("productForm.Optional. Leave empty if no sale.")}>
             <div className="apf26-price-input">
               <span>Rp</span>
               <input
@@ -494,52 +501,52 @@ function PricingStep({ form, meta, onFormChange, onMetaChange }) {
       <section className="apf26-card">
         <div className="apf26-section-title">
           <div>
-            <p className="apf26-eyebrow">Inventory</p>
-            <h2>Inventory</h2>
-            <p>Manage stock, status, and product identifiers.</p>
+            <p className="apf26-eyebrow">{t("productForm.Inventory")}</p>
+            <h2>{t("productForm.Inventory")}</h2>
+            <p>{t("productForm.Manage stock, status, and product identifiers.")}</p>
           </div>
         </div>
         <div className="apf26-grid apf26-grid--2">
           <TextField
-            label="Stock Quantity"
+            label={t("productForm.Stock Quantity")}
             required
             type="number"
             min="0"
             step="1"
             value={form.stock}
-            helper="Enter available quantity in stock."
+            helper={t("productForm.Enter available quantity in stock.")}
             onChange={(event) => onFormChange({ stock: event.target.value })}
           />
           <TextField
-            label="Low Stock Threshold"
+            label={t("productForm.Low Stock Threshold")}
             type="number"
             min="0"
             step="1"
             value={meta.lowStockThreshold}
-            helper="You'll be notified when stock reaches this level."
+            helper={t("productForm.You'll be notified when stock reaches this level.")}
             onChange={(event) => onMetaChange({ lowStockThreshold: event.target.value })}
           />
           <TextField
-            label="SKU (Stock Keeping Unit)"
+            label={t("productForm.SKU (Stock Keeping Unit)")}
             required
             value={form.sku}
-            helper="Unique identifier for this product."
+            helper={t("productForm.Unique identifier for this product.")}
             onChange={(event) => onFormChange({ sku: event.target.value })}
           />
           <TextField
-            label="Product Slug"
+            label={t("productForm.Product Slug")}
             value={form.slug}
-            helper="URL-friendly product slug."
+            helper={t("productForm.URL-friendly product slug.")}
             onChange={(event) => onFormChange({ slug: event.target.value })}
           />
         </div>
         <div className="mt-5">
-          <label className="mb-2 block text-sm font-extrabold">Status <RequiredMark /></label>
+          <label className="mb-2 block text-sm font-extrabold">{t("productForm.Status")} <RequiredMark /></label>
           <div className="apf26-radio-row">
             {[
-              { value: "active", label: "Active", helper: "Product is available for purchase." },
-              { value: "draft", label: "Draft", helper: "Product is hidden from store." },
-              { value: "inactive", label: "Inactive", helper: "Product is disabled." },
+              { value: "active", label: t("productForm.Active"), helper: t("productForm.Product is available for purchase.") },
+              { value: "draft", label: t("productForm.Draft"), helper: t("productForm.Product is hidden from store.") },
+              { value: "inactive", label: t("productForm.Inactive"), helper: t("productForm.Product is disabled.") },
             ].map((option) => (
               <label key={option.value} className={form.status === option.value ? "is-active" : ""}>
                 <input
@@ -575,14 +582,15 @@ function DetailsStep({
   onTagKeyDown,
   onRemoveTag,
 }) {
+  const { t } = useTranslation("admin");
   return (
     <div className="apf26-grid">
       <div className="apf26-grid apf26-grid--2">
         <section className="apf26-card">
-          <h2>Category</h2>
-          <p>Choose one or more categories for this product.</p>
+          <h2>{t("productForm.Category")}</h2>
+          <p>{t("productForm.Choose one or more categories for this product.")}</p>
           <div className="mt-4 apf26-grid">
-            <TextField label="Categories" required>
+            <TextField label={t("productForm.Categories")} required>
               <select
                 className="apf26-select"
                 value=""
@@ -591,7 +599,7 @@ function DetailsStep({
                   if (id) onToggleCategory(id);
                 }}
               >
-                <option value="">Select one or more categories</option>
+                <option value="">{t("productForm.Select one or more categories")}</option>
                 {categories.map((category) => (
                   <option key={category.id} value={String(category.id)}>
                     {category.name}
@@ -609,7 +617,7 @@ function DetailsStep({
                 ))}
               </div>
             </TextField>
-            <TextField label="Default Category" required>
+            <TextField label={t("productForm.Default Category")} required>
               <select
                 className="apf26-select"
                 required
@@ -620,7 +628,7 @@ function DetailsStep({
                   })
                 }
               >
-                <option value="">Default Category</option>
+                <option value="">{t("productForm.Default Category")}</option>
                 {defaultCategoryOptions.map((category) => (
                   <option key={category.id} value={String(category.id)}>
                     {category.name}
@@ -631,13 +639,13 @@ function DetailsStep({
           </div>
         </section>
         <section className="apf26-card">
-          <h2>Product Type <RequiredMark /></h2>
-          <p>Choose the type of product you are adding.</p>
+          <h2>{t("productForm.Product Type")} <RequiredMark /></h2>
+          <p>{t("productForm.Choose the type of product you are adding.")}</p>
           <div className="mt-5 apf26-choice-grid">
             {[
-              { value: "physical", label: "Physical", helper: "Shippable physical product", icon: Package },
-              { value: "digital", label: "Digital", helper: "Downloadable product", icon: Download },
-              { value: "service", label: "Service", helper: "Non-shippable service", icon: Box },
+              { value: "physical", label: t("productForm.Physical"), helper: t("productForm.Shippable physical product"), icon: Package },
+              { value: "digital", label: t("productForm.Digital"), helper: t("productForm.Downloadable product"), icon: Download },
+              { value: "service", label: t("productForm.Service"), helper: t("productForm.Non-shippable service"), icon: Box },
             ].map((option) => {
               const Icon = option.icon;
               return (
@@ -658,18 +666,18 @@ function DetailsStep({
       </div>
       <div className="apf26-grid apf26-grid--2">
         <section className="apf26-card">
-          <h2>Weight <span className="font-normal">(Optional)</span></h2>
-          <p>Provide weight if applicable.</p>
+          <h2>{t("productForm.Weight")} <span className="font-normal">({t("productForm.Optional")})</span></h2>
+          <p>{t("productForm.Provide weight if applicable.")}</p>
           <div className="mt-4 apf26-grid apf26-grid--2">
             <TextField
-              label="Weight"
+              label={t("productForm.Weight")}
               type="number"
               min="0"
               step="0.01"
               value={meta.weight}
               onChange={(event) => onMetaChange({ weight: event.target.value })}
             />
-            <TextField label="Unit">
+            <TextField label={t("productForm.Unit")}>
               <select
                 className="apf26-select"
                 value={meta.weightUnit}
@@ -682,13 +690,13 @@ function DetailsStep({
           </div>
         </section>
         <section className="apf26-card">
-          <h2>Dimensions <span className="font-normal">(Optional)</span></h2>
-          <p>Provide product dimensions if applicable.</p>
+          <h2>{t("productForm.Dimensions")} <span className="font-normal">({t("productForm.Optional")})</span></h2>
+          <p>{t("productForm.Provide product dimensions if applicable.")}</p>
           <div className="mt-4 apf26-grid apf26-grid--3">
             {["length", "width", "height"].map((field) => (
               <TextField
                 key={field}
-                label={field.charAt(0).toUpperCase() + field.slice(1)}
+                label={t(`productForm.${field.charAt(0).toUpperCase() + field.slice(1)}`)}
                 type="number"
                 min="0"
                 step="0.01"
@@ -701,14 +709,14 @@ function DetailsStep({
       </div>
       <div className="apf26-grid apf26-grid--2">
         <section className="apf26-card">
-          <h2>Tags <span className="font-normal">(Optional)</span></h2>
-          <p>Add tags to help organize and find this product.</p>
+          <h2>{t("productForm.Tags")} <span className="font-normal">({t("productForm.Optional")})</span></h2>
+          <p>{t("productForm.Add tags to help organize and find this product.")}</p>
           <input
             className="apf26-input mt-4"
             value={tagInput}
             onChange={(event) => onTagInputChange(event.target.value)}
             onKeyDown={onTagKeyDown}
-            placeholder="Enter tag and press Enter"
+            placeholder={t("productForm.Enter tag and press Enter")}
           />
           <div className="apf26-chip-row mt-3">
             {form.tags.map((tag) => (
@@ -722,14 +730,14 @@ function DetailsStep({
           </div>
         </section>
         <section className="apf26-card">
-          <h2>Additional Notes <span className="font-normal">(Optional)</span></h2>
-          <p>Add any additional information about this product.</p>
+          <h2>{t("productForm.Additional Notes")} <span className="font-normal">({t("productForm.Optional")})</span></h2>
+          <p>{t("productForm.Add any additional information about this product.")}</p>
           <textarea
             className="apf26-textarea mt-4"
             maxLength={300}
             value={meta.additionalNotes}
             onChange={(event) => onMetaChange({ additionalNotes: event.target.value })}
-            placeholder="Enter additional notes..."
+            placeholder={t("productForm.Enter additional notes...")}
           />
           <small>{meta.additionalNotes.length} / 300</small>
         </section>
@@ -752,7 +760,7 @@ function ReviewStep({ form, meta, selectedCategories, selectedStore, localImages
     <div className="apf26-review">
       <div className="apf26-review-grid">
         <section className="apf26-review-card">
-          <h3>Product Images ({localImages.length})</h3>
+          <h3>{t("productForm.Product Images")} ({localImages.length})</h3>
           <div className="apf26-review-images">
             {localImages.slice(0, 5).map((image) => (
               <img key={image.id} src={image.url} alt={image.name} />
@@ -760,31 +768,31 @@ function ReviewStep({ form, meta, selectedCategories, selectedStore, localImages
           </div>
         </section>
         <section className="apf26-review-card">
-          <h3>Category & Type</h3>
-          <ReviewRow label="Category" value={review.categoryPath} />
-          <ReviewRow label="Product Type" value={review.productType} />
-          <ReviewRow label="Weight" value={review.weight} />
-          <ReviewRow label="Dimensions" value={review.dimensions} />
+          <h3>{t("productForm.Category & Type")}</h3>
+          <ReviewRow label={t("productForm.Category")} value={review.categoryPath} />
+          <ReviewRow label={t("productForm.Product Type")} value={review.productType} />
+          <ReviewRow label={t("productForm.Weight")} value={review.weight} />
+          <ReviewRow label={t("productForm.Dimensions")} value={review.dimensions} />
         </section>
         <section className="apf26-review-card">
-          <h3>Product Identity</h3>
-          <ReviewRow label="Product Name" value={review.productName} />
-          <ReviewRow label="Short Description" value={review.description} />
+          <h3>{t("productForm.Product Identity")}</h3>
+          <ReviewRow label={t("productForm.Product Name")} value={review.productName} />
+          <ReviewRow label={t("productForm.Short Description")} value={review.description} />
           <ReviewRow label="SKU" value={review.sku} />
           <ReviewRow label="Barcode" value={review.barcode} />
-          <ReviewRow label="Brand" value={review.brand} />
-          <ReviewRow label="Store Ownership" value={review.storeName} />
+          <ReviewRow label={t("productForm.Brand")} value={review.brand} />
+          <ReviewRow label={t("productForm.Store Ownership")} value={review.storeName} />
         </section>
         <section className="apf26-review-card">
-          <h3>Pricing & Stock</h3>
-          <ReviewRow label="Base Price" value={`Rp ${review.basePrice}`} />
-          <ReviewRow label="Sale Price" value={review.salePrice === "-" ? "-" : `Rp ${review.salePrice}`} />
-          <ReviewRow label="Low Stock Threshold" value={review.lowStockThreshold} />
-          <ReviewRow label="Quantity in Stock" value={review.stock} />
-          <ReviewRow label="Status" value={review.status} />
+          <h3>{t("productForm.Pricing & Stock")}</h3>
+          <ReviewRow label={t("productForm.Base Price")} value={`Rp ${review.basePrice}`} />
+          <ReviewRow label={t("productForm.Sale Price")} value={review.salePrice === "-" ? "-" : `Rp ${review.salePrice}`} />
+          <ReviewRow label={t("productForm.Low Stock Threshold")} value={review.lowStockThreshold} />
+          <ReviewRow label={t("productForm.Quantity in Stock")} value={review.stock} />
+          <ReviewRow label={t("productForm.Status")} value={review.status} />
         </section>
         <section className="apf26-review-card">
-          <h3>Product Tags</h3>
+          <h3>{t("productForm.Product Tags")}</h3>
           <div className="apf26-chip-row">
             {review.tags.length ? (
               review.tags.map((tag) => (
@@ -793,21 +801,21 @@ function ReviewStep({ form, meta, selectedCategories, selectedStore, localImages
                 </span>
               ))
             ) : (
-              <p>No tags added.</p>
+              <p>{t("productForm.No tags added.")}</p>
             )}
           </div>
         </section>
         <section className="apf26-review-card">
-          <h3>Publication</h3>
-          <ReviewRow label="Product Status" value={review.status} />
-          <ReviewRow label="Slug" value={review.slug} />
-          <ReviewRow label="Available Channels" value="Catalog & Search" />
+          <h3>{t("productForm.Publication")}</h3>
+          <ReviewRow label={t("productForm.Product Status")} value={review.status} />
+          <ReviewRow label={t("productForm.Slug")} value={review.slug} />
+          <ReviewRow label={t("productForm.Available Channels")} value={t("productForm.Catalog & Search")} />
         </section>
       </div>
       <aside className="apf26-panel">
         <div className="apf26-section-title">
-          <h3>Review Checklist</h3>
-          <span className="apf26-chip">All good</span>
+          <h3>{t("productForm.Review Checklist")}</h3>
+          <span className="apf26-chip">{t("productForm.All good")}</span>
         </div>
         <div className="apf26-checklist">
           {checklist.map((item) => (
@@ -816,8 +824,8 @@ function ReviewStep({ form, meta, selectedCategories, selectedStore, localImages
                 <Check size={14} />
               </span>
               <div>
-                <strong>{item.label}</strong>
-                <p>{item.helper}</p>
+                <strong>{t("productForm." + item.label)}</strong>
+                <p>{t("productForm." + item.helper)}</p>
               </div>
             </div>
           ))}
@@ -837,13 +845,14 @@ function ReviewRow({ label, value }) {
 }
 
 function SuccessState({ createdProductId, onViewProduct, onAddAnother, onBackToList }) {
+  const { t } = useTranslation("admin");
   return (
     <div className="apf26-success">
       <span className="apf26-success__mark">
         <Check size={58} />
       </span>
-      <h1>Product Created Successfully</h1>
-      <p>Your product has been added to the catalog and is ready to go.</p>
+      <h1>{t("productForm.Product Created Successfully")}</h1>
+      <p>{t("productForm.Your product has been added to the catalog and is ready to go.")}</p>
       <div className="apf26-success__actions">
         <button
           type="button"
@@ -914,21 +923,22 @@ export default function AdminProductForm2026View({
   onSeoKeywordKeyDown,
   onRemoveSeoKeyword,
 }) {
+  const { t } = useTranslation("admin");
   const subtitle =
     isEdit
       ? activeStep === 5
-        ? "Review your changes before updating this product."
-        : "Update product information, media, pricing, inventory, and settings."
+        ? t("productForm.Review your changes before updating this product.")
+        : t("productForm.Update product information, media, pricing, inventory, and settings.")
       : activeStep === 5
-        ? "Review your product details before publishing."
-        : "Create a new product and add it to your catalog.";
+        ? t("productForm.Review your product details before publishing.")
+        : t("productForm.Create a new product and add it to your catalog.");
   const isSuccess = Boolean(createdProductId);
 
   return (
     <div className="apf26-shell">
       <Header isEdit={isEdit} subtitle={subtitle} onClose={onClose} />
       {isLoading ? (
-        <FormState type="loading" message="Fetching the latest product information and inventory." />
+        <FormState type="loading" message={t("productForm.Fetching the latest product information and inventory.")} />
       ) : loadError ? (
         <FormState type="error" message={loadError} onRetry={onRetry} />
       ) : (
@@ -1049,13 +1059,13 @@ export default function AdminProductForm2026View({
                 onClick={onPublish}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Saving Changes..." : "Save Changes"}
+                {isSubmitting ? t("productForm.Saving Changes...") : t("productForm.Save Changes")}
                 <Send size={18} />
               </button>
             ) : (
               <>
                 <button type="button" className="apf26-button" onClick={onSaveDraft} disabled={isSubmitting}>
-                  {isSubmitting ? "Saving..." : "Save Draft"}
+                  {isSubmitting ? t("productForm.Saving...") : t("productForm.Save Draft")}
                 </button>
                 <button
                   type="button"
@@ -1063,7 +1073,7 @@ export default function AdminProductForm2026View({
                   onClick={onPublish}
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Publishing..." : "Publish Product"}
+                  {isSubmitting ? t("productForm.Publishing...") : t("productForm.Publish Product")}
                   <Send size={18} />
                 </button>
               </>

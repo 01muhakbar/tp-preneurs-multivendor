@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { analyticsService, orderService } from "../api/index.ts";
 import { useAuth } from "../auth/useAuth.js";
 import { can } from "../constants/permissions.js";
+import { useTranslation } from "react-i18next";
 import useAdminLocale from "../hooks/useAdminLocale.js";
 import AdminDashboard2026View from "./admin/dashboard2026/AdminDashboard2026View.jsx";
 import {
@@ -20,6 +21,7 @@ const getStartDate = (days) => {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { t } = useTranslation("admin");
   const { formatMoney, formatDateTime } = useAdminLocale();
   const [range, setRange] = useState(7);
   const [metric, setMetric] = useState("sales");
@@ -59,39 +61,39 @@ export default function Dashboard() {
     () =>
       [
         {
-          label: "Add Product",
-          description: "Create a new product",
+          label: t("quickActions.Add Product"),
+          description: t("quickActions.Create a new product"),
           to: "/admin/catalog/products/new",
           permission: "PRODUCTS_CREATE",
           tone: "blue",
           icon: "product",
         },
         {
-          label: "Add Coupon",
-          description: "Create a new coupon",
+          label: t("quickActions.Add Coupon"),
+          description: t("quickActions.Create a new coupon"),
           to: "/admin/catalog/coupons",
           permission: "COUPONS_CRUD",
           tone: "orange",
           icon: "coupon",
         },
         {
-          label: "Review Stores",
-          description: "Review store applications",
+          label: t("quickActions.Review Stores"),
+          description: t("quickActions.Review store applications"),
           to: "/admin/store/applications",
           permission: "STORE_APPLICATIONS_REVIEW",
           tone: "green",
           icon: "store",
         },
         {
-          label: "Payment Audit",
-          description: "Check payment records",
+          label: t("quickActions.Payment Audit"),
+          description: t("quickActions.Check payment records"),
           to: "/admin/online-store/payment-audit",
           permission: "DASHBOARD_VIEW",
           tone: "purple",
           icon: "audit",
         },
       ].filter((action) => can(user, action.permission)),
-    [user]
+    [user, t]
   );
 
   const queries = [overviewQuery, weeklyQuery, bestSellersQuery, recentOrdersQuery];

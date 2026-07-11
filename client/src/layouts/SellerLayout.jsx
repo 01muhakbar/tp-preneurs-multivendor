@@ -59,16 +59,13 @@ import {
   markAllSellerNotificationsRead,
   markSellerNotificationRead,
 } from "../api/sellerNotifications.ts";
+import { fetchPublicLanguages } from "../api/storeCustomizationPublic.ts";
 import "../components/Layout/MainLayout.css";
 import "../components/Layout/Navbar.css";
 
 const SELLER_SIDEBAR_COLLAPSED_KEY = "seller_sidebar_collapsed";
 const SELLER_THEME_KEY = "seller_theme";
 const SELLER_LANGUAGE_KEY = "seller_language";
-const SELLER_HEADER_LANGUAGES = [
-  { isoCode: "en", label: "US English" },
-  { isoCode: "id", label: "ID Indonesia" },
-];
 
 const getErrorMessage = (error, fallback) =>
   error?.response?.data?.message || error?.message || fallback;
@@ -81,17 +78,25 @@ const readStoredSellerTheme = () => {
   return value === "dark" ? "dark" : "light";
 };
 
+const normalizeLanguage = (item) => ({
+  id: Number(item?.id || 0),
+  name: String(item?.name || "").trim(),
+  isoCode: String(item?.isoCode || "").trim().toLowerCase(),
+  flag: String(item?.flag || "").trim().toUpperCase(),
+  published:
+    item?.published === true ||
+    String(item?.published || "").toLowerCase() === "true" ||
+    Number(item?.published) === 1,
+});
+
 const readStoredSellerLanguage = () => {
-  if (typeof window === "undefined") return SELLER_HEADER_LANGUAGES[0];
+  if (typeof window === "undefined") return null;
   try {
     const raw = JSON.parse(window.localStorage.getItem(SELLER_LANGUAGE_KEY) || "null");
-    const isoCode = String(raw?.isoCode || "").trim().toLowerCase();
-    return (
-      SELLER_HEADER_LANGUAGES.find((item) => item.isoCode === isoCode) ||
-      SELLER_HEADER_LANGUAGES[0]
-    );
+    if (!raw || !raw.isoCode) return null;
+    return raw;
   } catch {
-    return SELLER_HEADER_LANGUAGES[0];
+    return null;
   }
 };
 
@@ -102,6 +107,8 @@ const persistSellerLanguage = (value) => {
     JSON.stringify({
       isoCode: value.isoCode,
       label: value.label,
+      flag: value.flag,
+      name: value.name,
     })
   );
 };
@@ -1138,6 +1145,52 @@ export default function SellerLayout() {
   const [selectedLanguage, setSelectedLanguage] = useState(readStoredSellerLanguage);
   const [langOpen, setLangOpen] = useState(false);
   const [activeMenu, setActiveMenu] = useState(null);
+
+  const languagesQuery = useQuery({
+    queryKey: ["seller-navbar-languages"],
+    queryFn: () => fetchPublicLanguages(),
+    staleTime: 60_000,
+  });
+
+  const publishedLanguages = useMemo(
+    () =>
+      (languagesQuery.data?.data || [])
+        .map(normalizeLanguage)
+        .filter((item) => item.name && item.isoCode && item.published),
+    [languagesQuery.data]
+  );
+
+  useEffect(() => {
+    if (publishedLanguages.length === 0) return;
+
+    const fromStorage = readStoredSellerLanguage();
+    const preferredIsoCode = fromStorage?.isoCode || selectedLanguage?.isoCode;
+    const selectedFromList = preferredIsoCode
+      ? publishedLanguages.find((item) => item.isoCode === preferredIsoCode)
+      : null;
+
+    const fallbackLanguage =
+      selectedFromList ||
+      publishedLanguages.find((item) => item.isoCode === "en") ||
+      publishedLanguages[0];
+
+    const nextValue = {
+      isoCode: fallbackLanguage.isoCode,
+      name: fallbackLanguage.name,
+      flag: fallbackLanguage.flag,
+      label: ((fallbackLanguage.flag || fallbackLanguage.isoCode).toUpperCase() + " " + fallbackLanguage.name),
+    };
+
+    if (
+      !selectedLanguage ||
+      selectedLanguage.isoCode !== nextValue.isoCode ||
+      selectedLanguage.name !== nextValue.name ||
+      selectedLanguage.flag !== nextValue.flag
+    ) {
+      setSelectedLanguage(nextValue);
+      persistSellerLanguage(nextValue);
+    }
+  }, [publishedLanguages, selectedLanguage]);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const langDropdownRef = useRef(null);
   const notifyDropdownRef = useRef(null);
@@ -1193,7 +1246,7 @@ export default function SellerLayout() {
   const canonicalStoreId = Number(sellerContext?.store?.id || 0) || null;
   const pageMeta = getSellerPageMeta(pathname);
   const sellerRoutes = createSellerWorkspaceRoutes(canonicalStoreSlug);
-  const chipText = (selectedLanguage?.label || SELLER_HEADER_LANGUAGES[0].label).toUpperCase();
+  const chipText = selectedLanguage?.label ? selectedLanguage.label.toUpperCase() : "US ENGLISH";
   const isDark = theme === "dark";
   const sellerNotificationCountQuery = useQuery({
     queryKey: ["seller", "notifications", canonicalStoreId, "count"],
@@ -1581,22 +1634,29 @@ export default function SellerLayout() {
                 </button>
                 {langOpen ? (
                   <div className="navbar__lang-menu" role="menu">
-                    {SELLER_HEADER_LANGUAGES.map((language) => {
-                      const isSelected = selectedLanguage?.isoCode === language.isoCode;
-                      return (
-                        <button
-                          key={language.isoCode}
-                          type="button"
-                          role="menuitem"
-                          className={`navbar__lang-item ${isSelected ? "is-selected" : ""}`}
-                          onClick={() => handleLanguageSelect(language)}
-                        >
-                          <span className="navbar__lang-item-main">
-                            {language.label.toUpperCase()}
-                          </span>
-                        </button>
-                      );
-                    })}
+                    {languagesQuery.isLoading ? (
+                      <p className="navbar__lang-empty">Loading languages...</p>
+                    ) : publishedLanguages.length === 0 ? (
+                      <p className="navbar__lang-empty">No published languages.</p>
+                    ) : (
+                      publishedLanguages.map((language) => {
+                        const isSelected = selectedLanguage?.isoCode === language.isoCode;
+                        const languageLabel = ((language.flag || language.isoCode).toUpperCase() + ' ' + language.name).toUpperCase();
+                        return (
+                          <button
+                            key={language.isoCode}
+                            type="button"
+                            role="menuitem"
+                            className={`navbar__lang-item ${isSelected ? "is-selected" : ""}`}
+                            onClick={() => handleLanguageSelect({ ...language, label: languageLabel })}
+                          >
+                            <span className="navbar__lang-item-main">
+                              {languageLabel}
+                            </span>
+                          </button>
+                        );
+                      })
+                    )}
                   </div>
                 ) : null}
               </div>

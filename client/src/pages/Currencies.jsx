@@ -409,7 +409,7 @@ export default function CurrenciesPage() {
 
           <button
             type="button"
-            onClick={bulkAction === "delete" ? executeBulkDelete : handleBulkAction}
+            onClick={executeBulkDelete}
             disabled={selectedIds.size === 0 || bulkDeleteMutation.isPending}
             className={`${btnDanger} min-w-[108px] disabled:cursor-not-allowed disabled:bg-rose-300 disabled:opacity-60`}
           >

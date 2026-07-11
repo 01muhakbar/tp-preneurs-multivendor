@@ -69,3 +69,8 @@ export const getStoreSettings = async () => {
   const { data } = await api.get<StoreSettingsResponse>("/store/settings");
   return data;
 };
+
+export const fetchPublicLanguages = async () => {
+  const { data } = await api.get("/languages");
+  return data;
+};

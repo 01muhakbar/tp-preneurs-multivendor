@@ -5,7 +5,7 @@ import path from "path";
 import fs from "fs";
 import multer from "multer";
 import bcrypt from "bcrypt";
-import { Category, Product, User } from "../models/index.js";
+import { Category, Product, User, Language } from "../models/index.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { buildPublicOperationalStoreInclude } from "../services/sharedContracts/publicStoreIdentity.js";
 import { hasStorefrontSellableInventory } from "../services/productVisibility.js";
@@ -245,6 +245,29 @@ router.get("/categories", async (_req: Request, res: Response) => {
           published: Boolean(category.published),
         })),
       },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+// GET /api/languages
+router.get("/languages", async (_req: Request, res: Response) => {
+  try {
+    const languages = await Language.findAll({
+      where: { published: true },
+      order: [["name", "ASC"], ["id", "ASC"]],
+    });
+
+    return res.json({
+      success: true,
+      data: languages.map((lang) => ({
+        id: lang.id,
+        name: lang.name,
+        isoCode: lang.isoCode,
+        flag: lang.flag ?? null,
+        published: Boolean(lang.published),
+      })),
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Internal server error" });

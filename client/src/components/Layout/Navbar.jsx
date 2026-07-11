@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Menu, Search } from "lucide-react";
 import { fetchAdminLanguages } from "../../lib/adminApi.js";
 import ThemeToggle from "../admin/ThemeToggle.jsx";
@@ -99,6 +100,7 @@ export default function Navbar({
   onOpenSearchPalette,
 }) {
   const { pathname } = useLocation();
+  const { t, i18n } = useTranslation("admin");
   const pageTitle = pageTitleFromPath(pathname);
   const hideRouteSearch =
     pathname.startsWith("/admin/catalog/coupons") || pathname.startsWith("/admin/coupons");
@@ -193,8 +195,9 @@ export default function Navbar({
     ) {
       setSelectedLanguage(nextValue);
       persistLanguage(nextValue);
+      i18n.changeLanguage(nextValue.isoCode);
     }
-  }, [publishedLanguages, selectedLanguage]);
+  }, [publishedLanguages, selectedLanguage, i18n]);
 
   const chipText = selectedLanguage
     ? `${selectedLanguage.flag || selectedLanguage.isoCode.toUpperCase()} ${selectedLanguage.name.toUpperCase()}`
@@ -213,6 +216,7 @@ export default function Navbar({
     };
     setSelectedLanguage(nextValue);
     persistLanguage(nextValue);
+    i18n.changeLanguage(nextValue.isoCode);
     setLangOpen(false);
   };
 
@@ -247,7 +251,7 @@ export default function Navbar({
           >
             <Search size={16} className="navbar__search-icon" />
             <span className="navbar__search-input">
-              Search inside {pageTitle.toLowerCase()}...
+              {t("navbar.Search inside dashboard...")}
             </span>
             <span className="navbar__search-shortcut" aria-hidden="true">
               {searchShortcut}

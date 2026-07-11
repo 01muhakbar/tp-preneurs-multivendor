@@ -3,6 +3,8 @@ import { initReactI18next } from 'react-i18next';
 
 import enStorefront from './locales/en/storefront.json';
 import idStorefront from './locales/id/storefront.json';
+import enAdmin from './locales/en/admin.json';
+import idAdmin from './locales/id/admin.json';
 
 // Get language from localStorage, mapped to standard codes
 const getStoredLanguage = () => {
@@ -17,10 +19,12 @@ i18n
   .init({
     resources: {
       en: {
-        storefront: enStorefront
+        storefront: enStorefront,
+        admin: enAdmin
       },
       id: {
-        storefront: idStorefront
+        storefront: idStorefront,
+        admin: idAdmin
       }
     },
     lng: getStoredLanguage(),

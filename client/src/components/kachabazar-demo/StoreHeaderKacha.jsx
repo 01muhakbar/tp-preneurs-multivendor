@@ -24,7 +24,7 @@ import ThemeToggle from "../store/ThemeToggle.jsx";
 import NotificationPreviewDropdown from "../store/NotificationPreviewDropdown.jsx";
 import { useStorefrontWishlist } from "../../utils/storefrontWishlist.js";
 import { fetchUserUnreadNotificationCount } from "../../api/userNotifications.ts";
-import { getStoreHeaderCustomization } from "../../api/public/storeCustomizationPublic.ts";
+import { getStoreHeaderCustomization, fetchPublicLanguages } from "../../api/public/storeCustomizationPublic.ts";
 
 const PRIMARY = "var(--tp-primary)";
 const ACCENT = "var(--tp-accent)";
@@ -279,12 +279,46 @@ export default function StoreHeaderKacha({
     }
     return "English";
   });
+
+  const languagesQuery = useQuery({
+    queryKey: ["store-navbar-languages"],
+    queryFn: () => fetchPublicLanguages(),
+    staleTime: 60_000,
+  });
   
-  const changeLanguage = (lang) => {
-    setLanguage(lang);
+  const publishedLanguages = useMemo(
+    () => {
+      const list = languagesQuery.data?.data || [];
+      return list.filter((item) => item.name && item.isoCode && (item.published === true || String(item.published) === "true" || item.published === 1));
+    },
+    [languagesQuery.data]
+  );
+  
+  useEffect(() => {
+    if (publishedLanguages.length > 0) {
+      const stored = typeof window !== "undefined" ? localStorage.getItem("store_language") : null;
+      let matched = null;
+      if (stored) {
+        matched = publishedLanguages.find(l => l.name === stored || l.isoCode === stored);
+      }
+      if (!matched) {
+        matched = publishedLanguages.find(l => l.isoCode === "en") || publishedLanguages[0];
+      }
+      if (matched && matched.name !== language) {
+        setLanguage(matched.name);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("store_language", matched.name);
+          i18n.changeLanguage(matched.isoCode);
+        }
+      }
+    }
+  }, [publishedLanguages, language, i18n]);
+  
+  const changeLanguage = (langObj) => {
+    setLanguage(langObj.name);
     if (typeof window !== "undefined") {
-      localStorage.setItem("store_language", lang);
-      i18n.changeLanguage(lang === "Indonesia" ? "id" : "en");
+      localStorage.setItem("store_language", langObj.name);
+      i18n.changeLanguage(langObj.isoCode);
     }
     setLanguageOpen(false);
   };
@@ -676,20 +710,22 @@ export default function StoreHeaderKacha({
             </button>
             {languageOpen && (
               <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-40 overflow-hidden rounded-[18px] border border-[#d8e4f2] bg-white p-2 shadow-[0_22px_45px_rgba(var(--tp-primary-rgb)/0.16)] dark:border-slate-700 dark:bg-slate-900">
-                <button
-                  type="button"
-                  onClick={() => changeLanguage("English")}
-                  className={`block w-full rounded-xl px-4 py-2.5 text-left text-sm font-bold transition hover:bg-[var(--tp-primary-soft)] hover:text-[var(--tp-accent)] dark:hover:bg-slate-800 ${language === "English" ? "text-[var(--tp-accent)] bg-[var(--tp-primary-soft)] dark:bg-slate-800" : "text-[#071a3f] dark:text-slate-100"}`}
-                >
-                  English
-                </button>
-                <button
-                  type="button"
-                  onClick={() => changeLanguage("Indonesia")}
-                  className={`block w-full rounded-xl px-4 py-2.5 text-left text-sm font-bold transition hover:bg-[var(--tp-primary-soft)] hover:text-[var(--tp-accent)] dark:hover:bg-slate-800 ${language === "Indonesia" ? "text-[var(--tp-accent)] bg-[var(--tp-primary-soft)] dark:bg-slate-800" : "text-[#071a3f] dark:text-slate-100"}`}
-                >
-                  Indonesia
-                </button>
+                {languagesQuery.isLoading ? (
+                  <div className="px-4 py-2 text-sm text-slate-500">Loading...</div>
+                ) : publishedLanguages.length === 0 ? (
+                  <div className="px-4 py-2 text-sm text-slate-500">No languages</div>
+                ) : (
+                  publishedLanguages.map((langObj) => (
+                    <button
+                      key={langObj.isoCode}
+                      type="button"
+                      onClick={() => changeLanguage(langObj)}
+                      className={`block w-full rounded-xl px-4 py-2.5 text-left text-sm font-bold transition hover:bg-[var(--tp-primary-soft)] hover:text-[var(--tp-accent)] dark:hover:bg-slate-800 ${language === langObj.name ? "text-[var(--tp-accent)] bg-[var(--tp-primary-soft)] dark:bg-slate-800" : "text-[#071a3f] dark:text-slate-100"}`}
+                    >
+                      {langObj.name}
+                    </button>
+                  ))
+                )}
               </div>
             )}
           </div>

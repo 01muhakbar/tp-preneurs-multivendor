@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ChevronDown,
   ChevronLeft,
@@ -7,6 +8,8 @@ import {
   Download,
   Eye,
   Grid2X2,
+  List,
+  MoreHorizontal,
   MoreVertical,
   Package,
   Pencil,
@@ -23,23 +26,23 @@ import {
 } from "./adminProducts2026Adapter.js";
 import "./admin-products-2026.css";
 
-const statusOptions = [
-  { value: "all", label: "All" },
-  { value: "published", label: "Published" },
-  { value: "unpublished", label: "Draft" },
+const getStatusOptions = (t) => [
+  { value: "all", label: t("products.All") },
+  { value: "published", label: t("products.Published") },
+  { value: "unpublished", label: t("products.Draft") },
 ];
 
-const stockOptions = [
-  { value: "all", label: "All" },
-  { value: "selling", label: "In Stock" },
-  { value: "out_of_stock", label: "Out of Stock" },
+const getStockOptions = (t) => [
+  { value: "all", label: t("products.All") },
+  { value: "selling", label: t("products.In Stock") },
+  { value: "out_of_stock", label: t("products.Out of Stock") },
 ];
 
-const sortOptions = [
-  { value: "date_added", label: "Date Added" },
-  { value: "date_updated", label: "Recently Updated" },
-  { value: "price_asc", label: "Price Low to High" },
-  { value: "price_desc", label: "Price High to Low" },
+const getSortOptions = (t) => [
+  { value: "date_added", label: t("products.Date Added") },
+  { value: "date_updated", label: t("products.Recently Updated") },
+  { value: "price_asc", label: t("products.Price Low to High") },
+  { value: "price_desc", label: t("products.Price High to Low") },
 ];
 
 function IconButton({ children, label, className = "", ...props }) {
@@ -117,12 +120,13 @@ function StatusBadge({ statusCode, statusLabel }) {
 }
 
 function PublishToggle({ checked, disabled, busy, onChange }) {
+  const { t } = useTranslation("admin");
   return (
     <button
       type="button"
       className={`ap26-toggle ${checked ? "is-on" : ""} ${busy ? "is-busy" : ""}`}
       aria-pressed={checked}
-      aria-label={checked ? "Unpublish product" : "Publish product"}
+      aria-label={checked ? t("products.Unpublish product") : t("products.Publish product")}
       disabled={disabled || busy}
       onClick={onChange}
     >
@@ -144,6 +148,7 @@ function MoreActionsMenu({
   onTogglePublished,
   onDeleteProduct,
 }) {
+  const { t } = useTranslation("admin");
   const runAction = (handler) => {
     if (typeof handler !== "function") return;
     onClose();
@@ -153,7 +158,7 @@ function MoreActionsMenu({
   return (
     <div className="ap26-more-actions">
       <IconButton
-        label={`More actions for ${product.name}`}
+        label={`${t("products.More actions for")} ${product.name}`}
         aria-haspopup="menu"
         aria-expanded={open}
         className={open ? "is-active" : ""}
@@ -162,7 +167,7 @@ function MoreActionsMenu({
         <MoreVertical size={16} />
       </IconButton>
       {open ? (
-        <div className="ap26-more-menu" role="menu" aria-label={`More actions for ${product.name}`}>
+        <div className="ap26-more-menu" role="menu" aria-label={`${t("products.More actions for")} ${product.name}`}>
           <button
             type="button"
             role="menuitem"
@@ -170,7 +175,7 @@ function MoreActionsMenu({
             onClick={() => runAction(onManageInventory)}
           >
             <Package size={15} />
-            <span>Manage Inventory</span>
+            <span>{t("products.Manage Inventory")}</span>
           </button>
           <button
             type="button"
@@ -179,7 +184,7 @@ function MoreActionsMenu({
             onClick={() => runAction(onManageVariants)}
           >
             <Grid2X2 size={15} />
-            <span>Manage Variants</span>
+            <span>{t("products.Manage Variants")}</span>
           </button>
           <span className="ap26-more-menu__divider" aria-hidden="true" />
           <button
@@ -189,7 +194,7 @@ function MoreActionsMenu({
             onClick={() => runAction(onDuplicateProduct)}
           >
             <Copy size={15} />
-            <span>Duplicate Product</span>
+            <span>{t("products.Duplicate Product")}</span>
           </button>
           <button
             type="button"
@@ -198,7 +203,7 @@ function MoreActionsMenu({
             onClick={() => runAction(onTogglePublished)}
           >
             <Upload size={15} />
-            <span>{product.published ? "Unpublish Product" : "Publish Product"}</span>
+            <span>{product.published ? t("products.Unpublish Product") : t("products.Publish Product")}</span>
           </button>
           <button
             type="button"
@@ -208,7 +213,80 @@ function MoreActionsMenu({
             onClick={() => runAction(onDeleteProduct)}
           >
             <Trash2 size={15} />
-            <span>Delete Product</span>
+            <span>{t("products.Delete Product")}</span>
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function BulkActionsMenu({ open, onToggle, onClose, disabled, permissions, onBulkAction }) {
+  const { t } = useTranslation("admin");
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handlePointerDown = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open, onClose]);
+
+  const runAction = (action) => {
+    onClose();
+    onBulkAction(action);
+  };
+
+  return (
+    <div className="ap26-more-actions" ref={menuRef}>
+      <ActionButton
+        icon={ChevronDown}
+        disabled={disabled || (!permissions.canUpdate && !permissions.canDelete)}
+        onClick={onToggle}
+      >
+        {t("products.Bulk Action")}
+      </ActionButton>
+      {open ? (
+        <div className="ap26-more-menu" role="menu" style={{ left: 0, right: 'auto', top: 'calc(100% + 4px)', bottom: 'auto', minWidth: 160, zIndex: 100 }}>
+          <button
+            type="button"
+            role="menuitem"
+            disabled={disabled || !permissions.canUpdate}
+            onClick={() => runAction("publish")}
+          >
+            <Upload size={15} />
+            <span>{t("products.Bulk Publish")}</span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            disabled={disabled || !permissions.canUpdate}
+            onClick={() => runAction("unpublish")}
+          >
+            <Download size={15} />
+            <span>{t("products.Bulk Unpublish")}</span>
+          </button>
+          <span className="ap26-more-menu__divider" aria-hidden="true" />
+          <button
+            type="button"
+            role="menuitem"
+            className="is-danger"
+            disabled={disabled || !permissions.canDelete}
+            onClick={() => runAction("delete")}
+          >
+            <Trash2 size={15} />
+            <span>{t("products.Bulk Delete")}</span>
           </button>
         </div>
       ) : null}
@@ -217,6 +295,7 @@ function MoreActionsMenu({
 }
 
 function Pagination({ meta, onPageChange, disabled }) {
+  const { t } = useTranslation("admin");
   const pageWindow = getProducts2026PageWindow(meta);
   const pages = useMemo(() => {
     const candidates = new Set([1, pageWindow.page - 1, pageWindow.page, pageWindow.page + 1, pageWindow.totalPages]);
@@ -228,11 +307,11 @@ function Pagination({ meta, onPageChange, disabled }) {
   return (
     <div className="ap26-pagination">
       <p>
-        Showing {pageWindow.start} to {pageWindow.end} of {pageWindow.total} products
+        {t("products.Showing")} {pageWindow.start} {t("products.to")} {pageWindow.end} {t("products.of")} {pageWindow.total} {t("products.products")}
       </p>
       <div>
         <IconButton
-          label="Previous page"
+          label={t("products.Previous page")}
           disabled={disabled || pageWindow.page <= 1}
           onClick={() => onPageChange(pageWindow.page - 1)}
         >
@@ -256,7 +335,7 @@ function Pagination({ meta, onPageChange, disabled }) {
           );
         })}
         <IconButton
-          label="Next page"
+          label={t("products.Next page")}
           disabled={disabled || pageWindow.page >= pageWindow.totalPages}
           onClick={() => onPageChange(pageWindow.page + 1)}
         >
@@ -299,10 +378,13 @@ export default function AdminProducts2026View({
   onBulkAction,
   onPageChange,
 }) {
+  const { t } = useTranslation("admin");
   const fileInputRef = useRef(null);
   const openMenuRef = useRef(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [openActionMenuId, setOpenActionMenuId] = useState(null);
+  const [bulkMenuOpen, setBulkMenuOpen] = useState(false);
+  const [viewMode, setViewMode] = useState("table");
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const allSelected = products.length > 0 && products.every((product) => selectedSet.has(Number(product.id)));
   const anySelected = selectedSet.size > 0;
@@ -344,46 +426,47 @@ export default function AdminProducts2026View({
 
       <section className="ap26-header">
         <div>
-          <h1>Products</h1>
+          <h1>{t("products.Products")}</h1>
           <nav aria-label="Breadcrumb">
-            <span>Catalog</span>
+            <span>{t("products.Catalog")}</span>
             <ChevronRight size={14} />
-            <span>Products</span>
+            <span>{t("products.Products")}</span>
           </nav>
         </div>
         <div className="ap26-header__actions">
           <ActionButton icon={Download} disabled={operationState.exporting} onClick={() => onExport("json")}>
-            {operationState.exporting ? "Exporting" : "Export"}
+            {operationState.exporting ? t("products.Exporting") : t("products.Export")}
           </ActionButton>
           <ActionButton icon={Upload} disabled={operationState.importing || !permissions.canCreate} onClick={() => fileInputRef.current?.click()}>
-            {operationState.importing ? "Importing" : "Import"}
+            {operationState.importing ? t("products.Importing") : t("products.Import")}
           </ActionButton>
-          <ActionButton
-            icon={ChevronDown}
-            disabled={disableMutations || !permissions.canUpdate || !anySelected}
-            onClick={() => onBulkAction("publish")}
-          >
-            Bulk Action
-          </ActionButton>
+          <BulkActionsMenu
+            open={bulkMenuOpen}
+            disabled={disableMutations || !anySelected}
+            permissions={permissions}
+            onToggle={() => setBulkMenuOpen((o) => !o)}
+            onClose={() => setBulkMenuOpen(false)}
+            onBulkAction={onBulkAction}
+          />
           <ActionButton
             icon={Trash2}
             tone="danger"
             disabled={disableMutations || !permissions.canDelete || !anySelected}
             onClick={() => onBulkAction("delete")}
           >
-            Delete
+            {t("products.Delete")}
           </ActionButton>
           <ActionButton icon={Plus} tone="primary" disabled={!permissions.canCreate} onClick={onAddProduct}>
-            Add Product
+            {t("products.Add Product")}
           </ActionButton>
         </div>
       </section>
 
       <section className="ap26-kpis" aria-label="Product summary">
-        <KpiCard label="Total Products" value={stats.total} helper="All products" icon={Package} tone="blue" />
-        <KpiCard label="Published" value={stats.published} helper="Loaded active listings" icon={Package} tone="green" />
-        <KpiCard label="Draft" value={stats.draft} helper="Loaded unpublished" icon={Pencil} tone="orange" />
-        <KpiCard label="Out of Stock" value={stats.outOfStock} helper="Loaded no inventory" icon={Trash2} tone="red" />
+        <KpiCard label={t("products.Total Products")} value={stats.total} helper={t("products.All products")} icon={Package} tone="blue" />
+        <KpiCard label={t("products.Published")} value={stats.published} helper={t("products.Loaded active listings")} icon={Package} tone="green" />
+        <KpiCard label={t("products.Draft")} value={stats.draft} helper={t("products.Loaded unpublished")} icon={Pencil} tone="orange" />
+        <KpiCard label={t("products.Out of Stock")} value={stats.outOfStock} helper={t("products.Loaded no inventory")} icon={Trash2} tone="red" />
       </section>
 
       <section className="ap26-toolbar">
@@ -392,45 +475,50 @@ export default function AdminProducts2026View({
           <input
             value={filters.q}
             onChange={(event) => onFilterChange({ q: event.target.value })}
-            placeholder="Search by product name, SKU, or ID"
+            placeholder={t("products.Search by product name, SKU, or ID")}
           />
         </label>
         <FieldSelect
-          label="Category"
+          label={t("products.Category")}
           value={filters.categoryId}
           onChange={(value) => onFilterChange({ categoryId: value })}
-          options={[{ value: "all", label: "All" }, ...categories.map((category) => ({ value: category.id, label: category.name }))]}
+          options={[{ value: "all", label: t("products.All") }, ...categories.map((category) => ({ value: category.id, label: category.name }))]}
         />
         <FieldSelect
-          label="Status"
+          label={t("products.Status")}
           value={filters.published}
           onChange={(value) => onFilterChange({ published: value })}
-          options={statusOptions}
+          options={getStatusOptions(t)}
         />
         <FieldSelect
-          label="Stock"
+          label={t("products.Stock")}
           value={filters.stock}
           onChange={(value) => onFilterChange({ stock: value })}
-          options={stockOptions}
+          options={getStockOptions(t)}
         />
         <button type="button" className="ap26-filter-button" onClick={() => setFiltersOpen((open) => !open)}>
           <SlidersHorizontal size={17} />
-          <span>Filters</span>
+          <span>{t("products.More")}</span>
         </button>
-        <IconButton label="View options">
-          <Grid2X2 size={18} />
-        </IconButton>
+        <div className="ap26-view-toggles">
+          <IconButton label={t("products.Table View")} className={viewMode === "table" ? "is-active" : ""} onClick={() => setViewMode("table")}>
+            <List size={18} />
+          </IconButton>
+          <IconButton label={t("products.Grid View")} className={viewMode === "grid" ? "is-active" : ""} onClick={() => setViewMode("grid")}>
+            <Grid2X2 size={18} />
+          </IconButton>
+        </div>
         {filtersOpen ? (
           <div className="ap26-filter-drawer">
             <FieldSelect
-              label="Sort"
+              label={t("products.Sort")}
               value={filters.sort}
               onChange={(value) => onFilterChange({ sort: value })}
-              options={sortOptions}
+              options={getSortOptions(t)}
             />
             <button type="button" onClick={onResetFilters}>
               <X size={16} />
-              Reset filters
+              {t("products.Reset filters")}
             </button>
           </div>
         ) : null}
@@ -438,17 +526,93 @@ export default function AdminProducts2026View({
 
       {isError ? (
         <section className="ap26-state">
-          <strong>Products could not be loaded.</strong>
+          <strong>{t("products.Products could not be loaded.")}</strong>
           <p>{errorMessage}</p>
-          <button type="button" onClick={onRetry}>Retry</button>
+          <button type="button" onClick={onRetry}>{t("products.Retry")}</button>
         </section>
       ) : isLoading ? (
         <ProductSkeleton />
       ) : products.length === 0 ? (
         <section className="ap26-state">
-          <strong>No products found.</strong>
-          <p>Adjust filters or create a new product for this catalog.</p>
-          <button type="button" disabled={!permissions.canCreate} onClick={onAddProduct}>Add Product</button>
+          <strong>{t("products.No products found.")}</strong>
+          <p>{t("products.Adjust filters or create a new product for this catalog.")}</p>
+          <button type="button" disabled={!permissions.canCreate} onClick={onAddProduct}>{t("products.Add Product")}</button>
+        </section>
+      ) : viewMode === "grid" ? (
+        <section className={`ap26-grid-card ${isFetching ? "is-fetching" : ""}`}>
+          <div className="ap26-grid-view">
+            {products.map((product) => {
+              const productId = Number(product.id);
+              const selected = selectedSet.has(productId);
+              const updating = updatingIds.includes(productId);
+              
+              return (
+                <div key={product.id} className={`ap26-grid-item ${selected ? "is-selected" : ""}`}>
+                  <div className="ap26-grid-item-header">
+                    <input
+                      type="checkbox"
+                      aria-label={`Select ${product.name}`}
+                      checked={selected}
+                      onChange={() => onSelectOne(productId)}
+                    />
+                    <div ref={openActionMenuId === productId ? openMenuRef : null}>
+                      <MoreActionsMenu
+                        product={product}
+                        open={openActionMenuId === productId}
+                        disabled={disableMutations}
+                        permissions={permissions}
+                        onToggle={() =>
+                          setOpenActionMenuId((current) => (current === productId ? null : productId))
+                        }
+                        onClose={() => setOpenActionMenuId(null)}
+                        onManageInventory={onManageInventory}
+                        onManageVariants={onManageVariants}
+                        onDuplicateProduct={onDuplicateProduct}
+                        onTogglePublished={onTogglePublished}
+                        onDeleteProduct={onDeleteProduct}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="ap26-grid-item-image">
+                    <img
+                      src={product.imageUrl || FALLBACK_PRODUCT_IMAGE}
+                      alt={product.name}
+                      onError={(event) => {
+                        event.currentTarget.onerror = null;
+                        event.currentTarget.src = FALLBACK_PRODUCT_IMAGE;
+                      }}
+                    />
+                  </div>
+                  
+                  <div className="ap26-grid-item-details">
+                    <strong>{product.name}</strong>
+                    <span className="ap26-grid-sku">{t("products.SKU")}: {product.sku}</span>
+                    <span className="ap26-grid-category">{product.category}</span>
+                    
+                    <div className="ap26-grid-prices">
+                      <span className="ap26-grid-price">{product.priceLabel}</span>
+                      {product.salePrice && <span className="ap26-grid-sale">{product.salePriceLabel}</span>}
+                    </div>
+                  </div>
+                  
+                  <div className="ap26-grid-item-footer">
+                    <div className="ap26-grid-stock-status">
+                      <span className="ap26-grid-stock">{t("products.Stock")}: {product.stock}</span>
+                      <StatusBadge statusCode={product.statusCode} statusLabel={product.statusLabel} />
+                    </div>
+                    <PublishToggle
+                      checked={product.published}
+                      busy={updating}
+                      disabled={!permissions.canUpdate}
+                      onChange={() => onTogglePublished(product)}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <Pagination meta={meta} onPageChange={onPageChange} disabled={isFetching} />
         </section>
       ) : (
         <section className={`ap26-table-card ${isFetching ? "is-fetching" : ""}`}>
@@ -476,15 +640,15 @@ export default function AdminProducts2026View({
                       onChange={() => onSelectAll(products.map((product) => Number(product.id)), !allSelected)}
                     />
                   </th>
-                  <th>Product</th>
-                  <th>Category</th>
-                  <th>Price</th>
-                  <th>Sale Price</th>
-                  <th>Stock</th>
-                  <th>Status</th>
-                  <th>Updated</th>
-                  <th>Published</th>
-                  <th>Actions</th>
+                  <th>{t("products.Product")}</th>
+                  <th>{t("products.Category")}</th>
+                  <th>{t("products.Price")}</th>
+                  <th>{t("products.Sale Price")}</th>
+                  <th>{t("products.Stock")}</th>
+                  <th>{t("products.Status")}</th>
+                  <th>{t("products.Updated")}</th>
+                  <th>{t("products.Published")}</th>
+                  <th>{t("products.Actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -503,7 +667,7 @@ export default function AdminProducts2026View({
                           onChange={() => onSelectOne(productId)}
                         />
                       </td>
-                      <td className="ap26-cell-product" data-label="Product">
+                      <td className="ap26-cell-product" data-label={t("products.Product")}>
                         <div className="ap26-product-cell">
                           <img
                             src={product.imageUrl || FALLBACK_PRODUCT_IMAGE}
@@ -515,17 +679,17 @@ export default function AdminProducts2026View({
                           />
                           <div>
                             <strong>{product.name}</strong>
-                            <span>SKU: {product.sku}</span>
+                            <span>{t("products.SKU")}: {product.sku}</span>
                           </div>
                         </div>
                       </td>
-                      <td data-label="Category">{product.category}</td>
-                      <td data-label="Price">{product.priceLabel}</td>
-                      <td data-label="Sale Price" className={product.salePrice ? "ap26-sale-price" : ""}>{product.salePriceLabel}</td>
-                      <td data-label="Stock">{product.stock}</td>
-                      <td data-label="Status"><StatusBadge statusCode={product.statusCode} statusLabel={product.statusLabel} /></td>
-                      <td data-label="Updated">{product.updatedLabel}</td>
-                      <td data-label="Published">
+                      <td data-label={t("products.Category")}>{product.category}</td>
+                      <td data-label={t("products.Price")}>{product.priceLabel}</td>
+                      <td data-label={t("products.Sale Price")} className={product.salePrice ? "ap26-sale-price" : ""}>{product.salePriceLabel}</td>
+                      <td data-label={t("products.Stock")}>{product.stock}</td>
+                      <td data-label={t("products.Status")}><StatusBadge statusCode={product.statusCode} statusLabel={product.statusLabel} /></td>
+                      <td data-label={t("products.Updated")}>{product.updatedLabel}</td>
+                      <td data-label={t("products.Published")}>
                         <PublishToggle
                           checked={product.published}
                           busy={updating}
@@ -533,12 +697,12 @@ export default function AdminProducts2026View({
                           onChange={() => onTogglePublished(product)}
                         />
                       </td>
-                      <td className="ap26-cell-actions" data-label="Actions">
+                      <td className="ap26-cell-actions" data-label={t("products.Actions")}>
                         <div className="ap26-row-actions">
-                          <IconButton label="View product" onClick={() => onViewProduct(product)}>
+                          <IconButton label={t("products.View product")} onClick={() => onViewProduct(product)}>
                             <Eye size={16} />
                           </IconButton>
-                          <IconButton label="Edit product" disabled={!permissions.canUpdate} onClick={() => onEditProduct(product)}>
+                          <IconButton label={t("products.Edit product")} disabled={!permissions.canUpdate} onClick={() => onEditProduct(product)}>
                             <Pencil size={16} />
                           </IconButton>
                           <div ref={openActionMenuId === productId ? openMenuRef : null}>
@@ -571,10 +735,10 @@ export default function AdminProducts2026View({
       )}
 
       <div className="ap26-bulk-bar" data-visible={anySelected ? "true" : "false"}>
-        <span>{selectedSet.size} selected</span>
-        <button type="button" disabled={!permissions.canUpdate || disableMutations} onClick={() => onBulkAction("publish")}>Publish</button>
-        <button type="button" disabled={!permissions.canUpdate || disableMutations} onClick={() => onBulkAction("unpublish")}>Unpublish</button>
-        <button type="button" disabled={!permissions.canDelete || disableMutations} onClick={() => onBulkAction("delete")}>Delete</button>
+        <span>{selectedSet.size} {t("products.selected")}</span>
+        <button type="button" disabled={!permissions.canUpdate || disableMutations} onClick={() => onBulkAction("publish")}>{t("products.Publish")}</button>
+        <button type="button" disabled={!permissions.canUpdate || disableMutations} onClick={() => onBulkAction("unpublish")}>{t("products.Unpublish")}</button>
+        <button type="button" disabled={!permissions.canDelete || disableMutations} onClick={() => onBulkAction("delete")}>{t("products.Delete")}</button>
       </div>
     </div>
   );

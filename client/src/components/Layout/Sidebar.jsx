@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../auth/useAuth.js";
 import WorkspaceSidebarBrand from "../workspace/WorkspaceSidebarBrand.jsx";
 import { getAllowedAdminNavigation, matchesRoute } from "./adminNavigation.jsx";
@@ -32,6 +33,7 @@ export default function Sidebar({ collapsed = false, mobileOpen = false }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const queryClient = useQueryClient();
+  const { t } = useTranslation("admin");
   const [openMenus, setOpenMenus] = useState({
     International:
       pathname.startsWith("/admin/international/languages") ||
@@ -91,7 +93,7 @@ export default function Sidebar({ collapsed = false, mobileOpen = false }) {
       <div className="sidebar__brand">
         <WorkspaceSidebarBrand
           brandName="TP PRENEURS"
-          workspaceLabel="Admin Workspace"
+          workspaceLabel={t("sidebar.Admin Workspace")}
           workspaceKey="admin"
           collapsed={collapsed}
         />
@@ -112,13 +114,13 @@ export default function Sidebar({ collapsed = false, mobileOpen = false }) {
           return (
             <div key={item.label} className="sidebar__group">
               {showSectionTitle ? (
-                <p className="sidebar__section-title">{item.section}</p>
+                <p className="sidebar__section-title">{t(`sidebar.${item.section}`)}</p>
               ) : null}
               {item.to && !hasChildren && !isDisabled ? (
                 <NavLink
                   to={item.to}
                   end={item.to === "/admin"}
-                  title={collapsed ? item.label : undefined}
+                  title={collapsed ? t(`sidebar.${item.label}`) : undefined}
                   className={({ isActive }) =>
                     `sidebar__link ${isActive ? "is-active" : ""}`
                   }
@@ -126,7 +128,7 @@ export default function Sidebar({ collapsed = false, mobileOpen = false }) {
                   <span className="sidebar__icon">
                     <item.icon className="sidebar__icon-svg" />
                   </span>
-                  <span className="sidebar__label">{item.label}</span>
+                  <span className="sidebar__label">{t(`sidebar.${item.label}`)}</span>
                 </NavLink>
               ) : hasChildren ? (
                 <button
@@ -135,14 +137,14 @@ export default function Sidebar({ collapsed = false, mobileOpen = false }) {
                     canToggle && isOpen ? "is-open" : ""
                   } ${hasActiveChild ? "is-current" : ""}`}
                   onClick={canToggle ? () => toggleMenu(item.label) : undefined}
-                  title={collapsed ? item.label : undefined}
+                  title={collapsed ? t(`sidebar.${item.label}`) : undefined}
                   aria-expanded={canToggle ? isOpen : undefined}
                   aria-current={hasActiveChild ? "page" : undefined}
                 >
                   <span className="sidebar__icon">
                     <item.icon className="sidebar__icon-svg" />
                   </span>
-                  <span className="sidebar__label">{item.label}</span>
+                  <span className="sidebar__label">{t(`sidebar.${item.label}`)}</span>
 
                   {item.hasCaret ? (
                     <span className="sidebar__caret" aria-hidden="true">
@@ -153,13 +155,13 @@ export default function Sidebar({ collapsed = false, mobileOpen = false }) {
               ) : (
                 <div
                   className="sidebar__link is-disabled"
-                  title={collapsed ? item.label : "Coming soon"}
+                  title={collapsed ? t(`sidebar.${item.label}`) : "Coming soon"}
                   aria-disabled="true"
                 >
                   <span className="sidebar__icon">
                     <item.icon className="sidebar__icon-svg" />
                   </span>
-                  <span className="sidebar__label">{item.label}</span>
+                  <span className="sidebar__label">{t(`sidebar.${item.label}`)}</span>
                 </div>
               )}
 
@@ -174,7 +176,7 @@ export default function Sidebar({ collapsed = false, mobileOpen = false }) {
                     <button
                       type="button"
                       className="sidebar__sublink"
-                      title={collapsed ? item.label : undefined}
+                      title={collapsed ? t(`sidebar.${item.label}`) : undefined}
                     >
                       <span className="sidebar__subdot" aria-hidden="true" />
                       <span className="sidebar__label">No items</span>
@@ -185,7 +187,7 @@ export default function Sidebar({ collapsed = false, mobileOpen = false }) {
                         <NavLink
                           key={`${item.label}-${child.label}`}
                           to={child.to}
-                          title={collapsed ? child.label : undefined}
+                          title={collapsed ? t(`sidebar.${child.label}`) : undefined}
                           className={({ isActive }) =>
                             `sidebar__sublink ${
                               isActive || matchesRoute(child.to, pathname) ? "is-active" : ""
@@ -193,17 +195,17 @@ export default function Sidebar({ collapsed = false, mobileOpen = false }) {
                           }
                         >
                           <span className="sidebar__subdot" aria-hidden="true" />
-                          <span className="sidebar__label">{child.label}</span>
+                          <span className="sidebar__label">{t(`sidebar.${child.label}`)}</span>
                         </NavLink>
                       ) : (
                         <button
                           key={`${item.label}-${child.label}`}
                           type="button"
                           className="sidebar__sublink"
-                          title={collapsed ? child.label : undefined}
+                          title={collapsed ? t(`sidebar.${child.label}`) : undefined}
                         >
                           <span className="sidebar__subdot" aria-hidden="true" />
-                          <span className="sidebar__label">{child.label}</span>
+                          <span className="sidebar__label">{t(`sidebar.${child.label}`)}</span>
                         </button>
                       )
                     )
