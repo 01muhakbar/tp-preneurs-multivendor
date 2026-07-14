@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Boxes,
   CheckCircle2,
@@ -20,38 +21,6 @@ import {
   X,
 } from "lucide-react";
 import "./admin-attributes-2026.css";
-
-const typeOptions = [
-  { value: "all", label: "All" },
-  { value: "dropdown", label: "Dropdown" },
-  { value: "radio", label: "Radio" },
-  { value: "checkbox", label: "Checkbox" },
-];
-
-const scopeOptions = [
-  { value: "all", label: "All" },
-  { value: "global", label: "Global" },
-  { value: "store", label: "Store" },
-];
-
-const statusOptions = [
-  { value: "all", label: "All" },
-  { value: "active", label: "Active" },
-  { value: "archived", label: "Archived" },
-];
-
-const createdByOptions = [
-  { value: "all", label: "All" },
-  { value: "admin", label: "Admin" },
-  { value: "seller", label: "Seller" },
-];
-
-const sortOptions = [
-  { value: "date_added", label: "Date Added" },
-  { value: "date_updated", label: "Recently Updated" },
-  { value: "name_asc", label: "Name A-Z" },
-  { value: "name_desc", label: "Name Z-A" },
-];
 
 function IconButton({ children, label, className = "", ...props }) {
   return (
@@ -125,6 +94,7 @@ function AttributeSkeleton() {
 }
 
 function PublishToggle({ checked, disabled, busy, onChange }) {
+  const { t } = useTranslation("admin");
   return (
     <button
       type="button"
@@ -133,7 +103,7 @@ function PublishToggle({ checked, disabled, busy, onChange }) {
       onClick={onChange}
       role="switch"
       aria-checked={checked}
-      title={checked ? "Published" : "Unpublished"}
+      title={checked ? t("attributes.Published", "Published") : t("attributes.Unpublished", "Unpublished")}
     >
       <span />
     </button>
@@ -150,10 +120,11 @@ function RowMoreMenu({
   onTogglePublished,
   onDelete,
 }) {
+  const { t } = useTranslation("admin");
   return (
     <div className="aa26-more-actions">
       <IconButton
-        label={`More actions for ${attribute.name}`}
+        label={`${t("attributes.More actions for", "More actions for")} ${attribute.name}`}
         aria-haspopup="menu"
         aria-expanded={open}
         className={open ? "is-active" : ""}
@@ -162,7 +133,7 @@ function RowMoreMenu({
         <MoreVertical size={16} />
       </IconButton>
       {open ? (
-        <div className="aa26-more-menu" role="menu" aria-label={`More actions for ${attribute.name}`}>
+        <div className="aa26-more-menu" role="menu" aria-label={`${t("attributes.More actions for", "More actions for")} ${attribute.name}`}>
           <button
             type="button"
             role="menuitem"
@@ -173,7 +144,7 @@ function RowMoreMenu({
             }}
           >
             <Pencil size={15} />
-            <span>Edit Attribute</span>
+            <span>{t("attributes.Edit Attribute", "Edit Attribute")}</span>
           </button>
           <button
             type="button"
@@ -185,7 +156,7 @@ function RowMoreMenu({
             }}
           >
             <ListFilter size={15} />
-            <span>Manage Values ({attribute.valueCount || 0})</span>
+            <span>{t("attributes.Manage Values", "Manage Values")} ({attribute.valueCount || 0})</span>
           </button>
           <button
             type="button"
@@ -197,7 +168,11 @@ function RowMoreMenu({
             }}
           >
             <CheckCircle2 size={15} />
-            <span>{attribute.published ? "Unpublish Attribute" : "Publish Attribute"}</span>
+            <span>
+              {attribute.published
+                ? t("attributes.Unpublish Attribute", "Unpublish Attribute")
+                : t("attributes.Publish Attribute", "Publish Attribute")}
+            </span>
           </button>
           <button
             type="button"
@@ -210,7 +185,7 @@ function RowMoreMenu({
             }}
           >
             <Trash2 size={15} />
-            <span>Delete Attribute</span>
+            <span>{t("attributes.Delete Attribute", "Delete Attribute")}</span>
           </button>
         </div>
       ) : null}
@@ -218,20 +193,20 @@ function RowMoreMenu({
   );
 }
 
-function formatRelativeOrDate(dateString) {
+function formatRelativeOrDate(dateString, isIndo) {
   if (!dateString) return "-";
   try {
     const date = new Date(dateString);
     const now = new Date();
     const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
-    if (diffSec < 60) return "Just now";
+    if (diffSec < 60) return isIndo ? "Baru saja" : "Just now";
     const diffMin = Math.floor(diffSec / 60);
-    if (diffMin < 60) return `${diffMin}m ago`;
+    if (diffMin < 60) return isIndo ? `${diffMin} mnt lalu` : `${diffMin}m ago`;
     const diffHr = Math.floor(diffMin / 60);
-    if (diffHr < 24) return `${diffHr}h ago`;
+    if (diffHr < 24) return isIndo ? `${diffHr} jam lalu` : `${diffHr}h ago`;
     const diffDay = Math.floor(diffHr / 24);
-    if (diffDay <= 30) return `${diffDay}d ago`;
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    if (diffDay <= 30) return isIndo ? `${diffDay} hri lalu` : `${diffDay}d ago`;
+    return date.toLocaleDateString(isIndo ? "id-ID" : "en-US", { month: "short", day: "numeric" });
   } catch {
     return "-";
   }
@@ -262,10 +237,64 @@ export default function AdminAttributes2026View({
   onBulkAction,
   onPageChange,
 }) {
+  const { t, i18n } = useTranslation("admin");
+  const isIndo =
+    i18n.language === "id" ||
+    i18n.language === "id-ID" ||
+    i18n.language?.startsWith("id") ||
+    (typeof window !== "undefined" && window.localStorage.getItem("adminLanguage")?.includes("id"));
+
   const fileInputRef = useRef(null);
   const openMenuRef = useRef(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [openActionMenuId, setOpenActionMenuId] = useState(null);
+
+  const typeOptions = useMemo(
+    () => [
+      { value: "all", label: t("attributes.All", "All") },
+      { value: "dropdown", label: t("attributes.Dropdown", "Dropdown") },
+      { value: "radio", label: t("attributes.Radio", "Radio") },
+      { value: "checkbox", label: t("attributes.Checkbox", "Checkbox") },
+    ],
+    [t]
+  );
+
+  const scopeOptions = useMemo(
+    () => [
+      { value: "all", label: t("attributes.All", "All") },
+      { value: "global", label: t("attributes.Global", "Global") },
+      { value: "store", label: t("attributes.Store", "Store") },
+    ],
+    [t]
+  );
+
+  const statusOptions = useMemo(
+    () => [
+      { value: "all", label: t("attributes.All", "All") },
+      { value: "active", label: t("attributes.Active", "Active") },
+      { value: "archived", label: t("attributes.Archived", "Archived") },
+    ],
+    [t]
+  );
+
+  const createdByOptions = useMemo(
+    () => [
+      { value: "all", label: t("attributes.All", "All") },
+      { value: "admin", label: t("attributes.Admin", "Admin") },
+      { value: "seller", label: t("attributes.Seller", "Seller") },
+    ],
+    [t]
+  );
+
+  const sortOptions = useMemo(
+    () => [
+      { value: "date_added", label: t("attributes.Date Added", "Date Added") },
+      { value: "date_updated", label: t("attributes.Recently Updated", "Recently Updated") },
+      { value: "name_asc", label: t("attributes.Name A-Z", "Name A-Z") },
+      { value: "name_desc", label: t("attributes.Name Z-A", "Name Z-A") },
+    ],
+    [t]
+  );
 
   const selectedSet = useMemo(() => new Set(selectedIds || []), [selectedIds]);
   const manageableAttributes = useMemo(
@@ -319,26 +348,26 @@ export default function AdminAttributes2026View({
 
       <section className="aa26-header">
         <div>
-          <h1>Attributes</h1>
+          <h1>{t("attributes.Attributes", "Attributes")}</h1>
           <nav aria-label="Breadcrumb">
-            <span>Catalog</span>
+            <span>{t("attributes.Catalog", "Catalog")}</span>
             <ChevronRight size={14} />
-            <span>Attributes</span>
+            <span>{t("attributes.Attributes", "Attributes")}</span>
           </nav>
         </div>
         <div className="aa26-header__actions">
           <ActionButton icon={Download} onClick={() => onExport("json")}>
-            Export
+            {t("attributes.Export", "Export")}
           </ActionButton>
           <ActionButton icon={Upload} onClick={() => fileInputRef.current?.click()}>
-            Import
+            {t("attributes.Import", "Import")}
           </ActionButton>
           <ActionButton
             icon={ChevronDown}
             disabled={!anySelected}
             onClick={() => onBulkAction("publish")}
           >
-            Bulk Action
+            {t("attributes.Bulk Action", "Bulk Action")}
           </ActionButton>
           <ActionButton
             icon={Trash2}
@@ -346,40 +375,40 @@ export default function AdminAttributes2026View({
             disabled={!anySelected}
             onClick={() => onBulkAction("delete")}
           >
-            Delete
+            {t("attributes.Delete", "Delete")}
           </ActionButton>
           <ActionButton icon={Plus} tone="primary" onClick={onAddAttribute}>
-            Add Attribute
+            {t("attributes.Add Attribute", "Add Attribute")}
           </ActionButton>
         </div>
       </section>
 
       <section className="aa26-kpis" aria-label="Attribute summary">
         <KpiCard
-          label="Total Attributes"
+          label={t("attributes.Total Attributes", "Total Attributes")}
           value={stats.total}
-          helper="All attributes"
+          helper={t("attributes.All attributes", "All attributes")}
           icon={Package}
           tone="blue"
         />
         <KpiCard
-          label="Published"
+          label={t("attributes.Published", "Published")}
           value={stats.published}
-          helper="Loaded active attributes"
+          helper={t("attributes.Loaded active attributes", "Loaded active attributes")}
           icon={CheckCircle2}
           tone="green"
         />
         <KpiCard
-          label="Global Scope"
+          label={t("attributes.Global Scope", "Global Scope")}
           value={stats.global}
-          helper="System-wide attributes"
+          helper={t("attributes.System-wide attributes", "System-wide attributes")}
           icon={SlidersHorizontal}
           tone="orange"
         />
         <KpiCard
-          label="Store Scope"
+          label={t("attributes.Store Scope", "Store Scope")}
           value={stats.store}
-          helper="Store-specific attributes"
+          helper={t("attributes.Store-specific attributes", "Store-specific attributes")}
           icon={Boxes}
           tone="red"
         />
@@ -391,23 +420,23 @@ export default function AdminAttributes2026View({
           <input
             value={filters.q || ""}
             onChange={(event) => onFilterChange({ q: event.target.value })}
-            placeholder="Search by attribute name or display name"
+            placeholder={t("attributes.Search by attribute name or display name", "Search by attribute name or display name")}
           />
         </label>
         <FieldSelect
-          label="Option Type"
+          label={t("attributes.Option Type", "Option Type")}
           value={filters.type || "all"}
           onChange={(value) => onFilterChange({ type: value === "all" ? "" : value })}
           options={typeOptions}
         />
         <FieldSelect
-          label="Scope"
+          label={t("attributes.Scope", "Scope")}
           value={filters.scope || "all"}
           onChange={(value) => onFilterChange({ scope: value === "all" ? "" : value })}
           options={scopeOptions}
         />
         <FieldSelect
-          label="Status"
+          label={t("attributes.Status", "Status")}
           value={filters.status || "all"}
           onChange={(value) => onFilterChange({ status: value === "all" ? "" : value })}
           options={statusOptions}
@@ -418,7 +447,7 @@ export default function AdminAttributes2026View({
           onClick={() => setFiltersOpen((open) => !open)}
         >
           <SlidersHorizontal size={17} />
-          <span>Filters</span>
+          <span>{t("attributes.Filters", "Filters")}</span>
         </button>
         <IconButton label="View options">
           <Grid2X2 size={18} />
@@ -426,20 +455,20 @@ export default function AdminAttributes2026View({
         {filtersOpen ? (
           <div className="aa26-filter-drawer">
             <FieldSelect
-              label="Created By"
+              label={t("attributes.Created By", "Created By")}
               value={filters.createdByRole || "all"}
               onChange={(value) => onFilterChange({ createdByRole: value === "all" ? "" : value })}
               options={createdByOptions}
             />
             <FieldSelect
-              label="Sort"
+              label={t("attributes.Sort", "Sort")}
               value={filters.sort || "date_added"}
               onChange={(value) => onFilterChange({ sort: value })}
               options={sortOptions}
             />
             <button type="button" onClick={onResetFilters}>
               <X size={16} />
-              Reset filters
+              {t("attributes.Reset filters", "Reset filters")}
             </button>
           </div>
         ) : null}
@@ -447,20 +476,20 @@ export default function AdminAttributes2026View({
 
       {isError ? (
         <section className="aa26-state">
-          <strong>Attributes could not be loaded.</strong>
-          <p>{errorMessage || "Please retry to fetch the latest attributes."}</p>
+          <strong>{t("attributes.Attributes could not be loaded.", "Attributes could not be loaded.")}</strong>
+          <p>{errorMessage || t("attributes.Please retry to fetch the latest attributes.", "Please retry to fetch the latest attributes.")}</p>
           <button type="button" className="aa26-action aa26-action--primary" onClick={onRetry}>
-            Retry
+            {t("attributes.Retry", "Retry")}
           </button>
         </section>
       ) : isLoading ? (
         <AttributeSkeleton />
       ) : attributes.length === 0 ? (
         <section className="aa26-state">
-          <strong>No attributes found.</strong>
-          <p>Create your first attribute or adjust the current search and filters.</p>
+          <strong>{t("attributes.No attributes found.", "No attributes found.")}</strong>
+          <p>{t("attributes.Create your first attribute or adjust the current search and filters.", "Create your first attribute or adjust the current search and filters.")}</p>
           <button type="button" className="aa26-action aa26-action--primary" onClick={onAddAttribute}>
-            Add Attribute
+            {t("attributes.Add Attribute", "Add Attribute")}
           </button>
         </section>
       ) : (
@@ -483,20 +512,20 @@ export default function AdminAttributes2026View({
                   <th>
                     <input
                       type="checkbox"
-                      aria-label="Select all attributes"
+                      aria-label={t("attributes.Select all attributes", "Select all attributes")}
                       checked={allManageableSelected}
                       disabled={manageableAttributes.length === 0}
                       onChange={onSelectAll}
                     />
                   </th>
-                  <th>ATTRIBUTE</th>
-                  <th>OPTION TYPE</th>
-                  <th>SCOPE</th>
-                  <th>VALUES</th>
-                  <th>STATUS</th>
-                  <th>UPDATED</th>
-                  <th>PUBLISHED</th>
-                  <th>ACTIONS</th>
+                  <th>{t("attributes.ATTRIBUTE", "ATTRIBUTE")}</th>
+                  <th>{t("attributes.OPTION TYPE", "OPTION TYPE")}</th>
+                  <th>{t("attributes.SCOPE", "SCOPE")}</th>
+                  <th>{t("attributes.VALUES", "VALUES")}</th>
+                  <th>{t("attributes.STATUS", "STATUS")}</th>
+                  <th>{t("attributes.UPDATED", "UPDATED")}</th>
+                  <th>{t("attributes.PUBLISHED", "PUBLISHED")}</th>
+                  <th>{t("attributes.ACTIONS", "ACTIONS")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -505,6 +534,18 @@ export default function AdminAttributes2026View({
                   const manageable = canManageRow(attribute);
                   const isStoreOwned = String(attribute.scope || "global") === "store";
                   const valueCount = Number(attribute.valueCount || 0) || (Array.isArray(attribute.values) ? attribute.values.length : 0);
+
+                  const typeStr = String(attribute.type || "dropdown").toLowerCase();
+                  const typeLabel =
+                    typeStr === "dropdown" ? t("attributes.Dropdown", "Dropdown")
+                    : typeStr === "radio" ? t("attributes.Radio", "Radio")
+                    : typeStr === "checkbox" ? t("attributes.Checkbox", "Checkbox")
+                    : String(attribute.type || "Dropdown").replace(/^[a-z]/, (c) => c.toUpperCase());
+
+                  const statusStr = String(attribute.status || "active").toLowerCase();
+                  const statusLabel =
+                    statusStr === "archived" ? t("attributes.Archived", "Archived")
+                    : t("attributes.Active", "Active");
 
                   return (
                     <tr key={attribute.id}>
@@ -526,13 +567,15 @@ export default function AdminAttributes2026View({
                         </div>
                       </td>
                       <td>
-                        <span className={`aa26-badge aa26-badge--${String(attribute.type || "dropdown").toLowerCase()}`}>
-                          {String(attribute.type || "Dropdown").replace(/^[a-z]/, (c) => c.toUpperCase())}
+                        <span className={`aa26-badge aa26-badge--${typeStr}`}>
+                          {typeLabel}
                         </span>
                       </td>
                       <td>
                         <span className={`aa26-badge aa26-badge--${isStoreOwned ? "store" : "global"}`}>
-                          {isStoreOwned ? (attribute.storeName ? `Store: ${attribute.storeName}` : "Store") : "Global"}
+                          {isStoreOwned
+                            ? (attribute.storeName ? `${t("attributes.Store", "Store")}: ${attribute.storeName}` : t("attributes.Store", "Store"))
+                            : t("attributes.Global", "Global")}
                         </span>
                       </td>
                       <td>
@@ -541,16 +584,16 @@ export default function AdminAttributes2026View({
                           className="aa26-values-pill"
                           onClick={() => onManageValues(attribute)}
                         >
-                          <span>{valueCount} {valueCount === 1 ? "value" : "values"}</span>
+                          <span>{valueCount} {isIndo ? "nilai" : (valueCount === 1 ? "value" : "values")}</span>
                         </button>
                       </td>
                       <td>
-                        <span className={`aa26-status aa26-status--${String(attribute.status || "active").toLowerCase()}`}>
-                          {String(attribute.status || "Active").replace(/^[a-z]/, (c) => c.toUpperCase())}
+                        <span className={`aa26-status aa26-status--${statusStr}`}>
+                          {statusLabel}
                         </span>
                       </td>
                       <td>
-                        <span>{formatRelativeOrDate(attribute.updatedAt || attribute.createdAt)}</span>
+                        <span>{formatRelativeOrDate(attribute.updatedAt || attribute.createdAt, isIndo)}</span>
                       </td>
                       <td>
                         <PublishToggle
@@ -562,13 +605,13 @@ export default function AdminAttributes2026View({
                       <td className="aa26-cell-actions">
                         <div className="aa26-row-actions" ref={openActionMenuId === id ? openMenuRef : null}>
                           <IconButton
-                            label={`Manage values for ${attribute.name}`}
+                            label={`${t("attributes.Manage values for", "Manage values for")} ${attribute.name}`}
                             onClick={() => onManageValues(attribute)}
                           >
                             <Eye size={15} />
                           </IconButton>
                           <IconButton
-                            label={`Edit ${attribute.name}`}
+                            label={`${t("attributes.Edit", "Edit")} ${attribute.name}`}
                             disabled={!manageable}
                             onClick={() => onEditAttribute(attribute)}
                           >
@@ -600,7 +643,9 @@ export default function AdminAttributes2026View({
       {attributes.length > 0 ? (
         <div className="aa26-pagination">
           <p>
-            Showing {startIdx} to {endIdx} of {meta.total} attributes
+            {isIndo
+              ? `Menampilkan ${startIdx} hingga ${endIdx} dari ${meta.total} atribut`
+              : `Showing ${startIdx} to ${endIdx} of ${meta.total} attributes`}
           </p>
           <div>
             <IconButton

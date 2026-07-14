@@ -18,6 +18,7 @@
     "dev:client": "pnpm --filter client dev",
     "dev:all": "pnpm -r --parallel dev",
     "db:sync": "pnpm --filter server db:sync",
+    "db:xampp:sync": "pnpm --filter server migrate && pnpm --filter server db:sync",
     "seed:super": "pnpm --filter server seed:super",
     "seed:kachabazar": "pnpm --filter server seed:kachabazar",
     "seed:analytics": "pnpm --filter server seed:analytics",

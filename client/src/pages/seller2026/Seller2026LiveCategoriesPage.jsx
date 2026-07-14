@@ -67,12 +67,17 @@ function CategoryModal({
   isSubmitting,
   isUploading,
   canUpload,
+  isId = false,
 }) {
   if (!open) return null;
   const isEdit = mode === "edit";
-  const title = isEdit ? "Update Category" : "Add Category";
-  const subtitle = isEdit ? "Edit category details and visibility." : "Create and organize your catalog.";
-  const actionLabel = isEdit ? "Update Category" : "Create Category";
+  const title = isEdit ? (isId ? "Perbarui Kategori" : "Update Category") : (isId ? "Tambah Kategori" : "Add Category");
+  const subtitle = isEdit
+    ? (isId ? "Edit detail dan visibilitas kategori." : "Edit category details and visibility.")
+    : (isId ? "Buat dan susun katalog Anda." : "Create and organize your catalog.");
+  const actionLabel = isEdit
+    ? (isId ? "Perbarui Kategori" : "Update Category")
+    : (isId ? "Buat Kategori" : "Create Category");
   const imageUrl = resolveAssetUrl(form.imageUrl);
 
   return (
@@ -89,10 +94,10 @@ function CategoryModal({
 
         <div className="seller2026-category-form">
           <label className={errors.name ? "has-error" : ""}>
-            <span>Category Name *</span>
+            <span>{isId ? "Nama Kategori *" : "Category Name *"}</span>
             <input
               value={form.name}
-              placeholder="Enter category name"
+              placeholder={isId ? "Masukkan nama kategori" : "Enter category name"}
               onChange={(event) => {
                 const name = event.target.value;
                 onChange({ name, slug: slugifySeller2026Category(name) });
@@ -102,19 +107,19 @@ function CategoryModal({
           </label>
 
           <label>
-            <span>Parent Category</span>
+            <span>{isId ? "Kategori Induk" : "Parent Category"}</span>
             <select value={form.parentId} onChange={(event) => onChange({ parentId: event.target.value })}>
               {parentOptions.map((option) => <option value={option.value} key={option.value || "root"}>{option.label}</option>)}
             </select>
           </label>
 
           <label className={errors.description ? "has-error" : ""}>
-            <span>Description</span>
+            <span>{isId ? "Deskripsi" : "Description"}</span>
             <textarea
               rows={5}
               value={form.description}
               maxLength={160}
-              placeholder="Enter a short description"
+              placeholder={isId ? "Masukkan deskripsi singkat" : "Enter a short description"}
               onChange={(event) => onChange({ description: event.target.value })}
             />
             <em>{form.description.length}/160</em>
@@ -122,40 +127,40 @@ function CategoryModal({
           </label>
 
           <div className="seller2026-category-form__image">
-            <span>Image</span>
+            <span>{isId ? "Gambar" : "Image"}</span>
             <button type="button" disabled={!canUpload || isUploading} onClick={onImageUpload}>
               {imageUrl ? <img src={imageUrl} alt="" /> : <ImageIcon size={24} />}
-              <strong>{isUploading ? "Uploading image..." : "Upload an image"}</strong>
-              <small>{canUpload ? "PNG, JPG or WEBP. Max 2MB" : "Not available yet"}</small>
+              <strong>{isUploading ? (isId ? "Mengunggah gambar..." : "Uploading image...") : (isId ? "Unggah gambar" : "Upload an image")}</strong>
+              <small>{canUpload ? "PNG, JPG or WEBP. Max 2MB" : (isId ? "Belum tersedia" : "Not available yet")}</small>
             </button>
             {form.imageUrl ? (
               <button
                 className="seller2026-category-form__remove"
                 type="button"
-                onClick={() => window.confirm("Remove this image from the draft?") && onChange({ imageUrl: "" })}
+                onClick={() => window.confirm(isId ? "Hapus gambar ini dari draf?" : "Remove this image from the draft?") && onChange({ imageUrl: "" })}
               >
-                Remove image
+                {isId ? "Hapus gambar" : "Remove image"}
               </button>
             ) : null}
           </div>
 
           <label>
-            <span>Slug (Handle)</span>
+            <span>{isId ? "Slug (Tautan)" : "Slug (Handle)"}</span>
             <div className="seller2026-category-form__slug">
               <span>/categories/</span>
               <input
                 value={form.slug}
-                placeholder="category-handle"
+                placeholder={isId ? "tautan-kategori" : "category-handle"}
                 onChange={(event) => onChange({ slug: slugifySeller2026Category(event.target.value) })}
               />
             </div>
-            <small>Use lowercase letters, numbers, and hyphens.</small>
+            <small>{isId ? "Gunakan huruf kecil, angka, dan tanda hubung." : "Use lowercase letters, numbers, and hyphens."}</small>
           </label>
 
           <div className="seller2026-category-form__visibility">
             <div>
-              <strong>Visible in storefront</strong>
-              <span>Category will be visible to customers.</span>
+              <strong>{isId ? "Tampilkan di etalase" : "Visible in storefront"}</strong>
+              <span>{isId ? "Kategori akan dapat dilihat oleh pembeli." : "Category will be visible to customers."}</span>
             </div>
             <button
               type="button"
@@ -168,8 +173,8 @@ function CategoryModal({
         </div>
 
         <footer>
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="submit" className="is-primary" disabled={isSubmitting}>{isSubmitting ? "Saving..." : actionLabel}</button>
+          <button type="button" onClick={onClose}>{isId ? "Batal" : "Cancel"}</button>
+          <button type="submit" className="is-primary" disabled={isSubmitting}>{isSubmitting ? (isId ? "Menyimpan..." : "Saving...") : actionLabel}</button>
         </footer>
       </form>
     </div>
@@ -177,7 +182,7 @@ function CategoryModal({
 }
 
 export default function Seller2026LiveCategoriesPage() {
-  const { sellerContext, workspaceStoreId: storeId, workspaceRoutes } = useSellerWorkspaceRoute();
+  const { sellerContext, workspaceStoreId: storeId, workspaceRoutes, isId = false } = useSellerWorkspaceRoute();
   const { can, permissions, sourceAvailable } = getSeller2026PagePermissions(sellerContext);
   const canView = can("CATALOG_CATEGORY_READ");
   const canCreate = !sourceAvailable || hasSeller2026Permission(permissions, "CATALOG_CATEGORY_CREATE");
@@ -228,16 +233,16 @@ export default function Seller2026LiveCategoriesPage() {
   const updateForm = (patch) => setForm((current) => ({ ...current, ...patch }));
 
   const submitForm = async () => {
-    const errors = validateSeller2026CategoryForm(form);
+    const errors = validateSeller2026CategoryForm(form, isId);
     setFormErrors(errors);
     if (Object.keys(errors).length) return;
     try {
       if (modalMode === "edit" && form.id) {
         await categories.updateCategory({ id: form.id, form });
-        setNotice({ type: "success", text: "Category updated" });
+        setNotice({ type: "success", text: isId ? "Kategori berhasil diperbarui" : "Category updated" });
       } else {
         await categories.createCategory(form);
-        setNotice({ type: "success", text: "Category created" });
+        setNotice({ type: "success", text: isId ? "Kategori berhasil dibuat" : "Category created" });
       }
       closeModal();
       categories.clearSelection();
@@ -245,8 +250,8 @@ export default function Seller2026LiveCategoriesPage() {
       setNotice({
         type: "error",
         text: modalMode === "edit"
-          ? toErrorMessage(error, "Unable to update category")
-          : toErrorMessage(error, "Unable to create category"),
+          ? toErrorMessage(error, isId ? "Gagal memperbarui kategori" : "Unable to update category")
+          : toErrorMessage(error, isId ? "Gagal membuat kategori" : "Unable to create category"),
       });
     }
   };
@@ -261,7 +266,7 @@ export default function Seller2026LiveCategoriesPage() {
       if (!url) throw new Error("Upload returned no image URL.");
       updateForm({ imageUrl: url });
     } catch (error) {
-      setNotice({ type: "error", text: toErrorMessage(error, "Unable to upload image") });
+      setNotice({ type: "error", text: toErrorMessage(error, isId ? "Gagal mengunggah gambar" : "Unable to upload image") });
     } finally {
       setUploading(false);
       setImageInputKey((current) => current + 1);
@@ -272,9 +277,9 @@ export default function Seller2026LiveCategoriesPage() {
     if (!category.permissions.canPublish && !category.permissions.canUnpublish) return;
     try {
       await categories.updateCategoryVisibility({ id: category.id, isPublished: !category.isPublished });
-      setNotice({ type: "success", text: category.isPublished ? "Category hidden" : "Category visible" });
+      setNotice({ type: "success", text: category.isPublished ? (isId ? "Kategori disembunyikan" : "Category hidden") : (isId ? "Kategori ditampilkan" : "Category visible") });
     } catch (error) {
-      setNotice({ type: "error", text: toErrorMessage(error, "Unable to update category visibility") });
+      setNotice({ type: "error", text: toErrorMessage(error, isId ? "Gagal memperbarui visibilitas kategori" : "Unable to update category visibility") });
     }
   };
 
@@ -283,7 +288,7 @@ export default function Seller2026LiveCategoriesPage() {
       <div className="seller2026-dashboard seller2026-categories">
         <div className="seller2026-skeleton seller2026-skeleton--hero" />
         <div className="seller2026-skeleton seller2026-skeleton--hero" />
-        <p className="seller2026-categories__muted">Loading categories...</p>
+        <p className="seller2026-categories__muted">{isId ? "Memuat kategori..." : "Loading categories..."}</p>
       </div>
     );
   }
@@ -291,30 +296,30 @@ export default function Seller2026LiveCategoriesPage() {
   if (categories.isError) {
     return (
       <div className="seller2026-dashboard seller2026-categories">
-        <div className="seller2026-error"><AlertTriangle size={18} />Unable to load categories<button onClick={() => categories.refetch()}>Retry</button></div>
+        <div className="seller2026-error"><AlertTriangle size={18} />{isId ? "Gagal memuat kategori" : "Unable to load categories"}<button onClick={() => categories.refetch()}>{isId ? "Coba Lagi" : "Retry"}</button></div>
       </div>
     );
   }
 
   const summaryCards = [
-    ["Total Categories", categories.summary.total, Layers, "mint"],
-    ["Published", categories.summary.published, Check, "green"],
-    ["Hidden", categories.summary.hidden, EyeOff, "slate"],
-    ["Root Categories", categories.summary.rootCategories, FolderTree, "mint"],
+    [isId ? "Total Kategori" : "Total Categories", categories.summary.total, Layers, "mint"],
+    [isId ? "Dipublikasikan" : "Published", categories.summary.published, Check, "green"],
+    [isId ? "Disembunyikan" : "Hidden", categories.summary.hidden, EyeOff, "slate"],
+    [isId ? "Kategori Utama" : "Root Categories", categories.summary.rootCategories, FolderTree, "mint"],
   ];
 
   return (
     <div className="seller2026-dashboard seller2026-categories">
       <header className="seller2026-categories-header">
         <div>
-          <h1>Categories</h1>
-          <p>Organize your product catalog.</p>
+          <h1>{isId ? "Kategori" : "Categories"}</h1>
+          <p>{isId ? "Kelola dan susun kategori produk Anda." : "Organize your product catalog."}</p>
         </div>
         <div className="seller2026-categories-actions">
-          <button disabled title="Not available yet"><Upload size={16} />Export</button>
-          <button disabled title="Not available yet"><Upload size={16} />Import</button>
-          <button disabled={!categories.selectedIds.length} title={categories.selectedIds.length ? "Bulk actions are confirmation-gated." : "Select categories first"}><SlidersHorizontal size={16} />Bulk Actions</button>
-          <button className="is-primary" disabled={!canCreate} title={canCreate ? "Add Category" : "Requires permission"} onClick={openCreate}><Plus size={17} />Add Category</button>
+          <button disabled title={isId ? "Belum tersedia" : "Not available yet"}><Upload size={16} />{isId ? "Ekspor" : "Export"}</button>
+          <button disabled title={isId ? "Belum tersedia" : "Not available yet"}><Upload size={16} />{isId ? "Impor" : "Import"}</button>
+          <button disabled={!categories.selectedIds.length} title={categories.selectedIds.length ? (isId ? "Aksi massal membutuhkan konfirmasi." : "Bulk actions are confirmation-gated.") : (isId ? "Pilih kategori terlebih dahulu" : "Select categories first")}><SlidersHorizontal size={16} />{isId ? "Aksi Massal" : "Bulk Actions"}</button>
+          <button className="is-primary" disabled={!canCreate} title={canCreate ? (isId ? "Tambah Kategori" : "Add Category") : (isId ? "Membutuhkan izin" : "Requires permission")} onClick={openCreate}><Plus size={17} />{isId ? "Tambah Kategori" : "Add Category"}</button>
         </div>
       </header>
 
@@ -335,71 +340,73 @@ export default function Seller2026LiveCategoriesPage() {
 
       <section className="seller2026-categories-table">
         <div className="seller2026-categories-toolbar">
-          <label><Search size={17} /><input placeholder="Search categories..." value={categories.filters.search} onChange={(event) => categories.setFilters({ search: event.target.value })} /></label>
-          <span>Status</span>
+          <label><Search size={17} /><input placeholder={isId ? "Cari kategori..." : "Search categories..."} value={categories.filters.search} onChange={(event) => categories.setFilters({ search: event.target.value })} /></label>
+          <span>{isId ? "Status" : "Status"}</span>
           <select value={categories.filters.status} onChange={(event) => categories.setFilters({ status: event.target.value })}>
-            <option value="all">All Statuses</option>
-            <option value="published">Published</option>
-            <option value="draft">Draft</option>
+            <option value="all">{isId ? "Semua Status" : "All Statuses"}</option>
+            <option value="published">{isId ? "Dipublikasikan" : "Published"}</option>
+            <option value="draft">{isId ? "Draf" : "Draft"}</option>
           </select>
-          <span>Visibility</span>
+          <span>{isId ? "Visibilitas" : "Visibility"}</span>
           <select value={categories.filters.visibility} onChange={(event) => categories.setFilters({ visibility: event.target.value })}>
-            <option value="all">All Visibility</option>
-            <option value="visible">Visible</option>
-            <option value="hidden">Hidden</option>
+            <option value="all">{isId ? "Semua Visibilitas" : "All Visibility"}</option>
+            <option value="visible">{isId ? "Ditampilkan" : "Visible"}</option>
+            <option value="hidden">{isId ? "Disembunyikan" : "Hidden"}</option>
           </select>
-          <button type="button" onClick={categories.resetFilters}><RotateCcw size={16} />Reset</button>
+          <button type="button" onClick={categories.resetFilters}><RotateCcw size={16} />{isId ? "Atur Ulang" : "Reset"}</button>
         </div>
 
         {categories.filteredCategories.length === 0 ? (
           <div className="seller2026-categories-empty">
             <Layers size={30} />
-            <h2>No categories yet</h2>
-            <p>Create your first category to organize products.</p>
-            <button type="button" disabled={!canCreate} onClick={openCreate}>Add Category</button>
+            <h2>{isId ? "Belum ada kategori" : "No categories yet"}</h2>
+            <p>{isId ? "Buat kategori pertama Anda untuk mengatur produk." : "Create your first category to organize products."}</p>
+            <button type="button" disabled={!canCreate} onClick={openCreate}>{isId ? "Tambah Kategori" : "Add Category"}</button>
           </div>
         ) : (
           <>
             <div className="seller2026-categories-grid seller2026-categories-grid--head">
-              <label><input type="checkbox" checked={allPageSelected} onChange={(event) => categories.togglePageSelection(event.target.checked)} />Select</label>
-              <span>Category</span>
-              <span>Parent</span>
-              <span>Products</span>
-              <span>Visibility</span>
-              <span>Updated</span>
-              <span>Actions</span>
+              <label><input type="checkbox" checked={allPageSelected} onChange={(event) => categories.togglePageSelection(event.target.checked)} />{isId ? "Pilih" : "Select"}</label>
+              <span>{isId ? "Kategori" : "Category"}</span>
+              <span>{isId ? "Induk" : "Parent"}</span>
+              <span>{isId ? "Produk" : "Products"}</span>
+              <span>{isId ? "Visibilitas" : "Visibility"}</span>
+              <span>{isId ? "Diperbarui" : "Updated"}</span>
+              <span>{isId ? "Aksi" : "Actions"}</span>
             </div>
             <div className="seller2026-categories-grid seller2026-categories-grid--body">
               {categories.categories.map((category) => {
-                const parentLabel = seller2026CategoryLabels.parent(category);
-                const visibleLabel = seller2026CategoryLabels.visibility(category.visibilityStatus);
-                const lifecycleLabel = seller2026CategoryLabels.lifecycle(category.lifecycleStatus);
+                const parentLabel = seller2026CategoryLabels.parent(category, isId);
+                const visibleLabel = seller2026CategoryLabels.visibility(category.visibilityStatus, isId);
+                const lifecycleLabel = seller2026CategoryLabels.lifecycle(category.lifecycleStatus, isId);
                 const isVisibilityBusy = categories.visibilityCategoryId === category.id;
+                const descriptionDisplay = category.description === "No description" ? (isId ? "Tidak ada deskripsi" : "No description") : category.description;
+                const updatedByDisplay = category.updatedBy === "by Seller" ? (isId ? "oleh Penjual" : "by Seller") : category.updatedBy;
                 return (
                   <article className="seller2026-category-row" key={category.id}>
-                    <label className="seller2026-category-row__select" data-label="Select">
+                    <label className="seller2026-category-row__select" data-label={isId ? "Pilih" : "Select"}>
                       <input type="checkbox" checked={categories.selectedIds.includes(category.id)} onChange={(event) => categories.toggleSelected(category.id, event.target.checked)} />
                     </label>
-                    <div className="seller2026-category-row__identity" data-label="Category">
+                    <div className="seller2026-category-row__identity" data-label={isId ? "Kategori" : "Category"}>
                       <CategoryIcon category={category} />
-                      <div><strong>{category.name}</strong><small>{category.description}</small></div>
+                      <div><strong>{category.name}</strong><small>{descriptionDisplay}</small></div>
                     </div>
-                    <div data-label="Parent"><Pill tone={category.isRoot ? "green" : "blue"}>{parentLabel}</Pill></div>
-                    <span data-label="Products">{category.productsCount}</span>
-                    <div data-label="Visibility" className="seller2026-category-row__status">
+                    <div data-label={isId ? "Induk" : "Parent"}><Pill tone={category.isRoot ? "green" : "blue"}>{parentLabel}</Pill></div>
+                    <span data-label={isId ? "Produk" : "Products"}>{category.productsCount}</span>
+                    <div data-label={isId ? "Visibilitas" : "Visibility"} className="seller2026-category-row__status">
                       <Pill tone={category.isPublished ? "green" : "slate"}>{visibleLabel}</Pill>
                       <small>{lifecycleLabel}</small>
                     </div>
-                    <div data-label="Updated" className="seller2026-category-row__updated"><span>{category.updatedAt}</span><small>{category.updatedBy}</small></div>
-                    <div className="seller2026-category-row__menu" data-label="Actions">
+                    <div data-label={isId ? "Diperbarui" : "Updated"} className="seller2026-category-row__updated"><span>{category.updatedAt}</span><small>{updatedByDisplay}</small></div>
+                    <div className="seller2026-category-row__menu" data-label={isId ? "Aksi" : "Actions"}>
                       <button type="button" aria-label={`Actions for ${category.name}`}><MoreVertical size={18} /></button>
                       <div>
-                        <button type="button" disabled={!category.permissions.canEdit} onClick={() => openEdit(category)}><Pencil size={14} />Edit Category</button>
-                        <Link to={`${workspaceRoutes.catalog()}?category=${encodeURIComponent(category.id)}`}><Package size={14} />View Products</Link>
+                        <button type="button" disabled={!category.permissions.canEdit} onClick={() => openEdit(category)}><Pencil size={14} />{isId ? "Edit Kategori" : "Edit Category"}</button>
+                        <Link to={`${workspaceRoutes.catalog()}?category=${encodeURIComponent(category.id)}`}><Package size={14} />{isId ? "Lihat Produk" : "View Products"}</Link>
                         <button type="button" disabled={!canManageStatus || isVisibilityBusy} onClick={() => updateVisibility(category)}>
-                          {category.isPublished ? <EyeOff size={14} /> : <Eye size={14} />}{category.isPublished ? "Hide Category" : "Show Category"}
+                          {category.isPublished ? <EyeOff size={14} /> : <Eye size={14} />}{category.isPublished ? (isId ? "Sembunyikan Kategori" : "Hide Category") : (isId ? "Tampilkan Kategori" : "Show Category")}
                         </button>
-                        <button type="button" disabled title="Not available yet"><Archive size={14} />Archive</button>
+                        <button type="button" disabled title={isId ? "Belum tersedia" : "Not available yet"}><Archive size={14} />{isId ? "Arsip" : "Archive"}</button>
                       </div>
                     </div>
                   </article>
@@ -411,12 +418,16 @@ export default function Seller2026LiveCategoriesPage() {
 
         {categories.filteredCategories.length > 0 ? (
           <footer className="seller2026-categories-pagination">
-            <span>Showing {categories.pagination.from} to {categories.pagination.to} of {categories.pagination.total} results</span>
+            <span>
+              {isId
+                ? `Menampilkan ${categories.pagination.from} hingga ${categories.pagination.to} dari ${categories.pagination.total} hasil`
+                : `Showing ${categories.pagination.from} to ${categories.pagination.to} of ${categories.pagination.total} results`}
+            </span>
             <div>
               <select value={categories.pagination.perPage} onChange={(event) => categories.pagination.setPerPage(Number(event.target.value))}>
-                <option value={10}>10 per page</option>
-                <option value={20}>20 per page</option>
-                <option value={50}>50 per page</option>
+                <option value={10}>{isId ? "10 per halaman" : "10 per page"}</option>
+                <option value={20}>{isId ? "20 per halaman" : "20 per page"}</option>
+                <option value={50}>{isId ? "50 per halaman" : "50 per page"}</option>
               </select>
               <button disabled={categories.pagination.page <= 1} onClick={() => categories.pagination.setPage(1)}><ChevronsLeft size={15} /></button>
               <button disabled={categories.pagination.page <= 1} onClick={() => categories.pagination.setPage(categories.pagination.page - 1)}><ChevronLeft size={15} /></button>
@@ -443,7 +454,7 @@ export default function Seller2026LiveCategoriesPage() {
         mode={modalMode}
         form={form}
         errors={formErrors}
-        parentOptions={categories.getParentOptions(form.id)}
+        parentOptions={categories.getParentOptions(form.id, isId)}
         onChange={updateForm}
         onClose={closeModal}
         onSubmit={submitForm}
@@ -451,6 +462,7 @@ export default function Seller2026LiveCategoriesPage() {
         isSubmitting={categories.isCreating || Boolean(categories.updatingCategoryId)}
         isUploading={uploading}
         canUpload
+        isId={isId}
       />
     </div>
   );

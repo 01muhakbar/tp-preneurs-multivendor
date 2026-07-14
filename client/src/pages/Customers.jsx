@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Download,
@@ -69,6 +70,7 @@ const getCustomerStatus = (customer) => {
 const getOrderCount = (customer) => Number(customer?.ordersCount || 0);
 
 function CustomerStatusBadge({ status }) {
+  const { t } = useTranslation("admin");
   const styles = {
     active: "border-emerald-200 bg-emerald-50 text-emerald-700",
     inactive: "border-slate-200 bg-slate-100 text-slate-600",
@@ -82,10 +84,10 @@ function CustomerStatusBadge({ status }) {
     pending_verification: "bg-sky-500",
   };
   const labels = {
-    active: "Active",
-    inactive: "Disabled",
-    blocked: "Blocked",
-    pending_verification: "Pending verification",
+    active: t("customers.Active", "Active"),
+    inactive: t("customers.Disabled", "Disabled"),
+    blocked: t("customers.Blocked", "Blocked"),
+    pending_verification: t("customers.Pending verification", "Pending verification"),
   };
 
   return (
@@ -123,6 +125,7 @@ function StatusSwitch({ checked, disabled, onClick, title }) {
 const emptyEditForm = { name: "", email: "", phone: "", status: "active" };
 
 export default function Customers() {
+  const { t } = useTranslation("admin");
   const qc = useQueryClient();
   const { user } = useAuth() || {};
   const canMutateCustomers = can(user, "CUSTOMERS_UPDATE");
@@ -170,7 +173,7 @@ export default function Customers() {
     onSuccess: () => {
       setDeleteModalError("");
       setRowError("");
-      setNotice("Customer deleted.");
+      setNotice(t("customers.Customer deleted.", "Customer deleted."));
       qc.invalidateQueries({ queryKey: ["admin-customers"] });
     },
   });
@@ -183,7 +186,11 @@ export default function Customers() {
       setEditError("");
       setEditFieldErrors({});
       setRowError("");
-      setNotice(meta === "toggle" ? "Customer account status updated." : "Customer updated.");
+      setNotice(
+        meta === "toggle"
+          ? t("customers.Customer account status updated.", "Customer account status updated.")
+          : t("customers.Customer updated.", "Customer updated.")
+      );
       if (meta !== "toggle") {
         setIsEditOpen(false);
         setEditTarget(null);
@@ -319,8 +326,8 @@ export default function Customers() {
       />
 
       <div className="rounded-[20px] border border-slate-200 bg-white px-4 py-3 shadow-sm sm:px-5">
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Customers</h1>
-        <p className="mt-1 text-sm text-slate-500">Manage customer accounts and order access.</p>
+        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">{t("customers.Customers", "Customers")}</h1>
+        <p className="mt-1 text-sm text-slate-500">{t("customers.Manage customer accounts and order access.", "Manage customer accounts and order access.")}</p>
       </div>
 
       <div className="rounded-[20px] border border-slate-200 bg-white p-3 shadow-sm">
@@ -337,21 +344,21 @@ export default function Customers() {
                   setPage(1);
                 }
               }}
-              placeholder="Search by name/email/phone"
+              placeholder={t("customers.Search by name/email/phone", "Search by name/email/phone")}
               className={`${fieldClass} pl-9`}
             />
           </div>
           <button type="button" className={headerBtnSoft} onClick={() => { setAppliedSearch(searchInput.trim()); setPage(1); }}>
             <Filter className="h-4 w-4" />
-            Filter
+            {t("customers.Filter", "Filter")}
           </button>
           <button type="button" className={headerBtnSoft} onClick={() => { setSearchInput(""); setAppliedSearch(""); setPage(1); }}>
             <RotateCcw className="h-4 w-4" />
-            Reset
+            {t("customers.Reset", "Reset")}
           </button>
           <button type="button" className={headerBtnSoft} onClick={downloadExport} disabled={isDownloading}>
             <Download className="h-4 w-4" />
-            {isDownloading ? "Downloading..." : "Export"}
+            {isDownloading ? t("customers.Downloading...", "Downloading...") : t("customers.Export", "Export")}
           </button>
           <button
             type="button"
@@ -360,7 +367,7 @@ export default function Customers() {
             disabled={!canMutateCustomers || importMutation.isPending}
           >
             <Upload className="h-4 w-4" />
-            {importMutation.isPending ? "Importing..." : "Import"}
+            {importMutation.isPending ? t("customers.Importing...", "Importing...") : t("customers.Import", "Import")}
           </button>
           {customersQuery.isFetching ? <span className="text-[10px] text-slate-400">{UPDATING}</span> : null}
         </div>
@@ -374,7 +381,7 @@ export default function Customers() {
       {!customersQuery.isLoading && !customersQuery.isError && items.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white px-5 py-12 text-center shadow-sm">
           <p className="text-sm font-semibold text-slate-800">{NO_CUSTOMERS_FOUND}</p>
-          <p className="mt-1 text-xs text-slate-500">Try another keyword or reset your search.</p>
+          <p className="mt-1 text-xs text-slate-500">{t("customers.Try another keyword or reset your search.", "Try another keyword or reset your search.")}</p>
         </div>
       ) : null}
 
@@ -387,13 +394,13 @@ export default function Customers() {
             <table className="w-full min-w-[1080px] text-left text-sm">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className={`${tableHeadCell} w-[8%]`}>ID</th>
-                  <th className={`${tableHeadCell} w-[14%]`}>Joining Date</th>
-                  <th className={`${tableHeadCell} w-[18%]`}>Name</th>
-                  <th className={`${tableHeadCell} w-[23%]`}>Email</th>
-                  <th className={`${tableHeadCell} w-[14%]`}>Phone</th>
-                  <th className={`${tableHeadCell} w-[11%]`}>Status</th>
-                  <th className={`${tableHeadCell} w-[12%] text-right`}>Actions</th>
+                  <th className={`${tableHeadCell} w-[8%]`}>{t("customers.ID", "ID")}</th>
+                  <th className={`${tableHeadCell} w-[14%]`}>{t("customers.Joining Date", "Joining Date")}</th>
+                  <th className={`${tableHeadCell} w-[18%]`}>{t("customers.Name", "Name")}</th>
+                  <th className={`${tableHeadCell} w-[23%]`}>{t("customers.Email", "Email")}</th>
+                  <th className={`${tableHeadCell} w-[14%]`}>{t("customers.Phone", "Phone")}</th>
+                  <th className={`${tableHeadCell} w-[11%]`}>{t("customers.Status", "Status")}</th>
+                  <th className={`${tableHeadCell} w-[12%] text-right`}>{t("customers.Actions", "Actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -417,7 +424,7 @@ export default function Customers() {
                             <Link
                               to={`/admin/customer-orders/${id}`}
                               className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-100"
-                              title={`View order list (${getOrderCount(customer)} orders)`}
+                              title={`${t("customers.View order list", "View order list")} (${getOrderCount(customer)} ${t("customers.orders", "orders")})`}
                             >
                               <Eye className="h-4 w-4" />
                             </Link>
@@ -444,8 +451,8 @@ export default function Customers() {
                             onClick={() => toggleStatus(customer)}
                             title={
                               canToggle
-                                ? `${status === "active" ? "Disable" : "Activate"} ${getCustomerName(customer)}`
-                                : `Status toggle unavailable for ${status.replace(/_/g, " ")}`
+                                ? `${status === "active" ? t("customers.Disable", "Disable") : t("customers.Activate", "Activate")} ${getCustomerName(customer)}`
+                                : `${t("customers.Status toggle unavailable for", "Status toggle unavailable for")} ${status.replace(/_/g, " ")}`
                             }
                           />
                         </div>
@@ -460,9 +467,9 @@ export default function Customers() {
       ) : null}
 
       <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-1 text-[11px] shadow-sm">
-        <button type="button" className="rounded-full border border-slate-200 px-3 py-1 text-slate-700 disabled:opacity-50" disabled={meta.page <= 1} onClick={() => setPage((prev) => Math.max(1, prev - 1))}>Previous</button>
-        <span className="text-slate-500">Page {meta.page} of {Math.max(1, Number(meta.totalPages || 1))}</span>
-        <button type="button" className="rounded-full border border-slate-200 px-3 py-1 text-slate-700 disabled:opacity-50" disabled={meta.page >= totalPages} onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}>Next</button>
+        <button type="button" className="rounded-full border border-slate-200 px-3 py-1 text-slate-700 disabled:opacity-50" disabled={meta.page <= 1} onClick={() => setPage((prev) => Math.max(1, prev - 1))}>{t("customers.Previous", "Previous")}</button>
+        <span className="text-slate-500">{t("customers.Page", "Page")} {meta.page} {t("customers.of", "of")} {Math.max(1, Number(meta.totalPages || 1))}</span>
+        <button type="button" className="rounded-full border border-slate-200 px-3 py-1 text-slate-700 disabled:opacity-50" disabled={meta.page >= totalPages} onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}>{t("customers.Next", "Next")}</button>
       </div>
 
       {isEditOpen ? (
@@ -472,9 +479,9 @@ export default function Customers() {
             <header className="sticky top-0 z-10 border-b border-slate-200 bg-white px-6 py-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">Admin / Customers / Edit</p>
-                  <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">Update Customer</h2>
-                  <p className="mt-1 text-sm text-slate-500">Update customer necessary information from here.</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">{t("customers.Admin / Customers / Edit", "Admin / Customers / Edit")}</p>
+                  <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">{t("customers.Update Customer", "Update Customer")}</h2>
+                  <p className="mt-1 text-sm text-slate-500">{t("customers.Update customer necessary information from here.", "Update customer necessary information from here.")}</p>
                 </div>
                 <button type="button" onClick={closeEdit} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700" disabled={updateMutation.isPending}>
                   <X className="h-4 w-4" />
@@ -484,9 +491,9 @@ export default function Customers() {
             <form onSubmit={submitEdit} className="flex min-h-0 flex-1 flex-col">
               <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
                 {[
-                  ["Name", "name"],
-                  ["Email", "email"],
-                  ["Phone", "phone"],
+                  [t("customers.Name", "Name"), "name"],
+                  [t("customers.Email", "Email"), "email"],
+                  [t("customers.Phone", "Phone"), "phone"],
                 ].map(([label, key]) => (
                   <div key={key} className="grid gap-4 sm:grid-cols-[180px,1fr] sm:items-center">
                     <label className="text-sm font-medium text-slate-700">{label}</label>
@@ -507,7 +514,7 @@ export default function Customers() {
                 ))}
 
                 <div className="grid gap-4 sm:grid-cols-[180px,1fr] sm:items-center">
-                  <label className="text-sm font-medium text-slate-700">Account status</label>
+                  <label className="text-sm font-medium text-slate-700">{t("customers.Account status", "Account status")}</label>
                   <div>
                     <select
                       value={editForm.status}
@@ -518,22 +525,26 @@ export default function Customers() {
                       className={fieldClass}
                       disabled={updateMutation.isPending}
                     >
-                      {customerStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                      {customerStatusOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {t(`customers.${option.label}`, option.label)}
+                        </option>
+                      ))}
                     </select>
                     {editFieldErrors.status ? <p className="mt-1 text-xs text-rose-600">{editFieldErrors.status}</p> : null}
                   </div>
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-500">
-                  Use the <span className="font-semibold text-slate-700">View Order</span> action in the table to inspect this customer's orders.
+                  {t("customers.Use the View Order action in the table to inspect this customer's orders.", "Use the View Order action in the table to inspect this customer's orders.")}
                 </div>
 
                 {editError && !Object.keys(editFieldErrors).length ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{editError}</div> : null}
               </div>
               <footer className="sticky bottom-0 border-t border-slate-200 bg-white/95 px-6 py-4">
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <button type="button" onClick={closeEdit} className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:border-slate-300" disabled={updateMutation.isPending}>Cancel</button>
-                  <button type="submit" className="inline-flex h-11 items-center justify-center rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-70" disabled={updateMutation.isPending}>{updateMutation.isPending ? "Updating..." : "Update Customer"}</button>
+                  <button type="button" onClick={closeEdit} className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:border-slate-300" disabled={updateMutation.isPending}>{t("customers.Cancel", "Cancel")}</button>
+                  <button type="submit" className="inline-flex h-11 items-center justify-center rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-70" disabled={updateMutation.isPending}>{updateMutation.isPending ? t("customers.Updating...", "Updating...") : t("customers.Update Customer", "Update Customer")}</button>
                 </div>
               </footer>
             </form>
@@ -557,10 +568,10 @@ export default function Customers() {
             setRowError(message);
           }
         }}
-        title="Are You Sure! Want to Delete ?"
-        description={`Do you really want to delete ${deleteTarget?.name || deleteTarget?.email || "this customer"}? You can't view this in your list anymore if you delete!`}
-        cancelLabel="No, Keep It"
-        confirmLabel="Yes, Delete It"
+        title={t("customers.Are You Sure! Want to Delete ?", "Are You Sure! Want to Delete ?")}
+        description={`${t("customers.Do you really want to delete", "Do you really want to delete")} ${deleteTarget?.name || deleteTarget?.email || "this customer"}? ${t("customers.You can't view this in your list anymore if you delete!", "You can't view this in your list anymore if you delete!")}`}
+        cancelLabel={t("customers.No, Keep It", "No, Keep It")}
+        confirmLabel={t("customers.Yes, Delete It", "Yes, Delete It")}
         isLoading={deleteMutation.isPending}
         errorMessage={deleteModalError}
       />

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ImagePlus, UploadCloud, X } from "lucide-react";
 import { uploadAdminImage } from "../../../lib/adminApi.js";
 import { resolveAssetUrl } from "../../../lib/assetUrl.js";
@@ -59,6 +60,7 @@ export default function AddCouponDrawer({
   error,
   storeOptions = [],
 }) {
+  const { t } = useTranslation("admin");
   const [form, setForm] = useState(initialForm);
   const [bannerFileName, setBannerFileName] = useState("");
   const [bannerPreview, setBannerPreview] = useState("");
@@ -227,17 +229,17 @@ export default function AddCouponDrawer({
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-                Admin / Coupons / Add
+                {t("coupons.Admin / Coupons / Add", "Admin / Coupons / Add")}
               </p>
               <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
-                Add Coupon
+                {t("coupons.Add Coupon", "Add Coupon")}
               </h2>
               <p className="mt-1 text-sm text-slate-500">
-                Create campaign codes, discount setup, and validity period.
+                {t("coupons.Create campaign codes, discount setup, and validity period.", "Create campaign codes, discount setup, and validity period.")}
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
-                  Create Mode
+                  {t("coupons.Create Mode", "Create Mode")}
                 </span>
                 <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold text-slate-600">
                   {form.discountType === "percent" ? "Percent discount" : "Fixed discount"}
@@ -627,14 +629,14 @@ export default function AddCouponDrawer({
                   disabled={isSubmitting}
                   className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:border-slate-300"
                 >
-                  Cancel
+                  {t("coupons.Cancel", "Cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
                   className="inline-flex h-11 items-center justify-center rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {isSubmitting ? "Adding..." : "Add Coupon"}
+                  {isSubmitting ? t("coupons.Adding...", "Adding...") : t("coupons.Add Coupon", "Add Coupon")}
                 </button>
               </div>
             </div>

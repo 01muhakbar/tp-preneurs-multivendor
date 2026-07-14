@@ -162,7 +162,8 @@ export function summarizeSeller2026Categories(
 
 export function buildSeller2026CategoryParentOptions(
   categories: Seller2026CategoryListItem[],
-  editingId?: string | null
+  editingId?: string | null,
+  isId = false
 ): Seller2026CategoryParentOption[] {
   const blocked = new Set<string>();
   const byParent = new Map<string, Seller2026CategoryListItem[]>();
@@ -178,7 +179,7 @@ export function buildSeller2026CategoryParentOptions(
   if (editingId) visit(String(editingId));
 
   return [
-    { value: "", label: "No Parent (Root)" },
+    { value: "", label: isId ? "Tanpa Induk (Utama)" : "No Parent (Root)" },
     ...categories
       .filter((category) => !blocked.has(category.id))
       .map((category) => ({ value: category.id, label: category.name })),
@@ -199,11 +200,11 @@ export function createSeller2026CategoryForm(
   };
 }
 
-export function validateSeller2026CategoryForm(form: Seller2026CategoryForm) {
+export function validateSeller2026CategoryForm(form: Seller2026CategoryForm, isId = false) {
   const errors: Record<string, string> = {};
-  if (!text(form.name)) errors.name = "Category name is required.";
+  if (!text(form.name)) errors.name = isId ? "Nama kategori wajib diisi." : "Category name is required.";
   if (text(form.description).length > 160) {
-    errors.description = "Description must be 160 characters or less.";
+    errors.description = isId ? "Deskripsi maksimal 160 karakter." : "Description must be 160 characters or less.";
   }
   return errors;
 }
@@ -220,13 +221,16 @@ export function buildSeller2026CategoryPayload(form: Seller2026CategoryForm) {
 }
 
 export const seller2026CategoryLabels = {
-  visibility(value: Seller2026CategoryVisibilityStatus) {
+  visibility(value: Seller2026CategoryVisibilityStatus, isId = false) {
+    if (isId) return value === "visible" ? "Ditampilkan" : "Disembunyikan";
     return value === "visible" ? "Visible" : "Hidden";
   },
-  lifecycle(value: Seller2026CategoryLifecycleStatus) {
+  lifecycle(value: Seller2026CategoryLifecycleStatus, isId = false) {
+    if (isId) return value === "published" ? "Dipublikasikan" : "Draf";
     return value === "published" ? "Published" : "Draft";
   },
-  parent(category: Seller2026CategoryListItem) {
-    return category.isRoot ? "Root category" : category.parentName || "Root category";
+  parent(category: Seller2026CategoryListItem, isId = false) {
+    const rootLabel = isId ? "Kategori utama" : "Root category";
+    return category.isRoot ? rootLabel : category.parentName || rootLabel;
   },
 };

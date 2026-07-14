@@ -134,8 +134,8 @@ export function useSeller2026Categories(
     filteredCategories,
     summary: summarizeSeller2026Categories(categories),
     parentOptions: buildSeller2026CategoryParentOptions(categories),
-    getParentOptions: (editingId?: string | null) =>
-      buildSeller2026CategoryParentOptions(categories, editingId),
+    getParentOptions: (editingId?: string | null, isId = false) =>
+      buildSeller2026CategoryParentOptions(categories, editingId, isId),
     filters,
     setFilters: updateFilters,
     resetFilters,

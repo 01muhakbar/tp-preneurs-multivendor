@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Boxes, CheckCircle2, ChevronDown, Database, Layers3, Moon, Plus, Sun, Trash2 } from "lucide-react";
@@ -14,9 +15,6 @@ import {
   updateAdminAttribute,
 } from "../../../lib/adminApi.js";
 import AttributeModal from "./AttributeModal.jsx";
-import AttributeTable from "./AttributeTable.jsx";
-import AttributeToolbar from "./AttributeToolbar.jsx";
-import ImportExportDropdown from "./ImportExportDropdown.jsx";
 import AdminAttributes2026View from "./AdminAttributes2026View.jsx";
 
 const defaultFilters = {
@@ -121,6 +119,7 @@ const validateImportFile = async (file) => {
 };
 
 export default function AttributePage() {
+  const { t } = useTranslation("admin");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const bulkMenuRef = useRef(null);
@@ -407,13 +406,13 @@ export default function AttributePage() {
 
   const handleDeleteAttribute = (attribute) => {
     if (!attribute?.id) return;
-    if (!window.confirm(`Delete attribute "${attribute.name}"?`)) return;
+    if (!window.confirm(`${t("attributes.Delete Attribute", "Delete Attribute")}: "${attribute.name}"?`)) return;
     deleteMutation.mutate(attribute.id);
   };
 
   const handleDeleteSelected = () => {
     if (selectedIds.length === 0) return;
-    if (!window.confirm(`Delete ${selectedIds.length} selected attribute(s)?`)) return;
+    if (!window.confirm(`${t("attributes.Delete", "Delete")} ${selectedIds.length} ${t("attributes.Attributes", "Attributes")}?`)) return;
     bulkMutation.mutate({ action: "delete", ids: selectedIds });
   };
 
@@ -446,7 +445,7 @@ export default function AttributePage() {
       setPendingImportCount(0);
       setNotice({
         type: "error",
-        message: error instanceof Error ? error.message : "Invalid import file.",
+        message: error instanceof Error ? error.message : t("attributes.Invalid import file.", "Invalid import file."),
       });
     }
   };
@@ -468,7 +467,7 @@ export default function AttributePage() {
     } catch (error) {
       setNotice({
         type: "error",
-        message: error instanceof Error ? error.message : "Failed to export attributes.",
+        message: error instanceof Error ? error.message : t("attributes.Failed to export attributes.", "Failed to export attributes."),
       });
     } finally {
       setExportingFormat("");

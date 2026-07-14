@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ImagePlus, UploadCloud, X } from "lucide-react";
 import { uploadAdminImage } from "../../../lib/adminApi.js";
 import { resolveAssetUrl } from "../../../lib/assetUrl.js";
@@ -58,6 +59,7 @@ export default function EditCouponDrawer({
   error,
   storeOptions = [],
 }) {
+  const { t } = useTranslation("admin");
   const [language, setLanguage] = useState("en");
   const [scopeType, setScopeType] = useState("PLATFORM");
   const [storeId, setStoreId] = useState("");
@@ -255,17 +257,17 @@ export default function EditCouponDrawer({
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-                Admin / Coupons / Edit
+                {t("coupons.Admin / Coupons / Edit", "Admin / Coupons / Edit")}
               </p>
               <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
-                Update Coupon
+                {t("coupons.Update Coupon", "Update Coupon")}
               </h2>
               <p className="mt-1 text-sm text-slate-500">
-                Update coupon validity window and discount settings.
+                {t("coupons.Update campaign details, discount setup, and validity period.", "Update coupon validity window and discount settings.")}
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
-                  Edit Mode
+                  {t("coupons.Edit Mode", "Edit Mode")}
                 </span>
                 <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold text-slate-600">
                   {coupon?.code || "Code unavailable"}
@@ -674,14 +676,14 @@ export default function EditCouponDrawer({
                   disabled={isSubmitting}
                   className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:border-slate-300"
                 >
-                  Cancel
+                  {t("coupons.Cancel", "Cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
                   className="inline-flex h-11 items-center justify-center rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {isSubmitting ? UPDATING : "Update Coupon"}
+                  {isSubmitting ? UPDATING : t("coupons.Update Coupon", "Update Coupon")}
                 </button>
               </div>
             </div>

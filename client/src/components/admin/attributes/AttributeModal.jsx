@@ -1,14 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { CheckCircle2, ChevronDown, X } from "lucide-react";
 import VariantInput from "./VariantInput.jsx";
 
 const toText = (value) => String(value ?? "").trim();
-
-const optionTypeOptions = [
-  { value: "dropdown", label: "Dropdown" },
-  { value: "radio", label: "Radio" },
-  { value: "checkbox", label: "Checkbox" },
-];
 
 const fieldClass =
   "h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 placeholder:text-slate-400 shadow-sm shadow-slate-200/40 transition focus:border-[#034c85]/60 focus:outline-none focus:ring-4 focus:ring-[#034c85]/10 disabled:cursor-not-allowed disabled:bg-slate-50";
@@ -31,6 +26,7 @@ export default function AttributeModal({
   isSubmitting = false,
   submitError = "",
 }) {
+  const { t } = useTranslation("admin");
   const [language, setLanguage] = useState("en");
   const [name, setName] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -38,6 +34,15 @@ export default function AttributeModal({
   const [published, setPublished] = useState(true);
   const [variants, setVariants] = useState([]);
   const [validationError, setValidationError] = useState("");
+
+  const optionTypeOptions = useMemo(
+    () => [
+      { value: "dropdown", label: t("attributes.Dropdown", "Dropdown") },
+      { value: "radio", label: t("attributes.Radio", "Radio") },
+      { value: "checkbox", label: t("attributes.Checkbox", "Checkbox") },
+    ],
+    [t]
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -55,8 +60,14 @@ export default function AttributeModal({
     setLanguage("en");
   }, [open, attribute]);
 
-  const heading = mode === "edit" ? "Edit Attribute" : "New Attribute";
-  const actionLabel = mode === "edit" ? "Save Changes" : "Create Attribute";
+  const heading =
+    mode === "edit"
+      ? t("attributes.Edit Attribute", "Edit Attribute")
+      : t("attributes.New Attribute", "New Attribute");
+  const actionLabel =
+    mode === "edit"
+      ? t("attributes.Save Changes", "Save Changes")
+      : t("attributes.Create Attribute", "Create Attribute");
   const isValid = useMemo(
     () =>
       Boolean(toText(name)) &&
@@ -78,11 +89,11 @@ export default function AttributeModal({
 
     const trimmedName = toText(name);
     if (!trimmedName) {
-      setValidationError("Attribute title is required.");
+      setValidationError(t("attributes.Attribute title is required.", "Attribute title is required."));
       return;
     }
     if (!toText(optionType)) {
-      setValidationError("Option type is required.");
+      setValidationError(t("attributes.Option type is required.", "Option type is required."));
       return;
     }
 
@@ -111,12 +122,14 @@ export default function AttributeModal({
             <div className="min-w-0">
               <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#034c85]/15 bg-white/80 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-[#034c85]">
                 <CheckCircle2 className="h-3.5 w-3.5 text-[#fe6f05]" />
-                Catalog Attribute
+                {t("attributes.Catalog Attribute", "Catalog Attribute")}
               </div>
               <h2 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-[30px]">
                 {heading}
               </h2>
-              <p className="mt-1 text-sm text-slate-500">Name, option type, publish state, and values.</p>
+              <p className="mt-1 text-sm text-slate-500">
+                {t("attributes.Name, option type, publish state, and values.", "Name, option type, publish state, and values.")}
+              </p>
             </div>
 
             <div className="flex items-center gap-2">
@@ -147,27 +160,27 @@ export default function AttributeModal({
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
           <div className="divide-y divide-slate-200">
-            <FieldRow label="Name">
+            <FieldRow label={t("attributes.Name", "Name")}>
               <input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 disabled={isSubmitting}
-                placeholder="Color, Size, Material"
+                placeholder={t("attributes.Color, Size, Material", "Color, Size, Material")}
                 className={fieldClass}
               />
             </FieldRow>
 
-            <FieldRow label="Display">
+            <FieldRow label={t("attributes.Display", "Display")}>
               <input
                 value={displayName}
                 onChange={(event) => setDisplayName(event.target.value)}
                 disabled={isSubmitting}
-                placeholder="Customer-facing label"
+                placeholder={t("attributes.Customer-facing label", "Customer-facing label")}
                 className={fieldClass}
               />
             </FieldRow>
 
-            <FieldRow label="Input Type">
+            <FieldRow label={t("attributes.Input Type", "Input Type")}>
               <select
                 value={optionType}
                 onChange={(event) => setOptionType(event.target.value)}
@@ -182,24 +195,24 @@ export default function AttributeModal({
               </select>
             </FieldRow>
 
-            <FieldRow label="Status">
+            <FieldRow label={t("attributes.Status", "Status")}>
               <select
                 value={published ? "published" : "draft"}
                 onChange={(event) => setPublished(event.target.value === "published")}
                 disabled={isSubmitting}
                 className={`${fieldClass} appearance-none`}
               >
-                <option value="published">Published</option>
-                <option value="draft">Draft</option>
+                <option value="published">{t("attributes.Published", "Published")}</option>
+                <option value="draft">{t("attributes.Draft", "Draft")}</option>
               </select>
             </FieldRow>
 
-            <FieldRow label="Values">
+            <FieldRow label={t("attributes.Values", "Values")}>
               <VariantInput
                 value={variants}
                 onChange={setVariants}
                 disabled={isSubmitting}
-                placeholder="Press enter to add variant"
+                placeholder={t("attributes.Press enter to add variant", "Press enter to add variant")}
               />
             </FieldRow>
           </div>
@@ -219,7 +232,7 @@ export default function AttributeModal({
               disabled={isSubmitting}
               className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Cancel
+              {t("attributes.Cancel", "Cancel")}
             </button>
             <button
               type="submit"
@@ -227,7 +240,7 @@ export default function AttributeModal({
               disabled={isSubmitting || !isValid}
               className="inline-flex h-10 items-center justify-center rounded-lg bg-[#034c85] px-4 text-sm font-semibold text-white shadow-sm shadow-[#034c85]/25 transition hover:bg-[#023e6d] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSubmitting ? "Saving..." : actionLabel}
+              {isSubmitting ? t("attributes.Saving...", "Saving...") : actionLabel}
             </button>
           </div>
         </div>

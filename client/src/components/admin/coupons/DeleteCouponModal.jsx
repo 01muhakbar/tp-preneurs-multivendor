@@ -1,17 +1,24 @@
+import { useTranslation } from "react-i18next";
 import { Trash2, X } from "lucide-react";
 
 export default function DeleteCouponModal({
   open,
   onClose,
   onConfirm,
-  title = "Are You Sure! Want to Delete ?",
-  description = "Do you really want to delete these records? You can't view this in your list anymore if you delete!",
-  confirmLabel = "Yes, Delete It",
-  cancelLabel = "No, Keep It",
+  title,
+  description,
+  confirmLabel,
+  cancelLabel,
   isLoading = false,
   errorMessage = "",
 }) {
+  const { t } = useTranslation("admin");
   if (!open) return null;
+
+  const displayTitle = title ? t(`coupons.${title}`, title) : t("coupons.Are You Sure! Want to Delete ?", "Are You Sure! Want to Delete ?");
+  const displayDesc = description ? t(`coupons.${description}`, description) : t("coupons.Do you really want to delete these records? You can't view this in your list anymore if you delete!", "Do you really want to delete these records? You can't view this in your list anymore if you delete!");
+  const displayConfirm = confirmLabel ? t(`coupons.${confirmLabel}`, confirmLabel) : t("coupons.Yes, Delete It", "Yes, Delete It");
+  const displayCancel = cancelLabel ? t(`coupons.${cancelLabel}`, cancelLabel) : t("coupons.No, Keep It", "No, Keep It");
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -38,8 +45,8 @@ export default function DeleteCouponModal({
           <Trash2 className="h-6 w-6" />
         </div>
 
-        <h3 className="text-center text-lg font-semibold text-slate-900">{title}</h3>
-        <p className="mt-2 text-center text-sm leading-6 text-slate-500">{description}</p>
+        <h3 className="text-center text-lg font-semibold text-slate-900">{displayTitle}</h3>
+        <p className="mt-2 text-center text-sm leading-6 text-slate-500">{displayDesc}</p>
 
         {errorMessage ? (
           <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
@@ -54,7 +61,7 @@ export default function DeleteCouponModal({
             disabled={isLoading}
             className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-medium text-slate-700 hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {cancelLabel}
+            {displayCancel}
           </button>
           <button
             type="button"
@@ -62,7 +69,7 @@ export default function DeleteCouponModal({
             disabled={isLoading}
             className="inline-flex h-10 items-center justify-center rounded-xl bg-rose-600 px-4 text-sm font-semibold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isLoading ? "Deleting..." : confirmLabel}
+            {isLoading ? t("coupons.Deleting...", "Deleting...") : displayConfirm}
           </button>
         </div>
       </div>

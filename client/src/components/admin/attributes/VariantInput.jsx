@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Plus, X } from "lucide-react";
 
 const toText = (value) => String(value ?? "").trim();
@@ -7,8 +8,10 @@ export default function VariantInput({
   value,
   onChange,
   disabled = false,
-  placeholder = "Press enter to add variant",
+  placeholder,
 }) {
+  const { t } = useTranslation("admin");
+  const defaultPlaceholder = placeholder || t("attributes.Press enter to add variant", "Press enter to add variant");
   const [input, setInput] = useState("");
 
   const chips = useMemo(
@@ -56,7 +59,7 @@ export default function VariantInput({
             }}
             onBlur={commitInput}
             disabled={disabled}
-            placeholder={placeholder}
+            placeholder={defaultPlaceholder}
             className="h-8 w-full border-0 bg-transparent px-0 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
           />
         </div>
@@ -85,7 +88,7 @@ export default function VariantInput({
       </div>
 
       <p className="text-xs text-slate-500">
-        Press <span className="font-semibold text-slate-700">Enter</span> to add. Duplicates are ignored.
+        {t("attributes.Press Enter to add. Duplicates are ignored.", "Press Enter to add. Duplicates are ignored.")}
       </p>
     </div>
   );

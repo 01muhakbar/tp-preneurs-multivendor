@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Boxes,
   CheckCircle2,
@@ -20,26 +21,6 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "../../../utils/format.js";
 import "./admin-coupons-2026.css";
-
-const discountTypeOptions = [
-  { value: "all", label: "All" },
-  { value: "percent", label: "Percent (%)" },
-  { value: "fixed", label: "Fixed Amount (Rp)" },
-];
-
-const scopeOptions = [
-  { value: "all", label: "All" },
-  { value: "PLATFORM", label: "Platform Scope" },
-  { value: "STORE", label: "Store Scope" },
-];
-
-const statusOptions = [
-  { value: "all", label: "All" },
-  { value: "active", label: "Active" },
-  { value: "scheduled", label: "Scheduled" },
-  { value: "expired", label: "Expired" },
-  { value: "inactive", label: "Draft / Inactive" },
-];
 
 function IconButton({ children, label, className = "", ...props }) {
   return (
@@ -119,6 +100,7 @@ function RowMoreMenu({
   onEdit,
   onToggleActive,
   onDelete,
+  t,
 }) {
   return (
     <div className="ac26-more-actions">
@@ -143,7 +125,7 @@ function RowMoreMenu({
             }}
           >
             <Pencil size={15} />
-            <span>Edit Coupon</span>
+            <span>{t("coupons.Edit Coupon", "Edit Coupon")}</span>
           </button>
           <button
             type="button"
@@ -155,7 +137,11 @@ function RowMoreMenu({
             }}
           >
             <CheckCircle2 size={15} />
-            <span>{resolveCouponActive(coupon) ? "Deactivate Coupon" : "Activate Coupon"}</span>
+            <span>
+              {resolveCouponActive(coupon)
+                ? t("coupons.Deactivate Coupon", "Deactivate Coupon")
+                : t("coupons.Activate Coupon", "Activate Coupon")}
+            </span>
           </button>
           <button
             type="button"
@@ -168,7 +154,7 @@ function RowMoreMenu({
             }}
           >
             <Trash2 size={15} />
-            <span>Delete Coupon</span>
+            <span>{t("coupons.Delete Coupon", "Delete Coupon")}</span>
           </button>
         </div>
       ) : null}
@@ -176,21 +162,21 @@ function RowMoreMenu({
   );
 }
 
-function resolveCouponStatus(coupon) {
+function resolveCouponStatus(coupon, t = (k, d) => d) {
   const now = new Date();
   const isActive = resolveCouponActive(coupon);
   const startsAt = coupon.startsAt || coupon.startDate;
   const expiresAt = coupon.expiresAt || coupon.endDate || coupon.endsAt;
   if (!isActive) {
-    return { label: "Draft / Inactive", tone: "inactive" };
+    return { label: t("coupons.Draft / Inactive", "Draft / Inactive"), tone: "inactive" };
   }
   if (startsAt && new Date(startsAt) > now) {
-    return { label: "Scheduled", tone: "scheduled" };
+    return { label: t("coupons.Scheduled", "Scheduled"), tone: "scheduled" };
   }
   if (expiresAt && new Date(expiresAt) < now) {
-    return { label: "Expired", tone: "expired" };
+    return { label: t("coupons.Expired", "Expired"), tone: "expired" };
   }
-  return { label: "Active", tone: "active" };
+  return { label: t("coupons.Active", "Active"), tone: "active" };
 }
 
 function resolveCouponActive(coupon) {
@@ -259,9 +245,39 @@ export default function AdminCoupons2026View({
   onBulkAction,
   onPageChange,
 }) {
+  const { t } = useTranslation("admin");
   const openMenuRef = useRef(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [openActionMenuId, setOpenActionMenuId] = useState(null);
+
+  const discountTypeOptions = useMemo(
+    () => [
+      { value: "all", label: t("coupons.All", "All") },
+      { value: "percent", label: t("coupons.Percent (%)", "Percent (%)") },
+      { value: "fixed", label: t("coupons.Fixed Amount (Rp)", "Fixed Amount (Rp)") },
+    ],
+    [t]
+  );
+
+  const scopeOptions = useMemo(
+    () => [
+      { value: "all", label: t("coupons.All", "All") },
+      { value: "PLATFORM", label: t("coupons.Platform Scope", "Platform Scope") },
+      { value: "STORE", label: t("coupons.Store Scope", "Store Scope") },
+    ],
+    [t]
+  );
+
+  const statusOptions = useMemo(
+    () => [
+      { value: "all", label: t("coupons.All", "All") },
+      { value: "active", label: t("coupons.Active", "Active") },
+      { value: "scheduled", label: t("coupons.Scheduled", "Scheduled") },
+      { value: "expired", label: t("coupons.Expired", "Expired") },
+      { value: "inactive", label: t("coupons.Draft / Inactive", "Draft / Inactive") },
+    ],
+    [t]
+  );
 
   const safeCoupons = Array.isArray(coupons) ? coupons : [];
   const safeMeta = meta || { page: 1, limit: 10, total: safeCoupons.length, totalPages: 1 };
@@ -309,26 +325,26 @@ export default function AdminCoupons2026View({
     <div className="ac26-page">
       <section className="ac26-header">
         <div>
-          <h1>Coupons</h1>
+          <h1>{t("coupons.Coupons", "Coupons")}</h1>
           <nav aria-label="Breadcrumb">
-            <span>Catalog</span>
+            <span>{t("coupons.Catalog", "Catalog")}</span>
             <ChevronRight size={14} />
-            <span>Coupons</span>
+            <span>{t("coupons.Coupons", "Coupons")}</span>
           </nav>
         </div>
         <div className="ac26-header__actions">
           <ActionButton icon={Download} onClick={() => onExport("csv")}>
-            Export
+            {t("coupons.Export", "Export")}
           </ActionButton>
           <ActionButton icon={Upload} onClick={onImport}>
-            Import
+            {t("coupons.Import", "Import")}
           </ActionButton>
           <ActionButton
             icon={ChevronDown}
             disabled={!anySelected}
             onClick={() => onBulkAction("activate")}
           >
-            Bulk Action
+            {t("coupons.Bulk Action", "Bulk Action")}
           </ActionButton>
           <ActionButton
             icon={Trash2}
@@ -336,40 +352,40 @@ export default function AdminCoupons2026View({
             disabled={!anySelected}
             onClick={() => onBulkAction("delete")}
           >
-            Delete
+            {t("coupons.Delete", "Delete")}
           </ActionButton>
           <ActionButton icon={Plus} tone="primary" onClick={onAddCoupon}>
-            Add Coupon
+            {t("coupons.Add Coupon", "Add Coupon")}
           </ActionButton>
         </div>
       </section>
 
       <section className="ac26-kpis" aria-label="Coupon summary">
         <KpiCard
-          label="Total Coupons"
+          label={t("coupons.Total Coupons", "Total Coupons")}
           value={safeStats.total}
-          helper="All discount promotions"
+          helper={t("coupons.All discount promotions", "All discount promotions")}
           icon={Ticket}
           tone="blue"
         />
         <KpiCard
-          label="Published"
+          label={t("coupons.Published", "Published")}
           value={safeStats.published}
-          helper="Loaded active coupons"
+          helper={t("coupons.Loaded active coupons", "Loaded active coupons")}
           icon={CheckCircle2}
           tone="green"
         />
         <KpiCard
-          label="Platform Scope"
+          label={t("coupons.Platform Scope", "Platform Scope")}
           value={safeStats.platform}
-          helper="System-wide coupons"
+          helper={t("coupons.System-wide coupons", "System-wide coupons")}
           icon={SlidersHorizontal}
           tone="orange"
         />
         <KpiCard
-          label="Store Scope"
+          label={t("coupons.Store Scope", "Store Scope")}
           value={safeStats.store}
-          helper="Seller store coupons"
+          helper={t("coupons.Seller store coupons", "Seller store coupons")}
           icon={Store}
           tone="red"
         />
@@ -381,23 +397,23 @@ export default function AdminCoupons2026View({
           <input
             value={safeFilters.q || ""}
             onChange={(event) => onFilterChange({ q: event.target.value })}
-            placeholder="Search by coupon name, code, or store..."
+            placeholder={t("coupons.Search by coupon name, code, or store...", "Search by coupon name, code, or store...")}
           />
         </label>
         <FieldSelect
-          label="Discount Type"
+          label={t("coupons.Discount Type", "Discount Type")}
           value={safeFilters.discountType || "all"}
           onChange={(value) => onFilterChange({ discountType: value === "all" ? "" : value })}
           options={discountTypeOptions}
         />
         <FieldSelect
-          label="Scope"
+          label={t("coupons.Scope", "Scope")}
           value={safeFilters.scopeType || "all"}
           onChange={(value) => onFilterChange({ scopeType: value === "all" ? "" : value })}
           options={scopeOptions}
         />
         <FieldSelect
-          label="Status"
+          label={t("coupons.Status", "Status")}
           value={safeFilters.status || "all"}
           onChange={(value) => onFilterChange({ status: value === "all" ? "" : value })}
           options={statusOptions}
@@ -408,7 +424,7 @@ export default function AdminCoupons2026View({
           onClick={() => setFiltersOpen((open) => !open)}
         >
           <SlidersHorizontal size={17} />
-          <span>Filters</span>
+          <span>{t("coupons.Filters", "Filters")}</span>
         </button>
         <IconButton label="View options">
           <Grid2X2 size={18} />
@@ -417,7 +433,7 @@ export default function AdminCoupons2026View({
           <div className="ac26-filter-drawer">
             <button type="button" className="ac26-action" onClick={onResetFilters}>
               <X size={16} />
-              Reset filters
+              {t("coupons.Reset filters", "Reset filters")}
             </button>
           </div>
         ) : null}
@@ -425,11 +441,11 @@ export default function AdminCoupons2026View({
 
       {isError ? (
         <section className="ac26-table-card p-8 text-center">
-          <strong className="block text-base font-semibold text-slate-900">Coupons could not be loaded.</strong>
-          <p className="mt-1 text-sm text-slate-500">{errorMessage || "Please retry to fetch the latest coupons."}</p>
+          <strong className="block text-base font-semibold text-slate-900">{t("coupons.Coupons could not be loaded.", "Coupons could not be loaded.")}</strong>
+          <p className="mt-1 text-sm text-slate-500">{errorMessage || t("coupons.Please retry to fetch the latest coupons.", "Please retry to fetch the latest coupons.")}</p>
           <div className="mt-4">
             <button type="button" className="ac26-action ac26-action--primary" onClick={onRetry}>
-              Retry
+              {t("coupons.Retry", "Retry")}
             </button>
           </div>
         </section>
@@ -442,13 +458,13 @@ export default function AdminCoupons2026View({
         </div>
       ) : coupons.length === 0 ? (
         <section className="ac26-table-card p-12 text-center">
-          <strong className="block text-base font-semibold text-slate-900">No coupons found</strong>
+          <strong className="block text-base font-semibold text-slate-900">{t("coupons.No coupons found", "No coupons found")}</strong>
           <p className="mt-1 text-sm text-slate-500">
-            Create your first coupon to enable checkout discounts.
+            {t("coupons.Create your first coupon to enable checkout discounts.", "Create your first coupon to enable checkout discounts.")}
           </p>
           <div className="mt-5">
             <button type="button" className="ac26-action ac26-action--primary" onClick={onAddCoupon}>
-              + Add Coupon
+              + {t("coupons.Add Coupon", "Add Coupon")}
             </button>
           </div>
         </section>
@@ -481,28 +497,28 @@ export default function AdminCoupons2026View({
                       onChange={onSelectAll}
                     />
                   </th>
-                  <th>COUPON</th>
-                  <th>DISCOUNT</th>
-                  <th>MIN SPEND</th>
-                  <th>SCOPE</th>
-                  <th>PERIOD</th>
-                  <th>USAGE</th>
-                  <th>PUBLISHED</th>
-                  <th>STATUS</th>
-                  <th>ACTIONS</th>
+                  <th>{t("coupons.COUPON", "COUPON")}</th>
+                  <th>{t("coupons.DISCOUNT", "DISCOUNT")}</th>
+                  <th>{t("coupons.MIN SPEND", "MIN SPEND")}</th>
+                  <th>{t("coupons.SCOPE", "SCOPE")}</th>
+                  <th>{t("coupons.PERIOD", "PERIOD")}</th>
+                  <th>{t("coupons.USAGE", "USAGE")}</th>
+                  <th>{t("coupons.PUBLISHED", "PUBLISHED")}</th>
+                  <th>{t("coupons.STATUS", "STATUS")}</th>
+                  <th>{t("coupons.ACTIONS", "ACTIONS")}</th>
                 </tr>
               </thead>
               <tbody>
                 {safeCoupons.map((coupon) => {
                   const id = Number(coupon.id);
-                  const statusObj = resolveCouponStatus(coupon);
+                  const statusObj = resolveCouponStatus(coupon, t);
                   const isStore = String(coupon.scopeType || "PLATFORM").toUpperCase() === "STORE";
                   const storeName = coupon.store?.name || (coupon.storeId ? `Store #${coupon.storeId}` : null);
                   const isActive = resolveCouponActive(coupon);
                   const discountDisplay =
                     coupon.discountType === "fixed"
                       ? formatCurrency(coupon.amount || 0)
-                      : `${Number(coupon.amount || 0)}% OFF`;
+                      : `${Number(coupon.amount || 0)}% ${t("coupons.OFF", "OFF")}`;
 
                   return (
                     <tr key={coupon.id}>
@@ -534,13 +550,13 @@ export default function AdminCoupons2026View({
                       </td>
                       <td>
                         <span className={`ac26-badge ac26-badge--${isStore ? "store" : "platform"}`}>
-                          {isStore ? storeName || "Store" : "Platform"}
+                          {isStore ? storeName || t("coupons.Store", "Store") : t("coupons.Platform", "Platform")}
                         </span>
                       </td>
                       <td>
                         <span className="ac26-dates">
-                          <span>Start: {formatDateShort(coupon.startDate || coupon.startsAt)}</span>
-                          <span>End: {formatDateShort(coupon.endDate || coupon.expiresAt)}</span>
+                          <span>{t("coupons.Start:", "Start:")} {formatDateShort(coupon.startDate || coupon.startsAt)}</span>
+                          <span>{t("coupons.End:", "End:")} {formatDateShort(coupon.endDate || coupon.expiresAt)}</span>
                         </span>
                       </td>
                       <td>
@@ -574,6 +590,7 @@ export default function AdminCoupons2026View({
                             onEdit={onEditCoupon}
                             onToggleActive={onToggleActive}
                             onDelete={onDeleteCoupon}
+                            t={t}
                           />
                         </div>
                       </td>
@@ -589,7 +606,7 @@ export default function AdminCoupons2026View({
       {safeCoupons.length > 0 ? (
         <div className="ac26-pagination">
           <p>
-            Showing {startIdx} to {endIdx} of {safeMeta.total} coupons
+            {t("coupons.Showing", "Showing")} {startIdx} {t("coupons.to", "to")} {endIdx} {t("coupons.of", "of")} {safeMeta.total} {t("coupons.coupons", "coupons")}
           </p>
           <div>
             <IconButton

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronLeft,
@@ -33,6 +34,7 @@ const tableHeadCell =
 const tableCell = "px-3 py-3 align-middle text-sm text-slate-700";
 
 function ValueStatusBadge({ published }) {
+  const { t } = useTranslation("admin");
   return (
     <span
       className={`inline-flex min-h-7 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold ${
@@ -46,7 +48,9 @@ function ValueStatusBadge({ published }) {
           published ? "bg-emerald-500" : "bg-slate-400"
         }`}
       />
-      {published ? "Inherited Published" : "Inherited Unpublished"}
+      {published
+        ? t("attributes.Inherited Published", "Inherited Published")
+        : t("attributes.Inherited Unpublished", "Inherited Unpublished")}
     </span>
   );
 }
@@ -61,6 +65,7 @@ function AttributeValueModal({
   isSubmitting = false,
   error = "",
 }) {
+  const { t } = useTranslation("admin");
   const [value, setValue] = useState("");
 
   useEffect(() => {
@@ -95,10 +100,12 @@ function AttributeValueModal({
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-[22px] leading-none font-semibold tracking-tight text-slate-900">
-                {isEditMode ? "Edit Attribute Value" : "Add Attribute Value"}
+                {isEditMode
+                  ? t("attributes.Edit Attribute Value", "Edit Attribute Value")
+                  : t("attributes.Add Attribute Value", "Add Attribute Value")}
               </h2>
               <p className="mt-2 text-sm text-slate-500">
-                Add your attribute values and necessary information from here
+                {t("attributes.Add your attribute values and necessary information from here", "Add your attribute values and necessary information from here")}
               </p>
             </div>
 
@@ -129,7 +136,9 @@ function AttributeValueModal({
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
           <div className="grid gap-0">
             <div className="grid border-b border-slate-200 md:grid-cols-[220px_minmax(0,1fr)]">
-              <div className="px-5 py-4 text-sm font-medium text-slate-700">Attribute Title</div>
+              <div className="px-5 py-4 text-sm font-medium text-slate-700">
+                {t("attributes.Attribute Title", "Attribute Title")}
+              </div>
               <div className="px-5 py-4">
                 <input
                   value={parentAttribute?.displayName || parentAttribute?.name || ""}
@@ -140,7 +149,9 @@ function AttributeValueModal({
             </div>
 
             <div className="grid border-b border-slate-200 md:grid-cols-[220px_minmax(0,1fr)]">
-              <div className="px-5 py-4 text-sm font-medium text-slate-700">Display Name</div>
+              <div className="px-5 py-4 text-sm font-medium text-slate-700">
+                {t("attributes.Display Name", "Display Name")}
+              </div>
               <div className="px-5 py-4">
                 <input
                   value={parentAttribute?.displayName || parentAttribute?.name || ""}
@@ -151,7 +162,9 @@ function AttributeValueModal({
             </div>
 
             <div className="grid border-b border-slate-200 md:grid-cols-[220px_minmax(0,1fr)]">
-              <div className="px-5 py-4 text-sm font-medium text-slate-700">Options</div>
+              <div className="px-5 py-4 text-sm font-medium text-slate-700">
+                {t("attributes.Options", "Options")}
+              </div>
               <div className="px-5 py-4">
                 <input
                   value={toText(parentAttribute?.type || "dropdown")}
@@ -162,13 +175,15 @@ function AttributeValueModal({
             </div>
 
             <div className="grid md:grid-cols-[220px_minmax(0,1fr)]">
-              <div className="px-5 py-4 text-sm font-medium text-slate-700">Variants</div>
+              <div className="px-5 py-4 text-sm font-medium text-slate-700">
+                {t("attributes.Variants", "Variants")}
+              </div>
               <div className="px-5 py-4">
                 <input
                   value={value}
                   onChange={(event) => setValue(event.target.value)}
                   disabled={isSubmitting}
-                  placeholder="Press enter to add variant"
+                  placeholder={t("attributes.Press enter to add variant", "Press enter to add variant")}
                   className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-teal-600 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-50"
                 />
                 {error ? (
@@ -190,7 +205,7 @@ function AttributeValueModal({
               disabled={isSubmitting}
               className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Cancel
+              {t("attributes.Cancel", "Cancel")}
             </button>
             <button
               type="submit"
@@ -198,7 +213,11 @@ function AttributeValueModal({
               disabled={isSubmitting || !toText(value)}
               className="inline-flex h-10 items-center justify-center rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSubmitting ? "Saving..." : isEditMode ? "Update Value" : "Add Value"}
+              {isSubmitting
+                ? t("attributes.Saving...", "Saving...")
+                : isEditMode
+                  ? t("attributes.Update Value", "Update Value")
+                  : t("attributes.Add Value", "Add Value")}
             </button>
           </div>
         </div>
@@ -272,6 +291,7 @@ function BulkActionMenu({ open, onOpen, onClose, onDelete, disabled }) {
 }
 
 export default function AttributeValuesPage() {
+  const { t } = useTranslation("admin");
   const { attributeId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -473,16 +493,16 @@ export default function AttributeValuesPage() {
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="space-y-1.5">
             <h1 className="text-[38px] leading-none font-semibold tracking-tight text-slate-900">
-              Attribute Values
+              {t("attributes.Attribute Values", "Attribute Values")}
             </h1>
-            <p className="text-sm text-slate-500">Manage attribute values</p>
+            <p className="text-sm text-slate-500">{t("attributes.Manage attribute values", "Manage attribute values")}</p>
             <div className="flex flex-wrap items-center gap-1.5 pt-1 text-sm">
               <button
                 type="button"
                 onClick={() => navigate("/admin/catalog/attributes")}
                 className="font-semibold text-blue-600 transition hover:text-blue-700"
               >
-                Attributes
+                {t("attributes.Attributes", "Attributes")}
               </button>
               <ChevronRight className="h-4 w-4 text-slate-400" />
               <span className="font-semibold text-slate-900">
@@ -508,11 +528,11 @@ export default function AttributeValuesPage() {
               className={btnGhost}
             >
               <Trash2 className="h-4 w-4" />
-              {bulkDeleteMutation.isPending ? "Deleting..." : "Delete"}
+              {bulkDeleteMutation.isPending ? t("attributes.Deleting...", "Deleting...") : t("attributes.Delete", "Delete")}
             </button>
             <button type="button" onClick={openCreateModal} className={btnGreen}>
               <Plus className="h-4 w-4" />
-              Add Value
+              {t("attributes.Add Value", "Add Value")}
             </button>
           </div>
         </div>
@@ -529,7 +549,7 @@ export default function AttributeValuesPage() {
                 setSearch(event.target.value);
                 setPage(1);
               }}
-              placeholder="Search by name..."
+              placeholder={t("attributes.Search by name...", "Search by name...")}
               className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 focus:border-teal-600 focus:outline-none"
             />
           </div>
@@ -558,8 +578,8 @@ export default function AttributeValuesPage() {
 
           {valuesQuery.isError ? (
             <UiErrorState
-              title="Failed to load attribute values"
-              message="Please retry to load the latest values truth from the backend."
+              title={t("attributes.Failed to load attribute values", "Failed to load attribute values")}
+              message={t("attributes.Please retry to load the latest values truth from the backend.", "Please retry to load the latest values truth from the backend.")}
               onRetry={valuesQuery.refetch}
             />
           ) : null}
@@ -588,18 +608,18 @@ export default function AttributeValuesPage() {
                           className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                         />
                       </th>
-                      <th className={`${tableHeadCell} w-[120px]`}>ID</th>
-                      <th className={tableHeadCell}>Name</th>
-                      <th className={tableHeadCell}>Type</th>
-                      <th className={tableHeadCell}>Status</th>
-                      <th className={`${tableHeadCell} text-right`}>Actions</th>
+                      <th className={`${tableHeadCell} w-[120px]`}>{t("attributes.ID", "ID")}</th>
+                      <th className={tableHeadCell}>{t("attributes.Name", "Name")}</th>
+                      <th className={tableHeadCell}>{t("attributes.Type", "Type")}</th>
+                      <th className={tableHeadCell}>{t("attributes.Status", "Status")}</th>
+                      <th className={`${tableHeadCell} text-right`}>{t("attributes.Actions", "Actions")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {paginatedValues.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="px-4 py-12 text-center text-sm text-slate-500">
-                          No values found for this attribute.
+                          {t("attributes.No values found for this attribute.", "No values found for this attribute.")}
                         </td>
                       </tr>
                     ) : (
