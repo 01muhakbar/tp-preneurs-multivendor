@@ -140,15 +140,15 @@ const formatSellerNotificationTime = (value) => {
   });
 };
 
-const getSellerNotificationLabel = (notification) => {
+const getSellerNotificationLabel = (notification, isId = false) => {
   const actionCode = String(notification?.meta?.actionCode || notification?.type || "")
     .trim()
     .toUpperCase();
-  if (actionCode === "SELLER_SUBORDER_CREATED") return "New suborder";
-  if (actionCode === "SELLER_PAYMENT_REVIEW_REQUIRED") return "Needs review";
-  if (actionCode === "SELLER_PAYMENT_FAILED") return "Payment failed";
-  if (actionCode === "SELLER_PAYMENT_CANCELLED") return "Payment cancelled";
-  return "Seller update";
+  if (actionCode === "SELLER_SUBORDER_CREATED") return isId ? "Subpesanan baru" : "New suborder";
+  if (actionCode === "SELLER_PAYMENT_REVIEW_REQUIRED") return isId ? "Perlu ditinjau" : "Needs review";
+  if (actionCode === "SELLER_PAYMENT_FAILED") return isId ? "Pembayaran gagal" : "Payment failed";
+  if (actionCode === "SELLER_PAYMENT_CANCELLED") return isId ? "Pembayaran dibatalkan" : "Payment cancelled";
+  return isId ? "Pembaruan penjual" : "Seller update";
 };
 
 const resolveSellerNotificationRoute = (notification, sellerRoutes) => {
@@ -216,39 +216,49 @@ const resolveSellerNotificationRoute = (notification, sellerRoutes) => {
   return null;
 };
 
-const getSellerPageMeta = (pathname) => {
+const getSellerPageMeta = (pathname, isId = false) => {
   if (pathname.includes("/team/audit")) {
     return {
-      title: "Team Audit",
-      subtitle: "Team access changes for the active store.",
+      title: isId ? "Audit Tim" : "Team Audit",
+      subtitle: isId
+        ? "Perubahan akses tim untuk toko aktif."
+        : "Team access changes for the active store.",
     };
   }
 
   if (pathname.includes("/team/")) {
     return {
-      title: "Member Lifecycle",
-      subtitle: "Membership timeline and role changes for the current store.",
+      title: isId ? "Siklus Keanggotaan" : "Member Lifecycle",
+      subtitle: isId
+        ? "Riwayat keanggotaan dan perubahan peran untuk toko ini."
+        : "Membership timeline and role changes for the current store.",
     };
   }
 
   if (pathname.endsWith("/team")) {
     return {
-      title: "Team",
-      subtitle: "Seller membership workspace for the active store.",
+      title: isId ? "Tim" : "Team",
+      subtitle: isId
+        ? "Ruang kerja keanggotaan penjual untuk toko aktif."
+        : "Seller membership workspace for the active store.",
     };
   }
 
   if (pathname.endsWith("/catalog/products/new")) {
     return {
-      title: "New Product",
-      subtitle: "Create a product draft for this store.",
+      title: isId ? "Produk Baru" : "New Product",
+      subtitle: isId
+        ? "Buat draf produk untuk toko ini."
+        : "Create a product draft for this store.",
     };
   }
 
   if (pathname.endsWith("/edit")) {
     return {
-      title: "Edit Product Draft",
-      subtitle: "Edit a product draft for this store.",
+      title: isId ? "Edit Draf Produk" : "Edit Product Draft",
+      subtitle: isId
+        ? "Edit draf produk untuk toko ini."
+        : "Edit a product draft for this store.",
     };
   }
 
@@ -257,77 +267,99 @@ const getSellerPageMeta = (pathname) => {
     pathname.endsWith("/catalog/products/reviews")
   ) {
     return {
-      title: "Product Reviews",
-      subtitle: "Monitor and respond to customer feedback.",
+      title: isId ? "Ulasan Produk" : "Product Reviews",
+      subtitle: isId
+        ? "Pantau dan tanggapi ulasan pelanggan."
+        : "Monitor and respond to customer feedback.",
     };
   }
 
   if (pathname.includes("/catalog/products/")) {
     return {
-      title: "Product Detail",
-      subtitle: "Catalog details for this store.",
+      title: isId ? "Detail Produk" : "Product Detail",
+      subtitle: isId
+        ? "Detail katalog untuk toko ini."
+        : "Catalog details for this store.",
     };
   }
 
   if (pathname.endsWith("/catalog/products")) {
     return {
-      title: "Catalog",
-      subtitle: "Products owned by the current store.",
+      title: isId ? "Katalog" : "Catalog",
+      subtitle: isId
+        ? "Produk yang dimiliki oleh toko saat ini."
+        : "Products owned by the current store.",
     };
   }
 
   if (pathname.endsWith("/catalog/categories")) {
     return {
-      title: "Category",
-      subtitle: "Manage product categories.",
+      title: isId ? "Kategori" : "Category",
+      subtitle: isId
+        ? "Kelola kategori produk."
+        : "Manage product categories.",
     };
   }
 
   if (pathname.includes("/orders/")) {
     return {
-      title: "Order Detail",
-      subtitle: "Order actions for the current store.",
+      title: isId ? "Detail Pesanan" : "Order Detail",
+      subtitle: isId
+        ? "Tindakan pesanan untuk toko saat ini."
+        : "Order actions for the current store.",
     };
   }
 
   if (pathname.endsWith("/orders")) {
     return {
-      title: "Orders",
-      subtitle: "Store orders, payment state, and fulfillment controls for seller operations.",
+      title: isId ? "Pesanan" : "Orders",
+      subtitle: isId
+        ? "Daftar pesanan toko, status pembayaran, dan kontrol pemenuhan untuk operasional penjual."
+        : "Store orders, payment state, and fulfillment controls for seller operations.",
     };
   }
 
   if (pathname.endsWith("/payment-review")) {
     return {
-      title: "Payment Review",
-      subtitle: "Buyer payment proof review for the active seller workspace.",
+      title: isId ? "Tinjau Pembayaran" : "Payment Review",
+      subtitle: isId
+        ? "Tinjauan bukti pembayaran pembeli untuk ruang kerja penjual aktif."
+        : "Buyer payment proof review for the active seller workspace.",
     };
   }
 
   if (pathname.endsWith("/payment-profile")) {
     return {
-      title: "Payment Setup",
-      subtitle: "Payment setup, admin review status, and checkout readiness for this store.",
+      title: isId ? "Pengaturan Pembayaran" : "Payment Setup",
+      subtitle: isId
+        ? "Pengaturan pembayaran, status peninjauan admin, dan kesiapan checkout untuk toko ini."
+        : "Payment setup, admin review status, and checkout readiness for this store.",
     };
   }
 
   if (pathname.endsWith("/coupons")) {
     return {
-      title: "Coupons",
-      subtitle: "Coupon management for the active seller store.",
+      title: isId ? "Kupon" : "Coupons",
+      subtitle: isId
+        ? "Manajemen kupon untuk toko penjual aktif."
+        : "Coupon management for the active seller store.",
     };
   }
 
   if (pathname.endsWith("/store-profile") || pathname.endsWith("/profile")) {
     return {
-      title: "Store Profile",
-      subtitle: "Store identity, contact details, and public information.",
+      title: isId ? "Profil Toko" : "Store Profile",
+      subtitle: isId
+        ? "Identitas toko, detail kontak, dan informasi publik."
+        : "Store identity, contact details, and public information.",
     };
   }
 
   return {
-    title: "Overview",
-    subtitle: "Workspace summary, access context, and seller readiness.",
+    title: isId ? "Ringkasan" : "Overview",
+    subtitle: isId
+      ? "Ringkasan ruang kerja, konteks akses, dan kesiapan penjual."
+      : "Workspace summary, access context, and seller readiness.",
   };
 };
 
@@ -378,6 +410,7 @@ function SellerNotificationsMenu({
   items = [],
   isLoading = false,
   isDark = false,
+  isId = false,
   onItemClick,
   onMarkAllRead,
   isMarkingAllRead = false,
@@ -399,9 +432,9 @@ function SellerNotificationsMenu({
       {open ? (
         <div className="navbar__notify-menu" role="menu">
           <div className="navbar__notify-head">
-            <p>Seller Notifications</p>
+            <p>{isId ? "Notifikasi Penjual" : "Seller Notifications"}</p>
             <div className="flex items-center gap-2">
-              <span>{unreadCount} unread</span>
+              <span>{unreadCount} {isId ? "belum dibaca" : "unread"}</span>
               {unreadCount > 0 ? (
                 <button
                   type="button"
@@ -409,16 +442,16 @@ function SellerNotificationsMenu({
                   disabled={isMarkingAllRead}
                   className="rounded-full border border-emerald-200 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:text-emerald-300 dark:hover:bg-slate-800"
                 >
-                  Read all
+                  {isId ? "Tandai dibaca" : "Read all"}
                 </button>
               ) : null}
             </div>
           </div>
           {isLoading && items.length === 0 ? (
-            <p className="navbar__notify-empty">Loading seller notifications...</p>
+            <p className="navbar__notify-empty">{isId ? "Memuat notifikasi penjual..." : "Loading seller notifications..."}</p>
           ) : items.length === 0 ? (
             <p className="navbar__notify-empty">
-              No seller notifications yet for this workspace.
+              {isId ? "Belum ada notifikasi untuk ruang kerja ini." : "No seller notifications yet for this workspace."}
             </p>
           ) : (
             <div className="navbar__notify-list">
@@ -429,7 +462,7 @@ function SellerNotificationsMenu({
                     : {};
                 const message = String(meta.message || "").trim();
                 const timeLabel = formatSellerNotificationTime(notification?.createdAt);
-                const badgeLabel = getSellerNotificationLabel(notification);
+                const badgeLabel = getSellerNotificationLabel(notification, isId);
                 return (
                   <button
                     key={notification.id}
@@ -445,7 +478,7 @@ function SellerNotificationsMenu({
                       aria-hidden="true"
                     />
                     <div className="navbar__notify-main">
-                      <p className="navbar__notify-title">{notification?.title || "Seller notification"}</p>
+                      <p className="navbar__notify-title">{notification?.title || (isId ? "Notifikasi penjual" : "Seller notification")}</p>
                       {message ? (
                         <p
                           className={joinClassNames(
@@ -479,6 +512,7 @@ function SellerProfileMenu({
   containerRef,
   sellerContext,
   sellerRoutes,
+  isId = false,
   onLogout,
 }) {
   const navigate = useNavigate();
@@ -528,7 +562,7 @@ function SellerProfileMenu({
             role="menuitem"
           >
             <LayoutDashboard size={14} />
-            <span>Dashboard</span>
+            <span>{isId ? "Ringkasan" : "Dashboard"}</span>
           </button>
           <button
             type="button"
@@ -537,7 +571,7 @@ function SellerProfileMenu({
             role="menuitem"
           >
             <UserRound size={14} />
-            <span>Edit Profile</span>
+            <span>{isId ? "Edit Profil" : "Edit Profile"}</span>
           </button>
           <button
             type="button"
@@ -546,7 +580,7 @@ function SellerProfileMenu({
             role="menuitem"
           >
             <LogOut size={14} />
-            <span>Log Out</span>
+            <span>{isId ? "Keluar" : "Log Out"}</span>
           </button>
         </div>
       ) : null}
@@ -560,6 +594,7 @@ function SellerSidebar({
   collapsed = false,
   mobileOpen = false,
   isDark = false,
+  isId = false,
   onNavigate,
   onLogout,
 }) {
@@ -594,39 +629,43 @@ function SellerSidebar({
 
   const navSections = [
     {
-      title: "General",
+      title: isId ? "Umum" : "General",
       items: [
         {
-          label: "Overview",
+          label: isId ? "Ringkasan" : "Overview",
           to: sellerRoutes.home(),
           Icon: LayoutDashboard,
           enabled: hasPermission("STORE_VIEW"),
           implemented: true,
         },
         {
-          label: "Store Profile",
+          label: isId ? "Profil Toko" : "Store Profile",
           to: sellerRoutes.storeProfile(),
           Icon: Store,
           enabled: hasPermission("STORE_VIEW"),
           implemented: true,
         },
         {
-          label: "Legal & Tax Settings",
+          label: isId ? "Pengaturan Hukum & Pajak" : "Legal & Tax Settings",
           to: `${sellerRoutes.home()}/legal-tax`,
           Icon: ShieldCheck,
           enabled: hasPermission("STORE_VIEW"),
           implemented: true,
         },
         {
-          label: "Shipping Setup",
+          label: isId ? "Pengaturan Pengiriman" : "Shipping Setup",
           to: sellerRoutes.shippingSetup(),
           Icon: Truck,
           enabled: hasPermission("STORE_VIEW"),
           implemented: true,
-          meta: shippingSetupMeta?.message || "Origin & readiness",
+          meta: isId ? "Asal & kesiapan" : (shippingSetupMeta?.message || "Origin & readiness"),
           badge: shippingSetupStatus
             ? {
-                label: shippingSetupStatus.label || "Unavailable",
+                label: isId && shippingSetupStatus.label === "Ready"
+                  ? "Siap"
+                  : isId && shippingSetupStatus.label === "Unavailable"
+                  ? "Tidak Tersedia"
+                  : shippingSetupStatus.label || (isId ? "Tidak Tersedia" : "Unavailable"),
                 tone: shippingSetupStatus.tone || "stone",
               }
             : null,
@@ -634,38 +673,38 @@ function SellerSidebar({
       ],
     },
     {
-      title: "Catalog",
+      title: isId ? "Katalog" : "Catalog",
       items: [
         {
-          label: "Products",
+          label: isId ? "Produk" : "Products",
           to: sellerRoutes.catalog(),
           Icon: Package,
           enabled: hasPermission("PRODUCT_VIEW"),
           implemented: true,
         },
         {
-          label: "Categories",
+          label: isId ? "Kategori" : "Categories",
           to: sellerRoutes.categories(),
           Icon: Tags,
           enabled: hasPermission("CATEGORY_VIEW"),
           implemented: true,
         },
         {
-          label: "Attributes",
+          label: isId ? "Atribut" : "Attributes",
           to: sellerRoutes.attributes(),
           Icon: Tags,
           enabled: hasPermission("ATTRIBUTE_VIEW"),
           implemented: true,
         },
         {
-          label: "Coupons",
+          label: isId ? "Kupon" : "Coupons",
           to: sellerRoutes.coupons(),
           Icon: TicketPercent,
           enabled: hasPermission("PRODUCT_VIEW"),
           implemented: true,
         },
         {
-          label: "Reviews",
+          label: isId ? "Ulasan" : "Reviews",
           to: sellerRoutes.reviews(),
           Icon: Star,
           enabled: hasPermission("PRODUCT_VIEW"),
@@ -674,10 +713,10 @@ function SellerSidebar({
       ],
     },
     {
-      title: "Operations",
+      title: isId ? "Operasional" : "Operations",
       items: [
         {
-          label: "Orders",
+          label: isId ? "Pesanan" : "Orders",
           to: sellerRoutes.orders(),
           Icon: ShoppingBag,
           enabled: hasPermission("ORDER_VIEW"),
@@ -686,17 +725,17 @@ function SellerSidebar({
       ],
     },
     {
-      title: "Finance",
+      title: isId ? "Keuangan" : "Finance",
       items: [
         {
-          label: "Payment Review",
+          label: isId ? "Tinjau Pembayaran" : "Payment Review",
           to: sellerRoutes.paymentReview(),
           Icon: BadgeCheck,
           enabled: hasPermission("ORDER_VIEW") && hasPermission("PAYMENT_STATUS_VIEW"),
           implemented: true,
         },
         {
-          label: "Payment Setup",
+          label: isId ? "Pengaturan Pembayaran" : "Payment Setup",
           to: sellerRoutes.paymentProfile(),
           Icon: CreditCard,
           enabled: hasPermission("PAYMENT_PROFILE_VIEW"),
@@ -705,17 +744,17 @@ function SellerSidebar({
       ],
     },
     {
-      title: "Workspace",
+      title: isId ? "Ruang Kerja" : "Workspace",
       items: [
         {
-          label: "Team",
+          label: isId ? "Tim" : "Team",
           to: sellerRoutes.team(),
           Icon: Users,
           enabled: hasPermission("STORE_MEMBERS_MANAGE"),
           implemented: true,
         },
         {
-          label: "Team Audit",
+          label: isId ? "Audit Tim" : "Team Audit",
           to: sellerRoutes.teamAudit(),
           Icon: History,
           enabled: hasPermission("AUDIT_LOG_VIEW"),
@@ -748,14 +787,14 @@ function SellerSidebar({
       >
         <WorkspaceSidebarBrand
           brandName="TP PRENEURS"
-          workspaceLabel="Seller Workspace"
+          workspaceLabel={isId ? "Ruang Kerja Penjual" : "Seller Workspace"}
           workspaceKey="seller"
           collapsed={collapsed}
         />
         {collapsed ? (
           <div
             className="mt-2.5 flex justify-center"
-            title={sellerContext?.store?.name || "Seller Workspace"}
+            title={sellerContext?.store?.name || (isId ? "Ruang Kerja Penjual" : "Seller Workspace")}
           >
             <div
               className={joinClassNames(
@@ -783,7 +822,7 @@ function SellerSidebar({
                 isDark ? "text-slate-400" : "text-slate-500"
               )}
             >
-              Active Store
+              {isId ? "Toko Aktif" : "Active Store"}
             </p>
             <p
               className={joinClassNames(
@@ -1114,7 +1153,7 @@ function SellerSidebar({
         <button
           type="button"
           onClick={() => void onLogout?.()}
-          title={collapsed ? "Log Out" : undefined}
+          title={collapsed ? (isId ? "Keluar" : "Log Out") : undefined}
           className={joinClassNames(
             "inline-flex w-full items-center justify-center rounded-lg border text-sm font-semibold transition",
             collapsed ? "h-10 px-0" : "h-9 gap-2 px-3",
@@ -1124,7 +1163,7 @@ function SellerSidebar({
           )}
         >
           <LogOut className="h-4 w-4" />
-          {collapsed ? null : <span>Log Out</span>}
+          {collapsed ? null : <span>{isId ? "Keluar" : "Log Out"}</span>}
         </button>
       </div>
     </aside>
@@ -1240,11 +1279,12 @@ export default function SellerLayout() {
     retry: false,
   });
 
+  const isId = String(selectedLanguage?.isoCode || "").toLowerCase() === "id";
   const sellerContext = sellerContextQuery.data;
   const canonicalStoreSlug =
     normalizeSellerStoreParam(sellerContext?.store?.slug) || normalizedStoreSlug;
   const canonicalStoreId = Number(sellerContext?.store?.id || 0) || null;
-  const pageMeta = getSellerPageMeta(pathname);
+  const pageMeta = getSellerPageMeta(pathname, isId);
   const sellerRoutes = createSellerWorkspaceRoutes(canonicalStoreSlug);
   const chipText = selectedLanguage?.label ? selectedLanguage.label.toUpperCase() : "US ENGLISH";
   const isDark = theme === "dark";
@@ -1352,15 +1392,17 @@ export default function SellerLayout() {
       workspaceStoreId: canonicalStoreId,
       workspaceStoreSlug: canonicalStoreSlug,
       refetchSellerContext: sellerContextQuery.refetch,
+      selectedLanguage,
+      isId,
     }),
-    [canonicalStoreId, canonicalStoreSlug, sellerContext, sellerContextQuery.refetch]
+    [canonicalStoreId, canonicalStoreSlug, sellerContext, sellerContextQuery.refetch, selectedLanguage, isId]
   );
 
   if (!normalizedStoreSlug) {
     return (
       <SellerShellState
-        title="Invalid Store"
-        description="Seller workspace needs a valid store slug in the URL."
+        title={isId ? "Toko Tidak Valid" : "Invalid Store"}
+        description={isId ? "Ruang kerja penjual membutuhkan slug toko yang valid di URL." : "Seller workspace needs a valid store slug in the URL."}
         tone="danger"
       />
     );
@@ -1369,11 +1411,11 @@ export default function SellerLayout() {
   if (sellerContextQuery.isLoading) {
     return (
       <SellerShellState
-        title="Loading Seller Workspace"
+        title={isId ? "Memuat Ruang Kerja Penjual" : "Loading Seller Workspace"}
         description={
           sellerAuth.isLoading
-            ? "Checking shared session and seller workspace access."
-            : "Opening this seller workspace and checking your access."
+            ? (isId ? "Memeriksa sesi bersama dan akses ruang kerja penjual." : "Checking shared session and seller workspace access.")
+            : (isId ? "Membuka ruang kerja penjual ini dan memeriksa akses Anda." : "Opening this seller workspace and checking your access.")
         }
       />
     );
@@ -1582,6 +1624,7 @@ export default function SellerLayout() {
         collapsed={sidebarCollapsed && !mobileSidebarOpen}
         mobileOpen={mobileSidebarOpen}
         isDark={isDark}
+        isId={isId}
         onNavigate={() => setMobileSidebarOpen(false)}
         onLogout={handleSellerLogout}
       />
@@ -1611,7 +1654,7 @@ export default function SellerLayout() {
                 readOnly
                 tabIndex={-1}
                 aria-label="Seller search placeholder"
-                placeholder={`Search inside ${pageMeta.title.toLowerCase()}...`}
+                placeholder={isId ? `Cari di dalam ${pageMeta.title.toLowerCase()}...` : `Search inside ${pageMeta.title.toLowerCase()}...`}
                 className="navbar__search-input"
               />
             </div>
@@ -1669,6 +1712,7 @@ export default function SellerLayout() {
                 items={sellerNotificationsQuery.data?.items || []}
                 isLoading={sellerNotificationsQuery.isLoading}
                 isDark={isDark}
+                isId={isId}
                 onItemClick={handleSellerNotificationClick}
                 onMarkAllRead={handleMarkAllSellerNotificationsRead}
                 isMarkingAllRead={markAllSellerNotificationsReadMutation.isPending}
@@ -1680,6 +1724,7 @@ export default function SellerLayout() {
                 containerRef={profileDropdownRef}
                 sellerContext={sellerContext}
                 sellerRoutes={sellerRoutes}
+                isId={isId}
                 onLogout={handleSellerLogout}
               />
             </div>

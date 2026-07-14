@@ -316,7 +316,7 @@ const DEFAULT_CUSTOMIZATION = {
         title: "Young EdTech Builders",
         subtitle: "Student-crafted innovation",
         description:
-          "Created by Educational Technology students who understand e-learning trends, current curriculum needs, and digital media.",
+          "A collaborative innovation developed by Educational Technology faculty and students, equipped with an understanding of e-learning trends, the latest curriculum, and digital media integration.",
       },
       boxThree: {
         title: "Innovation to Industry",
