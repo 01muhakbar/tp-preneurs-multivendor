@@ -28,6 +28,11 @@ import {
 import {
   assertSellerVariationRuntimeValid as assertAdminVariationRuntimeValid,
 } from "../services/attributeVariationRuntimeValidation.js";
+import {
+  getProductTypeMetadata,
+  mergeProductTypeMetadataIntoSeo,
+  normalizeProductType,
+} from "../services/productTypeMetadata.js";
 
 const router = Router();
 router.use(requireStaffOrAdmin);
@@ -1714,6 +1719,7 @@ const toAdminProductListItem = (product: any, storeOperationalReadiness: any = n
   const ratingAvg = Number(ratingAvgRaw.toFixed(1));
   const reviewCount = Math.max(0, Math.round(toNumber(plain?.reviewCount ?? plain?.review_count, 0)));
   const unit = extractAdminProductUnit(plain?.tags);
+  const productTypeMetadata = getProductTypeMetadata(plain);
 
   return {
     id: plain?.id,
@@ -1745,6 +1751,8 @@ const toAdminProductListItem = (product: any, storeOperationalReadiness: any = n
     unit,
     stock: plain?.stock ?? 0,
     weight: plain?.weight ?? null,
+    productType: productTypeMetadata.productType,
+    isDigital: productTypeMetadata.isDigital,
     notes: plain?.notes ?? null,
     length: plain?.length ?? null,
     width: plain?.width ?? null,
@@ -1767,6 +1775,7 @@ const toAdminProductDetail = (product: any, storeOperationalReadiness: any = nul
   const tags = normalizeAdminProductTags(plain?.tags);
   const seo = normalizeAdminProductSeoResponse(plain?.seo);
   const variations = normalizeAdminJsonValue(plain?.variations);
+  const productTypeMetadata = getProductTypeMetadata(plain);
   const published =
     typeof plain?.published !== "undefined"
       ? Boolean(plain.published)
@@ -1802,6 +1811,9 @@ const toAdminProductDetail = (product: any, storeOperationalReadiness: any = nul
     salePrice: priceFields.salePrice,
     stock: plain?.stock ?? 0,
     weight: plain?.weight ?? null,
+    productType: productTypeMetadata.productType,
+    isDigital: productTypeMetadata.isDigital,
+    digitalAssetUrl: productTypeMetadata.digitalAssetUrl,
     notes: plain?.notes ?? null,
     length: plain?.length ?? null,
     width: plain?.width ?? null,
@@ -2234,6 +2246,11 @@ const createSchema = z.object({
   imageUrl: z.string().max(255).optional().nullable(),
   imageUrls: z.array(z.string().max(255)).optional(),
   seo: z.unknown().nullable().optional(),
+  productType: z.preprocess(
+    (value) => (value === "" || value === null ? undefined : normalizeProductType(value)),
+    z.enum(["physical", "digital", "service"]).optional()
+  ),
+  digitalAssetUrl: z.string().max(5000).nullable().optional(),
   variations: z.unknown().nullable().optional(),
   weight: z.coerce.number().nonnegative().nullable().optional(),
   notes: z.string().max(5000).nullable().optional(),
@@ -2904,7 +2921,10 @@ router.post(
       const body = createSchema.parse(req.body);
       const storeOwnership = await resolveAdminProductStoreOwnership(body.storeId ?? null);
       const categorySelection = await resolveCategorySelection(body, { mode: "create" });
-      const seo = sanitizeAdminProductSeo(body.seo);
+      const seo = mergeProductTypeMetadataIntoSeo(sanitizeAdminProductSeo(body.seo), {
+        productType: body.productType,
+        digitalAssetUrl: body.digitalAssetUrl,
+      });
       const variations = await sanitizeAdminProductVariations(body.variations);
       if (variations) {
         await assertAdminVariationRuntimeValid(variations, {
@@ -3040,9 +3060,31 @@ router.patch(
       const currentSubmissionStatus = normalizeSellerSubmissionStatus(
         (product as any).get?.("sellerSubmissionStatus") ?? (product as any).sellerSubmissionStatus
       );
+      const existingSeo = (product as any).get?.("seo");
+      const existingProductTypeMetadata = getProductTypeMetadata(
+        (product as any).get?.({ plain: true }) ?? product
+      );
       const seo =
-        typeof body.seo !== "undefined"
-          ? sanitizeAdminProductSeo(mergeAdminProductSeoInput((product as any).get?.("seo"), body.seo))
+        typeof body.seo !== "undefined" ||
+        typeof body.productType !== "undefined" ||
+        typeof body.digitalAssetUrl !== "undefined"
+          ? mergeProductTypeMetadataIntoSeo(
+              sanitizeAdminProductSeo(
+                typeof body.seo !== "undefined"
+                  ? mergeAdminProductSeoInput(existingSeo, body.seo)
+                  : existingSeo
+              ),
+              {
+                productType:
+                  typeof body.productType !== "undefined"
+                    ? body.productType
+                    : existingProductTypeMetadata.productType,
+                digitalAssetUrl:
+                  typeof body.digitalAssetUrl !== "undefined"
+                    ? body.digitalAssetUrl
+                    : existingProductTypeMetadata.digitalAssetUrl,
+              }
+            )
           : undefined;
       const existingCategoryIds = resolveProductSelectedCategories(product).map((category: any) =>
         Number(category.id)

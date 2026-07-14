@@ -71,12 +71,25 @@ export type ProductWriteDTO = {
   price?: number;
   salePrice?: number | null;
   stock?: number;
+  weight?: number | null;
+  notes?: string | null;
+  length?: number | null;
+  width?: number | null;
+  height?: number | null;
+  dimensions?: {
+    length?: number | null;
+    width?: number | null;
+    height?: number | null;
+    unit?: string | null;
+  } | null;
   imageUrls?: string[];
   tags?: string[];
   status?: string | null;
   published?: boolean | null;
   hasVariants?: boolean;
   seo?: unknown | null;
+  productType?: string | null;
+  digitalAssetUrl?: string | null;
   variations?: unknown | null;
 };
 
@@ -1039,12 +1052,46 @@ export const toSellerProductWritePayload = (value: ProductWriteDTO = {} as Produ
         ? value.salePrice
         : null,
     stock: typeof value.stock === "number" ? value.stock : 0,
+    weight:
+      typeof value.weight === "number" || value.weight === null
+        ? value.weight
+        : undefined,
+    notes:
+      typeof value.notes === "string" || value.notes === null
+        ? value.notes
+        : undefined,
+    length:
+      typeof value.length === "number" || value.length === null
+        ? value.length
+        : typeof value.dimensions?.length === "number"
+          ? value.dimensions.length
+          : undefined,
+    width:
+      typeof value.width === "number" || value.width === null
+        ? value.width
+        : typeof value.dimensions?.width === "number"
+          ? value.dimensions.width
+          : undefined,
+    height:
+      typeof value.height === "number" || value.height === null
+        ? value.height
+        : typeof value.dimensions?.height === "number"
+          ? value.dimensions.height
+          : undefined,
     tags: normalizeTagArray(value.tags),
     seo: typeof value.seo === "undefined" ? undefined : value.seo,
     hasVariants:
       typeof value.hasVariants === "boolean" ? value.hasVariants : undefined,
     variations: typeof value.variations === "undefined" ? undefined : value.variations,
   };
+
+  if (typeof value.productType !== "undefined") {
+    payload.productType = normalizeNullableText(value.productType);
+  }
+
+  if (typeof value.digitalAssetUrl !== "undefined") {
+    payload.digitalAssetUrl = normalizeNullableText(value.digitalAssetUrl);
+  }
 
   if (typeof value.imageUrls !== "undefined") {
     payload.imageUrls = normalizeMediaUrls(value.imageUrls);

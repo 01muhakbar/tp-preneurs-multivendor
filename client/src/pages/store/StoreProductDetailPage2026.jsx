@@ -3,8 +3,10 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   BadgeCheck,
   CalendarDays,
+  Check,
   ChevronLeft,
   ChevronRight,
+  Copy,
   Facebook,
   Heart,
   Home,
@@ -475,52 +477,25 @@ function ProductGallery({ product, selectedVariant }) {
   }, [getProductSlug(product), selectedVariant?.image]);
 
   return (
-    <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_24px_80px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-slate-900 dark:shadow-none">
-      <div className="relative overflow-hidden rounded-[1.6rem] bg-slate-100 dark:bg-slate-950">
-        <div className="flex h-[300px] w-full items-center justify-center sm:h-[380px] lg:h-[420px]">
-          {activeImage ? (
-            <button type="button" onClick={() => setIsLightboxOpen(true)} className="h-full w-full cursor-zoom-in outline-none">
-              <img
-                src={activeImage}
-                alt={getProductName(product)}
-                className="h-full w-full object-contain p-4 sm:p-6 transition hover:scale-105"
-              />
-            </button>
-          ) : (
-            <ImageFallback categoryName={categoryName} />
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={handleWishlistToggle}
-          aria-label={`${isWishlisted ? "Remove" : "Add"} ${getProductName(product)} ${isWishlisted ? "from" : "to"} wishlist`}
-          aria-pressed={isWishlisted}
-          className={`absolute right-5 top-5 inline-flex h-12 w-12 items-center justify-center rounded-full border shadow-sm transition ${
-            isWishlisted
-              ? "border-[var(--tp-accent)] bg-[var(--tp-accent)] text-white hover:bg-[#d95700]"
-              : "border-slate-200 bg-white text-slate-700 hover:border-[var(--tp-accent)]/40 hover:text-[var(--tp-accent)] dark:border-white/10 dark:bg-slate-900 dark:text-white"
-          }`}
-        >
-          <Heart className={`h-5 w-5 ${isWishlisted ? "fill-current" : ""}`} />
-        </button>
-      </div>
-      <div className="mt-4 flex items-center gap-3">
+    <section className="rounded-[1.5rem] border border-slate-200 bg-white p-3 shadow-[0_24px_80px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-slate-900 dark:shadow-none">
+      <div className="grid gap-3 lg:grid-cols-[76px_minmax(0,1fr)]">
+        <div className="order-2 flex items-center gap-2 lg:order-1 lg:max-h-[340px] lg:flex-col">
         {images.length > 4 ? (
           <button
             type="button"
             onClick={() => setActiveIndex((index) => (index - 1 + images.length) % images.length)}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-[var(--tp-primary)] dark:border-white/10 dark:bg-slate-950 dark:text-white"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-[var(--tp-primary)] dark:border-white/10 dark:bg-slate-950 dark:text-white lg:hidden"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
         ) : null}
-        <div className="shop-product-2026-hide-scroll flex flex-1 gap-3 overflow-x-auto">
+        <div className="shop-product-2026-hide-scroll flex flex-1 gap-2 overflow-x-auto lg:max-h-[340px] lg:flex-none lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden">
           {(images.length ? images : [""]).map((image, index) => (
             <button
               key={`${image || "fallback"}-${index}`}
               type="button"
               onClick={() => setActiveIndex(index)}
-              className={`h-20 w-24 shrink-0 overflow-hidden rounded-xl border bg-slate-50 transition dark:bg-slate-950 ${
+              className={`h-14 w-20 shrink-0 overflow-hidden rounded-xl border bg-slate-50 transition lg:h-12 lg:w-[68px] dark:bg-slate-950 ${
                 index === activeIndex
                   ? "border-[var(--tp-primary)] shadow-[0_0_0_2px_rgba(3,76,133,0.12)]"
                   : "border-slate-200 dark:border-white/10"
@@ -538,11 +513,40 @@ function ProductGallery({ product, selectedVariant }) {
           <button
             type="button"
             onClick={() => setActiveIndex((index) => (index + 1) % images.length)}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-[var(--tp-primary)] dark:border-white/10 dark:bg-slate-950 dark:text-white"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-[var(--tp-primary)] dark:border-white/10 dark:bg-slate-950 dark:text-white lg:hidden"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
         ) : null}
+        </div>
+        <div className="relative order-1 overflow-hidden rounded-[1.25rem] bg-slate-100 dark:bg-slate-950 lg:order-2">
+          <div className="flex h-[240px] w-full items-center justify-center sm:h-[280px] lg:h-[340px]">
+            {activeImage ? (
+              <button type="button" onClick={() => setIsLightboxOpen(true)} className="h-full w-full cursor-zoom-in outline-none">
+                <img
+                  src={activeImage}
+                  alt={getProductName(product)}
+                  className="h-full w-full object-contain p-2 sm:p-3 transition hover:scale-105"
+                />
+              </button>
+            ) : (
+              <ImageFallback categoryName={categoryName} />
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={handleWishlistToggle}
+            aria-label={`${isWishlisted ? "Remove" : "Add"} ${getProductName(product)} ${isWishlisted ? "from" : "to"} wishlist`}
+            aria-pressed={isWishlisted}
+            className={`absolute right-4 top-4 inline-flex h-11 w-11 items-center justify-center rounded-full border shadow-sm transition ${
+              isWishlisted
+                ? "border-[var(--tp-accent)] bg-[var(--tp-accent)] text-white hover:bg-[#d95700]"
+                : "border-slate-200 bg-white text-slate-700 hover:border-[var(--tp-accent)]/40 hover:text-[var(--tp-accent)] dark:border-white/10 dark:bg-slate-900 dark:text-white"
+            }`}
+          >
+            <Heart className={`h-5 w-5 ${isWishlisted ? "fill-current" : ""}`} />
+          </button>
+        </div>
       </div>
       {isLightboxOpen && (
         <ProductImageLightbox
@@ -557,9 +561,35 @@ function ProductGallery({ product, selectedVariant }) {
   );
 }
 
-function QuantityStepper({ quantity, stock, disabled, onDecrease, onIncrease }) {
+const normalizeQuantityInput = (value, stock) => {
+  const numericValue = Number(String(value).replace(/[^\d]/g, ""));
+  if (!Number.isFinite(numericValue) || numericValue < 1) return 1;
+  if (stock !== null) return Math.min(stock, numericValue);
+  return numericValue;
+};
+
+function QuantityStepper({ quantity, stock, disabled, onDecrease, onIncrease, onChange }) {
+  const [draftQuantity, setDraftQuantity] = useState(String(quantity));
+
+  useEffect(() => {
+    setDraftQuantity(String(quantity));
+  }, [quantity]);
+
+  const handleChange = (event) => {
+    const nextValue = event.target.value.replace(/[^\d]/g, "");
+    setDraftQuantity(nextValue);
+    if (!nextValue) return;
+    onChange(normalizeQuantityInput(nextValue, stock));
+  };
+
+  const handleBlur = () => {
+    const normalized = normalizeQuantityInput(draftQuantity, stock);
+    setDraftQuantity(String(normalized));
+    onChange(normalized);
+  };
+
   return (
-    <div className="grid h-12 grid-cols-3 overflow-hidden rounded-[1rem] border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-950">
+    <div className="grid h-11 grid-cols-3 overflow-hidden rounded-[0.9rem] border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-950">
       <button
         type="button"
         onClick={onDecrease}
@@ -568,9 +598,17 @@ function QuantityStepper({ quantity, stock, disabled, onDecrease, onIncrease }) 
       >
         <Minus className="h-4 w-4" />
       </button>
-      <span className="inline-flex items-center justify-center text-base font-bold text-slate-950 dark:text-white">
-        {quantity}
-      </span>
+      <input
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        aria-label="Product quantity"
+        value={draftQuantity}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        disabled={disabled}
+        className="h-full min-w-0 border-0 bg-transparent px-2 text-center text-base font-bold text-slate-950 outline-none transition focus:bg-[var(--tp-primary)]/5 disabled:cursor-not-allowed disabled:opacity-60 dark:text-white dark:focus:bg-white/10"
+      />
       <button
         type="button"
         onClick={onIncrease}
@@ -591,6 +629,7 @@ function ProductSummary({
   quantity,
   onDecrease,
   onIncrease,
+  onChangeQuantity,
   onAddToCart,
   onBuyNow,
   isAdding,
@@ -613,26 +652,26 @@ function ProductSummary({
           : "";
 
   return (
-    <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-slate-900 dark:shadow-none sm:p-7">
-      <div className="space-y-5">
+    <section className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-slate-900 dark:shadow-none">
+      <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone={canPurchase ? "green" : "orange"}>{canPurchase ? t("productDetail.inStock") : t("productDetail.unavailable")}</Badge>
           <Badge tone="slate">{categoryName}</Badge>
           {discount > 0 ? <Badge tone="orange">-{discount}%</Badge> : null}
         </div>
         <div>
-          <h1 className="text-3xl font-black tracking-normal text-slate-950 dark:text-white sm:text-4xl">
+          <h1 className="text-3xl font-black tracking-normal text-slate-950 dark:text-white">
             {getProductName(product)}
           </h1>
-          <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
             <Stars rating={getRating(product)} />
             <span className="font-semibold">{getRating(product).toFixed(1)} ({t("productDetail.reviewsCount", { count: getReviewCount(product) })})</span>
           </div>
         </div>
         <div className="flex flex-wrap items-end gap-3">
-          <span className="text-4xl font-black text-slate-950 dark:text-white">{rupiah(price)}</span>
+          <span className="text-3xl font-black text-slate-950 dark:text-white">{rupiah(price)}</span>
           {originalPrice > price ? (
-            <span className="pb-1 text-xl font-bold text-slate-400 line-through">{rupiah(originalPrice)}</span>
+            <span className="pb-1 text-lg font-bold text-slate-400 line-through">{rupiah(originalPrice)}</span>
           ) : null}
         </div>
 
@@ -681,12 +720,13 @@ function ProductSummary({
             disabled={!canPurchase || isAdding}
             onDecrease={onDecrease}
             onIncrease={onIncrease}
+            onChange={onChangeQuantity}
           />
           <button
             type="button"
             onClick={onAddToCart}
             disabled={!canPurchase || isAdding}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-[1rem] bg-[var(--tp-accent)] px-6 text-sm font-black text-white shadow-lg shadow-[var(--tp-accent)]/25 transition hover:bg-[#d95700] disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-[0.9rem] bg-[var(--tp-accent)] px-6 text-sm font-black text-white shadow-lg shadow-[var(--tp-accent)]/25 transition hover:bg-[#d95700] disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700"
           >
             {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
             {t("productDetail.addToCart")}
@@ -696,21 +736,17 @@ function ProductSummary({
           type="button"
           onClick={onBuyNow}
           disabled={!canPurchase || isAdding}
-          className="inline-flex h-12 w-full items-center justify-center rounded-[1rem] bg-[var(--tp-primary)] px-6 text-sm font-black text-white shadow-lg shadow-[var(--tp-primary)]/20 transition hover:bg-[#023b68] disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700"
+          className="inline-flex h-11 w-full items-center justify-center rounded-[0.9rem] bg-[var(--tp-primary)] px-6 text-sm font-black text-white shadow-lg shadow-[var(--tp-primary)]/20 transition hover:bg-[#023b68] disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700"
         >
           {t("productDetail.buyNow")}
         </button>
 
-        <div className="grid grid-cols-3 gap-2 border-t border-slate-200 pt-5 text-xs font-semibold text-slate-600 dark:border-white/10 dark:text-slate-300">
+        <div className="grid grid-cols-3 gap-2 border-t border-slate-200 pt-4 text-xs font-semibold text-slate-600 dark:border-white/10 dark:text-slate-300">
           <div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-emerald-500" />100% Organic</div>
           <div className="flex items-center gap-2"><BadgeCheck className="h-5 w-5 text-[var(--tp-primary)] dark:text-sky-300" />Fresh & Natural</div>
           <div className="flex items-center gap-2"><Truck className="h-5 w-5 text-[var(--tp-primary)] dark:text-sky-300" />Fast Delivery</div>
         </div>
 
-        <div className="space-y-3 border-t border-slate-200 pt-5 text-sm text-slate-600 dark:border-white/10 dark:text-slate-300">
-          <p><span className="mr-4 font-bold text-slate-700 dark:text-slate-200">Category</span>{categoryName}</p>
-          <p><span className="mr-8 font-bold text-slate-700 dark:text-slate-200">Weight</span><span className="rounded-lg bg-slate-100 px-3 py-1 dark:bg-white/10">{getUnit(product)}</span></p>
-        </div>
       </div>
     </section>
   );
@@ -843,6 +879,10 @@ function ReviewsAndDetails({ product, t }) {
           )
         ) : (
           <div className="shop-product-2026-prose text-sm leading-7 text-slate-600 dark:text-slate-300">
+            <div className="mb-4 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-950 sm:grid-cols-2">
+              <p><span className="mr-4 font-bold text-slate-700 dark:text-slate-200">{t("productDetail.category")}</span>{getCategoryName(product)}</p>
+              <p><span className="mr-8 font-bold text-slate-700 dark:text-slate-200">{t("productDetail.weight")}</span><span className="rounded-lg bg-white px-3 py-1 dark:bg-white/10">{getUnit(product)}</span></p>
+            </div>
             <p>{getProductDescription(product)}</p>
           </div>
         )}
@@ -890,27 +930,117 @@ function Highlights({ product, t }) {
   );
 }
 
-function ShareCard({ t }) {
+const getShareUrl = () => {
+  if (typeof window === "undefined") return "";
+  const url = new URL(window.location.href);
+  url.hash = "";
+  return url.toString();
+};
+
+const copyTextToClipboard = async (value) => {
+  if (!value) return false;
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(value);
+    return true;
+  }
+
+  if (typeof document === "undefined") return false;
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.select();
+  const copied = document.execCommand("copy");
+  textarea.remove();
+  return copied;
+};
+
+function ShareCard({ product, t }) {
+  const [copied, setCopied] = useState(false);
+  const shareUrl = getShareUrl();
+  const shareTitle = getProductName(product);
+  const shareText = `${shareTitle} - ${shareUrl}`;
+  const encodedUrl = encodeURIComponent(shareUrl);
+  const encodedText = encodeURIComponent(shareText);
+
+  const handleCopyLink = async () => {
+    const success = await copyTextToClipboard(shareUrl);
+    if (!success) return;
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  };
+
+  const handleInstagramShare = async () => {
+    window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
+    await handleCopyLink();
+  };
+
+  const shareActions = [
+    {
+      key: "facebook",
+      label: t("productDetail.shareFacebook"),
+      Icon: Facebook,
+      href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+    },
+    {
+      key: "instagram",
+      label: t("productDetail.shareInstagram"),
+      Icon: Instagram,
+      onClick: handleInstagramShare,
+    },
+    {
+      key: "twitter",
+      label: t("productDetail.shareTwitter"),
+      Icon: Twitter,
+      href: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodeURIComponent(shareTitle)}`,
+    },
+    {
+      key: "chat",
+      label: t("productDetail.shareChat"),
+      Icon: MessageCircle,
+      href: `https://wa.me/?text=${encodedText}`,
+    },
+  ];
+
   return (
     <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-slate-900 dark:shadow-none">
       <h2 className="text-2xl font-black text-[var(--tp-primary)] dark:text-white">{t("productDetail.share")}</h2>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{t("productDetail.shareDesc")}</p>
-      <div className="mt-4 flex gap-3">
-        {[
-          ["Facebook", Facebook],
-          ["Instagram", Instagram],
-          ["Twitter", Twitter],
-          ["Chat", MessageCircle],
-        ].map(([label, Icon]) => (
-          <a
-            key={label}
-            href="#"
-            aria-label={`Share to ${label}`}
-            className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 text-[var(--tp-primary)] transition hover:border-[var(--tp-primary)]/30 hover:bg-[var(--tp-primary)]/5 dark:border-white/10 dark:text-white dark:hover:bg-white/10"
-          >
-            <Icon className="h-5 w-5" />
-          </a>
-        ))}
+      <div className="mt-4 flex flex-wrap gap-3">
+        {shareActions.map(({ key, label, Icon, href, onClick }) =>
+          href ? (
+            <a
+              key={key}
+              href={href}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={label}
+              className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 text-[var(--tp-primary)] transition hover:border-[var(--tp-primary)]/30 hover:bg-[var(--tp-primary)]/5 dark:border-white/10 dark:text-white dark:hover:bg-white/10"
+            >
+              <Icon className="h-5 w-5" />
+            </a>
+          ) : (
+            <button
+              key={key}
+              type="button"
+              onClick={onClick}
+              aria-label={label}
+              className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 text-[var(--tp-primary)] transition hover:border-[var(--tp-primary)]/30 hover:bg-[var(--tp-primary)]/5 dark:border-white/10 dark:text-white dark:hover:bg-white/10"
+            >
+              <Icon className="h-5 w-5" />
+            </button>
+          )
+        )}
+        <button
+          type="button"
+          onClick={handleCopyLink}
+          aria-label={copied ? t("productDetail.linkCopied") : t("productDetail.copyProductLink")}
+          className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 text-[var(--tp-primary)] transition hover:border-[var(--tp-primary)]/30 hover:bg-[var(--tp-primary)]/5 dark:border-white/10 dark:text-white dark:hover:bg-white/10"
+        >
+          {copied ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
+        </button>
       </div>
     </section>
   );
@@ -1152,7 +1282,7 @@ export default function StoreProductDetailPage2026() {
   const categorySlug = text(product?.category?.slug, product?.category?.code, categoryName);
 
   return (
-    <div className="space-y-6 bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-white">
+    <div className="space-y-4 bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-white">
       <nav className="flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
         <Link to="/" className="inline-flex items-center gap-1 font-semibold hover:text-[var(--tp-primary)] dark:hover:text-white">
           <Home className="h-4 w-4" /> {t("productDetail.home")}
@@ -1165,7 +1295,7 @@ export default function StoreProductDetailPage2026() {
         <span className="font-bold text-slate-950 dark:text-white">{getProductName(product)}</span>
       </nav>
 
-      <section className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(390px,0.95fr)] lg:items-start">
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,1.02fr)_minmax(360px,0.98fr)] lg:items-start">
         <ProductGallery product={product} selectedVariant={selectedVariant} />
         <ProductSummary
           product={product}
@@ -1175,6 +1305,10 @@ export default function StoreProductDetailPage2026() {
           quantity={quantity}
           onDecrease={() => setQuantity((value) => Math.max(1, value - 1))}
           onIncrease={() => setQuantity((value) => (stock === null ? value + 1 : Math.min(stock, value + 1)))}
+          onChangeQuantity={(nextQuantity) => {
+            const normalized = Math.max(1, Number(nextQuantity) || 1);
+            setQuantity(stock === null ? normalized : Math.min(stock, normalized));
+          }}
           onAddToCart={handleAddToCart}
           onBuyNow={handleBuyNow}
           isAdding={isAdding || cart.isLoading}
@@ -1192,7 +1326,7 @@ export default function StoreProductDetailPage2026() {
         <ReviewsAndDetails product={product} t={t} />
         <div className="space-y-6">
           <Highlights product={product} t={t} />
-          <ShareCard t={t} />
+          <ShareCard product={product} t={t} />
         </div>
       </section>
 

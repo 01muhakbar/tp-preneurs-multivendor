@@ -24,6 +24,12 @@ export type Seller2026ProductDraftPayload = {
   stock?: number;
   lowStockThreshold?: number | null;
   weight?: number | null;
+  notes?: string | null;
+  productType?: string | null;
+  digitalAssetUrl?: string | null;
+  length?: number | null;
+  width?: number | null;
+  height?: number | null;
   dimensions?: { length?: number; width?: number; height?: number } | null;
   seoTitle?: string | null;
   seoDescription?: string | null;
@@ -80,6 +86,12 @@ const buildSafeProductDraftPayload = (payload: Seller2026ProductDraftPayload) =>
     stock: Math.floor(nonNegativeNumber(payload.stock) ?? 0),
     lowStockThreshold: nonNegativeNumber(payload.lowStockThreshold) ?? null,
     weight: nonNegativeNumber(payload.weight) ?? null,
+    notes: optionalText(payload.notes),
+    productType: optionalText(payload.productType),
+    digitalAssetUrl: optionalText(payload.digitalAssetUrl),
+    length: nonNegativeNumber(payload.length ?? payload.dimensions?.length) ?? null,
+    width: nonNegativeNumber(payload.width ?? payload.dimensions?.width) ?? null,
+    height: nonNegativeNumber(payload.height ?? payload.dimensions?.height) ?? null,
     dimensions: payload.dimensions ? {
       length: nonNegativeNumber(payload.dimensions.length) ?? 0,
       width: nonNegativeNumber(payload.dimensions.width) ?? 0,

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
   ArrowRight,
@@ -27,6 +28,7 @@ import {
   Tag,
   Trash2,
   UserRound,
+  X,
 } from "lucide-react";
 import { moneyIDR } from "../../../utils/money.js";
 import { PRODUCT_DETAIL_FALLBACK_IMAGE } from "./adminProductDetail2026Adapter.js";
@@ -49,17 +51,18 @@ const formatDate = (value) => {
 const mutationLabel = (operation, fallback) => (operation?.busy ? operation.label || fallback : fallback);
 
 function StateCard({ mode, message, onRetry }) {
+  const { t } = useTranslation("admin");
   const isLoading = mode === "loading";
   return (
     <div className={`apd26-state apd26-state--${mode}`} role={mode === "error" ? "alert" : "status"}>
       <div className="apd26-state__icon">
         {isLoading ? <RefreshCw className="apd26-spin" /> : mode === "error" ? <RotateCcw /> : <Package />}
       </div>
-      <h2>{isLoading ? "Loading product details" : mode === "error" ? "Product details unavailable" : "Product not found"}</h2>
+      <h2>{isLoading ? t("productDetail.Loading product details") : mode === "error" ? t("productDetail.Product details unavailable") : t("productDetail.Product not found")}</h2>
       <p>{message}</p>
       {mode === "error" ? (
         <button type="button" className="apd26-button apd26-button--primary" onClick={onRetry}>
-          <RefreshCw size={16} /> Retry
+          <RefreshCw size={16} /> {t("productDetail.Retry")}
         </button>
       ) : null}
       {isLoading ? (
@@ -89,42 +92,56 @@ function MetaItem({ icon: Icon, label, value }) {
   );
 }
 
-function Gallery({ product }) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const images = product.images || [PRODUCT_DETAIL_FALLBACK_IMAGE];
-
-  useEffect(() => setActiveIndex(0), [product.id]);
-
-  const selectRelative = (offset) => {
-    setActiveIndex((current) => (current + offset + images.length) % images.length);
-  };
-
-  return (
-    <div className="apd26-gallery">
-      <div className="apd26-gallery__main">
-        {images.length > 1 ? (
-          <>
-            <button type="button" onClick={() => selectRelative(-1)} aria-label="Previous product image"><ChevronLeft /></button>
-            <button type="button" onClick={() => selectRelative(1)} aria-label="Next product image"><ChevronRight /></button>
-          </>
-        ) : null}
-        <img
-          src={images[activeIndex] || PRODUCT_DETAIL_FALLBACK_IMAGE}
-          alt={`${product.name} — image ${activeIndex + 1}`}
-          onError={(event) => {
-            event.currentTarget.onerror = null;
-            event.currentTarget.src = PRODUCT_DETAIL_FALLBACK_IMAGE;
-          }}
-        />
-      </div>
-      <div className="apd26-gallery__thumbs" aria-label="Product image gallery">
+  function Gallery({ product }) {
+    const { t } = useTranslation("admin");
+    const [activeIndex, setActiveIndex] = useState(0);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const images = product.images || [PRODUCT_DETAIL_FALLBACK_IMAGE];
+  
+    useEffect(() => setActiveIndex(0), [product.id]);
+  
+    const selectRelative = (offset) => {
+      setActiveIndex((current) => (current + offset + images.length) % images.length);
+    };
+  
+    // Close fullscreen on Escape key
+    useEffect(() => {
+      if (!isFullscreen) return undefined;
+      const onKeyDown = (e) => {
+        if (e.key === "Escape") setIsFullscreen(false);
+      };
+      window.addEventListener("keydown", onKeyDown);
+      return () => window.removeEventListener("keydown", onKeyDown);
+    }, [isFullscreen]);
+  
+    return (
+      <div className="apd26-gallery">
+        <div className="apd26-gallery__main">
+          {images.length > 1 ? (
+            <>
+              <button type="button" onClick={() => selectRelative(-1)} aria-label={t("productDetail.Previous product image")}><ChevronLeft /></button>
+              <button type="button" onClick={() => selectRelative(1)} aria-label={t("productDetail.Next product image")}><ChevronRight /></button>
+            </>
+          ) : null}
+          <img
+            src={images[activeIndex] || PRODUCT_DETAIL_FALLBACK_IMAGE}
+            alt={`${product.name} — image ${activeIndex + 1}`}
+            onClick={() => setIsFullscreen(true)}
+            style={{ cursor: "zoom-in" }}
+            onError={(event) => {
+              event.currentTarget.onerror = null;
+              event.currentTarget.src = PRODUCT_DETAIL_FALLBACK_IMAGE;
+            }}
+          />
+        </div>
+      <div className="apd26-gallery__thumbs" aria-label={t("productDetail.Product image gallery")}>
         {images.slice(0, 6).map((image, index) => (
           <button
             type="button"
             key={`${image}-${index}`}
             className={index === activeIndex ? "is-active" : ""}
             onClick={() => setActiveIndex(index)}
-            aria-label={`Show product image ${index + 1}`}
+            aria-label={t("productDetail.Show product image num", { num: index + 1 })}
             aria-pressed={index === activeIndex}
           >
             <img
@@ -139,11 +156,35 @@ function Gallery({ product }) {
         ))}
         {!images.length ? <ImageOff /> : null}
       </div>
+
+      {isFullscreen ? (
+        <div className="apd26-fullscreen-modal" onClick={() => setIsFullscreen(false)}>
+          <button type="button" className="apd26-fullscreen-close" aria-label="Close fullscreen">
+            <X size={28} />
+          </button>
+          <img
+            src={images[activeIndex] || PRODUCT_DETAIL_FALLBACK_IMAGE}
+            alt={`${product.name} fullscreen`}
+            onClick={(e) => e.stopPropagation()}
+          />
+          {images.length > 1 ? (
+            <>
+              <button type="button" className="apd26-fullscreen-nav left" onClick={(e) => { e.stopPropagation(); selectRelative(-1); }}>
+                <ChevronLeft size={36} />
+              </button>
+              <button type="button" className="apd26-fullscreen-nav right" onClick={(e) => { e.stopPropagation(); selectRelative(1); }}>
+                <ChevronRight size={36} />
+              </button>
+            </>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
 
 function MoreMenu({ product, permissions, operation, actions }) {
+  const { t } = useTranslation("admin");
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
 
@@ -170,18 +211,18 @@ function MoreMenu({ product, permissions, operation, actions }) {
         aria-haspopup="menu"
         onClick={() => setOpen((value) => !value)}
       >
-        More <ChevronDown size={16} />
+        {t("productDetail.More")} <ChevronDown size={16} />
       </button>
       {open ? (
         <div className="apd26-more__menu" role="menu">
           <button type="button" role="menuitem" disabled={!permissions.canUpdate || operation.busy} onClick={() => run(actions.onTogglePublish)}>
-            <Eye size={16} /> {product.published ? "Unpublish product" : "Publish product"}
+            <Eye size={16} /> {product.published ? t("productDetail.Unpublish product") : t("productDetail.Publish product")}
           </button>
           <button type="button" role="menuitem" disabled={!permissions.canUpdate || operation.busy} onClick={() => run(actions.onDuplicate)}>
-            <Copy size={16} /> Duplicate product
+            <Copy size={16} /> {t("productDetail.Duplicate product")}
           </button>
           <button className="is-danger" type="button" role="menuitem" disabled={!permissions.canDelete || operation.busy} onClick={() => run(actions.onDelete)}>
-            <Trash2 size={16} /> Delete product
+            <Trash2 size={16} /> {t("productDetail.Delete product")}
           </button>
         </div>
       ) : null}
@@ -190,6 +231,7 @@ function MoreMenu({ product, permissions, operation, actions }) {
 }
 
 function Hero({ product }) {
+  const { t } = useTranslation("admin");
   return (
     <section className="apd26-card apd26-hero">
       <Gallery product={product} />
@@ -200,7 +242,7 @@ function Hero({ product }) {
             <p>SKU: <strong>{product.sku}</strong></p>
           </div>
           <span className={`apd26-badge ${product.published ? "apd26-badge--success" : "apd26-badge--neutral"}`}>
-            {product.published ? "Published" : "Draft"}
+            {product.published ? t("productDetail.Published") : t("productDetail.Draft")}
           </span>
         </div>
         <div className="apd26-price">
@@ -210,18 +252,18 @@ function Hero({ product }) {
         </div>
         <div className="apd26-stock-row">
           <span className={`apd26-badge ${product.stock > 0 ? "apd26-badge--stock" : "apd26-badge--danger"}`}>
-            {product.stock > 0 ? "In Stock" : "Out of Stock"}
+            {product.stock > 0 ? t("productDetail.In Stock") : t("productDetail.Out of Stock")}
           </span>
-          <span className="apd26-quantity">Quantity: {product.stock}</span>
+          <span className="apd26-quantity">{t("productDetail.Quantity: ")} {product.stock}</span>
         </div>
         <p className="apd26-description">{product.description}</p>
         <div className="apd26-meta-grid">
-          <MetaItem icon={Layers3} label="Category" value={product.category} />
-          <MetaItem icon={Tag} label="Tags" value={product.tags.length ? product.tags.join(", ") : "No tags"} />
-          <MetaItem icon={Store} label="Store Scope" value={product.storeName} />
-          <MetaItem icon={CalendarDays} label="Created" value={formatDate(product.createdAt)} />
-          <MetaItem icon={Clock3} label="Updated" value={formatDate(product.updatedAt)} />
-          <MetaItem icon={UserRound} label="Created By" value={product.createdBy} />
+          <MetaItem icon={Layers3} label={t("productDetail.Category")} value={product.category} />
+          <MetaItem icon={Tag} label={t("productDetail.Tags")} value={product.tags.length ? product.tags.join(", ") : t("productDetail.No tags")} />
+          <MetaItem icon={Store} label={t("productDetail.Store Scope")} value={product.storeName} />
+          <MetaItem icon={CalendarDays} label={t("productDetail.Created")} value={formatDate(product.createdAt)} />
+          <MetaItem icon={Clock3} label={t("productDetail.Updated")} value={formatDate(product.updatedAt)} />
+          <MetaItem icon={UserRound} label={t("productDetail.Created By")} value={product.createdBy} />
         </div>
       </div>
     </section>
@@ -229,52 +271,55 @@ function Hero({ product }) {
 }
 
 function StatusPanel({ product, operation, actions }) {
+  const { t } = useTranslation("admin");
   return (
     <section className="apd26-card apd26-side-card">
-      <CardTitle icon={ShieldCheck}>Product Status</CardTitle>
+      <CardTitle icon={ShieldCheck}>{t("productDetail.Product Status")}</CardTitle>
       <div className="apd26-status-heading">
-        <span>Publication Status</span>
+        <span>{t("productDetail.Publication Status")}</span>
         <span className={`apd26-badge ${product.published ? "apd26-badge--success" : "apd26-badge--neutral"}`}>
           {product.published ? "Published" : "Draft"}
         </span>
       </div>
       <dl className="apd26-detail-list">
-        <div><dt>Visibility</dt><dd className={product.visibility === "Public" ? "is-positive" : ""}>{product.visibility}</dd></div>
-        <div><dt>Featured</dt><dd>{product.featured ? "Yes" : "No"}</dd></div>
-        <div><dt>Digital Product</dt><dd>{product.digital ? "Yes" : "No"}</dd></div>
-        <div><dt>Backorder</dt><dd>{product.backorder ? "Allowed" : "Not allowed"}</dd></div>
+        <div><dt>{t("productDetail.Visibility")}</dt><dd className={product.visibility === "Public" ? "is-positive" : ""}>{product.visibility}</dd></div>
+        <div><dt>{t("productDetail.Featured")}</dt><dd>{product.featured ? t("productDetail.Yes") : t("productDetail.No")}</dd></div>
+        <div><dt>{t("productDetail.Digital Product")}</dt><dd>{product.digital ? t("productDetail.Yes") : t("productDetail.No")}</dd></div>
+        <div><dt>{t("productDetail.Backorder")}</dt><dd>{product.backorder ? t("productDetail.Allowed") : t("productDetail.Not allowed")}</dd></div>
       </dl>
       <button type="button" className="apd26-button apd26-button--wide" disabled={!product.slug || operation.busy} onClick={actions.onViewStore}>
-        View on Store <ExternalLink size={15} />
+        {t("productDetail.View on Store")} <ExternalLink size={15} />
       </button>
     </section>
   );
 }
 
 function QuickActions({ product, permissions, operation, actions }) {
+  const { t } = useTranslation("admin");
   return (
     <section className="apd26-card apd26-side-card">
-      <CardTitle icon={Boxes}>Quick Actions</CardTitle>
+      <CardTitle icon={Boxes}>{t("productDetail.Quick Actions")}</CardTitle>
       <div className="apd26-quick-actions">
-        <button type="button" disabled={!product.slug || operation.busy} onClick={actions.onViewStore}><ExternalLink /> Preview on Store</button>
-        <button type="button" disabled={!permissions.canUpdate || operation.busy} onClick={actions.onDuplicate}><Copy /> Duplicate Product</button>
-        <button type="button" className="is-warning" disabled={!permissions.canUpdate || operation.busy || product.submissionStatus !== "submitted"} onClick={actions.onRequestRevision} title={product.submissionStatus !== "submitted" ? "Revision can only be requested for submitted seller products." : ""}><RotateCcw /> Request Revision</button>
-        <button type="button" className="is-danger" disabled={!permissions.canDelete || operation.busy} onClick={actions.onDelete}><Trash2 /> Delete Product</button>
+        <button type="button" disabled={!product.slug || operation.busy} onClick={actions.onViewStore}><ExternalLink /> {t("productDetail.Preview on Store")}</button>
+        <button type="button" disabled={!permissions.canUpdate || operation.busy} onClick={actions.onDuplicate}><Copy /> {t("productDetail.Duplicate Product")}</button>
+        <button type="button" className="is-warning" disabled={!permissions.canUpdate || operation.busy || product.submissionStatus !== "submitted"} onClick={actions.onRequestRevision} title={product.submissionStatus !== "submitted" ? t("productDetail.Revision can only be requested for submitted seller products.") : ""}><RotateCcw /> {t("productDetail.Request Revision")}</button>
+        <button type="button" className="is-danger" disabled={!permissions.canDelete || operation.busy} onClick={actions.onDelete}><Trash2 /> {t("productDetail.Delete Product")}</button>
       </div>
     </section>
   );
 }
 
 function VariantsCard({ product, permissions, operation, actions }) {
+  const { t } = useTranslation("admin");
   return (
     <section className="apd26-card apd26-variants">
       <CardTitle
         icon={Package}
-        action={<button type="button" className="apd26-mini-action" disabled={!permissions.canUpdate || operation.busy} onClick={actions.onManageVariants}>+ Manage Variants</button>}
-      >Product Variants</CardTitle>
+        action={<button type="button" className="apd26-mini-action" disabled={!permissions.canUpdate || operation.busy} onClick={actions.onManageVariants}>{t("productDetail.+ Manage Variants")}</button>}
+      >{t("productDetail.Product Variants")}</CardTitle>
       <div className="apd26-table-wrap">
         <table>
-          <thead><tr><th>Variant</th><th>SKU</th><th>Price</th><th>Stock</th><th>Status</th></tr></thead>
+          <thead><tr><th>{t("productDetail.Variant")}</th><th>{t("productDetail.SKU")}</th><th>{t("productDetail.Price")}</th><th>{t("productDetail.Stock")}</th><th>{t("productDetail.Status")}</th></tr></thead>
           <tbody>
             {product.variants.map((variant) => (
               <tr key={variant.id}>
@@ -282,82 +327,86 @@ function VariantsCard({ product, permissions, operation, actions }) {
                 <td>{variant.sku}</td>
                 <td>{moneyIDR(variant.price)}</td>
                 <td>{variant.stock}</td>
-                <td><span className={`apd26-badge ${variant.stock <= 0 ? "apd26-badge--danger" : variant.lowStock ? "apd26-badge--warning" : "apd26-badge--success"}`}>{variant.stock <= 0 ? "Out of Stock" : variant.lowStock ? "Low Stock" : "In Stock"}</span></td>
+                <td><span className={`apd26-badge ${variant.stock <= 0 ? "apd26-badge--danger" : variant.lowStock ? "apd26-badge--warning" : "apd26-badge--success"}`}>{variant.stock <= 0 ? t("productDetail.Out of Stock") : variant.lowStock ? t("productDetail.Low Stock") : t("productDetail.In Stock")}</span></td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <div className="apd26-card-footer">
-        <span>Showing {product.variants.length} variant{product.variants.length === 1 ? "" : "s"}</span>
-        <button type="button" disabled={!permissions.canUpdate || operation.busy} onClick={actions.onManageVariants}>View All Variants <ArrowRight size={15} /></button>
+        <span>{product.variants.length === 1 ? t("productDetail.Showing 1 variant") : t("productDetail.Showing count variant(s)", { count: product.variants.length })}</span>
+        <button type="button" disabled={!permissions.canUpdate || operation.busy} onClick={actions.onManageVariants}>{t("productDetail.View All Variants")} <ArrowRight size={15} /></button>
       </div>
     </section>
   );
 }
 
 function PricingCard({ product, permissions, operation, actions }) {
+  const { t } = useTranslation("admin");
   return (
     <section className="apd26-card apd26-pricing">
-      <CardTitle icon={CircleDollarSign}>Pricing &amp; Stock</CardTitle>
+      <CardTitle icon={CircleDollarSign}>{t("productDetail.Pricing & Stock")}</CardTitle>
       <dl className="apd26-detail-list">
-        <div><dt>Base Price</dt><dd>{moneyIDR(product.price)}</dd></div>
-        <div><dt>Sale Price</dt><dd className="is-accent">{product.salePrice ? moneyIDR(product.salePrice) : "—"}</dd></div>
-        <div><dt>Discount</dt><dd className="is-positive">{product.discountPercent ? `${product.discountPercent}%` : "No"}</dd></div>
-        <div><dt>Stock Quantity</dt><dd>{product.stock}</dd></div>
-        <div><dt>Low Stock Threshold</dt><dd>{product.lowStockThreshold}</dd></div>
-        <div><dt>Backorder</dt><dd className={!product.backorder ? "is-danger" : "is-positive"}>{product.backorder ? "Allowed" : "Not allowed"}</dd></div>
+        <div><dt>{t("productDetail.Base Price")}</dt><dd>{moneyIDR(product.price)}</dd></div>
+        <div><dt>{t("productDetail.Sale Price")}</dt><dd className="is-accent">{product.salePrice ? moneyIDR(product.salePrice) : "—"}</dd></div>
+        <div><dt>{t("productDetail.Discount")}</dt><dd className="is-positive">{product.discountPercent ? `${product.discountPercent}%` : t("productDetail.No")}</dd></div>
+        <div><dt>{t("productDetail.Stock Quantity")}</dt><dd>{product.stock}</dd></div>
+        <div><dt>{t("productDetail.Low Stock Threshold")}</dt><dd>{product.lowStockThreshold}</dd></div>
+        <div><dt>{t("productDetail.Backorder")}</dt><dd className={!product.backorder ? "is-danger" : "is-positive"}>{product.backorder ? t("productDetail.Allowed") : t("productDetail.Not allowed")}</dd></div>
       </dl>
       <button type="button" className="apd26-button apd26-button--wide" disabled={!permissions.canUpdate || operation.busy} onClick={actions.onManageInventory}>
-        <Package size={16} /> Manage Inventory
+        <Package size={16} /> {t("productDetail.Manage Inventory")}
       </button>
     </section>
   );
 }
 
 function TimelineCard({ product }) {
+  const { t } = useTranslation("admin");
   return (
     <section className="apd26-card apd26-timeline-card">
-      <CardTitle icon={History}>Activity Timeline / Audit</CardTitle>
+      <CardTitle icon={History}>{t("productDetail.Activity Timeline / Audit")}</CardTitle>
       {product.timeline.length ? (
         <ol className="apd26-timeline">
           {product.timeline.map((entry) => (
             <li key={entry.id} className={`is-${entry.tone}`}>
               <span className="apd26-timeline__dot" />
               <strong>{entry.title}</strong>
-              <small>{formatDate(entry.date)} by {entry.actor}</small>
+              <small>{formatDate(entry.date)} {t("productDetail.by")} {entry.actor}</small>
             </li>
           ))}
         </ol>
-      ) : <p className="apd26-empty-note">No product activity has been recorded yet.</p>}
-      <div className="apd26-card-footer"><span>Audit summary</span><span>Latest {product.timeline.length} events</span></div>
+      ) : <p className="apd26-empty-note">{t("productDetail.No product activity has been recorded yet.")}</p>}
+      <div className="apd26-card-footer"><span>{t("productDetail.Audit summary")}</span><span>{t("productDetail.Latest count events", { count: product.timeline.length })}</span></div>
     </section>
   );
 }
 
 function ProductInfoCard({ product }) {
+  const { t } = useTranslation("admin");
   return (
     <section className="apd26-card apd26-product-info">
-      <CardTitle icon={Info}>Product Info</CardTitle>
+      <CardTitle icon={Info}>{t("productDetail.Product Info")}</CardTitle>
       <dl className="apd26-detail-list">
-        <div><dt>Product Type</dt><dd>{product.productType}</dd></div>
-        <div><dt>Created By</dt><dd>{product.createdBy}<small>{formatDate(product.createdAt)}</small></dd></div>
-        <div><dt>Last Updated By</dt><dd>{product.updatedBy}<small>{formatDate(product.updatedAt)}</small></dd></div>
-        <div><dt>Product ID</dt><dd>#{product.code}</dd></div>
-        <div><dt>Store Scope</dt><dd>{product.storeName}</dd></div>
+        <div><dt>{t("productDetail.Product Type")}</dt><dd>{product.productType}</dd></div>
+        <div><dt>{t("productDetail.Created By")}</dt><dd>{product.createdBy}<small>{formatDate(product.createdAt)}</small></dd></div>
+        <div><dt>{t("productDetail.Last Updated By")}</dt><dd>{product.updatedBy}<small>{formatDate(product.updatedAt)}</small></dd></div>
+        <div><dt>{t("productDetail.Product ID")}</dt><dd>#{product.code}</dd></div>
+        <div><dt>{t("productDetail.Store Scope")}</dt><dd>{product.storeName}</dd></div>
       </dl>
     </section>
   );
 }
 
 function InsightsCard({ product }) {
+  const { t } = useTranslation("admin");
   return (
     <section className="apd26-card apd26-insights">
-      <CardTitle icon={FileText}>Publication Insights &amp; Notes</CardTitle>
+      <CardTitle icon={FileText}>{t("productDetail.Publication Insights & Notes")}</CardTitle>
       <div className="apd26-insights__grid">
-        <div><span>Short Description (Internal)</span><p>{product.shortDescription || "No internal summary has been added."}</p><span>Target Audience</span><p>{product.categories.length ? `Customers browsing ${product.categories.map((item) => item.name).join(", ")}.` : "General marketplace customers."}</p></div>
-        <div><span>Key Themes</span><div className="apd26-tag-list">{(product.tags.length ? product.tags : ["Product catalog"]).map((tag) => <em key={tag}>{tag}</em>)}</div><span>SEO Description</span><p>{product.seo.description || "No SEO description has been added."}</p></div>
-        <div><span>Publication Notes</span><p>{product.publicationNotes || product.revisionNote || "No publication notes have been recorded."}</p><span>SEO Keywords</span><div className="apd26-tag-list">{(product.seo.keywords.length ? product.seo.keywords : ["No keywords"]).map((tag) => <em key={tag}>{tag}</em>)}</div></div>
+        <div><span>{t("productDetail.Short Description (Internal)")}</span><p>{product.shortDescription || t("productDetail.No internal summary has been added.")}</p><span>{t("productDetail.Target Audience")}</span><p>{product.categories.length ? t("productDetail.Customers browsing categories.", { categories: product.categories.map((item) => item.name).join(", ") }) : t("productDetail.General marketplace customers.")}</p></div>
+        <div><span>{t("productDetail.Key Themes")}</span><div className="apd26-tag-list">{(product.tags.length ? product.tags : [t("productDetail.Product catalog")]).map((tag) => <em key={tag}>{tag}</em>)}</div><span>{t("productDetail.SEO Description")}</span><p>{product.seo.description || t("productDetail.No SEO description has been added.")}</p></div>
+        <div><span>{t("productDetail.Publication Notes")}</span><p>{product.publicationNotes || product.revisionNote || t("productDetail.No publication notes have been recorded.")}</p><span>{t("productDetail.SEO Keywords")}</span><div className="apd26-tag-list">{(product.seo.keywords.length ? product.seo.keywords : [t("productDetail.No keywords")]).map((tag) => <em key={tag}>{tag}</em>)}</div></div>
       </div>
     </section>
   );
@@ -371,26 +420,28 @@ export default function AdminProductDetail2026View({
   operation,
   actions,
 }) {
-  if (loading) return <StateCard mode="loading" message="Fetching the latest catalog, inventory, and publication data." />;
+  const { t } = useTranslation("admin");
+
+  if (loading) return <StateCard mode="loading" message={t("productDetail.Fetching the latest catalog, inventory, and publication data.")} />;
   if (error) return <StateCard mode="error" message={error} onRetry={actions.onRetry} />;
-  if (!product) return <StateCard mode="empty" message="This product may have been removed or is no longer available." />;
+  if (!product) return <StateCard mode="empty" message={t("productDetail.This product may have been removed or is no longer available.")} />;
 
   return (
     <div className="apd26-page">
       <header className="apd26-header">
         <div>
-          <nav aria-label="Breadcrumb"><span>Catalog</span><ChevronRight /><span>Products</span><ChevronRight /><strong>Product Details</strong></nav>
-          <h1>Product Details</h1>
-          <p>View and manage product information, inventory, and settings.</p>
+          <nav aria-label="Breadcrumb"><span>{t("productDetail.Catalog")}</span><ChevronRight /><span>{t("productDetail.Products")}</span><ChevronRight /><strong>{t("productDetail.Product Details")}</strong></nav>
+          <h1>{t("productDetail.Product Details")}</h1>
+          <p>{t("productDetail.View and manage product information, inventory, and settings.")}</p>
         </div>
         <div className="apd26-header__actions">
-          <button type="button" className="apd26-button" onClick={actions.onBack}><ArrowLeft size={16} /> Back to Products</button>
-          <button type="button" className="apd26-button apd26-button--primary" disabled={!permissions.canUpdate || operation.busy} onClick={actions.onEdit}><Pencil size={16} /> Edit Product</button>
+          <button type="button" className="apd26-button" onClick={actions.onBack}><ArrowLeft size={16} /> {t("productDetail.Back to Products")}</button>
+          <button type="button" className="apd26-button apd26-button--primary" disabled={!permissions.canUpdate || operation.busy} onClick={actions.onEdit}><Pencil size={16} /> {t("productDetail.Edit Product")}</button>
           <MoreMenu product={product} permissions={permissions} operation={operation} actions={actions} />
         </div>
       </header>
 
-      {operation.busy ? <div className="apd26-operation" role="status"><RefreshCw className="apd26-spin" /> {mutationLabel(operation, "Updating product…")}</div> : null}
+      {operation.busy ? <div className="apd26-operation" role="status"><RefreshCw className="apd26-spin" /> {mutationLabel(operation, t("productDetail.Updating product…"))}</div> : null}
 
       <div className="apd26-hero-layout">
         <Hero product={product} />
@@ -405,7 +456,7 @@ export default function AdminProductDetail2026View({
       </div>
       <InsightsCard product={product} />
 
-      {!permissions.canUpdate ? <p className="apd26-permission-note"><BadgeCheck size={16} /> You have read-only catalog access. Product mutations require PRODUCTS_UPDATE permission.</p> : null}
+      {!permissions.canUpdate ? <p className="apd26-permission-note"><BadgeCheck size={16} /> {t("productDetail.You have read-only catalog access. Product mutations require PRODUCTS_UPDATE permission.")}</p> : null}
     </div>
   );
 }

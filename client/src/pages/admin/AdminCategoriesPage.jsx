@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -131,16 +132,16 @@ function CategoryIcon({ category, size = "md" }) {
 }
 
 function StatusBadge({ published }) {
+  const { t } = useTranslation("admin");
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${
-        published
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${published
           ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/50 dark:text-emerald-200"
           : "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
-      }`}
+        }`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${published ? "bg-emerald-500" : "bg-slate-400"}`} />
-      {published ? "Active" : "Draft"}
+      {published ? t("categories.Active", "Active") : t("categories.Draft", "Draft")}
     </span>
   );
 }
@@ -191,33 +192,32 @@ function PublishSwitch({ checked, disabled, onClick, label }) {
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition focus:outline-none focus:ring-2 focus:ring-[#034c85] focus:ring-offset-2 disabled:cursor-wait disabled:opacity-60 ${
-        checked ? "bg-[#034c85]" : "bg-slate-300 dark:bg-slate-700"
-      }`}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition focus:outline-none focus:ring-2 focus:ring-[#034c85] focus:ring-offset-2 disabled:cursor-wait disabled:opacity-60 ${checked ? "bg-[#034c85]" : "bg-slate-300 dark:bg-slate-700"
+        }`}
     >
       <span
-        className={`inline-block h-5 w-5 rounded-full bg-white shadow transition ${
-          checked ? "translate-x-5" : "translate-x-0.5"
-        }`}
+        className={`inline-block h-5 w-5 rounded-full bg-white shadow transition ${checked ? "translate-x-5" : "translate-x-0.5"
+          }`}
       />
     </button>
   );
 }
 
 function CategoryDetails({ category, onClose, onEdit, onDelete, onViewSubcategories }) {
+  const { t } = useTranslation("admin");
   if (!category) return null;
-  const parent = category.parent?.name || category.parentName || (getParentId(category) ? `#${getParentId(category)}` : "Top level");
+  const parent = category.parent?.name || category.parentName || (getParentId(category) ? `#${getParentId(category)}` : t("categories.Top level", "Top level"));
   return (
     <aside className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <CategoryIcon category={category} size="lg" />
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">Category Details</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">{t("categories.Category Details", "Category Details")}</p>
             <h2 className="mt-1 text-lg font-bold text-slate-950 dark:text-slate-50">{category.name}</h2>
           </div>
         </div>
-        <button type="button" onClick={onClose} aria-label="Close details" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
+        <button type="button" onClick={onClose} aria-label={t("categories.Close details", "Close details")} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -230,24 +230,24 @@ function CategoryDetails({ category, onClose, onEdit, onDelete, onViewSubcategor
       </div>
 
       <p className="mt-5 text-sm leading-6 text-slate-600 dark:text-slate-300">
-        {category.description || "No description has been added for this category yet."}
+        {category.description || t("categories.No description has been added for this category yet.", "No description has been added for this category yet.")}
       </p>
 
       <dl className="mt-5 grid grid-cols-2 gap-3 text-sm">
         <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/70">
-          <dt className="text-xs text-slate-500 dark:text-slate-400">Code / slug</dt>
+          <dt className="text-xs text-slate-500 dark:text-slate-400">{t("categories.Code / slug", "Code / slug")}</dt>
           <dd className="mt-1 font-semibold text-slate-900 dark:text-slate-100">{category.code || "-"}</dd>
         </div>
         <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/70">
-          <dt className="text-xs text-slate-500 dark:text-slate-400">Products</dt>
+          <dt className="text-xs text-slate-500 dark:text-slate-400">{t("categories.Products", "Products")}</dt>
           <dd className="mt-1 font-semibold text-slate-900 dark:text-slate-100">{asNumber(category.productCount).toLocaleString()}</dd>
         </div>
         <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/70">
-          <dt className="text-xs text-slate-500 dark:text-slate-400">Visibility</dt>
-          <dd className="mt-1 font-semibold text-slate-900 dark:text-slate-100">{category.published ? "Public eligible" : "Hidden"}</dd>
+          <dt className="text-xs text-slate-500 dark:text-slate-400">{t("categories.Visibility", "Visibility")}</dt>
+          <dd className="mt-1 font-semibold text-slate-900 dark:text-slate-100">{category.published ? t("categories.Public eligible", "Public eligible") : t("categories.Hidden", "Hidden")}</dd>
         </div>
         <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/70">
-          <dt className="text-xs text-slate-500 dark:text-slate-400">Updated</dt>
+          <dt className="text-xs text-slate-500 dark:text-slate-400">{t("categories.Updated", "Updated")}</dt>
           <dd className="mt-1 font-semibold text-slate-900 dark:text-slate-100">{formatDate(category.updatedAt)}</dd>
         </div>
       </dl>
@@ -255,15 +255,15 @@ function CategoryDetails({ category, onClose, onEdit, onDelete, onViewSubcategor
       <div className="mt-5 grid gap-2">
         <button type="button" onClick={() => onEdit(category)} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#034c85] px-4 text-sm font-semibold text-white hover:bg-[#013d70]">
           <Pencil className="h-4 w-4" />
-          Edit
+          {t("categories.Edit", "Edit")}
         </button>
         <button type="button" onClick={() => onViewSubcategories(category)} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
           <FolderTree className="h-4 w-4" />
-          View Subcategories
+          {t("categories.View Subcategories", "View Subcategories")}
         </button>
         <button type="button" onClick={() => onDelete(category)} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-rose-200 px-4 text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-900/70 dark:hover:bg-rose-950/30">
           <Trash2 className="h-4 w-4" />
-          Delete
+          {t("categories.Delete", "Delete")}
         </button>
       </div>
     </aside>
@@ -287,6 +287,7 @@ function CategoryDrawer({
   isSubmitting,
   formError,
 }) {
+  const { t } = useTranslation("admin");
   const nameRef = useRef(null);
 
   useEffect(() => {
@@ -309,7 +310,7 @@ function CategoryDrawer({
       <button
         type="button"
         className="absolute inset-0 bg-slate-950/40"
-        aria-label="Close category drawer"
+        aria-label={t("categories.Cancel", "Cancel")}
         onClick={onClose}
         disabled={isSubmitting}
       />
@@ -323,10 +324,10 @@ function CategoryDrawer({
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[#fe6f05]">
-                {editing ? "Edit Mode" : "Create Mode"}
+                {editing ? t("categories.Edit Mode", "Edit Mode") : t("categories.Create Mode", "Create Mode")}
               </p>
               <h2 id="category-drawer-title" className="mt-1 text-xl font-bold text-slate-950 dark:text-slate-50">
-                {editing ? "Edit Category" : "Add Category"}
+                {editing ? t("categories.Edit Category", "Edit Category") : t("categories.Add Category", "Add Category")}
               </h2>
             </div>
             <button type="button" onClick={onClose} disabled={isSubmitting} aria-label="Close" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:hover:bg-slate-800">
@@ -337,21 +338,21 @@ function CategoryDrawer({
 
         <form id="category-form" onSubmit={onSubmit} className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
           <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">General</h3>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{t("categories.General", "General")}</h3>
             <div className="mt-4 grid gap-4">
               <label className="grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
-                Name
+                {t("categories.Name", "Name")}
                 <input
                   ref={nameRef}
                   value={form.name}
                   onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
                   className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
-                  placeholder="Books"
+                  placeholder={t("categories.Books", "Books")}
                   required
                 />
               </label>
               <label className="grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
-                Code / slug
+                {t("categories.Code / slug", "Code / slug")}
                 <input
                   value={form.code}
                   onChange={(event) => {
@@ -362,34 +363,34 @@ function CategoryDrawer({
                     setForm((prev) => ({ ...prev, code: value }));
                   }}
                   className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
-                  placeholder="books"
+                  placeholder={t("categories.books", "books")}
                 />
               </label>
               <label className="grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
-                Description
+                {t("categories.Description", "Description")}
                 <textarea
                   value={form.description}
                   maxLength={255}
                   rows={4}
                   onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
                   className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
-                  placeholder="Describe this category"
+                  placeholder={t("categories.Describe this category", "Describe this category")}
                 />
               </label>
             </div>
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Hierarchy</h3>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{t("categories.Hierarchy", "Hierarchy")}</h3>
             <label className="mt-4 grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
-              Parent Category
+              {t("categories.Parent Category", "Parent Category")}
               <select
                 value={form.parent_id}
                 onChange={(event) => setForm((prev) => ({ ...prev, parent_id: event.target.value }))}
                 className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
               >
-                <option value="">Top level</option>
-                {parentOptionsLoading ? <option disabled>Loading parents...</option> : null}
+                <option value="">{t("categories.Top level", "Top level")}</option>
+                {parentOptionsLoading ? <option disabled>{t("categories.Loading parents...", "Loading parents...")}</option> : null}
                 {parentOptions
                   .filter((category) => !editing || Number(category.id) !== Number(editing.id))
                   .map((category) => (
@@ -402,21 +403,21 @@ function CategoryDrawer({
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Media</h3>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{t("categories.Media", "Media")}</h3>
             <label className="mt-4 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300">
               <Upload className="h-5 w-5" />
-              <span className="font-semibold">Upload category image</span>
-              <span className="text-xs">PNG, JPG, WEBP, SVG up to the upload limit</span>
+              <span className="font-semibold">{t("categories.Upload category image", "Upload category image")}</span>
+              <span className="text-xs">{t("categories.PNG, JPG, WEBP, SVG up to the upload limit", "PNG, JPG, WEBP, SVG up to the upload limit")}</span>
               <input type="file" className="hidden" accept="image/*" onChange={onFileChange} />
             </label>
-            {imageFileName ? <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Selected: {imageFileName}</p> : null}
-            {uploadPending ? <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Uploading image...</p> : null}
+            {imageFileName ? <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{t("categories.Selected:", "Selected:")} {imageFileName}</p> : null}
+            {uploadPending ? <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{t("categories.Uploading image...", "Uploading image...")}</p> : null}
             {uploadError ? <p className="mt-2 text-xs text-rose-600">{uploadError}</p> : null}
             <input
               value={form.icon}
               onChange={(event) => setForm((prev) => ({ ...prev, icon: event.target.value }))}
               className="mt-3 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
-              placeholder="Icon or image URL"
+              placeholder={t("categories.Icon or image URL", "Icon or image URL")}
             />
             {previewImageUrl ? (
               <img src={previewImageUrl} alt="Category preview" className="mt-3 max-h-44 w-full rounded-xl border border-slate-200 object-contain p-2 dark:border-slate-700" />
@@ -426,14 +427,14 @@ function CategoryDrawer({
           <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Published</h3>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{t("categories.Published", "Published")}</h3>
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  {form.published ? "Eligible for public catalog visibility." : "Hidden until you publish it."}
+                  {form.published ? t("categories.Eligible for public catalog visibility.", "Eligible for public catalog visibility.") : t("categories.Hidden until you publish it.", "Hidden until you publish it.")}
                 </p>
               </div>
               <PublishSwitch
                 checked={Boolean(form.published)}
-                label="Toggle category published state"
+                label={t("categories.Toggle category published state", "Toggle category published state")}
                 onClick={() => setForm((prev) => ({ ...prev, published: !Boolean(prev.published) }))}
               />
             </div>
@@ -449,10 +450,10 @@ function CategoryDrawer({
         <div className="border-t border-slate-200 px-5 py-4 dark:border-slate-800">
           <div className="flex justify-end gap-2">
             <button type="button" onClick={onClose} disabled={isSubmitting} className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
-              Cancel
+              {t("categories.Cancel", "Cancel")}
             </button>
             <button type="submit" form="category-form" disabled={isSubmitting} className="inline-flex h-10 items-center justify-center rounded-lg bg-[#034c85] px-4 text-sm font-semibold text-white hover:bg-[#013d70] disabled:opacity-60">
-              {isSubmitting ? "Saving..." : editing ? "Update Category" : "Add Category"}
+              {isSubmitting ? t("categories.Saving...", "Saving...") : editing ? t("categories.Update Category", "Update Category") : t("categories.Add Category", "Add Category")}
             </button>
           </div>
         </div>
@@ -462,6 +463,7 @@ function CategoryDrawer({
 }
 
 export default function AdminCategoriesPage() {
+  const { t } = useTranslation("admin");
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
@@ -483,7 +485,7 @@ export default function AdminCategoriesPage() {
     setViewMode(mode);
     try {
       localStorage.setItem("admin_categories_view_mode", mode);
-    } catch {}
+    } catch { }
   };
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -508,6 +510,9 @@ export default function AdminCategoriesPage() {
   const [localPreviewUrl, setLocalPreviewUrl] = useState("");
   const [uploadError, setUploadError] = useState("");
   const bulkRef = useRef(null);
+  const moreButtonRef = useRef(null);
+  const moreDropdownRef = useRef(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
 
   useEffect(() => {
     const handle = setTimeout(() => {
@@ -520,11 +525,18 @@ export default function AdminCategoriesPage() {
   useEffect(() => {
     const onClick = (event) => {
       if (!bulkRef.current?.contains(event.target)) setBulkMenuOpen(false);
+      if (
+        !moreButtonRef.current?.contains(event.target) &&
+        !moreDropdownRef.current?.contains(event.target)
+      ) {
+        setFiltersOpen(false);
+      }
       setActionMenuId(null);
     };
     const onKeyDown = (event) => {
       if (event.key === "Escape") {
         setBulkMenuOpen(false);
+        setFiltersOpen(false);
         setActionMenuId(null);
       }
     };
@@ -587,12 +599,12 @@ export default function AdminCategoriesPage() {
     mutationFn: createAdminCategory,
     onSuccess: () => {
       invalidateCategories();
-      toast.success("Category created.");
+      toast.success(t("categories.Category created.", "Category created."));
       setDrawerOpen(false);
       setEditing(null);
       setFormError("");
     },
-    onError: (error) => setFormError(getMessage(error, "Failed to create category.")),
+    onError: (error) => setFormError(getMessage(error, t("categories.Failed to create category.", "Failed to create category."))),
   });
 
   const updateMutation = useMutation({
@@ -601,12 +613,12 @@ export default function AdminCategoriesPage() {
       invalidateCategories();
       const updated = response?.data;
       if (updated && selectedCategory?.id === updated.id) setSelectedCategory(updated);
-      toast.success("Category updated.");
+      toast.success(t("categories.Category updated.", "Category updated."));
       setDrawerOpen(false);
       setEditing(null);
       setFormError("");
     },
-    onError: (error) => setFormError(getMessage(error, "Failed to update category.")),
+    onError: (error) => setFormError(getMessage(error, t("categories.Failed to update category.", "Failed to update category."))),
   });
 
   const publishMutation = useMutation({
@@ -615,11 +627,11 @@ export default function AdminCategoriesPage() {
       invalidateCategories();
       const updated = response?.data;
       if (updated && selectedCategory?.id === updated.id) setSelectedCategory(updated);
-      toast.success(variables.published ? "Category published." : "Category unpublished.");
+      toast.success(variables.published ? t("categories.Category published.", "Category published.") : t("categories.Category unpublished.", "Category unpublished."));
       setRowPublishingId(null);
     },
     onError: (error) => {
-      toast.error(getMessage(error, "Failed to update category visibility."));
+      toast.error(getMessage(error, t("categories.Failed to update category visibility.", "Failed to update category visibility.")));
       setRowPublishingId(null);
     },
   });
@@ -630,11 +642,11 @@ export default function AdminCategoriesPage() {
       invalidateCategories();
       setSelectedIds((prev) => prev.filter((id) => Number(id) !== Number(deletedId)));
       if (Number(selectedCategory?.id) === Number(deletedId)) setSelectedCategory(null);
-      toast.success("Category deleted.");
+      toast.success(t("categories.Category deleted.", "Category deleted."));
       setRowDeletingId(null);
     },
     onError: (error) => {
-      toast.error(getMessage(error, "Failed to delete category."));
+      toast.error(getMessage(error, t("categories.Failed to delete category.", "Failed to delete category.")));
       setRowDeletingId(null);
     },
   });
@@ -648,8 +660,8 @@ export default function AdminCategoriesPage() {
         variables.action === "publish"
           ? "published"
           : variables.action === "unpublish"
-          ? "unpublished"
-          : "deleted";
+            ? "unpublished"
+            : "deleted";
       if (variables.action === "delete" && selectedCategory && variables.ids.includes(selectedCategory.id)) {
         setSelectedCategory(null);
       }
@@ -707,6 +719,23 @@ export default function AdminCategoriesPage() {
   const openCreate = () => {
     setEditing(null);
     setForm({ name: "", code: "", description: "", icon: "", parent_id: "", published: true });
+    setFormError("");
+    setImageFileName("");
+    setLocalPreviewUrl("");
+    setUploadError("");
+    setDrawerOpen(true);
+  };
+
+  const openCreateChild = (parentCategory) => {
+    setEditing(null);
+    setForm({
+      name: "",
+      code: "",
+      description: "",
+      icon: "",
+      parent_id: String(parentCategory.id),
+      published: true,
+    });
     setFormError("");
     setImageFileName("");
     setLocalPreviewUrl("");
@@ -866,22 +895,22 @@ export default function AdminCategoriesPage() {
     <div className="ac26-page">
       <header className="ac26-header">
         <div>
-          <h1>Categories</h1>
+          <h1>{t("categories.Categories", "Categories")}</h1>
           <nav className="ac26-breadcrumb" aria-label="Breadcrumb">
-            <span>Catalog</span>
+            <span>{t("categories.Catalog", "Catalog")}</span>
             <ChevronRight className="h-3.5 w-3.5" />
-            <span>Categories</span>
+            <span>{t("categories.Categories", "Categories")}</span>
           </nav>
         </div>
 
         <div className="ac26-header__actions">
           <button type="button" onClick={handleExport} disabled={isExporting} className="ac26-btn ac26-btn--ghost">
             <Download className="h-3.5 w-3.5" />
-            {isExporting ? "Exporting..." : "Export"}
+            {isExporting ? t("categories.Exporting...", "Exporting...") : t("categories.Export", "Export")}
           </button>
           <button type="button" onClick={() => setImportOpen(true)} disabled={importMutation.isPending} className="ac26-btn ac26-btn--ghost">
             <Upload className="h-3.5 w-3.5" />
-            Import
+            {t("categories.Import", "Import")}
           </button>
           <div className="relative" ref={bulkRef}>
             <button
@@ -894,13 +923,35 @@ export default function AdminCategoriesPage() {
               className="ac26-btn ac26-btn--ghost"
             >
               <ChevronDown className="h-3.5 w-3.5" />
-              <span className="truncate">Bulk Action</span>
+              <span className="truncate">{t("categories.Bulk Action", "Bulk Action")}</span>
             </button>
             {bulkMenuOpen ? (
               <div className="absolute right-0 top-11 z-20 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-xl dark:border-slate-700 dark:bg-slate-900">
-                <button type="button" onClick={() => runBulkAction("publish")} className="block w-full rounded-lg px-3 py-2 text-left text-[13px] font-medium hover:bg-slate-50 dark:hover:bg-slate-800">Bulk publish</button>
-                <button type="button" onClick={() => runBulkAction("unpublish")} className="block w-full rounded-lg px-3 py-2 text-left text-[13px] font-medium hover:bg-slate-50 dark:hover:bg-slate-800">Bulk unpublish</button>
-                <button type="button" onClick={() => runBulkAction("delete")} className="block w-full rounded-lg px-3 py-2 text-left text-[13px] font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30">Bulk delete</button>
+                <button
+                  type="button"
+                  onClick={() => runBulkAction("publish")}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  <Upload className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                  <span>{t("categories.Bulk publish", "Bulk publish")}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => runBulkAction("unpublish")}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  <Download className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                  <span>{t("categories.Bulk unpublish", "Bulk unpublish")}</span>
+                </button>
+                <div className="my-1 border-t border-slate-200 dark:border-slate-800" />
+                <button
+                  type="button"
+                  onClick={() => runBulkAction("delete")}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30"
+                >
+                  <Trash2 className="h-4 w-4 text-rose-500" />
+                  <span>{t("categories.Bulk delete", "Bulk delete")}</span>
+                </button>
               </div>
             ) : null}
           </div>
@@ -911,82 +962,40 @@ export default function AdminCategoriesPage() {
             className="ac26-btn ac26-btn--danger"
           >
             <Trash2 className="h-3.5 w-3.5" />
-            Delete
+            {t("categories.Delete", "Delete")}
           </button>
           <button type="button" onClick={openCreate} className="ac26-btn ac26-btn--primary">
             <Plus className="h-3.5 w-3.5" />
-            Add Category
+            {t("categories.Add Category", "Add Category")}
           </button>
         </div>
       </header>
 
       <section className="ac26-kpis">
-        <KpiCard icon={Folder} label="Total Categories" value={statsTotal} helper="Taxonomy records" loading={statsQuery.isLoading} />
-        <KpiCard icon={CheckCircle2} label="Active" value={statsActive} helper="Visible in store" loading={statsQuery.isLoading} tone="green" />
-        <KpiCard icon={FolderTree} label="Subcategories" value={statsSubcategories} helper="Nested paths" loading={statsQuery.isLoading} tone="orange" />
-        <KpiCard icon={FileText} label="Draft / Review" value={statsDraft} helper="Hidden or review" loading={statsQuery.isLoading} tone="red" />
+        <KpiCard icon={Folder} label={t("categories.Total Categories", "Total Categories")} value={statsTotal} helper={t("categories.Taxonomy records", "Taxonomy records")} loading={statsQuery.isLoading} />
+        <KpiCard icon={CheckCircle2} label={t("categories.Active", "Active")} value={statsActive} helper={t("categories.Visible in store", "Visible in store")} loading={statsQuery.isLoading} tone="green" />
+        <KpiCard icon={FolderTree} label={t("categories.Subcategories", "Subcategories")} value={statsSubcategories} helper={t("categories.Nested paths", "Nested paths")} loading={statsQuery.isLoading} tone="orange" />
+        <KpiCard icon={FileText} label={t("categories.Draft / Review", "Draft / Review")} value={statsDraft} helper={t("categories.Hidden or review", "Hidden or review")} loading={statsQuery.isLoading} tone="red" />
       </section>
       {statsQuery.isError ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
-          KPI stats could not be loaded. The category table is still available.
+          {t("categories.KPI stats could not be loaded. The category table is still available.", "KPI stats could not be loaded. The category table is still available.")}
         </div>
       ) : null}
 
       <section className="ac26-toolbar">
-        <label className="ac26-search">
+        <label className="ac26-search flex-1 min-w-[200px]">
           <Search className="h-4 w-4" />
           <input
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search category or code..."
+            placeholder={t("categories.Search category or code...", "Search category or code...")}
           />
         </label>
-        <div className="ac26-chip-bar">
-          <button
-            type="button"
-            onClick={() => {
-              setStatusFilter("all");
-              setParentFilter("all");
-              setPage(1);
-            }}
-            className={`ac26-chip ${statusFilter === "all" && parentFilter === "all" ? "is-active" : ""}`}
-          >
-            All Categories
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setStatusFilter("active");
-              setPage(1);
-            }}
-            className={`ac26-chip ${statusFilter === "active" ? "is-active" : ""}`}
-          >
-            Active
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setStatusFilter("draft");
-              setPage(1);
-            }}
-            className={`ac26-chip ${statusFilter === "draft" ? "is-active" : ""}`}
-          >
-            Draft
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setParentFilter("parents");
-              setPage(1);
-            }}
-            className={`ac26-chip ${parentFilter === "parents" ? "is-active" : ""}`}
-          >
-            Top-level Only
-          </button>
-        </div>
-        <label className="ac26-select">
-          <span>Parent</span>
+
+        <label className="ac26-select shrink-0">
+          <span>{t("categories.Parent", "Parent")}</span>
           <select
             value={parentFilter}
             onChange={(event) => {
@@ -994,8 +1003,8 @@ export default function AdminCategoriesPage() {
               setPage(1);
             }}
           >
-            <option value="all">All</option>
-            <option value="parents">Top level only</option>
+            <option value="all">{t("categories.All", "All")}</option>
+            <option value="parents">{t("categories.Top level only", "Top level only")}</option>
             {parentOptions.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
@@ -1003,8 +1012,9 @@ export default function AdminCategoriesPage() {
             ))}
           </select>
         </label>
-        <label className="ac26-select">
-          <span>Status</span>
+        
+        <label className="ac26-select shrink-0">
+          <span>{t("categories.Status", "Status")}</span>
           <select
             value={statusFilter}
             onChange={(event) => {
@@ -1012,47 +1022,99 @@ export default function AdminCategoriesPage() {
               setPage(1);
             }}
           >
-            <option value="all">All</option>
-            <option value="active">Active</option>
-            <option value="draft">Draft</option>
+            <option value="all">{t("categories.All", "All")}</option>
+            <option value="active">{t("categories.Active", "Active")}</option>
+            <option value="draft">{t("categories.Draft", "Draft")}</option>
           </select>
         </label>
-        <div className="ac26-view-toggle" role="group" aria-label="View mode">
+
+        <div className="ac26-more-wrapper shrink-0">
+          <button
+            ref={moreButtonRef}
+            type="button"
+            className={`ac26-filter-button ${filtersOpen ? "is-active" : ""}`}
+            onClick={() => {
+              if (!filtersOpen && moreButtonRef.current) {
+                const rect = moreButtonRef.current.getBoundingClientRect();
+                setDropdownPos({
+                  top: rect.bottom + 8,
+                  right: window.innerWidth - rect.right,
+                });
+              }
+              setFiltersOpen((open) => !open);
+            }}
+            aria-expanded={filtersOpen}
+            title={t("categories.More", "More")}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            <span className="hidden sm:inline">{t("categories.More", "More")}</span>
+          </button>
+
+          {filtersOpen ? (
+            <div
+              ref={moreDropdownRef}
+              className="ac26-filter-drawer"
+              style={{
+                position: "fixed",
+                zIndex: 9999,
+                top: dropdownPos.top,
+                right: dropdownPos.right,
+                left: "auto",
+              }}
+            >
+              <div className="ac26-filter-drawer__header">
+                <SlidersHorizontal className="h-4 w-4" />
+                <span>{t("categories.Options", "Options")}</span>
+              </div>
+              <div className="ac26-filter-drawer__body">
+                <button
+                  type="button"
+                  className="ac26-filter-drawer__item"
+                  onClick={() => {
+                    resetFilters();
+                    setFiltersOpen(false);
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                  {t("categories.Reset filters", "Reset filters")}
+                </button>
+                <button
+                  type="button"
+                  className="ac26-filter-drawer__item"
+                  onClick={() => {
+                    categoriesQuery.refetch();
+                    setFiltersOpen(false);
+                  }}
+                  disabled={categoriesQuery.isFetching}
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+                  {t("categories.Refresh categories", "Refresh categories")}
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="ac26-view-toggle shrink-0" role="group" aria-label="View mode">
           <button
             type="button"
             onClick={() => changeViewMode("list")}
             className={viewMode === "list" ? "is-active" : ""}
             title="Table View"
+            aria-label="Table View"
           >
             <List className="h-4 w-4" />
-            <span>Table</span>
           </button>
           <button
             type="button"
             onClick={() => changeViewMode("grid")}
             className={viewMode === "grid" ? "is-active" : ""}
             title="Grid View"
+            aria-label="Grid View"
           >
             <Grid2X2 className="h-4 w-4" />
-            <span>Grid</span>
           </button>
         </div>
-        <button type="button" className="ac26-filter-button" onClick={() => setFiltersOpen((open) => !open)}>
-          <SlidersHorizontal className="h-4 w-4" />
-          <span>More</span>
-        </button>
-        {filtersOpen ? (
-          <div className="ac26-filter-drawer">
-            <button type="button" onClick={resetFilters}>
-              <X className="h-4 w-4" />
-              Reset filters
-            </button>
-            <button type="button" onClick={() => categoriesQuery.refetch()} disabled={categoriesQuery.isFetching}>
-              <SlidersHorizontal className="h-4 w-4" />
-              Refresh categories
-            </button>
-          </div>
-        ) : null}
       </section>
 
       <div className={`ac26-content-grid ${selectedCategory ? "has-detail" : ""}`}>
@@ -1061,21 +1123,21 @@ export default function AdminCategoriesPage() {
             <SkeletonTable />
           ) : categoriesQuery.isError ? (
             <div className="p-8 text-center">
-              <p className="font-semibold text-slate-900 dark:text-slate-100">Unable to load categories.</p>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{getMessage(categoriesQuery.error, "Please retry the request.")}</p>
-              <button type="button" onClick={() => categoriesQuery.refetch()} className="mt-4 inline-flex h-10 items-center justify-center rounded-lg bg-[#034c85] px-4 text-sm font-semibold text-white">Retry</button>
+              <p className="font-semibold text-slate-900 dark:text-slate-100">{t("categories.Unable to load categories.", "Unable to load categories.")}</p>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{getMessage(categoriesQuery.error, t("categories.Please retry the request.", "Please retry the request."))}</p>
+              <button type="button" onClick={() => categoriesQuery.refetch()} className="mt-4 inline-flex h-10 items-center justify-center rounded-lg bg-[#034c85] px-4 text-sm font-semibold text-white">{t("categories.Retry", "Retry")}</button>
             </div>
           ) : items.length === 0 ? (
             <div className="ac26-empty">
               <FolderTree className="mx-auto h-10 w-10 text-slate-300" />
               <h2 className="mt-3 text-lg font-bold text-slate-900 dark:text-slate-100">
-                {filterActive ? "No categories match the current filters." : "No categories yet."}
+                {filterActive ? t("categories.No categories match the current filters.", "No categories match the current filters.") : t("categories.No categories yet.", "No categories yet.")}
               </h2>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                {filterActive ? "Reset filters or try another search." : "Create your first product category."}
+                {filterActive ? t("categories.Reset filters or try another search.", "Reset filters or try another search.") : t("categories.Create your first product category.", "Create your first product category.")}
               </p>
               <button type="button" onClick={filterActive ? resetFilters : openCreate} className="mt-4 inline-flex h-10 items-center justify-center rounded-lg bg-[#034c85] px-4 text-sm font-semibold text-white">
-                {filterActive ? "Reset Filters" : "Add Category"}
+                {filterActive ? t("categories.Reset Filters", "Reset Filters") : t("categories.Add Category", "Add Category")}
               </button>
             </div>
           ) : viewMode === "grid" ? (
@@ -1119,9 +1181,9 @@ export default function AdminCategoriesPage() {
                       </div>
 
                       <div className="ac26-grid-card__meta">
-                        <span>Parent: <strong>{parentName}</strong></span>
+                        <span>{t("categories.Parent:", "Parent:")} <strong>{parentName}</strong></span>
                         <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                          {asNumber(category.productCount).toLocaleString()} items
+                          {asNumber(category.productCount).toLocaleString()} {t("categories.items", "items")}
                         </span>
                       </div>
                     </div>
@@ -1179,12 +1241,12 @@ export default function AdminCategoriesPage() {
                         className="h-4 w-4 rounded border-slate-300 text-[#034c85] focus:ring-[#034c85]"
                       />
                     </th>
-                    <th>Category</th>
-                    <th>Parent Path</th>
-                    <th>Products</th>
-                    <th>Status</th>
-                    <th>Updated</th>
-                    <th className="ac26-col-actions">Actions</th>
+                    <th>{t("categories.Category", "Category")}</th>
+                    <th>{t("categories.Parent Path", "Parent Path")}</th>
+                    <th>{t("categories.Products", "Products")}</th>
+                    <th>{t("categories.Status", "Status")}</th>
+                    <th>{t("categories.Updated", "Updated")}</th>
+                    <th className="ac26-col-actions">{t("categories.Actions", "Actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1243,14 +1305,79 @@ export default function AdminCategoriesPage() {
                                   setActionMenuId((prev) => (prev === category.id ? null : category.id));
                                 }}
                                 aria-label={`More actions for ${category.name}`}
+                                className="ac26-more-trigger"
                               >
                                 <MoreVertical className="h-4 w-4" />
                               </button>
                               {actionMenuId === category.id ? (
-                                <div className="absolute right-0 top-10 z-20 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 text-left shadow-xl dark:border-slate-700 dark:bg-slate-900">
-                                  <button type="button" onClick={() => viewSubcategories(category)} className="block w-full rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800">View subcategories</button>
-                                  <button type="button" onClick={() => deleteCategory(category)} className="block w-full rounded-lg px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30">
-                                    {isDeleting ? "Deleting..." : "Delete"}
+                                <div className="ac26-action-menu absolute right-0 top-10 z-50 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActionMenuId(null);
+                                      setSelectedCategory(category);
+                                    }}
+                                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                                  >
+                                    <Eye className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                                    <span>{t("categories.View details", "View details")}</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActionMenuId(null);
+                                      openEdit(category);
+                                    }}
+                                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                                  >
+                                    <Pencil className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                                    <span>{t("categories.Edit category", "Edit category")}</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActionMenuId(null);
+                                      viewSubcategories(category);
+                                    }}
+                                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                                  >
+                                    <FolderTree className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                                    <span>{t("categories.View subcategories", "View subcategories")}</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActionMenuId(null);
+                                      openCreateChild(category);
+                                    }}
+                                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                                  >
+                                    <Plus className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                                    <span>{t("categories.Add subcategory", "Add subcategory")}</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={isPublishing}
+                                    onClick={() => {
+                                      setActionMenuId(null);
+                                      togglePublished(category);
+                                    }}
+                                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                                  >
+                                    <CheckCircle2 className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                                    <span>{category.published ? t("categories.Unpublish category", "Unpublish category") : t("categories.Publish category", "Publish category")}</span>
+                                  </button>
+                                  <div className="my-1 border-t border-slate-200 dark:border-slate-800" />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActionMenuId(null);
+                                      deleteCategory(category);
+                                    }}
+                                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30"
+                                  >
+                                    <Trash2 className="h-4 w-4 text-rose-500" />
+                                    <span>{isDeleting ? t("categories.Deleting...", "Deleting...") : t("categories.Delete category", "Delete category")}</span>
                                   </button>
                                 </div>
                               ) : null}
@@ -1268,8 +1395,8 @@ export default function AdminCategoriesPage() {
           <footer className="ac26-pagination">
             <p>
               {meta.total
-                ? `Showing ${(meta.page - 1) * meta.limit + 1} to ${Math.min(meta.page * meta.limit, meta.total)} of ${meta.total} categories`
-                : "Showing 0 to 0 of 0 categories"}
+                ? `${t("categories.Showing", "Showing")} ${(meta.page - 1) * meta.limit + 1} ${t("categories.to", "to")} ${Math.min(meta.page * meta.limit, meta.total)} ${t("categories.of", "of")} ${meta.total} ${t("categories.categories", "categories")}`
+                : t("categories.Showing 0 to 0 of 0 categories", "Showing 0 to 0 of 0 categories")}
             </p>
             <div className="flex items-center gap-2">
               <button type="button" disabled={page <= 1} onClick={() => setPage((prev) => Math.max(1, prev - 1))} aria-label="Previous page" className="inline-flex h-9 w-11 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300">
@@ -1295,10 +1422,19 @@ export default function AdminCategoriesPage() {
       </div>
 
       <div className="ac26-bulk-bar" data-visible={selectedIds.length > 0 ? "true" : "false"}>
-        <span>{selectedIds.length} selected</span>
-        <button type="button" disabled={bulkMutation.isPending} onClick={() => runBulkAction("publish")}>Publish</button>
-        <button type="button" disabled={bulkMutation.isPending} onClick={() => runBulkAction("unpublish")}>Unpublish</button>
-        <button type="button" disabled={bulkMutation.isPending} onClick={() => runBulkAction("delete")}>Delete</button>
+        <span>{selectedIds.length} {t("categories.selected", "selected")}</span>
+        <button type="button" disabled={bulkMutation.isPending} onClick={() => runBulkAction("publish")}>
+          <Upload className="h-3.5 w-3.5" />
+          <span>{t("categories.Publish", "Publish")}</span>
+        </button>
+        <button type="button" disabled={bulkMutation.isPending} onClick={() => runBulkAction("unpublish")}>
+          <Download className="h-3.5 w-3.5" />
+          <span>{t("categories.Unpublish", "Unpublish")}</span>
+        </button>
+        <button type="button" disabled={bulkMutation.isPending} onClick={() => runBulkAction("delete")}>
+          <Trash2 className="h-3.5 w-3.5" />
+          <span>{t("categories.Delete", "Delete")}</span>
+        </button>
       </div>
 
       <CategoryDrawer
@@ -1327,12 +1463,14 @@ export default function AdminCategoriesPage() {
           setImportOpen(false);
         }}
         onImport={handleImport}
-        title="Import categories"
-        description="Upload a CSV file using the admin category export format."
-        helperText="Required header: code,name,description,icon,published,parent_code"
-        confirmLabel="Import Categories"
+        title={t("categories.Import categories", "Import categories")}
+        description={t("categories.Upload a CSV file using the admin category export format.", "Upload a CSV file using the admin category export format.")}
+        helperText={t("categories.Required header: code,name,description,icon,published,parent_code", "Required header: code,name,description,icon,published,parent_code")}
+        confirmLabel={t("categories.Import Categories", "Import Categories")}
+        closeLabel={t("categories.Close", "Close")}
+        importingLabel={t("categories.Importing...", "Importing...")}
         accept="text/csv,.csv"
-        selectPrompt="Choose category CSV file"
+        selectPrompt={t("categories.Choose category CSV file", "Choose category CSV file")}
         isSubmitting={importMutation.isPending}
         errorMessage={importError}
       />

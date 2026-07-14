@@ -77,7 +77,8 @@
 .ac26-filter-button,
 .ac26-icon-button,
 .ac26-pagination button,
-.ac26-actions-cell button,
+.ac26-actions-cell > div > button,
+.ac26-actions-cell > div > div > button.ac26-more-trigger,
 .ac26-bulk-bar button {
   display: inline-flex;
   align-items: center;
@@ -211,6 +212,7 @@
 
 .ac26-toolbar {
   position: relative;
+  z-index: 50;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -218,6 +220,7 @@
   padding: 12px;
   width: 100%;
   max-width: 100%;
+  overflow: visible;
 }
 
 .ac26-toolbar > * {
@@ -284,9 +287,24 @@
 
 .ac26-filter-button {
   min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--ac26-border);
+  border-radius: 8px;
   padding: 0 16px;
   background: var(--ac26-primary-soft);
   color: var(--ac26-primary);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.ac26-filter-button:hover,
+.ac26-filter-button.is-active {
+  background: var(--ac26-primary);
+  color: #ffffff;
+  border-color: var(--ac26-primary);
 }
 
 .ac26-icon-button {
@@ -295,32 +313,78 @@
   padding: 0;
 }
 
-.ac26-filter-drawer {
-  position: absolute;
-  z-index: 10;
-  right: 12px;
-  top: calc(100% + 8px);
-  width: min(360px, calc(100vw - 40px));
-  display: grid;
-  gap: 12px;
-  border: 1px solid var(--ac26-border);
-  border-radius: 8px;
-  background: var(--ac26-surface);
-  padding: 14px;
-  box-shadow: 0 22px 70px -34px rgba(3, 76, 133, 0.45);
-}
-
-.ac26-filter-drawer button {
-  min-height: 40px;
+.ac26-more-wrapper {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+}
+
+/* ── More / filter dropdown (fixed-positioned to escape overflow:clip) ─── */
+.ac26-filter-drawer {
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--ac26-border);
-  border-radius: 8px;
+  border-radius: 14px;
+  background: var(--ac26-surface);
+  box-shadow:
+    0 4px 6px -1px rgba(0,0,0,0.07),
+    0 20px 48px -10px rgba(3,76,133,0.22);
+  overflow: hidden;
+  animation: ac26-dropdown-in 0.14s ease;
+}
+
+@keyframes ac26-dropdown-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+.ac26-filter-drawer__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--ac26-border);
+  color: var(--ac26-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   background: var(--ac26-surface-soft);
+}
+
+.ac26-filter-drawer__body {
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  gap: 2px;
+}
+
+.ac26-filter-drawer__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
   color: var(--ac26-text);
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ac26-filter-drawer__item:hover:not(:disabled) {
+  background: var(--ac26-primary-soft);
+  color: var(--ac26-primary);
+}
+
+.ac26-filter-drawer__item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .ac26-content-grid {
@@ -397,6 +461,7 @@
 .ac26-actions-cell {
   width: 11%;
   text-align: right !important;
+  overflow: visible !important;
 }
 
 .ac26-category-cell {
@@ -453,10 +518,44 @@
   gap: 6px;
 }
 
-.ac26-actions-cell button {
+.ac26-actions-cell > div > button,
+.ac26-actions-cell > div > div > button.ac26-more-trigger {
   width: 27px;
   min-height: 27px;
   padding: 0;
+}
+
+.ac26-actions-cell .ac26-action-menu {
+  position: absolute;
+  right: 0;
+  top: 34px;
+  z-index: 100 !important;
+  width: 220px;
+  border: 1px solid var(--ac26-border);
+  border-radius: 12px;
+  background: var(--ac26-surface, #ffffff);
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.28);
+  padding: 6px;
+}
+
+.ac26-actions-cell .ac26-action-menu button {
+  width: 100% !important;
+  min-height: 36px !important;
+  padding: 8px 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  border: none !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  text-align: left !important;
+}
+
+.ac26-actions-cell .ac26-action-menu button:hover {
+  background: rgba(148, 163, 184, 0.15) !important;
 }
 
 .ac26-empty {
@@ -528,28 +627,27 @@
 /* Modern 2026 View Switcher & Filter Chips */
 .ac26-view-toggle {
   display: inline-flex;
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   align-items: center;
   background: var(--ac26-surface-soft);
   border: 1px solid var(--ac26-border);
   border-radius: 8px;
-  padding: 3px;
-  gap: 2px;
+  padding: 4px;
+  gap: 4px;
+  min-height: 52px;
 }
 
 .ac26-view-toggle button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  height: 34px;
-  padding: 0 12px;
+  width: 42px;
+  height: 42px;
+  padding: 0;
   border-radius: 6px;
   border: none;
   background: transparent;
   color: var(--ac26-muted);
-  font-size: 12px;
-  font-weight: 700;
   cursor: pointer;
   transition: all 0.18s ease;
 }
@@ -757,15 +855,19 @@
   .ac26-search,
   .ac26-chip-bar,
   .ac26-select,
-  .ac26-view-toggle,
   .ac26-toolbar > .ac26-icon-button,
   .ac26-filter-button {
     width: 100%;
     flex: 1 1 auto;
   }
 
+  .ac26-view-toggle {
+    width: auto;
+    flex: 0 0 auto;
+  }
+
   .ac26-view-toggle button {
-    flex: 1 1 0;
+    flex: 0 0 auto;
   }
 
   .ac26-pagination {

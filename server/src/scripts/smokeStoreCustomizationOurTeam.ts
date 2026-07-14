@@ -172,8 +172,8 @@ async function run() {
   );
   assert.equal(
     String(publicOurTeam?.members?.[1]?.title || ""),
-    "Name 2",
-    "public payload should expose backend fallback title for partial member"
+    "",
+    "public payload should keep missing partial title empty"
   );
   assert.equal(
     String(publicOurTeam?.members?.[1]?.subTitle || ""),
@@ -187,8 +187,8 @@ async function run() {
   );
   assert.equal(
     String(publicOurTeam?.members?.[2]?.subTitle || ""),
-    "Role 3",
-    "public payload should expose backend fallback subtitle for partial member"
+    "",
+    "public payload should keep missing partial subtitle empty"
   );
   assert.equal(
     Array.isArray(publicOurTeam?.members) ? publicOurTeam.members.length : 0,

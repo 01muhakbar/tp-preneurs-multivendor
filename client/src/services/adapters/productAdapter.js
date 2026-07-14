@@ -15,6 +15,15 @@ const firstDefined = (...values) =>
 const firstArrayValue = (value) =>
   Array.isArray(value) && value.length > 0 ? value[0] : null;
 
+const PRODUCT_TYPE_VALUES = new Set(["physical", "digital", "service"]);
+
+const resolveProductType = (raw) => {
+  const seoSource = isPlainObject(raw?.seo) ? raw.seo : {};
+  const candidate = toText(firstDefined(raw?.productType, seoSource?.productType, "physical"))
+    .toLowerCase();
+  return PRODUCT_TYPE_VALUES.has(candidate) ? candidate : "physical";
+};
+
 const validateProduct = (product, source) => {
   const errors = [];
 
@@ -211,6 +220,7 @@ export const normalizeProduct = (raw) => {
     image: resolveProductImage(raw),
   };
   const seo = resolveProductSeo(raw, normalized.image);
+  const productType = resolveProductType(raw);
 
   const salePrice = resolveProductSalePrice(raw);
 
@@ -233,6 +243,8 @@ export const normalizeProduct = (raw) => {
         : normalized.stock,
     image: normalized.image,
     thumbnail: raw?.thumbnail ?? normalized.image,
+    productType,
+    isDigital: productType === "digital",
     seo,
     attributeOwnershipWarnings: normalizeAttributeOwnershipWarnings(
       raw?.attributeOwnershipWarnings

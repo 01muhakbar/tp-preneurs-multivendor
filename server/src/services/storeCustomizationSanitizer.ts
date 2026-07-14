@@ -588,6 +588,15 @@ const toText = (value: unknown, fallback = "") => {
 const hasOwnValue = (source: Record<string, unknown>, key: string) =>
   source && Object.prototype.hasOwnProperty.call(source, key);
 
+const toExplicitTextField = (
+  source: Record<string, unknown>,
+  key: string,
+  fallback = ""
+) => {
+  if (hasOwnValue(source, key)) return String(source?.[key] ?? "").trim();
+  return toText(source?.[key], fallback);
+};
+
 const toSliderText = (value: unknown, fallback = "", preserveEmpty = false) => {
   if (preserveEmpty && value != null) return String(value).trim();
   return toText(value, fallback);
@@ -1287,6 +1296,7 @@ const normalizeAboutUs = (root: Record<string, any>) => {
   const teamMembersSource = Array.isArray(ourTeamSource.members)
     ? ourTeamSource.members
     : [];
+  const hasExplicitTeamMembers = Array.isArray(ourTeamSource.members);
 
   return {
     ...defaults,
@@ -1299,47 +1309,52 @@ const normalizeAboutUs = (root: Record<string, any>) => {
         pageHeaderSource.backgroundImageDataUrl ?? pageHeaderSource.backgroundImage ?? "",
         ""
       ),
-      pageTitle: toText(pageHeaderSource.pageTitle, defaults.pageHeader.pageTitle),
+      pageTitle: toExplicitTextField(pageHeaderSource, "pageTitle", defaults.pageHeader.pageTitle),
     },
     topContentLeft: {
       ...defaults.topContentLeft,
       ...topContentLeftSource,
       enabled: toBool(topContentLeftSource.enabled, defaults.topContentLeft.enabled),
-      topTitle: toText(topContentLeftSource.topTitle, defaults.topContentLeft.topTitle),
-      topDescription: toText(
-        topContentLeftSource.topDescription,
+      topTitle: toExplicitTextField(topContentLeftSource, "topTitle", defaults.topContentLeft.topTitle),
+      topDescription: toExplicitTextField(
+        topContentLeftSource,
+        "topDescription",
         defaults.topContentLeft.topDescription
       ),
       boxOne: {
         ...defaults.topContentLeft.boxOne,
         ...boxOneSource,
-        title: toText(boxOneSource.title, defaults.topContentLeft.boxOne.title),
-        subtitle: toText(boxOneSource.subtitle, defaults.topContentLeft.boxOne.subtitle),
-        description: toText(
-          boxOneSource.description,
+        title: toExplicitTextField(boxOneSource, "title", defaults.topContentLeft.boxOne.title),
+        subtitle: toExplicitTextField(boxOneSource, "subtitle", defaults.topContentLeft.boxOne.subtitle),
+        description: toExplicitTextField(
+          boxOneSource,
+          "description",
           defaults.topContentLeft.boxOne.description
         ),
       },
       boxTwo: {
         ...defaults.topContentLeft.boxTwo,
         ...boxTwoSource,
-        title: toText(boxTwoSource.title, defaults.topContentLeft.boxTwo.title),
-        subtitle: toText(boxTwoSource.subtitle, defaults.topContentLeft.boxTwo.subtitle),
-        description: toText(
-          boxTwoSource.description,
+        title: toExplicitTextField(boxTwoSource, "title", defaults.topContentLeft.boxTwo.title),
+        subtitle: toExplicitTextField(boxTwoSource, "subtitle", defaults.topContentLeft.boxTwo.subtitle),
+        description: toExplicitTextField(
+          boxTwoSource,
+          "description",
           defaults.topContentLeft.boxTwo.description
         ),
       },
       boxThree: {
         ...defaults.topContentLeft.boxThree,
         ...boxThreeSource,
-        title: toText(boxThreeSource.title, defaults.topContentLeft.boxThree.title),
-        subtitle: toText(
-          boxThreeSource.subtitle,
+        title: toExplicitTextField(boxThreeSource, "title", defaults.topContentLeft.boxThree.title),
+        subtitle: toExplicitTextField(
+          boxThreeSource,
+          "subtitle",
           defaults.topContentLeft.boxThree.subtitle
         ),
-        description: toText(
-          boxThreeSource.description,
+        description: toExplicitTextField(
+          boxThreeSource,
+          "description",
           defaults.topContentLeft.boxThree.description
         ),
       },
@@ -1354,12 +1369,14 @@ const normalizeAboutUs = (root: Record<string, any>) => {
       ...defaults.contentSection,
       ...contentSectionSource,
       enabled: toBool(contentSectionSource.enabled, defaults.contentSection.enabled),
-      firstParagraph: toText(
-        contentSectionSource.firstParagraph,
+      firstParagraph: toExplicitTextField(
+        contentSectionSource,
+        "firstParagraph",
         defaults.contentSection.firstParagraph
       ),
-      secondParagraph: toText(
-        contentSectionSource.secondParagraph,
+      secondParagraph: toExplicitTextField(
+        contentSectionSource,
+        "secondParagraph",
         defaults.contentSection.secondParagraph
       ),
       contentImageDataUrl: toText(
@@ -1371,25 +1388,28 @@ const normalizeAboutUs = (root: Record<string, any>) => {
       ...defaults.ourTeam,
       ...ourTeamSource,
       enabled: toBool(ourTeamSource.enabled, defaults.ourTeam.enabled),
-      title: toText(ourTeamSource.title, defaults.ourTeam.title),
-      description: toText(ourTeamSource.description, defaults.ourTeam.description),
+      title: toExplicitTextField(ourTeamSource, "title", defaults.ourTeam.title),
+      description: toExplicitTextField(ourTeamSource, "description", defaults.ourTeam.description),
       members: defaults.ourTeam.members.map(
         (fallbackMember: Record<string, any>, index: number) => {
         const sourceMember =
           index < teamMembersSource.length && isPlainObject(teamMembersSource[index])
             ? teamMembersSource[index]
             : {};
+        const baseMember = hasExplicitTeamMembers
+          ? { imageDataUrl: "", title: "", subTitle: "" }
+          : fallbackMember;
         return {
-          ...fallbackMember,
+          ...baseMember,
           ...sourceMember,
           imageDataUrl: toText(
             sourceMember.imageDataUrl ?? sourceMember.image ?? "",
             ""
           ),
-          title: toText(sourceMember.title, fallbackMember.title),
+          title: toText(sourceMember.title, baseMember.title),
           subTitle: toText(
             sourceMember.subTitle ?? sourceMember.subtitle,
-            fallbackMember.subTitle
+            baseMember.subTitle
           ),
         };
       }

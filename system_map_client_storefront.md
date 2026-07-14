@@ -2370,6 +2370,8 @@ id
 name
 price
 seo
+productType
+isDigital
 slug
 routeSlug
 productHref

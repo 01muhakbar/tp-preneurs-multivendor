@@ -119,6 +119,11 @@ const sectionCardClass =
 const sectionTitleClass = "text-base font-semibold text-slate-900";
 const resolveSalePriceValue = (value) =>
   String(value ?? "").trim() === "" ? null : Number(value);
+const PRODUCT_TYPE_VALUES = new Set(["physical", "digital", "service"]);
+const normalizeProductTypeMeta = (value, fallback = "physical") => {
+  const normalized = String(value || "").trim().toLowerCase();
+  return PRODUCT_TYPE_VALUES.has(normalized) ? normalized : fallback;
+};
 const PRODUCT_EDIT_TABS = [
   { id: "basic", label: "Basic Info" },
   { id: "combination", label: "Combination" },
@@ -639,8 +644,8 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
   const handleSubmitSuccess = (payload) => {
     if (!isEdit && !isDrawerMode) {
       setCreatedProduct(payload?.data || payload?.product || payload || {});
-      setWizardStep(5);
-      setMaxVisitedWizardStep(5);
+      setWizardStep(6);
+      setMaxVisitedWizardStep(6);
       return;
     }
     if (typeof onSuccess === "function") {
@@ -692,6 +697,9 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
       ? product.tags.map((tag) => String(tag))
       : [];
     const initialSeo = normalizeSeoState(product.seo);
+    const initialProductType = normalizeProductTypeMeta(
+      product.productType ?? product.seo?.productType
+    );
     const variationState = normalizeVariationState(product.variations);
 
     setForm({
@@ -725,6 +733,11 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
       length: product.length == null ? "" : String(product.length),
       width: product.width == null ? "" : String(product.width),
       height: product.height == null ? "" : String(product.height),
+      productType: initialProductType,
+      digitalAssetUrl:
+        initialProductType === "digital"
+          ? String(product.digitalAssetUrl ?? product.seo?.digitalAssetUrl ?? "")
+          : "",
       additionalNotes: String(product.notes || ""),
     }));
     setSlugTouched(Boolean(initialSlug));
@@ -866,7 +879,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
     const nextImages = [];
     let rejectedTypeCount = 0;
     let rejectedSizeCount = 0;
-    let rejectedSquareCount = 0;
+    let rejectedUnreadableCount = 0;
     let skippedDuplicateCount = 0;
     let skippedOverflowCount = 0;
 
@@ -892,12 +905,12 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
 
       try {
         const { width, height } = await readImageDimensions(file);
-        if (width <= 0 || height <= 0 || width !== height) {
-          rejectedSquareCount += 1;
+        if (width <= 0 || height <= 0) {
+          rejectedUnreadableCount += 1;
           continue;
         }
       } catch {
-        rejectedSquareCount += 1;
+        rejectedUnreadableCount += 1;
         continue;
       }
 
@@ -929,8 +942,8 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
     if (rejectedSizeCount > 0) {
       messageParts.push(`${rejectedSizeCount} file melebihi batas 5MB`);
     }
-    if (rejectedSquareCount > 0) {
-      messageParts.push(`${rejectedSquareCount} file ditolak karena bukan rasio 1:1`);
+    if (rejectedUnreadableCount > 0) {
+      messageParts.push(`${rejectedUnreadableCount} file tidak dapat dibaca sebagai gambar`);
     }
     if (skippedDuplicateCount > 0) {
       messageParts.push(`${skippedDuplicateCount} file duplikat dilewati`);
@@ -976,6 +989,19 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
       const target = prev.find((item) => item.id === imageId);
       if (!target) return prev;
       return [target, ...prev.filter((item) => item.id !== imageId)];
+    });
+  };
+
+  const reorderImages = (sourceImageId, targetImageId) => {
+    if (!sourceImageId || !targetImageId || sourceImageId === targetImageId) return;
+    setLocalImages((prev) => {
+      const sourceIndex = prev.findIndex((item) => item.id === sourceImageId);
+      const targetIndex = prev.findIndex((item) => item.id === targetImageId);
+      if (sourceIndex < 0 || targetIndex < 0) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(sourceIndex, 1);
+      next.splice(targetIndex, 0, moved);
+      return next;
     });
   };
 
@@ -1324,6 +1350,8 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
         message: "Variant sale price cannot be greater than variant price.",
       });
       setActiveTab("combination");
+      setWizardStep(4);
+      setMaxVisitedWizardStep((current) => Math.max(current, 4));
       return;
     }
 
@@ -1387,6 +1415,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
         variations: variationPayload,
         brand: form2026Meta.brand || undefined,
         productType: form2026Meta.productType || undefined,
+        digitalAssetUrl: form2026Meta.digitalAssetUrl || undefined,
         lowStockThreshold: toOptionalNumber(form2026Meta.lowStockThreshold),
         weight: toOptionalNumber(form2026Meta.weight),
         notes: form2026Meta.additionalNotes || undefined,
@@ -1488,12 +1517,41 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
     }
 
     if (step === 4) {
+      if (
+        hasVariants &&
+        variants.some(
+          (variant) =>
+            variant.salePrice != null &&
+            variant.price != null &&
+            Number(variant.salePrice) > Number(variant.price)
+        )
+      ) {
+        setNotice({ type: "error", message: "Variant sale price cannot be greater than variant price." });
+        return false;
+      }
+    }
+
+    if (step === 5) {
       if (form.categoryIds.length === 0) {
         setNotice({ type: "error", message: "Select at least one category." });
         return false;
       }
       if (!form.defaultCategoryId || !form.categoryIds.includes(Number(form.defaultCategoryId))) {
         setNotice({ type: "error", message: "Choose one default category from selected categories." });
+        return false;
+      }
+      if (!PRODUCT_TYPE_VALUES.has(form2026Meta.productType)) {
+        setNotice({ type: "error", message: "Choose a valid product type." });
+        return false;
+      }
+      if (
+        form2026Meta.productType === "digital" &&
+        !String(form2026Meta.digitalAssetUrl || "").trim()
+      ) {
+        setNotice({
+          type: "error",
+          message: "Add a download link or access instruction for digital products.",
+        });
         return false;
       }
     }
@@ -1510,7 +1568,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
   const goToNextWizardStep = () => {
     if (!validateWizardStep(wizardStep)) return;
     setWizardStep((prev) => {
-      const next = Math.min(5, prev + 1);
+      const next = Math.min(6, prev + 1);
       setMaxVisitedWizardStep((visited) => Math.max(visited, next));
       return next;
     });
@@ -1522,17 +1580,17 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
   };
 
   const saveDraftProduct = async () => {
-    if (![1, 3, 4].every(validateWizardStep)) return;
+    if (![1, 3, 4, 5].every(validateWizardStep)) return;
     await submitProduct({ intent: "draft" });
   };
 
   const publishProduct = async () => {
-    if (![1, 3, 4].every(validateWizardStep)) return;
+    if (![1, 3, 4, 5].every(validateWizardStep)) return;
     await submitProduct({ intent: "publish" });
   };
 
   const saveProductChanges = async () => {
-    if (![1, 3, 4].every(validateWizardStep)) return;
+    if (![1, 3, 4, 5].every(validateWizardStep)) return;
     await submitProduct({ intent: "update" });
   };
 
@@ -1560,6 +1618,17 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
         selectedStore={selectedStore}
         defaultCategoryOptions={defaultCategoryOptions}
         localImages={localImages}
+        hasVariants={hasVariants}
+        selectedAttributes={selectedAttributes}
+        selectedAttributeValues={selectedAttributeValues}
+        variants={variants}
+        pendingAttributeId={pendingAttributeId}
+        attributeSearch={attributeSearch}
+        attributeValueSearch={attributeValueSearch}
+        attributeValuesMap={attributeValuesMap}
+        attributeValuesLoading={attributeValuesLoading}
+        variantImageUploadingId={variantImageUploadingId}
+        availableAttributes={availableAttributes}
         tagInput={tagInput}
         seoKeywordInput={seoKeywordInput}
         isSubmitting={isSubmitting}
@@ -1586,7 +1655,26 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
         onAddFiles={addFiles}
         onRemoveImage={removeImage}
         onSetCover={setCoverImage}
+        onReorderImages={reorderImages}
         onMediaDetailChange={updateMediaDetail}
+        onToggleHasVariants={() => setHasVariants((prev) => !prev)}
+        onPendingAttributeChange={setPendingAttributeId}
+        onAttributeSearchChange={setAttributeSearch}
+        onAttributeValueSearchChange={(attributeId, value) =>
+          setAttributeValueSearch((prev) => ({
+            ...prev,
+            [attributeId]: value,
+          }))
+        }
+        onAddSelectedAttribute={addSelectedAttribute}
+        onRemoveSelectedAttribute={removeSelectedAttribute}
+        onToggleAttributeValue={toggleAttributeValue}
+        onSelectAllAttributeValues={setAllAttributeValues}
+        onClearVariants={handleClearVariants}
+        onGenerateVariants={handleGenerateVariants}
+        onVariantFieldChange={updateVariantField}
+        onRemoveVariant={removeVariant}
+        onVariantImageUpload={handleVariantImageUpload}
         onToggleCategory={onToggleCategory}
         onTagInputChange={setTagInput}
         onTagKeyDown={handleTagKeyDown}

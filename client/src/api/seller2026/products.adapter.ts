@@ -178,7 +178,8 @@ const EMPTY_PRODUCTS: Seller2026ProductsViewModel = {
     statuses: [
       { value: "all", label: "All Status" },
       { value: "draft", label: "Draft" },
-      { value: "submitted", label: "Submitted" },
+      { value: "review_queue", label: "Review Queue" },
+      { value: "submitted", label: "Submitted for Review" },
       { value: "active", label: "Active" },
       { value: "needs_revision", label: "Needs Revision" },
       { value: "inactive", label: "Inactive" },
@@ -259,22 +260,19 @@ const thumbnailUrl = (value: Record<string, unknown>) => {
 
 const productPrice = (product: Record<string, unknown>) => {
   const pricing = object(product.pricing);
-  return number(
-    pricing.effectivePrice ?? pricing.salePrice ?? pricing.price ?? product.price ?? product.salePrice,
-    0
-  );
+  return number(pricing.price ?? product.price ?? pricing.originalPrice, 0);
+};
+
+const productSalePrice = (product: Record<string, unknown>) => {
+  const pricing = object(product.pricing);
+  const salePrice = number(pricing.salePrice ?? product.salePrice, 0);
+  return salePrice > 0 ? salePrice : 0;
 };
 
 const productStock = (product: Record<string, unknown>) => {
   const inventory = object(product.inventory);
   const availability = object(product.availability);
   return number(product.stock ?? product.quantity ?? inventory.stock ?? availability.stock, 0);
-};
-
-const productSubmissionStatus = (product: Record<string, unknown>) => {
-  const submission = object(product.submission);
-  const status = text(submission.status ?? product.submissionStatus ?? product.sellerSubmissionStatus);
-  return status && status !== "none" ? status : undefined;
 };
 
 const productSubmissionState = (product: Record<string, unknown>) => {
@@ -329,7 +327,7 @@ export function adaptSellerProduct(value: unknown) {
   const visibility = object(product.visibility);
   const id = idValue(product.id ?? product.productId ?? product.uuid, "") as string | number;
   const submit = productSubmitEligibility(product);
-  const status = normalizeProductStatus(productSubmissionStatus(product) ?? productOperationalStatus(product));
+  const status = normalizeProductStatus(productOperationalStatus(product));
 
   return {
     id,
@@ -341,7 +339,7 @@ export function adaptSellerProduct(value: unknown) {
     category: categoryLabel(product),
     stock: productStock(product),
     price: productPrice(product),
-    salePrice: number(product.salePrice, 0),
+    salePrice: productSalePrice(product),
     currency: text(product.currency, "IDR"),
     sales: number(product.salesCount ?? product.soldCount ?? product.sold ?? product.sales, 0),
     views: number(product.viewCount ?? product.views, 0),
@@ -410,7 +408,7 @@ export function adaptSeller2026Products(
       internalOnly: number(rawSummary.internalOnly, 0),
       needsRevision: number(rawSummary.needsRevision ?? rawSummary.needs_revision, 0),
       inactive: number(rawSummary.inactive, 0),
-      pendingReview: number(rawSummary.submitted ?? rawSummary.reviewQueue, 0),
+      pendingReview: number(rawSummary.reviewQueue ?? rawSummary.submitted, 0),
       archived: number(rawSummary.inactive, 0),
       outOfStock: number(rawSummary.outOfStock ?? rawSummary.out_of_stock, 0),
     },
@@ -549,7 +547,7 @@ export function adaptSeller2026ProductDetail(value: unknown): Seller2026ProductD
       tags: productTags,
 
       price,
-      salePrice: number(pricing.salePrice ?? product.salePrice, 0),
+      salePrice: productSalePrice(product),
       currency: text(pricing.currency ?? product.currency, "IDR"),
       discountLabel: text(pricing.discountLabel ?? product.discountLabel, ""),
 
@@ -558,7 +556,7 @@ export function adaptSeller2026ProductDetail(value: unknown): Seller2026ProductD
       lowStockThreshold: number(inventory.lowStockThreshold ?? product.lowStockThreshold, 0),
       inventoryPolicy: text(inventory.policy ?? product.inventoryPolicy, "track"),
 
-      status: normalizeProductStatus(productSubmissionStatus(product) ?? productOperationalStatus(product)),
+      status: normalizeProductStatus(productOperationalStatus(product)),
       visibility: text(product.visibility, "public"),
       submissionStatus: productSubmissionState(product),
       approvalStatus: text(submission.approvalStatus ?? product.approvalStatus, "pending"),

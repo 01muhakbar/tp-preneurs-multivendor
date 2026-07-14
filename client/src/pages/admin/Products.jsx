@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import {
+  approveAdminProductReview,
   bulkAdminProducts,
   deleteAdminProduct,
   duplicateAdminProduct,
@@ -10,6 +11,7 @@ import {
   fetchAdminCategories,
   fetchAdminProducts,
   importAdminProducts,
+  requestAdminProductRevision,
   updateAdminProductPublished,
 } from "../../lib/adminApi.js";
 import { useAuth } from "../../auth/useAuth.js";
@@ -112,6 +114,30 @@ export default function AdminProductsPage() {
       setUpdatingIds((prev) => prev.filter((id) => id !== Number(variables?.id))),
   });
 
+  const approveReviewMutation = useMutation({
+    mutationFn: approveAdminProductReview,
+    onMutate: (id) => setUpdatingIds((prev) => Array.from(new Set([...prev, Number(id)]))),
+    onSuccess: () => {
+      toast.success("Product review approved. Product is active and ready for publish.");
+      invalidateProducts();
+    },
+    onError: (error) => toast.error(normalizeErrorMessage(error, "Failed to approve product review.")),
+    onSettled: (_data, _error, id) =>
+      setUpdatingIds((prev) => prev.filter((entry) => entry !== Number(id))),
+  });
+
+  const requestRevisionMutation = useMutation({
+    mutationFn: ({ id, note }) => requestAdminProductRevision(id, note),
+    onMutate: ({ id }) => setUpdatingIds((prev) => Array.from(new Set([...prev, Number(id)]))),
+    onSuccess: () => {
+      toast.success("Revision requested from seller.");
+      invalidateProducts();
+    },
+    onError: (error) => toast.error(normalizeErrorMessage(error, "Failed to request revision.")),
+    onSettled: (_data, _error, variables) =>
+      setUpdatingIds((prev) => prev.filter((entry) => entry !== Number(variables?.id))),
+  });
+
   const bulkMutation = useMutation({
     mutationFn: ({ action, ids }) => bulkAdminProducts(action, ids),
     onSuccess: (payload, variables) => {
@@ -158,6 +184,8 @@ export default function AdminProductsPage() {
     busy:
       deleteMutation.isPending ||
       publishMutation.isPending ||
+      approveReviewMutation.isPending ||
+      requestRevisionMutation.isPending ||
       bulkMutation.isPending ||
       duplicateMutation.isPending ||
       isExporting ||
@@ -229,8 +257,29 @@ export default function AdminProductsPage() {
     duplicateMutation.mutate(product.id);
   };
 
+  const approveProduct = (product) => {
+    if (!permissions.canUpdate) return toast.error("You do not have permission to approve products.");
+    if (product.sellerSubmissionStatus !== "submitted") {
+      return toast.error("Only submitted seller products can be approved.");
+    }
+    approveReviewMutation.mutate(product.id);
+  };
+
+  const requestRevision = (product) => {
+    if (!permissions.canUpdate) return toast.error("You do not have permission to request revisions.");
+    if (product.sellerSubmissionStatus !== "submitted") {
+      return toast.error("Only submitted seller products can be moved to revision.");
+    }
+    const note = window.prompt("Revision note for seller (optional):", "");
+    if (note === null) return;
+    requestRevisionMutation.mutate({ id: product.id, note });
+  };
+
   const togglePublished = (product) => {
     if (!permissions.canUpdate) return toast.error("You do not have permission to update products.");
+    if (!product.canUseListToggle) {
+      return toast.error("Submitted seller products must be approved from the review action first.");
+    }
     publishMutation.mutate({ id: product.id, published: !product.published });
   };
 
@@ -308,6 +357,8 @@ export default function AdminProductsPage() {
       onManageInventory={manageProductInventory}
       onManageVariants={manageProductVariants}
       onDuplicateProduct={duplicateProduct}
+      onApproveProduct={approveProduct}
+      onRequestRevision={requestRevision}
       onDeleteProduct={deleteProduct}
       onTogglePublished={togglePublished}
       onExport={exportProducts}

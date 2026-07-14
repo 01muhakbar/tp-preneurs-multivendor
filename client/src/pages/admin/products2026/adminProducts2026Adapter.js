@@ -70,6 +70,39 @@ const resolveCategoryName = (product) => {
 const resolveSku = (product) =>
   String(firstDefined(product?.sku, product?.SKU, product?.barcode, `ID-${product?.id || "N/A"}`));
 
+const normalizeSellerSubmissionStatus = (value) => {
+  const normalized = String(value || "none").trim().toLowerCase();
+  if (normalized === "submitted") return "submitted";
+  if (normalized === "needs_revision") return "needs_revision";
+  return "none";
+};
+
+const resolveSellerSubmission = (product) => {
+  const source =
+    product?.sellerSubmission && typeof product.sellerSubmission === "object"
+      ? product.sellerSubmission
+      : {};
+  const status = normalizeSellerSubmissionStatus(
+    source.status || product?.sellerSubmissionStatus || product?.submissionStatus
+  );
+
+  return {
+    ...source,
+    status,
+    label:
+      source.label ||
+      (status === "submitted"
+        ? "Submitted for Review"
+        : status === "needs_revision"
+          ? "Needs Revision"
+          : "Not Submitted"),
+    publishGate:
+      source.publishGate && typeof source.publishGate === "object"
+        ? source.publishGate
+        : null,
+  };
+};
+
 export const normalizeAdminProduct2026 = (product) => {
   const id = firstDefined(product?.id, product?.productId);
   const price = asNumber(product?.price, 0);
@@ -81,6 +114,28 @@ export const normalizeAdminProduct2026 = (product) => {
   const status = String(product?.status || "").trim().toLowerCase();
   const isDraft = !published || status === "draft";
   const imageUrl = getPrimaryProductImageUrl(product) || product?.imageUrl || product?.promoImagePath;
+  const sellerSubmission = resolveSellerSubmission(product);
+  const isSubmittedForReview = sellerSubmission.status === "submitted";
+  const needsRevision = sellerSubmission.status === "needs_revision";
+  const canUseListToggle = sellerSubmission.publishGate?.canUseListToggle !== false;
+  const statusCode = isSubmittedForReview
+    ? "review_submitted"
+    : needsRevision
+      ? "needs_revision"
+      : stock <= 0
+        ? "out_of_stock"
+        : isDraft
+          ? "draft"
+          : "published";
+  const statusLabel = isSubmittedForReview
+    ? "Submitted for Review"
+    : needsRevision
+      ? "Needs Revision"
+      : stock <= 0
+        ? "Out of Stock"
+        : isDraft
+          ? "Draft"
+          : "Published";
 
   return {
     id,
@@ -93,8 +148,13 @@ export const normalizeAdminProduct2026 = (product) => {
     salePriceLabel: hasSalePrice ? moneyIDR(salePrice) : "-",
     stock,
     published,
-    statusCode: stock <= 0 ? "out_of_stock" : isDraft ? "draft" : "published",
-    statusLabel: stock <= 0 ? "Out of Stock" : isDraft ? "Draft" : "Published",
+    statusCode,
+    statusLabel,
+    sellerSubmission,
+    sellerSubmissionStatus: sellerSubmission.status,
+    canApproveReview: isSubmittedForReview,
+    canRequestRevision: isSubmittedForReview,
+    canUseListToggle,
     updatedAt: product?.updatedAt || product?.updated_at || product?.createdAt || product?.created_at,
     updatedLabel: formatRelativeTime(
       product?.updatedAt || product?.updated_at || product?.createdAt || product?.created_at
@@ -131,7 +191,8 @@ export const buildAdminProducts2026Params = ({ filters, page, limit = PRODUCT_LI
     limit,
     q: filters.q || undefined,
     categoryIds: filters.categoryId !== "all" ? filters.categoryId : undefined,
-    published,
+    published: filters.published === "review_queue" ? undefined : published,
+    sellerSubmissionStatus: filters.published === "review_queue" ? "review_queue" : undefined,
     inventoryStatus: filters.stock !== "all" ? filters.stock : undefined,
     sort: filters.sort || undefined,
   };
@@ -143,6 +204,7 @@ export const computeAdminProducts2026Stats = ({ products, meta }) => {
     total: asNumber(meta?.total, rows.length),
     published: rows.filter((product) => product.published).length,
     draft: rows.filter((product) => !product.published || product.statusCode === "draft").length,
+    reviewQueue: asNumber(meta?.reviewQueue?.total, 0),
     outOfStock: rows.filter((product) => product.stock <= 0).length,
   };
 };

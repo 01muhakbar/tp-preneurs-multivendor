@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Download,
   Eye,
+  GripVertical,
   Package,
   Plus,
   Send,
@@ -18,7 +19,9 @@ import {
   PRODUCT_FORM_2026_STEPS,
   buildProductForm2026Review,
   getProductForm2026Checklist,
+  getSellerProductForm2026Checklist,
 } from "./adminProductForm2026Adapter.js";
+import { resolveAssetUrl } from "../../../lib/assetUrl.js";
 import "./admin-product-form-2026.css";
 
 function RequiredMark() {
@@ -72,7 +75,7 @@ function Stepper({ activeStep, maxVisitedStep, onStepClick, success = false }) {
             <span className="apf26-step__badge">
               {isComplete ? <Check size={22} /> : step.id}
             </span>
-            <span>
+            <span className="apf26-step__copy">
               <strong>{t("productForm." + step.label)}</strong>
               <span>{t("productForm." + step.helper)}</span>
             </span>
@@ -127,6 +130,8 @@ function BasicStep({
   stores,
   selectedStoreId,
   meta,
+  allowGlobalStoreOption = true,
+  storeOwnershipLocked = false,
   tagInput,
   seoKeywordInput,
   onFormChange,
@@ -187,9 +192,12 @@ function BasicStep({
                   required
                   aria-required="true"
                   value={selectedStoreId}
+                  disabled={storeOwnershipLocked}
                   onChange={(event) => onFormChange({ storeId: event.target.value })}
                 >
-                  <option value="global">{t("productForm.Global (Admin)")}</option>
+                  {allowGlobalStoreOption ? (
+                    <option value="global">{t("productForm.Global (Admin)")}</option>
+                  ) : null}
                   {stores.map((store) => (
                     <option key={store.id} value={String(store.id)}>
                       {store.name}
@@ -300,6 +308,7 @@ function MediaStep({
   onAddFiles,
   onRemoveImage,
   onSetCover,
+  onReorderImages,
   onMediaDetailChange,
   onFormChange,
   tagInput,
@@ -308,9 +317,27 @@ function MediaStep({
   onRemoveTag,
 }) {
   const { t } = useTranslation("admin");
+  const [draggedImageId, setDraggedImageId] = useState(null);
+  const [dragOverImageId, setDragOverImageId] = useState(null);
   const coverImage =
     localImages.find((image) => image.id === meta.coverImageId) || localImages[0] || null;
   const selectedDetails = coverImage ? meta.mediaDetails[coverImage.id] || {} : {};
+  const canReorderImages = typeof onReorderImages === "function" && localImages.length > 1;
+
+  const resetDragState = () => {
+    setDraggedImageId(null);
+    setDragOverImageId(null);
+  };
+
+  const handleImageDrop = (event, targetImageId) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const sourceImageId =
+      draggedImageId || event.dataTransfer.getData("text/product-image-id");
+    resetDragState();
+    if (!canReorderImages || !sourceImageId || sourceImageId === targetImageId) return;
+    onReorderImages(sourceImageId, targetImageId);
+  };
 
   return (
     <div className="apf26-layout-2">
@@ -355,12 +382,61 @@ function MediaStep({
             event.target.value = "";
           }}
         />
-        <div className="mt-5 apf26-gallery">
+        <div className="mt-5 apf26-gallery" role="list">
           {localImages.map((image) => {
             const isCover = coverImage?.id === image.id;
             return (
-              <div key={image.id} className={`apf26-thumb ${isCover ? "is-cover" : ""}`}>
+              <div
+                key={image.id}
+                className={[
+                  "apf26-thumb",
+                  isCover ? "is-cover" : "",
+                  draggedImageId === image.id ? "is-dragging" : "",
+                  dragOverImageId === image.id && draggedImageId !== image.id ? "is-drag-over" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                role="listitem"
+                draggable={canReorderImages}
+                onDragStart={(event) => {
+                  if (!canReorderImages) return;
+                  if (event.target.closest("button")) {
+                    event.preventDefault();
+                    return;
+                  }
+                  setDraggedImageId(image.id);
+                  event.dataTransfer.effectAllowed = "move";
+                  event.dataTransfer.setData("text/product-image-id", image.id);
+                }}
+                onDragEnter={(event) => {
+                  if (!canReorderImages || !draggedImageId || draggedImageId === image.id) return;
+                  event.preventDefault();
+                  setDragOverImageId(image.id);
+                }}
+                onDragOver={(event) => {
+                  if (!canReorderImages || !draggedImageId || draggedImageId === image.id) return;
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = "move";
+                  setDragOverImageId(image.id);
+                }}
+                onDragLeave={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget)) {
+                    setDragOverImageId((current) => (current === image.id ? null : current));
+                  }
+                }}
+                onDrop={(event) => handleImageDrop(event, image.id)}
+                onDragEnd={resetDragState}
+              >
                 <img src={image.url} alt={image.name} />
+                {canReorderImages ? (
+                  <span
+                    className="apf26-thumb__drag"
+                    aria-hidden="true"
+                    title={t("productForm.Drag images left or right to reorder the gallery.")}
+                  >
+                    <GripVertical size={15} />
+                  </span>
+                ) : null}
                 <button
                   type="button"
                   className="apf26-thumb__remove"
@@ -372,13 +448,24 @@ function MediaStep({
                 <button
                   type="button"
                   className="apf26-thumb__cover"
-                  onClick={() => onSetCover(image.id)}
-                  aria-label={t("productForm.Set cover image")}
-                />
+                  onClick={() => (isCover ? null : onSetCover(image.id))}
+                  disabled={isCover}
+                  aria-label={
+                    isCover ? t("productForm.Cover") : t("productForm.Set cover image")
+                  }
+                >
+                  {isCover ? <Check size={12} /> : null}
+                  {isCover ? t("productForm.Cover") : t("productForm.Make cover")}
+                </button>
               </div>
             );
           })}
         </div>
+        {canReorderImages ? (
+          <p className="apf26-media-hint">
+            {t("productForm.Drag images left or right to reorder the gallery.")}
+          </p>
+        ) : null}
       </section>
       <aside className="apf26-panel">
         <h3>{t("productForm.Image Details")}</h3>
@@ -568,6 +655,330 @@ function PricingStep({ form, meta, onFormChange, onMetaChange }) {
   );
 }
 
+function VariantsStep({
+  hasVariants,
+  selectedAttributes,
+  selectedAttributeValues,
+  variants,
+  pendingAttributeId,
+  attributeSearch,
+  attributeValueSearch,
+  attributeValuesMap,
+  attributeValuesLoading,
+  variantImageUploadingId,
+  availableAttributes,
+  onToggleHasVariants,
+  onPendingAttributeChange,
+  onAttributeSearchChange,
+  onAttributeValueSearchChange,
+  onAddSelectedAttribute,
+  onRemoveSelectedAttribute,
+  onToggleAttributeValue,
+  onSelectAllAttributeValues,
+  onClearVariants,
+  onGenerateVariants,
+  onVariantFieldChange,
+  onRemoveVariant,
+  onVariantImageUpload,
+}) {
+  const { t } = useTranslation("admin");
+
+  return (
+    <div className="apf26-grid">
+      <section className="apf26-card">
+        <div className="apf26-section-title">
+          <div>
+            <p className="apf26-eyebrow">{t("productForm.Variants")}</p>
+            <h2>{t("productForm.Product Variants")}</h2>
+            <p>{t("productForm.Create variants if this product has multiple options, like size or color.")}</p>
+          </div>
+          <label className="apf26-switch">
+            <input type="checkbox" checked={hasVariants} onChange={onToggleHasVariants} />
+            <span>{t("productForm.This product has variants")}</span>
+          </label>
+        </div>
+
+        {!hasVariants ? (
+          <div className="apf26-empty">
+            {t("productForm.Turn variants on to configure attributes, values, and generated combinations.")}
+          </div>
+        ) : (
+          <div className="apf26-grid">
+            <div className="apf26-variant-builder">
+              <div className="apf26-panel">
+                <h3>{t("productForm.Add Option Type")}</h3>
+                <div className="apf26-grid mt-4">
+                  <TextField label={t("productForm.Search attributes")}>
+                    <input
+                      className="apf26-input"
+                      value={attributeSearch}
+                      onChange={(event) => onAttributeSearchChange(event.target.value)}
+                      placeholder={t("productForm.Search attributes")}
+                    />
+                  </TextField>
+                  <div className="apf26-inline-controls">
+                    <select
+                      className="apf26-select"
+                      value={pendingAttributeId}
+                      onChange={(event) => onPendingAttributeChange(event.target.value)}
+                    >
+                      <option value="">{t("productForm.Select an attribute...")}</option>
+                      {availableAttributes.map((attribute) => (
+                        <option key={attribute.id} value={String(attribute.id)}>
+                          {attribute.displayName || attribute.display_name || attribute.name}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      className="apf26-button apf26-button--primary"
+                      disabled={!pendingAttributeId}
+                      onClick={onAddSelectedAttribute}
+                    >
+                      {t("productForm.Add")}
+                    </button>
+                  </div>
+                  {selectedAttributes.length > 0 ? (
+                    <div className="apf26-chip-row">
+                      {selectedAttributes.map((attribute) => (
+                        <span key={attribute.id} className="apf26-chip">
+                          {attribute.name}
+                          <button
+                            type="button"
+                            onClick={() => onRemoveSelectedAttribute(attribute.id)}
+                            aria-label={`Remove ${attribute.name}`}
+                          >
+                            <X size={13} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p>{t("productForm.Select one or more attributes to start building variants.")}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="apf26-grid">
+                {selectedAttributes.map((attribute) => {
+                  const allValues = Array.isArray(attributeValuesMap[attribute.id])
+                    ? attributeValuesMap[attribute.id]
+                    : [];
+                  const currentSearch = String(attributeValueSearch[attribute.id] || "")
+                    .trim()
+                    .toLowerCase();
+                  const filteredValues = allValues.filter((value) =>
+                    String(value?.label || value?.value || "")
+                      .toLowerCase()
+                      .includes(currentSearch)
+                  );
+                  const selectedEntry =
+                    selectedAttributeValues.find(
+                      (entry) => Number(entry.attributeId) === Number(attribute.id)
+                    ) || null;
+                  const selectedValueKeys = new Set(
+                    (selectedEntry?.values || []).map((value) =>
+                      String(value.id ?? value.value).toLowerCase()
+                    )
+                  );
+
+                  return (
+                    <div key={attribute.id} className="apf26-panel">
+                      <div className="apf26-section-title apf26-section-title--compact">
+                        <div>
+                          <h3>{t("productForm.Select")} {attribute.name}</h3>
+                          <p>{t("productForm.Choose the values to include in generated variants.")}</p>
+                        </div>
+                        <button
+                          type="button"
+                          className="apf26-link-button"
+                          onClick={() => onSelectAllAttributeValues(attribute, filteredValues)}
+                        >
+                          {t("productForm.Select All")}
+                        </button>
+                      </div>
+                      <input
+                        className="apf26-input"
+                        value={attributeValueSearch[attribute.id] || ""}
+                        onChange={(event) =>
+                          onAttributeValueSearchChange(attribute.id, event.target.value)
+                        }
+                        placeholder={`${t("productForm.Search values")} ${attribute.name}`}
+                      />
+                      <div className="apf26-value-list">
+                        {filteredValues.map((value) => {
+                          const dedupeKey = String(value.id ?? value.value).toLowerCase();
+                          const checked = selectedValueKeys.has(dedupeKey);
+                          return (
+                            <label key={`${attribute.id}-${dedupeKey}`} className="apf26-value-option">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => onToggleAttributeValue(attribute, value)}
+                              />
+                              <span>{value.label || value.value}</span>
+                            </label>
+                          );
+                        })}
+                        {attributeValuesLoading ? (
+                          <p>{t("productForm.Loading values...")}</p>
+                        ) : null}
+                        {!attributeValuesLoading && filteredValues.length === 0 ? (
+                          <p>{t("productForm.No values available.")}</p>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="apf26-variant-actions">
+              <button
+                type="button"
+                className="apf26-button"
+                disabled={variants.length === 0}
+                onClick={onClearVariants}
+              >
+                {t("productForm.Clear Variants")}
+              </button>
+              <button type="button" className="apf26-button apf26-button--primary" onClick={onGenerateVariants}>
+                {t("productForm.Generate Variants")}
+              </button>
+            </div>
+
+            <div className="apf26-table-wrap">
+              <table className="apf26-table">
+                <thead>
+                  <tr>
+                    {[
+                      "Image",
+                      "Variant",
+                      "SKU",
+                      "Barcode",
+                      "Price",
+                      "Sale Price",
+                      "Quantity",
+                      "Action",
+                    ].map((label) => (
+                      <th key={label}>{t("productForm." + label)}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {variants.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="apf26-table-empty">
+                        {t("productForm.Generate variants to review and edit each combination.")}
+                      </td>
+                    </tr>
+                  ) : (
+                    variants.map((variant) => (
+                      <tr key={variant.id}>
+                        <td>
+                          <div className="apf26-variant-image-cell">
+                            <span className="apf26-variant-image">
+                              {variant.image ? (
+                                <img src={resolveAssetUrl(variant.image)} alt={variant.combination} />
+                              ) : (
+                                "IMG"
+                              )}
+                            </span>
+                            <label className="apf26-file-button">
+                              {variantImageUploadingId === variant.id
+                                ? t("productForm.Uploading...")
+                                : t("productForm.Change")}
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                onChange={(event) => {
+                                  onVariantImageUpload(variant.id, event.target.files?.[0] || null);
+                                  event.target.value = "";
+                                }}
+                              />
+                            </label>
+                          </div>
+                        </td>
+                        <td>
+                          <strong>{variant.combination}</strong>
+                        </td>
+                        <td>
+                          <input
+                            className="apf26-input"
+                            value={variant.sku || ""}
+                            onChange={(event) =>
+                              onVariantFieldChange(variant.id, "sku", event.target.value)
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="apf26-input"
+                            value={variant.barcode || ""}
+                            onChange={(event) =>
+                              onVariantFieldChange(variant.id, "barcode", event.target.value)
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="apf26-input"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={variant.price ?? ""}
+                            onChange={(event) =>
+                              onVariantFieldChange(variant.id, "price", event.target.value)
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="apf26-input"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={variant.salePrice ?? ""}
+                            onChange={(event) =>
+                              onVariantFieldChange(variant.id, "salePrice", event.target.value)
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="apf26-input"
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={variant.quantity ?? ""}
+                            onChange={(event) =>
+                              onVariantFieldChange(variant.id, "quantity", event.target.value)
+                            }
+                          />
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="apf26-icon-button"
+                            onClick={() => onRemoveVariant(variant.id)}
+                            aria-label={`Remove ${variant.combination}`}
+                          >
+                            <X size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
 function DetailsStep({
   form,
   meta,
@@ -664,49 +1075,68 @@ function DetailsStep({
           </div>
         </section>
       </div>
-      <div className="apf26-grid apf26-grid--2">
-        <section className="apf26-card">
-          <h2>{t("productForm.Weight")} <span className="font-normal">({t("productForm.Optional")})</span></h2>
-          <p>{t("productForm.Provide weight if applicable.")}</p>
-          <div className="mt-4 apf26-grid apf26-grid--2">
-            <TextField
-              label={t("productForm.Weight")}
-              type="number"
-              min="0"
-              step="0.01"
-              value={meta.weight}
-              onChange={(event) => onMetaChange({ weight: event.target.value })}
-            />
-            <TextField label={t("productForm.Unit")}>
-              <select
-                className="apf26-select"
-                value={meta.weightUnit}
-                onChange={(event) => onMetaChange({ weightUnit: event.target.value })}
-              >
-                <option value="kg">kg</option>
-                <option value="g">g</option>
-              </select>
-            </TextField>
-          </div>
-        </section>
-        <section className="apf26-card">
-          <h2>{t("productForm.Dimensions")} <span className="font-normal">({t("productForm.Optional")})</span></h2>
-          <p>{t("productForm.Provide product dimensions if applicable.")}</p>
-          <div className="mt-4 apf26-grid apf26-grid--3">
-            {["length", "width", "height"].map((field) => (
+      {meta.productType === "physical" ? (
+        <div className="apf26-grid apf26-grid--2">
+          <section className="apf26-card">
+            <h2>{t("productForm.Weight")} <span className="font-normal">({t("productForm.Optional")})</span></h2>
+            <p>{t("productForm.Provide weight if applicable.")}</p>
+            <div className="mt-4 apf26-grid apf26-grid--2">
               <TextField
-                key={field}
-                label={t(`productForm.${field.charAt(0).toUpperCase() + field.slice(1)}`)}
+                label={t("productForm.Weight")}
                 type="number"
                 min="0"
                 step="0.01"
-                value={meta[field]}
-                onChange={(event) => onMetaChange({ [field]: event.target.value })}
+                value={meta.weight}
+                onChange={(event) => onMetaChange({ weight: event.target.value })}
               />
-            ))}
-          </div>
-        </section>
-      </div>
+              <TextField label={t("productForm.Unit")}>
+                <select
+                  className="apf26-select"
+                  value={meta.weightUnit}
+                  onChange={(event) => onMetaChange({ weightUnit: event.target.value })}
+                >
+                  <option value="kg">kg</option>
+                  <option value="g">g</option>
+                </select>
+              </TextField>
+            </div>
+          </section>
+          <section className="apf26-card">
+            <h2>{t("productForm.Dimensions")} <span className="font-normal">({t("productForm.Optional")})</span></h2>
+            <p>{t("productForm.Provide product dimensions if applicable.")}</p>
+            <div className="mt-4 apf26-grid apf26-grid--3">
+              {["length", "width", "height"].map((field) => (
+                <TextField
+                  key={field}
+                  label={t(`productForm.${field.charAt(0).toUpperCase() + field.slice(1)}`)}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={meta[field]}
+                  onChange={(event) => onMetaChange({ [field]: event.target.value })}
+                />
+              ))}
+            </div>
+          </section>
+        </div>
+      ) : meta.productType === "digital" ? (
+        <div className="apf26-grid">
+          <section className="apf26-card">
+            <h2>{t("productForm.Digital Asset")} <RequiredMark /></h2>
+            <p>{t("productForm.Provide a download link or access instruction for the digital product.")}</p>
+            <div className="mt-4">
+              <TextField
+                label={t("productForm.Download Link / Instructions")}
+                as="textarea"
+                required
+                value={meta.digitalAssetUrl || ""}
+                onChange={(event) => onMetaChange({ digitalAssetUrl: event.target.value })}
+                placeholder={t("productForm.Enter download link (e.g. Google Drive, Dropbox) or access instructions...")}
+              />
+            </div>
+          </section>
+        </div>
+      ) : null}
       <div className="apf26-grid apf26-grid--2">
         <section className="apf26-card">
           <h2>{t("productForm.Tags")} <span className="font-normal">({t("productForm.Optional")})</span></h2>
@@ -746,7 +1176,8 @@ function DetailsStep({
   );
 }
 
-function ReviewStep({ form, meta, selectedCategories, selectedStore, localImages }) {
+function ReviewStep({ form, meta, selectedCategories, selectedStore, localImages, workflow = "admin" }) {
+  const { t } = useTranslation("admin");
   const review = buildProductForm2026Review({
     form,
     meta,
@@ -754,7 +1185,10 @@ function ReviewStep({ form, meta, selectedCategories, selectedStore, localImages
     selectedStore,
     localImages,
   });
-  const checklist = getProductForm2026Checklist({ form, meta, localImages });
+  const checklist =
+    workflow === "seller"
+      ? getSellerProductForm2026Checklist({ form, meta, localImages })
+      : getProductForm2026Checklist({ form, meta, localImages });
 
   return (
     <div className="apf26-review">
@@ -819,13 +1253,13 @@ function ReviewStep({ form, meta, selectedCategories, selectedStore, localImages
         </div>
         <div className="apf26-checklist">
           {checklist.map((item) => (
-            <div key={item.label} className="apf26-check">
+            <div key={item.labelKey} className="apf26-check">
               <span className="apf26-check__icon">
                 <Check size={14} />
               </span>
               <div>
-                <strong>{t("productForm." + item.label)}</strong>
-                <p>{t("productForm." + item.helper)}</p>
+                <strong>{t("productForm." + item.labelKey)}</strong>
+                <p>{t("productForm." + item.helperKey, item.helperValues)}</p>
               </div>
             </div>
           ))}
@@ -844,15 +1278,25 @@ function ReviewRow({ label, value }) {
   );
 }
 
-function SuccessState({ createdProductId, onViewProduct, onAddAnother, onBackToList }) {
+function SuccessState({
+  createdProductId,
+  onViewProduct,
+  onAddAnother,
+  onBackToList,
+  title,
+  description,
+  primaryLabel,
+  secondaryLabel,
+  backLabel,
+}) {
   const { t } = useTranslation("admin");
   return (
     <div className="apf26-success">
       <span className="apf26-success__mark">
         <Check size={58} />
       </span>
-      <h1>{t("productForm.Product Created Successfully")}</h1>
-      <p>{t("productForm.Your product has been added to the catalog and is ready to go.")}</p>
+      <h1>{title || t("productForm.Product Created Successfully")}</h1>
+      <p>{description || t("productForm.Your product has been added to the catalog and is ready to go.")}</p>
       <div className="apf26-success__actions">
         <button
           type="button"
@@ -861,16 +1305,16 @@ function SuccessState({ createdProductId, onViewProduct, onAddAnother, onBackToL
           onClick={onViewProduct}
         >
           <Eye size={18} />
-          View Product
+          {primaryLabel || "View Product"}
         </button>
         <button type="button" className="apf26-button" onClick={onAddAnother}>
           <Plus size={18} />
-          Add Another Product
+          {secondaryLabel || "Add Another Product"}
         </button>
       </div>
       <button type="button" className="apf26-button apf26-success__back" onClick={onBackToList}>
         <ArrowLeft size={18} />
-        Back to Products List
+        {backLabel || "Back to Products List"}
       </button>
     </div>
   );
@@ -879,6 +1323,7 @@ function SuccessState({ createdProductId, onViewProduct, onAddAnother, onBackToL
 export default function AdminProductForm2026View({
   isEdit = false,
   isLoading = false,
+  workflow = "admin",
   loadError = "",
   activeStep,
   maxVisitedStep,
@@ -892,6 +1337,17 @@ export default function AdminProductForm2026View({
   selectedStore,
   defaultCategoryOptions,
   localImages,
+  hasVariants,
+  selectedAttributes,
+  selectedAttributeValues,
+  variants,
+  pendingAttributeId,
+  attributeSearch,
+  attributeValueSearch,
+  attributeValuesMap,
+  attributeValuesLoading,
+  variantImageUploadingId,
+  availableAttributes,
   tagInput,
   seoKeywordInput,
   isSubmitting,
@@ -914,7 +1370,21 @@ export default function AdminProductForm2026View({
   onAddFiles,
   onRemoveImage,
   onSetCover,
+  onReorderImages,
   onMediaDetailChange,
+  onToggleHasVariants,
+  onPendingAttributeChange,
+  onAttributeSearchChange,
+  onAttributeValueSearchChange,
+  onAddSelectedAttribute,
+  onRemoveSelectedAttribute,
+  onToggleAttributeValue,
+  onSelectAllAttributeValues,
+  onClearVariants,
+  onGenerateVariants,
+  onVariantFieldChange,
+  onRemoveVariant,
+  onVariantImageUpload,
   onToggleCategory,
   onTagInputChange,
   onTagKeyDown,
@@ -922,14 +1392,27 @@ export default function AdminProductForm2026View({
   onSeoKeywordInputChange,
   onSeoKeywordKeyDown,
   onRemoveSeoKeyword,
+  allowGlobalStoreOption = true,
+  storeOwnershipLocked = false,
+  saveDraftLabel,
+  saveDraftBusyLabel,
+  finalCreateLabel,
+  finalCreateBusyLabel,
+  finalEditLabel,
+  finalEditBusyLabel,
+  successTitle,
+  successDescription,
+  successPrimaryLabel,
+  successSecondaryLabel,
+  successBackLabel,
 }) {
   const { t } = useTranslation("admin");
   const subtitle =
     isEdit
-      ? activeStep === 5
+      ? activeStep === 6
         ? t("productForm.Review your changes before updating this product.")
         : t("productForm.Update product information, media, pricing, inventory, and settings.")
-      : activeStep === 5
+      : activeStep === 6
         ? t("productForm.Review your product details before publishing.")
         : t("productForm.Create a new product and add it to your catalog.");
   const isSuccess = Boolean(createdProductId);
@@ -960,6 +1443,11 @@ export default function AdminProductForm2026View({
           onViewProduct={onViewProduct}
           onAddAnother={onAddAnother}
           onBackToList={onBackToList}
+          title={successTitle}
+          description={successDescription}
+          primaryLabel={successPrimaryLabel}
+          secondaryLabel={successSecondaryLabel}
+          backLabel={successBackLabel}
         />
       ) : (
         <>
@@ -971,6 +1459,8 @@ export default function AdminProductForm2026View({
                 stores={stores}
                 selectedStoreId={form.storeId}
                 meta={meta}
+                allowGlobalStoreOption={allowGlobalStoreOption}
+                storeOwnershipLocked={storeOwnershipLocked}
                 tagInput={tagInput}
                 seoKeywordInput={seoKeywordInput}
                 onFormChange={onFormChange}
@@ -995,6 +1485,7 @@ export default function AdminProductForm2026View({
                 onAddFiles={onAddFiles}
                 onRemoveImage={onRemoveImage}
                 onSetCover={onSetCover}
+                onReorderImages={onReorderImages}
                 onMediaDetailChange={onMediaDetailChange}
                 onFormChange={onFormChange}
                 onTagInputChange={onTagInputChange}
@@ -1011,6 +1502,34 @@ export default function AdminProductForm2026View({
               />
             ) : null}
             {activeStep === 4 ? (
+              <VariantsStep
+                hasVariants={hasVariants}
+                selectedAttributes={selectedAttributes}
+                selectedAttributeValues={selectedAttributeValues}
+                variants={variants}
+                pendingAttributeId={pendingAttributeId}
+                attributeSearch={attributeSearch}
+                attributeValueSearch={attributeValueSearch}
+                attributeValuesMap={attributeValuesMap}
+                attributeValuesLoading={attributeValuesLoading}
+                variantImageUploadingId={variantImageUploadingId}
+                availableAttributes={availableAttributes}
+                onToggleHasVariants={onToggleHasVariants}
+                onPendingAttributeChange={onPendingAttributeChange}
+                onAttributeSearchChange={onAttributeSearchChange}
+                onAttributeValueSearchChange={onAttributeValueSearchChange}
+                onAddSelectedAttribute={onAddSelectedAttribute}
+                onRemoveSelectedAttribute={onRemoveSelectedAttribute}
+                onToggleAttributeValue={onToggleAttributeValue}
+                onSelectAllAttributeValues={onSelectAllAttributeValues}
+                onClearVariants={onClearVariants}
+                onGenerateVariants={onGenerateVariants}
+                onVariantFieldChange={onVariantFieldChange}
+                onRemoveVariant={onRemoveVariant}
+                onVariantImageUpload={onVariantImageUpload}
+              />
+            ) : null}
+            {activeStep === 5 ? (
               <DetailsStep
                 form={form}
                 meta={meta}
@@ -1026,13 +1545,14 @@ export default function AdminProductForm2026View({
                 onRemoveTag={onRemoveTag}
               />
             ) : null}
-            {activeStep === 5 ? (
+            {activeStep === 6 ? (
               <ReviewStep
                 form={form}
                 meta={meta}
                 selectedCategories={selectedCategories}
                 selectedStore={selectedStore}
                 localImages={localImages}
+                workflow={workflow}
               />
             ) : null}
           </main>
@@ -1042,7 +1562,7 @@ export default function AdminProductForm2026View({
                 Previous
               </button>
             ) : null}
-            {activeStep < 5 ? (
+            {activeStep < 6 ? (
               <button
                 type="button"
                 className="apf26-button apf26-button--primary"
@@ -1059,13 +1579,17 @@ export default function AdminProductForm2026View({
                 onClick={onPublish}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? t("productForm.Saving Changes...") : t("productForm.Save Changes")}
+                {isSubmitting
+                  ? finalEditBusyLabel || t("productForm.Saving Changes...")
+                  : finalEditLabel || t("productForm.Save Changes")}
                 <Send size={18} />
               </button>
             ) : (
               <>
                 <button type="button" className="apf26-button" onClick={onSaveDraft} disabled={isSubmitting}>
-                  {isSubmitting ? t("productForm.Saving...") : t("productForm.Save Draft")}
+                  {isSubmitting
+                    ? saveDraftBusyLabel || t("productForm.Saving...")
+                    : saveDraftLabel || t("productForm.Save Draft")}
                 </button>
                 <button
                   type="button"
@@ -1073,7 +1597,9 @@ export default function AdminProductForm2026View({
                   onClick={onPublish}
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? t("productForm.Publishing...") : t("productForm.Publish Product")}
+                  {isSubmitting
+                    ? finalCreateBusyLabel || t("productForm.Publishing...")
+                    : finalCreateLabel || t("productForm.Publish Product")}
                   <Send size={18} />
                 </button>
               </>

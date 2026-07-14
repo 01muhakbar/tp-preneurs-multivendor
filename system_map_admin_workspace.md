@@ -1490,7 +1490,7 @@ Kapabilitas:
 | `StoreApplication` | `applicantUserId`, `status`, `currentStep`, owner/store/address/payout/compliance snapshots, submitted/reviewed fields, notes, metadata |
 | `StorePaymentProfile` | `storeId`, `providerCode`, `paymentType`, `version`, `snapshotStatus`, account/merchant/qris fields, `isActive`, `verificationStatus`, `sourceRequestId` |
 | `StorePaymentProfileRequest` | `storeId`, `basedOnProfileId`, `requestStatus`, payment fields, seller note, admin review note, submitted/reviewed/promoted fields |
-| `Product` | name/slug/sku/barcode/price/stock/weight/dimensions/description/salePrice/tags/seo/variations/wholesale/media, `userId`, `storeId`, `categoryId`, `defaultCategoryId`, `status`, `isPublished`, seller review fields |
+| `Product` | name/slug/sku/barcode/price/stock/weight/dimensions/description/salePrice/tags/seo (termasuk `productType` dan `digitalAssetUrl` metadata), variations/wholesale/media, `userId`, `storeId`, `categoryId`, `defaultCategoryId`, `status`, `isPublished`, seller review fields |
 | `ProductCategory` | join `productId`, `categoryId` |
 | `Category` | `code`, `name`, `description`, `icon`, `published`, `parentId` |
 | `Attribute` | `name`, `displayName`, `published`, `scope`, `storeId`, `createdByRole`, `createdByUserId`, `status` |

@@ -37,6 +37,13 @@ const currency = (value) =>
   `Rp ${new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(Number(value || 0))}`;
 const lifecycleLabel = (status) =>
   ({ active: "Active", draft: "Draft", submitted: "Submitted for Review", needs_revision: "Needs Revision", inactive: "Archived" }[status] || "Draft");
+const reviewStatusLabel = (product) => {
+  const submissionStatus = String(product.submissionStatus || "none").toLowerCase();
+  if (submissionStatus === "submitted" || submissionStatus === "review_queue") return "Pending Review";
+  if (submissionStatus === "needs_revision") return "Needs Revision";
+  if (product.status === "active") return "Approved";
+  return "Not Submitted";
+};
 const tone = (label) => {
   const value = String(label).toLowerCase();
   if (["active", "approved", "visible", "in stock"].some((item) => value.includes(item))) return "success";
@@ -202,7 +209,7 @@ export default function Seller2026LiveProductsPage() {
                 : product.visibility === "published_blocked"
                   ? "Blocked"
                   : "Hidden";
-              const review = product.submissionStatus === "submitted" || product.submissionStatus === "review_queue" ? "Pending" : product.status === "active" ? "Approved" : "Not submitted";
+              const review = reviewStatusLabel(product);
               const reviewLocked = product.submissionStatus === "submitted" || product.submissionStatus === "needs_revision";
               const publishDisabled = !data.permissions.canPublish || product.status !== "active" || reviewLocked || productsQuery.isPublishing;
               const publishTitle = !data.permissions.canPublish

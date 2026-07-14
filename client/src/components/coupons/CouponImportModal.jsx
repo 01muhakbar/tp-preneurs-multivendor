@@ -12,6 +12,8 @@ export default function CouponImportModal({
   confirmLabel = "Import Now",
   accept = "application/json,.json",
   selectPrompt = "Choose JSON coupon file",
+  closeLabel = "Close",
+  importingLabel = "Importing...",
   isSubmitting = false,
   errorMessage = "",
 }) {
@@ -113,7 +115,7 @@ export default function CouponImportModal({
             disabled={isSubmitting}
             className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-medium text-slate-700 hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Close
+            {closeLabel}
           </button>
           {canImport ? (
             <button
@@ -122,7 +124,7 @@ export default function CouponImportModal({
               disabled={!selectedFile || isSubmitting}
               className="inline-flex h-10 items-center justify-center rounded-xl bg-emerald-700 px-4 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSubmitting ? "Importing..." : confirmLabel}
+              {isSubmitting ? importingLabel : confirmLabel}
             </button>
           ) : null}
         </div>

@@ -247,3 +247,12 @@
 @media (prefers-reduced-motion: reduce) {
   .apd26-page *, .apd26-page *::before, .apd26-page *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+.apd26-fullscreen-modal { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, .85); backdrop-filter: blur(5px); }
+.apd26-fullscreen-modal img { max-width: 90vw; max-height: 90vh; object-fit: contain; border-radius: 8px; filter: drop-shadow(0 15px 35px rgba(0,0,0,0.5)); cursor: default; }
+.apd26-fullscreen-close { position: absolute; top: 20px; right: 20px; z-index: 1001; display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .15); color: #fff; cursor: pointer; transition: background .2s ease; }
+.apd26-fullscreen-close:hover { background: rgba(255, 255, 255, .3); }
+.apd26-fullscreen-nav { position: absolute; top: 50%; z-index: 1001; display: grid; place-items: center; width: 50px; height: 50px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .15); color: #fff; transform: translateY(-50%); cursor: pointer; transition: background .2s ease; }
+.apd26-fullscreen-nav:hover { background: rgba(255, 255, 255, .3); }
+.apd26-fullscreen-nav.left { left: 25px; }
+.apd26-fullscreen-nav.right { right: 25px; }

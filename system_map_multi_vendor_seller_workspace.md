@@ -713,7 +713,7 @@ Primary seller-relevant Sequelize models live in `server/src/models/*`.
 | Store Member | `StoreMember.ts` | User membership in store. | Status: `INVITED`, `ACTIVE`, `DISABLED`, `REMOVED`; tracks invited/disabled/removed timestamps and actors. |
 | Store Audit Log | `StoreAuditLog.ts` | Team/member audit trail. | Records actor, target user/member, action, before/after state. |
 | Store Application | `StoreApplication.ts` | User-to-seller onboarding approval flow. | Admin review approves/rejects/revision-requests. |
-| Product | `Product.ts` | Store-owned catalog item. | `storeId`, draft/active/inactive status, `published`, seller submission fields, media, SEO, variations, wholesale. |
+| Product | `Product.ts` | Store-owned catalog item. | `storeId`, draft/active/inactive status, `published`, seller submission fields, media, SEO termasuk `productType`/`digitalAssetUrl` metadata, variations, wholesale. |
 | Product Category | `ProductCategory.ts` | Product-category join. | Used for multiple category assignments. |
 | Category | `Category.ts` | Catalog taxonomy. | Existing table name is `Categories`; `published`, parent hierarchy. |
 | Attribute | `Attribute.ts` | Product attributes/variant inputs. | Scope `global` or `store`, creator role, status active/archived. |

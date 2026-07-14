@@ -26,10 +26,10 @@ export function adaptSeller2026ProductDetailPresentation(
   const review =
     product.submissionStatus === "submitted" || product.submissionStatus === "review_queue"
       ? "Pending Review"
-      : product.status === "active"
-        ? "Approved"
-        : product.status === "needs_revision"
-          ? "Needs Revision"
+      : product.submissionStatus === "needs_revision"
+        ? "Needs Revision"
+        : product.status === "active"
+          ? "Approved"
           : "Not submitted";
   const healthSignals = [
     Boolean(product.name),
@@ -47,4 +47,3 @@ export function adaptSeller2026ProductDetailPresentation(
     ),
   };
 }
-

@@ -882,6 +882,11 @@ const toText = (value, fallback = "") => {
 const hasOwnValue = (source, key) =>
   source && Object.prototype.hasOwnProperty.call(source, key);
 
+const toExplicitTextField = (source, key, fallback = "") => {
+  if (hasOwnValue(source, key)) return String(source?.[key] ?? "").trim();
+  return toText(source?.[key], fallback);
+};
+
 const toSliderText = (value, fallback = "", preserveEmpty = false) => {
   if (preserveEmpty && value != null) return String(value).trim();
   return toText(value, fallback);
@@ -1129,16 +1134,20 @@ const serializeRightBoxForPayload = (rightBoxState = {}) => {
 };
 
 const normalizeAboutUsMembers = (value, fallback = []) => {
-  const rawItems = Array.isArray(value) ? value : [];
+  const hasExplicitMembers = Array.isArray(value);
+  const rawItems = hasExplicitMembers ? value : [];
   return fallback.map((fallbackItem, index) => {
     const sourceItem =
       index < rawItems.length && isPlainObject(rawItems[index]) ? rawItems[index] : {};
+    const baseItem = hasExplicitMembers
+      ? { imageDataUrl: "", title: "", subTitle: "" }
+      : fallbackItem;
     return {
-      ...fallbackItem,
+      ...baseItem,
       ...sourceItem,
       imageDataUrl: toText(sourceItem.imageDataUrl ?? sourceItem.image ?? "", ""),
-      title: toText(sourceItem.title, fallbackItem.title),
-      subTitle: toText(sourceItem.subTitle ?? sourceItem.subtitle, fallbackItem.subTitle),
+      title: toText(sourceItem.title, baseItem.title),
+      subTitle: toText(sourceItem.subTitle ?? sourceItem.subtitle, baseItem.subTitle),
     };
   });
 };
@@ -2422,7 +2431,11 @@ const normalizeCustomizationPayload = (raw) => {
             "",
           ""
         ),
-        pageTitle: toText(aboutUsPageHeaderSource.pageTitle, defaultsAboutUs.pageHeader.pageTitle),
+        pageTitle: toExplicitTextField(
+          aboutUsPageHeaderSource,
+          "pageTitle",
+          defaultsAboutUs.pageHeader.pageTitle
+        ),
       },
       topContentLeft: {
         ...defaultsAboutUs.topContentLeft,
@@ -2431,53 +2444,70 @@ const normalizeCustomizationPayload = (raw) => {
           aboutUsTopContentLeftSource.enabled,
           defaultsAboutUs.topContentLeft.enabled
         ),
-        topTitle: toText(
-          aboutUsTopContentLeftSource.topTitle,
+        topTitle: toExplicitTextField(
+          aboutUsTopContentLeftSource,
+          "topTitle",
           defaultsAboutUs.topContentLeft.topTitle
         ),
-        topDescription: toText(
-          aboutUsTopContentLeftSource.topDescription,
+        topDescription: toExplicitTextField(
+          aboutUsTopContentLeftSource,
+          "topDescription",
           defaultsAboutUs.topContentLeft.topDescription
         ),
         boxOne: {
           ...defaultsAboutUs.topContentLeft.boxOne,
           ...aboutUsBoxOneSource,
-          title: toText(aboutUsBoxOneSource.title, defaultsAboutUs.topContentLeft.boxOne.title),
-          subtitle: toText(
-            aboutUsBoxOneSource.subtitle,
+          title: toExplicitTextField(
+            aboutUsBoxOneSource,
+            "title",
+            defaultsAboutUs.topContentLeft.boxOne.title
+          ),
+          subtitle: toExplicitTextField(
+            aboutUsBoxOneSource,
+            "subtitle",
             defaultsAboutUs.topContentLeft.boxOne.subtitle
           ),
-          description: toText(
-            aboutUsBoxOneSource.description,
+          description: toExplicitTextField(
+            aboutUsBoxOneSource,
+            "description",
             defaultsAboutUs.topContentLeft.boxOne.description
           ),
         },
         boxTwo: {
           ...defaultsAboutUs.topContentLeft.boxTwo,
           ...aboutUsBoxTwoSource,
-          title: toText(aboutUsBoxTwoSource.title, defaultsAboutUs.topContentLeft.boxTwo.title),
-          subtitle: toText(
-            aboutUsBoxTwoSource.subtitle,
+          title: toExplicitTextField(
+            aboutUsBoxTwoSource,
+            "title",
+            defaultsAboutUs.topContentLeft.boxTwo.title
+          ),
+          subtitle: toExplicitTextField(
+            aboutUsBoxTwoSource,
+            "subtitle",
             defaultsAboutUs.topContentLeft.boxTwo.subtitle
           ),
-          description: toText(
-            aboutUsBoxTwoSource.description,
+          description: toExplicitTextField(
+            aboutUsBoxTwoSource,
+            "description",
             defaultsAboutUs.topContentLeft.boxTwo.description
           ),
         },
         boxThree: {
           ...defaultsAboutUs.topContentLeft.boxThree,
           ...aboutUsBoxThreeSource,
-          title: toText(
-            aboutUsBoxThreeSource.title,
+          title: toExplicitTextField(
+            aboutUsBoxThreeSource,
+            "title",
             defaultsAboutUs.topContentLeft.boxThree.title
           ),
-          subtitle: toText(
-            aboutUsBoxThreeSource.subtitle,
+          subtitle: toExplicitTextField(
+            aboutUsBoxThreeSource,
+            "subtitle",
             defaultsAboutUs.topContentLeft.boxThree.subtitle
           ),
-          description: toText(
-            aboutUsBoxThreeSource.description,
+          description: toExplicitTextField(
+            aboutUsBoxThreeSource,
+            "description",
             defaultsAboutUs.topContentLeft.boxThree.description
           ),
         },
@@ -2501,12 +2531,14 @@ const normalizeCustomizationPayload = (raw) => {
           aboutUsContentSectionSource.enabled,
           defaultsAboutUs.contentSection.enabled
         ),
-        firstParagraph: toText(
-          aboutUsContentSectionSource.firstParagraph,
+        firstParagraph: toExplicitTextField(
+          aboutUsContentSectionSource,
+          "firstParagraph",
           defaultsAboutUs.contentSection.firstParagraph
         ),
-        secondParagraph: toText(
-          aboutUsContentSectionSource.secondParagraph,
+        secondParagraph: toExplicitTextField(
+          aboutUsContentSectionSource,
+          "secondParagraph",
           defaultsAboutUs.contentSection.secondParagraph
         ),
         contentImageDataUrl: toText(
@@ -2520,9 +2552,10 @@ const normalizeCustomizationPayload = (raw) => {
         ...defaultsAboutUs.ourTeam,
         ...aboutUsOurTeamSource,
         enabled: toBool(aboutUsOurTeamSource.enabled, defaultsAboutUs.ourTeam.enabled),
-        title: toText(aboutUsOurTeamSource.title, defaultsAboutUs.ourTeam.title),
-        description: toText(
-          aboutUsOurTeamSource.description,
+        title: toExplicitTextField(aboutUsOurTeamSource, "title", defaultsAboutUs.ourTeam.title),
+        description: toExplicitTextField(
+          aboutUsOurTeamSource,
+          "description",
           defaultsAboutUs.ourTeam.description
         ),
         members: normalizeAboutUsMembers(
@@ -6379,7 +6412,7 @@ export default function StoreCustomizationPage() {
               <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
                 <Settings className="h-4 w-4" />
               </span>
-              <h2 className="text-base font-semibold text-slate-900">Mission Cards</h2>
+              <h2 className="text-base font-semibold text-slate-900">Team Members</h2>
             </div>
             <div className="mt-4 h-px w-full bg-slate-200" />
 
@@ -6396,7 +6429,7 @@ export default function StoreCustomizationPage() {
 
               <label className="block">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Mission Section Title
+                  Team Section Title
                 </span>
                 <input
                   type="text"
@@ -6410,7 +6443,7 @@ export default function StoreCustomizationPage() {
 
               <label className="block">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Mission Section Description
+                  Team Section Description
                 </span>
                 <textarea
                   value={aboutUs.ourTeam.description}
@@ -6443,7 +6476,7 @@ export default function StoreCustomizationPage() {
                   <div className="grid grid-cols-1 gap-4 xl:grid-cols-[320px_1fr]">
                     <ImageUploadField
                       id={`about-us-team-member-image-input-${activeAboutUsMemberIndex}`}
-                      label={`Mission Card ${activeAboutUsMemberIndex + 1} Image`}
+                      label={`Member ${activeAboutUsMemberIndex + 1} Image`}
                       error={aboutUsImageErrors[activeAboutUsMemberImageField]}
                       dropActive={Boolean(aboutUsDropActive[activeAboutUsMemberImageField])}
                       onDropActiveChange={(value) =>
@@ -6463,7 +6496,7 @@ export default function StoreCustomizationPage() {
                     <div className="grid grid-cols-1 gap-4">
                       <label className="block">
                         <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          Mission Card {activeAboutUsMemberIndex + 1} Title
+                          Member {activeAboutUsMemberIndex + 1} Name
                         </span>
                         <input
                           type="text"
@@ -6480,7 +6513,7 @@ export default function StoreCustomizationPage() {
                       </label>
                       <label className="block">
                         <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          Mission Card {activeAboutUsMemberIndex + 1} Description
+                          Member {activeAboutUsMemberIndex + 1} Description
                         </span>
                         <input
                           type="text"

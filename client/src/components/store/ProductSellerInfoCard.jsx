@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   BadgeCheck,
   CalendarDays,
@@ -22,20 +23,23 @@ const toText = (value, fallback = "") => {
   return normalized || fallback;
 };
 
-const formatMonthYear = (value) => {
+const resolveLocale = (language) =>
+  String(language || "").toLowerCase().startsWith("id") ? "id-ID" : "en-US";
+
+const formatMonthYear = (value, locale = "en-US") => {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString("en-US", {
+  return date.toLocaleDateString(locale, {
     month: "short",
     year: "numeric",
   });
 };
 
-const formatMetricValue = (value, fallback = "-") => {
+const formatMetricValue = (value, fallback = "-", locale = "en-US") => {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return fallback;
-  return parsed.toLocaleString("en-US");
+  return parsed.toLocaleString(locale);
 };
 
 const formatRating = (value) => {
@@ -44,7 +48,7 @@ const formatRating = (value) => {
   return parsed.toFixed(1);
 };
 
-const formatTimeAgo = (dateString) => {
+const formatTimeAgo = (dateString, t) => {
   if (!dateString) {
     try {
       dateString = localStorage.getItem('demoSellerLastLogout');
@@ -58,27 +62,37 @@ const formatTimeAgo = (dateString) => {
   }
 
   const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) return "1 minute ago";
+  if (Number.isNaN(date.getTime())) return t("productDetail.oneMinuteAgo");
 
   const now = new Date();
   const diffInSeconds = Math.floor((now - date) / 1000);
 
-  if (diffInSeconds < 60) return "1 minute ago";
+  if (diffInSeconds < 60) return t("productDetail.oneMinuteAgo");
   
   const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
+  if (diffInMinutes < 60) return t("productDetail.minutesAgo", { count: diffInMinutes });
   
   const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+  if (diffInHours < 24) return t("productDetail.hoursAgo", { count: diffInHours });
   
   const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 30) return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+  if (diffInDays < 30) return t("productDetail.daysAgo", { count: diffInDays });
   
   const diffInMonths = Math.floor(diffInDays / 30);
-  if (diffInMonths < 12) return `${diffInMonths} month${diffInMonths > 1 ? 's' : ''} ago`;
+  if (diffInMonths < 12) return t("productDetail.monthsAgo", { count: diffInMonths });
   
   const diffInYears = Math.floor(diffInDays / 365);
-  return `${diffInYears} year${diffInYears > 1 ? 's' : ''} ago`;
+  return t("productDetail.yearsAgo", { count: diffInYears });
+};
+
+const translateStatusLabel = (value, t) => {
+  const normalized = toText(value).toLowerCase();
+  if (!normalized) return "";
+  if (normalized.includes("operational")) return t("productDetail.operational");
+  if (normalized === "active") return t("productDetail.active");
+  if (normalized === "inactive") return t("productDetail.inactive");
+  if (normalized.includes("pending")) return t("productDetail.pending");
+  return value;
 };
 
 function SellerLogo({ logoUrl, name, isVerified }) {
@@ -120,8 +134,10 @@ function SellerLogo({ logoUrl, name, isVerified }) {
 }
 
 export default function ProductSellerInfoCard({ sellerInfo }) {
+  const { t, i18n } = useTranslation();
   const auth = useAuth();
   if (!sellerInfo?.name) return null;
+  const locale = resolveLocale(i18n.resolvedLanguage || i18n.language);
 
   const storeId = sellerInfo?.slug || sellerInfo?.id;
   const { data: kycData } = useQuery({
@@ -145,7 +161,7 @@ export default function ProductSellerInfoCard({ sellerInfo }) {
     ? Boolean(operationalReadiness.isReady)
     : true;
   const description = toText(sellerInfo.shortDescription);
-  const joinedLabel = formatMonthYear(sellerInfo.joinedAt);
+  const joinedLabel = formatMonthYear(sellerInfo.joinedAt, locale);
   const productCount =
     Number.isFinite(Number(sellerInfo.productCount)) && Number(sellerInfo.productCount) >= 0
       ? Number(sellerInfo.productCount)
@@ -168,7 +184,8 @@ export default function ProductSellerInfoCard({ sellerInfo }) {
         : statusToneValue === "danger"
           ? "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-400/25 dark:bg-rose-400/10 dark:text-rose-300"
           : "border-slate-200 bg-slate-100 text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300";
-  const reviewLabel = `${formatMetricValue(ratingCount, "0")} review${ratingCount === 1 ? "" : "s"}`;
+  const statusDisplayLabel = translateStatusLabel(statusLabel, t);
+  const reviewLabel = t("productDetail.reviewsCount", { count: ratingCount });
   const isChatEnabled = sellerInfo.chatMode === "enabled" && sellerInfo.chatHref;
   const isChatFallback =
     isOperationallyReady &&
@@ -177,19 +194,19 @@ export default function ProductSellerInfoCard({ sellerInfo }) {
   const chatButtonLabel =
     sellerInfo.chatMode === "disabled"
       ? isOperationallyReady
-        ? "Chat Soon"
-        : "Store Gated"
-      : "Chat";
+        ? t("productDetail.chatSoon")
+        : t("productDetail.storeGated")
+      : t("productDetail.chat");
   const chatHelper =
     !isOperationallyReady
       ? toText(
           operationalReadiness?.description,
-          "This store is not operational yet."
+          t("productDetail.storeNotOperational")
         )
       : sellerInfo.chatMode === "contact_fallback"
-      ? "Use the store page to get in touch."
+      ? t("productDetail.useStorePageContact")
       : sellerInfo.chatMode === "disabled"
-        ? "Chat not available yet."
+        ? t("productDetail.chatNotAvailable")
         : "";
   const showOperationalMetrics = !operationalReadiness || isOperationallyReady;
 
@@ -197,23 +214,23 @@ export default function ProductSellerInfoCard({ sellerInfo }) {
     showOperationalMetrics
       ? {
           key: "rating",
-          label: "Rating",
+          label: t("productDetail.rating"),
           value: ratingAverage ? `${ratingAverage} / 5` : "4.9 / 5",
-          helper: ratingAverage ? reviewLabel : "99+ reviews",
+          helper: ratingAverage ? reviewLabel : t("productDetail.reviewsCountPlus", { count: "99+" }),
         }
       : null,
     showOperationalMetrics && productCount !== null
       ? {
           key: "products",
-          label: "Products",
-          value: formatMetricValue(productCount),
-          helper: "public",
+          label: t("productDetail.productsCount"),
+          value: formatMetricValue(productCount, "-", locale),
+          helper: t("productDetail.public"),
         }
       : null,
     joinedLabel
       ? {
           key: "joined",
-          label: "Joined",
+          label: t("productDetail.joined"),
           value: joinedLabel,
         }
       : null,
@@ -224,7 +241,7 @@ export default function ProductSellerInfoCard({ sellerInfo }) {
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1.5fr)_auto] lg:items-center lg:gap-5">
         <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
-            Store Info
+            {t("productDetail.storeInfo")}
           </p>
           <div className="mt-2.5 flex items-start gap-3">
             <SellerLogo logoUrl={sellerInfo.logoUrl} name={sellerInfo.name} isVerified={isKycVerified} />
@@ -238,7 +255,7 @@ export default function ProductSellerInfoCard({ sellerInfo }) {
                     className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] ${statusTone}`}
                   >
                     <BadgeCheck className="h-2.5 w-2.5" />
-                    {statusLabel}
+                    {statusDisplayLabel}
                   </span>
                 ) : null}
               </div>
@@ -248,7 +265,11 @@ export default function ProductSellerInfoCard({ sellerInfo }) {
                     {isOnline && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>}
                     <span className={`relative inline-flex h-2 w-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-500'}`}></span>
                   </span>
-                  {isOnline ? "Active" : `Active ${formatTimeAgo(sellerInfo.lastLogin || sellerInfo.lastActiveAt)}`}
+                  {isOnline
+                    ? t("productDetail.active")
+                    : t("productDetail.activeAgo", {
+                        time: formatTimeAgo(sellerInfo.lastLogin || sellerInfo.lastActiveAt, t),
+                      })}
                 </p>
                 {displayCity ? (
                   <p className="flex items-center gap-1.5">
@@ -289,7 +310,7 @@ export default function ProductSellerInfoCard({ sellerInfo }) {
             </div>
           ) : (
             <p className="text-[13px] leading-5 text-slate-500 dark:text-slate-400">
-              Only verified public store metrics are shown here.
+              {t("productDetail.onlyVerifiedMetrics")}
             </p>
           )}
         </div>
@@ -301,7 +322,8 @@ export default function ProductSellerInfoCard({ sellerInfo }) {
                 href={sellerInfo.chatHref}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex h-9 items-center justify-center rounded-full bg-[var(--tp-primary)] px-4 text-[13px] font-bold text-white shadow-sm transition hover:bg-[var(--tp-accent)]"
+                className="inline-flex h-9 items-center justify-center rounded-full bg-[var(--tp-primary)] px-4 text-[13px] font-bold !text-white shadow-sm transition hover:bg-[var(--tp-accent)] hover:!text-white"
+                style={{ color: "#fff" }}
               >
                 <MessageCircleMore className="mr-1.5 h-3.5 w-3.5" />
                 {chatButtonLabel}
@@ -331,7 +353,7 @@ export default function ProductSellerInfoCard({ sellerInfo }) {
                 className="inline-flex h-9 items-center justify-center rounded-full border border-slate-300 bg-white px-4 text-[13px] font-bold text-slate-800 transition hover:border-[var(--tp-primary)]/40 hover:text-[var(--tp-primary)] dark:border-white/15 dark:bg-white/5 dark:text-slate-100"
               >
                 <Store className="mr-1.5 h-3.5 w-3.5" />
-                Visit Store
+                {t("productDetail.visitStore")}
               </Link>
             ) : null}
           </div>

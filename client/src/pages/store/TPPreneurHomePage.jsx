@@ -4,19 +4,19 @@ import { useTranslation } from "react-i18next";
 import {
   ArrowRight,
   BadgeCheck,
+  BookOpen,
   ChevronLeft,
   ChevronRight,
   Download,
   Eye,
   Grid3X3,
-  Headphones,
+  Handshake,
   Heart,
-  Leaf,
+  Lightbulb,
   Mail,
-  ShieldCheck,
+  Rocket,
   ShoppingCart,
   Star,
-  Truck,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -89,24 +89,24 @@ const POPULAR_SORT_OPTIONS = [
 
 const benefitItems = [
   {
-    title: "100% Natural & Organic",
-    text: "Pure and safe products for a healthier you.",
-    Icon: Leaf,
+    title: "Learning Media Innovation",
+    text: "Digital learning solutions shaped for quality, usefulness, and real classroom impact.",
+    Icon: Lightbulb,
   },
   {
-    title: "Quality You Can Trust",
-    text: "Sourced with care, checked for quality.",
-    Icon: ShieldCheck,
+    title: "Collaborative Creation",
+    text: "A student-powered space for turning creative ideas into practical education products.",
+    Icon: Handshake,
   },
   {
-    title: "Fast & Free Delivery",
-    text: "On orders over Rp 75.000 within local area.",
-    Icon: Truck,
+    title: "Edupreneur Growth",
+    text: "Helping students package, manage, and market their work professionally.",
+    Icon: Rocket,
   },
   {
-    title: "24/7 Customer Support",
-    text: "We're here to help you anytime.",
-    Icon: Headphones,
+    title: "Accessible Learning Solutions",
+    text: "Interactive media designed to answer today's education challenges.",
+    Icon: BookOpen,
   },
 ];
 
@@ -793,43 +793,80 @@ function MainSliderSection({
 function BenefitStrip({ isIndo }) {
   const items = isIndo ? [
     {
-      title: "100% Alami & Organik",
-      text: "Produk murni dan aman untuk Anda yang lebih sehat.",
-      Icon: Leaf,
+      title: "Inovasi Media Pembelajaran",
+      text: "Solusi pembelajaran digital yang berkualitas, bernilai guna, dan berdampak nyata.",
+      Icon: Lightbulb,
     },
     {
-      title: "Kualitas yang Bisa Anda Percayai",
-      text: "Dicari dengan cermat, diperiksa kualitasnya.",
-      Icon: ShieldCheck,
+      title: "Kolaborasi Cipta Karya",
+      text: "Ruang bagi mahasiswa untuk mengubah ide kreatif menjadi produk edukasi aplikatif.",
+      Icon: Handshake,
     },
     {
-      title: "Pengiriman Cepat & Gratis",
-      text: "Untuk pesanan di atas Rp 75.000 dalam area lokal.",
-      Icon: Truck,
+      title: "Pertumbuhan Edupreneur",
+      text: "Membantu mahasiswa mengelola, mengemas, dan memasarkan karya secara profesional.",
+      Icon: Rocket,
     },
     {
-      title: "Dukungan Pelanggan 24/7",
-      text: "Kami hadir untuk membantu Anda kapan saja.",
-      Icon: Headphones,
+      title: "Solusi Belajar Aksesibel",
+      text: "Media interaktif yang dirancang untuk menjawab tantangan pendidikan masa kini.",
+      Icon: BookOpen,
     },
   ] : benefitItems;
+  const content = isIndo
+    ? {
+        eyebrow: "KOMITMEN VISI MISI",
+        title: "Dibangun untuk dampak pembelajaran digital",
+        description:
+          "Ringkasan praktis visi dan misi TP Preneurs: berkarya, meningkatkan kualitas, bertumbuh, dan memudahkan akses belajar.",
+      }
+    : {
+        eyebrow: "VISION-MISSION COMMITMENTS",
+        title: "Built for meaningful digital learning impact",
+        description:
+          "A practical snapshot of TP Preneurs' vision and mission: create, improve, grow, and make learning easier to access.",
+      };
 
   return (
-    <section className="grid gap-3 rounded-[24px] bg-white p-3 shadow-[0_14px_34px_rgba(3,76,133,0.08)] dark:bg-slate-900 sm:rounded-[28px] sm:p-5 md:grid-cols-2 xl:grid-cols-4">
-      {items.map(({ title, text, Icon }) => (
-        <div key={title} className="flex gap-3 border-[#dbe6f3] p-2 xl:border-r xl:last:border-r-0 dark:border-slate-800 sm:gap-5 sm:p-3">
-          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#f7fbff] text-[var(--tp-primary)] dark:bg-slate-800 dark:text-sky-300 sm:h-16 sm:w-16">
-            <Icon className="h-6 w-6 sm:h-8 sm:w-8" />
-          </div>
-          <div>
-            <h3 className="text-sm font-black text-[var(--tp-primary)] dark:text-white sm:text-base">{title}</h3>
-            <p className="mt-1 text-sm font-medium leading-6 text-[#557099] dark:text-slate-300 sm:mt-2">
-              {text}
-            </p>
-            <span className="mt-2 block h-1 w-7 rounded-full bg-[var(--tp-accent)] sm:mt-4" />
-          </div>
+    <section className="rounded-[24px] border border-[#dbe6f3] bg-white p-4 shadow-[0_18px_40px_rgba(3,76,133,0.08)] dark:border-slate-800 dark:bg-slate-900 sm:p-5">
+      <div className="grid gap-4 lg:grid-cols-[0.82fr_1.45fr] lg:items-stretch">
+        <div className="rounded-xl bg-[#f7fbff] p-5 dark:bg-slate-950 sm:p-6">
+          <p className="text-xs font-black uppercase tracking-[0.28em] text-[var(--tp-accent)]">
+            {content.eyebrow}
+          </p>
+          <h2 className="mt-3 max-w-md text-2xl font-black leading-tight text-[var(--tp-primary)] dark:text-white sm:text-3xl">
+            {content.title}
+          </h2>
+          <p className="mt-4 max-w-lg text-sm font-medium leading-7 text-[#557099] dark:text-slate-300">
+            {content.description}
+          </p>
         </div>
-      ))}
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          {items.map(({ title, text, Icon }, index) => (
+            <article
+              key={title}
+              className="group min-h-[154px] rounded-lg border border-[#dbe6f3] bg-white p-4 transition duration-300 hover:-translate-y-1 hover:border-[var(--tp-accent)] hover:shadow-[0_16px_30px_rgba(3,76,133,0.14)] dark:border-slate-800 dark:bg-slate-950 dark:hover:border-orange-400 sm:p-5"
+            >
+              <div className="flex items-start gap-4">
+                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-[#edf6ff] text-[var(--tp-primary)] transition duration-300 group-hover:bg-[var(--tp-primary)] group-hover:text-white dark:bg-slate-800 dark:text-sky-300">
+                  <Icon className="h-6 w-6" />
+                </div>
+                <span className="ml-auto text-xs font-black text-[#adc6df] transition duration-300 group-hover:text-[var(--tp-accent)]">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+              </div>
+              <h3 className="mt-4 text-base font-black leading-snug text-[#071a3f] dark:text-white">
+                {title}
+              </h3>
+              <p className="mt-2 text-sm font-medium leading-6 text-[#557099] dark:text-slate-300">
+                {text}
+              </p>
+              <span className="mt-4 block h-1 w-8 rounded-full bg-[var(--tp-accent)] transition-all duration-300 group-hover:w-14" />
+            </article>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }

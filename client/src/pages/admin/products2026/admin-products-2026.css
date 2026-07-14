@@ -445,6 +445,16 @@
   color: #ef394a;
 }
 
+.ap26-status--review_submitted {
+  background: #e8f3ff;
+  color: #005a92;
+}
+
+.ap26-status--needs_revision {
+  background: #fff4de;
+  color: #c25a00;
+}
+
 .ap26-toggle {
   width: 34px;
   height: 19px;

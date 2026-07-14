@@ -59,6 +59,8 @@ const toApiQuery = (query: Seller2026ProductsQuery): SellerProductsApiQuery => {
     apiQuery.status = "active";
   } else if (status === "inactive") {
     apiQuery.status = "inactive";
+  } else if (status === "review_queue") {
+    apiQuery.submissionStatus = "review_queue";
   } else if (status === "submitted") {
     apiQuery.submissionStatus = "submitted";
   } else if (status === "needs_revision") {

@@ -82,6 +82,58 @@ const parseRawCustomization = (raw: string | null) => {
 
 const toText = (value: unknown) => String(value ?? "").trim();
 
+const normalizeComparableText = (value: unknown) =>
+  toText(value).toLowerCase().replace(/\s+/g, " ").replace(/\.+$/g, "").trim();
+
+const legacyAboutUsTeamTitles = new Set([
+  "mission in action",
+  "misi kami",
+]);
+
+const legacyAboutUsTeamDescriptions = new Set([
+  "four operating commitments that keep tp preneurs relevant, useful, and ready to grow",
+  "empat fokus yang menjaga tp preneurs tetap relevan, berdampak, dan siap bertumbuh",
+]);
+
+const legacyAboutUsMemberTitles = new Set([
+  "collaborative creation space",
+  "educational quality first",
+  "edupreneurial spirit",
+  "learning solutions",
+  "ruang kolaborasi cipta karya",
+  "mengutamakan kualitas edukasi",
+  "membangun jiwa edupreneurship",
+  "menghadirkan solusi belajar",
+]);
+
+const isLegacyAboutUsMember = (member: any) =>
+  legacyAboutUsMemberTitles.has(normalizeComparableText(member?.title));
+
+const hasCustomAboutUsMember = (member: any) =>
+  Boolean(
+    (toText(member?.imageDataUrl ?? member?.image) ||
+      toText(member?.title) ||
+      toText(member?.subTitle ?? member?.subtitle)) &&
+      !isLegacyAboutUsMember(member)
+  );
+
+const translateAboutUsTeamTextToIndonesian = (value: unknown) => {
+  const normalized = normalizeComparableText(value);
+  if (
+    normalized ===
+    "get to know the tp preneurs team who keep our work relevant, useful, and ready to grow"
+  ) {
+    return "Kenali tim TP Preneurs yang menjaga karya kami tetap relevan, bermanfaat, dan siap berkembang.";
+  }
+  if (normalized === "tp preneurs developer") {
+    return "Pengembang TP Preneurs";
+  }
+  if (normalized === "our team") {
+    return "Tim Kami";
+  }
+  return toText(value);
+};
+
 const hasSliderContent = (slide: unknown) => {
   if (!slide || typeof slide !== "object" || Array.isArray(slide)) return false;
   const source = slide as Record<string, unknown>;
@@ -147,6 +199,133 @@ const mergeMainSliderMediaFallback = (
     },
   };
 };
+
+const mergeAboutUsMediaFallback = (
+  localized: Record<string, any>,
+  fallback: Record<string, any>
+) => {
+  const localizedAboutUs =
+    localized?.aboutUs && typeof localized.aboutUs === "object"
+      ? localized.aboutUs
+      : {};
+  const fallbackAboutUs =
+    fallback?.aboutUs && typeof fallback.aboutUs === "object"
+      ? fallback.aboutUs
+      : {};
+  const localizedMembers = Array.isArray(localizedAboutUs?.ourTeam?.members)
+    ? localizedAboutUs.ourTeam.members
+    : [];
+  const fallbackMembers = Array.isArray(fallbackAboutUs?.ourTeam?.members)
+    ? fallbackAboutUs.ourTeam.members
+    : [];
+  const localizedPageHeaderImage = toText(
+    localizedAboutUs?.pageHeader?.backgroundImageDataUrl ??
+      localizedAboutUs?.pageHeader?.backgroundImage
+  );
+  const fallbackPageHeaderImage = toText(
+    fallbackAboutUs?.pageHeader?.backgroundImageDataUrl ??
+      fallbackAboutUs?.pageHeader?.backgroundImage
+  );
+  const localizedTopRightImage = toText(
+    localizedAboutUs?.topContentRight?.imageDataUrl ??
+      localizedAboutUs?.topContentRight?.image
+  );
+  const fallbackTopRightImage = toText(
+    fallbackAboutUs?.topContentRight?.imageDataUrl ??
+      fallbackAboutUs?.topContentRight?.image
+  );
+  const localizedContentImage = toText(
+    localizedAboutUs?.contentSection?.contentImageDataUrl ??
+      localizedAboutUs?.contentSection?.imageDataUrl ??
+      localizedAboutUs?.contentSection?.image
+  );
+  const fallbackContentImage = toText(
+    fallbackAboutUs?.contentSection?.contentImageDataUrl ??
+      fallbackAboutUs?.contentSection?.imageDataUrl ??
+      fallbackAboutUs?.contentSection?.image
+  );
+  const fallbackHasCustomTeamMembers = fallbackMembers.some(hasCustomAboutUsMember);
+  const localizedTeamTitle = toText(localizedAboutUs?.ourTeam?.title);
+  const fallbackTeamTitle = toText(fallbackAboutUs?.ourTeam?.title);
+  const localizedTeamDescription = toText(localizedAboutUs?.ourTeam?.description);
+  const fallbackTeamDescription = toText(fallbackAboutUs?.ourTeam?.description);
+  const normalizedLocalizedTeamTitle = normalizeComparableText(localizedTeamTitle);
+  const nextTeamTitle =
+    fallbackHasCustomTeamMembers &&
+    legacyAboutUsTeamTitles.has(normalizedLocalizedTeamTitle)
+      ? normalizedLocalizedTeamTitle === "misi kami"
+        ? "Tim Kami"
+        : fallbackTeamTitle || localizedTeamTitle
+      : localizedTeamTitle;
+  const nextTeamDescription =
+    fallbackHasCustomTeamMembers &&
+    (legacyAboutUsTeamDescriptions.has(normalizeComparableText(localizedTeamDescription)) ||
+      normalizedLocalizedTeamTitle === "misi kami")
+      ? normalizedLocalizedTeamTitle === "misi kami"
+        ? "Kenali tim TP Preneurs yang menjaga karya kami tetap relevan, bermanfaat, dan siap berkembang."
+        : fallbackTeamDescription || localizedTeamDescription
+      : localizedTeamDescription;
+
+  return {
+    ...localized,
+    aboutUs: {
+      ...localizedAboutUs,
+      pageHeader: {
+        ...localizedAboutUs.pageHeader,
+        backgroundImageDataUrl: localizedPageHeaderImage || fallbackPageHeaderImage,
+      },
+      topContentRight: {
+        ...localizedAboutUs.topContentRight,
+        imageDataUrl: localizedTopRightImage || fallbackTopRightImage,
+      },
+      contentSection: {
+        ...localizedAboutUs.contentSection,
+        contentImageDataUrl: localizedContentImage || fallbackContentImage,
+      },
+      ourTeam: {
+        ...localizedAboutUs.ourTeam,
+        title: nextTeamTitle,
+        description: nextTeamDescription,
+        members: localizedMembers
+          .map((member: any, index: number) => {
+            const fallbackMember = fallbackMembers[index];
+            const localizedImage = toText(member?.imageDataUrl ?? member?.image);
+            const fallbackImage = toText(
+              fallbackMember?.imageDataUrl ?? fallbackMember?.image
+            );
+            const shouldUseFallbackMemberText =
+              fallbackHasCustomTeamMembers &&
+              isLegacyAboutUsMember(member) &&
+              hasCustomAboutUsMember(fallbackMember);
+            if (
+              fallbackHasCustomTeamMembers &&
+              isLegacyAboutUsMember(member) &&
+              !hasCustomAboutUsMember(fallbackMember)
+            ) {
+              return { imageDataUrl: "", title: "", subTitle: "" };
+            }
+            return {
+              ...member,
+              imageDataUrl: localizedImage || fallbackImage,
+              title: shouldUseFallbackMemberText
+                ? toText(fallbackMember?.title) || toText(member?.title)
+                : member?.title,
+              subTitle: shouldUseFallbackMemberText
+                ? translateAboutUsTeamTextToIndonesian(
+                    fallbackMember?.subTitle ?? fallbackMember?.subtitle
+                  ) || toText(member?.subTitle ?? member?.subtitle)
+                : translateAboutUsTeamTextToIndonesian(member?.subTitle),
+            };
+          }),
+      },
+    },
+  };
+};
+
+const mergeCustomizationMediaFallback = (
+  localized: Record<string, any>,
+  fallback: Record<string, any>
+) => mergeAboutUsMediaFallback(mergeMainSliderMediaFallback(localized, fallback), fallback);
 
 const normalizeSlug = (value: unknown) =>
   String(value || "")
@@ -382,7 +561,7 @@ router.get("/", async (req, res, next) => {
     const sanitizedSource = sanitizeStoreCustomization(sourcePayload);
     const sanitized =
       row && fallbackRow
-        ? mergeMainSliderMediaFallback(
+        ? mergeCustomizationMediaFallback(
             sanitizedSource,
             sanitizeStoreCustomization(parseStoredCustomization(fallbackRow.data))
           )

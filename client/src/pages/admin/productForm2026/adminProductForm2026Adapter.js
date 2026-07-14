@@ -2,13 +2,15 @@ export const PRODUCT_FORM_2026_STEPS = [
   { id: 1, key: "basic", label: "Basic Info", helper: "Product details" },
   { id: 2, key: "media", label: "Media", helper: "Images & gallery" },
   { id: 3, key: "pricing", label: "Pricing & Stock", helper: "Price & inventory" },
-  { id: 4, key: "details", label: "Details", helper: "Additional info" },
-  { id: 5, key: "review", label: "Review", helper: "Review & publish" },
+  { id: 4, key: "variants", label: "Variants", helper: "Product combinations" },
+  { id: 5, key: "details", label: "Details", helper: "Additional info" },
+  { id: 6, key: "review", label: "Review", helper: "Review & publish" },
 ];
 
 export const createInitialProductForm2026Meta = () => ({
   brand: "",
   productType: "physical",
+  digitalAssetUrl: "",
   enablePromoPrice: false,
   lowStockThreshold: "",
   weight: "",
@@ -79,33 +81,44 @@ export const buildProductForm2026Review = ({
 
 export const getProductForm2026Checklist = ({ form, meta, localImages }) => [
   {
-    label: "Basic Information",
-    helper: form.name && form.storeId && form.sku ? "All required fields are completed." : "Complete name, store, and SKU.",
+    labelKey: "Basic Information",
+    helperKey: form.name && form.storeId && form.sku ? "All required fields are completed." : "Complete name, store, and SKU.",
     done: Boolean(form.name && form.storeId && form.sku),
   },
   {
-    label: "Product Media",
-    helper: localImages.length ? `${localImages.length} image(s) selected.` : "Images are optional, but recommended.",
+    labelKey: "Product Media",
+    helperKey: localImages.length ? "Selected images count" : "Images are optional, but recommended.",
+    helperValues: localImages.length ? { count: localImages.length } : undefined,
     done: true,
   },
   {
-    label: "Pricing & Stock",
-    helper: form.price && String(form.stock || "") !== "" ? "Pricing and inventory look good." : "Add base price and stock.",
+    labelKey: "Pricing & Stock",
+    helperKey: form.price && String(form.stock || "") !== "" ? "Pricing and inventory look good." : "Add base price and stock.",
     done: Boolean(form.price && String(form.stock || "") !== ""),
   },
   {
-    label: "Additional Details",
-    helper: form.categoryIds?.length && form.defaultCategoryId ? "Category and product details added." : "Choose categories and default category.",
+    labelKey: "Additional Details",
+    helperKey: form.categoryIds?.length && form.defaultCategoryId ? "Category and product details added." : "Choose categories and default category.",
     done: Boolean(form.categoryIds?.length && form.defaultCategoryId),
   },
   {
-    label: "Tags & Metadata",
-    helper: form.tags?.length || form.slug ? "Metadata is ready." : "Slug will be generated from product name.",
+    labelKey: "Tags & Metadata",
+    helperKey: form.tags?.length || form.slug ? "Metadata is ready." : "Slug will be generated from product name.",
     done: true,
   },
   {
-    label: "Publication Settings",
-    helper: meta.productType ? "Product is ready for save or publish." : "Choose product type.",
+    labelKey: "Publication Settings",
+    helperKey: meta.productType
+      ? "Product is ready for save or publish."
+      : "Choose product type.",
     done: Boolean(meta.productType),
   },
 ];
+
+export const getSellerProductForm2026Checklist = ({ form, meta, localImages }) =>
+  getProductForm2026Checklist({ form, meta, localImages }).map((item) =>
+    item.labelKey === "Publication Settings" &&
+    item.helperKey === "Product is ready for save or publish."
+      ? { ...item, helperKey: "Product is ready for draft save or review submission." }
+      : item
+  );

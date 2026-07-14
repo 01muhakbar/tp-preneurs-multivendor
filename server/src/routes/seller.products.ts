@@ -29,6 +29,10 @@ import {
   logProductAttributeOwnershipWarnings,
 } from "../services/productAttributeOwnershipWarnings.js";
 import { assertSellerVariationRuntimeValid } from "../services/attributeVariationRuntimeValidation.js";
+import {
+  getProductTypeMetadata,
+  mergeProductTypeMetadataIntoSeo,
+} from "../services/productTypeMetadata.js";
 
 const router = Router();
 const upload = multer({
@@ -775,6 +779,14 @@ const SELLER_AUTHORING_EDITABLE_FIELDS = [
   "imageUrls",
   "tags",
   "seo",
+  "productType",
+  "digitalAssetUrl",
+  "weight",
+  "notes",
+  "length",
+  "width",
+  "height",
+  "dimensions",
   "hasVariants",
   "variations",
 ] as const;
@@ -788,8 +800,6 @@ const SELLER_AUTHORING_DEFERRED_FIELDS = [
   "dangerousProduct",
   "preOrder",
   "preorderDays",
-  "weight",
-  "dimensions",
   "gtin",
   "condition",
   "parentSku",
@@ -1145,8 +1155,6 @@ const buildFieldGovernance = () => ({
     "status",
     "isPublished",
     "wholesale",
-    "weight",
-    "dimensions",
     "dangerousProduct",
     "preOrder",
     "preorderDays",
@@ -1155,7 +1163,7 @@ const buildFieldGovernance = () => ({
     "parentSku",
     "youtubeLink",
   ],
-  adminOwned: ["status", "isPublished", "storeId", "userId", "notes"],
+  adminOwned: ["status", "isPublished", "storeId", "userId"],
   deferred: [...SELLER_AUTHORING_DEFERRED_FIELDS],
 });
 
@@ -1198,10 +1206,31 @@ const parseSellerProductDraftPayload = async (body: any = {}, storeId?: number |
   const price = normalizeOptionalMoney(body?.price);
   const salePrice = normalizeOptionalMoney(body?.salePrice);
   const stock = normalizeOptionalInteger(body?.stock);
+  const weight = normalizeOptionalInteger(body?.weight);
+  const notes = nullableString(body?.notes ?? body?.additionalNotes);
+  const dimensionInput =
+    body?.dimensions && typeof body.dimensions === "object" && !Array.isArray(body.dimensions)
+      ? body.dimensions
+      : {};
+  const length = normalizeOptionalInteger(body?.length ?? (dimensionInput as any)?.length);
+  const width = normalizeOptionalInteger(body?.width ?? (dimensionInput as any)?.width);
+  const height = normalizeOptionalInteger(body?.height ?? (dimensionInput as any)?.height);
   const parsedHasVariants = parseOptionalBooleanInput(body?.hasVariants);
   const hasImageUrls = Array.isArray(body?.imageUrls);
   const tags = normalizeTagListInput(body?.tags);
-  const seo = sanitizeSellerProductSeo(body?.seo);
+  const hasSeoPayload =
+    typeof body?.seo !== "undefined" ||
+    typeof body?.productType !== "undefined" ||
+    typeof body?.digitalAssetUrl !== "undefined";
+  const sanitizedSeo = hasSeoPayload ? sanitizeSellerProductSeo(body?.seo) : undefined;
+  const seo = hasSeoPayload
+    ? typeof body?.productType !== "undefined" || typeof body?.digitalAssetUrl !== "undefined"
+      ? mergeProductTypeMetadataIntoSeo(sanitizedSeo, {
+          productType: body?.productType,
+          digitalAssetUrl: body?.digitalAssetUrl,
+        })
+      : sanitizedSeo
+    : undefined;
   const variationState = normalizeSellerVariationPayload(
     body?.variations,
     parsedHasVariants === null ? undefined : parsedHasVariants
@@ -1276,6 +1305,25 @@ const parseSellerProductDraftPayload = async (body: any = {}, storeId?: number |
     throw error;
   }
 
+  if (typeof weight === "number" && (!Number.isFinite(weight) || weight < 0)) {
+    const error = new Error("Weight must be a valid non-negative number.");
+    (error as any).status = 400;
+    (error as any).code = "SELLER_PRODUCT_WEIGHT_INVALID";
+    throw error;
+  }
+
+  if (
+    [length, width, height].some(
+      (dimension) =>
+        typeof dimension === "number" && (!Number.isFinite(dimension) || dimension < 0)
+    )
+  ) {
+    const error = new Error("Product dimensions must be valid non-negative numbers.");
+    (error as any).status = 400;
+    (error as any).code = "SELLER_PRODUCT_DIMENSIONS_INVALID";
+    throw error;
+  }
+
   if (parsedHasVariants === null) {
     const error = new Error("hasVariants must be provided as a boolean value.");
     (error as any).status = 400;
@@ -1323,6 +1371,11 @@ const parseSellerProductDraftPayload = async (body: any = {}, storeId?: number |
     salePrice:
       typeof salePrice === "number" ? (salePrice > 0 ? salePrice : null) : undefined,
     stock: typeof stock === "number" ? stock : undefined,
+    weight: typeof weight === "number" ? weight : undefined,
+    notes,
+    length: typeof length === "number" ? length : undefined,
+    width: typeof width === "number" ? width : undefined,
+    height: typeof height === "number" ? height : undefined,
     imageUrls,
     tags,
     seo,
@@ -1564,6 +1617,7 @@ const findSellerScopedProductDetail = async (storeId: number, productId: number)
       "youtubeLink",
       "variations",
       "wholesale",
+      "seo",
       "createdAt",
       "updatedAt",
     ],
@@ -1932,6 +1986,7 @@ const serializeProductListItem = (
     visibilityState: visibility.stateCode,
   });
   const availability = serializeProductAvailability(stock);
+  const productTypeMetadata = getProductTypeMetadata({ seo: getAttr(product, "seo") });
 
   return {
     id: toNumber(getAttr(product, "id")),
@@ -1946,6 +2001,8 @@ const serializeProductListItem = (
     publishing,
     storefrontVisibilityState: visibility.stateCode,
     availability,
+    productType: productTypeMetadata.productType,
+    isDigital: productTypeMetadata.isDigital,
     pricing: {
       price,
       salePrice: salePrice && salePrice > 0 ? salePrice : null,
@@ -2034,6 +2091,7 @@ const serializeProductDetail = (
     preOrder: Boolean(getAttr(product, "preOrder")),
     preorderDays: toNumber(getAttr(product, "preorderDays"), 0) || null,
   });
+  const productTypeMetadata = getProductTypeMetadata({ seo: getAttr(product, "seo") });
 
   return {
     id: toNumber(getAttr(product, "id")),
@@ -2048,6 +2106,9 @@ const serializeProductDetail = (
     publishing,
     storefrontVisibilityState: visibility.stateCode,
     availability,
+    productType: productTypeMetadata.productType,
+    isDigital: productTypeMetadata.isDigital,
+    digitalAssetUrl: productTypeMetadata.digitalAssetUrl,
     descriptions: {
       description: getAttr(product, "description")
         ? String(getAttr(product, "description"))
@@ -2994,6 +3055,11 @@ router.post(
         salePrice:
           typeof payload.salePrice === "undefined" ? null : payload.salePrice,
         stock: payload.stock ?? 0,
+        weight: typeof payload.weight === "number" ? payload.weight : null,
+        notes: payload.notes || null,
+        length: typeof payload.length === "number" ? payload.length : null,
+        width: typeof payload.width === "number" ? payload.width : null,
+        height: typeof payload.height === "number" ? payload.height : null,
         categoryId: payload.categoryId,
         defaultCategoryId: payload.defaultCategoryId,
         promoImagePath: Array.isArray(payload.imageUrls) ? payload.imageUrls[0] || null : null,
@@ -3131,6 +3197,16 @@ router.patch(
             ? payload.salePrice
             : getAttr(product, "salePrice"),
         stock: typeof payload.stock === "number" ? payload.stock : getAttr(product, "stock"),
+        weight:
+          typeof payload.weight === "number" ? payload.weight : getAttr(product, "weight"),
+        notes:
+          typeof payload.notes !== "undefined" ? payload.notes : getAttr(product, "notes"),
+        length:
+          typeof payload.length === "number" ? payload.length : getAttr(product, "length"),
+        width:
+          typeof payload.width === "number" ? payload.width : getAttr(product, "width"),
+        height:
+          typeof payload.height === "number" ? payload.height : getAttr(product, "height"),
         categoryId:
           typeof payload.defaultCategoryId !== "undefined"
             ? payload.categoryId
@@ -3150,7 +3226,28 @@ router.patch(
         tags:
           typeof payload.tags !== "undefined" ? payload.tags : getAttr(product, "tags"),
         seo:
-          typeof payload.seo !== "undefined" ? payload.seo : getAttr(product, "seo"),
+          typeof payload.seo !== "undefined"
+            ? (() => {
+                const incomingSeo =
+                  payload.seo && typeof payload.seo === "object" && !Array.isArray(payload.seo)
+                    ? (payload.seo as Record<string, unknown>)
+                    : {};
+                const existingMetadata = getProductTypeMetadata({
+                  seo: getAttr(product, "seo"),
+                });
+                return mergeProductTypeMetadataIntoSeo(payload.seo, {
+                  productType: Object.prototype.hasOwnProperty.call(incomingSeo, "productType")
+                    ? incomingSeo.productType
+                    : existingMetadata.productType,
+                  digitalAssetUrl: Object.prototype.hasOwnProperty.call(
+                    incomingSeo,
+                    "digitalAssetUrl"
+                  )
+                    ? incomingSeo.digitalAssetUrl
+                    : existingMetadata.digitalAssetUrl,
+                });
+              })()
+            : getAttr(product, "seo"),
         variations:
           typeof payload.variations !== "undefined"
             ? payload.variations
@@ -4269,6 +4366,7 @@ router.get(
             "salePrice",
             "stock",
             "variations",
+            "seo",
             "promoImagePath",
             "imagePaths",
             "createdAt",

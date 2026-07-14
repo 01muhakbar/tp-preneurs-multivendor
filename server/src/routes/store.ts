@@ -63,6 +63,7 @@ import {
 } from "../services/splitOperationalTruth.service.js";
 import { hasStorefrontSellableInventory } from "../services/productVisibility.js";
 import { getDefaultAddressByUser } from "../services/userAddress.service.js";
+import { getProductTypeMetadata } from "../services/productTypeMetadata.js";
 import { protect } from "../middleware/authMiddleware.js";
 import {
   checkoutSubmitRateLimit,
@@ -1009,6 +1010,7 @@ const toProductListItem = (product: any) => {
     plain?.seo && typeof plain.seo === "object" && !Array.isArray(plain.seo)
       ? plain.seo
       : {};
+  const productTypeMetadata = getProductTypeMetadata(plain);
   const normalizedTags = Array.isArray(plain?.tags)
     ? plain.tags
         .map((entry: unknown) => String(entry ?? "").trim())
@@ -1050,6 +1052,8 @@ const toProductListItem = (product: any) => {
     storeId: plain?.storeId ?? store?.id ?? null,
     storeSlug: store?.slug ?? null,
     store,
+    productType: productTypeMetadata.productType,
+    isDigital: productTypeMetadata.isDigital,
     seo,
     stock: plain?.stock ?? null,
     preOrder: Boolean(plain?.preOrder),
@@ -1481,6 +1485,7 @@ router.get(
           "weight",
           "condition",
           "variations",
+          "seo",
           "promoImagePath",
           "imagePaths",
           "tags",

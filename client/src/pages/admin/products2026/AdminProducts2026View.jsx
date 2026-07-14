@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  CheckCircle,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -14,7 +15,9 @@ import {
   Package,
   Pencil,
   Plus,
+  RotateCcw,
   Search,
+  ShieldCheck,
   SlidersHorizontal,
   Trash2,
   Upload,
@@ -30,6 +33,7 @@ const getStatusOptions = (t) => [
   { value: "all", label: t("products.All") },
   { value: "published", label: t("products.Published") },
   { value: "unpublished", label: t("products.Draft") },
+  { value: "review_queue", label: t("products.Review Queue") },
 ];
 
 const getStockOptions = (t) => [
@@ -116,7 +120,12 @@ function ProductSkeleton() {
 }
 
 function StatusBadge({ statusCode, statusLabel }) {
-  return <span className={`ap26-status ap26-status--${statusCode}`}>{statusLabel}</span>;
+  const { t } = useTranslation("admin");
+  return (
+    <span className={`ap26-status ap26-status--${statusCode}`}>
+      {t(`products.${statusLabel}`, statusLabel)}
+    </span>
+  );
 }
 
 function PublishToggle({ checked, disabled, busy, onChange }) {
@@ -145,6 +154,8 @@ function MoreActionsMenu({
   onManageInventory,
   onManageVariants,
   onDuplicateProduct,
+  onApproveProduct,
+  onRequestRevision,
   onTogglePublished,
   onDeleteProduct,
 }) {
@@ -187,10 +198,33 @@ function MoreActionsMenu({
             <span>{t("products.Manage Variants")}</span>
           </button>
           <span className="ap26-more-menu__divider" aria-hidden="true" />
+          {product.canApproveReview ? (
+            <>
+              <button
+                type="button"
+                role="menuitem"
+                disabled={disabled || !permissions.canUpdate}
+                onClick={() => runAction(onApproveProduct)}
+              >
+                <CheckCircle size={15} />
+                <span>{t("products.Approve Product")}</span>
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                disabled={disabled || !permissions.canUpdate}
+                onClick={() => runAction(onRequestRevision)}
+              >
+                <RotateCcw size={15} />
+                <span>{t("products.Request Revision")}</span>
+              </button>
+              <span className="ap26-more-menu__divider" aria-hidden="true" />
+            </>
+          ) : null}
           <button
             type="button"
             role="menuitem"
-            disabled={disabled || !permissions.canCreate}
+            disabled={disabled || !permissions.canCreate || product.sellerSubmissionStatus === "submitted"}
             onClick={() => runAction(onDuplicateProduct)}
           >
             <Copy size={15} />
@@ -199,7 +233,7 @@ function MoreActionsMenu({
           <button
             type="button"
             role="menuitem"
-            disabled={disabled || !permissions.canUpdate}
+            disabled={disabled || !permissions.canUpdate || !product.canUseListToggle}
             onClick={() => runAction(onTogglePublished)}
           >
             <Upload size={15} />
@@ -371,6 +405,8 @@ export default function AdminProducts2026View({
   onManageInventory,
   onManageVariants,
   onDuplicateProduct,
+  onApproveProduct,
+  onRequestRevision,
   onDeleteProduct,
   onTogglePublished,
   onExport,
@@ -466,7 +502,7 @@ export default function AdminProducts2026View({
         <KpiCard label={t("products.Total Products")} value={stats.total} helper={t("products.All products")} icon={Package} tone="blue" />
         <KpiCard label={t("products.Published")} value={stats.published} helper={t("products.Loaded active listings")} icon={Package} tone="green" />
         <KpiCard label={t("products.Draft")} value={stats.draft} helper={t("products.Loaded unpublished")} icon={Pencil} tone="orange" />
-        <KpiCard label={t("products.Out of Stock")} value={stats.outOfStock} helper={t("products.Loaded no inventory")} icon={Trash2} tone="red" />
+        <KpiCard label={t("products.Review Queue")} value={stats.reviewQueue} helper={t("products.Awaiting review")} icon={ShieldCheck} tone="blue" />
       </section>
 
       <section className="ap26-toolbar">
@@ -568,6 +604,8 @@ export default function AdminProducts2026View({
                         onManageInventory={onManageInventory}
                         onManageVariants={onManageVariants}
                         onDuplicateProduct={onDuplicateProduct}
+                        onApproveProduct={onApproveProduct}
+                        onRequestRevision={onRequestRevision}
                         onTogglePublished={onTogglePublished}
                         onDeleteProduct={onDeleteProduct}
                       />
@@ -604,7 +642,7 @@ export default function AdminProducts2026View({
                     <PublishToggle
                       checked={product.published}
                       busy={updating}
-                      disabled={!permissions.canUpdate}
+                      disabled={!permissions.canUpdate || !product.canUseListToggle}
                       onChange={() => onTogglePublished(product)}
                     />
                   </div>
@@ -693,7 +731,7 @@ export default function AdminProducts2026View({
                         <PublishToggle
                           checked={product.published}
                           busy={updating}
-                          disabled={!permissions.canUpdate}
+                          disabled={!permissions.canUpdate || !product.canUseListToggle}
                           onChange={() => onTogglePublished(product)}
                         />
                       </td>
@@ -718,6 +756,8 @@ export default function AdminProducts2026View({
                               onManageInventory={onManageInventory}
                               onManageVariants={onManageVariants}
                               onDuplicateProduct={onDuplicateProduct}
+                              onApproveProduct={onApproveProduct}
+                              onRequestRevision={onRequestRevision}
                               onTogglePublished={onTogglePublished}
                               onDeleteProduct={onDeleteProduct}
                             />
@@ -736,9 +776,18 @@ export default function AdminProducts2026View({
 
       <div className="ap26-bulk-bar" data-visible={anySelected ? "true" : "false"}>
         <span>{selectedSet.size} {t("products.selected")}</span>
-        <button type="button" disabled={!permissions.canUpdate || disableMutations} onClick={() => onBulkAction("publish")}>{t("products.Publish")}</button>
-        <button type="button" disabled={!permissions.canUpdate || disableMutations} onClick={() => onBulkAction("unpublish")}>{t("products.Unpublish")}</button>
-        <button type="button" disabled={!permissions.canDelete || disableMutations} onClick={() => onBulkAction("delete")}>{t("products.Delete")}</button>
+        <button type="button" disabled={!permissions.canUpdate || disableMutations} onClick={() => onBulkAction("publish")}>
+          <Upload size={14} />
+          <span>{t("products.Publish")}</span>
+        </button>
+        <button type="button" disabled={!permissions.canUpdate || disableMutations} onClick={() => onBulkAction("unpublish")}>
+          <Download size={14} />
+          <span>{t("products.Unpublish")}</span>
+        </button>
+        <button type="button" disabled={!permissions.canDelete || disableMutations} onClick={() => onBulkAction("delete")}>
+          <Trash2 size={14} />
+          <span>{t("products.Delete")}</span>
+        </button>
       </div>
     </div>
   );
