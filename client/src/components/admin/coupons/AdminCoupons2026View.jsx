@@ -7,7 +7,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  Eye,
   Grid2X2,
+  List,
   MoreVertical,
   Pencil,
   Plus,
@@ -237,6 +239,7 @@ export default function AdminCoupons2026View({
   onSelectOne,
   onSelectAll,
   onAddCoupon,
+  onViewCoupon,
   onEditCoupon,
   onDeleteCoupon,
   onToggleActive,
@@ -249,6 +252,7 @@ export default function AdminCoupons2026View({
   const openMenuRef = useRef(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [openActionMenuId, setOpenActionMenuId] = useState(null);
+  const [viewMode, setViewMode] = useState("table");
 
   const discountTypeOptions = useMemo(
     () => [
@@ -418,17 +422,35 @@ export default function AdminCoupons2026View({
           onChange={(value) => onFilterChange({ status: value === "all" ? "" : value })}
           options={statusOptions}
         />
-        <button
-          type="button"
-          className="ac26-filter-button"
-          onClick={() => setFiltersOpen((open) => !open)}
-        >
-          <SlidersHorizontal size={17} />
-          <span>{t("coupons.Filters", "Filters")}</span>
-        </button>
-        <IconButton label="View options">
-          <Grid2X2 size={18} />
-        </IconButton>
+        <div className="ac26-toolbar__actions">
+          <button
+            type="button"
+            className="ac26-filter-button"
+            onClick={() => setFiltersOpen((open) => !open)}
+            aria-expanded={filtersOpen}
+          >
+            <SlidersHorizontal size={17} />
+            <span>{t("coupons.More", "More")}</span>
+          </button>
+          <div className="ac26-view-toggles">
+            <IconButton
+              label={t("coupons.Table View", "Table View")}
+              className={viewMode === "table" ? "is-active" : ""}
+              onClick={() => setViewMode("table")}
+              aria-pressed={viewMode === "table"}
+            >
+              <List size={18} />
+            </IconButton>
+            <IconButton
+              label={t("coupons.Grid View", "Grid View")}
+              className={viewMode === "grid" ? "is-active" : ""}
+              onClick={() => setViewMode("grid")}
+              aria-pressed={viewMode === "grid"}
+            >
+              <Grid2X2 size={18} />
+            </IconButton>
+          </div>
+        </div>
         {filtersOpen ? (
           <div className="ac26-filter-drawer">
             <button type="button" className="ac26-action" onClick={onResetFilters}>
@@ -468,21 +490,92 @@ export default function AdminCoupons2026View({
             </button>
           </div>
         </section>
+      ) : viewMode === "grid" ? (
+        <section className="ac26-table-card ac26-grid-card">
+          <div className="ac26-grid-view">
+            {safeCoupons.map((coupon) => {
+              const id = Number(coupon.id);
+              const statusObj = resolveCouponStatus(coupon, t);
+              const isStore = String(coupon.scopeType || "PLATFORM").toUpperCase() === "STORE";
+              const storeName = coupon.store?.name || (coupon.storeId ? `Store #${coupon.storeId}` : null);
+              const isActive = resolveCouponActive(coupon);
+              const discountDisplay =
+                coupon.discountType === "fixed"
+                  ? formatCurrency(coupon.amount || 0)
+                  : `${Number(coupon.amount || 0)}% ${t("coupons.OFF", "OFF")}`;
+
+              return (
+                <article key={coupon.id} className={`ac26-grid-item ${selectedSet.has(id) ? "is-selected" : ""}`}>
+                  <div className="ac26-grid-item__header">
+                    <input
+                      type="checkbox"
+                      checked={selectedSet.has(id)}
+                      onChange={() => onSelectOne(id)}
+                      aria-label={`Select ${coupon.code}`}
+                    />
+                    <div ref={openActionMenuId === coupon.id ? openMenuRef : null}>
+                      <RowMoreMenu
+                        coupon={coupon}
+                        disabled={false}
+                        open={openActionMenuId === coupon.id}
+                        onToggle={() =>
+                          setOpenActionMenuId((current) => (current === coupon.id ? null : coupon.id))
+                        }
+                        onEdit={onEditCoupon}
+                        onToggleActive={onToggleActive}
+                        onDelete={onDeleteCoupon}
+                        t={t}
+                      />
+                    </div>
+                  </div>
+                  <div className="ac26-grid-item__body">
+                    <strong>{coupon.campaignName || coupon.code}</strong>
+                    <span className="ac26-coupon-code">{coupon.code}</span>
+                    <div className="ac26-grid-item__badges">
+                      <span className={`ac26-badge ac26-badge--${coupon.discountType === "fixed" ? "fixed" : "percent"}`}>
+                        {discountDisplay}
+                      </span>
+                      <span className={`ac26-badge ac26-badge--${isStore ? "store" : "platform"}`}>
+                        {isStore ? storeName || t("coupons.Store", "Store") : t("coupons.Platform", "Platform")}
+                      </span>
+                      <span className={`ac26-status ac26-status--${statusObj.tone}`}>{statusObj.label}</span>
+                    </div>
+                  </div>
+                  <div className="ac26-grid-item__meta">
+                    <span>{t("coupons.Min spend", "Min spend")}: {formatCurrency(Number(coupon.minSpend || coupon.minimumAmount || 0))}</span>
+                    <span>{formatPeriod(coupon.startDate || coupon.startsAt, coupon.endDate || coupon.expiresAt)}</span>
+                  </div>
+                  <div className="ac26-grid-item__footer">
+                    <span className="ac26-usage">
+                      <strong>{Number(coupon.usedCount || 0)}</strong>
+                      <span>/ {coupon.usageLimit ? Number(coupon.usageLimit) : t("coupons.Unlimited", "Unlimited")}</span>
+                    </span>
+                    <PublishToggle
+                      checked={isActive}
+                      disabled={false}
+                      busy={false}
+                      onChange={() => onToggleActive(coupon)}
+                    />
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
       ) : (
         <div className="ac26-table-card">
           <div className="ac26-table-wrap">
             <table className="ac26-table">
               <colgroup>
                 <col className="ac26-col-select" />
-                <col style={{ width: "24%" }} />
-                <col style={{ width: "12%" }} />
-                <col style={{ width: "12%" }} />
-                <col style={{ width: "12%" }} />
-                <col style={{ width: "16%" }} />
-                <col style={{ width: "9%" }} />
-                <col style={{ width: "8%" }} />
-                <col style={{ width: "8%" }} />
-                <col style={{ width: "7%" }} />
+                <col className="ac26-col-coupon" />
+                <col className="ac26-col-discount" />
+                <col className="ac26-col-min" />
+                <col className="ac26-col-scope" />
+                <col className="ac26-col-period" />
+                <col className="ac26-col-usage" />
+                <col className="ac26-col-state" />
+                <col className="ac26-col-actions" />
               </colgroup>
               <thead>
                 <tr>
@@ -503,7 +596,6 @@ export default function AdminCoupons2026View({
                   <th>{t("coupons.SCOPE", "SCOPE")}</th>
                   <th>{t("coupons.PERIOD", "PERIOD")}</th>
                   <th>{t("coupons.USAGE", "USAGE")}</th>
-                  <th>{t("coupons.PUBLISHED", "PUBLISHED")}</th>
                   <th>{t("coupons.STATUS", "STATUS")}</th>
                   <th>{t("coupons.ACTIONS", "ACTIONS")}</th>
                 </tr>
@@ -562,24 +654,38 @@ export default function AdminCoupons2026View({
                       <td>
                         <span className="ac26-usage">
                           <strong>{Number(coupon.usedCount || 0)}</strong>
-                          <span>/ {coupon.usageLimit ? Number(coupon.usageLimit) : "∞"}</span>
+                          <span title={coupon.usageLimit ? undefined : t("coupons.No limit", "No limit")}>
+                            / {coupon.usageLimit ? Number(coupon.usageLimit) : "-"}
+                          </span>
                         </span>
                       </td>
                       <td>
-                        <PublishToggle
-                          checked={isActive}
-                          disabled={false}
-                          busy={false}
-                          onChange={() => onToggleActive(coupon)}
-                        />
-                      </td>
-                      <td>
-                        <span className={`ac26-status ac26-status--${statusObj.tone}`}>
-                          {statusObj.label}
-                        </span>
+                        <div className="ac26-state-cell">
+                          <PublishToggle
+                            checked={isActive}
+                            disabled={false}
+                            busy={false}
+                            onChange={() => onToggleActive(coupon)}
+                          />
+                          <span className={`ac26-status ac26-status--${statusObj.tone}`}>
+                            {statusObj.label}
+                          </span>
+                        </div>
                       </td>
                       <td>
                         <div className="ac26-actions-cell">
+                          <IconButton
+                            label={`${t("coupons.View Coupon", "View Coupon")} ${coupon.code}`}
+                            onClick={() => (onViewCoupon || onEditCoupon)?.(coupon)}
+                          >
+                            <Eye size={16} />
+                          </IconButton>
+                          <IconButton
+                            label={`${t("coupons.Edit Coupon", "Edit Coupon")} ${coupon.code}`}
+                            onClick={() => onEditCoupon(coupon)}
+                          >
+                            <Pencil size={16} />
+                          </IconButton>
                           <RowMoreMenu
                             coupon={coupon}
                             disabled={false}

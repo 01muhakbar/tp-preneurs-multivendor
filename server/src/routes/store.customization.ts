@@ -134,6 +134,47 @@ const translateAboutUsTeamTextToIndonesian = (value: unknown) => {
   return toText(value);
 };
 
+const translateAboutUsContentSectionTextToIndonesian = (
+  value: unknown,
+  field: "firstParagraph" | "secondParagraph"
+) => {
+  const normalized = normalizeComparableText(value);
+  if (field === "firstParagraph") {
+    if (
+      normalized ===
+        normalizeComparableText(
+          "Our Vision is to become a center of innovation and entrepreneurship for Educational Technology students, producing high-quality, practical, and competitive digital learning media solutions for the community"
+        ) ||
+      normalized ===
+        normalizeComparableText(
+          "To become a center of innovation and entrepreneurship for Educational Technology students, producing high-quality, practical, and competitive digital learning media solutions for society"
+        ) ||
+      normalized ===
+        normalizeComparableText(
+          "Menjadi pusat inovasi dan kewirausahaan bagi mahasiswa Teknologi Pendidikan untuk menghasilkan solusi media pembelajaran digital yang berkualitas, bernilai guna, dan berdaya saing di masyarakat"
+        )
+    ) {
+      return "Visi Kami adalah menjadi pusat inovasi dan kewirausahaan bagi mahasiswa Teknologi Pendidikan, menghasilkan solusi media pembelajaran digital yang berkualitas tinggi, praktis, dan berdaya saing untuk masyarakat.";
+    }
+  }
+  if (field === "secondParagraph") {
+    if (
+      normalized ===
+        normalizeComparableText(
+          "Our mission focuses on collaborative creation, educational quality, edupreneurial growth, and accessible interactive learning solutions for contemporary education"
+        ) ||
+      normalized ===
+        normalizeComparableText(
+          "Misi kami berfokus pada ruang kolaborasi cipta karya, kualitas edukasi, jiwa edupreneurship, dan solusi belajar interaktif yang menjawab tantangan pendidikan masa kini"
+        )
+    ) {
+      return "Misi kami berfokus pada kreasi kolaboratif, kualitas pendidikan, pertumbuhan edupreneurial, dan solusi pembelajaran interaktif yang mudah diakses untuk pendidikan masa kini.";
+    }
+  }
+  return toText(value);
+};
+
+
 const hasSliderContent = (slide: unknown) => {
   if (!slide || typeof slide !== "object" || Array.isArray(slide)) return false;
   const source = slide as Record<string, unknown>;
@@ -280,6 +321,16 @@ const mergeAboutUsMediaFallback = (
       },
       contentSection: {
         ...localizedAboutUs.contentSection,
+        firstParagraph: translateAboutUsContentSectionTextToIndonesian(
+          localizedAboutUs?.contentSection?.firstParagraph ??
+            fallbackAboutUs?.contentSection?.firstParagraph,
+          "firstParagraph"
+        ),
+        secondParagraph: translateAboutUsContentSectionTextToIndonesian(
+          localizedAboutUs?.contentSection?.secondParagraph ??
+            fallbackAboutUs?.contentSection?.secondParagraph,
+          "secondParagraph"
+        ),
         contentImageDataUrl: localizedContentImage || fallbackContentImage,
       },
       ourTeam: {
@@ -560,7 +611,7 @@ router.get("/", async (req, res, next) => {
         : sanitizeStoreCustomization({});
     const sanitizedSource = sanitizeStoreCustomization(sourcePayload);
     const sanitized =
-      row && fallbackRow
+      fallbackRow
         ? mergeCustomizationMediaFallback(
             sanitizedSource,
             sanitizeStoreCustomization(parseStoredCustomization(fallbackRow.data))

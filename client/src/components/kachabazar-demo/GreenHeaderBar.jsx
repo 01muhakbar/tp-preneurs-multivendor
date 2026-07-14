@@ -66,7 +66,7 @@ export default function GreenHeaderBar({
             setSearch={setSearch}
             onSubmit={onSubmit}
             variant="desktop"
-            placeholder="Search for products (e.g. fish, apple, baby care)"
+            placeholder="Search for products, brands, and stores (e.g. book)"
           />
         </div>
         <HeaderActions

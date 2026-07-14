@@ -8,12 +8,192 @@ const toText = (value) => String(value ?? "").trim();
 const fieldClass =
   "h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 placeholder:text-slate-400 shadow-sm shadow-slate-200/40 transition focus:border-[#034c85]/60 focus:outline-none focus:ring-4 focus:ring-[#034c85]/10 disabled:cursor-not-allowed disabled:bg-slate-50";
 
-function FieldRow({ label, children }) {
+export function buildAdminAttributePayload(form) {
+  const trimmedName = toText(form.name);
+  return {
+    name: trimmedName,
+    displayName: toText(form.displayName) || trimmedName,
+    type: toText(form.optionType).toLowerCase() || "dropdown",
+    published: Boolean(form.published),
+    values: Array.isArray(form.variants)
+      ? form.variants.map((entry) => toText(entry)).filter(Boolean)
+      : [],
+  };
+}
+
+export function createAdminAttributeFormState(attribute) {
+  const nextName = toText(attribute?.name);
+  return {
+    name: nextName,
+    displayName: toText(attribute?.displayName ?? attribute?.display_name) || nextName,
+    optionType: toText(attribute?.type).toLowerCase() || "dropdown",
+    published: attribute?.published ?? true,
+    variants: Array.isArray(attribute?.values)
+      ? attribute.values.map((entry) => toText(entry)).filter(Boolean)
+      : [],
+  };
+}
+
+export function FieldRow({ label, children }) {
   return (
     <div className="grid gap-3 px-5 py-4 md:grid-cols-[150px_minmax(0,1fr)] md:items-start">
       <label className="pt-2 text-sm font-semibold text-slate-700">{label}</label>
       <div>{children}</div>
     </div>
+  );
+}
+
+export function AttributeFormPanel({
+  mode = "create",
+  attribute,
+  onSubmit,
+  onCancel,
+  isSubmitting = false,
+  submitError = "",
+  formId = "attribute-form",
+  resetSignal,
+  bodyClassName = "flex-1 overflow-y-auto",
+  footerClassName = "border-t border-slate-200 bg-white px-5 py-4",
+}) {
+  const { t } = useTranslation("admin");
+  const [form, setForm] = useState(() => createAdminAttributeFormState(attribute));
+  const [validationError, setValidationError] = useState("");
+
+  const optionTypeOptions = useMemo(
+    () => [
+      { value: "dropdown", label: t("attributes.Dropdown", "Dropdown") },
+      { value: "radio", label: t("attributes.Radio", "Radio") },
+      { value: "checkbox", label: t("attributes.Checkbox", "Checkbox") },
+    ],
+    [t]
+  );
+
+  useEffect(() => {
+    setForm(createAdminAttributeFormState(attribute));
+    setValidationError("");
+  }, [attribute, resetSignal]);
+
+  const actionLabel =
+    mode === "edit"
+      ? t("attributes.Save Changes", "Save Changes")
+      : t("attributes.Create Attribute", "Create Attribute");
+  const isValid = useMemo(
+    () =>
+      Boolean(toText(form.name)) &&
+      Boolean(toText(form.optionType)),
+    [form.name, form.optionType]
+  );
+  const finalError = validationError || submitError;
+
+  const updateForm = (patch) => setForm((prev) => ({ ...prev, ...patch }));
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    if (isSubmitting) return;
+
+    const trimmedName = toText(form.name);
+    if (!trimmedName) {
+      setValidationError(t("attributes.Attribute title is required.", "Attribute title is required."));
+      return;
+    }
+    if (!toText(form.optionType)) {
+      setValidationError(t("attributes.Option type is required.", "Option type is required."));
+      return;
+    }
+
+    setValidationError("");
+    onSubmit?.(buildAdminAttributePayload(form));
+  };
+
+  return (
+    <>
+      <form id={formId} onSubmit={handleSubmit} className={bodyClassName}>
+        <div className="divide-y divide-slate-200">
+          <FieldRow label={t("attributes.Name", "Name")}>
+            <input
+              value={form.name}
+              onChange={(event) => updateForm({ name: event.target.value })}
+              disabled={isSubmitting}
+              placeholder={t("attributes.Color, Size, Material", "Color, Size, Material")}
+              className={fieldClass}
+            />
+          </FieldRow>
+
+          <FieldRow label={t("attributes.Display", "Display")}>
+            <input
+              value={form.displayName}
+              onChange={(event) => updateForm({ displayName: event.target.value })}
+              disabled={isSubmitting}
+              placeholder={t("attributes.Customer-facing label", "Customer-facing label")}
+              className={fieldClass}
+            />
+          </FieldRow>
+
+          <FieldRow label={t("attributes.Input Type", "Input Type")}>
+            <select
+              value={form.optionType}
+              onChange={(event) => updateForm({ optionType: event.target.value })}
+              disabled={isSubmitting}
+              className={`${fieldClass} appearance-none`}
+            >
+              {optionTypeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </FieldRow>
+
+          <FieldRow label={t("attributes.Status", "Status")}>
+            <select
+              value={form.published ? "published" : "draft"}
+              onChange={(event) => updateForm({ published: event.target.value === "published" })}
+              disabled={isSubmitting}
+              className={`${fieldClass} appearance-none`}
+            >
+              <option value="published">{t("attributes.Published", "Published")}</option>
+              <option value="draft">{t("attributes.Draft", "Draft")}</option>
+            </select>
+          </FieldRow>
+
+          <FieldRow label={t("attributes.Values", "Values")}>
+            <VariantInput
+              value={form.variants}
+              onChange={(variants) => updateForm({ variants })}
+              disabled={isSubmitting}
+              placeholder={t("attributes.Press enter to add variant", "Press enter to add variant")}
+            />
+          </FieldRow>
+        </div>
+
+        {finalError ? (
+          <div className="mx-5 mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            {finalError}
+          </div>
+        ) : null}
+      </form>
+
+      <div className={footerClassName}>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {t("attributes.Cancel", "Cancel")}
+          </button>
+          <button
+            type="submit"
+            form={formId}
+            disabled={isSubmitting || !isValid}
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-[#034c85] px-4 text-sm font-semibold text-white shadow-sm shadow-[#034c85]/25 transition hover:bg-[#023e6d] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isSubmitting ? t("attributes.Saving...", "Saving...") : actionLabel}
+          </button>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -28,83 +208,22 @@ export default function AttributeModal({
 }) {
   const { t } = useTranslation("admin");
   const [language, setLanguage] = useState("en");
-  const [name, setName] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [optionType, setOptionType] = useState("dropdown");
-  const [published, setPublished] = useState(true);
-  const [variants, setVariants] = useState([]);
-  const [validationError, setValidationError] = useState("");
-
-  const optionTypeOptions = useMemo(
-    () => [
-      { value: "dropdown", label: t("attributes.Dropdown", "Dropdown") },
-      { value: "radio", label: t("attributes.Radio", "Radio") },
-      { value: "checkbox", label: t("attributes.Checkbox", "Checkbox") },
-    ],
-    [t]
-  );
 
   useEffect(() => {
     if (!open) return;
-    const nextName = toText(attribute?.name);
-    setName(nextName);
-    setDisplayName(toText(attribute?.displayName ?? attribute?.display_name) || nextName);
-    setOptionType(toText(attribute?.type).toLowerCase() || "dropdown");
-    setPublished(attribute?.published ?? true);
-    setVariants(
-      Array.isArray(attribute?.values)
-        ? attribute.values.map((entry) => toText(entry)).filter(Boolean)
-        : []
-    );
-    setValidationError("");
     setLanguage("en");
-  }, [open, attribute]);
+  }, [open]);
 
   const heading =
     mode === "edit"
       ? t("attributes.Edit Attribute", "Edit Attribute")
       : t("attributes.New Attribute", "New Attribute");
-  const actionLabel =
-    mode === "edit"
-      ? t("attributes.Save Changes", "Save Changes")
-      : t("attributes.Create Attribute", "Create Attribute");
-  const isValid = useMemo(
-    () =>
-      Boolean(toText(name)) &&
-      Boolean(toText(optionType)),
-    [name, optionType]
-  );
-  const finalError = validationError || submitError;
 
   if (!open) return null;
 
   const handleClose = () => {
     if (isSubmitting) return;
     onClose?.();
-  };
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    if (isSubmitting) return;
-
-    const trimmedName = toText(name);
-    if (!trimmedName) {
-      setValidationError(t("attributes.Attribute title is required.", "Attribute title is required."));
-      return;
-    }
-    if (!toText(optionType)) {
-      setValidationError(t("attributes.Option type is required.", "Option type is required."));
-      return;
-    }
-
-    setValidationError("");
-    onSubmit?.({
-      name: trimmedName,
-      displayName: toText(displayName) || trimmedName,
-      type: optionType,
-      published,
-      values: variants,
-    });
   };
 
   return (
@@ -158,92 +277,16 @@ export default function AttributeModal({
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
-          <div className="divide-y divide-slate-200">
-            <FieldRow label={t("attributes.Name", "Name")}>
-              <input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                disabled={isSubmitting}
-                placeholder={t("attributes.Color, Size, Material", "Color, Size, Material")}
-                className={fieldClass}
-              />
-            </FieldRow>
-
-            <FieldRow label={t("attributes.Display", "Display")}>
-              <input
-                value={displayName}
-                onChange={(event) => setDisplayName(event.target.value)}
-                disabled={isSubmitting}
-                placeholder={t("attributes.Customer-facing label", "Customer-facing label")}
-                className={fieldClass}
-              />
-            </FieldRow>
-
-            <FieldRow label={t("attributes.Input Type", "Input Type")}>
-              <select
-                value={optionType}
-                onChange={(event) => setOptionType(event.target.value)}
-                disabled={isSubmitting}
-                className={`${fieldClass} appearance-none`}
-              >
-                {optionTypeOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </FieldRow>
-
-            <FieldRow label={t("attributes.Status", "Status")}>
-              <select
-                value={published ? "published" : "draft"}
-                onChange={(event) => setPublished(event.target.value === "published")}
-                disabled={isSubmitting}
-                className={`${fieldClass} appearance-none`}
-              >
-                <option value="published">{t("attributes.Published", "Published")}</option>
-                <option value="draft">{t("attributes.Draft", "Draft")}</option>
-              </select>
-            </FieldRow>
-
-            <FieldRow label={t("attributes.Values", "Values")}>
-              <VariantInput
-                value={variants}
-                onChange={setVariants}
-                disabled={isSubmitting}
-                placeholder={t("attributes.Press enter to add variant", "Press enter to add variant")}
-              />
-            </FieldRow>
-          </div>
-
-          {finalError ? (
-            <div className="mx-5 mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-              {finalError}
-            </div>
-          ) : null}
-        </form>
-
-        <div className="border-t border-slate-200 bg-white px-5 py-4">
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={handleClose}
-              disabled={isSubmitting}
-              className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {t("attributes.Cancel", "Cancel")}
-            </button>
-            <button
-              type="submit"
-              onClick={handleSubmit}
-              disabled={isSubmitting || !isValid}
-              className="inline-flex h-10 items-center justify-center rounded-lg bg-[#034c85] px-4 text-sm font-semibold text-white shadow-sm shadow-[#034c85]/25 transition hover:bg-[#023e6d] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isSubmitting ? t("attributes.Saving...", "Saving...") : actionLabel}
-            </button>
-          </div>
-        </div>
+        <AttributeFormPanel
+          mode={mode}
+          attribute={attribute}
+          onSubmit={onSubmit}
+          onCancel={handleClose}
+          isSubmitting={isSubmitting}
+          submitError={submitError}
+          formId="attribute-modal-form"
+          resetSignal={open}
+        />
       </aside>
     </div>
   );

@@ -9,6 +9,7 @@ import {
   Download,
   Eye,
   Grid2X2,
+  List,
   ListFilter,
   MoreVertical,
   Package,
@@ -248,6 +249,7 @@ export default function AdminAttributes2026View({
   const openMenuRef = useRef(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [openActionMenuId, setOpenActionMenuId] = useState(null);
+  const [viewMode, setViewMode] = useState("table");
 
   const typeOptions = useMemo(
     () => [
@@ -447,11 +449,26 @@ export default function AdminAttributes2026View({
           onClick={() => setFiltersOpen((open) => !open)}
         >
           <SlidersHorizontal size={17} />
-          <span>{t("attributes.Filters", "Filters")}</span>
+          <span>{t("attributes.More", "More")}</span>
         </button>
-        <IconButton label="View options">
-          <Grid2X2 size={18} />
-        </IconButton>
+        <div className="aa26-view-toggles">
+          <IconButton
+            label={t("attributes.Table View", "Table View")}
+            className={viewMode === "table" ? "is-active" : ""}
+            onClick={() => setViewMode("table")}
+            aria-pressed={viewMode === "table"}
+          >
+            <List size={18} />
+          </IconButton>
+          <IconButton
+            label={t("attributes.Grid View", "Grid View")}
+            className={viewMode === "grid" ? "is-active" : ""}
+            onClick={() => setViewMode("grid")}
+            aria-pressed={viewMode === "grid"}
+          >
+            <Grid2X2 size={18} />
+          </IconButton>
+        </div>
         {filtersOpen ? (
           <div className="aa26-filter-drawer">
             <FieldSelect
@@ -492,6 +509,82 @@ export default function AdminAttributes2026View({
             {t("attributes.Add Attribute", "Add Attribute")}
           </button>
         </section>
+      ) : viewMode === "grid" ? (
+        <section className="aa26-table-card aa26-grid-card">
+          <div className="aa26-grid-view">
+            {attributes.map((attribute) => {
+              const id = Number(attribute.id);
+              const manageable = canManageRow(attribute);
+              const isStoreOwned = String(attribute.scope || "global") === "store";
+              const valueCount = Number(attribute.valueCount || 0) || (Array.isArray(attribute.values) ? attribute.values.length : 0);
+              const typeStr = String(attribute.type || "dropdown").toLowerCase();
+              const typeLabel =
+                typeStr === "dropdown" ? t("attributes.Dropdown", "Dropdown")
+                : typeStr === "radio" ? t("attributes.Radio", "Radio")
+                : typeStr === "checkbox" ? t("attributes.Checkbox", "Checkbox")
+                : String(attribute.type || "Dropdown").replace(/^[a-z]/, (c) => c.toUpperCase());
+              const statusStr = String(attribute.status || "active").toLowerCase();
+              const statusLabel =
+                statusStr === "archived" ? t("attributes.Archived", "Archived")
+                : t("attributes.Active", "Active");
+
+              return (
+                <article key={attribute.id} className={`aa26-grid-item ${selectedSet.has(id) ? "is-selected" : ""}`}>
+                  <div className="aa26-grid-item__header">
+                    <input
+                      type="checkbox"
+                      disabled={!manageable}
+                      checked={selectedSet.has(id)}
+                      onChange={() => onSelectOne(id)}
+                      aria-label={`Select ${attribute.name}`}
+                    />
+                    <div ref={openActionMenuId === id ? openMenuRef : null}>
+                      <RowMoreMenu
+                        attribute={attribute}
+                        disabled={!manageable}
+                        open={openActionMenuId === id}
+                        onToggle={() =>
+                          setOpenActionMenuId((current) => (current === id ? null : id))
+                        }
+                        onEdit={onEditAttribute}
+                        onManageValues={onManageValues}
+                        onTogglePublished={onTogglePublished}
+                        onDelete={onDeleteAttribute}
+                      />
+                    </div>
+                  </div>
+                  <div className="aa26-grid-item__body">
+                    <strong>{attribute.name}</strong>
+                    <span>{attribute.displayName || "-"}</span>
+                    <div className="aa26-grid-item__badges">
+                      <span className={`aa26-badge aa26-badge--${typeStr}`}>{typeLabel}</span>
+                      <span className={`aa26-badge aa26-badge--${isStoreOwned ? "store" : "global"}`}>
+                        {isStoreOwned
+                          ? (attribute.storeName ? `${t("attributes.Store", "Store")}: ${attribute.storeName}` : t("attributes.Store", "Store"))
+                          : t("attributes.Global", "Global")}
+                      </span>
+                      <span className={`aa26-status aa26-status--${statusStr}`}>{statusLabel}</span>
+                    </div>
+                  </div>
+                  <div className="aa26-grid-item__footer">
+                    <button
+                      type="button"
+                      className="aa26-values-pill"
+                      onClick={() => onManageValues(attribute)}
+                    >
+                      <span>{valueCount} {isIndo ? "nilai" : (valueCount === 1 ? "value" : "values")}</span>
+                    </button>
+                    <PublishToggle
+                      checked={Boolean(attribute.published)}
+                      disabled={!manageable}
+                      onChange={() => onTogglePublished(attribute)}
+                    />
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
       ) : (
         <div className="aa26-table-card">
           <div className="aa26-table-wrap">
@@ -503,7 +596,6 @@ export default function AdminAttributes2026View({
                 <col className="aa26-col-scope" />
                 <col className="aa26-col-values" />
                 <col className="aa26-col-status" />
-                <col className="aa26-col-updated" />
                 <col className="aa26-col-published" />
                 <col className="aa26-col-actions" />
               </colgroup>
@@ -523,7 +615,6 @@ export default function AdminAttributes2026View({
                   <th>{t("attributes.SCOPE", "SCOPE")}</th>
                   <th>{t("attributes.VALUES", "VALUES")}</th>
                   <th>{t("attributes.STATUS", "STATUS")}</th>
-                  <th>{t("attributes.UPDATED", "UPDATED")}</th>
                   <th>{t("attributes.PUBLISHED", "PUBLISHED")}</th>
                   <th>{t("attributes.ACTIONS", "ACTIONS")}</th>
                 </tr>
@@ -591,9 +682,6 @@ export default function AdminAttributes2026View({
                         <span className={`aa26-status aa26-status--${statusStr}`}>
                           {statusLabel}
                         </span>
-                      </td>
-                      <td>
-                        <span>{formatRelativeOrDate(attribute.updatedAt || attribute.createdAt, isIndo)}</span>
                       </td>
                       <td>
                         <PublishToggle

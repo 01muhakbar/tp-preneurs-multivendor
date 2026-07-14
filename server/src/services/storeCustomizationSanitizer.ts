@@ -312,7 +312,7 @@ const DEFAULT_CUSTOMIZATION = {
     contentSection: {
       enabled: true,
       firstParagraph:
-        "To become a center of innovation and entrepreneurship for Educational Technology students, producing high-quality, practical, and competitive digital learning media solutions for society.",
+        "Our Vision is to become a center of innovation and entrepreneurship for Educational Technology students, producing high-quality, practical, and competitive digital learning media solutions for the community.",
       secondParagraph:
         "Our mission focuses on collaborative creation, educational quality, edupreneurial growth, and accessible interactive learning solutions for contemporary education.",
       contentImageDataUrl: "",

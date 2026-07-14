@@ -106,7 +106,49 @@ const getStoreLang = (i18n) => {
   return activeLanguage.startsWith("id") || normalizedStored === "indonesia" ? "id" : "en";
 };
 
-const normalizeAboutUs = (raw) => {
+const normalizeComparableContentText = (value) =>
+  toText(value, "").toLowerCase().replace(/\s+/g, " ").replace(/[.。]+$/g, "").trim();
+
+const translateContentSectionToIndonesian = (value, field, isIndonesian) => {
+  const normalized = toText(value, "");
+  if (!isIndonesian || !normalized) return normalized;
+  const comparable = normalizeComparableContentText(normalized);
+  if (field === "firstParagraph") {
+    if (
+      comparable ===
+        normalizeComparableContentText(
+          "Our Vision is to become a center of innovation and entrepreneurship for Educational Technology students, producing high-quality, practical, and competitive digital learning media solutions for the community"
+        ) ||
+      comparable ===
+        normalizeComparableContentText(
+          "To become a center of innovation and entrepreneurship for Educational Technology students, producing high-quality, practical, and competitive digital learning media solutions for society"
+        ) ||
+      comparable ===
+        normalizeComparableContentText(
+          "Menjadi pusat inovasi dan kewirausahaan bagi mahasiswa Teknologi Pendidikan untuk menghasilkan solusi media pembelajaran digital yang berkualitas, bernilai guna, dan berdaya saing di masyarakat"
+        )
+    ) {
+      return "Visi Kami adalah menjadi pusat inovasi dan kewirausahaan bagi mahasiswa Teknologi Pendidikan, menghasilkan solusi media pembelajaran digital yang berkualitas tinggi, praktis, dan berdaya saing untuk masyarakat.";
+    }
+  }
+  if (field === "secondParagraph") {
+    if (
+      comparable ===
+        normalizeComparableContentText(
+          "Our mission focuses on collaborative creation, educational quality, edupreneurial growth, and accessible interactive learning solutions for contemporary education"
+        ) ||
+      comparable ===
+        normalizeComparableContentText(
+          "Misi kami berfokus pada ruang kolaborasi cipta karya, kualitas edukasi, jiwa edupreneurship, dan solusi belajar interaktif yang menjawab tantangan pendidikan masa kini"
+        )
+    ) {
+      return "Misi kami berfokus pada kreasi kolaboratif, kualitas pendidikan, pertumbuhan edupreneurial, dan solusi pembelajaran interaktif yang mudah diakses untuk pendidikan masa kini.";
+    }
+  }
+  return normalized;
+};
+
+const normalizeAboutUs = (raw, isIndonesian = false) => {
   const source = raw && typeof raw === "object" ? raw : {};
   const pageHeader = source.pageHeader && typeof source.pageHeader === "object" ? source.pageHeader : {};
   const topContentLeft =
@@ -184,13 +226,21 @@ const normalizeAboutUs = (raw) => {
     },
     contentSection: {
       enabled: toBool(contentSection.enabled, DEFAULT_ABOUT_US_DISABLED.contentSection.enabled),
-      firstParagraph: toText(
-        contentSection.firstParagraph,
-        DEFAULT_ABOUT_US_DISABLED.contentSection.firstParagraph
+      firstParagraph: translateContentSectionToIndonesian(
+        toText(
+          contentSection.firstParagraph,
+          DEFAULT_ABOUT_US_DISABLED.contentSection.firstParagraph
+        ),
+        "firstParagraph",
+        isIndonesian
       ),
-      secondParagraph: toText(
-        contentSection.secondParagraph,
-        DEFAULT_ABOUT_US_DISABLED.contentSection.secondParagraph
+      secondParagraph: translateContentSectionToIndonesian(
+        toText(
+          contentSection.secondParagraph,
+          DEFAULT_ABOUT_US_DISABLED.contentSection.secondParagraph
+        ),
+        "secondParagraph",
+        isIndonesian
       ),
       contentImageDataUrl: toImageDataUrl(
         contentSection.contentImageDataUrl,
@@ -330,7 +380,7 @@ export default function StoreAboutUsPage() {
 
   const customization = aboutUsQuery.data?.customization;
   const aboutUsRaw = customization?.aboutUs;
-  const aboutUs = useMemo(() => normalizeAboutUs(aboutUsRaw), [aboutUsRaw]);
+  const aboutUs = useMemo(() => normalizeAboutUs(aboutUsRaw, isIndonesian), [aboutUsRaw, isIndonesian]);
   const topContentLeftBoxes = useMemo(
     () =>
       [aboutUs.topContentLeft.boxOne, aboutUs.topContentLeft.boxTwo, aboutUs.topContentLeft.boxThree].filter(

@@ -664,7 +664,6 @@ export default function AdminProducts2026View({
                 <col className="ap26-col-sale" />
                 <col className="ap26-col-stock" />
                 <col className="ap26-col-status" />
-                <col className="ap26-col-updated" />
                 <col className="ap26-col-published" />
                 <col className="ap26-col-actions" />
               </colgroup>
@@ -684,7 +683,6 @@ export default function AdminProducts2026View({
                   <th>{t("products.Sale Price")}</th>
                   <th>{t("products.Stock")}</th>
                   <th>{t("products.Status")}</th>
-                  <th>{t("products.Updated")}</th>
                   <th>{t("products.Published")}</th>
                   <th>{t("products.Actions")}</th>
                 </tr>
@@ -726,7 +724,6 @@ export default function AdminProducts2026View({
                       <td data-label={t("products.Sale Price")} className={product.salePrice ? "ap26-sale-price" : ""}>{product.salePriceLabel}</td>
                       <td data-label={t("products.Stock")}>{product.stock}</td>
                       <td data-label={t("products.Status")}><StatusBadge statusCode={product.statusCode} statusLabel={product.statusLabel} /></td>
-                      <td data-label={t("products.Updated")}>{product.updatedLabel}</td>
                       <td data-label={t("products.Published")}>
                         <PublishToggle
                           checked={product.published}

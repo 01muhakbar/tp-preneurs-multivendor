@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Download,
@@ -101,6 +102,17 @@ const EXPORT_COLUMNS = [
   { key: "bannerImageUrl", label: "Banner Image URL" },
 ];
 const EMPTY_COUPONS = [];
+
+export const invalidateAdminCouponSurfaces = (queryClient) =>
+  Promise.all([
+    queryClient.invalidateQueries({ queryKey: ["admin-coupons"] }),
+    queryClient.invalidateQueries({ queryKey: ["admin-coupon-meta"] }),
+    queryClient.invalidateQueries({ queryKey: ["admin-coupons", "offers-select"] }),
+    queryClient.invalidateQueries({ queryKey: ["storefront", "home-page-coupons"] }),
+    queryClient.invalidateQueries({ queryKey: ["store-coupons"] }),
+    queryClient.invalidateQueries({ queryKey: ["seller2026", "coupons"] }),
+    queryClient.invalidateQueries({ queryKey: ["seller", "coupons"] }),
+  ]);
 
 const toText = (value) => String(value ?? "").trim();
 
@@ -254,6 +266,7 @@ function CouponDiscountTypeBadge({ coupon }) {
 
 export default function AdminCouponsPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const bulkMenuRef = useRef(null);
   const exportMenuRef = useRef(null);
   const viewMenuRef = useRef(null);
@@ -307,7 +320,7 @@ export default function AdminCouponsPage() {
   const createMutation = useMutation({
     mutationFn: createAdminCoupon,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin-coupons"] });
+      invalidateAdminCouponSurfaces(qc);
       showNotice("Coupon created.");
       setIsAddDrawerOpen(false);
     },
@@ -319,7 +332,7 @@ export default function AdminCouponsPage() {
   const updateMutation = useMutation({
     mutationFn: ({ id, payload }) => updateAdminCoupon(id, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin-coupons"] });
+      invalidateAdminCouponSurfaces(qc);
       showNotice("Coupon updated.");
       setIsEditDrawerOpen(false);
       setEditingCoupon(null);
@@ -343,7 +356,7 @@ export default function AdminCouponsPage() {
   const importMutation = useMutation({
     mutationFn: importAdminCoupons,
     onSuccess: async (result) => {
-      await qc.invalidateQueries({ queryKey: ["admin-coupons"] });
+      await invalidateAdminCouponSurfaces(qc);
       setIsImportModalOpen(false);
       const summary = result?.data || result || {};
       const created = Number(summary.created || 0);
@@ -362,7 +375,7 @@ export default function AdminCouponsPage() {
   const bulkMutation = useMutation({
     mutationFn: ({ action, ids }) => bulkAdminCoupons(action, ids),
     onSuccess: async (_result, variables) => {
-      await qc.invalidateQueries({ queryKey: ["admin-coupons"] });
+      await invalidateAdminCouponSurfaces(qc);
       setSelectedIds(new Set());
       const actionLabel =
         variables.action === "activate"
@@ -380,7 +393,7 @@ export default function AdminCouponsPage() {
   const toggleMutation = useMutation({
     mutationFn: ({ id, active }) => updateAdminCoupon(id, { active }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin-coupons"] });
+      invalidateAdminCouponSurfaces(qc);
     },
   });
 
@@ -527,7 +540,7 @@ export default function AdminCouponsPage() {
 
   const openCreate = () => {
     createMutation.reset();
-    setIsAddDrawerOpen(true);
+    navigate("/admin/catalog/coupons/new");
   };
 
   const closeCreateDrawer = () => {
@@ -710,7 +723,7 @@ export default function AdminCouponsPage() {
       } else {
         return;
       }
-      await qc.invalidateQueries({ queryKey: ["admin-coupons"] });
+      await invalidateAdminCouponSurfaces(qc);
       closeDeleteModal();
     } catch (error) {
       setDeleteModalError(error?.response?.data?.message || GENERIC_ERROR);
@@ -869,6 +882,7 @@ export default function AdminCouponsPage() {
         onSelectOne={toggleSelectRow}
         onSelectAll={toggleSelectAll}
         onAddCoupon={openCreate}
+        onViewCoupon={openEdit}
         onEditCoupon={openEdit}
         onDeleteCoupon={handleDeleteOne}
         onToggleActive={handleTogglePublished}

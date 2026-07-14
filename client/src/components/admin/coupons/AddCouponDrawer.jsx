@@ -33,7 +33,20 @@ const revokeObjectUrl = (value) => {
 
 const sectionCardClass = "rounded-2xl border border-slate-200 bg-white p-4 shadow-sm";
 
-function CouponDrawerSectionHeader({ eyebrow, title, description, meta }) {
+function CouponDrawerSectionHeader({ eyebrow, title, description, meta, compact = false }) {
+  if (compact) {
+    return (
+      <div className="acf26-section-head">
+        <div>
+          <p>{eyebrow}</p>
+          <h3>{title}</h3>
+          {description ? <span>{description}</span> : null}
+        </div>
+        {meta ? <strong>{meta}</strong> : null}
+      </div>
+    );
+  }
+
   return (
     <div className="mb-3 flex flex-col gap-2 border-b border-slate-100 pb-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="space-y-1">
@@ -52,13 +65,21 @@ function CouponDrawerSectionHeader({ eyebrow, title, description, meta }) {
   );
 }
 
-export default function AddCouponDrawer({
-  open,
-  onClose,
+export function AddCouponFormPanel({
+  onCancel = () => {},
   onSubmit,
   isSubmitting,
   error,
   storeOptions = [],
+  resetSignal,
+  showHeader = true,
+  formId,
+  formClassName = "flex min-h-0 flex-1 flex-col",
+  bodyClassName = "flex-1 space-y-4 overflow-y-auto px-6 py-5",
+  footerClassName = "sticky bottom-0 border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur",
+  headerClassName = "border-b border-slate-200 px-6 py-5",
+  closeAriaLabel = "Close drawer",
+  compact = false,
 }) {
   const { t } = useTranslation("admin");
   const [form, setForm] = useState(initialForm);
@@ -76,7 +97,7 @@ export default function AddCouponDrawer({
     setBannerUploading(false);
     setBannerUploadError("");
     setValidationError("");
-  }, [open]);
+  }, [resetSignal]);
 
   useEffect(() => {
     return () => {
@@ -211,21 +232,24 @@ export default function AddCouponDrawer({
     });
   };
 
-  if (!open) return null;
-
   const bannerPreviewSrc = bannerPreview || resolveAssetUrl(form.bannerImageUrl);
+  const cardClass = compact ? "acf26-section" : sectionCardClass;
+  const inputFocusClass = compact ? " focus:border-[#034c85] focus:ring-2 focus:ring-[#034c85]/10" : " focus:border-emerald-500";
+  const activeSegmentClass = compact
+    ? "bg-[#034c85] text-white shadow-sm"
+    : "bg-white text-emerald-700 shadow-sm";
+  const inactiveSegmentClass = compact
+    ? "text-slate-600 hover:text-[#034c85]"
+    : "text-slate-600 hover:text-slate-800";
+  const toggleActiveClass = compact ? "bg-[#034c85]" : "bg-emerald-500";
+  const uploadAccentClass = compact
+    ? "bg-[#034c85]/10 text-[#034c85]"
+    : "bg-emerald-100 text-emerald-700";
 
   return (
-    <div className="fixed inset-0 z-50">
-      <button
-        type="button"
-        className="absolute inset-0 bg-slate-900/45"
-        onClick={() => !isSubmitting && onClose()}
-        aria-label="Close add coupon drawer"
-      />
-
-      <aside className="absolute right-0 top-0 flex h-full w-full max-w-[620px] flex-col border-l border-slate-200 bg-white shadow-2xl">
-        <header className="border-b border-slate-200 px-6 py-5">
+    <>
+        {showHeader ? (
+        <header className={headerClassName}>
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
@@ -249,26 +273,28 @@ export default function AddCouponDrawer({
                 </span>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => !isSubmitting && onClose()}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-              aria-label="Close drawer"
-              disabled={isSubmitting}
-            >
+              <button
+                type="button"
+              onClick={() => !isSubmitting && onCancel()}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+              aria-label={closeAriaLabel}
+                disabled={isSubmitting}
+              >
               <X className="h-4 w-4" />
             </button>
           </div>
         </header>
+        ) : null}
 
-        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-          <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
-            <section className={sectionCardClass}>
+        <form id={formId} onSubmit={handleSubmit} className={formClassName}>
+          <div className={bodyClassName}>
+            <section className={cardClass}>
               <CouponDrawerSectionHeader
-                eyebrow="Basic Info"
-                title="Define campaign identity first"
-                description="Set the code, scope, and campaign label that admin will recognize during checkout reviews."
-                meta={form.code ? `${form.scopeType} / ${form.code}` : `${form.scopeType} / Code pending`}
+                eyebrow={compact ? "Info" : "Basic Info"}
+                title={compact ? "Campaign details" : "Define campaign identity first"}
+                description={compact ? "" : "Set the code, scope, and campaign label that admin will recognize during checkout reviews."}
+                meta={form.code ? `${form.scopeType} / ${form.code}` : compact ? form.scopeType : `${form.scopeType} / Code pending`}
+                compact={compact}
               />
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <div>
@@ -278,7 +304,7 @@ export default function AddCouponDrawer({
                   <select
                     value={form.language}
                     onChange={(event) => setField({ language: event.target.value })}
-                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
+                    className={`h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none${inputFocusClass}`}
                   >
                     <option value="en">English</option>
                     <option value="id">Bahasa Indonesia</option>
@@ -296,7 +322,7 @@ export default function AddCouponDrawer({
                         storeId: event.target.value === "STORE" ? form.storeId : "",
                       })
                     }
-                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
+                    className={`h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none${inputFocusClass}`}
                     disabled={isSubmitting}
                   >
                     <option value="PLATFORM">Platform / Global</option>
@@ -313,7 +339,7 @@ export default function AddCouponDrawer({
                       setField({ code: event.target.value.toUpperCase().replace(/\s+/g, "") })
                     }
                     placeholder="WEEKEND25"
-                    className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm uppercase text-slate-700 focus:border-emerald-500 focus:outline-none"
+                    className={`h-11 w-full rounded-xl border border-slate-200 px-3 text-sm uppercase text-slate-700 focus:outline-none${inputFocusClass}`}
                     disabled={isSubmitting}
                     required
                   />
@@ -326,7 +352,7 @@ export default function AddCouponDrawer({
                     <select
                       value={form.storeId}
                       onChange={(event) => setField({ storeId: event.target.value })}
-                      className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
+                      className={`h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none${inputFocusClass}`}
                       disabled={isSubmitting}
                       required
                     >
@@ -348,7 +374,7 @@ export default function AddCouponDrawer({
                     value={form.campaignName}
                     onChange={(event) => setField({ campaignName: event.target.value })}
                     placeholder="Weekend Grocery Sale"
-                    className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
+                    className={`h-11 w-full rounded-xl border border-slate-200 px-3 text-sm text-slate-700 focus:outline-none${inputFocusClass}`}
                     disabled={isSubmitting}
                     required
                   />
@@ -356,12 +382,13 @@ export default function AddCouponDrawer({
               </div>
             </section>
 
-            <section className={sectionCardClass}>
+            <section className={cardClass}>
               <CouponDrawerSectionHeader
-                eyebrow="Discount Setup"
-                title="Group discount value with order threshold"
-                description="Keep discount type, amount, and minimum order together so the promotion rule stays easy to review."
+                eyebrow={compact ? "Discount" : "Discount Setup"}
+                title={compact ? "Discount rule" : "Group discount value with order threshold"}
+                description={compact ? "" : "Keep discount type, amount, and minimum order together so the promotion rule stays easy to review."}
                 meta={form.discountType === "percent" ? "Percent mode" : "Fixed mode"}
+                compact={compact}
               />
               <div className="mt-4 space-y-4">
                 <div>
@@ -374,8 +401,8 @@ export default function AddCouponDrawer({
                       onClick={() => setField({ discountType: "percent" })}
                       className={`h-10 rounded-lg text-sm font-semibold transition ${
                         form.discountType === "percent"
-                          ? "bg-white text-emerald-700 shadow-sm"
-                          : "text-slate-600 hover:text-slate-800"
+                          ? activeSegmentClass
+                          : inactiveSegmentClass
                       }`}
                       disabled={isSubmitting}
                     >
@@ -386,8 +413,8 @@ export default function AddCouponDrawer({
                       onClick={() => setField({ discountType: "fixed" })}
                       className={`h-10 rounded-lg text-sm font-semibold transition ${
                         form.discountType === "fixed"
-                          ? "bg-white text-emerald-700 shadow-sm"
-                          : "text-slate-600 hover:text-slate-800"
+                          ? activeSegmentClass
+                          : inactiveSegmentClass
                       }`}
                       disabled={isSubmitting}
                     >
@@ -414,7 +441,7 @@ export default function AddCouponDrawer({
                         step="1"
                         value={form.amount}
                         onChange={(event) => setField({ amount: event.target.value })}
-                        className={`h-11 w-full rounded-xl border border-slate-200 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none ${
+                        className={`h-11 w-full rounded-xl border border-slate-200 text-sm text-slate-700 focus:outline-none${inputFocusClass} ${
                           discountInputAffix.prefix ? "pl-10 pr-3" : "pl-3 pr-10"
                         }`}
                         disabled={isSubmitting}
@@ -442,26 +469,29 @@ export default function AddCouponDrawer({
                         step="1"
                         value={form.minSpend}
                         onChange={(event) => setField({ minSpend: event.target.value })}
-                        className="h-11 w-full rounded-xl border border-slate-200 pl-10 pr-3 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
+                        className={`h-11 w-full rounded-xl border border-slate-200 pl-10 pr-3 text-sm text-slate-700 focus:outline-none${inputFocusClass}`}
                         disabled={isSubmitting}
                       />
                     </div>
                   </div>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-500">
-                  {form.discountType === "percent"
-                    ? "Use percentage campaigns for broad promotions, then set a minimum amount if the coupon should only apply to larger carts."
-                    : "Use fixed discounts for nominal promos and confirm the minimum order so the campaign stays profitable."}
+                  {compact
+                    ? "Set a minimum order only when needed."
+                    : form.discountType === "percent"
+                      ? "Use percentage campaigns for broad promotions, then set a minimum amount if the coupon should only apply to larger carts."
+                      : "Use fixed discounts for nominal promos and confirm the minimum order so the campaign stays profitable."}
                 </div>
               </div>
             </section>
 
-            <section className={sectionCardClass}>
+            <section className={cardClass}>
               <CouponDrawerSectionHeader
-                eyebrow="Validity"
-                title="Confirm active window and storefront visibility"
-                description="Review the campaign schedule and decide whether checkout should see it immediately after save."
+                eyebrow={compact ? "Schedule" : "Validity"}
+                title={compact ? "Validity" : "Confirm active window and storefront visibility"}
+                description={compact ? "" : "Review the campaign schedule and decide whether checkout should see it immediately after save."}
                 meta={form.endDate ? `Ends ${form.endDate}` : "No expiry yet"}
+                compact={compact}
               />
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <div>
@@ -472,7 +502,7 @@ export default function AddCouponDrawer({
                     type="date"
                     value={form.startDate}
                     onChange={(event) => setField({ startDate: event.target.value })}
-                    className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
+                    className={`h-11 w-full rounded-xl border border-slate-200 px-3 text-sm text-slate-700 focus:outline-none${inputFocusClass}`}
                     disabled={isSubmitting}
                   />
                 </div>
@@ -484,7 +514,7 @@ export default function AddCouponDrawer({
                     type="date"
                     value={form.endDate}
                     onChange={(event) => setField({ endDate: event.target.value })}
-                    className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
+                    className={`h-11 w-full rounded-xl border border-slate-200 px-3 text-sm text-slate-700 focus:outline-none${inputFocusClass}`}
                     disabled={isSubmitting}
                   />
                 </div>
@@ -500,7 +530,7 @@ export default function AddCouponDrawer({
                     onClick={() => setField({ active: !form.active })}
                     disabled={isSubmitting}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
-                      form.active ? "bg-emerald-500" : "bg-slate-300"
+                      form.active ? toggleActiveClass : "bg-slate-300"
                     } disabled:cursor-not-allowed disabled:opacity-60`}
                     aria-label="Toggle published"
                   >
@@ -512,6 +542,7 @@ export default function AddCouponDrawer({
                   </button>
                 </div>
               </div>
+              {!compact ? (
               <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-semibold text-slate-500">
                 <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1">
                   {form.startDate ? `Starts ${form.startDate}` : "Start date optional"}
@@ -526,15 +557,18 @@ export default function AddCouponDrawer({
                   {form.active ? "Visible after save" : "Hidden after save"}
                 </span>
               </div>
+              ) : null}
             </section>
 
-            <section className={sectionCardClass}>
-              <h3 className="text-base font-semibold text-slate-900">Banner Image</h3>
-              <p className="mt-1 text-xs text-slate-500">
-                Upload a campaign banner and save its shared media URL to this coupon.
-              </p>
+            <section className={cardClass}>
+              <h3 className={compact ? "acf26-simple-title" : "text-base font-semibold text-slate-900"}>Banner</h3>
+              {!compact ? (
+                <p className="mt-1 text-xs text-slate-500">
+                  Upload a campaign banner and save its shared media URL to this coupon.
+                </p>
+              ) : null}
               <div className="mt-4">
-                <label className="block cursor-pointer rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 transition hover:border-emerald-400 hover:bg-emerald-50/40">
+                <label className={`block cursor-pointer rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 transition ${compact ? "hover:border-[#fe6f05] hover:bg-[#fe6f05]/5" : "hover:border-emerald-400 hover:bg-emerald-50/40"}`}>
                   <input
                     type="file"
                     accept="image/png,image/jpeg,image/webp"
@@ -580,16 +614,16 @@ export default function AddCouponDrawer({
                     </div>
                   ) : (
                     <div className="flex items-center gap-3 text-sm text-slate-600">
-                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                      <span className={`inline-flex h-10 w-10 items-center justify-center rounded-full ${uploadAccentClass}`}>
                         <ImagePlus className="h-5 w-5" />
                       </span>
                       <div>
                         <p className="font-medium">
-                          {bannerUploading ? "Uploading banner image..." : "Upload banner image"}
+                          {bannerUploading ? "Uploading..." : compact ? "Upload banner" : "Upload banner image"}
                         </p>
-                        <p className="text-xs text-slate-500">
+                        {!compact ? <p className="text-xs text-slate-500">
                           PNG/JPG/WebP, stored in shared admin uploads.
-                        </p>
+                        </p> : null}
                       </div>
                       <UploadCloud className="ml-auto h-5 w-5 text-slate-400" />
                     </div>
@@ -610,31 +644,31 @@ export default function AddCouponDrawer({
             ) : null}
           </div>
 
-          <footer className="sticky bottom-0 border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur">
+          <footer className={footerClassName}>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="space-y-1 text-xs text-slate-500">
                 <p className="font-semibold uppercase tracking-[0.08em] text-slate-500">
-                  Coupon Action Panel
+                  {compact ? "Action" : "Coupon Action Panel"}
                 </p>
-                <p>
+                {!compact ? <p>
                   {form.code
                     ? `${form.code} will be saved as a ${form.discountType === "percent" ? "percentage" : "fixed"} campaign.`
                     : "Review campaign code, discount rule, and validity before saving this coupon."}
-                </p>
+                </p> : null}
               </div>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:min-w-[280px]">
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={onCancel}
                   disabled={isSubmitting}
-                  className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:border-slate-300"
+                  className={`inline-flex h-11 items-center justify-center rounded-xl border px-4 text-sm font-semibold ${compact ? "border-[#034c85]/20 text-[#034c85] hover:border-[#034c85]/45 hover:bg-[#034c85]/5" : "border-slate-200 text-slate-700 hover:border-slate-300"}`}
                 >
                   {t("coupons.Cancel", "Cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="inline-flex h-11 items-center justify-center rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className={`inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 ${compact ? "bg-[#034c85] hover:bg-[#023863]" : "bg-emerald-600 hover:bg-emerald-700"}`}
                 >
                   {isSubmitting ? t("coupons.Adding...", "Adding...") : t("coupons.Add Coupon", "Add Coupon")}
                 </button>
@@ -642,6 +676,38 @@ export default function AddCouponDrawer({
             </div>
           </footer>
         </form>
+    </>
+  );
+}
+
+export default function AddCouponDrawer({
+  open,
+  onClose,
+  onSubmit,
+  isSubmitting,
+  error,
+  storeOptions = [],
+}) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50">
+      <button
+        type="button"
+        className="absolute inset-0 bg-slate-900/45"
+        onClick={() => !isSubmitting && onClose()}
+        aria-label="Close add coupon drawer"
+      />
+
+      <aside className="absolute right-0 top-0 flex h-full w-full max-w-[620px] flex-col border-l border-slate-200 bg-white shadow-2xl">
+        <AddCouponFormPanel
+          onCancel={onClose}
+          onSubmit={onSubmit}
+          isSubmitting={isSubmitting}
+          error={error}
+          storeOptions={storeOptions}
+          resetSignal={open}
+        />
       </aside>
     </div>
   );

@@ -285,6 +285,7 @@ Public admin auth routes berada di luar protected layout:
 | `/admin/catalog/categories/id/:id` | `AdminSubCategoriesPage` | `CATEGORIES_CRUD` |
 | `/admin/catalog/categories/:code` | `AdminSubCategoriesPage` | `CATEGORIES_CRUD` |
 | `/admin/catalog/coupons` | `AdminCouponsPage` | `COUPONS_CRUD` |
+| `/admin/catalog/coupons/new` | `AdminCouponCreatePage` | `COUPONS_CRUD` |
 | `/admin/catalog/attributes` | `AdminAttributesPage` | `ATTRIBUTES_CRUD` |
 | `/admin/catalog/attributes/:attributeId/values` | `AdminAttributeValuesPage` | `ATTRIBUTES_CRUD` |
 | `/admin/all-accounts` | `AdminStaffPage` | `STAFF_MANAGE` |
@@ -1130,6 +1131,7 @@ Karakteristik:
 Frontend:
 
 - `client/src/pages/admin/AdminCouponsPage.jsx`
+- `client/src/pages/admin/AdminCouponCreatePage.jsx`
 
 Backend:
 
@@ -1613,6 +1615,7 @@ Backend menjaga hierarchical category agar parent cycle tidak terjadi.
 Admin membuka /admin/catalog/coupons
   -> GET /api/admin/coupons/meta untuk store/scope metadata
   -> GET /api/admin/coupons untuk list
+Admin membuka /admin/catalog/coupons/new
   -> POST /api/admin/coupons untuk create
   -> PATCH /api/admin/coupons/:id untuk update
   -> POST /api/admin/coupons/bulk untuk activate/deactivate/delete

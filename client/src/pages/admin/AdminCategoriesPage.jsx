@@ -42,7 +42,7 @@ import "./admin-categories-2026.css";
 
 const MAX_IMPORT_FILE_SIZE = 2 * 1024 * 1024;
 
-const getMessage = (error, fallback) =>
+export const getAdminCategoryMessage = (error, fallback) =>
   error?.response?.data?.message || error?.message || fallback;
 
 const text = (value) => String(value ?? "").trim();
@@ -55,7 +55,42 @@ const asNumber = (value, fallback = 0) => {
 const getParentId = (category) =>
   category?.parentId ?? category?.parent_id ?? category?.parent?.id ?? null;
 
-const isImagePath = (value) => {
+export const createAdminCategoryFormState = (overrides = {}) => ({
+  name: "",
+  code: "",
+  description: "",
+  icon: "",
+  parent_id: "",
+  published: true,
+  ...overrides,
+});
+
+export const buildAdminCategoryPayload = (form, { includeEmptyParent = false } = {}) => {
+  const payload = {
+    name: text(form.name),
+    code: text(form.code) || undefined,
+    description: text(form.description) || undefined,
+    icon: text(form.icon) || undefined,
+    published: Boolean(form.published),
+  };
+  const parentId = text(form.parent_id);
+  if (parentId) {
+    payload.parent_id = Number(parentId);
+  } else if (includeEmptyParent) {
+    payload.parent_id = null;
+  }
+  return payload;
+};
+
+export const invalidateAdminCategorySurfaces = (queryClient) => {
+  queryClient.invalidateQueries({ queryKey: ["admin-categories"] });
+  queryClient.invalidateQueries({ queryKey: ["storeCategories"] });
+  queryClient.invalidateQueries({ queryKey: ["storefront", "categories"] });
+  queryClient.invalidateQueries({ queryKey: ["seller-categories"] });
+  queryClient.invalidateQueries({ queryKey: ["categories"] });
+};
+
+export const isImagePath = (value) => {
   const normalized = text(value);
   return (
     normalized.startsWith("/") ||
@@ -203,6 +238,158 @@ function PublishSwitch({ checked, disabled, onClick, label }) {
   );
 }
 
+export function CategoryFormPanel({
+  formId = "category-form",
+  editing,
+  form,
+  setForm,
+  parentOptions,
+  parentOptionsLoading,
+  previewImageUrl,
+  imageFileName,
+  uploadPending,
+  uploadError,
+  onFileChange,
+  onCancel,
+  onSubmit,
+  isSubmitting,
+  formError,
+  nameRef,
+  formClassName = "space-y-4",
+  footerClassName = "pt-4",
+  footerInnerClassName = "flex justify-end gap-2",
+}) {
+  const { t } = useTranslation("admin");
+  const fallbackNameRef = useRef(null);
+  const activeNameRef = nameRef || fallbackNameRef;
+
+  return (
+    <>
+      <form id={formId} onSubmit={onSubmit} className={formClassName}>
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{t("categories.General", "General")}</h3>
+          <div className="mt-4 grid gap-4">
+            <label className="grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
+              {t("categories.Name", "Name")}
+              <input
+                ref={activeNameRef}
+                value={form.name}
+                onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+                className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
+                placeholder={t("categories.Books", "Books")}
+                required
+              />
+            </label>
+            <label className="grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
+              {t("categories.Code / slug", "Code / slug")}
+              <input
+                value={form.code}
+                onChange={(event) => {
+                  const value = event.target.value
+                    .toLowerCase()
+                    .replace(/[^a-z0-9-]/g, "-")
+                    .replace(/-+/g, "-");
+                  setForm((prev) => ({ ...prev, code: value }));
+                }}
+                className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
+                placeholder={t("categories.books", "books")}
+              />
+            </label>
+            <label className="grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
+              {t("categories.Description", "Description")}
+              <textarea
+                value={form.description}
+                maxLength={255}
+                rows={4}
+                onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
+                placeholder={t("categories.Describe this category", "Describe this category")}
+              />
+            </label>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{t("categories.Hierarchy", "Hierarchy")}</h3>
+          <label className="mt-4 grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
+            {t("categories.Parent Category", "Parent Category")}
+            <select
+              value={form.parent_id}
+              onChange={(event) => setForm((prev) => ({ ...prev, parent_id: event.target.value }))}
+              className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
+            >
+              <option value="">{t("categories.Top level", "Top level")}</option>
+              {parentOptionsLoading ? <option disabled>{t("categories.Loading parents...", "Loading parents...")}</option> : null}
+              {parentOptions
+                .filter((category) => !editing || Number(category.id) !== Number(editing.id))
+                .map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+            </select>
+          </label>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{t("categories.Media", "Media")}</h3>
+          <label className="mt-4 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300">
+            <Upload className="h-5 w-5" />
+            <span className="font-semibold">{t("categories.Upload category image", "Upload category image")}</span>
+            <span className="text-xs">{t("categories.PNG, JPG, WEBP, SVG up to the upload limit", "PNG, JPG, WEBP, SVG up to the upload limit")}</span>
+            <input type="file" className="hidden" accept="image/*" onChange={onFileChange} />
+          </label>
+          {imageFileName ? <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{t("categories.Selected:", "Selected:")} {imageFileName}</p> : null}
+          {uploadPending ? <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{t("categories.Uploading image...", "Uploading image...")}</p> : null}
+          {uploadError ? <p className="mt-2 text-xs text-rose-600">{uploadError}</p> : null}
+          <input
+            value={form.icon}
+            onChange={(event) => setForm((prev) => ({ ...prev, icon: event.target.value }))}
+            className="mt-3 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
+            placeholder={t("categories.Icon or image URL", "Icon or image URL")}
+          />
+          {previewImageUrl ? (
+            <img src={previewImageUrl} alt="Category preview" className="mt-3 max-h-44 w-full rounded-xl border border-slate-200 object-contain p-2 dark:border-slate-700" />
+          ) : null}
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{t("categories.Published", "Published")}</h3>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                {form.published ? t("categories.Eligible for public catalog visibility.", "Eligible for public catalog visibility.") : t("categories.Hidden until you publish it.", "Hidden until you publish it.")}
+              </p>
+            </div>
+            <PublishSwitch
+              checked={Boolean(form.published)}
+              label={t("categories.Toggle category published state", "Toggle category published state")}
+              onClick={() => setForm((prev) => ({ ...prev, published: !Boolean(prev.published) }))}
+            />
+          </div>
+        </section>
+
+        {formError ? (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
+            {formError}
+          </div>
+        ) : null}
+      </form>
+
+      <div className={footerClassName}>
+        <div className={footerInnerClassName}>
+          <button type="button" onClick={onCancel} disabled={isSubmitting} className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+            {t("categories.Cancel", "Cancel")}
+          </button>
+          <button type="submit" form={formId} disabled={isSubmitting} className="inline-flex h-10 items-center justify-center rounded-lg bg-[#034c85] px-4 text-sm font-semibold text-white hover:bg-[#013d70] disabled:opacity-60">
+            {isSubmitting ? t("categories.Saving...", "Saving...") : editing ? t("categories.Update Category", "Update Category") : t("categories.Add Category", "Add Category")}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function CategoryDetails({ category, onClose, onEdit, onDelete, onViewSubcategories }) {
   const { t } = useTranslation("admin");
   if (!category) return null;
@@ -336,127 +523,26 @@ function CategoryDrawer({
           </div>
         </div>
 
-        <form id="category-form" onSubmit={onSubmit} className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{t("categories.General", "General")}</h3>
-            <div className="mt-4 grid gap-4">
-              <label className="grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
-                {t("categories.Name", "Name")}
-                <input
-                  ref={nameRef}
-                  value={form.name}
-                  onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-                  className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
-                  placeholder={t("categories.Books", "Books")}
-                  required
-                />
-              </label>
-              <label className="grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
-                {t("categories.Code / slug", "Code / slug")}
-                <input
-                  value={form.code}
-                  onChange={(event) => {
-                    const value = event.target.value
-                      .toLowerCase()
-                      .replace(/[^a-z0-9-]/g, "-")
-                      .replace(/-+/g, "-");
-                    setForm((prev) => ({ ...prev, code: value }));
-                  }}
-                  className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
-                  placeholder={t("categories.books", "books")}
-                />
-              </label>
-              <label className="grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
-                {t("categories.Description", "Description")}
-                <textarea
-                  value={form.description}
-                  maxLength={255}
-                  rows={4}
-                  onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
-                  placeholder={t("categories.Describe this category", "Describe this category")}
-                />
-              </label>
-            </div>
-          </section>
-
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{t("categories.Hierarchy", "Hierarchy")}</h3>
-            <label className="mt-4 grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
-              {t("categories.Parent Category", "Parent Category")}
-              <select
-                value={form.parent_id}
-                onChange={(event) => setForm((prev) => ({ ...prev, parent_id: event.target.value }))}
-                className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
-              >
-                <option value="">{t("categories.Top level", "Top level")}</option>
-                {parentOptionsLoading ? <option disabled>{t("categories.Loading parents...", "Loading parents...")}</option> : null}
-                {parentOptions
-                  .filter((category) => !editing || Number(category.id) !== Number(editing.id))
-                  .map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-              </select>
-            </label>
-          </section>
-
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{t("categories.Media", "Media")}</h3>
-            <label className="mt-4 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300">
-              <Upload className="h-5 w-5" />
-              <span className="font-semibold">{t("categories.Upload category image", "Upload category image")}</span>
-              <span className="text-xs">{t("categories.PNG, JPG, WEBP, SVG up to the upload limit", "PNG, JPG, WEBP, SVG up to the upload limit")}</span>
-              <input type="file" className="hidden" accept="image/*" onChange={onFileChange} />
-            </label>
-            {imageFileName ? <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{t("categories.Selected:", "Selected:")} {imageFileName}</p> : null}
-            {uploadPending ? <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{t("categories.Uploading image...", "Uploading image...")}</p> : null}
-            {uploadError ? <p className="mt-2 text-xs text-rose-600">{uploadError}</p> : null}
-            <input
-              value={form.icon}
-              onChange={(event) => setForm((prev) => ({ ...prev, icon: event.target.value }))}
-              className="mt-3 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
-              placeholder={t("categories.Icon or image URL", "Icon or image URL")}
-            />
-            {previewImageUrl ? (
-              <img src={previewImageUrl} alt="Category preview" className="mt-3 max-h-44 w-full rounded-xl border border-slate-200 object-contain p-2 dark:border-slate-700" />
-            ) : null}
-          </section>
-
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{t("categories.Published", "Published")}</h3>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  {form.published ? t("categories.Eligible for public catalog visibility.", "Eligible for public catalog visibility.") : t("categories.Hidden until you publish it.", "Hidden until you publish it.")}
-                </p>
-              </div>
-              <PublishSwitch
-                checked={Boolean(form.published)}
-                label={t("categories.Toggle category published state", "Toggle category published state")}
-                onClick={() => setForm((prev) => ({ ...prev, published: !Boolean(prev.published) }))}
-              />
-            </div>
-          </section>
-
-          {formError ? (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
-              {formError}
-            </div>
-          ) : null}
-        </form>
-
-        <div className="border-t border-slate-200 px-5 py-4 dark:border-slate-800">
-          <div className="flex justify-end gap-2">
-            <button type="button" onClick={onClose} disabled={isSubmitting} className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
-              {t("categories.Cancel", "Cancel")}
-            </button>
-            <button type="submit" form="category-form" disabled={isSubmitting} className="inline-flex h-10 items-center justify-center rounded-lg bg-[#034c85] px-4 text-sm font-semibold text-white hover:bg-[#013d70] disabled:opacity-60">
-              {isSubmitting ? t("categories.Saving...", "Saving...") : editing ? t("categories.Update Category", "Update Category") : t("categories.Add Category", "Add Category")}
-            </button>
-          </div>
-        </div>
+        <CategoryFormPanel
+          formId="category-drawer-form"
+          editing={editing}
+          form={form}
+          setForm={setForm}
+          parentOptions={parentOptions}
+          parentOptionsLoading={parentOptionsLoading}
+          previewImageUrl={previewImageUrl}
+          imageFileName={imageFileName}
+          uploadPending={uploadPending}
+          uploadError={uploadError}
+          onFileChange={onFileChange}
+          onCancel={onClose}
+          onSubmit={onSubmit}
+          isSubmitting={isSubmitting}
+          formError={formError}
+          nameRef={nameRef}
+          formClassName="flex-1 space-y-4 overflow-y-auto px-5 py-5"
+          footerClassName="border-t border-slate-200 px-5 py-4 dark:border-slate-800"
+        />
       </aside>
     </div>
   );
@@ -489,14 +575,7 @@ export default function AdminCategoriesPage() {
   };
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({
-    name: "",
-    code: "",
-    description: "",
-    icon: "",
-    parent_id: "",
-    published: true,
-  });
+  const [form, setForm] = useState(createAdminCategoryFormState);
   const [formError, setFormError] = useState("");
   const [bulkMenuOpen, setBulkMenuOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -587,13 +666,7 @@ export default function AdminCategoriesPage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const invalidateCategories = () => {
-    queryClient.invalidateQueries({ queryKey: ["admin-categories"] });
-    queryClient.invalidateQueries({ queryKey: ["storeCategories"] });
-    queryClient.invalidateQueries({ queryKey: ["storefront", "categories"] });
-    queryClient.invalidateQueries({ queryKey: ["seller-categories"] });
-    queryClient.invalidateQueries({ queryKey: ["categories"] });
-  };
+  const invalidateCategories = () => invalidateAdminCategorySurfaces(queryClient);
 
   const createMutation = useMutation({
     mutationFn: createAdminCategory,
@@ -604,7 +677,7 @@ export default function AdminCategoriesPage() {
       setEditing(null);
       setFormError("");
     },
-    onError: (error) => setFormError(getMessage(error, t("categories.Failed to create category.", "Failed to create category."))),
+    onError: (error) => setFormError(getAdminCategoryMessage(error, t("categories.Failed to create category.", "Failed to create category."))),
   });
 
   const updateMutation = useMutation({
@@ -618,7 +691,7 @@ export default function AdminCategoriesPage() {
       setEditing(null);
       setFormError("");
     },
-    onError: (error) => setFormError(getMessage(error, t("categories.Failed to update category.", "Failed to update category."))),
+    onError: (error) => setFormError(getAdminCategoryMessage(error, t("categories.Failed to update category.", "Failed to update category."))),
   });
 
   const publishMutation = useMutation({
@@ -631,7 +704,7 @@ export default function AdminCategoriesPage() {
       setRowPublishingId(null);
     },
     onError: (error) => {
-      toast.error(getMessage(error, t("categories.Failed to update category visibility.", "Failed to update category visibility.")));
+      toast.error(getAdminCategoryMessage(error, t("categories.Failed to update category visibility.", "Failed to update category visibility.")));
       setRowPublishingId(null);
     },
   });
@@ -646,7 +719,7 @@ export default function AdminCategoriesPage() {
       setRowDeletingId(null);
     },
     onError: (error) => {
-      toast.error(getMessage(error, t("categories.Failed to delete category.", "Failed to delete category.")));
+      toast.error(getAdminCategoryMessage(error, t("categories.Failed to delete category.", "Failed to delete category.")));
       setRowDeletingId(null);
     },
   });
@@ -669,7 +742,7 @@ export default function AdminCategoriesPage() {
       setBulkMenuOpen(false);
       toast.success(`${count} categor${count === 1 ? "y" : "ies"} ${label}.`);
     },
-    onError: (error) => toast.error(getMessage(error, "Bulk action failed.")),
+    onError: (error) => toast.error(getAdminCategoryMessage(error, "Bulk action failed.")),
   });
 
   const importMutation = useMutation({
@@ -681,7 +754,7 @@ export default function AdminCategoriesPage() {
       setImportError("");
       toast.success(created ? `${created} categories imported.` : "Import completed.");
     },
-    onError: (error) => setImportError(getMessage(error, "Failed to import categories.")),
+    onError: (error) => setImportError(getAdminCategoryMessage(error, "Failed to import categories.")),
   });
 
   const uploadMutation = useMutation({
@@ -696,7 +769,7 @@ export default function AdminCategoriesPage() {
       setUploadError("");
       toast.success("Category image uploaded.");
     },
-    onError: (error) => setUploadError(getMessage(error, "Failed to upload image.")),
+    onError: (error) => setUploadError(getAdminCategoryMessage(error, "Failed to upload image.")),
   });
 
   const items = categoriesQuery.data?.data || [];
@@ -717,30 +790,12 @@ export default function AdminCategoriesPage() {
   }, [items, selectedCategory?.id]);
 
   const openCreate = () => {
-    setEditing(null);
-    setForm({ name: "", code: "", description: "", icon: "", parent_id: "", published: true });
-    setFormError("");
-    setImageFileName("");
-    setLocalPreviewUrl("");
-    setUploadError("");
-    setDrawerOpen(true);
+    navigate("/admin/catalog/categories/new");
   };
 
   const openCreateChild = (parentCategory) => {
-    setEditing(null);
-    setForm({
-      name: "",
-      code: "",
-      description: "",
-      icon: "",
-      parent_id: String(parentCategory.id),
-      published: true,
-    });
-    setFormError("");
-    setImageFileName("");
-    setLocalPreviewUrl("");
-    setUploadError("");
-    setDrawerOpen(true);
+    const parentId = encodeURIComponent(String(parentCategory.id));
+    navigate(`/admin/catalog/categories/new?parentId=${parentId}`);
   };
 
   const openEdit = (category) => {
@@ -773,19 +828,10 @@ export default function AdminCategoriesPage() {
       setFormError("Category name is required.");
       return;
     }
-    const payload = {
-      name,
-      code: text(form.code) || undefined,
-      description: text(form.description) || undefined,
-      icon: text(form.icon) || undefined,
-      published: Boolean(form.published),
-    };
-    const parentId = text(form.parent_id);
+    const payload = buildAdminCategoryPayload(form, { includeEmptyParent: Boolean(editing) });
     if (editing) {
-      payload.parent_id = parentId ? Number(parentId) : null;
       updateMutation.mutate({ id: editing.id, payload });
     } else {
-      if (parentId) payload.parent_id = Number(parentId);
       createMutation.mutate(payload);
     }
   };
@@ -815,7 +861,7 @@ export default function AdminCategoriesPage() {
       const filename = await downloadResponseFile(response, "categories-export.csv");
       toast.success(`Exported ${filename}.`);
     } catch (error) {
-      toast.error(getMessage(error, "Failed to export categories."));
+      toast.error(getAdminCategoryMessage(error, "Failed to export categories."));
     } finally {
       setIsExporting(false);
     }
@@ -1124,7 +1170,7 @@ export default function AdminCategoriesPage() {
           ) : categoriesQuery.isError ? (
             <div className="p-8 text-center">
               <p className="font-semibold text-slate-900 dark:text-slate-100">{t("categories.Unable to load categories.", "Unable to load categories.")}</p>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{getMessage(categoriesQuery.error, t("categories.Please retry the request.", "Please retry the request."))}</p>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{getAdminCategoryMessage(categoriesQuery.error, t("categories.Please retry the request.", "Please retry the request."))}</p>
               <button type="button" onClick={() => categoriesQuery.refetch()} className="mt-4 inline-flex h-10 items-center justify-center rounded-lg bg-[#034c85] px-4 text-sm font-semibold text-white">{t("categories.Retry", "Retry")}</button>
             </div>
           ) : items.length === 0 ? (

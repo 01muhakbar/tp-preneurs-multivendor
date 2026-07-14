@@ -62,8 +62,10 @@ const Customers = lazy(() => import("./pages/Customers.jsx"));
 const Settings = lazy(() => import("./pages/Settings.jsx"));
 const AdminOrderDetail = lazy(() => import("./pages/admin/OrderDetail.jsx"));
 const AdminAttributesPage = lazy(() => import("./pages/admin/Attributes.jsx"));
+const AdminAttributeCreatePage = lazy(() => import("./pages/admin/AdminAttributeCreatePage.jsx"));
 const AdminAttributeValuesPage = lazy(() => import("./pages/admin/AttributeValues.jsx"));
 const AdminCategoriesPage = lazy(() => import("./pages/admin/AdminCategoriesPage.jsx"));
+const AdminCategoryCreatePage = lazy(() => import("./pages/admin/AdminCategoryCreatePage.jsx"));
 const AdminSubCategoriesPage = lazy(() =>
   import("./pages/admin/AdminSubCategoriesPage.jsx")
 );
@@ -74,6 +76,7 @@ const AdminCustomerOrdersPage = lazy(() =>
   import("./pages/admin/AdminCustomerOrdersPage.jsx")
 );
 const AdminCouponsPage = lazy(() => import("./pages/admin/AdminCouponsPage.jsx"));
+const AdminCouponCreatePage = lazy(() => import("./pages/admin/AdminCouponCreatePage.jsx"));
 const AdminProfilePage = lazy(() => import("./pages/admin/Profile.jsx"));
 const ComingSoon = lazy(() => import("./pages/admin/ComingSoon.jsx"));
 const LanguagesPage = lazy(() => import("./pages/Languages.jsx"));
@@ -635,6 +638,14 @@ export default function App() {
                 element={<LegacyAdminCategoriesRedirect />}
               />
               <Route
+                path="catalog/categories/new"
+                element={
+                  <RequirePerm perm="CATEGORIES_CRUD">
+                    <AdminCategoryCreatePage />
+                  </RequirePerm>
+                }
+              />
+              <Route
                 path="catalog/categories/:id/:slug/subcategories"
                 element={
                   <RequirePerm perm="CATEGORIES_CRUD">
@@ -679,6 +690,14 @@ export default function App() {
                 }
               />
               <Route
+                path="catalog/coupons/new"
+                element={
+                  <RequirePerm perm="COUPONS_CRUD">
+                    <AdminCouponCreatePage />
+                  </RequirePerm>
+                }
+              />
+              <Route
                 path="catalog/coupon"
                 element={
                   <RequirePerm perm="COUPONS_CRUD">
@@ -695,6 +714,14 @@ export default function App() {
                 element={
                   <RequirePerm perm="ATTRIBUTES_CRUD">
                     <AdminAttributesPage />
+                  </RequirePerm>
+                }
+              />
+              <Route
+                path="catalog/attributes/new"
+                element={
+                  <RequirePerm perm="ATTRIBUTES_CRUD">
+                    <AdminAttributeCreatePage />
                   </RequirePerm>
                 }
               />

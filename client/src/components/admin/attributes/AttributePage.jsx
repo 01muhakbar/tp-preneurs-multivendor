@@ -56,6 +56,15 @@ const noticeStyles = {
 
 const toText = (value) => String(value ?? "").trim();
 
+export const invalidateAdminAttributeSurfaces = (queryClient) => {
+  queryClient.invalidateQueries({ queryKey: ["admin", "attributes"] });
+  queryClient.invalidateQueries({ queryKey: ["admin-product-attributes"] });
+  queryClient.invalidateQueries({ queryKey: ["seller2026", "attributes"] });
+  queryClient.invalidateQueries({ queryKey: ["seller2026", "product-editor", "attributes"] });
+  queryClient.invalidateQueries({ queryKey: ["seller-attributes"] });
+  queryClient.invalidateQueries({ queryKey: ["attributes"] });
+};
+
 const parseFilename = (headerValue, fallback) => {
   const match = String(headerValue || "").match(/filename="?([^"]+)"?/i);
   return match?.[1] || fallback;
@@ -217,8 +226,7 @@ export default function AttributePage() {
   }, [bulkMenuOpen]);
 
   const openCreateModal = () => {
-    setModalSubmitError("");
-    setModalState({ open: true, mode: "create", attribute: null });
+    navigate("/admin/catalog/attributes/new");
   };
 
   const openEditModal = (attribute) => {
@@ -245,7 +253,7 @@ export default function AttributePage() {
             ? "Attribute updated successfully."
             : "Attribute created successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: ["admin", "attributes"] });
+      invalidateAdminAttributeSurfaces(queryClient);
     },
     onError: (error) => {
       setModalSubmitError(error?.response?.data?.message || "Failed to save attribute.");
@@ -261,7 +269,7 @@ export default function AttributePage() {
           ? "Store attribute archived successfully."
           : "Attribute deleted successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: ["admin", "attributes"] });
+      invalidateAdminAttributeSurfaces(queryClient);
     },
     onError: (error) => {
       setNotice({
@@ -284,7 +292,7 @@ export default function AttributePage() {
               ? "Selected attributes published successfully."
               : "Selected attributes unpublished successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: ["admin", "attributes"] });
+      invalidateAdminAttributeSurfaces(queryClient);
     },
     onError: (error) => {
       setNotice({
@@ -323,7 +331,7 @@ export default function AttributePage() {
       });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "attributes"] });
+      invalidateAdminAttributeSurfaces(queryClient);
     },
   });
 
@@ -338,7 +346,7 @@ export default function AttributePage() {
           result?.data?.updated || 0
         } updated.`,
       });
-      queryClient.invalidateQueries({ queryKey: ["admin", "attributes"] });
+      invalidateAdminAttributeSurfaces(queryClient);
     },
     onError: (error) => {
       setNotice({

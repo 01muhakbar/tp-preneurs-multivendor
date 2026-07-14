@@ -1,0 +1,57 @@
+.aaf26-shell {
+  background: color-mix(in srgb, var(--apf26-surface-soft) 55%, var(--apf26-surface));
+}
+
+.aaf26-header {
+  background: linear-gradient(90deg, #ffffff, color-mix(in srgb, var(--apf26-primary-soft) 58%, #ffffff), color-mix(in srgb, var(--apf26-accent-soft) 42%, #ffffff));
+}
+
+.aaf26-header-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.aaf26-breadcrumb {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--apf26-muted);
+  font-size: 13px;
+}
+
+.aaf26-content {
+  background: color-mix(in srgb, var(--apf26-surface-soft) 70%, transparent);
+}
+
+.aaf26-form-card {
+  width: min(920px, 100%);
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid var(--apf26-border);
+  border-radius: 8px;
+  background: var(--apf26-surface);
+  box-shadow: 0 18px 42px -34px rgba(3, 76, 133, 0.45);
+}
+
+.aaf26-form-body {
+  background: var(--apf26-surface);
+}
+
+.aaf26-footer {
+  border-top: 1px solid var(--apf26-border);
+  background: var(--apf26-surface);
+  padding: 16px 20px;
+}
+
+@media (max-width: 700px) {
+  .aaf26-header {
+    align-items: stretch;
+  }
+
+  .aaf26-header-actions {
+    justify-content: flex-end;
+  }
+}

@@ -6,18 +6,17 @@ export default function HeaderSearch({
   onSubmit,
   className = "",
   variant = "default",
-  placeholder = "Search for products (e.g. fish, apple, baby care)",
+  placeholder = "Search for products, brands, and stores (e.g. book)",
 }) {
   const isDesktop = variant === "desktop";
 
   return (
     <form
       onSubmit={onSubmit}
-      className={`relative w-full overflow-hidden rounded-full transition focus-within:ring-2 focus-within:ring-emerald-200/80 ${
-        isDesktop
+      className={`relative w-full overflow-hidden rounded-full transition focus-within:ring-2 focus-within:ring-emerald-200/80 ${isDesktop
           ? "h-[44px] border border-emerald-100/90 bg-white shadow-[0_6px_16px_rgba(15,23,42,0.15)] dark:border-slate-700 dark:bg-slate-900 dark:shadow-[0_8px_24px_rgba(0,0,0,0.28)] lg:h-12"
           : "h-11 border border-white/25 bg-slate-100 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.15)] dark:border-slate-700 dark:bg-slate-900 sm:h-12"
-      } ${className}`}
+        } ${className}`}
       role="search"
       aria-label="Store search"
     >
