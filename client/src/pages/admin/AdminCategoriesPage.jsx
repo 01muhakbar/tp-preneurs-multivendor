@@ -171,12 +171,12 @@ function StatusBadge({ published }) {
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${published
-          ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/50 dark:text-emerald-200"
+          ? "border-[#034C85] bg-[#034C85] text-white dark:border-[#034C85] dark:bg-[#034C85] dark:text-white"
           : "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
         }`}
     >
-      <span className={`h-1.5 w-1.5 rounded-full ${published ? "bg-emerald-500" : "bg-slate-400"}`} />
-      {published ? t("categories.Active", "Active") : t("categories.Draft", "Draft")}
+      <span className={`h-1.5 w-1.5 rounded-full ${published ? "bg-white" : "bg-slate-400"}`} />
+      {published ? t("categories.Active", "Active") : t("categories.Inactive", "Inactive")}
     </span>
   );
 }
@@ -517,7 +517,7 @@ function CategoryDrawer({
                 {editing ? t("categories.Edit Category", "Edit Category") : t("categories.Add Category", "Add Category")}
               </h2>
             </div>
-            <button type="button" onClick={onClose} disabled={isSubmitting} aria-label="Close" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:hover:bg-slate-800">
+            <button type="button" onClick={onClose} disabled={isSubmitting} aria-label={t("categories.Close", "Close")} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:hover:bg-slate-800">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -731,18 +731,18 @@ export default function AdminCategoriesPage() {
       const count = variables.ids.length;
       const label =
         variables.action === "publish"
-          ? "published"
+          ? t("categories.bulk published", "published")
           : variables.action === "unpublish"
-            ? "unpublished"
-            : "deleted";
+            ? t("categories.bulk unpublished", "unpublished")
+            : t("categories.bulk deleted", "deleted");
       if (variables.action === "delete" && selectedCategory && variables.ids.includes(selectedCategory.id)) {
         setSelectedCategory(null);
       }
       setSelectedIds([]);
       setBulkMenuOpen(false);
-      toast.success(`${count} categor${count === 1 ? "y" : "ies"} ${label}.`);
+      toast.success(t("categories.Bulk action completed.", "{{count}} categories {{label}}.", { count, label }));
     },
-    onError: (error) => toast.error(getAdminCategoryMessage(error, "Bulk action failed.")),
+    onError: (error) => toast.error(getAdminCategoryMessage(error, t("categories.Bulk action failed.", "Bulk action failed."))),
   });
 
   const importMutation = useMutation({
@@ -752,9 +752,9 @@ export default function AdminCategoriesPage() {
       const created = asNumber(response?.data?.created ?? response?.created);
       setImportOpen(false);
       setImportError("");
-      toast.success(created ? `${created} categories imported.` : "Import completed.");
+      toast.success(created ? t("categories.Categories imported.", "{{count}} categories imported.", { count: created }) : t("categories.Import completed.", "Import completed."));
     },
-    onError: (error) => setImportError(getAdminCategoryMessage(error, "Failed to import categories.")),
+    onError: (error) => setImportError(getAdminCategoryMessage(error, t("categories.Failed to import categories.", "Failed to import categories."))),
   });
 
   const uploadMutation = useMutation({
@@ -762,14 +762,14 @@ export default function AdminCategoriesPage() {
     onSuccess: (response) => {
       const url = response?.data?.url || response?.url;
       if (!url) {
-        setUploadError("Upload succeeded but no URL was returned.");
+        setUploadError(t("categories.Upload succeeded but no URL was returned.", "Upload succeeded but no URL was returned."));
         return;
       }
       setForm((prev) => ({ ...prev, icon: url }));
       setUploadError("");
-      toast.success("Category image uploaded.");
+      toast.success(t("categories.Category image uploaded.", "Category image uploaded."));
     },
-    onError: (error) => setUploadError(getAdminCategoryMessage(error, "Failed to upload image.")),
+    onError: (error) => setUploadError(getAdminCategoryMessage(error, t("categories.Failed to upload image.", "Failed to upload image."))),
   });
 
   const items = categoriesQuery.data?.data || [];
@@ -825,7 +825,7 @@ export default function AdminCategoriesPage() {
     event.preventDefault();
     const name = text(form.name);
     if (!name) {
-      setFormError("Category name is required.");
+      setFormError(t("categories.Category name is required.", "Category name is required."));
       return;
     }
     const payload = buildAdminCategoryPayload(form, { includeEmptyParent: Boolean(editing) });
@@ -859,9 +859,9 @@ export default function AdminCategoriesPage() {
         format: "csv",
       });
       const filename = await downloadResponseFile(response, "categories-export.csv");
-      toast.success(`Exported ${filename}.`);
+      toast.success(t("categories.Exported filename.", "Exported {{filename}}.", { filename }));
     } catch (error) {
-      toast.error(getAdminCategoryMessage(error, "Failed to export categories."));
+      toast.error(getAdminCategoryMessage(error, t("categories.Failed to export categories.", "Failed to export categories.")));
     } finally {
       setIsExporting(false);
     }
@@ -873,15 +873,15 @@ export default function AdminCategoriesPage() {
     const type = String(file.type || "").toLowerCase();
     const valid = name.endsWith(".csv") || type === "text/csv" || type === "application/vnd.ms-excel";
     if (!valid) {
-      setImportError("Import only accepts CSV files.");
+      setImportError(t("categories.Import only accepts CSV files.", "Import only accepts CSV files."));
       return;
     }
     if (file.size <= 0) {
-      setImportError("Choose a CSV file with category rows.");
+      setImportError(t("categories.Choose a CSV file with category rows.", "Choose a CSV file with category rows."));
       return;
     }
     if (file.size > MAX_IMPORT_FILE_SIZE) {
-      setImportError("Import file exceeds the 2 MB limit.");
+      setImportError(t("categories.Import file exceeds the 2 MB limit.", "Import file exceeds the 2 MB limit."));
       return;
     }
     setImportError("");
@@ -897,9 +897,9 @@ export default function AdminCategoriesPage() {
   const deleteCategory = (category) => {
     if (!category?.id) return;
     const childHint = getParentId(category)
-      ? "This is a nested category."
-      : "If this category has children or products, the backend may reject the delete.";
-    if (!window.confirm(`Delete ${category.name}? ${childHint} This action cannot be undone.`)) return;
+      ? t("categories.This is a nested category.", "This is a nested category.")
+      : t("categories.If this category has children or products, the backend may reject the delete.", "If this category has children or products, the backend may reject the delete.");
+    if (!window.confirm(t("categories.Delete category confirmation", "Delete {{name}}? {{hint}} This action cannot be undone.", { name: category.name, hint: childHint }))) return;
     setRowDeletingId(category.id);
     deleteMutation.mutate(category.id);
   };
@@ -907,10 +907,10 @@ export default function AdminCategoriesPage() {
   const runBulkAction = (action) => {
     const ids = selectedIds.map(Number).filter((id) => Number.isFinite(id) && id > 0);
     if (ids.length === 0) {
-      toast.error("Select at least one category first.");
+      toast.error(t("categories.Select at least one category first.", "Select at least one category first."));
       return;
     }
-    if (action === "delete" && !window.confirm(`Delete ${ids.length} selected categories? This action cannot be undone.`)) {
+    if (action === "delete" && !window.confirm(t("categories.Delete selected categories confirmation", "Delete {{count}} selected categories? This action cannot be undone.", { count: ids.length }))) {
       return;
     }
     bulkMutation.mutate({ action, ids });
@@ -938,7 +938,7 @@ export default function AdminCategoriesPage() {
   const filterActive = debouncedSearch || statusFilter !== "all" || parentFilter !== "all";
 
   return (
-    <div className="ac26-page">
+    <div className="ac26-page ac26-page--categories">
       <header className="ac26-header">
         <div>
           <h1>{t("categories.Categories", "Categories")}</h1>
@@ -1141,13 +1141,13 @@ export default function AdminCategoriesPage() {
           ) : null}
         </div>
 
-        <div className="ac26-view-toggle shrink-0" role="group" aria-label="View mode">
+        <div className="ac26-view-toggle shrink-0" role="group" aria-label={t("categories.View mode", "View mode")}>
           <button
             type="button"
             onClick={() => changeViewMode("list")}
             className={viewMode === "list" ? "is-active" : ""}
-            title="Table View"
-            aria-label="Table View"
+            title={t("categories.Table View", "Table View")}
+            aria-label={t("categories.Table View", "Table View")}
           >
             <List className="h-4 w-4" />
           </button>
@@ -1155,8 +1155,8 @@ export default function AdminCategoriesPage() {
             type="button"
             onClick={() => changeViewMode("grid")}
             className={viewMode === "grid" ? "is-active" : ""}
-            title="Grid View"
-            aria-label="Grid View"
+            title={t("categories.Grid View", "Grid View")}
+            aria-label={t("categories.Grid View", "Grid View")}
           >
             <Grid2X2 className="h-4 w-4" />
           </button>
@@ -1189,7 +1189,7 @@ export default function AdminCategoriesPage() {
           ) : viewMode === "grid" ? (
             <div className="ac26-grid-cards">
               {items.map((category) => {
-                const parentName = category.parent?.name || category.parentName || (getParentId(category) ? `#${getParentId(category)}` : "Top level");
+                const parentName = category.parent?.name || category.parentName || (getParentId(category) ? `#${getParentId(category)}` : t("categories.Top level", "Top level"));
                 const isPublishing = rowPublishingId === category.id && publishMutation.isPending;
                 const isDeleting = rowDeletingId === category.id && deleteMutation.isPending;
                 return (
@@ -1202,7 +1202,7 @@ export default function AdminCategoriesPage() {
                         <div className="ac26-grid-card__info">
                           <input
                             type="checkbox"
-                            aria-label={`Select ${category.name}`}
+                            aria-label={`${t("categories.Select category", "Select category")} ${category.name}`}
                             checked={selectedIds.includes(category.id)}
                             onChange={(event) => {
                               setSelectedIds((prev) =>
@@ -1220,7 +1220,7 @@ export default function AdminCategoriesPage() {
                             >
                               {category.name}
                             </button>
-                            <p className="ac26-grid-card__code">{category.code || "No code"}</p>
+                            <p className="ac26-grid-card__code">{category.code || t("categories.No code", "No code")}</p>
                           </div>
                         </div>
                         <StatusBadge published={Boolean(category.published)} />
@@ -1239,14 +1239,14 @@ export default function AdminCategoriesPage() {
                         checked={Boolean(category.published)}
                         disabled={isPublishing}
                         onClick={() => togglePublished(category)}
-                        label={`Toggle ${category.name}`}
+                        label={`${t("categories.Toggle category published state", "Toggle category published state")} ${category.name}`}
                       />
                       <div className="flex items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => setSelectedCategory(category)}
                           className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-                          aria-label={`View ${category.name}`}
+                          aria-label={`${t("categories.View category", "View category")} ${category.name}`}
                         >
                           <Eye className="h-3.5 w-3.5" />
                         </button>
@@ -1255,7 +1255,7 @@ export default function AdminCategoriesPage() {
                           onClick={() => openEdit(category)}
                           disabled={isDeleting}
                           className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-                          aria-label={`Edit ${category.name}`}
+                          aria-label={`${t("categories.Edit category", "Edit category")} ${category.name}`}
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
@@ -1263,7 +1263,8 @@ export default function AdminCategoriesPage() {
                           type="button"
                           onClick={() => viewSubcategories(category)}
                           className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-                          title="View Subcategories"
+                          title={t("categories.View Subcategories", "View Subcategories")}
+                          aria-label={`${t("categories.View subcategories", "View subcategories")} ${category.name}`}
                         >
                           <FolderTree className="h-3.5 w-3.5" />
                         </button>
@@ -1281,7 +1282,7 @@ export default function AdminCategoriesPage() {
                     <th className="ac26-col-check">
                       <input
                         type="checkbox"
-                        aria-label="Select all visible categories"
+                        aria-label={t("categories.Select all visible categories", "Select all visible categories")}
                         checked={allSelected}
                         onChange={(event) => setSelectedIds(event.target.checked ? items.map((item) => item.id) : [])}
                         className="h-4 w-4 rounded border-slate-300 text-[#034c85] focus:ring-[#034c85]"
@@ -1290,8 +1291,8 @@ export default function AdminCategoriesPage() {
                     <th>{t("categories.Category", "Category")}</th>
                     <th>{t("categories.Parent Path", "Parent Path")}</th>
                     <th>{t("categories.Products", "Products")}</th>
-                    <th>{t("categories.Status", "Status")}</th>
-                    <th>{t("categories.Updated", "Updated")}</th>
+                    <th className="ac26-col-status">{t("categories.Status", "Status")}</th>
+                    <th className="ac26-col-published">{t("categories.Published", "Published")}</th>
                     <th className="ac26-col-actions">{t("categories.Actions", "Actions")}</th>
                   </tr>
                 </thead>
@@ -1305,7 +1306,7 @@ export default function AdminCategoriesPage() {
                         <td className="ac26-cell-check">
                           <input
                             type="checkbox"
-                            aria-label={`Select ${category.name}`}
+                            aria-label={`${t("categories.Select category", "Select category")} ${category.name}`}
                             checked={selectedIds.includes(category.id)}
                             onChange={(event) => {
                               setSelectedIds((prev) =>
@@ -1315,32 +1316,35 @@ export default function AdminCategoriesPage() {
                             className="h-4 w-4 rounded border-slate-300 text-[#034c85] focus:ring-[#034c85]"
                           />
                         </td>
-                        <td data-label="Category">
+                        <td data-label={t("categories.Category", "Category")} className="ac26-cell-category">
                           <div className="ac26-category-cell">
                             <CategoryIcon category={category} />
                             <div>
                               <button type="button" onClick={() => setSelectedCategory(category)}>
                                 {category.name}
                               </button>
-                              <p>{category.code || "No code"}</p>
+                              <p>{category.code || t("categories.No code", "No code")}</p>
                             </div>
                           </div>
                         </td>
-                        <td data-label="Parent">{parentName}</td>
-                        <td data-label="Products" className="ac26-tabular">{asNumber(category.productCount).toLocaleString()}</td>
-                        <td data-label="Status">
+                        <td data-label={t("categories.Parent Path", "Parent Path")}>{parentName}</td>
+                        <td data-label={t("categories.Products", "Products")} className="ac26-tabular">{asNumber(category.productCount).toLocaleString()}</td>
+                        <td data-label={t("categories.Status", "Status")} className="ac26-cell-status">
                           <div className="ac26-status-cell">
-                            <PublishSwitch checked={Boolean(category.published)} disabled={isPublishing} onClick={() => togglePublished(category)} label={`${category.published ? "Unpublish" : "Publish"} ${category.name}`} />
                             <StatusBadge published={Boolean(category.published)} />
                           </div>
                         </td>
-                        <td data-label="Updated">{formatDate(category.updatedAt)}</td>
-                        <td data-label="Actions" className="ac26-actions-cell">
+                        <td data-label={t("categories.Published", "Published")} className="ac26-cell-published">
+                          <div className="ac26-published-cell">
+                            <PublishSwitch checked={Boolean(category.published)} disabled={isPublishing} onClick={() => togglePublished(category)} label={`${category.published ? t("categories.Unpublish category", "Unpublish category") : t("categories.Publish category", "Publish category")} ${category.name}`} />
+                          </div>
+                        </td>
+                        <td data-label={t("categories.Actions", "Actions")} className="ac26-actions-cell">
                           <div>
-                            <button type="button" onClick={() => setSelectedCategory(category)} aria-label={`View ${category.name}`}>
+                            <button type="button" onClick={() => setSelectedCategory(category)} aria-label={`${t("categories.View category", "View category")} ${category.name}`}>
                               <Eye className="h-4 w-4" />
                             </button>
-                            <button type="button" onClick={() => openEdit(category)} disabled={isDeleting} aria-label={`Edit ${category.name}`}>
+                            <button type="button" onClick={() => openEdit(category)} disabled={isDeleting} aria-label={`${t("categories.Edit category", "Edit category")} ${category.name}`}>
                               <Pencil className="h-4 w-4" />
                             </button>
                             <div className="relative">
@@ -1350,7 +1354,7 @@ export default function AdminCategoriesPage() {
                                   event.stopPropagation();
                                   setActionMenuId((prev) => (prev === category.id ? null : category.id));
                                 }}
-                                aria-label={`More actions for ${category.name}`}
+                                aria-label={`${t("categories.More actions for", "More actions for")} ${category.name}`}
                                 className="ac26-more-trigger"
                               >
                                 <MoreVertical className="h-4 w-4" />
@@ -1445,11 +1449,11 @@ export default function AdminCategoriesPage() {
                 : t("categories.Showing 0 to 0 of 0 categories", "Showing 0 to 0 of 0 categories")}
             </p>
             <div className="flex items-center gap-2">
-              <button type="button" disabled={page <= 1} onClick={() => setPage((prev) => Math.max(1, prev - 1))} aria-label="Previous page" className="inline-flex h-9 w-11 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300">
+              <button type="button" disabled={page <= 1} onClick={() => setPage((prev) => Math.max(1, prev - 1))} aria-label={t("categories.Previous page", "Previous page")} className="inline-flex h-9 w-11 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300">
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <span className="inline-flex h-9 min-w-9 items-center justify-center rounded-lg bg-[#034c85] px-3 font-semibold text-white">{page}</span>
-              <button type="button" disabled={page >= totalPages} onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))} aria-label="Next page" className="inline-flex h-9 w-11 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300">
+              <button type="button" disabled={page >= totalPages} onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))} aria-label={t("categories.Next page", "Next page")} className="inline-flex h-9 w-11 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300">
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>

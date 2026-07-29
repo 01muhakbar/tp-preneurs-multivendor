@@ -222,12 +222,12 @@ export default function Sidebar({ collapsed = false, mobileOpen = false }) {
           type="button"
           className="sidebar__logout"
           onClick={handleLogout}
-          title={collapsed ? "Log Out" : undefined}
+          title={collapsed ? t("sidebar.Logout", "Logout") : undefined}
         >
           <span className="sidebar__logout-icon" aria-hidden="true">
             <IconLogout className="sidebar__icon-svg" />
           </span>
-          <span className="sidebar__logout-label">Log Out</span>
+          <span className="sidebar__logout-label">{t("sidebar.Logout", "Logout")}</span>
         </button>
       </div>
     </aside>

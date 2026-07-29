@@ -194,6 +194,71 @@ function RowMoreMenu({
   );
 }
 
+function BulkActionsMenu({ open, onToggle, onClose, disabled, onBulkAction }) {
+  const { t } = useTranslation("admin");
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open, onClose]);
+
+  const runAction = (action) => {
+    onClose();
+    onBulkAction(action);
+  };
+
+  return (
+    <div className="aa26-more-actions" ref={menuRef}>
+      <ActionButton
+        icon={ChevronDown}
+        disabled={disabled}
+        onClick={onToggle}
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        {t("attributes.Bulk Action", "Bulk Action")}
+      </ActionButton>
+      {open ? (
+        <div
+          className="aa26-more-menu"
+          role="menu"
+          style={{ left: 0, right: "auto", top: "calc(100% + 4px)", bottom: "auto", minWidth: 170, zIndex: 100 }}
+        >
+          <button type="button" role="menuitem" disabled={disabled} onClick={() => runAction("publish")}>
+            <Upload size={15} />
+            <span>{t("attributes.Bulk Publish", "Bulk Publish")}</span>
+          </button>
+          <button type="button" role="menuitem" disabled={disabled} onClick={() => runAction("unpublish")}>
+            <Download size={15} />
+            <span>{t("attributes.Bulk Unpublish", "Bulk Unpublish")}</span>
+          </button>
+          <span className="aa26-more-menu__divider" aria-hidden="true" />
+          <button type="button" role="menuitem" className="is-danger" disabled={disabled} onClick={() => runAction("delete")}>
+            <Trash2 size={15} />
+            <span>{t("attributes.Bulk Delete", "Bulk Delete")}</span>
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function formatRelativeOrDate(dateString, isIndo) {
   if (!dateString) return "-";
   try {
@@ -249,6 +314,7 @@ export default function AdminAttributes2026View({
   const openMenuRef = useRef(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [openActionMenuId, setOpenActionMenuId] = useState(null);
+  const [bulkMenuOpen, setBulkMenuOpen] = useState(false);
   const [viewMode, setViewMode] = useState("table");
 
   const typeOptions = useMemo(
@@ -273,8 +339,8 @@ export default function AdminAttributes2026View({
   const statusOptions = useMemo(
     () => [
       { value: "all", label: t("attributes.All", "All") },
-      { value: "active", label: t("attributes.Active", "Active") },
-      { value: "archived", label: t("attributes.Archived", "Archived") },
+      { value: "published", label: t("attributes.Active", "Active") },
+      { value: "unpublished", label: t("attributes.Inactive", "Inactive") },
     ],
     [t]
   );
@@ -327,6 +393,7 @@ export default function AdminAttributes2026View({
 
   useEffect(() => {
     setOpenActionMenuId(null);
+    setBulkMenuOpen(false);
   }, [attributes, filters]);
 
   const handleImportChange = (event) => {
@@ -364,13 +431,13 @@ export default function AdminAttributes2026View({
           <ActionButton icon={Upload} onClick={() => fileInputRef.current?.click()}>
             {t("attributes.Import", "Import")}
           </ActionButton>
-          <ActionButton
-            icon={ChevronDown}
+          <BulkActionsMenu
+            open={bulkMenuOpen}
+            onToggle={() => setBulkMenuOpen((open) => !open)}
+            onClose={() => setBulkMenuOpen(false)}
             disabled={!anySelected}
-            onClick={() => onBulkAction("publish")}
-          >
-            {t("attributes.Bulk Action", "Bulk Action")}
-          </ActionButton>
+            onBulkAction={onBulkAction}
+          />
           <ActionButton
             icon={Trash2}
             tone="danger"
@@ -385,7 +452,7 @@ export default function AdminAttributes2026View({
         </div>
       </section>
 
-      <section className="aa26-kpis" aria-label="Attribute summary">
+      <section className="aa26-kpis" aria-label={t("attributes.Attribute summary", "Attribute summary")}>
         <KpiCard
           label={t("attributes.Total Attributes", "Total Attributes")}
           value={stats.total}
@@ -439,8 +506,19 @@ export default function AdminAttributes2026View({
         />
         <FieldSelect
           label={t("attributes.Status", "Status")}
-          value={filters.status || "all"}
-          onChange={(value) => onFilterChange({ status: value === "all" ? "" : value })}
+          value={
+            filters.published === "true"
+              ? "published"
+              : filters.published === "false"
+                ? "unpublished"
+                : "all"
+          }
+          onChange={(value) =>
+            onFilterChange({
+              published: value === "all" ? "" : value === "published" ? "true" : "false",
+              status: "",
+            })
+          }
           options={statusOptions}
         />
         <button
@@ -523,10 +601,9 @@ export default function AdminAttributes2026View({
                 : typeStr === "radio" ? t("attributes.Radio", "Radio")
                 : typeStr === "checkbox" ? t("attributes.Checkbox", "Checkbox")
                 : String(attribute.type || "Dropdown").replace(/^[a-z]/, (c) => c.toUpperCase());
-              const statusStr = String(attribute.status || "active").toLowerCase();
-              const statusLabel =
-                statusStr === "archived" ? t("attributes.Archived", "Archived")
-                : t("attributes.Active", "Active");
+              const isPublished = Boolean(attribute.published);
+              const statusStr = isPublished ? "active" : "inactive";
+              const statusLabel = isPublished ? t("attributes.Active", "Active") : t("attributes.Inactive", "Inactive");
 
               return (
                 <article key={attribute.id} className={`aa26-grid-item ${selectedSet.has(id) ? "is-selected" : ""}`}>
@@ -536,7 +613,7 @@ export default function AdminAttributes2026View({
                       disabled={!manageable}
                       checked={selectedSet.has(id)}
                       onChange={() => onSelectOne(id)}
-                      aria-label={`Select ${attribute.name}`}
+                      aria-label={`${t("attributes.Select attribute", "Select attribute")} ${attribute.name}`}
                     />
                     <div ref={openActionMenuId === id ? openMenuRef : null}>
                       <RowMoreMenu
@@ -572,7 +649,7 @@ export default function AdminAttributes2026View({
                       className="aa26-values-pill"
                       onClick={() => onManageValues(attribute)}
                     >
-                      <span>{valueCount} {isIndo ? "nilai" : (valueCount === 1 ? "value" : "values")}</span>
+                      <span>{valueCount} {t(valueCount === 1 ? "attributes.value" : "attributes.values", valueCount === 1 ? "value" : "values")}</span>
                     </button>
                     <PublishToggle
                       checked={Boolean(attribute.published)}
@@ -633,10 +710,9 @@ export default function AdminAttributes2026View({
                     : typeStr === "checkbox" ? t("attributes.Checkbox", "Checkbox")
                     : String(attribute.type || "Dropdown").replace(/^[a-z]/, (c) => c.toUpperCase());
 
-                  const statusStr = String(attribute.status || "active").toLowerCase();
-                  const statusLabel =
-                    statusStr === "archived" ? t("attributes.Archived", "Archived")
-                    : t("attributes.Active", "Active");
+                  const isPublished = Boolean(attribute.published);
+                  const statusStr = isPublished ? "active" : "inactive";
+                  const statusLabel = isPublished ? t("attributes.Active", "Active") : t("attributes.Inactive", "Inactive");
 
                   return (
                     <tr key={attribute.id}>
@@ -646,7 +722,7 @@ export default function AdminAttributes2026View({
                           disabled={!manageable}
                           checked={selectedSet.has(id)}
                           onChange={() => onSelectOne(id)}
-                          aria-label={`Select ${attribute.name}`}
+                          aria-label={`${t("attributes.Select attribute", "Select attribute")} ${attribute.name}`}
                         />
                       </td>
                       <td>
@@ -675,7 +751,7 @@ export default function AdminAttributes2026View({
                           className="aa26-values-pill"
                           onClick={() => onManageValues(attribute)}
                         >
-                          <span>{valueCount} {isIndo ? "nilai" : (valueCount === 1 ? "value" : "values")}</span>
+                          <span>{valueCount} {t(valueCount === 1 ? "attributes.value" : "attributes.values", valueCount === 1 ? "value" : "values")}</span>
                         </button>
                       </td>
                       <td>
@@ -731,13 +807,15 @@ export default function AdminAttributes2026View({
       {attributes.length > 0 ? (
         <div className="aa26-pagination">
           <p>
-            {isIndo
-              ? `Menampilkan ${startIdx} hingga ${endIdx} dari ${meta.total} atribut`
-              : `Showing ${startIdx} to ${endIdx} of ${meta.total} attributes`}
+            {t("attributes.Showing start to end of total attributes", "Showing {{start}} to {{end}} of {{total}} attributes", {
+              start: startIdx,
+              end: endIdx,
+              total: meta.total,
+            })}
           </p>
           <div>
             <IconButton
-              label="Previous page"
+              label={t("attributes.Previous page", "Previous page")}
               disabled={meta.page <= 1}
               onClick={() => onPageChange(meta.page - 1)}
             >
@@ -753,7 +831,7 @@ export default function AdminAttributes2026View({
               </button>
             </span>
             <IconButton
-              label="Next page"
+              label={t("attributes.Next page", "Next page")}
               disabled={meta.page >= (meta.totalPages || 1)}
               onClick={() => onPageChange(meta.page + 1)}
             >

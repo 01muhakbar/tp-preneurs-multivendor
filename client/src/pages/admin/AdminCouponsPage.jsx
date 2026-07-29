@@ -30,6 +30,7 @@ import CouponFilterMenu from "../../components/coupons/CouponFilterMenu.jsx";
 import EditCouponDrawer from "../../components/admin/coupons/EditCouponDrawer.jsx";
 import CouponImportModal from "../../components/coupons/CouponImportModal.jsx";
 import AdminCoupons2026View from "../../components/admin/coupons/AdminCoupons2026View.jsx";
+import { buildAdminCouponDetailPath } from "../../components/admin/coupons/CouponDetail2026View.jsx";
 import {
   UiErrorState,
   UiSkeleton,
@@ -64,7 +65,7 @@ const statusFilterOptions = [
   { value: "all", label: "All" },
   { value: "active", label: "Active" },
   { value: "expired", label: "Expired" },
-  { value: "inactive", label: "Draft / Inactive" },
+  { value: "inactive", label: "Inactive" },
   { value: "scheduled", label: "Scheduled" },
 ];
 const DEFAULT_COLUMN_VISIBILITY = {
@@ -180,6 +181,13 @@ const resolveEndDate = (coupon) => {
 };
 
 const resolveStatus = (coupon, published) => {
+  if (!published) {
+    return {
+      label: "Inactive",
+      tone: "deactive",
+    };
+  }
+
   const startDate = resolveStartDate(coupon);
   const endDate = resolveEndDate(coupon);
   const parsedStart = startDate ? new Date(startDate) : null;
@@ -190,14 +198,7 @@ const resolveStatus = (coupon, published) => {
     ? parsedEnd.getTime() < Date.now()
     : false;
 
-  if (!published) {
-    return {
-      label: "Draft / Inactive",
-      tone: "deactive",
-    };
-  }
-
-  if (isScheduled && published) {
+  if (isScheduled) {
     return {
       label: "Scheduled",
       tone: "scheduled",
@@ -415,7 +416,7 @@ export default function AdminCouponsPage() {
         if (publishedFilter === "unpublished" && published) return false;
         if (statusFilter === "active" && status.label !== "Active") return false;
         if (statusFilter === "expired" && status.label !== "Expired") return false;
-        if (statusFilter === "inactive" && status.label !== "Draft / Inactive") return false;
+        if (statusFilter === "inactive" && status.label !== "Inactive") return false;
         if (statusFilter === "scheduled" && status.label !== "Scheduled") return false;
         return true;
       }),
@@ -555,6 +556,10 @@ export default function AdminCouponsPage() {
     setIsEditDrawerOpen(true);
   };
 
+  const openDetail = (coupon) => {
+    navigate(buildAdminCouponDetailPath(coupon));
+  };
+
   const closeEditDrawer = () => {
     if (isUpdateBusy) return;
     updateMutation.reset();
@@ -611,7 +616,7 @@ export default function AdminCouponsPage() {
       if (publishedFilter === "unpublished" && published) return false;
       if (statusFilter === "active" && status.label !== "Active") return false;
       if (statusFilter === "expired" && status.label !== "Expired") return false;
-      if (statusFilter === "inactive" && status.label !== "Draft / Inactive") return false;
+      if (statusFilter === "inactive" && status.label !== "Inactive") return false;
       if (statusFilter === "scheduled" && status.label !== "Scheduled") return false;
       return true;
     });
@@ -882,7 +887,7 @@ export default function AdminCouponsPage() {
         onSelectOne={toggleSelectRow}
         onSelectAll={toggleSelectAll}
         onAddCoupon={openCreate}
-        onViewCoupon={openEdit}
+        onViewCoupon={openDetail}
         onEditCoupon={openEdit}
         onDeleteCoupon={handleDeleteOne}
         onToggleActive={handleTogglePublished}

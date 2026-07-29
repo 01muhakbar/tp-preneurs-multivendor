@@ -76,6 +76,7 @@ const AdminCustomerOrdersPage = lazy(() =>
   import("./pages/admin/AdminCustomerOrdersPage.jsx")
 );
 const AdminCouponsPage = lazy(() => import("./pages/admin/AdminCouponsPage.jsx"));
+const AdminCouponDetailPage = lazy(() => import("./pages/admin/AdminCouponDetailPage.jsx"));
 const AdminCouponCreatePage = lazy(() => import("./pages/admin/AdminCouponCreatePage.jsx"));
 const AdminProfilePage = lazy(() => import("./pages/admin/Profile.jsx"));
 const ComingSoon = lazy(() => import("./pages/admin/ComingSoon.jsx"));
@@ -694,6 +695,14 @@ export default function App() {
                 element={
                   <RequirePerm perm="COUPONS_CRUD">
                     <AdminCouponCreatePage />
+                  </RequirePerm>
+                }
+              />
+              <Route
+                path="catalog/coupons/:couponId/:scopeKey"
+                element={
+                  <RequirePerm perm="COUPONS_CRUD">
+                    <AdminCouponDetailPage />
                   </RequirePerm>
                 }
               />

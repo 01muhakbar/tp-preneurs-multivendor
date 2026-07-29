@@ -80,6 +80,7 @@ export function AddCouponFormPanel({
   headerClassName = "border-b border-slate-200 px-6 py-5",
   closeAriaLabel = "Close drawer",
   compact = false,
+  showLanguageField = true,
 }) {
   const { t } = useTranslation("admin");
   const [form, setForm] = useState(initialForm);
@@ -297,20 +298,22 @@ export function AddCouponFormPanel({
                 compact={compact}
               />
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Language
-                  </label>
-                  <select
-                    value={form.language}
-                    onChange={(event) => setField({ language: event.target.value })}
-                    className={`h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none${inputFocusClass}`}
-                  >
-                    <option value="en">English</option>
-                    <option value="id">Bahasa Indonesia</option>
-                  </select>
-                </div>
-                <div>
+                {showLanguageField ? (
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Language
+                    </label>
+                    <select
+                      value={form.language}
+                      onChange={(event) => setField({ language: event.target.value })}
+                      className={`h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none${inputFocusClass}`}
+                    >
+                      <option value="en">English</option>
+                      <option value="id">Bahasa Indonesia</option>
+                    </select>
+                  </div>
+                ) : null}
+                <div className={showLanguageField ? "" : "sm:col-span-2"}>
                   <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Scope
                   </label>

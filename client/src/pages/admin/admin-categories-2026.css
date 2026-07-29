@@ -44,6 +44,7 @@
 .ac26-breadcrumb,
 .ac26-header__actions,
 .ac26-status-cell,
+.ac26-published-cell,
 .ac26-actions-cell > div,
 .ac26-pagination,
 .ac26-pagination > div {
@@ -464,6 +465,18 @@
   overflow: visible !important;
 }
 
+.ac26-col-status,
+.ac26-cell-status {
+  width: 12%;
+  text-align: center !important;
+}
+
+.ac26-col-published,
+.ac26-cell-published {
+  width: 16%;
+  text-align: center !important;
+}
+
 .ac26-category-cell {
   min-width: 0;
   display: grid;
@@ -505,7 +518,12 @@
 }
 
 .ac26-status-cell {
-  gap: 10px;
+  justify-content: center;
+  gap: 0;
+}
+
+.ac26-published-cell {
+  justify-content: center;
 }
 
 .ac26-tabular {
@@ -959,19 +977,20 @@
     padding: 0;
   }
 
-  .ac26-table td[data-label="Category"] {
+  .ac26-table td.ac26-cell-category {
     display: block;
     padding-right: 34px;
     padding-bottom: 12px;
     border-bottom: 1px solid var(--ac26-border);
   }
 
-  .ac26-table td[data-label="Category"]::before,
-  .ac26-table td[data-label="Actions"]::before {
+  .ac26-table td.ac26-cell-category::before,
+  .ac26-table td.ac26-actions-cell::before {
     display: none;
   }
 
-  .ac26-status-cell {
+  .ac26-status-cell,
+  .ac26-published-cell {
     justify-content: flex-start;
   }
 
@@ -1152,11 +1171,11 @@
   }
 
   .ac26-table th:nth-child(1) { width: 4%; }
-  .ac26-table th:nth-child(2) { width: 21%; }
-  .ac26-table th:nth-child(3) { width: 17%; }
+  .ac26-table th:nth-child(2) { width: 26%; }
+  .ac26-table th:nth-child(3) { width: 20%; }
   .ac26-table th:nth-child(4) { width: 10%; }
-  .ac26-table th:nth-child(5) { width: 16%; }
-  .ac26-table th:nth-child(6) { width: 20%; }
+  .ac26-table th:nth-child(5) { width: 12%; }
+  .ac26-table th:nth-child(6) { width: 16%; }
   .ac26-table th:nth-child(7) { width: 12%; }
 
   .ac26-table th {
@@ -1218,9 +1237,11 @@
     white-space: normal;
   }
 
-  .ac26-status-cell {
+  .ac26-status-cell,
+  .ac26-published-cell {
     flex-wrap: nowrap;
-    gap: 8px;
+    justify-content: center;
+    gap: 0;
   }
 
   .ac26-actions-cell > div {
@@ -1234,4 +1255,35 @@
     width: 34px;
     min-height: 34px;
   }
+}
+
+/* Keep category row actions centered regardless of which catalog CSS loads last. */
+.ac26-page.ac26-page--categories .ac26-col-actions,
+.ac26-page.ac26-page--categories .ac26-table th:last-child,
+.ac26-page.ac26-page--categories .ac26-table td:last-child {
+  text-align: center;
+}
+
+.ac26-page.ac26-page--categories .ac26-table td.ac26-actions-cell {
+  display: table-cell;
+  width: 12%;
+  overflow: visible !important;
+  text-align: center !important;
+  vertical-align: middle;
+}
+
+.ac26-page.ac26-page--categories .ac26-table td.ac26-actions-cell > div {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.ac26-page.ac26-page--categories .ac26-table td.ac26-actions-cell > div > button,
+.ac26-page.ac26-page--categories .ac26-table td.ac26-actions-cell > div > div > button.ac26-more-trigger {
+  width: 34px;
+  min-width: 34px;
+  min-height: 34px;
+  padding: 0;
 }

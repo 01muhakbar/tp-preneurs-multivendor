@@ -307,6 +307,35 @@ router.get("/export", async (req, res, next) => {
   }
 });
 
+// GET /api/admin/coupons/:id
+router.get("/:id", async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ success: false, message: "Invalid id" });
+    }
+
+    const coupon = await Coupon.findByPk(id, {
+      include: [
+        {
+          model: Store,
+          as: "store",
+          attributes: ["id", "name", "slug", "status"],
+          required: false,
+        },
+      ],
+    });
+
+    if (!coupon) {
+      return res.status(404).json({ success: false, message: "Not found" });
+    }
+
+    return res.json({ success: true, data: serializeAdminCoupon(coupon) });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // POST /api/admin/coupons
 router.post("/", async (req, res, next) => {
   try {

@@ -78,7 +78,11 @@ function KpiCard({ label, value, helper, icon: Icon, tone }) {
   );
 }
 
-function PublishToggle({ checked, disabled, busy, onChange }) {
+function PublishToggle({ checked, disabled, busy, onChange, t }) {
+  const label = checked
+    ? t("coupons.Active coupon in public checkout", "Active coupon in public checkout")
+    : t("coupons.Inactive coupon in public checkout", "Inactive coupon in public checkout");
+
   return (
     <button
       type="button"
@@ -87,7 +91,8 @@ function PublishToggle({ checked, disabled, busy, onChange }) {
       onClick={onChange}
       role="switch"
       aria-checked={checked}
-      title={checked ? "Published" : "Unpublished"}
+      aria-label={label}
+      title={checked ? t("coupons.Active", "Active") : t("coupons.Inactive", "Inactive")}
     >
       <span />
     </button>
@@ -99,6 +104,7 @@ function RowMoreMenu({
   disabled,
   open,
   onToggle,
+  onView,
   onEdit,
   onToggleActive,
   onDelete,
@@ -107,7 +113,7 @@ function RowMoreMenu({
   return (
     <div className="ac26-more-actions">
       <IconButton
-        label={`More actions for ${coupon.code}`}
+        label={`${t("coupons.More actions for", "More actions for")} ${coupon.code}`}
         aria-haspopup="menu"
         aria-expanded={open}
         className={open ? "is-active" : ""}
@@ -116,7 +122,19 @@ function RowMoreMenu({
         <MoreVertical size={16} />
       </IconButton>
       {open ? (
-        <div className="ac26-more-menu" role="menu" aria-label={`More actions for ${coupon.code}`}>
+        <div className="ac26-more-menu" role="menu" aria-label={`${t("coupons.More actions for", "More actions for")} ${coupon.code}`}>
+          <button
+            type="button"
+            role="menuitem"
+            disabled={disabled}
+            onClick={() => {
+              onToggle();
+              onView?.(coupon);
+            }}
+          >
+            <Eye size={15} />
+            <span>{t("coupons.View Coupon", "View Coupon")}</span>
+          </button>
           <button
             type="button"
             role="menuitem"
@@ -164,14 +182,78 @@ function RowMoreMenu({
   );
 }
 
+function BulkActionsMenu({ open, onToggle, onClose, disabled, onBulkAction, t }) {
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open, onClose]);
+
+  const runAction = (action) => {
+    onClose();
+    onBulkAction(action);
+  };
+
+  return (
+    <div className="ac26-more-actions" ref={menuRef}>
+      <ActionButton
+        icon={ChevronDown}
+        disabled={disabled}
+        onClick={onToggle}
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        {t("coupons.Bulk Action", "Bulk Action")}
+      </ActionButton>
+      {open ? (
+        <div
+          className="ac26-more-menu"
+          role="menu"
+          style={{ left: 0, right: "auto", top: "calc(100% + 4px)", bottom: "auto", minWidth: 170, zIndex: 100 }}
+        >
+          <button type="button" role="menuitem" disabled={disabled} onClick={() => runAction("activate")}>
+            <Upload size={15} />
+            <span>{t("coupons.Bulk Activate", "Bulk Activate")}</span>
+          </button>
+          <button type="button" role="menuitem" disabled={disabled} onClick={() => runAction("deactivate")}>
+            <Download size={15} />
+            <span>{t("coupons.Bulk Deactivate", "Bulk Deactivate")}</span>
+          </button>
+          <span className="ac26-more-menu__divider" aria-hidden="true" />
+          <button type="button" role="menuitem" className="is-danger" disabled={disabled} onClick={() => runAction("delete")}>
+            <Trash2 size={15} />
+            <span>{t("coupons.Bulk Delete", "Bulk Delete")}</span>
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function resolveCouponStatus(coupon, t = (k, d) => d) {
+  if (!resolveCouponActive(coupon)) {
+    return { label: t("coupons.Inactive", "Inactive"), tone: "inactive" };
+  }
+
   const now = new Date();
-  const isActive = resolveCouponActive(coupon);
   const startsAt = coupon.startsAt || coupon.startDate;
   const expiresAt = coupon.expiresAt || coupon.endDate || coupon.endsAt;
-  if (!isActive) {
-    return { label: t("coupons.Draft / Inactive", "Draft / Inactive"), tone: "inactive" };
-  }
   if (startsAt && new Date(startsAt) > now) {
     return { label: t("coupons.Scheduled", "Scheduled"), tone: "scheduled" };
   }
@@ -187,7 +269,14 @@ function resolveCouponActive(coupon) {
   return true;
 }
 
-function formatPeriod(startsAt, expiresAt) {
+function formatPeriod(startsAt, expiresAt, t = (k, d) => d) {
+  const startShort = formatDateShort(startsAt);
+  const endShort = formatDateShort(expiresAt);
+  if (startShort !== "-" && endShort !== "-") return `${startShort} - ${endShort}`;
+  if (startShort !== "-") return `${t("coupons.Starts", "Starts")} ${startShort}`;
+  if (endShort !== "-") return `${t("coupons.Expires", "Expires")} ${endShort}`;
+  return t("coupons.No expiry", "No expiry");
+
   if (!startsAt && !expiresAt) return "No expiry";
   const formatDate = (dateStr) => {
     if (!dateStr) return null;
@@ -252,6 +341,7 @@ export default function AdminCoupons2026View({
   const openMenuRef = useRef(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [openActionMenuId, setOpenActionMenuId] = useState(null);
+  const [bulkMenuOpen, setBulkMenuOpen] = useState(false);
   const [viewMode, setViewMode] = useState("table");
 
   const discountTypeOptions = useMemo(
@@ -278,7 +368,7 @@ export default function AdminCoupons2026View({
       { value: "active", label: t("coupons.Active", "Active") },
       { value: "scheduled", label: t("coupons.Scheduled", "Scheduled") },
       { value: "expired", label: t("coupons.Expired", "Expired") },
-      { value: "inactive", label: t("coupons.Draft / Inactive", "Draft / Inactive") },
+      { value: "inactive", label: t("coupons.Inactive", "Inactive") },
     ],
     [t]
   );
@@ -320,13 +410,19 @@ export default function AdminCoupons2026View({
 
   useEffect(() => {
     setOpenActionMenuId(null);
+    setBulkMenuOpen(false);
   }, [coupons, filters]);
+
+  const openCouponDetail = (coupon) => {
+    setOpenActionMenuId(null);
+    onViewCoupon?.(coupon);
+  };
 
   const startIdx = safeMeta.total === 0 ? 0 : (safeMeta.page - 1) * safeMeta.limit + 1;
   const endIdx = Math.min(safeMeta.total, safeMeta.page * safeMeta.limit);
 
   return (
-    <div className="ac26-page">
+    <div className="ac26-page ac26-page--coupons">
       <section className="ac26-header">
         <div>
           <h1>{t("coupons.Coupons", "Coupons")}</h1>
@@ -343,13 +439,14 @@ export default function AdminCoupons2026View({
           <ActionButton icon={Upload} onClick={onImport}>
             {t("coupons.Import", "Import")}
           </ActionButton>
-          <ActionButton
-            icon={ChevronDown}
+          <BulkActionsMenu
+            open={bulkMenuOpen}
+            onToggle={() => setBulkMenuOpen((open) => !open)}
+            onClose={() => setBulkMenuOpen(false)}
             disabled={!anySelected}
-            onClick={() => onBulkAction("activate")}
-          >
-            {t("coupons.Bulk Action", "Bulk Action")}
-          </ActionButton>
+            onBulkAction={onBulkAction}
+            t={t}
+          />
           <ActionButton
             icon={Trash2}
             tone="danger"
@@ -364,7 +461,7 @@ export default function AdminCoupons2026View({
         </div>
       </section>
 
-      <section className="ac26-kpis" aria-label="Coupon summary">
+      <section className="ac26-kpis" aria-label={t("coupons.Coupon summary", "Coupon summary")}>
         <KpiCard
           label={t("coupons.Total Coupons", "Total Coupons")}
           value={safeStats.total}
@@ -511,7 +608,7 @@ export default function AdminCoupons2026View({
                       type="checkbox"
                       checked={selectedSet.has(id)}
                       onChange={() => onSelectOne(id)}
-                      aria-label={`Select ${coupon.code}`}
+                      aria-label={`${t("coupons.Select coupon", "Select coupon")} ${coupon.code}`}
                     />
                     <div ref={openActionMenuId === coupon.id ? openMenuRef : null}>
                       <RowMoreMenu
@@ -521,6 +618,7 @@ export default function AdminCoupons2026View({
                         onToggle={() =>
                           setOpenActionMenuId((current) => (current === coupon.id ? null : coupon.id))
                         }
+                        onView={openCouponDetail}
                         onEdit={onEditCoupon}
                         onToggleActive={onToggleActive}
                         onDelete={onDeleteCoupon}
@@ -543,7 +641,7 @@ export default function AdminCoupons2026View({
                   </div>
                   <div className="ac26-grid-item__meta">
                     <span>{t("coupons.Min spend", "Min spend")}: {formatCurrency(Number(coupon.minSpend || coupon.minimumAmount || 0))}</span>
-                    <span>{formatPeriod(coupon.startDate || coupon.startsAt, coupon.endDate || coupon.expiresAt)}</span>
+                    <span>{formatPeriod(coupon.startDate || coupon.startsAt, coupon.endDate || coupon.expiresAt, t)}</span>
                   </div>
                   <div className="ac26-grid-item__footer">
                     <span className="ac26-usage">
@@ -555,6 +653,7 @@ export default function AdminCoupons2026View({
                       disabled={false}
                       busy={false}
                       onChange={() => onToggleActive(coupon)}
+                      t={t}
                     />
                   </div>
                 </article>
@@ -567,22 +666,23 @@ export default function AdminCoupons2026View({
           <div className="ac26-table-wrap">
             <table className="ac26-table">
               <colgroup>
-                <col className="ac26-col-select" />
-                <col className="ac26-col-coupon" />
-                <col className="ac26-col-discount" />
-                <col className="ac26-col-min" />
-                <col className="ac26-col-scope" />
-                <col className="ac26-col-period" />
-                <col className="ac26-col-usage" />
-                <col className="ac26-col-state" />
-                <col className="ac26-col-actions" />
+                <col className="ac26-col-select ac26-coupon-col-select" />
+                <col className="ac26-col-coupon ac26-coupon-col-coupon" />
+                <col className="ac26-col-discount ac26-coupon-col-discount" />
+                <col className="ac26-col-min ac26-coupon-col-min" />
+                <col className="ac26-col-scope ac26-coupon-col-scope" />
+                <col className="ac26-col-period ac26-coupon-col-period" />
+                <col className="ac26-col-usage ac26-coupon-col-usage" />
+                <col className="ac26-col-state ac26-coupon-col-state" />
+                <col className="ac26-col-published ac26-coupon-col-published" />
+                <col className="ac26-col-actions ac26-coupon-col-actions" style={{ width: "15.5%" }} />
               </colgroup>
               <thead>
                 <tr>
                   <th>
                     <input
                       type="checkbox"
-                      aria-label="Select all coupons"
+                      aria-label={t("coupons.Select all coupons", "Select all coupons")}
                       checked={
                         coupons.length > 0 &&
                         coupons.every((item) => selectedSet.has(Number(item.id)))
@@ -597,7 +697,8 @@ export default function AdminCoupons2026View({
                   <th>{t("coupons.PERIOD", "PERIOD")}</th>
                   <th>{t("coupons.USAGE", "USAGE")}</th>
                   <th>{t("coupons.STATUS", "STATUS")}</th>
-                  <th>{t("coupons.ACTIONS", "ACTIONS")}</th>
+                  <th>{t("coupons.PUBLISHED", "PUBLISHED")}</th>
+                  <th className="ac26-coupon-actions-heading">{t("coupons.ACTIONS", "ACTIONS")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -619,7 +720,7 @@ export default function AdminCoupons2026View({
                           type="checkbox"
                           checked={selectedSet.has(id)}
                           onChange={() => onSelectOne(id)}
-                          aria-label={`Select ${coupon.code}`}
+                          aria-label={`${t("coupons.Select coupon", "Select coupon")} ${coupon.code}`}
                         />
                       </td>
                       <td>
@@ -647,8 +748,8 @@ export default function AdminCoupons2026View({
                       </td>
                       <td>
                         <span className="ac26-dates">
-                          <span>{t("coupons.Start:", "Start:")} {formatDateShort(coupon.startDate || coupon.startsAt)}</span>
-                          <span>{t("coupons.End:", "End:")} {formatDateShort(coupon.endDate || coupon.expiresAt)}</span>
+                          <span>{t("coupons.Start", "Start")}: {formatDateShort(coupon.startDate || coupon.startsAt)}</span>
+                          <span>{t("coupons.End", "End")}: {formatDateShort(coupon.endDate || coupon.expiresAt)}</span>
                         </span>
                       </td>
                       <td>
@@ -661,22 +762,27 @@ export default function AdminCoupons2026View({
                       </td>
                       <td>
                         <div className="ac26-state-cell">
-                          <PublishToggle
-                            checked={isActive}
-                            disabled={false}
-                            busy={false}
-                            onChange={() => onToggleActive(coupon)}
-                          />
                           <span className={`ac26-status ac26-status--${statusObj.tone}`}>
                             {statusObj.label}
                           </span>
                         </div>
                       </td>
                       <td>
-                        <div className="ac26-actions-cell">
+                        <div className="ac26-published-cell">
+                          <PublishToggle
+                            checked={isActive}
+                            disabled={false}
+                            busy={false}
+                            onChange={() => onToggleActive(coupon)}
+                            t={t}
+                          />
+                        </div>
+                      </td>
+                      <td className="ac26-coupon-actions-td">
+                        <div className="ac26-actions-cell ac26-coupon-actions">
                           <IconButton
                             label={`${t("coupons.View Coupon", "View Coupon")} ${coupon.code}`}
-                            onClick={() => (onViewCoupon || onEditCoupon)?.(coupon)}
+                            onClick={() => openCouponDetail(coupon)}
                           >
                             <Eye size={16} />
                           </IconButton>
@@ -693,6 +799,7 @@ export default function AdminCoupons2026View({
                             onToggle={() =>
                               setOpenActionMenuId((current) => (current === coupon.id ? null : coupon.id))
                             }
+                            onView={openCouponDetail}
                             onEdit={onEditCoupon}
                             onToggleActive={onToggleActive}
                             onDelete={onDeleteCoupon}
@@ -716,7 +823,7 @@ export default function AdminCoupons2026View({
           </p>
           <div>
             <IconButton
-              label="Previous page"
+              label={t("coupons.Previous page", "Previous page")}
               disabled={safeMeta.page <= 1}
               onClick={() => onPageChange(safeMeta.page - 1)}
             >
@@ -728,7 +835,7 @@ export default function AdminCoupons2026View({
               </button>
             </span>
             <IconButton
-              label="Next page"
+              label={t("coupons.Next page", "Next page")}
               disabled={safeMeta.page >= (safeMeta.totalPages || 1)}
               onClick={() => onPageChange(safeMeta.page + 1)}
             >

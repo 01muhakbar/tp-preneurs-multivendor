@@ -823,6 +823,11 @@ export const fetchAdminCoupons = async (params) => {
   return data;
 };
 
+export const fetchAdminCoupon = async (id) => {
+  const { data } = await adminApi.get(`/admin/coupons/${encodeURIComponent(String(id))}`);
+  return data;
+};
+
 export const fetchAdminCouponMeta = async () => {
   const { data } = await adminApi.get("/admin/coupons/meta");
   return data;

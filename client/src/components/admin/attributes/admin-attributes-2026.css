@@ -326,13 +326,12 @@
 
 .aa26-col-select { width: 4%; }
 .aa26-col-attribute { width: 24%; }
-.aa26-col-type { width: 11%; }
-.aa26-col-scope { width: 10%; }
-.aa26-col-values { width: 10%; }
-.aa26-col-status { width: 8%; }
-.aa26-col-updated { width: 9%; }
-.aa26-col-published { width: 8%; }
-.aa26-col-actions { width: 16%; }
+.aa26-col-type { width: 12%; }
+.aa26-col-scope { width: 11%; }
+.aa26-col-values { width: 11%; }
+.aa26-col-status { width: 10%; }
+.aa26-col-published { width: 10%; }
+.aa26-col-actions { width: 18%; }
 
 .aa26-table th {
   height: 50px;
@@ -462,13 +461,18 @@
 }
 
 .aa26-status--active {
-  background: #ecfdf5;
-  color: #047857;
+  background: #034C85;
+  color: #ffffff;
 }
 
 .aa26-status--archived {
   background: #f3f4f6;
   color: #6b7280;
+}
+
+.aa26-status--inactive {
+  background: #f1f5f9;
+  color: #475569;
 }
 
 .aa26-values-pill {
@@ -519,7 +523,7 @@
 }
 
 .aa26-toggle.is-on {
-  background: #10b981;
+  background: #034C85;
 }
 
 .aa26-toggle.is-on span {
@@ -582,6 +586,13 @@
 .aa26-more-menu button:disabled {
   cursor: not-allowed;
   opacity: 0.48;
+}
+
+.aa26-more-menu__divider {
+  display: block;
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--aa26-border);
 }
 
 .aa26-more-menu button.is-danger {

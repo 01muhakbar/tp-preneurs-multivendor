@@ -430,8 +430,8 @@
 }
 
 .ap26-status--published {
-  background: rgba(18, 185, 129, 0.12);
-  color: #049669;
+  background: #034C85;
+  color: #ffffff;
 }
 
 .ap26-status--draft {
@@ -476,7 +476,7 @@
 }
 
 .ap26-toggle.is-on {
-  background: #12b981;
+  background: #034C85;
 }
 
 .ap26-toggle.is-on span {
