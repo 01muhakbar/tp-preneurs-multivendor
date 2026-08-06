@@ -63,6 +63,7 @@ import storeCouponsRouter from "./routes/store.coupons.js";
 import storeCustomizationRouter from "./routes/store.customization.js";
 import storeSettingsRouter from "./routes/store.settings.js";
 import stripeWebhookRouter from "./routes/store.stripeWebhook.js";
+import duitkuCallbackRouter from "./routes/duitku.callback.js";
 import publicRouter from "./routes/public.js";
 import healthRouter from "./routes/health.js";
 
@@ -73,6 +74,7 @@ app.set("trust proxy", 1);
 app.use(requestIdMiddleware);
 app.use(cookieParser());
 app.use("/api/store", stripeWebhookRouter);
+app.use("/api/payments/duitku", duitkuCallbackRouter);
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 

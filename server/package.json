@@ -44,6 +44,7 @@
     "smoke:user-change-password": "tsx src/scripts/smokeUserChangePassword.ts",
     "smoke:stripe-webhook": "tsx src/scripts/smokeStripeWebhook.ts",
     "smoke:duitku-step4-client": "tsx src/scripts/smokeDuitkuStep4Client.ts",
+    "smoke:duitku-step5-callback": "tsx src/scripts/smokeDuitkuStep5Callback.ts",
     "smoke:request-diagnostics": "tsx src/scripts/smokeRequestDiagnostics.ts",
     "smoke:store-customization-right-box": "tsx src/scripts/smokeStoreCustomizationRightBox.ts",
     "smoke:store-customization-about-us": "tsx src/scripts/smokeStoreCustomizationAboutUs.ts",
