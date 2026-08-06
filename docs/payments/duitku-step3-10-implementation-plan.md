@@ -1,9 +1,9 @@
 # PAY-DUITKU-03: Step 3-10 Implementation Plan
 
-Status: Step 3 completed locally; Step 4-10 remain gated.
+Status: Step 3 and Step 4 completed locally; Step 5-10 remain gated.
 Date: 2026-08-06.  
 Scope: Step 3 local migration/model package plus planning for Step 4 through Step 10.
-Approval: Step 3 local DDL/model package completed; NOT APPROVED for provider calls, callback financial mutation, runtime QRIS refactor, frontend behavior changes, sandbox pass, or production rollout.
+Approval: Step 4 local/non-production client service completed; NOT APPROVED for checkout route integration, callback financial mutation, runtime QRIS refactor, frontend behavior changes, sandbox pass, or production rollout.
 
 This plan assumes Step 1 and Step 2 have local artifacts available:
 
@@ -40,7 +40,8 @@ Step 3 approval status:
 - Step 1 and Step 2 artifacts were committed in `dc5f6ee`;
 - Step 3 local migration/model package was approved with conditions on 2026-08-06;
 - Step 3 local migration/model package was implemented and reviewed in `docs/payments/migrations/2026-08-06-duitku-step3-migration-review.md`;
-- runtime integration, sandbox, and production are still not approved.
+- Step 4 local/non-production client service was implemented and reviewed in `docs/payments/runtime/2026-08-06-duitku-step4-client-review.md`;
+- callback parser, shared financial mutation, QRIS guard runtime refactor, sandbox, and production are still not approved.
 
 ## 2. Gate Sequence
 
