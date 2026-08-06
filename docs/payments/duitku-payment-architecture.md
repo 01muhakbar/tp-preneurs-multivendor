@@ -1,20 +1,21 @@
 # PAY-DUITKU-01: Architecture Decision Record Integrasi Duitku
 
 Architecture status: Pending independent re-audit.  
-Planning readiness: STEP 1 THROUGH STEP 5 COMPLETED LOCALLY UNDER LIMITED APPROVALS.
+Planning readiness: STEP 1 THROUGH STEP 6 COMPLETED LOCALLY UNDER LIMITED APPROVALS.
 Step 1 local review: COMPLETED / PASS.  
 Step 2 local review: COMPLETED / PASS.  
 Step 3 local migration/model review: COMPLETED / PASS.
 Migration approval: APPROVED WITH CONDITIONS FOR STEP 3 LOCAL MIGRATION/MODEL PACKAGE ONLY.
 Step 4 local client service review: COMPLETED / PASS.
 Step 5 local callback raw parser review: COMPLETED / PASS.
-Runtime implementation approval: APPROVED WITH CONDITIONS FOR STEP 4 CLIENT SERVICE AND STEP 5 CALLBACK RAW PARSER LOCAL/NON-PRODUCTION ONLY.
+Step 6 local shared financial transaction service review: COMPLETED / PASS.
+Runtime implementation approval: APPROVED WITH CONDITIONS FOR STEP 4 CLIENT SERVICE, STEP 5 CALLBACK RAW PARSER, AND STEP 6 SHARED FINANCIAL TRANSACTION SERVICE LOCAL/NON-PRODUCTION ONLY.
 Sandbox approval: NOT APPROVED.  
 Production approval: NOT APPROVED.  
 Date: 2026-08-05.  
 Scope: gated local implementation review and approval tracking.
 
-This document now approves Step 4 local/non-production Duitku client service work and Step 5 local/non-production callback raw parser work only. It does not approve checkout route integration, staging/production database mutation, real user-flow provider calls, callback financial mutation, QRIS fallback activation, frontend payment behavior changes, sandbox approval, or production rollout.
+This document now approves Step 4 local/non-production Duitku client service work, Step 5 local/non-production callback raw parser work, and Step 6 local/non-production shared financial transaction service work only. It does not approve checkout route integration, staging/production database mutation, real user-flow provider calls, runtime route refactors, frontend payment behavior changes, sandbox approval, or production rollout.
 
 ## 1. Baseline
 
@@ -439,7 +440,7 @@ Approval is split into separate gates. Passing one gate does not imply approval 
 | Architecture | Pending independent re-audit | second-pass audit confirms provider contract, claim model, lock order, callback storage, QRIS fallback, migration safety, and rollout plan | independent audit note |
 | Step 1 and Step 2 planning | Conditionally ready | implementation stays limited to migration runner fix and read-only DDL preflight | implementation task note |
 | Migration | APPROVED WITH CONDITIONS FOR STEP 3 LOCAL MIGRATION/MODEL PACKAGE ONLY | migration runner/runtime target match is proven, read-only preflight is clean or remediated, DDL is reviewed against live schema, and rollback guards are documented | DDL preflight report and migration review |
-| Runtime integration | APPROVED WITH CONDITIONS FOR STEP 4 CLIENT SERVICE AND STEP 5 CALLBACK RAW PARSER LOCAL/NON-PRODUCTION ONLY | shared financial transaction service, Duitku client, raw callback route, QRIS guards, DTOs, and route refactors pass automated validation | runtime test report |
+| Runtime integration | APPROVED WITH CONDITIONS FOR STEP 4 CLIENT SERVICE, STEP 5 CALLBACK RAW PARSER, AND STEP 6 SHARED FINANCIAL TRANSACTION SERVICE LOCAL/NON-PRODUCTION ONLY | shared financial transaction service, Duitku client, raw callback route, QRIS guards, DTOs, and route refactors pass automated validation | runtime test report |
 | Sandbox | NOT APPROVED | sandbox matrix passes with saved evidence for Create Invoice, callback, return URL, fallback, duplicate, invalid, malformed, unknown, and race scenarios | sandbox evidence report |
 | Production | NOT APPROVED | feature flags, monitored cohort, rollback plan, operations process, and go/no-go review are complete | production go/no-go report |
 
@@ -466,16 +467,18 @@ Approved scope:
 - Step 3 local migration execution is allowed only against the approved local development database target;
 - Step 4 may create local/non-production Duitku client service, config validation, HMAC signer, DTO mapping, redaction helper, offline tests, and unmounted persistence helper.
 - Step 5 may create local/non-production callback raw parser route, callback HMAC verification, callback inbox writes for valid signed callbacks, security-event writes for invalid/malformed callbacks, and parser smoke tests without financial mutation.
+- Step 6 may create local/non-production shared financial transaction service, state-transition guards, lock-order tests, Duitku callback apply logic, QRIS proof guard functions, expiry/cancel/fallback service functions, and local smoke validation without route refactor.
 
 Not approved:
 
 - Duitku DDL creation or execution outside approved local Step 3 migration/model package scope;
 - production or staging database mutation;
 - Duitku Create Invoice provider calls from checkout or real user flow;
-- Duitku callback financial mutation;
+- Duitku callback financial mutation from mounted runtime routes;
 - production callback route enablement;
-- QRIS fallback activation;
+- QRIS fallback activation from mounted runtime routes;
 - seller proof guard refactor in production routes;
+- seller proof route refactor in local or production routes;
 - frontend payment behavior changes;
 - sandbox approval;
 - production rollout.
@@ -483,7 +486,7 @@ Not approved:
 Exit criteria:
 
 - any implementation issue or PR states the exact approved scope;
-- any task beyond Step 5 requires a new approval decision.
+- any task beyond Step 6 requires a new approval decision.
 
 ### Decision Log
 
@@ -501,6 +504,8 @@ Required format:
 | 2026-08-06 | Step 4 local client service review completed | offline Duitku client service, signer, config, DTO, redaction, persistence helper, and smoke validation | Codex developer audit; pending team approver | `docs/payments/runtime/2026-08-06-duitku-step4-client-review.md` | record explicit Step 5 callback raw parser gate decision |
 | 2026-08-06 | Step 5 approved with conditions for local/non-production raw parser only | callback route raw parser, callback HMAC verification, valid callback inbox storage, invalid/malformed security-event storage, and smoke validation without financial mutation | user approval in Codex session | Step 4 review package in commit `e7423a1`; official Duitku POP callback documentation | shared financial transaction service, QRIS guard refactor, frontend DTO changes, sandbox, and production remain not approved |
 | 2026-08-06 | Step 5 local callback raw parser review completed | raw form parser mounted before global body parsers, duplicate/nested rejection, constant-time callback HMAC verification, callback inbox/security-event separation, and no financial mutation | Codex developer audit; pending team approver | `docs/payments/runtime/2026-08-06-duitku-step5-callback-parser-review.md` | record explicit Step 6 shared financial transaction service gate decision |
+| 2026-08-06 | Step 6 approved with conditions for local/non-production shared financial transaction service only | service boundary, state-transition guards, lock-order tests, Duitku callback apply, QRIS proof guard functions, expiry/cancel/fallback service functions, and local smoke validation | user approval in Codex session | Step 5 review package in commit `6730c5b`; `docs/payments/runtime/2026-08-06-duitku-step5-callback-parser-review.md` | QRIS guard route refactor, frontend DTO changes, sandbox, and production remain not approved |
+| 2026-08-06 | Step 6 local shared financial transaction service review completed | shared service created with local/non-production guard, declared lock order, callback paid/idempotency tests, QRIS claim guard tests, and QRIS proof approval under QRIS claim | Codex developer audit; pending team approver | `docs/payments/runtime/2026-08-06-duitku-step6-financial-transaction-review.md` | record explicit Step 7 QRIS guard refactor gate decision |
 
 Rules:
 
@@ -526,6 +531,7 @@ The following artifacts are required before each approval gate can pass.
 | runtime test report | runtime integration approval | `docs/payments/runtime/` |
 | Step 4 client service review | Step 5 callback parser approval package | `docs/payments/runtime/2026-08-06-duitku-step4-client-review.md` |
 | Step 5 callback parser review | Step 6 shared financial transaction service approval package | `docs/payments/runtime/2026-08-06-duitku-step5-callback-parser-review.md` |
+| Step 6 shared financial transaction review | Step 7 QRIS guard refactor approval package | `docs/payments/runtime/2026-08-06-duitku-step6-financial-transaction-review.md` |
 | sandbox evidence report | sandbox approval | `docs/payments/sandbox/` |
 | production go/no-go report | production approval | `docs/payments/production/` |
 
@@ -601,7 +607,7 @@ No-Go for runtime integration:
 
 - callback raw parser is missing;
 - shared financial transaction service is missing;
-- routes still mutate guarded payment state directly;
+- routes still mutate guarded payment state directly after Step 7 is approved for route refactor;
 - lock-order and state-transition tests are missing.
 
 No-Go for sandbox:
@@ -707,7 +713,7 @@ The plan cannot be submitted for the next approval gate until this checklist is 
 - [ ] migration runner validation is complete for migration approval;
 - [ ] DDL preflight artifact is reviewed for migration approval;
 - [x] raw callback parser design is reviewed for runtime approval;
-- [ ] shared financial transaction service design is reviewed for runtime approval;
+- [x] shared financial transaction service design is reviewed for runtime approval;
 - [ ] test strategy is accepted for the target gate;
 - [ ] rollback plan is accepted for migration/runtime/production as applicable;
 - [ ] documentation and approval artifacts are tracked or linked.
