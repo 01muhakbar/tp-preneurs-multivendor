@@ -21,6 +21,11 @@ import { SuborderItem } from "./SuborderItem.js";
 import { Payment } from "./Payment.js";
 import { PaymentProof } from "./PaymentProof.js";
 import { PaymentStatusLog } from "./PaymentStatusLog.js";
+import { OrderCollectionClaim } from "./OrderCollectionClaim.js";
+import { OrderPaymentAttempt } from "./OrderPaymentAttempt.js";
+import { DuitkuCallbackInbox } from "./DuitkuCallbackInbox.js";
+import { OrderPaymentAttemptEvent } from "./OrderPaymentAttemptEvent.js";
+import { OrderPaymentSecurityEvent } from "./OrderPaymentSecurityEvent.js";
 import { Shipment } from "./Shipment.js";
 import { TrackingEvent } from "./TrackingEvent.js";
 import { Coupon } from "./Coupon.js";
@@ -120,6 +125,11 @@ function initModels() {
   Payment.initModel(sequelize);
   PaymentProof.initModel(sequelize);
   PaymentStatusLog.initModel(sequelize);
+  OrderCollectionClaim.initModel(sequelize);
+  OrderPaymentAttempt.initModel(sequelize);
+  DuitkuCallbackInbox.initModel(sequelize);
+  OrderPaymentAttemptEvent.initModel(sequelize);
+  OrderPaymentSecurityEvent.initModel(sequelize);
   Shipment.initModel(sequelize);
   TrackingEvent.initModel(sequelize);
   Coupon.initModel(sequelize);
@@ -152,6 +162,11 @@ function initModels() {
     Payment,
     PaymentProof,
     PaymentStatusLog,
+    OrderCollectionClaim,
+    OrderPaymentAttempt,
+    DuitkuCallbackInbox,
+    OrderPaymentAttemptEvent,
+    OrderPaymentSecurityEvent,
     Shipment,
     TrackingEvent,
     Coupon,
@@ -529,6 +544,11 @@ export {
   Payment,
   PaymentProof,
   PaymentStatusLog,
+  OrderCollectionClaim,
+  OrderPaymentAttempt,
+  DuitkuCallbackInbox,
+  OrderPaymentAttemptEvent,
+  OrderPaymentSecurityEvent,
   Shipment,
   TrackingEvent,
   Coupon,

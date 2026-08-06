@@ -1,16 +1,16 @@
 # PAY-DUITKU-03: Step 3-10 Implementation Plan
 
-Status: Draft for review after Step 1 and Step 2 local completion.  
+Status: Step 3 completed locally; Step 4-10 remain gated.
 Date: 2026-08-06.  
-Scope: planning only for Step 3 through Step 10.  
-Approval: NOT APPROVED for DDL, provider calls, callback financial mutation, sandbox pass, or production rollout.
+Scope: Step 3 local migration/model package plus planning for Step 4 through Step 10.
+Approval: Step 3 local DDL/model package completed; NOT APPROVED for provider calls, callback financial mutation, runtime QRIS refactor, frontend behavior changes, sandbox pass, or production rollout.
 
 This plan assumes Step 1 and Step 2 have local artifacts available:
 
 - `docs/payments/preflight/2026-08-06-migration-runner-validation.md`
 - `docs/payments/preflight/2026-08-06-duitku-ddl-preflight.md`
 
-Before implementing this plan, reviewers must explicitly approve the next gate in `duitku-payment-architecture.md`.
+Before implementing any later step, reviewers must explicitly approve the next gate in `duitku-payment-architecture.md`.
 
 ## 1. Current Audit
 
@@ -35,21 +35,21 @@ Local Step 2 preflight summary:
 - database target: local `ecommerce_dev`;
 - database engine/version: MariaDB `10.4.32`.
 
-Remaining blockers before Step 3:
+Step 3 approval status:
 
-- approval artifacts are still local/untracked unless added to version control;
-- independent re-audit has not signed off the architecture;
-- migration approval has not been granted;
-- reviewers have not approved the generated preflight report.
+- Step 1 and Step 2 artifacts were committed in `dc5f6ee`;
+- Step 3 local migration/model package was approved with conditions on 2026-08-06;
+- Step 3 local migration/model package was implemented and reviewed in `docs/payments/migrations/2026-08-06-duitku-step3-migration-review.md`;
+- runtime integration, sandbox, and production are still not approved.
 
 ## 2. Gate Sequence
 
-Do not implement Step 3 until this sequence is satisfied.
+Do not implement later steps until their gate sequence is satisfied.
 
 | Gate | Required before | Required evidence |
 | --- | --- | --- |
 | Gate A: Step 1-2 review | Step 3 | migration runner validation and read-only DDL preflight reviewed |
-| Gate B: Migration approval | Step 3 DDL files | approved migration design and rollback guards |
+| Gate B: Migration approval | Step 3 DDL files | approved migration design and rollback guards; granted with conditions for local Step 3 only |
 | Gate C: Runtime design approval | Step 4-8 runtime code | raw parser and shared transaction service design accepted |
 | Gate D: Runtime test approval | Step 9 sandbox | unit, integration, and race tests passing locally |
 | Gate E: Sandbox approval | Step 10 production cohort | sandbox evidence report reviewed |

@@ -117,6 +117,14 @@ export class Order
       foreignKey: { name: "orderId", field: "order_id" },
       as: "suborders",
     });
+    Order.hasOne(models.OrderCollectionClaim, {
+      foreignKey: { name: "orderId", field: "order_id" },
+      as: "collectionClaim",
+    });
+    Order.hasMany(models.OrderPaymentAttempt, {
+      foreignKey: { name: "orderId", field: "order_id" },
+      as: "paymentAttempts",
+    });
     Order.hasMany(models.Shipment, {
       foreignKey: { name: "orderId", field: "order_id" },
       as: "shipments",

@@ -1,17 +1,18 @@
 # PAY-DUITKU-01: Architecture Decision Record Integrasi Duitku
 
 Architecture status: Pending independent re-audit.  
-Planning readiness: CONDITIONALLY READY FOR STEP 1 AND STEP 2 ONLY.  
+Planning readiness: STEP 1 AND STEP 2 COMPLETED LOCALLY; STEP 3 LOCAL MIGRATION/MODEL PACKAGE APPROVED WITH CONDITIONS.
 Step 1 local review: COMPLETED / PASS.  
 Step 2 local review: COMPLETED / PASS.  
-Migration approval: NOT APPROVED.  
+Step 3 local migration/model review: COMPLETED / PASS.
+Migration approval: APPROVED WITH CONDITIONS FOR STEP 3 LOCAL MIGRATION/MODEL PACKAGE ONLY.
 Runtime implementation approval: NOT APPROVED.  
 Sandbox approval: NOT APPROVED.  
 Production approval: NOT APPROVED.  
 Date: 2026-08-05.  
 Scope: documentation and static inspection only.
 
-This document is planning only. It does not approve migrations, database access, runtime code, dependency changes, environment changes, frontend changes, commits, branches, pushes, or pull requests.
+This document now approves Step 3 local migration/model package work only. It does not approve staging/production database mutation, Duitku provider calls, callback financial mutation, QRIS fallback activation, frontend payment behavior changes, sandbox approval, or production rollout.
 
 ## 1. Baseline
 
@@ -435,7 +436,7 @@ Approval is split into separate gates. Passing one gate does not imply approval 
 | --- | --- | --- | --- |
 | Architecture | Pending independent re-audit | second-pass audit confirms provider contract, claim model, lock order, callback storage, QRIS fallback, migration safety, and rollout plan | independent audit note |
 | Step 1 and Step 2 planning | Conditionally ready | implementation stays limited to migration runner fix and read-only DDL preflight | implementation task note |
-| Migration | NOT APPROVED | migration runner/runtime target match is proven, read-only preflight is clean or remediated, DDL is reviewed against live schema, and rollback guards are documented | DDL preflight report and migration review |
+| Migration | APPROVED WITH CONDITIONS FOR STEP 3 LOCAL MIGRATION/MODEL PACKAGE ONLY | migration runner/runtime target match is proven, read-only preflight is clean or remediated, DDL is reviewed against live schema, and rollback guards are documented | DDL preflight report and migration review |
 | Runtime integration | NOT APPROVED | shared financial transaction service, Duitku client, raw callback route, QRIS guards, DTOs, and route refactors pass automated validation | runtime test report |
 | Sandbox | NOT APPROVED | sandbox matrix passes with saved evidence for Create Invoice, callback, return URL, fallback, duplicate, invalid, malformed, unknown, and race scenarios | sandbox evidence report |
 | Production | NOT APPROVED | feature flags, monitored cohort, rollback plan, operations process, and go/no-go review are complete | production go/no-go report |
@@ -457,13 +458,14 @@ Current approval is intentionally narrow.
 
 Approved scope:
 
-- planning is conditionally ready for Step 1 and Step 2 only;
 - Step 1 may change migration-runner code and related validation scripts;
-- Step 2 may run read-only schema preflight and produce documentation artifacts.
+- Step 2 may run read-only schema preflight and produce documentation artifacts;
+- Step 3 may create and validate local migration/model package only;
+- Step 3 local migration execution is allowed only against the approved local development database target.
 
 Not approved:
 
-- Duitku DDL creation or execution;
+- Duitku DDL creation or execution outside approved local Step 3 migration/model package scope;
 - production or staging database mutation;
 - Duitku Create Invoice provider calls from runtime;
 - Duitku callback financial mutation;
@@ -476,7 +478,7 @@ Not approved:
 Exit criteria:
 
 - any implementation issue or PR states the exact approved scope;
-- any task beyond Step 1 and Step 2 requires a new approval decision.
+- any task beyond Step 3 requires a new approval decision.
 
 ### Decision Log
 
@@ -488,6 +490,8 @@ Required format:
 | --- | --- | --- | --- | --- | --- |
 | 2026-08-05 | Planning only; Step 1 and Step 2 conditionally ready | migration runner fix and read-only DDL preflight | pending | this ADR | independent re-audit and preflight artifact |
 | 2026-08-06 | Step 1 and Step 2 local review completed; Step 3 remains blocked | migration runner fix and read-only DDL preflight evidence package | Codex developer audit; pending team approver | `docs/payments/audits/2026-08-06-step1-step2-local-review.md`, `docs/payments/preflight/2026-08-06-migration-runner-validation.md`, `docs/payments/preflight/2026-08-06-duitku-ddl-preflight.md` | track/commit artifacts and record explicit Step 3 migration gate decision |
+| 2026-08-06 | Step 3 approved with conditions for local migration/model package only | migration files, Sequelize models, associations, rollback guard, local validation, and migration review artifact | user approval in Codex session | Step 1/2 review package in commit `dc5f6ee`; `docs/payments/duitku-step3-10-implementation-plan.md` | runtime integration, sandbox, and production remain not approved |
+| 2026-08-06 | Step 3 local migration/model review completed | local DDL applied to `ecommerce_dev`, Sequelize models compiled, post-DDL verification generated | Codex developer audit; pending team approver | `docs/payments/migrations/2026-08-06-duitku-step3-migration-review.md`, `docs/payments/migrations/2026-08-06-duitku-step3-post-ddl-verification.md` | record explicit Step 4 runtime integration gate decision |
 
 Rules:
 
@@ -508,6 +512,8 @@ The following artifacts are required before each approval gate can pass.
 | DDL preflight report | migration approval | `docs/payments/preflight/` |
 | Step 3-10 implementation plan | migration/runtime/sandbox/production approval sequencing | `docs/payments/duitku-step3-10-implementation-plan.md` |
 | migration review report | migration approval | `docs/payments/migrations/` |
+| Step 3 local migration/model review | Step 4 runtime approval package | `docs/payments/migrations/2026-08-06-duitku-step3-migration-review.md` |
+| Step 3 post-DDL verification | Step 4 runtime approval package | `docs/payments/migrations/2026-08-06-duitku-step3-post-ddl-verification.md` |
 | runtime test report | runtime integration approval | `docs/payments/runtime/` |
 | sandbox evidence report | sandbox approval | `docs/payments/sandbox/` |
 | production go/no-go report | production approval | `docs/payments/production/` |
@@ -1110,7 +1116,7 @@ Self-review status: complete; this is not an independent audit result.
 
 Checks:
 
-- migration remains `NOT APPROVED`;
+- migration is approved only for Step 3 local migration/model package;
 - document remains pending independent re-audit;
 - parent collection claim/winner is explicit;
 - lock order is single and shared;

@@ -5,13 +5,15 @@ export interface PaymentAttributes {
   suborderId: number;
   storeId: number;
   storePaymentProfileId?: number | null;
-  paymentChannel: "QRIS";
-  paymentType: "QRIS_STATIC";
+  paymentChannel: "QRIS" | "DUITKU";
+  paymentType: "QRIS_STATIC" | "DUITKU_POP";
   externalReference?: string | null;
   internalReference: string;
   amount: number;
-  qrImageUrl: string;
+  qrImageUrl?: string | null;
   qrPayload?: string | null;
+  allocationKey?: string | null;
+  paidByOrderPaymentAttemptId?: number | null;
   status:
     | "CREATED"
     | "PENDING_CONFIRMATION"
@@ -33,7 +35,10 @@ type PaymentCreationAttributes = Optional<
   | "externalReference"
   | "paymentChannel"
   | "paymentType"
+  | "qrImageUrl"
   | "qrPayload"
+  | "allocationKey"
+  | "paidByOrderPaymentAttemptId"
   | "status"
   | "expiresAt"
   | "paidAt"
@@ -47,13 +52,15 @@ export class Payment
   declare suborderId: number;
   declare storeId: number;
   declare storePaymentProfileId?: number | null;
-  declare paymentChannel: "QRIS";
-  declare paymentType: "QRIS_STATIC";
+  declare paymentChannel: "QRIS" | "DUITKU";
+  declare paymentType: "QRIS_STATIC" | "DUITKU_POP";
   declare externalReference?: string | null;
   declare internalReference: string;
   declare amount: number;
-  declare qrImageUrl: string;
+  declare qrImageUrl?: string | null;
   declare qrPayload?: string | null;
+  declare allocationKey?: string | null;
+  declare paidByOrderPaymentAttemptId?: number | null;
   declare status:
     | "CREATED"
     | "PENDING_CONFIRMATION"
@@ -87,6 +94,10 @@ export class Payment
     Payment.hasMany(models.PaymentStatusLog, {
       foreignKey: { name: "paymentId", field: "payment_id" },
       as: "statusLogs",
+    });
+    Payment.belongsTo(models.OrderPaymentAttempt, {
+      foreignKey: { name: "paidByOrderPaymentAttemptId", field: "paid_by_order_payment_attempt_id" },
+      as: "paidByOrderPaymentAttempt",
     });
   }
 
@@ -126,13 +137,13 @@ export class Payment
           },
         },
         paymentChannel: {
-          type: DataTypes.ENUM("QRIS"),
+          type: DataTypes.ENUM("QRIS", "DUITKU"),
           allowNull: false,
           defaultValue: "QRIS",
           field: "payment_channel",
         },
         paymentType: {
-          type: DataTypes.ENUM("QRIS_STATIC"),
+          type: DataTypes.ENUM("QRIS_STATIC", "DUITKU_POP"),
           allowNull: false,
           defaultValue: "QRIS_STATIC",
           field: "payment_type",
@@ -154,13 +165,28 @@ export class Payment
         },
         qrImageUrl: {
           type: DataTypes.TEXT("long"),
-          allowNull: false,
+          allowNull: true,
           field: "qr_image_url",
         },
         qrPayload: {
           type: DataTypes.TEXT("long"),
           allowNull: true,
           field: "qr_payload",
+        },
+        allocationKey: {
+          type: DataTypes.STRING(160),
+          allowNull: true,
+          unique: true,
+          field: "allocation_key",
+        },
+        paidByOrderPaymentAttemptId: {
+          type: DataTypes.INTEGER.UNSIGNED,
+          allowNull: true,
+          field: "paid_by_order_payment_attempt_id",
+          references: {
+            model: "order_payment_attempts",
+            key: "id",
+          },
         },
         status: {
           type: DataTypes.ENUM(

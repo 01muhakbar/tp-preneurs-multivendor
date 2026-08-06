@@ -13,7 +13,7 @@ export interface SuborderAttributes {
   shippingAmount: number;
   serviceFeeAmount: number;
   totalAmount: number;
-  paymentMethod: "QRIS";
+  paymentMethod: "QRIS" | "DUITKU";
   paymentStatus:
     | "UNPAID"
     | "PENDING_CONFIRMATION"
@@ -67,7 +67,7 @@ export class Suborder
   declare shippingAmount: number;
   declare serviceFeeAmount: number;
   declare totalAmount: number;
-  declare paymentMethod: "QRIS";
+  declare paymentMethod: "QRIS" | "DUITKU";
   declare paymentStatus:
     | "UNPAID"
     | "PENDING_CONFIRMATION"
@@ -201,7 +201,7 @@ export class Suborder
           field: "total_amount",
         },
         paymentMethod: {
-          type: DataTypes.ENUM("QRIS"),
+          type: DataTypes.ENUM("QRIS", "DUITKU"),
           allowNull: false,
           defaultValue: "QRIS",
           field: "payment_method",
