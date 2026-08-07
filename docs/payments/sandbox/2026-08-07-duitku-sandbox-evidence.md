@@ -2,7 +2,7 @@
 
 Date: 2026-08-07
 
-Status: APPROVED FOR NON-PRODUCTION EXECUTION / PENDING SANDBOX RUN.
+Status: IN PROGRESS / PARTIAL PASS.
 
 Approval boundary: Step 9 is approved only for Duitku sandbox matrix execution using sandbox credentials, sandbox callback URL, test-only data, and saved evidence. Production rollout remains NOT APPROVED.
 
@@ -18,53 +18,48 @@ pnpm.cmd -F server preflight:duitku-step9-env
 
 | Item | Status | Evidence |
 | --- | --- | --- |
-| Sandbox merchant code configured | MISSING LOCAL ENV | `DUITKU_MERCHANT_CODE` not present in `server/.env` during precheck |
-| Sandbox API key/secret configured | MISSING LOCAL ENV | `DUITKU_API_KEY` not present in `server/.env` during precheck |
-| Sandbox callback URL reachable by Duitku | MISSING LOCAL ENV | `DUITKU_CALLBACK_URL` not present in `server/.env` during precheck |
-| Sandbox return URL reachable by browser | MISSING LOCAL ENV | `DUITKU_RETURN_URL` not present in `server/.env` during precheck |
-| Non-production database selected | PENDING | Database name and host only |
+| Sandbox merchant code configured | PASS | `DUITKU_MERCHANT_CODE` present in `server/.env`; value not recorded |
+| Sandbox API key/secret configured | PASS | `DUITKU_API_KEY` present in `server/.env`; value not recorded |
+| Sandbox callback URL reachable by Duitku | PASS | Public HTTPS ngrok URL reached backend callback route via Step 9 callback runner |
+| Sandbox return URL reachable by browser | FAIL | Public HTTPS URL returns HTTP 404 at `/payments/return`; return URL needs frontend route/tunnel correction before return scenarios |
+| Non-production database selected | PASS | Local `ecommerce_dev` on `127.0.0.1:3306` |
 | Test buyer/seller/store/order data seeded | PENDING | Test ids only |
 | Production feature flags disabled | PENDING | Flag names and boolean values only |
 
 Latest preflight result:
 
-- `DUITKU_ENABLED`: missing.
-- `DUITKU_ENV`: missing.
-- `DUITKU_BASE_URL`: missing.
-- `DUITKU_MERCHANT_CODE`: missing.
-- `DUITKU_API_KEY`: missing.
-- `DUITKU_CALLBACK_URL`: missing.
-- `DUITKU_RETURN_URL`: missing.
-- `DUITKU_CREATE_INVOICE_PATH`: missing.
-- `NODE_ENV`: PASS as development.
-- Config fallback resolves to sandbox create-invoice URL.
+- `pnpm.cmd -F server preflight:duitku-step9-env`: PASS.
+- `pnpm.cmd -F server build`: PASS.
+- Backend local port `3001`: PASS.
+- Database local port `3306`: PASS.
+- Return URL route check: FAIL with HTTP 404 for `/payments/return`.
 
 Required next environment action:
 
-- add the missing Duitku sandbox variables to `server/.env`;
-- use a public HTTPS tunnel or deployed non-production URL for callback and return URLs;
+- point `DUITKU_RETURN_URL` to a reachable frontend/non-production return route;
 - rerun `pnpm.cmd -F server preflight:duitku-step9-env`;
+- recheck the return URL route before running return URL scenarios;
 - keep secret values out of git and out of this evidence file.
 
 ## Required Matrix
 
 | # | Scenario | Status | Evidence Summary | Follow-up |
 | --- | --- | --- | --- | --- |
-| 1 | Create Invoice success with payment URL | PENDING |  |  |
+| 1 | Create Invoice success with payment URL | PASS | `merchantOrderId=TPSTEP920260807020333`, `statusCode=00`, `statusMessage=SUCCESS`, `reference=DS3388326HIG0JOFEZDSJYOM`, payment URL returned by Duitku sandbox | Use payment URL for manual payment/return callback scenarios if needed |
 | 2 | Create Invoice definitive rejection | PENDING |  |  |
 | 3 | Create Invoice timeout or ambiguous response | PENDING |  |  |
 | 4 | Create Invoice idempotent replay with matching fingerprint | PENDING |  |  |
 | 5 | Create Invoice idempotent replay with mismatched fingerprint | PENDING |  |  |
 | 6 | Valid paid callback `resultCode = 00` | PENDING |  |  |
 | 7 | Valid failed callback `resultCode = 01` | PENDING |  |  |
-| 8 | Invalid signature callback | PENDING |  |  |
-| 9 | Malformed form callback | PENDING |  |  |
-| 10 | Duplicate callback delivery | PENDING |  |  |
-| 11 | Unknown `merchantOrderId` callback | PENDING |  |  |
+| 8 | Invalid signature callback | PASS | Public callback URL returned HTTP 200 with `accepted=false` and `storedAsSecurityEvent=true` |  |
+| 9 | Malformed form callback | PASS | Public callback URL returned HTTP 400 with missing required fields; no financial mutation |  |
+| 10 | Duplicate callback delivery | PASS | Duplicate valid callback returned HTTP 200 with `duplicate=true` |  |
+| 11 | Unknown `merchantOrderId` callback | PASS | Valid signed callback for unknown order returned `bindingState=UNBOUND`, `processingResult=QUARANTINED`, `financialMutationApplied=false` |  |
 | 12 | Late paid callback after QRIS fallback claim | PENDING |  |  |
-| 13 | Return URL before payment | PENDING |  |  |
-| 14 | Return URL after payment | PENDING |  |  |
-| 15 | Return URL after failed payment | PENDING |  |  |
+| 13 | Return URL before payment | BLOCKED | Current `DUITKU_RETURN_URL` path returns HTTP 404 | Fix frontend/non-production return URL |
+| 14 | Return URL after payment | BLOCKED | Current `DUITKU_RETURN_URL` path returns HTTP 404 | Fix frontend/non-production return URL |
+| 15 | Return URL after failed payment | BLOCKED | Current `DUITKU_RETURN_URL` path returns HTTP 404 | Fix frontend/non-production return URL |
 | 16 | QRIS fallback after definitive Duitku failure | PENDING |  |  |
 | 17 | QRIS fallback after provider-confirmed expiry | PENDING |  |  |
 | 18 | Concurrent Duitku callback vs QRIS fallback | PENDING |  |  |

@@ -454,6 +454,7 @@ Approval status: APPROVED WITH CONDITIONS for non-production sandbox matrix exec
 - Steps 3-8 implemented in non-production.
 - Sandbox merchant code and secret configured.
 - Callback URL reachable from Duitku sandbox.
+- Return URL reachable by browser and mapped to a read-only frontend/non-production route.
 - Test data seeded with buyer, sellers, products, stores, and active QRIS profiles.
 - Evidence report initialized at `docs/payments/sandbox/2026-08-07-duitku-sandbox-evidence.md`.
 - Sandbox env preflight passes:
