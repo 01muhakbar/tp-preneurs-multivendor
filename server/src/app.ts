@@ -78,6 +78,32 @@ app.use("/api/payments/duitku", duitkuCallbackRouter);
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
+const normalizeClientBaseUrl = () => {
+  const configured = String(process.env.CLIENT_URL || process.env.CORS_ORIGIN || "").trim();
+  const fallback = "http://localhost:5173";
+  const candidate = configured || fallback;
+  try {
+    const url = new URL(candidate);
+    return `${url.protocol}//${url.host}`;
+  } catch {
+    return fallback;
+  }
+};
+
+app.get("/payments/return", (req, res) => {
+  const target = new URL("/user/my-orders", normalizeClientBaseUrl());
+  const allowedKeys = ["merchantOrderId", "reference", "resultCode", "statusCode"];
+  for (const key of allowedKeys) {
+    const value = req.query[key];
+    const first = Array.isArray(value) ? value[0] : value;
+    if (typeof first === "string" && first.trim()) {
+      target.searchParams.set(key, first.trim().slice(0, 128));
+    }
+  }
+  target.searchParams.set("duitkuReturn", "1");
+  return res.redirect(302, target.toString());
+});
+
 const parseOriginList = (...values: Array<string | undefined>) =>
   values
     .flatMap((value) => String(value || "").split(","))

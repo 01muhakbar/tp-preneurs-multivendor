@@ -21,7 +21,7 @@ pnpm.cmd -F server preflight:duitku-step9-env
 | Sandbox merchant code configured | PASS | `DUITKU_MERCHANT_CODE` present in `server/.env`; value not recorded |
 | Sandbox API key/secret configured | PASS | `DUITKU_API_KEY` present in `server/.env`; value not recorded |
 | Sandbox callback URL reachable by Duitku | PASS | Public HTTPS ngrok URL reached backend callback route via Step 9 callback runner |
-| Sandbox return URL reachable by browser | FAIL | Public HTTPS URL returns HTTP 404 at `/payments/return`; return URL needs frontend route/tunnel correction before return scenarios |
+| Sandbox return URL reachable by browser | PASS | Public HTTPS URL returns HTTP 302 to read-only order page route |
 | Non-production database selected | PASS | Local `ecommerce_dev` on `127.0.0.1:3306` |
 | Test buyer/seller/store/order data seeded | PENDING | Test ids only |
 | Production feature flags disabled | PENDING | Flag names and boolean values only |
@@ -32,13 +32,12 @@ Latest preflight result:
 - `pnpm.cmd -F server build`: PASS.
 - Backend local port `3001`: PASS.
 - Database local port `3306`: PASS.
-- Return URL route check: FAIL with HTTP 404 for `/payments/return`.
+- `pnpm.cmd -F server sandbox:duitku-step9-return-url`: PASS.
 
 Required next environment action:
 
-- point `DUITKU_RETURN_URL` to a reachable frontend/non-production return route;
-- rerun `pnpm.cmd -F server preflight:duitku-step9-env`;
-- recheck the return URL route before running return URL scenarios;
+- keep backend and ngrok tunnel active while running browser/provider return scenarios;
+- run paid/failed return scenarios after a Duitku sandbox payment reaches the target provider state;
 - keep secret values out of git and out of this evidence file.
 
 ## Required Matrix
@@ -57,9 +56,9 @@ Required next environment action:
 | 10 | Duplicate callback delivery | PASS | Duplicate valid callback returned HTTP 200 with `duplicate=true` |  |
 | 11 | Unknown `merchantOrderId` callback | PASS | Valid signed callback for unknown order returned `bindingState=UNBOUND`, `processingResult=QUARANTINED`, `financialMutationApplied=false` |  |
 | 12 | Late paid callback after QRIS fallback claim | PENDING |  |  |
-| 13 | Return URL before payment | BLOCKED | Current `DUITKU_RETURN_URL` path returns HTTP 404 | Fix frontend/non-production return URL |
-| 14 | Return URL after payment | BLOCKED | Current `DUITKU_RETURN_URL` path returns HTTP 404 | Fix frontend/non-production return URL |
-| 15 | Return URL after failed payment | BLOCKED | Current `DUITKU_RETURN_URL` path returns HTTP 404 | Fix frontend/non-production return URL |
+| 13 | Return URL before payment | PASS | Public `DUITKU_RETURN_URL` returned HTTP 302 to `/user/my-orders` with query echo and no financial mutation |  |
+| 14 | Return URL after payment | PENDING | Return route itself is reachable/read-only; paid-provider state still needs sandbox payment evidence | Complete manual/provider paid flow |
+| 15 | Return URL after failed payment | PENDING | Return route itself is reachable/read-only; failed-provider state still needs sandbox payment evidence | Complete manual/provider failed flow |
 | 16 | QRIS fallback after definitive Duitku failure | PENDING |  |  |
 | 17 | QRIS fallback after provider-confirmed expiry | PENDING |  |  |
 | 18 | Concurrent Duitku callback vs QRIS fallback | PENDING |  |  |
