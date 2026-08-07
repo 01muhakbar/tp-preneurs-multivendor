@@ -456,6 +456,11 @@ Approval status: APPROVED WITH CONDITIONS for non-production sandbox matrix exec
 - Callback URL reachable from Duitku sandbox.
 - Test data seeded with buyer, sellers, products, stores, and active QRIS profiles.
 - Evidence report initialized at `docs/payments/sandbox/2026-08-07-duitku-sandbox-evidence.md`.
+- Sandbox env preflight passes:
+
+```powershell
+pnpm.cmd -F server preflight:duitku-step9-env
+```
 
 ### 9.2 Required Scenarios
 

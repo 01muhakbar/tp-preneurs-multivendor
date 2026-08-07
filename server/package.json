@@ -26,6 +26,7 @@
     "db:reset": "tsx src/scripts/reset-db.ts",
     "migrate": "node scripts/run-migrations.js",
     "preflight:duitku": "node scripts/duitku-preflight.js",
+    "preflight:duitku-step9-env": "tsx src/scripts/preflightDuitkuSandboxEnv.ts",
     "smoke:orders": "node scripts/smoke-orders-admin.mjs",
     "smoke:product-visibility": "tsx src/scripts/smokeProductVisibility.ts",
     "smoke:order-payment": "tsx src/scripts/smokeOrderPayment.ts",

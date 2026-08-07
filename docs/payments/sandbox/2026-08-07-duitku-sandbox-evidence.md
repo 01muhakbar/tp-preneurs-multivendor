@@ -10,6 +10,12 @@ Approval boundary: Step 9 is approved only for Duitku sandbox matrix execution u
 
 Do not paste secrets into this file.
 
+Preflight command:
+
+```powershell
+pnpm.cmd -F server preflight:duitku-step9-env
+```
+
 | Item | Status | Evidence |
 | --- | --- | --- |
 | Sandbox merchant code configured | MISSING LOCAL ENV | `DUITKU_MERCHANT_CODE` not present in `server/.env` during precheck |
@@ -19,6 +25,26 @@ Do not paste secrets into this file.
 | Non-production database selected | PENDING | Database name and host only |
 | Test buyer/seller/store/order data seeded | PENDING | Test ids only |
 | Production feature flags disabled | PENDING | Flag names and boolean values only |
+
+Latest preflight result:
+
+- `DUITKU_ENABLED`: missing.
+- `DUITKU_ENV`: missing.
+- `DUITKU_BASE_URL`: missing.
+- `DUITKU_MERCHANT_CODE`: missing.
+- `DUITKU_API_KEY`: missing.
+- `DUITKU_CALLBACK_URL`: missing.
+- `DUITKU_RETURN_URL`: missing.
+- `DUITKU_CREATE_INVOICE_PATH`: missing.
+- `NODE_ENV`: PASS as development.
+- Config fallback resolves to sandbox create-invoice URL.
+
+Required next environment action:
+
+- add the missing Duitku sandbox variables to `server/.env`;
+- use a public HTTPS tunnel or deployed non-production URL for callback and return URLs;
+- rerun `pnpm.cmd -F server preflight:duitku-step9-env`;
+- keep secret values out of git and out of this evidence file.
 
 ## Required Matrix
 
