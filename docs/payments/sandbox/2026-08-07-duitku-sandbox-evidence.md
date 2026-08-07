@@ -33,14 +33,14 @@ Latest preflight result:
 - Backend local port `3001`: PASS.
 - Database local port `3306`: PASS.
 - `pnpm.cmd -F server sandbox:duitku-step9-return-url`: PASS.
-- Callback inbox check: PASS for safety evidence; no real provider paid callback observed for `merchantOrderId=TPSTEP920260807020333`.
+- Callback inbox check: PASS for paid-provider callback evidence; real Duitku sandbox callback stored for `merchantOrderId=TPSTEP9PAID20260807022630` with `resultCodeRaw=00` and `signatureState=VALID`.
 - Ngrok return URL inbox check: PASS for failed/unsuccessful provider return; Duitku sandbox hit `/payments/return?resultCode=01&merchantOrderId=TPSTEP920260807020333&reference=DS3388326HIG0JOFEZDSJYOM` and backend returned HTTP 302.
 
 Required next environment action:
 
 - keep backend and ngrok tunnel active while running browser/provider return scenarios;
-- run a paid return/callback scenario after a Duitku sandbox payment reaches `resultCode=00`;
-- capture real provider callback evidence if Duitku sends `POST /api/payments/duitku/callback` for the sandbox invoice;
+- run a paid browser Return URL scenario that lands on local `DUITKU_RETURN_URL` with `resultCode=00`;
+- decide whether Step 9 requires a bound local `OrderPaymentAttempt` fixture for paid callback apply evidence, because the current paid callback is valid but intentionally `UNBOUND` from the sandbox runner invoice;
 - keep secret values out of git and out of this evidence file.
 
 ## Latest Callback And Return Inbox Check
@@ -53,26 +53,29 @@ Command evidence:
 
 Observed callback inbox state:
 
+- Real Duitku sandbox paid callback was received and durably stored: `merchantOrderIdRaw=TPSTEP9PAID20260807022630`, `providerReferenceRaw=DS3388326JG1IRKVTKTJPSGN`, `amountRaw=10000`, `resultCodeRaw=00`, `signatureState=VALID`, `bindingState=UNBOUND`, `processingResult=QUARANTINED`, `quarantineReason=UNKNOWN_MERCHANT_ORDER_ID`, `duplicateCount=0`.
+- The paid callback is `UNBOUND` because the Step 9 direct Create Invoice runner does not create a local `OrderPaymentAttempt`; therefore it is valid provider evidence but still performs no financial mutation.
 - Latest trusted callback inbox row is the Step 9 simulated valid unknown-order callback: `merchantOrderIdRaw=TPSTEP9CB20260807020412`, `resultCodeRaw=00`, `signatureState=VALID`, `bindingState=UNBOUND`, `processingResult=QUARANTINED`, `quarantineReason=UNKNOWN_MERCHANT_ORDER_ID`, `duplicateCount=1`.
 - Security events include the matching invalid-signature and malformed-form safety scenarios from the Step 9 callback runner.
-- No trusted provider callback row was found for the real Create Invoice sandbox order `merchantOrderId=TPSTEP920260807020333` / `reference=DS3388326HIG0JOFEZDSJYOM`.
+- No trusted provider callback row was found for the earlier failed-return sandbox order `merchantOrderId=TPSTEP920260807020333` / `reference=DS3388326HIG0JOFEZDSJYOM`.
 
 Observed return URL state:
 
 - Ngrok recorded real browser/provider return requests for `merchantOrderId=TPSTEP920260807020333` and `reference=DS3388326HIG0JOFEZDSJYOM` with `resultCode=01`.
 - Backend returned HTTP 302 for those requests, preserving the read-only Return URL contract.
-- No return request with `resultCode=00` was observed for the same sandbox invoice during this check.
+- Paid credit-card sandbox flow reached Duitku notification page with `responseCode=00` for `reference=DS3388326JG1IRKVTKTJPSGN`.
+- No local `GET /payments/return` request with `resultCode=00` was observed during this check.
 
 ## Required Matrix
 
 | # | Scenario | Status | Evidence Summary | Follow-up |
 | --- | --- | --- | --- | --- |
-| 1 | Create Invoice success with payment URL | PASS | `merchantOrderId=TPSTEP920260807020333`, `statusCode=00`, `statusMessage=SUCCESS`, `reference=DS3388326HIG0JOFEZDSJYOM`, payment URL returned by Duitku sandbox | Use payment URL for manual payment/return callback scenarios if needed |
+| 1 | Create Invoice success with payment URL | PASS | `merchantOrderId=TPSTEP920260807020333`, `statusCode=00`, `statusMessage=SUCCESS`, `reference=DS3388326HIG0JOFEZDSJYOM`; later paid-flow invoice `merchantOrderId=TPSTEP9PAID20260807022630`, `reference=DS3388326JG1IRKVTKTJPSGN` also returned `statusCode=00` | Use paid-flow reference for callback evidence |
 | 2 | Create Invoice definitive rejection | PENDING |  |  |
 | 3 | Create Invoice timeout or ambiguous response | PENDING |  |  |
 | 4 | Create Invoice idempotent replay with matching fingerprint | PENDING |  |  |
 | 5 | Create Invoice idempotent replay with mismatched fingerprint | PENDING |  |  |
-| 6 | Valid paid callback `resultCode = 00` | PENDING | No real provider paid callback found for `merchantOrderId=TPSTEP920260807020333`; only the simulated unknown-order safety callback has `resultCodeRaw=00` and remains `UNBOUND`/`QUARANTINED` | Complete paid sandbox payment and capture provider callback or bound callback evidence |
+| 6 | Valid paid callback `resultCode = 00` | PASS | Real Duitku sandbox callback stored for `merchantOrderId=TPSTEP9PAID20260807022630`, `reference=DS3388326JG1IRKVTKTJPSGN`, `resultCodeRaw=00`, `signatureState=VALID`; row is `UNBOUND`/`QUARANTINED` because the direct sandbox runner did not persist a local attempt, and no financial mutation was performed | Add a bound-attempt fixture only if Step 9 reviewers require callback apply evidence |
 | 7 | Valid failed callback `resultCode = 01` | PENDING | Failed/unsuccessful browser return observed with `resultCode=01`, but no provider `POST /api/payments/duitku/callback` with `resultCode=01` was found in callback inbox | Capture provider failed callback evidence if Duitku sends it for sandbox |
 | 8 | Invalid signature callback | PASS | Public callback URL returned HTTP 200 with `accepted=false` and `storedAsSecurityEvent=true` |  |
 | 9 | Malformed form callback | PASS | Public callback URL returned HTTP 400 with missing required fields; no financial mutation |  |
@@ -80,7 +83,7 @@ Observed return URL state:
 | 11 | Unknown `merchantOrderId` callback | PASS | Valid signed callback for unknown order returned `bindingState=UNBOUND`, `processingResult=QUARANTINED`, `financialMutationApplied=false` |  |
 | 12 | Late paid callback after QRIS fallback claim | PENDING |  |  |
 | 13 | Return URL before payment | PASS | Public `DUITKU_RETURN_URL` returned HTTP 302 to `/user/my-orders` with query echo and no financial mutation |  |
-| 14 | Return URL after payment | PENDING | No return request with `resultCode=00` observed for `merchantOrderId=TPSTEP920260807020333`; route itself remains reachable/read-only | Complete manual/provider paid flow |
+| 14 | Return URL after payment | PENDING | Paid credit-card sandbox flow reached Duitku notification `responseCode=00`, but no local `GET /payments/return` request with `resultCode=00` was observed | Complete browser return flow or confirm Duitku POP redirect behavior for credit-card notification |
 | 15 | Return URL after failed payment | PASS | Ngrok recorded `/payments/return?resultCode=01&merchantOrderId=TPSTEP920260807020333&reference=DS3388326HIG0JOFEZDSJYOM`; backend returned HTTP 302 to the read-only order route and no financial mutation was performed |  |
 | 16 | QRIS fallback after definitive Duitku failure | PENDING |  |  |
 | 17 | QRIS fallback after provider-confirmed expiry | PENDING |  |  |
