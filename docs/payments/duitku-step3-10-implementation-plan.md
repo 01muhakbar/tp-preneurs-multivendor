@@ -1,9 +1,9 @@
 # PAY-DUITKU-03: Step 3-10 Implementation Plan
 
-Status: Step 3, Step 4, Step 5, Step 6, and Step 8 completed locally; Step 7 implemented with DB regression validation blocked; Step 9-10 remain gated.
+Status: Step 3 through Step 8 completed locally; Step 9-10 remain gated.
 Date: 2026-08-06.  
 Scope: Step 3 through Step 8 local implementation plus planning for Step 9 through Step 10.
-Approval: Step 8 local/non-production frontend DTO changes implemented. DB-backed Step 7 regression rerun is still required before sandbox approval. NOT APPROVED for sandbox pass or production rollout.
+Approval: Step 8 local/non-production frontend DTO changes implemented. Step 7 DB-backed regression rerun passed. NOT APPROVED for sandbox pass or production rollout.
 
 This plan assumes Step 1 and Step 2 have local artifacts available:
 
@@ -23,8 +23,8 @@ Current state:
 - runtime implementation approval is approved with conditions for local/non-production Step 4, Step 5, Step 6, Step 7, and Step 8 only;
 - sandbox approval is `NOT APPROVED`;
 - production approval is `NOT APPROVED`;
-- Step 1 through Step 6 and Step 8 are completed locally under limited approvals;
-- Step 7 has code implementation and build validation, but DB-backed smoke validation is blocked until local MySQL/MariaDB is available.
+- Step 1 through Step 8 are completed locally under limited approvals;
+- Step 7 DB-backed smoke validation passed after local MySQL/MariaDB became available.
 
 Local Step 2 preflight summary:
 
@@ -44,7 +44,7 @@ Step 3 approval status:
 - Step 4 local/non-production client service was implemented and reviewed in `docs/payments/runtime/2026-08-06-duitku-step4-client-review.md`;
 - Step 5 local/non-production callback raw parser was implemented and reviewed in `docs/payments/runtime/2026-08-06-duitku-step5-callback-parser-review.md`;
 - Step 6 local/non-production shared financial transaction service was implemented and reviewed in `docs/payments/runtime/2026-08-06-duitku-step6-financial-transaction-review.md`;
-- Step 7 local/non-production QRIS guard refactor was implemented and reviewed in `docs/payments/runtime/2026-08-07-duitku-step7-qris-guard-review.md`, but DB smoke validation is blocked by unavailable local MySQL/MariaDB;
+- Step 7 local/non-production QRIS guard refactor was implemented and reviewed in `docs/payments/runtime/2026-08-07-duitku-step7-qris-guard-review.md`, and DB-backed smoke validation passed;
 - Step 8 local/non-production frontend DTO changes were implemented and reviewed in `docs/payments/runtime/2026-08-07-duitku-step8-frontend-dto-review.md`;
 - sandbox and production are still not approved.
 
@@ -438,9 +438,9 @@ Local validation:
 - `pnpm.cmd -F server build` passed;
 - `pnpm.cmd -F client build` passed.
 
-Known blocker carried forward:
+DB-backed rerun completed:
 
-- `pnpm.cmd -F server smoke:duitku-step7-qris-guard` still needs DB-backed rerun when local MySQL/MariaDB on `127.0.0.1:3306` is available.
+- `pnpm.cmd -F server smoke:duitku-step7-qris-guard` passed with local MySQL/MariaDB available on `127.0.0.1:3306`.
 
 ## 9. Step 9: Sandbox Test Matrix
 

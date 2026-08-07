@@ -46,12 +46,12 @@ Smoke coverage:
 
 - Step 9 sandbox matrix is NOT APPROVED.
 - Step 10 production rollout is NOT APPROVED.
-- DB-backed Step 7 regression rerun remains blocked until local MySQL/MariaDB is available on `127.0.0.1:3306`.
+- DB-backed Step 7 regression rerun passed after local MySQL/MariaDB became available on `127.0.0.1:3306`.
 
-Before requesting Step 9 sandbox approval, rerun:
+Completed Step 7 DB-backed rerun:
 
 ```powershell
 pnpm.cmd -F server smoke:duitku-step7-qris-guard
 ```
 
-and record the result in the architecture decision log.
+The result has been recorded in the architecture decision log. The next gate requires explicit Step 9 sandbox matrix approval.
