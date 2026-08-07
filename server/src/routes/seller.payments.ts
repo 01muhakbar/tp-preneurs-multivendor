@@ -4,7 +4,10 @@ import { z } from "zod";
 import requireAuth from "../middleware/requireAuth.js";
 import requireSellerStoreAccess from "../middleware/requireSellerStoreAccess.js";
 import {
+  DuitkuCallbackInbox,
   Order,
+  OrderCollectionClaim,
+  OrderPaymentAttempt,
   Payment,
   PaymentProof,
   Store,
@@ -30,6 +33,7 @@ import {
   sellerHasPermission,
 } from "../services/seller/resolveSellerAccess.js";
 import { getRequestTraceId } from "../services/operationalAudit.service.js";
+import { buildPaymentCollectionDto } from "../services/payments/paymentCollectionDto.service.js";
 
 const router = Router();
 
@@ -360,6 +364,26 @@ const sellerListInclude = [
         as: "customer",
         attributes: ["id", "name", "email", "role"],
       },
+      {
+        model: OrderCollectionClaim,
+        as: "collectionClaim",
+        attributes: ["id", "orderId", "rail", "claimState", "claimSource", "orderPaymentAttemptId", "claimedAt", "paidAt", "terminalAt", "createdAt", "updatedAt"],
+        required: false,
+      },
+      {
+        model: OrderPaymentAttempt,
+        as: "paymentAttempts",
+        attributes: ["id", "orderId", "provider", "status", "manualReviewReason", "merchantOrderId", "providerReference", "paymentUrl", "amount", "currency", "expiresAt", "paidAt", "createdAt", "updatedAt"],
+        required: false,
+        include: [
+          {
+            model: DuitkuCallbackInbox,
+            as: "callbackInboxRows",
+            attributes: ["id", "paymentAttemptId", "resolvedPaymentAttemptId", "merchantOrderIdRaw", "providerReferenceRaw", "amountRaw", "bindingState", "processingResult", "lastReceivedAt", "createdAt", "updatedAt"],
+            required: false,
+          },
+        ],
+      },
     ],
   },
   {
@@ -422,6 +446,8 @@ const serializeSellerSuborder = (suborder: any) => {
   const payment = getLatestTimelineRecord(payments);
   const proof = normalizeProofSummary(payment?.proofs ?? []);
   const reviewActionability = buildSellerReviewActionability(payment, proof);
+  const order = suborder?.order ?? suborder?.get?.("order") ?? null;
+  const collection = buildPaymentCollectionDto({ order, payments });
   const paymentStatus = String(getAttr(suborder, "paymentStatus") || "UNPAID");
   const fulfillmentStatus = String(getAttr(suborder, "fulfillmentStatus") || "UNFULFILLED");
   const buyer = suborder?.order?.customer ?? suborder?.order?.get?.("customer") ?? null;
@@ -449,6 +475,14 @@ const serializeSellerSuborder = (suborder: any) => {
         ? String(getAttr(suborder?.order, "customerPhone"))
         : null,
     },
+    collection,
+    collectionRail: collection.collectionRail,
+    claimState: collection.claimState,
+    attemptStatus: collection.attemptStatus,
+    paymentUrl: collection.paymentUrl,
+    callbackState: collection.callbackState,
+    manualReviewReason: collection.manualReviewReason,
+    allocations: collection.allocations,
     items: (Array.isArray(suborder?.items) ? suborder.items : []).map((item: any) => ({
       id: toNumber(getAttr(item, "id")),
       productId: toNumber(getAttr(item, "productId")),
@@ -472,6 +506,13 @@ const serializeSellerSuborder = (suborder: any) => {
           proofSubmitted: Boolean(proof),
           proof,
           reviewActionability,
+          collection,
+          collectionRail: collection.collectionRail,
+          claimState: collection.claimState,
+          attemptStatus: collection.attemptStatus,
+          paymentUrl: collection.paymentUrl,
+          callbackState: collection.callbackState,
+          manualReviewReason: collection.manualReviewReason,
         }
       : null,
   };

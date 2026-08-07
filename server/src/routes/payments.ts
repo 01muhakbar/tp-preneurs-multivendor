@@ -3,6 +3,8 @@ import { z } from "zod";
 import requireAuth from "../middleware/requireAuth.js";
 import {
   Order,
+  OrderCollectionClaim,
+  OrderPaymentAttempt,
   Payment,
   PaymentProof,
   PaymentStatusLog,
@@ -12,6 +14,7 @@ import {
   Suborder,
   SuborderItem,
   User,
+  DuitkuCallbackInbox,
   sequelize,
 } from "../models/index.js";
 import {
@@ -25,6 +28,7 @@ import {
   resolveBuyerFacingPaymentStatus,
 } from "../services/paymentCheckoutView.service.js";
 import { buildGroupedPaymentReadModel } from "../services/groupedPaymentReadModel.service.js";
+import { buildPaymentCollectionDto } from "../services/payments/paymentCollectionDto.service.js";
 import { createSellerNotificationsForStoreRecipients } from "../services/notification.service.js";
 import {
   appendAuditNote,
@@ -237,6 +241,7 @@ const serializePaymentStatusLogs = (logs: any[]) => {
 
 const serializePaymentDetail = (payment: any) => {
   const suborder = payment?.suborder ?? payment?.get?.("suborder") ?? null;
+  const order = suborder?.order ?? suborder?.get?.("order") ?? null;
   const store = payment?.store ?? payment?.get?.("store") ?? suborder?.store ?? null;
   const paymentProfile =
     payment?.paymentProfile ?? payment?.get?.("paymentProfile") ?? suborder?.paymentProfile ?? null;
@@ -249,6 +254,7 @@ const serializePaymentDetail = (payment: any) => {
     hasPaymentRecord: true,
   });
   const displayStatus = readModel.status;
+  const collection = buildPaymentCollectionDto({ order, payments: payment ? [payment] : [] });
   return {
     paymentId: toNumber(getAttr(payment, "id")),
     suborderId: toNumber(getAttr(payment, "suborderId")),
@@ -282,6 +288,14 @@ const serializePaymentDetail = (payment: any) => {
     proofActionability: readModel.proofActionability,
     cancelability: readModel.cancelability,
     readModel,
+    collection,
+    collectionRail: collection.collectionRail,
+    claimState: collection.claimState,
+    attemptStatus: collection.attemptStatus,
+    paymentUrl: collection.paymentUrl,
+    callbackState: collection.callbackState,
+    manualReviewReason: collection.manualReviewReason,
+    allocations: collection.allocations,
     logs: serializePaymentStatusLogs(payment?.statusLogs ?? payment?.get?.("statusLogs") ?? []),
   };
 };
@@ -351,6 +365,28 @@ const loadPaymentForActor = async (paymentId: number) =>
             model: Order,
             as: "order",
             attributes: ["id", "invoiceNo", "userId", "paymentStatus", "status"],
+            include: [
+              {
+                model: OrderCollectionClaim,
+                as: "collectionClaim",
+                attributes: ["id", "orderId", "rail", "claimState", "claimSource", "orderPaymentAttemptId", "claimedAt", "paidAt", "terminalAt", "createdAt", "updatedAt"],
+                required: false,
+              },
+              {
+                model: OrderPaymentAttempt,
+                as: "paymentAttempts",
+                attributes: ["id", "orderId", "provider", "status", "manualReviewReason", "merchantOrderId", "providerReference", "paymentUrl", "amount", "currency", "expiresAt", "paidAt", "createdAt", "updatedAt"],
+                required: false,
+                include: [
+                  {
+                    model: DuitkuCallbackInbox,
+                    as: "callbackInboxRows",
+                    attributes: ["id", "paymentAttemptId", "resolvedPaymentAttemptId", "merchantOrderIdRaw", "providerReferenceRaw", "amountRaw", "bindingState", "processingResult", "lastReceivedAt", "createdAt", "updatedAt"],
+                    required: false,
+                  },
+                ],
+              },
+            ],
           },
           {
             model: Store,

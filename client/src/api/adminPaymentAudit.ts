@@ -1,4 +1,5 @@
 import { api } from "./axios";
+import type { PaymentCollectionDto } from "./paymentCollectionDto";
 
 type StatusMeta = {
   code?: string;
@@ -28,6 +29,13 @@ export type AdminPaymentAuditListItem = {
   paymentStatus: string;
   paymentStatusMeta?: StatusMeta;
   createdAt?: string | null;
+  collection?: PaymentCollectionDto;
+  collectionRail?: string | null;
+  claimState?: string | null;
+  attemptStatus?: string | null;
+  paymentUrl?: string | null;
+  callbackState?: string | null;
+  manualReviewReason?: string | null;
   counts: {
     paidSuborders: number;
     pendingSuborders: number;
@@ -145,6 +153,13 @@ export type AdminPaymentAuditDetailResponse = {
         serviceFeeAmount: number;
         grandTotal: number;
       };
+      collection?: PaymentCollectionDto;
+      collectionRail?: string | null;
+      claimState?: string | null;
+      attemptStatus?: string | null;
+      paymentUrl?: string | null;
+      callbackState?: string | null;
+      manualReviewReason?: string | null;
       createdAt?: string | null;
       updatedAt?: string | null;
     };
@@ -249,6 +264,13 @@ export type AdminPaymentAuditDetailResponse = {
       fulfillmentStatus: string;
       fulfillmentStatusMeta?: StatusMeta;
       paidAt?: string | null;
+      collection?: PaymentCollectionDto;
+      collectionRail?: string | null;
+      claimState?: string | null;
+      attemptStatus?: string | null;
+      paymentUrl?: string | null;
+      callbackState?: string | null;
+      manualReviewReason?: string | null;
       shippingStatus?: string | null;
       shippingStatusMeta?: StatusMeta;
       latestTrackingEvent?: {
@@ -318,6 +340,13 @@ export type AdminPaymentAuditDetailResponse = {
         qrPayload?: string | null;
         expiresAt?: string | null;
         paidAt?: string | null;
+        collection?: PaymentCollectionDto;
+        collectionRail?: string | null;
+        claimState?: string | null;
+        attemptStatus?: string | null;
+        paymentUrl?: string | null;
+        callbackState?: string | null;
+        manualReviewReason?: string | null;
         proofSubmitted?: boolean;
         proof?: {
           id: number;

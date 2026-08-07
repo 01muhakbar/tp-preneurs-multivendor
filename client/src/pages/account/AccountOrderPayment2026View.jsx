@@ -204,6 +204,50 @@ function QrPaymentCard({ payment, isSubmitting, onCopyAmount, onCopyReference, o
   );
 }
 
+function HostedPaymentCard({ payment, isSubmitting, onCopyAmount, onCopyReference, onCancelPayment, t }) {
+  const paymentUrl = payment?.primaryPayment?.paymentUrl || payment?.paymentUrl || payment?.collection?.paymentUrl || "";
+  return (
+    <article className="tp-payment-qr-card tp-payment-hosted-card">
+      <div className="tp-payment-qr-card__heading">
+        <div>
+          <h2>Duitku Payment</h2>
+          <p>Complete this payment on the Duitku hosted payment page.</p>
+        </div>
+        <span>{payment?.primaryPayment?.method || "Duitku POP"}</span>
+      </div>
+      <div className="tp-payment-qr-card__body">
+        <div className="tp-payment-hosted-card__icon" aria-hidden="true">
+          <WalletCards />
+        </div>
+        <dl className="tp-payment-qr-card__details">
+          <div><dt>{t("orderPayment.amount")}</dt><dd className="is-amount">{payment.amountDisplay}</dd></div>
+          <div><dt>{t("orderPayment.timeRemaining")}</dt><dd className="is-due">{payment.dueAtLabel}</dd></div>
+          <div><dt>{t("orderPayment.destination")}</dt><dd>Duitku POP</dd><small>{payment?.primaryPayment?.attemptStatus || payment?.attemptStatus || "-"}</small></div>
+          <div><dt>{t("orderPayment.merchant")}</dt><dd>{payment?.primaryPayment?.storeName || payment.qr.storeName}</dd><small>{payment?.primaryPayment?.callbackState || payment?.callbackState || "NONE"}</small></div>
+          <div><dt>{t("orderPayment.referenceId")}</dt><dd title={payment.paymentReference}>{payment.paymentReference}</dd><button type="button" onClick={onCopyReference} aria-label="Copy payment reference"><Copy aria-hidden="true" /></button></div>
+        </dl>
+      </div>
+      <div className="tp-payment-qr-card__utilities">
+        <button type="button" onClick={onCopyAmount}><Copy aria-hidden="true" />{t("orderPayment.copyAmount")}</button>
+        <button type="button" onClick={onCopyReference}><Copy aria-hidden="true" />{t("orderPayment.copyReference")}</button>
+      </div>
+      <div className="tp-payment-qr-card__actions">
+        {paymentUrl ? (
+          <a href={paymentUrl} target="_blank" rel="noopener noreferrer" className="is-primary">
+            <WalletCards aria-hidden="true" />
+            Open Duitku Payment
+          </a>
+        ) : null}
+        {onCancelPayment ? <button type="button" className="is-danger" onClick={onCancelPayment} disabled={isSubmitting}><X aria-hidden="true" />{t("orderPayment.cancelPayment")}</button> : null}
+      </div>
+      <div className="tp-payment-qr-card__notice">
+        <ShieldCheck aria-hidden="true" />
+        <span>Payment proof upload is disabled for Duitku hosted payments. Settlement must come from Duitku callback reconciliation.</span>
+      </div>
+    </article>
+  );
+}
+
 function PaymentSummary({ payment, t }) {
   return (
     <aside className="tp-payment-side-summary">
@@ -234,6 +278,7 @@ export default function AccountOrderPayment2026View({ payment, isLoading, error,
   if (isLoading) return <LoadingState />;
   if (error) return <StateMessage LinkComponent={LinkComponent} title={t("orderPayment.unavailableTitle")} message={error?.response?.data?.message || error?.message || t("orderPayment.unavailableDesc")} t={t} />;
   if (!payment) return <StateMessage LinkComponent={LinkComponent} title={t("orderPayment.notFoundTitle")} message={t("orderPayment.notFoundDesc")} t={t} />;
+  const hostedPayment = Boolean(payment?.primaryPayment?.isHostedRedirect || payment?.paymentUrl || payment?.collection?.paymentUrl);
 
   return (
     <section className="tp-payment-2026">
@@ -257,7 +302,11 @@ export default function AccountOrderPayment2026View({ payment, isLoading, error,
       <div className="tp-payment-2026__content-grid">
         <div className="tp-payment-2026__main-column">
           <StorePayments destinations={payment.destinations} selectedId={payment.primaryPayment?.paymentId} onSelect={onSelectDestination} t={t} />
-          <QrPaymentCard payment={payment} isSubmitting={isSubmitting} onCopyAmount={onCopyAmount} onCopyReference={onCopyReference} onSaveQr={onSaveQr} onConfirmTransfer={onConfirmTransfer} onCancelPayment={onCancelPayment} t={t} />
+          {hostedPayment ? (
+            <HostedPaymentCard payment={payment} isSubmitting={isSubmitting} onCopyAmount={onCopyAmount} onCopyReference={onCopyReference} onCancelPayment={onCancelPayment} t={t} />
+          ) : (
+            <QrPaymentCard payment={payment} isSubmitting={isSubmitting} onCopyAmount={onCopyAmount} onCopyReference={onCopyReference} onSaveQr={onSaveQr} onConfirmTransfer={onConfirmTransfer} onCancelPayment={onCancelPayment} t={t} />
+          )}
         </div>
         <PaymentSummary payment={payment} t={t} />
       </div>

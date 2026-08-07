@@ -23,6 +23,37 @@ const number = (value, fallback = 0) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const normalizeCollection = (...sources) => {
+  const merged = sources.reduce((acc, source) => {
+    const value = asObject(source);
+    return { ...acc, ...value };
+  }, {});
+  return {
+    collectionRail: text(merged.collectionRail, null),
+    claimState: text(merged.claimState, null),
+    claimSource: text(merged.claimSource, null),
+    attemptStatus: text(merged.attemptStatus, null),
+    paymentUrl: text(merged.paymentUrl, null),
+    callbackState: text(merged.callbackState, "NONE"),
+    manualReviewReason: text(merged.manualReviewReason, null),
+    allocations: asArray(merged.allocations),
+  };
+};
+
+const isDuitkuCollection = (collection, payment) => {
+  const rail = text(collection?.collectionRail).toUpperCase();
+  const channel = text(payment?.paymentChannel).toUpperCase();
+  const type = text(payment?.paymentType || payment?.method).toUpperCase();
+  return rail === "DUITKU_POP" || channel === "DUITKU" || type === "DUITKU_POP" || Boolean(collection?.paymentUrl);
+};
+
+const isQrisCollection = (collection, payment) => {
+  if (isDuitkuCollection(collection, payment)) return false;
+  const channel = text(payment?.paymentChannel || payment?.method).toUpperCase();
+  const type = text(payment?.paymentType || payment?.method).toUpperCase();
+  return channel === "QRIS" || type === "QRIS_STATIC";
+};
+
 const normalizeTone = (value) => {
   const tone = text(value, "stone").toLowerCase();
   return [
@@ -167,6 +198,21 @@ const normalizeGroup = (value, index, orderReference, detailedPayment) => {
   const payment = detailMatches
     ? { ...groupedPayment, ...detail, id: groupedPayment.id ?? detail.paymentId }
     : groupedPayment;
+  const collection = normalizeCollection(
+    group.collection,
+    payment.collection,
+    detail.collection,
+    {
+      collectionRail: group.collectionRail || payment.collectionRail || detail.collectionRail,
+      claimState: group.claimState || payment.claimState || detail.claimState,
+      attemptStatus: group.attemptStatus || payment.attemptStatus || detail.attemptStatus,
+      paymentUrl: group.paymentUrl || payment.paymentUrl || detail.paymentUrl,
+      callbackState: group.callbackState || payment.callbackState || detail.callbackState,
+      manualReviewReason:
+        group.manualReviewReason || payment.manualReviewReason || detail.manualReviewReason,
+      allocations: group.allocations || payment.allocations || detail.allocations,
+    }
+  );
   const readModel = getGroupedPaymentReadModel(group);
   const operationalPayment = getSplitOperationalPayment(group);
   const operationalSummary = asObject(getSplitOperationalStatusSummary(group));
@@ -208,6 +254,8 @@ const normalizeGroup = (value, index, orderReference, detailedPayment) => {
     payment.internalReference || payment.externalReference || group.suborderNumber
   );
   const hasPaymentProof = Boolean(payment.proofSubmitted || payment.proof);
+  const hostedPayment = isDuitkuCollection(collection, payment);
+  const qrisProofPayment = isQrisCollection(collection, payment);
   const canNotifyStore = laneStatus === "PAID" || hasPaymentProof;
   const storeContact =
     normalizeWhatsAppNumber(group.storeWhatsapp) ||
@@ -237,7 +285,18 @@ const normalizeGroup = (value, index, orderReference, detailedPayment) => {
       0
     ),
     paymentReference,
-    method: text(payment.paymentType || payment.paymentChannel || group.paymentMethod, "QRIS"),
+    method: hostedPayment
+      ? "Duitku POP"
+      : text(payment.paymentType || payment.paymentChannel || group.paymentMethod, "QRIS"),
+    collection,
+    collectionRail: collection.collectionRail,
+    claimState: collection.claimState,
+    attemptStatus: collection.attemptStatus,
+    paymentUrl: collection.paymentUrl,
+    callbackState: collection.callbackState,
+    manualReviewReason: collection.manualReviewReason,
+    isHostedRedirect: hostedPayment,
+    isQrisProofPayment: qrisProofPayment,
     merchantName: text(payment.merchantName || group.merchantName, "Not set"),
     accountName: text(payment.accountName || group.accountName, "Not set"),
     instruction: text(
@@ -253,7 +312,7 @@ const normalizeGroup = (value, index, orderReference, detailedPayment) => {
     proof: payment.proof || null,
     proofSubmitted: hasPaymentProof,
     whatsappContact,
-    canConfirmTransfer: Boolean(payment.id && confirmActionability.enabled),
+    canConfirmTransfer: Boolean(payment.id && qrisProofPayment && confirmActionability.enabled),
     confirmReason: text(confirmActionability.action?.reason || confirmActionability.reason),
     canCancelPayment: Boolean(payment.id && cancelActionability.enabled),
     cancelReason: text(cancelActionability.action?.reason || cancelActionability.reason),
@@ -294,6 +353,15 @@ export const normalizeOrderPaymentFor2026 = ({
     "Awaiting Payment"
   );
   const paymentReference = text(primary?.paymentReference || reference, reference);
+  const collection = normalizeCollection(source.collection, primary?.collection, {
+    collectionRail: source.collectionRail,
+    claimState: source.claimState,
+    attemptStatus: source.attemptStatus,
+    paymentUrl: source.paymentUrl || primary?.paymentUrl,
+    callbackState: source.callbackState,
+    manualReviewReason: source.manualReviewReason,
+    allocations: source.allocations,
+  });
 
   return {
     orderId: source.orderId ?? order?.id ?? null,
@@ -303,6 +371,13 @@ export const normalizeOrderPaymentFor2026 = ({
     amount: primary?.amount || grandTotal,
     amountDisplay: formatCurrency(primary?.amount || grandTotal),
     paymentReference,
+    collection,
+    collectionRail: collection.collectionRail,
+    claimState: collection.claimState,
+    attemptStatus: collection.attemptStatus,
+    paymentUrl: collection.paymentUrl,
+    callbackState: collection.callbackState,
+    manualReviewReason: collection.manualReviewReason,
     createdAt,
     createdAtLabel: formatDate(createdAt),
     createdAtDateTimeLabel: formatDateTime(createdAt),

@@ -1,4 +1,5 @@
 import { api } from "./axios";
+import type { PaymentCollectionDto } from "./paymentCollectionDto";
 
 type StatusMeta = {
   code?: string;
@@ -45,6 +46,13 @@ export type SellerSuborderReviewItem = {
   totalAmount: number;
   paidAt?: string | null;
   createdAt?: string | null;
+  collection?: PaymentCollectionDto;
+  collectionRail?: string | null;
+  claimState?: string | null;
+  attemptStatus?: string | null;
+  paymentUrl?: string | null;
+  callbackState?: string | null;
+  manualReviewReason?: string | null;
   buyer: {
     userId?: number | null;
     name: string;
@@ -70,6 +78,13 @@ export type SellerSuborderReviewItem = {
     qrImageUrl?: string | null;
     expiresAt?: string | null;
     paidAt?: string | null;
+    collection?: PaymentCollectionDto;
+    collectionRail?: string | null;
+    claimState?: string | null;
+    attemptStatus?: string | null;
+    paymentUrl?: string | null;
+    callbackState?: string | null;
+    manualReviewReason?: string | null;
     proofSubmitted?: boolean;
     reviewActionability?: {
       canReview: boolean;

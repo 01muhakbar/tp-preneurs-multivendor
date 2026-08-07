@@ -2,6 +2,7 @@ import type {
   SellerSuborderListResponse,
   SellerSuborderReviewItem,
 } from "../sellerPayments.ts";
+import type { PaymentCollectionDto } from "../paymentCollectionDto";
 
 export type Seller2026PaymentMatchStatus =
   | "MATCHED"
@@ -28,6 +29,12 @@ export type Seller2026PaymentProofRow = {
   items: SellerSuborderReviewItem["items"];
   paymentMethod: string;
   paymentType: string;
+  collection?: PaymentCollectionDto;
+  collectionRail: string;
+  claimState: string;
+  attemptStatus: string;
+  callbackState: string;
+  paymentUrl: string | null;
   paymentReference: string;
   paymentCode: string;
   expectedAmount: number;
@@ -107,6 +114,57 @@ const paymentMethodLabel = (channel: unknown, type: unknown) => {
   return normalized.replaceAll("_", " ");
 };
 
+const readCollection = (entry: SellerSuborderReviewItem): PaymentCollectionDto => ({
+  ...(entry.collection || {}),
+  ...(entry.payment?.collection || {}),
+  collectionRail:
+    entry.payment?.collectionRail ||
+    entry.collectionRail ||
+    entry.payment?.collection?.collectionRail ||
+    entry.collection?.collectionRail ||
+    null,
+  claimState:
+    entry.payment?.claimState ||
+    entry.claimState ||
+    entry.payment?.collection?.claimState ||
+    entry.collection?.claimState ||
+    null,
+  attemptStatus:
+    entry.payment?.attemptStatus ||
+    entry.attemptStatus ||
+    entry.payment?.collection?.attemptStatus ||
+    entry.collection?.attemptStatus ||
+    null,
+  paymentUrl:
+    entry.payment?.paymentUrl ||
+    entry.paymentUrl ||
+    entry.payment?.collection?.paymentUrl ||
+    entry.collection?.paymentUrl ||
+    null,
+  callbackState:
+    entry.payment?.callbackState ||
+    entry.callbackState ||
+    entry.payment?.collection?.callbackState ||
+    entry.collection?.callbackState ||
+    null,
+  manualReviewReason:
+    entry.payment?.manualReviewReason ||
+    entry.manualReviewReason ||
+    entry.payment?.collection?.manualReviewReason ||
+    entry.collection?.manualReviewReason ||
+    null,
+});
+
+const isQrisSellerReview = (entry: SellerSuborderReviewItem, collection: PaymentCollectionDto) => {
+  const rail = text(collection.collectionRail).toUpperCase();
+  const channel = text(entry.payment?.paymentChannel).toUpperCase();
+  const type = text(entry.payment?.paymentType).toUpperCase();
+  if (rail === "DUITKU_POP" || channel === "DUITKU" || type === "DUITKU_POP" || collection.paymentUrl) {
+    return false;
+  }
+  return channel === "QRIS" || type === "QRIS_STATIC";
+};
+
 const readMatchStatus = (
   paymentStatus: string,
   proofStatus: string,
@@ -142,6 +200,8 @@ export function adaptSeller2026PaymentProof(
   const buyerName = text(entry.buyer?.name, "Customer");
   const proofImageUrl = text(proof?.proofImageUrl) || null;
   const paymentReference = text(payment?.internalReference, "-");
+  const collection = readCollection(entry);
+  const canReviewQris = isQrisSellerReview(entry, collection);
 
   return {
     id: payment?.id || proof?.id || entry.suborderId,
@@ -166,6 +226,12 @@ export function adaptSeller2026PaymentProof(
       payment?.paymentType
     ),
     paymentType: text(payment?.paymentType),
+    collection,
+    collectionRail: text(collection.collectionRail),
+    claimState: text(collection.claimState),
+    attemptStatus: text(collection.attemptStatus),
+    callbackState: text(collection.callbackState, "NONE"),
+    paymentUrl: text(collection.paymentUrl) || null,
     paymentReference,
     paymentCode: paymentReference,
     expectedAmount,
@@ -206,8 +272,10 @@ export function adaptSeller2026PaymentProof(
       paidAmount,
       Boolean(proof?.proofImageUrl)
     ),
-    canReview: Boolean(payment?.reviewActionability?.canReview),
-    reviewReason: text(payment?.reviewActionability?.reason),
+    canReview: Boolean(canReviewQris && payment?.reviewActionability?.canReview),
+    reviewReason: canReviewQris
+      ? text(payment?.reviewActionability?.reason)
+      : "Duitku hosted payments are settled by callback and are not reviewed in the QRIS proof lane.",
     raw: entry,
   };
 }

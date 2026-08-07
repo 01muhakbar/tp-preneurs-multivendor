@@ -41,6 +41,7 @@
     "qa:admin:public-auth:live": "tsx ./tools/qa/admin-public-auth-live-subset.ts",
     "qa:admin:staff": "tsx ./tools/qa/admin-staff-workflow-smoke.ts",
     "qa:admin:staff-approval": "tsx ./tools/qa/admin-staff-approval-workflow-smoke.ts",
+    "qa:duitku-step8-dto": "tsx ./tools/qa/duitku-step8-frontend-dto-smoke.ts",
     "qa:ui": "node qa-ui.mjs",
     "qa:ui:install": "pnpm add -D playwright -w && npx playwright install --with-deps"
   },

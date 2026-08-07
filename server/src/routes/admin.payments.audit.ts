@@ -1,8 +1,11 @@
 import { Op } from "sequelize";
 import { Router } from "express";
 import {
+  DuitkuCallbackInbox,
   Order,
+  OrderCollectionClaim,
   OrderItem,
+  OrderPaymentAttempt,
   Payment,
   PaymentProof,
   PaymentStatusLog,
@@ -29,6 +32,7 @@ import {
 } from "../services/orderLifecycleContract.service.js";
 import { buildSuborderShippingReadModel } from "../services/orderShippingReadModel.service.js";
 import { buildSplitOperationalTruth } from "../services/splitOperationalTruth.service.js";
+import { buildPaymentCollectionDto } from "../services/payments/paymentCollectionDto.service.js";
 
 const router = Router();
 
@@ -244,6 +248,26 @@ const auditListInclude = [
     required: false,
   },
   {
+    model: OrderCollectionClaim,
+    as: "collectionClaim",
+    attributes: ["id", "orderId", "rail", "claimState", "claimSource", "orderPaymentAttemptId", "claimedAt", "paidAt", "terminalAt", "createdAt", "updatedAt"],
+    required: false,
+  },
+  {
+    model: OrderPaymentAttempt,
+    as: "paymentAttempts",
+    attributes: ["id", "orderId", "provider", "status", "manualReviewReason", "merchantOrderId", "providerReference", "paymentUrl", "amount", "currency", "expiresAt", "paidAt", "createdAt", "updatedAt"],
+    required: false,
+    include: [
+      {
+        model: DuitkuCallbackInbox,
+        as: "callbackInboxRows",
+        attributes: ["id", "paymentAttemptId", "resolvedPaymentAttemptId", "merchantOrderIdRaw", "providerReferenceRaw", "amountRaw", "bindingState", "processingResult", "lastReceivedAt", "createdAt", "updatedAt"],
+        required: false,
+      },
+    ],
+  },
+  {
     model: Suborder,
     as: "suborders",
     attributes: ["id", "storeId", "paymentStatus"],
@@ -258,7 +282,7 @@ const auditListInclude = [
       {
         model: Payment,
         as: "payments",
-        attributes: ["id", "status"],
+        attributes: ["id", "suborderId", "storeId", "paymentChannel", "paymentType", "amount", "status"],
         required: false,
         include: [
           {
@@ -321,6 +345,26 @@ const detailInclude = [
     as: "customer",
     attributes: ["id", "name", "email", "role"],
     required: false,
+  },
+  {
+    model: OrderCollectionClaim,
+    as: "collectionClaim",
+    attributes: ["id", "orderId", "rail", "claimState", "claimSource", "orderPaymentAttemptId", "claimedAt", "paidAt", "terminalAt", "createdAt", "updatedAt"],
+    required: false,
+  },
+  {
+    model: OrderPaymentAttempt,
+    as: "paymentAttempts",
+    attributes: ["id", "orderId", "provider", "status", "manualReviewReason", "merchantOrderId", "providerReference", "paymentUrl", "amount", "currency", "expiresAt", "paidAt", "createdAt", "updatedAt"],
+    required: false,
+    include: [
+      {
+        model: DuitkuCallbackInbox,
+        as: "callbackInboxRows",
+        attributes: ["id", "paymentAttemptId", "resolvedPaymentAttemptId", "merchantOrderIdRaw", "providerReferenceRaw", "amountRaw", "bindingState", "processingResult", "lastReceivedAt", "createdAt", "updatedAt"],
+        required: false,
+      },
+    ],
   },
   {
     model: OrderItem,
@@ -483,6 +527,10 @@ const detailInclude = [
 
 const summarizeAuditRow = (order: any) => {
   const suborders = Array.isArray(order?.suborders) ? order.suborders : [];
+  const allPayments = suborders.flatMap((suborder: any) =>
+    Array.isArray(suborder?.payments) ? suborder.payments : []
+  );
+  const collection = buildPaymentCollectionDto({ order, payments: allPayments });
   const paymentStatus = toUpper(
     getAttr(order, "paymentStatus"),
     suborders.length > 0 ? "UNPAID" : deriveLegacyPaymentStatus(order)
@@ -589,6 +637,13 @@ const summarizeAuditRow = (order: any) => {
     paymentStatus,
     paymentStatusMeta: buildPaymentStatusMeta(paymentStatus),
     createdAt: getAttr(order, "createdAt") || null,
+    collection,
+    collectionRail: collection.collectionRail,
+    claimState: collection.claimState,
+    attemptStatus: collection.attemptStatus,
+    paymentUrl: collection.paymentUrl,
+    callbackState: collection.callbackState,
+    manualReviewReason: collection.manualReviewReason,
     counts: {
       paidSuborders,
       pendingSuborders,
@@ -610,6 +665,10 @@ const serializeAuditDetail = (order: any) => {
   const split = serializeSplitOrder(order);
   const customer = order?.customer ?? order?.get?.("customer") ?? null;
   const suborders = Array.isArray(order?.suborders) ? order.suborders : [];
+  const allPayments = suborders.flatMap((suborder: any) =>
+    Array.isArray(suborder?.payments) ? suborder.payments : []
+  );
+  const parentCollection = buildPaymentCollectionDto({ order, payments: allPayments });
 
   return {
     parent: {
@@ -640,6 +699,13 @@ const serializeAuditDetail = (order: any) => {
           }
         : null,
       summary: split.summary,
+      collection: parentCollection,
+      collectionRail: parentCollection.collectionRail,
+      claimState: parentCollection.claimState,
+      attemptStatus: parentCollection.attemptStatus,
+      paymentUrl: parentCollection.paymentUrl,
+      callbackState: parentCollection.callbackState,
+      manualReviewReason: parentCollection.manualReviewReason,
       createdAt: getAttr(order, "createdAt") || null,
       updatedAt: getAttr(order, "updatedAt") || null,
     },
@@ -647,6 +713,7 @@ const serializeAuditDetail = (order: any) => {
     split,
     suborders: suborders.map((suborder: any) => {
       const payments = sortTimelineDesc(Array.isArray(suborder?.payments) ? suborder.payments : []);
+      const collection = buildPaymentCollectionDto({ order, payments });
       const latestPayment = payments[0] ?? null;
       const paymentStatus = String(getAttr(suborder, "paymentStatus") || "UNPAID");
       const paymentReadModel = buildGroupedPaymentReadModel({
@@ -690,6 +757,13 @@ const serializeAuditDetail = (order: any) => {
           getAttr(suborder, "fulfillmentStatus") || "UNFULFILLED"
         ),
         paidAt: getAttr(suborder, "paidAt") || null,
+        collection,
+        collectionRail: collection.collectionRail,
+        claimState: collection.claimState,
+        attemptStatus: collection.attemptStatus,
+        paymentUrl: collection.paymentUrl,
+        callbackState: collection.callbackState,
+        manualReviewReason: collection.manualReviewReason,
         shippingStatus: shippingReadModel.shippingStatus,
         shippingStatusMeta: shippingReadModel.shippingStatusMeta,
         latestTrackingEvent: shippingReadModel.latestTrackingEvent,
@@ -756,6 +830,13 @@ const serializeAuditDetail = (order: any) => {
           paidAt: getAttr(payment, "paidAt") || null,
           proofSubmitted: Array.isArray(payment?.proofs) && payment.proofs.length > 0,
           proof: normalizeProofSummary(payment?.proofs ?? []),
+          collection,
+          collectionRail: collection.collectionRail,
+          claimState: collection.claimState,
+          attemptStatus: collection.attemptStatus,
+          paymentUrl: collection.paymentUrl,
+          callbackState: collection.callbackState,
+          manualReviewReason: collection.manualReviewReason,
           logs: normalizePaymentStatusLogs(payment?.statusLogs ?? []),
         })),
       };

@@ -144,6 +144,16 @@ const getParentPayment = (entry) => {
   };
 };
 
+const getCollection = (entry) => {
+  const collection = entry?.collection || entry?.parent?.collection || {};
+  return {
+    rail: text(entry?.collectionRail || collection.collectionRail, "LEGACY_QRIS"),
+    claimState: text(entry?.claimState || collection.claimState, "-"),
+    attemptStatus: text(entry?.attemptStatus || collection.attemptStatus, "-"),
+    callbackState: text(entry?.callbackState || collection.callbackState, "NONE"),
+  };
+};
+
 const getSplitStatus = (entry) => {
   const counts = entry?.operationalCounts || entry?.counts || {};
   const paid = Number(counts.paidSuborders || 0);
@@ -661,6 +671,7 @@ export default function AdminPaymentAuditPage() {
                   const orderId = getOrderId(entry);
                   const buyer = getBuyer(entry);
                   const parent = getParentPayment(entry);
+                  const collection = getCollection(entry);
                   const split = getSplitStatus(entry);
                   const proof = getProofReviewStatus(entry);
                   const mode = getCheckoutMode(entry);
@@ -685,6 +696,7 @@ export default function AdminPaymentAuditPage() {
                       <td>
                         <strong>{parent.reference}</strong>
                         <span>{formatCurrency(parent.amount)}</span>
+                        <span>{labelize(collection.rail)} / {labelize(collection.claimState)}</span>
                       </td>
                       <td>
                         <Badge tone={getStatusTone(split)}>{labelize(split)}</Badge>

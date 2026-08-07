@@ -29,6 +29,19 @@ const renderStatusTransition = (log) => {
   return `${oldLabel} -> ${nextLabel}`;
 };
 
+const readCollection = (source) => {
+  const collection = source?.collection || {};
+  return {
+    rail: source?.collectionRail || collection.collectionRail || "LEGACY_QRIS",
+    claimState: source?.claimState || collection.claimState || "-",
+    attemptStatus: source?.attemptStatus || collection.attemptStatus || "-",
+    paymentUrl: source?.paymentUrl || collection.paymentUrl || null,
+    callbackState: source?.callbackState || collection.callbackState || "NONE",
+    manualReviewReason: source?.manualReviewReason || collection.manualReviewReason || null,
+    allocations: Array.isArray(collection.allocations) ? collection.allocations : [],
+  };
+};
+
 const getToneBadgeClass = (tone) => {
   const value = String(tone || "").trim().toLowerCase();
   if (value === "amber") return "bg-amber-100 text-amber-700";
@@ -189,6 +202,7 @@ export default function AdminPaymentAuditDetailPage() {
   }
 
   const parent = detail.parent;
+  const parentCollection = readCollection(parent);
   const operationalCounts = summarizeOperationalCounts(detail.suborders);
 
   return (
@@ -309,6 +323,21 @@ export default function AdminPaymentAuditDetailPage() {
             <p>Invoice: {parent.invoiceNo || parent.orderNumber}</p>
             <p>Checkout Mode: {parent.checkoutMode}</p>
             <p>Payment Method: {parent.paymentMethod || "-"}</p>
+            <p>Collection Rail: {parentCollection.rail}</p>
+            <p>Claim State: {parentCollection.claimState}</p>
+            <p>Attempt Status: {parentCollection.attemptStatus}</p>
+            <p>Callback State: {parentCollection.callbackState}</p>
+            {parentCollection.paymentUrl ? (
+              <p>
+                Hosted URL:{" "}
+                <a href={parentCollection.paymentUrl} target="_blank" rel="noreferrer" className="font-semibold text-[var(--admin-primary)]">
+                  Open Duitku
+                </a>
+              </p>
+            ) : null}
+            {parentCollection.manualReviewReason ? (
+              <p>Manual Review: {parentCollection.manualReviewReason}</p>
+            ) : null}
             <p>Created: {formatDateTime(parent.createdAt)}</p>
             <p>Updated: {formatDateTime(parent.updatedAt)}</p>
           </div>
@@ -335,6 +364,7 @@ export default function AdminPaymentAuditDetailPage() {
           const shipment = getSplitOperationalShipment(suborder);
           const bridge = getSplitOperationalBridge(suborder);
           const finality = getSplitOperationalFinality(suborder);
+          const suborderCollection = readCollection(suborder);
 
           return (
             <section
@@ -387,6 +417,12 @@ export default function AdminPaymentAuditDetailPage() {
                         Final-negative split
                       </span>
                     ) : null}
+                    <span className="rounded-full bg-slate-100 px-3 py-1">
+                      Rail {suborderCollection.rail}
+                    </span>
+                    <span className="rounded-full bg-slate-100 px-3 py-1">
+                      Callback {suborderCollection.callbackState}
+                    </span>
                   </div>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-right">
@@ -487,6 +523,8 @@ export default function AdminPaymentAuditDetailPage() {
                         <p>Paid At: {formatDateTime(paymentRecord.paidAt)}</p>
                         <p>Expires: {formatDateTime(paymentRecord.expiresAt)}</p>
                         <p>Proof Submitted: {paymentRecord.proofSubmitted ? "Yes" : "No"}</p>
+                        <p>Collection Rail: {readCollection(paymentRecord).rail}</p>
+                        <p>Callback State: {readCollection(paymentRecord).callbackState}</p>
                       </div>
                       <p className="mt-3 text-sm text-slate-600">
                         {paymentRecord.statusMeta?.description || "-"}
