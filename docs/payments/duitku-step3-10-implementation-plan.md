@@ -1,9 +1,9 @@
 # PAY-DUITKU-03: Step 3-10 Implementation Plan
 
-Status: Step 3 through Step 8 completed locally; Step 9-10 remain gated.
+Status: Step 3 through Step 8 completed locally; Step 9 sandbox matrix approved for non-production execution; Step 10 remains gated.
 Date: 2026-08-06.  
-Scope: Step 3 through Step 8 local implementation plus planning for Step 9 through Step 10.
-Approval: Step 8 local/non-production frontend DTO changes implemented. Step 7 DB-backed regression rerun passed. NOT APPROVED for sandbox pass or production rollout.
+Scope: Step 3 through Step 8 local implementation, Step 9 sandbox matrix execution, and planning for Step 10.
+Approval: Step 9 is approved with conditions for non-production sandbox matrix only. Step 7 DB-backed regression rerun passed. NOT APPROVED for production rollout.
 
 This plan assumes Step 1 and Step 2 have local artifacts available:
 
@@ -21,7 +21,7 @@ Current state:
 - architecture status is `Pending independent re-audit`;
 - migration approval is approved with conditions for local Step 3 only;
 - runtime implementation approval is approved with conditions for local/non-production Step 4, Step 5, Step 6, Step 7, and Step 8 only;
-- sandbox approval is `NOT APPROVED`;
+- Step 9 sandbox matrix approval is approved with conditions for non-production execution only;
 - production approval is `NOT APPROVED`;
 - Step 1 through Step 8 are completed locally under limited approvals;
 - Step 7 DB-backed smoke validation passed after local MySQL/MariaDB became available.
@@ -46,7 +46,8 @@ Step 3 approval status:
 - Step 6 local/non-production shared financial transaction service was implemented and reviewed in `docs/payments/runtime/2026-08-06-duitku-step6-financial-transaction-review.md`;
 - Step 7 local/non-production QRIS guard refactor was implemented and reviewed in `docs/payments/runtime/2026-08-07-duitku-step7-qris-guard-review.md`, and DB-backed smoke validation passed;
 - Step 8 local/non-production frontend DTO changes were implemented and reviewed in `docs/payments/runtime/2026-08-07-duitku-step8-frontend-dto-review.md`;
-- sandbox and production are still not approved.
+- Step 9 sandbox matrix is approved for non-production execution with evidence capture;
+- production is still not approved.
 
 ## 2. Gate Sequence
 
@@ -446,12 +447,15 @@ DB-backed rerun completed:
 
 Goal: prove provider contract and race behavior before any production enablement.
 
+Approval status: APPROVED WITH CONDITIONS for non-production sandbox matrix execution only. This does not approve production rollout.
+
 ### 9.1 Preconditions
 
 - Steps 3-8 implemented in non-production.
 - Sandbox merchant code and secret configured.
 - Callback URL reachable from Duitku sandbox.
 - Test data seeded with buyer, sellers, products, stores, and active QRIS profiles.
+- Evidence report initialized at `docs/payments/sandbox/2026-08-07-duitku-sandbox-evidence.md`.
 
 ### 9.2 Required Scenarios
 
@@ -499,7 +503,8 @@ Goal: enable Duitku gradually without disrupting QRIS and Stripe paths.
 
 ### 10.1 Preconditions
 
-- Sandbox approval granted.
+- Step 9 sandbox evidence report reviewed and accepted.
+- Explicit Step 10 production go/no-go approval granted.
 - Production merchant account confirmed.
 - Callback URL configured in Duitku dashboard.
 - Operations process approved for unknown/quarantine/late callback states.

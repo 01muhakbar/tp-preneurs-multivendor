@@ -1,7 +1,7 @@
 # PAY-DUITKU-01: Architecture Decision Record Integrasi Duitku
 
 Architecture status: Pending independent re-audit.  
-Planning readiness: STEP 1 THROUGH STEP 8 COMPLETED LOCALLY; STEP 9 SANDBOX APPROVAL IS THE NEXT GATE.
+Planning readiness: STEP 1 THROUGH STEP 8 COMPLETED LOCALLY; STEP 9 SANDBOX MATRIX APPROVED FOR NON-PRODUCTION EXECUTION; SANDBOX EVIDENCE PENDING.
 Step 1 local review: COMPLETED / PASS.  
 Step 2 local review: COMPLETED / PASS.  
 Step 3 local migration/model review: COMPLETED / PASS.
@@ -12,12 +12,12 @@ Step 6 local shared financial transaction service review: COMPLETED / PASS.
 Step 7 local QRIS guard route refactor review: COMPLETED / PASS.
 Step 8 local frontend DTO review: COMPLETED / PASS.
 Runtime implementation approval: APPROVED WITH CONDITIONS FOR STEP 4 CLIENT SERVICE, STEP 5 CALLBACK RAW PARSER, STEP 6 SHARED FINANCIAL TRANSACTION SERVICE, STEP 7 QRIS GUARD REFACTOR, AND STEP 8 FRONTEND DTO CHANGES LOCAL/NON-PRODUCTION ONLY.
-Sandbox approval: NOT APPROVED.  
+Sandbox approval: APPROVED WITH CONDITIONS FOR STEP 9 SANDBOX MATRIX NON-PRODUCTION ONLY.  
 Production approval: NOT APPROVED.  
 Date: 2026-08-05.  
 Scope: gated local implementation review and approval tracking.
 
-This document now approves Step 4 local/non-production Duitku client service work, Step 5 local/non-production callback raw parser work, Step 6 local/non-production shared financial transaction service work, Step 7 local/non-production QRIS guard route refactor work, and Step 8 local/non-production frontend DTO changes only. It does not approve checkout route integration, staging/production database mutation, real user-flow provider calls, sandbox approval, or production rollout.
+This document now approves Step 4 local/non-production Duitku client service work, Step 5 local/non-production callback raw parser work, Step 6 local/non-production shared financial transaction service work, Step 7 local/non-production QRIS guard route refactor work, Step 8 local/non-production frontend DTO changes, and Step 9 non-production sandbox matrix execution only. It does not approve production checkout route integration, staging/production database mutation, production provider calls, or production rollout.
 
 ## 1. Baseline
 
@@ -443,7 +443,7 @@ Approval is split into separate gates. Passing one gate does not imply approval 
 | Step 1 and Step 2 planning | Conditionally ready | implementation stays limited to migration runner fix and read-only DDL preflight | implementation task note |
 | Migration | APPROVED WITH CONDITIONS FOR STEP 3 LOCAL MIGRATION/MODEL PACKAGE ONLY | migration runner/runtime target match is proven, read-only preflight is clean or remediated, DDL is reviewed against live schema, and rollback guards are documented | DDL preflight report and migration review |
 | Runtime integration | APPROVED WITH CONDITIONS FOR STEP 4 CLIENT SERVICE, STEP 5 CALLBACK RAW PARSER, STEP 6 SHARED FINANCIAL TRANSACTION SERVICE, STEP 7 QRIS GUARD REFACTOR, AND STEP 8 FRONTEND DTO CHANGES LOCAL/NON-PRODUCTION ONLY | shared financial transaction service, Duitku client, raw callback route, QRIS guards, DTOs, and route refactors pass automated validation | runtime test report |
-| Sandbox | NOT APPROVED | sandbox matrix passes with saved evidence for Create Invoice, callback, return URL, fallback, duplicate, invalid, malformed, unknown, and race scenarios | sandbox evidence report |
+| Sandbox | APPROVED WITH CONDITIONS FOR STEP 9 SANDBOX MATRIX NON-PRODUCTION ONLY | sandbox matrix passes with saved evidence for Create Invoice, callback, return URL, fallback, duplicate, invalid, malformed, unknown, and race scenarios | sandbox evidence report |
 | Production | NOT APPROVED | feature flags, monitored cohort, rollback plan, operations process, and go/no-go review are complete | production go/no-go report |
 
 Rules:
@@ -472,24 +472,23 @@ Approved scope:
 - Step 6 may create local/non-production shared financial transaction service, state-transition guards, lock-order tests, Duitku callback apply logic, QRIS proof guard functions, expiry/cancel/fallback service functions, and local smoke validation without route refactor.
 - Step 7 may refactor local/non-production seller QRIS proof approve/reject routes to call the shared financial transaction service, exclude Duitku allocations from seller payment-review lists, and add local regression tests.
 - Step 8 may implement local/non-production buyer, seller, and admin DTO display changes, including hosted Duitku payment URL visibility, QRIS proof lane separation, collection rail display, and frontend DTO regression tests.
+- Step 9 may execute non-production Duitku sandbox matrix scenarios with sandbox credentials, a sandbox callback URL, test-only orders/payments, and a saved evidence report.
 
 Not approved:
 
 - Duitku DDL creation or execution outside approved local Step 3 migration/model package scope;
 - production or staging database mutation;
-- Duitku Create Invoice provider calls from checkout or real user flow;
+- Duitku Create Invoice provider calls from production checkout or real user flow outside the approved Step 9 sandbox matrix;
 - Duitku callback financial mutation from mounted runtime routes;
 - production callback route enablement;
 - QRIS fallback activation from mounted runtime routes;
 - seller proof guard refactor in production routes;
-- frontend payment behavior changes;
-- sandbox approval;
 - production rollout.
 
 Exit criteria:
 
 - any implementation issue or PR states the exact approved scope;
-- any task beyond Step 8 requires a new approval decision.
+- any task beyond Step 9 requires a new approval decision.
 
 ### Decision Log
 
@@ -511,9 +510,10 @@ Required format:
 | 2026-08-06 | Step 6 local shared financial transaction service review completed | shared service created with local/non-production guard, declared lock order, callback paid/idempotency tests, QRIS claim guard tests, and QRIS proof approval under QRIS claim | Codex developer audit; pending team approver | `docs/payments/runtime/2026-08-06-duitku-step6-financial-transaction-review.md` | record explicit Step 7 QRIS guard refactor gate decision |
 | 2026-08-07 | Step 7 approved with conditions for local/non-production QRIS guard refactor only | seller proof approve/reject route refactor, QRIS-only seller review list guard, shared financial transaction service integration, and regression tests | user approval in Codex session | Step 6 review package in commit `e6bea92`; `docs/payments/runtime/2026-08-06-duitku-step6-financial-transaction-review.md` | frontend DTO changes, sandbox, and production remain not approved |
 | 2026-08-07 | Step 7 local QRIS guard refactor implemented; DB regression validation initially blocked | route code calls shared financial transaction service and excludes Duitku allocations from seller review lists; initial DB smoke could not run because local MySQL/MariaDB on `127.0.0.1:3306` was unavailable | Codex developer audit | `docs/payments/runtime/2026-08-07-duitku-step7-qris-guard-review.md` | DB-backed rerun completed later on 2026-08-07 |
-| 2026-08-07 | Step 8 approved with conditions for local/non-production frontend DTO changes only | buyer hosted Duitku display, seller QRIS proof lane DTO guard, admin collection rail/callback DTO visibility, backend DTO serialization, and frontend smoke regression | user approval in Codex session | Step 7 review package in commit `6e2ffa5`; `docs/payments/runtime/2026-08-07-duitku-step7-qris-guard-review.md` | sandbox and production remain not approved |
+| 2026-08-07 | Step 8 approved with conditions for local/non-production frontend DTO changes only | buyer hosted Duitku display, seller QRIS proof lane DTO guard, admin collection rail/callback DTO visibility, backend DTO serialization, and frontend smoke regression | user approval in Codex session | Step 7 review package in commit `6e2ffa5`; `docs/payments/runtime/2026-08-07-duitku-step7-qris-guard-review.md` | request explicit Step 9 sandbox matrix approval; production remains not approved |
 | 2026-08-07 | Step 8 local frontend DTO changes implemented | backend buyer/seller/admin DTO serialization added; buyer view separates hosted Duitku from QRIS proof upload; seller adapter disables proof review for Duitku rail; admin list/detail display collection rail, claim, attempt, callback, and payment URL context; smoke/build validation passed | Codex developer audit; pending team approver | `docs/payments/runtime/2026-08-07-duitku-step8-frontend-dto-review.md` | request explicit Step 9 sandbox matrix approval |
-| 2026-08-07 | Step 7 DB-backed smoke rerun completed | `smoke:duitku-step7-qris-guard`, `smoke:duitku-step6-financial`, `smoke:duitku-step5-callback`, and `smoke:duitku-step4-client` passed with local MySQL/MariaDB available at `127.0.0.1:3306` | Codex developer audit; pending team approver | `docs/payments/runtime/2026-08-07-duitku-step7-qris-guard-review.md` | Step 9 sandbox matrix remains NOT APPROVED until explicit approval |
+| 2026-08-07 | Step 7 DB-backed smoke rerun completed | `smoke:duitku-step7-qris-guard`, `smoke:duitku-step6-financial`, `smoke:duitku-step5-callback`, and `smoke:duitku-step4-client` passed with local MySQL/MariaDB available at `127.0.0.1:3306` | Codex developer audit; pending team approver | `docs/payments/runtime/2026-08-07-duitku-step7-qris-guard-review.md` | request explicit Step 9 sandbox matrix approval |
+| 2026-08-07 | Step 9 approved with conditions for non-production sandbox matrix only | sandbox credentials, sandbox callback URL, test-only Create Invoice/callback/return/fallback/race scenarios, and saved sandbox evidence report | user approval in Codex session | `docs/payments/runtime/2026-08-07-duitku-step8-frontend-dto-review.md`; `docs/payments/sandbox/2026-08-07-duitku-sandbox-evidence.md` | execute sandbox matrix, save evidence, then request Step 10 production go/no-go separately |
 
 Rules:
 
