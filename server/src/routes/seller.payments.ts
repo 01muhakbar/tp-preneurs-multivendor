@@ -11,12 +11,14 @@ import {
   Suborder,
   SuborderItem,
   User,
-  sequelize,
 } from "../models/index.js";
-import { recalculateParentOrderPaymentStatus } from "../services/orderPaymentAggregation.service.js";
 import { expireOverduePaymentsForOrder } from "../services/paymentExpiry.service.js";
 import { getLatestTimelineRecord } from "../services/paymentReadModel.js";
-import { appendPaymentStatusLog } from "../services/paymentStatusLog.service.js";
+import {
+  approveQrisProof,
+  FinancialTransactionError,
+  rejectQrisProof,
+} from "../services/payments/financialTransaction.service.js";
 import {
   buildFulfillmentStatusMeta,
   buildPaymentStatusMeta,
@@ -27,10 +29,7 @@ import {
   resolveSellerAccess,
   sellerHasPermission,
 } from "../services/seller/resolveSellerAccess.js";
-import {
-  appendAuditNote,
-  getRequestTraceId,
-} from "../services/operationalAudit.service.js";
+import { getRequestTraceId } from "../services/operationalAudit.service.js";
 
 const router = Router();
 
@@ -301,6 +300,13 @@ const buildSellerReviewActionability = (payment: any, proof: any) => {
   };
 };
 
+const isQrisReviewPayment = (payment: any) => {
+  if (!payment) return false;
+  const channel = String(getAttr(payment, "paymentChannel") || "QRIS").toUpperCase().trim();
+  const type = String(getAttr(payment, "paymentType") || "QRIS_STATIC").toUpperCase().trim();
+  return channel === "QRIS" && type === "QRIS_STATIC";
+};
+
 const normalizeStatuses = (rawStatus: any) => {
   const values = Array.isArray(rawStatus) ? rawStatus : [rawStatus];
   const normalized = values
@@ -556,9 +562,15 @@ const listSellerPaymentReviewSuborders = async (storeId: number, statuses: strin
     order: [["createdAt", "DESC"]],
   });
 
-  return items.filter((suborder) =>
-    statuses.includes(resolveSellerPaymentReviewFilterStatus(suborder))
-  );
+  return items.filter((suborder) => {
+    const payments = Array.isArray((suborder as any)?.payments)
+      ? (suborder as any).payments
+      : (suborder as any)?.get?.("payments") ?? [];
+    return (
+      isQrisReviewPayment(getLatestTimelineRecord(payments)) &&
+      statuses.includes(resolveSellerPaymentReviewFilterStatus(suborder))
+    );
+  });
 };
 
 const buildSellerPaymentReviewListPayload = (input: {
@@ -788,6 +800,13 @@ const handleSellerPaymentReview = async (req: any, res: any, options: { requireR
         message: "Payment review can only be processed while status is PENDING_CONFIRMATION.",
       });
     }
+    if (!isQrisReviewPayment(payment)) {
+      return sendSellerAccessError(res, {
+        status: 409,
+        code: "PAYMENT_RAIL_MISMATCH",
+        message: "Only QRIS payment allocations can be reviewed by seller proof.",
+      });
+    }
 
     const paymentProofs = ((payment as any)?.proofs ?? payment?.get?.("proofs") ?? []) as any[];
     const latestProof = normalizeProofSummary(paymentProofs);
@@ -807,133 +826,33 @@ const handleSellerPaymentReview = async (req: any, res: any, options: { requireR
     }
 
     const latestProofRow = getLatestTimelineRecord(paymentProofs);
+    const proofId = toNumber(getAttr(latestProofRow, "id"), 0);
+    if (!isValidPositiveInt(proofId)) {
+      return sendSellerAccessError(res, {
+        status: 409,
+        code: "PAYMENT_PROOF_REQUIRED",
+        message: "Payment proof is required before review.",
+      });
+    }
 
-    const orderId = toNumber(getAttr(suborder, "orderId"), 0);
-    const now = new Date();
     const reviewNote = String(parsed.data.note || "").trim() || null;
 
-    const tx = await sequelize.transaction();
-    try {
-      if (parsed.data.action === "APPROVE") {
-        await payment.update(
-          {
-            status: "PAID",
-            paidAt: now,
-          } as any,
-          { transaction: tx }
-        );
-        if (suborder) {
-          await suborder.update(
-            {
-              paymentStatus: "PAID",
-              fulfillmentStatus: "UNFULFILLED",
-              paidAt: now,
-            } as any,
-            { transaction: tx }
-          );
-        }
-        await latestProofRow.update(
-          {
-            reviewStatus: "APPROVED",
-            reviewNote,
-            reviewedByUserId: authUser.id,
-            reviewedAt: now,
-          } as any,
-          { transaction: tx }
-        );
-        await appendPaymentStatusLog(
-          {
-            paymentId,
-            oldStatus: currentStatus,
-            newStatus: "PAID",
-            actorType: "SELLER",
-            actorId: authUser.id,
-            traceId: getRequestTraceId(req),
-            note: appendAuditNote(reviewNote || "Seller approved payment proof.", {
-              source: "seller:payment-review:approve",
-              traceId: getRequestTraceId(req),
-              paymentId,
-              orderId,
-              invoiceNo: String(getAttr(suborder?.order, "invoiceNo") || ""),
-              suborderId: toNumber(getAttr(suborder, "id"), 0) || null,
-              suborderNumber: String(getAttr(suborder, "suborderNumber") || ""),
-              storeId: toNumber(getAttr(suborder, "storeId"), 0) || null,
-            }),
-          },
-          tx
-        );
-      } else {
-        await payment.update(
-          {
-            status: "REJECTED",
-            paidAt: null,
-          } as any,
-          { transaction: tx }
-        );
-        if (suborder) {
-          await suborder.update(
-            {
-              paymentStatus: "UNPAID",
-              paidAt: null,
-            } as any,
-            { transaction: tx }
-          );
-        }
-        await latestProofRow.update(
-          {
-            reviewStatus: "REJECTED",
-            reviewNote,
-            reviewedByUserId: authUser.id,
-            reviewedAt: now,
-          } as any,
-          { transaction: tx }
-        );
-        await appendPaymentStatusLog(
-          {
-            paymentId,
-            oldStatus: currentStatus,
-            newStatus: "REJECTED",
-            actorType: "SELLER",
-            actorId: authUser.id,
-            traceId: getRequestTraceId(req),
-            note: appendAuditNote(reviewNote || "Seller rejected payment proof.", {
-              source: "seller:payment-review:reject",
-              traceId: getRequestTraceId(req),
-              paymentId,
-              orderId,
-              invoiceNo: String(getAttr(suborder?.order, "invoiceNo") || ""),
-              suborderId: toNumber(getAttr(suborder, "id"), 0) || null,
-              suborderNumber: String(getAttr(suborder, "suborderNumber") || ""),
-              storeId: toNumber(getAttr(suborder, "storeId"), 0) || null,
-            }),
-          },
-          tx
-        );
-      }
-
-      if (orderId > 0) {
-        const nextParentPaymentStatus = await recalculateParentOrderPaymentStatus(orderId, tx);
-        if (parsed.data.action === "APPROVE" && String(nextParentPaymentStatus || "").toUpperCase() === "PAID") {
-          const parentOrder = await Order.findByPk(orderId, {
-            attributes: ["id", "status"],
-            transaction: tx,
-          });
-          const parentStatus = String(getAttr(parentOrder, "status") || "pending").toLowerCase().trim();
-          if (parentOrder && parentStatus === "pending") {
-            await parentOrder.update(
-              {
-                status: "processing",
-              } as any,
-              { transaction: tx }
-            );
-          }
-        }
-      }
-
-      await tx.commit();
-    } catch (error) {
-      await tx.rollback();
-      throw error;
+    if (parsed.data.action === "APPROVE") {
+      await approveQrisProof({
+        paymentId,
+        proofId,
+        actorUserId: authUser.id,
+        note: reviewNote,
+        traceId: getRequestTraceId(req),
+      });
+    } else {
+      await rejectQrisProof({
+        paymentId,
+        proofId,
+        actorUserId: authUser.id,
+        note: reviewNote,
+        traceId: getRequestTraceId(req),
+      });
     }
 
     const refreshed = await loadSellerPayment(paymentId);
@@ -945,6 +864,13 @@ const handleSellerPaymentReview = async (req: any, res: any, options: { requireR
       data: serializeSellerSuborder(refreshedSuborder),
     });
   } catch (error) {
+    if (error instanceof FinancialTransactionError) {
+      return sendSellerAccessError(res, {
+        status: error.statusCode,
+        code: error.code,
+        message: error.message,
+      });
+    }
     console.error("[seller/payments/review] error", error);
     return res.status(500).json({
       success: false,
