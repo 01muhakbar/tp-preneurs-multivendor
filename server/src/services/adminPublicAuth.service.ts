@@ -4,6 +4,7 @@ import { Op } from "sequelize";
 import sendEmail from "../utils/email.js";
 import { sequelize, User, UserRegistrationVerification } from "../models/index.js";
 import { AuthRateLimitError, enforceAuthRateLimit } from "./authRateLimit.service.js";
+import { getRuntimePublicOrigin } from "../config/deploymentOrigin.js";
 
 const USER_STATUS_ACTIVE = "active";
 const USER_STATUS_PENDING = "pending_verification";
@@ -193,7 +194,7 @@ function buildAdminVerifyUrl(token: string) {
     return `${configured}${separator}token=${encodeURIComponent(token)}`;
   }
 
-  const clientUrl = String(process.env.CLIENT_URL || "http://localhost:5173").trim();
+  const clientUrl = String(process.env.CLIENT_URL || getRuntimePublicOrigin() || "http://localhost:5173").trim();
   return `${clientUrl.replace(/\/+$/, "")}/admin/verify-account?token=${encodeURIComponent(token)}`;
 }
 
@@ -207,7 +208,7 @@ function buildAdminResetUrl(token: string) {
     return `${configured}${separator}token=${encodeURIComponent(token)}`;
   }
 
-  const clientUrl = String(process.env.CLIENT_URL || "http://localhost:5173").trim();
+  const clientUrl = String(process.env.CLIENT_URL || getRuntimePublicOrigin() || "http://localhost:5173").trim();
   return `${clientUrl.replace(/\/+$/, "")}/admin/reset-password?token=${encodeURIComponent(token)}`;
 }
 
@@ -299,7 +300,7 @@ async function sendAdminApprovalEmail(input: {
 function buildAdminLoginUrl() {
   const configured = String(process.env.ADMIN_LOGIN_URL || "").trim();
   if (configured) return configured;
-  const clientUrl = String(process.env.CLIENT_URL || "http://localhost:5173").trim();
+  const clientUrl = String(process.env.CLIENT_URL || getRuntimePublicOrigin() || "http://localhost:5173").trim();
   return `${clientUrl.replace(/\/+$/, "")}/admin/login`;
 }
 

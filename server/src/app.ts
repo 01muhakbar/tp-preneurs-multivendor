@@ -6,6 +6,10 @@ import cors from "cors";
 import fs from "fs";
 import path from "path";
 
+import {
+  applyRenderExternalOriginFallbacks,
+  getRuntimePublicOrigin,
+} from "./config/deploymentOrigin.js";
 import authFromCookie from "./middleware/authFromCookie.js";
 import { requestIdMiddleware } from "./middleware/requestId.js";
 import requireAuth from "./middleware/requireAuth.js";
@@ -67,6 +71,8 @@ import duitkuCallbackRouter from "./routes/duitku.callback.js";
 import publicRouter from "./routes/public.js";
 import healthRouter from "./routes/health.js";
 
+applyRenderExternalOriginFallbacks();
+
 const app = express();
 // If behind a reverse proxy (nginx/vercel), allow req.secure via X-Forwarded-Proto
 app.set("trust proxy", 1);
@@ -102,7 +108,9 @@ app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
 const normalizeClientBaseUrl = () => {
-  const configured = String(process.env.CLIENT_URL || process.env.CORS_ORIGIN || "").trim();
+  const configured = String(
+    process.env.CLIENT_URL || process.env.CORS_ORIGIN || getRuntimePublicOrigin() || ""
+  ).trim();
   const fallback = "http://localhost:5173";
   const candidate = configured || fallback;
   try {

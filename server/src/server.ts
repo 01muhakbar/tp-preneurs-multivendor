@@ -1,3 +1,7 @@
+import { applyRenderExternalOriginFallbacks } from "./config/deploymentOrigin.js";
+
+applyRenderExternalOriginFallbacks();
+
 import app from "./app.js";
 import { sequelize, syncDb } from "./models/index.js";
 import { access, mkdir } from "node:fs/promises";

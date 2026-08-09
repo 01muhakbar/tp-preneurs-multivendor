@@ -1,17 +1,55 @@
+import { lazy } from "react";
 import { Route } from "react-router-dom";
-import RawSeller2026Workspace from "../features/seller2026/Seller2026Workspace.jsx";
-import Seller2026ProductCatalogPreviewPage from "../pages/seller2026/Seller2026ProductCatalogPreviewPage.jsx";
-import Seller2026ProductAuthoringPreviewPage from "../pages/seller2026/Seller2026ProductAuthoringPreviewPage.jsx";
-import { Seller2026ProductReviewDetailPreviewPage } from "../pages/seller2026/Seller2026ProductReviewDetailPreviewPage.jsx";
-import {
-  Seller2026AnalyticsSyncPreviewPage,
-  Seller2026CouponsPreviewPage,
-  Seller2026DashboardPage,
-  Seller2026OrdersPreviewPage,
-  Seller2026PaymentCenterPreviewPage,
-  Seller2026StoreProfilePage,
-  Seller2026TeamPreviewPage,
-} from "../pages/seller2026/Seller2026Pages.jsx";
+
+const RawSeller2026Workspace = lazy(() =>
+  import("../features/seller2026/Seller2026Workspace.jsx")
+);
+const Seller2026ProductCatalogPreviewPage = lazy(() =>
+  import("../pages/seller2026/Seller2026ProductCatalogPreviewPage.jsx")
+);
+const Seller2026ProductAuthoringPreviewPage = lazy(() =>
+  import("../pages/seller2026/Seller2026ProductAuthoringPreviewPage.jsx")
+);
+const Seller2026ProductReviewDetailPreviewPage = lazy(() =>
+  import("../pages/seller2026/Seller2026ProductReviewDetailPreviewPage.jsx").then((module) => ({
+    default: module.Seller2026ProductReviewDetailPreviewPage,
+  }))
+);
+const Seller2026DashboardPage = lazy(() =>
+  import("../pages/seller2026/Seller2026Pages.jsx").then((module) => ({
+    default: module.Seller2026DashboardPage,
+  }))
+);
+const Seller2026StoreProfilePage = lazy(() =>
+  import("../pages/seller2026/Seller2026Pages.jsx").then((module) => ({
+    default: module.Seller2026StoreProfilePage,
+  }))
+);
+const Seller2026OrdersPreviewPage = lazy(() =>
+  import("../pages/seller2026/Seller2026Pages.jsx").then((module) => ({
+    default: module.Seller2026OrdersPreviewPage,
+  }))
+);
+const Seller2026PaymentCenterPreviewPage = lazy(() =>
+  import("../pages/seller2026/Seller2026Pages.jsx").then((module) => ({
+    default: module.Seller2026PaymentCenterPreviewPage,
+  }))
+);
+const Seller2026CouponsPreviewPage = lazy(() =>
+  import("../pages/seller2026/Seller2026Pages.jsx").then((module) => ({
+    default: module.Seller2026CouponsPreviewPage,
+  }))
+);
+const Seller2026TeamPreviewPage = lazy(() =>
+  import("../pages/seller2026/Seller2026Pages.jsx").then((module) => ({
+    default: module.Seller2026TeamPreviewPage,
+  }))
+);
+const Seller2026AnalyticsSyncPreviewPage = lazy(() =>
+  import("../pages/seller2026/Seller2026Pages.jsx").then((module) => ({
+    default: module.Seller2026AnalyticsSyncPreviewPage,
+  }))
+);
 
 export const seller2026PreviewRoutes = (
   <>

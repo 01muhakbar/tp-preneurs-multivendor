@@ -5,6 +5,7 @@ import sendEmail from "../utils/email.js";
 import { sequelize, User, UserRegistrationVerification } from "../models/index.js";
 import { ensureClientUserActivationConsistency } from "./clientRegistration.service.js";
 import { AuthRateLimitError, enforceAuthRateLimit } from "./authRateLimit.service.js";
+import { getRuntimePublicOrigin } from "../config/deploymentOrigin.js";
 
 const PASSWORD_RESET_EXPIRY_MS = Number(
   process.env.CLIENT_PASSWORD_RESET_EXPIRY_MS || 60 * 60 * 1000
@@ -132,7 +133,7 @@ export function buildClientPasswordResetUrl(token: string) {
     return `${configured}${separator}token=${encodeURIComponent(token)}`;
   }
 
-  const clientUrl = String(process.env.CLIENT_URL || "http://localhost:5173").trim();
+  const clientUrl = String(process.env.CLIENT_URL || getRuntimePublicOrigin() || "http://localhost:5173").trim();
   return `${clientUrl.replace(/\/+$/, "")}/auth/reset-password?token=${encodeURIComponent(token)}`;
 }
 

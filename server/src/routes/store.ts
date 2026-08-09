@@ -70,6 +70,7 @@ import {
   publicTrackingRateLimit,
   stripeSessionRateLimit,
 } from "../middleware/rateLimit.js";
+import { getRuntimePublicOrigin } from "../config/deploymentOrigin.js";
 
 const router = Router();
 
@@ -144,7 +145,8 @@ const resolveRequestBaseUrl = (req: Request) =>
     explicitBaseUrl:
       process.env.STORE_PUBLIC_BASE_URL ||
       process.env.CLIENT_PUBLIC_BASE_URL ||
-      process.env.PUBLIC_BASE_URL,
+      process.env.PUBLIC_BASE_URL ||
+      getRuntimePublicOrigin(),
     origin: req.get("origin"),
     protocol: req.get("x-forwarded-proto") || req.protocol,
     host: req.get("x-forwarded-host") || req.get("host"),

@@ -37,6 +37,7 @@ RUN pnpm install --prod --frozen-lockfile
 COPY --from=build /app/server/dist ./server/dist
 COPY --from=build /app/server/migrations ./server/migrations
 COPY --from=build /app/server/scripts ./server/scripts
+COPY --from=build /app/server/public ./server/public
 COPY --from=build /app/client/dist ./client/dist
 COPY --from=build /app/packages/schemas/dist ./packages/schemas/dist
 

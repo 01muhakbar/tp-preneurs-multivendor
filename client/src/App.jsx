@@ -1,19 +1,19 @@
 import { Suspense, lazy, useEffect } from "react";
 import { Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
-import StoreLayout from "./components/Layout/StoreLayout.jsx";
 import { AuthProvider } from "./auth/AuthContext.jsx";
-import StoreCartPage from "./pages/store/StoreCartPage.jsx";
 import AdminGuard from "./components/AdminGuard.jsx";
 import RequirePerm from "./components/guards/RequirePerm.jsx";
 import AccountGuard from "./components/AccountGuard.jsx";
 import SeoCustomizationBridge from "./components/SeoCustomizationBridge.jsx";
-import SellerLoginPage from "./pages/seller/SellerLoginPage.jsx";
-import SellerForgotPasswordPage from "./pages/seller/SellerForgotPasswordPage.jsx";
-import SellerCreateAccountPage from "./pages/seller/SellerCreateAccountPage.jsx";
-import SellerVerifyEmailPage from "./pages/seller/SellerVerifyEmailPage.jsx";
-import SellerStoreApplicationPage from "./pages/seller/SellerStoreApplicationPage.jsx";
 import { buildSellerWorkspacePath } from "./utils/sellerWorkspaceRoute.js";
 import { seller2026PreviewRoutes } from "./routes/seller2026RouteConfig.jsx";
+const StoreLayout = lazy(() => import("./components/Layout/StoreLayout.jsx"));
+const StoreCartPage = lazy(() => import("./pages/store/StoreCartPage.jsx"));
+const SellerLoginPage = lazy(() => import("./pages/seller/SellerLoginPage.jsx"));
+const SellerForgotPasswordPage = lazy(() => import("./pages/seller/SellerForgotPasswordPage.jsx"));
+const SellerCreateAccountPage = lazy(() => import("./pages/seller/SellerCreateAccountPage.jsx"));
+const SellerVerifyEmailPage = lazy(() => import("./pages/seller/SellerVerifyEmailPage.jsx"));
+const SellerStoreApplicationPage = lazy(() => import("./pages/seller/SellerStoreApplicationPage.jsx"));
 const Seller2026LiveAnalyticsPage = lazy(() => import("./pages/seller2026/Seller2026LiveAnalyticsPage.jsx"));
 const StoreProductDetailPage = lazy(() => import("./pages/store/StoreProductDetailPage.jsx"));
 const CheckoutPage = lazy(() => import("./pages/store/Checkout.jsx"));
@@ -125,6 +125,7 @@ const AdminStoreProfilePage = lazy(() => import("./pages/admin/AdminStoreProfile
 const AdminStoreApplicationsPage = lazy(() =>
   import("./pages/admin/AdminStoreApplicationsPage.jsx")
 );
+const AdminWithdrawalsPage = lazy(() => import("./pages/admin/AdminWithdrawalsPage.jsx"));
 const AdminStoreApplicationDetailPage = lazy(() =>
   import("./pages/admin/AdminStoreApplicationDetailPage.jsx")
 );
@@ -178,6 +179,9 @@ const Seller2026LivePaymentReviewPage = lazy(() =>
 );
 const Seller2026LivePaymentProfilePage = lazy(() =>
   import("./pages/seller2026/Seller2026LivePaymentProfilePage.jsx")
+);
+const Seller2026PaymentCenterPreviewPage = lazy(() =>
+  import("./pages/seller2026/Seller2026PaymentCenterPreviewPage.jsx")
 );
 const Seller2026LiveTeamPage = lazy(() =>
   import("./pages/seller2026/Seller2026LiveTeamPage.jsx")
@@ -513,6 +517,7 @@ export default function App() {
             <Route path="orders/:suborderId" element={<Seller2026LiveSuborderDetailPage />} />
             <Route path="payment-review" element={<Seller2026LivePaymentReviewPage />} />
             <Route path="payment-profile" element={<Seller2026LivePaymentProfilePage />} />
+            <Route path="payment-center" element={<Seller2026PaymentCenterPreviewPage productionMode={true} />} />
             <Route path="coupons" element={<LegacySellerCouponsRedirect />} />
             <Route path="catalog/coupons" element={<Seller2026LiveCouponsPage />} />
           </Route>
@@ -835,6 +840,14 @@ export default function App() {
                 element={
                   <RequirePerm perm="STORE_APPLICATIONS_REVIEW">
                     <Navigate to="/admin/store/applications" replace />
+                  </RequirePerm>
+                }
+              />
+              <Route
+                path="withdrawals"
+                element={
+                  <RequirePerm perm="SETTINGS_MANAGE">
+                    <AdminWithdrawalsPage />
                   </RequirePerm>
                 }
               />

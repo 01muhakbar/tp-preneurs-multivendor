@@ -6,12 +6,15 @@ services:
     region: singapore
     dockerfilePath: ./Dockerfile
     dockerContext: .
+    dockerCommand: pnpm deploy:start
     healthCheckPath: /api/health
-    autoDeployTrigger: commit
-    preDeployCommand: pnpm -F server migrate
+    autoDeployTrigger: checksPass
+    preDeployCommand: pnpm deploy:pre
     envVars:
       - key: NODE_ENV
         value: production
+      - key: CLIENT_DIST_DIR
+        value: client/dist
       - key: DB_SYNC
         value: "false"
       - key: DB_SSL
@@ -24,13 +27,9 @@ services:
         value: "true"
       - key: UPLOAD_DIR
         value: uploads
+      - key: RATE_LIMIT_DISABLED
+        value: "false"
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET
         generateValue: true
-      - key: CLIENT_URL
-        sync: false
-      - key: CORS_ORIGIN
-        sync: false
-      - key: PUBLIC_BASE_URL
-        sync: false

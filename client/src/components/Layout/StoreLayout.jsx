@@ -7,7 +7,7 @@ import StoreHeaderKacha from "../kachabazar-demo/StoreHeaderKacha.jsx";
 import FloatingCartWidget from "../kachabazar-demo/FloatingCartWidget.jsx";
 import StoreFooterKacha from "../kachabazar-demo/StoreFooterKacha.jsx";
 import ShopCompactFooter2026 from "../../pages/store/shop2026/ShopCompactFooter2026.jsx";
-import { StoreCartDrawer } from "../../pages/store/StoreCartPage.jsx";
+import { StoreCartDrawer } from "../store/StoreCartDrawer2026.jsx";
 import { useCart } from "../../hooks/useCart.ts";
 import MobileMenuDrawer from "./MobileMenuDrawer.jsx";
 import {
@@ -20,6 +20,7 @@ const DEFAULT_PUBLIC_STORE_SETTINGS = {
     cashOnDeliveryEnabled: false,
     stripeEnabled: false,
     razorPayEnabled: false,
+    duitkuEnabled: false,
     stripeKey: "",
     razorPayKeyId: "",
     methods: [],
@@ -89,6 +90,10 @@ const normalizePublicStoreSettings = (raw) => {
       razorPayEnabled: toBool(
         payments.razorPayEnabled,
         DEFAULT_PUBLIC_STORE_SETTINGS.payments.razorPayEnabled
+      ),
+      duitkuEnabled: toBool(
+        payments.duitkuEnabled,
+        DEFAULT_PUBLIC_STORE_SETTINGS.payments.duitkuEnabled
       ),
       stripeKey: toText(payments.stripeKey, ""),
       razorPayKeyId: toText(payments.razorPayKeyId, ""),

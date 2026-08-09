@@ -1,4 +1,17 @@
 E-Commerce Admin Dashboard (Frontend)
+
+## One-Click Deploy
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/01muhakbar/tp-preneurs-multivendor)
+
+Deploy path yang disiapkan repo ini adalah Render Blueprint + TiDB Cloud MySQL-compatible database.
+
+```bash
+pnpm deploy:verify
+```
+
+Render akan meminta `DATABASE_URL`, membuat `JWT_SECRET`, menjalankan `pnpm deploy:pre`, lalu start aplikasi lewat Docker. Lihat `docs/render-tidb-deployment.md` untuk langkah database dan env production.
+
 Gambaran Proyek
 Repo ini adalah monorepo e-commerce dengan aplikasi Admin dan Storefront berbasis React + Vite, serta backend Express + Sequelize. Baseline MVF saat ini sudah backend-driven untuk flow utama store dan admin; beberapa fallback demo/config backup masih ada di area tertentu dan perlu diaudit per task, bukan dianggap sebagai source of truth utama.
 

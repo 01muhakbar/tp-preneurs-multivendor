@@ -18,6 +18,34 @@ const toManualVendorChunk = (id: string) => {
     return "vendor-query";
   }
 
+  if (id.includes("/i18next/") || id.includes("/react-i18next/")) {
+    return "vendor-i18n";
+  }
+
+  if (id.includes("/react-hook-form/") || id.includes("/@hookform/resolvers/")) {
+    return "vendor-forms";
+  }
+
+  if (id.includes("/jspdf/")) {
+    return "vendor-jspdf";
+  }
+
+  if (id.includes("/html2canvas/")) {
+    return "vendor-canvas";
+  }
+
+  if (
+    id.includes("/react-hot-toast/") ||
+    id.includes("/react-toastify/") ||
+    id.includes("/sonner/")
+  ) {
+    return "vendor-notifications";
+  }
+
+  if (id.includes("/react-dropzone/") || id.includes("/file-selector/")) {
+    return "vendor-dropzone";
+  }
+
   if (
     id.includes("/recharts/") ||
     id.includes("/framer-motion/") ||

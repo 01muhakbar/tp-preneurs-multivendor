@@ -21,6 +21,13 @@ reports
 CODEx_REPORTS
 uploads
 server/uploads
+server/server/uploads
+server/public/uploads/products/product-*
+cookies*.txt
+*cookies*.txt
+*.cookies
+*.cookies.txt
 *.log
 tmp_*
+tmp-*
 page.html
