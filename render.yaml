@@ -9,7 +9,6 @@ services:
     dockerCommand: pnpm deploy:start
     healthCheckPath: /api/health
     autoDeployTrigger: checksPass
-    preDeployCommand: pnpm deploy:pre
     envVars:
       - key: NODE_ENV
         value: production

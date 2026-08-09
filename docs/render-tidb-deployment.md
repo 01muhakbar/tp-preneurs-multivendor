@@ -61,7 +61,7 @@ only when using a custom domain or a non-Render host.
 2. In Render, create a new Blueprint from the GitHub repo.
 3. Fill the prompted `DATABASE_URL`.
 4. Let Render build the Docker image.
-5. Render runs `pnpm deploy:pre` before starting the service.
+5. Render runs `pnpm deploy:start`; on the free tier this runs migrations first, then starts the service.
 6. Confirm `/api/health` returns JSON with `ok: true`.
 
 ## 5. Local Verification Before Push

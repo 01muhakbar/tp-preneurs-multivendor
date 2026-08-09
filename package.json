@@ -19,7 +19,7 @@
     "build": "pnpm -F server build && pnpm -F client build",
     "start": "pnpm --filter server start:prod",
     "deploy:pre": "pnpm -F server migrate",
-    "deploy:start": "pnpm start",
+    "deploy:start": "pnpm deploy:pre && pnpm start",
     "deploy:verify": "pnpm build && pnpm -F server migrate --dry-run && node scripts/one-click-deploy-check.mjs",
     "dev": "pnpm -r --parallel dev",
     "dev:server": "pnpm --filter server dev",
