@@ -36,6 +36,15 @@ Use this as the final environment checklist before public deployment. Backend re
 - Use `pnpm deploy:start` as the Docker command if Koyeb asks for an override.
 - See `docs/koyeb-tidb-deployment.md` for the Koyeb setup handoff.
 
+## Oracle Cloud Always Free VM
+
+- Use `deploy/oci/compose.yml` to run the app and Caddy reverse proxy.
+- Point a domain/subdomain `A` record to the Oracle VM public IP before enabling HTTPS.
+- Open inbound TCP `80` and `443`; keep app port `3001` private to Docker.
+- Copy `deploy/oci/.env.example` to `deploy/oci/.env` on the VM and set `DATABASE_URL`, `JWT_SECRET`, `DOMAIN`, `CLIENT_URL`, `CORS_ORIGIN`, and `PUBLIC_BASE_URL`.
+- Caddy handles HTTPS certificates automatically when DNS and firewall rules are correct.
+- See `docs/oracle-cloud-tidb-deployment.md` for the VPS setup handoff.
+
 ## Repository Readiness
 
 - GitHub Actions `Deploy Readiness` passes before public deploy. It runs `pnpm deploy:verify`.

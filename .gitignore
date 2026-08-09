@@ -1,4 +1,5 @@
 .env
+deploy/oci/.env
 server/.env
 client/.env.local
 client/.env.production.local

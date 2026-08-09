@@ -8,6 +8,9 @@
 .tmp
 .env
 .env.*
+!.env.example
+!deploy/oci/.env.example
+deploy/oci/.env
 server/.env
 node_modules
 client/dist
