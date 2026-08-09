@@ -70,6 +70,29 @@ const app = express();
 // If behind a reverse proxy (nginx/vercel), allow req.secure via X-Forwarded-Proto
 app.set("trust proxy", 1);
 
+const resolveClientDistDir = () => {
+  const configured = String(process.env.CLIENT_DIST_DIR || "").trim();
+  const candidates = [
+    configured ? path.resolve(process.cwd(), configured) : "",
+    path.resolve(process.cwd(), "client/dist"),
+    path.resolve(process.cwd(), "../client/dist"),
+  ].filter(Boolean);
+
+  return (
+    candidates.find((candidate) =>
+      fs.existsSync(path.join(candidate, "index.html"))
+    ) || null
+  );
+};
+
+const shouldServeClientRoute = (req: express.Request) => {
+  if (!["GET", "HEAD"].includes(req.method)) return false;
+  if (req.path.startsWith("/api") || req.path.startsWith("/uploads")) {
+    return false;
+  }
+  return Boolean(req.accepts("html"));
+};
+
 app.use(requestIdMiddleware);
 app.use(cookieParser());
 app.use("/api/store", stripeWebhookRouter);
@@ -196,6 +219,30 @@ app.use("/api/admin/staff", requireSuperAdmin, staffRouter);
 
 // uploads (tentukan kebijakan; ini aku set staff+)
 app.use("/api/admin", requireStaffOrAdmin, adminUploadsRouter);
+
+if (process.env.NODE_ENV === "production") {
+  const clientDistDir = resolveClientDistDir();
+  if (clientDistDir) {
+    app.use(
+      express.static(clientDistDir, {
+        index: false,
+        maxAge: "1y",
+        immutable: true,
+      })
+    );
+    app.get("*", (req, res, next) => {
+      if (!shouldServeClientRoute(req)) {
+        next();
+        return;
+      }
+      res.sendFile(path.join(clientDistDir, "index.html"));
+    });
+  } else {
+    console.warn(
+      "[server][production-warning] Client dist was not found. Build the client or set CLIENT_DIST_DIR."
+    );
+  }
+}
 
 app.use((error: any, _req: express.Request, res: express.Response, next: express.NextFunction) => {
   if (error?.message === "CORS origin not allowed.") {

@@ -3,6 +3,11 @@
   "private": true,
   "version": "1.0.0",
   "description": "",
+  "packageManager": "pnpm@11.0.9",
+  "engines": {
+    "node": ">=20.19.0 <25",
+    "pnpm": ">=11.0.0 <12"
+  },
   "workspaces": [
     "server",
     "client",
@@ -12,7 +17,7 @@
   "type": "module",
   "scripts": {
     "build": "pnpm -F server build && pnpm -F client build",
-    "start": "pnpm --filter server start",
+    "start": "pnpm --filter server start:prod",
     "dev": "pnpm -r --parallel dev",
     "dev:server": "pnpm --filter server dev",
     "dev:client": "pnpm --filter client dev",
