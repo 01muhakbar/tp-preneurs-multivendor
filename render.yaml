@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: tp-preneurs-multivendor
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    preDeployCommand: pnpm -F server migrate
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_SYNC
+        value: "false"
+      - key: DB_SSL
+        value: "true"
+      - key: DB_SSL_REJECT_UNAUTHORIZED
+        value: "true"
+      - key: AUTH_COOKIE_NAME
+        value: tp_auth
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: UPLOAD_DIR
+        value: uploads
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CLIENT_URL
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: PUBLIC_BASE_URL
+        sync: false
