@@ -3,14 +3,15 @@ E-Commerce Admin Dashboard (Frontend)
 ## One-Click Deploy
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/01muhakbar/tp-preneurs-multivendor)
+[![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?type=git&builder=dockerfile&repository=github.com/01muhakbar/tp-preneurs-multivendor&branch=main&name=tp-preneurs-multivendor&dockerfile=Dockerfile&ports=3001%3Bhttp%3B%2F&env[NODE_ENV]=production&env[CLIENT_DIST_DIR]=client%2Fdist&env[DB_SYNC]=false&env[DB_SSL]=true&env[DB_SSL_REJECT_UNAUTHORIZED]=true&env[AUTH_COOKIE_NAME]=tp_auth&env[COOKIE_SECURE]=true&env[UPLOAD_DIR]=uploads&env[RATE_LIMIT_DISABLED]=false)
 
-Deploy path yang disiapkan repo ini adalah Render Blueprint + TiDB Cloud MySQL-compatible database.
+Deploy path yang disiapkan repo ini adalah Render Blueprint atau Koyeb Docker Service + TiDB Cloud MySQL-compatible database.
 
 ```bash
 pnpm deploy:verify
 ```
 
-Render akan meminta `DATABASE_URL`, membuat `JWT_SECRET`, lalu menjalankan `pnpm deploy:start` lewat Docker. Pada Render free tier, migration dijalankan di startup command karena `preDeployCommand` tidak tersedia. Lihat `docs/render-tidb-deployment.md` untuk langkah database dan env production.
+Render akan meminta `DATABASE_URL`, membuat `JWT_SECRET`, lalu menjalankan `pnpm deploy:start` lewat Docker. Pada Render free tier, migration dijalankan di startup command karena `preDeployCommand` tidak tersedia. Untuk Koyeb, isi `DATABASE_URL` dan `JWT_SECRET` di environment variables, lalu gunakan Dockerfile + port `3001`. Lihat `docs/render-tidb-deployment.md` atau `docs/koyeb-tidb-deployment.md` untuk langkah database dan env production.
 
 Gambaran Proyek
 Repo ini adalah monorepo e-commerce dengan aplikasi Admin dan Storefront berbasis React + Vite, serta backend Express + Sequelize. Baseline MVF saat ini sudah backend-driven untuk flow utama store dan admin; beberapa fallback demo/config backup masih ada di area tertentu dan perlu diaudit per task, bukan dianggap sebagai source of truth utama.

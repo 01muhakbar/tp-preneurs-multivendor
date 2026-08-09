@@ -20,6 +20,12 @@ export const getRenderExternalOrigin = () => {
   return `https://${hostname}`;
 };
 
+export const getKoyebExternalOrigin = () => {
+  const hostname = trimEnv("KOYEB_PUBLIC_DOMAIN").replace(/^https?:\/\//i, "").replace(/\/+$/, "");
+  if (!hostname) return "";
+  return `https://${hostname}`;
+};
+
 export const getConfiguredPublicOrigin = () =>
   normalizeHttpOrigin(
     trimEnv("PUBLIC_BASE_URL") ||
@@ -30,15 +36,17 @@ export const getConfiguredPublicOrigin = () =>
   );
 
 export const getRuntimePublicOrigin = () =>
-  getConfiguredPublicOrigin() || getRenderExternalOrigin();
+  getConfiguredPublicOrigin() || getRenderExternalOrigin() || getKoyebExternalOrigin();
 
-export const applyRenderExternalOriginFallbacks = () => {
+export const applyDeploymentOriginFallbacks = () => {
   if (process.env.NODE_ENV !== "production") return;
 
-  const renderOrigin = getRenderExternalOrigin();
-  if (!renderOrigin) return;
+  const runtimeOrigin = getRenderExternalOrigin() || getKoyebExternalOrigin();
+  if (!runtimeOrigin) return;
 
-  if (!trimEnv("CLIENT_URL")) process.env.CLIENT_URL = renderOrigin;
-  if (!trimEnv("CORS_ORIGIN")) process.env.CORS_ORIGIN = renderOrigin;
-  if (!trimEnv("PUBLIC_BASE_URL")) process.env.PUBLIC_BASE_URL = renderOrigin;
+  if (!trimEnv("CLIENT_URL")) process.env.CLIENT_URL = runtimeOrigin;
+  if (!trimEnv("CORS_ORIGIN")) process.env.CORS_ORIGIN = runtimeOrigin;
+  if (!trimEnv("PUBLIC_BASE_URL")) process.env.PUBLIC_BASE_URL = runtimeOrigin;
 };
+
+export const applyRenderExternalOriginFallbacks = applyDeploymentOriginFallbacks;

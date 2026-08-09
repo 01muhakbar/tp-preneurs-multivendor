@@ -26,6 +26,16 @@ Use this as the final environment checklist before public deployment. Backend re
 - Render free web services do not provide durable local uploads. Treat `UPLOAD_DIR=uploads` as staging-only until production upload storage is moved to object storage.
 - See `docs/render-tidb-deployment.md` for the database setup handoff.
 
+## Koyeb Docker Service
+
+- Use Dockerfile builder from branch `main`.
+- Expose port `3001` as HTTP and route `/`.
+- Set health check path to `/api/health`.
+- Set `DATABASE_URL` and a strong `JWT_SECRET` manually in Koyeb environment variables.
+- Koyeb provides `KOYEB_PUBLIC_DOMAIN`; the server can infer `CLIENT_URL`, `CORS_ORIGIN`, and `PUBLIC_BASE_URL` from it for first deploys.
+- Use `pnpm deploy:start` as the Docker command if Koyeb asks for an override.
+- See `docs/koyeb-tidb-deployment.md` for the Koyeb setup handoff.
+
 ## Repository Readiness
 
 - GitHub Actions `Deploy Readiness` passes before public deploy. It runs `pnpm deploy:verify`.
