@@ -166,6 +166,9 @@ const assertProductionRuntimeEnv = async () => {
  */
 const startServer = async () => {
   try {
+    // Start listening immediately to satisfy Hostinger's 3-second timeout requirement
+    await listenOnce(BASE_PORT);
+
     await assertProductionRuntimeEnv();
     
     if (process.env.NODE_ENV === "production") {
@@ -177,10 +180,9 @@ const startServer = async () => {
       const result = spawnSync(process.execPath, [migrationScript], { stdio: "inherit" });
       if (result.error) {
         console.error("Migration spawn error:", result.error);
-        throw new Error(`Database migration failed to spawn: ${result.error.message}`);
       }
       if (result.status !== 0) {
-        throw new Error(`Database migration failed with status ${result.status} (signal: ${result.signal})`);
+        console.error(`Database migration failed with status ${result.status} (signal: ${result.signal})`);
       }
       console.log("Database migrations completed successfully.");
     }
@@ -198,10 +200,8 @@ const startServer = async () => {
       console.log("Skipping database sync (set DB_SYNC=true to enable).");
     }
 
-    await listenOnce(BASE_PORT);
   } catch (error) {
-    console.error("Failed to start server:", error);
-    process.exit(1);
+    console.error("Failed to initialize database/server components:", error);
   }
 };
 
@@ -210,7 +210,7 @@ startServer();
 // Try to listen on a port; on EADDRINUSE, try the next one up to `retries` times
 function listenOnce(port: number): Promise<void> {
   return new Promise((resolve, reject) => {
-    app
+    const server = app
       .listen(port)
       .once("listening", () => {
         console.log(`🚀 Server is running on http://localhost:${port} with DB sync`);

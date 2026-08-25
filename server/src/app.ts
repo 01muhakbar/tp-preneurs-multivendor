@@ -301,7 +301,21 @@ app.use((error: any, _req: express.Request, res: express.Response, next: express
       message: "Request payload is too large. Please upload a smaller image.",
     });
   }
-  return next(error);
+  
+  // Log full error for debugging
+  console.error("Unhandled Error:", error);
+  if (error.original) {
+    console.error("Original Error:", error.original);
+  }
+  if (error.sqlMessage || error.sql) {
+    console.error("SQL Error:", error.sqlMessage, error.sql);
+  }
+
+  res.status(500).json({
+    success: false,
+    message: "Internal Server Error",
+    error: process.env.NODE_ENV === "development" ? error.message : undefined
+  });
 });
 
 // 404 handler (dev-only logging)
