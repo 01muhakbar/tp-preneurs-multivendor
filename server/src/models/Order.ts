@@ -146,7 +146,8 @@ export class Order
         userId: {
           type: DataTypes.INTEGER.UNSIGNED,
           allowNull: false,
-          references: { model: "Users", key: "id" },
+          references: { model: "users", key: "id" },
+          field: 'user_id',
         },
         checkoutMode: {
           type: DataTypes.ENUM("LEGACY", "SINGLE_STORE", "MULTI_STORE"),

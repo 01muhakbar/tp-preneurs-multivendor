@@ -42,11 +42,10 @@ export class Cart
         // --- PERBAIKAN DI SINI ---
         // Pastikan tipe data sama dengan primary key di tabel User
         userId: {
-          type: DataTypes.INTEGER.UNSIGNED, // <-- PASTIKAN ADA .UNSIGNED
+          type: DataTypes.INTEGER.UNSIGNED,
           allowNull: false,
           references: {
-            // Referensi ini sudah benar
-            model: "Users", // Nama tabel yang direferensikan
+            model: "users", // Nama tabel yang direferensikan
             key: "id",
           },
         },
