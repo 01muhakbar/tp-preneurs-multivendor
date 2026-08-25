@@ -17,7 +17,7 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/run-pnpm.mjs -F server build && node scripts/run-pnpm.mjs -F client build",
-    "start": "node scripts/run-pnpm.mjs --filter server start:prod",
+    "start": "node scripts/run-pnpm.mjs -F server migrate && node scripts/run-pnpm.mjs --filter server start:prod",
     "deploy:pre": "node scripts/run-pnpm.mjs -F server migrate",
     "deploy:start": "node scripts/run-pnpm.mjs -F server migrate && node scripts/run-pnpm.mjs --filter server start:prod",
     "deploy:verify": "node scripts/run-pnpm.mjs build && node scripts/run-pnpm.mjs -F server migrate --dry-run && node scripts/one-click-deploy-check.mjs",
