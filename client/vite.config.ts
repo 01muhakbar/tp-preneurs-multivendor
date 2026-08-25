@@ -3,71 +3,6 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import { visualizer } from "rollup-plugin-visualizer";
 
-const toManualVendorChunk = (id: string) => {
-  if (!id.includes("node_modules")) return undefined;
-
-  if (id.includes("/react-dom/") || id.includes("/react/") || id.includes("scheduler")) {
-    return "vendor-react";
-  }
-
-  if (id.includes("/react-router/") || id.includes("/react-router-dom/")) {
-    return "vendor-router";
-  }
-
-  if (id.includes("/@tanstack/react-query")) {
-    return "vendor-query";
-  }
-
-  if (id.includes("/i18next/") || id.includes("/react-i18next/")) {
-    return "vendor-i18n";
-  }
-
-  if (id.includes("/react-hook-form/") || id.includes("/@hookform/resolvers/")) {
-    return "vendor-forms";
-  }
-
-  if (id.includes("/jspdf/")) {
-    return "vendor-jspdf";
-  }
-
-  if (id.includes("/html2canvas/")) {
-    return "vendor-canvas";
-  }
-
-  if (
-    id.includes("/react-hot-toast/") ||
-    id.includes("/react-toastify/") ||
-    id.includes("/sonner/")
-  ) {
-    return "vendor-notifications";
-  }
-
-  if (id.includes("/react-dropzone/") || id.includes("/file-selector/")) {
-    return "vendor-dropzone";
-  }
-
-  if (
-    id.includes("/recharts/") ||
-    id.includes("/framer-motion/") ||
-    id.includes("/lucide-react/") ||
-    id.includes("/react-icons/")
-  ) {
-    return "vendor-ui";
-  }
-
-  if (
-    id.includes("/axios/") ||
-    id.includes("/dayjs/") ||
-    id.includes("/clsx/") ||
-    id.includes("/zod/") ||
-    id.includes("/zustand/") ||
-    id.includes("/tailwind-merge/")
-  ) {
-    return "vendor-utils";
-  }
-
-  return "vendor-misc";
-};
 
 export default defineConfig(({ mode }) => {
   const analyze = mode === "analyze";
@@ -109,12 +44,6 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    build: {
-      rollupOptions: {
-        output: {
-          manualChunks: toManualVendorChunk,
-        },
-      },
-    },
+    build: {},
   };
 });
