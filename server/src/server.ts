@@ -11,6 +11,8 @@ import {
   isMultistoreShipmentMvpEnabled,
   isMultistoreShipmentMutationEnabled,
 } from "./services/featureFlags.service.js";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 const BASE_PORT = Number(process.env.PORT) || 3001;
 
@@ -165,6 +167,24 @@ const assertProductionRuntimeEnv = async () => {
 const startServer = async () => {
   try {
     await assertProductionRuntimeEnv();
+    
+    if (process.env.NODE_ENV === "production") {
+      console.log("Running database migrations for production...");
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = path.dirname(__filename);
+      const migrationScript = path.resolve(__dirname, "../scripts/run-migrations.js");
+      
+      const result = spawnSync(process.execPath, [migrationScript], { stdio: "inherit" });
+      if (result.error) {
+        console.error("Migration spawn error:", result.error);
+        throw new Error(`Database migration failed to spawn: ${result.error.message}`);
+      }
+      if (result.status !== 0) {
+        throw new Error(`Database migration failed with status ${result.status} (signal: ${result.signal})`);
+      }
+      console.log("Database migrations completed successfully.");
+    }
+
     console.log("Attempting to connect to the database...");
     await sequelize.authenticate();
     console.log("Database connected successfully.");
