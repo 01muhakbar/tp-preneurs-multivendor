@@ -54,7 +54,7 @@ export class Cart
       {
         sequelize,
         modelName: "Cart",
-        tableName: "Carts",
+        tableName: "carts",
         underscored: true,
       }
     );

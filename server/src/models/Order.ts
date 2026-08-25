@@ -239,7 +239,7 @@ export class Order
       {
         sequelize,
         modelName: "Order",
-        tableName: "Orders",
+        tableName: "orders",
         underscored: true,
       }
     );

@@ -109,7 +109,7 @@ export class Shipment
           allowNull: false,
           field: "order_id",
           references: {
-            model: "Orders",
+            model: "orders",
             key: "id",
           },
         },

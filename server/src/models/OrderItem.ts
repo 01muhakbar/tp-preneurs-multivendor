@@ -100,7 +100,7 @@ export class OrderItem
       {
         sequelize,
         modelName: "OrderItem",
-        tableName: "OrderItems",
+        tableName: "order_items",
         underscored: false,
       }
     );

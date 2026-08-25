@@ -131,7 +131,7 @@ export class Suborder
           allowNull: false,
           field: "order_id",
           references: {
-            model: "Orders",
+            model: "orders",
             key: "id",
           },
         },

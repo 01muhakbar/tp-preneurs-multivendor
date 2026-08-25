@@ -81,7 +81,7 @@ export class Category
       {
         sequelize,
         modelName: "Category",
-        tableName: "Categories",
+        tableName: "categories",
         underscored: true,
       }
     );

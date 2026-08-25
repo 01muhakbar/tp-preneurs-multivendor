@@ -35,7 +35,7 @@ export class ProductCategory
           primaryKey: true,
           field: "category_id",
           references: {
-            model: "Categories",
+            model: "categories",
             key: "id",
           },
         },
