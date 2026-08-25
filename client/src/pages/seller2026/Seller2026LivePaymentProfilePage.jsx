@@ -308,6 +308,9 @@ export default function Seller2026LivePaymentProfilePage() {
               <Detail icon={UserRound} label="Account name" value={display(active?.accountName || profile.form.accountName)} />
               <Detail icon={Store} label="Store" value={display(profile.store.name || sellerContext?.store?.name)} />
               <Detail icon={BadgeCheck} label="QRIS merchant ID" value={display(active?.merchantId || profile.form.merchantId)} />
+              <Detail icon={CreditCard} label="Payout bank" value={display(active?.bankName || profile.form.bankName)} />
+              <Detail icon={CreditCard} label="Payout account" value={display(active?.accountNumber || profile.form.accountNumber)} />
+              <Detail icon={UserRound} label="Payout account holder" value={display(active?.accountHolderName || profile.form.accountHolderName)} />
               <Detail
                 icon={CheckCircle2}
                 label="Status"

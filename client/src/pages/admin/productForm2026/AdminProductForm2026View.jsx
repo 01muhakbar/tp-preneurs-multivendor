@@ -1176,7 +1176,23 @@ function DetailsStep({
   );
 }
 
-function ReviewStep({ form, meta, selectedCategories, selectedStore, localImages, workflow = "admin" }) {
+const translateProductFormText = (t, value, values) => {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  const key = `productForm.${text}`;
+  const translated = t(key, values);
+  return translated === key ? text : translated;
+};
+
+function ReviewStep({
+  form,
+  meta,
+  selectedCategories,
+  selectedStore,
+  localImages,
+  workflow = "admin",
+  reviewMode = "publish",
+}) {
   const { t } = useTranslation("admin");
   const review = buildProductForm2026Review({
     form,
@@ -1189,6 +1205,26 @@ function ReviewStep({ form, meta, selectedCategories, selectedStore, localImages
     workflow === "seller"
       ? getSellerProductForm2026Checklist({ form, meta, localImages })
       : getProductForm2026Checklist({ form, meta, localImages });
+  const normalizedReviewMode = String(reviewMode || "publish").toLowerCase();
+  const reviewChecklist =
+    workflow === "seller" && normalizedReviewMode === "update"
+      ? checklist.map((item) =>
+          item.labelKey === "Publication Settings"
+            ? {
+                ...item,
+                helperKey: "Active product changes can be saved without admin review.",
+                done: true,
+              }
+            : item
+        )
+      : checklist;
+  const hasBlockingChecklistItem = reviewChecklist.some((item) => item.done === false);
+  const checklistBadgeLabel =
+    workflow === "seller" && normalizedReviewMode === "update"
+      ? "Ready to save"
+      : hasBlockingChecklistItem
+        ? "Needs attention"
+        : t("productForm.All good");
 
   return (
     <div className="apf26-review">
@@ -1211,7 +1247,7 @@ function ReviewStep({ form, meta, selectedCategories, selectedStore, localImages
         <section className="apf26-review-card">
           <h3>{t("productForm.Product Identity")}</h3>
           <ReviewRow label={t("productForm.Product Name")} value={review.productName} />
-          <ReviewRow label={t("productForm.Short Description")} value={review.description} />
+          <ReviewRow label={t("productForm.Short Description")} value={review.description} multiline />
           <ReviewRow label="SKU" value={review.sku} />
           <ReviewRow label="Barcode" value={review.barcode} />
           <ReviewRow label={t("productForm.Brand")} value={review.brand} />
@@ -1249,17 +1285,19 @@ function ReviewStep({ form, meta, selectedCategories, selectedStore, localImages
       <aside className="apf26-panel">
         <div className="apf26-section-title">
           <h3>{t("productForm.Review Checklist")}</h3>
-          <span className="apf26-chip">{t("productForm.All good")}</span>
+          <span className={`apf26-chip ${hasBlockingChecklistItem ? "is-warning" : "is-info"}`}>
+            {checklistBadgeLabel}
+          </span>
         </div>
         <div className="apf26-checklist">
-          {checklist.map((item) => (
-            <div key={item.labelKey} className="apf26-check">
+          {reviewChecklist.map((item) => (
+            <div key={item.labelKey} className={`apf26-check ${item.done === false ? "is-warning" : ""}`}>
               <span className="apf26-check__icon">
-                <Check size={14} />
+                {item.done === false ? "!" : <Check size={14} />}
               </span>
               <div>
-                <strong>{t("productForm." + item.labelKey)}</strong>
-                <p>{t("productForm." + item.helperKey, item.helperValues)}</p>
+                <strong>{translateProductFormText(t, item.labelKey)}</strong>
+                <p>{translateProductFormText(t, item.helperKey, item.helperValues)}</p>
               </div>
             </div>
           ))}
@@ -1269,9 +1307,9 @@ function ReviewStep({ form, meta, selectedCategories, selectedStore, localImages
   );
 }
 
-function ReviewRow({ label, value }) {
+function ReviewRow({ label, value, multiline = false }) {
   return (
-    <div className="apf26-review-row">
+    <div className={`apf26-review-row ${multiline ? "is-multiline" : ""}`}>
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
@@ -1400,6 +1438,9 @@ export default function AdminProductForm2026View({
   finalCreateBusyLabel,
   finalEditLabel,
   finalEditBusyLabel,
+  finalActionDisabled = false,
+  finalActionDisabledReason = "",
+  reviewMode = "publish",
   successTitle,
   successDescription,
   successPrimaryLabel,
@@ -1553,6 +1594,7 @@ export default function AdminProductForm2026View({
                 selectedStore={selectedStore}
                 localImages={localImages}
                 workflow={workflow}
+                reviewMode={reviewMode}
               />
             ) : null}
           </main>
@@ -1577,7 +1619,8 @@ export default function AdminProductForm2026View({
                 type="button"
                 className="apf26-button apf26-button--accent"
                 onClick={onPublish}
-                disabled={isSubmitting}
+                disabled={isSubmitting || finalActionDisabled}
+                title={finalActionDisabled ? finalActionDisabledReason : undefined}
               >
                 {isSubmitting
                   ? finalEditBusyLabel || t("productForm.Saving Changes...")
@@ -1595,7 +1638,8 @@ export default function AdminProductForm2026View({
                   type="button"
                   className="apf26-button apf26-button--accent"
                   onClick={onPublish}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || finalActionDisabled}
+                  title={finalActionDisabled ? finalActionDisabledReason : undefined}
                 >
                   {isSubmitting
                     ? finalCreateBusyLabel || t("productForm.Publishing...")

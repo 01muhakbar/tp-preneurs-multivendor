@@ -12,13 +12,25 @@ async function resolveUsersTable(queryInterface) {
   return 'users';
 }
 
+async function indexExists(queryInterface, tableName, indexName) {
+  try {
+    const indexes = await queryInterface.showIndex(tableName);
+    return indexes.some((idx) => idx.name === indexName);
+  } catch {
+    return false;
+  }
+}
+
 module.exports = {
   async up(queryInterface) {
     const tableName = await resolveUsersTable(queryInterface);
-    await queryInterface.addIndex(tableName, ['phone_number'], {
-      name: 'users_phone_number_unique',
-      unique: true,
-    });
+    const IDX = 'users_phone_number_unique';
+    if (!(await indexExists(queryInterface, tableName, IDX))) {
+      await queryInterface.addIndex(tableName, ['phone_number'], {
+        name: IDX,
+        unique: true,
+      });
+    }
   },
 
   async down(queryInterface) {

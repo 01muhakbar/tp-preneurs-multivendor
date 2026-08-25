@@ -189,6 +189,12 @@ function QrisPanel({ title, imageUrl, profile, emptyLabel, badgeLabel }) {
             <b>{text(profile?.merchantName)}</b>
             <span>Merchant ID</span>
             <b>{text(profile?.merchantId)}</b>
+            <span>Payout Bank</span>
+            <b>{text(profile?.bankName)}</b>
+            <span>Payout Account</span>
+            <b>{text(profile?.accountNumber)}</b>
+            <span>Account Holder</span>
+            <b>{text(profile?.accountHolderName)}</b>
             <span>Version</span>
             <b>{profile?.version ? `v${profile.version}` : "-"}</b>
           </div>
@@ -364,6 +370,9 @@ function StorePaymentCard({ entry, mutation, identityMutation, activeDraft, setA
               <SnapshotCell label="Account" value={profile?.accountName} />
               <SnapshotCell label="Merchant" value={profile?.merchantName} />
               <SnapshotCell label="Merchant ID" value={profile?.merchantId} />
+              <SnapshotCell label="Payout Bank" value={profile?.bankName} />
+              <SnapshotCell label="Payout Account" value={profile?.accountNumber} />
+              <SnapshotCell label="Account Holder" value={profile?.accountHolderName} />
               <SnapshotCell label="Version" value={profile?.version ? `v${profile.version}` : "-"} />
             </div>
             <div className="spp-note spp-note--info">Approval required</div>

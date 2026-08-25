@@ -7,6 +7,7 @@ export interface SuborderItemAttributes {
   storeId: number;
   productNameSnapshot: string;
   skuSnapshot?: string | null;
+  productTypeSnapshot?: string | null;
   variantKey?: string | null;
   variantLabel?: string | null;
   variantSelections?: any;
@@ -21,7 +22,7 @@ export interface SuborderItemAttributes {
 
 type SuborderItemCreationAttributes = Optional<
   SuborderItemAttributes,
-  "id" | "skuSnapshot" | "variantKey" | "variantLabel" | "variantSelections" | "barcodeSnapshot" | "imageSnapshot"
+  "id" | "skuSnapshot" | "productTypeSnapshot" | "variantKey" | "variantLabel" | "variantSelections" | "barcodeSnapshot" | "imageSnapshot"
 >;
 
 export class SuborderItem
@@ -34,6 +35,7 @@ export class SuborderItem
   declare storeId: number;
   declare productNameSnapshot: string;
   declare skuSnapshot?: string | null;
+  declare productTypeSnapshot?: string | null;
   declare variantKey?: string | null;
   declare variantLabel?: string | null;
   declare variantSelections?: any;
@@ -104,6 +106,11 @@ export class SuborderItem
           type: DataTypes.STRING(100),
           allowNull: true,
           field: "sku_snapshot",
+        },
+        productTypeSnapshot: {
+          type: DataTypes.STRING(30),
+          allowNull: true,
+          field: "product_type_snapshot",
         },
         variantKey: {
           type: DataTypes.STRING(255),

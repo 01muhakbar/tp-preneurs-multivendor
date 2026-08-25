@@ -21,6 +21,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import { api } from "../../api/axios.ts";
+import { sellerLogin } from "../../api/auth.service.js";
 import { useSellerAuth } from "../../auth/authDomainHooks.js";
 import { useTheme } from "../../theme/ThemeProvider.jsx";
 import useStoreBranding from "../../hooks/useStoreBranding.js";
@@ -230,11 +231,11 @@ export default function SellerLoginPage() {
     setIsSubmitting(true);
 
     try {
-      const loginResponse = await api.post("/auth/login", {
+      const loginResponse = await sellerLogin({
         email: normalizedEmail,
         password,
       });
-      const authenticatedRole = getResponseRole(loginResponse?.data);
+      const authenticatedRole = getResponseRole(loginResponse);
 
       if (ADMIN_WORKSPACE_ROLES.has(authenticatedRole)) {
         setSubmitError(
@@ -244,7 +245,7 @@ export default function SellerLoginPage() {
         return;
       }
 
-      await refreshSession();
+      await refreshSession({}, "seller");
 
       try {
         localStorage.setItem("seller_login_path", "/seller/login");

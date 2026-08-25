@@ -100,6 +100,11 @@ const normalizeProductTypeMeta = (value, fallback = "physical") => {
   return PRODUCT_TYPE_VALUES.has(normalized) ? normalized : fallback;
 };
 
+const normalizeStatusMeta = (value, fallback = "draft") => {
+  const normalized = String(value || "").trim().toLowerCase();
+  return normalized || fallback;
+};
+
 const normalizeSeoState = (value) => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return defaultSeoState;
   const keywords = Array.isArray(value.keywords)
@@ -978,13 +983,13 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
     };
   };
 
-  const saveDraftProduct = async ({ silent = false } = {}) => {
+  const saveDraftProduct = async ({ silent = false, successMessage = "Product draft saved." } = {}) => {
     if (![1, 3, 4, 5].every(validateWizardStep)) return null;
     try {
       const payload = await buildPayload();
       const saved = await saveMutation.mutateAsync({ payload, id: persistedId });
       const savedId = saved?.id || saved?.product?.id || saved?.data?.id;
-      if (!silent) setNotice({ type: "success", message: "Product draft saved." });
+      if (!silent) setNotice({ type: "success", message: successMessage });
       if (!isEdit && savedId) {
         navigate(workspaceRoutes.productEdit(savedId), { replace: true });
       }
@@ -1031,6 +1036,33 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
   };
 
   const createdProductId = getCreatedAdminProductId(createdProduct);
+  const productStatus = normalizeStatusMeta(form.status);
+  const productSubmissionStatus = normalizeStatusMeta(
+    detailQuery.data?.submission?.status ||
+      detailQuery.data?.submissionStatus ||
+      detailQuery.data?.sellerSubmissionStatus ||
+      "none",
+    "none"
+  );
+  const isDraftProduct = productStatus === "draft";
+  const usesUpdateFlow = isEdit && !isDraftProduct;
+  const isSubmittedDraft = isEdit && isDraftProduct && productSubmissionStatus === "submitted";
+  const finalEditLabel = usesUpdateFlow
+    ? "Save Changes"
+    : productSubmissionStatus === "needs_revision"
+      ? "Resubmit for Review"
+      : "Submit for Review";
+  const finalEditBusyLabel = usesUpdateFlow ? "Saving..." : "Submitting...";
+  const finalActionDisabled =
+    isSubmittedDraft || (!usesUpdateFlow && !canSubmit);
+  const finalActionDisabledReason = isSubmittedDraft
+    ? "This draft is already waiting for admin review."
+    : !usesUpdateFlow && !canSubmit
+      ? "Your account does not have permission to submit products for review."
+      : "";
+  const handleFinalAction = usesUpdateFlow
+    ? () => saveDraftProduct({ successMessage: "Product changes saved." })
+    : submitForReview;
 
   if (metaQuery.isLoading || (isEdit && detailQuery.isLoading)) {
     return <ProductEditorState type="loading" message="Fetching product authoring data." />;
@@ -1102,8 +1134,11 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
       saveDraftBusyLabel="Saving..."
       finalCreateLabel="Submit for Review"
       finalCreateBusyLabel="Submitting..."
-      finalEditLabel="Submit for Review"
-      finalEditBusyLabel="Submitting..."
+      finalEditLabel={finalEditLabel}
+      finalEditBusyLabel={finalEditBusyLabel}
+      finalActionDisabled={finalActionDisabled}
+      finalActionDisabledReason={finalActionDisabledReason}
+      reviewMode={usesUpdateFlow ? "update" : "publish"}
       successTitle="Product Submitted for Review"
       successDescription="Your product is waiting for admin approval before it can be published."
       successPrimaryLabel="View Product"
@@ -1118,7 +1153,7 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
       onNext={goToNextWizardStep}
       onPrevious={goToPreviousWizardStep}
       onSaveDraft={() => saveDraftProduct()}
-      onPublish={submitForReview}
+      onPublish={handleFinalAction}
       onViewProduct={() => {
         if (createdProductId) navigate(workspaceRoutes.productDetail(createdProductId));
       }}

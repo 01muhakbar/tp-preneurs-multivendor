@@ -10,8 +10,12 @@ import { getLatestTimelineRecord } from "../services/paymentReadModel.js";
 import { buildSellerSuborderContract } from "../services/orderLifecycleContract.service.js";
 import { buildSuborderShippingReadModel } from "../services/orderShippingReadModel.service.js";
 import { applySellerShipmentFulfillment } from "../services/shipmentMutation.service.js";
+import { buildPaymentCollectionDto } from "../services/payments/paymentCollectionDto.service.js";
 import { buildStoreShippingSetupReadiness } from "../services/sellerShippingSetup.service.js";
 import { buildSplitOperationalTruth } from "../services/splitOperationalTruth.service.js";
+import { resolveDuitkuPaymentMethodDisplay } from "../services/duitku/duitkuPaymentMethodDisplay.service.js";
+import { getProductTypeMetadata } from "../services/productTypeMetadata.js";
+import { buildWithdrawalEligibilityMeta } from "../services/withdrawals/withdrawalEligibility.service.js";
 import {
   isMultistoreShipmentMvpEnabled,
   isMultistoreShipmentMutationEnabled,
@@ -26,8 +30,12 @@ import {
 } from "../services/orderDeletion.service.js";
 import {
   Order,
+  DuitkuCallbackInbox,
+  OrderPaymentAttempt,
+  OrderPaymentAttemptEvent,
   Payment,
   PaymentProof,
+  Product,
   Shipment,
   sequelize,
   Store,
@@ -248,6 +256,80 @@ const normalizeVariantSelectionsSnapshot = (value: unknown) => {
     }
   }
   return [];
+};
+
+const getRecordTime = (row: any) =>
+  new Date(
+    getAttr(row, "lastReceivedAt") || getAttr(row, "updatedAt") || getAttr(row, "createdAt") || 0
+  ).getTime();
+
+const readAssociatedRows = (row: any, key: string) => {
+  const value = getAttr(row, key);
+  return Array.isArray(value) ? value : [];
+};
+
+const extractLatestPaymentCodeFromOrder = (order: any) => {
+  const attempts = readAssociatedRows(order, "paymentAttempts");
+  const events = attempts.flatMap((attempt: any) =>
+    readAssociatedRows(attempt, "events")
+  );
+  const latestEvent = events
+    .filter((event: any) => String(getAttr(event, "paymentCode") || "").trim())
+    .sort((left: any, right: any) => {
+      const timeDiff = getRecordTime(right) - getRecordTime(left);
+      if (timeDiff !== 0) return timeDiff;
+      return toNumber(getAttr(right, "id"), 0) - toNumber(getAttr(left, "id"), 0);
+    })[0];
+
+  return latestEvent ? String(getAttr(latestEvent, "paymentCode") || "").trim() || null : null;
+};
+
+const paymentMethodFallback = (method: unknown) => {
+  const normalized = String(method || "").trim().toUpperCase();
+  if (normalized === "DUITKU") return "Duitku POP";
+  if (normalized === "QRIS") return "Static QRIS";
+  return String(method || "").trim() || "Static QRIS";
+};
+
+const resolveSellerPaymentMethodSummary = (input: {
+  suborder: any;
+  order: any;
+  latestPayment: any;
+}) => {
+  const suborderMethod = toUpper(getAttr(input.suborder, "paymentMethod"));
+  const orderMethod = toUpper(getAttr(input.order, "paymentMethod"));
+  const paymentChannel = toUpper(getAttr(input.latestPayment, "paymentChannel"));
+  const paymentType = toUpper(getAttr(input.latestPayment, "paymentType"));
+  const hasDuitku = [suborderMethod, orderMethod, paymentChannel, paymentType].some((value) =>
+    value.includes("DUITKU")
+  );
+  const hasQris = [suborderMethod, orderMethod, paymentChannel, paymentType].some((value) =>
+    value.includes("QRIS")
+  );
+  const paymentMethod = hasDuitku
+    ? "DUITKU"
+    : hasQris
+      ? "QRIS"
+      : suborderMethod || orderMethod || paymentChannel || "QRIS";
+  const collection = buildPaymentCollectionDto({ order: input.order });
+  const paymentCode = collection.paymentCode || extractLatestPaymentCodeFromOrder(input.order);
+  const paymentMethodLabel =
+    collection.paymentMethodLabel ||
+    resolveDuitkuPaymentMethodDisplay({
+      paymentMethod,
+      paymentCode,
+      fallback: paymentMethodFallback(paymentMethod),
+    }) || paymentMethodFallback(paymentMethod);
+
+  return {
+    paymentMethod,
+    paymentMethodLabel,
+    paymentCode,
+    paymentChannel: paymentChannel || paymentMethod,
+    paymentType:
+      paymentType ||
+      (paymentMethod === "DUITKU" ? "DUITKU_POP" : paymentMethod === "QRIS" ? "QRIS_STATIC" : null),
+  };
 };
 
 const syncSellerShipmentFinancials = async (input: {
@@ -530,6 +612,199 @@ const buildShippingSummary = (order: any) => {
   };
 };
 
+const readShippingDetailsObject = (order: any) => {
+  const rawShippingDetails = getAttr(order, "shippingDetails") || null;
+  if (rawShippingDetails && typeof rawShippingDetails === "object") {
+    return rawShippingDetails as Record<string, unknown>;
+  }
+  if (typeof rawShippingDetails !== "string") return null;
+  try {
+    const parsed = JSON.parse(rawShippingDetails);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const upperText = (value: unknown, fallback = "") =>
+  String(value || fallback)
+    .trim()
+    .toUpperCase();
+
+const resolveCourierDisplay = (shipment: any) => {
+  const code = upperText(getAttr(shipment, "courierCode"));
+  const service = upperText(getAttr(shipment, "courierService"), "STANDARD");
+  const knownNames: Record<string, string> = {
+    SPX: "SPX Express",
+    SHOPEE: "SPX Express",
+    JNE: "JNE",
+    JNT: "J&T Express",
+    "J&T": "J&T Express",
+    SICEPAT: "SiCepat",
+    ANTERAJA: "Anteraja",
+    POS: "POS Indonesia",
+    TIKI: "TIKI",
+  };
+  const logoText =
+    code === "SHOPEE"
+      ? "SPX"
+      : code || service.split(/\s+/).filter(Boolean)[0] || "TP";
+
+  return {
+    code: code || null,
+    service,
+    name: knownNames[code] || service || "Courier",
+    logoText,
+    logoUrl: null,
+  };
+};
+
+const resolveLabelProductType = (item: any) => {
+  const product = item?.product ?? item?.get?.("product") ?? null;
+  return getProductTypeMetadata({
+    productType: getAttr(item, "productTypeSnapshot"),
+    product_type: getAttr(item, "product_type_snapshot"),
+    seo: getAttr(product, "seo"),
+  }).productType;
+};
+
+const buildShippingLabelItem = (item: any, index: number) => {
+  const product = item?.product ?? item?.get?.("product") ?? null;
+  const qty = toNumber(getAttr(item, "qty"), 0);
+  const productType = resolveLabelProductType(item);
+  const weight = Math.max(0, toNumber(getAttr(product, "weight"), 0));
+  return {
+    id: toNumber(getAttr(item, "id"), 0) || index + 1,
+    productId: toNumber(getAttr(item, "productId"), 0) || null,
+    productName: String(
+      getAttr(item, "productNameSnapshot") || `Product #${getAttr(item, "productId")}`
+    ),
+    sku:
+      String(getAttr(item, "skuSnapshot") || getAttr(product, "sku") || "").trim() ||
+      null,
+    barcode:
+      String(getAttr(item, "barcodeSnapshot") || getAttr(product, "barcode") || "").trim() ||
+      null,
+    variantLabel: String(getAttr(item, "variantLabel") || "").trim() || null,
+    qty,
+    productType,
+    weight,
+    lineWeight: weight * qty,
+  };
+};
+
+const buildSellerShippingLabel = (suborder: any) => {
+  const order = suborder?.order ?? suborder?.get?.("order") ?? null;
+  const store = suborder?.store ?? suborder?.get?.("store") ?? null;
+  const shipment = suborder?.shipment ?? suborder?.get?.("shipment") ?? null;
+  const storeShippingSetup = buildStoreShippingSetupReadiness(store);
+  const shippingSummary = buildShippingSummary(order);
+  const shippingDetails = readShippingDetailsObject(order);
+  const items = (Array.isArray(suborder?.items) ? suborder.items : []).map(
+    buildShippingLabelItem
+  );
+  const physicalItems = items.filter((item: any) => item.productType === "physical");
+  const hasNonPhysicalItems = items.some((item: any) => item.productType !== "physical");
+  const courier = resolveCourierDisplay(shipment);
+  const trackingNumber = String(getAttr(shipment, "trackingNumber") || "").trim();
+  const orderNumber = String(getAttr(order, "invoiceNo") || "").trim();
+  const suborderNumber = String(getAttr(suborder, "suborderNumber") || "").trim();
+  const barcodeValue = trackingNumber || suborderNumber || orderNumber;
+  const paymentMethod = upperText(getAttr(suborder, "paymentMethod") || getAttr(order, "paymentMethod"));
+  const isCod = paymentMethod === "COD" || paymentMethod === "CASH";
+  const recipientAddress = String(shippingSummary.addressLine || "").trim();
+  const senderSummary = storeShippingSetup.shippingSetupSummary || {};
+  const senderAddress = String((senderSummary as any).originAddressLine || "").trim();
+  const totalWeight = physicalItems.reduce(
+    (sum: number, item: any) => sum + item.lineWeight,
+    0
+  );
+  const canPrint =
+    physicalItems.length > 0 &&
+    Boolean(recipientAddress) &&
+    Boolean(senderAddress) &&
+    Boolean(storeShippingSetup.isShippingReady);
+  const reason =
+    physicalItems.length === 0
+      ? "Label pengiriman hanya tersedia untuk produk Physical."
+      : !recipientAddress
+        ? "Alamat penerima belum tersedia."
+        : !senderAddress || !storeShippingSetup.isShippingReady
+          ? String(storeShippingSetup.shippingSetupMeta?.message || "").trim() ||
+            "Alamat asal pengiriman toko belum lengkap."
+          : null;
+
+  return {
+    canPrint,
+    reason,
+    platform: {
+      name: "TP PRENEURS",
+      logoUrl: null,
+    },
+    courier,
+    serviceLabel: courier.service || "STANDARD",
+    order: {
+      orderId: toNumber(getAttr(order, "id"), 0) || null,
+      orderNumber,
+      suborderId: toNumber(getAttr(suborder, "id"), 0) || null,
+      suborderNumber,
+      createdAt: getAttr(suborder, "createdAt") || getAttr(order, "createdAt") || null,
+      paymentMethod,
+      paymentStatus: normalizePaymentStatus(getAttr(suborder, "paymentStatus")),
+      fulfillmentStatus: normalizeFulfillmentStatus(getAttr(suborder, "fulfillmentStatus")),
+      cod: isCod,
+      cashless: !isCod,
+    },
+    shipment: {
+      shipmentId: toNumber(getAttr(shipment, "id"), 0) || null,
+      status: upperText(getAttr(shipment, "status"), "READY_TO_FULFILL"),
+      trackingNumber: trackingNumber || null,
+      barcodeValue,
+      qrValue: [orderNumber, suborderNumber, barcodeValue].filter(Boolean).join("|"),
+      pickupCode: `TP${String(toNumber(getAttr(suborder, "id"), 0)).padStart(4, "0")}`,
+      estimatedDelivery: getAttr(shipment, "estimatedDelivery") || null,
+    },
+    recipient: {
+      name: shippingSummary.fullName,
+      phone: shippingSummary.phoneNumber,
+      address: recipientAddress,
+      markAs: shippingSummary.markAs,
+      district: shippingDetails?.district ? String(shippingDetails.district) : null,
+      city: shippingDetails?.city ? String(shippingDetails.city) : null,
+      province: shippingDetails?.province ? String(shippingDetails.province) : null,
+      postalCode: shippingDetails?.postalCode ? String(shippingDetails.postalCode) : null,
+    },
+    sender: {
+      name:
+        String((senderSummary as any).originContactName || getAttr(store, "name") || "").trim() ||
+        "Seller",
+      phone:
+        String((senderSummary as any).originPhone || getAttr(store, "phone") || getAttr(store, "whatsapp") || "").trim() ||
+        null,
+      address: senderAddress,
+      city: String(getAttr(store, "city") || "").trim() || null,
+      district: String(getAttr(store, "district") || "").trim() || null,
+      province: String(getAttr(store, "province") || "").trim() || null,
+      postalCode: String(getAttr(store, "postalCode") || "").trim() || null,
+    },
+    package: {
+      weight: totalWeight || null,
+      weightLabel: totalWeight > 0 ? `${totalWeight} gr` : "-",
+      totalPhysicalItems: physicalItems.reduce(
+        (sum: number, item: any) => sum + item.qty,
+        0
+      ),
+    },
+    items: physicalItems,
+    meta: {
+      hasPhysicalItems: physicalItems.length > 0,
+      hasNonPhysicalItems,
+      totalItems: items.length,
+      source: "SELLER_SUBORDER_SHIPPING_LABEL",
+    },
+  };
+};
+
 const countSuborderItems = (suborder: any) =>
   Array.isArray(suborder?.items)
     ? suborder.items.reduce((sum: number, item: any) => sum + toNumber(getAttr(item, "qty")), 0)
@@ -758,6 +1033,7 @@ const listInclude = [
       "whatsapp",
       "addressLine1",
       "addressLine2",
+      "district",
       "city",
       "province",
       "postalCode",
@@ -777,6 +1053,7 @@ const listInclude = [
       "customerPhone",
       "customerAddress",
       "shippingDetails",
+      "paymentMethod",
       "paymentStatus",
       "status",
       "checkoutMode",
@@ -789,6 +1066,27 @@ const listInclude = [
         attributes: ["id", "name", "email"],
         required: false,
       },
+      {
+        model: OrderPaymentAttempt,
+        as: "paymentAttempts",
+        attributes: ["id", "provider", "status", "merchantOrderId", "updatedAt"],
+        required: false,
+        separate: true,
+        include: [
+          {
+            model: DuitkuCallbackInbox,
+            as: "callbackInboxRows",
+            attributes: ["id", "paymentCodeRaw", "lastReceivedAt", "updatedAt"],
+            required: false,
+          },
+          {
+            model: OrderPaymentAttemptEvent,
+            as: "events",
+            attributes: ["id", "paymentCode", "lastReceivedAt", "updatedAt"],
+            required: false,
+          },
+        ],
+      },
     ],
   },
   {
@@ -798,6 +1096,7 @@ const listInclude = [
       "id",
       "productId",
       "productNameSnapshot",
+      "productTypeSnapshot",
       "variantKey",
       "variantLabel",
       "variantSelections",
@@ -809,6 +1108,14 @@ const listInclude = [
       "totalPrice",
     ],
     required: false,
+    include: [
+      {
+        model: Product,
+        as: "product",
+        attributes: ["id", "sku", "barcode", "weight", "length", "width", "height", "seo"],
+        required: false,
+      },
+    ],
   },
   {
     model: Payment,
@@ -947,16 +1254,63 @@ const detailInclude = [
   },
 ];
 
+let suborderItemProductTypeSnapshotSupportPromise: Promise<boolean> | null = null;
+
+const supportsSuborderItemProductTypeSnapshot = async () => {
+  if (!suborderItemProductTypeSnapshotSupportPromise) {
+    suborderItemProductTypeSnapshotSupportPromise = (async () => {
+      for (const tableName of ["suborder_items", "SuborderItems"]) {
+        try {
+          const table = await sequelize.getQueryInterface().describeTable(tableName);
+          return Boolean((table as Record<string, unknown>).product_type_snapshot);
+        } catch {
+          // try next candidate table name
+        }
+      }
+      return false;
+    })();
+  }
+  return suborderItemProductTypeSnapshotSupportPromise;
+};
+
+const filterUnsupportedSuborderItemSnapshotFields = async (include: any[]) => {
+  if (await supportsSuborderItemProductTypeSnapshot()) return include;
+  return include.map((entry) => {
+    if (entry?.as !== "items" || !Array.isArray(entry.attributes)) return entry;
+    return {
+      ...entry,
+      attributes: entry.attributes.filter(
+        (attribute: string) => attribute !== "productTypeSnapshot"
+      ),
+    };
+  });
+};
+
+const getListInclude = () => filterUnsupportedSuborderItemSnapshotFields(listInclude);
+const getDetailInclude = () => filterUnsupportedSuborderItemSnapshotFields(detailInclude);
+
 const serializeListItem = (suborder: any, sellerAccess: any = null) => {
   const order = suborder?.order ?? suborder?.get?.("order") ?? null;
   const buyer = order?.customer ?? order?.get?.("customer") ?? null;
   const payments = Array.isArray(suborder?.payments) ? suborder.payments : [];
   const latestPayment = getLatestTimelineRecord(payments);
+  const paymentMethodSummary = resolveSellerPaymentMethodSummary({
+    suborder,
+    order,
+    latestPayment,
+  });
   const paymentStatus = normalizePaymentStatus(getAttr(suborder, "paymentStatus"));
   const fulfillmentStatus = normalizeFulfillmentStatus(getAttr(suborder, "fulfillmentStatus"));
   const checkoutMode = toUpper(getAttr(order, "checkoutMode"), "LEGACY") || "LEGACY";
   const orderStatus = normalizeOrderStatus(getAttr(order, "status"));
   const parentPaymentStatus = normalizePaymentStatus(getAttr(order, "paymentStatus"));
+  const withdrawalEligibility = buildWithdrawalEligibilityMeta({
+    paymentStatus,
+    fulfillmentStatus,
+    orderStatus,
+    totalAmount: getAttr(suborder, "totalAmount"),
+    serviceFeeAmount: getAttr(suborder, "serviceFeeAmount"),
+  });
   const fulfillmentBlocker = resolveFulfillmentTransitionBlocker({
     orderStatus,
     paymentStatus,
@@ -1009,8 +1363,12 @@ const serializeListItem = (suborder: any, sellerAccess: any = null) => {
     orderNumber: String(getAttr(order, "invoiceNo") || ""),
     checkoutMode,
     checkoutModeMeta: serializeCheckoutModeMeta(checkoutMode),
+    paymentMethod: paymentMethodSummary.paymentMethod,
+    paymentMethodLabel: paymentMethodSummary.paymentMethodLabel,
+    paymentCode: paymentMethodSummary.paymentCode,
     paymentStatus,
     paymentStatusMeta: serializePaymentStatusMeta(paymentStatus),
+    withdrawalEligibility,
     fulfillmentStatus,
     fulfillmentStatusMeta: serializeFulfillmentStatusMeta(fulfillmentStatus),
     totalAmount: readModel.sellerScope.totalAmount,
@@ -1025,6 +1383,9 @@ const serializeListItem = (suborder: any, sellerAccess: any = null) => {
       statusMeta: serializeOrderStatusMeta(orderStatus),
       paymentStatus: parentPaymentStatus,
       paymentStatusMeta: serializePaymentStatusMeta(parentPaymentStatus),
+      paymentMethod: paymentMethodSummary.paymentMethod,
+      paymentMethodLabel: paymentMethodSummary.paymentMethodLabel,
+      paymentCode: paymentMethodSummary.paymentCode,
       createdAt: getAttr(order, "createdAt") || null,
     },
     scope: {
@@ -1064,6 +1425,11 @@ const serializeListItem = (suborder: any, sellerAccess: any = null) => {
       ? {
           id: toNumber(getAttr(latestPayment, "id")),
           internalReference: String(getAttr(latestPayment, "internalReference") || ""),
+          paymentMethod: paymentMethodSummary.paymentMethod,
+          paymentMethodLabel: paymentMethodSummary.paymentMethodLabel,
+          paymentCode: paymentMethodSummary.paymentCode,
+          paymentChannel: paymentMethodSummary.paymentChannel,
+          paymentType: paymentMethodSummary.paymentType,
           status: normalizePaymentRecordStatus(getAttr(latestPayment, "status")),
           statusMeta: serializePaymentRecordStatusMeta(
             normalizePaymentRecordStatus(getAttr(latestPayment, "status"))
@@ -1081,12 +1447,24 @@ const serializeDetail = (suborder: any, sellerAccess: any = null) => {
   const buyer = order?.customer ?? order?.get?.("customer") ?? null;
   const payments = Array.isArray(suborder?.payments) ? suborder.payments : [];
   const latestPayment = getLatestTimelineRecord(payments);
+  const paymentMethodSummary = resolveSellerPaymentMethodSummary({
+    suborder,
+    order,
+    latestPayment,
+  });
   const paymentProfile = suborder?.paymentProfile ?? suborder?.get?.("paymentProfile") ?? null;
   const paymentStatus = normalizePaymentStatus(getAttr(suborder, "paymentStatus"));
   const fulfillmentStatus = normalizeFulfillmentStatus(getAttr(suborder, "fulfillmentStatus"));
   const orderStatus = normalizeOrderStatus(getAttr(order, "status"));
   const parentPaymentStatus = normalizePaymentStatus(getAttr(order, "paymentStatus"));
   const checkoutMode = toUpper(getAttr(order, "checkoutMode"), "LEGACY") || "LEGACY";
+  const withdrawalEligibility = buildWithdrawalEligibilityMeta({
+    paymentStatus,
+    fulfillmentStatus,
+    orderStatus,
+    totalAmount: getAttr(suborder, "totalAmount"),
+    serviceFeeAmount: getAttr(suborder, "serviceFeeAmount"),
+  });
   const fulfillmentBlocker = resolveFulfillmentTransitionBlocker({
     orderStatus,
     paymentStatus,
@@ -1131,6 +1509,7 @@ const serializeDetail = (suborder: any, sellerAccess: any = null) => {
     shipmentReadModel: shippingReadModel,
     sellerFulfillmentActions: governance.fulfillment.availableActions,
   });
+  const shippingLabel = buildSellerShippingLabel(suborder);
 
   return {
     suborderId: toNumber(getAttr(suborder, "id")),
@@ -1143,6 +1522,9 @@ const serializeDetail = (suborder: any, sellerAccess: any = null) => {
       statusMeta: serializeOrderStatusMeta(orderStatus),
       paymentStatus: parentPaymentStatus,
       paymentStatusMeta: serializePaymentStatusMeta(parentPaymentStatus),
+      paymentMethod: paymentMethodSummary.paymentMethod,
+      paymentMethodLabel: paymentMethodSummary.paymentMethodLabel,
+      paymentCode: paymentMethodSummary.paymentCode,
       checkoutMode,
       checkoutModeMeta: serializeCheckoutModeMeta(checkoutMode),
       createdAt: getAttr(order, "createdAt") || null,
@@ -1170,6 +1552,11 @@ const serializeDetail = (suborder: any, sellerAccess: any = null) => {
     isShippingReady: storeShippingSetup.isShippingReady,
     missingShippingFields: storeShippingSetup.missingShippingFields,
     shippingSetupSummary: storeShippingSetup.shippingSetupSummary,
+    printLabel: {
+      canPrint: shippingLabel.canPrint,
+      reason: shippingLabel.reason,
+      endpoint: `/api/seller/stores/${toNumber(getAttr(suborder, "storeId"))}/suborders/${toNumber(getAttr(suborder, "id"))}/shipping-label`,
+    },
     shipmentCount: shippingReadModel.shipmentCount,
     shippingStatus: shippingReadModel.shippingStatus,
     shippingStatusMeta: shippingReadModel.shippingStatusMeta,
@@ -1189,6 +1576,10 @@ const serializeDetail = (suborder: any, sellerAccess: any = null) => {
     shipments: shippingReadModel.shipments,
     paymentStatus,
     paymentStatusMeta: serializePaymentStatusMeta(paymentStatus),
+    withdrawalEligibility,
+    paymentMethod: paymentMethodSummary.paymentMethod,
+    paymentMethodLabel: paymentMethodSummary.paymentMethodLabel,
+    paymentCode: paymentMethodSummary.paymentCode,
     fulfillmentStatus,
     fulfillmentStatusMeta: serializeFulfillmentStatusMeta(fulfillmentStatus),
     totals: {
@@ -1215,13 +1606,17 @@ const serializeDetail = (suborder: any, sellerAccess: any = null) => {
       sku: String(getAttr(item, "skuSnapshot") || "").trim() || null,
       barcode: String(getAttr(item, "barcodeSnapshot") || "").trim() || null,
       image: String(getAttr(item, "imageSnapshot") || "").trim() || null,
+      productType: resolveLabelProductType(item),
     })),
     paymentSummary: latestPayment
       ? {
           id: toNumber(getAttr(latestPayment, "id")),
           internalReference: String(getAttr(latestPayment, "internalReference") || ""),
-          paymentChannel: String(getAttr(latestPayment, "paymentChannel") || "QRIS"),
-          paymentType: String(getAttr(latestPayment, "paymentType") || "QRIS_STATIC"),
+          paymentMethod: paymentMethodSummary.paymentMethod,
+          paymentMethodLabel: paymentMethodSummary.paymentMethodLabel,
+          paymentCode: paymentMethodSummary.paymentCode,
+          paymentChannel: paymentMethodSummary.paymentChannel,
+          paymentType: paymentMethodSummary.paymentType,
           status: normalizePaymentRecordStatus(getAttr(latestPayment, "status")),
           statusMeta: serializePaymentRecordStatusMeta(
             normalizePaymentRecordStatus(getAttr(latestPayment, "status"))
@@ -1279,7 +1674,7 @@ router.get(
         ];
       }
 
-      const loadResult = () =>
+      const loadResult = async () =>
         Promise.all([
           Store.findByPk(storeId, {
             attributes: [
@@ -1291,6 +1686,7 @@ router.get(
               "whatsapp",
               "addressLine1",
               "addressLine2",
+              "district",
               "city",
               "province",
               "postalCode",
@@ -1309,12 +1705,13 @@ router.get(
               "shippingAmount",
               "serviceFeeAmount",
               "totalAmount",
+              "paymentMethod",
               "paymentStatus",
               "fulfillmentStatus",
               "paidAt",
               "createdAt",
             ],
-            include: listInclude,
+            include: await getListInclude(),
             order: [["createdAt", "DESC"]],
             limit,
             offset,
@@ -1373,6 +1770,65 @@ router.get(
 );
 
 router.get(
+  "/stores/:storeId/suborders/:suborderId/shipping-label",
+  requireSellerStoreAccess(["ORDER_VIEW"]),
+  async (req: any, res) => {
+    try {
+      const storeId = Number(req.params.storeId);
+      const suborderId = Number(req.params.suborderId);
+      if (!Number.isInteger(suborderId) || suborderId <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid suborder id.",
+        });
+      }
+
+      const suborder = await Suborder.findOne({
+        where: { id: suborderId, storeId },
+        attributes: [
+          "id",
+          "orderId",
+          "suborderNumber",
+          "storeId",
+          "storePaymentProfileId",
+          "subtotalAmount",
+          "shippingAmount",
+          "serviceFeeAmount",
+          "totalAmount",
+          "paymentMethod",
+          "paymentStatus",
+          "fulfillmentStatus",
+          "paidAt",
+          "createdAt",
+          "updatedAt",
+        ],
+        include: await getDetailInclude(),
+      });
+
+      if (!suborder) {
+        return res.status(404).json({
+          success: false,
+          message: "Suborder not found.",
+        });
+      }
+
+      const label = buildSellerShippingLabel(suborder);
+
+      return res.json({
+        success: true,
+        data: label,
+      });
+    } catch (error) {
+      console.error("[seller/orders/shipping-label] error", error);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to load seller shipping label.",
+      });
+    }
+  }
+);
+
+router.get(
   "/stores/:storeId/suborders/:suborderId",
   requireSellerStoreAccess(["ORDER_VIEW"]),
   async (req: any, res) => {
@@ -1386,7 +1842,7 @@ router.get(
         });
       }
 
-      const loadSuborder = () =>
+      const loadSuborder = async () =>
         Suborder.findOne({
           where: { id: suborderId, storeId },
           attributes: [
@@ -1404,7 +1860,7 @@ router.get(
             "paidAt",
             "createdAt",
           ],
-          include: detailInclude,
+          include: await getDetailInclude(),
         });
 
       let suborder = await loadSuborder();
@@ -1608,13 +2064,14 @@ router.patch(
           "shippingAmount",
           "serviceFeeAmount",
           "totalAmount",
+          "paymentMethod",
           "paymentStatus",
           "fulfillmentStatus",
           "paidAt",
           "createdAt",
           "updatedAt",
         ],
-        include: detailInclude,
+        include: await getDetailInclude(),
         transaction: tx,
       });
 
@@ -1778,7 +2235,7 @@ router.patch(
           "createdAt",
           "updatedAt",
         ],
-        include: detailInclude,
+        include: await getDetailInclude(),
         transaction: tx,
       });
 

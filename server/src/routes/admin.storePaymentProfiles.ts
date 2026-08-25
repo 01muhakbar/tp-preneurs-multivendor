@@ -293,6 +293,16 @@ const buildSnapshotPayloadFromRequest = async (
     accountName: String(getAttr(pendingRequest, "accountName") || ""),
     merchantName: String(getAttr(pendingRequest, "merchantName") || ""),
     merchantId: getAttr(pendingRequest, "merchantId") ? String(getAttr(pendingRequest, "merchantId")) : null,
+    bankName: getAttr(pendingRequest, "bankName") ? String(getAttr(pendingRequest, "bankName")) : null,
+    accountNumber: getAttr(pendingRequest, "accountNumber")
+      ? String(getAttr(pendingRequest, "accountNumber"))
+      : null,
+    accountHolderName: getAttr(pendingRequest, "accountHolderName")
+      ? String(getAttr(pendingRequest, "accountHolderName"))
+      : null,
+    payoutProofImageUrl: getAttr(pendingRequest, "payoutProofImageUrl")
+      ? String(getAttr(pendingRequest, "payoutProofImageUrl"))
+      : null,
     qrisImageUrl: String(getAttr(pendingRequest, "qrisImageUrl") || ""),
     qrisPayload: getAttr(pendingRequest, "qrisPayload") ? String(getAttr(pendingRequest, "qrisPayload")) : null,
     instructionText: getAttr(pendingRequest, "instructionText")

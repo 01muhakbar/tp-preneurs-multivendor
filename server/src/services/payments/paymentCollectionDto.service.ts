@@ -1,3 +1,8 @@
+import {
+  normalizeDuitkuPaymentCode,
+  resolveDuitkuPaymentMethodDisplay,
+} from "../duitku/duitkuPaymentMethodDisplay.service.js";
+
 const getAttr = (row: any, key: string) =>
   row?.getDataValue?.(key) ?? row?.get?.(key) ?? row?.dataValues?.[key];
 
@@ -21,6 +26,9 @@ const readPaymentAttempts = (order: any) =>
 const readCallbackRows = (attempt: any) =>
   asArray(attempt?.callbackInboxRows ?? attempt?.get?.("callbackInboxRows"));
 
+const readAttemptEvents = (attempt: any) =>
+  asArray(attempt?.events ?? attempt?.get?.("events"));
+
 export type PaymentCollectionDtoInput = {
   order?: any | null;
   suborders?: any[] | null;
@@ -33,7 +41,14 @@ export const buildPaymentCollectionDto = (input: PaymentCollectionDtoInput = {})
   const attempts = readPaymentAttempts(order);
   const latestAttempt = latestByDate(attempts, "updatedAt");
   const callbacks = attempts.flatMap(readCallbackRows);
+  const events = attempts.flatMap(readAttemptEvents);
   const latestCallback = latestByDate(callbacks, "updatedAt") || latestByDate(callbacks, "lastReceivedAt");
+  const latestEventWithPaymentCode =
+    latestByDate(events.filter((event: any) => getAttr(event, "paymentCode")), "lastReceivedAt") ||
+    latestByDate(events.filter((event: any) => getAttr(event, "paymentCode")), "updatedAt");
+  const paymentCode = normalizeDuitkuPaymentCode(
+    getAttr(latestEventWithPaymentCode, "paymentCode") || getAttr(latestCallback, "paymentCodeRaw")
+  );
   const callbackProcessingResult = String(getAttr(latestCallback, "processingResult") || "").toUpperCase();
   const callbackBindingState = String(getAttr(latestCallback, "bindingState") || "").toUpperCase();
   const callbackState = latestCallback
@@ -52,6 +67,12 @@ export const buildPaymentCollectionDto = (input: PaymentCollectionDtoInput = {})
     claimState: getAttr(claim, "claimState") ? String(getAttr(claim, "claimState")) : null,
     claimSource: getAttr(claim, "claimSource") ? String(getAttr(claim, "claimSource")) : null,
     attemptStatus: getAttr(latestAttempt, "status") ? String(getAttr(latestAttempt, "status")) : null,
+    paymentCode,
+    paymentMethodLabel: resolveDuitkuPaymentMethodDisplay({
+      paymentMethod: getAttr(latestAttempt, "provider") ? "DUITKU" : null,
+      paymentCode,
+      fallback: getAttr(latestAttempt, "provider") ? "Duitku POP" : undefined,
+    }),
     paymentUrl: getAttr(latestAttempt, "paymentUrl") ? String(getAttr(latestAttempt, "paymentUrl")) : null,
     callbackState,
     manualReviewReason: getAttr(latestAttempt, "manualReviewReason")

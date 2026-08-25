@@ -19,11 +19,9 @@ module.exports = {
     const paymentsExists = await tableExists(queryInterface, 'payments');
     if (!paymentsExists) return;
 
-    await queryInterface.changeColumn('payments', 'status', {
-      type: Sequelize.literal(PAYMENT_ENUM_WITH_CANCELLED),
-      allowNull: false,
-      defaultValue: 'CREATED',
-    });
+    await queryInterface.sequelize.query(
+      `ALTER TABLE payments MODIFY COLUMN status ${PAYMENT_ENUM_WITH_CANCELLED} NOT NULL DEFAULT 'CREATED'`
+    );
 
     const hasLogs = await tableExists(queryInterface, 'payment_status_logs');
     const hasSuborders = await tableExists(queryInterface, 'suborders');
@@ -103,10 +101,8 @@ module.exports = {
       WHERE status = 'CANCELLED'
     `);
 
-    await queryInterface.changeColumn('payments', 'status', {
-      type: Sequelize.literal(PAYMENT_ENUM_WITHOUT_CANCELLED),
-      allowNull: false,
-      defaultValue: 'CREATED',
-    });
+    await queryInterface.sequelize.query(
+      `ALTER TABLE payments MODIFY COLUMN status ${PAYMENT_ENUM_WITHOUT_CANCELLED} NOT NULL DEFAULT 'CREATED'`
+    );
   },
 };

@@ -7,8 +7,12 @@ import {
   Cart,
   CartItem,
   Category,
+  DuitkuCallbackInbox,
   Order,
+  OrderCollectionClaim,
   OrderItem,
+  OrderPaymentAttempt,
+  OrderPaymentAttemptEvent,
   Payment,
   PaymentProof,
   Product,
@@ -26,6 +30,17 @@ import {
   createUserOrderPlacedNotification,
 } from "../services/notification.service.js";
 import {
+  resolveDuitkuConfig,
+  buildDuitkuCreateInvoiceUrl,
+} from "../services/duitku/duitkuConfig.service.js";
+import { getPersistedStoreSettings } from "../services/storeSettings.js";
+import {
+  buildDuitkuCreateInvoiceRequest,
+  normalizeDuitkuCreateInvoiceResponse,
+} from "../services/duitku/duitkuClient.service.js";
+import { persistDuitkuCreateInvoiceAttempt } from "../services/duitku/duitkuAttemptPersistence.service.js";
+import { buildDuitkuCreateInvoiceHeaders } from "../services/duitku/duitkuSigner.service.js";
+import {
   deriveLegacyPaymentStatus,
   recalculateParentOrderPaymentStatus,
 } from "../services/orderPaymentAggregation.service.js";
@@ -35,6 +50,10 @@ import {
   buildBuyerOrderPaymentEntry,
 } from "../services/paymentCheckoutView.service.js";
 import { buildGroupedPaymentReadModel } from "../services/groupedPaymentReadModel.service.js";
+import { buildPaymentCollectionDto } from "../services/payments/paymentCollectionDto.service.js";
+import { resolveDuitkuPaymentMethodDisplay } from "../services/duitku/duitkuPaymentMethodDisplay.service.js";
+import { requireSupportedDuitkuPaymentMethodCode } from "../services/duitku/duitkuPaymentMethods.service.js";
+import { getProductTypeMetadata } from "../services/productTypeMetadata.js";
 import {
   buildAdminOrderContract,
   buildFulfillmentStatusMeta,
@@ -156,6 +175,8 @@ const createMultiStoreSchema = z.object({
     .max(20)
     .optional()
     .nullable(),
+  paymentMethod: z.enum(["DUITKU", "QRIS"]).optional().nullable(),
+  duitkuPaymentMethod: z.string().trim().max(20).optional().nullable(),
 });
 
 const SHIPPING_REQUIRED_FIELDS = [
@@ -299,6 +320,7 @@ const ORDER_ITEM_VARIANT_FIELD_COLUMN_MAP = {
 } as const;
 
 const SUBORDER_ITEM_VARIANT_FIELD_COLUMN_MAP = {
+  productTypeSnapshot: "product_type_snapshot",
   variantKey: "variant_key",
   variantLabel: "variant_label",
   variantSelections: "variant_selections",
@@ -912,6 +934,7 @@ const buildCartInclude = async (includePaymentMedia = false) => {
         "userId",
         "categoryId",
         "variations",
+        "seo",
       ],
       through: {
         attributes: [
@@ -982,6 +1005,7 @@ const loadCheckoutCartProducts = async (
           "userId",
           "categoryId",
           "variations",
+          "seo",
         ],
         required: true,
         include: [
@@ -1334,6 +1358,7 @@ const prepareCartGroups = (cartItems: any[]) => {
       cartItemId: lineSnapshot.cartItemId,
       productId,
       productName: String(getAttr(product, "name") || `Product #${productId}`),
+      productType: getProductTypeMetadata(getAttr(product, "seo")).productType,
       slug: String(getAttr(product, "slug") || ""),
       sku: lineSnapshot.sku,
       barcode: lineSnapshot.barcode,
@@ -1452,6 +1477,7 @@ const lockVisibleProductsForCheckout = async (
       "userId",
       "categoryId",
       "variations",
+      "seo",
     ],
     include: [
       {
@@ -1540,6 +1566,81 @@ const loadOrderWithSplitRelations = async (lookup: string | number, transaction?
             model: Product,
             as: "product",
             attributes: ["id", "name", "slug"],
+            required: false,
+          },
+        ],
+      },
+      {
+        model: OrderCollectionClaim,
+        as: "collectionClaim",
+        attributes: [
+          "id",
+          "orderId",
+          "rail",
+          "claimState",
+          "claimSource",
+          "orderPaymentAttemptId",
+          "claimedAt",
+          "paidAt",
+          "terminalAt",
+          "createdAt",
+          "updatedAt",
+        ],
+        required: false,
+      },
+      {
+        model: OrderPaymentAttempt,
+        as: "paymentAttempts",
+        attributes: [
+          "id",
+          "orderId",
+          "provider",
+          "status",
+          "manualReviewReason",
+          "merchantOrderId",
+          "providerReference",
+          "paymentUrl",
+          "amount",
+          "currency",
+          "expiresAt",
+          "paidAt",
+          "createdAt",
+          "updatedAt",
+        ],
+        required: false,
+        include: [
+          {
+            model: OrderPaymentAttemptEvent,
+            as: "events",
+            attributes: [
+              "id",
+              "paymentAttemptId",
+              "eventType",
+              "paymentCode",
+              "processingResult",
+              "lastReceivedAt",
+              "createdAt",
+              "updatedAt",
+            ],
+            required: false,
+          },
+          {
+            model: DuitkuCallbackInbox,
+            as: "callbackInboxRows",
+            attributes: [
+              "id",
+              "paymentAttemptId",
+              "resolvedPaymentAttemptId",
+              "merchantOrderIdRaw",
+              "providerReferenceRaw",
+              "paymentCodeRaw",
+              "amountRaw",
+              "bindingState",
+              "processingResult",
+              "lastReceivedAt",
+              "createdAt",
+              "updatedAt",
+            ],
             required: false,
           },
         ],
@@ -1735,6 +1836,17 @@ const serializeSplitOrder = (order: any) => {
     grandTotal: toNumber(getAttr(order, "totalAmount"), 0),
   };
   const orderStatus = String(getAttr(order, "status") || "pending");
+  const collection = buildPaymentCollectionDto({ order, suborders });
+  const orderPaymentMethod = getAttr(order, "paymentMethod")
+    ? String(getAttr(order, "paymentMethod"))
+    : null;
+  const orderPaymentMethodLabel =
+    collection.paymentMethodLabel ||
+    resolveDuitkuPaymentMethodDisplay({
+      paymentMethod: orderPaymentMethod,
+      paymentCode: collection.paymentCode,
+      fallback: orderPaymentMethod || undefined,
+    });
 
   if (suborders.length === 0) {
     const contract = buildAdminOrderContract({
@@ -1762,7 +1874,10 @@ const serializeSplitOrder = (order: any) => {
       checkoutMode: checkoutMode === "LEGACY" ? "LEGACY" : "SINGLE_STORE",
       paymentStatus,
       orderStatus,
-      paymentMethod: getAttr(order, "paymentMethod") ? String(getAttr(order, "paymentMethod")) : null,
+      paymentMethod: orderPaymentMethod,
+      paymentMethodLabel: orderPaymentMethodLabel,
+      paymentCode: collection.paymentCode,
+      collection,
       createdAt: getAttr(order, "createdAt") || null,
       shipmentCount: 0,
       shippingStatus: "WAITING_PAYMENT",
@@ -1797,7 +1912,10 @@ const serializeSplitOrder = (order: any) => {
           shippingAmount: 0,
           serviceFeeAmount: 0,
           totalAmount: summary.grandTotal,
-          paymentMethod: getAttr(order, "paymentMethod") ? String(getAttr(order, "paymentMethod")) : null,
+          paymentMethod: orderPaymentMethod,
+          paymentMethodLabel: orderPaymentMethodLabel,
+          paymentCode: collection.paymentCode,
+          collection,
           paymentStatus,
           fulfillmentStatus: String(getAttr(order, "status") || "pending"),
           paymentProfileStatus: "LEGACY",
@@ -1869,6 +1987,11 @@ const serializeSplitOrder = (order: any) => {
       paymentReadModel,
       shipmentReadModel: shippingSummary,
     });
+    const suborderPaymentMethod = String(getAttr(suborder, "paymentMethod") || "QRIS");
+    const suborderPaymentMethodLabel =
+      suborderPaymentMethod === "DUITKU"
+        ? orderPaymentMethodLabel || "Duitku POP"
+        : suborderPaymentMethod;
 
     return {
       suborderId: toNumber(getAttr(suborder, "id")),
@@ -1888,7 +2011,10 @@ const serializeSplitOrder = (order: any) => {
       shippingAmount: toNumber(getAttr(suborder, "shippingAmount")),
       serviceFeeAmount: toNumber(getAttr(suborder, "serviceFeeAmount")),
       totalAmount: toNumber(getAttr(suborder, "totalAmount")),
-      paymentMethod: String(getAttr(suborder, "paymentMethod") || "QRIS"),
+      paymentMethod: suborderPaymentMethod,
+      paymentMethodLabel: suborderPaymentMethodLabel,
+      paymentCode: suborderPaymentMethod === "DUITKU" ? collection.paymentCode : null,
+      collection: suborderPaymentMethod === "DUITKU" ? collection : null,
       paymentStatus: suborderPaymentStatus,
       paymentStatusMeta: buildPaymentStatusMeta(suborderPaymentStatus),
       fulfillmentStatus,
@@ -1969,6 +2095,14 @@ const serializeSplitOrder = (order: any) => {
               : null,
             paymentChannel: String(getAttr(payment, "paymentChannel") || "QRIS"),
             paymentType: String(getAttr(payment, "paymentType") || "QRIS_STATIC"),
+            paymentCode:
+              String(getAttr(payment, "paymentChannel") || "").toUpperCase() === "DUITKU"
+                ? collection.paymentCode
+                : null,
+            paymentMethodLabel:
+              String(getAttr(payment, "paymentChannel") || "").toUpperCase() === "DUITKU"
+                ? orderPaymentMethodLabel || "Duitku POP"
+                : String(getAttr(payment, "paymentChannel") || "QRIS"),
             amount: toNumber(getAttr(payment, "amount")),
             qrImageUrl: getAttr(payment, "qrImageUrl")
               ? String(getAttr(payment, "qrImageUrl"))
@@ -2035,7 +2169,10 @@ const serializeSplitOrder = (order: any) => {
     paymentStatus,
     paymentStatusMeta: buildPaymentStatusMeta(paymentStatus),
     orderStatus,
-    paymentMethod: getAttr(order, "paymentMethod") ? String(getAttr(order, "paymentMethod")) : null,
+    paymentMethod: orderPaymentMethod,
+    paymentMethodLabel: orderPaymentMethodLabel,
+    paymentCode: collection.paymentCode,
+    collection,
     createdAt: getAttr(order, "createdAt") || null,
     shipmentCount: shippingReadModel.shipmentCount,
     shippingStatus: shippingReadModel.shippingStatus,
@@ -2165,6 +2302,22 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
     const authUser = getAuthUser(req);
     if (!authUser.id) {
       return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const isDuitkuRequested = parsed.data.paymentMethod === "DUITKU";
+    let duitkuPaymentMethod: string | null = null;
+    let duitkuConfig: any = null;
+    if (isDuitkuRequested) {
+      duitkuPaymentMethod = requireSupportedDuitkuPaymentMethodCode(parsed.data.duitkuPaymentMethod);
+      const dbSettings = await getPersistedStoreSettings();
+      duitkuConfig = resolveDuitkuConfig(process.env, dbSettings);
+      if (!duitkuConfig.enabled) {
+        return res.status(400).json({
+          success: false,
+          message: "Duitku payment is currently disabled.",
+          code: "DUITKU_DISABLED",
+        });
+      }
     }
 
     const resolvedCheckoutRequestKey = resolveCheckoutRequestKey(
@@ -2505,7 +2658,7 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
           customerPhone: resolvedCustomer.phone,
           customerAddress: resolvedCustomer.address,
           customerNotes: resolvedCustomer.notes,
-          paymentMethod: "QRIS",
+          paymentMethod: isDuitkuRequested ? "DUITKU" : "QRIS",
           totalAmount: discountedGrandTotal,
           couponCode:
             appliedCouponQuote?.code ||
@@ -2517,6 +2670,20 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
         } as any,
         { transaction: tx }
       );
+
+      // Phase 1: create collection claim for legacy QRIS fallback compatibility
+      const OrderCollectionClaim = (parentOrder as any).sequelize.models.OrderCollectionClaim;
+      if (OrderCollectionClaim) {
+        await OrderCollectionClaim.create(
+          {
+            orderId: parentOrder.id,
+            rail: isDuitkuRequested ? "DUITKU_POP" : "QRIS_STATIC",
+            claimState: "CLAIMED",
+            claimSource: isDuitkuRequested ? "DUITKU_CREATE_INVOICE" : "QRIS_FALLBACK",
+          },
+          { transaction: tx }
+        );
+      }
 
       const supportedOrderItemVariantFields = await getOrderItemSupportedVariantFields();
       const supportedSuborderItemVariantFields = await getSuborderItemSupportedVariantFields();
@@ -2581,7 +2748,7 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
             shippingAmount: group.shippingAmount,
             serviceFeeAmount: 0,
             totalAmount: discountedGroupTotal,
-            paymentMethod: "QRIS",
+            paymentMethod: isDuitkuRequested ? "DUITKU" : "QRIS",
             paymentStatus: "UNPAID",
             fulfillmentStatus: "UNFULFILLED",
             expiresAt,
@@ -2605,6 +2772,7 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
                 variantKey: item.variantKey,
                 variantLabel: item.variantLabel,
                 variantSelections: item.variantSelections ?? [],
+                productTypeSnapshot: item.productType,
                 barcodeSnapshot: item.barcode,
                 imageSnapshot: item.image,
               },
@@ -2628,8 +2796,8 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
             suborderId: suborder.id,
             storeId: group.storeId,
             storePaymentProfileId: paymentProfile?.id ? Number(paymentProfile.id) : null,
-            paymentChannel: "QRIS",
-            paymentType: "QRIS_STATIC",
+            paymentChannel: isDuitkuRequested ? "DUITKU" : "QRIS",
+            paymentType: isDuitkuRequested ? "DUITKU_POP" : "QRIS_STATIC",
             internalReference: buildInternalPaymentReference(suborderNumber),
             amount: discountedGroupTotal,
             qrImageUrl: String(paymentProfile?.qrisImageUrl || ""),
@@ -2715,6 +2883,80 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
 
       await recalculateParentOrderPaymentStatus(Number(parentOrder.id), tx);
       await tx.commit();
+      
+      let paymentUrl: string | null = null;
+      if (isDuitkuRequested && duitkuConfig) {
+        try {
+          const requestBody = buildDuitkuCreateInvoiceRequest({
+            paymentAmount: Math.floor(discountedGrandTotal),
+            merchantOrderId: invoiceNo,
+            productDetails: `Payment for Order ${invoiceNo}`,
+            email: "customer@tp-preneurs.com",
+            customerVaName: String(resolvedCustomer.name || "Customer").slice(0, 20),
+            phoneNumber: resolvedCustomer.phone || undefined,
+            paymentMethod: duitkuPaymentMethod || undefined,
+            itemDetails: prepared.groups.flatMap((g: any) => g.items.map((item: any) => ({
+               name: String(item.productName || item.product?.title || "Item").slice(0, 50),
+               price: Math.floor(item.price),
+               quantity: item.qty
+            })))
+          }, {
+            callbackUrl: duitkuConfig.callbackUrl,
+            returnUrl: duitkuConfig.returnUrl
+          });
+          
+          const url = buildDuitkuCreateInvoiceUrl(duitkuConfig);
+          const headers = buildDuitkuCreateInvoiceHeaders({
+            merchantCode: duitkuConfig.merchantCode,
+            apiKey: duitkuConfig.apiKey,
+            timestamp: Date.now()
+          });
+          
+          const response = await fetch(url, {
+            method: "POST",
+            headers: {
+              ...headers,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(requestBody)
+          });
+          
+          const rawResponse = await response.json() as any;
+          const normalized = normalizeDuitkuCreateInvoiceResponse(rawResponse);
+          
+          const persistedAttempt = await persistDuitkuCreateInvoiceAttempt({
+            orderId: parentOrder.id,
+            request: requestBody,
+            response: normalized,
+            merchantOrderId: requestBody.merchantOrderId,
+            idempotencyKey: idempotentInvoiceNo || invoiceNo,
+            createdByUserId: authUser.id
+          });
+          const persistedAttemptId = Number((persistedAttempt.attempt as any)?.id || 0);
+          if (persistedAttemptId > 0) {
+            const OrderCollectionClaim = (parentOrder as any).sequelize.models.OrderCollectionClaim;
+            if (OrderCollectionClaim) {
+              await OrderCollectionClaim.update(
+                { orderPaymentAttemptId: persistedAttemptId },
+                {
+                  where: {
+                    orderId: parentOrder.id,
+                    rail: "DUITKU_POP",
+                    claimState: "CLAIMED",
+                  },
+                }
+              );
+            }
+          }
+          
+          if (normalized.ok && normalized.paymentUrl) {
+            paymentUrl = normalized.paymentUrl;
+          }
+        } catch (duitkuError: any) {
+           console.error("[checkout/create-multi-store] Duitku Create Invoice failed:", duitkuError);
+        }
+      }
+
       logOperationalAuditEvent("checkout.create.committed", {
         traceId,
         userId: authUser.id,
@@ -2771,9 +3013,12 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
       return res.status(201).json({
         success: true,
         data: createdOrder
-          ? idempotentInvoiceNo
-            ? serializeIdempotentCheckoutOrder(createdOrder, false)
-            : serializeSplitOrder(createdOrder)
+          ? {
+              ...(idempotentInvoiceNo
+                ? serializeIdempotentCheckoutOrder(createdOrder, false)
+                : serializeSplitOrder(createdOrder)),
+              paymentUrl,
+            }
           : {
               orderId: parentOrder.id,
               ref: invoiceNo,
@@ -2781,7 +3026,8 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
               checkoutMode: prepared.checkoutMode,
               paymentStatus: "UNPAID",
               orderStatus: "pending",
-              paymentMethod: "QRIS",
+              paymentMethod: isDuitkuRequested ? "DUITKU" : "QRIS",
+              paymentUrl,
               ...(idempotentInvoiceNo
                 ? {
                     idempotency: {

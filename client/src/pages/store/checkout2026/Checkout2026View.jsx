@@ -62,6 +62,35 @@ function SectionHeader({ number, title, subtitle, icon: Icon }) {
   );
 }
 
+const DUITKU_CHANNEL_BRANDS = {
+  BC: { mark: "BCA", tone: "bca" },
+  I1: { mark: "BNI", tone: "bni" },
+  BR: { mark: "BRI", tone: "bri" },
+  M2: { mark: "MDR", tone: "mandiri" },
+  BT: { mark: "PRM", tone: "permata" },
+  B1: { mark: "CIMB", tone: "cimb" },
+  BV: { mark: "BSI", tone: "bsi" },
+  DA: { mark: "DANA", tone: "dana" },
+  OV: { mark: "OVO", tone: "ovo" },
+  IR: { mark: "IDM", tone: "indomaret" },
+  FT: { mark: "RET", tone: "retail" },
+  SP: { mark: "SPay", tone: "qris" },
+  NQ: { mark: "NOBU", tone: "qris" },
+  GQ: { mark: "GV", tone: "qris" },
+};
+
+function DuitkuChannelMark({ method }) {
+  const brand = DUITKU_CHANNEL_BRANDS[method?.code] || {
+    mark: method?.code || "PAY",
+    tone: "default",
+  };
+  return (
+    <span className={`co26-duitku-mark co26-duitku-mark--${brand.tone}`} aria-hidden="true">
+      {brand.mark}
+    </span>
+  );
+}
+
 function QuantityControl({ item, disabled, onDecrease, onIncrease }) {
   return (
     <div className="co26-qty" aria-label={`Quantity for ${item.name}`}>
@@ -260,8 +289,82 @@ export default function Checkout2026View({
 
             <section className="co26-card co26-payment-card" data-testid="checkout-payment-methods">
               <SectionHeader number="04" title={t("checkout.paymentAfterOrder")} subtitle={t("checkout.paymentOptionsSubtitle")} icon={CreditCard} />
-              <div className={viewModel.paymentReady ? "co26-payment-state is-ready" : "co26-payment-state"}><span>{viewModel.paymentReady ? <PackageCheck /> : <LockKeyhole />}</span><strong>{viewModel.paymentReady ? t("checkout.paymentReadyStatus") : t("checkout.paymentUnavailableStatus")}</strong><p>{viewModel.paymentReady ? t("checkout.paymentReadyDesc") : t("checkout.paymentUnavailableDesc")}</p>{!viewModel.paymentReady ? <small>{t("checkout.paymentNote")}</small> : null}</div>
-              <p className="co26-info-strip"><Info /> {t("checkout.noPaymentRequired")}</p>
+              {viewModel.paymentReady ? (
+                <div className="co26-payment-options-list">
+                  {form.paymentOptions?.map((option) => {
+                    const isSelected = form.paymentOptionId === option.id;
+                    return (
+                      <label
+                        key={option.id}
+                        className={`co26-payment-radio ${isSelected ? "is-selected" : ""}`}
+                      >
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value={option.id}
+                          checked={isSelected}
+                          onChange={() => form.setPaymentOptionId(option.id)}
+                          disabled={busy}
+                        />
+                        <span className="co26-payment-radio__check" aria-hidden="true" />
+                        {option.Icon ? <span className="co26-payment-radio__icon"><option.Icon aria-hidden="true" /></span> : null}
+                        <span className="co26-payment-radio__copy">
+                          <strong>{option.title}</strong>
+                          {option.id === "duitku" ? <small>Direct to selected bank, wallet, retail, or QRIS channel.</small> : null}
+                        </span>
+                      </label>
+                    );
+                  })}
+                  {form.paymentOptionId === "duitku" && Array.isArray(form.duitkuPaymentMethods) ? (
+                    <div className="co26-duitku-channel-panel">
+                      <div className="co26-duitku-panel-head">
+                        <div>
+                          <strong>Choose Duitku Channel</strong>
+                        </div>
+                        <span>POP</span>
+                      </div>
+                      <div className="co26-duitku-groups">
+                        {[...new Set(form.duitkuPaymentMethods.map((method) => method.category))].map((category) => (
+                          <div className="co26-duitku-group" key={category}>
+                            <p>{category}</p>
+                            <div className="co26-duitku-channel-grid">
+                              {form.duitkuPaymentMethods
+                                .filter((method) => method.category === category)
+                                .map((method) => {
+                                  const selected = form.duitkuPaymentMethod === method.code;
+                                  return (
+                                    <button
+                                      key={method.code}
+                                      type="button"
+                                      onClick={() => form.setDuitkuPaymentMethod(method.code)}
+                                      disabled={busy}
+                                      aria-pressed={selected}
+                                      className={`co26-duitku-channel ${selected ? "is-selected" : ""}`}
+                                    >
+                                      <DuitkuChannelMark method={method} />
+                                      <span>
+                                        <strong>{method.label}</strong>
+                                        <small>{method.code}</small>
+                                      </span>
+                                      <i aria-hidden="true" />
+                                    </button>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="co26-payment-state">
+                  <span><LockKeyhole /></span>
+                  <strong>{t("checkout.paymentUnavailableStatus")}</strong>
+                  <p>{t("checkout.paymentUnavailableDesc")}</p>
+                  <small>{t("checkout.paymentNote")}</small>
+                </div>
+              )}
               <button type="button" className="co26-secondary-button" onClick={onBackToCart}><ArrowLeft /> {t("checkout.backToCart")}</button>
             </section>
           </div>

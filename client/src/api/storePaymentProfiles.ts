@@ -95,6 +95,10 @@ const normalizeSnapshot = (value: unknown) => {
     accountName: textOrNull(snapshot.accountName || snapshot.account),
     merchantName: textOrNull(snapshot.merchantName || snapshot.merchant),
     merchantId: textOrNull(snapshot.merchantId),
+    bankName: textOrNull(snapshot.bankName),
+    accountNumber: textOrNull(snapshot.accountNumber),
+    accountHolderName: textOrNull(snapshot.accountHolderName),
+    payoutProofImageUrl: textOrNull(snapshot.payoutProofImageUrl),
     qrisImageUrl: qrisImage(snapshot),
     qrisPayload: textOrNull(snapshot.qrisPayload),
     instructionText: textOrNull(snapshot.instructionText),
@@ -141,6 +145,13 @@ const normalizePendingRequest = (value: unknown, snapshotValue: unknown) => {
     accountName: textOrFallback(request.accountName, textOrFallback(snapshot.accountName)),
     merchantName: textOrFallback(request.merchantName, textOrFallback(snapshot.merchantName)),
     merchantId: textOrNull(request.merchantId),
+    bankName: textOrFallback(request.bankName, textOrFallback(snapshot.bankName)),
+    accountNumber: textOrFallback(request.accountNumber, textOrFallback(snapshot.accountNumber)),
+    accountHolderName: textOrFallback(
+      request.accountHolderName,
+      textOrFallback(snapshot.accountHolderName)
+    ),
+    payoutProofImageUrl: textOrNull(request.payoutProofImageUrl || snapshot.payoutProofImageUrl),
     qrisImageUrl: qrisImage(request),
     qrisPayload: textOrNull(request.qrisPayload),
     instructionText: textOrNull(request.instructionText),
@@ -383,4 +394,3 @@ export const updateAdminStoreIdentity = async (
   const { data } = await api.patch(`/admin/stores/${storeId}/identity`, payload);
   return normalizeAdminStorePaymentProfile(data?.data ?? null);
 };
-

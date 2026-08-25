@@ -10,6 +10,7 @@ export interface DuitkuCallbackInboxAttributes {
   merchantCodeRaw: string;
   merchantOrderIdRaw: string;
   providerReferenceRaw?: string | null;
+  paymentCodeRaw?: string | null;
   amountRaw: string;
   resultCodeRaw: string;
   signatureState: "VALID";
@@ -34,6 +35,7 @@ type DuitkuCallbackInboxCreationAttributes = Optional<
   | "paymentAttemptId"
   | "resolvedPaymentAttemptId"
   | "providerReferenceRaw"
+  | "paymentCodeRaw"
   | "signatureState"
   | "bindingState"
   | "processingResult"
@@ -54,6 +56,7 @@ export class DuitkuCallbackInbox
   declare merchantCodeRaw: string;
   declare merchantOrderIdRaw: string;
   declare providerReferenceRaw?: string | null;
+  declare paymentCodeRaw?: string | null;
   declare amountRaw: string;
   declare resultCodeRaw: string;
   declare signatureState: "VALID";
@@ -126,6 +129,11 @@ export class DuitkuCallbackInbox
           type: DataTypes.STRING(192),
           allowNull: true,
           field: "provider_reference_raw",
+        },
+        paymentCodeRaw: {
+          type: DataTypes.STRING(40),
+          allowNull: true,
+          field: "payment_code_raw",
         },
         amountRaw: {
           type: DataTypes.STRING(64),

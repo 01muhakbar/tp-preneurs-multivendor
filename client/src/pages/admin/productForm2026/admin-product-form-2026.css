@@ -832,6 +832,16 @@
 .apf26-review-row strong {
   color: var(--apf26-text);
   text-align: right;
+  max-width: 62%;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+
+.apf26-review-row.is-multiline strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .apf26-review-images {
@@ -870,6 +880,24 @@
   border-radius: 50%;
   background: #4fc37f;
   color: #fff;
+}
+
+.apf26-check.is-warning .apf26-check__icon {
+  background: #f59e0b;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.apf26-chip.is-info {
+  border-color: rgba(14, 107, 168, 0.22);
+  background: #eff6ff;
+  color: #075985;
+}
+
+.apf26-chip.is-warning {
+  border-color: rgba(245, 158, 11, 0.28);
+  background: #fffbeb;
+  color: #92400e;
 }
 
 .apf26-actions {

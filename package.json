@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "description": "",
-  "packageManager": "pnpm@11.0.9",
+  "packageManager": "pnpm@11.24.0",
   "engines": {
     "node": ">=22.13.0 <25",
     "pnpm": ">=11.0.0 <12"
@@ -13,7 +13,7 @@
     "client",
     "packages/*"
   ],
-  "main": "index.js",
+  "main": "server/dist/server.js",
   "type": "module",
   "scripts": {
     "build": "pnpm -F server build && pnpm -F client build",

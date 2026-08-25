@@ -53,6 +53,7 @@ export const storeValidDuitkuCallback = async (
     merchantCodeRaw: truncate(parsed.fields.merchantCode, 64)!,
     merchantOrderIdRaw: truncate(parsed.fields.merchantOrderId, 128)!,
     providerReferenceRaw: truncate(parsed.fields.reference, 192),
+    paymentCodeRaw: truncate(parsed.fields.paymentCode, 40),
     amountRaw: truncate(parsed.fields.amount, 64)!,
     resultCodeRaw: truncate(parsed.fields.resultCode, 40)!,
     signatureState: "VALID",

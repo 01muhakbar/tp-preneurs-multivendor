@@ -206,7 +206,7 @@ const normalizeOrder = (value) => {
     0
   );
   const totalAmount = asNumber(order.totalAmount ?? order.total, 0);
-  const paymentMethod = text(order.paymentMethod || order.method, "-");
+  const paymentMethod = text(order.paymentMethodLabel || order.paymentMethod || order.method, "-");
 
   return {
     id,

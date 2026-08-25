@@ -302,7 +302,13 @@ export default function SellerOrderDetailDrawer2026({
             </div>
 
             <footer className="tpsodd2026-footer">
-              <button type="button" className="tpsodd2026-btn-outline" onClick={onPrintLabel} disabled={isUpdating}>
+              <button
+                type="button"
+                className="tpsodd2026-btn-outline"
+                onClick={onPrintLabel}
+                disabled={isUpdating || !order.canPrintLabel}
+                title={order.printLabelReason}
+              >
                 <Printer size={16} /> Print Label
               </button>
               <button type="button" className="tpsodd2026-btn-outline" onClick={() => onMessageBuyer(order.customer)} disabled={!order.canMessageBuyer || isUpdating} title={order.canMessageBuyer ? "" : "Buyer contact info unavailable"}>

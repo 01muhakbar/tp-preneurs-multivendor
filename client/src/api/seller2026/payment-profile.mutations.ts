@@ -5,6 +5,10 @@ export type Seller2026PaymentProfileRequestPayload = {
   accountName?: string | null;
   merchantName?: string | null;
   merchantId?: string | null;
+  bankName?: string | null;
+  accountNumber?: string | null;
+  accountHolderName?: string | null;
+  payoutProofImageUrl?: string | null;
   qrisImageUrl?: string | null;
   qrisPayload?: string | null;
   instructionText?: string | null;
@@ -23,6 +27,10 @@ export function buildSeller2026PaymentProfileRequestPayload(
     accountName: textOrNull(payload.accountName),
     merchantName: textOrNull(payload.merchantName),
     merchantId: textOrNull(payload.merchantId),
+    bankName: textOrNull(payload.bankName),
+    accountNumber: textOrNull(payload.accountNumber),
+    accountHolderName: textOrNull(payload.accountHolderName),
+    payoutProofImageUrl: textOrNull(payload.payoutProofImageUrl),
     qrisImageUrl: textOrNull(payload.qrisImageUrl),
     qrisPayload: textOrNull(payload.qrisPayload),
     instructionText: textOrNull(payload.instructionText),

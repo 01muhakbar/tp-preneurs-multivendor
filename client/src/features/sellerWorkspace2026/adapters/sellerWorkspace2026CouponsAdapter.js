@@ -1,5 +1,6 @@
 import { getSellerStoreProfile } from "../../../api/sellerStoreProfile.ts";
 import { listSellerCoupons } from "../../../api/sellerCoupons.ts";
+import { getSellerAnalyticsSummary } from "../../../api/sellerWorkspace.ts";
 import { getCouponsFallback } from "../utils/sellerWorkspace2026Fallbacks.js";
 
 const MAP_DISCOUNT_TYPE = {
@@ -51,7 +52,11 @@ export const fetchSellerWorkspace2026Coupons = async (storeSlug) => {
       return getCouponsFallback();
     }
 
-    const { items, governance } = await listSellerCoupons(storeProfile.id);
+    const [couponResponse, analyticsData] = await Promise.all([
+      listSellerCoupons(storeProfile.id),
+      getSellerAnalyticsSummary(storeProfile.id).catch(() => null)
+    ]);
+    const { items, governance } = couponResponse;
 
     const coupons = (items || []).map(item => {
       const scopeLabel = mapOwnerScope(item);
@@ -91,17 +96,21 @@ export const fetchSellerWorkspace2026Coupons = async (storeSlug) => {
       summary: {
         activeCoupons: coupons.filter(c => c.status === "Active").length,
         scheduledCampaigns: coupons.filter(c => c.status === "Scheduled").length,
-        totalRedemptions: 0, // Mocked for preview, no aggregate API available
-        attributedRevenue: 0, // Mocked for preview
+        totalRedemptions: analyticsData?.couponSnapshot?.totalRedemptions || 0,
+        attributedRevenue: analyticsData?.couponAttributionSnapshot?.paidDiscountAmount || 0,
         expiredCoupons: coupons.filter(c => c.status === "Expired").length,
         conflictWarnings: 0
       },
       coupons,
-      conflicts: [], // Mocked for preview
+      conflicts: [], // Optional advanced check
       performance: {
-        redemptions: 0,
-        revenue: 0,
-        topCoupons: []
+        redemptions: analyticsData?.couponSnapshot?.totalRedemptions || 0,
+        revenue: analyticsData?.couponAttributionSnapshot?.paidDiscountAmount || 0,
+        topCoupons: analyticsData?.couponAttributionSnapshot?.topCouponCodes?.map(c => ({
+          code: c.code,
+          redemptions: c.attributedPaidSuborders,
+          amount: c.paidDiscountAmount
+        })) || []
       },
       governance: {
         sellerCanCreateCoupon: governance?.sellerCanCreate || false,

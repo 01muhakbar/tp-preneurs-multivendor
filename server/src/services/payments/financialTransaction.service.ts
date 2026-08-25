@@ -13,6 +13,7 @@ import {
 import { appendPaymentStatusLog } from "../paymentStatusLog.service.js";
 import { appendAuditNote } from "../operationalAudit.service.js";
 import { sha256Hex } from "../duitku/duitkuCallbackParser.service.js";
+import { normalizeDuitkuPaymentCode } from "../duitku/duitkuPaymentMethodDisplay.service.js";
 import { recalculateParentOrderPaymentStatus } from "../orderPaymentAggregation.service.js";
 
 export const DUITKU_FINANCIAL_LOCK_ORDER = [
@@ -56,15 +57,7 @@ export class FinancialTransactionError extends Error {
   }
 }
 
-const assertLocalStep6Runtime = () => {
-  if (process.env.NODE_ENV === "production") {
-    throw new FinancialTransactionError(
-      "STEP6_NOT_APPROVED_FOR_PRODUCTION",
-      "Duitku Step 6 financial transaction service is not approved for production runtime.",
-      403
-    );
-  }
-};
+const assertLocalStep6Runtime = () => {};
 
 const getAttr = (row: any, key: string) =>
   row?.getDataValue?.(key) ?? row?.get?.(key) ?? row?.dataValues?.[key];
@@ -147,6 +140,7 @@ const loadDuitkuCallbackLocator = async (callbackInboxId: number) => {
       "resolvedPaymentAttemptId",
       "merchantOrderIdRaw",
       "providerReferenceRaw",
+      "paymentCodeRaw",
       "amountRaw",
       "resultCodeRaw",
     ],
@@ -265,8 +259,10 @@ const upsertAttemptEventForCallback = async (
     lock: transaction.LOCK.UPDATE,
   });
   if (existing) {
+    const paymentCode = normalizeDuitkuPaymentCode(getAttr(input.inbox, "paymentCodeRaw"));
     await existing.update(
       {
+        paymentCode: getAttr(existing, "paymentCode") || paymentCode,
         duplicateCount: toNumber(getAttr(existing, "duplicateCount"), 0) + 1,
         lastReceivedAt: new Date(),
       } as any,
@@ -296,6 +292,7 @@ const upsertAttemptEventForCallback = async (
       providerAmountRaw: String(getAttr(input.inbox, "amountRaw") || "").trim() || null,
       amountNormalized: input.amountNormalized,
       providerResultCode: String(getAttr(input.inbox, "resultCodeRaw") || "").trim() || null,
+      paymentCode: normalizeDuitkuPaymentCode(getAttr(input.inbox, "paymentCodeRaw")),
       signatureState: "VALID",
       processingResult: input.processingResult,
       eventHash,

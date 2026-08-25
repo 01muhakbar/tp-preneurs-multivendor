@@ -1,7 +1,7 @@
 import { getSellerStoreProfile } from "../../../api/sellerStoreProfile.ts";
 import { getSellerPaymentReviewSuborders } from "../../../api/sellerPayments.ts";
 import { getSellerPaymentProfile } from "../../../api/sellerPaymentProfile.ts";
-import { getSellerWorkspaceContextBySlug } from "../../../api/sellerWorkspace.ts";
+import { getSellerWorkspaceContextBySlug, getSellerFinanceSummary } from "../../../api/sellerWorkspace.ts";
 import { getPaymentCenterFallback } from "../utils/sellerWorkspace2026Fallbacks.js";
 
 const MAP_REVIEW_STATUS = {
@@ -30,6 +30,12 @@ const MAP_PROFILE_STATUS = {
 const mapReviewStatus = (raw) => MAP_REVIEW_STATUS[raw?.toLowerCase()] || "Unknown";
 const mapProfileStatus = (raw) => MAP_PROFILE_STATUS[raw?.toLowerCase()] || "Unknown";
 const hasValidStoreSlug = (storeSlug) => Boolean(String(storeSlug || "").trim());
+const maskAccountNumber = (value) => {
+  const normalized = String(value || "").replace(/\s+/g, "");
+  if (!normalized) return null;
+  if (normalized.length <= 4) return normalized;
+  return `${"*".repeat(Math.max(0, normalized.length - 4))}${normalized.slice(-4)}`;
+};
 
 const getUnavailablePaymentCenterFallback = () => {
   const fallback = getPaymentCenterFallback();
@@ -38,6 +44,8 @@ const getUnavailablePaymentCenterFallback = () => {
     ...fallback.summary,
     pendingReviews: 0,
     verifiedPayments: 0,
+    awaitingDeliveredPayments: 0,
+    withdrawalEligiblePayments: 0,
     rejectedPayments: 0,
     payoutReadiness: "Unavailable",
     estimatedPayoutAmount: 0,
@@ -59,14 +67,15 @@ export const fetchSellerWorkspace2026PaymentCenter = async (storeSlug) => {
       return getUnavailablePaymentCenterFallback();
     }
 
-    const storeProfile = await getSellerStoreProfile(storeId);
+    const storeProfile = await getSellerStoreProfile(storeId).catch(() => null);
     if (!storeProfile) {
       return getUnavailablePaymentCenterFallback();
     }
 
-    const [reviewsData, profileData] = await Promise.all([
+    const [reviewsData, profileData, financeSummary] = await Promise.all([
       getSellerPaymentReviewSuborders(storeProfile.id, "PENDING_CONFIRMATION"),
-      getSellerPaymentProfile(storeProfile.id).catch(() => null)
+      getSellerPaymentProfile(storeProfile.id).catch(() => null),
+      getSellerFinanceSummary(storeProfile.id).catch(() => null)
     ]);
 
     const paymentReviews = (reviewsData?.items || []).map(item => ({
@@ -85,15 +94,30 @@ export const fetchSellerWorkspace2026PaymentCenter = async (storeSlug) => {
       allowedActions: item.payment?.reviewActionability?.canReview ? ["APPROVE", "REJECT"] : []
     }));
 
+    const activeSnapshot = profileData?.activeSnapshot || null;
+    const payoutDestination = activeSnapshot
+      ? {
+          bankName: activeSnapshot.bankName || null,
+          accountNumber: activeSnapshot.accountNumber || null,
+          accountNumberMasked: maskAccountNumber(activeSnapshot.accountNumber),
+          accountHolderName: activeSnapshot.accountHolderName || activeSnapshot.accountName || null,
+          label:
+            activeSnapshot.bankName && activeSnapshot.accountNumber
+              ? `${activeSnapshot.bankName} - ${maskAccountNumber(activeSnapshot.accountNumber)}`
+              : null,
+        }
+      : null;
+
     const payoutProfile = profileData ? {
       status: mapProfileStatus(profileData.requestStatus?.code || profileData.activeSnapshot?.snapshotStatus),
       readiness: profileData.readModel?.completeness?.allRequiredPresent ? "Ready" : "Missing Information",
-      bankAccounts: profileData.activeSnapshot?.accountName ? [{
-        name: profileData.activeSnapshot.accountName,
-        bank: "Bank",
-        accountNumber: "Hidden"
+      bankAccounts: payoutDestination?.bankName ? [{
+        name: payoutDestination.accountHolderName,
+        bank: payoutDestination.bankName,
+        accountNumber: payoutDestination.accountNumberMasked || "Hidden"
       }] : [],
-      primaryBank: profileData.activeSnapshot?.accountName || null,
+      primaryBank: payoutDestination?.label || null,
+      destination: payoutDestination,
       taxInfo: null,
       documents: [],
       payoutSchedule: "Weekly",
@@ -105,6 +129,7 @@ export const fetchSellerWorkspace2026PaymentCenter = async (storeSlug) => {
       readiness: "Unknown",
       bankAccounts: [],
       primaryBank: null,
+      destination: null,
       taxInfo: null,
       documents: [],
       payoutSchedule: "Weekly",
@@ -122,11 +147,16 @@ export const fetchSellerWorkspace2026PaymentCenter = async (storeSlug) => {
       },
       summary: {
         pendingReviews: paymentReviews.filter(r => r.status === "Pending Review").length,
-        verifiedPayments: 0, // Since we only fetched 'pending', this would require another call or aggregated data. Set to 0 for preview.
-        rejectedPayments: 0,
+        verifiedPayments: financeSummary?.suborderPaymentSummary?.paidCount || 0,
+        awaitingDeliveredPayments:
+          financeSummary?.eligiblePaidSubordersSummary?.waitingDeliveryCount ||
+          (financeSummary?.eligiblePaidSubordersSummary?.awaitingFulfillmentCount || 0) +
+            (financeSummary?.eligiblePaidSubordersSummary?.inProgressCount || 0),
+        withdrawalEligiblePayments: financeSummary?.eligiblePaidSubordersSummary?.deliveredCount || 0,
+        rejectedPayments: financeSummary?.paymentReviewCounts?.rejected || 0,
         payoutReadiness: payoutProfile.readiness,
-        nextPayoutDate: "2026-06-10T00:00:00Z", // Mocked for preview
-        estimatedPayoutAmount: 0 // Mocked for preview
+        nextPayoutDate: financeSummary?.eligiblePaidSubordersSummary?.nextPayoutDate || new Date().toISOString(),
+        estimatedPayoutAmount: financeSummary?.eligiblePaidSubordersSummary?.estimatedPayoutAmount || 0
       },
       paymentReviews,
       payoutProfile,

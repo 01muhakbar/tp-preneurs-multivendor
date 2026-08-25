@@ -36,6 +36,8 @@ const normalizeCollection = (...sources) => {
     paymentUrl: text(merged.paymentUrl, null),
     callbackState: text(merged.callbackState, "NONE"),
     manualReviewReason: text(merged.manualReviewReason, null),
+    paymentCode: text(merged.paymentCode, null),
+    paymentMethodLabel: text(merged.paymentMethodLabel, null),
     allocations: asArray(merged.allocations),
   };
 };
@@ -286,7 +288,12 @@ const normalizeGroup = (value, index, orderReference, detailedPayment) => {
     ),
     paymentReference,
     method: hostedPayment
-      ? "Duitku POP"
+      ? text(
+          payment.paymentMethodLabel ||
+            group.paymentMethodLabel ||
+            collection.paymentMethodLabel,
+          "Duitku POP"
+        )
       : text(payment.paymentType || payment.paymentChannel || group.paymentMethod, "QRIS"),
     collection,
     collectionRail: collection.collectionRail,

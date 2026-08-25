@@ -3,12 +3,14 @@ import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSeller2026Orders } from "../../hooks/seller2026/useSeller2026Orders.ts";
 import { useSeller2026SuborderDetail } from "../../hooks/seller2026/useSeller2026SuborderDetail.ts";
+import { getSellerSuborderShippingLabel } from "../../api/sellerOrders.ts";
 import { buildSellerSuborderFulfillmentPayload2026 } from "./sellerSuborderDetail2026Adapter.js";
 import { downloadCsvFile } from "../../utils/exportFiles.js";
 import { useSellerWorkspaceRoute } from "../../utils/sellerWorkspaceRoute.js";
 import { getSeller2026PagePermissions } from "./seller2026PagePermissions.js";
 import SellerOrders2026View from "../../features/sellerWorkspace2026/orders/SellerOrders2026View.jsx";
 import SellerOrderDetailDrawer2026 from "../../features/sellerWorkspace2026/orders/detail-drawer/SellerOrderDetailDrawer2026.jsx";
+import SellerShippingLabelPrint from "../../features/sellerWorkspace2026/orders/print/SellerShippingLabelPrint.jsx";
 
 const EXPORT_COLUMNS = [
   { key: "order", label: "Order" },
@@ -58,6 +60,9 @@ export default function Seller2026LiveOrdersPage() {
   const location = useLocation();
   const [view, setView] = useState("table");
   const [selectedOrderId, setSelectedOrderId] = useState(location.state?.openDetailId || null);
+  const [shippingLabel, setShippingLabel] = useState(null);
+  const [shippingLabelPrintToken, setShippingLabelPrintToken] = useState(null);
+  const [printingLabelId, setPrintingLabelId] = useState(null);
 
   useEffect(() => {
     if (location.state?.openDetailId) {
@@ -147,11 +152,38 @@ export default function Seller2026LiveOrdersPage() {
     setSelectedOrderId(null);
   };
 
-  // handleCopyReference removed
+  useEffect(() => {
+    if (!shippingLabel) return undefined;
+    const clearPrintedLabel = () => {
+      setShippingLabel(null);
+      setShippingLabelPrintToken(null);
+    };
+    window.addEventListener("afterprint", clearPrintedLabel);
+    return () => window.removeEventListener("afterprint", clearPrintedLabel);
+  }, [shippingLabel]);
 
-  const handlePrintLabel = () => {
-    if (typeof window !== "undefined") {
-      window.print();
+  const handlePrintLabel = async () => {
+    if (!storeId || !selectedOrderId || printingLabelId) return;
+    try {
+      setPrintingLabelId(selectedOrderId);
+      const label = await getSellerSuborderShippingLabel(storeId, selectedOrderId);
+      if (!label?.canPrint) {
+        setNotice({
+          type: "error",
+          text: label?.reason || "Label pengiriman belum dapat dicetak untuk subpesanan ini.",
+        });
+        return;
+      }
+      setNotice(null);
+      setShippingLabel(label);
+      setShippingLabelPrintToken(`${selectedOrderId}-${Date.now()}`);
+    } catch (printError) {
+      setNotice({
+        type: "error",
+        text: errorMessage(printError, "Unable to load shipping label."),
+      });
+    } finally {
+      setPrintingLabelId(null);
     }
   };
 
@@ -240,7 +272,7 @@ export default function Seller2026LiveOrdersPage() {
           storeId={storeId}
           isLoading={detailQuery.isLoading}
           error={detailQuery.isError ? detailQuery.error : null}
-          isUpdating={Boolean(detailQuery.updatingStatusId)}
+          isUpdating={Boolean(detailQuery.updatingStatusId || printingLabelId)}
           onClose={closeOrderDetail}
           onCopyReference={copyOrderNumber}
           onPrintLabel={handlePrintLabel}
@@ -249,6 +281,13 @@ export default function Seller2026LiveOrdersPage() {
           onFulfillmentAction={handleFulfillmentAction}
         />
       ) : null}
+      <SellerShippingLabelPrint
+        label={shippingLabel}
+        printToken={shippingLabelPrintToken}
+        onReady={() => {
+          window.setTimeout(() => window.print(), 50);
+        }}
+      />
     </>
   );
 }

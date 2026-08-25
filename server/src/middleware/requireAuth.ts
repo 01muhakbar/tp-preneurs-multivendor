@@ -3,8 +3,16 @@ import type { Request, Response, NextFunction } from "express";
 import { resolveAuthenticatedUserFromToken } from "../services/authSession.service.js";
 
 const getStorefrontCookieName = () => process.env.AUTH_COOKIE_NAME || "token";
+const getSellerCookieName = () =>
+  process.env.SELLER_AUTH_COOKIE_NAME || `${getStorefrontCookieName()}_seller`;
 const getAdminCookieName = () =>
   process.env.ADMIN_AUTH_COOKIE_NAME || `${getStorefrontCookieName()}_admin`;
+
+const isSellerRequest = (req: Request) => {
+  const originalUrl = String(req.originalUrl || "");
+  const baseUrl = String(req.baseUrl || "");
+  return originalUrl.startsWith("/api/seller") || baseUrl.startsWith("/api/seller");
+};
 
 const isAdminRequest = (req: Request) => {
   const originalUrl = String(req.originalUrl || "");
@@ -13,6 +21,9 @@ const isAdminRequest = (req: Request) => {
 };
 
 const resolveCookieNamesForRequest = (req: Request) => {
+  if (isSellerRequest(req)) {
+    return [getSellerCookieName()];
+  }
   if (isAdminRequest(req)) {
     return [getAdminCookieName(), getStorefrontCookieName()];
   }

@@ -46,6 +46,7 @@ import {
   isAdminWorkspaceRole,
   normalizeCanonicalRole,
 } from "../utils/role.js";
+import { listSellerAccessContexts } from "../services/seller/resolveSellerAccess.js";
 
 const { User } = models as { User?: any };
 const AUTH_DEBUG_COOKIES = process.env.AUTH_DEBUG_COOKIES === "true";
@@ -78,39 +79,45 @@ const toAuthUser = (user: any) => ({
 });
 
 const getStorefrontAuthCookieName = () => process.env.AUTH_COOKIE_NAME || "token";
+const getSellerAuthCookieName = () =>
+  process.env.SELLER_AUTH_COOKIE_NAME || `${getStorefrontAuthCookieName()}_seller`;
 const getAdminAuthCookieName = () =>
   process.env.ADMIN_AUTH_COOKIE_NAME || `${getStorefrontAuthCookieName()}_admin`;
+type AuthSessionScope = "storefront" | "seller" | "admin";
+
+const getAuthCookieNameForScope = (scope: AuthSessionScope) => {
+  if (scope === "admin") return getAdminAuthCookieName();
+  if (scope === "seller") return getSellerAuthCookieName();
+  return getStorefrontAuthCookieName();
+};
 
 const issueAuthSession = async (
   req: any,
   res: any,
   user: any,
-  scope: "storefront" | "admin"
+  scope: AuthSessionScope
 ) => {
   const secret: string = process.env.JWT_SECRET ?? "dev-secret";
   const expiresIn = (process.env.JWT_EXPIRES_IN ?? "1h") as any;
   const options: SignOptions = { expiresIn };
   const claims = await buildAuthSessionClaims(user);
   const token = jwt.sign(claims, secret, options);
-  const cookieName =
-    scope === "admin" ? getAdminAuthCookieName() : getStorefrontAuthCookieName();
+  const cookieName = getAuthCookieNameForScope(scope);
   res.cookie(cookieName, token, resolveAuthCookieOptions(req));
   return token;
 };
 
-const clearScopedAuthCookie = (req: any, res: any, scope: "storefront" | "admin") => {
-  const cookieName =
-    scope === "admin" ? getAdminAuthCookieName() : getStorefrontAuthCookieName();
+const clearScopedAuthCookie = (req: any, res: any, scope: AuthSessionScope) => {
+  const cookieName = getAuthCookieNameForScope(scope);
   res.clearCookie(cookieName, resolveAuthCookieOptions(req));
 };
 
 const loadScopedUserFromCookie = async (
   req: any,
-  scope: "storefront" | "admin"
+  scope: AuthSessionScope
 ) => {
   if (!User) return null;
-  const cookieName =
-    scope === "admin" ? getAdminAuthCookieName() : getStorefrontAuthCookieName();
+  const cookieName = getAuthCookieNameForScope(scope);
   const token = req.cookies?.[cookieName];
   if (!token) return null;
   const session = await resolveAuthenticatedUserFromToken(String(token));
@@ -120,7 +127,7 @@ const loadScopedUserFromCookie = async (
 const respondWithScopedAuthUser = async (
   req: any,
   res: any,
-  scope: "storefront" | "admin" | "fallback_any"
+  scope: AuthSessionScope | "fallback_any"
 ) => {
   if (!User) {
     return res.status(500).json({ success: false, message: "User model not loaded" });
@@ -131,6 +138,7 @@ const respondWithScopedAuthUser = async (
     if (scope === "fallback_any") {
       dbUser =
         (await loadScopedUserFromCookie(req, "storefront")) ||
+        (await loadScopedUserFromCookie(req, "seller")) ||
         (await loadScopedUserFromCookie(req, "admin"));
     } else {
       dbUser = await loadScopedUserFromCookie(req, scope);
@@ -150,6 +158,75 @@ const respondWithScopedAuthUser = async (
     }
 
     return res.json({ success: true, data: { user: toAuthUser(normalizedUser) } });
+  } catch {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
+};
+
+const resolveSellerStoresForUser = async (userId: number) => {
+  const accessContexts = await listSellerAccessContexts({ userId });
+  return accessContexts
+    .map((access) => ({
+      id: access.store.id,
+      storeId: access.store.id,
+      name: access.store.name,
+      slug: access.store.slug,
+      status: access.store.status,
+      logoUrl: access.store.logoUrl ?? null,
+      imageUrl: access.store.imageUrl ?? null,
+      access: {
+        mode: access.accessMode,
+        roleCode: access.roleCode,
+        permissionKeys: access.permissionKeys,
+        isOwner: access.isOwner,
+        membershipStatus: access.membershipStatus,
+      },
+    }))
+    .sort((left, right) => {
+      const leftOwner = left.access.isOwner ? 1 : 0;
+      const rightOwner = right.access.isOwner ? 1 : 0;
+      if (leftOwner !== rightOwner) return rightOwner - leftOwner;
+      return String(left.name || "").localeCompare(String(right.name || ""));
+    });
+};
+
+const respondWithSellerAuthUser = async (req: any, res: any) => {
+  if (!User) {
+    return res.status(500).json({ success: false, message: "User model not loaded" });
+  }
+
+  try {
+    const dbUser = await loadScopedUserFromCookie(req, "seller");
+    if (!dbUser) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const normalizedUser = await ensureClientUserActivationConsistency(dbUser);
+    if (String(normalizedUser.status || "").trim().toLowerCase() !== "active") {
+      return res.status(403).json({
+        success: false,
+        code: "ACCOUNT_NOT_ACTIVE",
+        message: "Your account is not active.",
+      });
+    }
+
+    const stores = await resolveSellerStoresForUser(Number(normalizedUser.id));
+    if (stores.length === 0) {
+      clearScopedAuthCookie(req, res, "seller");
+      return res.status(403).json({
+        success: false,
+        code: "SELLER_ACCESS_REQUIRED",
+        message: "This account is not connected to an active seller store.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        user: toAuthUser(normalizedUser),
+        stores,
+      },
+    });
   } catch {
     return res.status(401).json({ success: false, message: "Unauthorized" });
   }
@@ -318,6 +395,103 @@ router.post("/login", async (req, res) => {
   }
 });
 
+router.post("/seller/login", async (req, res) => {
+  const parsed = loginSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, message: "Invalid payload" });
+  }
+
+  if (!User) {
+    return res.status(500).json({ success: false, message: "User model not loaded" });
+  }
+
+  const { email, password } = parsed.data;
+
+  try {
+    try {
+      const normalizedEmail = String(email || "").trim().toLowerCase();
+      const context = getRequestContext(req);
+      enforceAuthRateLimit(`seller-login:ip:${context.ipAddress}`, 12, 15 * 60 * 1000);
+      enforceAuthRateLimit(`seller-login:email:${normalizedEmail}`, 6, 15 * 60 * 1000);
+    } catch (error) {
+      if (error instanceof AuthRateLimitError) {
+        return res.status(error.status).json({
+          success: false,
+          code: error.code,
+          message: error.message,
+          data: {
+            retryAfterSeconds: error.retryAfterSeconds,
+          },
+        });
+      }
+      throw error;
+    }
+
+    const user = await User.findOne({ where: { email: String(email || "").trim().toLowerCase() } });
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
+
+    await ensureClientUserActivationConsistency(user);
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
+
+    if (isAdminWorkspaceRole(user.role)) {
+      return res.status(403).json({
+        success: false,
+        code: "ADMIN_WORKSPACE_LOGIN_REQUIRED",
+        message: "This account uses Admin Workspace login. Sign in from /admin/login.",
+      });
+    }
+
+    if (isPendingClientUser(user)) {
+      const pendingVerification = await ensurePendingVerificationForLogin(String(user.email || ""));
+      return res.status(403).json({
+        success: false,
+        code: "VERIFICATION_REQUIRED",
+        message: "Verify your email before signing in.",
+        data: pendingVerification || undefined,
+      });
+    }
+
+    if (String(user.status || "").trim().toLowerCase() !== "active") {
+      return res.status(403).json({
+        success: false,
+        code: "ACCOUNT_NOT_ACTIVE",
+        message: "Your account is not active.",
+      });
+    }
+
+    const stores = await resolveSellerStoresForUser(Number(user.id));
+    if (stores.length === 0) {
+      return res.status(403).json({
+        success: false,
+        code: "SELLER_ACCESS_REQUIRED",
+        message: "This account is not connected to an active seller store.",
+      });
+    }
+
+    await issueAuthSession(req, res, user, "seller");
+    logSetCookieDebug(res, "seller_login");
+
+    return res.json({
+      success: true,
+      data: {
+        user: toAuthUser(user),
+        stores,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
 router.post("/register", async (req, res) => {
   const parsed = clientRegistrationSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -465,6 +639,15 @@ router.get("/account/me", (_req, _res) => {
 
 router.post("/logout", (req, res) => {
   clearScopedAuthCookie(req, res, "storefront");
+  return res.json({ success: true });
+});
+
+router.get("/seller/me", (_req, _res) => {
+  return respondWithSellerAuthUser(_req, _res);
+});
+
+router.post("/seller/logout", (req, res) => {
+  clearScopedAuthCookie(req, res, "seller");
   return res.json({ success: true });
 });
 

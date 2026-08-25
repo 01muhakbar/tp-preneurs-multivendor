@@ -39,6 +39,28 @@ export async function accountMe() {
   }
 }
 
+export async function sellerLogin(payload) {
+  const { data } = await api.post("/auth/seller/login", payload);
+  return data;
+}
+
+export async function sellerLogout() {
+  const { data } = await api.post("/auth/seller/logout");
+  return data;
+}
+
+export async function sellerMe() {
+  try {
+    const { data } = await api.get("/auth/seller/me");
+    return data;
+  } catch (error) {
+    if (error?.response?.status === 401) {
+      return null;
+    }
+    throw error;
+  }
+}
+
 export const login = adminLogin;
 export const logout = adminLogout;
 export const me = adminMe;

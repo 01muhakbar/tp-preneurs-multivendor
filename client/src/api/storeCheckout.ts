@@ -20,6 +20,8 @@ export const createMultiStoreCheckoutOrder = async (payload?: {
     storeId: number;
     couponCode: string;
   }> | null;
+  paymentMethod?: "DUITKU" | "QRIS" | string | null;
+  duitkuPaymentMethod?: string | null;
 }) => {
   const { data } = await api.post("/checkout/create-multi-store", payload ?? {}, {
     withCredentials: true,

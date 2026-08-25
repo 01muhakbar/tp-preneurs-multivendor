@@ -24,6 +24,15 @@ export const normalizeOrderRow = (row) => {
       method: row.paymentMethod || "-",
     },
 
+    withdrawalEligibility: {
+      code: row.withdrawalEligibility?.code || "NOT_PAID",
+      label: row.withdrawalEligibility?.label || "Not paid",
+      description: row.withdrawalEligibility?.description || "",
+      tone: row.withdrawalEligibility?.tone || "slate",
+      isEligible: Boolean(row.withdrawalEligibility?.isEligible),
+      netAmount: Number(row.withdrawalEligibility?.netAmount || 0),
+    },
+
     fulfillment: {
       status: row.fulfillmentStatus || "UNKNOWN",
       label: row.fulfillmentLabel || "Unknown",

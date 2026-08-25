@@ -424,6 +424,8 @@ const normalizeOrdersList = (payload, params = {}) => {
     customerEmail: order.customerEmail || order.customer?.email || null,
     paymentMethod: order.paymentMethod || order.method || null,
     paymentStatusMeta: order.paymentStatusMeta || null,
+    withdrawalEligibility: order.withdrawalEligibility || order.withdrawalEligibilitySummary || null,
+    withdrawalEligibilitySummary: order.withdrawalEligibilitySummary || order.withdrawalEligibility || null,
     shippingStatus: order.shippingStatus || null,
     shippingStatusMeta: order.shippingStatusMeta || null,
     latestTrackingEvent: order.latestTrackingEvent || null,

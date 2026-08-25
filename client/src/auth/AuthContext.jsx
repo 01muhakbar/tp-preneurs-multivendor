@@ -6,6 +6,8 @@ import {
   adminLogin as adminLoginRequest,
   adminLogout as adminLogoutRequest,
   adminMe as adminMeRequest,
+  sellerLogout as sellerLogoutRequest,
+  sellerMe as sellerMeRequest,
 } from "../api/auth.service.js";
 import { api } from "../api/axios.ts";
 import { onUnauthorized } from "./authEvents.ts";
@@ -20,17 +22,22 @@ import {
 export const AuthContext = createContext(null);
 
 const ADMIN_ROUTE_PREFIX = "/admin";
+const SELLER_ROUTE_PREFIX = "/seller";
 const ACCOUNT_SESSION_KEY = "accountSessionHint";
+const SELLER_SESSION_KEY = "sellerSessionHint";
 const ADMIN_SESSION_KEY = "adminSessionHint";
 const LEGACY_ACCOUNT_SESSION_KEY = "authSessionHint";
 
-const getScopeStorageKey = (scope) =>
-  scope === "admin" ? ADMIN_SESSION_KEY : ACCOUNT_SESSION_KEY;
+const getScopeStorageKey = (scope) => {
+  if (scope === "admin") return ADMIN_SESSION_KEY;
+  if (scope === "seller") return SELLER_SESSION_KEY;
+  return ACCOUNT_SESSION_KEY;
+};
 
 const readAuthHint = (scope) => {
   try {
     const keys = [getScopeStorageKey(scope)];
-    if (!keys.includes(LEGACY_ACCOUNT_SESSION_KEY)) {
+    if (scope === "account" && !keys.includes(LEGACY_ACCOUNT_SESSION_KEY)) {
       keys.push(LEGACY_ACCOUNT_SESSION_KEY);
     }
     return keys.some((key) => localStorage.getItem(key) === "true");
@@ -44,12 +51,12 @@ const writeAuthHint = (scope, value) => {
     const key = getScopeStorageKey(scope);
     if (value) {
       localStorage.setItem(key, "true");
-      if (scope !== "admin") {
+      if (scope === "account") {
         localStorage.setItem(LEGACY_ACCOUNT_SESSION_KEY, "true");
       }
     } else {
       localStorage.removeItem(key);
-      if (scope !== "admin") {
+      if (scope === "account") {
         localStorage.removeItem(LEGACY_ACCOUNT_SESSION_KEY);
       }
     }
@@ -77,11 +84,19 @@ const normalizeRole = (role) => {
 export function AuthProvider({ children }) {
   const location = useLocation();
   const queryClient = useQueryClient();
-  const currentScope = location.pathname.startsWith(ADMIN_ROUTE_PREFIX) ? "admin" : "account";
+  const currentScope = location.pathname.startsWith(ADMIN_ROUTE_PREFIX)
+    ? "admin"
+    : location.pathname.startsWith(SELLER_ROUTE_PREFIX)
+      ? "seller"
+      : "account";
 
   const [accountUser, setAccountUser] = useState(null);
   const [accountRole, setAccountRole] = useState(null);
   const [isAccountLoading, setIsAccountLoading] = useState(true);
+
+  const [sellerUser, setSellerUser] = useState(null);
+  const [sellerRole, setSellerRole] = useState(null);
+  const [isSellerLoading, setIsSellerLoading] = useState(true);
 
   const [adminUser, setAdminUser] = useState(null);
   const [adminRole, setAdminRole] = useState(null);
@@ -93,15 +108,18 @@ export function AuthProvider({ children }) {
     isLoading: isAccountLoading,
   });
 
-  const currentUser = currentScope === "admin" ? adminUser : accountUser;
-  const currentRole = currentScope === "admin" ? adminRole : accountRole;
-  const currentLoading = currentScope === "admin" ? isAdminLoading : isAccountLoading;
+  const currentUser =
+    currentScope === "admin" ? adminUser : currentScope === "seller" ? sellerUser : accountUser;
+  const currentRole =
+    currentScope === "admin" ? adminRole : currentScope === "seller" ? sellerRole : accountRole;
+  const currentLoading =
+    currentScope === "admin"
+      ? isAdminLoading
+      : currentScope === "seller"
+        ? isSellerLoading
+        : isAccountLoading;
 
   const clearSession = (scope = currentScope) => {
-    try {
-      localStorage.setItem("demoSellerLastLogout", new Date().toISOString());
-    } catch {}
-
     if (scope === "admin") {
       setAdminUser(null);
       setAdminRole(null);
@@ -109,6 +127,19 @@ export function AuthProvider({ children }) {
       writeAuthHint("admin", false);
       try {
         localStorage.removeItem("adminAuthToken");
+      } catch {
+        // ignore storage errors
+      }
+      return;
+    }
+
+    if (scope === "seller") {
+      setSellerUser(null);
+      setSellerRole(null);
+      setIsSellerLoading(false);
+      writeAuthHint("seller", false);
+      try {
+        localStorage.removeItem("sellerAuthToken");
       } catch {
         // ignore storage errors
       }
@@ -132,12 +163,19 @@ export function AuthProvider({ children }) {
 
     if (scope === "admin") {
       setIsAdminLoading(true);
+    } else if (scope === "seller") {
+      setIsSellerLoading(true);
     } else {
       setIsAccountLoading(true);
     }
 
     try {
-      const response = scope === "admin" ? await adminMeRequest() : await accountMeRequest();
+      const response =
+        scope === "admin"
+          ? await adminMeRequest()
+          : scope === "seller"
+            ? await sellerMeRequest()
+            : await accountMeRequest();
       const nextUser = normalizeAuthUser(response);
       if (!nextUser) {
         if (markExpiredOnUnauthorized) {
@@ -151,6 +189,9 @@ export function AuthProvider({ children }) {
       if (scope === "admin") {
         setAdminUser(nextUser);
         setAdminRole(nextRole);
+      } else if (scope === "seller") {
+        setSellerUser(nextUser);
+        setSellerRole(nextRole);
       } else {
         setAccountUser(nextUser);
         setAccountRole(nextRole);
@@ -181,6 +222,8 @@ export function AuthProvider({ children }) {
     } finally {
       if (scope === "admin") {
         setIsAdminLoading(false);
+      } else if (scope === "seller") {
+        setIsSellerLoading(false);
       } else {
         setIsAccountLoading(false);
       }
@@ -234,6 +277,8 @@ export function AuthProvider({ children }) {
     try {
       if (scope === "admin") {
         await adminLogoutRequest();
+      } else if (scope === "seller") {
+        await sellerLogoutRequest();
       } else {
         await accountLogoutRequest();
       }
@@ -243,6 +288,12 @@ export function AuthProvider({ children }) {
       clearSession(scope);
       if (scope === "admin") {
         queryClient.removeQueries({ queryKey: ["admin", "me"], exact: true });
+      } else if (scope === "seller") {
+        queryClient.removeQueries({ queryKey: ["seller"] });
+      } else {
+        queryClient.removeQueries({ queryKey: ["account"] });
+        queryClient.removeQueries({ queryKey: ["cart"] });
+        queryClient.removeQueries({ queryKey: ["orders"] });
       }
     }
   };
@@ -251,7 +302,13 @@ export function AuthProvider({ children }) {
     const hasToken = (() => {
       try {
         return Boolean(
-          localStorage.getItem(currentScope === "admin" ? "adminAuthToken" : "authToken")
+          localStorage.getItem(
+            currentScope === "admin"
+              ? "adminAuthToken"
+              : currentScope === "seller"
+                ? "sellerAuthToken"
+                : "authToken"
+          )
         );
       } catch {
         return false;
@@ -261,12 +318,15 @@ export function AuthProvider({ children }) {
     const shouldProbe =
       hasToken ||
       readAuthHint(currentScope) ||
+      (currentScope === "seller" && location.pathname.startsWith("/seller/stores")) ||
       (currentScope === "account" &&
         (location.pathname === "/checkout/success" || location.pathname.startsWith("/user/")));
     if (shouldProbe) {
       refreshSession({ markExpiredOnUnauthorized: true }, currentScope);
     } else if (currentScope === "admin") {
       setIsAdminLoading(false);
+    } else if (currentScope === "seller") {
+      setIsSellerLoading(false);
     } else {
       setIsAccountLoading(false);
     }
@@ -274,7 +334,7 @@ export function AuthProvider({ children }) {
     const unsubscribe = onUnauthorized((payload) => {
       storePendingAuthNotice(resolveUnauthorizedNotice(payload));
       clearSession(currentScope);
-      if (currentScope !== "admin") {
+      if (currentScope === "account") {
         resetBuyerCartSessionSync();
       }
     });

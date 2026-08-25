@@ -39,6 +39,16 @@ export const toOptionalNumber = (value) => {
   return Number.isFinite(parsed) ? parsed : undefined;
 };
 
+const titleCaseValue = (value, fallback = "-") => {
+  const normalized = String(value || "").trim();
+  if (!normalized) return fallback;
+  return normalized
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+};
+
 export const buildProductForm2026Review = ({
   form,
   meta,
@@ -63,7 +73,7 @@ export const buildProductForm2026Review = ({
     brand: meta.brand || "-",
     category: defaultCategory?.name || selectedCategories[0]?.name || "-",
     categoryPath: selectedCategories.map((category) => category.name).join(" > ") || "-",
-    productType: meta.productType || "physical",
+    productType: titleCaseValue(meta.productType, "Physical"),
     weight: meta.weight ? `${meta.weight} ${meta.weightUnit}` : "-",
     dimensions:
       meta.length || meta.width || meta.height
@@ -73,7 +83,7 @@ export const buildProductForm2026Review = ({
     salePrice: form.salePrice || "-",
     lowStockThreshold: meta.lowStockThreshold || "-",
     stock: form.stock || "0",
-    status: form.status || "active",
+    status: titleCaseValue(form.status, "Active"),
     slug: form.slug || "-",
     tags: form.tags || [],
   };

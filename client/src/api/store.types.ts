@@ -369,6 +369,7 @@ export type PublicStoreSettings = {
     cashOnDeliveryEnabled: boolean;
     stripeEnabled: boolean;
     razorPayEnabled: boolean;
+    duitkuEnabled?: boolean;
     stripeKey: string;
     razorPayKeyId?: string;
     methods?: Array<{

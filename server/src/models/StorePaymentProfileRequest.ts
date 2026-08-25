@@ -8,6 +8,10 @@ export interface StorePaymentProfileRequestAttributes {
   accountName?: string | null;
   merchantName?: string | null;
   merchantId?: string | null;
+  bankName?: string | null;
+  accountNumber?: string | null;
+  accountHolderName?: string | null;
+  payoutProofImageUrl?: string | null;
   qrisImageUrl?: string | null;
   qrisPayload?: string | null;
   instructionText?: string | null;
@@ -28,6 +32,10 @@ type StorePaymentProfileRequestCreationAttributes = Optional<
   | "basedOnProfileId"
   | "requestStatus"
   | "merchantId"
+  | "bankName"
+  | "accountNumber"
+  | "accountHolderName"
+  | "payoutProofImageUrl"
   | "qrisPayload"
   | "instructionText"
   | "sellerNote"
@@ -59,6 +67,10 @@ export class StorePaymentProfileRequest
   declare accountName?: string | null;
   declare merchantName?: string | null;
   declare merchantId?: string | null;
+  declare bankName?: string | null;
+  declare accountNumber?: string | null;
+  declare accountHolderName?: string | null;
+  declare payoutProofImageUrl?: string | null;
   declare qrisImageUrl?: string | null;
   declare qrisPayload?: string | null;
   declare instructionText?: string | null;
@@ -148,6 +160,26 @@ export class StorePaymentProfileRequest
           type: DataTypes.STRING(160),
           allowNull: true,
           field: "merchant_id",
+        },
+        bankName: {
+          type: DataTypes.STRING(160),
+          allowNull: true,
+          field: "bank_name",
+        },
+        accountNumber: {
+          type: DataTypes.STRING(120),
+          allowNull: true,
+          field: "account_number",
+        },
+        accountHolderName: {
+          type: DataTypes.STRING(160),
+          allowNull: true,
+          field: "account_holder_name",
+        },
+        payoutProofImageUrl: {
+          type: DataTypes.TEXT("long"),
+          allowNull: true,
+          field: "payout_proof_image_url",
         },
         qrisImageUrl: {
           type: DataTypes.TEXT("long"),

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { Op } from "sequelize";
+import { Op, QueryTypes } from "sequelize";
 import { requireAdmin, requireStaffOrAdmin } from "../middleware/requireRole.js";
 import { Order } from "../models/Order.js";
 import { User } from "../models/User.js";
@@ -33,6 +33,11 @@ import {
   logOperationalAuditEvent,
 } from "../services/operationalAudit.service.js";
 import { listAdminShippingReconciliationReport } from "../services/shippingReconciliationReport.service.js";
+import { resolveDuitkuPaymentMethodDisplay } from "../services/duitku/duitkuPaymentMethodDisplay.service.js";
+import {
+  buildWithdrawalEligibilityMeta,
+  summarizeWithdrawalEligibility,
+} from "../services/withdrawals/withdrawalEligibility.service.js";
 import {
   assertAdminOrderDeletionAllowed,
   deleteOrderCascade,
@@ -42,7 +47,7 @@ import sequelize from "../config/database.js";
 const router = Router();
 type UiOrderStatus = "pending" | "processing" | "shipping" | "complete" | "cancelled";
 type DbOrderStatus = "pending" | "processing" | "shipped" | "delivered" | "cancelled";
-type CanonicalMethod = "cash" | "card" | "credit";
+type CanonicalMethod = "qris" | "duitku" | "cash" | "card" | "credit";
 type DeliveryStatusFilter =
   | "waiting_payment"
   | "ready_to_fulfill"
@@ -323,6 +328,58 @@ const buildAdminContractForOrder = async (input: {
   });
 };
 
+const methodLabelFallback = (method: unknown) => {
+  const normalized = String(method || "").trim().toUpperCase();
+  if (normalized === "DUITKU") return "Duitku POP";
+  if (normalized === "QRIS") return "Static QRIS";
+  if (normalized === "COD" || normalized === "CASH") return "COD";
+  return String(method || "").trim() || "Static QRIS";
+};
+
+const resolveAdminPaymentMethodLabel = (method: unknown, paymentCode?: unknown) =>
+  resolveDuitkuPaymentMethodDisplay({
+    paymentMethod: method,
+    paymentCode,
+    fallback: methodLabelFallback(method),
+  }) || methodLabelFallback(method);
+
+const loadLatestDuitkuPaymentCodes = async (orderIds: number[]) => {
+  const normalizedIds = Array.from(
+    new Set(orderIds.filter((id) => Number.isFinite(id) && id > 0))
+  );
+  const paymentCodeByOrderId = new Map<number, string | null>();
+  if (normalizedIds.length === 0) return paymentCodeByOrderId;
+
+  const placeholders = normalizedIds.map(() => "?").join(",");
+  const rows = (await sequelize.query(
+    `
+      SELECT
+        opa.order_id AS orderId,
+        opae.payment_code AS paymentCode
+      FROM order_payment_attempt_events opae
+      INNER JOIN order_payment_attempts opa ON opa.id = opae.payment_attempt_id
+      WHERE opa.order_id IN (${placeholders})
+        AND opae.payment_code IS NOT NULL
+        AND opae.payment_code <> ''
+      ORDER BY opa.order_id ASC, opae.last_received_at DESC, opae.updated_at DESC, opae.id DESC
+    `,
+    {
+      replacements: normalizedIds,
+      type: QueryTypes.SELECT,
+    }
+  )) as any[];
+
+  for (const row of rows) {
+    const orderId = Number(row?.orderId || 0);
+    if (!Number.isFinite(orderId) || orderId <= 0 || paymentCodeByOrderId.has(orderId)) {
+      continue;
+    }
+    paymentCodeByOrderId.set(orderId, String(row?.paymentCode || "").trim() || null);
+  }
+
+  return paymentCodeByOrderId;
+};
+
 const inspectAdminOrderTransitionEligibility = async (
   orderId: number,
   targetStatus: DbOrderStatus
@@ -448,6 +505,8 @@ const inspectAdminOrderTransitionEligibility = async (
 };
 
 const methodPatternMap: Record<CanonicalMethod, string[]> = {
+  qris: ["QRIS"],
+  duitku: ["DUITKU"],
   cash: ["cod", "cash"],
   card: ["card", "debit", "credit card", "credit_card", "visa", "master"],
   credit: ["credit", "paylater", "installment"],
@@ -456,8 +515,10 @@ const methodPatternMap: Record<CanonicalMethod, string[]> = {
 const normalizeMethodInput = (raw: unknown): CanonicalMethod | "" => {
   const value = String(raw || "").toLowerCase().trim();
   if (!value) return "";
+  if (["duitku", "duitku_pop", "duitku pop"].includes(value)) return "duitku";
+  if (["qris", "static_qris", "static qris"].includes(value)) return "qris";
   if (value === "cash" || value === "cod") return "cash";
-  if (value === "card" || value === "qris" || value === "visa" || value === "mastercard") return "card";
+  if (value === "card" || value === "visa" || value === "mastercard") return "card";
   if (value === "credit") return "credit";
   return "";
 };
@@ -497,8 +558,9 @@ const normalizeDeliveryStatusInput = (raw: unknown): DeliveryStatusFilter => {
 
 const normalizeMethodOutput = (raw: unknown): CanonicalMethod => {
   const value = String(raw || "").toLowerCase().trim();
-  if (!value) return "cash";
-  if (value.includes("qris")) return "card";
+  if (!value) return "qris";
+  if (value.includes("duitku")) return "duitku";
+  if (value.includes("qris")) return "qris";
   if (value.includes("cod") || value.includes("cash")) return "cash";
   if (value.includes("credit card") || value.includes("credit_card")) return "card";
   if (value.includes("card") || value.includes("debit") || value.includes("visa")) {
@@ -511,10 +573,12 @@ const normalizeMethodOutput = (raw: unknown): CanonicalMethod => {
   ) {
     return "credit";
   }
-  return "cash";
+  return "qris";
 };
 
 const toMethodLabel = (method: CanonicalMethod) => {
+  if (method === "duitku") return "Duitku POP";
+  if (method === "qris") return "Static QRIS";
   if (method === "card") return "Card";
   if (method === "credit") return "Credit";
   return "Cash";
@@ -814,6 +878,7 @@ const orderDetailInclude: any[] = [
           "shippingAmount",
           "serviceFeeAmount",
           "totalAmount",
+          "paymentMethod",
           "paymentStatus",
           "fulfillmentStatus",
         ],
@@ -855,7 +920,15 @@ const orderDetailInclude: any[] = [
       {
         model: Payment,
         as: "payments",
-        attributes: ["id", "status", "expiresAt", "paidAt", "updatedAt"],
+        attributes: [
+          "id",
+          "status",
+          "paymentChannel",
+          "paymentType",
+          "expiresAt",
+          "paidAt",
+          "updatedAt",
+        ],
         required: false,
       },
       {
@@ -904,7 +977,7 @@ const orderDetailInclude: any[] = [
   },
 ];
 
-const toOrderDetailPayload = (orderItem: any) => {
+const toOrderDetailPayload = (orderItem: any, paymentCode: string | null = null) => {
   const legacyItems = ((orderItem as any).items ?? []).map((item: any) => ({
     id: getAttr(item, "id"),
     productId:
@@ -942,9 +1015,20 @@ const toOrderDetailPayload = (orderItem: any) => {
       : [];
     const latestPayment = payments[0] ?? null;
     const paymentStatus = normalizeSuborderPaymentStatus(getAttr(suborder, "paymentStatus"));
+    const paymentMethodRaw =
+      getAttr(suborder, "paymentMethod") ?? getAttr(orderItem, "paymentMethod") ?? "QRIS";
+    const paymentMethod = normalizeMethodOutput(paymentMethodRaw);
+    const paymentMethodLabel = resolveAdminPaymentMethodLabel(paymentMethodRaw, paymentCode);
     const fulfillmentStatus = normalizeSuborderFulfillmentStatus(
       getAttr(suborder, "fulfillmentStatus")
     );
+    const withdrawalEligibility = buildWithdrawalEligibilityMeta({
+      paymentStatus,
+      fulfillmentStatus,
+      orderStatus: getAttr(orderItem, "status"),
+      totalAmount: getAttr(suborder, "totalAmount"),
+      serviceFeeAmount: getAttr(suborder, "serviceFeeAmount"),
+    });
     const displayStatus = resolveBuyerFacingPaymentStatus({
       paymentStatus: getAttr(latestPayment, "status") || "CREATED",
       suborderPaymentStatus: paymentStatus,
@@ -964,8 +1048,14 @@ const toOrderDetailPayload = (orderItem: any) => {
       shippingAmount: Number(getAttr(suborder, "shippingAmount") || 0),
       serviceFeeAmount: Number(getAttr(suborder, "serviceFeeAmount") || 0),
       totalAmount: Number(getAttr(suborder, "totalAmount") || 0),
+      paymentMethod,
+      method: paymentMethod,
+      paymentMethodLabel,
+      methodLabel: paymentMethodLabel,
+      paymentCode,
       paymentStatus,
       paymentStatusMeta: buildPaymentStatusMeta(paymentStatus),
+      withdrawalEligibility,
       fulfillmentStatus,
       fulfillmentStatusMeta: buildFulfillmentStatusMeta(fulfillmentStatus),
       shippingStatus: shippingSummary?.shippingStatus ?? fulfillmentStatus,
@@ -982,6 +1072,11 @@ const toOrderDetailPayload = (orderItem: any) => {
             id: Number(getAttr(latestPayment, "id") || 0) || null,
             status: String(getAttr(latestPayment, "status") || "CREATED"),
             statusMeta: buildPaymentStatusMeta(getAttr(latestPayment, "status") || "CREATED"),
+            paymentChannel: String(getAttr(latestPayment, "paymentChannel") || ""),
+            paymentType: String(getAttr(latestPayment, "paymentType") || ""),
+            paymentMethod,
+            paymentMethodLabel,
+            paymentCode,
             displayStatus,
             displayStatusMeta: buildPaymentStatusMeta(displayStatus),
             expiresAt: getAttr(latestPayment, "expiresAt") || null,
@@ -1051,6 +1146,13 @@ const toOrderDetailPayload = (orderItem: any) => {
     ? totalSnapshot
     : Math.max(0, subtotal + shipping + serviceFeeAmount - discount);
 
+  const paymentMethodRaw = getAttr(orderItem, "paymentMethod") ?? "QRIS";
+  const paymentMethod = normalizeMethodOutput(paymentMethodRaw);
+  const paymentMethodLabel = resolveAdminPaymentMethodLabel(paymentMethodRaw, paymentCode);
+  const withdrawalEligibilitySummary = summarizeWithdrawalEligibility(
+    groups.map((group: any) => group.withdrawalEligibility).filter(Boolean)
+  );
+
   return {
     id: getAttr(orderItem, "id"),
     ref: getAttr(orderItem, "invoiceNo") ?? String(getAttr(orderItem, "id") ?? ""),
@@ -1064,6 +1166,8 @@ const toOrderDetailPayload = (orderItem: any) => {
     paymentStatusMeta: buildPaymentStatusMeta(
       String(getAttr(orderItem, "paymentStatus") || "").toUpperCase().trim() || "UNPAID"
     ),
+    withdrawalEligibility: withdrawalEligibilitySummary,
+    withdrawalEligibilitySummary,
     totalAmount,
     subtotal,
     subtotalAmount: subtotal,
@@ -1078,8 +1182,11 @@ const toOrderDetailPayload = (orderItem: any) => {
     customerPhone: getAttr(orderItem, "customerPhone") ?? null,
     customerAddress: getAttr(orderItem, "customerAddress") ?? null,
     customerNotes: getAttr(orderItem, "customerNotes") ?? null,
-    paymentMethod: getAttr(orderItem, "paymentMethod") ?? "COD",
-    method: getAttr(orderItem, "paymentMethod") ?? "COD",
+    paymentMethod,
+    method: paymentMethod,
+    paymentMethodLabel,
+    methodLabel: paymentMethodLabel,
+    paymentCode,
     shipmentCount: shippingReadModel.shipmentCount,
     shippingStatus: shippingReadModel.shippingStatus,
     shippingStatusMeta: shippingReadModel.shippingStatusMeta,
@@ -1131,6 +1238,10 @@ router.get("/", requireStaffOrAdmin, async (req, res) => {
       col: "id",
     });
 
+    const paymentCodeByOrderId = await loadLatestDuitkuPaymentCodes(
+      rows.map((orderRow: any) => Number(getAttr(orderRow, "id") || 0))
+    );
+
     const items = await Promise.all(
       rows.map(async (orderRow: any) => {
         const customer =
@@ -1148,6 +1259,8 @@ router.get("/", requireStaffOrAdmin, async (req, res) => {
         );
         const methodRaw = getAttr(orderRow, "paymentMethod") ?? "COD";
         const method = normalizeMethodOutput(methodRaw);
+        const paymentCode = paymentCodeByOrderId.get(id) ?? null;
+        const paymentMethodLabel = resolveAdminPaymentMethodLabel(methodRaw, paymentCode);
         const customerName =
           getAttr(orderRow, "customerName") ??
           getAttr(orderRow, "shippingName") ??
@@ -1158,7 +1271,13 @@ router.get("/", requireStaffOrAdmin, async (req, res) => {
           String(getAttr(orderRow, "paymentStatus") || "").toUpperCase().trim() || "UNPAID";
         const suborders = await Suborder.findAll({
           where: { orderId: id },
-          attributes: ["id", "paymentStatus", "fulfillmentStatus"],
+          attributes: [
+            "id",
+            "paymentStatus",
+            "fulfillmentStatus",
+            "totalAmount",
+            "serviceFeeAmount",
+          ],
           include: [
             {
               model: Shipment,
@@ -1189,6 +1308,17 @@ router.get("/", requireStaffOrAdmin, async (req, res) => {
           order: [["id", "ASC"]],
         });
         const shippingReadModel = buildOrderShippingReadModel(suborders);
+        const withdrawalEligibilitySummary = summarizeWithdrawalEligibility(
+          suborders.map((suborder: any) =>
+            buildWithdrawalEligibilityMeta({
+              paymentStatus: getAttr(suborder, "paymentStatus"),
+              fulfillmentStatus: getAttr(suborder, "fulfillmentStatus"),
+              orderStatus: rawOrderStatus,
+              totalAmount: getAttr(suborder, "totalAmount"),
+              serviceFeeAmount: getAttr(suborder, "serviceFeeAmount"),
+            })
+          )
+        );
         const contract = await buildAdminContractForOrder({
           orderId: id,
           orderStatus: rawOrderStatus,
@@ -1214,12 +1344,17 @@ router.get("/", requireStaffOrAdmin, async (req, res) => {
             null,
           method,
           paymentMethod: method,
+          methodLabel: paymentMethodLabel,
+          paymentMethodLabel,
+          paymentCode,
           amount,
           totalAmount: amount,
           rawStatus: rawOrderStatus,
           status: toUiStatus(rawOrderStatus),
           paymentStatus,
           paymentStatusMeta: buildPaymentStatusMeta(paymentStatus),
+          withdrawalEligibility: withdrawalEligibilitySummary,
+          withdrawalEligibilitySummary,
           shippingStatus: shippingReadModel.shippingStatus,
           shippingStatusMeta: shippingReadModel.shippingStatusMeta,
           latestTrackingEvent: shippingReadModel.latestTrackingEvent,
@@ -1362,7 +1497,9 @@ const sendOrderDetail = async (res: any, lookup: string, preferInvoiceLookup = f
   if (!orderItem) {
     return res.status(404).json({ message: "Not found" });
   }
-  const payload = toOrderDetailPayload(orderItem);
+  const orderId = Number(getAttr(orderItem, "id") || 0);
+  const paymentCodeByOrderId = await loadLatestDuitkuPaymentCodes([orderId]);
+  const payload = toOrderDetailPayload(orderItem, paymentCodeByOrderId.get(orderId) ?? null);
   const contract = await buildAdminContractForOrder({
     orderId: Number(payload.id || 0),
     orderStatus: payload.rawStatus || payload.status || "pending",

@@ -30,6 +30,8 @@
     "sandbox:duitku-step9-create-invoice": "tsx src/scripts/runDuitkuStep9CreateInvoiceSandbox.ts",
     "sandbox:duitku-step9-callback": "tsx src/scripts/runDuitkuStep9CallbackSandbox.ts",
     "sandbox:duitku-step9-return-url": "tsx src/scripts/runDuitkuStep9ReturnUrlSandbox.ts",
+    "sandbox:duitku-step9-bound-paid-callback": "tsx src/scripts/runDuitkuStep9BoundPaidCallbackSandbox.ts",
+    "sandbox:duitku-step9-matrix-completion": "tsx src/scripts/runDuitkuStep9MatrixCompletion.ts",
     "smoke:orders": "node scripts/smoke-orders-admin.mjs",
     "smoke:product-visibility": "tsx src/scripts/smokeProductVisibility.ts",
     "smoke:order-payment": "tsx src/scripts/smokeOrderPayment.ts",

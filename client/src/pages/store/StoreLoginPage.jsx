@@ -154,9 +154,6 @@ export default function StoreLoginPage() {
       const pendingFrom = await mergePendingAdd();
       await refreshSession();
       await refreshCart(false);
-      try {
-        localStorage.setItem("seller_login_path", "/auth/login");
-      } catch {}
       const authenticatedRole = normalizeRole(
         response?.data?.data?.user?.role || response?.data?.user?.role
       );

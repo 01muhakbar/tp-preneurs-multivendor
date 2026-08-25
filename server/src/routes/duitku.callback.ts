@@ -1,5 +1,6 @@
 import express from "express";
 import { resolveDuitkuConfig } from "../services/duitku/duitkuConfig.service.js";
+import { getPersistedStoreSettings } from "../services/storeSettings.js";
 import {
   DUITKU_CALLBACK_BODY_LIMIT_BYTES,
   DuitkuCallbackParseError,
@@ -9,6 +10,7 @@ import {
   storeDuitkuCallbackSecurityEvent,
   storeValidDuitkuCallback,
 } from "../services/duitku/duitkuCallbackStorage.service.js";
+import { applyDuitkuCallback } from "../services/payments/financialTransaction.service.js";
 
 const router = express.Router();
 
@@ -24,7 +26,8 @@ const requestContext = (req: express.Request) => ({
 
 router.post("/callback", rawFormParser, async (req, res, next) => {
   try {
-    const config = resolveDuitkuConfig();
+    const dbSettings = await getPersistedStoreSettings();
+    const config = resolveDuitkuConfig(process.env, dbSettings);
     if (!config.enabled) {
       return res.status(503).json({
         success: false,
@@ -57,13 +60,23 @@ router.post("/callback", rawFormParser, async (req, res, next) => {
     }
 
     const stored = await storeValidDuitkuCallback(parsed, requestContext(req));
+    const callbackInboxId = Number((stored.inbox as any)?.id || 0);
+    const financialResult =
+      stored.bindingState === "BOUND" && callbackInboxId > 0
+        ? await applyDuitkuCallback({
+            callbackInboxId,
+            actorType: "WEBHOOK",
+          })
+        : null;
+
     return res.status(200).json({
       success: true,
       accepted: true,
       duplicate: stored.duplicate,
       bindingState: stored.bindingState,
-      processingResult: stored.processingResult,
-      financialMutationApplied: false,
+      processingResult: financialResult?.processingResult || stored.processingResult,
+      financialMutationApplied: financialResult?.processingResult === "APPLIED",
+      financialAction: financialResult?.action || null,
     });
   } catch (error) {
     if (error instanceof DuitkuCallbackParseError) {

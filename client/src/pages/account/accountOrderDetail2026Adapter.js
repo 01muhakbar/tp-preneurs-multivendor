@@ -299,7 +299,13 @@ const normalizeStoreGroup = (value, index) => {
     itemCount: items.length,
     merchantName: text(group.payment?.merchantName || group.merchantName, "Not provided"),
     accountLabel: text(group.payment?.accountName || group.accountName, "Not provided"),
-    paymentMethod: text(group.paymentMethod || group.payment?.paymentChannel, "-"),
+    paymentMethod: text(
+      group.paymentMethodLabel ||
+        group.payment?.paymentMethodLabel ||
+        group.paymentMethod ||
+        group.payment?.paymentChannel,
+      "-"
+    ),
     status: normalizeStatus(
       summary.code || group.status || group.paymentStatus,
       summary,
@@ -583,7 +589,13 @@ export const normalizeOrderDetailFor2026 = ({ order, payment }) => {
       progress: buildProgress({ placedAt, paymentStatus, shipmentStatus, timeline }),
     },
     payment: {
-      method: text(source.paymentMethod || grouped.paymentMethod, "-"),
+      method: text(
+        source.paymentMethodLabel ||
+          grouped.paymentMethodLabel ||
+          source.paymentMethod ||
+          grouped.paymentMethod,
+        "-"
+      ),
       status: paymentStatus,
       paidAt: grouped.paidAt || source.paidAt || null,
       summary: text(

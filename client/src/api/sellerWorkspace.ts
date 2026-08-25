@@ -170,9 +170,12 @@ export type SellerFinanceSummary = {
     visible: boolean;
     count: number;
     grossAmount: number;
+    paidCount: number;
     awaitingFulfillmentCount: number;
     inProgressCount: number;
     deliveredCount: number;
+    waitingDeliveryCount: number;
+    estimatedPayoutAmount: number;
     basis: string[];
     hint: string | null;
     boundaryNote: string | null;
@@ -588,11 +591,14 @@ const normalizeFinanceSummary = (payload: any): SellerFinanceSummary | null => {
       visible: Boolean(eligiblePaidSubordersSummary.visible),
       count: numberOrZero(eligiblePaidSubordersSummary.count),
       grossAmount: numberOrZero(eligiblePaidSubordersSummary.grossAmount),
+      paidCount: numberOrZero(eligiblePaidSubordersSummary.paidCount),
       awaitingFulfillmentCount: numberOrZero(
         eligiblePaidSubordersSummary.awaitingFulfillmentCount
       ),
       inProgressCount: numberOrZero(eligiblePaidSubordersSummary.inProgressCount),
       deliveredCount: numberOrZero(eligiblePaidSubordersSummary.deliveredCount),
+      waitingDeliveryCount: numberOrZero(eligiblePaidSubordersSummary.waitingDeliveryCount),
+      estimatedPayoutAmount: numberOrZero(eligiblePaidSubordersSummary.estimatedPayoutAmount),
       basis: Array.isArray(eligiblePaidSubordersSummary.basis)
         ? eligiblePaidSubordersSummary.basis
             .map((entry: unknown) => textOrNull(entry))

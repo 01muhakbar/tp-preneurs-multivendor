@@ -14,6 +14,9 @@ const requiredComplete = (form) =>
   Boolean(
     String(form.accountName || "").trim() &&
       String(form.merchantName || "").trim() &&
+      String(form.bankName || "").trim() &&
+      String(form.accountNumber || "").trim() &&
+      String(form.accountHolderName || "").trim() &&
       String(form.qrisImageUrl || "").trim()
   );
 
@@ -167,6 +170,36 @@ export default function Seller2026PaymentProfileEditor({
           </div>
 
           <div className="s26-pp-editor__section">
+            <h3>Payout bank account</h3>
+            <div className="s26-pp-form-grid">
+              <Field
+                label="Bank name"
+                value={form.bankName}
+                maxLength={PAYMENT_PROFILE_LIMITS.bankName}
+                disabled={locked || busy}
+                onChange={(event) => setField("bankName", event.target.value)}
+                hint="Admin uses this bank for seller withdrawal transfers."
+              />
+              <Field
+                label="Account number"
+                value={form.accountNumber}
+                maxLength={PAYMENT_PROFILE_LIMITS.accountNumber}
+                disabled={locked || busy}
+                onChange={(event) => setField("accountNumber", event.target.value)}
+              />
+              <Field
+                label="Account holder name"
+                value={form.accountHolderName}
+                maxLength={PAYMENT_PROFILE_LIMITS.accountHolderName}
+                disabled={locked || busy}
+                onChange={(event) =>
+                  setField("accountHolderName", event.target.value)
+                }
+              />
+            </div>
+          </div>
+
+          <div className="s26-pp-editor__section">
             <h3>Optional details</h3>
             <div className="s26-pp-form-grid">
               <Field
@@ -175,6 +208,15 @@ export default function Seller2026PaymentProfileEditor({
                 maxLength={PAYMENT_PROFILE_LIMITS.merchantId}
                 disabled={locked || busy}
                 onChange={(event) => setField("merchantId", event.target.value)}
+              />
+              <Field
+                label="Payout account proof URL"
+                value={form.payoutProofImageUrl}
+                maxLength={PAYMENT_PROFILE_LIMITS.payoutProofImageUrl}
+                disabled={locked || busy}
+                onChange={(event) =>
+                  setField("payoutProofImageUrl", event.target.value)
+                }
               />
               <Field
                 label="QRIS payload"

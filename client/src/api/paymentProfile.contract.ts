@@ -7,6 +7,10 @@ export const PAYMENT_PROFILE_LIMITS = {
   accountName: 160,
   merchantName: 160,
   merchantId: 160,
+  bankName: 160,
+  accountNumber: 120,
+  accountHolderName: 160,
+  payoutProofImageUrl: 2_000_000,
   qrisImageUrl: 2_000_000,
   qrisPayload: 2_000_000,
   instructionText: 4_000,
@@ -17,6 +21,10 @@ export type PaymentProfileDraft = {
   accountName: string;
   merchantName: string;
   merchantId: string;
+  bankName: string;
+  accountNumber: string;
+  accountHolderName: string;
+  payoutProofImageUrl: string;
   qrisImageUrl: string;
   qrisPayload: string;
   instructionText: string;
@@ -27,6 +35,10 @@ export const EMPTY_PAYMENT_PROFILE_DRAFT: PaymentProfileDraft = {
   accountName: "",
   merchantName: "",
   merchantId: "",
+  bankName: "",
+  accountNumber: "",
+  accountHolderName: "",
+  payoutProofImageUrl: "",
   qrisImageUrl: "",
   qrisPayload: "",
   instructionText: "",
@@ -40,6 +52,10 @@ export const buildPaymentProfilePayload = (form: PaymentProfileDraft) => ({
   accountName: text(form.accountName),
   merchantName: text(form.merchantName),
   merchantId: textOrNull(form.merchantId),
+  bankName: textOrNull(form.bankName),
+  accountNumber: textOrNull(form.accountNumber),
+  accountHolderName: textOrNull(form.accountHolderName),
+  payoutProofImageUrl: textOrNull(form.payoutProofImageUrl),
   qrisImageUrl: text(form.qrisImageUrl),
   qrisPayload: textOrNull(form.qrisPayload),
   instructionText: textOrNull(form.instructionText),
@@ -51,6 +67,9 @@ export const validatePaymentProfileDraft = (form: PaymentProfileDraft) => {
   const required: Array<[keyof PaymentProfileDraft, string]> = [
     ["accountName", "Account name"],
     ["merchantName", "Merchant name"],
+    ["bankName", "Payout bank"],
+    ["accountNumber", "Payout account number"],
+    ["accountHolderName", "Payout account holder"],
     ["qrisImageUrl", "QRIS image"],
   ];
 

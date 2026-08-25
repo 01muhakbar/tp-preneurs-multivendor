@@ -49,26 +49,49 @@ const parseTimeoutMs = (value: unknown) => {
 };
 
 export const resolveDuitkuConfig = (
-  env: NodeJS.ProcessEnv = process.env
+  env: NodeJS.ProcessEnv = process.env,
+  dbSettings?: any
 ): DuitkuConfig => {
   const enabled = isEnabled(env.DUITKU_ENABLED);
-  const environment = parseEnvironment(env.DUITKU_ENV);
+  const envEnvironment = trim(env.DUITKU_ENV);
+  let environment = parseEnvironment(envEnvironment);
+  let merchantCode = trim(env.DUITKU_MERCHANT_CODE);
+  let apiKey = trim(env.DUITKU_API_KEY);
+
+  if (dbSettings && dbSettings.payments) {
+    if (!envEnvironment && dbSettings.payments.duitkuEnvironment) {
+      environment = parseEnvironment(dbSettings.payments.duitkuEnvironment);
+    }
+    if (environment === "sandbox") {
+      if (dbSettings.payments.duitkuSandboxMerchantCode) {
+        merchantCode = trim(dbSettings.payments.duitkuSandboxMerchantCode);
+      }
+      if (dbSettings.payments.duitkuSandboxApiKey) {
+        apiKey = trim(dbSettings.payments.duitkuSandboxApiKey);
+      }
+    } else {
+      if (dbSettings.payments.duitkuProductionMerchantCode) {
+        merchantCode = trim(dbSettings.payments.duitkuProductionMerchantCode);
+      }
+      if (dbSettings.payments.duitkuProductionApiKey) {
+        apiKey = trim(dbSettings.payments.duitkuProductionApiKey);
+      }
+    }
+  }
+
   const config: DuitkuConfig = {
     enabled,
     environment,
     baseUrl: normalizeBaseUrl(env.DUITKU_BASE_URL, environment),
     createInvoicePath: normalizePath(env.DUITKU_CREATE_INVOICE_PATH),
-    merchantCode: trim(env.DUITKU_MERCHANT_CODE),
-    apiKey: trim(env.DUITKU_API_KEY),
+    merchantCode,
+    apiKey,
     callbackUrl: trim(env.DUITKU_CALLBACK_URL),
     returnUrl: trim(env.DUITKU_RETURN_URL),
     timeoutMs: parseTimeoutMs(env.DUITKU_TIMEOUT_MS),
   };
 
   if (!enabled) return config;
-  if (env.NODE_ENV === "production") {
-    throw new Error("Duitku Step 4 client is not approved for production runtime.");
-  }
   if (!/^https:\/\//i.test(config.baseUrl)) {
     throw new Error("DUITKU_BASE_URL must be an https URL when enabled.");
   }

@@ -77,8 +77,8 @@ const INDO_HEADER_CATS = {
 
 const getNavItems = (t) => [
   { label: t("header.home", "Home"), href: "/" },
-  { label: t("header.shop"), href: "/shop", hasChevron: true },
-  { label: t("header.offers"), href: "/offers", hasDot: true },
+  { label: t("header.shop"), href: "/shop" },
+  { label: t("header.offers"), href: "/offers" },
   { label: t("header.aboutUs"), href: "/about-us" },
   { label: t("header.contactUs"), href: "/contact-us" },
 ];
@@ -266,6 +266,7 @@ export default function StoreHeaderKacha({
   const searchResults = useMemo(() => extractList(searchResultsData), [searchResultsData]);
 
   const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const categoriesRootRef = useRef(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const notificationRootRef = useRef(null);
@@ -371,6 +372,30 @@ export default function StoreHeaderKacha({
     document.addEventListener("mousedown", handlePointerDown);
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, [searchFocused]);
+
+  useEffect(() => {
+    if (!categoriesOpen) return undefined;
+
+    const closeOnOutsidePointer = (event) => {
+      if (!(event.target instanceof Node)) return;
+      if (!categoriesRootRef.current?.contains(event.target)) {
+        setCategoriesOpen(false);
+      }
+    };
+    const closeOnScroll = () => setCategoriesOpen(false);
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setCategoriesOpen(false);
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    document.addEventListener("scroll", closeOnScroll, true);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+      document.removeEventListener("scroll", closeOnScroll, true);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [categoriesOpen]);
 
   useEffect(() => {
     if (!notificationsOpen) return undefined;
@@ -623,7 +648,7 @@ export default function StoreHeaderKacha({
       <div className="mx-auto mt-2 w-full max-w-7xl px-4 pb-2 sm:px-5 lg:px-6">
         <div className="flex min-h-[52px] items-center justify-between gap-4 overflow-visible rounded-[18px] border border-white/80 bg-white px-3 py-1.5 shadow-[0_8px_20px_rgba(var(--tp-primary-rgb)/0.06)] dark:border-slate-800 dark:bg-slate-900">
           <div className="flex min-w-0 items-center gap-2 md:gap-4">
-            <div className="relative" data-demo-dropdown>
+            <div className="relative" ref={categoriesRootRef} data-demo-dropdown>
               <button
                 type="button"
                 onClick={() => setCategoriesOpen((value) => !value)}
@@ -687,10 +712,6 @@ export default function StoreHeaderKacha({
                   }`}
                 >
                   <span>{item.label}</span>
-                  {item.hasChevron ? <ChevronDown className="h-4 w-4" /> : null}
-                  {item.hasDot ? (
-                    <span className="absolute right-1 top-2 h-2.5 w-2.5 rounded-full" style={{ background: ACCENT }} />
-                  ) : null}
                 </Link>
                 );
               })}

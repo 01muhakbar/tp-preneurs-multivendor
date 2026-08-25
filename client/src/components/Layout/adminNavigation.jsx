@@ -152,6 +152,13 @@ export const ADMIN_NAVIGATION = [
     perm: "ORDERS_VIEW",
   },
   {
+    section: "Sales",
+    label: "Withdrawals",
+    to: "/admin/withdrawals",
+    icon: IconReceipt,
+    perm: "SETTINGS_MANAGE",
+  },
+  {
     section: "Workspace",
     label: "All Accounts",
     to: "/admin/all-accounts",

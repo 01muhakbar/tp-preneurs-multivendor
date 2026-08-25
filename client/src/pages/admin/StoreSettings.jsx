@@ -32,6 +32,12 @@ const DEFAULT_FORM = {
   razorpayEnabled: false,
   razorpayKeyId: "",
   razorpayKeySecret: "",
+  duitkuEnabled: false,
+  duitkuEnvironment: "sandbox",
+  duitkuSandboxMerchantCode: "",
+  duitkuSandboxApiKey: "",
+  duitkuProductionMerchantCode: "",
+  duitkuProductionApiKey: "",
   googleLogin: true,
   googleClientId: "",
   googleSecretKey: "",
@@ -88,6 +94,7 @@ const normalizeStoreSettings = (raw) => {
   const cod = isPlainObject(paymentMethods.cashOnDelivery)
     ? paymentMethods.cashOnDelivery
     : {};
+  const duitku = isPlainObject(paymentMethods.duitku) ? paymentMethods.duitku : {};
   const social = isPlainObject(source.socialLogin) ? source.socialLogin : {};
   const google = isPlainObject(social.google) ? social.google : {};
   const github = isPlainObject(social.github) ? social.github : {};
@@ -120,6 +127,26 @@ const normalizeStoreSettings = (raw) => {
     ),
     razorpayKeySecret: text(
       source.razorpayKeySecret ?? payments.razorPayKeySecret ?? razorpay.keySecret
+    ),
+    duitkuEnabled: bool(
+      source.duitkuEnabled ?? payments.duitkuEnabled ?? duitku.enabled,
+      DEFAULT_FORM.duitkuEnabled
+    ),
+    duitkuEnvironment: text(
+      source.duitkuEnvironment ?? payments.duitkuEnvironment ?? duitku.environment,
+      DEFAULT_FORM.duitkuEnvironment
+    ),
+    duitkuSandboxMerchantCode: text(
+      source.duitkuSandboxMerchantCode ?? payments.duitkuSandboxMerchantCode ?? duitku.sandboxMerchantCode
+    ),
+    duitkuSandboxApiKey: text(
+      source.duitkuSandboxApiKey ?? payments.duitkuSandboxApiKey ?? duitku.sandboxApiKey
+    ),
+    duitkuProductionMerchantCode: text(
+      source.duitkuProductionMerchantCode ?? payments.duitkuProductionMerchantCode ?? duitku.productionMerchantCode
+    ),
+    duitkuProductionApiKey: text(
+      source.duitkuProductionApiKey ?? payments.duitkuProductionApiKey ?? duitku.productionApiKey
     ),
     googleLogin: bool(
       source.googleLogin ?? social.googleEnabled ?? google.enabled,
@@ -215,6 +242,12 @@ const buildUpdatePayload = (rawSettings, form) => {
     razorpayEnabled: form.razorpayEnabled,
     razorpayKeyId: form.razorpayKeyId,
     razorpayKeySecret: form.razorpayKeySecret,
+    duitkuEnabled: form.duitkuEnabled,
+    duitkuEnvironment: form.duitkuEnvironment,
+    duitkuSandboxMerchantCode: form.duitkuSandboxMerchantCode,
+    duitkuSandboxApiKey: form.duitkuSandboxApiKey,
+    duitkuProductionMerchantCode: form.duitkuProductionMerchantCode,
+    duitkuProductionApiKey: form.duitkuProductionApiKey,
     googleLogin: form.googleLogin,
     googleClientId: form.googleClientId,
     googleSecretKey: form.googleSecretKey,
@@ -242,6 +275,10 @@ const buildUpdatePayload = (rawSettings, form) => {
       razorPayEnabled: form.razorpayEnabled,
       razorPayKeyId: form.razorpayKeyId,
       razorPayKeySecret: form.razorpayKeySecret,
+      duitkuEnabled: form.duitkuEnabled,
+      duitkuEnvironment: form.duitkuEnvironment,
+      duitkuMerchantCode: form.duitkuMerchantCode,
+      duitkuApiKey: form.duitkuApiKey,
     },
     paymentMethods: {
       ...paymentMethods,
@@ -261,6 +298,13 @@ const buildUpdatePayload = (rawSettings, form) => {
         enabled: form.razorpayEnabled,
         keyId: form.razorpayKeyId,
         keySecret: form.razorpayKeySecret,
+      },
+      duitku: {
+        ...(isPlainObject(paymentMethods.duitku) ? paymentMethods.duitku : {}),
+        enabled: form.duitkuEnabled,
+        environment: form.duitkuEnvironment,
+        merchantCode: form.duitkuMerchantCode,
+        apiKey: form.duitkuApiKey,
       },
     },
     socialLogin: {
@@ -519,6 +563,14 @@ export default function StoreSettingsPage() {
     "payments",
     "razorpay",
   ]);
+  const duitkuSandboxSecretConfigured = hasConfiguredSecret(diagnostics, [
+    "payments",
+    "duitku",
+  ]) && diagnostics?.payments?.duitku?.sandboxApiKeyConfigured;
+  const duitkuProductionSecretConfigured = hasConfiguredSecret(diagnostics, [
+    "payments",
+    "duitku",
+  ]) && diagnostics?.payments?.duitku?.productionApiKeyConfigured;
   const googleSecretConfigured = hasConfiguredSecret(diagnostics, [
     "socialLogin",
     "google",
@@ -547,6 +599,18 @@ export default function StoreSettingsPage() {
     invalid: form.razorpayKeyId && !RAZORPAY_KEY_ID_REGEX.test(form.razorpayKeyId),
     missing:
       !form.razorpayKeyId || (!form.razorpayKeySecret && !razorpaySecretConfigured),
+  });
+  const duitkuStatus = getPaymentStatus({
+    enabled: form.duitkuEnabled,
+    invalid:
+      (form.duitkuEnvironment === "sandbox" && ((form.duitkuSandboxMerchantCode && !/^[A-Za-z0-9]+$/.test(form.duitkuSandboxMerchantCode)) ||
+      (form.duitkuSandboxApiKey && !/^[A-Za-z0-9]+$/.test(form.duitkuSandboxApiKey)))) ||
+      (form.duitkuEnvironment === "production" && ((form.duitkuProductionMerchantCode && !/^[A-Za-z0-9]+$/.test(form.duitkuProductionMerchantCode)) ||
+      (form.duitkuProductionApiKey && !/^[A-Za-z0-9]+$/.test(form.duitkuProductionApiKey)))),
+    missing:
+      form.duitkuEnvironment === "sandbox" 
+        ? !form.duitkuSandboxMerchantCode || (!form.duitkuSandboxApiKey && !duitkuSandboxSecretConfigured)
+        : !form.duitkuProductionMerchantCode || (!form.duitkuProductionApiKey && !duitkuProductionSecretConfigured),
   });
   const googleStatus = getProviderStatus({
     enabled: form.googleLogin,
@@ -581,6 +645,7 @@ export default function StoreSettingsPage() {
     form.cashOnDelivery,
     form.stripeEnabled,
     form.razorpayEnabled,
+    form.duitkuEnabled,
   ].filter(Boolean).length;
   const enabledIntegrations = [
     form.googleAnalytics,
@@ -641,9 +706,9 @@ export default function StoreSettingsPage() {
         <KpiCard
           icon={CreditCard}
           title="Payments"
-          value={`${enabledPayments} / 3`}
-          helper={enabledPayments === 3 ? "Ready" : "Incomplete"}
-          tone={enabledPayments === 3 ? "green" : "amber"}
+          value={`${enabledPayments} / 4`}
+          helper={enabledPayments === 4 ? "Ready" : "Incomplete"}
+          tone={enabledPayments === 4 ? "green" : "amber"}
         />
         <KpiCard
           icon={BarChart3}
@@ -715,6 +780,65 @@ export default function StoreSettingsPage() {
                 onToggle={() => toggleSecret("razorpay")}
                 onChange={(value) => setField("razorpayKeySecret", value)}
               />
+            </Panel>
+
+            <Panel title="Duitku" badge={duitkuStatus}>
+              <Toggle
+                value={form.duitkuEnabled}
+                onChange={(value) => setField("duitkuEnabled", value)}
+              />
+              <div className="store-settings-form-group">
+                <label className="store-settings-label">Environment</label>
+                <select
+                  className="store-settings-input"
+                  value={form.duitkuEnvironment}
+                  disabled={!form.duitkuEnabled}
+                  onChange={(e) => setField("duitkuEnvironment", e.target.value)}
+                >
+                  <option value="sandbox">Sandbox</option>
+                  <option value="production">Production</option>
+                </select>
+              </div>
+              
+              {form.duitkuEnvironment === "sandbox" ? (
+                <>
+                  <TextField
+                    label="Sandbox Merchant Code"
+                    value={form.duitkuSandboxMerchantCode}
+                    placeholder="Enter Sandbox Merchant Code"
+                    disabled={!form.duitkuEnabled}
+                    onChange={(value) => setField("duitkuSandboxMerchantCode", value)}
+                  />
+                  <SecretField
+                    label="Sandbox API Key"
+                    value={form.duitkuSandboxApiKey}
+                    placeholder={duitkuSandboxSecretConfigured ? "Saved API Key" : "Enter Sandbox API Key"}
+                    disabled={!form.duitkuEnabled}
+                    visible={visibleSecrets.duitkuSandbox}
+                    onToggle={() => toggleSecret("duitkuSandbox")}
+                    onChange={(value) => setField("duitkuSandboxApiKey", value)}
+                  />
+                </>
+              ) : (
+                <>
+                  <TextField
+                    label="Production Merchant Code"
+                    value={form.duitkuProductionMerchantCode}
+                    placeholder="Enter Production Merchant Code"
+                    disabled={!form.duitkuEnabled}
+                    onChange={(value) => setField("duitkuProductionMerchantCode", value)}
+                  />
+                  <SecretField
+                    label="Production API Key"
+                    value={form.duitkuProductionApiKey}
+                    placeholder={duitkuProductionSecretConfigured ? "Saved API Key" : "Enter Production API Key"}
+                    disabled={!form.duitkuEnabled}
+                    visible={visibleSecrets.duitkuProduction}
+                    onToggle={() => toggleSecret("duitkuProduction")}
+                    onChange={(value) => setField("duitkuProductionApiKey", value)}
+                  />
+                </>
+              )}
             </Panel>
           </div>
 

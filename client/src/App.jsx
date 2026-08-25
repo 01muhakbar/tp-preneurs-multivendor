@@ -125,6 +125,7 @@ const AdminStoreProfilePage = lazy(() => import("./pages/admin/AdminStoreProfile
 const AdminStoreApplicationsPage = lazy(() =>
   import("./pages/admin/AdminStoreApplicationsPage.jsx")
 );
+const AdminWithdrawalsPage = lazy(() => import("./pages/admin/AdminWithdrawalsPage.jsx"));
 const AdminStoreApplicationDetailPage = lazy(() =>
   import("./pages/admin/AdminStoreApplicationDetailPage.jsx")
 );
@@ -839,6 +840,14 @@ export default function App() {
                 element={
                   <RequirePerm perm="STORE_APPLICATIONS_REVIEW">
                     <Navigate to="/admin/store/applications" replace />
+                  </RequirePerm>
+                }
+              />
+              <Route
+                path="withdrawals"
+                element={
+                  <RequirePerm perm="SETTINGS_MANAGE">
+                    <AdminWithdrawalsPage />
                   </RequirePerm>
                 }
               />

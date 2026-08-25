@@ -73,6 +73,10 @@ const normalizeSnapshot = (value: any) => {
     accountName: textOrNull(value.accountName),
     merchantName: textOrNull(value.merchantName),
     merchantId: textOrNull(value.merchantId),
+    bankName: textOrNull(value.bankName),
+    accountNumber: textOrNull(value.accountNumber),
+    accountHolderName: textOrNull(value.accountHolderName),
+    payoutProofImageUrl: textOrNull(value.payoutProofImageUrl),
     qrisImageUrl: textOrNull(value.qrisImageUrl),
     qrisPayload: textOrNull(value.qrisPayload),
     instructionText: textOrNull(value.instructionText),
@@ -108,6 +112,12 @@ const normalizePendingRequest = (value: any, activeSnapshot: any) => {
     accountName: textOrFallback(value.accountName, activeSnapshot?.accountName || ""),
     merchantName: textOrFallback(value.merchantName, activeSnapshot?.merchantName || ""),
     merchantId: textOrNull(value.merchantId ?? activeSnapshot?.merchantId),
+    bankName: textOrNull(value.bankName ?? activeSnapshot?.bankName),
+    accountNumber: textOrNull(value.accountNumber ?? activeSnapshot?.accountNumber),
+    accountHolderName: textOrNull(value.accountHolderName ?? activeSnapshot?.accountHolderName),
+    payoutProofImageUrl: textOrNull(
+      value.payoutProofImageUrl ?? activeSnapshot?.payoutProofImageUrl
+    ),
     qrisImageUrl: textOrFallback(value.qrisImageUrl, activeSnapshot?.qrisImageUrl || ""),
     qrisPayload: textOrNull(value.qrisPayload ?? activeSnapshot?.qrisPayload),
     instructionText: textOrNull(value.instructionText ?? activeSnapshot?.instructionText),
@@ -231,6 +241,23 @@ const normalizeSellerPaymentProfile = (payload: any) => {
       ),
       merchantId: textOrNull(
         requestDraft?.merchantId ?? pendingRequest?.merchantId ?? activeSnapshot?.merchantId
+      ),
+      bankName: textOrFallback(
+        requestDraft?.bankName,
+        pendingRequest?.bankName || activeSnapshot?.bankName || ""
+      ),
+      accountNumber: textOrFallback(
+        requestDraft?.accountNumber,
+        pendingRequest?.accountNumber || activeSnapshot?.accountNumber || ""
+      ),
+      accountHolderName: textOrFallback(
+        requestDraft?.accountHolderName,
+        pendingRequest?.accountHolderName || activeSnapshot?.accountHolderName || ""
+      ),
+      payoutProofImageUrl: textOrNull(
+        requestDraft?.payoutProofImageUrl ??
+          pendingRequest?.payoutProofImageUrl ??
+          activeSnapshot?.payoutProofImageUrl
       ),
       qrisImageUrl: textOrFallback(
         requestDraft?.qrisImageUrl,

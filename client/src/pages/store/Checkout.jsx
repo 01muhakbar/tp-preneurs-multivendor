@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useOutletContext } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { WalletCards } from "lucide-react";
+import { WalletCards, CreditCard } from "lucide-react";
 import { createOrderSchema } from "@ecommerce/schemas";
 import { useAuth } from "../../auth/useAuth.js";
 import { useCart } from "../../hooks/useCart.ts";
@@ -52,11 +52,35 @@ const INPUT_CLASS =
 
 const PAYMENT_OPTIONS = [
   {
+    id: "duitku",
+    title: "Duitku POP (Virtual Account, E-Wallet, Retail)",
+    Icon: CreditCard,
+  },
+  {
     id: "qris",
-    title: "QRIS by Store",
+    title: "Manual Transfer (QRIS by Store)",
     Icon: WalletCards,
   },
 ];
+
+const DUITKU_PAYMENT_METHOD_OPTIONS = [
+  { code: "BC", label: "BCA VA", category: "Virtual Account" },
+  { code: "I1", label: "BNI VA", category: "Virtual Account" },
+  { code: "BR", label: "BRI VA", category: "Virtual Account" },
+  { code: "M2", label: "Mandiri VA H2H", category: "Virtual Account" },
+  { code: "BT", label: "Permata VA", category: "Virtual Account" },
+  { code: "B1", label: "CIMB Niaga VA", category: "Virtual Account" },
+  { code: "BV", label: "BSI VA", category: "Virtual Account" },
+  { code: "DA", label: "DANA", category: "E-Wallet" },
+  { code: "OV", label: "OVO", category: "E-Wallet" },
+  { code: "IR", label: "Indomaret", category: "Retail" },
+  { code: "FT", label: "Retail", category: "Retail" },
+  { code: "SP", label: "QRIS ShopeePay", category: "QRIS" },
+  { code: "NQ", label: "QRIS Nobu", category: "QRIS" },
+  { code: "GQ", label: "QRIS Gudang Voucher", category: "QRIS" },
+];
+
+const DEFAULT_DUITKU_PAYMENT_METHOD = "";
 const checkoutCustomerSchema = createOrderSchema.shape.customer;
 const DEFAULT_CHECKOUT_COPY = {
   personalDetails: {
@@ -1276,7 +1300,8 @@ const getCheckoutPreviewStatus = ({
 export default function CheckoutPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  useOutletContext();
+  const outletContext = useOutletContext() || {};
+  const publicStoreSettings = outletContext.storeSettings || null;
   const { user, isLoading: isAuthLoading } = useAuth() || {};
   const queryClient = useQueryClient();
   const {
@@ -1309,6 +1334,7 @@ export default function CheckoutPage() {
   const [isAddressLoading, setIsAddressLoading] = useState(false);
   const [addressStatus, setAddressStatus] = useState("");
   const [paymentOptionId, setPaymentOptionId] = useState(PAYMENT_OPTIONS[0].id);
+  const [duitkuPaymentMethod, setDuitkuPaymentMethod] = useState(DEFAULT_DUITKU_PAYMENT_METHOD);
   const [couponCode, setCouponCode] = useState("");
   const [couponMessage, setCouponMessage] = useState("");
   const [couponStatus, setCouponStatus] = useState("idle");
@@ -1687,8 +1713,27 @@ export default function CheckoutPage() {
       isCheckoutSummaryReady &&
       checkoutPreviewGroups.length > 0 &&
       checkoutPreviewGroups.every((group) => group?.paymentAvailable === true);
-    return allStoresPaymentReady ? PAYMENT_OPTIONS : [];
-  }, [checkoutPreviewGroups, isCheckoutSummaryReady]);
+    
+    if (!allStoresPaymentReady) return [];
+
+    const availableMethods = Array.isArray(publicStoreSettings?.payments?.methods)
+      ? publicStoreSettings.payments.methods
+      : [];
+    const availableCodes = availableMethods
+      .map((method) => String(method?.code || "").trim().toUpperCase())
+      .filter(Boolean);
+    const hasDuitkuAvailabilitySignal =
+      availableCodes.length > 0 ||
+      typeof publicStoreSettings?.payments?.duitkuEnabled === "boolean";
+    const isDuitkuAvailable = hasDuitkuAvailabilitySignal
+      ? availableCodes.includes("DUITKU") || publicStoreSettings?.payments?.duitkuEnabled === true
+      : true;
+
+    return PAYMENT_OPTIONS.filter(option => {
+      if (option.id === "duitku") return isDuitkuAvailable;
+      return true; // Keep qris by default as fallback
+    });
+  }, [checkoutPreviewGroups, isCheckoutSummaryReady, publicStoreSettings]);
   const paymentMethodNotice = previewHasPaymentBlocker
     ? previewPaymentBlockerMessage ||
       "Payment is unavailable until every store has an active approved payment setup."
@@ -1702,6 +1747,10 @@ export default function CheckoutPage() {
     if (hasSelected) return;
     setPaymentOptionId(paymentOptions[0].id);
   }, [paymentOptions, paymentOptionId]);
+
+  const hasDuitkuChannelSelection =
+    paymentOptionId !== "duitku" ||
+    DUITKU_PAYMENT_METHOD_OPTIONS.some((option) => option.code === duitkuPaymentMethod);
 
   const checkoutPreviewDebugSnapshot = useMemo(
     () => ({
@@ -2365,6 +2414,11 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (!hasDuitkuChannelSelection) {
+      setError("Please choose a Duitku payment channel.");
+      return;
+    }
+
     submitLockRef.current = true;
     setIsSubmitting(true);
     try {
@@ -2380,6 +2434,8 @@ export default function CheckoutPage() {
             : undefined,
         useDefaultShipping,
         shippingDetails: useDefaultShipping ? undefined : shippingDetailsPayload,
+        paymentMethod: paymentOptionId === "duitku" ? "DUITKU" : "QRIS",
+        duitkuPaymentMethod: paymentOptionId === "duitku" ? duitkuPaymentMethod : undefined,
       };
       const checkoutRequestSignature = JSON.stringify({
         items: summaryItems
@@ -2400,6 +2456,8 @@ export default function CheckoutPage() {
         useDefaultShipping: submitPayload.useDefaultShipping === true,
         shippingDetails: submitPayload.shippingDetails || null,
         customer: submitPayload.customer || null,
+        paymentMethod: submitPayload.paymentMethod || null,
+        duitkuPaymentMethod: submitPayload.duitkuPaymentMethod || null,
       });
       const checkoutRequestKey = getCheckoutRequestKeyForSignature(checkoutRequestSignature);
       void preloadAccountPaymentRoute();
@@ -2428,7 +2486,8 @@ export default function CheckoutPage() {
       if (resolvedOrderRef) {
         paymentParams.set("ref", resolvedOrderRef);
       }
-      const nextPaymentUrl = `/user/my-orders/${resolvedOrderId}/payment?${paymentParams.toString()}`;
+      const fallbackPaymentUrl = `/user/my-orders/${resolvedOrderId}/payment?${paymentParams.toString()}`;
+      const nextPaymentUrl = result?.paymentUrl ? result.paymentUrl : fallbackPaymentUrl;
       setPaymentRedirectUrl(nextPaymentUrl);
       clearCheckoutRequestKeyForSignature(checkoutRequestSignature);
       clearCart();
@@ -2504,7 +2563,8 @@ export default function CheckoutPage() {
       paymentReady:
         isCheckoutSummaryReady &&
         checkoutPreviewGroups.length > 0 &&
-        checkoutPreviewGroups.every((group) => group?.paymentAvailable === true),
+        checkoutPreviewGroups.every((group) => group?.paymentAvailable === true) &&
+        paymentOptions.length > 0,
     },
     cartItems: summaryItems,
     couponCode,
@@ -2522,6 +2582,12 @@ export default function CheckoutPage() {
         errors: fieldErrors,
         useSavedAddress: useDefaultShipping,
         lockAddress: lockAddressFields,
+        paymentOptionId,
+        setPaymentOptionId,
+        paymentOptions,
+        duitkuPaymentMethod,
+        setDuitkuPaymentMethod,
+        duitkuPaymentMethods: DUITKU_PAYMENT_METHOD_OPTIONS,
       }}
       options={{
         provinces: provinceOptions,
@@ -2550,8 +2616,11 @@ export default function CheckoutPage() {
           couponStatus === "loading" ||
           hasGroupCouponLoading ||
           isPreviewBlockingSubmission ||
-          couponBlocksSubmission,
-        submitMessage: isPreviewBlockingSubmission
+          couponBlocksSubmission ||
+          !hasDuitkuChannelSelection,
+        submitMessage: !hasDuitkuChannelSelection
+          ? "Choose a Duitku payment channel."
+          : isPreviewBlockingSubmission
           ? previewHasPaymentBlocker
             ? "Payment is unavailable for one or more stores."
             : checkoutPreviewInvalidItems.length > 0

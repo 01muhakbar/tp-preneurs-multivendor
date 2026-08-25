@@ -109,6 +109,9 @@ const META_KEYS = [
   "paymentAccountName",
   "paymentMerchantName",
   "paymentMerchantId",
+  "paymentBankName",
+  "paymentAccountNumber",
+  "paymentAccountHolderName",
   "paymentQrisImage",
   "paymentQrisPayload",
   "paymentInstructionText",
@@ -154,6 +157,9 @@ const INITIAL_FORM = {
   paymentAccountName: "",
   paymentMerchantName: "",
   paymentMerchantId: "",
+  paymentBankName: "",
+  paymentAccountNumber: "",
+  paymentAccountHolderName: "",
   paymentQrisImage: null,
   paymentQrisPayload: "",
   paymentInstructionText: "",
@@ -203,6 +209,17 @@ function applicationToForm(application) {
     district: metadata.district || "",
     postalCode: metadata.postalCode || "",
     country: metadata.country || "Indonesia",
+    paymentAccountName: payout.accountName || metadata.paymentAccountName || "",
+    paymentMerchantName: payout.merchantName || metadata.paymentMerchantName || "",
+    paymentMerchantId: payout.merchantId || metadata.paymentMerchantId || "",
+    paymentBankName: payout.bankName || metadata.paymentBankName || "",
+    paymentAccountNumber: payout.accountNumber || metadata.paymentAccountNumber || "",
+    paymentAccountHolderName:
+      payout.accountHolderName ||
+      metadata.paymentAccountHolderName ||
+      payout.accountName ||
+      metadata.paymentAccountName ||
+      "",
     paymentQrisImage:
       metadata.paymentQrisImage ||
       (payout.qrisImageUrl
@@ -270,16 +287,17 @@ function formToPayload(form, visualStep) {
       accountName: text(form.paymentAccountName) || null,
       merchantName: text(form.paymentMerchantName) || null,
       merchantId: text(form.paymentMerchantId) || null,
+      bankName: text(form.paymentBankName) || null,
+      accountNumber: text(form.paymentAccountNumber) || null,
+      accountHolderName: text(form.paymentAccountHolderName) || text(form.paymentAccountName) || null,
       qrisImageUrl: text(form.paymentQrisImage?.url) || null,
       qrisPayload: text(form.paymentQrisPayload) || null,
       instructionText: text(form.paymentInstructionText) || null,
       sellerNote: text(form.paymentSellerNote) || null,
       payoutMethod: PAYMENT_PROFILE_PAYMENT_TYPE,
-      accountHolderName: text(form.paymentAccountName) || null,
-      accountNumber: text(form.paymentMerchantId) || null,
-      bankName: PAYMENT_PROFILE_PROVIDER_CODE,
       accountHolderMatchesIdentity:
-        text(form.paymentAccountName).toLowerCase() === text(form.ownerName).toLowerCase(),
+        text(form.paymentAccountHolderName || form.paymentAccountName).toLowerCase() ===
+        text(form.ownerName).toLowerCase(),
     },
     complianceSnapshot: {
       supportEmail: text(form.ownerEmail) || null,
@@ -307,6 +325,9 @@ function paymentProfileDraftFromForm(form) {
     accountName: text(form.paymentAccountName),
     merchantName: text(form.paymentMerchantName),
     merchantId: text(form.paymentMerchantId),
+    bankName: text(form.paymentBankName),
+    accountNumber: text(form.paymentAccountNumber),
+    accountHolderName: text(form.paymentAccountHolderName),
     qrisImageUrl: text(form.paymentQrisImage?.url),
     qrisPayload: text(form.paymentQrisPayload),
     instructionText: text(form.paymentInstructionText),
@@ -377,6 +398,11 @@ function validateStep(form, step) {
     if (paymentErrors.accountName) errors.paymentAccountName = paymentErrors.accountName;
     if (paymentErrors.merchantName) errors.paymentMerchantName = paymentErrors.merchantName;
     if (paymentErrors.merchantId) errors.paymentMerchantId = paymentErrors.merchantId;
+    if (paymentErrors.bankName) errors.paymentBankName = paymentErrors.bankName;
+    if (paymentErrors.accountNumber) errors.paymentAccountNumber = paymentErrors.accountNumber;
+    if (paymentErrors.accountHolderName) {
+      errors.paymentAccountHolderName = paymentErrors.accountHolderName;
+    }
     if (paymentErrors.qrisImageUrl) errors.paymentQrisImage = paymentErrors.qrisImageUrl;
     if (paymentErrors.qrisPayload) errors.paymentQrisPayload = paymentErrors.qrisPayload;
     if (paymentErrors.instructionText) errors.paymentInstructionText = paymentErrors.instructionText;
@@ -941,6 +967,9 @@ export default function SellerStoreApplicationPage() {
                 <div className="ssa-form-grid ssa-form-grid--two">
                   <Field label="Account Name" name="paymentAccountName" value={form.paymentAccountName} error={errors.paymentAccountName} required autoComplete="name" maxLength={PAYMENT_PROFILE_LIMITS.accountName} {...common} />
                   <Field label="Merchant Name" name="paymentMerchantName" value={form.paymentMerchantName} error={errors.paymentMerchantName} required maxLength={PAYMENT_PROFILE_LIMITS.merchantName} {...common} />
+                  <Field label="Payout Bank" name="paymentBankName" value={form.paymentBankName} error={errors.paymentBankName} required maxLength={PAYMENT_PROFILE_LIMITS.bankName} hint="Bank used by Admin for seller withdrawal transfer." {...common} />
+                  <Field label="Payout Account Number" name="paymentAccountNumber" value={form.paymentAccountNumber} error={errors.paymentAccountNumber} required maxLength={PAYMENT_PROFILE_LIMITS.accountNumber} {...common} />
+                  <Field label="Payout Account Holder" name="paymentAccountHolderName" value={form.paymentAccountHolderName} error={errors.paymentAccountHolderName} required maxLength={PAYMENT_PROFILE_LIMITS.accountHolderName} {...common} />
                 </div>
                 <div className="ssa-form-grid" style={{ marginTop: 14 }}>
                   <Field label="QRIS Image URL" name="paymentQrisImageUrl" value={form.paymentQrisImage?.url || ""} error={errors.paymentQrisImageUrl} required maxLength={PAYMENT_PROFILE_LIMITS.qrisImageUrl} hint="The image buyers will see after Admin approval." onChange={(name, value) => {

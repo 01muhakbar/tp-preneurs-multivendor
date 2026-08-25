@@ -37,6 +37,14 @@ const PAYMENT_MAP = {
 
 const mapStatus = (raw) => STATUS_MAP[raw?.toLowerCase()] || "Unknown";
 const mapPaymentStatus = (raw) => PAYMENT_MAP[raw?.toLowerCase()] || "Unknown";
+const getPaymentMethodLabel = (source) =>
+  source?.paymentMethodLabel ||
+  source?.paymentSummary?.paymentMethodLabel ||
+  source?.paymentSummary?.paymentMethod ||
+  source?.paymentSummary?.paymentChannel ||
+  source?.paymentSummary?.paymentType ||
+  source?.paymentMethod ||
+  "Unknown";
 
 export const fetchSellerWorkspace2026Orders = async (storeSlug, params = {}) => {
   try {
@@ -68,7 +76,7 @@ export const fetchSellerWorkspace2026Orders = async (storeSlug, params = {}) => 
       products: [],
       channel: item.checkoutMode || "Web",
       paymentStatus: mapPaymentStatus(item.paymentStatus),
-      paymentMethod: item.paymentSummary?.paymentType || "Unknown",
+      paymentMethod: getPaymentMethodLabel(item),
       fulfillmentStatus: mapStatus(item.fulfillmentStatus),
       courier: item.readModel?.parentOrder?.checkoutMode === "MULTI_STORE" ? "Platform Courier" : "Unknown",
       service: "Standard",
@@ -141,7 +149,7 @@ export const fetchSellerWorkspace2026OrderDetail = async (storeSlug, suborderId)
       products: data.items || [],
       payment: {
         status: mapPaymentStatus(data.paymentStatus),
-        method: data.paymentSummary?.paymentType || "Unknown",
+        method: getPaymentMethodLabel(data),
         total: data.totals?.totalAmount || 0
       },
       fulfillment: {

@@ -33,6 +33,7 @@ import {
   openSellerPaymentRequestStatuses,
   storePaymentProfileRequestAttributes,
 } from "../services/sharedContracts/storePaymentProfileState.js";
+import { buildWithdrawalEligibilityMeta } from "../services/withdrawals/withdrawalEligibility.service.js";
 
 const router = Router();
 
@@ -108,11 +109,6 @@ const toUpper = (value: unknown, fallback = "") =>
   String(value || fallback)
     .trim()
     .toUpperCase();
-
-const toLower = (value: unknown, fallback = "") =>
-  String(value || fallback)
-    .trim()
-    .toLowerCase();
 
 const hasText = (value: unknown) => String(value || "").trim().length > 0;
 
@@ -399,20 +395,28 @@ const summarizeSuborders = (suborders: any[]) => {
 };
 
 const summarizeEligiblePaidSuborders = (suborders: any[]) => {
-  const eligible = suborders.filter((suborder) => {
-    const paymentStatus = toUpper(getAttr(suborder, "paymentStatus"), "UNPAID");
-    const fulfillmentStatus = toUpper(
-      getAttr(suborder, "fulfillmentStatus"),
-      "UNFULFILLED"
-    );
-    const orderStatus = toLower(getAttr(suborder?.order, "status"), "pending");
-
-    return (
-      paymentStatus === "PAID" &&
-      fulfillmentStatus !== "CANCELLED" &&
-      orderStatus !== "cancelled"
-    );
-  });
+  const paid = suborders.filter(
+    (suborder) => toUpper(getAttr(suborder, "paymentStatus"), "UNPAID") === "PAID"
+  );
+  const eligibilityRows = paid.map((suborder) =>
+    buildWithdrawalEligibilityMeta({
+      paymentStatus: getAttr(suborder, "paymentStatus"),
+      fulfillmentStatus: getAttr(suborder, "fulfillmentStatus"),
+      orderStatus: getAttr(suborder?.order, "status"),
+      totalAmount: getAttr(suborder, "totalAmount"),
+      serviceFeeAmount: getAttr(suborder, "serviceFeeAmount"),
+    })
+  );
+  const eligible = paid.filter(
+    (suborder) =>
+      buildWithdrawalEligibilityMeta({
+        paymentStatus: getAttr(suborder, "paymentStatus"),
+        fulfillmentStatus: getAttr(suborder, "fulfillmentStatus"),
+        orderStatus: getAttr(suborder?.order, "status"),
+        totalAmount: getAttr(suborder, "totalAmount"),
+        serviceFeeAmount: getAttr(suborder, "serviceFeeAmount"),
+      }).code === "ELIGIBLE"
+  );
 
   return {
     visible: true,
@@ -421,28 +425,32 @@ const summarizeEligiblePaidSuborders = (suborders: any[]) => {
       (sum, suborder) => sum + toNumber(getAttr(suborder, "totalAmount")),
       0
     ),
-    awaitingFulfillmentCount: eligible.filter(
+    paidCount: paid.length,
+    awaitingFulfillmentCount: paid.filter(
       (suborder) => toUpper(getAttr(suborder, "fulfillmentStatus")) === "UNFULFILLED"
     ).length,
-    inProgressCount: eligible.filter((suborder) =>
+    inProgressCount: paid.filter((suborder) =>
       ["PROCESSING", "SHIPPED"].includes(
         toUpper(getAttr(suborder, "fulfillmentStatus"), "UNFULFILLED")
       )
     ).length,
-    deliveredCount: eligible.filter(
-      (suborder) => toUpper(getAttr(suborder, "fulfillmentStatus")) === "DELIVERED"
-    ).length,
+    deliveredCount: eligible.length,
+    waitingDeliveryCount: eligibilityRows.filter((row) => row.code === "WAITING_DELIVERY").length,
+    estimatedPayoutAmount: eligibilityRows.reduce((sum, row) => sum + toNumber(row.netAmount), 0),
+    nextPayoutDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     basis: [
       "SUBORDER.paymentStatus = PAID",
-      "SUBORDER.fulfillmentStatus != CANCELLED",
+      "SUBORDER.fulfillmentStatus = DELIVERED",
       "ORDER.status != cancelled",
     ],
     hint:
       eligible.length > 0
-        ? "These rows are operationally eligible paid suborders under the current read-only snapshot basis."
-        : "No paid suborder currently matches the eligibility basis for this read-only snapshot.",
+        ? "These paid and delivered suborders can increase seller available balance."
+        : paid.length > 0
+          ? "Paid suborders are visible, but available balance increases only after Order Status is Delivered."
+          : "No paid suborder currently matches the eligibility basis for this read-only snapshot.",
     boundaryNote:
-      "This is not a payout balance, settlement statement, or withdrawable amount. Admin review, disputes, refunds, and future payout rules can still change the eventual finance outcome.",
+      "Available balance is derived only from paid suborders whose Order Status/Fulfillment Status is Delivered. Admin review, disputes, refunds, and future payout rules can still change the eventual finance outcome.",
   };
 };
 

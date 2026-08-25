@@ -11,11 +11,19 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
+  const requestUrl = String(config.url || "");
+  const usesScopedCookie =
+    requestUrl.startsWith("/seller") ||
+    requestUrl.startsWith("/auth/seller") ||
+    requestUrl.startsWith("/auth/admin") ||
+    requestUrl.startsWith("/admin");
   let token = null;
-  try {
-    token = localStorage.getItem("authToken");
-  } catch (_) {
-    token = null;
+  if (!usesScopedCookie) {
+    try {
+      token = localStorage.getItem("authToken");
+    } catch (_) {
+      token = null;
+    }
   }
 
   const headers = AxiosHeaders.from(config.headers);
@@ -38,11 +46,13 @@ api.interceptors.response.use(
       typeof url === "string" &&
       (url.includes("/auth/me") ||
         url.includes("/auth/account/me") ||
+        url.includes("/auth/seller/me") ||
         url.includes("/auth/admin/me"));
     const isAuthFormEndpoint =
       typeof url === "string" &&
       [
         "/auth/login",
+        "/auth/seller/login",
         "/auth/admin/login",
         "/auth/register",
         "/auth/register/resend-otp",
@@ -55,6 +65,7 @@ api.interceptors.response.use(
         "/auth/admin/forgot-password",
         "/auth/admin/reset-password",
         "/auth/logout",
+        "/auth/seller/logout",
         "/auth/admin/logout",
       ].some((path) => url.includes(path));
     const msg = err?.response?.data || err.message;

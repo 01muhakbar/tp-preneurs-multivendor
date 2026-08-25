@@ -36,6 +36,7 @@ import { Currency } from "./Currency.js";
 import { Notification } from "./Notification.js";
 import { UserAddress } from "./UserAddress.js";
 import { UserRegistrationVerification } from "./UserRegistrationVerification.js";
+import { StoreWithdrawal, initStoreWithdrawal } from "./StoreWithdrawal.js";
 import { ensureSystemStoreRoles } from "../services/seller/storeRoles.js";
 
 type ProductUserIdFkRow = {
@@ -140,6 +141,7 @@ function initModels() {
   Notification.initModel(sequelize);
   UserAddress.initModel(sequelize);
   UserRegistrationVerification.initModel(sequelize);
+  initStoreWithdrawal(sequelize);
 
   const models: any = {
     User,
@@ -150,6 +152,7 @@ function initModels() {
     StorePaymentProfile,
     StorePaymentProfileRequest,
     StoreApplication,
+    StoreWithdrawal,
     Product,
     Category,
     ProductCategory,
@@ -559,4 +562,5 @@ export {
   Notification,
   UserAddress,
   UserRegistrationVerification,
+  StoreWithdrawal,
 };

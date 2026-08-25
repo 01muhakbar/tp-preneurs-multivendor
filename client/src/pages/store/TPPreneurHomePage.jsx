@@ -1011,7 +1011,7 @@ function ProductCard({ product, compact = false, showDiscount = false }) {
             <Link
               to={`/product/${product.routeSlug || product.slug || product.id}`}
               aria-label={`View ${product.name}`}
-              className="absolute bottom-3 left-3 z-10 grid h-11 w-11 place-items-center rounded-full bg-white text-[var(--tp-primary)] shadow-[0_10px_20px_rgba(3,76,133,0.12)] transition hover:bg-[var(--tp-accent)] hover:text-white dark:bg-slate-900 dark:text-sky-300"
+              className="absolute bottom-3 left-3 z-10 grid h-11 w-11 place-items-center rounded-full border border-white/80 bg-white text-[var(--tp-primary)] shadow-[0_10px_20px_rgba(3,76,133,0.12)] transition hover:bg-[var(--tp-accent)] hover:text-white dark:border-sky-400/60 dark:bg-slate-950/90 dark:!text-sky-100 dark:shadow-[0_10px_24px_rgba(14,165,233,0.18)] dark:hover:border-[var(--tp-accent)] dark:hover:bg-[var(--tp-accent)] dark:hover:!text-white"
             >
               <Eye className="h-5 w-5" />
             </Link>
@@ -1039,7 +1039,7 @@ function ProductCard({ product, compact = false, showDiscount = false }) {
             <Link
               to={`/product/${product.routeSlug || product.slug || product.id}`}
               aria-label={`View ${product.name}`}
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[#dbe6f3] text-[var(--tp-primary)] transition hover:border-[var(--tp-accent)] hover:bg-[var(--tp-accent)] hover:text-white dark:border-slate-700"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[#dbe6f3] bg-white text-[var(--tp-primary)] transition hover:border-[var(--tp-accent)] hover:bg-[var(--tp-accent)] hover:text-white dark:border-sky-400/60 dark:bg-slate-950/90 dark:!text-sky-100 dark:hover:border-[var(--tp-accent)] dark:hover:bg-[var(--tp-accent)] dark:hover:!text-white"
             >
               <Eye className="h-4 w-4" />
             </Link>
@@ -1352,7 +1352,7 @@ export default function TPPreneurHomePage() {
             action={
               <Link
                 to={featuredCategoriesConfig.buttonLink}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[var(--tp-primary)] px-5 text-sm font-black text-[var(--tp-primary)] transition hover:bg-[var(--tp-primary)] hover:text-white dark:text-sky-300"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[var(--tp-primary)] bg-white/70 px-5 text-sm font-black text-[var(--tp-primary)] transition hover:bg-[var(--tp-primary)] hover:text-white dark:border-sky-400/70 dark:bg-slate-950/70 dark:!text-sky-100 dark:hover:border-sky-300 dark:hover:bg-[var(--tp-primary)] dark:hover:!text-white"
               >
                 {displayFeaturedBtn}
                 <ArrowRight className="h-4 w-4" />
@@ -1418,11 +1418,11 @@ export default function TPPreneurHomePage() {
                     return <option key={option.value} value={option.value}>{label}</option>;
                   })}
                 </select>
-                <ChevronRight className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 rotate-90 text-[#557099]" />
+                <ChevronRight className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 rotate-90 text-[#557099] dark:!text-sky-300" />
               </label>
               <Link
                 to={popularViewAllHref}
-                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-[var(--tp-primary)] px-5 text-sm font-black text-[var(--tp-primary)] transition hover:bg-[var(--tp-primary)] hover:text-white"
+                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-[var(--tp-primary)] bg-white/70 px-5 text-sm font-black text-[var(--tp-primary)] transition hover:bg-[var(--tp-primary)] hover:text-white dark:border-sky-400/70 dark:bg-slate-950/70 dark:!text-sky-100 dark:hover:border-sky-300 dark:hover:bg-[var(--tp-primary)] dark:hover:!text-white"
               >
                 {displayPopularBtn}
                 <ArrowRight className="h-4 w-4" />
@@ -1501,16 +1501,16 @@ export default function TPPreneurHomePage() {
             <span className="h-2.5 w-2.5 rounded-full bg-[var(--tp-accent)]" />
           </h2>
           <div className="hidden items-center gap-3 sm:flex">
-            <button className="grid h-11 w-11 place-items-center rounded-full border border-[#dbe6f3] text-[var(--tp-primary)] dark:border-slate-700">
+            <button className="grid h-11 w-11 place-items-center rounded-full border border-[#dbe6f3] bg-white text-[var(--tp-primary)] transition hover:border-[var(--tp-primary)] hover:bg-[var(--tp-primary)] hover:text-white dark:border-sky-400/60 dark:bg-slate-950/70 dark:!text-sky-100 dark:hover:border-sky-300 dark:hover:bg-[var(--tp-primary)] dark:hover:!text-white">
               <ChevronLeft className="h-5 w-5" />
             </button>
             <Link
               to="/search?discounted=true&page=1"
-              className="inline-flex h-11 items-center rounded-full border border-[var(--tp-primary)] px-5 text-sm font-black text-[var(--tp-primary)] transition hover:bg-[var(--tp-primary)] hover:text-white"
+              className="inline-flex h-11 items-center rounded-full border border-[var(--tp-primary)] bg-white/70 px-5 text-sm font-black text-[var(--tp-primary)] transition hover:bg-[var(--tp-primary)] hover:text-white dark:border-sky-400/70 dark:bg-slate-950/70 dark:!text-sky-100 dark:hover:border-sky-300 dark:hover:bg-[var(--tp-primary)] dark:hover:!text-white"
             >
               {isIndo ? "Lihat semua" : "View all"}
             </Link>
-            <button className="grid h-11 w-11 place-items-center rounded-full bg-[var(--tp-accent)] text-white">
+            <button className="grid h-11 w-11 place-items-center rounded-full border border-[var(--tp-accent)] bg-[var(--tp-accent)] text-white shadow-[0_10px_22px_rgba(255,111,0,0.22)] transition hover:bg-[#d95700]">
               <ChevronRight className="h-5 w-5" />
             </button>
           </div>

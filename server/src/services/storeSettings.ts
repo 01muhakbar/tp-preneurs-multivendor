@@ -13,6 +13,12 @@ export const DEFAULT_STORE_SETTINGS = {
     razorPayEnabled: false,
     razorPayKeyId: "",
     razorPayKeySecret: "",
+    duitkuEnabled: false,
+    duitkuEnvironment: "sandbox",
+    duitkuSandboxMerchantCode: "",
+    duitkuSandboxApiKey: "",
+    duitkuProductionMerchantCode: "",
+    duitkuProductionApiKey: "",
   },
   socialLogin: {
     googleEnabled: true,
@@ -54,6 +60,7 @@ const PAYMENT_RUNTIME_SUPPORTED = {
   COD: true,
   STRIPE: true,
   RAZORPAY: false,
+  DUITKU: true,
 } as const;
 
 const SOCIAL_RUNTIME_SUPPORTED = {
@@ -67,6 +74,8 @@ const STRIPE_SECRET_KEY_REGEX = /^sk_(test|live)_[A-Za-z0-9]+$/;
 const STRIPE_WEBHOOK_SECRET_REGEX = /^whsec_[A-Za-z0-9]+$/;
 const RAZORPAY_KEY_ID_REGEX = /^rzp_(test|live)_[A-Za-z0-9]+$/;
 const RAZORPAY_SECRET_REGEX = /^[A-Za-z0-9_-]{8,128}$/;
+const DUITKU_MERCHANT_CODE_REGEX = /^[A-Za-z0-9]+$/;
+const DUITKU_API_KEY_REGEX = /^[A-Za-z0-9]+$/;
 const GOOGLE_ANALYTICS_KEY_REGEX = /^(G|AW|UA)-[A-Z0-9-]+$/;
 const TAWK_ID_REGEX = /^[A-Za-z0-9]{6,64}$/;
 
@@ -89,6 +98,11 @@ const toBool = (value: unknown, fallback = false) => {
     if (["false", "0", "no", "off"].includes(normalized)) return false;
   }
   return fallback;
+};
+
+const normalizeDuitkuEnvironment = (value: unknown, fallback = "sandbox") => {
+  const normalized = toText(value, fallback).toLowerCase();
+  return normalized === "production" ? "production" : "sandbox";
 };
 
 const mergeDeep = (base: any, source: any): any => {
@@ -233,6 +247,17 @@ export const sanitizeStoreSettings = (rawData: unknown) => {
       ),
       razorPayKeyId: toText(paymentsSource.razorPayKeyId, ""),
       razorPayKeySecret: toText(paymentsSource.razorPayKeySecret, ""),
+      duitkuEnabled: toBool(
+        paymentsSource.duitkuEnabled,
+        defaults.payments.duitkuEnabled
+      ),
+      duitkuEnvironment: ["sandbox", "production"].includes(String(paymentsSource.duitkuEnvironment).toLowerCase())
+        ? String(paymentsSource.duitkuEnvironment).toLowerCase()
+        : defaults.payments.duitkuEnvironment,
+      duitkuSandboxMerchantCode: toText(paymentsSource.duitkuSandboxMerchantCode, ""),
+      duitkuSandboxApiKey: toText(paymentsSource.duitkuSandboxApiKey, ""),
+      duitkuProductionMerchantCode: toText(paymentsSource.duitkuProductionMerchantCode, ""),
+      duitkuProductionApiKey: toText(paymentsSource.duitkuProductionApiKey, ""),
     },
     socialLogin: {
       ...defaults.socialLogin,
@@ -314,6 +339,10 @@ export const mergeStoreSettingsForUpdate = (existingRaw: unknown, incomingRaw: u
         existing.payments.stripeWebhookSecret,
       razorPayKeySecret:
         toText(incoming.payments.razorPayKeySecret, "") || existing.payments.razorPayKeySecret,
+      duitkuSandboxApiKey:
+        toText(incoming.payments.duitkuSandboxApiKey, "") || existing.payments.duitkuSandboxApiKey,
+      duitkuProductionApiKey:
+        toText(incoming.payments.duitkuProductionApiKey, "") || existing.payments.duitkuProductionApiKey,
     },
     socialLogin: {
       ...incoming.socialLogin,
@@ -470,6 +499,51 @@ export const buildStoreSettingsContracts = (rawSettings: unknown) => {
     configuredButUnavailableLabel: "Configured, runtime unavailable",
   });
 
+  const duitkuEnvEnabled = toBool(process.env.DUITKU_ENABLED, false);
+  const duitkuEnvironment = normalizeDuitkuEnvironment(
+    process.env.DUITKU_ENV,
+    settings.payments.duitkuEnvironment
+  );
+  const duitkuEnvMerchantCode = toText(process.env.DUITKU_MERCHANT_CODE, "");
+  const duitkuEnvApiKey = toText(process.env.DUITKU_API_KEY, "");
+  const duitkuSandboxMerchantCode =
+    toText(settings.payments.duitkuSandboxMerchantCode, "") || duitkuEnvMerchantCode;
+  const duitkuSandboxApiKey =
+    toText(settings.payments.duitkuSandboxApiKey, "") || duitkuEnvApiKey;
+  const duitkuProductionMerchantCode =
+    toText(settings.payments.duitkuProductionMerchantCode, "") || duitkuEnvMerchantCode;
+  const duitkuProductionApiKey =
+    toText(settings.payments.duitkuProductionApiKey, "") || duitkuEnvApiKey;
+
+  const duitkuMerchantCode = duitkuEnvironment === "sandbox" ? duitkuSandboxMerchantCode : duitkuProductionMerchantCode;
+  const duitkuApiKey = duitkuEnvironment === "sandbox" ? duitkuSandboxApiKey : duitkuProductionApiKey;
+  const duitkuMissingFields = [];
+  const duitkuInvalidFields = [];
+  if (!duitkuMerchantCode) duitkuMissingFields.push("duitkuMerchantCode");
+  if (!duitkuApiKey) duitkuMissingFields.push("duitkuApiKey");
+  if (duitkuMerchantCode && !DUITKU_MERCHANT_CODE_REGEX.test(duitkuMerchantCode)) {
+    duitkuInvalidFields.push("duitkuMerchantCode");
+  }
+  if (duitkuApiKey && !DUITKU_API_KEY_REGEX.test(duitkuApiKey)) {
+    duitkuInvalidFields.push("duitkuApiKey");
+  }
+  const duitkuConfigured = Boolean(duitkuMerchantCode && duitkuApiKey);
+  const duitkuValid = duitkuConfigured && duitkuInvalidFields.length === 0;
+  const duitkuEffectiveEnabled =
+    duitkuEnvEnabled &&
+    duitkuValid &&
+    PAYMENT_RUNTIME_SUPPORTED.DUITKU;
+  const duitkuStatus = buildStatus({
+    requestedEnabled: duitkuEnvEnabled,
+    configured: duitkuConfigured,
+    valid: duitkuValid,
+    effectiveEnabled: duitkuEffectiveEnabled,
+    runtimeSupported: PAYMENT_RUNTIME_SUPPORTED.DUITKU,
+    missingFields: duitkuMissingFields,
+    invalidFields: duitkuInvalidFields,
+    configuredButUnavailableLabel: "Configured, runtime unavailable",
+  });
+
   const cashOnDeliveryStatus = buildStatus({
     requestedEnabled: settings.payments.cashOnDeliveryEnabled,
     configured: true,
@@ -577,12 +651,20 @@ export const buildStoreSettingsContracts = (rawSettings: unknown) => {
       description: "Pay securely with card via Stripe Checkout.",
     });
   }
+  if (duitkuEffectiveEnabled) {
+    availableMethods.push({
+      code: "DUITKU",
+      label: "Duitku",
+      description: "Pay with Duitku payment gateway.",
+    });
+  }
 
   const fatalIssues = [];
   for (const field of [
     ...stripeInvalidFields,
     ...stripeWebhookInvalidFields,
     ...razorPayInvalidFields,
+    ...duitkuInvalidFields,
   ]) {
     fatalIssues.push({
       section: "payments",
@@ -615,6 +697,8 @@ export const buildStoreSettingsContracts = (rawSettings: unknown) => {
           stripeSecret: "",
           stripeWebhookSecret: "",
           razorPayKeySecret: "",
+          duitkuSandboxApiKey: "",
+          duitkuProductionApiKey: "",
         },
         socialLogin: {
           ...settings.socialLogin,
@@ -667,6 +751,20 @@ export const buildStoreSettingsContracts = (rawSettings: unknown) => {
             secretMask: maskSecret(razorPayKeySecret),
             status: razorPayStatus,
           },
+          duitku: {
+            requestedEnabled: duitkuEnvEnabled,
+            configured: duitkuConfigured,
+            valid: duitkuValid,
+            runtimeSupported: PAYMENT_RUNTIME_SUPPORTED.DUITKU,
+            effectiveEnabled: duitkuEffectiveEnabled,
+            sandboxMerchantCodeConfigured: Boolean(duitkuSandboxMerchantCode),
+            sandboxApiKeyConfigured: Boolean(duitkuSandboxApiKey),
+            sandboxApiKeyMask: maskSecret(duitkuSandboxApiKey),
+            productionMerchantCodeConfigured: Boolean(duitkuProductionMerchantCode),
+            productionApiKeyConfigured: Boolean(duitkuProductionApiKey),
+            productionApiKeyMask: maskSecret(duitkuProductionApiKey),
+            status: duitkuStatus,
+          },
         },
         socialLogin: {
           google: buildSocialProvider(
@@ -717,6 +815,7 @@ export const buildStoreSettingsContracts = (rawSettings: unknown) => {
           cashOnDeliveryEnabled: Boolean(settings.payments.cashOnDeliveryEnabled),
           stripeEnabled: stripeEffectiveEnabled,
           razorPayEnabled: razorPayEffectiveEnabled,
+          duitkuEnabled: duitkuEffectiveEnabled,
           stripeKey: stripeEffectiveEnabled ? stripeKey : "",
           razorPayKeyId: razorPayEffectiveEnabled ? razorPayKeyId : "",
           methods: availableMethods,

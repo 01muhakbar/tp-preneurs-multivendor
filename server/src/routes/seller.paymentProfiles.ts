@@ -38,6 +38,10 @@ const sellerPaymentProfileDraftSchema = z
     accountName: z.string().trim().max(160).optional().nullable(),
     merchantName: z.string().trim().max(160).optional().nullable(),
     merchantId: z.string().trim().max(160).optional().nullable(),
+    bankName: z.string().trim().max(160).optional().nullable(),
+    accountNumber: z.string().trim().max(120).optional().nullable(),
+    accountHolderName: z.string().trim().max(160).optional().nullable(),
+    payoutProofImageUrl: z.string().trim().max(2_000_000).optional().nullable(),
     qrisImageUrl: z.string().trim().max(2_000_000).optional().nullable(),
     qrisPayload: z.string().trim().max(2_000_000).optional().nullable(),
     instructionText: z.string().trim().max(4_000).optional().nullable(),
@@ -415,6 +419,10 @@ const serializeSellerPaymentProfile = (
     accountName: String(activeSnapshot?.accountName || ""),
     merchantName: String(activeSnapshot?.merchantName || ""),
     merchantId: activeSnapshot?.merchantId || null,
+    bankName: activeSnapshot?.bankName || null,
+    accountNumber: activeSnapshot?.accountNumber || null,
+    accountHolderName: activeSnapshot?.accountHolderName || null,
+    payoutProofImageUrl: activeSnapshot?.payoutProofImageUrl || null,
     qrisImageUrl: activeSnapshot?.qrisImageUrl || null,
     qrisPayload: activeSnapshot?.qrisPayload || null,
     instructionText: activeSnapshot?.instructionText || null,
@@ -433,6 +441,10 @@ const serializeSellerPaymentProfile = (
       editablePaymentProfileFields.map((field) => [
         field,
         field === "merchantId" ||
+        field === "bankName" ||
+        field === "accountNumber" ||
+        field === "accountHolderName" ||
+        field === "payoutProofImageUrl" ||
         field === "qrisPayload" ||
         field === "instructionText" ||
         field === "sellerNote"
@@ -521,6 +533,26 @@ const buildSellerRequestPayload = (
     ),
     merchantId: normalizeNullableText(
       getEditableDraftValue(parsedData, "merchantId", fallbackValue("merchantId"))
+    ),
+    bankName: normalizeNullableText(
+      getEditableDraftValue(parsedData, "bankName", fallbackValue("bankName"))
+    ),
+    accountNumber: normalizeNullableText(
+      getEditableDraftValue(parsedData, "accountNumber", fallbackValue("accountNumber"))
+    ),
+    accountHolderName: normalizeNullableText(
+      getEditableDraftValue(
+        parsedData,
+        "accountHolderName",
+        fallbackValue("accountHolderName") || fallbackValue("accountName")
+      )
+    ),
+    payoutProofImageUrl: normalizeNullableText(
+      getEditableDraftValue(
+        parsedData,
+        "payoutProofImageUrl",
+        fallbackValue("payoutProofImageUrl")
+      )
     ),
     qrisImageUrl: normalizeRequiredDraftText(
       getEditableDraftValue(parsedData, "qrisImageUrl", fallbackValue("qrisImageUrl"))

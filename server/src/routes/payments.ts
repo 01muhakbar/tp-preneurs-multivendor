@@ -5,6 +5,7 @@ import {
   Order,
   OrderCollectionClaim,
   OrderPaymentAttempt,
+  OrderPaymentAttemptEvent,
   Payment,
   PaymentProof,
   PaymentStatusLog,
@@ -267,6 +268,9 @@ const serializePaymentDetail = (payment: any) => {
     amount: toNumber(getAttr(payment, "amount")),
     paymentChannel: String(getAttr(payment, "paymentChannel") || "QRIS"),
     paymentType: String(getAttr(payment, "paymentType") || "QRIS_STATIC"),
+    paymentCode: collection.paymentCode,
+    paymentMethodLabel:
+      collection.paymentMethodLabel || String(getAttr(payment, "paymentChannel") || "QRIS"),
     status: String(getAttr(payment, "status") || "CREATED"),
     qrImageUrl: getAttr(payment, "qrImageUrl") ? String(getAttr(payment, "qrImageUrl")) : null,
     qrPayload: getAttr(payment, "qrPayload") ? String(getAttr(payment, "qrPayload")) : null,
@@ -379,9 +383,15 @@ const loadPaymentForActor = async (paymentId: number) =>
                 required: false,
                 include: [
                   {
+                    model: OrderPaymentAttemptEvent,
+                    as: "events",
+                    attributes: ["id", "paymentAttemptId", "eventType", "paymentCode", "processingResult", "lastReceivedAt", "createdAt", "updatedAt"],
+                    required: false,
+                  },
+                  {
                     model: DuitkuCallbackInbox,
                     as: "callbackInboxRows",
-                    attributes: ["id", "paymentAttemptId", "resolvedPaymentAttemptId", "merchantOrderIdRaw", "providerReferenceRaw", "amountRaw", "bindingState", "processingResult", "lastReceivedAt", "createdAt", "updatedAt"],
+                    attributes: ["id", "paymentAttemptId", "resolvedPaymentAttemptId", "merchantOrderIdRaw", "providerReferenceRaw", "paymentCodeRaw", "amountRaw", "bindingState", "processingResult", "lastReceivedAt", "createdAt", "updatedAt"],
                     required: false,
                   },
                 ],

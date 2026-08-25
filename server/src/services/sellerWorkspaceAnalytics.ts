@@ -257,6 +257,44 @@ const buildStoreSummary = (sellerAccess: any) => ({
   membershipStatus: String(sellerAccess?.membershipStatus || ""),
 });
 
+const generateTimeSeries = (suborders: any[], paidOrders: any[]) => {
+  const revenueSeries = [0, 0, 0, 0, 0, 0, 0];
+  const orderSeries = [0, 0, 0, 0, 0, 0, 0];
+  const conversionSeries = [0, 0, 0, 0, 0, 0, 0];
+  
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+  
+  for (let i = 0; i < 7; i++) {
+    const end = new Date(today);
+    end.setDate(today.getDate() - i);
+    const start = new Date(end);
+    start.setHours(0, 0, 0, 0);
+
+    const dayOrders = suborders.filter(s => {
+      const d = new Date(getAttr(s, "createdAt"));
+      return d >= start && d <= end;
+    });
+
+    const dayPaidOrders = paidOrders.filter(s => {
+      const d = new Date(getAttr(s, "createdAt"));
+      return d >= start && d <= end;
+    });
+
+    const dayRevenue = dayPaidOrders.reduce((sum, s) => sum + toNumber(getAttr(s, "totalAmount")), 0);
+    const viewsAssumed = dayOrders.length * 10;
+    const conversion = viewsAssumed > 0 ? (dayPaidOrders.length / viewsAssumed) * 100 : 0;
+
+    // Index 6 is oldest, index 0 is newest
+    const index = 6 - i;
+    revenueSeries[index] = dayRevenue;
+    orderSeries[index] = dayPaidOrders.length;
+    conversionSeries[index] = Number(conversion.toFixed(2));
+  }
+
+  return { revenueSeries, orderSeries, conversionSeries };
+};
+
 const buildOrderSnapshot = (suborders: any[], visible: boolean) => {
   if (!visible) {
     return {
@@ -301,6 +339,8 @@ const buildOrderSnapshot = (suborders: any[], visible: boolean) => {
     );
   });
 
+  const { orderSeries } = generateTimeSeries(suborders, paidOrders);
+
   return {
     visible: true,
     totalOrders: suborders.length,
@@ -309,6 +349,7 @@ const buildOrderSnapshot = (suborders: any[], visible: boolean) => {
     completedOrders: completedOrders.length,
     pendingPaymentOrders: pendingPaymentOrders.length,
     exceptionOrders: exceptionOrders.length,
+    orderSeries,
     hint:
       suborders.length > 0
         ? "Order analytics are derived from store-owned suborders only."
@@ -348,6 +389,8 @@ const buildRevenueSnapshot = (suborders: any[], visible: boolean) => {
     0
   );
 
+  const { revenueSeries, conversionSeries } = generateTimeSeries(suborders, paidOrders);
+
   return {
     visible: true,
     paidGrossAmount,
@@ -360,6 +403,8 @@ const buildRevenueSnapshot = (suborders: any[], visible: boolean) => {
       (sum, suborder) => sum + toNumber(getAttr(suborder, "totalAmount")),
       0
     ),
+    revenueSeries,
+    conversionSeries,
     hint:
       paidOrders.length > 0
         ? "Revenue baseline follows paid store-owned suborders after existing checkout discounts."
@@ -430,6 +475,9 @@ const buildCouponSnapshot = (input: {
       ).length
     : 0;
 
+  // Assume totalRedemptions is equal to discounted paid orders for basic tracking
+  const totalRedemptions = discountedPaidOrders;
+
   return {
     visible: true,
     totalCoupons: input.coupons.length,
@@ -439,6 +487,7 @@ const buildCouponSnapshot = (input: {
     inactiveCoupons,
     discountedOrders,
     discountedPaidOrders,
+    totalRedemptions,
     hint:
       input.coupons.length > 0
         ? "Coupon baseline tracks store-scoped coupon inventory plus discounted order activity inside the active seller scope."

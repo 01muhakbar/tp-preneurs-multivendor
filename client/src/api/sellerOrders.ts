@@ -187,6 +187,9 @@ const normalizePaymentSummary = (summary: any) => {
     ...source,
     id: asNumber(source.id, 0),
     internalReference: normalizeText(source.internalReference) || null,
+    paymentMethod: normalizeText(source.paymentMethod) || null,
+    paymentMethodLabel: normalizeText(source.paymentMethodLabel) || null,
+    paymentCode: normalizeText(source.paymentCode) || null,
     paymentChannel: normalizeText(source.paymentChannel) || null,
     paymentType: normalizeText(source.paymentType) || null,
     status: normalizePaymentRecordStatus(source.status ?? source.statusMeta?.code),
@@ -405,6 +408,22 @@ const normalizeShippingSetupSummary = (value: unknown) => {
   };
 };
 
+const normalizePrintLabelSummary = (value: unknown) => {
+  const source = asObject(value);
+  if (!source) {
+    return {
+      canPrint: false,
+      reason: "Print label endpoint is not available yet.",
+      endpoint: null,
+    };
+  }
+  return {
+    canPrint: Boolean(source.canPrint),
+    reason: normalizeText(source.reason) || null,
+    endpoint: normalizeText(source.endpoint) || null,
+  };
+};
+
 const normalizeStoreShippingSetupSummary = (value: unknown) => {
   const source = asObject(value);
   if (!source) return null;
@@ -555,6 +574,7 @@ const normalizeDetail = (detail: any) => {
     isShippingReady: Boolean(source.isShippingReady),
     missingShippingFields: normalizeMissingFieldList(source.missingShippingFields),
     shippingSetupSummary: normalizeShippingSetupSummary(source.shippingSetupSummary),
+    printLabel: normalizePrintLabelSummary(source.printLabel),
     paymentStatus,
     paymentStatusMeta:
       normalizeStatusMeta(source.paymentStatusMeta) ?? normalizeStatusMeta(contract?.paymentStatusMeta),
@@ -619,6 +639,16 @@ const normalizeDetail = (detail: any) => {
         }
       : null,
   };
+};
+
+export const getSellerSuborderShippingLabel = async (
+  storeId: number | string,
+  suborderId: number | string
+) => {
+  const { data } = await api.get(
+    `/seller/stores/${storeId}/suborders/${suborderId}/shipping-label`
+  );
+  return data?.data ?? null;
 };
 
 export const getSellerSuborders = async (

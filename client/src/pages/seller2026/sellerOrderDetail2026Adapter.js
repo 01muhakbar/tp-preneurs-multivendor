@@ -162,6 +162,7 @@ export const normalizeSellerOrderDetailFor2026 = ({ suborder }) => {
   const payment = asObject(detail.payment);
   const totals = asObject(detail.totals);
   const actions = asArray(order.fulfillmentActions);
+  const printLabel = asObject(order.printLabel ?? detail.printLabel);
   const markDeliveredAction =
     actions.find(
       (action) =>
@@ -226,8 +227,12 @@ export const normalizeSellerOrderDetailFor2026 = ({ suborder }) => {
       total: number(totals.total, 0),
       totalLabel: formatMoney(totals.total),
     },
-    canPrintLabel: false,
-    printLabelReason: "Print label endpoint is not available yet.",
+    canPrintLabel: Boolean(printLabel.canPrint),
+    printLabelReason: text(
+      printLabel.reason,
+      printLabel.canPrint ? "Print shipping label" : "Print label endpoint is not available yet."
+    ),
+    printLabelEndpoint: text(printLabel.endpoint),
     canMessageBuyer: Boolean(text(customer.phone || customer.email)),
     canMarkDelivered: Boolean(markDeliveredAction),
     markDeliveredReason:

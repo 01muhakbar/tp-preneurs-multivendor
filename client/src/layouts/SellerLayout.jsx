@@ -52,6 +52,7 @@ import { useSellerAuth } from "../auth/authDomainHooks.js";
 import useStoredBoolean from "../hooks/useStoredBoolean.js";
 import WorkspaceSidebarBrand from "../components/workspace/WorkspaceSidebarBrand.jsx";
 import ThemeToggle from "../components/admin/ThemeToggle.jsx";
+import { useTheme } from "../theme/ThemeProvider.jsx";
 import { resolveAssetUrl } from "../lib/assetUrl.js";
 import {
   getSellerNotificationUnreadCount,
@@ -73,9 +74,9 @@ const getErrorMessage = (error, fallback) =>
 const joinClassNames = (...items) => items.filter(Boolean).join(" ");
 
 const readStoredSellerTheme = () => {
-  if (typeof window === "undefined") return "light";
+  if (typeof window === "undefined") return null;
   const value = String(window.localStorage.getItem(SELLER_THEME_KEY) || "").trim();
-  return value === "dark" ? "dark" : "light";
+  return value === "dark" || value === "light" ? value : null;
 };
 
 const normalizeLanguage = (item) => ({
@@ -735,6 +736,13 @@ function SellerSidebar({
           implemented: true,
         },
         {
+          label: isId ? "Pusat Pembayaran" : "Payment Center",
+          to: sellerRoutes.paymentCenter(),
+          Icon: BadgeCheck,
+          enabled: hasPermission("STORE_VIEW") && (hasPermission("PAYMENT_PROFILE_VIEW") || hasPermission("PAYMENT_STATUS_VIEW")),
+          implemented: true,
+        },
+        {
           label: isId ? "Pengaturan Pembayaran" : "Payment Setup",
           to: sellerRoutes.paymentProfile(),
           Icon: CreditCard,
@@ -1176,11 +1184,12 @@ export default function SellerLayout() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const sellerAuth = useSellerAuth();
+  const { resolvedTheme, setTheme: setGlobalTheme } = useTheme();
+  const initialSellerThemeRef = useRef(readStoredSellerTheme());
   const [sidebarCollapsed, setSidebarCollapsed] = useStoredBoolean(
     SELLER_SIDEBAR_COLLAPSED_KEY,
     false
   );
-  const [theme, setTheme] = useState(readStoredSellerTheme);
   const [selectedLanguage, setSelectedLanguage] = useState(readStoredSellerLanguage);
   const [langOpen, setLangOpen] = useState(false);
   const [activeMenu, setActiveMenu] = useState(null);
@@ -1241,10 +1250,10 @@ export default function SellerLayout() {
   ).trim();
 
   const navigateToSellerLogin = () => {
-    let loginPath = "/auth/login";
+    let loginPath = "/seller/login";
     try {
       const storedPath = localStorage.getItem("seller_login_path");
-      if (storedPath) {
+      if (storedPath && storedPath.startsWith("/seller")) {
         loginPath = storedPath;
       }
     } catch {}
@@ -1287,6 +1296,7 @@ export default function SellerLayout() {
   const pageMeta = getSellerPageMeta(pathname, isId);
   const sellerRoutes = createSellerWorkspaceRoutes(canonicalStoreSlug);
   const chipText = selectedLanguage?.label ? selectedLanguage.label.toUpperCase() : "US ENGLISH";
+  const theme = resolvedTheme === "dark" ? "dark" : "light";
   const isDark = theme === "dark";
   const sellerNotificationCountQuery = useQuery({
     queryKey: ["seller", "notifications", canonicalStoreId, "count"],
@@ -1334,6 +1344,14 @@ export default function SellerLayout() {
       ]);
     },
   });
+
+  useEffect(() => {
+    const initialSellerTheme = initialSellerThemeRef.current;
+    if (!initialSellerTheme) return;
+    initialSellerThemeRef.current = null;
+    if (initialSellerTheme === resolvedTheme) return;
+    setGlobalTheme(initialSellerTheme);
+  }, [resolvedTheme, setGlobalTheme]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1411,11 +1429,11 @@ export default function SellerLayout() {
   if (sellerContextQuery.isLoading) {
     return (
       <SellerShellState
-        title={isId ? "Memuat Ruang Kerja Penjual" : "Loading Seller Workspace"}
-        description={
-          sellerAuth.isLoading
-            ? (isId ? "Memeriksa sesi bersama dan akses ruang kerja penjual." : "Checking shared session and seller workspace access.")
-            : (isId ? "Membuka ruang kerja penjual ini dan memeriksa akses Anda." : "Opening this seller workspace and checking your access.")
+          title={isId ? "Memuat Ruang Kerja Penjual" : "Loading Seller Workspace"}
+          description={
+            sellerAuth.isLoading
+              ? (isId ? "Memeriksa sesi Seller dan akses ruang kerja penjual." : "Checking seller session and workspace access.")
+              : (isId ? "Membuka ruang kerja penjual ini dan memeriksa akses Anda." : "Opening this seller workspace and checking your access.")
         }
       />
     );
@@ -1439,8 +1457,8 @@ export default function SellerLayout() {
           title="Sesi Penjual Diperlukan"
           description={
             sellerAuth.isAdminSession
-              ? "Sesi saat ini adalah sesi Admin. Silakan masuk menggunakan akun Storefront yang memiliki akses penjual (Seller Workspace) ke toko ini."
-              : "Silakan masuk menggunakan akun Storefront yang memiliki akses penjual (Seller Workspace) ke toko ini."
+              ? "Sesi saat ini adalah sesi Admin. Silakan masuk menggunakan akun Seller yang memiliki akses ke toko ini."
+              : "Silakan masuk menggunakan akun Seller yang memiliki akses ke toko ini."
           }
           tone="danger"
           icon={Lock}
@@ -1450,7 +1468,7 @@ export default function SellerLayout() {
             onClick={navigateToSellerLogin}
             className="w-full rounded-2xl bg-slate-950 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/20 active:scale-[0.98] dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
           >
-            Login ke Storefront
+            Login ke Seller
           </button>
         </SellerShellState>
       );
@@ -1473,7 +1491,7 @@ export default function SellerLayout() {
             </p>
           ) : sellerAuth.isAuthenticated ? (
             <p className="text-sm leading-relaxed opacity-80 mb-2">
-              Akun Storefront saat ini sedang masuk, tetapi tidak terhubung ke toko ini. Ganti akun untuk melanjutkan.
+              Akun Seller saat ini sedang masuk, tetapi tidak terhubung ke toko ini. Ganti akun untuk melanjutkan.
             </p>
           ) : null}
           
@@ -1492,7 +1510,7 @@ export default function SellerLayout() {
                 onClick={navigateToSellerLogin}
                 className="w-full rounded-2xl bg-slate-950 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/20 active:scale-[0.98] dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
               >
-                Login ke Storefront
+                Login ke Seller
               </button>
             )}
             
@@ -1559,7 +1577,7 @@ export default function SellerLayout() {
   };
 
   const handleToggleTheme = () => {
-    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+    setGlobalTheme(theme === "dark" ? "light" : "dark");
   };
 
   const handleSidebarToggle = () => {

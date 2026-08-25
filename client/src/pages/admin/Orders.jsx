@@ -81,9 +81,8 @@ const PAYMENT_STATUS_OPTIONS = [
 
 const PAYMENT_METHOD_OPTIONS = [
   { value: "", label: "All Methods" },
-  { value: "card", label: "QRIS" },
-  { value: "cash", label: "Cash" },
-  { value: "credit", label: "Credit" },
+  { value: "qris", label: "Static QRIS" },
+  { value: "duitku", label: "Duitku" },
 ];
 
 const DELIVERY_STATUS_OPTIONS = [
@@ -186,20 +185,26 @@ const labelize = (raw) => {
 };
 
 const getPaymentMethodLabel = (view, order) => {
-  const raw = toText(view?.method || order?.paymentMethod || order?.payment?.method || order?.method);
+  const raw = toText(
+    view?.paymentMethodLabel ||
+      view?.methodLabel ||
+      order?.paymentMethodLabel ||
+      order?.methodLabel ||
+      order?.payment?.paymentMethodLabel ||
+      view?.method ||
+      order?.paymentMethod ||
+      order?.payment?.method ||
+      order?.method
+  );
   const normalized = raw.toLowerCase();
-  const checkoutMode = normalizeToken(order?.checkoutMode || "");
-  if (
-    normalized.includes("qris") ||
-    normalized.includes("card") ||
-    checkoutMode === "SINGLE_STORE" ||
-    checkoutMode === "MULTI_STORE"
-  ) {
-    return "QRIS";
-  }
+  if (normalized === "duitku") return "Duitku POP";
+  if (normalized.includes("duitku")) return raw || "Duitku POP";
+  if (normalized === "qris") return "Static QRIS";
+  if (normalized.includes("qris")) return raw || "Static QRIS";
+  if (normalized.includes("card")) return "Static QRIS";
   if (normalized.includes("cash") || normalized.includes("cod")) return "COD";
   if (normalized.includes("credit")) return "Credit";
-  return raw || "QRIS";
+  return raw || "Static QRIS";
 };
 
 const getOptionLabel = (options, value) =>
@@ -218,6 +223,7 @@ const normalizeRows = (items) =>
         order?.user?.name ||
         order?.buyerName,
       paymentMethod: order?.paymentMethod || order?.payment?.method || order?.method,
+      paymentMethodLabel: order?.paymentMethodLabel || order?.methodLabel,
       totalAmount: order?.amount || order?.total || order?.grandTotal || order?.totalAmount,
     }),
   }));

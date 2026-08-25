@@ -1,6 +1,9 @@
 const requiredStorePaymentProfileFields = [
   { key: "accountName", label: "Account name" },
   { key: "merchantName", label: "Merchant name" },
+  { key: "bankName", label: "Payout bank" },
+  { key: "accountNumber", label: "Payout account number" },
+  { key: "accountHolderName", label: "Payout account holder" },
   { key: "qrisImageUrl", label: "QRIS image" },
 ] as const;
 
@@ -8,6 +11,10 @@ const editableSellerPaymentProfileFields = [
   "accountName",
   "merchantName",
   "merchantId",
+  "bankName",
+  "accountNumber",
+  "accountHolderName",
+  "payoutProofImageUrl",
   "qrisImageUrl",
   "qrisPayload",
   "instructionText",
@@ -25,6 +32,10 @@ const storePaymentProfileRequestAttributes = [
   "accountName",
   "merchantName",
   "merchantId",
+  "bankName",
+  "accountNumber",
+  "accountHolderName",
+  "payoutProofImageUrl",
   "qrisImageUrl",
   "qrisPayload",
   "instructionText",
@@ -208,6 +219,18 @@ const serializeStorePaymentProfileActiveSnapshot = (profile: any) => {
     merchantId: getStorePaymentProfileAttr(profile, "merchantId")
       ? String(getStorePaymentProfileAttr(profile, "merchantId"))
       : null,
+    bankName: getStorePaymentProfileAttr(profile, "bankName")
+      ? String(getStorePaymentProfileAttr(profile, "bankName"))
+      : null,
+    accountNumber: getStorePaymentProfileAttr(profile, "accountNumber")
+      ? String(getStorePaymentProfileAttr(profile, "accountNumber"))
+      : null,
+    accountHolderName: getStorePaymentProfileAttr(profile, "accountHolderName")
+      ? String(getStorePaymentProfileAttr(profile, "accountHolderName"))
+      : null,
+    payoutProofImageUrl: getStorePaymentProfileAttr(profile, "payoutProofImageUrl")
+      ? String(getStorePaymentProfileAttr(profile, "payoutProofImageUrl"))
+      : null,
     qrisImageUrl: getStorePaymentProfileAttr(profile, "qrisImageUrl")
       ? String(getStorePaymentProfileAttr(profile, "qrisImageUrl"))
       : null,
@@ -256,6 +279,14 @@ const serializeStorePaymentProfilePendingRequest = (request: any, activeProfile:
     accountName: String(fallback("accountName") || ""),
     merchantName: String(fallback("merchantName") || ""),
     merchantId: fallback("merchantId") ? String(fallback("merchantId")) : null,
+    bankName: fallback("bankName") ? String(fallback("bankName")) : null,
+    accountNumber: fallback("accountNumber") ? String(fallback("accountNumber")) : null,
+    accountHolderName: fallback("accountHolderName")
+      ? String(fallback("accountHolderName"))
+      : null,
+    payoutProofImageUrl: fallback("payoutProofImageUrl")
+      ? String(fallback("payoutProofImageUrl"))
+      : null,
     qrisImageUrl: fallback("qrisImageUrl") ? String(fallback("qrisImageUrl")) : null,
     qrisPayload: fallback("qrisPayload") ? String(fallback("qrisPayload")) : null,
     instructionText: fallback("instructionText") ? String(fallback("instructionText")) : null,
@@ -269,6 +300,10 @@ const serializeStorePaymentProfilePendingRequest = (request: any, activeProfile:
       accountName: fallback("accountName"),
       merchantName: fallback("merchantName"),
       merchantId: fallback("merchantId"),
+      bankName: fallback("bankName"),
+      accountNumber: fallback("accountNumber"),
+      accountHolderName: fallback("accountHolderName"),
+      payoutProofImageUrl: fallback("payoutProofImageUrl"),
       qrisImageUrl: fallback("qrisImageUrl"),
       qrisPayload: fallback("qrisPayload"),
       instructionText: fallback("instructionText"),

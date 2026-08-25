@@ -50,6 +50,7 @@ import {
   resolveBuyerFacingPaymentStatus,
 } from "../services/paymentCheckoutView.service.js";
 import { buildGroupedPaymentReadModel } from "../services/groupedPaymentReadModel.service.js";
+import { resolveDuitkuPaymentMethodDisplay } from "../services/duitku/duitkuPaymentMethodDisplay.service.js";
 import {
   buildBuyerOrderContract,
   buildFulfillmentStatusMeta,
@@ -76,6 +77,13 @@ const router = Router();
 
 const toNumber = (value: any) => (value == null ? null : Number(value));
 const normalizeCouponCode = (value: any) => String(value || "").trim().toUpperCase();
+const paymentMethodLabelFallback = (method: unknown) => {
+  const normalized = String(method || "").trim().toUpperCase();
+  if (normalized === "DUITKU") return "Duitku POP";
+  if (normalized === "QRIS") return "Static QRIS";
+  if (normalized === "COD" || normalized === "CASH") return "COD";
+  return String(method || "").trim() || "Static QRIS";
+};
 const normalizeStoreSlug = (value: any) =>
   String(value || "")
     .trim()
@@ -1679,6 +1687,7 @@ router.get(
         .filter((value) => Number.isFinite(value) && value > 0);
 
       const paymentGroupsByOrderId = new Map<number, any[]>();
+      const duitkuPaymentCodeByOrderId = new Map<number, string | null>();
       if (orderIds.length > 0) {
         const placeholders = orderIds.map(() => "?").join(", ");
         const paymentRows = (await sequelize.query(
@@ -1746,6 +1755,39 @@ router.get(
           });
           paymentGroupsByOrderId.set(orderId, current);
         }
+
+        const paymentCodeRows = (await sequelize.query(
+          `
+            SELECT
+              opa.order_id AS orderId,
+              opae.payment_code AS paymentCode,
+              opae.last_received_at AS lastReceivedAt,
+              opae.updated_at AS updatedAt,
+              opae.id AS eventId
+            FROM order_payment_attempts opa
+            INNER JOIN order_payment_attempt_events opae
+              ON opae.payment_attempt_id = opa.id
+            WHERE opa.order_id IN (${placeholders})
+              AND opae.payment_code IS NOT NULL
+              AND opae.payment_code <> ''
+            ORDER BY opa.order_id ASC, opae.last_received_at DESC, opae.updated_at DESC, opae.id DESC
+          `,
+          {
+            replacements: orderIds,
+            type: QueryTypes.SELECT,
+          }
+        )) as any[];
+
+        for (const row of paymentCodeRows) {
+          const orderId = Number((row as any)?.orderId ?? 0);
+          if (!Number.isFinite(orderId) || orderId <= 0 || duitkuPaymentCodeByOrderId.has(orderId)) {
+            continue;
+          }
+          duitkuPaymentCodeByOrderId.set(
+            orderId,
+            String((row as any)?.paymentCode || "").trim() || null
+          );
+        }
       }
 
       const total = Number(countRow?.total ?? countRow?.count ?? 0);
@@ -1758,11 +1800,18 @@ router.get(
           const displayStatuses = paymentGroups.map((group: any) => group.displayStatus);
           const aggregateStatusSummary = buildBuyerAggregateStatusSummary(paymentGroups);
           const paymentEntry = buildBuyerPaymentEntryWithTargetPath(orderId, displayStatuses);
+          const paymentCode = duitkuPaymentCodeByOrderId.get(orderId) ?? null;
+          const paymentMethod = row.payment_method ?? row.paymentMethod ?? null;
+          const paymentMethodLabel = resolveDuitkuPaymentMethodDisplay({
+            paymentMethod,
+            paymentCode,
+            fallback: paymentMethodLabelFallback(paymentMethod),
+          });
           const contract = buildBuyerOrderContractPayload({
             orderId,
             orderStatus: row.status ?? null,
             paymentStatus: row.payment_status ?? row.paymentStatus ?? "UNPAID",
-            paymentMethod: row.payment_method ?? row.paymentMethod ?? null,
+            paymentMethod,
             displayStatuses,
             fulfillmentStatuses: paymentGroups.map((group: any) => group.fulfillmentStatus),
             statusSummaryOverride: aggregateStatusSummary,
@@ -1783,7 +1832,9 @@ router.get(
             totalAmount: Number(row.total_amount ?? row.totalAmount ?? 0),
             shipping: Number(row.shipping_amount ?? row.shippingAmount ?? 0),
             createdAt: row.created_at ?? row.createdAt ?? null,
-            paymentMethod: row.payment_method ?? row.paymentMethod ?? null,
+            paymentMethod,
+            paymentMethodLabel,
+            paymentCode,
             paymentEntry,
             contract,
           };
@@ -1972,6 +2023,30 @@ router.get(
         ],
         order: [["id", "ASC"]],
       });
+      const [latestPaymentCodeRows] = (await sequelize.query(
+        `
+          SELECT opae.payment_code AS paymentCode
+          FROM order_payment_attempts opa
+          INNER JOIN order_payment_attempt_events opae
+            ON opae.payment_attempt_id = opa.id
+          WHERE opa.order_id = ?
+            AND opae.payment_code IS NOT NULL
+            AND opae.payment_code <> ''
+          ORDER BY opae.last_received_at DESC, opae.updated_at DESC, opae.id DESC
+          LIMIT 1
+        `,
+        { replacements: [orderId] }
+      )) as any;
+      const paymentCode =
+        Array.isArray(latestPaymentCodeRows) && latestPaymentCodeRows[0]?.paymentCode
+          ? String(latestPaymentCodeRows[0].paymentCode).trim()
+          : null;
+      const orderPaymentMethod = order.paymentMethod ?? "COD";
+      const orderPaymentMethodLabel = resolveDuitkuPaymentMethodDisplay({
+        paymentMethod: orderPaymentMethod,
+        paymentCode,
+        fallback: paymentMethodLabelFallback(orderPaymentMethod),
+      });
       const snapshotItems = mapSuborderSnapshotItemsForBuyerDetail(paymentGroups);
       const items = snapshotItems.length > 0 ? snapshotItems : legacyItems;
       const displayStatuses = paymentGroups.map((suborder: any) => {
@@ -2053,7 +2128,9 @@ router.get(
           total: amounts.total,
           grandTotal: amounts.total,
           couponCode: (order as any).couponCode ?? null,
-          paymentMethod: order.paymentMethod ?? "COD",
+          paymentMethod: orderPaymentMethod,
+          paymentMethodLabel: orderPaymentMethodLabel,
+          paymentCode,
           shipmentCount: shippingReadModel.shipmentCount,
           shippingStatus: shippingReadModel.shippingStatus,
           shippingStatusMeta: shippingReadModel.shippingStatusMeta,

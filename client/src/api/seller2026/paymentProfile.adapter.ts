@@ -43,6 +43,10 @@ export type Seller2026PaymentProfileModel = {
     accountName: string;
     merchantName: string;
     merchantId: string;
+    bankName: string;
+    accountNumber: string;
+    accountHolderName: string;
+    payoutProofImageUrl: string;
     qrisImageUrl: string;
     qrisPayload: string;
     instructionText: string;
@@ -78,7 +82,7 @@ export type Seller2026PaymentProfileModel = {
     missingFields: Array<{ key: string; label: string }>;
   };
   progress: Array<{
-    key: "account" | "merchant" | "qris" | "approval";
+    key: "account" | "merchant" | "payout" | "qris" | "approval";
     label: string;
     complete: boolean;
     detail: string;
@@ -104,6 +108,10 @@ export const emptySeller2026PaymentProfile: Seller2026PaymentProfileModel = {
     accountName: "",
     merchantName: "",
     merchantId: "",
+    bankName: "",
+    accountNumber: "",
+    accountHolderName: "",
+    payoutProofImageUrl: "",
     qrisImageUrl: "",
     qrisPayload: "",
     instructionText: "",
@@ -129,17 +137,21 @@ export const emptySeller2026PaymentProfile: Seller2026PaymentProfileModel = {
   },
   completeness: {
     completedFields: 0,
-    totalFields: 3,
+    totalFields: 6,
     allRequiredPresent: false,
     missingFields: [
       { key: "accountName", label: "Account name" },
       { key: "merchantName", label: "Merchant name" },
+      { key: "bankName", label: "Payout bank" },
+      { key: "accountNumber", label: "Payout account number" },
+      { key: "accountHolderName", label: "Payout account holder" },
       { key: "qrisImageUrl", label: "QRIS image" },
     ],
   },
   progress: [
     { key: "account", label: "Account", complete: false, detail: "Required" },
     { key: "merchant", label: "Merchant", complete: false, detail: "Required" },
+    { key: "payout", label: "Payout Account", complete: false, detail: "Required" },
     { key: "qris", label: "QRIS Image", complete: false, detail: "Required" },
     { key: "approval", label: "Admin Approval", complete: false, detail: "Pending" },
   ],
@@ -182,6 +194,14 @@ export function adaptSeller2026PaymentProfile(
     accountName: text(draft.accountName ?? pending.accountName ?? active.accountName),
     merchantName: text(draft.merchantName ?? pending.merchantName ?? active.merchantName),
     merchantId: text(draft.merchantId ?? pending.merchantId ?? active.merchantId),
+    bankName: text(draft.bankName ?? pending.bankName ?? active.bankName),
+    accountNumber: text(draft.accountNumber ?? pending.accountNumber ?? active.accountNumber),
+    accountHolderName: text(
+      draft.accountHolderName ?? pending.accountHolderName ?? active.accountHolderName
+    ),
+    payoutProofImageUrl: text(
+      draft.payoutProofImageUrl ?? pending.payoutProofImageUrl ?? active.payoutProofImageUrl
+    ),
     qrisImageUrl: text(draft.qrisImageUrl ?? pending.qrisImageUrl ?? active.qrisImageUrl),
     qrisPayload: text(draft.qrisPayload ?? pending.qrisPayload ?? active.qrisPayload),
     instructionText: text(
@@ -202,7 +222,14 @@ export function adaptSeller2026PaymentProfile(
   const allRequiredPresent =
     completenessSource.allRequiredPresent !== undefined
       ? boolean(completenessSource.allRequiredPresent)
-      : Boolean(form.accountName && form.merchantName && form.qrisImageUrl);
+      : Boolean(
+          form.accountName &&
+            form.merchantName &&
+            form.bankName &&
+            form.accountNumber &&
+            form.accountHolderName &&
+            form.qrisImageUrl
+        );
   const reviewCode = status(
     governanceReview.code ?? reviewStatus.code ?? reviewFeedback.code,
     checkoutReady ? "ACTIVE" : "PENDING"
@@ -224,6 +251,10 @@ export function adaptSeller2026PaymentProfile(
           accountName: text(active.accountName),
           merchantName: text(active.merchantName),
           merchantId: text(active.merchantId),
+          bankName: text(active.bankName),
+          accountNumber: text(active.accountNumber),
+          accountHolderName: text(active.accountHolderName),
+          payoutProofImageUrl: text(active.payoutProofImageUrl),
           qrisImageUrl: text(active.qrisImageUrl),
           qrisPayload: text(active.qrisPayload),
           instructionText: text(active.instructionText),
@@ -275,7 +306,7 @@ export function adaptSeller2026PaymentProfile(
     },
     completeness: {
       completedFields: Number(completenessSource.completedFields || 0),
-      totalFields: Number(completenessSource.totalFields || 3),
+      totalFields: Number(completenessSource.totalFields || 6),
       allRequiredPresent,
       missingFields,
     },
@@ -291,6 +322,15 @@ export function adaptSeller2026PaymentProfile(
         label: "Merchant",
         complete: Boolean(form.merchantName),
         detail: form.merchantName ? "Complete" : "Required",
+      },
+      {
+        key: "payout",
+        label: "Payout Account",
+        complete: Boolean(form.bankName && form.accountNumber && form.accountHolderName),
+        detail:
+          form.bankName && form.accountNumber && form.accountHolderName
+            ? "Complete"
+            : "Required",
       },
       {
         key: "qris",

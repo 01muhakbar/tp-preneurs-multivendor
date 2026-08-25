@@ -75,7 +75,7 @@ export default Seller2026DashboardPage;
 
 export * from "./Seller2026OrdersPreviewPage.jsx";
 
-export * from "./Seller2026PaymentCenterPreviewPage.jsx";
+export { Seller2026PaymentCenterPreviewPage } from "./Seller2026PaymentCenterPreviewPage.jsx";
 
 export * from "./Seller2026CouponsPreviewPage.jsx";
 

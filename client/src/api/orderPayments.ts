@@ -157,6 +157,8 @@ export type GroupedOrderPaymentResponse = {
     paymentStatus: "UNPAID" | "PARTIALLY_PAID" | "PAID" | string;
     orderStatus: string;
     paymentMethod?: string | null;
+    paymentMethodLabel?: string | null;
+    paymentCode?: string | null;
     createdAt?: string | null;
     paymentStatusMeta?: GroupedPaymentReadModel["settlementStatusMeta"];
     shipmentCount?: number;
@@ -231,6 +233,8 @@ export type GroupedOrderPaymentResponse = {
       serviceFeeAmount: number;
       totalAmount: number;
       paymentMethod?: string | null;
+      paymentMethodLabel?: string | null;
+      paymentCode?: string | null;
       paymentStatus: string;
       paymentStatusMeta?: GroupedPaymentReadModel["settlementStatusMeta"];
       paymentReadModel?: GroupedPaymentReadModel;
@@ -295,6 +299,8 @@ export type PaymentDetailResponse = {
     amount: number;
     paymentChannel: string;
     paymentType: string;
+    paymentCode?: string | null;
+    paymentMethodLabel?: string | null;
     status: string;
     displayStatus?: string;
     qrImageUrl?: string | null;

@@ -62,6 +62,14 @@ export type Seller2026OrdersViewModel = {
     paymentLabel: string;
     paymentTone: string;
     paymentMethod: string;
+    withdrawalEligibility: {
+      code: string;
+      label: string;
+      description: string;
+      tone: string;
+      isEligible: boolean;
+      netAmount: number;
+    };
     shippingStatus: string;
     status: Seller2026SuborderStatus;
     fulfillmentStatus: Seller2026SuborderStatus;
@@ -99,6 +107,11 @@ export type Seller2026SuborderDetailViewModel = {
     fulfillmentActions: Seller2026FulfillmentActionViewModel[];
     allowedActions: string[];
     canFulfill: boolean;
+    printLabel: {
+      canPrint: boolean;
+      reason: string | null;
+      endpoint: string | null;
+    };
     createdAt: string | null;
     updatedAt: string | null;
   } | null;
@@ -129,6 +142,7 @@ export type Seller2026SuborderDetailViewModel = {
     price: number;
     subtotal: number;
     imageUrl?: string | null;
+    productType?: string | null;
   }>;
   totals: {
     subtotal: number;
@@ -375,6 +389,33 @@ const readPagination = (value: unknown, fallbackLimit = 10) => {
   return { page, limit, total, totalPages: Math.max(1, Math.ceil(total / Math.max(1, limit))) };
 };
 
+const readPaymentMethodLabel = (
+  source: Record<string, unknown>,
+  paymentSummary: Record<string, unknown>,
+  fallback = "Payment"
+) =>
+  text(
+    paymentSummary.paymentMethodLabel ??
+      source.paymentMethodLabel ??
+      paymentSummary.paymentMethod ??
+      source.paymentMethod ??
+      paymentSummary.paymentChannel ??
+      paymentSummary.paymentType,
+    fallback
+);
+
+const readWithdrawalEligibility = (value: unknown) => {
+  const meta = object(value);
+  return {
+    code: text(meta.code, "NOT_PAID").toUpperCase(),
+    label: text(meta.label, "Not paid"),
+    description: text(meta.description, ""),
+    tone: text(meta.tone, "slate"),
+    isEligible: Boolean(meta.isEligible),
+    netAmount: number(meta.netAmount, 0),
+  };
+};
+
 const adaptOrderRow = (value: unknown) => {
   const row = object(value);
   const order = object(row.order);
@@ -388,6 +429,7 @@ const adaptOrderRow = (value: unknown) => {
   const paymentState = object(readModel.paymentState);
   const fulfillmentMeta = object(row.fulfillmentStatusMeta);
   const paymentMeta = object(row.paymentStatusMeta);
+  const withdrawalEligibility = readWithdrawalEligibility(row.withdrawalEligibility);
   const shippingMeta = object(row.shippingStatusMeta);
   const status = normalizeSuborderStatus(
     primaryStatus.code ??
@@ -445,7 +487,8 @@ const adaptOrderRow = (value: unknown) => {
     paymentStatus,
     paymentLabel,
     paymentTone: statusTone(paymentStatus),
-    paymentMethod: text(paymentSummary.paymentChannel ?? paymentSummary.paymentType, "Payment"),
+    paymentMethod: readPaymentMethodLabel(row, paymentSummary),
+    withdrawalEligibility,
     shippingStatus: text(shippingMeta.label ?? row.shippingStatus, "Needs review"),
     status,
     fulfillmentStatus: status,
@@ -514,10 +557,12 @@ export function adaptSeller2026SuborderDetail(value: unknown): Seller2026Suborde
       price,
       subtotal: number(row.totalPrice ?? row.subtotal, price * quantity),
       imageUrl: text(row.imageUrl ?? row.thumbnailUrl ?? row.image ?? object(row.product).imageUrl ?? object(row.product).image ?? object(row.Product).imageUrl ?? object(row.Product).image) || null,
+      productType: text(row.productType) || null,
     };
   });
   const shipments = array(detail.shipments).map(object);
   const trackingEvents = shipments.flatMap((shipment) => array(shipment.trackingEvents ?? shipment.events));
+  const printLabel = object(detail.printLabel);
 
   return {
     suborder: {
@@ -537,6 +582,11 @@ export function adaptSeller2026SuborderDetail(value: unknown): Seller2026Suborde
       fulfillmentActions: readFulfillmentActions(detail),
       allowedActions: readAllowedActionCodes(detail),
       canFulfill: hasEnabledFulfillmentAction(detail),
+      printLabel: {
+        canPrint: Boolean(printLabel.canPrint),
+        reason: text(printLabel.reason) || null,
+        endpoint: text(printLabel.endpoint) || null,
+      },
       createdAt: text(detail.createdAt ?? order.createdAt) || "Recently",
       updatedAt: text(detail.updatedAt) || null,
     },
@@ -555,7 +605,7 @@ export function adaptSeller2026SuborderDetail(value: unknown): Seller2026Suborde
     },
     payment: {
       status: text(detailPaymentMeta.label ?? paymentState.label ?? detail.paymentStatus, "Needs review"),
-      method: text(paymentSummary.paymentChannel ?? paymentSummary.paymentType ?? detail.paymentMethod, "No payment method available."),
+      method: readPaymentMethodLabel(detail, paymentSummary, "No payment method available."),
       proof: text(object(paymentSummary.proof).proofImageUrl ?? object(paymentSummary.proof).imageUrl, "No payment proof available."),
       paidAt: text(detail.paidAt ?? paymentSummary.paidAt) || null,
     },

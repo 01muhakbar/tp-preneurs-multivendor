@@ -8,6 +8,7 @@ import type {
   DuitkuCreateInvoiceRequest,
   NormalizedDuitkuCreateInvoiceResponse,
 } from "./duitkuTypes.js";
+import { normalizeDuitkuPaymentMethodCode } from "./duitkuPaymentMethods.service.js";
 
 export type PersistDuitkuCreateInvoiceAttemptInput = {
   orderId: number;
@@ -114,6 +115,7 @@ export const persistDuitkuCreateInvoiceAttempt = async (
       providerReference: input.response.reference,
       amountNormalized: input.request.paymentAmount,
       providerStatusCode: input.response.statusCode,
+      paymentCode: normalizeDuitkuPaymentMethodCode(input.request.paymentMethod),
       signatureState: "NOT_APPLICABLE",
       processingResult: status === "PENDING" ? "APPLIED" : status === "FAILED" ? "IGNORED" : "QUARANTINED",
       eventHash: sha256Hex({
