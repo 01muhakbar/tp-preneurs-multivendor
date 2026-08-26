@@ -203,12 +203,15 @@ const uploadsCandidates = Array.from(
   new Set([
     path.resolve(process.cwd(), process.env.UPLOAD_DIR || "uploads"),
     path.resolve(process.cwd(), "uploads"),
+    path.resolve(process.cwd(), "server/uploads"),
     path.resolve(process.cwd(), "public/uploads"),
     path.resolve(process.cwd(), "server/public/uploads"),
   ])
 );
-uploadsCandidates.forEach((uploadsDir) => {
-  if (!fs.existsSync(uploadsDir)) return;
+uploadsCandidates.forEach((uploadsDir, index) => {
+  if (index === 0) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
   app.use(
     "/uploads",
     express.static(uploadsDir, {
