@@ -10,6 +10,34 @@ export const api = axios.create({
   },
 });
 
+const getCurrentBrowserPath = () => {
+  if (typeof window === "undefined") return "";
+  return String(window.location?.pathname || "");
+};
+
+const isScopedEndpointOutsideCurrentArea = (url: string) => {
+  const currentPath = getCurrentBrowserPath();
+  const isSellerEndpoint =
+    url.startsWith("/seller") ||
+    url.includes("/api/seller") ||
+    url.startsWith("/auth/seller") ||
+    url.includes("/api/auth/seller");
+  if (isSellerEndpoint) {
+    return !currentPath.startsWith("/seller");
+  }
+
+  const isAdminEndpoint =
+    url.startsWith("/admin") ||
+    url.includes("/api/admin") ||
+    url.startsWith("/auth/admin") ||
+    url.includes("/api/auth/admin");
+  if (isAdminEndpoint) {
+    return !currentPath.startsWith("/admin");
+  }
+
+  return false;
+};
+
 api.interceptors.request.use((config) => {
   const requestUrl = String(config.url || "");
   const usesScopedCookie =
@@ -69,7 +97,12 @@ api.interceptors.response.use(
         "/auth/admin/logout",
       ].some((path) => url.includes(path));
     const msg = err?.response?.data || err.message;
-    if (status === 401 && !isAuthMe && !isAuthFormEndpoint) {
+    if (
+      status === 401 &&
+      !isAuthMe &&
+      !isAuthFormEndpoint &&
+      !isScopedEndpointOutsideCurrentArea(String(url || ""))
+    ) {
       triggerUnauthorized({
         status,
         code: err?.response?.data?.code,

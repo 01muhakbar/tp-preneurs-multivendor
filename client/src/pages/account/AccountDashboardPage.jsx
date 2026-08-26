@@ -15,6 +15,26 @@ import {
 } from "../../utils/storeOnboardingPresentation.ts";
 import AccountDashboard2026View from "./AccountDashboard2026View.jsx";
 
+const isUnauthorized = (error) => Number(error?.response?.status || 0) === 401;
+
+const listOptionalSellerWorkspaceStores = async () => {
+  try {
+    return await listSellerWorkspaceStores();
+  } catch (error) {
+    if (isUnauthorized(error)) return [];
+    throw error;
+  }
+};
+
+const getOptionalSellerInvitations = async () => {
+  try {
+    return await getSellerInvitations();
+  } catch (error) {
+    if (isUnauthorized(error)) return { items: [], total: 0 };
+    throw error;
+  }
+};
+
 const getOrderDateValue = (order) =>
   order?.createdAt || order?.created_at || order?.orderTime || null;
 
@@ -81,7 +101,7 @@ export default function AccountDashboardPage() {
   });
   const sellerStoresQuery = useQuery({
     queryKey: ["seller", "workspace", "stores"],
-    queryFn: listSellerWorkspaceStores,
+    queryFn: listOptionalSellerWorkspaceStores,
     retry: false,
   });
   const notificationsQuery = useQuery({
@@ -91,7 +111,7 @@ export default function AccountDashboardPage() {
   });
   const invitationsQuery = useQuery({
     queryKey: ["seller", "invitations"],
-    queryFn: getSellerInvitations,
+    queryFn: getOptionalSellerInvitations,
     retry: false,
   });
   const addressesQuery = useQuery({
