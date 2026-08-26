@@ -122,7 +122,7 @@ export default function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   const redirectPath = useMemo(() => getRedirectPath(location.state?.from), [location.state?.from]);
-  const isDark = resolvedTheme === "dark";
+
 
   const mutation = useMutation({
     mutationFn: async () => {
