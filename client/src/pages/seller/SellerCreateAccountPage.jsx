@@ -429,6 +429,13 @@ export default function SellerCreateAccountPage() {
               </button>
             </form>
 
+            <div className="seller-create-form-links">
+              <p>
+                {t("signup.Already have an account?")}{" "}
+                <Link to="/seller/login">{t("signup.Back to Login")}</Link>
+              </p>
+            </div>
+
             <div className="seller-create-next-step">
               <ShieldCheck size={18} aria-hidden="true" />
               <p><strong>{t("signup.What happens next?")}</strong>{t("signup.Your seller application is reviewed before any store is activated.")}</p>
