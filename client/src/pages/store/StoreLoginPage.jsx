@@ -19,8 +19,12 @@ const PENDING_ADD_KEY = "pending_cart_add";
 const PENDING_ADD_CONSUMED_KEY = "pending_cart_add_consumed";
 const ADMIN_WORKSPACE_ROLES = new Set(["admin", "super_admin", "superadmin", "staff"]);
 const PUBLIC_LOGIN_PATH = "/auth/login";
+const ACCOUNT_DASHBOARD_PATH = "/user/dashboard";
+const LEGACY_ACCOUNT_PATH = "/account";
 
 const normalizeRole = (value) => String(value || "").trim().toLowerCase();
+const normalizePostLoginTarget = (value) =>
+  value === LEGACY_ACCOUNT_PATH ? ACCOUNT_DASHBOARD_PATH : value;
 
 export default function StoreLoginPage() {
   const navigate = useNavigate();
@@ -43,7 +47,7 @@ export default function StoreLoginPage() {
 
   useEffect(() => {
     if (isAccountSession) {
-      navigate("/account", { replace: true });
+      navigate(ACCOUNT_DASHBOARD_PATH, { replace: true });
     }
   }, [isAccountSession, navigate]);
 
@@ -182,27 +186,10 @@ export default function StoreLoginPage() {
             : null;
       let target =
         pendingFrom && pendingFrom !== "/auth/login"
-          ? pendingFrom
+          ? normalizePostLoginTarget(pendingFrom)
           : resolvedFrom && resolvedFrom !== "/auth/login"
-            ? resolvedFrom
-            : "/account";
-
-      if (target === "/account") {
-        try {
-          const storesResponse = await api.get("/seller/stores");
-          const storesData = storesResponse?.data;
-          const stores = Array.isArray(storesData?.stores) ? storesData.stores 
-                       : Array.isArray(storesData?.data?.stores) ? storesData.data.stores
-                       : Array.isArray(storesData?.items) ? storesData.items
-                       : Array.isArray(storesData?.data?.items) ? storesData.data.items 
-                       : Array.isArray(storesData) ? storesData : [];
-          if (stores.length > 0) {
-            target = "/user/dashboard";
-          }
-        } catch (err) {
-          // ignore
-        }
-      }
+            ? normalizePostLoginTarget(resolvedFrom)
+            : ACCOUNT_DASHBOARD_PATH;
 
       const postLoginState =
         location.state?.postLoginState &&
