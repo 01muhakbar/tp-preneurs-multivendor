@@ -34,48 +34,48 @@ import "./seller-login-2026.css";
 const REMEMBERED_EMAIL_KEY = "seller_login_remembered_email";
 const ADMIN_WORKSPACE_ROLES = new Set(["admin", "staff", "super_admin", "superadmin"]);
 
-const FEATURES = [
+const getFeatures = (t) => [
   {
-    title: "Catalog Control",
-    description: "Manage products, stock, and storefront readiness.",
+    title: t("login.Catalog Control"),
+    description: t("login.Manage products, stock, and storefront readiness."),
     Icon: Boxes,
   },
   {
-    title: "Order Fulfillment",
-    description: "Track orders and keep every delivery moving.",
+    title: t("login.Order Fulfillment"),
+    description: t("login.Track orders and keep every delivery moving."),
     Icon: ClipboardCheck,
   },
   {
-    title: "Payment Review",
-    description: "Review payment activity and payout readiness.",
+    title: t("login.Payment Review"),
+    description: t("login.Review payment activity and payout readiness."),
     Icon: WalletCards,
   },
   {
-    title: "Live Insights",
-    description: "See store performance from one focused view.",
+    title: t("login.Live Insights"),
+    description: t("login.See store performance from one focused view."),
     Icon: BarChart3,
   },
 ];
 
-const TRUST_ITEMS = [
+const getTrustItems = (t) => [
   {
-    title: "Secure Access",
-    description: "Protected seller sessions",
+    title: t("login.Secure Access"),
+    description: t("login.Protected seller sessions"),
     Icon: ShieldCheck,
   },
   {
-    title: "Catalog Ready",
-    description: "Products and stock aligned",
+    title: t("login.Catalog Ready"),
+    description: t("login.Products and stock aligned"),
     Icon: PackageCheck,
   },
   {
-    title: "Finance Flow",
-    description: "Payment visibility built in",
+    title: t("login.Finance Flow"),
+    description: t("login.Payment visibility built in"),
     Icon: BadgeDollarSign,
   },
   {
-    title: "Fulfillment",
-    description: "Orders stay on track",
+    title: t("login.Fulfillment"),
+    description: t("login.Orders stay on track"),
     Icon: Truck,
   },
 ];
@@ -161,7 +161,7 @@ export default function SellerLoginPage() {
   const { refreshSession, logout } = useSellerAuth();
   const { resolvedTheme, setTheme } = useTheme();
   const { branding } = useStoreBranding();
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation("seller");
   const emailRef = useRef(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -198,10 +198,10 @@ export default function SellerLoginPage() {
   const validate = () => {
     const errors = {};
     if (!email.trim()) {
-      errors.email = "Enter your email or username.";
+      errors.email = t("login.Enter your email or username.");
     }
     if (!password) {
-      errors.password = "Enter your password.";
+      errors.password = t("login.Enter your password.");
     }
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
@@ -240,9 +240,7 @@ export default function SellerLoginPage() {
       const authenticatedRole = getResponseRole(loginResponse);
 
       if (ADMIN_WORKSPACE_ROLES.has(authenticatedRole)) {
-        setSubmitError(
-          "This account belongs to Admin Workspace. Please use Admin Login."
-        );
+        setSubmitError(t("login.This account belongs to Admin Workspace. Please use Admin Login."));
         setShowAdminLink(true);
         return;
       }
@@ -262,7 +260,7 @@ export default function SellerLoginPage() {
         await logout?.();
         navigate("/auth/login", { 
           replace: true,
-          state: { authNotice: "Akses ditolak. Silakan login melalui halaman utama." }
+          state: { authNotice: t("login.Access denied. Please login through the main page.", { defaultValue: "Akses ditolak. Silakan login melalui halaman utama." }) }
         });
         return;
       }
@@ -288,16 +286,14 @@ export default function SellerLoginPage() {
         responseData?.code === "ADMIN_WORKSPACE_LOGIN_REQUIRED";
 
       if (isAdminAccount) {
-        setSubmitError(
-          "This account belongs to Admin Workspace. Please use Admin Login."
-        );
+        setSubmitError(t("login.This account belongs to Admin Workspace. Please use Admin Login."));
         setShowAdminLink(true);
       } else {
         setSubmitError(
           error?.response?.status === 429 && getRetryAfterSeconds(error) > 0
             ? buildRetryAfterMessage(getRetryAfterSeconds(error))
             : responseData?.message ||
-                "We couldn't sign you in. Check your credentials and try again."
+                t("login.We couldn't sign you in. Check your credentials and try again.")
         );
         const retryAfterSeconds = getRetryAfterSeconds(error);
         if (retryAfterSeconds > 0) {
@@ -340,15 +336,14 @@ export default function SellerLoginPage() {
           </div>
 
           <div className="seller-login-hero__content">
-            <p className="seller-login-eyebrow">Built for modern merchants</p>
-            <h1>Run your store, orders, and payouts from one clean dashboard.</h1>
+            <p className="seller-login-eyebrow">{t("login.Built for modern merchants")}</p>
+            <h1>{t("login.Run your store, orders, and payouts from one clean dashboard.")}</h1>
             <p className="seller-login-hero__intro">
-              Stay close to the work that grows your business, with store-scoped
-              access and a workspace designed for daily operations.
+              {t("login.Stay close to the work that grows your business, with store-scoped access and a workspace designed for daily operations.")}
             </p>
 
             <div className="seller-login-feature-list">
-              {FEATURES.map(({ title, description, Icon }) => (
+              {getFeatures(t).map(({ title, description, Icon }) => (
                 <div className="seller-login-feature" key={title}>
                   <span className="seller-login-feature__icon" aria-hidden="true">
                     <Icon size={19} strokeWidth={2} />
@@ -424,14 +419,14 @@ export default function SellerLoginPage() {
               <span className="seller-login-card__icon" aria-hidden="true">
                 <Store size={30} strokeWidth={2.2} />
               </span>
-              <p className="seller-login-eyebrow">Seller access</p>
-              <h2 id="seller-login-title">Welcome back</h2>
-              <p>Sign in to continue to your Seller Workspace.</p>
+              <p className="seller-login-eyebrow">{t("login.Seller access")}</p>
+              <h2 id="seller-login-title">{t("login.Welcome back")}</h2>
+              <p>{t("login.Sign in to continue to your Seller Workspace.")}</p>
             </div>
 
             <form className="seller-login-form" onSubmit={handleSubmit} noValidate>
               <div className="seller-login-field">
-                <label htmlFor="seller-login-email">Email or Username</label>
+                <label htmlFor="seller-login-email">{t("login.Email or Username")}</label>
                 <div
                   className={`seller-login-input ${
                     fieldErrors.email ? "seller-login-input--error" : ""
@@ -444,7 +439,7 @@ export default function SellerLoginPage() {
                     type="text"
                     value={email}
                     onChange={handleEmailChange}
-                    placeholder="Enter your email or username"
+                    placeholder={t("login.Enter your email or username")}
                     autoComplete="username"
                     aria-invalid={Boolean(fieldErrors.email)}
                     aria-describedby={
@@ -461,8 +456,8 @@ export default function SellerLoginPage() {
 
               <div className="seller-login-field">
                 <div className="seller-login-field__label-row">
-                  <label htmlFor="seller-login-password">Password</label>
-                  <Link to="/seller/forgot-password">Forgot password?</Link>
+                  <label htmlFor="seller-login-password">{t("login.Password")}</label>
+                  <Link to="/seller/forgot-password">{t("login.Forgot password?")}</Link>
                 </div>
                 <div
                   className={`seller-login-input ${
@@ -475,7 +470,7 @@ export default function SellerLoginPage() {
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={handlePasswordChange}
-                    placeholder="Enter your password"
+                    placeholder={t("login.Enter your password")}
                     autoComplete="current-password"
                     aria-invalid={Boolean(fieldErrors.password)}
                     aria-describedby={
@@ -516,7 +511,7 @@ export default function SellerLoginPage() {
                 <span aria-hidden="true">
                   <Check size={13} strokeWidth={3} />
                 </span>
-                Remember me
+                {t("login.Remember me")}
               </label>
 
               {submitError ? (
@@ -527,7 +522,7 @@ export default function SellerLoginPage() {
                     {showAdminLink ? (
                       <>
                         {" "}
-                        <Link to="/admin/login">Open Admin Login</Link>
+                        <Link to="/admin/login">{t("login.Open Admin Login")}</Link>
                       </>
                     ) : null}
                   </span>
@@ -543,10 +538,10 @@ export default function SellerLoginPage() {
                 aria-busy={isSubmitting}
               >
                 {isSubmitting ? (
-                  "Signing in..."
+                  t("login.Signing in...")
                 ) : (
                   <>
-                    <span>{buildCooldownButtonLabel(cooldownSeconds, "Sign In")}</span>
+                    <span>{buildCooldownButtonLabel(cooldownSeconds, t("login.Sign In"))}</span>
                     <ArrowRight size={19} aria-hidden="true" />
                   </>
                 )}
@@ -555,18 +550,17 @@ export default function SellerLoginPage() {
 
             <div className="seller-login-card__links">
               <p>
-                New to selling? <Link to="/seller/create-account">Create an account</Link>
+                {t("login.New to selling?")} <Link to="/seller/create-account">{t("login.Create an account")}</Link>
               </p>
               <p>
-                Admin team? <Link to="/admin/login">Admin Login</Link>
+                {t("login.Admin team?")} <Link to="/admin/login">{t("login.Admin Login")}</Link>
               </p>
             </div>
 
             <div className="seller-login-security">
               <LockKeyhole size={16} aria-hidden="true" />
               <p>
-                Your session is protected and store access is verified before the
-                workspace opens.
+                {t("login.Your session is protected and store access is verified before the workspace opens.")}
               </p>
             </div>
           </div>
@@ -574,7 +568,7 @@ export default function SellerLoginPage() {
       </section>
 
       <section className="seller-login-trust" aria-label="Seller workspace benefits">
-        {TRUST_ITEMS.map(({ title, description, Icon }) => (
+        {getTrustItems(t).map(({ title, description, Icon }) => (
           <div className="seller-login-trust__item" key={title}>
             <span aria-hidden="true">
               <Icon size={21} strokeWidth={2} />

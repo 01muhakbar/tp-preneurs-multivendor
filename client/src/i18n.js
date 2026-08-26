@@ -5,6 +5,8 @@ import enStorefront from './locales/en/storefront.json';
 import idStorefront from './locales/id/storefront.json';
 import enAdmin from './locales/en/admin.json';
 import idAdmin from './locales/id/admin.json';
+import enSeller from './locales/en/seller.json';
+import idSeller from './locales/id/seller.json';
 
 const normalizeLanguageCode = (value) => {
   const normalized = String(value || "").trim().toLowerCase();
@@ -36,11 +38,13 @@ i18n
     resources: {
       en: {
         storefront: enStorefront,
-        admin: enAdmin
+        admin: enAdmin,
+        seller: enSeller
       },
       id: {
         storefront: idStorefront,
-        admin: idAdmin
+        admin: idAdmin,
+        seller: idSeller
       }
     },
     lng: getStoredLanguage(),

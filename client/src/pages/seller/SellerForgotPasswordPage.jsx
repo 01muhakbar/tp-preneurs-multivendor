@@ -27,38 +27,38 @@ const FALLBACK_ERROR_MESSAGE =
   "Unable to send reset link. Please check your email and try again.";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const BENEFITS = [
+const getBenefits = (t) => [
   {
-    title: "Secure & Safe",
-    description: "Your recovery request is protected from start to finish.",
+    title: t("forgot.Secure & Safe"),
+    description: t("forgot.Your recovery request is protected from start to finish."),
     Icon: LockKeyhole,
   },
   {
-    title: "Quick Recovery",
-    description: "Use one secure link to create your new password.",
+    title: t("forgot.Quick Recovery"),
+    description: t("forgot.Use one secure link to create your new password."),
     Icon: Mail,
   },
   {
-    title: "Protected Access",
-    description: "Return to a workspace verified for your seller account.",
+    title: t("forgot.Protected Access"),
+    description: t("forgot.Return to a workspace verified for your seller account."),
     Icon: ShieldCheck,
   },
 ];
 
-const RECOVERY_STEPS = [
+const getRecoverySteps = (t) => [
   {
-    title: "Check your inbox",
-    description: "We'll send a reset link to your email address.",
+    title: t("forgot.Check your inbox"),
+    description: t("forgot.We'll send a reset link to your email address."),
     Icon: Mail,
   },
   {
-    title: "Open the link",
-    description: "Follow the secure link before it expires.",
+    title: t("forgot.Open the link"),
+    description: t("forgot.Follow the secure link before it expires."),
     Icon: ArrowRight,
   },
   {
-    title: "Create a new password",
-    description: "Set a new password and sign in again.",
+    title: t("forgot.Create a new password"),
+    description: t("forgot.Set a new password and sign in again."),
     Icon: KeyRound,
   },
 ];
@@ -82,7 +82,7 @@ const storeEmail = (email) => {
 export default function SellerForgotPasswordPage() {
   const { resolvedTheme, setTheme } = useTheme();
   const { branding } = useStoreBranding();
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation("seller");
   const startedAtRef = useRef(Date.now());
   const emailRef = useRef(null);
   const [email, setEmail] = useState("");
@@ -108,11 +108,11 @@ export default function SellerForgotPasswordPage() {
   const validateEmail = () => {
     const normalizedEmail = email.trim();
     if (!normalizedEmail) {
-      setFieldError("Email address is required.");
+      setFieldError(t("forgot.Email address is required."));
       return false;
     }
     if (!EMAIL_PATTERN.test(normalizedEmail)) {
-      setFieldError("Enter a valid email address.");
+      setFieldError(t("signup.Enter a valid email address."));
       return false;
     }
     setFieldError("");
@@ -147,12 +147,12 @@ export default function SellerForgotPasswordPage() {
       storeEmail(normalizedEmail);
       setSuccessMessage(
         response?.data?.message ||
-          "If an account matches that email, a password reset link has been sent."
+          t("forgot.If an account matches that email, a password reset link has been sent.")
       );
       setCooldown(RESEND_COOLDOWN_SECONDS);
       startedAtRef.current = Date.now();
     } catch (error) {
-      setSubmitError(error?.response?.data?.message || FALLBACK_ERROR_MESSAGE);
+      setSubmitError(error?.response?.data?.message || t("forgot.Unable to send reset link. Please check your email and try again."));
     } finally {
       setIsSubmitting(false);
     }
@@ -192,17 +192,16 @@ export default function SellerForgotPasswordPage() {
           </div>
 
           <div className="seller-forgot-hero__content">
-            <p className="seller-forgot-eyebrow">Account recovery</p>
+            <p className="seller-forgot-eyebrow">{t("forgot.Account recovery")}</p>
             <h1>
-              Let's get you <span>back to your store.</span>
+              {t("forgot.Let's get you")} <span>{t("forgot.back to your store.")}</span>
             </h1>
             <p className="seller-forgot-hero__intro">
-              Enter your seller account email and we'll send a secure link to
-              reset your password.
+              {t("forgot.Enter your seller account email and we'll send a secure link to reset your password.")}
             </p>
 
             <div className="seller-forgot-benefits">
-              {BENEFITS.map(({ title, description, Icon }) => (
+              {getBenefits(t).map(({ title, description, Icon }) => (
                 <div className="seller-forgot-benefit" key={title}>
                   <span aria-hidden="true">
                     <Icon size={21} strokeWidth={2} />
@@ -250,11 +249,11 @@ export default function SellerForgotPasswordPage() {
 
           <div className="seller-forgot-return">
             <p>
-              <strong>Remember your password?</strong>
-              <small>Sign in to access your seller workspace.</small>
+              <strong>{t("forgot.Remember your password?")}</strong>
+              <small>{t("forgot.Sign in to access your seller workspace.")}</small>
             </p>
             <Link to="/seller/login">
-              Back to Login <ArrowRight size={17} aria-hidden="true" />
+              {t("forgot.Back to Seller Login")} <ArrowRight size={17} aria-hidden="true" />
             </Link>
           </div>
         </div>
@@ -286,16 +285,16 @@ export default function SellerForgotPasswordPage() {
                 <Mail size={34} strokeWidth={2.1} />
                 <LockKeyhole size={18} strokeWidth={2.5} />
               </span>
-              <p className="seller-forgot-eyebrow">Secure reset</p>
+              <p className="seller-forgot-eyebrow">{t("forgot.Secure reset")}</p>
               <h2 id="seller-forgot-title">
-                Forgot <span>Password?</span>
+                {t("forgot.Forgot")} <span>{t("forgot.Password?")}</span>
               </h2>
-              <p>No worries. Enter your email and we'll send you a reset link.</p>
+              <p>{t("forgot.No worries. Enter your email and we'll send you a reset link.")}</p>
             </div>
 
             <form className="seller-forgot-form" onSubmit={handleSubmit} noValidate>
               <div className="seller-forgot-field">
-                <label htmlFor="seller-forgot-email">Email Address</label>
+                <label htmlFor="seller-forgot-email">{t("signup.Email Address")}</label>
                 <div
                   className={`seller-forgot-input ${
                     fieldError ? "seller-forgot-input--error" : ""
@@ -308,7 +307,7 @@ export default function SellerForgotPasswordPage() {
                     type="email"
                     value={email}
                     onChange={handleEmailChange}
-                    placeholder="Enter your email address"
+                    placeholder={t("signup.Enter your email address")}
                     autoComplete="email"
                     inputMode="email"
                     aria-invalid={Boolean(fieldError)}
@@ -350,18 +349,18 @@ export default function SellerForgotPasswordPage() {
                 <Send size={19} aria-hidden="true" />
                 <span>
                   {isSubmitting
-                    ? "Sending..."
+                    ? t("forgot.Sending...")
                     : cooldown > 0
-                      ? `Resend in ${cooldown}s`
+                      ? `${t("forgot.Resend in")} ${cooldown}s`
                       : successMessage
-                        ? "Resend Reset Link"
-                        : "Send Reset Link"}
+                        ? t("forgot.Resend Reset Link")
+                        : t("forgot.Send Reset Link")}
                 </span>
               </button>
             </form>
 
             <div className="seller-forgot-steps" aria-label="Password recovery steps">
-              {RECOVERY_STEPS.map(({ title, description, Icon }, index) => (
+              {getRecoverySteps(t).map(({ title, description, Icon }, index) => (
                 <div className="seller-forgot-step" key={title}>
                   <span aria-hidden="true">
                     <Icon size={18} strokeWidth={2.2} />
@@ -378,10 +377,10 @@ export default function SellerForgotPasswordPage() {
             <div className="seller-forgot-card__links">
               <Link to="/seller/login">
                 <ArrowRight size={16} aria-hidden="true" />
-                Back to Seller Login
+                {t("forgot.Back to Seller Login")}
               </Link>
               <p>
-                Need help? <Link to="/contact-us">Contact Support</Link>
+                {t("signup.Need help?")} <Link to="/contact-us">{t("signup.Contact Support")}</Link>
               </p>
             </div>
           </div>
@@ -393,12 +392,12 @@ export default function SellerForgotPasswordPage() {
           <Headphones size={24} strokeWidth={2} />
         </span>
         <p>
-          <strong>Need help?</strong>
-          <small>Our support team is here to help you 24/7.</small>
+          <strong>{t("signup.Need help?")}</strong>
+          <small>{t("forgot.Our support team is here to help you 24/7.")}</small>
         </p>
         <Link to="/contact-us">
           <Headphones size={18} aria-hidden="true" />
-          Contact Support
+          {t("signup.Contact Support")}
         </Link>
       </section>
 
