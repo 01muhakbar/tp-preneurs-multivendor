@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { api } from "../../api/axios.ts";
 import { useTheme } from "../../theme/ThemeProvider.jsx";
+import { useTranslation } from "react-i18next";
 import useStoreBranding from "../../hooks/useStoreBranding.js";
 import { getWorkspaceLogoUrl, hasCustomBrandingLogo } from "../../lib/branding.js";
 import "./seller-forgot-password-2026.css";
@@ -81,6 +82,7 @@ const storeEmail = (email) => {
 export default function SellerForgotPasswordPage() {
   const { resolvedTheme, setTheme } = useTheme();
   const { branding } = useStoreBranding();
+  const { i18n } = useTranslation();
   const startedAtRef = useRef(Date.now());
   const emailRef = useRef(null);
   const [email, setEmail] = useState("");
@@ -258,31 +260,24 @@ export default function SellerForgotPasswordPage() {
         </div>
 
         <div className="seller-forgot-form-panel">
-          <div
-            className="seller-forgot-theme"
-            role="group"
-            aria-label="Choose appearance"
-          >
+          <div className="seller-forgot-topbar">
             <button
               type="button"
-              className={resolvedTheme === "light" ? "is-active" : ""}
-              onClick={() => setTheme("light")}
-              aria-label="Use light theme"
-              aria-pressed={resolvedTheme === "light"}
+              className="seller-forgot-icon-btn"
+              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+              aria-label="Toggle theme"
             >
-              <Sun size={17} aria-hidden="true" />
-              Light
+              {resolvedTheme === "dark" ? <Moon size={16} /> : <Sun size={16} />}
             </button>
-            <button
-              type="button"
-              className={resolvedTheme === "dark" ? "is-active" : ""}
-              onClick={() => setTheme("dark")}
-              aria-label="Use dark theme"
-              aria-pressed={resolvedTheme === "dark"}
+            <select
+              className="seller-forgot-lang-select"
+              value={i18n.language?.startsWith("id") ? "id" : "en"}
+              onChange={(e) => i18n.changeLanguage(e.target.value)}
+              aria-label="Select language"
             >
-              <Moon size={17} aria-hidden="true" />
-              Dark
-            </button>
+              <option value="en">English</option>
+              <option value="id">Indonesia</option>
+            </select>
           </div>
 
           <div className="seller-forgot-card">

@@ -403,41 +403,49 @@
     linear-gradient(155deg, var(--tp-surface-soft), var(--tp-bg));
 }
 
-.seller-create-theme {
+.seller-create-topbar {
   position: absolute;
   top: 30px;
   right: 38px;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  padding: 4px;
-  border: 1px solid var(--tp-border);
-  border-radius: 13px;
-  background: rgb(255 255 255 / 0.7);
-  box-shadow: 0 8px 24px rgb(15 42 71 / 0.1);
-  backdrop-filter: blur(18px);
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
-.seller-create-theme button {
-  min-width: 79px;
-  height: 37px;
+.seller-create-icon-btn,
+.seller-create-lang-select {
+  height: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  padding: 0 13px;
-  border: 0;
-  border-radius: 9px;
+  padding: 0 14px;
+  border: 1px solid var(--tp-border);
+  border-radius: 13px;
   color: var(--tp-muted);
-  background: transparent;
-  font-size: 12px;
-  font-weight: 750;
+  background: rgb(255 255 255 / 0.7);
+  box-shadow: 0 8px 24px rgb(15 42 71 / 0.1);
+  backdrop-filter: blur(18px);
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.seller-create-theme button.is-active {
-  color: var(--tp-primary);
+.seller-create-icon-btn {
+  width: 40px;
+  padding: 0;
+}
+
+.seller-create-icon-btn:hover,
+.seller-create-lang-select:hover {
   background: var(--tp-surface);
-  box-shadow: 0 3px 10px rgb(15 42 71 / 0.1);
+  border-color: var(--tp-primary);
+  color: var(--tp-primary);
+}
+
+.seller-create-lang-select {
+  outline: none;
+  appearance: auto;
 }
 
 .seller-create-card {
@@ -716,8 +724,19 @@
 
 .dark .seller-create-shell { border-color: rgb(255 255 255 / 0.08); box-shadow: 0 30px 80px rgb(0 0 0 / 0.38); }
 .dark .seller-create-form-panel { background: radial-gradient(circle at 50% 38%, rgb(var(--tp-primary-rgb) / 0.22), transparent 28rem), linear-gradient(155deg, var(--tp-surface-soft), var(--tp-bg)); }
-.dark .seller-create-theme { background: rgb(7 17 31 / 0.65); box-shadow: 0 8px 24px rgb(0 0 0 / 0.26); }
-.dark .seller-create-theme button.is-active { color: #b9dcff; background: var(--tp-surface-soft); }
+.dark .seller-create-icon-btn,
+.dark .seller-create-lang-select {
+  border-color: var(--tp-border);
+  background: rgb(7 17 31 / 0.65);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.26);
+}
+
+.dark .seller-create-icon-btn:hover,
+.dark .seller-create-lang-select:hover {
+  color: #b9dcff;
+  background: var(--tp-surface-soft);
+  border-color: var(--tp-primary);
+}
 .dark .seller-create-card { border-color: rgb(255 255 255 / 0.08); background: rgb(13 27 44 / 0.8); box-shadow: 0 28px 72px rgb(0 0 0 / 0.34), inset 0 1px 0 rgb(255 255 255 / 0.04); }
 .dark .seller-create-input,
 .dark .seller-create-fixed-code { background: rgb(7 17 31 / 0.48); }
@@ -748,7 +767,7 @@
   .seller-create-shop { display: none; }
   .seller-create-login-card { margin-top: auto; }
   .seller-create-form-panel { padding: 102px 28px 42px; }
-  .seller-create-theme { top: 27px; right: 28px; }
+  .seller-create-topbar { top: 27px; right: 28px; }
 }
 
 @media (max-width: 620px) {
@@ -767,8 +786,9 @@
   .seller-create-benefit p { font-size: 11px; }
   .seller-create-login-card { flex-direction: column; align-items: flex-start; margin-top: 30px; }
   .seller-create-form-panel { padding: 89px 14px 28px; }
-  .seller-create-theme { top: 21px; right: 17px; }
-  .seller-create-theme button { min-width: 70px; height: 34px; padding-inline: 10px; font-size: 11px; }
+  .seller-create-topbar { top: 21px; right: 17px; }
+  .seller-create-icon-btn, .seller-create-lang-select { height: 34px; padding-inline: 10px; font-size: 11px; }
+  .seller-create-icon-btn { width: 34px; padding-inline: 0; }
   .seller-create-card { padding: 29px 19px 25px; border-radius: 23px; }
   .seller-create-card__icon { width: 60px; height: 60px; }
   .seller-create-card__header h2 { font-size: 25px; }

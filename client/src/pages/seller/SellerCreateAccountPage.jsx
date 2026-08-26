@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { api } from "../../api/axios.ts";
 import { useTheme } from "../../theme/ThemeProvider.jsx";
+import { useTranslation } from "react-i18next";
 import useStoreBranding from "../../hooks/useStoreBranding.js";
 import { getWorkspaceLogoUrl, hasCustomBrandingLogo } from "../../lib/branding.js";
 import "./seller-create-account-2026.css";
@@ -79,6 +80,7 @@ export default function SellerCreateAccountPage() {
   const navigate = useNavigate();
   const { resolvedTheme, setTheme } = useTheme();
   const { branding } = useStoreBranding();
+  const { i18n } = useTranslation();
   const startedAtRef = useRef(Date.now());
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -315,13 +317,24 @@ export default function SellerCreateAccountPage() {
         </aside>
 
         <section className="seller-create-form-panel">
-          <div className="seller-create-theme" role="group" aria-label="Choose appearance">
-            <button type="button" className={resolvedTheme === "light" ? "is-active" : ""} onClick={() => setTheme("light")} aria-label="Use light theme" aria-pressed={resolvedTheme === "light"}>
-              <Sun size={16} aria-hidden="true" /> Light
+          <div className="seller-create-topbar">
+            <button
+              type="button"
+              className="seller-create-icon-btn"
+              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+              aria-label="Toggle theme"
+            >
+              {resolvedTheme === "dark" ? <Moon size={16} /> : <Sun size={16} />}
             </button>
-            <button type="button" className={resolvedTheme === "dark" ? "is-active" : ""} onClick={() => setTheme("dark")} aria-label="Use dark theme" aria-pressed={resolvedTheme === "dark"}>
-              <Moon size={16} aria-hidden="true" /> Dark
-            </button>
+            <select
+              className="seller-create-lang-select"
+              value={i18n.language?.startsWith("id") ? "id" : "en"}
+              onChange={(e) => i18n.changeLanguage(e.target.value)}
+              aria-label="Select language"
+            >
+              <option value="en">English</option>
+              <option value="id">Indonesia</option>
+            </select>
           </div>
 
           <div className="seller-create-card">
