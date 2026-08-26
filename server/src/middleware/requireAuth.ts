@@ -21,6 +21,13 @@ const isAdminRequest = (req: Request) => {
 };
 
 const resolveCookieNamesForRequest = (req: Request) => {
+  const originalUrl = String(req.originalUrl || "");
+  const baseUrl = String(req.baseUrl || "");
+
+  if (originalUrl.startsWith("/api/seller/invitations") || baseUrl.startsWith("/api/seller/invitations")) {
+    return [getStorefrontCookieName(), getSellerCookieName()];
+  }
+
   if (isSellerRequest(req)) {
     return [getSellerCookieName()];
   }

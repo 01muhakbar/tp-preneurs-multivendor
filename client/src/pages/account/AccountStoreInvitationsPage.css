@@ -974,3 +974,179 @@
     padding: 24px 20px 20px;
   }
 }
+
+/* DARK MODE SUPPORT */
+[data-theme="dark"] .store-invite-2026-page,
+[data-resolved-theme="dark"] .store-invite-2026-page {
+  --si26-ink: #f1f5f9;
+  --si26-muted: #94a3b8;
+  --si26-line: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .si26-hero,
+[data-resolved-theme="dark"] .si26-hero {
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .si26-hero-copy h1,
+[data-resolved-theme="dark"] .si26-hero-copy h1 {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .si26-stats,
+[data-resolved-theme="dark"] .si26-stats {
+  background: rgba(30, 41, 59, 0.78);
+  border-color: rgba(16, 185, 129, 0.15);
+}
+
+[data-theme="dark"] .si26-stat:hover,
+[data-theme="dark"] .si26-stat.is-active,
+[data-resolved-theme="dark"] .si26-stat:hover,
+[data-resolved-theme="dark"] .si26-stat.is-active {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+[data-theme="dark"] .si26-stat strong,
+[data-resolved-theme="dark"] .si26-stat strong {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .si26-stat--pending .si26-stat-icon,
+[data-resolved-theme="dark"] .si26-stat--pending .si26-stat-icon {
+  background: rgba(4, 120, 87, 0.3);
+  color: #34d399;
+}
+
+[data-theme="dark"] .si26-stat--accepted .si26-stat-icon,
+[data-resolved-theme="dark"] .si26-stat--accepted .si26-stat-icon {
+  background: rgba(29, 78, 216, 0.3);
+  color: #60a5fa;
+}
+
+[data-theme="dark"] .si26-stat--declined .si26-stat-icon,
+[data-resolved-theme="dark"] .si26-stat--declined .si26-stat-icon {
+  background: rgba(190, 18, 60, 0.3);
+  color: #fb7185;
+}
+
+[data-theme="dark"] .si26-panel,
+[data-resolved-theme="dark"] .si26-panel {
+  background: #1e293b;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .si26-tabs button,
+[data-resolved-theme="dark"] .si26-tabs button {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .si26-tabs button:hover,
+[data-theme="dark"] .si26-tabs button.is-active,
+[data-resolved-theme="dark"] .si26-tabs button:hover,
+[data-resolved-theme="dark"] .si26-tabs button.is-active {
+  color: #10b981;
+}
+
+[data-theme="dark"] .si26-sort select,
+[data-resolved-theme="dark"] .si26-sort select {
+  background: #0f172a;
+  color: #f1f5f9;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .si26-card,
+[data-resolved-theme="dark"] .si26-card {
+  background: linear-gradient(110deg, #1e293b, #0f172a);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+[data-theme="dark"] .si26-card--accepted,
+[data-resolved-theme="dark"] .si26-card--accepted {
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+[data-theme="dark"] .si26-card--declined,
+[data-resolved-theme="dark"] .si26-card--declined {
+  border-color: rgba(244, 63, 94, 0.3);
+}
+
+[data-theme="dark"] .si26-card-identity h3,
+[data-resolved-theme="dark"] .si26-card-identity h3 {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .si26-card-meta dd,
+[data-resolved-theme="dark"] .si26-card-meta dd,
+[data-theme="dark"] .si26-card-state > p:not(.si26-card-state-title),
+[data-resolved-theme="dark"] .si26-card-state > p:not(.si26-card-state-title) {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .si26-button--secondary,
+[data-resolved-theme="dark"] .si26-button--secondary {
+  background: transparent;
+  color: #cbd5e1;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .si26-button--secondary:hover:not(:disabled),
+[data-resolved-theme="dark"] .si26-button--secondary:hover:not(:disabled) {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+[data-theme="dark"] .si26-state,
+[data-resolved-theme="dark"] .si26-state {
+  background: rgba(15, 23, 42, 0.5);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .si26-state h2,
+[data-resolved-theme="dark"] .si26-state h2 {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .si26-modal,
+[data-resolved-theme="dark"] .si26-modal {
+  background: #1e293b;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .si26-modal h2,
+[data-resolved-theme="dark"] .si26-modal h2,
+[data-theme="dark"] .si26-modal p strong,
+[data-resolved-theme="dark"] .si26-modal p strong {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .si26-modal-close,
+[data-resolved-theme="dark"] .si26-modal-close {
+  background: #334155;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .si26-modal-close:hover:not(:disabled),
+[data-resolved-theme="dark"] .si26-modal-close:hover:not(:disabled) {
+  background: #475569;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .si26-action-guard,
+[data-resolved-theme="dark"] .si26-action-guard {
+  background: rgba(15, 23, 42, 0.6);
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .si26-final-state--accepted,
+[data-resolved-theme="dark"] .si26-final-state--accepted {
+  background: rgba(29, 78, 216, 0.2);
+  color: #60a5fa;
+}
+
+[data-theme="dark"] .si26-final-state--declined,
+[data-resolved-theme="dark"] .si26-final-state--declined {
+  background: rgba(190, 18, 60, 0.2);
+  color: #fb7185;
+}
