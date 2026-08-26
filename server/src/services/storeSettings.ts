@@ -221,15 +221,48 @@ const buildStatus = (input: {
 export const sanitizeStoreSettings = (rawData: unknown) => {
   const defaults = cloneDefaults();
   const source = isPlainObject(rawData) ? rawData : {};
+  const sourceWithoutLegacyDuitkuRoot = { ...source };
+  delete sourceWithoutLegacyDuitkuRoot.duitkuEnabled;
+  delete sourceWithoutLegacyDuitkuRoot.duitkuEnvironment;
+  delete sourceWithoutLegacyDuitkuRoot.duitkuSandboxMerchantCode;
+  delete sourceWithoutLegacyDuitkuRoot.duitkuSandboxApiKey;
+  delete sourceWithoutLegacyDuitkuRoot.duitkuProductionMerchantCode;
+  delete sourceWithoutLegacyDuitkuRoot.duitkuProductionApiKey;
   const paymentsSource = isPlainObject(source.payments) ? source.payments : {};
+  const paymentMethodsSource = isPlainObject(source.paymentMethods) ? source.paymentMethods : {};
+  const duitkuMethodSource = isPlainObject(paymentMethodsSource.duitku)
+    ? paymentMethodsSource.duitku
+    : {};
   const socialLoginSource = isPlainObject(source.socialLogin) ? source.socialLogin : {};
   const analyticsSource = isPlainObject(source.analytics) ? source.analytics : {};
   const chatSource = isPlainObject(source.chat) ? source.chat : {};
   const brandingSource = isPlainObject(source.branding) ? source.branding : {};
+  const duitkuEnvironment = normalizeDuitkuEnvironment(
+    paymentsSource.duitkuEnvironment ??
+      duitkuMethodSource.environment ??
+      source.duitkuEnvironment,
+    defaults.payments.duitkuEnvironment
+  );
+  const fallbackDuitkuMerchantCode =
+    duitkuEnvironment === "production"
+      ? source.duitkuProductionMerchantCode ??
+        duitkuMethodSource.productionMerchantCode ??
+        duitkuMethodSource.merchantCode
+      : source.duitkuSandboxMerchantCode ??
+        duitkuMethodSource.sandboxMerchantCode ??
+        duitkuMethodSource.merchantCode;
+  const fallbackDuitkuApiKey =
+    duitkuEnvironment === "production"
+      ? source.duitkuProductionApiKey ??
+        duitkuMethodSource.productionApiKey ??
+        duitkuMethodSource.apiKey
+      : source.duitkuSandboxApiKey ??
+        duitkuMethodSource.sandboxApiKey ??
+        duitkuMethodSource.apiKey;
 
   return {
     ...defaults,
-    ...source,
+    ...sourceWithoutLegacyDuitkuRoot,
     payments: {
       ...defaults.payments,
       ...paymentsSource,
@@ -248,16 +281,34 @@ export const sanitizeStoreSettings = (rawData: unknown) => {
       razorPayKeyId: toText(paymentsSource.razorPayKeyId, ""),
       razorPayKeySecret: toText(paymentsSource.razorPayKeySecret, ""),
       duitkuEnabled: toBool(
-        paymentsSource.duitkuEnabled,
+        paymentsSource.duitkuEnabled ?? duitkuMethodSource.enabled ?? source.duitkuEnabled,
         defaults.payments.duitkuEnabled
       ),
-      duitkuEnvironment: ["sandbox", "production"].includes(String(paymentsSource.duitkuEnvironment).toLowerCase())
-        ? String(paymentsSource.duitkuEnvironment).toLowerCase()
-        : defaults.payments.duitkuEnvironment,
-      duitkuSandboxMerchantCode: toText(paymentsSource.duitkuSandboxMerchantCode, ""),
-      duitkuSandboxApiKey: toText(paymentsSource.duitkuSandboxApiKey, ""),
-      duitkuProductionMerchantCode: toText(paymentsSource.duitkuProductionMerchantCode, ""),
-      duitkuProductionApiKey: toText(paymentsSource.duitkuProductionApiKey, ""),
+      duitkuEnvironment,
+      duitkuSandboxMerchantCode: toText(
+        paymentsSource.duitkuSandboxMerchantCode ??
+          duitkuMethodSource.sandboxMerchantCode ??
+          (duitkuEnvironment === "sandbox" ? fallbackDuitkuMerchantCode : ""),
+        ""
+      ),
+      duitkuSandboxApiKey: toText(
+        paymentsSource.duitkuSandboxApiKey ??
+          duitkuMethodSource.sandboxApiKey ??
+          (duitkuEnvironment === "sandbox" ? fallbackDuitkuApiKey : ""),
+        ""
+      ),
+      duitkuProductionMerchantCode: toText(
+        paymentsSource.duitkuProductionMerchantCode ??
+          duitkuMethodSource.productionMerchantCode ??
+          (duitkuEnvironment === "production" ? fallbackDuitkuMerchantCode : ""),
+        ""
+      ),
+      duitkuProductionApiKey: toText(
+        paymentsSource.duitkuProductionApiKey ??
+          duitkuMethodSource.productionApiKey ??
+          (duitkuEnvironment === "production" ? fallbackDuitkuApiKey : ""),
+        ""
+      ),
     },
     socialLogin: {
       ...defaults.socialLogin,

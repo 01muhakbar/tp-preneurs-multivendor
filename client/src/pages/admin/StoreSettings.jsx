@@ -256,12 +256,6 @@ const buildUpdatePayload = (rawSettings, form) => {
     razorpayEnabled: form.razorpayEnabled,
     razorpayKeyId: form.razorpayKeyId,
     razorpayKeySecret: form.razorpayKeySecret,
-    duitkuEnabled: form.duitkuEnabled,
-    duitkuEnvironment: form.duitkuEnvironment,
-    duitkuSandboxMerchantCode: form.duitkuSandboxMerchantCode,
-    duitkuSandboxApiKey: form.duitkuSandboxApiKey,
-    duitkuProductionMerchantCode: form.duitkuProductionMerchantCode,
-    duitkuProductionApiKey: form.duitkuProductionApiKey,
     googleLogin: form.googleLogin,
     googleClientId: form.googleClientId,
     googleSecretKey: form.googleSecretKey,
@@ -291,8 +285,10 @@ const buildUpdatePayload = (rawSettings, form) => {
       razorPayKeySecret: form.razorpayKeySecret,
       duitkuEnabled: form.duitkuEnabled,
       duitkuEnvironment: form.duitkuEnvironment,
-      duitkuMerchantCode: form.duitkuMerchantCode,
-      duitkuApiKey: form.duitkuApiKey,
+      duitkuSandboxMerchantCode: form.duitkuSandboxMerchantCode,
+      duitkuSandboxApiKey: form.duitkuSandboxApiKey,
+      duitkuProductionMerchantCode: form.duitkuProductionMerchantCode,
+      duitkuProductionApiKey: form.duitkuProductionApiKey,
     },
     paymentMethods: {
       ...paymentMethods,
@@ -317,8 +313,18 @@ const buildUpdatePayload = (rawSettings, form) => {
         ...(isPlainObject(paymentMethods.duitku) ? paymentMethods.duitku : {}),
         enabled: form.duitkuEnabled,
         environment: form.duitkuEnvironment,
-        merchantCode: form.duitkuMerchantCode,
-        apiKey: form.duitkuApiKey,
+        sandboxMerchantCode: form.duitkuSandboxMerchantCode,
+        sandboxApiKey: form.duitkuSandboxApiKey,
+        productionMerchantCode: form.duitkuProductionMerchantCode,
+        productionApiKey: form.duitkuProductionApiKey,
+        merchantCode:
+          form.duitkuEnvironment === "production"
+            ? form.duitkuProductionMerchantCode
+            : form.duitkuSandboxMerchantCode,
+        apiKey:
+          form.duitkuEnvironment === "production"
+            ? form.duitkuProductionApiKey
+            : form.duitkuSandboxApiKey,
       },
     },
     socialLogin: {
