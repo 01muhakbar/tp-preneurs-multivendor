@@ -24,6 +24,7 @@ import { api } from "../../api/axios.ts";
 import { sellerLogin } from "../../api/auth.service.js";
 import { useSellerAuth } from "../../auth/authDomainHooks.js";
 import { useTheme } from "../../theme/ThemeProvider.jsx";
+import { useTranslation } from "react-i18next";
 import useStoreBranding from "../../hooks/useStoreBranding.js";
 import { getWorkspaceLogoUrl, hasCustomBrandingLogo } from "../../lib/branding.js";
 import { getRetryAfterSeconds } from "../../utils/authRateLimit.js";
@@ -160,6 +161,7 @@ export default function SellerLoginPage() {
   const { refreshSession, logout } = useSellerAuth();
   const { resolvedTheme, setTheme } = useTheme();
   const { branding } = useStoreBranding();
+  const { i18n } = useTranslation();
   const emailRef = useRef(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -397,25 +399,24 @@ export default function SellerLoginPage() {
         </div>
 
         <div className="seller-login-form-panel">
-          <div className="seller-login-theme" role="group" aria-label="Choose appearance">
+          <div className="seller-login-topbar">
             <button
               type="button"
-              className={resolvedTheme === "light" ? "is-active" : ""}
-              onClick={() => setTheme("light")}
-              aria-pressed={resolvedTheme === "light"}
+              className="seller-login-icon-btn"
+              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+              aria-label="Toggle theme"
             >
-              <Sun size={16} aria-hidden="true" />
-              Light
+              {resolvedTheme === "dark" ? <Moon size={16} /> : <Sun size={16} />}
             </button>
-            <button
-              type="button"
-              className={resolvedTheme === "dark" ? "is-active" : ""}
-              onClick={() => setTheme("dark")}
-              aria-pressed={resolvedTheme === "dark"}
+            <select
+              className="seller-login-lang-select"
+              value={i18n.language?.startsWith("id") ? "id" : "en"}
+              onChange={(e) => i18n.changeLanguage(e.target.value)}
+              aria-label="Select language"
             >
-              <Moon size={16} aria-hidden="true" />
-              Dark
-            </button>
+              <option value="en">English</option>
+              <option value="id">Indonesia</option>
+            </select>
           </div>
 
           <div className="seller-login-card">

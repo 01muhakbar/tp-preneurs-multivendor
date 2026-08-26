@@ -449,41 +449,50 @@
     linear-gradient(155deg, var(--tp-surface-soft), var(--tp-bg));
 }
 
-.seller-login-theme {
+.seller-login-topbar {
   position: absolute;
   z-index: 3;
   top: 34px;
   right: 42px;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  padding: 4px;
-  border: 1px solid var(--tp-border);
-  border-radius: 12px;
-  background: rgb(255 255 255 / 0.62);
-  box-shadow: 0 8px 24px rgb(15 42 71 / 0.1);
-  backdrop-filter: blur(18px);
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
-.seller-login-theme button {
-  height: 36px;
+.seller-login-icon-btn,
+.seller-login-lang-select {
+  height: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
   padding: 0 14px;
-  border: 0;
-  border-radius: 8px;
+  border: 1px solid var(--tp-border);
+  border-radius: 12px;
   color: var(--tp-muted);
-  background: transparent;
-  font-size: 12px;
-  font-weight: 700;
+  background: rgb(255 255 255 / 0.62);
+  box-shadow: 0 8px 24px rgb(15 42 71 / 0.1);
+  backdrop-filter: blur(18px);
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.seller-login-theme button.is-active {
-  color: var(--tp-primary);
+.seller-login-icon-btn {
+  width: 40px;
+  padding: 0;
+}
+
+.seller-login-icon-btn:hover,
+.seller-login-lang-select:hover {
   background: var(--tp-surface);
-  box-shadow: 0 3px 10px rgb(15 42 71 / 0.1);
+  border-color: var(--tp-primary);
+  color: var(--tp-primary);
+}
+
+.seller-login-lang-select {
+  outline: none;
+  appearance: auto;
 }
 
 .seller-login-card {
@@ -874,15 +883,18 @@
     linear-gradient(155deg, var(--tp-surface-soft), var(--tp-bg));
 }
 
-.dark .seller-login-theme {
+.dark .seller-login-icon-btn,
+.dark .seller-login-lang-select {
   border-color: var(--tp-border);
   background: rgb(7 17 31 / 0.62);
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.26);
 }
 
-.dark .seller-login-theme button.is-active {
+.dark .seller-login-icon-btn:hover,
+.dark .seller-login-lang-select:hover {
   color: #b9dcff;
   background: var(--tp-surface-soft);
+  border-color: var(--tp-primary);
 }
 
 .dark .seller-login-card {
@@ -990,7 +1002,7 @@
     padding: 76px 36px 24px;
   }
 
-  .seller-login-theme {
+  .seller-login-topbar {
     top: 20px;
     right: 28px;
   }
@@ -1128,15 +1140,22 @@
     padding: 68px 32px 16px;
   }
 
-  .seller-login-theme {
+  .seller-login-topbar {
     top: 14px;
     right: 22px;
   }
 
-  .seller-login-theme button {
+  .seller-login-icon-btn,
+  .seller-login-lang-select {
     height: 32px;
+    border-radius: 8px;
     padding-inline: 11px;
     font-size: 11px;
+  }
+
+  .seller-login-icon-btn {
+    width: 32px;
+    padding-inline: 0;
   }
 
   .seller-login-card {
@@ -1235,7 +1254,7 @@
     padding: 102px 28px 42px;
   }
 
-  .seller-login-theme {
+  .seller-login-topbar {
     top: 28px;
     right: 28px;
   }
@@ -1311,15 +1330,21 @@
     padding: 90px 14px 28px;
   }
 
-  .seller-login-theme {
+  .seller-login-topbar {
     top: 22px;
     right: 18px;
   }
 
-  .seller-login-theme button {
+  .seller-login-icon-btn,
+  .seller-login-lang-select {
     height: 34px;
     padding-inline: 11px;
     font-size: 11px;
+  }
+
+  .seller-login-icon-btn {
+    width: 34px;
+    padding-inline: 0;
   }
 
   .seller-login-card {
