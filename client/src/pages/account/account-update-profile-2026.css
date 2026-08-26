@@ -512,8 +512,8 @@
   color: #f1f5f9;
 }
 
-[data-theme="dark"] .tpup2026-card,
-[data-resolved-theme="dark"] .tpup2026-card,
+[data-theme="dark"] .tpup2026-panel,
+[data-resolved-theme="dark"] .tpup2026-panel,
 [data-theme="dark"] .tpup2026-hero,
 [data-resolved-theme="dark"] .tpup2026-hero {
   background: #1e293b;

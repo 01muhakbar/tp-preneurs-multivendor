@@ -487,3 +487,46 @@
     min-height: 8.5rem;
   }
 }
+
+/* DARK MODE SUPPORT */
+[data-theme="dark"] .tpacct2026-root,
+[data-resolved-theme="dark"] .tpacct2026-root {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .tpacct2026-panel,
+[data-resolved-theme="dark"] .tpacct2026-panel,
+[data-theme="dark"] .tpacct2026-quick-card,
+[data-resolved-theme="dark"] .tpacct2026-quick-card {
+  background: #1e293b;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .tpacct2026-root p,
+[data-resolved-theme="dark"] .tpacct2026-root p,
+[data-theme="dark"] .tpacct2026-root span,
+[data-resolved-theme="dark"] .tpacct2026-root span,
+[data-theme="dark"] .tpacct2026-quick-card small,
+[data-resolved-theme="dark"] .tpacct2026-quick-card small {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .tpacct2026-quick-card strong,
+[data-resolved-theme="dark"] .tpacct2026-quick-card strong,
+[data-theme="dark"] .tpacct2026-field strong,
+[data-resolved-theme="dark"] .tpacct2026-field strong {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .tpacct2026-button,
+[data-resolved-theme="dark"] .tpacct2026-button {
+  background: #334155;
+  color: #f1f5f9;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .tpacct2026-quick-card:hover,
+[data-resolved-theme="dark"] .tpacct2026-quick-card:hover {
+  border-color: var(--tpacct2026-green);
+  background: rgba(8, 169, 79, 0.05);
+}
