@@ -23,6 +23,7 @@ import { registerAdminStaffAccount } from "../../api/adminPublicAuth.ts";
 import useStoreBranding from "../../hooks/useStoreBranding.js";
 import { getWorkspaceLogoUrl } from "../../lib/branding.js";
 import { useTheme } from "../../theme/ThemeProvider.jsx";
+import { useTranslation } from "react-i18next";
 import { getRetryAfterSeconds } from "../../utils/authRateLimit.js";
 import {
   buildCooldownButtonLabel,
@@ -181,7 +182,8 @@ export default function AdminCreateAccountPage() {
   const statusRef = useRef(null);
   const fieldRefs = useRef({});
   const { branding } = useStoreBranding();
-  const { resolvedTheme, toggleTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
+  const { i18n } = useTranslation();
   const [form, setForm] = useState(EMPTY_FORM);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -336,15 +338,26 @@ export default function AdminCreateAccountPage() {
     <main
       className={`admin-signup-2026${isDark ? " admin-signup-2026--dark" : ""}`}
     >
-      <button
-        className="admin-signup-2026__theme-toggle"
-        type="button"
-        onClick={toggleTheme}
-        aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-        title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      >
-        {isDark ? <Moon size={17} aria-hidden="true" /> : <Sun size={17} aria-hidden="true" />}
-      </button>
+      <div className="admin-create-topbar">
+        <button
+          className="admin-create-icon-btn"
+          type="button"
+          onClick={() => setTheme(isDark ? "light" : "dark")}
+          aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+          title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+        >
+          {isDark ? <Sun size={16} aria-hidden="true" /> : <Moon size={16} aria-hidden="true" />}
+        </button>
+        <select
+          className="admin-create-lang-select"
+          value={i18n.language?.startsWith("id") ? "id" : "en"}
+          onChange={(e) => i18n.changeLanguage(e.target.value)}
+          aria-label="Select language"
+        >
+          <option value="en">English</option>
+          <option value="id">Indonesia</option>
+        </select>
+      </div>
 
       <div className="admin-signup-2026__shell">
         <section className="admin-signup-2026__hero" aria-labelledby="admin-signup-hero-title">

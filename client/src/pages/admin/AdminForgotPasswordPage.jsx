@@ -19,6 +19,7 @@ import useStoreBranding from "../../hooks/useStoreBranding.js";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
 import { getWorkspaceLogoUrl } from "../../lib/branding.js";
 import { useTheme } from "../../theme/ThemeProvider.jsx";
+import { useTranslation } from "react-i18next";
 import { getRetryAfterSeconds } from "../../utils/authRateLimit.js";
 import {
   buildCooldownButtonLabel,
@@ -118,7 +119,8 @@ export default function AdminForgotPasswordPage() {
   const emailRef = useRef(null);
   const statusRef = useRef(null);
   const { branding } = useStoreBranding();
-  const { resolvedTheme, toggleTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
+  const { i18n } = useTranslation();
   const [email, setEmail] = useState("");
   const [honeypot, setHoneypot] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
@@ -228,15 +230,26 @@ export default function AdminForgotPasswordPage() {
     <main
       className={`admin-forgot-2026${isDark ? " admin-forgot-2026--dark" : ""}`}
     >
-      <button
-        className="admin-forgot-2026__theme-toggle"
-        type="button"
-        onClick={toggleTheme}
-        aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
-        title={isDark ? "Switch to light theme" : "Switch to dark theme"}
-      >
-        {isDark ? <Sun size={19} aria-hidden="true" /> : <Moon size={19} aria-hidden="true" />}
-      </button>
+      <div className="admin-forgot-topbar">
+        <button
+          className="admin-forgot-icon-btn"
+          type="button"
+          onClick={() => setTheme(isDark ? "light" : "dark")}
+          aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+          title={isDark ? "Switch to light theme" : "Switch to dark theme"}
+        >
+          {isDark ? <Sun size={16} aria-hidden="true" /> : <Moon size={16} aria-hidden="true" />}
+        </button>
+        <select
+          className="admin-forgot-lang-select"
+          value={i18n.language?.startsWith("id") ? "id" : "en"}
+          onChange={(e) => i18n.changeLanguage(e.target.value)}
+          aria-label="Select language"
+        >
+          <option value="en">English</option>
+          <option value="id">Indonesia</option>
+        </select>
+      </div>
 
       <section className="admin-forgot-2026__shell" aria-labelledby="admin-recovery-title">
         <div className={`admin-forgot-2026__hero${customHeroSrc ? " has-custom-media" : ""}`}>

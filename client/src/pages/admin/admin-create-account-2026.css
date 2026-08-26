@@ -40,33 +40,68 @@
   text-decoration: none;
 }
 
-.admin-signup-2026__theme-toggle {
+.admin-create-topbar {
   position: fixed;
   top: 18px;
   right: 22px;
   z-index: 10;
-  display: grid;
-  place-items: center;
-  width: 40px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.admin-create-icon-btn,
+.admin-create-lang-select {
   height: 40px;
-  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
   border: 1px solid rgb(var(--as26-primary-rgb) / 0.13);
-  border-radius: 50%;
+  border-radius: 12px;
   color: var(--as26-accent);
   background: rgb(255 255 255 / 0.82);
   box-shadow: 0 12px 30px rgb(var(--as26-primary-rgb) / 0.12);
-  cursor: pointer;
   backdrop-filter: blur(14px);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.admin-signup-2026--dark .admin-signup-2026__theme-toggle {
+.admin-create-icon-btn {
+  width: 40px;
+  padding: 0;
+}
+
+.admin-create-icon-btn:hover,
+.admin-create-lang-select:hover {
+  background: var(--as26-surface);
+  border-color: var(--as26-accent);
+  color: var(--as26-accent);
+}
+
+.admin-create-lang-select {
+  outline: none;
+  appearance: auto;
+}
+
+.admin-signup-2026--dark .admin-create-icon-btn,
+.admin-signup-2026--dark .admin-create-lang-select {
   border-color: rgb(255 255 255 / 0.1);
   color: #dbe9f8;
   background: rgb(13 27 44 / 0.86);
   box-shadow: 0 12px 30px rgb(0 0 0 / 0.3);
 }
 
-.admin-signup-2026__theme-toggle:focus-visible,
+.admin-signup-2026--dark .admin-create-icon-btn:hover,
+.admin-signup-2026--dark .admin-create-lang-select:hover {
+  border-color: var(--as26-accent);
+  color: var(--as26-accent);
+}
+
+.admin-create-icon-btn:focus-visible,
+.admin-create-lang-select:focus-visible,
 .admin-signup-2026 a:focus-visible,
 .admin-signup-2026 button:focus-visible,
 .admin-signup-2026 input:focus-visible {
@@ -1055,7 +1090,7 @@
     overflow-y: auto;
   }
 
-  .admin-signup-2026__theme-toggle {
+  .admin-create-topbar {
     position: absolute;
   }
 
@@ -1095,9 +1130,19 @@
 }
 
 @media (max-width: 680px) {
-  .admin-signup-2026__theme-toggle {
+  .admin-create-topbar {
     top: 16px;
     right: 16px;
+  }
+  
+  .admin-create-icon-btn,
+  .admin-create-lang-select {
+    height: 36px;
+    font-size: 12px;
+  }
+  
+  .admin-create-icon-btn {
+    width: 36px;
   }
 
   .admin-signup-2026__shell {

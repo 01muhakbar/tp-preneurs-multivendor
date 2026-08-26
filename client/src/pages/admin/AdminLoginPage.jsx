@@ -20,6 +20,7 @@ import AuthNotice from "../../components/auth/AuthNotice.jsx";
 import useStoreBranding from "../../hooks/useStoreBranding.js";
 import { getWorkspaceLogoUrl } from "../../lib/branding.js";
 import { useTheme } from "../../theme/ThemeProvider.jsx";
+import { useTranslation } from "react-i18next";
 import "./admin-login-2026.css";
 
 const REMEMBERED_ADMIN_EMAIL_KEY = "adminLoginRememberedEmail";
@@ -101,12 +102,15 @@ function AdminLoginBrand({ logoSrc, className = "" }) {
 }
 
 export default function AdminLoginPage() {
+  const { login } = useAdminAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
-  const { login } = useAdminAuth();
   const { branding } = useStoreBranding();
-  const { resolvedTheme, toggleTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
+  const { i18n } = useTranslation();
+
+  const isDark = resolvedTheme === "dark";
   const noticeRef = useRef(null);
   const errorRef = useRef(null);
   const emailInputRef = useRef(null);
@@ -215,20 +219,25 @@ export default function AdminLoginPage() {
 
   return (
     <main className={`admin-login-2026 ${isDark ? "admin-login-2026--dark" : ""}`}>
-      <button
-        type="button"
-        className="admin-login-2026__theme"
-        onClick={toggleTheme}
-        aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-        title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      >
-        <span className="admin-login-2026__theme-knob">
-          {isDark ? <Moon aria-hidden="true" /> : <Sun aria-hidden="true" />}
-        </span>
-        <span className="admin-login-2026__theme-icon" aria-hidden="true">
-          {isDark ? <Sun /> : <Moon />}
-        </span>
-      </button>
+      <div className="admin-login-topbar">
+        <button
+          type="button"
+          className="admin-login-icon-btn"
+          onClick={() => setTheme(isDark ? "light" : "dark")}
+          aria-label="Toggle theme"
+        >
+          {isDark ? <Moon size={16} /> : <Sun size={16} />}
+        </button>
+        <select
+          className="admin-login-lang-select"
+          value={i18n.language?.startsWith("id") ? "id" : "en"}
+          onChange={(e) => i18n.changeLanguage(e.target.value)}
+          aria-label="Select language"
+        >
+          <option value="en">English</option>
+          <option value="id">Indonesia</option>
+        </select>
+      </div>
 
       <section className="admin-login-2026__shell" aria-label="Admin login">
         <aside className="admin-login-2026__hero" aria-label="TP Preneurs admin workspace">
