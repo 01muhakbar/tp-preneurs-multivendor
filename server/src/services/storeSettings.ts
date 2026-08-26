@@ -499,10 +499,13 @@ export const buildStoreSettingsContracts = (rawSettings: unknown) => {
     configuredButUnavailableLabel: "Configured, runtime unavailable",
   });
 
-  const duitkuEnvEnabled = toBool(process.env.DUITKU_ENABLED, false);
+  const duitkuEnvEnabled =
+    settings.payments.duitkuEnabled !== undefined && settings.payments.duitkuEnabled !== null
+      ? Boolean(settings.payments.duitkuEnabled)
+      : toBool(process.env.DUITKU_ENABLED, false);
   const duitkuEnvironment = normalizeDuitkuEnvironment(
-    process.env.DUITKU_ENV,
-    settings.payments.duitkuEnvironment
+    settings.payments.duitkuEnvironment,
+    process.env.DUITKU_ENV || "sandbox"
   );
   const duitkuEnvMerchantCode = toText(process.env.DUITKU_MERCHANT_CODE, "");
   const duitkuEnvApiKey = toText(process.env.DUITKU_API_KEY, "");
