@@ -69,19 +69,19 @@ const getRedirectPath = (from) => {
   return rawPath;
 };
 
-const mapLoginError = (error) => {
+const mapLoginError = (error, t) => {
   const code = error?.code || error?.response?.data?.code || "";
   const message = error?.response?.data?.message || error?.message || "";
   if (code === "VERIFICATION_REQUIRED") {
-    return "Please verify your email before accessing Admin Workspace.";
+    return t("login.Please verify your email before accessing Admin Workspace.");
   }
   if (code === "APPROVAL_REQUIRED") {
-    return "Your staff account is verified and waiting for approval.";
+    return t("login.Your staff account is verified and waiting for approval.");
   }
   if (code === "ACCOUNT_INACTIVE") {
-    return "This account is inactive. Contact Admin Workspace to restore sign-in access.";
+    return t("login.This account is inactive. Contact Admin Workspace to restore sign-in access.");
   }
-  return message || "Login failed. Check your email and password.";
+  return message || t("login.Login failed. Check your email and password.");
 };
 
 function AdminLoginBrand({ logoSrc, className = "" }) {
@@ -108,7 +108,7 @@ export default function AdminLoginPage() {
   const queryClient = useQueryClient();
   const { branding } = useStoreBranding();
   const { resolvedTheme, setTheme } = useTheme();
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation("admin");
 
   const isDark = resolvedTheme === "dark";
   const noticeRef = useRef(null);
@@ -129,7 +129,7 @@ export default function AdminLoginPage() {
       const normalizedEmail = email.trim();
       const result = await login(normalizedEmail, password);
       if (!result?.ok) {
-        const nextError = new Error(result?.message || "Login failed.");
+        const nextError = new Error(result?.message || t("login.Login failed."));
         nextError.code = result?.code || "";
         nextError.status = result?.status || null;
         throw nextError;
@@ -139,7 +139,7 @@ export default function AdminLoginPage() {
     onSuccess: async () => {
       const normalizedEmail = email.trim();
       persistRememberedEmail(rememberEmail, normalizedEmail);
-      toast.success("Login success.", {
+      toast.success(t("login.Login success."), {
         id: "admin-login-success",
       });
       await queryClient.invalidateQueries({ queryKey: ["admin", "me"], exact: true });
@@ -184,17 +184,17 @@ export default function AdminLoginPage() {
     setClientError("");
 
     if (!normalizedEmail) {
-      setClientError("Email is required.");
+      setClientError(t("login.Email is required."));
       emailInputRef.current?.focus();
       return;
     }
     if (!isValidEmail(normalizedEmail)) {
-      setClientError("Enter a valid email address.");
+      setClientError(t("login.Enter a valid email address."));
       emailInputRef.current?.focus();
       return;
     }
     if (!password) {
-      setClientError("Password is required.");
+      setClientError(t("login.Password is required."));
       return;
     }
 
@@ -213,7 +213,7 @@ export default function AdminLoginPage() {
     if (mutation.isError) mutation.reset();
   };
 
-  const errorMessage = clientError || (mutation.isError ? mapLoginError(mutation.error) : "");
+  const errorMessage = clientError || (mutation.isError ? mapLoginError(mutation.error, t) : "");
   const errorCode = mutation.error?.code || "";
   const adminLogoSrc = getWorkspaceLogoUrl("admin", branding?.adminLogoUrl);
 
@@ -244,14 +244,14 @@ export default function AdminLoginPage() {
           <AdminLoginBrand logoSrc={adminLogoSrc} />
 
           <div className="admin-login-2026__hero-copy">
-            <h1>Welcome back, Admin</h1>
-            <p>Secure access to your workspace. Manage, monitor and grow with confidence.</p>
+            <h1>{t("login.Welcome back, Admin")}</h1>
+            <p>{t("login.Secure access to your workspace.")}</p>
             <span aria-hidden="true" />
           </div>
 
           <div className="admin-login-2026__stage" aria-hidden="true">
             <div className="admin-login-2026__dashboard admin-login-2026__dashboard--left">
-              <span>Overview</span>
+              <span>{t("login.Overview")}</span>
               <div className="admin-login-2026__chart-line" />
               <div className="admin-login-2026__donut">72%</div>
             </div>
@@ -260,9 +260,9 @@ export default function AdminLoginPage() {
               <LockKeyhole />
             </div>
             <div className="admin-login-2026__dashboard admin-login-2026__dashboard--right">
-              <span>Users</span>
+              <span>{t("login.Users")}</span>
               <strong>1,248</strong>
-              <small>Active users</small>
+              <small>{t("login.Active users")}</small>
               <em>+12%</em>
             </div>
             <div className="admin-login-2026__bulb">
@@ -283,27 +283,27 @@ export default function AdminLoginPage() {
             <div className="admin-login-2026__feature">
               <ShieldCheck aria-hidden="true" />
               <div>
-                <strong>Secure &amp; Protected</strong>
-                <span>Enterprise-grade security</span>
+                <strong>{t("login.Secure & Protected")}</strong>
+                <span>{t("login.Enterprise-grade security")}</span>
               </div>
             </div>
             <div className="admin-login-2026__feature">
               <BarChart3 aria-hidden="true" />
               <div>
-                <strong>Real-time Insights</strong>
-                <span>Monitor performance live</span>
+                <strong>{t("login.Real-time Insights")}</strong>
+                <span>{t("login.Monitor performance live")}</span>
               </div>
             </div>
             <div className="admin-login-2026__feature">
               <UsersRound aria-hidden="true" />
               <div>
-                <strong>Team Management</strong>
-                <span>Manage users and roles</span>
+                <strong>{t("login.Team Management")}</strong>
+                <span>{t("login.Manage users and roles")}</span>
               </div>
             </div>
           </div>
 
-          <p className="admin-login-2026__copyright">&copy; 2026 TP Preneurs. All rights reserved.</p>
+          <p className="admin-login-2026__copyright">&copy; 2026 TP Preneurs. {t("login.All rights reserved.")}</p>
         </aside>
 
         <section className="admin-login-2026__panel" aria-labelledby="admin-login-title">
@@ -312,10 +312,10 @@ export default function AdminLoginPage() {
           <div className="admin-login-2026__card">
             <p className="admin-login-2026__eyebrow">
               <ShieldCheck aria-hidden="true" />
-              Secure Access
+              {t("login.Secure Access")}
             </p>
-            <h2 id="admin-login-title">Admin Login</h2>
-            <p className="admin-login-2026__subtitle">Sign in to access your workspace.</p>
+            <h2 id="admin-login-title">{t("login.Admin Login")}</h2>
+            <p className="admin-login-2026__subtitle">{t("login.Sign in to access your workspace.")}</p>
 
             <AuthNotice
               id="admin-login-notice"
@@ -328,7 +328,7 @@ export default function AdminLoginPage() {
 
             <form className="admin-login-2026__form" onSubmit={handleSubmit} noValidate>
               <div className="admin-login-2026__field">
-                <label htmlFor="admin-login-email">Email</label>
+                <label htmlFor="admin-login-email">{t("login.Email")}</label>
                 <div className="admin-login-2026__input-wrap">
                   <Mail aria-hidden="true" />
                   <input
@@ -347,8 +347,8 @@ export default function AdminLoginPage() {
 
               <div className="admin-login-2026__field">
                 <div className="admin-login-2026__label-row">
-                  <label htmlFor="admin-login-password">Password</label>
-                  <Link to="/admin/forgot-password">Forgot password?</Link>
+                  <label htmlFor="admin-login-password">{t("login.Password")}</label>
+                  <Link to="/admin/forgot-password">{t("login.Forgot password?")}</Link>
                 </div>
                 <div className="admin-login-2026__input-wrap">
                   <LockKeyhole aria-hidden="true" />
@@ -382,7 +382,7 @@ export default function AdminLoginPage() {
                     onChange={(event) => setRememberEmail(event.target.checked)}
                   />
                   <span aria-hidden="true" />
-                  Remember email
+                  {t("login.Remember email")}
                 </label>
               </div>
 
@@ -398,20 +398,20 @@ export default function AdminLoginPage() {
 
               {errorCode === "VERIFICATION_REQUIRED" ? (
                 <p className="admin-login-2026__helper">
-                  Need another verification email?{" "}
+                  {t("login.Need another verification email?")}{" "}
                   <Link to={`/admin/resend-verification?email=${encodeURIComponent(email.trim())}`}>
-                    Resend verification
+                    {t("login.Resend verification")}
                   </Link>
                 </p>
               ) : null}
               {errorCode === "APPROVAL_REQUIRED" ? (
                 <p className="admin-login-2026__helper">
-                  Your account is verified. Admin Workspace approval is still pending.
+                  {t("login.Your account is verified. Admin Workspace approval is still pending.")}
                 </p>
               ) : null}
               {errorCode === "ACCOUNT_INACTIVE" ? (
                 <p className="admin-login-2026__helper">
-                  This account is inactive. Contact Admin Workspace if you need sign-in access restored.
+                  {t("login.This account is inactive. Contact Admin Workspace if you need sign-in access restored.")}
                 </p>
               ) : null}
 
@@ -420,13 +420,13 @@ export default function AdminLoginPage() {
                 className="admin-login-2026__submit"
                 disabled={mutation.isPending}
               >
-                <span>{mutation.isPending ? "Signing in..." : "Login"}</span>
+                <span>{mutation.isPending ? t("login.Signing in...") : t("login.Login")}</span>
                 <ArrowRight aria-hidden="true" />
               </button>
             </form>
 
             <p className="admin-login-2026__create">
-              Need a staff account? <Link to="/admin/create-account">Create account</Link>
+              {t("login.Need a staff account?")} <Link to="/admin/create-account">{t("login.Create account")}</Link>
             </p>
           </div>
         </section>
