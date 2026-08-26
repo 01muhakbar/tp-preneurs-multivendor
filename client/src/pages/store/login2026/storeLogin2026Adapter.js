@@ -35,6 +35,7 @@ export function createStoreLogin2026ViewModel({
     },
     status: {
       errorMessage: String(status.errorMessage || "").trim(),
+      noticeMessage: String(status.noticeMessage || "").trim(),
       successMessage: String(status.successMessage || "").trim(),
       redirectNotice: resolveRedirectNotice(redirectState),
       helperMessage: String(status.helperMessage || "").trim(),

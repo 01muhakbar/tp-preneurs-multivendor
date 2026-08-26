@@ -1,6 +1,7 @@
 import {
   ArrowRight,
   BadgeCheck,
+  CircleAlert,
   Eye,
   EyeOff,
   Gift,
@@ -58,16 +59,18 @@ function BenefitList({ compact = false }) {
 
 function StatusMessage({ id, tone, children, focusRef }) {
   if (!children) return null;
+  const Icon =
+    tone === "error" ? LockKeyhole : tone === "warning" ? CircleAlert : BadgeCheck;
   return (
     <div
       id={id}
       ref={focusRef}
-      role={tone === "error" ? "alert" : "status"}
-      aria-live={tone === "error" ? "assertive" : "polite"}
+      role={tone === "error" || tone === "warning" ? "alert" : "status"}
+      aria-live={tone === "error" || tone === "warning" ? "assertive" : "polite"}
       tabIndex={-1}
       className={`sl26-message sl26-message--${tone}`}
     >
-      {tone === "error" ? <LockKeyhole aria-hidden="true" /> : <BadgeCheck aria-hidden="true" />}
+      <Icon aria-hidden="true" />
       <span>{children}</span>
     </div>
   );
@@ -179,10 +182,10 @@ export default function StoreLogin2026View({
 
             <StatusMessage
               id="store-login-status"
-              tone="success"
+              tone={status.noticeMessage ? "warning" : "success"}
               focusRef={messageRefs.statusRef}
             >
-              {status.successMessage}
+              {status.noticeMessage || status.successMessage}
             </StatusMessage>
             <StatusMessage id="store-login-error" tone="error" focusRef={messageRefs.errorRef}>
               {status.errorMessage}

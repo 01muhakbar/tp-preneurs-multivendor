@@ -18,6 +18,7 @@ import { createStoreLogin2026ViewModel } from "./login2026/storeLogin2026Adapter
 const PENDING_ADD_KEY = "pending_cart_add";
 const PENDING_ADD_CONSUMED_KEY = "pending_cart_add_consumed";
 const ADMIN_WORKSPACE_ROLES = new Set(["admin", "super_admin", "superadmin", "staff"]);
+const PUBLIC_LOGIN_PATH = "/auth/login";
 
 const normalizeRole = (value) => String(value || "").trim().toLowerCase();
 
@@ -30,7 +31,8 @@ export default function StoreLoginPage() {
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState("");
-  const [statusMessage, setStatusMessage] = useState("");
+  const [noticeMessage, setNoticeMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
@@ -46,14 +48,22 @@ export default function StoreLoginPage() {
   }, [isAccountSession, navigate]);
 
   useEffect(() => {
-    const nextMessage = String(
-      location.state?.authNotice || location.state?.passwordResetMessage || readPendingAuthNotice() || ""
-    ).trim();
-    if (nextMessage) {
-      setStatusMessage(nextMessage);
+    const hasRedirectContext = Boolean(location.state?.from || location.state?.authNotice);
+    const pendingNotice = hasRedirectContext ? readPendingAuthNotice() : "";
+    const nextNotice = String(location.state?.authNotice || pendingNotice || "").trim();
+    const nextSuccess = String(location.state?.passwordResetMessage || "").trim();
+    if (nextNotice) {
+      setNoticeMessage(nextNotice);
+      setSuccessMessage("");
+      clearPendingAuthNotice();
+    } else if (nextSuccess) {
+      setSuccessMessage(nextSuccess);
+      setNoticeMessage("");
+    } else if (location.pathname === PUBLIC_LOGIN_PATH && !hasRedirectContext) {
+      setNoticeMessage("");
       clearPendingAuthNotice();
     }
-  }, [location.state]);
+  }, [location.pathname, location.state]);
 
   useEffect(() => {
     if (cooldownSeconds <= 0) return undefined;
@@ -70,15 +80,16 @@ export default function StoreLoginPage() {
   }, [error]);
 
   useEffect(() => {
-    if (statusMessage && statusRef.current) {
+    if ((noticeMessage || successMessage) && statusRef.current) {
       statusRef.current.focus();
     }
-  }, [statusMessage]);
+  }, [noticeMessage, successMessage]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
-    setStatusMessage("");
+    setNoticeMessage("");
+    setSuccessMessage("");
     setIsSubmitting(true);
     try {
       const response = await api.post(
@@ -236,7 +247,8 @@ export default function StoreLoginPage() {
     },
     status: {
       errorMessage: error,
-      successMessage: statusMessage,
+      noticeMessage,
+      successMessage,
       helperMessage: PASSWORD_HIDDEN_HELPER,
       cooldownSeconds,
       submitLabel: buildCooldownButtonLabel(cooldownSeconds, "Sign in"),

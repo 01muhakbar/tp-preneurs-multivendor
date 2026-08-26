@@ -23,6 +23,22 @@ export const AuthContext = createContext(null);
 
 const ADMIN_ROUTE_PREFIX = "/admin";
 const SELLER_ROUTE_PREFIX = "/seller";
+const AUTH_ENTRY_PATHS = [
+  "/auth/login",
+  "/auth/register",
+  "/auth/forgot-password",
+  "/auth/reset-password",
+  "/admin/login",
+  "/admin/create-account",
+  "/admin/forgot-password",
+  "/admin/reset-password",
+  "/admin/verify-account",
+  "/admin/resend-verification",
+  "/seller/login",
+  "/seller/create-account",
+  "/seller/verify-email",
+  "/seller/forgot-password",
+];
 const ACCOUNT_SESSION_KEY = "accountSessionHint";
 const SELLER_SESSION_KEY = "sellerSessionHint";
 const ADMIN_SESSION_KEY = "adminSessionHint";
@@ -321,8 +337,11 @@ export function AuthProvider({ children }) {
       (currentScope === "seller" && location.pathname.startsWith("/seller/stores")) ||
       (currentScope === "account" &&
         (location.pathname === "/checkout/success" || location.pathname.startsWith("/user/")));
+    const shouldMarkExpiredOnUnauthorized = !AUTH_ENTRY_PATHS.some(
+      (path) => location.pathname === path || location.pathname.startsWith(`${path}/`)
+    );
     if (shouldProbe) {
-      refreshSession({ markExpiredOnUnauthorized: true }, currentScope);
+      refreshSession({ markExpiredOnUnauthorized: shouldMarkExpiredOnUnauthorized }, currentScope);
     } else if (currentScope === "admin") {
       setIsAdminLoading(false);
     } else if (currentScope === "seller") {
