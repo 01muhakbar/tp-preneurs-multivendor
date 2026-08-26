@@ -46,10 +46,10 @@ const firstFieldError = (fieldErrors, key) => {
   return typeof error === "string" ? error : "";
 };
 
-const validateEmail = (value) => {
+const validateEmail = (value, t) => {
   const normalized = String(value || "").trim();
-  if (!normalized) return "Email is required.";
-  if (!EMAIL_PATTERN.test(normalized)) return "Enter a valid email address.";
+  if (!normalized) return t("forgot.Email is required.");
+  if (!EMAIL_PATTERN.test(normalized)) return t("forgot.Enter a valid email address.");
   return "";
 };
 
@@ -120,7 +120,7 @@ export default function AdminForgotPasswordPage() {
   const statusRef = useRef(null);
   const { branding } = useStoreBranding();
   const { resolvedTheme, setTheme } = useTheme();
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation("admin");
   const [email, setEmail] = useState("");
   const [honeypot, setHoneypot] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
@@ -132,7 +132,7 @@ export default function AdminForgotPasswordPage() {
   const isDark = resolvedTheme === "dark";
   const adminLogoSrc = getWorkspaceLogoUrl("admin", branding?.adminLogoUrl);
   const customHeroSrc = resolveAssetUrl(branding?.adminForgotPasswordHeroUrl);
-  const emailValidationMessage = useMemo(() => validateEmail(email), [email]);
+  const emailValidationMessage = useMemo(() => validateEmail(email, t), [email, t]);
   const visibleEmailError = firstFieldError(fieldErrors, "email");
   const isEmailValid = !emailValidationMessage;
 
@@ -168,7 +168,7 @@ export default function AdminForgotPasswordPage() {
   };
 
   const handleEmailBlur = () => {
-    const message = validateEmail(email);
+    const message = validateEmail(email, t);
     setFieldErrors((current) => {
       const next = { ...current };
       if (message) next.email = [message];
@@ -182,7 +182,7 @@ export default function AdminForgotPasswordPage() {
     setStatusMessage("");
     setStatusTone("neutral");
 
-    const validationMessage = validateEmail(email);
+    const validationMessage = validateEmail(email, t);
     if (validationMessage) {
       setFieldErrors({ email: [validationMessage] });
       focusEmail();
@@ -205,7 +205,7 @@ export default function AdminForgotPasswordPage() {
     setIsSubmitting(true);
     try {
       const result = await requestAdminPasswordReset(parsed.data);
-      setStatusMessage(result?.message || ADMIN_FORGOT_PASSWORD_SUCCESS_MESSAGE);
+      setStatusMessage(result?.message || t("forgot.If this email is registered, a secure reset link has been sent."));
       setStatusTone("success");
       focusStatus();
     } catch (error) {
@@ -215,7 +215,7 @@ export default function AdminForgotPasswordPage() {
       setStatusMessage(
         error?.response?.status === 429 && retryAfterSeconds > 0
           ? buildRetryAfterMessage(retryAfterSeconds)
-          : error?.response?.data?.message || "We couldn't process that request right now."
+          : error?.response?.data?.message || t("forgot.We couldn't process that request right now.")
       );
       setStatusTone("error");
       if (retryAfterSeconds > 0) setCooldownSeconds(retryAfterSeconds);
@@ -270,10 +270,10 @@ export default function AdminForgotPasswordPage() {
           </div>
 
           <div className="admin-forgot-2026__card">
-            <p className="admin-forgot-2026__kicker">Account Recovery</p>
-            <h1 id="admin-recovery-title">Forgot password</h1>
+            <p className="admin-forgot-2026__kicker">{t("forgot.Account Recovery")}</p>
+            <h1 id="admin-recovery-title">{t("forgot.Forgot password")}</h1>
             <p className="admin-forgot-2026__intro">
-              We'll send a secure reset link to your email.
+              {t("forgot.We'll send a secure reset link to your email.")}
             </p>
 
             {statusMessage ? (
@@ -296,7 +296,7 @@ export default function AdminForgotPasswordPage() {
 
             <form className="admin-forgot-2026__form" onSubmit={handleSubmit} noValidate>
               <div className="admin-forgot-2026__honeypot" aria-hidden="true">
-                <label htmlFor="admin-forgot-password-company">Company</label>
+                <label htmlFor="admin-forgot-password-company">{t("forgot.Company", { defaultValue: "Company" })}</label>
                 <input
                   id="admin-forgot-password-company"
                   type="text"
@@ -308,7 +308,7 @@ export default function AdminForgotPasswordPage() {
               </div>
 
               <div className="admin-forgot-2026__field">
-                <label htmlFor="admin-forgot-password-email">Email</label>
+                <label htmlFor="admin-forgot-password-email">{t("forgot.Email")}</label>
                 <div className={`admin-forgot-2026__input${visibleEmailError ? " has-error" : ""}`}>
                   <Mail size={20} aria-hidden="true" />
                   <input
@@ -318,7 +318,7 @@ export default function AdminForgotPasswordPage() {
                     value={email}
                     onChange={handleEmailChange}
                     onBlur={handleEmailBlur}
-                    placeholder="staff@example.com"
+                    placeholder={t("forgot.staff@example.com", { defaultValue: "staff@example.com" })}
                     autoComplete="email"
                     aria-invalid={Boolean(visibleEmailError)}
                     aria-describedby={visibleEmailError ? "admin-forgot-password-email-error" : undefined}
@@ -344,8 +344,8 @@ export default function AdminForgotPasswordPage() {
               >
                 <span>
                   {isSubmitting
-                    ? "Sending link..."
-                    : buildCooldownButtonLabel(cooldownSeconds, "Send reset link")}
+                    ? t("forgot.Sending link...")
+                    : buildCooldownButtonLabel(cooldownSeconds, t("forgot.Send reset link"))}
                 </span>
                 <ArrowRight size={19} aria-hidden="true" />
               </button>
@@ -353,14 +353,14 @@ export default function AdminForgotPasswordPage() {
 
             <div className="admin-forgot-2026__links">
               <Link to="/admin/login">
-                <ArrowLeft size={17} aria-hidden="true" /> Back to login
+                <ArrowLeft size={17} aria-hidden="true" /> {t("forgot.Back to login")}
               </Link>
             </div>
           </div>
         </div>
 
         <footer className="admin-forgot-2026__footer">
-          &copy; 2026 TP Preneurs. All rights reserved.
+          &copy; 2026 TP Preneurs. {t("forgot.All rights reserved.")}
         </footer>
       </section>
     </main>

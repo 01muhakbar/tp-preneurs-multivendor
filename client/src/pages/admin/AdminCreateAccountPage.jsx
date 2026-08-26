@@ -33,20 +33,20 @@ import "./admin-create-account-2026.css";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const FEATURES = [
+const getFeatures = (t) => [
   {
-    title: "Verified Access",
-    description: "Only authorized admins can access the system.",
+    title: t("signup.Verified Access"),
+    description: t("signup.Only authorized admins can access the system."),
     Icon: ShieldCheck,
   },
   {
-    title: "Role-ready Setup",
-    description: "Assign roles and permissions after approval.",
+    title: t("signup.Role-ready Setup"),
+    description: t("signup.Assign roles and permissions after approval."),
     Icon: UsersRound,
   },
   {
-    title: "Secure Credentials",
-    description: "Strong passwords and encryption keep data safe.",
+    title: t("signup.Secure Credentials"),
+    description: t("signup.Strong passwords and encryption keep data safe."),
     Icon: LockKeyhole,
   },
 ];
@@ -84,58 +84,58 @@ const getLocalPhoneDigits = (phone) => {
 
 const getNormalizedPhoneNumber = (phone) => `+62${getLocalPhoneDigits(phone)}`;
 
-const validateForm = (form, termsAccepted) => {
+const validateForm = (form, termsAccepted, t) => {
   const errors = {};
   const name = form.name.trim();
   const email = form.email.trim();
   const phoneDigits = getLocalPhoneDigits(form.phoneNumber);
 
   if (!name) {
-    errors.name = ["Full name is required."];
+    errors.name = [t("signup.Full name is required.")];
   } else if (name.length < 3) {
-    errors.name = ["Use at least 3 characters for your full name."];
+    errors.name = [t("signup.Use at least 3 characters for your full name.")];
   }
 
   if (!email) {
-    errors.email = ["Email is required."];
+    errors.email = [t("signup.Email is required.")];
   } else if (!EMAIL_PATTERN.test(email)) {
-    errors.email = ["Enter a valid email address."];
+    errors.email = [t("signup.Enter a valid email address.")];
   }
 
   if (!phoneDigits) {
-    errors.phoneNumber = ["WhatsApp or phone number is required."];
+    errors.phoneNumber = [t("signup.WhatsApp or phone number is required.")];
   } else if (!/^8[1-9]\d{6,11}$/.test(phoneDigits)) {
-    errors.phoneNumber = ["Enter a valid Indonesian mobile number."];
+    errors.phoneNumber = [t("signup.Enter a valid Indonesian mobile number.")];
   }
 
   if (!form.password) {
-    errors.password = ["Password is required."];
+    errors.password = [t("signup.Password is required.")];
   } else if (form.password.length < 8) {
-    errors.password = ["Password must contain at least 8 characters."];
+    errors.password = [t("signup.Password must contain at least 8 characters.")];
   } else if (!/[A-Za-z]/.test(form.password) || !/\d/.test(form.password)) {
-    errors.password = ["Password must contain at least 1 letter and 1 number."];
+    errors.password = [t("signup.Password must contain at least 1 letter and 1 number.")];
   }
 
   if (!form.passwordConfirm) {
-    errors.passwordConfirm = ["Confirm your password."];
+    errors.passwordConfirm = [t("signup.Confirm your password.")];
   } else if (form.passwordConfirm !== form.password) {
-    errors.passwordConfirm = ["Passwords do not match."];
+    errors.passwordConfirm = [t("signup.Passwords do not match.")];
   }
 
   if (!termsAccepted) {
-    errors.termsAccepted = ["Accept the Terms of Service and Privacy Policy to continue."];
+    errors.termsAccepted = [t("signup.Accept the Terms of Service and Privacy Policy to continue.")];
   }
 
   return errors;
 };
 
-const getPasswordStrength = (password) => {
+const getPasswordStrength = (password, t) => {
   const value = String(password || "");
   if (!value) {
     return {
       score: 0,
-      label: "Not set",
-      helper: "Use at least 8 characters, including at least 1 letter and 1 number.",
+      label: t("signup.Not set"),
+      helper: t("signup.Use at least 8 characters, including at least 1 letter and 1 number."),
     };
   }
 
@@ -146,12 +146,12 @@ const getPasswordStrength = (password) => {
   if (/[^A-Za-z0-9]/.test(value) || value.length >= 12) score += 1;
 
   if (score === 1) {
-    return { score, label: "Weak", helper: "Add length and mix letters with numbers." };
+    return { score, label: t("signup.Weak"), helper: t("signup.Add length and mix letters with numbers.") };
   }
   if (score < 4) {
-    return { score, label: "Good", helper: "Good start. Uppercase letters or symbols make it stronger." };
+    return { score, label: t("signup.Good"), helper: t("signup.Good start. Uppercase letters or symbols make it stronger.") };
   }
-  return { score, label: "Strong", helper: "Strong password." };
+  return { score, label: t("signup.Strong"), helper: t("signup.Strong password.") };
 };
 
 function AdminSignupBrand({ logoSrc, compact = false }) {
@@ -183,7 +183,7 @@ export default function AdminCreateAccountPage() {
   const fieldRefs = useRef({});
   const { branding } = useStoreBranding();
   const { resolvedTheme, setTheme } = useTheme();
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation("admin");
   const [form, setForm] = useState(EMPTY_FORM);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -200,12 +200,12 @@ export default function AdminCreateAccountPage() {
   const isDark = resolvedTheme === "dark";
   const adminLogoSrc = getWorkspaceLogoUrl("admin", branding?.adminLogoUrl);
   const passwordStrength = useMemo(
-    () => getPasswordStrength(form.password),
-    [form.password]
+    () => getPasswordStrength(form.password, t),
+    [form.password, t]
   );
   const validationErrors = useMemo(
-    () => validateForm(form, termsAccepted),
-    [form, termsAccepted]
+    () => validateForm(form, termsAccepted, t),
+    [form, termsAccepted, t]
   );
   const isFormValid = Object.keys(validationErrors).length === 0;
 
@@ -242,7 +242,7 @@ export default function AdminCreateAccountPage() {
     setTouched((current) => ({ ...current, [key]: true }));
     setFieldErrors((current) => {
       const next = { ...current };
-      const error = validateForm(form, termsAccepted)[key];
+      const error = validateForm(form, termsAccepted, t)[key];
       if (error) next[key] = error;
       else delete next[key];
       return next;
@@ -275,7 +275,7 @@ export default function AdminCreateAccountPage() {
     setStatusMessage("");
     setStatusTone("neutral");
 
-    const frontendErrors = validateForm(form, termsAccepted);
+    const frontendErrors = validateForm(form, termsAccepted, t);
     if (Object.keys(frontendErrors).length > 0) {
       setFieldErrors(frontendErrors);
       focusFirstError(frontendErrors);
@@ -307,7 +307,7 @@ export default function AdminCreateAccountPage() {
       setRegistrationComplete(true);
       setStatusMessage(
         result?.message ||
-          "Check your email to verify your staff account. Admin Workspace will review access after verification."
+          t("signup.Check your email to verify your staff account. Admin Workspace will review access after verification.")
       );
       setStatusTone("success");
       setForm((current) => ({ ...current, password: "", passwordConfirm: "" }));
@@ -319,7 +319,7 @@ export default function AdminCreateAccountPage() {
       setStatusMessage(
         error?.response?.status === 429 && retryAfterSeconds > 0
           ? buildRetryAfterMessage(retryAfterSeconds)
-          : error?.response?.data?.message || "We could not create this account right now."
+          : error?.response?.data?.message || t("signup.We could not create this account right now.")
       );
       setStatusTone("error");
       if (retryAfterSeconds > 0) setCooldownSeconds(retryAfterSeconds);
@@ -366,16 +366,16 @@ export default function AdminCreateAccountPage() {
           <div className="admin-signup-2026__hero-copy">
             <span className="admin-signup-2026__eyebrow">
               <ShieldCheck size={15} aria-hidden="true" />
-              Staff Signup
+              {t("signup.Staff Signup")}
             </span>
             <h1 id="admin-signup-hero-title">
-              Build your <span>admin</span> team
+              {t("signup.Build your")} <span>{t("signup.admin")}</span> {t("signup.team")}
             </h1>
-            <p>Create secure admin accounts and get your team ready to manage the platform.</p>
+            <p>{t("signup.Create secure admin accounts and get your team ready to manage the platform.")}</p>
           </div>
 
           <div className="admin-signup-2026__features">
-            {FEATURES.map(({ title, description, Icon }) => (
+            {getFeatures(t).map(({ title, description, Icon }) => (
               <article className="admin-signup-2026__feature" key={title}>
                 <span aria-hidden="true"><Icon size={21} strokeWidth={2.2} /></span>
                 <div>
@@ -429,10 +429,10 @@ export default function AdminCreateAccountPage() {
                 <span className="admin-signup-2026__success-icon" aria-hidden="true">
                   <CheckCircle2 size={36} />
                 </span>
-                <p className="admin-signup-2026__card-kicker">Verification required</p>
-                <h2 id="admin-signup-title">Check your email</h2>
+                <p className="admin-signup-2026__card-kicker">{t("signup.Verification required")}</p>
+                <h2 id="admin-signup-title">{t("signup.Check your email")}</h2>
                 <p className="admin-signup-2026__card-intro">
-                  We sent the next step to <strong>{registeredEmail}</strong>.
+                  {t("signup.We sent the next step to")} <strong>{registeredEmail}</strong>.
                 </p>
                 <div
                   id="admin-create-account-status"
@@ -445,22 +445,22 @@ export default function AdminCreateAccountPage() {
                   <span>{statusMessage}</span>
                 </div>
                 <Link className="admin-signup-2026__primary-link" to="/admin/login">
-                  Continue to login <ArrowRight size={18} aria-hidden="true" />
+                  {t("signup.Continue to login")} <ArrowRight size={18} aria-hidden="true" />
                 </Link>
                 <Link
                   className="admin-signup-2026__secondary-link"
                   to={`/admin/resend-verification?email=${encodeURIComponent(registeredEmail)}`}
                 >
-                  Resend verification email
+                  {t("signup.Resend verification email")}
                 </Link>
               </div>
             ) : (
               <>
                 <div className="admin-signup-2026__card-heading">
-                  <p className="admin-signup-2026__card-kicker">Admin onboarding</p>
-                  <h2 id="admin-signup-title">Create account</h2>
+                  <p className="admin-signup-2026__card-kicker">{t("signup.Admin onboarding")}</p>
+                  <h2 id="admin-signup-title">{t("signup.Create account")}</h2>
                   <p className="admin-signup-2026__card-intro">
-                    Request access to the admin workspace.
+                    {t("signup.Request access to the admin workspace.")}
                   </p>
                 </div>
 
@@ -479,7 +479,7 @@ export default function AdminCreateAccountPage() {
 
                 <form className="admin-signup-2026__form" onSubmit={handleSubmit} noValidate>
                   <div className="admin-signup-2026__honeypot" aria-hidden="true">
-                    <label htmlFor="admin-create-account-company">Company</label>
+                    <label htmlFor="admin-create-account-company">{t("signup.Company", { defaultValue: "Company" })}</label>
                     <input
                       id="admin-create-account-company"
                       type="text"
@@ -492,7 +492,7 @@ export default function AdminCreateAccountPage() {
 
                   <div className="admin-signup-2026__row">
                     <div className="admin-signup-2026__field">
-                      <label htmlFor="admin-create-account-name">Full name</label>
+                      <label htmlFor="admin-create-account-name">{t("signup.Full name")}</label>
                       <div className={`admin-signup-2026__input${visibleError("name") ? " has-error" : ""}`}>
                         <UserPlus size={18} aria-hidden="true" />
                         <input
@@ -502,7 +502,7 @@ export default function AdminCreateAccountPage() {
                           value={form.name}
                           onChange={(event) => setField("name", event.target.value)}
                           onBlur={() => handleFieldBlur("name")}
-                          placeholder="Enter full name"
+                          placeholder={t("signup.Enter full name")}
                           autoComplete="name"
                           aria-invalid={Boolean(visibleError("name"))}
                           aria-describedby={visibleError("name") ? "admin-create-account-name-error" : undefined}
@@ -513,7 +513,7 @@ export default function AdminCreateAccountPage() {
                     </div>
 
                     <div className="admin-signup-2026__field">
-                      <label htmlFor="admin-create-account-email">Email</label>
+                      <label htmlFor="admin-create-account-email">{t("signup.Email")}</label>
                       <div className={`admin-signup-2026__input${visibleError("email") ? " has-error" : ""}`}>
                         <Mail size={18} aria-hidden="true" />
                         <input
@@ -523,7 +523,7 @@ export default function AdminCreateAccountPage() {
                           value={form.email}
                           onChange={(event) => setField("email", event.target.value)}
                           onBlur={() => handleFieldBlur("email")}
-                          placeholder="Enter email address"
+                          placeholder={t("signup.Enter email address")}
                           autoComplete="email"
                           aria-invalid={Boolean(visibleError("email"))}
                           aria-describedby={visibleError("email") ? "admin-create-account-email-error" : undefined}
@@ -535,7 +535,7 @@ export default function AdminCreateAccountPage() {
                   </div>
 
                   <div className="admin-signup-2026__field">
-                    <label htmlFor="admin-create-account-phone">WhatsApp / phone number</label>
+                    <label htmlFor="admin-create-account-phone">{t("signup.WhatsApp / phone number")}</label>
                     <div className={`admin-signup-2026__phone${visibleError("phoneNumber") ? " has-error" : ""}`}>
                       <span className="admin-signup-2026__country" aria-label="Indonesia country code">
                         <i aria-hidden="true"><b /><b /></i>
@@ -561,7 +561,7 @@ export default function AdminCreateAccountPage() {
                   </div>
 
                   <div className="admin-signup-2026__field">
-                    <label htmlFor="admin-create-account-password">Password</label>
+                    <label htmlFor="admin-create-account-password">{t("signup.Password")}</label>
                     <div className={`admin-signup-2026__input${visibleError("password") ? " has-error" : ""}`}>
                       <LockKeyhole size={18} aria-hidden="true" />
                       <input
@@ -571,7 +571,7 @@ export default function AdminCreateAccountPage() {
                         value={form.password}
                         onChange={(event) => setField("password", event.target.value)}
                         onBlur={() => handleFieldBlur("password")}
-                        placeholder="Create a strong password"
+                        placeholder={t("signup.Create a strong password")}
                         autoComplete="new-password"
                         aria-invalid={Boolean(visibleError("password"))}
                         aria-describedby={visibleError("password") ? "admin-create-account-password-error" : "admin-password-strength"}
@@ -593,7 +593,7 @@ export default function AdminCreateAccountPage() {
                       role="status"
                       aria-live="polite"
                     >
-                      <div><span>Password strength</span><strong>{passwordStrength.label}</strong></div>
+                      <div><span>{t("signup.Password strength")}</span><strong>{passwordStrength.label}</strong></div>
                       <div className="admin-signup-2026__strength-bars" aria-hidden="true">
                         {[1, 2, 3, 4].map((bar) => <i className={bar <= passwordStrength.score ? "is-active" : ""} key={bar} />)}
                       </div>
@@ -603,7 +603,7 @@ export default function AdminCreateAccountPage() {
                   </div>
 
                   <div className="admin-signup-2026__field">
-                    <label htmlFor="admin-create-account-password-confirm">Confirm password</label>
+                    <label htmlFor="admin-create-account-password-confirm">{t("signup.Confirm password")}</label>
                     <div className={`admin-signup-2026__input${visibleError("passwordConfirm") ? " has-error" : ""}`}>
                       <LockKeyhole size={18} aria-hidden="true" />
                       <input
@@ -613,7 +613,7 @@ export default function AdminCreateAccountPage() {
                         value={form.passwordConfirm}
                         onChange={(event) => setField("passwordConfirm", event.target.value)}
                         onBlur={() => handleFieldBlur("passwordConfirm")}
-                        placeholder="Repeat your password"
+                        placeholder={t("signup.Repeat your password")}
                         autoComplete="new-password"
                         aria-invalid={Boolean(visibleError("passwordConfirm"))}
                         aria-describedby={visibleError("passwordConfirm") ? "admin-create-account-password-confirm-error" : undefined}
@@ -643,8 +643,8 @@ export default function AdminCreateAccountPage() {
                     />
                     <span aria-hidden="true"><Check size={13} strokeWidth={3} /></span>
                     <small>
-                      I agree to the <Link to="/terms-and-conditions">Terms of Service</Link> and{" "}
-                      <Link to="/privacy-policy">Privacy Policy</Link>.
+                      {t("signup.I agree to the")} <Link to="/terms-and-conditions">{t("signup.Terms of Service")}</Link> {t("signup.and")}{" "}
+                      <Link to="/privacy-policy">{t("signup.Privacy Policy")}</Link>.
                     </small>
                   </label>
                   <FieldError id="admin-create-account-terms-error" message={visibleError("termsAccepted")} />
@@ -657,17 +657,17 @@ export default function AdminCreateAccountPage() {
                   >
                     <span>
                       {isSubmitting
-                        ? "Creating account..."
-                        : buildCooldownButtonLabel(cooldownSeconds, "Create account")}
+                        ? t("signup.Creating account...")
+                        : buildCooldownButtonLabel(cooldownSeconds, t("signup.Create account"))}
                     </span>
                     <ArrowRight size={19} aria-hidden="true" />
                   </button>
                 </form>
 
                 <div className="admin-signup-2026__card-footer">
-                  <p>Already have an account? <Link to="/admin/login">Login</Link></p>
+                  <p>{t("signup.Already have an account?")} <Link to="/admin/login">{t("signup.Login")}</Link></p>
                   <a href="mailto:support@tpreneurs.com">
-                    <Headphones size={16} aria-hidden="true" /> Need help? Contact support
+                    <Headphones size={16} aria-hidden="true" /> {t("signup.Need help? Contact support")}
                   </a>
                 </div>
               </>
