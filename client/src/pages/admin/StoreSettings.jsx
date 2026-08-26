@@ -205,6 +205,20 @@ const buildValidationIssues = (form) => {
   ) {
     issues.push("Google Analytics ID invalid");
   }
+  if (
+    form.duitkuEnvironment === "sandbox" &&
+    ((form.duitkuSandboxMerchantCode && !/^[A-Za-z0-9]+$/.test(form.duitkuSandboxMerchantCode)) ||
+      (form.duitkuSandboxApiKey && !/^[A-Za-z0-9]+$/.test(form.duitkuSandboxApiKey)))
+  ) {
+    issues.push("Duitku sandbox key invalid");
+  }
+  if (
+    form.duitkuEnvironment === "production" &&
+    ((form.duitkuProductionMerchantCode && !/^[A-Za-z0-9]+$/.test(form.duitkuProductionMerchantCode)) ||
+      (form.duitkuProductionApiKey && !/^[A-Za-z0-9]+$/.test(form.duitkuProductionApiKey)))
+  ) {
+    issues.push("Duitku production key invalid");
+  }
   return issues;
 };
 
