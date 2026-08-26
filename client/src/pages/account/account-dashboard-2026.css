@@ -275,3 +275,40 @@
 @media (prefers-reduced-motion: reduce) {
   .tp-account-dashboard-2026 *, .tp-account-dashboard-2026 *::before, .tp-account-dashboard-2026 *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* DARK MODE SUPPORT */
+[data-theme="dark"] .tp-account-dashboard-2026,
+[data-resolved-theme="dark"] .tp-account-dashboard-2026 {
+  --tp-dashboard-text: #f1f5f9;
+  --tp-dashboard-muted: #94a3b8;
+  --tp-dashboard-border: rgba(255, 255, 255, 0.08);
+  --tp-dashboard-surface: #1e293b;
+}
+
+[data-theme="dark"] .tp-dashboard-card,
+[data-resolved-theme="dark"] .tp-dashboard-card,
+[data-theme="dark"] .tp-dashboard-stat,
+[data-resolved-theme="dark"] .tp-dashboard-stat,
+[data-theme="dark"] .tp-quick-action,
+[data-resolved-theme="dark"] .tp-quick-action {
+  background: var(--tp-dashboard-surface);
+  border-color: var(--tp-dashboard-border);
+}
+
+[data-theme="dark"] .tp-account-dashboard-2026__profile,
+[data-resolved-theme="dark"] .tp-account-dashboard-2026__profile {
+  background: var(--tp-dashboard-surface);
+  border-color: var(--tp-dashboard-border);
+}
+
+[data-theme="dark"] .tp-dashboard-card__header button,
+[data-resolved-theme="dark"] .tp-dashboard-card__header button {
+  color: #f1f5f9;
+  background: #334155;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .tp-quick-action:hover,
+[data-resolved-theme="dark"] .tp-quick-action:hover {
+  background: rgba(255, 255, 255, 0.05);
+}

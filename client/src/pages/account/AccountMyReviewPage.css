@@ -732,3 +732,51 @@
     height: 82px;
   }
 }
+
+/* DARK MODE SUPPORT */
+[data-theme="dark"] .reviews-2026-page,
+[data-resolved-theme="dark"] .reviews-2026-page {
+  --reviews-2026-ink: #f1f5f9;
+  --reviews-2026-muted: #94a3b8;
+  --reviews-2026-line: rgba(255, 255, 255, 0.08);
+  --reviews-2026-soft: #1e293b;
+}
+
+[data-theme="dark"] .reviews-2026-hero,
+[data-resolved-theme="dark"] .reviews-2026-hero,
+[data-theme="dark"] .reviews-2026-stats,
+[data-resolved-theme="dark"] .reviews-2026-stats,
+[data-theme="dark"] .reviews-2026-card,
+[data-resolved-theme="dark"] .reviews-2026-card,
+[data-theme="dark"] .reviews-2026-panel,
+[data-resolved-theme="dark"] .reviews-2026-panel,
+[data-theme="dark"] .reviews-2026-empty,
+[data-resolved-theme="dark"] .reviews-2026-empty {
+  background: #1e293b;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .reviews-2026-stat,
+[data-resolved-theme="dark"] .reviews-2026-stat {
+  background: #1e293b;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .reviews-2026-hero h1,
+[data-resolved-theme="dark"] .reviews-2026-hero h1,
+[data-theme="dark"] .reviews-2026-stat strong,
+[data-resolved-theme="dark"] .reviews-2026-stat strong {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .reviews-2026-tabs button,
+[data-resolved-theme="dark"] .reviews-2026-tabs button {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .reviews-2026-tabs button:hover,
+[data-theme="dark"] .reviews-2026-tabs button.is-active,
+[data-resolved-theme="dark"] .reviews-2026-tabs button:hover,
+[data-resolved-theme="dark"] .reviews-2026-tabs button.is-active {
+  color: var(--reviews-2026-green);
+}

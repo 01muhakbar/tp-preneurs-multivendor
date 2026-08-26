@@ -583,3 +583,48 @@
     flex: 1 1 10rem;
   }
 }
+
+/* DARK MODE SUPPORT */
+[data-theme="dark"] .tpship2026-root,
+[data-resolved-theme="dark"] .tpship2026-root {
+  --tpship2026-ink: #f1f5f9;
+  --tpship2026-muted: #94a3b8;
+}
+
+[data-theme="dark"] .tpship2026-card,
+[data-resolved-theme="dark"] .tpship2026-card {
+  background: #1e293b;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .tpship2026-address-card,
+[data-resolved-theme="dark"] .tpship2026-address-card {
+  background: #0f172a;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .tpship2026-modal,
+[data-resolved-theme="dark"] .tpship2026-modal {
+  background: #1e293b;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .tpship2026-input,
+[data-resolved-theme="dark"] .tpship2026-input {
+  background: #0f172a;
+  color: #f1f5f9;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .tpship2026-modal-close,
+[data-resolved-theme="dark"] .tpship2026-modal-close {
+  background: #334155;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .tpship2026-btn--secondary,
+[data-resolved-theme="dark"] .tpship2026-btn--secondary {
+  background: transparent;
+  color: #cbd5e1;
+  border-color: rgba(255, 255, 255, 0.15);
+}
