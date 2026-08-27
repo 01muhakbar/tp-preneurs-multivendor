@@ -265,7 +265,7 @@ export default function Seller2026LiveAttributesPage() {
               <option value="with_values">With Values</option>
               <option value="no_values">No Values</option>
             </select>
-            <button className="seller2026-btn-outline-green" type="button">
+            <button className="seller2026-btn-accent" type="button">
               <Filter size={16} /> Apply
             </button>
             <button className="seller2026-btn-cancel" type="button" onClick={() => setSearchParams(new URLSearchParams())}>
