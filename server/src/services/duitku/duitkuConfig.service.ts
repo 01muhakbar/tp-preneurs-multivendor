@@ -138,17 +138,23 @@ export const resolveDuitkuConfig = (
     timeoutMs: parseTimeoutMs(env.DUITKU_TIMEOUT_MS),
   };
 
+  const throwWith400 = (msg: string) => {
+    const err = new Error(msg);
+    (err as any).statusCode = 400;
+    throw err;
+  };
+
   if (!enabled) return config;
   if (!/^https:\/\//i.test(config.baseUrl)) {
-    throw new Error("DUITKU_BASE_URL must be an https URL when enabled.");
+    throwWith400("DUITKU_BASE_URL must be an https URL when enabled.");
   }
-  if (!config.merchantCode) throw new Error("DUITKU_MERCHANT_CODE is required when enabled.");
-  if (!config.apiKey) throw new Error("DUITKU_API_KEY is required when enabled.");
+  if (!config.merchantCode) throwWith400("DUITKU_MERCHANT_CODE is required when enabled.");
+  if (!config.apiKey) throwWith400("DUITKU_API_KEY is required when enabled.");
   if (!/^https?:\/\//i.test(config.callbackUrl)) {
-    throw new Error("DUITKU_CALLBACK_URL must be an absolute URL when enabled.");
+    throwWith400("DUITKU_CALLBACK_URL must be an absolute URL when enabled.");
   }
   if (!/^https?:\/\//i.test(config.returnUrl)) {
-    throw new Error("DUITKU_RETURN_URL must be an absolute URL when enabled.");
+    throwWith400("DUITKU_RETURN_URL must be an absolute URL when enabled.");
   }
   return config;
 };
