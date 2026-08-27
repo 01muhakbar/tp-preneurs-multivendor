@@ -260,7 +260,7 @@ export const sanitizeStoreSettings = (rawData: unknown) => {
         duitkuMethodSource.sandboxApiKey ??
         duitkuMethodSource.apiKey;
 
-  return {
+  const sanitized: any = {
     ...defaults,
     ...sourceWithoutLegacyDuitkuRoot,
     payments: {
@@ -280,11 +280,14 @@ export const sanitizeStoreSettings = (rawData: unknown) => {
       ),
       razorPayKeyId: toText(paymentsSource.razorPayKeyId, ""),
       razorPayKeySecret: toText(paymentsSource.razorPayKeySecret, ""),
+      paypalEnabled: toBool(paymentsSource.paypalEnabled, defaults.payments.paypalEnabled),
+      paypalClientId: toText(paymentsSource.paypalClientId, ""),
+      paypalSecretKey: toText(paymentsSource.paypalSecretKey, ""),
       duitkuEnabled: toBool(
         paymentsSource.duitkuEnabled ?? duitkuMethodSource.enabled ?? source.duitkuEnabled,
         defaults.payments.duitkuEnabled
       ),
-      duitkuEnvironment,
+      duitkuEnvironment: duitkuEnvironment,
       duitkuSandboxMerchantCode: toText(
         paymentsSource.duitkuSandboxMerchantCode ??
           duitkuMethodSource.sandboxMerchantCode ??
@@ -309,6 +312,10 @@ export const sanitizeStoreSettings = (rawData: unknown) => {
           (duitkuEnvironment === "production" ? fallbackDuitkuApiKey : ""),
         ""
       ),
+    },
+    paymentMethods: {
+      ...defaults.paymentMethods,
+      ...paymentMethodsSource,
     },
     socialLogin: {
       ...defaults.socialLogin,
@@ -372,6 +379,22 @@ export const sanitizeStoreSettings = (rawData: unknown) => {
       ),
     },
   };
+
+  if (!sanitized.paymentMethods) {
+    sanitized.paymentMethods = {};
+  }
+  sanitized.paymentMethods.duitku = {
+    ...(sanitized.paymentMethods.duitku || {}),
+    environment: sanitized.payments.duitkuEnvironment,
+    sandboxMerchantCode: sanitized.payments.duitkuSandboxMerchantCode,
+    sandboxApiKey: sanitized.payments.duitkuSandboxApiKey,
+    productionMerchantCode: sanitized.payments.duitkuProductionMerchantCode,
+    productionApiKey: sanitized.payments.duitkuProductionApiKey,
+    apiKey: sanitized.payments.duitkuEnvironment === "production" ? sanitized.payments.duitkuProductionApiKey : sanitized.payments.duitkuSandboxApiKey,
+    merchantCode: sanitized.payments.duitkuEnvironment === "production" ? sanitized.payments.duitkuProductionMerchantCode : sanitized.payments.duitkuSandboxMerchantCode,
+  };
+
+  return sanitized;
 };
 
 export const mergeStoreSettingsForUpdate = (existingRaw: unknown, incomingRaw: unknown) => {

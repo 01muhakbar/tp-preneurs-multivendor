@@ -2310,10 +2310,15 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
     if (isDuitkuRequested) {
       duitkuPaymentMethod = requireSupportedDuitkuPaymentMethodCode(parsed.data.duitkuPaymentMethod);
       const dbSettings = await getPersistedStoreSettings();
-      const reqOrigin = req.get("host") ? `${req.protocol}://${req.get("host")}` : "";
+      const protocol = (req.headers["x-forwarded-proto"] as string)?.split(',')[0].trim() || req.protocol;
+      const reqOrigin = req.get("host") ? `${protocol}://${req.get("host")}` : "";
+      let finalBaseUrl = process.env.PUBLIC_BASE_URL || reqOrigin;
+      if (finalBaseUrl && !/^https?:\/\//i.test(finalBaseUrl)) {
+        finalBaseUrl = `https://${finalBaseUrl}`;
+      }
       const syntheticEnv = {
         ...process.env,
-        PUBLIC_BASE_URL: process.env.PUBLIC_BASE_URL || reqOrigin,
+        PUBLIC_BASE_URL: finalBaseUrl,
       };
       duitkuConfig = resolveDuitkuConfig(syntheticEnv, dbSettings);
       if (!duitkuConfig.enabled) {
@@ -2956,9 +2961,17 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
           
           if (normalized.ok && normalized.paymentUrl) {
             paymentUrl = normalized.paymentUrl;
+          } else {
+            const err = new Error(`Duitku error: ${normalized.statusMessage || "Payment rejected"}`);
+            (err as any).statusCode = 400;
+            throw err;
           }
         } catch (duitkuError: any) {
            console.error("[checkout/create-multi-store] Duitku Create Invoice failed:", duitkuError);
+           if (!duitkuError.statusCode) {
+             duitkuError.statusCode = 400;
+           }
+           throw duitkuError;
         }
       }
 
