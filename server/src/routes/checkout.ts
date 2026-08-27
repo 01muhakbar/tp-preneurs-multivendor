@@ -22,6 +22,7 @@ import {
   Suborder,
   SuborderItem,
   TrackingEvent,
+  User,
   sequelize,
 } from "../models/index.js";
 import {
@@ -2304,6 +2305,20 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
+    // Fetch email user dari database untuk dikirim ke Duitku (Fix #3)
+    let authUserEmail = "noreply@tp-preneurs.com";
+    try {
+      const userRecord = await User.findOne({
+        where: { id: authUser.id },
+        attributes: ["id", "email"],
+      });
+      if (userRecord && (userRecord as any).email) {
+        authUserEmail = String((userRecord as any).email).trim();
+      }
+    } catch (userLookupErr) {
+      console.warn("[checkout/create-multi-store] failed to fetch user email, using fallback", userLookupErr);
+    }
+
     const isDuitkuRequested = parsed.data.paymentMethod === "DUITKU";
     let duitkuPaymentMethod: string | null = null;
     let duitkuConfig: any = null;
@@ -2901,7 +2916,7 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
             paymentAmount: Math.floor(discountedGrandTotal),
             merchantOrderId: invoiceNo,
             productDetails: `Payment for Order ${invoiceNo}`,
-            email: "customer@tp-preneurs.com",
+            email: authUserEmail, // Fix #3: email asli user, bukan hardcoded
             customerVaName: String(resolvedCustomer.name || "Customer").slice(0, 20),
             phoneNumber: resolvedCustomer.phone || undefined,
             paymentMethod: duitkuPaymentMethod || undefined,
@@ -2933,30 +2948,42 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
           
           const rawResponse = await response.json() as any;
           const normalized = normalizeDuitkuCreateInvoiceResponse(rawResponse);
-          
-          const persistedAttempt = await persistDuitkuCreateInvoiceAttempt({
-            orderId: parentOrder.id,
-            request: requestBody,
-            response: normalized,
-            merchantOrderId: requestBody.merchantOrderId,
-            idempotencyKey: idempotentInvoiceNo || invoiceNo,
-            createdByUserId: authUser.id
-          });
-          const persistedAttemptId = Number((persistedAttempt.attempt as any)?.id || 0);
-          if (persistedAttemptId > 0) {
-            const OrderCollectionClaim = (parentOrder as any).sequelize.models.OrderCollectionClaim;
-            if (OrderCollectionClaim) {
-              await OrderCollectionClaim.update(
-                { orderPaymentAttemptId: persistedAttemptId },
-                {
-                  where: {
-                    orderId: parentOrder.id,
-                    rail: "DUITKU_POP",
-                    claimState: "CLAIMED",
-                  },
-                }
-              );
+
+          // Fix #2: persistensi audit dibuat graceful — jika tabel belum ada di DB,
+          // cukup log warning dan lanjutkan (jangan gagalkan seluruh checkout)
+          try {
+            const persistedAttempt = await persistDuitkuCreateInvoiceAttempt({
+              orderId: parentOrder.id,
+              request: requestBody,
+              response: normalized,
+              merchantOrderId: requestBody.merchantOrderId,
+              idempotencyKey: idempotentInvoiceNo || invoiceNo,
+              createdByUserId: authUser.id
+            });
+            const persistedAttemptId = Number((persistedAttempt.attempt as any)?.id || 0);
+            if (persistedAttemptId > 0) {
+              const OrderCollectionClaimModel = (parentOrder as any).sequelize.models.OrderCollectionClaim;
+              if (OrderCollectionClaimModel) {
+                await OrderCollectionClaimModel.update(
+                  { orderPaymentAttemptId: persistedAttemptId },
+                  {
+                    where: {
+                      orderId: parentOrder.id,
+                      rail: "DUITKU_POP",
+                      claimState: "CLAIMED",
+                    },
+                  }
+                );
+              }
             }
+          } catch (persistErr: any) {
+            // Jika tabel audit belum ada (e.g. deployment baru), log dan lanjutkan.
+            // Pembayaran Duitku tetap berjalan — hanya log audit yang tidak tersimpan.
+            console.error(
+              "[checkout/create-multi-store] WARNING: Failed to persist Duitku attempt audit (table may not exist). " +
+              "Run createDuitkuTables.sql on Hostinger DB to fix this permanently.",
+              persistErr?.message || persistErr
+            );
           }
           
           if (normalized.ok && normalized.paymentUrl) {
