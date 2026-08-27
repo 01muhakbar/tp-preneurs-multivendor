@@ -129,18 +129,20 @@ const latestCheckoutCartOrder = [
 const createCheckoutRouteError = (statusCode: number, code: string, message: string) =>
   Object.assign(new Error(message), { statusCode, code });
 
-const sendCheckoutRouteError = (res: any, error: any, fallbackMessage: string) => {
+const sendCheckoutRouteError = (res: any, error: any, fallbackMessage: string, debugInfo?: Record<string, any>) => {
   const statusCode = Number(error?.statusCode || 0);
   if (Number.isInteger(statusCode) && statusCode >= 400 && statusCode < 500) {
     return res.status(statusCode).json({
       success: false,
       message: error?.message || fallbackMessage,
       code: error?.code || "CHECKOUT_REQUEST_INVALID",
+      ...(debugInfo ?? {}),
     });
   }
   return res.status(500).json({
     success: false,
     message: fallbackMessage,
+    ...(debugInfo ?? {}),
   });
 };
 
@@ -3132,15 +3134,22 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
         });
       }
       console.error("[checkout/create-multi-store] error", error);
+      const _debugMsg = (error as any)?.message || "";
+      const _debugName = (error as any)?.name || "";
+      const _debugStack = String((error as any)?.stack || "").split("\n").slice(0, 6).join(" | ");
       return sendCheckoutRouteError(
         res,
         error,
-        (error as any)?.message || "Failed to create multi-store checkout."
+        (error as any)?.message || "Failed to create multi-store checkout.",
+        { _debugMsg, _debugName, _debugStack }
       );
     }
   } catch (error) {
     console.error("[checkout/create-multi-store] fatal error", error);
-    return sendCheckoutRouteError(res, error, "Failed to create multi-store checkout.");
+    const _debugMsg2 = (error as any)?.message || "";
+    const _debugName2 = (error as any)?.name || "";
+    const _debugStack2 = String((error as any)?.stack || "").split("\n").slice(0, 6).join(" | ");
+    return sendCheckoutRouteError(res, error, "Failed to create multi-store checkout.", { _debugMsg: _debugMsg2, _debugName: _debugName2, _debugStack: _debugStack2 });
   }
 });
 
