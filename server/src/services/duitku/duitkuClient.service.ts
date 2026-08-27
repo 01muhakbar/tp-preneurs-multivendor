@@ -148,7 +148,9 @@ export class DuitkuClient {
       try {
         parsed = bodyText ? JSON.parse(bodyText) : {};
       } catch {
-        throw new Error("Duitku Create Invoice response was not valid JSON.");
+        const urlHit = buildDuitkuCreateInvoiceUrl(this.config);
+        const snippet = bodyText.slice(0, 150).replace(/\n/g, "");
+        throw new Error(`Duitku API returned HTML instead of JSON. URL: ${urlHit} | Response: ${snippet}`);
       }
 
       if (!response.ok) {
