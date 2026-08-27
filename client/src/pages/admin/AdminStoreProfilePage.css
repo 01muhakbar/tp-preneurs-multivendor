@@ -40,8 +40,8 @@
 .asp2026-header h1 {
   margin: 0;
   color: var(--asp-navy);
-  font-size: 28px;
-  font-weight: 760;
+  font-size: 24px;
+  font-weight: 600;
   line-height: 1.15;
   letter-spacing: 0;
 }
@@ -69,7 +69,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border-radius: 14px;
+  border-radius: 6px;
   border: 1px solid transparent;
   padding: 0 16px;
   text-decoration: none;
@@ -82,8 +82,8 @@
 }
 
 .asp2026-primary-button {
-  background: var(--asp-navy);
-  color: #fff;
+  background: #034c85;
+  color: #ffffff;
   box-shadow: 0 14px 32px rgba(15, 23, 42, 0.18);
   font-weight: 720;
 }
@@ -248,7 +248,7 @@
   min-height: 48px;
   align-items: center;
   gap: 10px;
-  border-radius: 15px;
+  border-radius: 6px;
   padding: 0 16px;
   color: #475569;
 }
@@ -268,7 +268,7 @@
 
 .asp2026-select {
   min-height: 48px;
-  border-radius: 15px;
+  border-radius: 6px;
   color: var(--asp-navy);
   outline: 0;
   padding: 0 16px;
@@ -278,14 +278,14 @@
   display: inline-grid;
   grid-template-columns: repeat(2, 44px);
   min-height: 48px;
-  border-radius: 16px;
+  border-radius: 6px;
   overflow: hidden;
   padding: 4px;
 }
 
 .asp2026-view-toggle button {
   border: 0;
-  border-radius: 12px;
+  border-radius: 6px;
   background: transparent;
   color: #475569;
   cursor: pointer;
@@ -317,7 +317,7 @@
   align-items: center;
   gap: 8px;
   border: 1px solid var(--asp-line);
-  border-radius: 999px;
+  border-radius: 6px;
   background: rgba(255, 255, 255, 0.74);
   color: #334155;
   cursor: pointer;
@@ -334,7 +334,7 @@
 }
 
 .asp2026-filters button.is-active {
-  background: var(--asp-navy);
+  background: #034c85;
   color: #fff;
   box-shadow: 0 14px 28px rgba(15, 23, 42, 0.16);
 }
@@ -435,7 +435,7 @@
   gap: 6px;
   padding: 0 12px;
   min-height: 42px;
-  border-radius: 12px;
+  border-radius: 6px;
   border: 1px solid var(--asp-line);
   background: #f8fafc;
   color: var(--asp-navy);
@@ -689,7 +689,7 @@
   width: 100%;
   border-color: rgba(124, 58, 237, 0.16);
   background: rgba(255, 255, 255, 0.72);
-  color: var(--asp-purple);
+  color: #fe6f05;
   cursor: pointer;
   font-weight: 780;
 }
@@ -719,7 +719,7 @@
   min-width: 0;
   min-height: 42px;
   border: 1px solid var(--asp-line);
-  border-radius: 13px;
+  border-radius: 6px;
   background: rgba(255, 255, 255, 0.84);
   color: var(--asp-navy);
   outline: 0;
@@ -730,8 +730,8 @@
 .asp2026-core-form select:focus,
 .asp2026-search:focus-within,
 .asp2026-select:focus {
-  border-color: rgba(37, 99, 235, 0.42);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  border-color: #fe6f05;
+  box-shadow: 0 0 0 3px rgba(254, 111, 5, 0.2);
 }
 
 .asp2026-form-error {
@@ -757,7 +757,7 @@
   gap: 10px;
   align-items: center;
   border: 1px solid var(--asp-line);
-  border-radius: 12px;
+  border-radius: 6px;
   background: rgba(255, 255, 255, 0.72);
   color: var(--asp-navy);
   cursor: pointer;
@@ -967,3 +967,72 @@
     flex: 0 0 auto;
   }
 }
+
+
+/* Dark Mode Overrides for Admin Store Profile */
+.dark .asp2026,
+.admin-theme-dark .asp2026,
+[data-theme="dark"] .asp2026 {
+  --asp-card: #1e293b;
+  --asp-soft: #334155;
+  --asp-line: #334155;
+}
+
+.dark .asp2026-soft-button,
+[data-theme="dark"] .asp2026-soft-button,
+.dark .asp2026-filters button,
+[data-theme="dark"] .asp2026-filters button,
+.dark .asp2026-issue-chip,
+[data-theme="dark"] .asp2026-issue-chip,
+.dark .asp2026-detail-button,
+[data-theme="dark"] .asp2026-detail-button {
+  background: var(--asp-soft);
+  color: #cbd5e1;
+}
+
+.dark .asp2026-search,
+[data-theme="dark"] .asp2026-search,
+.dark .asp2026-select,
+[data-theme="dark"] .asp2026-select,
+.dark .asp2026-view-toggle,
+[data-theme="dark"] .asp2026-view-toggle,
+.dark .asp2026-core-form input,
+[data-theme="dark"] .asp2026-core-form input,
+.dark .asp2026-core-form select,
+[data-theme="dark"] .asp2026-core-form select {
+  background: var(--asp-soft);
+  color: var(--tp-text);
+  border-color: var(--asp-line);
+}
+
+.dark .asp2026-view-toggle button.is-active,
+[data-theme="dark"] .asp2026-view-toggle button.is-active {
+  background: var(--asp-card);
+  color: var(--tp-text);
+}
+
+.dark .asp2026-panel,
+[data-theme="dark"] .asp2026-panel,
+.dark .asp2026-preview-list,
+[data-theme="dark"] .asp2026-preview-list,
+.dark .asp2026-ownership-grid div,
+[data-theme="dark"] .asp2026-ownership-grid div {
+  background: var(--asp-card);
+  border-color: var(--asp-line);
+}
+
+.dark .asp2026-panel--ai,
+[data-theme="dark"] .asp2026-panel--ai {
+  background: linear-gradient(145deg, rgba(254, 111, 5, 0.08), var(--asp-card));
+}
+.dark .asp2026-ai-button,
+[data-theme="dark"] .asp2026-ai-button {
+  background: var(--asp-soft);
+  border-color: rgba(254, 111, 5, 0.2);
+}
+
+.dark .asp2026-metric::before,
+[data-theme="dark"] .asp2026-metric::before {
+  display: none; /* Remove bright overlay in dark mode */
+}
+
