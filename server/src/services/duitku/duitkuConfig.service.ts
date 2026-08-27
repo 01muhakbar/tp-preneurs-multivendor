@@ -104,8 +104,8 @@ export const resolveDuitkuConfig = (
   let apiKey = trim(env.DUITKU_API_KEY);
 
   if (dbSettings && dbSettings.payments) {
-    if (!envEnvironment && dbSettings.payments.duitkuEnvironment) {
-      environment = parseEnvironment(dbSettings.payments.duitkuEnvironment);
+    if (dbSettings.payments.duitkuEnvironment === "sandbox" || dbSettings.payments.duitkuEnvironment === "production") {
+      environment = dbSettings.payments.duitkuEnvironment;
     }
     if (environment === "sandbox") {
       if (dbSettings.payments.duitkuSandboxMerchantCode) {
