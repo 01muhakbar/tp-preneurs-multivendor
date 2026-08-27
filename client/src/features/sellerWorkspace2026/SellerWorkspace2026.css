@@ -324,7 +324,7 @@
   margin-bottom: 8px;
   text-transform: uppercase;
 }
-.seller2026-profile__header h1 { font-size: 23px; line-height: 1.15; margin: 0; }
+.seller2026-profile__header h1 { font-weight: 600; font-size: 24px; line-height: 1.15; margin: 0; }
 .seller2026-profile__header p { color: var(--seller2026-muted); font-size: 12px; margin: 7px 0 0; }
 .seller2026-profile__header-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
 .seller2026-profile__grid { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr) 280px; }
@@ -452,7 +452,7 @@
   align-items: center;
   background: var(--seller2026-surface);
   border: 1px solid #cfdae8;
-  border-radius: 8px;
+  border-radius: 6px;
   color: var(--seller2026-text);
   cursor: pointer;
   display: inline-flex;
@@ -464,7 +464,7 @@
   padding: 7px 13px;
 }
 .seller2026-profile-button:disabled { cursor: not-allowed; opacity: .48; }
-.seller2026-profile-button--primary { background: #071a3b; border-color: #071a3b; color: #fff !important; }
+.seller2026-profile-button--primary { background: #034c85; border-color: #034c85; color: #fff !important; }
 .seller2026-profile-button--danger { border-color: #fecaca; color: #dc2626; }
 .seller2026-profile__notice,
 .seller2026-profile__admin-note {
@@ -494,13 +494,13 @@
 .seller2026-profile__form-card { align-content: start; display: grid; gap: 11px; }
 .seller2026-profile__form-card h2 { border: 0; margin-bottom: 0; text-transform: uppercase; }
 .seller2026-profile-field { display: grid; gap: 6px; min-width: 0; }
-.seller2026-profile-field > span { color: #536780; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.seller2026-profile-field > span { color: #536780; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .seller2026-profile-field input,
 .seller2026-profile-field textarea,
 .seller2026-profile-field select {
   background: var(--seller2026-surface);
   border: 1px solid #d9e1ec;
-  border-radius: 7px;
+  border-radius: 6px;
   color: var(--seller2026-text);
   font: inherit;
   font-size: 11px;
@@ -512,7 +512,7 @@
 .seller2026-profile-field textarea { resize: vertical; }
 .seller2026-profile-field input:focus,
 .seller2026-profile-field textarea:focus,
-.seller2026-profile-field select:focus { border-color: #5aa8e8; box-shadow: 0 0 0 3px rgba(37, 99, 235, .08); }
+.seller2026-profile-field select:focus { border-color: #fe6f05; box-shadow: 0 0 0 3px rgba(254, 111, 5, 0.2); }
 .seller2026-profile-field input:disabled { background: var(--seller2026-surface-soft); color: var(--seller2026-muted); }
 .seller2026-profile__fields-two { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
 .seller2026-profile__shipping-grid { display: grid; gap: 10px 14px; grid-template-columns: repeat(4, 1fr); }
@@ -2750,5 +2750,72 @@ input:disabled + .seller2026-toggle-slider { opacity: 0.5; cursor: not-allowed; 
 .dark .seller2026-attributes .seller2026-pill-status.draft {
   background: rgba(245, 158, 11, 0.15);
   color: #fbbf24;
+}
+
+
+
+/* Dark Mode Overrides for Store Profile */
+.dark .seller2026-profile,
+.admin-theme-dark .seller2026-profile,
+[data-theme="dark"] .seller2026-profile {
+  --seller2026-profile-input-border: #334155;
+  --seller2026-profile-notice-bg: rgba(59, 130, 246, 0.1);
+  --seller2026-profile-notice-border: rgba(59, 130, 246, 0.2);
+  --seller2026-profile-success-bg: rgba(16, 185, 129, 0.1);
+  --seller2026-profile-success-border: rgba(16, 185, 129, 0.2);
+  --seller2026-profile-error-bg: rgba(239, 68, 68, 0.1);
+  --seller2026-profile-error-border: rgba(239, 68, 68, 0.2);
+}
+
+.dark .seller2026-profile-field input,
+.dark .seller2026-profile-field textarea,
+.dark .seller2026-profile-field select,
+[data-theme="dark"] .seller2026-profile-field input,
+[data-theme="dark"] .seller2026-profile-field textarea,
+[data-theme="dark"] .seller2026-profile-field select {
+  background: var(--seller2026-surface);
+  border-color: var(--seller2026-border);
+  color: var(--seller2026-text);
+}
+
+.dark .seller2026-profile-button,
+[data-theme="dark"] .seller2026-profile-button {
+  background: var(--seller2026-surface);
+  border-color: var(--seller2026-border);
+  color: var(--seller2026-text);
+}
+.dark .seller2026-profile-button--primary,
+[data-theme="dark"] .seller2026-profile-button--primary {
+  background: #034c85;
+  border-color: #034c85;
+  color: #fff !important;
+}
+
+.dark .seller2026-profile__notice,
+[data-theme="dark"] .seller2026-profile__notice,
+.dark .seller2026-profile__admin-note,
+[data-theme="dark"] .seller2026-profile__admin-note {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+}
+
+.dark .seller2026-profile__notice--success,
+[data-theme="dark"] .seller2026-profile__notice--success {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+}
+
+.dark .seller2026-profile__notice--error,
+[data-theme="dark"] .seller2026-profile__notice--error {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.dark .seller2026-profile__banner,
+[data-theme="dark"] .seller2026-profile__banner {
+  background: var(--seller2026-surface-soft);
 }
 
