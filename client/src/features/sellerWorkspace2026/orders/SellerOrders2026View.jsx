@@ -70,7 +70,7 @@ export default function SellerOrders2026View({
     return (
       <div className="tpsow2026-orders">
         <div className="tpsow2026-empty">
-          <AlertTriangle size={48} className="tpsow2026-empty-icon" style={{ color: '#ef4444', background: '#fef2f2' }} />
+          <AlertTriangle size={48} className="tpsow2026-empty-icon" style={{ color: 'var(--tpsow-danger-text)', background: 'var(--tpsow-danger-bg)' }} />
           <h2>Unable to load orders</h2>
           <p>{error?.message || "Failed to load orders from the server."}</p>
           <button type="button" className="tpsow2026-btn-outline" onClick={refetch}>
@@ -104,7 +104,7 @@ export default function SellerOrders2026View({
           <p>Manage, fulfill, and track seller orders.</p>
         </div>
         <div className="tpsow2026-orders-actions">
-          <button type="button" className="tpsow2026-btn-outline is-ready"><Check size={16} /> Store Ready</button>
+          <button type="button" className="tpsow2026-btn-accent"><Check size={16} /> Store Ready</button>
           <button type="button" className="tpsow2026-btn-outline" disabled><MoreVertical size={16} /> Actions <ChevronDown size={14}/></button>
           <button type="button" className="tpsow2026-btn-primary" onClick={exportOrders} disabled={isEmpty}><Download size={16} /> Export</button>
         </div>
@@ -137,7 +137,7 @@ export default function SellerOrders2026View({
 
       <section className="tpsow2026-filter-bar">
         <div className="tpsow2026-filter-search">
-          <Search size={16} color="#94a3b8" />
+          <Search size={16} color="var(--tpsow-text-muted)" />
           <input 
             type="text" 
             placeholder="Search order, buyer, invoice..." 
