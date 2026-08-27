@@ -583,14 +583,10 @@ export default function StoreSettingsPage() {
     "payments",
     "razorpay",
   ]);
-  const duitkuSandboxSecretConfigured = hasConfiguredSecret(diagnostics, [
-    "payments",
-    "duitku",
-  ]) && diagnostics?.payments?.duitku?.sandboxApiKeyConfigured;
-  const duitkuProductionSecretConfigured = hasConfiguredSecret(diagnostics, [
-    "payments",
-    "duitku",
-  ]) && diagnostics?.payments?.duitku?.productionApiKeyConfigured;
+  const duitkuSandboxSecretConfigured =
+    diagnostics?.payments?.duitku?.sandboxApiKeyConfigured === true;
+  const duitkuProductionSecretConfigured =
+    diagnostics?.payments?.duitku?.productionApiKeyConfigured === true;
   const googleSecretConfigured = hasConfiguredSecret(diagnostics, [
     "socialLogin",
     "google",

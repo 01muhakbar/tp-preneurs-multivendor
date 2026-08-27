@@ -817,6 +817,7 @@ export const buildStoreSettingsContracts = (rawSettings: unknown) => {
             productionMerchantCodeConfigured: Boolean(duitkuProductionMerchantCode),
             productionApiKeyConfigured: Boolean(duitkuProductionApiKey),
             productionApiKeyMask: maskSecret(duitkuProductionApiKey),
+            secretConfigured: Boolean(duitkuApiKey),
             status: duitkuStatus,
           },
         },
