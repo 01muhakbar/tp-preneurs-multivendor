@@ -2310,7 +2310,12 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
     if (isDuitkuRequested) {
       duitkuPaymentMethod = requireSupportedDuitkuPaymentMethodCode(parsed.data.duitkuPaymentMethod);
       const dbSettings = await getPersistedStoreSettings();
-      duitkuConfig = resolveDuitkuConfig(process.env, dbSettings);
+      const reqOrigin = req.get("host") ? `${req.protocol}://${req.get("host")}` : "";
+      const syntheticEnv = {
+        ...process.env,
+        PUBLIC_BASE_URL: process.env.PUBLIC_BASE_URL || reqOrigin,
+      };
+      duitkuConfig = resolveDuitkuConfig(syntheticEnv, dbSettings);
       if (!duitkuConfig.enabled) {
         return res.status(400).json({
           success: false,

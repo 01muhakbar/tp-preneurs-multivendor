@@ -114,9 +114,9 @@ const normalizeStoreSettings = (raw) => {
       DEFAULT_FORM.stripeEnabled
     ),
     stripeKey: text(source.stripeKey ?? payments.stripeKey ?? stripe.key),
-    stripeSecret: text(source.stripeSecret ?? payments.stripeSecret ?? stripe.secret),
+    stripeSecret: text(source.stripeSecret || payments.stripeSecret || stripe.secret),
     stripeWebhookSecret: text(
-      source.stripeWebhookSecret ?? payments.stripeWebhookSecret ?? stripe.webhookSecret
+      source.stripeWebhookSecret || payments.stripeWebhookSecret || stripe.webhookSecret
     ),
     razorpayEnabled: bool(
       source.razorpay ?? source.razorpayEnabled ?? payments.razorPayEnabled ?? razorpay.enabled,
@@ -126,7 +126,7 @@ const normalizeStoreSettings = (raw) => {
       source.razorpayKeyId ?? payments.razorPayKeyId ?? razorpay.keyId
     ),
     razorpayKeySecret: text(
-      source.razorpayKeySecret ?? payments.razorPayKeySecret ?? razorpay.keySecret
+      source.razorpayKeySecret || payments.razorPayKeySecret || razorpay.keySecret
     ),
     duitkuEnabled: bool(
       source.duitkuEnabled ?? payments.duitkuEnabled ?? duitku.enabled,
@@ -140,20 +140,20 @@ const normalizeStoreSettings = (raw) => {
       source.duitkuSandboxMerchantCode ?? payments.duitkuSandboxMerchantCode ?? duitku.sandboxMerchantCode
     ),
     duitkuSandboxApiKey: text(
-      source.duitkuSandboxApiKey ?? payments.duitkuSandboxApiKey ?? duitku.sandboxApiKey
+      source.duitkuSandboxApiKey || payments.duitkuSandboxApiKey || duitku.sandboxApiKey
     ),
     duitkuProductionMerchantCode: text(
       source.duitkuProductionMerchantCode ?? payments.duitkuProductionMerchantCode ?? duitku.productionMerchantCode
     ),
     duitkuProductionApiKey: text(
-      source.duitkuProductionApiKey ?? payments.duitkuProductionApiKey ?? duitku.productionApiKey
+      source.duitkuProductionApiKey || payments.duitkuProductionApiKey || duitku.productionApiKey
     ),
     googleLogin: bool(
       source.googleLogin ?? social.googleEnabled ?? google.enabled,
       DEFAULT_FORM.googleLogin
     ),
     googleClientId: text(source.googleClientId ?? social.googleClientId ?? google.clientId),
-    googleSecretKey: text(source.googleSecretKey ?? social.googleSecretKey ?? google.secret),
+    googleSecretKey: text(source.googleSecretKey || social.googleSecretKey || google.secret),
     githubLogin: bool(
       source.githubLogin ?? social.githubEnabled ?? github.enabled,
       DEFAULT_FORM.githubLogin
@@ -161,7 +161,7 @@ const normalizeStoreSettings = (raw) => {
     githubClientId: text(
       source.githubClientId ?? source.githubId ?? social.githubClientId ?? social.githubId ?? github.clientId
     ),
-    githubSecret: text(source.githubSecret ?? social.githubSecret ?? github.secret),
+    githubSecret: text(source.githubSecret || social.githubSecret || github.secret),
     facebookLogin: bool(
       source.facebookLogin ?? social.facebookEnabled ?? facebook.enabled,
       DEFAULT_FORM.facebookLogin
@@ -170,7 +170,7 @@ const normalizeStoreSettings = (raw) => {
       source.facebookAppId ?? source.facebookId ?? social.facebookAppId ?? social.facebookId ?? facebook.appId
     ),
     facebookSecret: text(
-      source.facebookAppSecret ?? source.facebookSecret ?? social.facebookAppSecret ?? social.facebookSecret ?? facebook.secret
+      source.facebookAppSecret || source.facebookSecret || social.facebookAppSecret || social.facebookSecret || facebook.secret
     ),
     googleAnalytics: bool(
       source.googleAnalytics ?? analytics.googleAnalyticsEnabled ?? analyticsGoogle.enabled,
