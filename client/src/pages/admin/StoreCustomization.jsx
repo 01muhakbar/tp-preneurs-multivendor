@@ -6615,8 +6615,7 @@ export default function StoreCustomizationPage() {
                         <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                           Member {activeAboutUsMemberIndex + 1} Description
                         </span>
-                        <input
-                          type="text"
+                        <textarea
                           value={activeAboutUsMember.subTitle || ""}
                           onChange={(event) =>
                             onChangeAboutUsMemberField(
@@ -6625,7 +6624,7 @@ export default function StoreCustomizationPage() {
                               event.target.value
                             )
                           }
-                          className={`${inputBase} mt-2`}
+                          className={textAreaBase}
                         />
                       </label>
                     </div>
