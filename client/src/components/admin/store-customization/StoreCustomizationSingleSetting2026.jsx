@@ -548,19 +548,48 @@ export default function StoreCustomizationSingleSetting2026({
   const draft = useMemo(() => normalizeValue(value), [value]);
   const items = draft.rightBox.items;
   const visibleItems = items.filter((item) => item.visible);
-  const hasContent = items.every((item) => toText(item.title) && toText(item.message));
+  const hasContent =
+    visibleItems.length > 0 &&
+    visibleItems.every((item) => toText(item.title) && toText(item.message));
   const enabled = Boolean(draft.rightBox.enabled);
+  const noEmptyFields = items.every((item) => toText(item.title) && toText(item.message));
+  const published =
+    draft.status === "published" ||
+    draft.publishStatus === "published" ||
+    draft.rightBox?.status === "published" ||
+    draft.rightBox?.publishStatus === "published";
   const readyChecks = [
     enabled,
     visibleItems.length >= 5,
     hasContent,
-    items.every((item) => toText(item.title) && toText(item.message)),
-    false,
+    noEmptyFields,
   ];
   const completion = Math.round((readyChecks.filter(Boolean).length / readyChecks.length) * 100);
-  const status = enabled && visibleItems.length >= 5 && hasContent ? "Ready" : "Draft";
+  const status = enabled && visibleItems.length >= 5 && hasContent
+    ? published
+      ? "Published"
+      : "Ready"
+    : "Draft";
+  const statusDotClass =
+    status === "Published" || status === "Ready" ? "bg-emerald-500" : "bg-amber-400";
+  const statusHint =
+    status === "Published"
+      ? "Published to storefront"
+      : status === "Ready"
+        ? "Ready to publish"
+        : "Draft changes";
 
-  const emit = (nextDraft) => onChange?.(nextDraft);
+  const emit = (nextDraft) =>
+    onChange?.({
+      ...nextDraft,
+      status: "draft",
+      publishStatus: "draft",
+      rightBox: {
+        ...nextDraft.rightBox,
+        status: "draft",
+        publishStatus: "draft",
+      },
+    });
 
   const updateRightBox = (patch) => {
     emit({
@@ -689,9 +718,7 @@ export default function StoreCustomizationSingleSetting2026({
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">Status:</span>
             <span className="inline-flex h-9 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
-              <span
-                className={`h-2 w-2 rounded-full ${status === "Ready" ? "bg-emerald-500" : "bg-amber-400"}`}
-              />
+              <span className={`h-2 w-2 rounded-full ${statusDotClass}`} />
               {status}
             </span>
             <ActionButton onClick={onPreview}>
@@ -721,15 +748,15 @@ export default function StoreCustomizationSingleSetting2026({
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex h-9 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
-                <span className="h-2 w-2 rounded-full bg-amber-400" />
-                Draft
+                <span className={`h-2 w-2 rounded-full ${statusDotClass}`} />
+                {status}
               </span>
               <span className="inline-flex h-9 items-center rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
                 {items.length} items
               </span>
               <span className="inline-flex h-9 items-center gap-2 rounded-2xl px-2 text-sm font-semibold text-slate-500 dark:text-slate-400">
                 <Check className="h-4 w-4 text-emerald-600" />
-                Auto-saved just now
+                {statusHint}
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -817,8 +844,7 @@ export default function StoreCustomizationSingleSetting2026({
                 ["Right Box Enabled", enabled],
                 ["At least 5 benefit items", visibleItems.length >= 5],
                 ["All items have content", hasContent],
-                ["No empty fields", items.every((item) => toText(item.title) && toText(item.message))],
-                ["Publish to go live", false],
+                ["No empty fields", noEmptyFields],
               ].map(([label, checked]) => (
                 <li key={label} className="flex items-center gap-3 text-sm font-medium text-slate-600 dark:text-slate-300">
                   <span

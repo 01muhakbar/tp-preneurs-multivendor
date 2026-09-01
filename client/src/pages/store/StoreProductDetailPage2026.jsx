@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   BadgeCheck,
@@ -6,11 +7,13 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Clock,
   Copy,
   Facebook,
   Heart,
   Home,
   Instagram,
+  Leaf,
   Loader2,
   MapPin,
   MessageCircle,
@@ -26,11 +29,14 @@ import {
   Store,
   Truck,
   Twitter,
+  RotateCcw,
+  Wallet,
   X,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { getStoreCustomization } from "../../api/public/storeCustomizationPublic.ts";
 import ProductSellerInfoCard from "../../components/store/ProductSellerInfoCard.jsx";
 import { useCart } from "../../hooks/useCart.ts";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
@@ -162,6 +168,119 @@ export const getProductDescription = (product) =>
     product?.details,
     "Sweet and fresh product selected by trusted sellers for daily needs."
   );
+
+const PRODUCT_RIGHT_BOX_DESCRIPTION_KEYS = [
+  "descriptionOne",
+  "descriptionTwo",
+  "descriptionThree",
+  "descriptionFour",
+  "descriptionFive",
+  "descriptionSix",
+  "descriptionSeven",
+];
+
+const DEFAULT_RIGHT_BOX_ITEMS = [
+  { id: "free-shipping", title: "Free Shipping", icon: "truck", tone: "positive" },
+  { id: "one-hour-delivery", title: "1-Hour Delivery", icon: "clock", tone: "positive" },
+  { id: "cash-on-delivery", title: "Cash on Delivery", icon: "wallet", tone: "neutral" },
+  { id: "seven-day-returns", title: "7-Day Returns", icon: "returns", tone: "neutral" },
+  { id: "warranty-info", title: "Warranty Info", icon: "shield", tone: "neutral" },
+  { id: "organic", title: "100% Organic", icon: "leaf", tone: "positive" },
+  { id: "pickup-point", title: "Pickup Point Delivery", icon: "pin", tone: "neutral" },
+];
+
+const RIGHT_BOX_ICON_MAP = {
+  truck: Truck,
+  clock: Clock,
+  wallet: Wallet,
+  returns: RotateCcw,
+  shield: ShieldCheck,
+  leaf: Leaf,
+  pin: MapPin,
+  sparkles: Sparkles,
+};
+
+const getDefaultRightBoxItems = (product, t) => {
+  const fallbackMessages = [
+    t("productDetail.freeShipping"),
+    t("productDetail.homeDelivery"),
+    t("productDetail.cod"),
+    t("productDetail.moneyBack"),
+    t("productDetail.noWarranty"),
+    t("productDetail.organicDesc", { category: getCategoryName(product).toLowerCase() }),
+    t("productDetail.pickupAddress"),
+  ];
+
+  return DEFAULT_RIGHT_BOX_ITEMS.map((item, index) => ({
+    ...item,
+    message: fallbackMessages[index] || item.title,
+    visible: true,
+  }));
+};
+
+const getRightBoxLegacyDescriptions = (source, fallbackItems) =>
+  fallbackItems.map((item, index) =>
+    text(
+      Array.isArray(source?.descriptions) ? source.descriptions[index] : "",
+      source?.[PRODUCT_RIGHT_BOX_DESCRIPTION_KEYS[index]],
+      item.message
+    )
+  );
+
+const isRecord = (value) =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+const normalizeProductRightBox = (rightBox, product, t) => {
+  const fallbackItems = getDefaultRightBoxItems(product, t);
+  const sourceRoot = isRecord(rightBox) ? rightBox : {};
+  const nestedSource = isRecord(sourceRoot.rightBox)
+    ? sourceRoot.rightBox
+    : isRecord(sourceRoot.right_box)
+      ? sourceRoot.right_box
+      : {};
+  const source = { ...nestedSource, ...sourceRoot };
+  const enabled =
+    typeof source.enabled === "boolean"
+      ? source.enabled
+      : typeof source.isEnabled === "boolean"
+        ? source.isEnabled
+        : true;
+  const sourceItems = Array.isArray(source.items)
+    ? source.items
+    : Array.isArray(source.benefitItems)
+      ? source.benefitItems
+      : [];
+  const legacyDescriptions = getRightBoxLegacyDescriptions(source, fallbackItems);
+  const items = (sourceItems.length ? sourceItems : fallbackItems)
+    .map((item, index) => {
+      const objectItem = item && typeof item === "object" && !Array.isArray(item) ? item : {};
+      const fallback = fallbackItems[index] || fallbackItems[fallbackItems.length - 1];
+      return {
+        ...fallback,
+        ...objectItem,
+        id: text(objectItem.id, `${fallback.id}-${index}`),
+        title: text(objectItem.title, objectItem.label, fallback.title),
+        message: text(
+          objectItem.message,
+          objectItem.description,
+          objectItem.text,
+          legacyDescriptions[index],
+          fallback.message
+        ),
+        icon: text(objectItem.icon, fallback.icon),
+        tone: text(objectItem.tone, fallback.tone),
+        visible:
+          typeof objectItem.visible === "boolean"
+            ? objectItem.visible
+            : typeof objectItem.enabled === "boolean"
+              ? objectItem.enabled
+              : true,
+      };
+    })
+    .filter((item) => item.visible && text(item.title, item.message));
+
+  return { enabled, items };
+};
 
 export const getReviews = (product) => {
   const raw = normalizeArray(product?.reviews, ["items", "reviews"]);
@@ -901,27 +1020,28 @@ function ReviewsAndDetails({ product, t }) {
   );
 }
 
-function Highlights({ product, t }) {
-  const items = [
-    t("productDetail.freeShipping"),
-    t("productDetail.homeDelivery"),
-    t("productDetail.cod"),
-    t("productDetail.moneyBack"),
-    t("productDetail.noWarranty"),
-    t("productDetail.organicDesc", { category: getCategoryName(product).toLowerCase() }),
-    t("productDetail.pickupAddress"),
-  ];
-  const icons = [Truck, Home, Package, ShieldCheck, BadgeCheck, Sparkles, MapPin];
+function Highlights({ rightBox, t }) {
+  if (!rightBox?.enabled || rightBox.items.length === 0) return null;
+
   return (
     <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-slate-900 dark:shadow-none">
       <h2 className="text-2xl font-black text-[var(--tp-primary)] dark:text-white">{t("productDetail.highlights")}</h2>
       <ul className="mt-4 divide-y divide-slate-200 text-sm text-slate-600 dark:divide-white/10 dark:text-slate-300">
-        {items.map((item, index) => {
-          const Icon = icons[index] || Sparkles;
+        {rightBox.items.map((item, index) => {
+          const Icon = RIGHT_BOX_ICON_MAP[item.icon] || Sparkles;
           return (
-            <li key={item} className="flex gap-3 py-2.5">
-              <Icon className="mt-0.5 h-4 w-4 shrink-0 text-[var(--tp-primary)] dark:text-sky-300" />
-              <span>{item}</span>
+            <li key={item.id || `${item.title}-${index}`} className="flex gap-3 py-3">
+              <Icon className="mt-1 h-4 w-4 shrink-0 text-[var(--tp-primary)] dark:text-sky-300" />
+              <span className="min-w-0">
+                <strong className="block text-sm font-black text-slate-800 dark:text-slate-100">
+                  {item.title}
+                </strong>
+                {item.message ? (
+                  <span className="mt-0.5 block break-words text-sm leading-6 text-slate-500 dark:text-slate-300">
+                    {item.message}
+                  </span>
+                ) : null}
+              </span>
             </li>
           );
         })}
@@ -1175,17 +1295,38 @@ export default function StoreProductDetailPage2026() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const cart = useCart();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isIndo =
+    i18n.language === "id" ||
+    i18n.language === "id-ID" ||
+    i18n.language?.startsWith("id") ||
+    (typeof window !== "undefined" && localStorage.getItem("store_language") === "Indonesia");
+  const currentLang = isIndo ? "id" : "en";
   const productQuery = useProduct(slug);
   const product = normalizePayload(productQuery.data);
   const [quantity, setQuantity] = useState(1);
   const [selectedOptions, setSelectedOptions] = useState({});
   const [isAdding, setIsAdding] = useState(false);
+  const productSlugCustomizationQuery = useQuery({
+    queryKey: ["store-customization", "product-slug-page", currentLang],
+    queryFn: () => getStoreCustomization({ lang: currentLang, include: "productSlugPage" }),
+    staleTime: 60_000,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
+  const productSlugPageConfig =
+    productSlugCustomizationQuery.data?.customization?.productSlugPage ||
+    productSlugCustomizationQuery.data?.data?.customization?.productSlugPage ||
+    {};
 
   const variationGroups = useMemo(() => normalizeVariationGroups(product), [product]);
   const selectedVariant = useMemo(
     () => resolveSelectedVariant(product, selectedOptions),
     [product, selectedOptions]
+  );
+  const rightBox = useMemo(
+    () => normalizeProductRightBox(productSlugPageConfig?.rightBox, product, t),
+    [productSlugPageConfig?.rightBox, product, t]
   );
 
   useEffect(() => {
@@ -1325,7 +1466,7 @@ export default function StoreProductDetailPage2026() {
       <section className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)] lg:items-start">
         <ReviewsAndDetails product={product} t={t} />
         <div className="space-y-6">
-          <Highlights product={product} t={t} />
+          <Highlights rightBox={rightBox} t={t} />
           <ShareCard product={product} t={t} />
         </div>
       </section>

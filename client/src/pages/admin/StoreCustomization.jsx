@@ -3925,11 +3925,24 @@ export default function StoreCustomizationPage() {
     if (shouldPublish) {
       nextPayload.status = "published";
       nextPayload.publishStatus = "published";
-      nextPayload.home = {
-        ...nextPayload.home,
-        status: "published",
-        publishStatus: "published",
-      };
+      if (activeTab === "productSlugPage") {
+        nextPayload.productSlugPage = {
+          ...nextPayload.productSlugPage,
+          status: "published",
+          publishStatus: "published",
+          rightBox: {
+            ...nextPayload.productSlugPage?.rightBox,
+            status: "published",
+            publishStatus: "published",
+          },
+        };
+      } else {
+        nextPayload.home = {
+          ...nextPayload.home,
+          status: "published",
+          publishStatus: "published",
+        };
+      }
     }
 
     updateMutation.mutate({
