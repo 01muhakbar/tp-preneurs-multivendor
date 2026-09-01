@@ -6793,16 +6793,16 @@ export default function StoreCustomizationPage() {
         <div className="flex flex-col gap-5">
           <section className={sectionCard}>
             <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                 <Settings className="h-4 w-4" />
               </span>
-              <h2 className="text-base font-semibold text-slate-900">FAQs Page Header</h2>
+              <h2 className="text-base font-semibold text-slate-900 dark:text-white">FAQs Page Header</h2>
             </div>
-            <div className="mt-4 h-px w-full bg-slate-200" />
+            <div className="mt-4 h-px w-full bg-slate-200 dark:bg-slate-700/50" />
 
             <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[320px_1fr]">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3 dark:border-slate-800 dark:bg-slate-900/60">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">
                   Enable This Block
                 </p>
                 <SegmentedToggle
@@ -6833,7 +6833,7 @@ export default function StoreCustomizationPage() {
                 previewAlt="FAQs page header background"
               />
               <label className="block xl:col-span-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   Page Title
                 </span>
                 <input
@@ -6850,16 +6850,16 @@ export default function StoreCustomizationPage() {
 
           <section className={sectionCard}>
             <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                 <Settings className="h-4 w-4" />
               </span>
-              <h2 className="text-base font-semibold text-slate-900">FAQs Left Column</h2>
+              <h2 className="text-base font-semibold text-slate-900 dark:text-white">FAQs Left Column</h2>
             </div>
-            <div className="mt-4 h-px w-full bg-slate-200" />
+            <div className="mt-4 h-px w-full bg-slate-200 dark:bg-slate-700/50" />
 
             <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[320px_1fr]">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3 dark:border-slate-800 dark:bg-slate-900/60">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">
                   Enable This Block
                 </p>
                 <SegmentedToggle
@@ -6890,16 +6890,16 @@ export default function StoreCustomizationPage() {
 
           <section className={sectionCard}>
             <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                 <Settings className="h-4 w-4" />
               </span>
-              <h2 className="text-base font-semibold text-slate-900">FAQs</h2>
+              <h2 className="text-base font-semibold text-slate-900 dark:text-white">FAQs</h2>
             </div>
-            <div className="mt-4 h-px w-full bg-slate-200" />
+            <div className="mt-4 h-px w-full bg-slate-200 dark:bg-slate-700/50" />
 
             <div className="mt-4 grid grid-cols-1 gap-4">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3 dark:border-slate-800 dark:bg-slate-900/60">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">
                   Enable This Block
                 </p>
                 <SegmentedToggle
@@ -6911,10 +6911,10 @@ export default function StoreCustomizationPage() {
               {faqs.content.items.map((item, index) => (
                 <div
                   key={`faqs-item-${index}`}
-                  className="rounded-xl border border-slate-200 bg-slate-50/60 p-4"
+                  className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-800 dark:bg-slate-900/60"
                 >
                   <label className="block">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                       Faq Title {FAQ_ITEM_ORDINALS[index] || index + 1}
                     </span>
                     <input
@@ -6927,7 +6927,7 @@ export default function StoreCustomizationPage() {
                     />
                   </label>
                   <label className="mt-4 block">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                       Faq Description {FAQ_ITEM_ORDINALS[index] || index + 1}
                     </span>
                     <textarea
