@@ -4,6 +4,7 @@ export type StoreCategory = {
   slug: string;
   code?: string;
   image?: string | null;
+  productCount?: number;
   parentId?: number | null;
   parent_id?: number | null;
   published?: boolean;

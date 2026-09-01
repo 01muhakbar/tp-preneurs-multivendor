@@ -1117,14 +1117,27 @@ router.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const parentsOnly = parseBool(req.query.parentsOnly);
+      const sortParam = String(req.query.sort || "newest").trim().toLowerCase();
       const where: Record<string, any> = { published: true };
       if (parentsOnly === true) {
         where.parent_id = { [Op.is]: null };
       }
+      const productCountExpr = sequelize.literal(
+        "(SELECT COUNT(*) FROM products p WHERE p.category_id = Category.id AND p.status = 'active' AND p.published = true AND p.seller_submission_status = 'none' AND p.store_id IS NOT NULL)"
+      );
+      const categoryOrder =
+        sortParam === "popular" || sortParam === "most_popular"
+          ? ([[productCountExpr, "DESC"], ["createdAt", "DESC"]] as any)
+          : sortParam === "name" || sortParam === "alphabetical"
+            ? ([["name", "ASC"], ["createdAt", "DESC"]] as any)
+            : ([["createdAt", "DESC"]] as any);
 
       const categories = await Category.findAll({
         where,
-        order: [["createdAt", "DESC"]],
+        attributes: {
+          include: [[productCountExpr, "productCount"]],
+        },
+        order: categoryOrder,
       });
 
       const normalized = categories
@@ -1161,6 +1174,7 @@ router.get(
             code: safeCode || slug,
             image: imageRaw ? String(imageRaw).trim() : null,
             icon: imageRaw ? String(imageRaw).trim() : null,
+            productCount: Number(getAttr(category, "productCount") ?? 0),
             parentId,
             parent_id: parentId,
             published: Boolean(publishedRaw),

@@ -141,23 +141,40 @@ const DEFAULT_CUSTOMIZATION = {
     promotionBanner: {
       enabled: true,
       title: "100% Natural Quality Organic Product",
+      subtitle: "",
       description:
         "See Our latest discounted products from here and get a special discount product",
       buttonName: "Buy Now",
       buttonLink: "/search?category=breakfast",
+      imageDataUrl: "",
+      displayOn: "Desktop & Mobile",
+      status: "needsReview",
     },
     featuredCategories: {
       enabled: true,
       title: "Featured Categories",
+      subtitle: "",
       description: "Choose your necessary products from this feature categories.",
+      source: "Manually Selected",
       productsLimit: 12,
+      buttonName: "View all categories",
+      buttonLink: "/shop",
+      displayStyle: "Grid",
+      status: "ready",
     },
     popularProducts: {
       enabled: true,
       title: "Popular Products for Daily Shopping",
+      subtitle: "",
       description:
         "See all our popular products in this week. You can choose your daily needs products from this list and get some special offer with free shipping.",
+      source: "Best Selling",
       productsLimit: 18,
+      filterBy: "All Categories",
+      sortBy: "Best Selling",
+      buttonName: "View all",
+      buttonLink: "/shop",
+      status: "ready",
     },
     quickDelivery: {
       enabled: true,
@@ -947,6 +964,10 @@ const normalizeHome = (root: Record<string, any>) => {
         defaults.promotionBanner.enabled
       ),
       title: toText(promotionBannerSource.title, defaults.promotionBanner.title),
+      subtitle: toText(
+        promotionBannerSource.subtitle,
+        defaults.promotionBanner.subtitle
+      ),
       description: toText(
         promotionBannerSource.description,
         defaults.promotionBanner.description
@@ -959,6 +980,12 @@ const normalizeHome = (root: Record<string, any>) => {
         promotionBannerSource.buttonLink,
         defaults.promotionBanner.buttonLink
       ),
+      imageDataUrl: toText(promotionBannerSource.imageDataUrl, ""),
+      displayOn: toText(
+        promotionBannerSource.displayOn,
+        defaults.promotionBanner.displayOn
+      ),
+      status: toText(promotionBannerSource.status, defaults.promotionBanner.status),
     },
     featuredCategories: {
       ...defaults.featuredCategories,
@@ -967,27 +994,67 @@ const normalizeHome = (root: Record<string, any>) => {
         defaults.featuredCategories.enabled
       ),
       title: toText(featuredCategoriesSource.title, defaults.featuredCategories.title),
+      subtitle: toText(
+        featuredCategoriesSource.subtitle,
+        defaults.featuredCategories.subtitle
+      ),
       description: toText(
         featuredCategoriesSource.description,
         defaults.featuredCategories.description
       ),
+      source: toText(
+        featuredCategoriesSource.source,
+        defaults.featuredCategories.source
+      ),
       productsLimit: toPositiveInt(
         featuredCategoriesSource.productsLimit,
         defaults.featuredCategories.productsLimit
+      ),
+      buttonName: toText(
+        featuredCategoriesSource.buttonName,
+        defaults.featuredCategories.buttonName
+      ),
+      buttonLink: toText(
+        featuredCategoriesSource.buttonLink,
+        defaults.featuredCategories.buttonLink
+      ),
+      displayStyle: toText(
+        featuredCategoriesSource.displayStyle,
+        defaults.featuredCategories.displayStyle
+      ),
+      status: toText(
+        featuredCategoriesSource.status,
+        defaults.featuredCategories.status
       ),
     },
     popularProducts: {
       ...defaults.popularProducts,
       enabled: toBool(popularProductsSource.enabled, defaults.popularProducts.enabled),
       title: toText(popularProductsSource.title, defaults.popularProducts.title),
+      subtitle: toText(
+        popularProductsSource.subtitle,
+        defaults.popularProducts.subtitle
+      ),
       description: toText(
         popularProductsSource.description,
         defaults.popularProducts.description
       ),
+      source: toText(popularProductsSource.source, defaults.popularProducts.source),
       productsLimit: toPositiveInt(
         popularProductsSource.productsLimit,
         defaults.popularProducts.productsLimit
       ),
+      filterBy: toText(popularProductsSource.filterBy, defaults.popularProducts.filterBy),
+      sortBy: toText(popularProductsSource.sortBy, defaults.popularProducts.sortBy),
+      buttonName: toText(
+        popularProductsSource.buttonName,
+        defaults.popularProducts.buttonName
+      ),
+      buttonLink: toText(
+        popularProductsSource.buttonLink,
+        defaults.popularProducts.buttonLink
+      ),
+      status: toText(popularProductsSource.status, defaults.popularProducts.status),
     },
     quickDelivery: {
       ...defaults.quickDelivery,

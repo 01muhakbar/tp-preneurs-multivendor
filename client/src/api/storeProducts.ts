@@ -15,13 +15,11 @@ export type {
   StorefrontProductSellerInfo,
 } from "./store.types.ts";
 
-export const fetchStoreCategories = async (params?: { parentsOnly?: boolean }) => {
-  const query =
-    params?.parentsOnly === true
-      ? {
-          parentsOnly: true,
-        }
-      : undefined;
+export const fetchStoreCategories = async (params?: { parentsOnly?: boolean; sort?: string }) => {
+  const query = {
+    parentsOnly: params?.parentsOnly === true ? true : undefined,
+    sort: params?.sort || undefined,
+  };
   const { data } = await api.get<{ data: StoreCategory[] }>("/store/categories", {
     params: query,
   });

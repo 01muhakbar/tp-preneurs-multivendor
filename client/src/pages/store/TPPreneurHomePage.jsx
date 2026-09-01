@@ -24,6 +24,7 @@ import { useCart } from "../../hooks/useCart.ts";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
 import VariantQuickAddModal from "../../components/store/VariantQuickAddModal.jsx";
 import DiscoverDigitalProductsHero from "../../components/store/DiscoverDigitalProductsHero.jsx";
+import PromoDeliveryBanner from "../../components/kachabazar-demo/PromoDeliveryBanner.jsx";
 import { getStoreCustomization } from "../../api/public/storeCustomizationPublic.ts";
 import { fetchStoreCoupons } from "../../api/public/storeCoupons.ts";
 import { useCategories, useProducts } from "../../storefront.jsx";
@@ -178,6 +179,28 @@ const normalizeLink = (value, fallback = "/shop") => {
   if (/^https?:\/\//i.test(normalized)) return normalized;
   return fallback;
 };
+
+const normalizePopularProductsSort = (source, sortBy) => {
+  const normalizedSort = toText(sortBy).toLowerCase();
+  if (normalizedSort.includes("newest")) return "newest";
+  if (normalizedSort.includes("highest")) return "highest_rated";
+  if (normalizedSort.includes("price") && normalizedSort.includes("low")) return "price_asc";
+  if (normalizedSort.includes("price") && normalizedSort.includes("high")) return "price_desc";
+
+  const normalizedSource = toText(source).toLowerCase();
+  if (normalizedSource.includes("newest")) return "newest";
+  return "featured";
+};
+
+const normalizeFeaturedCategoriesSort = (source) => {
+  const normalizedSource = toText(source).toLowerCase();
+  if (normalizedSource.includes("popular")) return "popular";
+  if (normalizedSource.includes("alphabet") || normalizedSource.includes("name")) return "name";
+  return "newest";
+};
+
+const isDiscountedPopularFilter = (value) =>
+  toText(value).toLowerCase().includes("discount");
 
 const isExternalLink = (value) => /^https?:\/\//i.test(toText(value));
 
@@ -1160,13 +1183,7 @@ export default function TPPreneurHomePage() {
   const currentLang = isIndo ? "id" : "en";
   const [copiedCode, setCopiedCode] = useState("");
   const [popularCategory, setPopularCategory] = useState("all");
-  const [popularSort, setPopularSort] = useState("featured");
-  const {
-    data: categoriesData,
-    isLoading: categoriesLoading,
-    error: categoriesError,
-    refetch: refetchCategories,
-  } = useCategories({ parentsOnly: true });
+  const [popularSort, setPopularSort] = useState("");
   const { data: homeCustomizationData } = useQuery({
     queryKey: ["store-customization", "home-page", currentLang],
     queryFn: () => getStoreCustomization({ lang: currentLang, include: "home" }),
@@ -1191,10 +1208,19 @@ export default function TPPreneurHomePage() {
       limit: toLimit(source.productsLimit, 8, 12),
       buttonName: toText(source.buttonName, "View all categories"),
       buttonLink: normalizeLink(source.buttonLink, "/shop"),
+      sort: normalizeFeaturedCategoriesSort(source.source),
     };
   }, [homeConfig]);
+  const {
+    data: categoriesData,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+    refetch: refetchCategories,
+  } = useCategories({ parentsOnly: true, sort: featuredCategoriesConfig.sort });
   const popularProductsConfig = useMemo(() => {
     const source = homeConfig?.popularProducts || {};
+    const filterBy = toText(source.filterBy, "All Categories");
+    const sort = normalizePopularProductsSort(source.source, source.sortBy);
     return {
       enabled: toBool(source.enabled, true),
       title: toText(source.title, "Popular Products").replace(" for Daily Shopping", ""),
@@ -1205,8 +1231,11 @@ export default function TPPreneurHomePage() {
       limit: toLimit(source.productsLimit, 10, 20),
       buttonName: toText(source.buttonName, "View all"),
       buttonLink: normalizeLink(source.buttonLink, "/shop"),
+      sort,
+      discounted: isDiscountedPopularFilter(filterBy),
     };
   }, [homeConfig]);
+  const effectivePopularSort = popularSort || popularProductsConfig.sort;
   const {
     data: popularData,
     isLoading: popularLoading,
@@ -1217,7 +1246,8 @@ export default function TPPreneurHomePage() {
     page: 1,
     limit: popularProductsConfig.limit,
     category: popularCategory === "all" ? undefined : popularCategory,
-    sort: popularSort,
+    sort: effectivePopularSort,
+    discounted: popularProductsConfig.discounted,
   });
   const { data: discountedData, isLoading: discountedLoading } = useProducts({
     page: 1,
@@ -1241,6 +1271,25 @@ export default function TPPreneurHomePage() {
     () => normalizeDiscountCouponBox(homeConfig),
     [homeConfig]
   );
+  const promotionBannerConfig = useMemo(() => {
+    const source =
+      homeConfig?.promotionBanner && typeof homeConfig.promotionBanner === "object"
+        ? homeConfig.promotionBanner
+        : {};
+    return {
+      enabled: toBool(source.enabled, false),
+      title: toText(source.title, "Big Deals. Bigger Savings."),
+      subTitle: toText(source.subtitle),
+      description: toText(
+        source.description,
+        "Shop handpicked products at special prices. Offer valid for a limited time only."
+      ),
+      buttonName: toText(source.buttonName, "Shop Now"),
+      buttonLink: normalizeLink(source.buttonLink, "/shop"),
+      imageDataUrl: toText(source.imageDataUrl),
+      displayOn: toText(source.displayOn, "Desktop & Mobile"),
+    };
+  }, [homeConfig]);
 
   const categories = useMemo(() => {
     const source = extractList(categoriesData);
@@ -1279,10 +1328,11 @@ export default function TPPreneurHomePage() {
     if (configuredLink !== "/shop") return configuredLink;
     const params = new URLSearchParams();
     if (popularCategory !== "all") params.set("category", popularCategory);
-    if (popularSort !== "featured") params.set("sort", popularSort);
+    if (effectivePopularSort !== "featured") params.set("sort", effectivePopularSort);
+    if (popularProductsConfig.discounted) params.set("discounted", "true");
     const query = params.toString();
     return query ? `/shop?${query}` : "/shop";
-  }, [popularCategory, popularProductsConfig.buttonLink, popularSort]);
+  }, [effectivePopularSort, popularCategory, popularProductsConfig.buttonLink, popularProductsConfig.discounted]);
 
   const discountedProducts = useMemo(() => {
     const source = extractList(discountedData);
@@ -1342,6 +1392,27 @@ export default function TPPreneurHomePage() {
       />
       <BenefitStrip isIndo={isIndo} />
 
+      {promotionBannerConfig.enabled ? (
+        <div
+          className={
+            promotionBannerConfig.displayOn === "Desktop Only"
+              ? "hidden lg:block"
+              : promotionBannerConfig.displayOn === "Mobile Only"
+                ? "lg:hidden"
+                : ""
+          }
+        >
+          <PromoDeliveryBanner
+            subTitle={promotionBannerConfig.subTitle}
+            title={promotionBannerConfig.title}
+            description={promotionBannerConfig.description}
+            buttonName={promotionBannerConfig.buttonName}
+            buttonLink={promotionBannerConfig.buttonLink}
+            imageDataUrl={promotionBannerConfig.imageDataUrl}
+          />
+        </div>
+      ) : null}
+
       {featuredCategoriesConfig.enabled ? (
         <section className="space-y-6">
           <SectionHeading
@@ -1397,12 +1468,17 @@ export default function TPPreneurHomePage() {
                 {displayPopularTitle}
                 <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--tp-accent)]" />
               </h2>
+              {popularProductsConfig.description ? (
+                <p className="mt-3 max-w-xl text-sm font-medium leading-6 text-[#557099] dark:text-slate-300">
+                  {popularProductsConfig.description}
+                </p>
+              ) : null}
             </div>
             <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:flex-nowrap">
               <label className="relative">
                 <span className="sr-only">Sort popular products</span>
                 <select
-                  value={popularSort}
+                  value={effectivePopularSort}
                   onChange={(event) => setPopularSort(event.target.value)}
                   className="h-11 min-w-52 appearance-none rounded-full border border-[#dbe6f3] bg-white py-0 pl-5 pr-11 text-sm font-bold text-[#31486e] outline-none transition focus:border-[var(--tp-primary)] focus:ring-2 focus:ring-[var(--tp-primary)]/15 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
                 >

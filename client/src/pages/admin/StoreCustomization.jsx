@@ -406,23 +406,40 @@ const getDefaultCustomization = () => ({
     promotionBanner: {
       enabled: true,
       title: "100% Natural Quality Organic Product",
+      subtitle: "",
       description:
         "See Our latest discounted products from here and get a special discount product",
       buttonName: "Buy Now",
       buttonLink: "/search?category=breakfast",
+      imageDataUrl: "",
+      displayOn: "Desktop & Mobile",
+      status: "needsReview",
     },
     featuredCategories: {
       enabled: true,
       title: "Featured Categories",
+      subtitle: "",
       description: "Choose your necessary products from this feature categories.",
+      source: "Manually Selected",
       productsLimit: 12,
+      buttonName: "View all categories",
+      buttonLink: "/shop",
+      displayStyle: "Grid",
+      status: "ready",
     },
     popularProducts: {
       enabled: true,
       title: "Popular Products",
+      subtitle: "",
       description:
         "See all our popular products in this week. You can choose your daily needs products from this list and get some special offer with free shipping.",
+      source: "Best Selling",
       productsLimit: 18,
+      filterBy: "All Categories",
+      sortBy: "Best Selling",
+      buttonName: "View all",
+      buttonLink: "/shop",
+      status: "ready",
     },
     quickDelivery: {
       enabled: true,
@@ -2154,6 +2171,10 @@ const normalizeCustomizationPayload = (raw) => {
           defaultsHome.promotionBanner.enabled
         ),
         title: toText(promotionBannerSource.title, defaultsHome.promotionBanner.title),
+        subtitle: toText(
+          promotionBannerSource.subtitle,
+          defaultsHome.promotionBanner.subtitle
+        ),
         description: toText(
           promotionBannerSource.description,
           defaultsHome.promotionBanner.description
@@ -2166,6 +2187,12 @@ const normalizeCustomizationPayload = (raw) => {
           promotionBannerSource.buttonLink,
           defaultsHome.promotionBanner.buttonLink
         ),
+        imageDataUrl: toText(promotionBannerSource.imageDataUrl, ""),
+        displayOn: toText(
+          promotionBannerSource.displayOn,
+          defaultsHome.promotionBanner.displayOn
+        ),
+        status: toText(promotionBannerSource.status, defaultsHome.promotionBanner.status),
       },
       featuredCategories: {
         ...defaultsHome.featuredCategories,
@@ -2177,13 +2204,37 @@ const normalizeCustomizationPayload = (raw) => {
           featuredCategoriesSource.title,
           defaultsHome.featuredCategories.title
         ),
+        subtitle: toText(
+          featuredCategoriesSource.subtitle,
+          defaultsHome.featuredCategories.subtitle
+        ),
         description: toText(
           featuredCategoriesSource.description,
           defaultsHome.featuredCategories.description
         ),
+        source: toText(
+          featuredCategoriesSource.source,
+          defaultsHome.featuredCategories.source
+        ),
         productsLimit: toPositiveInt(
           featuredCategoriesSource.productsLimit,
           defaultsHome.featuredCategories.productsLimit
+        ),
+        buttonName: toText(
+          featuredCategoriesSource.buttonName,
+          defaultsHome.featuredCategories.buttonName
+        ),
+        buttonLink: toText(
+          featuredCategoriesSource.buttonLink,
+          defaultsHome.featuredCategories.buttonLink
+        ),
+        displayStyle: toText(
+          featuredCategoriesSource.displayStyle,
+          defaultsHome.featuredCategories.displayStyle
+        ),
+        status: toText(
+          featuredCategoriesSource.status,
+          defaultsHome.featuredCategories.status
         ),
       },
       popularProducts: {
@@ -2193,14 +2244,33 @@ const normalizeCustomizationPayload = (raw) => {
           defaultsHome.popularProducts.enabled
         ),
         title: toText(popularProductsSource.title, defaultsHome.popularProducts.title),
+        subtitle: toText(
+          popularProductsSource.subtitle,
+          defaultsHome.popularProducts.subtitle
+        ),
         description: toText(
           popularProductsSource.description,
           defaultsHome.popularProducts.description
         ),
+        source: toText(popularProductsSource.source, defaultsHome.popularProducts.source),
         productsLimit: toPositiveInt(
           popularProductsSource.productsLimit,
           defaultsHome.popularProducts.productsLimit
         ),
+        filterBy: toText(
+          popularProductsSource.filterBy,
+          defaultsHome.popularProducts.filterBy
+        ),
+        sortBy: toText(popularProductsSource.sortBy, defaultsHome.popularProducts.sortBy),
+        buttonName: toText(
+          popularProductsSource.buttonName,
+          defaultsHome.popularProducts.buttonName
+        ),
+        buttonLink: toText(
+          popularProductsSource.buttonLink,
+          defaultsHome.popularProducts.buttonLink
+        ),
+        status: toText(popularProductsSource.status, defaultsHome.popularProducts.status),
       },
       quickDelivery: {
         ...defaultsHome.quickDelivery,
@@ -3337,23 +3407,40 @@ export default function StoreCustomizationPage() {
           ...currentCustomization.home?.promotionBanner,
           enabled: Boolean(homeState.promotionBanner.enabled),
           title: toText(homeState.promotionBanner.title),
+          subtitle: toText(homeState.promotionBanner.subtitle),
           description: toText(homeState.promotionBanner.description),
           buttonName: toText(homeState.promotionBanner.buttonName),
           buttonLink: toText(homeState.promotionBanner.buttonLink),
+          imageDataUrl: toText(homeState.promotionBanner.imageDataUrl),
+          displayOn: toText(homeState.promotionBanner.displayOn, "Desktop & Mobile"),
+          status: toText(homeState.promotionBanner.status, "needsReview"),
         },
         featuredCategories: {
           ...currentCustomization.home?.featuredCategories,
           enabled: Boolean(homeState.featuredCategories.enabled),
           title: toText(homeState.featuredCategories.title),
+          subtitle: toText(homeState.featuredCategories.subtitle),
           description: toText(homeState.featuredCategories.description),
+          source: toText(homeState.featuredCategories.source, "Manually Selected"),
           productsLimit: toPositiveInt(homeState.featuredCategories.productsLimit, 12),
+          buttonName: toText(homeState.featuredCategories.buttonName, "View all categories"),
+          buttonLink: toText(homeState.featuredCategories.buttonLink, "/shop"),
+          displayStyle: toText(homeState.featuredCategories.displayStyle, "Grid"),
+          status: toText(homeState.featuredCategories.status, "ready"),
         },
         popularProducts: {
           ...currentCustomization.home?.popularProducts,
           enabled: Boolean(homeState.popularProducts.enabled),
           title: toText(homeState.popularProducts.title),
+          subtitle: toText(homeState.popularProducts.subtitle),
           description: toText(homeState.popularProducts.description),
+          source: toText(homeState.popularProducts.source, "Best Selling"),
           productsLimit: toPositiveInt(homeState.popularProducts.productsLimit, 18),
+          filterBy: toText(homeState.popularProducts.filterBy, "All Categories"),
+          sortBy: toText(homeState.popularProducts.sortBy, "Best Selling"),
+          buttonName: toText(homeState.popularProducts.buttonName, "View all"),
+          buttonLink: toText(homeState.popularProducts.buttonLink, "/shop"),
+          status: toText(homeState.popularProducts.status, "ready"),
         },
         quickDelivery: {
           ...currentCustomization.home?.quickDelivery,

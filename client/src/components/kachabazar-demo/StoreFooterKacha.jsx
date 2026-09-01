@@ -2,9 +2,13 @@ import {
   Facebook,
   Headphones,
   Instagram,
+  Linkedin,
   Mail,
   MapPin,
+  MessageCircle,
   Phone,
+  Share2,
+  Twitter,
   Youtube,
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -93,6 +97,10 @@ const getDefaultFooter = (isIndo) => ({
     linkedin: "https://www.linkedin.com/",
     whatsapp: "https://web.whatsapp.com/",
   },
+  paymentMethod: {
+    enabled: true,
+    imageDataUrl: "",
+  },
   bottomContact: {
     enabled: true,
     contactNumber: "+65 9988 7766",
@@ -101,8 +109,12 @@ const getDefaultFooter = (isIndo) => ({
 
 const SOCIAL_LINKS = [
   { key: "facebook", label: "Facebook", Icon: Facebook },
+  { key: "twitter", label: "Twitter", Icon: Twitter },
   { key: "instagram", label: "Instagram", Icon: Instagram },
   { key: "youtube", label: "YouTube", Icon: Youtube },
+  { key: "pinterest", label: "Pinterest", Icon: Share2 },
+  { key: "linkedin", label: "LinkedIn", Icon: Linkedin },
+  { key: "whatsapp", label: "WhatsApp", Icon: MessageCircle },
 ];
 
 const toText = (value, fallback = "") => {
@@ -146,6 +158,7 @@ const normalizeFooterConfig = (rawFooter, isIndo) => {
   const block3 = isPlainObject(source.block3) ? source.block3 : {};
   const block4 = isPlainObject(source.block4) ? source.block4 : {};
   const socialLinks = isPlainObject(source.socialLinks) ? source.socialLinks : {};
+  const paymentMethod = isPlainObject(source.paymentMethod) ? source.paymentMethod : {};
   const bottomContact = isPlainObject(source.bottomContact) ? source.bottomContact : {};
 
   return {
@@ -175,6 +188,12 @@ const normalizeFooterConfig = (rawFooter, isIndo) => {
       ...DEFAULT_FOOTER.socialLinks,
       ...socialLinks,
       enabled: toBool(socialLinks.enabled, DEFAULT_FOOTER.socialLinks.enabled),
+    },
+    paymentMethod: {
+      ...DEFAULT_FOOTER.paymentMethod,
+      ...paymentMethod,
+      enabled: toBool(paymentMethod.enabled, DEFAULT_FOOTER.paymentMethod.enabled),
+      imageDataUrl: toText(paymentMethod.imageDataUrl),
     },
     bottomContact: {
       enabled: toBool(bottomContact.enabled, DEFAULT_FOOTER.bottomContact.enabled),
@@ -262,7 +281,8 @@ export default function StoreFooterKacha({
   const footer = normalizeFooterConfig(footerConfig, isIndo);
   const DEFAULT_FOOTER = getDefaultFooter(isIndo);
   const footerLogoSrc =
-    resolveAssetUrl(brandingLogoUrl) || resolveAssetUrl(footer.block4.footerLogoDataUrl);
+    resolveAssetUrl(footer.block4.footerLogoDataUrl) || resolveAssetUrl(brandingLogoUrl);
+  const paymentMethodSrc = resolveAssetUrl(footer.paymentMethod.imageDataUrl);
   const socialItems = SOCIAL_LINKS.filter(({ key }) => footer.socialLinks[key]);
 
   return (
@@ -355,6 +375,20 @@ export default function StoreFooterKacha({
                     {isIndo ? "Kami tersedia" : "We're available"} <span className="text-[var(--tp-accent)]">24/7</span>
                   </p>
                 </div>
+              </div>
+            ) : null}
+
+            {footer.paymentMethod.enabled && paymentMethodSrc ? (
+              <div className="space-y-3">
+                <h3 className="text-sm font-black uppercase tracking-[0.18em] text-[var(--tp-primary)] dark:text-sky-300">
+                  {isIndo ? "Metode Pembayaran" : "Payment Methods"}
+                </h3>
+                <img
+                  src={paymentMethodSrc}
+                  alt={isIndo ? "Metode pembayaran" : "Payment methods"}
+                  className="max-h-10 max-w-full rounded-lg object-contain object-left"
+                  loading="lazy"
+                />
               </div>
             ) : null}
           </section>

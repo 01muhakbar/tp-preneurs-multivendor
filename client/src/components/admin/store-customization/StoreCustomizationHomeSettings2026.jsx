@@ -151,10 +151,59 @@ const DEFAULT_CONFIG = {
     ],
   },
   footer: {
-    block1: { enabled: true },
-    block2: { enabled: true },
-    block3: { enabled: true },
-    block4: { enabled: true },
+    block1: {
+      enabled: true,
+      title: "Company",
+      links: [
+        { label: "About Us", href: "/about-us" },
+        { label: "Contact Us", href: "/contact-us" },
+        { label: "Careers", href: "#" },
+        { label: "Latest News", href: "#" },
+      ],
+    },
+    block2: {
+      enabled: true,
+      title: "Categories",
+      links: [
+        { label: "Electronics", href: "/search?category=electronics&page=1" },
+        { label: "Fashion", href: "/search?category=fashion&page=1" },
+        { label: "Grocery", href: "/search?category=grocery&page=1" },
+        { label: "Books", href: "/search?category=books&page=1" },
+      ],
+    },
+    block3: {
+      enabled: true,
+      title: "My Account",
+      links: [
+        { label: "Dashboard", href: "/user/dashboard" },
+        { label: "My Orders", href: "/user/my-orders" },
+        { label: "Recent Orders", href: "/user/dashboard" },
+        { label: "Update Profile", href: "/user/update-profile" },
+      ],
+    },
+    block4: {
+      enabled: true,
+      footerLogoDataUrl: "",
+      address: "Fakultas Ilmu Pendidikan Kampus UNM Tidung Jl. Tamalate 1 Makassar",
+      phone: "0411-0884457",
+      email: "tp.fip@unm.ac.id",
+    },
+    socialLinks: {
+      enabled: true,
+      facebook: "https://www.facebook.com/",
+      twitter: "https://twitter.com/",
+      pinterest: "",
+      linkedin: "https://www.linkedin.com/",
+      whatsapp: "https://web.whatsapp.com/",
+    },
+    paymentMethod: {
+      enabled: true,
+      imageDataUrl: "",
+    },
+    bottomContact: {
+      enabled: true,
+      contactNumber: "+65 9988 7766",
+    },
   },
 };
 
@@ -196,6 +245,20 @@ const VISIBILITY_FIELDS = [
   ["showTermsAndConditions", "Show Terms & Conditions"],
 ];
 
+const FOOTER_LINK_BLOCKS = [
+  ["block1", "Company"],
+  ["block2", "Categories"],
+  ["block3", "My Account"],
+];
+
+const FOOTER_SOCIAL_FIELDS = [
+  ["facebook", "Facebook"],
+  ["twitter", "Twitter"],
+  ["pinterest", "Pinterest"],
+  ["linkedin", "LinkedIn"],
+  ["whatsapp", "WhatsApp"],
+];
+
 const cardClass =
   "rounded-3xl border border-slate-200/80 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-950 dark:shadow-none";
 const inputClass =
@@ -223,6 +286,25 @@ const mergeDeep = (base, source) => {
 const toText = (value, fallback = "") => {
   const normalized = String(value ?? "").trim();
   return normalized || fallback;
+};
+
+const normalizeFooterBlock = (value, fallback) => {
+  const source = isPlainObject(value) ? value : {};
+  const links = Array.isArray(source.links) ? source.links : fallback.links;
+  return {
+    ...fallback,
+    ...source,
+    links: links
+      .map((item, index) => {
+        const sourceItem = isPlainObject(item) ? item : {};
+        const fallbackItem = fallback.links[index] || { label: "", href: "" };
+        return {
+          label: toText(sourceItem.label, fallbackItem.label),
+          href: toText(sourceItem.href, fallbackItem.href),
+        };
+      })
+      .filter((item) => item.label || item.href),
+  };
 };
 
 const normalizeStatus = (value, fallback = "ready") => {
@@ -266,6 +348,29 @@ const normalizeHomeValue = (value) => {
       features: Array.isArray(merged.quickDelivery?.features)
         ? merged.quickDelivery.features.map((item) => toText(item)).filter(Boolean).slice(0, 4)
         : DEFAULT_CONFIG.quickDelivery.features,
+    },
+    footer: {
+      ...DEFAULT_CONFIG.footer,
+      ...(isPlainObject(merged.footer) ? merged.footer : {}),
+      block1: normalizeFooterBlock(merged.footer?.block1, DEFAULT_CONFIG.footer.block1),
+      block2: normalizeFooterBlock(merged.footer?.block2, DEFAULT_CONFIG.footer.block2),
+      block3: normalizeFooterBlock(merged.footer?.block3, DEFAULT_CONFIG.footer.block3),
+      block4: {
+        ...DEFAULT_CONFIG.footer.block4,
+        ...(isPlainObject(merged.footer?.block4) ? merged.footer.block4 : {}),
+      },
+      socialLinks: {
+        ...DEFAULT_CONFIG.footer.socialLinks,
+        ...(isPlainObject(merged.footer?.socialLinks) ? merged.footer.socialLinks : {}),
+      },
+      paymentMethod: {
+        ...DEFAULT_CONFIG.footer.paymentMethod,
+        ...(isPlainObject(merged.footer?.paymentMethod) ? merged.footer.paymentMethod : {}),
+      },
+      bottomContact: {
+        ...DEFAULT_CONFIG.footer.bottomContact,
+        ...(isPlainObject(merged.footer?.bottomContact) ? merged.footer.bottomContact : {}),
+      },
     },
   };
 };
@@ -475,7 +580,10 @@ export default function StoreCustomizationHomeSettings2026({
   const [couponInput, setCouponInput] = useState("");
   const [uploadError, setUploadError] = useState("");
   const [isUploadingSliderImage, setIsUploadingSliderImage] = useState(false);
+  const [imageUploadErrors, setImageUploadErrors] = useState({});
+  const [uploadingImageKey, setUploadingImageKey] = useState("");
   const fileInputRef = useRef(null);
+  const sectionRefs = useRef({});
 
   const draft = useMemo(() => normalizeHomeValue(value), [value]);
   const currentSlider = draft.mainSlider.sliders[selectedSliderIndex] || draft.mainSlider.sliders[0];
@@ -489,6 +597,29 @@ export default function StoreCustomizationHomeSettings2026({
 
   const updateSlider = (field, nextValue) => {
     updateDraft(["mainSlider", "sliders", selectedSliderIndex, field], nextValue);
+  };
+
+  const setSectionRef = (key) => (node) => {
+    if (node) {
+      sectionRefs.current[key] = node;
+    }
+  };
+
+  const focusSection = (key) => {
+    if (key === "mainSlider") {
+      setSelectedSliderIndex(0);
+      setActiveSliderTab("slider-0");
+    }
+
+    const target = sectionRefs.current[key];
+    if (!target) return;
+
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.setTimeout(() => {
+      target
+        .querySelector("input, textarea, select, button")
+        ?.focus?.({ preventScroll: true });
+    }, 350);
   };
 
   const uploadSliderImage = async (file) => {
@@ -517,6 +648,50 @@ export default function StoreCustomizationHomeSettings2026({
     }
   };
 
+  const uploadImageForPath = async (imageKey, path, file) => {
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setImageUploadErrors((prev) => ({ ...prev, [imageKey]: "Use JPG, PNG, or WEBP." }));
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setImageUploadErrors((prev) => ({ ...prev, [imageKey]: "Max file size is 2MB." }));
+      return;
+    }
+
+    setUploadingImageKey(imageKey);
+    try {
+      const result = await uploadAdminImage(file);
+      const uploadedUrl = String(result?.url || result?.data?.url || "").trim();
+      if (!uploadedUrl) {
+        throw new Error("Upload succeeded without an image URL.");
+      }
+      setImageUploadErrors((prev) => ({ ...prev, [imageKey]: "" }));
+      updateDraft(path, uploadedUrl);
+    } catch (error) {
+      setImageUploadErrors((prev) => ({
+        ...prev,
+        [imageKey]: error?.response?.data?.message || error?.message || "Failed to upload image.",
+      }));
+    } finally {
+      setUploadingImageKey("");
+    }
+  };
+
+  const removeImageForPath = (path) => {
+    updateDraft(path, "");
+  };
+
+  const removeHeaderLogo = () => {
+    onChange?.(
+      cloneWithPath(
+        cloneWithPath(draft, ["header", "headerLogoUrl"], ""),
+        ["header", "logoDataUrl"],
+        ""
+      )
+    );
+  };
+
   const addCoupon = () => {
     const parsed = couponInput
       .split(",")
@@ -532,6 +707,29 @@ export default function StoreCustomizationHomeSettings2026({
     updateDraft(
       ["discountCouponBox", "activeCouponCodes"],
       (draft.discountCouponBox.activeCouponCodes || []).filter((item) => item !== code)
+    );
+  };
+
+  const updateFooterLink = (blockKey, index, field, nextValue) => {
+    const links = [...(draft.footer?.[blockKey]?.links || [])];
+    links[index] = {
+      ...(links[index] || { label: "", href: "" }),
+      [field]: nextValue,
+    };
+    updateDraft(["footer", blockKey, "links"], links);
+  };
+
+  const addFooterLink = (blockKey) => {
+    updateDraft(
+      ["footer", blockKey, "links"],
+      [...(draft.footer?.[blockKey]?.links || []), { label: "New Link", href: "#" }]
+    );
+  };
+
+  const removeFooterLink = (blockKey, index) => {
+    updateDraft(
+      ["footer", blockKey, "links"],
+      (draft.footer?.[blockKey]?.links || []).filter((_, itemIndex) => itemIndex !== index)
     );
   };
 
@@ -735,18 +933,18 @@ export default function StoreCustomizationHomeSettings2026({
                       <Icon className="h-5 w-5" />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <h3 className="truncate text-base font-extrabold text-slate-950 dark:text-white">{block.title}</h3>
+                      <h3 className="break-words text-base font-extrabold leading-snug text-slate-950 dark:text-white">{block.title}</h3>
                       <p className="mt-1 min-h-10 text-sm text-slate-500 dark:text-slate-400">{block.detail}</p>
                     </div>
                   </div>
                   <div className="mt-4 flex flex-col items-stretch gap-2 min-[520px]:flex-row min-[520px]:items-center min-[520px]:justify-between">
                     <StatusChip value={block.status} />
                     <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
-                      <button type="button" className="inline-flex h-9 min-w-0 items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-600 dark:border-slate-800 dark:text-slate-300">
+                      <button type="button" onClick={() => focusSection(block.key)} className="inline-flex h-9 min-w-0 items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-600 dark:border-slate-800 dark:text-slate-300">
                         <Eye className="h-3.5 w-3.5" />
                         Review
                       </button>
-                      <button type="button" className="inline-flex h-9 min-w-0 items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-600 dark:border-slate-800 dark:text-slate-300">
+                      <button type="button" onClick={() => focusSection(block.key)} className="inline-flex h-9 min-w-0 items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-600 dark:border-slate-800 dark:text-slate-300">
                         <Edit3 className="h-3.5 w-3.5" />
                         Edit
                       </button>
@@ -803,7 +1001,7 @@ export default function StoreCustomizationHomeSettings2026({
           <SectionTitle icon={Layers3} title="Advanced Section Editor" description="Fine-tune texts, labels, and visibility settings for your homepage." action={<button type="button" aria-label="Collapse all advanced sections" className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-bold text-slate-600 dark:border-slate-800 dark:text-slate-300"><ChevronDown className="h-4 w-4 rotate-180" /><span className="hidden min-[420px]:inline">Collapse All</span></button>} />
 
           <div className="mt-5 space-y-4">
-            <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+            <div ref={setSectionRef("header")} className="rounded-2xl border border-slate-200 p-4 scroll-mt-24 dark:border-slate-800">
               <SectionTitle icon={Store} title="Header" description="Update top bar information displayed on your store." />
               <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_190px]">
                 <Field label="Support Text" value={draft.header.headerText} onChange={(next) => updateDraft(["header", "headerText"], next)} />
@@ -813,6 +1011,49 @@ export default function StoreCustomizationHomeSettings2026({
                   <Link className="h-4 w-4 text-emerald-600" />
                   Generate WA Link
                 </button>
+              </div>
+              <div className="mt-5 rounded-2xl border border-dashed border-slate-200 p-4 dark:border-slate-800">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-extrabold text-slate-950 dark:text-white">Header Logo</h3>
+                    <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                      Shown in the storefront header when this customization logo is set.
+                    </p>
+                  </div>
+                  <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-extrabold text-slate-700 dark:border-slate-800 dark:text-slate-200">
+                    <UploadCloud className="h-4 w-4 text-emerald-600" />
+                    {uploadingImageKey === "headerLogo" ? "Uploading..." : "Upload Logo"}
+                    <input
+                      type="file"
+                      accept=".png,.jpeg,.jpg,.webp"
+                      className="hidden"
+                      disabled={uploadingImageKey === "headerLogo"}
+                      onChange={async (event) => {
+                        await uploadImageForPath("headerLogo", ["header", "headerLogoUrl"], event.target.files?.[0]);
+                        event.target.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
+                {imageUploadErrors.headerLogo ? (
+                  <p className="mt-3 text-sm font-semibold text-rose-600">{imageUploadErrors.headerLogo}</p>
+                ) : null}
+                {toText(draft.header.headerLogoUrl || draft.header.logoDataUrl) ? (
+                  <div className="mt-4 flex items-center gap-4 rounded-xl bg-slate-50 p-3 dark:bg-slate-900">
+                    <img
+                      src={draft.header.headerLogoUrl || draft.header.logoDataUrl}
+                      alt="Header logo preview"
+                      className="h-12 w-36 rounded-lg bg-white object-contain p-2 dark:bg-slate-950"
+                    />
+                    <button
+                      type="button"
+                      onClick={removeHeaderLogo}
+                      className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 px-3 text-xs font-bold text-rose-600 dark:border-slate-800"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -862,7 +1103,7 @@ export default function StoreCustomizationHomeSettings2026({
         </aside>
       </section>
 
-      <section className={`${cardClass} p-5`}>
+      <section ref={setSectionRef("mainSlider")} className={`${cardClass} p-5 scroll-mt-24`}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 className="text-xl font-extrabold text-slate-950 dark:text-white">Main Slider</h2>
@@ -1105,6 +1346,7 @@ export default function StoreCustomizationHomeSettings2026({
 
       <section className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-4">
+          <div ref={setSectionRef("promotionBanner")} className="scroll-mt-24">
           <MerchandisingCard
             icon={Megaphone}
             title="Promotion Banner"
@@ -1123,9 +1365,58 @@ export default function StoreCustomizationHomeSettings2026({
               <div className="lg:col-span-3">
                 <TextAreaField label="Description" value={draft.promotionBanner.description} onChange={(next) => updateDraft(["promotionBanner", "description"], next)} max={200} />
               </div>
+              <div className="lg:col-span-3">
+                <div className="rounded-2xl border border-dashed border-slate-200 p-4 dark:border-slate-800">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-extrabold text-slate-950 dark:text-white">Banner Image</h3>
+                      <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                        Used as the visual on the promotion banner in the storefront homepage.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-extrabold text-slate-700 dark:border-slate-800 dark:text-slate-200">
+                        <UploadCloud className="h-4 w-4 text-emerald-600" />
+                        {uploadingImageKey === "promotionBanner" ? "Uploading..." : "Upload Image"}
+                        <input
+                          type="file"
+                          accept=".png,.jpeg,.jpg,.webp"
+                          className="hidden"
+                          disabled={uploadingImageKey === "promotionBanner"}
+                          onChange={async (event) => {
+                            await uploadImageForPath("promotionBanner", ["promotionBanner", "imageDataUrl"], event.target.files?.[0]);
+                            event.target.value = "";
+                          }}
+                        />
+                      </label>
+                      {draft.promotionBanner.imageDataUrl ? (
+                        <button
+                          type="button"
+                          onClick={() => removeImageForPath(["promotionBanner", "imageDataUrl"])}
+                          className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-3 text-sm font-extrabold text-rose-600 dark:border-slate-800"
+                        >
+                          Remove
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                  {imageUploadErrors.promotionBanner ? (
+                    <p className="mt-3 text-sm font-semibold text-rose-600">{imageUploadErrors.promotionBanner}</p>
+                  ) : null}
+                  {draft.promotionBanner.imageDataUrl ? (
+                    <img
+                      src={draft.promotionBanner.imageDataUrl}
+                      alt="Promotion banner preview"
+                      className="mt-4 h-44 w-full rounded-xl bg-slate-50 object-cover dark:bg-slate-900"
+                    />
+                  ) : null}
+                </div>
+              </div>
             </div>
           </MerchandisingCard>
+          </div>
 
+          <div ref={setSectionRef("featuredCategories")} className="scroll-mt-24">
           <MerchandisingCard icon={Layers3} title="Featured Categories" description="Showcase top categories to help customers explore quickly." status={draft.featuredCategories.status || "ready"} enabled={draft.featuredCategories.enabled} onEnabledChange={(next) => updateDraft(["featuredCategories", "enabled"], next)}>
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <Field label="Title" value={draft.featuredCategories.title} onChange={(next) => updateDraft(["featuredCategories", "title"], next)} max={60} />
@@ -1139,7 +1430,9 @@ export default function StoreCustomizationHomeSettings2026({
               </div>
             </div>
           </MerchandisingCard>
+          </div>
 
+          <div ref={setSectionRef("popularProducts")} className="scroll-mt-24">
           <MerchandisingCard icon={ShoppingBag} title="Popular Products" description="Highlight best-selling and most-viewed products." status={draft.popularProducts.status || "ready"} enabled={draft.popularProducts.enabled} onEnabledChange={(next) => updateDraft(["popularProducts", "enabled"], next)}>
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <Field label="Title" value={draft.popularProducts.title} onChange={(next) => updateDraft(["popularProducts", "title"], next)} max={60} />
@@ -1153,6 +1446,7 @@ export default function StoreCustomizationHomeSettings2026({
               </div>
             </div>
           </MerchandisingCard>
+          </div>
 
           <MerchandisingCard icon={Truck} title="Quick Delivery Section" description="Highlight fast delivery and service benefits." status={draft.quickDelivery.status || "draft"} enabled={draft.quickDelivery.enabled} onEnabledChange={(next) => updateDraft(["quickDelivery", "enabled"], next)}>
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -1222,6 +1516,233 @@ export default function StoreCustomizationHomeSettings2026({
             <p className="mt-3 text-center text-xs font-medium text-slate-400">Last draft saved 2 minutes ago</p>
           </div>
         </aside>
+      </section>
+
+      <section ref={setSectionRef("footer")} className={`${cardClass} p-5 scroll-mt-24`}>
+        <SectionTitle
+          icon={Link}
+          title="Footer Links"
+          description="Update footer navigation, contact details, social links, and help contact shown on the storefront."
+        />
+        <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="space-y-4">
+            {FOOTER_LINK_BLOCKS.map(([blockKey, fallbackTitle]) => {
+              const block = draft.footer?.[blockKey] || {};
+              return (
+                <div key={blockKey} className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="break-words text-base font-extrabold text-slate-950 dark:text-white">
+                        {block.title || fallbackTitle}
+                      </h3>
+                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                        Footer navigation block
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-bold text-slate-600 dark:text-slate-300">Enable</span>
+                      <Toggle
+                        checked={Boolean(block.enabled)}
+                        onChange={(next) => updateDraft(["footer", blockKey, "enabled"], next)}
+                        ariaLabel={`Toggle ${block.title || fallbackTitle}`}
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <Field
+                      label="Block Title"
+                      value={block.title}
+                      onChange={(next) => updateDraft(["footer", blockKey, "title"], next)}
+                      max={40}
+                    />
+                  </div>
+                  <div className="mt-4 space-y-3">
+                    {(block.links || []).map((linkItem, index) => (
+                      <div key={`${blockKey}-${index}`} className="grid grid-cols-1 gap-3 rounded-xl border border-slate-100 p-3 dark:border-slate-800 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_40px]">
+                        <Field
+                          label="Label"
+                          value={linkItem.label}
+                          onChange={(next) => updateFooterLink(blockKey, index, "label", next)}
+                          max={40}
+                        />
+                        <Field
+                          label="Link"
+                          value={linkItem.href}
+                          onChange={(next) => updateFooterLink(blockKey, index, "href", next)}
+                          max={120}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeFooterLink(blockKey, index)}
+                          className="mt-6 inline-flex h-10 w-full items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:border-rose-200 hover:text-rose-600 dark:border-slate-800 lg:w-10"
+                          aria-label={`Remove footer link ${index + 1}`}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => addFooterLink(blockKey)}
+                    className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-dashed border-emerald-300 px-3 text-sm font-extrabold text-emerald-700 dark:text-emerald-300"
+                  >
+                    <Link className="h-4 w-4" />
+                    Add Link
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          <aside className="space-y-4">
+            <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-base font-extrabold text-slate-950 dark:text-white">Store Contact</h3>
+                <Toggle
+                  checked={Boolean(draft.footer?.block4?.enabled)}
+                  onChange={(next) => updateDraft(["footer", "block4", "enabled"], next)}
+                  ariaLabel="Toggle footer store contact"
+                />
+              </div>
+              <div className="mt-4 space-y-4">
+                <Field label="Address" value={draft.footer?.block4?.address} onChange={(next) => updateDraft(["footer", "block4", "address"], next)} max={160} />
+                <Field label="Phone" value={draft.footer?.block4?.phone} onChange={(next) => updateDraft(["footer", "block4", "phone"], next)} max={30} />
+                <Field label="Email" value={draft.footer?.block4?.email} onChange={(next) => updateDraft(["footer", "block4", "email"], next)} max={80} type="email" />
+              </div>
+              <div className="mt-4 rounded-xl border border-dashed border-slate-200 p-3 dark:border-slate-800">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <span className="text-sm font-extrabold text-slate-950 dark:text-white">Footer Logo</span>
+                  <div className="flex flex-wrap gap-2">
+                    <label className="inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-700 dark:border-slate-800 dark:text-slate-200">
+                      <UploadCloud className="h-3.5 w-3.5 text-emerald-600" />
+                      {uploadingImageKey === "footerLogo" ? "Uploading..." : "Upload"}
+                      <input
+                        type="file"
+                        accept=".png,.jpeg,.jpg,.webp"
+                        className="hidden"
+                        disabled={uploadingImageKey === "footerLogo"}
+                        onChange={async (event) => {
+                          await uploadImageForPath("footerLogo", ["footer", "block4", "footerLogoDataUrl"], event.target.files?.[0]);
+                          event.target.value = "";
+                        }}
+                      />
+                    </label>
+                    {draft.footer?.block4?.footerLogoDataUrl ? (
+                      <button
+                        type="button"
+                        onClick={() => removeImageForPath(["footer", "block4", "footerLogoDataUrl"])}
+                        className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 px-3 text-xs font-bold text-rose-600 dark:border-slate-800"
+                      >
+                        Remove
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+                {imageUploadErrors.footerLogo ? (
+                  <p className="mt-2 text-sm font-semibold text-rose-600">{imageUploadErrors.footerLogo}</p>
+                ) : null}
+                {draft.footer?.block4?.footerLogoDataUrl ? (
+                  <img
+                    src={draft.footer.block4.footerLogoDataUrl}
+                    alt="Footer logo preview"
+                    className="mt-3 h-12 w-40 rounded-lg bg-slate-50 object-contain p-2 dark:bg-slate-900"
+                  />
+                ) : null}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-base font-extrabold text-slate-950 dark:text-white">Social Links</h3>
+                <Toggle
+                  checked={Boolean(draft.footer?.socialLinks?.enabled)}
+                  onChange={(next) => updateDraft(["footer", "socialLinks", "enabled"], next)}
+                  ariaLabel="Toggle footer social links"
+                />
+              </div>
+              <div className="mt-4 space-y-4">
+                {FOOTER_SOCIAL_FIELDS.map(([key, label]) => (
+                  <Field
+                    key={key}
+                    label={label}
+                    value={draft.footer?.socialLinks?.[key]}
+                    onChange={(next) => updateDraft(["footer", "socialLinks", key], next)}
+                    max={140}
+                    type="url"
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-base font-extrabold text-slate-950 dark:text-white">Help Contact</h3>
+                <Toggle
+                  checked={Boolean(draft.footer?.bottomContact?.enabled)}
+                  onChange={(next) => updateDraft(["footer", "bottomContact", "enabled"], next)}
+                  ariaLabel="Toggle footer help contact"
+                />
+              </div>
+              <div className="mt-4">
+                <Field
+                  label="Contact Number"
+                  value={draft.footer?.bottomContact?.contactNumber}
+                  onChange={(next) => updateDraft(["footer", "bottomContact", "contactNumber"], next)}
+                  max={30}
+                />
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-base font-extrabold text-slate-950 dark:text-white">Payment Methods</h3>
+                <Toggle
+                  checked={Boolean(draft.footer?.paymentMethod?.enabled)}
+                  onChange={(next) => updateDraft(["footer", "paymentMethod", "enabled"], next)}
+                  ariaLabel="Toggle footer payment methods"
+                />
+              </div>
+              <div className="mt-4 rounded-xl border border-dashed border-slate-200 p-3 dark:border-slate-800">
+                <div className="flex flex-wrap gap-2">
+                  <label className="inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-700 dark:border-slate-800 dark:text-slate-200">
+                    <UploadCloud className="h-3.5 w-3.5 text-emerald-600" />
+                    {uploadingImageKey === "paymentMethod" ? "Uploading..." : "Upload Image"}
+                    <input
+                      type="file"
+                      accept=".png,.jpeg,.jpg,.webp"
+                      className="hidden"
+                      disabled={uploadingImageKey === "paymentMethod"}
+                      onChange={async (event) => {
+                        await uploadImageForPath("paymentMethod", ["footer", "paymentMethod", "imageDataUrl"], event.target.files?.[0]);
+                        event.target.value = "";
+                      }}
+                    />
+                  </label>
+                  {draft.footer?.paymentMethod?.imageDataUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => removeImageForPath(["footer", "paymentMethod", "imageDataUrl"])}
+                      className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 px-3 text-xs font-bold text-rose-600 dark:border-slate-800"
+                    >
+                      Remove
+                    </button>
+                  ) : null}
+                </div>
+                {imageUploadErrors.paymentMethod ? (
+                  <p className="mt-2 text-sm font-semibold text-rose-600">{imageUploadErrors.paymentMethod}</p>
+                ) : null}
+                {draft.footer?.paymentMethod?.imageDataUrl ? (
+                  <img
+                    src={draft.footer.paymentMethod.imageDataUrl}
+                    alt="Payment methods preview"
+                    className="mt-3 h-12 max-w-full rounded-lg bg-slate-50 object-contain p-2 dark:bg-slate-900"
+                  />
+                ) : null}
+              </div>
+            </div>
+          </aside>
+        </div>
       </section>
 
       <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-slate-500 dark:text-slate-400">

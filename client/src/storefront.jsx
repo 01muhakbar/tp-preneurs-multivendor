@@ -41,9 +41,10 @@ const fetchProducts = async ({
 
 export const useCategories = (options = {}) => {
   const parentsOnly = options?.parentsOnly === true;
+  const sort = options?.sort || "";
   return useQuery({
-    queryKey: ["storefront", "categories", parentsOnly ? "parents-only" : "all"],
-    queryFn: () => fetchStoreCategories({ parentsOnly }),
+    queryKey: ["storefront", "categories", parentsOnly ? "parents-only" : "all", sort],
+    queryFn: () => fetchStoreCategories({ parentsOnly, sort }),
     staleTime: 1000 * 60 * 5,
   });
 };
