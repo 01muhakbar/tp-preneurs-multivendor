@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f8fafc" />
+    <script>
+      (function () {
+        try {
+          var key = "tp_storefront_theme";
+          var allowed = { light: true, dark: true, system: true };
+          var stored = localStorage.getItem(key) || "system";
+          if (!allowed[stored]) stored = "system";
+          var prefersDark =
+            window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches;
+          var resolved = stored === "dark" || (stored === "system" && prefersDark)
+            ? "dark"
+            : "light";
+          document.documentElement.classList.toggle("dark", resolved === "dark");
+          document.documentElement.dataset.theme = resolved;
+          document.documentElement.dataset.themePreference = stored;
+          document.documentElement.style.colorScheme = resolved;
+          var themeMeta = document.querySelector('meta[name="theme-color"]');
+          if (themeMeta) {
+            themeMeta.setAttribute("content", resolved === "dark" ? "#020617" : "#f8fafc");
+          }
+        } catch (error) {}
+      })();
+    </script>
+    <title>TP PRENEURS | Marketplace Multivendor</title>
+    <meta name="description" content="TP PRENEURS adalah platform marketplace multivendor terbaik untuk menemukan dan menjual produk berkualitas." />
+    <meta property="og:title" content="TP PRENEURS | Marketplace Multivendor" />
+    <meta property="og:description" content="Temukan dan jual produk berkualitas di TP PRENEURS, platform marketplace multivendor andalan Anda." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://tppreneurs.com" />
+    <script type="module" crossorigin src="/assets/index-gq3WA81z.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-B8oMMh6B.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

@@ -1,0 +1,1 @@
+const o=/^(?=.{8,120}$)(?=.*[A-Z])[A-Z0-9][A-Z0-9_-]*$/,n=r=>{const e=String(r??"").trim().toUpperCase();return!e||/^\d+$/.test(e)||!o.test(e)?"":e},c=(...r)=>{for(const e of r){const t=n(e);if(t)return t}return""},i=r=>n(r).length>0,s=r=>{const e=n(r);return e?`/order/${encodeURIComponent(e)}`:null};export{s as b,i,c as r};

@@ -1,0 +1,1 @@
+import{y as i,c as o,j as e,N as n}from"./index-gq3WA81z.js";function r(){const a=i(),t=o(),s={pathname:`/admin/store/applications/${a.applicationId||a.id||""}`,search:t.search,hash:t.hash};return e.jsx(n,{to:s,replace:!0})}export{r as default};

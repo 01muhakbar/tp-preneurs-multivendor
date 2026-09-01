@@ -1,0 +1,1 @@
+import{j as i}from"./index-gq3WA81z.js";import{d as l}from"./authUi-CMzw80ht.js";function n({id:e,tone:r="neutral",children:t,live:s="polite",focusRef:o=null,className:a=""}){return t?i.jsx("div",{id:e,ref:o,tabIndex:-1,role:r==="error"?"alert":"status","aria-live":s,className:`rounded-lg border px-3 py-2 text-sm ${l(r)} ${a}`.trim(),children:t}):null}export{n as A};

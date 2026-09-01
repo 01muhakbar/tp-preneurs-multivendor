@@ -1,0 +1,1 @@
+import{c as e,j as o,N as s}from"./index-gq3WA81z.js";function i(){const t=e(),a={pathname:"/admin/store/customization",search:t.search,hash:t.hash};return o.jsx(s,{to:a,replace:!0})}export{i as default};

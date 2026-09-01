@@ -1,0 +1,1 @@
+import{j as e}from"./index-gq3WA81z.js";function s(){return e.jsxs("div",{className:"flex min-h-[70vh] flex-col items-center justify-center gap-2 text-sm text-slate-600",children:[e.jsx("h1",{className:"text-lg font-semibold text-slate-800",children:"Access restricted"}),e.jsx("p",{children:"Limited access for this account."})]})}export{s as default};

@@ -1,0 +1,6 @@
+import{c as d}from"./createLucideIcon-SHMrxnaP.js";/**
+ * @license lucide-react v0.544.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const f=[["path",{d:"M12 6v6l4 2",key:"mmk7yg"}],["circle",{cx:"12",cy:"12",r:"10",key:"1mglay"}]],l=d("clock",f),i="mock_kyc_requests",c=()=>{if(typeof window>"u")return[];try{const e=localStorage.getItem(i);return e?JSON.parse(e):[]}catch{return[]}},u=e=>{typeof window<"u"&&localStorage.setItem(i,JSON.stringify(e))},o=(e=500)=>new Promise(r=>setTimeout(r,e));async function w(e){await o();const n=c().find(t=>t.storeId===e);return n||{status:"none",data:null}}async function m(e,r){await o();const n=c(),t=n.findIndex(a=>a.storeId===e),s={id:`kyc-${Date.now()}`,storeId:e,status:"pending",data:r,submittedAt:new Date().toISOString()};return t>=0?n[t]=s:n.push(s),u(n),s}async function q(){await o();const e=c();return{items:[...e].reverse(),meta:{total:e.length,page:1,limit:50,totalPages:1}}}async function g(e,r,n=""){await o();const t=c(),s=t.findIndex(a=>a.id===e);if(s===-1)throw new Error("Request not found");return t[s].status=r,t[s].reviewReason=n,t[s].reviewedAt=new Date().toISOString(),u(t),t[s]}export{l as C,w as a,q as f,g as r,m as s};

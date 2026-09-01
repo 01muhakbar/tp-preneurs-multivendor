@@ -1,0 +1,3 @@
+const a=n=>{const o=n==null?"":n instanceof Date?n.toISOString():String(n);return/[",\n\r]/.test(o)?`"${o.replace(/"/g,'""')}"`:o},r=(n,o)=>{const e=window.URL.createObjectURL(n),t=document.createElement("a");t.href=e,t.download=o,document.body.appendChild(t),t.click(),t.remove(),window.URL.revokeObjectURL(e)},b=(n,o)=>{const e=new Blob([JSON.stringify(n,null,2)],{type:"application/json; charset=utf-8"});r(e,o)},p=(n,o,e)=>{const t=n.map(c=>a(c.label)).join(","),s=o.map(c=>n.map(d=>a(c?.[d.key])).join(",")).join(`
+`),i=s?`${t}
+${s}`:t,l=new Blob(["\uFEFF",i],{type:"text/csv; charset=utf-8"});r(l,e)};export{b as a,p as d};
