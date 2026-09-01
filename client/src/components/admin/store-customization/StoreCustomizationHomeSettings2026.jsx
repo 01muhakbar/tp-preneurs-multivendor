@@ -1,7 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import {
   Boxes,
-  CalendarDays,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -9,8 +8,6 @@ import {
   Edit3,
   Eye,
   EyeOff,
-  Gauge,
-  Globe2,
   Grid3X3,
   Home,
   Image,
@@ -23,12 +20,9 @@ import {
   ShieldCheck,
   ShoppingBag,
   Smartphone,
-  Sparkles,
-  Star,
   Store,
   Truck,
   UploadCloud,
-  WandSparkles,
   X,
 } from "lucide-react";
 import { uploadAdminImage } from "../../../lib/adminApi.js";
@@ -553,9 +547,6 @@ export default function StoreCustomizationHomeSettings2026({
   onPreview,
   isSaving,
   isPublishing,
-  language = "en",
-  languages = [],
-  onLanguageChange,
   isLoading,
 }) {
   const [selectedSliderIndex, setSelectedSliderIndex] = useState(0);
@@ -767,15 +758,6 @@ export default function StoreCustomizationHomeSettings2026({
     },
   ];
 
-  const readyCount = blocks.filter((item) => normalizeStatus(item.status) === "ready").length;
-  const reviewCount = blocks.length - readyCount;
-  const completion = Math.max(45, Math.min(100, Math.round((readyCount / blocks.length) * 100)));
-  const pendingItems = [
-    "Promotion Banner image needs review",
-    "Add more categories",
-    "Quick Delivery Section description is too short",
-  ];
-
   return (
     <div className="min-w-0 max-w-full space-y-5 overflow-x-clip pb-8 text-slate-900 dark:text-slate-100">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -788,29 +770,6 @@ export default function StoreCustomizationHomeSettings2026({
           </p>
         </div>
         <div className="grid w-full min-w-0 grid-cols-1 gap-3 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
-          <label className="relative min-w-0 sm:w-auto">
-            <Globe2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-            <select
-              value={language}
-              onChange={(event) => onLanguageChange?.(event.target.value)}
-              className="h-11 w-full min-w-0 rounded-2xl border border-slate-200 bg-white pl-9 pr-9 text-sm font-semibold text-slate-700 shadow-sm outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 sm:w-auto"
-            >
-              {(languages.length ? languages : [{ isoCode: language || "en", name: "English" }]).map((item) => (
-                <option key={item.isoCode || item.id} value={item.isoCode}>
-                  {item.name || item.isoCode}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          </label>
-          <button
-            type="button"
-            className="inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
-          >
-            <Store className="h-4 w-4" />
-            TP Preneurs Store
-            <ChevronDown className="h-4 w-4 text-slate-400" />
-          </button>
           <div className="flex min-w-0 flex-wrap items-center gap-2 px-2 text-sm font-semibold text-slate-500 dark:text-slate-400">
             <Check className="h-5 w-5 rounded-full bg-emerald-100 p-1 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300" />
             <span>Autosaved</span>
@@ -838,39 +797,7 @@ export default function StoreCustomizationHomeSettings2026({
 
       <StoreCustomizationTabNav2026 activeTab={activeTab} onTabChange={onTabChange} />
 
-      <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
-        {[
-          ["Page", "Home Page", "Homepage Settings", Home, "emerald"],
-          ["Language", String(language || "en").toUpperCase(), "Default Language", Globe2, "violet"],
-          ["Sections Ready", `${readyCount} / ${blocks.length}`, "All sections active", Layers3, "sky"],
-          ["Review Status", `${reviewCount} Needs Review`, "Tap to review", Star, "amber"],
-          ["Last Updated", "May 20, 2025", "10:24 AM", CalendarDays, "emerald"],
-          ["Completion", `${completion}%`, "Great job!", Gauge, "emerald"],
-        ].map(([label, valueText, detail, Icon, tone]) => (
-          <div key={label} className={`${cardClass} min-h-[116px] p-5`}>
-            <div className="flex min-w-0 items-center gap-3">
-              <span
-                className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
-                  tone === "violet"
-                    ? "bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300"
-                    : tone === "sky"
-                      ? "bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300"
-                      : tone === "amber"
-                        ? "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300"
-                        : "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"
-                }`}
-              >
-                <Icon className="h-5 w-5" />
-              </span>
-              <span className="min-w-0 break-words text-sm font-semibold text-slate-500 dark:text-slate-400">{label}</span>
-            </div>
-            <div className="mt-4 text-2xl font-extrabold text-slate-950 dark:text-white">{valueText}</div>
-            <div className="mt-1 text-sm font-semibold text-emerald-700 dark:text-emerald-300">{detail}</div>
-          </div>
-        ))}
-      </section>
-
-      <section className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <section className="grid grid-cols-1 gap-5">
         <div className={`${cardClass} p-5`}>
           <SectionTitle
             icon={Boxes}
@@ -920,43 +847,9 @@ export default function StoreCustomizationHomeSettings2026({
           </button>
         </div>
 
-        <aside className={`${cardClass} p-5`}>
-          <SectionTitle icon={WandSparkles} title="Optimization Suggestions" description="Smart recommendations to boost store performance." action={<span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300">AI Powered</span>} />
-          <div className="mt-5 space-y-3">
-            {[
-              [Image, "Review hero slider content", "Your main slider has not been updated in 15 days. Fresh banners improve engagement.", "emerald"],
-              [Grid3X3, "Check homepage sections", "5 sections need your attention to ensure optimal user experience.", "amber"],
-              [Search, "Validate SEO settings", "Meta title and description can be improved to boost search rankings.", "sky"],
-              [Gauge, "Enable product recommendations", "Add AI recommendations to increase conversion and average order value.", "violet"],
-            ].map(([Icon, title, detail, tone]) => (
-              <button key={title} type="button" className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 ${
-                tone === "amber"
-                  ? "border-amber-100 bg-amber-50/70 dark:border-amber-500/20 dark:bg-amber-500/10"
-                  : tone === "sky"
-                    ? "border-sky-100 bg-sky-50/70 dark:border-sky-500/20 dark:bg-sky-500/10"
-                    : tone === "violet"
-                      ? "border-violet-100 bg-violet-50/70 dark:border-violet-500/20 dark:bg-violet-500/10"
-                      : "border-emerald-100 bg-emerald-50/70 dark:border-emerald-500/20 dark:bg-emerald-500/10"
-              }`}>
-                <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/80 text-slate-700 dark:bg-slate-950/70 dark:text-slate-200">
-                  <Icon className="h-5 w-5" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-extrabold text-slate-950 dark:text-white">{title}</span>
-                  <span className="mt-0.5 block text-xs font-medium text-slate-500 dark:text-slate-400">{detail}</span>
-                </span>
-                <ChevronRight className="h-4 w-4 text-slate-400" />
-              </button>
-            ))}
-          </div>
-          <button type="button" className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 text-sm font-extrabold text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700">
-            <Sparkles className="h-4 w-4" />
-            Generate Optimization Plan
-          </button>
-        </aside>
       </section>
 
-      <section className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <section className="grid grid-cols-1 gap-5">
         <div className={`${cardClass} p-5`}>
           <SectionTitle icon={Layers3} title="Advanced Section Editor" description="Fine-tune texts, labels, and visibility settings for your homepage." action={<button type="button" aria-label="Collapse all advanced sections" className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-bold text-slate-600 dark:border-slate-800 dark:text-slate-300"><ChevronDown className="h-4 w-4 rotate-180" /><span className="hidden min-[420px]:inline">Collapse All</span></button>} />
 
@@ -1046,21 +939,6 @@ export default function StoreCustomizationHomeSettings2026({
           </div>
         </div>
 
-        <aside className={`${cardClass} p-5`}>
-          <h2 className="text-lg font-extrabold text-slate-950 dark:text-white">Editor Tips</h2>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Best practices for a great storefront.</p>
-          <div className="mt-4 space-y-3">
-            {["Label Consistency", "Navigation Clarity", "Mobile Readiness", "Contact Accessibility", "Content Length"].map((item) => (
-              <div key={item} className="flex min-w-0 gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3 dark:border-emerald-500/20 dark:bg-emerald-500/10">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700 dark:text-emerald-300" />
-                <div className="min-w-0">
-                  <p className="break-words text-sm font-extrabold text-slate-900 dark:text-white">{item}</p>
-                  <p className="break-words text-xs text-slate-500 dark:text-slate-400">All recommended checks look good.</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </aside>
       </section>
 
       <section ref={setSectionRef("mainSlider")} className={`${cardClass} p-5 scroll-mt-24`}>
@@ -1304,7 +1182,7 @@ export default function StoreCustomizationHomeSettings2026({
         </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <section className="grid grid-cols-1 gap-5">
         <div className="space-y-4">
           <div ref={setSectionRef("promotionBanner")} className="scroll-mt-24">
           <MerchandisingCard
@@ -1443,39 +1321,6 @@ export default function StoreCustomizationHomeSettings2026({
           </MerchandisingCard>
         </div>
 
-        <aside className="space-y-4">
-          <div className={`${cardClass} p-5`}>
-            <h2 className="text-lg font-extrabold text-slate-950 dark:text-white">Homepage Readiness</h2>
-            <div className="mt-5 flex items-center gap-4">
-              <div className="grid h-20 w-20 place-items-center rounded-full border-[7px] border-emerald-600 text-lg font-extrabold text-slate-950 dark:text-white">
-                {completion}%
-              </div>
-              <div>
-                <p className="font-extrabold text-emerald-700 dark:text-emerald-300">Almost there!</p>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Complete the pending items to publish your homepage.</p>
-              </div>
-            </div>
-          </div>
-          <div className={`${cardClass} p-5`}>
-            <h2 className="text-base font-extrabold text-slate-950 dark:text-white">3 Pending Items</h2>
-            <div className="mt-4 space-y-3">
-              {pendingItems.map((item) => (
-                <div key={item} className="flex gap-3 text-sm">
-                  <Star className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-                  <p className="font-semibold text-slate-700 dark:text-slate-300">{item}</p>
-                </div>
-              ))}
-            </div>
-            <button type="button" className="mt-4 h-10 w-full rounded-xl border border-slate-200 text-sm font-extrabold text-slate-700 dark:border-slate-800 dark:text-slate-200">View All Suggestions</button>
-          </div>
-          <div className={`${cardClass} p-5`}>
-            <h2 className="text-base font-extrabold text-slate-950 dark:text-white">Preview Storefront</h2>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">See how your homepage looks on your live store.</p>
-            <button type="button" onClick={onPreview} className="mt-4 h-11 w-full rounded-2xl border border-emerald-500 text-sm font-extrabold text-emerald-700 dark:text-emerald-300">Preview Store</button>
-            <button type="button" onClick={onPublish} disabled={isSaving || isPublishing} className="mt-3 h-11 w-full rounded-2xl bg-emerald-600 text-sm font-extrabold text-white disabled:opacity-60">{isPublishing ? "Publishing..." : "Publish Draft"}</button>
-            <p className="mt-3 text-center text-xs font-medium text-slate-400">Last draft saved 2 minutes ago</p>
-          </div>
-        </aside>
       </section>
 
       <section ref={setSectionRef("footer")} className={`${cardClass} p-5 scroll-mt-24`}>
