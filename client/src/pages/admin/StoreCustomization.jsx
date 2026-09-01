@@ -249,15 +249,15 @@ const DASHBOARD_SETTING_UPDATE_PROFILE_FIELDS = [
 ];
 
 const inputBase =
-  "h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 transition focus:border-[var(--admin-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary-soft)]";
+  "h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 transition focus:border-[var(--admin-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary-soft)] dark:bg-slate-900 dark:border-slate-700/50 dark:text-slate-200";
 const sectionCard =
-  "rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.05)]";
+  "rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.05)] dark:bg-slate-900/80 dark:border-slate-800 dark:shadow-none";
 const glassCard =
-  "rounded-3xl border border-white/70 bg-white/80 shadow-[0_16px_48px_rgba(15,23,42,0.08)] backdrop-blur-xl";
+  "rounded-3xl border border-white/70 bg-white/80 shadow-[0_16px_48px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-slate-700/50 dark:bg-slate-900/60 dark:shadow-none";
 const compactActionButton =
-  "inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-[var(--admin-primary-soft)] hover:text-[var(--admin-primary)] hover:shadow-sm";
+  "inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-[var(--admin-primary-soft)] hover:text-[var(--admin-primary)] hover:shadow-sm dark:bg-slate-900 dark:border-slate-700/50 dark:text-slate-300 dark:hover:bg-slate-800";
 const textAreaBase =
-  "mt-2 min-h-[92px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-[var(--admin-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary-soft)]";
+  "mt-2 min-h-[92px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-[var(--admin-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary-soft)] dark:bg-slate-900 dark:border-slate-700/50 dark:text-slate-200";
 const ABOUT_US_MEMBER_TABS = Array.from({ length: ABOUT_US_MEMBER_LENGTH }, (_, index) => ({
   key: `member-${index}`,
   index,
@@ -892,8 +892,8 @@ const mergeDeep = (base, source) => {
 };
 
 const toText = (value, fallback = "") => {
-  const normalized = String(value ?? "").trim();
-  return normalized || fallback;
+  const normalized = String(value ?? "");
+  return normalized === "" ? fallback : normalized;
 };
 
 const hasOwnValue = (source, key) =>
@@ -2699,12 +2699,12 @@ const toLanguagePayload = (form) => ({
 
 function SegmentedToggle({ value, onChange }) {
   return (
-    <div className="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1">
+    <div className="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-900/50">
       <button
         type="button"
         onClick={() => onChange(true)}
         className={`h-8 rounded-lg px-3 text-xs font-semibold transition ${
-          value ? "bg-[var(--admin-primary)] text-white" : "text-slate-600 hover:bg-slate-100"
+          value ? "bg-[var(--admin-primary)] text-white" : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
         }`}
       >
         Yes
@@ -2713,7 +2713,7 @@ function SegmentedToggle({ value, onChange }) {
         type="button"
         onClick={() => onChange(false)}
         className={`h-8 rounded-lg px-3 text-xs font-semibold transition ${
-          !value ? "bg-[var(--admin-primary)] text-white" : "text-slate-600 hover:bg-slate-100"
+          !value ? "bg-[var(--admin-primary)] text-white" : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
         }`}
       >
         No
@@ -2747,98 +2747,98 @@ function RichTextEditor({ id, label, value, onChange }) {
 
   return (
     <div className="space-y-2">
-      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
         {label}
       </span>
-      <div className="rounded-xl border border-slate-200 bg-white">
-        <div className="flex flex-wrap gap-2 border-b border-slate-200 bg-slate-50 p-2">
+      <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-700/50 dark:bg-slate-900">
+        <div className="flex flex-wrap gap-2 border-b border-slate-200 bg-slate-50 p-2 dark:border-slate-700/50 dark:bg-slate-800/50">
           <button
             type="button"
             onClick={() => applyCommand("bold")}
-            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
           >
             Bold
           </button>
           <button
             type="button"
             onClick={() => applyCommand("italic")}
-            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
           >
             Italic
           </button>
           <button
             type="button"
             onClick={() => applyCommand("underline")}
-            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
           >
             Underline
           </button>
           <button
             type="button"
             onClick={() => applyCommand("formatBlock", "<h2>")}
-            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
           >
             H2
           </button>
           <button
             type="button"
             onClick={() => applyCommand("formatBlock", "<h3>")}
-            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
           >
             H3
           </button>
           <button
             type="button"
             onClick={() => applyCommand("insertUnorderedList")}
-            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
           >
             Bullet
           </button>
           <button
             type="button"
             onClick={() => applyCommand("insertOrderedList")}
-            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
           >
             Number
           </button>
           <button
             type="button"
             onClick={() => applyCommand("fontSize", "3")}
-            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
           >
             A
           </button>
           <button
             type="button"
             onClick={() => applyCommand("fontSize", "5")}
-            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
           >
             A+
           </button>
           <button
             type="button"
             onClick={() => applyCommand("undo")}
-            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
           >
             Undo
           </button>
           <button
             type="button"
             onClick={() => applyCommand("redo")}
-            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
           >
             Redo
           </button>
         </div>
 
-        <div className="grid grid-cols-1 gap-2 border-b border-slate-200 bg-white p-2 lg:grid-cols-[1fr_auto]">
+        <div className="grid grid-cols-1 gap-2 border-b border-slate-200 bg-white p-2 lg:grid-cols-[1fr_auto] dark:border-slate-700/50 dark:bg-slate-900">
           <div className="flex items-center gap-2">
             <input
               type="text"
               value={linkInput}
               onChange={(event) => setLinkInput(event.target.value)}
               placeholder="https://example.com"
-              className="h-9 w-full rounded-lg border border-slate-200 px-3 text-xs text-slate-700 focus:border-[var(--admin-primary)] focus:outline-none"
+              className="h-9 w-full rounded-lg border border-slate-200 px-3 text-xs text-slate-700 focus:border-[var(--admin-primary)] focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
             />
             <button
               type="button"
@@ -2847,7 +2847,7 @@ function RichTextEditor({ id, label, value, onChange }) {
                 applyCommand("createLink", linkInput.trim());
                 setLinkInput("");
               }}
-              className="h-9 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+              className="h-9 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
             >
               Link
             </button>
@@ -2858,7 +2858,7 @@ function RichTextEditor({ id, label, value, onChange }) {
               value={imageInput}
               onChange={(event) => setImageInput(event.target.value)}
               placeholder="Image URL or Data URL"
-              className="h-9 w-full rounded-lg border border-slate-200 px-3 text-xs text-slate-700 focus:border-[var(--admin-primary)] focus:outline-none"
+              className="h-9 w-full rounded-lg border border-slate-200 px-3 text-xs text-slate-700 focus:border-[var(--admin-primary)] focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
             />
             <button
               type="button"
@@ -2867,7 +2867,7 @@ function RichTextEditor({ id, label, value, onChange }) {
                 applyCommand("insertImage", imageInput.trim());
                 setImageInput("");
               }}
-              className="h-9 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+              className="h-9 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
             >
               Image
             </button>
@@ -2880,7 +2880,7 @@ function RichTextEditor({ id, label, value, onChange }) {
           contentEditable
           suppressContentEditableWarning
           onInput={emitChange}
-          className="min-h-[220px] w-full px-4 py-3 text-sm text-slate-700 focus:outline-none"
+          className="min-h-[220px] w-full px-4 py-3 text-sm text-slate-700 focus:outline-none dark:text-slate-200"
         />
       </div>
     </div>
@@ -2902,7 +2902,7 @@ function ImageUploadField({
 }) {
   return (
     <div className="space-y-2">
-      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
         {label}
       </span>
       <input
@@ -2923,18 +2923,18 @@ function ImageUploadField({
         className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${
           dropActive
             ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)]"
-            : "border-slate-300 bg-white hover:border-slate-400"
+            : "border-slate-300 bg-white hover:border-slate-400 dark:border-slate-700/50 dark:bg-slate-900/50 dark:hover:border-slate-600"
         }`}
       >
-        <Upload className="h-5 w-5 text-slate-500" />
-        <p className="mt-2 text-sm font-medium text-slate-700">Drag your images here</p>
-        <p className="mt-1 text-xs text-slate-500">
+        <Upload className="h-5 w-5 text-slate-500 dark:text-slate-400" />
+        <p className="mt-2 text-sm font-medium text-slate-700 dark:text-slate-300">Drag your images here</p>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
           (Only *.jpeg, *.webp and *.png images will be accepted)
         </p>
       </label>
       {error ? <p className="text-xs text-rose-600">{error}</p> : null}
       {previewDataUrl ? (
-        <div className="relative inline-flex rounded-xl border border-slate-200 bg-white p-2">
+        <div className="relative inline-flex rounded-xl border border-slate-200 bg-white p-2 dark:border-slate-700 dark:bg-slate-900">
           <img
             src={previewDataUrl}
             alt={previewAlt}
@@ -2943,7 +2943,7 @@ function ImageUploadField({
           <button
             type="button"
             onClick={onRemove}
-            className="absolute -right-2 -top-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 hover:bg-slate-100"
+            className="absolute -right-2 -top-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
             aria-label={`Remove ${label}`}
           >
             <X className="h-3 w-3" />
@@ -6638,16 +6638,16 @@ export default function StoreCustomizationPage() {
         <div className="flex flex-col gap-5">
           <section className={sectionCard}>
             <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                 <Settings className="h-4 w-4" />
               </span>
-              <h2 className="text-base font-semibold text-slate-900">Privacy Policy</h2>
+              <h2 className="text-base font-semibold text-slate-900 dark:text-white">Privacy Policy</h2>
             </div>
-            <div className="mt-4 h-px w-full bg-slate-200" />
+            <div className="mt-4 h-px w-full bg-slate-200 dark:bg-slate-700/50" />
 
             <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[320px_1fr]">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3 dark:border-slate-800 dark:bg-slate-900/60">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">
                   Enable This Block
                 </p>
                 <SegmentedToggle
@@ -6684,7 +6684,7 @@ export default function StoreCustomizationPage() {
                 previewAlt="Privacy policy page header background"
               />
               <label className="block xl:col-span-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   Page Title
                 </span>
                 <input
@@ -6711,18 +6711,18 @@ export default function StoreCustomizationPage() {
 
           <section className={sectionCard}>
             <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                 <Settings className="h-4 w-4" />
               </span>
-              <h2 className="text-base font-semibold text-slate-900">
+              <h2 className="text-base font-semibold text-slate-900 dark:text-white">
                 Terms & Conditions
               </h2>
             </div>
-            <div className="mt-4 h-px w-full bg-slate-200" />
+            <div className="mt-4 h-px w-full bg-slate-200 dark:bg-slate-700/50" />
 
             <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[320px_1fr]">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3 dark:border-slate-800 dark:bg-slate-900/60">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">
                   Enable This Block
                 </p>
                 <SegmentedToggle
@@ -6764,7 +6764,7 @@ export default function StoreCustomizationPage() {
                 previewAlt="Terms and conditions page header background"
               />
               <label className="block xl:col-span-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   Page Title
                 </span>
                 <input
