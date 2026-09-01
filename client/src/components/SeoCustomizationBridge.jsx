@@ -111,7 +111,7 @@ export default function SeoCustomizationBridge() {
     );
     const nextDescription = seoSettings.metaDescription;
     const nextKeywords = seoSettings.metaKeywords;
-    const nextImage = seoSettings.metaImageDataUrl;
+    const nextImage = resolveSeoAbsoluteUrl(resolveAssetUrl(seoSettings.metaImageDataUrl), currentUrl);
     const nextUrl = resolveSeoAbsoluteUrl(seoSettings.metaUrl, currentUrl);
 
     document.title = nextTitle;
