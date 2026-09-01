@@ -34,6 +34,7 @@ import {
 } from "../../components/admin/AdminOpsPrimitives.jsx";
 import StoreCustomizationHomeSettings2026 from "../../components/admin/store-customization/StoreCustomizationHomeSettings2026.jsx";
 import StoreCustomizationSingleSetting2026 from "../../components/admin/store-customization/StoreCustomizationSingleSetting2026.jsx";
+import StoreCustomizationTabNav2026 from "../../components/admin/store-customization/StoreCustomizationTabNav2026.jsx";
 
 const ADMIN_LANGUAGE_KEY = "adminLanguage";
 
@@ -6117,24 +6118,7 @@ export default function StoreCustomizationPage() {
       ) : null}
 
       {activeTab === "home" || activeTab === "productSlugPage" ? null : (
-        <div className={`${glassCard} p-3`}>
-          <div className="flex flex-wrap gap-2">
-            {TABS.map((tab) => (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => onSelectTab(tab.key)}
-                className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
-                  activeTab === tab.key
-                    ? "bg-slate-950 text-white shadow-sm"
-                    : "bg-white/80 text-slate-600 hover:-translate-y-0.5 hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary)]"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <StoreCustomizationTabNav2026 activeTab={activeTab} onTabChange={onSelectTab} />
       )}
 
       <div
@@ -6998,7 +6982,7 @@ export default function StoreCustomizationPage() {
                 </span>
                 <input
                   type="text"
-                  value={offers.pageHeader.pageTitle}
+                  value={offers?.pageHeader?.pageTitle || ""}
                   onChange={(event) =>
                     onChangeOffersPageHeaderField("pageTitle", event.target.value)
                   }

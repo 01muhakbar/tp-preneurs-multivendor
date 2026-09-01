@@ -177,12 +177,12 @@ export default function StoreContactUsPage() {
     () => [
       contactUs.emailBox.enabled &&
       (hasText(contactUs.emailBox.title) ||
-        isDisplayEmail(contactUs.emailBox.email) ||
+        hasText(contactUs.emailBox.email) ||
         hasText(contactUs.emailBox.text))
         ? {
             key: "email",
             title: contactUs.emailBox.title,
-            primary: isDisplayEmail(contactUs.emailBox.email) ? contactUs.emailBox.email : "",
+            primary: hasText(contactUs.emailBox.email) ? contactUs.emailBox.email : "",
             text: contactUs.emailBox.text,
             href: isDisplayEmail(contactUs.emailBox.email)
               ? `mailto:${contactUs.emailBox.email}`
@@ -361,7 +361,13 @@ export default function StoreContactUsPage() {
 
       {showMiddleLeftImage || showContactForm ? (
         <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-          <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+          <div
+            className={`grid gap-5 ${
+              showMiddleLeftImage && showContactForm
+                ? "lg:grid-cols-[0.9fr_1.1fr]"
+                : "lg:grid-cols-1"
+            }`}
+          >
             {showMiddleLeftImage ? (
               <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
                 <img

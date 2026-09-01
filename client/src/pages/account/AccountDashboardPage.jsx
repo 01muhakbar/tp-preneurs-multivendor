@@ -89,7 +89,7 @@ const resolveOnboarding = ({ application, sellerStores }) => {
 };
 
 export default function AccountDashboardPage() {
-  const { user } = useOutletContext() || {};
+  const { user, dashboardSettingCopy } = useOutletContext() || {};
   const ordersQuery = useQuery({
     queryKey: ["account", "orders", "my", "dashboard"],
     queryFn: () => fetchStoreMyOrders({ limit: 100 }),
@@ -172,6 +172,7 @@ export default function AccountDashboardPage() {
   return (
     <AccountDashboard2026View
       user={user}
+      dashboardSettingCopy={dashboardSettingCopy}
       stats={stats}
       recentOrders={recentOrders}
       onboarding={onboarding}

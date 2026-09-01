@@ -17,6 +17,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { formatCurrency } from "../../utils/format.js";
 import { resolvePublicOrderReference } from "../../utils/publicOrderReference.js";
+import { normalizeDashboardSettingCopy } from "../../utils/dashboardSettingCopy.js";
 import "./account-dashboard-2026.css";
 
 const money = (value) => formatCurrency(Number(value || 0));
@@ -153,12 +154,13 @@ function QuickAction({ label, value, href, Icon, tone }) {
   );
 }
 
-function RecentOrders({ orders = [], loading }) {
+function RecentOrders({ orders = [], loading, copy }) {
   const { t } = useTranslation();
+  const title = copy?.dashboard?.recentOrderValue || t("dashboard.recentOrders");
   return (
     <section className="tp-recent-orders" aria-labelledby="tp-recent-orders-title">
       <div className="tp-recent-orders__heading">
-        <h2 id="tp-recent-orders-title">{t("dashboard.recentOrders")}</h2>
+        <h2 id="tp-recent-orders-title">{title}</h2>
         <Link to="/user/my-orders">{t("dashboard.viewAllOrders")} <ArrowRight aria-hidden="true" /></Link>
       </div>
       {loading ? <DashboardSkeleton rows={3} /> : orders.length === 0 ? (
@@ -200,6 +202,7 @@ function RecentOrders({ orders = [], loading }) {
 
 export default function AccountDashboard2026View({
   user,
+  dashboardSettingCopy: rawCopy,
   stats = {},
   recentOrders = [],
   onboarding = {},
@@ -211,12 +214,13 @@ export default function AccountDashboard2026View({
   errors = [],
 }) {
   const { t } = useTranslation();
+  const copy = rawCopy || normalizeDashboardSettingCopy({});
   const name = user?.name || user?.fullName || user?.email?.split("@")[0] || "there";
   const statCards = [
-    [t("dashboard.totalOrders"), stats.total, t("dashboard.allOrders"), ShoppingBag, "green"],
-    [t("dashboard.pendingOrders"), stats.pending, t("dashboard.awaitingAction"), Clock3, "orange"],
-    [t("dashboard.processingOrders"), stats.processing, t("dashboard.inProgress"), Truck, "blue"],
-    [t("dashboard.completedOrders"), stats.completed, t("dashboard.done"), CheckCircle2, "emerald"],
+    [copy.dashboard.totalOrdersLabel, stats.total, t("dashboard.allOrders"), ShoppingBag, "green"],
+    [copy.dashboard.pendingOrderValue, stats.pending, t("dashboard.awaitingAction"), Clock3, "orange"],
+    [copy.dashboard.processingOrderValue, stats.processing, t("dashboard.inProgress"), Truck, "blue"],
+    [copy.dashboard.completeOrderValue, stats.completed, t("dashboard.done"), CheckCircle2, "emerald"],
   ];
   const quickLinks = [
     [t("dashboard.wishlist"), t("dashboard.browseSavedItems"), "/wishlist", Heart, "green"],
@@ -229,7 +233,7 @@ export default function AccountDashboard2026View({
     <div className="tp-account-dashboard-2026">
       <header className="tp-account-dashboard-2026__heading">
         <span>{t("dashboard.overview")}</span>
-        <h1>{t("dashboard.title")}</h1>
+        <h1>{copy.dashboard.dashboardLabel}</h1>
         <p>{t("dashboard.welcome", { name })}</p>
       </header>
 
@@ -246,7 +250,7 @@ export default function AccountDashboard2026View({
         </div>
       </section>
 
-      <RecentOrders orders={recentOrders} loading={isOrdersLoading} />
+      <RecentOrders orders={recentOrders} loading={isOrdersLoading} copy={copy} />
 
       <Link className="tp-account-dashboard-2026__help" to="/contact-us">
         <span className="tp-dashboard-icon tp-dashboard-icon--blue"><Headphones aria-hidden="true" /></span>

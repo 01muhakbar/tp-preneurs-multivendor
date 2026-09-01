@@ -113,7 +113,7 @@ function ProductImage({ item }) {
   );
 }
 
-function ProductRow({ item, compact = false, disabled, formatMoney, onDecrease, onIncrease, onRemove, onReselectVariant }) {
+function ProductRow({ item, compact = false, disabled, formatMoney, itemPriceLabel, onDecrease, onIncrease, onRemove, onReselectVariant }) {
   const { t } = useTranslation();
   return (
     <div className={`co26-product${compact ? " co26-product--compact" : ""}${item.invalidItem ? " co26-product--invalid" : ""}`} data-checkout-invalid-item={item.invalidItem ? "true" : undefined}>
@@ -124,7 +124,7 @@ function ProductRow({ item, compact = false, disabled, formatMoney, onDecrease, 
         {item.variantSelections.map((selection, index) => (
           <span key={`${item.lineId}-option-${index}`}>{selection.name}: {selection.value}</span>
         ))}
-        <small>{t("checkout.itemPrice")}&nbsp; {money(item.unitPrice, formatMoney)}</small>
+        <small>{itemPriceLabel || t("checkout.itemPrice")}&nbsp; {money(item.unitPrice, formatMoney)}</small>
       </div>
       {!compact ? <div className="co26-product-total">{money(item.lineTotal, formatMoney)}</div> : null}
       <QuantityControl item={item} disabled={disabled} onDecrease={onDecrease} onIncrease={onIncrease} />
@@ -142,15 +142,17 @@ function ProductRow({ item, compact = false, disabled, formatMoney, onDecrease, 
   );
 }
 
-function CouponControl({ value, status, message, disabled, label, onChange, onApply, onRemove }) {
+function CouponControl({ value, status, message, disabled, label, applyLabel, applyingLabel, onChange, onApply, onRemove }) {
   const { t } = useTranslation();
   const inputLabel = label || t("checkout.couponCode");
+  const applyText = applyLabel || t("checkout.apply");
+  const applyingText = applyingLabel || t("checkout.applying");
   return (
     <div className="co26-coupon-block">
       <div className="co26-coupon">
         <TicketPercent aria-hidden="true" />
         <input aria-label={inputLabel} value={value} onChange={(event) => onChange(event.target.value.toUpperCase())} placeholder={inputLabel} disabled={disabled} />
-        <button type="button" onClick={onApply} disabled={disabled}>{status === "loading" ? t("checkout.applying") : t("checkout.apply")}</button>
+        <button type="button" onClick={onApply} disabled={disabled}>{status === "loading" ? applyingText : applyText}</button>
       </div>
       {message ? <p className={`co26-coupon-message co26-coupon-message--${status}`}>{message}</p> : null}
       {status === "applied" && onRemove ? <button className="co26-coupon-remove" type="button" onClick={onRemove} disabled={disabled}>{t("checkout.removeCoupon")}</button> : null}
@@ -190,6 +192,7 @@ function EmptyState() {
 
 export default function Checkout2026View({
   viewModel,
+  copy,
   form,
   options,
   refs,
@@ -227,7 +230,7 @@ export default function Checkout2026View({
         <header className="co26-page-head">
           <div><p className="co26-eyebrow">{t("checkout.secureCheckout")}</p><h1>{t("checkout.title")}</h1></div>
           <label className="co26-saved-toggle">
-            <span>{t("checkout.useSavedAddress")}</span><Info aria-hidden="true" />
+            <span>{copy?.shippingDetails?.defaultShippingToggleLabel || t("checkout.useSavedAddress")}</span><Info aria-hidden="true" />
             <input type="checkbox" checked={form.useSavedAddress} onChange={onToggleSavedAddress} disabled={status.submitting || status.addressLoading} />
             <i aria-hidden="true" />
           </label>
@@ -245,28 +248,28 @@ export default function Checkout2026View({
         <div className="co26-grid">
           <div className="co26-main-column">
             <section className="co26-card">
-              <SectionHeader number="01" title={t("checkout.contactDetails")} />
+              <SectionHeader number="01" title={copy?.personalDetails?.sectionTitle || t("checkout.contactDetails")} subtitle={copy?.personalDetails?.sectionHint} />
               <div className="co26-form-grid">
-                <Field label={t("checkout.firstName")} icon={UserRound} required error={form.errors.firstName}><input ref={refs.firstName} value={form.firstName} onChange={(e) => onFieldChange("firstName", e.target.value)} placeholder={t("checkout.firstName")} disabled={busy} /></Field>
-                <Field label={t("checkout.lastName")} icon={CircleUserRound} required error={form.errors.lastName}><input value={form.lastName} onChange={(e) => onFieldChange("lastName", e.target.value)} placeholder={t("checkout.lastName")} disabled={busy} /></Field>
-                <Field label={t("checkout.email")} icon={Mail}><input type="email" value={form.email} onChange={(e) => onFieldChange("email", e.target.value)} placeholder={t("checkout.email")} disabled={busy} /></Field>
-                <Field label={t("checkout.phone")} icon={Phone} required error={form.errors.phone}><input ref={refs.phone} value={form.phone} onChange={(e) => onFieldChange("phone", e.target.value)} placeholder={t("checkout.phone")} disabled={busy} /></Field>
+                <Field label={copy?.personalDetails?.firstNameLabel || t("checkout.firstName")} icon={UserRound} required error={form.errors.firstName}><input ref={refs.firstName} value={form.firstName} onChange={(e) => onFieldChange("firstName", e.target.value)} placeholder={copy?.personalDetails?.firstNamePlaceholder || t("checkout.firstName")} disabled={busy} /></Field>
+                <Field label={copy?.personalDetails?.lastNameLabel || t("checkout.lastName")} icon={CircleUserRound} required error={form.errors.lastName}><input value={form.lastName} onChange={(e) => onFieldChange("lastName", e.target.value)} placeholder={copy?.personalDetails?.lastNamePlaceholder || t("checkout.lastName")} disabled={busy} /></Field>
+                <Field label={copy?.personalDetails?.emailLabel || t("checkout.email")} icon={Mail}><input type="email" value={form.email} onChange={(e) => onFieldChange("email", e.target.value)} placeholder={copy?.personalDetails?.emailPlaceholder || t("checkout.email")} disabled={busy} /></Field>
+                <Field label={copy?.personalDetails?.phoneLabel || t("checkout.phone")} icon={Phone} required error={form.errors.phone}><input ref={refs.phone} value={form.phone} onChange={(e) => onFieldChange("phone", e.target.value)} placeholder={copy?.personalDetails?.phonePlaceholder || t("checkout.phone")} disabled={busy} /></Field>
               </div>
               {status.authHint ? <p className="co26-inline-note"><Info /> {t("checkout.authHint")}</p> : null}
               {status.addressMessage ? <p className="co26-inline-note"><Info /> {status.addressMessage}</p> : null}
             </section>
 
             <section className="co26-card">
-              <SectionHeader number="02" title={t("checkout.shippingDetails")} />
+              <SectionHeader number="02" title={copy?.shippingDetails?.sectionTitle || t("checkout.shippingDetails")} subtitle={copy?.shippingDetails?.sectionHint} />
               <div className="co26-form-grid">
-                <Field label={t("checkout.province")} required error={form.errors.province}><select ref={refs.province} value={form.shipping.province} onChange={(e) => onShippingChange("province", e.target.value)} disabled={form.lockAddress}><option value="">{t("checkout.selectProvince")}</option>{options.provinces.map((option) => { const value = typeof option === "string" ? option : option.value; return <option key={value} value={value}>{typeof option === "string" ? option : option.label}</option>; })}</select></Field>
-                <Field label={t("checkout.city")} required error={form.errors.city}><select value={form.shipping.city} onChange={(e) => onShippingChange("city", e.target.value)} disabled={form.lockAddress || !form.shipping.province}><option value="">{t("checkout.selectCity")}</option>{options.cities.map((option) => { const value = typeof option === "string" ? option : option.value; return <option key={value} value={value}>{typeof option === "string" ? option : option.label}</option>; })}</select></Field>
-                <Field label={t("checkout.subdistrict")} required error={form.errors.district}><select value={form.shipping.district} onChange={(e) => onShippingChange("district", e.target.value)} disabled={form.lockAddress || !form.shipping.city}><option value="">{t("checkout.selectSubdistrict")}</option>{options.districts.map((option) => { const value = typeof option === "string" ? option : option.value; return <option key={value} value={value}>{typeof option === "string" ? option : option.label}</option>; })}</select></Field>
-                <Field label={t("checkout.postalCode")} required error={form.errors.postalCode}><input inputMode="numeric" value={form.shipping.postalCode} onChange={(e) => onShippingChange("postalCode", e.target.value.replace(/\D/g, "").slice(0, 5))} placeholder={t("checkout.postalCode")} disabled={form.lockAddress} /></Field>
-                <Field label={t("checkout.streetAddress")} icon={MapPin} required error={form.errors.streetName}><input ref={refs.streetName} value={form.shipping.streetName} onChange={(e) => onShippingChange("streetName", e.target.value)} placeholder={t("checkout.streetAddress")} disabled={form.lockAddress} /></Field>
-                <Field label={t("checkout.houseNumber")} required error={form.errors.houseNumber}><input value={form.shipping.houseNumber} onChange={(e) => onShippingChange("houseNumber", e.target.value)} placeholder={t("checkout.houseNumberPlaceholder")} disabled={form.lockAddress} /></Field>
-                <Field label={t("checkout.building")} icon={Building2}><input value={form.shipping.building} onChange={(e) => onShippingChange("building", e.target.value)} placeholder={t("checkout.buildingPlaceholder")} disabled={form.lockAddress} /></Field>
-                <Field label={t("checkout.landmark")}><input value={form.shipping.otherDetails} onChange={(e) => onShippingChange("otherDetails", e.target.value)} placeholder={t("checkout.landmarkPlaceholder")} disabled={form.lockAddress} /></Field>
+                <Field label={copy?.shippingDetails?.provinceLabel || t("checkout.province")} required error={form.errors.province}><select ref={refs.province} value={form.shipping.province} onChange={(e) => onShippingChange("province", e.target.value)} disabled={form.lockAddress}><option value="">{copy?.shippingDetails?.provincePlaceholder || t("checkout.selectProvince")}</option>{options.provinces.map((option) => { const value = typeof option === "string" ? option : option.value; return <option key={value} value={value}>{typeof option === "string" ? option : option.label}</option>; })}</select></Field>
+                <Field label={copy?.shippingDetails?.cityLabel || t("checkout.city")} required error={form.errors.city}><select value={form.shipping.city} onChange={(e) => onShippingChange("city", e.target.value)} disabled={form.lockAddress || !form.shipping.province}><option value="">{copy?.shippingDetails?.cityPlaceholder || t("checkout.selectCity")}</option>{options.cities.map((option) => { const value = typeof option === "string" ? option : option.value; return <option key={value} value={value}>{typeof option === "string" ? option : option.label}</option>; })}</select></Field>
+                <Field label={copy?.shippingDetails?.districtLabel || t("checkout.subdistrict")} required error={form.errors.district}><select value={form.shipping.district} onChange={(e) => onShippingChange("district", e.target.value)} disabled={form.lockAddress || !form.shipping.city}><option value="">{copy?.shippingDetails?.districtPlaceholder || t("checkout.selectSubdistrict")}</option>{options.districts.map((option) => { const value = typeof option === "string" ? option : option.value; return <option key={value} value={value}>{typeof option === "string" ? option : option.label}</option>; })}</select></Field>
+                <Field label={copy?.shippingDetails?.postalCodeLabel || t("checkout.postalCode")} required error={form.errors.postalCode}><input inputMode="numeric" value={form.shipping.postalCode} onChange={(e) => onShippingChange("postalCode", e.target.value.replace(/\D/g, "").slice(0, 5))} placeholder={copy?.shippingDetails?.postalCodePlaceholder || t("checkout.postalCode")} disabled={form.lockAddress} /></Field>
+                <Field label={copy?.shippingDetails?.streetNameLabel || t("checkout.streetAddress")} icon={MapPin} required error={form.errors.streetName}><input ref={refs.streetName} value={form.shipping.streetName} onChange={(e) => onShippingChange("streetName", e.target.value)} placeholder={copy?.shippingDetails?.streetNamePlaceholder || t("checkout.streetAddress")} disabled={form.lockAddress} /></Field>
+                <Field label={copy?.shippingDetails?.houseNumberLabel || t("checkout.houseNumber")} required error={form.errors.houseNumber}><input value={form.shipping.houseNumber} onChange={(e) => onShippingChange("houseNumber", e.target.value)} placeholder={copy?.shippingDetails?.houseNumberPlaceholder || t("checkout.houseNumberPlaceholder")} disabled={form.lockAddress} /></Field>
+                <Field label={copy?.shippingDetails?.buildingLabel || t("checkout.building")} icon={Building2}><input value={form.shipping.building} onChange={(e) => onShippingChange("building", e.target.value)} placeholder={copy?.shippingDetails?.buildingPlaceholder || t("checkout.buildingPlaceholder")} disabled={form.lockAddress} /></Field>
+                <Field label={copy?.shippingDetails?.otherDetailsLabel || t("checkout.landmark")}><input value={form.shipping.otherDetails} onChange={(e) => onShippingChange("otherDetails", e.target.value)} placeholder={copy?.shippingDetails?.otherDetailsPlaceholder || t("checkout.landmarkPlaceholder")} disabled={form.lockAddress} /></Field>
               </div>
             </section>
 
@@ -280,7 +283,7 @@ export default function Checkout2026View({
                   return <article className="co26-store" key={group.storeId} data-testid={`checkout-preview-group-container-${group.storeId}`}>
                     <div className="co26-store-head"><span className="co26-store-mark"><Store /></span><div><strong>{group.storeName}</strong><small>{t("checkout.itemCount", { count: group.items.length })}{group.shippingNote ? ` · ${group.shippingNote}` : ""}</small></div><span className={group.paymentReady ? "is-ready" : ""}><BadgeCheck /> {group.paymentReady ? t("checkout.paymentReady") : t("checkout.paymentPending")}</span></div>
                     <div className="co26-store-products">{group.items.map((item) => <ProductRow key={item.lineId} item={item} disabled={busy} formatMoney={formatMoney} onDecrease={onDecrease} onIncrease={onIncrease} onRemove={onRemove} onReselectVariant={onReselectVariant} />)}</div>
-                    {viewModel.checkoutMode === "MULTI_STORE" ? <CouponControl label={t("checkout.storeCouponLabel", { storeName: group.storeName })} value={storeCoupon.code || ""} status={storeCoupon.status} message={storeCoupon.message} disabled={busy || status.previewBlocked || storeCoupon.status === "loading"} onChange={(value) => coupons.onGroupChange(group.storeId, value)} onApply={() => coupons.onGroupApply(group.raw)} onRemove={() => coupons.onGroupRemove(group.storeId)} /> : null}
+                    {viewModel.checkoutMode === "MULTI_STORE" ? <CouponControl label={copy?.cartItemSection?.couponCodeLabel || t("checkout.storeCouponLabel", { storeName: group.storeName })} applyLabel={copy?.cartItemSection?.applyButtonLabel} applyingLabel={copy?.cartItemSection?.applyingButtonLabel} value={storeCoupon.code || ""} status={storeCoupon.status} message={storeCoupon.message} disabled={busy || status.previewBlocked || storeCoupon.status === "loading"} onChange={(value) => coupons.onGroupChange(group.storeId, value)} onApply={() => coupons.onGroupApply(group.raw)} onRemove={() => coupons.onGroupRemove(group.storeId)} /> : null}
                     <div className="co26-store-total"><span>{t("checkout.storeSubtotal")}</span><strong>{money(group.subtotal, formatMoney)}</strong></div>
                   </article>;
                 })}
@@ -288,7 +291,7 @@ export default function Checkout2026View({
             </section>
 
             <section className="co26-card co26-payment-card" data-testid="checkout-payment-methods">
-              <SectionHeader number="04" title={t("checkout.paymentAfterOrder")} subtitle={t("checkout.paymentOptionsSubtitle")} icon={CreditCard} />
+              <SectionHeader number="04" title={copy?.shippingDetails?.paymentMethodLabel || t("checkout.paymentAfterOrder")} subtitle={t("checkout.paymentOptionsSubtitle")} icon={CreditCard} />
               {viewModel.paymentReady ? (
                 <div className="co26-payment-options-list">
                   {form.paymentOptions?.map((option) => {
@@ -365,18 +368,18 @@ export default function Checkout2026View({
                   <small>{t("checkout.paymentNote")}</small>
                 </div>
               )}
-              <button type="button" className="co26-secondary-button" onClick={onBackToCart}><ArrowLeft /> {t("checkout.backToCart")}</button>
+              <button type="button" className="co26-secondary-button" onClick={onBackToCart}><ArrowLeft /> {copy?.buttons?.continueButtonLabel || t("checkout.backToCart")}</button>
             </section>
           </div>
 
           <aside className="co26-summary">
             <div className="co26-summary-card">
-              <div className="co26-summary-head"><h2>{t("checkout.orderSummary")}</h2><span>{t("checkout.itemCount", { count: viewModel.itemCount })}</span></div>
-              <div className="co26-summary-products">{summaryItems.map((item) => <ProductRow compact key={`summary-${item.lineId}`} item={item} disabled={busy} formatMoney={formatMoney} onDecrease={onDecrease} onIncrease={onIncrease} onRemove={onRemove} />)}</div>
-              {viewModel.checkoutMode === "SINGLE_STORE" ? <CouponControl value={coupons.code} status={coupons.status} message={coupons.message} disabled={busy || status.previewBlocked || coupons.status === "loading"} onChange={coupons.onChange} onApply={coupons.onApply} onRemove={coupons.onRemove} /> : <p className="co26-summary-coupon-note"><TicketPercent /> {t("checkout.applyCouponsInGroup")}</p>}
-              <dl className="co26-totals"><div><dt>{t("checkout.subtotal")}</dt><dd>{viewModel.previewReady ? money(viewModel.amounts.subtotal, formatMoney) : dash}</dd></div><div><dt>{t("checkout.shipping")}</dt><dd>{viewModel.previewReady ? money(viewModel.amounts.shipping, formatMoney) : dash}</dd></div><div><dt>{t("checkout.discount")}</dt><dd>{viewModel.previewReady ? money(viewModel.amounts.discount, formatMoney) : dash}</dd></div><div><dt>{t("checkout.tax")}</dt><dd>{viewModel.previewReady ? money(viewModel.amounts.tax, formatMoney) : dash}</dd></div><div className="co26-grand-total"><dt>{t("checkout.total")}</dt><dd>{viewModel.previewReady ? money(viewModel.amounts.total, formatMoney) : dash}</dd></div></dl>
+              <div className="co26-summary-head"><h2>{copy?.cartItemSection?.orderSummaryLabel || t("checkout.orderSummary")}</h2><span>{t("checkout.itemCount", { count: viewModel.itemCount })}</span></div>
+              <div className="co26-summary-products">{summaryItems.map((item) => <ProductRow compact key={`summary-${item.lineId}`} item={item} disabled={busy} formatMoney={formatMoney} itemPriceLabel={copy?.cartItemSection?.itemPriceLabel} onDecrease={onDecrease} onIncrease={onIncrease} onRemove={onRemove} />)}</div>
+              {viewModel.checkoutMode === "SINGLE_STORE" ? <CouponControl label={copy?.cartItemSection?.couponCodeLabel} applyLabel={copy?.cartItemSection?.applyButtonLabel} applyingLabel={copy?.cartItemSection?.applyingButtonLabel} value={coupons.code} status={coupons.status} message={coupons.message} disabled={busy || status.previewBlocked || coupons.status === "loading"} onChange={coupons.onChange} onApply={coupons.onApply} onRemove={coupons.onRemove} /> : <p className="co26-summary-coupon-note"><TicketPercent /> {t("checkout.applyCouponsInGroup")}</p>}
+              <dl className="co26-totals"><div><dt>{copy?.cartItemSection?.subTotalLabel || t("checkout.subtotal")}</dt><dd>{viewModel.previewReady ? money(viewModel.amounts.subtotal, formatMoney) : dash}</dd></div><div><dt>{copy?.cartItemSection?.shippingLabel || t("checkout.shipping")}</dt><dd>{viewModel.previewReady ? money(viewModel.amounts.shipping, formatMoney) : dash}</dd></div><div><dt>{copy?.cartItemSection?.discountLabel || t("checkout.discount")}</dt><dd>{viewModel.previewReady ? money(viewModel.amounts.discount, formatMoney) : dash}</dd></div><div><dt>{copy?.cartItemSection?.taxLabel || t("checkout.tax")}</dt><dd>{viewModel.previewReady ? money(viewModel.amounts.tax, formatMoney) : dash}</dd></div><div className="co26-grand-total"><dt>{copy?.cartItemSection?.totalCostLabel || t("checkout.total")}</dt><dd>{viewModel.previewReady ? money(viewModel.amounts.total, formatMoney) : dash}</dd></div></dl>
               <p className="co26-secure-note"><LockKeyhole /> {t("checkout.taxesCalculatedNote")}</p>
-              <button className="co26-place-order" type="submit" data-testid="checkout-submit-cta" disabled={busy || status.submitDisabled} aria-busy={status.submitting}><LockKeyhole /> {status.submitting ? t("checkout.placingOrder") : t("checkout.placeOrder")}</button>
+              <button className="co26-place-order" type="submit" data-testid="checkout-submit-cta" disabled={busy || status.submitDisabled} aria-busy={status.submitting}><LockKeyhole /> {status.submitting ? (copy?.buttons?.processingButtonLabel || t("checkout.placingOrder")) : (copy?.buttons?.confirmButtonLabel || t("checkout.placeOrder"))}</button>
               {status.submitMessage ? <p className="co26-submit-message" data-testid="checkout-submit-blocker-message">{status.submitMessage}</p> : null}
               <p className="co26-protection"><ShieldCheck /> {t("checkout.secureCheckoutNote")}</p>
             </div>

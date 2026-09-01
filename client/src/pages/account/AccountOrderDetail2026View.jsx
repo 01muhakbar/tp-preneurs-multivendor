@@ -21,6 +21,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../../theme/ThemeProvider.jsx";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
 import "./account-order-detail-2026.css";
+import { normalizeDashboardSettingCopy } from "../../utils/dashboardSettingCopy.js";
 import { buildAccountOrderInvoiceModel } from "./invoice/accountOrderInvoiceAdapter.js";
 import AccountOrderInvoicePrint from "./invoice/AccountOrderInvoicePrint.jsx";
 
@@ -327,6 +328,7 @@ function OrderActions({
   onTrack,
   onTimeline,
   t,
+  copy,
 }) {
   const actions = orderDetail.actionability;
   return (
@@ -334,14 +336,14 @@ function OrderActions({
       <h2>{t("orderDetail.orderActions")}</h2>
       <RailAction
         icon={FileText}
-        label={t("orderDetail.invoice")}
+        label={copy.dashboard.downloadButtonValue}
         onClick={() => onInvoice(actions.invoice)}
         disabled={!actions.invoice.enabled}
         title={actions.invoice.reason}
       />
       <RailAction
         icon={Printer}
-        label={t("orderDetail.printOrder", "Print Order")}
+        label={copy.dashboard.printButtonValue}
         onClick={onPrint}
       />
       <RailAction
@@ -418,9 +420,11 @@ export default function AccountOrderDetail2026View({
   rawOrder,
   groupedOrder,
   user,
+  dashboardSettingCopy: rawCopy,
 }) {
   const { theme, resolvedTheme } = useTheme();
   const { t } = useTranslation();
+  const copy = rawCopy || normalizeDashboardSettingCopy({});
 
   if (isLoading) return <LoadingState />;
   if (error || !orderDetail) {
@@ -476,13 +480,14 @@ export default function AccountOrderDetail2026View({
             onTrack={onTrack}
             onTimeline={onTimeline}
             t={t}
+            copy={copy}
           />
           <SupportCard onContactSupport={onContactSupport} t={t} />
           <OrderSummary orderDetail={orderDetail} t={t} />
         </aside>
       </div>
     </section>
-    <AccountOrderInvoicePrint invoiceData={invoiceData} themeMode={resolvedTheme} />
+    <AccountOrderInvoicePrint invoiceData={invoiceData} themeMode={resolvedTheme} dashboardSettingCopy={copy} />
     </>
   );
 }

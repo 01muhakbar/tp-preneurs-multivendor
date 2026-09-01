@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useOutletContext } from "react-router-dom";
 import { api } from "../../api/axios.ts";
 import { fetchOrderCheckoutPayment } from "../../api/orderPayments.ts";
 import { isOrderContractFinal } from "../../utils/orderContract.ts";
@@ -26,6 +26,7 @@ export default function AccountOrderDetailPage() {
   const navigate = useNavigate();
   const auth = useAuth();
   const user = auth?.user || null;
+  const { dashboardSettingCopy } = useOutletContext() || {};
   const orderQuery = useQuery({
     queryKey: ["account", "orders", id],
     queryFn: () => fetchOrder(id),
@@ -142,6 +143,7 @@ export default function AccountOrderDetailPage() {
       rawOrder={orderDetail}
       groupedOrder={paymentReadModel}
       user={user}
+      dashboardSettingCopy={dashboardSettingCopy}
     />
   );
 }

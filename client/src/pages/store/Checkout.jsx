@@ -2573,6 +2573,7 @@ export default function CheckoutPage() {
   return (
     <Checkout2026View
       viewModel={checkout2026ViewModel}
+      copy={checkoutCopy}
       form={{
         firstName,
         lastName,

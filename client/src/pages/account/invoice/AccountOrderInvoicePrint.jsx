@@ -16,6 +16,7 @@ import {
   User,
 } from "lucide-react";
 import "./account-order-invoice.css";
+import { normalizeDashboardSettingCopy } from "../../../utils/dashboardSettingCopy.js";
 
 const BrandLogo = () => (
   <div className="tp-invoice-brand" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -91,7 +92,7 @@ const ProgressTracker = ({ tracker }) => (
   </div>
 );
 
-const SinglePageInvoice = ({ data }) => {
+const SinglePageInvoice = ({ data, dashboardSettingCopy }) => {
   const { meta, customer, addresses, primaryIdentity, payment, shipment, storeBreakdown, items, notes } = data;
 
   return (
@@ -247,7 +248,8 @@ const SinglePageInvoice = ({ data }) => {
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <h3 style={{ margin: '0 0 2px 0', color: '#034c85', fontSize: 14 }}>Thank you for your purchase!</h3>
+          <h3 style={{ margin: '0 0 2px 0', color: '#034c85', fontSize: 14 }}>{dashboardSettingCopy.dashboard.invoiceMessageFirstPartValue}</h3>
+          <p style={{ margin: '0 0 6px 0', color: '#0f1b33', fontSize: 12, fontWeight: 500 }}>{dashboardSettingCopy.dashboard.invoiceMessageLastPartValue}</p>
           <p style={{ margin: 0, color: '#64748b', fontSize: 11 }}>Need help? <a href="https://tpreneurs.com/support" style={{ color: '#fe6f05', textDecoration: 'none' }}>tpreneurs.com/support</a></p>
         </div>
       </div>
@@ -255,13 +257,14 @@ const SinglePageInvoice = ({ data }) => {
   );
 };
 
-export default function AccountOrderInvoicePrint({ invoiceData, themeMode }) {
+export default function AccountOrderInvoicePrint({ invoiceData, themeMode, dashboardSettingCopy: rawCopy }) {
   if (!invoiceData) return null;
   const modeClass = themeMode === "dark" ? "dark" : "";
+  const copy = rawCopy || normalizeDashboardSettingCopy({});
 
   const content = (
     <div className={`tp-invoice-root ${modeClass}`} aria-hidden="true">
-      <SinglePageInvoice data={invoiceData} />
+      <SinglePageInvoice data={invoiceData} dashboardSettingCopy={copy} />
     </div>
   );
 

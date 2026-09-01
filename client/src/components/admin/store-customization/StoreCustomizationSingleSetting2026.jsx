@@ -25,6 +25,7 @@ import {
   Truck,
   Wallet,
 } from "lucide-react";
+import StoreCustomizationTabNav2026 from "./StoreCustomizationTabNav2026.jsx";
 
 const DESCRIPTION_KEYS = [
   "descriptionOne",
@@ -93,19 +94,6 @@ const DEFAULT_ITEMS = [
     tone: "neutral",
     visible: true,
   },
-];
-
-const TAB_ITEMS = [
-  { key: "home", label: "Home Page" },
-  { key: "productSlugPage", label: "Product Slug Page" },
-  { key: "aboutUs", label: "About Us" },
-  { key: "privacyPolicyTerms", label: "Privacy Policy & T&C" },
-  { key: "faqs", label: "FAQs" },
-  { key: "offers", label: "Offers" },
-  { key: "contactUs", label: "Contact Us" },
-  { key: "checkout", label: "Checkout" },
-  { key: "dashboardSetting", label: "Dashboard Setting" },
-  { key: "seoSettings", label: "SEO Settings" },
 ];
 
 const ICON_OPTIONS = [
@@ -685,25 +673,7 @@ export default function StoreCustomizationSingleSetting2026({
         </div>
       </header>
 
-      <nav className="flex flex-wrap gap-x-5 gap-y-2 border-b border-slate-200/80 dark:border-slate-800">
-        {TAB_ITEMS.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => onTabChange?.(tab.key)}
-            className={`relative h-11 text-sm font-bold transition ${
-              activeTab === tab.key
-                ? "text-emerald-700 dark:text-emerald-300"
-                : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
-            }`}
-          >
-            {tab.label}
-            {activeTab === tab.key ? (
-              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-emerald-500" />
-            ) : null}
-          </button>
-        ))}
-      </nav>
+      <StoreCustomizationTabNav2026 activeTab={activeTab} onTabChange={onTabChange} />
 
       <section className="rounded-3xl border border-slate-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-950">
         <div className="flex flex-col gap-4 border-b border-slate-200 p-5 dark:border-slate-800 lg:flex-row lg:items-start lg:justify-between">

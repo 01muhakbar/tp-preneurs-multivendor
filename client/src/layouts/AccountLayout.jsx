@@ -229,7 +229,7 @@ export default function AccountLayout() {
             : "order-1 min-w-0 rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/80 lg:order-2"
         }
       >
-        <Outlet context={{ user }} />
+        <Outlet context={{ user, dashboardSettingCopy }} />
       </main>
     </section>
   );

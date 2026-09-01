@@ -191,7 +191,7 @@ export default function StoreOffersPage() {
           style={
             hasHeaderBackground
               ? {
-                  backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.56), rgba(15, 23, 42, 0.56)), url(${offers.pageHeader.backgroundImageDataUrl})`,
+                  backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.56), rgba(15, 23, 42, 0.56)), url("${offers.pageHeader.backgroundImageDataUrl}")`,
                   backgroundSize: "cover",
                   backgroundPosition: "center",
                 }
