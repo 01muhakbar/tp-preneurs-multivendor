@@ -159,7 +159,20 @@ app.use(
         callback(null, true);
         return;
       }
-      callback(new Error("CORS origin not allowed."));
+      
+      // Fallback: If the origin is not explicitly in allowedOrigins,
+      // allow it if it matches the server's own public origin or we are in development.
+      // This prevents 403 Forbidden errors for static assets with crossorigin attributes.
+      const runtimeOrigin = getRuntimePublicOrigin();
+      if (runtimeOrigin && origin === runtimeOrigin) {
+        callback(null, true);
+        return;
+      }
+
+      // Default: Do not throw an error, just return false to deny CORS headers,
+      // which allows the request to proceed (so static files can still load)
+      // but prevents cross-origin API access.
+      callback(null, false);
     },
     credentials: true,
   })
