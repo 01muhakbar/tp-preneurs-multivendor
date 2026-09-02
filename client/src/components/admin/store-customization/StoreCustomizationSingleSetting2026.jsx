@@ -15,8 +15,8 @@ import {
   Plus,
   RefreshCcw,
   RotateCcw,
+  Rocket,
   Save,
-  Send,
   ShieldCheck,
   SlidersHorizontal,
   Smartphone,
@@ -259,6 +259,8 @@ function ActionButton({ children, onClick, variant = "secondary", disabled = fal
   const className =
     variant === "primary"
       ? "border-emerald-600 bg-emerald-600 text-white shadow-[0_14px_28px_rgba(5,150,105,0.22)] hover:bg-emerald-700 dark:border-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400"
+      : variant === "draft"
+        ? "border-emerald-500 bg-white text-emerald-700 hover:bg-emerald-50 dark:bg-slate-950 dark:hover:bg-emerald-500/10"
       : "border-slate-200 bg-white text-slate-700 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-emerald-500/40 dark:hover:bg-emerald-500/10";
   return (
     <button
@@ -746,17 +748,17 @@ export default function StoreCustomizationSingleSetting2026({
                 <SlidersHorizontal className="h-4 w-4" />
                 Reorder
               </ActionButton>
-              <ActionButton onClick={() => onSave?.()} disabled={isSaving || isPublishing}>
+              <ActionButton onClick={() => onSave?.()} disabled={isSaving || isPublishing} variant="draft">
                 <Save className="h-4 w-4" />
-                Save Draft
+                {isSaving ? "Saving..." : "Save Changes"}
               </ActionButton>
               <ActionButton onClick={onPreview}>
                 <Eye className="h-4 w-4" />
                 Preview
               </ActionButton>
               <ActionButton onClick={onPublish} disabled={isSaving || isPublishing} variant="primary">
-                <Send className="h-4 w-4" />
-                {isPublishing ? "Publishing..." : "Publish"}
+                <Rocket className="h-4 w-4" />
+                {isPublishing ? "Publishing..." : "Publish Draft"}
               </ActionButton>
             </div>
           </div>
@@ -846,8 +848,8 @@ export default function StoreCustomizationSingleSetting2026({
             </h2>
             <div className="mt-5 grid gap-3">
               <ActionButton onClick={onPublish} disabled={isSaving || isPublishing} variant="primary">
-                <Send className="h-4 w-4" />
-                Publish
+                <Rocket className="h-4 w-4" />
+                {isPublishing ? "Publishing..." : "Publish Draft"}
               </ActionButton>
               <ActionButton onClick={onPreview}>
                 <Eye className="h-4 w-4" />
