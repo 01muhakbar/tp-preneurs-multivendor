@@ -26,6 +26,7 @@ import {
   Wallet,
 } from "lucide-react";
 import StoreCustomizationTabNav2026 from "./StoreCustomizationTabNav2026.jsx";
+import StoreCustomizationSaveActions2026 from "./StoreCustomizationSaveActions2026.jsx";
 
 const DESCRIPTION_KEYS = [
   "descriptionOne",
@@ -531,6 +532,8 @@ export default function StoreCustomizationSingleSetting2026({
   language = "en",
   languages = [],
   onLanguageChange,
+  meta = {},
+  isLoading = false,
 }) {
   const [previewMode, setPreviewMode] = useState("desktop");
   const draft = useMemo(() => normalizeValue(value), [value]);
@@ -662,14 +665,19 @@ export default function StoreCustomizationSingleSetting2026({
             </select>
             <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           </label>
-          <ActionButton onClick={onReset} disabled={isSaving || isPublishing}>
+          <ActionButton onClick={onReset} disabled={isSaving || isPublishing || isLoading}>
             <RefreshCcw className="h-4 w-4" />
             Reset
           </ActionButton>
-          <ActionButton onClick={() => onSave?.()} disabled={isSaving || isPublishing} variant="primary">
-            <Save className="h-4 w-4" />
-            {isSaving && !isPublishing ? "Saving..." : "Save Changes"}
-          </ActionButton>
+          <StoreCustomizationSaveActions2026
+            onSave={onSave}
+            onPublish={onPublish}
+            isSaving={isSaving}
+            isPublishing={isPublishing}
+            isLoading={isLoading}
+            meta={meta}
+            className="w-full justify-end sm:w-auto"
+          />
         </div>
       </header>
 

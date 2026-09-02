@@ -35,6 +35,7 @@ import {
 } from "../../components/admin/AdminOpsPrimitives.jsx";
 import StoreCustomizationHomeSettings2026 from "../../components/admin/store-customization/StoreCustomizationHomeSettings2026.jsx";
 import StoreCustomizationSingleSetting2026 from "../../components/admin/store-customization/StoreCustomizationSingleSetting2026.jsx";
+import StoreCustomizationSaveActions2026 from "../../components/admin/store-customization/StoreCustomizationSaveActions2026.jsx";
 import StoreCustomizationTabNav2026 from "../../components/admin/store-customization/StoreCustomizationTabNav2026.jsx";
 
 const ADMIN_LANGUAGE_KEY = "adminLanguage";
@@ -6100,22 +6101,15 @@ export default function StoreCustomizationPage() {
                 <Eye className="h-3.5 w-3.5" />
                 <span>Preview</span>
               </button>
-              <button
-                type="button"
-                onClick={() => onSave({ publish: false })}
-                disabled={isSaving || isLoadingHeader || !lang}
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-xs font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isSaving && !isPublishing ? "Saving..." : "Save Draft"}
-              </button>
-              <button
-                type="button"
-                onClick={onPublish}
-                disabled={isSaving || isLoadingHeader || !lang}
-                className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--admin-primary)] px-4 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[var(--admin-primary-strong)] hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
-              >
-                {isPublishing ? "Publishing..." : "Publish"}
-              </button>
+              <StoreCustomizationSaveActions2026
+                onSave={() => onSave({ publish: false })}
+                onPublish={onPublish}
+                isSaving={isSaving && !isPublishing}
+                isPublishing={isPublishing}
+                isLoading={isLoadingHeader || !lang}
+                meta={customizationMeta}
+                className="w-full justify-end sm:w-auto"
+              />
             </div>
           }
         />
@@ -6194,11 +6188,13 @@ export default function StoreCustomizationPage() {
             onPreview={onPreviewStorefront}
             isSaving={isSaving && !isPublishing}
             isPublishing={isPublishing}
+            meta={customizationMeta}
             language={lang}
             languages={publishedLanguages}
             onLanguageChange={(nextLanguage) =>
               setLang(String(nextLanguage || "en").toLowerCase())
             }
+            isLoading={isLoadingHeader}
           />
       ) : activeTab === "aboutUs" ? (
         <div className="flex flex-col gap-5">
