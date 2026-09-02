@@ -537,6 +537,16 @@ function SectionTitle({ icon: Icon, title, description, action }) {
   );
 }
 
+const formatTimestamp = (value) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+};
+
 export default function StoreCustomizationHomeSettings2026({
   value,
   activeTab,
@@ -548,6 +558,7 @@ export default function StoreCustomizationHomeSettings2026({
   isSaving,
   isPublishing,
   isLoading,
+  meta = {},
 }) {
   const [selectedSliderIndex, setSelectedSliderIndex] = useState(0);
   const [activeSliderTab, setActiveSliderTab] = useState("slider-0");
@@ -757,6 +768,24 @@ export default function StoreCustomizationHomeSettings2026({
       status: draft.footer?.block4?.enabled ? "ready" : "needsReview",
     },
   ];
+  const formattedDraftUpdatedAt = formatTimestamp(meta?.draftUpdatedAt);
+  const formattedPublishedAt = formatTimestamp(meta?.publishedAt);
+  const saveStateLabel = isPublishing
+    ? "Publishing draft"
+    : isSaving
+      ? "Saving draft"
+      : meta?.hasUnpublishedChanges
+        ? "Draft saved"
+        : formattedPublishedAt
+          ? "Published"
+          : "Ready";
+  const saveStateDetail = isPublishing
+    ? "Releasing now"
+    : isSaving
+      ? "Saving now"
+      : meta?.hasUnpublishedChanges
+        ? formattedDraftUpdatedAt || "Unpublished changes"
+        : formattedPublishedAt || formattedDraftUpdatedAt || "No changes";
 
   return (
     <div className="min-w-0 max-w-full space-y-5 overflow-x-clip pb-8 text-slate-900 dark:text-slate-100">
@@ -772,8 +801,8 @@ export default function StoreCustomizationHomeSettings2026({
         <div className="grid w-full min-w-0 grid-cols-1 gap-3 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
           <div className="flex min-w-0 flex-wrap items-center gap-2 px-2 text-sm font-semibold text-slate-500 dark:text-slate-400">
             <Check className="h-5 w-5 rounded-full bg-emerald-100 p-1 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300" />
-            <span>Autosaved</span>
-            <span className="text-xs font-medium">2 min ago</span>
+            <span>{saveStateLabel}</span>
+            <span className="text-xs font-medium">{saveStateDetail}</span>
           </div>
           <button
             type="button"

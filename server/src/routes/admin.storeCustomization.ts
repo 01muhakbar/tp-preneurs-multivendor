@@ -19,6 +19,13 @@ type CustomizationRow = {
   id: number;
   lang: string;
   data: string | null;
+  draftData: string | null;
+  publishedData: string | null;
+  hasUnpublishedChanges: number | boolean | null;
+  draftUpdatedAt: string | null;
+  publishedAt: string | null;
+  draftUpdatedBy: number | null;
+  publishedBy: number | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -608,6 +615,29 @@ const parseRawCustomizationRow = (raw: string | null) => {
     return {};
   }
 };
+
+const getCustomizationDraftPayload = (row: CustomizationRow | null) =>
+  row ? parseRawCustomizationRow(row.draftData ?? row.data) : {};
+
+const getCustomizationLivePayload = (row: CustomizationRow | null) =>
+  row ? parseRawCustomizationRow(row.publishedData ?? row.data ?? row.draftData) : {};
+
+const getCustomizationMeta = (row: CustomizationRow | null) => ({
+  hasUnpublishedChanges: Boolean(row?.hasUnpublishedChanges),
+  draftUpdatedAt: row?.draftUpdatedAt
+    ? new Date(row.draftUpdatedAt).toISOString()
+    : row?.updatedAt
+      ? new Date(row.updatedAt).toISOString()
+      : "",
+  publishedAt: row?.publishedAt
+    ? new Date(row.publishedAt).toISOString()
+    : "",
+  draftUpdatedBy: row?.draftUpdatedBy ?? null,
+  publishedBy: row?.publishedBy ?? null,
+});
+
+const getActorUserId = (req: any) =>
+  Number(req.user?.id || 0) || null;
 
 const mergeDeep = (base: any, source: any): any => {
   if (!isPlainObject(base)) return source;
@@ -2088,18 +2118,90 @@ const ensureStoreCustomizationsTable = async () => {
       id INT UNSIGNED NOT NULL AUTO_INCREMENT,
       lang VARCHAR(16) NOT NULL,
       data LONGTEXT NULL,
+      draftData LONGTEXT NULL,
+      publishedData LONGTEXT NULL,
+      hasUnpublishedChanges TINYINT(1) NOT NULL DEFAULT 0,
+      draftUpdatedAt DATETIME NULL,
+      publishedAt DATETIME NULL,
+      draftUpdatedBy INT UNSIGNED NULL,
+      publishedBy INT UNSIGNED NULL,
       createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (id),
       UNIQUE KEY uq_store_customizations_lang (lang)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
+
+  const ensureColumn = async (columnName: string, definition: string) => {
+    const rows = (await sequelize.query(
+      `
+        SELECT COLUMN_NAME
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'store_customizations'
+          AND COLUMN_NAME = :columnName
+        LIMIT 1
+      `,
+      { type: QueryTypes.SELECT, replacements: { columnName } }
+    )) as Array<{ COLUMN_NAME?: string }>;
+
+    if (rows.length > 0) return;
+    await sequelize.query(`ALTER TABLE store_customizations ADD COLUMN ${definition}`);
+  };
+
+  await ensureColumn("draftData", "draftData LONGTEXT NULL AFTER data");
+  await ensureColumn("publishedData", "publishedData LONGTEXT NULL AFTER draftData");
+  await ensureColumn(
+    "hasUnpublishedChanges",
+    "hasUnpublishedChanges TINYINT(1) NOT NULL DEFAULT 0 AFTER publishedData"
+  );
+  await ensureColumn("draftUpdatedAt", "draftUpdatedAt DATETIME NULL AFTER hasUnpublishedChanges");
+  await ensureColumn("publishedAt", "publishedAt DATETIME NULL AFTER draftUpdatedAt");
+  await ensureColumn("draftUpdatedBy", "draftUpdatedBy INT UNSIGNED NULL AFTER publishedAt");
+  await ensureColumn("publishedBy", "publishedBy INT UNSIGNED NULL AFTER draftUpdatedBy");
+
+  await sequelize.query(`
+    UPDATE store_customizations
+    SET
+      draftData = CASE
+        WHEN draftData IS NULL THEN data
+        ELSE draftData
+      END,
+      publishedData = CASE
+        WHEN publishedData IS NULL THEN data
+        ELSE publishedData
+      END,
+      draftUpdatedAt = CASE
+        WHEN draftUpdatedAt IS NULL THEN updatedAt
+        ELSE draftUpdatedAt
+      END,
+      publishedAt = CASE
+        WHEN publishedAt IS NULL AND data IS NOT NULL THEN updatedAt
+        ELSE publishedAt
+      END
+    WHERE draftData IS NULL
+       OR publishedData IS NULL
+       OR draftUpdatedAt IS NULL
+       OR (publishedAt IS NULL AND data IS NOT NULL)
+  `);
 };
 
 const getCustomizationRow = async (lang: string) => {
   const rows = (await sequelize.query(
     `
-      SELECT id, lang, data, createdAt, updatedAt
+      SELECT
+        id,
+        lang,
+        data,
+        draftData,
+        publishedData,
+        hasUnpublishedChanges,
+        draftUpdatedAt,
+        publishedAt,
+        draftUpdatedBy,
+        publishedBy,
+        createdAt,
+        updatedAt
       FROM store_customizations
       WHERE lang = :lang
       LIMIT 1
@@ -2109,17 +2211,95 @@ const getCustomizationRow = async (lang: string) => {
   return rows[0] || null;
 };
 
-const upsertCustomization = async (lang: string, payload: Record<string, any>) => {
+const upsertInitialCustomization = async (lang: string, payload: Record<string, any>) => {
   const serialized = JSON.stringify(payload);
   await sequelize.query(
     `
-      INSERT INTO store_customizations (lang, data, createdAt, updatedAt)
-      VALUES (:lang, :data, NOW(), NOW())
+      INSERT INTO store_customizations (
+        lang,
+        data,
+        draftData,
+        publishedData,
+        hasUnpublishedChanges,
+        draftUpdatedAt,
+        publishedAt,
+        createdAt,
+        updatedAt
+      )
+      VALUES (:lang, :data, :data, :data, 0, NOW(), NOW(), NOW(), NOW())
       ON DUPLICATE KEY UPDATE
-        data = VALUES(data),
+        draftData = COALESCE(draftData, VALUES(draftData)),
+        publishedData = COALESCE(publishedData, VALUES(publishedData)),
+        data = COALESCE(data, VALUES(data)),
         updatedAt = NOW()
     `,
     { replacements: { lang, data: serialized } }
+  );
+};
+
+const upsertDraftCustomization = async (
+  lang: string,
+  payload: Record<string, any>,
+  actorUserId: number | null = null
+) => {
+  const serialized = JSON.stringify(payload);
+  await sequelize.query(
+    `
+      INSERT INTO store_customizations (
+        lang,
+        draftData,
+        hasUnpublishedChanges,
+        draftUpdatedAt,
+        draftUpdatedBy,
+        createdAt,
+        updatedAt
+      )
+      VALUES (:lang, :draftData, 1, NOW(), :actorUserId, NOW(), NOW())
+      ON DUPLICATE KEY UPDATE
+        draftData = VALUES(draftData),
+        hasUnpublishedChanges = 1,
+        draftUpdatedAt = NOW(),
+        draftUpdatedBy = VALUES(draftUpdatedBy),
+        updatedAt = NOW()
+    `,
+    { replacements: { lang, draftData: serialized, actorUserId } }
+  );
+};
+
+const upsertPublishedCustomization = async (
+  lang: string,
+  payload: Record<string, any>,
+  actorUserId: number | null = null
+) => {
+  const serialized = JSON.stringify(payload);
+  await sequelize.query(
+    `
+      INSERT INTO store_customizations (
+        lang,
+        data,
+        draftData,
+        publishedData,
+        hasUnpublishedChanges,
+        draftUpdatedAt,
+        publishedAt,
+        draftUpdatedBy,
+        publishedBy,
+        createdAt,
+        updatedAt
+      )
+      VALUES (:lang, :data, :data, :data, 0, NOW(), NOW(), :actorUserId, :actorUserId, NOW(), NOW())
+      ON DUPLICATE KEY UPDATE
+        data = VALUES(data),
+        draftData = VALUES(draftData),
+        publishedData = VALUES(publishedData),
+        hasUnpublishedChanges = 0,
+        draftUpdatedAt = NOW(),
+        publishedAt = NOW(),
+        draftUpdatedBy = VALUES(draftUpdatedBy),
+        publishedBy = VALUES(publishedBy),
+        updatedAt = NOW()
+    `,
+    { replacements: { lang, data: serialized, actorUserId } }
   );
 };
 
@@ -2159,17 +2339,17 @@ router.get("/header", async (req, res, next) => {
     const lang = normalizeLang(req.query?.lang);
 
     let row = await getCustomizationRow(lang);
-    let payload = row ? parseRowData(row.data) : sanitizeCustomization({});
+    let payload = row ? parseRowData(row.draftData ?? row.data) : sanitizeCustomization({});
 
     if (!row) {
-      await upsertCustomization(lang, payload);
+      await upsertInitialCustomization(lang, payload);
       row = await getCustomizationRow(lang);
-      payload = row ? parseRowData(row.data) : payload;
+      payload = row ? parseRowData(row.draftData ?? row.data) : payload;
     }
 
     return res.json({
       success: true,
-      data: extractHeaderSettings(lang, payload, row?.updatedAt),
+      data: extractHeaderSettings(lang, payload, row?.draftUpdatedAt ?? row?.updatedAt),
     });
   } catch (error) {
     return next(error);
@@ -2192,7 +2372,9 @@ router.put("/header", async (req, res, next) => {
     }
 
     const existing = await getCustomizationRow(lang);
-    const existingPayload = existing ? parseRowData(existing.data) : sanitizeCustomization({});
+    const existingPayload = existing
+      ? sanitizeCustomization(getCustomizationLivePayload(existing))
+      : sanitizeCustomization({});
     const defaults = cloneDefaults().home.header;
     const hasWhatsAppLinkField = Object.prototype.hasOwnProperty.call(
       rawPayload,
@@ -2234,12 +2416,16 @@ router.put("/header", async (req, res, next) => {
         },
       },
     });
-    await upsertCustomization(lang, nextPayload);
+    await upsertPublishedCustomization(lang, nextPayload, getActorUserId(req));
     const updatedRow = await getCustomizationRow(lang);
 
     return res.json({
       success: true,
-      data: extractHeaderSettings(lang, nextPayload, updatedRow?.updatedAt),
+      data: extractHeaderSettings(
+        lang,
+        nextPayload,
+        updatedRow?.publishedAt ?? updatedRow?.updatedAt
+      ),
     });
   } catch (error) {
     return next(error);
@@ -2268,7 +2454,9 @@ router.post("/header/logo", (req, res, next) => {
     try {
       await ensureStoreCustomizationsTable();
       const existing = await getCustomizationRow(lang);
-      const existingPayload = existing ? parseRowData(existing.data) : sanitizeCustomization({});
+      const existingPayload = existing
+        ? sanitizeCustomization(getCustomizationLivePayload(existing))
+        : sanitizeCustomization({});
       const nextPayload = sanitizeCustomization({
         ...existingPayload,
         home: {
@@ -2280,12 +2468,16 @@ router.post("/header/logo", (req, res, next) => {
           },
         },
       });
-      await upsertCustomization(lang, nextPayload);
+      await upsertPublishedCustomization(lang, nextPayload, getActorUserId(req));
       const updatedRow = await getCustomizationRow(lang);
 
       return res.json({
         success: true,
-        data: extractHeaderSettings(lang, nextPayload, updatedRow?.updatedAt),
+        data: extractHeaderSettings(
+          lang,
+          nextPayload,
+          updatedRow?.publishedAt ?? updatedRow?.updatedAt
+        ),
       });
     } catch (uploadPersistError) {
       return next(uploadPersistError);
@@ -2299,20 +2491,25 @@ router.get("/", async (req, res, next) => {
     await ensureStoreCustomizationsTable();
     const lang = normalizeLang(req.query?.lang);
 
-    const existing = await getCustomizationRow(lang);
-    const payload = existing
-      ? sanitizeCustomization(parseRowData(existing.data))
+    let existing = await getCustomizationRow(lang);
+    const initialPayload = existing
+      ? sanitizeCustomization(getCustomizationDraftPayload(existing))
       : sanitizeCustomization({});
 
     if (!existing) {
-      await upsertCustomization(lang, payload);
+      await upsertInitialCustomization(lang, initialPayload);
+      existing = await getCustomizationRow(lang);
     }
+    const payload = existing
+      ? sanitizeCustomization(getCustomizationDraftPayload(existing))
+      : initialPayload;
 
     return res.json({
       success: true,
       data: {
         lang,
         customization: payload,
+        meta: getCustomizationMeta(existing),
       },
     });
   } catch (error) {
@@ -2320,14 +2517,33 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-// PUT /api/admin/store/customization?lang=en
-router.put("/", async (req, res, next) => {
+const readCustomizationPayloadFromRequest = (req: any) =>
+  isPlainObject(req.body?.customization) ? req.body.customization : req.body;
+
+const validateWritableCustomizationPayload = (rawPayload: Record<string, any>) => {
+  if (
+    isPlainObject(rawPayload.home) &&
+    isPlainObject(rawPayload.home.header) &&
+    Object.prototype.hasOwnProperty.call(rawPayload.home.header, "whatsAppLink")
+  ) {
+    const nextWhatsAppLink = toText(rawPayload.home.header.whatsAppLink);
+    if (!isSafeWhatsAppLink(nextWhatsAppLink)) {
+      return {
+        ok: false,
+        message: WHATSAPP_LINK_ERROR_MESSAGE,
+      };
+    }
+    rawPayload.home.header.whatsAppLink = nextWhatsAppLink;
+  }
+
+  return { ok: true, message: "" };
+};
+
+const saveCustomizationDraft = async (req: any, res: any, next: any) => {
   try {
     await ensureStoreCustomizationsTable();
     const lang = normalizeLang(req.body?.language ?? req.query?.lang);
-    const rawPayload = isPlainObject(req.body?.customization)
-      ? req.body.customization
-      : req.body;
+    const rawPayload = readCustomizationPayloadFromRequest(req);
 
     if (!isPlainObject(rawPayload)) {
       return res.status(400).json({
@@ -2335,37 +2551,92 @@ router.put("/", async (req, res, next) => {
         message: "Body must be an object",
       });
     }
-    if (
-      isPlainObject(rawPayload.home) &&
-      isPlainObject(rawPayload.home.header) &&
-      Object.prototype.hasOwnProperty.call(rawPayload.home.header, "whatsAppLink")
-    ) {
-      const nextWhatsAppLink = toText(rawPayload.home.header.whatsAppLink);
-      if (!isSafeWhatsAppLink(nextWhatsAppLink)) {
-        return res.status(400).json({
-          success: false,
-          message: WHATSAPP_LINK_ERROR_MESSAGE,
-        });
-      }
-      rawPayload.home.header.whatsAppLink = nextWhatsAppLink;
+
+    const validation = validateWritableCustomizationPayload(rawPayload);
+    if (!validation.ok) {
+      return res.status(400).json({
+        success: false,
+        message: validation.message,
+      });
     }
 
     const existing = await getCustomizationRow(lang);
-    const existingPayload = existing ? parseRawCustomizationRow(existing.data) : {};
+    const existingPayload = existing ? getCustomizationDraftPayload(existing) : {};
     const payload = sanitizeCustomization(mergeDeep(existingPayload, rawPayload));
-    await upsertCustomization(lang, payload);
+    await upsertDraftCustomization(lang, payload, getActorUserId(req));
+    const updatedRow = await getCustomizationRow(lang);
 
     return res.json({
       success: true,
       data: {
         lang,
         customization: payload,
+        meta: getCustomizationMeta(updatedRow),
       },
     });
   } catch (error) {
     return next(error);
   }
-});
+};
+
+const publishCustomizationDraft = async (req: any, res: any, next: any) => {
+  try {
+    await ensureStoreCustomizationsTable();
+    const lang = normalizeLang(req.body?.language ?? req.query?.lang);
+    const rawPayload = readCustomizationPayloadFromRequest(req);
+    const hasBodyPayload = isPlainObject(rawPayload) && Object.keys(rawPayload).length > 0;
+
+    if (req.body && !isPlainObject(rawPayload)) {
+      return res.status(400).json({
+        success: false,
+        message: "Body must be an object",
+      });
+    }
+
+    if (hasBodyPayload) {
+      const validation = validateWritableCustomizationPayload(rawPayload);
+      if (!validation.ok) {
+        return res.status(400).json({
+          success: false,
+          message: validation.message,
+        });
+      }
+    }
+
+    const existing = await getCustomizationRow(lang);
+    const basePayload = existing
+      ? getCustomizationDraftPayload(existing)
+      : sanitizeCustomization({});
+    const nextDraftPayload = hasBodyPayload
+      ? mergeDeep(basePayload, rawPayload)
+      : basePayload;
+    const payload = sanitizeCustomization(nextDraftPayload);
+
+    await upsertPublishedCustomization(lang, payload, getActorUserId(req));
+    const updatedRow = await getCustomizationRow(lang);
+
+    return res.json({
+      success: true,
+      data: {
+        lang,
+        customization: payload,
+        meta: getCustomizationMeta(updatedRow),
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// PUT /api/admin/store/customization/draft?lang=en
+router.put("/draft", saveCustomizationDraft);
+
+// POST /api/admin/store/customization/publish?lang=en
+router.post("/publish", publishCustomizationDraft);
+
+// PUT /api/admin/store/customization?lang=en
+// Legacy compatibility: save the submitted payload and publish it immediately.
+router.put("/", publishCustomizationDraft);
 
 // PUT /api/admin/store/customization/microsites/rich-about
 // Body: { storeSlug, language?, title?, body? }
@@ -2399,7 +2670,9 @@ router.put("/microsites/rich-about", async (req, res, next) => {
     });
 
     const existing = await getCustomizationRow(lang);
-    const existingPayload = existing ? parseRowData(existing.data) : sanitizeCustomization({});
+    const existingPayload = existing
+      ? sanitizeCustomization(getCustomizationLivePayload(existing))
+      : sanitizeCustomization({});
     const currentMicrosites = isPlainObject(existingPayload.storeMicrosites)
       ? existingPayload.storeMicrosites
       : {};
@@ -2420,7 +2693,7 @@ router.put("/microsites/rich-about", async (req, res, next) => {
       },
     });
 
-    await upsertCustomization(lang, nextPayload);
+    await upsertPublishedCustomization(lang, nextPayload, getActorUserId(req));
     const updatedRow = await getCustomizationRow(lang);
 
     return res.json({
@@ -2435,7 +2708,9 @@ router.put("/microsites/rich-about", async (req, res, next) => {
           name: toText(store.get("name")),
           status: toText(store.get("status")),
         },
-        updatedAt: updatedRow?.updatedAt
+        updatedAt: updatedRow?.publishedAt
+          ? new Date(updatedRow.publishedAt).toISOString()
+          : updatedRow?.updatedAt
           ? new Date(updatedRow.updatedAt).toISOString()
           : new Date().toISOString(),
       },

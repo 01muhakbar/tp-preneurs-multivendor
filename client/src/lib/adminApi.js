@@ -1173,6 +1173,32 @@ export const updateAdminStoreCustomization = async (lang, payload) => {
   return data?.data ?? data;
 };
 
+export const saveAdminStoreCustomizationDraft = async (lang, payload) => {
+  const query = {};
+  const normalizedLang = String(lang || "").trim().toLowerCase();
+  if (normalizedLang) query.lang = normalizedLang;
+
+  const { data } = await adminApi.put(
+    "/admin/store/customization/draft",
+    payload,
+    { params: query }
+  );
+  return data?.data ?? data;
+};
+
+export const publishAdminStoreCustomizationDraft = async (lang, payload) => {
+  const query = {};
+  const normalizedLang = String(lang || "").trim().toLowerCase();
+  if (normalizedLang) query.lang = normalizedLang;
+
+  const { data } = await adminApi.post(
+    "/admin/store/customization/publish",
+    payload,
+    { params: query }
+  );
+  return data?.data ?? data;
+};
+
 export const fetchAdminStoreSettings = async () => {
   const { data } = await adminApi.get("/admin/store/settings");
   return data?.data ?? data;

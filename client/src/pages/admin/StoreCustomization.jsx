@@ -19,7 +19,8 @@ import {
   fetchAdminCoupons,
   createAdminLanguage,
   fetchAdminStoreCustomization,
-  updateAdminStoreCustomization,
+  publishAdminStoreCustomizationDraft,
+  saveAdminStoreCustomizationDraft,
   uploadAdminImage,
 } from "../../lib/adminApi.js";
 import {
@@ -873,6 +874,20 @@ const unwrapCustomizationEnvelope = (value) => {
     return cursor;
   }
   return isPlainObject(cursor?.customization) ? cursor.customization : cursor || {};
+};
+
+const unwrapCustomizationMeta = (value) => {
+  let cursor = value;
+  for (let index = 0; index < 4; index += 1) {
+    if (!isPlainObject(cursor)) return {};
+    if (isPlainObject(cursor.meta)) return cursor.meta;
+    if (isPlainObject(cursor.data)) {
+      cursor = cursor.data;
+      continue;
+    }
+    return {};
+  }
+  return isPlainObject(cursor?.meta) ? cursor.meta : {};
 };
 
 const mergeDeep = (base, source) => {
@@ -3042,6 +3057,7 @@ export default function StoreCustomizationPage() {
   const [offersDropActive, setOffersDropActive] = useState({});
   const [contactUsImageErrors, setContactUsImageErrors] = useState({});
   const [contactUsDropActive, setContactUsDropActive] = useState({});
+  const [customizationMeta, setCustomizationMeta] = useState({});
 
   const [isAddLanguageOpen, setIsAddLanguageOpen] = useState(false);
   const [presetOpen, setPresetOpen] = useState(false);
@@ -3133,6 +3149,7 @@ export default function StoreCustomizationPage() {
   useEffect(() => {
     if (!customizationQuery.data) return;
     const payload = unwrapCustomizationEnvelope(customizationQuery.data);
+    setCustomizationMeta(unwrapCustomizationMeta(customizationQuery.data));
     const normalized = normalizeCustomizationPayload(payload);
     setHomeState(normalized.home);
     setProductSlugPageState(normalized.productSlugPage);
@@ -3197,12 +3214,14 @@ export default function StoreCustomizationPage() {
     meta: {
       suppressGlobalToast: true,
     },
-    mutationFn: ({ language, payload }) =>
-      updateAdminStoreCustomization(language, payload),
+    mutationFn: ({ language, payload, publish }) =>
+      publish
+        ? publishAdminStoreCustomizationDraft(language, payload)
+        : saveAdminStoreCustomizationDraft(language, payload),
     onMutate: (variables) => {
       const activeTabLabel = TABS.find((tab) => tab.key === activeTab)?.label || "Store";
       const toastId = `store-customization-${activeTab}-update`;
-      const actionLabel = variables?.publish ? "Publishing" : "Updating";
+      const actionLabel = variables?.publish ? "Publishing" : "Saving draft";
       setNotice({
         type: "success",
         message: `${actionLabel} customization for ${String(lang || "en").toUpperCase()}...`,
@@ -3212,6 +3231,7 @@ export default function StoreCustomizationPage() {
     },
     onSuccess: async (data, _variables, context) => {
       const payload = unwrapCustomizationEnvelope(data);
+      setCustomizationMeta(unwrapCustomizationMeta(data));
       const normalized = normalizeCustomizationPayload(payload);
       setHomeState(normalized.home);
       setProductSlugPageState(normalized.productSlugPage);
@@ -3228,12 +3248,14 @@ export default function StoreCustomizationPage() {
       setWhatsAppLinkHelperError("");
       setNotice({
         type: "success",
-        message: `Store customization updated for ${String(lang || "en").toUpperCase()}.`,
+        message: context?.publish
+          ? `Store customization published for ${String(lang || "en").toUpperCase()}.`
+          : `Store customization draft saved for ${String(lang || "en").toUpperCase()}.`,
       });
       toast.success(
         context?.publish
           ? `${context?.activeTabLabel || "Store"} draft published.`
-          : `${context?.activeTabLabel || "Store"} settings updated.`,
+          : `${context?.activeTabLabel || "Store"} draft saved.`,
         {
         id: context?.toastId || `store-customization-${activeTab}-update`,
         }
@@ -6149,6 +6171,7 @@ export default function StoreCustomizationPage() {
             onPreview={onPreviewStorefront}
             isSaving={isSaving && !isPublishing}
             isPublishing={isPublishing}
+            meta={customizationMeta}
             language={lang}
             languages={publishedLanguages}
             onLanguageChange={(nextLanguage) =>

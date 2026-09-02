@@ -22,6 +22,13 @@ type CustomizationRow = {
   id: number;
   lang: string;
   data: string | null;
+  draftData: string | null;
+  publishedData: string | null;
+  hasUnpublishedChanges: number | boolean | null;
+  draftUpdatedAt: string | null;
+  publishedAt: string | null;
+  draftUpdatedBy: number | null;
+  publishedBy: number | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -49,18 +56,90 @@ const ensureStoreCustomizationsTable = async () => {
       id INT UNSIGNED NOT NULL AUTO_INCREMENT,
       lang VARCHAR(16) NOT NULL,
       data LONGTEXT NULL,
+      draftData LONGTEXT NULL,
+      publishedData LONGTEXT NULL,
+      hasUnpublishedChanges TINYINT(1) NOT NULL DEFAULT 0,
+      draftUpdatedAt DATETIME NULL,
+      publishedAt DATETIME NULL,
+      draftUpdatedBy INT UNSIGNED NULL,
+      publishedBy INT UNSIGNED NULL,
       createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (id),
       UNIQUE KEY uq_store_customizations_lang (lang)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
+
+  const ensureColumn = async (columnName: string, definition: string) => {
+    const rows = (await sequelize.query(
+      `
+        SELECT COLUMN_NAME
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'store_customizations'
+          AND COLUMN_NAME = :columnName
+        LIMIT 1
+      `,
+      { type: QueryTypes.SELECT, replacements: { columnName } }
+    )) as Array<{ COLUMN_NAME?: string }>;
+
+    if (rows.length > 0) return;
+    await sequelize.query(`ALTER TABLE store_customizations ADD COLUMN ${definition}`);
+  };
+
+  await ensureColumn("draftData", "draftData LONGTEXT NULL AFTER data");
+  await ensureColumn("publishedData", "publishedData LONGTEXT NULL AFTER draftData");
+  await ensureColumn(
+    "hasUnpublishedChanges",
+    "hasUnpublishedChanges TINYINT(1) NOT NULL DEFAULT 0 AFTER publishedData"
+  );
+  await ensureColumn("draftUpdatedAt", "draftUpdatedAt DATETIME NULL AFTER hasUnpublishedChanges");
+  await ensureColumn("publishedAt", "publishedAt DATETIME NULL AFTER draftUpdatedAt");
+  await ensureColumn("draftUpdatedBy", "draftUpdatedBy INT UNSIGNED NULL AFTER publishedAt");
+  await ensureColumn("publishedBy", "publishedBy INT UNSIGNED NULL AFTER draftUpdatedBy");
+
+  await sequelize.query(`
+    UPDATE store_customizations
+    SET
+      draftData = CASE
+        WHEN draftData IS NULL THEN data
+        ELSE draftData
+      END,
+      publishedData = CASE
+        WHEN publishedData IS NULL THEN data
+        ELSE publishedData
+      END,
+      draftUpdatedAt = CASE
+        WHEN draftUpdatedAt IS NULL THEN updatedAt
+        ELSE draftUpdatedAt
+      END,
+      publishedAt = CASE
+        WHEN publishedAt IS NULL AND data IS NOT NULL THEN updatedAt
+        ELSE publishedAt
+      END
+    WHERE draftData IS NULL
+       OR publishedData IS NULL
+       OR draftUpdatedAt IS NULL
+       OR (publishedAt IS NULL AND data IS NOT NULL)
+  `);
 };
 
 const getCustomizationRow = async (lang: string) => {
   const rows = (await sequelize.query(
     `
-      SELECT id, lang, data, createdAt, updatedAt
+      SELECT
+        id,
+        lang,
+        data,
+        draftData,
+        publishedData,
+        hasUnpublishedChanges,
+        draftUpdatedAt,
+        publishedAt,
+        draftUpdatedBy,
+        publishedBy,
+        createdAt,
+        updatedAt
       FROM store_customizations
       WHERE lang = :lang
       LIMIT 1
@@ -79,6 +158,15 @@ const parseRawCustomization = (raw: string | null) => {
     return {};
   }
 };
+
+const getPublishedCustomizationRaw = (row: CustomizationRow | null) =>
+  row ? row.publishedData ?? row.data : null;
+
+const hasPublishedCustomization = (row: CustomizationRow | null) =>
+  Boolean(getPublishedCustomizationRaw(row));
+
+const getPublicUpdatedAt = (row: CustomizationRow | null) =>
+  row?.publishedAt ?? row?.updatedAt ?? "";
 
 const toText = (value: unknown) => String(value ?? "").trim();
 
@@ -414,10 +502,13 @@ router.get("/header", async (req, res, next) => {
     await ensureStoreCustomizationsTable();
     const lang = normalizeLang(req.query?.lang);
     const row = await getCustomizationRow(lang);
-    const fallbackRow = !row && lang !== "en" ? await getCustomizationRow("en") : null;
+    const fallbackRow =
+      (!row || !hasPublishedCustomization(row)) && lang !== "en"
+        ? await getCustomizationRow("en")
+        : null;
     const sourceRow = row || fallbackRow;
     const sanitized = sourceRow
-      ? parseStoredCustomization(sourceRow.data)
+      ? parseStoredCustomization(getPublishedCustomizationRaw(sourceRow))
       : sanitizeStoreCustomization({});
 
     return res.json({
@@ -426,7 +517,7 @@ router.get("/header", async (req, res, next) => {
         lang,
         sanitized,
         null,
-        sourceRow?.updatedAt
+        getPublicUpdatedAt(sourceRow)
       ),
     });
   } catch (error) {
@@ -500,9 +591,12 @@ router.get("/microsites/:slug/rich-about", async (req, res, next) => {
 
     const lang = normalizeLang(req.query?.lang);
     const row = await getCustomizationRow(lang);
-    const fallbackRow = !row && lang !== "en" ? await getCustomizationRow("en") : null;
+    const fallbackRow =
+      (!row || !hasPublishedCustomization(row)) && lang !== "en"
+        ? await getCustomizationRow("en")
+        : null;
     const sourceRow = row || fallbackRow;
-    const rawCustomization = parseRawCustomization(sourceRow?.data ?? null);
+    const rawCustomization = parseRawCustomization(getPublishedCustomizationRaw(sourceRow));
     const micrositesSource =
       rawCustomization &&
       typeof rawCustomization === "object" &&
@@ -534,8 +628,8 @@ router.get("/microsites/:slug/rich-about", async (req, res, next) => {
         richAbout,
         effective,
         updatedAt:
-          effective.source === "STORE_CUSTOMIZATION" && sourceRow?.updatedAt
-            ? new Date(sourceRow.updatedAt).toISOString()
+          effective.source === "STORE_CUSTOMIZATION" && getPublicUpdatedAt(sourceRow)
+            ? new Date(getPublicUpdatedAt(sourceRow)).toISOString()
             : effective.source === "STORE_DESCRIPTION_FALLBACK" && store?.updatedAt
               ? new Date(store.updatedAt).toISOString()
               : "",
@@ -603,18 +697,21 @@ router.get("/", async (req, res, next) => {
       includeSet.has("product_slug_page");
 
     const row = await getCustomizationRow(lang);
+    const rowHasPublishedCustomization = hasPublishedCustomization(row);
     const fallbackRow = lang !== "en" ? await getCustomizationRow("en") : null;
-    const sourcePayload = row
-      ? parseStoredCustomization(row.data)
+    const sourcePayload = rowHasPublishedCustomization
+      ? parseStoredCustomization(getPublishedCustomizationRaw(row))
       : fallbackRow
-        ? parseStoredCustomization(fallbackRow.data)
+        ? parseStoredCustomization(getPublishedCustomizationRaw(fallbackRow))
         : sanitizeStoreCustomization({});
     const sanitizedSource = sanitizeStoreCustomization(sourcePayload);
     const sanitized =
       fallbackRow
         ? mergeCustomizationMediaFallback(
             sanitizedSource,
-            sanitizeStoreCustomization(parseStoredCustomization(fallbackRow.data))
+            sanitizeStoreCustomization(
+              parseStoredCustomization(getPublishedCustomizationRaw(fallbackRow))
+            )
           )
         : sanitizedSource;
     const customization: Record<string, unknown> = {};
