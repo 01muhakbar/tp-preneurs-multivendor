@@ -641,7 +641,7 @@ export default function StoreCustomizationSingleSetting2026({
 
   return (
     <div className="min-w-0 max-w-full space-y-5 overflow-x-clip pb-8 text-slate-900 dark:text-slate-100">
-      <header className="flex flex-col gap-4 border-b border-slate-200/80 pb-5 dark:border-slate-800 lg:flex-row lg:items-start lg:justify-between">
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <h1 className="text-3xl font-extrabold tracking-normal text-slate-950 dark:text-white">
             Store Customizations
@@ -650,7 +650,7 @@ export default function StoreCustomizationSingleSetting2026({
             Configure content blocks, messages, and storefront SEO.
           </p>
         </div>
-        <div className="grid w-full min-w-0 grid-cols-1 gap-3 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
           <label className="relative min-w-0 sm:w-auto">
             <span className="sr-only">Language</span>
             <select
@@ -672,13 +672,12 @@ export default function StoreCustomizationSingleSetting2026({
             Reset
           </ActionButton>
           <StoreCustomizationSaveActions2026
-            onSave={onSave}
-            onPublish={onPublish}
+            onSave={() => onSave?.({ publish: false })}
+            onPublish={() => onPublish?.()}
             isSaving={isSaving}
             isPublishing={isPublishing}
             isLoading={isLoading}
             meta={meta}
-            className="w-full justify-end sm:w-auto"
           />
         </div>
       </header>
@@ -748,7 +747,7 @@ export default function StoreCustomizationSingleSetting2026({
                 <SlidersHorizontal className="h-4 w-4" />
                 Reorder
               </ActionButton>
-              <ActionButton onClick={() => onSave?.()} disabled={isSaving || isPublishing} variant="draft">
+              <ActionButton onClick={() => onSave?.({ publish: false })} disabled={isSaving || isPublishing} variant="draft">
                 <Save className="h-4 w-4" />
                 {isSaving ? "Saving..." : "Save Changes"}
               </ActionButton>
