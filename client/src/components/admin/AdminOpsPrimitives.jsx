@@ -59,20 +59,20 @@ export function AdminOpsStatusBadge({ label, tone = "neutral", prefix = "", clas
 
 export function AdminOpsPageHeader({ title, description, meta, badges, actions }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)] sm:px-5">
+    <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)] dark:border-slate-800 dark:bg-slate-950 sm:px-5">
       <div className="min-w-0 max-w-[760px]">
-        <h1 className="truncate text-[21px] font-semibold leading-tight text-slate-800">
+        <h1 className="truncate text-[21px] font-semibold leading-tight text-slate-800 dark:text-white">
           {title}
         </h1>
         {description ? (
-          <p className="mt-1 max-w-[680px] text-sm leading-5 text-slate-500">{description}</p>
+          <p className="mt-1 max-w-[680px] text-sm leading-5 text-slate-500 dark:text-slate-400">{description}</p>
         ) : null}
         {badges ? <div className="mt-3 flex max-w-full flex-wrap gap-2">{badges}</div> : null}
       </div>
       <div className="flex max-w-full flex-wrap items-center justify-start gap-2 sm:justify-end">
         {meta ? (
           <div
-            className="max-w-full rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"
+            className="max-w-full rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300"
             title={meta}
           >
             <span className="block truncate">{meta}</span>

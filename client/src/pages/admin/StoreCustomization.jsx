@@ -6065,42 +6065,6 @@ export default function StoreCustomizationPage() {
           description="Customize storefront sections, labels, and SEO."
           actions={
             <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-              <div className="relative min-w-0 flex-1 sm:flex-none">
-                <select
-                  value={lang}
-                  onChange={(event) => setLang(String(event.target.value).toLowerCase())}
-                  disabled={isSaving}
-                  className={`${inputBase} min-w-0 appearance-none pr-9 sm:min-w-[178px]`}
-                >
-                  {publishedLanguages.length === 0 ? (
-                    <option value="en">en</option>
-                  ) : (
-                    publishedLanguages.map((item) => (
-                      <option key={item.id || item.isoCode} value={item.isoCode}>
-                        {item.isoCode}
-                      </option>
-                    ))
-                  )}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              </div>
-              <button
-                type="button"
-                onClick={onOpenAddLanguage}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-                aria-label="Add language"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={onPreviewStorefront}
-                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-                title="Preview Storefront"
-              >
-                <Eye className="h-3.5 w-3.5" />
-                <span>Preview</span>
-              </button>
               <StoreCustomizationSaveActions2026
                 onSave={() => onSave({ publish: false })}
                 onPublish={onPublish}

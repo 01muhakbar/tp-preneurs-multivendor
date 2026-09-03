@@ -651,26 +651,6 @@ export default function StoreCustomizationSingleSetting2026({
           </p>
         </div>
         <div className="flex min-w-0 flex-wrap items-center gap-3">
-          <label className="relative min-w-0 sm:w-auto">
-            <span className="sr-only">Language</span>
-            <select
-              value={language}
-              onChange={(event) => onLanguageChange?.(event.target.value)}
-              disabled={isSaving || isPublishing}
-              className="h-11 w-full min-w-0 appearance-none rounded-2xl border border-slate-200 bg-white px-4 pr-10 text-sm font-bold text-slate-700 shadow-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:focus:ring-emerald-500/15 sm:w-44"
-            >
-              {languageItems.map((item) => (
-                <option key={item.isoCode || item.id} value={item.isoCode}>
-                  {item.isoCode || "en"}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          </label>
-          <ActionButton onClick={onReset} disabled={isSaving || isPublishing || isLoading}>
-            <RefreshCcw className="h-4 w-4" />
-            Reset
-          </ActionButton>
           <StoreCustomizationSaveActions2026
             onSave={() => onSave?.({ publish: false })}
             onPublish={() => onPublish?.()}
