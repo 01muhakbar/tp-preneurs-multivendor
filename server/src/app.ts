@@ -79,6 +79,14 @@ const app = express();
 // If behind a reverse proxy (nginx/vercel), allow req.secure via X-Forwarded-Proto
 app.set("trust proxy", 1);
 
+app.use((req, res, next) => {
+  // Paksa HTTPS di production (jika diakses via HTTP biasa)
+  if (process.env.NODE_ENV === "production" && !req.secure) {
+    return res.redirect(301, `https://${req.hostname}${req.originalUrl}`);
+  }
+  next();
+});
+
 const resolveClientDistDir = () => {
   const configured = String(process.env.CLIENT_DIST_DIR || "").trim();
   const candidates = [
