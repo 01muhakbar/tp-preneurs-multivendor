@@ -18,6 +18,7 @@ import {
   requireStaffOrAdmin,
   requireSuperAdmin,
 } from "./middleware/requireRole.js";
+import { seoRenderer } from "./utils/seoRenderer.js";
 
 import authRouter from "./routes/auth.js";
 import cartRouter from "./routes/cartRoutes.js";
@@ -298,12 +299,13 @@ if (process.env.NODE_ENV === "production") {
         immutable: true,
       })
     );
+    const renderer = seoRenderer(clientDistDir);
     app.get("*", (req, res, next) => {
       if (!shouldServeClientRoute(req)) {
         next();
         return;
       }
-      res.sendFile(path.join(clientDistDir, "index.html"));
+      renderer(req, res, next);
     });
   } else {
     console.warn(
