@@ -8,6 +8,7 @@ import { useStoreCategories } from "../../hooks/useStoreCategories.ts";
 import CategoryAccordion from "../store/CategoryAccordion.jsx";
 import ThemeToggle from "../store/ThemeToggle.jsx";
 import { buildCategoryTree } from "../../utils/categoryTree.ts";
+import useStoreBranding from "../../hooks/useStoreBranding.js";
 
 const PAGE_LINKS = [
   { label: "Home", to: "/" },
@@ -22,6 +23,7 @@ const PAGE_LINKS = [
 export default function MobileMenuDrawer({ isOpen, onClose }) {
   const navigate = useNavigate();
   const { data: categories, isLoading: categoriesLoading } = useStoreCategories();
+  const { branding } = useStoreBranding();
   const [activeTab, setActiveTab] = useState("category");
   const categoryTree = useMemo(() => buildCategoryTree(categories || []), [categories]);
 
@@ -86,8 +88,8 @@ export default function MobileMenuDrawer({ isOpen, onClose }) {
             >
               <X className="h-5 w-5" />
             </button>
-            <div className="text-sm font-extrabold tracking-wide text-slate-900 dark:text-white">
-              KACHA BAZAR
+            <div className="text-sm font-extrabold tracking-wide text-slate-900 dark:text-white uppercase">
+              {branding?.workspaceBrandName || "STORE"}
             </div>
           </div>
 
