@@ -1390,76 +1390,6 @@ export default function TPPreneurHomePage() {
         copiedCode={copiedCode}
         onCopyCoupon={copyCouponCode}
       />
-      <BenefitStrip isIndo={isIndo} />
-
-      {promotionBannerConfig.enabled ? (
-        <div
-          className={
-            promotionBannerConfig.displayOn === "Desktop Only"
-              ? "hidden lg:block"
-              : promotionBannerConfig.displayOn === "Mobile Only"
-                ? "lg:hidden"
-                : ""
-          }
-        >
-          <PromoDeliveryBanner
-            subTitle={promotionBannerConfig.subTitle}
-            title={promotionBannerConfig.title}
-            description={promotionBannerConfig.description}
-            buttonName={promotionBannerConfig.buttonName}
-            buttonLink={promotionBannerConfig.buttonLink}
-            imageDataUrl={promotionBannerConfig.imageDataUrl}
-          />
-        </div>
-      ) : null}
-
-      {featuredCategoriesConfig.enabled ? (
-        <section className="space-y-6">
-          <SectionHeading
-            eyebrow={isIndo ? "KATEGORI UNGGULAN" : "Featured Categories"}
-            title={featuredHeading.title}
-            accent={featuredHeading.accent}
-            description={displayFeaturedDesc}
-            action={
-              <Link
-                to={featuredCategoriesConfig.buttonLink}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[var(--tp-primary)] bg-white/70 px-5 text-sm font-black text-[var(--tp-primary)] transition hover:bg-[var(--tp-primary)] hover:text-white dark:border-sky-400/70 dark:bg-slate-950/70 dark:!text-sky-100 dark:hover:border-sky-300 dark:hover:bg-[var(--tp-primary)] dark:hover:!text-white"
-              >
-                {displayFeaturedBtn}
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            }
-          />
-          {categoriesLoading && categories.length === 0 ? (
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-8" aria-label="Loading categories">
-              {Array.from({ length: Math.min(featuredCategoriesConfig.limit, 8) }).map((_, index) => (
-                <div key={index} className="h-52 animate-pulse rounded-[22px] bg-white dark:bg-slate-800" />
-              ))}
-            </div>
-          ) : categoriesError && categories.length === 0 ? (
-            <SectionStatus
-              icon={Grid3X3}
-              title="Categories are unavailable"
-              description={categoriesError?.response?.data?.message || categoriesError?.message || "We could not load the category list."}
-              actionLabel="Try again"
-              onAction={() => refetchCategories()}
-            />
-          ) : categories.length === 0 ? (
-            <SectionStatus
-              icon={Grid3X3}
-              title="No categories yet"
-              description="Published categories will appear here as soon as they are available."
-            />
-          ) : (
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-8">
-              {categories.map((category) => (
-                <CategoryCard key={category.id} category={category} />
-              ))}
-            </div>
-          )}
-        </section>
-      ) : null}
-
       {popularProductsConfig.enabled ? (
         <section className="space-y-5 rounded-[28px] bg-white p-5 shadow-[0_14px_34px_rgba(3,76,133,0.08)] dark:bg-slate-900 sm:p-7" aria-busy={popularFetching}>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -1569,6 +1499,77 @@ export default function TPPreneurHomePage() {
           )}
         </section>
       ) : null}
+
+      <BenefitStrip isIndo={isIndo} />
+
+      {promotionBannerConfig.enabled ? (
+        <div
+          className={
+            promotionBannerConfig.displayOn === "Desktop Only"
+              ? "hidden lg:block"
+              : promotionBannerConfig.displayOn === "Mobile Only"
+                ? "lg:hidden"
+                : ""
+          }
+        >
+          <PromoDeliveryBanner
+            subTitle={promotionBannerConfig.subTitle}
+            title={promotionBannerConfig.title}
+            description={promotionBannerConfig.description}
+            buttonName={promotionBannerConfig.buttonName}
+            buttonLink={promotionBannerConfig.buttonLink}
+            imageDataUrl={promotionBannerConfig.imageDataUrl}
+          />
+        </div>
+      ) : null}
+
+      {featuredCategoriesConfig.enabled ? (
+        <section className="space-y-6">
+          <SectionHeading
+            eyebrow={isIndo ? "KATEGORI UNGGULAN" : "Featured Categories"}
+            title={featuredHeading.title}
+            accent={featuredHeading.accent}
+            description={displayFeaturedDesc}
+            action={
+              <Link
+                to={featuredCategoriesConfig.buttonLink}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[var(--tp-primary)] bg-white/70 px-5 text-sm font-black text-[var(--tp-primary)] transition hover:bg-[var(--tp-primary)] hover:text-white dark:border-sky-400/70 dark:bg-slate-950/70 dark:!text-sky-100 dark:hover:border-sky-300 dark:hover:bg-[var(--tp-primary)] dark:hover:!text-white"
+              >
+                {displayFeaturedBtn}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            }
+          />
+          {categoriesLoading && categories.length === 0 ? (
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-8" aria-label="Loading categories">
+              {Array.from({ length: Math.min(featuredCategoriesConfig.limit, 8) }).map((_, index) => (
+                <div key={index} className="h-52 animate-pulse rounded-[22px] bg-white dark:bg-slate-800" />
+              ))}
+            </div>
+          ) : categoriesError && categories.length === 0 ? (
+            <SectionStatus
+              icon={Grid3X3}
+              title="Categories are unavailable"
+              description={categoriesError?.response?.data?.message || categoriesError?.message || "We could not load the category list."}
+              actionLabel="Try again"
+              onAction={() => refetchCategories()}
+            />
+          ) : categories.length === 0 ? (
+            <SectionStatus
+              icon={Grid3X3}
+              title="No categories yet"
+              description="Published categories will appear here as soon as they are available."
+            />
+          ) : (
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-8">
+              {categories.map((category) => (
+                <CategoryCard key={category.id} category={category} />
+              ))}
+            </div>
+          )}
+        </section>
+      ) : null}
+
 
       <section className="space-y-5">
         <div className="flex items-center justify-between gap-4">
