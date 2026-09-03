@@ -16,7 +16,7 @@
   "main": "server/dist/server.js",
   "type": "module",
   "scripts": {
-    "build": "node scripts/run-pnpm.mjs -F server build",
+    "build": "node scripts/run-pnpm.mjs -F server build && node scripts/run-pnpm.mjs -F client build",
     "build:all": "node scripts/run-pnpm.mjs -F server build && node scripts/run-pnpm.mjs -F client build",
     "start": "node scripts/run-pnpm.mjs -F server migrate && node scripts/run-pnpm.mjs --filter server start:prod",
     "deploy:pre": "node scripts/run-pnpm.mjs -F server migrate",
