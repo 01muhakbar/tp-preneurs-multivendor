@@ -1500,29 +1500,6 @@ export default function TPPreneurHomePage() {
         </section>
       ) : null}
 
-      <BenefitStrip isIndo={isIndo} />
-
-      {promotionBannerConfig.enabled ? (
-        <div
-          className={
-            promotionBannerConfig.displayOn === "Desktop Only"
-              ? "hidden lg:block"
-              : promotionBannerConfig.displayOn === "Mobile Only"
-                ? "lg:hidden"
-                : ""
-          }
-        >
-          <PromoDeliveryBanner
-            subTitle={promotionBannerConfig.subTitle}
-            title={promotionBannerConfig.title}
-            description={promotionBannerConfig.description}
-            buttonName={promotionBannerConfig.buttonName}
-            buttonLink={promotionBannerConfig.buttonLink}
-            imageDataUrl={promotionBannerConfig.imageDataUrl}
-          />
-        </div>
-      ) : null}
-
       {featuredCategoriesConfig.enabled ? (
         <section className="space-y-6">
           <SectionHeading
@@ -1570,7 +1547,6 @@ export default function TPPreneurHomePage() {
         </section>
       ) : null}
 
-
       <section className="space-y-5">
         <div className="flex items-center justify-between gap-4">
           <h2 className="flex items-center gap-3 text-2xl font-black text-[#071a3f] dark:text-white">
@@ -1606,6 +1582,30 @@ export default function TPPreneurHomePage() {
           </div>
         )}
       </section>
+
+      <BenefitStrip isIndo={isIndo} />
+
+      {promotionBannerConfig.enabled ? (
+        <div
+          className={
+            promotionBannerConfig.displayOn === "Desktop Only"
+              ? "hidden lg:block"
+              : promotionBannerConfig.displayOn === "Mobile Only"
+                ? "lg:hidden"
+                : ""
+          }
+        >
+          <PromoDeliveryBanner
+            subTitle={promotionBannerConfig.subTitle}
+            title={promotionBannerConfig.title}
+            description={promotionBannerConfig.description}
+            buttonName={promotionBannerConfig.buttonName}
+            buttonLink={promotionBannerConfig.buttonLink}
+            imageDataUrl={promotionBannerConfig.imageDataUrl}
+          />
+        </div>
+      ) : null}
+
 
       <DiscoverDigitalProductsHero />
 
