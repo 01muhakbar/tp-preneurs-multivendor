@@ -339,55 +339,55 @@ gtag('config', '${key}');`;
       {showFloatingCartWidget ? (
         <FloatingCartWidget />
       ) : null}
-      <nav className="fixed inset-x-0 bottom-0 z-40 h-16 border-t border-[var(--tp-primary)]/70 bg-[var(--tp-primary)] px-4 py-2 text-white shadow-[0_-8px_20px_rgba(3,76,133,0.35)] sm:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 h-[68px] border-t border-[var(--tp-primary)]/70 bg-[var(--tp-primary)] px-2 py-1.5 text-white shadow-[0_-8px_24px_rgba(3,76,133,0.4)] sm:hidden">
         <div className="mx-auto grid h-full max-w-7xl grid-cols-4 gap-1">
           <button
             type="button"
             onClick={() => setIsMenuOpen(true)}
             aria-expanded={isMenuOpen}
             aria-label="Open menu"
-            className="flex h-full flex-col items-center justify-center rounded-lg text-xs tracking-[0.01em] text-white/90 hover:bg-[var(--tp-accent)]"
+            className="flex h-full flex-col items-center justify-center rounded-[16px] text-[11px] tracking-[0.01em] text-white/80 hover:bg-[var(--tp-accent)]/20 transition-colors"
           >
-            <Menu className="h-[18px] w-[18px]" />
+            <Menu className="h-5 w-5 mb-1" />
             <span className="leading-none">Menu</span>
           </button>
           <Link
             to="/"
-            className={`flex h-full flex-col items-center justify-center rounded-lg text-xs tracking-[0.01em] hover:bg-[var(--tp-accent)] ${
+            className={`flex h-full flex-col items-center justify-center rounded-[16px] text-[11px] tracking-[0.01em] transition-colors ${
               isHomeActive
-                ? "bg-[var(--tp-accent)] font-semibold text-white"
-                : "font-medium text-white/90"
+                ? "bg-[var(--tp-accent)] font-bold text-white shadow-sm"
+                : "font-medium text-white/80 hover:bg-[var(--tp-accent)]/20"
             }`}
           >
-            <Home className="h-[18px] w-[18px]" />
+            <Home className="h-5 w-5 mb-1" />
             <span className="leading-none">Home</span>
           </Link>
           <button
             type="button"
             onClick={openCartDrawer}
-            className={`relative flex h-full flex-col items-center justify-center rounded-lg text-xs tracking-[0.01em] hover:bg-[var(--tp-accent)] ${
+            className={`relative flex h-full flex-col items-center justify-center rounded-[16px] text-[11px] tracking-[0.01em] transition-colors ${
               isCartActive || isCartDrawerOpen
-                ? "bg-[var(--tp-accent)] font-semibold text-white"
-                : "font-medium text-white/90"
+                ? "bg-[var(--tp-accent)] font-bold text-white shadow-sm"
+                : "font-medium text-white/80 hover:bg-[var(--tp-accent)]/20"
             }`}
           >
-            <ShoppingCart className="h-[18px] w-[18px]" />
+            <ShoppingCart className="h-5 w-5 mb-1" />
             <span className="leading-none">Cart</span>
             {totalQty > 0 ? (
-              <span className="absolute right-3 top-1.5 inline-flex min-w-[17px] items-center justify-center rounded-full bg-amber-300 px-1 text-[10px] font-bold text-slate-900">
+              <span className="absolute right-[20%] top-1.5 inline-flex min-w-[18px] items-center justify-center rounded-full bg-white px-1 py-0.5 text-[9px] font-black text-[var(--tp-accent)] shadow-sm">
                 {totalQty}
               </span>
             ) : null}
           </button>
           <Link
             to="/user/my-account"
-            className={`flex h-full flex-col items-center justify-center rounded-lg text-xs tracking-[0.01em] hover:bg-[var(--tp-accent)] ${
+            className={`flex h-full flex-col items-center justify-center rounded-[16px] text-[11px] tracking-[0.01em] transition-colors ${
               isProfileActive
-                ? "bg-[var(--tp-accent)] font-semibold text-white"
-                : "font-medium text-white/90"
+                ? "bg-[var(--tp-accent)] font-bold text-white shadow-sm"
+                : "font-medium text-white/80 hover:bg-[var(--tp-accent)]/20"
             }`}
           >
-            <UserRound className="h-[18px] w-[18px]" />
+            <UserRound className="h-5 w-5 mb-1" />
             <span className="leading-none">Profile</span>
           </Link>
         </div>

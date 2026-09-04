@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Download,
   Eye,
+  Globe2,
   Grid3X3,
   Handshake,
   Heart,
@@ -17,6 +18,8 @@ import {
   Rocket,
   ShoppingCart,
   Star,
+  Ticket,
+  UserRound,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -778,15 +781,15 @@ function MainSliderSection({
             </div>
           ) : null}
           {showDots ? (
-            <div className="absolute bottom-4 left-4 z-20 flex gap-2 sm:bottom-8 sm:left-8">
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 sm:bottom-8 sm:left-8 sm:translate-x-0 z-20 flex gap-1.5 sm:gap-2">
               {slides.map((_, index) => (
                 <button
                   key={`main-slider-dot-${index}`}
                   type="button"
                   onClick={() => setActiveSlide(index)}
                   aria-label={`Show slider ${index + 1}`}
-                  className={`h-3 rounded-full transition-all ${
-                    index === slideIndex ? "w-8 bg-[var(--tp-accent)]" : "w-3 bg-[#adc6df]"
+                  className={`h-2 sm:h-3 rounded-full transition-all ${
+                    index === slideIndex ? "w-6 sm:w-8 bg-[var(--tp-accent)]" : "w-2 sm:w-3 bg-slate-300 sm:bg-[#adc6df]"
                   }`}
                 />
               ))}
@@ -799,14 +802,16 @@ function MainSliderSection({
           <HeroVisual products={products} />
         ) : null}
         {showCouponBox ? (
-          <CompactHeroCouponCard
-            discountCouponBox={discountCouponBox}
-            couponList={couponList}
-            isLoading={couponsLoading}
-            couponError={couponError}
-            copiedCode={copiedCode}
-            onCopy={onCopyCoupon}
-          />
+          <div className="hidden lg:block h-full">
+            <CompactHeroCouponCard
+              discountCouponBox={discountCouponBox}
+              couponList={couponList}
+              isLoading={couponsLoading}
+              couponError={couponError}
+              copiedCode={copiedCode}
+              onCopy={onCopyCoupon}
+            />
+          </div>
         ) : null}
       </div>
     </section>
@@ -1380,6 +1385,22 @@ export default function TPPreneurHomePage() {
 
   return (
     <div className="mx-0 space-y-5 bg-[#f7fbff] pb-8 text-[#071a3f] dark:bg-slate-950 sm:mx-1 sm:space-y-6 sm:pb-0 lg:mx-2">
+      {/* MOBILE QUICK ACCESS MENU */}
+      <div className="lg:hidden mx-4 mb-2 grid grid-cols-3 gap-3">
+        <Link to="/categories" className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-white p-3 shadow-[0_4px_12px_rgba(3,76,133,0.05)] border border-[#e8f0f8] dark:border-slate-800 dark:bg-slate-900 transition hover:shadow-md">
+          <Globe2 className="h-6 w-6 text-[var(--tp-accent)]" />
+          <span className="text-[11px] font-bold text-[#071a3f] dark:text-slate-200">{isIndo ? "Kategori" : "Categories"}</span>
+        </Link>
+        <Link to="/offers" className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-white p-3 shadow-[0_4px_12px_rgba(3,76,133,0.05)] border border-[#e8f0f8] dark:border-slate-800 dark:bg-slate-900 transition hover:shadow-md">
+          <Ticket className="h-6 w-6 text-[var(--tp-accent)]" />
+          <span className="text-[11px] font-bold text-[#071a3f] dark:text-slate-200">{isIndo ? "Kupon" : "Coupons"}</span>
+        </Link>
+        <Link to="/user/my-account" className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-white p-3 shadow-[0_4px_12px_rgba(3,76,133,0.05)] border border-[#e8f0f8] dark:border-slate-800 dark:bg-slate-900 transition hover:shadow-md">
+          <UserRound className="h-6 w-6 text-[var(--tp-accent)]" />
+          <span className="text-[11px] font-bold text-[#071a3f] dark:text-slate-200">{isIndo ? "Akun" : "Account"}</span>
+        </Link>
+      </div>
+
       <MainSliderSection
         mainSlider={mainSlider}
         products={popularProducts}
@@ -1390,8 +1411,36 @@ export default function TPPreneurHomePage() {
         copiedCode={copiedCode}
         onCopyCoupon={copyCouponCode}
       />
+
+      {/* MOBILE MAIN CONTENT GRID (lg:hidden) */}
       {popularProductsConfig.enabled ? (
-        <section className="space-y-5 rounded-[28px] bg-white p-5 shadow-[0_14px_34px_rgba(3,76,133,0.08)] dark:bg-slate-900 sm:p-7" aria-busy={popularFetching}>
+        <div className="lg:hidden mx-4 grid grid-cols-2 gap-3 items-stretch">
+          <div className="flex flex-col gap-2.5">
+            <h3 className="text-sm font-black text-[#071a3f] dark:text-white uppercase tracking-wider">{isIndo ? "Penawaran Khusus" : "Featured Offer"}</h3>
+            <div className="flex-1">
+              <CompactHeroCouponCard
+                discountCouponBox={discountCouponBox}
+                couponList={couponList}
+                isLoading={couponsLoading}
+                couponError={couponError?.message}
+                copiedCode={copiedCode}
+                onCopy={copyCouponCode}
+              />
+            </div>
+          </div>
+          <div className="flex flex-col gap-2.5">
+            <h3 className="text-sm font-black text-[#071a3f] dark:text-white uppercase tracking-wider">{isIndo ? "Produk Tren" : "Trending Products"}</h3>
+            <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2 flex-1">
+              {popularProducts.slice(0, 4).map((product) => (
+                <ProductCard key={product.id} product={product} showDiscount />
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {popularProductsConfig.enabled ? (
+        <section className="hidden lg:block space-y-5 rounded-[28px] bg-white p-5 shadow-[0_14px_34px_rgba(3,76,133,0.08)] dark:bg-slate-900 sm:p-7" aria-busy={popularFetching}>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0 max-w-2xl">
               <h2 className="flex items-center gap-3 text-2xl font-black text-[#071a3f] dark:text-white">

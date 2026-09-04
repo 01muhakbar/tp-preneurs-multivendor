@@ -474,7 +474,85 @@ export default function StoreHeaderKacha({
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#e3edf8] bg-[#f7fbff]/95 text-[#071a3f] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95 dark:text-slate-100">
-      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-1.5 text-sm text-slate-600 sm:px-5 lg:px-6 dark:text-slate-300">
+      {/* MOBILE HEADER (lg:hidden) */}
+      <div className="lg:hidden w-full px-4 py-3 flex flex-col gap-3">
+        {/* Row 1: Search + Cart + Bell */}
+        <div className="flex items-center gap-2 sm:gap-3 w-full">
+          <div ref={searchRootRef} className="flex-1 relative">
+            <form onSubmit={submitSearch}>
+              <label className="relative block">
+                <span className="sr-only">Search products</span>
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  onFocus={() => setSearchFocused(true)}
+                  placeholder={t("header.searchPlaceholder")}
+                  className="h-11 w-full rounded-full border border-[#c8d7ea] bg-white px-5 pr-[48px] text-sm font-semibold text-[#42577b] outline-none focus:border-[var(--tp-primary)] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                />
+                <button
+                  type="submit"
+                  aria-label="Search"
+                  className="absolute right-1 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-white"
+                  style={{ background: PRIMARY }}
+                >
+                  <Search className="h-4 w-4" />
+                </button>
+              </label>
+            </form>
+            <LiveSearchDropdown
+              searchFocused={searchFocused}
+              debouncedSearch={debouncedSearch}
+              searchFetching={searchFetching}
+              searchResults={searchResults}
+              submitSearch={submitSearch}
+              setSearchFocused={setSearchFocused}
+              setSearch={setSearch}
+              isIndo={isIndo}
+            />
+          </div>
+          
+          <IconButton label="Open cart" badge={count > 0 ? count : null} onClick={onCartClick}>
+            <ShoppingCart className="h-5 w-5" />
+          </IconButton>
+          
+          <div ref={notificationRootRef} className="store-header-notification-anchor">
+            <button
+              type="button"
+              aria-label="Notifications"
+              aria-expanded={notificationsOpen}
+              onClick={handleToggleNotifications}
+              className={`store-header-notification-button relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#d8e4f2] bg-white text-[#071a3f] shadow-[0_6px_16px_rgba(var(--tp-primary-rgb)/0.07)] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 ${notificationsOpen ? "is-open" : ""}`}
+            >
+              <Bell className="h-5 w-5" />
+              {unreadBadge ? (
+                <span
+                  className="absolute -right-0.5 -top-1 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-black text-white"
+                  style={{ background: ACCENT }}
+                >
+                  {unreadBadge}
+                </span>
+              ) : null}
+            </button>
+            <NotificationPreviewDropdown
+              open={notificationsOpen}
+              onClose={() => setNotificationsOpen(false)}
+              onNavigate={handleNotificationNavigate}
+            />
+          </div>
+        </div>
+
+        {/* Row 2: Logo + Support Text */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="shrink-0">
+            <LogoMark logoUrl={displayLogoUrl} />
+          </div>
+          <div className="text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-300 text-right leading-tight">
+            {displayHeaderText} <span className="font-black text-[var(--tp-accent)] block sm:inline">{displayPhone}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="hidden lg:flex mx-auto w-full max-w-7xl items-center justify-between gap-4 px-4 py-1.5 text-sm text-slate-600 sm:px-5 lg:px-6 dark:text-slate-300">
         <div className="flex min-w-0 items-center gap-3">
           <Headphones className="h-[18px] w-[18px] shrink-0 text-[var(--tp-primary)] dark:text-sky-300" />
           <span className="truncate">{displayHeaderText}</span>
@@ -505,7 +583,7 @@ export default function StoreHeaderKacha({
         </nav>
       </div>
 
-      <div className="mx-auto w-full max-w-7xl px-4 sm:px-5 lg:px-6">
+      <div className="hidden lg:block mx-auto w-full max-w-7xl px-4 sm:px-5 lg:px-6">
         <div className="rounded-[18px] border border-white/80 bg-white px-4 py-2 shadow-[0_10px_24px_rgba(var(--tp-primary-rgb)/0.08)] dark:border-slate-800 dark:bg-slate-900 dark:shadow-[0_14px_30px_rgba(0,0,0,0.22)]">
           <div className="flex items-center gap-3 lg:gap-5">
             <div className="shrink-0">
@@ -645,7 +723,7 @@ export default function StoreHeaderKacha({
         </div>
       </div>
 
-      <div className="mx-auto mt-2 w-full max-w-7xl px-4 pb-2 sm:px-5 lg:px-6">
+      <div className="hidden lg:block mx-auto mt-2 w-full max-w-7xl px-4 pb-2 sm:px-5 lg:px-6">
         <div className="flex min-h-[52px] items-center justify-between gap-4 overflow-visible rounded-[18px] border border-white/80 bg-white px-3 py-1.5 shadow-[0_8px_20px_rgba(var(--tp-primary-rgb)/0.06)] dark:border-slate-800 dark:bg-slate-900">
           <div className="flex min-w-0 items-center gap-2 md:gap-4">
             <div className="relative" ref={categoriesRootRef} data-demo-dropdown>
