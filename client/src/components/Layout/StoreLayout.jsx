@@ -361,15 +361,15 @@ gtag('config', '${key}');`;
             </div>
             <span className={`text-[10px] w-full text-center truncate leading-none ${isShopNavActive ? "font-bold" : "font-medium"}`}>Shop</span>
           </Link>
-          <button
-            type="button"
+          <Link
+            to="/user/notifications"
             className="relative flex h-full flex-col items-center justify-center text-[11px] tracking-[0.01em] text-white transition-colors min-w-0"
           >
             <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full mb-1 transition-colors ${isNotificationsActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
               <Bell className="h-5 w-5" />
             </div>
             <span className={`text-[10px] w-full text-center truncate leading-none ${isNotificationsActive ? "font-bold" : "font-medium"}`}>Notifications</span>
-          </button>
+          </Link>
           <Link
             to="/user/my-account"
             className="flex h-full flex-col items-center justify-center text-[11px] tracking-[0.01em] text-white transition-colors min-w-0"
