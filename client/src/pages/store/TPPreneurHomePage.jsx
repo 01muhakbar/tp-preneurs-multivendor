@@ -1433,10 +1433,13 @@ export default function TPPreneurHomePage() {
 
       {/* MOBILE MAIN CONTENT GRID (lg:hidden) */}
       {popularProductsConfig.enabled ? (
-        <div className="lg:hidden mx-4 grid grid-cols-2 gap-3 items-stretch">
-          <div className="flex flex-col gap-2.5">
+        <div className="lg:hidden mx-4">
+          <div className="grid grid-cols-2 gap-3 mb-2.5">
             <h3 className="text-[12px] sm:text-sm font-black text-[#071a3f] dark:text-white uppercase tracking-wider whitespace-nowrap overflow-hidden text-ellipsis">{isIndo ? "Penawaran Khusus" : "Featured Offer"}</h3>
-            <div className="flex-1">
+            <h3 className="text-[12px] sm:text-sm font-black text-[#071a3f] dark:text-white uppercase tracking-wider whitespace-nowrap overflow-hidden text-ellipsis">{isIndo ? "Produk Tren" : "Trending Products"}</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 items-stretch">
+            <div className="h-full">
               <CompactHeroCouponCard
                 discountCouponBox={discountCouponBox}
                 couponList={couponList}
@@ -1446,14 +1449,11 @@ export default function TPPreneurHomePage() {
                 onCopy={copyCouponCode}
               />
             </div>
-          </div>
-          <div className="flex flex-col gap-2.5">
-            <h3 className="text-[12px] sm:text-sm font-black text-[#071a3f] dark:text-white uppercase tracking-wider whitespace-nowrap overflow-hidden text-ellipsis">{isIndo ? "Produk Tren" : "Trending Products"}</h3>
-            <div className="grid grid-cols-2 gap-2 flex-1">
-              {popularProducts.slice(0, 4).map((product) => (
-                <ProductCard key={product.id} product={product} showDiscount />
-              ))}
-            </div>
+            {popularProducts.slice(0, 4).map((product) => (
+              <div key={product.id} className="h-full">
+                <ProductCard product={product} showDiscount />
+              </div>
+            ))}
           </div>
         </div>
       ) : null}

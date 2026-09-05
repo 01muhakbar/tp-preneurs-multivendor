@@ -345,39 +345,39 @@ gtag('config', '${key}');`;
         <div className="mx-auto grid h-full max-w-7xl grid-cols-4 gap-1">
           <Link
             to="/"
-            className="flex h-full flex-col items-center justify-center text-[11px] tracking-[0.01em] text-white transition-colors"
+            className="flex h-full flex-col items-center justify-center text-[11px] tracking-[0.01em] text-white transition-colors min-w-0"
           >
-            <div className={`flex h-9 w-9 items-center justify-center rounded-full mb-1 transition-colors ${isHomeActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
+            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full mb-1 transition-colors ${isHomeActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
               <Home className="h-5 w-5" />
             </div>
-            <span className={`leading-none ${isHomeActive ? "font-bold" : "font-medium"}`}>Home</span>
+            <span className={`text-[10px] w-full text-center truncate leading-none ${isHomeActive ? "font-bold" : "font-medium"}`}>Home</span>
           </Link>
           <Link
             to="/shop"
-            className="flex h-full flex-col items-center justify-center text-[11px] tracking-[0.01em] text-white transition-colors"
+            className="flex h-full flex-col items-center justify-center text-[11px] tracking-[0.01em] text-white transition-colors min-w-0"
           >
-            <div className={`flex h-9 w-9 items-center justify-center rounded-full mb-1 transition-colors ${isShopNavActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
+            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full mb-1 transition-colors ${isShopNavActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
               <Store className="h-5 w-5" />
             </div>
-            <span className={`leading-none ${isShopNavActive ? "font-bold" : "font-medium"}`}>Shop</span>
+            <span className={`text-[10px] w-full text-center truncate leading-none ${isShopNavActive ? "font-bold" : "font-medium"}`}>Shop</span>
           </Link>
           <button
             type="button"
-            className="relative flex h-full flex-col items-center justify-center text-[11px] tracking-[0.01em] text-white transition-colors"
+            className="relative flex h-full flex-col items-center justify-center text-[11px] tracking-[0.01em] text-white transition-colors min-w-0"
           >
-            <div className={`flex h-9 w-9 items-center justify-center rounded-full mb-1 transition-colors ${isNotificationsActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
+            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full mb-1 transition-colors ${isNotificationsActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
               <Bell className="h-5 w-5" />
             </div>
-            <span className={`leading-none ${isNotificationsActive ? "font-bold" : "font-medium"}`}>Notifications</span>
+            <span className={`text-[10px] w-full text-center truncate leading-none ${isNotificationsActive ? "font-bold" : "font-medium"}`}>Notifications</span>
           </button>
           <Link
             to="/user/my-account"
-            className="flex h-full flex-col items-center justify-center text-[11px] tracking-[0.01em] text-white transition-colors"
+            className="flex h-full flex-col items-center justify-center text-[11px] tracking-[0.01em] text-white transition-colors min-w-0"
           >
-            <div className={`flex h-9 w-9 items-center justify-center rounded-full mb-1 transition-colors ${isProfileActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
+            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full mb-1 transition-colors ${isProfileActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
               <UserRound className="h-5 w-5" />
             </div>
-            <span className={`leading-none ${isProfileActive ? "font-bold" : "font-medium"}`}>Profile</span>
+            <span className={`text-[10px] w-full text-center truncate leading-none ${isProfileActive ? "font-bold" : "font-medium"}`}>Profile</span>
           </Link>
         </div>
       </nav>
