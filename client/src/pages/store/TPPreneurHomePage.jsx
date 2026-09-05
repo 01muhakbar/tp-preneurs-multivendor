@@ -1028,7 +1028,7 @@ function ProductCard({ product, compact = false, showDiscount = false }) {
               onError={(event) => {
                 event.currentTarget.src = PLACEHOLDER_IMAGE;
               }}
-              className="block h-full w-full object-contain object-center transition duration-300 group-hover:opacity-95"
+              className="block h-full w-full object-contain object-center transition duration-300 group-hover:opacity-95 text-[10px] text-slate-400 overflow-hidden break-words text-center leading-tight"
               style={{ objectFit: "contain", objectPosition: "center" }}
             />
           ) : (
@@ -1385,7 +1385,7 @@ export default function TPPreneurHomePage() {
   };
 
   return (
-    <div className="mx-0 space-y-5 bg-[#f7fbff] pb-8 text-[#071a3f] dark:bg-slate-950 sm:mx-1 sm:space-y-6 sm:pb-0 lg:mx-2">
+    <div className="mx-0 w-full overflow-x-hidden space-y-5 bg-[#f7fbff] pb-8 text-[#071a3f] dark:bg-slate-950 sm:mx-1 sm:space-y-6 sm:pb-0 lg:mx-2">
       {/* MOBILE QUICK ACCESS MENU */}
       <div className="relative lg:hidden mx-4 mb-2">
         <div className="flex overflow-x-auto no-scrollbar gap-2 snap-x pb-2 pr-6">
@@ -1435,10 +1435,10 @@ export default function TPPreneurHomePage() {
       {popularProductsConfig.enabled ? (
         <div className="lg:hidden mx-4">
           <div className="grid grid-cols-2 gap-3 mb-2.5">
-            <h3 className="text-[12px] sm:text-sm font-black text-[#071a3f] dark:text-white uppercase tracking-wider whitespace-nowrap overflow-hidden text-ellipsis">{isIndo ? "Penawaran Khusus" : "Featured Offer"}</h3>
-            <h3 className="text-[12px] sm:text-sm font-black text-[#071a3f] dark:text-white uppercase tracking-wider whitespace-nowrap overflow-hidden text-ellipsis">{isIndo ? "Produk Tren" : "Trending Products"}</h3>
+            <h3 className="text-[10px] sm:text-xs font-black text-[#071a3f] dark:text-white uppercase tracking-wider break-words leading-tight pr-1">{isIndo ? "Penawaran Khusus" : "Featured Offer"}</h3>
+            <h3 className="text-[10px] sm:text-xs font-black text-[#071a3f] dark:text-white uppercase tracking-wider break-words leading-tight pr-1">{isIndo ? "Produk Tren" : "Trending Products"}</h3>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:gap-3 items-stretch">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 items-start">
             <div className="h-full">
               <CompactHeroCouponCard
                 discountCouponBox={discountCouponBox}
@@ -1572,10 +1572,10 @@ export default function TPPreneurHomePage() {
       {(featuredCategoriesConfig.enabled || discountedProducts.length > 0) ? (
         <div className="lg:hidden mx-4 mt-6">
           <div className="grid grid-cols-2 gap-3 mb-2.5">
-            <h3 className="text-[12px] sm:text-sm font-black text-[#071a3f] dark:text-white uppercase tracking-wider whitespace-nowrap overflow-hidden text-ellipsis">{isIndo ? "Kategori Unggulan" : "Featured Categories"}</h3>
-            <h3 className="text-[12px] sm:text-sm font-black text-[#071a3f] dark:text-white uppercase tracking-wider whitespace-nowrap overflow-hidden text-ellipsis">{isIndo ? "Diskon Terbaru" : "Latest Discounted"}</h3>
+            <h3 className="text-[10px] sm:text-xs font-black text-[#071a3f] dark:text-white uppercase tracking-wider break-words leading-tight pr-1">{isIndo ? "Kategori Unggulan" : "Featured Categories"}</h3>
+            <h3 className="text-[10px] sm:text-xs font-black text-[#071a3f] dark:text-white uppercase tracking-wider break-words leading-tight pr-1">{isIndo ? "Diskon Terbaru" : "Latest Discounted"}</h3>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:gap-3 items-stretch">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 items-start">
             {Array.from({ length: 4 }).map((_, i) => {
               const cat = categories[i];
               const prod = discountedProducts[i];
