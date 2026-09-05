@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, Fragment } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import {
@@ -1568,8 +1568,41 @@ export default function TPPreneurHomePage() {
         </section>
       ) : null}
 
+      {/* MOBILE COMBINED: FEATURED CATEGORIES & DISCOUNTED PRODUCTS (lg:hidden) */}
+      {(featuredCategoriesConfig.enabled || discountedProducts.length > 0) ? (
+        <div className="lg:hidden mx-4 mt-6">
+          <div className="grid grid-cols-2 gap-3 mb-2.5">
+            <h3 className="text-[12px] sm:text-sm font-black text-[#071a3f] dark:text-white uppercase tracking-wider whitespace-nowrap overflow-hidden text-ellipsis">{isIndo ? "Kategori Unggulan" : "Featured Categories"}</h3>
+            <h3 className="text-[12px] sm:text-sm font-black text-[#071a3f] dark:text-white uppercase tracking-wider whitespace-nowrap overflow-hidden text-ellipsis">{isIndo ? "Diskon Terbaru" : "Latest Discounted"}</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 items-stretch">
+            {Array.from({ length: 4 }).map((_, i) => {
+              const cat = categories[i];
+              const prod = discountedProducts[i];
+              if (!cat && !prod) return null;
+              
+              if (i % 2 === 0) {
+                return (
+                  <Fragment key={`mix-${i}`}>
+                    <div className="h-full">{cat ? <CategoryCard category={cat} /> : null}</div>
+                    <div className="h-full">{prod ? <ProductCard product={prod} showDiscount /> : null}</div>
+                  </Fragment>
+                );
+              } else {
+                return (
+                  <Fragment key={`mix-${i}`}>
+                    <div className="h-full">{prod ? <ProductCard product={prod} showDiscount /> : null}</div>
+                    <div className="h-full">{cat ? <CategoryCard category={cat} /> : null}</div>
+                  </Fragment>
+                );
+              }
+            })}
+          </div>
+        </div>
+      ) : null}
+
       {featuredCategoriesConfig.enabled ? (
-        <section className="space-y-6">
+        <section className="hidden lg:block space-y-6">
           <SectionHeading
             eyebrow={isIndo ? "KATEGORI UNGGULAN" : "Featured Categories"}
             title={featuredHeading.title}
@@ -1615,7 +1648,7 @@ export default function TPPreneurHomePage() {
         </section>
       ) : null}
 
-      <section className="space-y-5">
+      <section className="hidden lg:block space-y-5">
         <div className="flex items-center justify-between gap-4">
           <h2 className="flex items-center gap-3 text-2xl font-black text-[#071a3f] dark:text-white">
             {isIndo ? "Produk Diskon Terbaru" : "Latest Discounted Products"}
