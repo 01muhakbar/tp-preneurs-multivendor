@@ -475,9 +475,9 @@ export default function StoreHeaderKacha({
   return (
     <header className="sticky top-0 z-50 border-b border-[#e3edf8] bg-[#f7fbff]/95 text-[#071a3f] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95 dark:text-slate-100">
       {/* MOBILE HEADER (lg:hidden) */}
-      <div className="lg:hidden w-full px-4 py-3 flex flex-col gap-3">
-        {/* Row 1: Search + Cart + Bell */}
-        <div className="flex items-center gap-2 sm:gap-3 w-full">
+      <div className="lg:hidden w-full flex flex-col">
+        {/* Row 1: Search + Cart */}
+        <div className="flex items-center gap-3 w-full bg-[var(--tp-primary)] px-4 py-3">
           <div ref={searchRootRef} className="flex-1 relative">
             <form onSubmit={submitSearch}>
               <label className="relative block">
@@ -487,7 +487,7 @@ export default function StoreHeaderKacha({
                   onChange={(event) => setSearch(event.target.value)}
                   onFocus={() => setSearchFocused(true)}
                   placeholder={t("header.searchPlaceholder")}
-                  className="h-11 w-full rounded-full border border-[#c8d7ea] bg-white px-5 pr-[48px] text-sm font-semibold text-[#42577b] outline-none focus:border-[var(--tp-primary)] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  className="h-11 w-full rounded-full border-none bg-white px-5 pr-[48px] text-sm font-semibold text-[#42577b] outline-none"
                 />
                 <button
                   type="submit"
@@ -511,38 +511,23 @@ export default function StoreHeaderKacha({
             />
           </div>
           
-          <IconButton label="Open cart" badge={count > 0 ? count : null} onClick={onCartClick}>
-            <ShoppingCart className="h-5 w-5" />
-          </IconButton>
-          
-          <div ref={notificationRootRef} className="store-header-notification-anchor">
-            <button
-              type="button"
-              aria-label="Notifications"
-              aria-expanded={notificationsOpen}
-              onClick={handleToggleNotifications}
-              className={`store-header-notification-button relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#d8e4f2] bg-white text-[#071a3f] shadow-[0_6px_16px_rgba(var(--tp-primary-rgb)/0.07)] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 ${notificationsOpen ? "is-open" : ""}`}
-            >
-              <Bell className="h-5 w-5" />
-              {unreadBadge ? (
-                <span
-                  className="absolute -right-0.5 -top-1 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-black text-white"
-                  style={{ background: ACCENT }}
-                >
-                  {unreadBadge}
-                </span>
-              ) : null}
-            </button>
-            <NotificationPreviewDropdown
-              open={notificationsOpen}
-              onClose={() => setNotificationsOpen(false)}
-              onNavigate={handleNotificationNavigate}
-            />
-          </div>
+          <button
+            type="button"
+            aria-label="Open cart"
+            onClick={onCartClick}
+            className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white hover:bg-white/10"
+          >
+            <ShoppingCart className="h-6 w-6" />
+            {count > 0 ? (
+              <span className="absolute -right-0.5 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--tp-accent)] px-1.5 text-[10px] font-black text-white">
+                {count}
+              </span>
+            ) : null}
+          </button>
         </div>
 
         {/* Row 2: Logo + Support Text */}
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-3 px-4 py-3 bg-white dark:bg-slate-900 border-b border-[#e3edf8] dark:border-slate-800">
           <div className="shrink-0">
             <LogoMark logoUrl={displayLogoUrl} />
           </div>

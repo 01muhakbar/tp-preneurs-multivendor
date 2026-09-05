@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import {
   ArrowRight,
   BadgeCheck,
+  BadgePercent,
   BookOpen,
   ChevronLeft,
   ChevronRight,
@@ -1386,18 +1387,30 @@ export default function TPPreneurHomePage() {
   return (
     <div className="mx-0 space-y-5 bg-[#f7fbff] pb-8 text-[#071a3f] dark:bg-slate-950 sm:mx-1 sm:space-y-6 sm:pb-0 lg:mx-2">
       {/* MOBILE QUICK ACCESS MENU */}
-      <div className="lg:hidden mx-4 mb-2 grid grid-cols-3 gap-3">
-        <Link to="/categories" className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-white p-3 shadow-[0_4px_12px_rgba(3,76,133,0.05)] border border-[#e8f0f8] dark:border-slate-800 dark:bg-slate-900 transition hover:shadow-md">
-          <Globe2 className="h-6 w-6 text-[var(--tp-accent)]" />
+      <div className="lg:hidden mx-4 mb-2 flex overflow-x-auto no-scrollbar gap-3 snap-x pb-2">
+        <Link to="/categories" className="shrink-0 w-[84px] snap-start flex flex-col items-center justify-center gap-2 rounded-[20px] bg-white p-3 shadow-[0_4px_16px_rgba(3,76,133,0.06)] border border-[#e8f0f8] dark:border-slate-800 dark:bg-slate-900 transition hover:shadow-md">
+          <div className="h-[42px] w-[42px] rounded-full bg-[var(--tp-accent)] flex items-center justify-center shadow-inner">
+            <Globe2 className="h-5 w-5 text-white" />
+          </div>
           <span className="text-[11px] font-bold text-[#071a3f] dark:text-slate-200">{isIndo ? "Kategori" : "Categories"}</span>
         </Link>
-        <Link to="/offers" className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-white p-3 shadow-[0_4px_12px_rgba(3,76,133,0.05)] border border-[#e8f0f8] dark:border-slate-800 dark:bg-slate-900 transition hover:shadow-md">
-          <Ticket className="h-6 w-6 text-[var(--tp-accent)]" />
+        <Link to="/offers" className="shrink-0 w-[84px] snap-start flex flex-col items-center justify-center gap-2 rounded-[20px] bg-white p-3 shadow-[0_4px_16px_rgba(3,76,133,0.06)] border border-[#e8f0f8] dark:border-slate-800 dark:bg-slate-900 transition hover:shadow-md">
+          <div className="h-[42px] w-[42px] rounded-full bg-[var(--tp-accent)] flex items-center justify-center shadow-inner">
+            <Ticket className="h-5 w-5 text-white" />
+          </div>
           <span className="text-[11px] font-bold text-[#071a3f] dark:text-slate-200">{isIndo ? "Kupon" : "Coupons"}</span>
         </Link>
-        <Link to="/user/my-account" className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-white p-3 shadow-[0_4px_12px_rgba(3,76,133,0.05)] border border-[#e8f0f8] dark:border-slate-800 dark:bg-slate-900 transition hover:shadow-md">
-          <UserRound className="h-6 w-6 text-[var(--tp-accent)]" />
-          <span className="text-[11px] font-bold text-[#071a3f] dark:text-slate-200">{isIndo ? "Akun" : "Account"}</span>
+        <Link to="/shop" className="shrink-0 w-[84px] snap-start flex flex-col items-center justify-center gap-2 rounded-[20px] bg-white p-3 shadow-[0_4px_16px_rgba(3,76,133,0.06)] border border-[#e8f0f8] dark:border-slate-800 dark:bg-slate-900 transition hover:shadow-md">
+          <div className="h-[42px] w-[42px] rounded-full bg-[var(--tp-accent)] flex items-center justify-center shadow-inner">
+            <ShoppingCart className="h-5 w-5 text-white" />
+          </div>
+          <span className="text-[11px] font-bold text-[#071a3f] dark:text-slate-200">{isIndo ? "Belanja" : "Shop"}</span>
+        </Link>
+        <Link to="/offers" className="shrink-0 w-[84px] snap-start flex flex-col items-center justify-center gap-2 rounded-[20px] bg-white p-3 shadow-[0_4px_16px_rgba(3,76,133,0.06)] border border-[#e8f0f8] dark:border-slate-800 dark:bg-slate-900 transition hover:shadow-md">
+          <div className="h-[42px] w-[42px] rounded-full bg-[var(--tp-accent)] flex items-center justify-center shadow-inner">
+            <BadgePercent className="h-5 w-5 text-white" />
+          </div>
+          <span className="text-[11px] font-bold text-[#071a3f] dark:text-slate-200">{isIndo ? "Promo" : "Offers"}</span>
         </Link>
       </div>
 
@@ -1416,7 +1429,7 @@ export default function TPPreneurHomePage() {
       {popularProductsConfig.enabled ? (
         <div className="lg:hidden mx-4 grid grid-cols-2 gap-3 items-stretch">
           <div className="flex flex-col gap-2.5">
-            <h3 className="text-sm font-black text-[#071a3f] dark:text-white uppercase tracking-wider">{isIndo ? "Penawaran Khusus" : "Featured Offer"}</h3>
+            <h3 className="text-[12px] sm:text-sm font-black text-[#071a3f] dark:text-white uppercase tracking-wider whitespace-nowrap overflow-hidden text-ellipsis">{isIndo ? "Penawaran Khusus" : "Featured Offer"}</h3>
             <div className="flex-1">
               <CompactHeroCouponCard
                 discountCouponBox={discountCouponBox}
@@ -1429,7 +1442,7 @@ export default function TPPreneurHomePage() {
             </div>
           </div>
           <div className="flex flex-col gap-2.5">
-            <h3 className="text-sm font-black text-[#071a3f] dark:text-white uppercase tracking-wider">{isIndo ? "Produk Tren" : "Trending Products"}</h3>
+            <h3 className="text-[12px] sm:text-sm font-black text-[#071a3f] dark:text-white uppercase tracking-wider whitespace-nowrap overflow-hidden text-ellipsis">{isIndo ? "Produk Tren" : "Trending Products"}</h3>
             <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2 flex-1">
               {popularProducts.slice(0, 4).map((product) => (
                 <ProductCard key={product.id} product={product} showDiscount />

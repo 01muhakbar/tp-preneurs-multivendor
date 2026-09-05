@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Home, Menu, ShoppingCart, UserRound } from "lucide-react";
+import { Home, Menu, ShoppingCart, UserRound, Bell, Store } from "lucide-react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import StoreHeaderKacha from "../kachabazar-demo/StoreHeaderKacha.jsx";
@@ -185,6 +185,8 @@ export default function StoreLayout() {
   const isHomeActive = location.pathname === "/";
   const isCartRoute = location.pathname.startsWith("/cart");
   const isCartActive = isCartRoute;
+  const isShopNavActive = location.pathname === "/shop" || location.pathname === "/search" || location.pathname.startsWith("/product/");
+  const isNotificationsActive = location.pathname === "/user/notifications";
   const isProfileActive =
     location.pathname.startsWith("/user") ||
     location.pathname.startsWith("/account") ||
@@ -339,56 +341,43 @@ gtag('config', '${key}');`;
       {showFloatingCartWidget ? (
         <FloatingCartWidget />
       ) : null}
-      <nav className="fixed inset-x-0 bottom-0 z-40 h-[68px] border-t border-[var(--tp-primary)]/70 bg-[var(--tp-primary)] px-2 py-1.5 text-white shadow-[0_-8px_24px_rgba(3,76,133,0.4)] sm:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 h-[68px] border-t border-[var(--tp-primary)]/70 bg-[var(--tp-primary)] px-2 py-1 text-white shadow-[0_-8px_24px_rgba(3,76,133,0.4)] sm:hidden">
         <div className="mx-auto grid h-full max-w-7xl grid-cols-4 gap-1">
-          <button
-            type="button"
-            onClick={() => setIsMenuOpen(true)}
-            aria-expanded={isMenuOpen}
-            aria-label="Open menu"
-            className="flex h-full flex-col items-center justify-center rounded-[16px] text-[11px] tracking-[0.01em] text-white/80 hover:bg-[var(--tp-accent)]/20 transition-colors"
-          >
-            <Menu className="h-5 w-5 mb-1" />
-            <span className="leading-none">Menu</span>
-          </button>
           <Link
             to="/"
-            className={`flex h-full flex-col items-center justify-center rounded-[16px] text-[11px] tracking-[0.01em] transition-colors ${
-              isHomeActive
-                ? "bg-[var(--tp-accent)] font-bold text-white shadow-sm"
-                : "font-medium text-white/80 hover:bg-[var(--tp-accent)]/20"
-            }`}
+            className="flex h-full flex-col items-center justify-center text-[11px] tracking-[0.01em] text-white transition-colors"
           >
-            <Home className="h-5 w-5 mb-1" />
-            <span className="leading-none">Home</span>
+            <div className={`flex h-9 w-9 items-center justify-center rounded-full mb-1 transition-colors ${isHomeActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
+              <Home className="h-5 w-5" />
+            </div>
+            <span className={`leading-none ${isHomeActive ? "font-bold" : "font-medium"}`}>Home</span>
+          </Link>
+          <Link
+            to="/shop"
+            className="flex h-full flex-col items-center justify-center text-[11px] tracking-[0.01em] text-white transition-colors"
+          >
+            <div className={`flex h-9 w-9 items-center justify-center rounded-full mb-1 transition-colors ${isShopNavActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
+              <Store className="h-5 w-5" />
+            </div>
+            <span className={`leading-none ${isShopNavActive ? "font-bold" : "font-medium"}`}>Shop</span>
           </Link>
           <button
             type="button"
-            onClick={openCartDrawer}
-            className={`relative flex h-full flex-col items-center justify-center rounded-[16px] text-[11px] tracking-[0.01em] transition-colors ${
-              isCartActive || isCartDrawerOpen
-                ? "bg-[var(--tp-accent)] font-bold text-white shadow-sm"
-                : "font-medium text-white/80 hover:bg-[var(--tp-accent)]/20"
-            }`}
+            className="relative flex h-full flex-col items-center justify-center text-[11px] tracking-[0.01em] text-white transition-colors"
           >
-            <ShoppingCart className="h-5 w-5 mb-1" />
-            <span className="leading-none">Cart</span>
-            {totalQty > 0 ? (
-              <span className="absolute right-[20%] top-1.5 inline-flex min-w-[18px] items-center justify-center rounded-full bg-white px-1 py-0.5 text-[9px] font-black text-[var(--tp-accent)] shadow-sm">
-                {totalQty}
-              </span>
-            ) : null}
+            <div className={`flex h-9 w-9 items-center justify-center rounded-full mb-1 transition-colors ${isNotificationsActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
+              <Bell className="h-5 w-5" />
+            </div>
+            <span className={`leading-none ${isNotificationsActive ? "font-bold" : "font-medium"}`}>Notifications</span>
           </button>
           <Link
             to="/user/my-account"
-            className={`flex h-full flex-col items-center justify-center rounded-[16px] text-[11px] tracking-[0.01em] transition-colors ${
-              isProfileActive
-                ? "bg-[var(--tp-accent)] font-bold text-white shadow-sm"
-                : "font-medium text-white/80 hover:bg-[var(--tp-accent)]/20"
-            }`}
+            className="flex h-full flex-col items-center justify-center text-[11px] tracking-[0.01em] text-white transition-colors"
           >
-            <UserRound className="h-5 w-5 mb-1" />
-            <span className="leading-none">Profile</span>
+            <div className={`flex h-9 w-9 items-center justify-center rounded-full mb-1 transition-colors ${isProfileActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
+              <UserRound className="h-5 w-5" />
+            </div>
+            <span className={`leading-none ${isProfileActive ? "font-bold" : "font-medium"}`}>Profile</span>
           </Link>
         </div>
       </nav>
