@@ -1387,31 +1387,37 @@ export default function TPPreneurHomePage() {
   return (
     <div className="mx-0 space-y-5 bg-[#f7fbff] pb-8 text-[#071a3f] dark:bg-slate-950 sm:mx-1 sm:space-y-6 sm:pb-0 lg:mx-2">
       {/* MOBILE QUICK ACCESS MENU */}
-      <div className="lg:hidden mx-4 mb-2 flex overflow-x-auto no-scrollbar gap-3 snap-x pb-2">
-        <Link to="/categories" className="shrink-0 w-[84px] snap-start flex flex-col items-center justify-center gap-2 rounded-[20px] bg-white p-3 shadow-[0_4px_16px_rgba(3,76,133,0.06)] border border-[#e8f0f8] dark:border-slate-800 dark:bg-slate-900 transition hover:shadow-md">
-          <div className="h-[42px] w-[42px] rounded-full bg-[var(--tp-accent)] flex items-center justify-center shadow-inner">
-            <Globe2 className="h-5 w-5 text-white" />
-          </div>
-          <span className="text-[11px] font-bold text-[#071a3f] dark:text-slate-200">{isIndo ? "Kategori" : "Categories"}</span>
-        </Link>
-        <Link to="/offers" className="shrink-0 w-[84px] snap-start flex flex-col items-center justify-center gap-2 rounded-[20px] bg-white p-3 shadow-[0_4px_16px_rgba(3,76,133,0.06)] border border-[#e8f0f8] dark:border-slate-800 dark:bg-slate-900 transition hover:shadow-md">
-          <div className="h-[42px] w-[42px] rounded-full bg-[var(--tp-accent)] flex items-center justify-center shadow-inner">
-            <Ticket className="h-5 w-5 text-white" />
-          </div>
-          <span className="text-[11px] font-bold text-[#071a3f] dark:text-slate-200">{isIndo ? "Kupon" : "Coupons"}</span>
-        </Link>
-        <Link to="/shop" className="shrink-0 w-[84px] snap-start flex flex-col items-center justify-center gap-2 rounded-[20px] bg-white p-3 shadow-[0_4px_16px_rgba(3,76,133,0.06)] border border-[#e8f0f8] dark:border-slate-800 dark:bg-slate-900 transition hover:shadow-md">
-          <div className="h-[42px] w-[42px] rounded-full bg-[var(--tp-accent)] flex items-center justify-center shadow-inner">
-            <ShoppingCart className="h-5 w-5 text-white" />
-          </div>
-          <span className="text-[11px] font-bold text-[#071a3f] dark:text-slate-200">{isIndo ? "Belanja" : "Shop"}</span>
-        </Link>
-        <Link to="/offers" className="shrink-0 w-[84px] snap-start flex flex-col items-center justify-center gap-2 rounded-[20px] bg-white p-3 shadow-[0_4px_16px_rgba(3,76,133,0.06)] border border-[#e8f0f8] dark:border-slate-800 dark:bg-slate-900 transition hover:shadow-md">
-          <div className="h-[42px] w-[42px] rounded-full bg-[var(--tp-accent)] flex items-center justify-center shadow-inner">
-            <BadgePercent className="h-5 w-5 text-white" />
-          </div>
-          <span className="text-[11px] font-bold text-[#071a3f] dark:text-slate-200">{isIndo ? "Promo" : "Offers"}</span>
-        </Link>
+      <div className="relative lg:hidden mx-4 mb-2">
+        <div className="flex overflow-x-auto no-scrollbar gap-2 snap-x pb-2 pr-6">
+          <Link to="/categories" className="shrink-0 w-[76px] snap-start flex flex-col items-center justify-center gap-2 rounded-[20px] bg-white p-2.5 shadow-[0_4px_16px_rgba(3,76,133,0.06)] border border-[#e8f0f8] dark:border-slate-800 dark:bg-slate-900 transition hover:shadow-md">
+            <div className="h-10 w-10 rounded-full bg-[var(--tp-accent)] flex items-center justify-center shadow-inner">
+              <Globe2 className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-[10px] sm:text-[11px] font-bold text-[#071a3f] dark:text-slate-200">{isIndo ? "Kategori" : "Categories"}</span>
+          </Link>
+          <Link to="/offers" className="shrink-0 w-[76px] snap-start flex flex-col items-center justify-center gap-2 rounded-[20px] bg-white p-2.5 shadow-[0_4px_16px_rgba(3,76,133,0.06)] border border-[#e8f0f8] dark:border-slate-800 dark:bg-slate-900 transition hover:shadow-md">
+            <div className="h-10 w-10 rounded-full bg-[var(--tp-accent)] flex items-center justify-center shadow-inner">
+              <Ticket className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-[10px] sm:text-[11px] font-bold text-[#071a3f] dark:text-slate-200">{isIndo ? "Kupon" : "Coupons"}</span>
+          </Link>
+          <Link to="/shop" className="shrink-0 w-[76px] snap-start flex flex-col items-center justify-center gap-2 rounded-[20px] bg-white p-2.5 shadow-[0_4px_16px_rgba(3,76,133,0.06)] border border-[#e8f0f8] dark:border-slate-800 dark:bg-slate-900 transition hover:shadow-md">
+            <div className="h-10 w-10 rounded-full bg-[var(--tp-accent)] flex items-center justify-center shadow-inner">
+              <ShoppingCart className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-[10px] sm:text-[11px] font-bold text-[#071a3f] dark:text-slate-200">{isIndo ? "Belanja" : "Shop"}</span>
+          </Link>
+          <Link to="/offers" className="shrink-0 w-[76px] snap-start flex flex-col items-center justify-center gap-2 rounded-[20px] bg-white p-2.5 shadow-[0_4px_16px_rgba(3,76,133,0.06)] border border-[#e8f0f8] dark:border-slate-800 dark:bg-slate-900 transition hover:shadow-md">
+            <div className="h-10 w-10 rounded-full bg-[var(--tp-accent)] flex items-center justify-center shadow-inner">
+              <BadgePercent className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-[10px] sm:text-[11px] font-bold text-[#071a3f] dark:text-slate-200">{isIndo ? "Promo" : "Offers"}</span>
+          </Link>
+        </div>
+        {/* Scroll Indicator */}
+        <div className="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-[#f7fbff] to-transparent dark:from-slate-950 flex items-center justify-end pointer-events-none">
+          <ChevronRight className="h-4 w-4 text-slate-400" />
+        </div>
       </div>
 
       <MainSliderSection
@@ -1443,7 +1449,7 @@ export default function TPPreneurHomePage() {
           </div>
           <div className="flex flex-col gap-2.5">
             <h3 className="text-[12px] sm:text-sm font-black text-[#071a3f] dark:text-white uppercase tracking-wider whitespace-nowrap overflow-hidden text-ellipsis">{isIndo ? "Produk Tren" : "Trending Products"}</h3>
-            <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2 flex-1">
+            <div className="grid grid-cols-2 gap-2 flex-1">
               {popularProducts.slice(0, 4).map((product) => (
                 <ProductCard key={product.id} product={product} showDiscount />
               ))}

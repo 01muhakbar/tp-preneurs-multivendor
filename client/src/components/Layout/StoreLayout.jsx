@@ -341,7 +341,7 @@ gtag('config', '${key}');`;
       {showFloatingCartWidget ? (
         <FloatingCartWidget />
       ) : null}
-      <nav className="fixed inset-x-0 bottom-0 z-40 h-[68px] border-t border-[var(--tp-primary)]/70 bg-[var(--tp-primary)] px-2 py-1 text-white shadow-[0_-8px_24px_rgba(3,76,133,0.4)] sm:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 h-[72px] border-t border-[var(--tp-primary)]/70 bg-[var(--tp-primary)] px-2 py-1.5 text-white shadow-[0_-8px_24px_rgba(3,76,133,0.4)] sm:hidden">
         <div className="mx-auto grid h-full max-w-7xl grid-cols-4 gap-1">
           <Link
             to="/"
