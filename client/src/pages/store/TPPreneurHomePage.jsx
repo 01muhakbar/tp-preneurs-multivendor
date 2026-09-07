@@ -1434,12 +1434,10 @@ export default function TPPreneurHomePage() {
       {/* MOBILE MAIN CONTENT GRID (lg:hidden) */}
       {popularProductsConfig.enabled ? (
         <div className="lg:hidden mx-4">
-          <div className="grid grid-cols-2 gap-3 mb-2.5">
-            <h3 className="text-[10px] sm:text-xs font-black text-[#071a3f] dark:text-white uppercase tracking-wider break-words leading-tight pr-1">{isIndo ? "Penawaran Khusus" : "Featured Offer"}</h3>
-            <h3 className="text-[10px] sm:text-xs font-black text-[#071a3f] dark:text-white uppercase tracking-wider break-words leading-tight pr-1">{isIndo ? "Produk Tren" : "Trending Products"}</h3>
-          </div>
           <div className="grid grid-cols-2 gap-2 sm:gap-3 items-start">
-            <div className="h-full">
+            {/* LEFT COLUMN: Featured Offer + Odd Trending Products */}
+            <div className="flex flex-col gap-3">
+              <h3 className="mb-1 text-[10px] sm:text-xs font-black text-[#071a3f] dark:text-white uppercase tracking-wider break-words leading-tight">{isIndo ? "Penawaran Khusus" : "Featured Offer"}</h3>
               <CompactHeroCouponCard
                 discountCouponBox={discountCouponBox}
                 couponList={couponList}
@@ -1448,12 +1446,15 @@ export default function TPPreneurHomePage() {
                 copiedCode={copiedCode}
                 onCopy={copyCouponCode}
               />
+              {popularProducts[1] && <ProductCard product={popularProducts[1]} showDiscount />}
+              {popularProducts[3] && <ProductCard product={popularProducts[3]} showDiscount />}
             </div>
-            {popularProducts.slice(0, 4).map((product) => (
-              <div key={product.id} className="h-full">
-                <ProductCard product={product} showDiscount />
-              </div>
-            ))}
+            {/* RIGHT COLUMN: Even Trending Products */}
+            <div className="flex flex-col gap-3">
+              <h3 className="mb-1 text-[10px] sm:text-xs font-black text-[#071a3f] dark:text-white uppercase tracking-wider break-words leading-tight">{isIndo ? "Produk Tren" : "Trending Products"}</h3>
+              {popularProducts[0] && <ProductCard product={popularProducts[0]} showDiscount />}
+              {popularProducts[2] && <ProductCard product={popularProducts[2]} showDiscount />}
+            </div>
           </div>
         </div>
       ) : null}
@@ -1571,32 +1572,23 @@ export default function TPPreneurHomePage() {
       {/* MOBILE COMBINED: FEATURED CATEGORIES & DISCOUNTED PRODUCTS (lg:hidden) */}
       {(featuredCategoriesConfig.enabled || discountedProducts.length > 0) ? (
         <div className="lg:hidden mx-4 mt-6">
-          <div className="grid grid-cols-2 gap-3 mb-2.5">
-            <h3 className="text-[10px] sm:text-xs font-black text-[#071a3f] dark:text-white uppercase tracking-wider break-words leading-tight pr-1">{isIndo ? "Kategori Unggulan" : "Featured Categories"}</h3>
-            <h3 className="text-[10px] sm:text-xs font-black text-[#071a3f] dark:text-white uppercase tracking-wider break-words leading-tight pr-1">{isIndo ? "Diskon Terbaru" : "Latest Discounted"}</h3>
-          </div>
           <div className="grid grid-cols-2 gap-2 sm:gap-3 items-start">
-            {Array.from({ length: 4 }).map((_, i) => {
-              const cat = categories[i];
-              const prod = discountedProducts[i];
-              if (!cat && !prod) return null;
-              
-              if (i % 2 === 0) {
-                return (
-                  <Fragment key={`mix-${i}`}>
-                    <div className="h-full">{cat ? <CategoryCard category={cat} /> : null}</div>
-                    <div className="h-full">{prod ? <ProductCard product={prod} showDiscount /> : null}</div>
-                  </Fragment>
-                );
-              } else {
-                return (
-                  <Fragment key={`mix-${i}`}>
-                    <div className="h-full">{prod ? <ProductCard product={prod} showDiscount /> : null}</div>
-                    <div className="h-full">{cat ? <CategoryCard category={cat} /> : null}</div>
-                  </Fragment>
-                );
-              }
-            })}
+            {/* LEFT COLUMN: Categories 0, 2 & Products 1, 3 */}
+            <div className="flex flex-col gap-3">
+              <h3 className="mb-1 text-[10px] sm:text-xs font-black text-[#071a3f] dark:text-white uppercase tracking-wider break-words leading-tight">{isIndo ? "Kategori Unggulan" : "Featured Categories"}</h3>
+              {categories[0] && <CategoryCard category={categories[0]} />}
+              {discountedProducts[1] && <ProductCard product={discountedProducts[1]} showDiscount />}
+              {categories[2] && <CategoryCard category={categories[2]} />}
+              {discountedProducts[3] && <ProductCard product={discountedProducts[3]} showDiscount />}
+            </div>
+            {/* RIGHT COLUMN: Products 0, 2 & Categories 1, 3 */}
+            <div className="flex flex-col gap-3">
+              <h3 className="mb-1 text-[10px] sm:text-xs font-black text-[#071a3f] dark:text-white uppercase tracking-wider break-words leading-tight">{isIndo ? "Diskon Terbaru" : "Latest Discounted"}</h3>
+              {discountedProducts[0] && <ProductCard product={discountedProducts[0]} showDiscount />}
+              {categories[1] && <CategoryCard category={categories[1]} />}
+              {discountedProducts[2] && <ProductCard product={discountedProducts[2]} showDiscount />}
+              {categories[3] && <CategoryCard category={categories[3]} />}
+            </div>
           </div>
         </div>
       ) : null}
