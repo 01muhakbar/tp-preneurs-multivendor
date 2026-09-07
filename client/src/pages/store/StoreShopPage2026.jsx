@@ -291,11 +291,27 @@ export default function StoreShopPage2026() {
             ) : null}
 
             {initialLoading ? (
-              <div className={viewMode === "grid" ? "tp-shop-product-grid" : "tp-shop-product-list"} aria-label="Loading products">
-                {Array.from({ length: viewMode === "grid" ? 9 : 5 }, (_, index) => (
-                  <ProductSkeleton key={index} list={viewMode === "list"} />
-                ))}
-              </div>
+              <>
+                <div className={`${viewMode === "grid" ? "hidden sm:grid tp-shop-product-grid" : "tp-shop-product-list"}`} aria-label="Loading products">
+                  {Array.from({ length: viewMode === "grid" ? 9 : 5 }, (_, index) => (
+                    <ProductSkeleton key={index} list={viewMode === "list"} />
+                  ))}
+                </div>
+                {viewMode === "grid" ? (
+                  <div className="sm:hidden grid grid-cols-2 gap-2 items-start mt-4" aria-label="Loading products">
+                    <div className="flex flex-col gap-2">
+                      {Array.from({ length: 4 }, (_, index) => (
+                        <ProductSkeleton key={`skel-left-${index}`} list={false} />
+                      ))}
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      {Array.from({ length: 4 }, (_, index) => (
+                        <ProductSkeleton key={`skel-right-${index}`} list={false} />
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </>
             ) : null}
 
             {productsQuery.isError && !cards.length ? (
@@ -322,13 +338,30 @@ export default function StoreShopPage2026() {
 
             {!initialLoading && cards.length ? (
               <>
-                <div className={viewMode === "grid" ? "tp-shop-product-grid" : "tp-shop-product-list"}>
+                {/* DESKTOP/LIST VIEW */}
+                <div className={`${viewMode === "grid" ? "hidden sm:grid tp-shop-product-grid" : "tp-shop-product-list"}`}>
                   {cards.map((card, index) => (
                     viewMode === "grid"
                       ? <ShopProductCard2026 key={card.id || card.slug || index} {...productProps(card)} />
                       : <ShopProductListItem2026 key={card.id || card.slug || index} {...productProps(card)} />
                   ))}
                 </div>
+
+                {/* MOBILE MASONRY GRID VIEW (Only when viewMode is grid) */}
+                {viewMode === "grid" ? (
+                  <div className="sm:hidden grid grid-cols-2 gap-2 items-start mt-4">
+                    <div className="flex flex-col gap-2">
+                      {cards.filter((_, i) => i % 2 === 0).map((card, index) => (
+                        <ShopProductCard2026 key={card.id || card.slug || index} {...productProps(card)} />
+                      ))}
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      {cards.filter((_, i) => i % 2 !== 0).map((card, index) => (
+                        <ShopProductCard2026 key={card.id || card.slug || index} {...productProps(card)} />
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
                 <Pagination page={page} total={total} limit={limit} onChange={(next) => commit({ page: next }, { resetPage: false })} />
               </>
             ) : null}
