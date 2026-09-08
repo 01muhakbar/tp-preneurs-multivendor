@@ -921,6 +921,75 @@ const firstText = (...values) => {
   return "";
 };
 
+const loadImageFromDataUrl = (dataUrl) =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Failed to decode image."));
+    image.src = dataUrl;
+  });
+
+const canvasToBlob = (canvas, mimeType, quality) =>
+  new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error("Failed to prepare image."));
+          return;
+        }
+        resolve(blob);
+      },
+      mimeType,
+      quality
+    );
+  });
+
+const prepareOpenGraphImageFile = async (file) => {
+  const dataUrl = await fileToDataUrl(file);
+  const image = await loadImageFromDataUrl(dataUrl);
+  const canvas = document.createElement("canvas");
+  const width = 1200;
+  const height = 630;
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("Canvas is not available in this browser.");
+  }
+
+  const sourceWidth = Number(image.naturalWidth || image.width || 0);
+  const sourceHeight = Number(image.naturalHeight || image.height || 0);
+  if (sourceWidth <= 0 || sourceHeight <= 0) {
+    throw new Error("Image dimensions are invalid.");
+  }
+
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, width, height);
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+
+  const safePadding = 96;
+  const maxDrawWidth = width - safePadding * 2;
+  const maxDrawHeight = height - safePadding * 2;
+  const scale = Math.min(maxDrawWidth / sourceWidth, maxDrawHeight / sourceHeight, 1);
+  const drawWidth = Math.max(1, Math.round(sourceWidth * scale));
+  const drawHeight = Math.max(1, Math.round(sourceHeight * scale));
+  const drawX = Math.round((width - drawWidth) / 2);
+  const drawY = Math.round((height - drawHeight) / 2);
+  context.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+
+  const blob = await canvasToBlob(canvas, "image/jpeg", 0.92);
+  const baseName = String(file.name || "meta-image")
+    .replace(/\.[^.]+$/, "")
+    .replace(/[^\w.-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return new File([blob], `${baseName || "meta-image"}-og.jpg`, {
+    type: "image/jpeg",
+    lastModified: Date.now(),
+  });
+};
+
 const hasOwnValue = (source, key) =>
   source && Object.prototype.hasOwnProperty.call(source, key);
 
@@ -4280,7 +4349,11 @@ export default function StoreCustomizationPage() {
       return;
     }
     try {
-      const result = await uploadAdminImage(file);
+      const uploadFile =
+        fieldKey === "metaImageDataUrl"
+          ? await prepareOpenGraphImageFile(file)
+          : file;
+      const result = await uploadAdminImage(uploadFile);
       const uploadedUrl = String(result?.url || result?.data?.url || "").trim();
       if (!uploadedUrl) {
         throw new Error("Upload succeeded without an image URL.");
@@ -8730,18 +8803,18 @@ export default function StoreCustomizationPage() {
                     Drag your images here
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
-                    (Only *.jpeg, *.webp and *.png images will be accepted)
+                    (Only *.jpeg, *.webp and *.png images will be accepted. Meta image will be prepared at 1200 x 630px)
                   </p>
                 </label>
                 {seoImageErrors.metaImageDataUrl ? (
                   <p className="text-xs text-rose-600">{seoImageErrors.metaImageDataUrl}</p>
                 ) : null}
                 {seoSettings.metaImageDataUrl ? (
-                  <div className="relative inline-flex rounded-xl border border-slate-200 bg-white p-2">
+                  <div className="relative w-full max-w-lg rounded-xl border border-slate-200 bg-white p-2">
                     <img
                       src={seoSettings.metaImageDataUrl}
                       alt="Meta image preview"
-                      className="h-20 w-24 rounded-md object-cover"
+                      className="aspect-[1200/630] w-full rounded-md bg-white object-contain"
                     />
                     <button
                       type="button"
