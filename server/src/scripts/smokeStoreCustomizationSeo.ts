@@ -1,5 +1,7 @@
 import "dotenv/config";
 import assert from "node:assert/strict";
+import fs from "node:fs/promises";
+import path from "node:path";
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../models/index.js";
 
@@ -7,6 +9,13 @@ const BASE_URL = String(process.env.BASE_URL || "http://localhost:3001").replace
 const ADMIN_EMAIL = process.env.MVF_ADMIN_EMAIL || "superadmin@local.dev";
 const ADMIN_PASSWORD = process.env.MVF_ADMIN_PASSWORD || "supersecure123";
 const SMOKE_LANG = `seo${String(Date.now()).slice(-8)}`;
+const UPLOAD_DIR = path.resolve(process.cwd(), process.env.UPLOAD_DIR || "uploads");
+const FAVICON_UPLOAD_PATH = `/uploads/${SMOKE_LANG}-favicon.png`;
+const META_IMAGE_UPLOAD_PATH = `/uploads/${SMOKE_LANG}-meta-image.png`;
+const TINY_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lCwC8AAAAABJRU5ErkJggg==",
+  "base64"
+);
 
 type JsonResponse = {
   status: number;
@@ -88,6 +97,18 @@ async function cleanup() {
     replacements: { lang: SMOKE_LANG },
     type: QueryTypes.DELETE,
   });
+  await Promise.allSettled([
+    fs.unlink(path.join(UPLOAD_DIR, `${SMOKE_LANG}-favicon.png`)),
+    fs.unlink(path.join(UPLOAD_DIR, `${SMOKE_LANG}-meta-image.png`)),
+  ]);
+}
+
+async function createUploadFixtures() {
+  await fs.mkdir(UPLOAD_DIR, { recursive: true });
+  await Promise.all([
+    fs.writeFile(path.join(UPLOAD_DIR, `${SMOKE_LANG}-favicon.png`), TINY_PNG),
+    fs.writeFile(path.join(UPLOAD_DIR, `${SMOKE_LANG}-meta-image.png`), TINY_PNG),
+  ]);
 }
 
 async function run() {
@@ -96,6 +117,7 @@ async function run() {
 
   const adminClient = new CookieClient();
   await loginAdmin(adminClient);
+  await createUploadFixtures();
 
   logStep("persist seo settings customization with public media aliases");
   const updateResponse = await adminClient.request(
@@ -105,12 +127,12 @@ async function run() {
       body: JSON.stringify({
         customization: {
           seoSettings: {
-            favicon: "/uploads/seo-favicon.png",
+            favicon: FAVICON_UPLOAD_PATH,
             metaTitle: "Store SEO Title",
             metaDescription: "Store SEO Description",
             metaUrl: "/seo-preview",
             metaKeywords: "store,seo,keywords",
-            metaImage: "/uploads/seo-meta-image.png",
+            metaImage: META_IMAGE_UPLOAD_PATH,
           },
         },
       }),
@@ -128,7 +150,7 @@ async function run() {
   const adminSeo = reloadedAdmin.body?.data?.customization?.seoSettings;
   assert.equal(
     String(adminSeo?.faviconDataUrl || ""),
-    "/uploads/seo-favicon.png",
+    FAVICON_UPLOAD_PATH,
     "favicon alias should normalize to faviconDataUrl"
   );
   assert.equal(
@@ -148,7 +170,7 @@ async function run() {
   );
   assert.equal(
     String(adminSeo?.metaImageDataUrl || ""),
-    "/uploads/seo-meta-image.png",
+    META_IMAGE_UPLOAD_PATH,
     "meta image alias should normalize to metaImageDataUrl"
   );
   logPass("admin seo-settings reload");
@@ -175,12 +197,12 @@ async function run() {
   );
   assert.equal(
     String(publicSeo?.faviconDataUrl || ""),
-    "/uploads/seo-favicon.png",
+    FAVICON_UPLOAD_PATH,
     "public seo-settings should expose favicon URL"
   );
   assert.equal(
     String(publicSeo?.metaImageDataUrl || ""),
-    "/uploads/seo-meta-image.png",
+    META_IMAGE_UPLOAD_PATH,
     "public seo-settings should expose meta image URL"
   );
   logPass("public seo-settings serialization");

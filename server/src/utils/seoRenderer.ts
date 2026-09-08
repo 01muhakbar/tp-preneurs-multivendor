@@ -3,6 +3,7 @@ import path from "path";
 import { Request, Response, NextFunction } from "express";
 import { sequelize, Product } from "../models/index.js";
 import { getRuntimePublicOrigin } from "../config/deploymentOrigin.js";
+import { isMissingUploadAsset } from "./uploadAsset.js";
 
 const DEFAULT_TITLE = "TP PRENEURS | Marketplace Multivendor";
 const DEFAULT_DESCRIPTION =
@@ -41,6 +42,9 @@ const resolveAssetAbsoluteUrl = (req: Request, assetUrl: string | null | undefin
   const asset = String(assetUrl || "").trim();
   if (!asset) return "";
   if (isCrawlerUnsafeAsset(asset)) {
+    return "";
+  }
+  if (isMissingUploadAsset(asset)) {
     return "";
   }
   if (isHttpUrl(asset)) {

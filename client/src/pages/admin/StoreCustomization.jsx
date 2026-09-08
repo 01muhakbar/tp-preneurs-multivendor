@@ -5462,6 +5462,8 @@ export default function StoreCustomizationPage() {
     metaKeywords: toText(seoSettingsState?.metaKeywords, ""),
     metaImageDataUrl: toText(seoSettingsState?.metaImageDataUrl, ""),
   };
+  const seoFaviconPreviewSrc = seoSettings.faviconDataUrl || "/favicon.png";
+  const seoMetaImagePreviewSrc = seoSettings.metaImageDataUrl || "/og-image.png";
   const aboutUsDefaults = getDefaultCustomization().aboutUs;
   const aboutUs = {
     ...aboutUsDefaults,
@@ -8740,13 +8742,17 @@ export default function StoreCustomizationPage() {
                 {seoImageErrors.faviconDataUrl ? (
                   <p className="text-xs text-rose-600">{seoImageErrors.faviconDataUrl}</p>
                 ) : null}
-                {seoSettings.faviconDataUrl ? (
-                  <div className="relative inline-flex rounded-xl border border-slate-200 bg-white p-2">
-                    <img
-                      src={seoSettings.faviconDataUrl}
-                      alt="Favicon preview"
-                      className="h-16 w-16 rounded-md object-cover"
-                    />
+                <div className="relative inline-flex rounded-xl border border-slate-200 bg-white p-2">
+                  <img
+                    src={seoFaviconPreviewSrc}
+                    alt="Favicon preview"
+                    className="h-16 w-16 rounded-md object-contain"
+                    onError={(event) => {
+                      event.currentTarget.onerror = null;
+                      event.currentTarget.src = "/favicon.png";
+                    }}
+                  />
+                  {seoSettings.faviconDataUrl ? (
                     <button
                       type="button"
                       onClick={() => onRemoveSeoImage("faviconDataUrl")}
@@ -8755,8 +8761,8 @@ export default function StoreCustomizationPage() {
                     >
                       <X className="h-3 w-3" />
                     </button>
-                  </div>
-                ) : null}
+                  ) : null}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 gap-4">
@@ -8844,13 +8850,17 @@ export default function StoreCustomizationPage() {
                 {seoImageErrors.metaImageDataUrl ? (
                   <p className="text-xs text-rose-600">{seoImageErrors.metaImageDataUrl}</p>
                 ) : null}
-                {seoSettings.metaImageDataUrl ? (
-                  <div className="relative w-full max-w-lg rounded-xl border border-slate-200 bg-white p-2">
-                    <img
-                      src={seoSettings.metaImageDataUrl}
-                      alt="Meta image preview"
-                      className="aspect-[1200/630] w-full rounded-md bg-white object-contain"
-                    />
+                <div className="relative w-full max-w-lg rounded-xl border border-slate-200 bg-white p-2">
+                  <img
+                    src={seoMetaImagePreviewSrc}
+                    alt="Meta image preview"
+                    className="aspect-[1200/630] w-full rounded-md bg-white object-contain"
+                    onError={(event) => {
+                      event.currentTarget.onerror = null;
+                      event.currentTarget.src = "/og-image.png";
+                    }}
+                  />
+                  {seoSettings.metaImageDataUrl ? (
                     <button
                       type="button"
                       onClick={() => onRemoveSeoImage("metaImageDataUrl")}
@@ -8859,8 +8869,8 @@ export default function StoreCustomizationPage() {
                     >
                       <X className="h-3 w-3" />
                     </button>
-                  </div>
-                ) : null}
+                  ) : null}
+                </div>
               </div>
             </div>
           </section>

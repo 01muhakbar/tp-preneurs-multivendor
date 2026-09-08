@@ -15,6 +15,7 @@ import {
   sanitizeStoreCustomization,
 } from "../services/sharedContracts/storeCustomizationSanitizer.js";
 import { buildPublicOffersCustomization } from "../services/offersReadModel.js";
+import { isMissingUploadAsset } from "../utils/uploadAsset.js";
 
 const router = Router();
 
@@ -169,6 +170,49 @@ const getPublicUpdatedAt = (row: CustomizationRow | null) =>
   row?.publishedAt ?? row?.updatedAt ?? "";
 
 const toText = (value: unknown) => String(value ?? "").trim();
+
+const firstText = (...values: unknown[]) => {
+  for (const value of values) {
+    const normalized = toText(value);
+    if (normalized) return normalized;
+  }
+  return "";
+};
+
+const clearSeoImageAliases = (
+  seoSettings: Record<string, any>,
+  aliases: string[]
+) => {
+  aliases.forEach((alias) => {
+    seoSettings[alias] = "";
+  });
+};
+
+const applySeoMissingUploadFallbacks = (
+  payload: Record<string, any>
+): Record<string, any> => {
+  const seoSettings = payload.seoSettings;
+  if (!seoSettings || typeof seoSettings !== "object" || Array.isArray(seoSettings)) {
+    return payload;
+  }
+
+  if (
+    isMissingUploadAsset(
+      firstText(seoSettings.faviconDataUrl, seoSettings.favicon, seoSettings.faviconImage)
+    )
+  ) {
+    clearSeoImageAliases(seoSettings, ["faviconDataUrl", "favicon", "faviconImage"]);
+  }
+  if (
+    isMissingUploadAsset(
+      firstText(seoSettings.metaImageDataUrl, seoSettings.metaImage, seoSettings.image)
+    )
+  ) {
+    clearSeoImageAliases(seoSettings, ["metaImageDataUrl", "metaImage", "image"]);
+  }
+
+  return payload;
+};
 
 const normalizeComparableText = (value: unknown) =>
   toText(value).toLowerCase().replace(/\s+/g, " ").replace(/\.+$/g, "").trim();
@@ -705,7 +749,7 @@ router.get("/", async (req, res, next) => {
         ? parseStoredCustomization(getPublishedCustomizationRaw(fallbackRow))
         : sanitizeStoreCustomization({});
     const sanitizedSource = sanitizeStoreCustomization(sourcePayload);
-    const sanitized =
+    const sanitized = applySeoMissingUploadFallbacks(
       fallbackRow
         ? mergeCustomizationMediaFallback(
             sanitizedSource,
@@ -713,7 +757,8 @@ router.get("/", async (req, res, next) => {
               parseStoredCustomization(getPublishedCustomizationRaw(fallbackRow))
             )
           )
-        : sanitizedSource;
+        : sanitizedSource
+    );
     const customization: Record<string, unknown> = {};
 
     if (includeHome) {

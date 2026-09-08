@@ -12,6 +12,7 @@ import {
   sanitizeStoreCustomization as sanitizeCustomization,
   WHATSAPP_LINK_ERROR_MESSAGE,
 } from "../services/sharedContracts/storeCustomizationSanitizer.js";
+import { isMissingUploadAsset } from "../utils/uploadAsset.js";
 
 const router = Router();
 
@@ -684,6 +685,39 @@ const applySeoImageClearIntent = (
   }
 
   return mergedPayload;
+};
+
+const clearSeoImageAliases = (
+  seoSettings: Record<string, any>,
+  aliases: string[]
+) => {
+  aliases.forEach((alias) => {
+    seoSettings[alias] = "";
+  });
+};
+
+const applySeoMissingUploadFallbacks = (payload: Record<string, any>) => {
+  if (!isPlainObject(payload?.seoSettings)) {
+    return payload;
+  }
+
+  const seoSettings = payload.seoSettings;
+  if (
+    isMissingUploadAsset(
+      firstText(seoSettings.faviconDataUrl, seoSettings.favicon, seoSettings.faviconImage)
+    )
+  ) {
+    clearSeoImageAliases(seoSettings, ["faviconDataUrl", "favicon", "faviconImage"]);
+  }
+  if (
+    isMissingUploadAsset(
+      firstText(seoSettings.metaImageDataUrl, seoSettings.metaImage, seoSettings.image)
+    )
+  ) {
+    clearSeoImageAliases(seoSettings, ["metaImageDataUrl", "metaImage", "image"]);
+  }
+
+  return payload;
 };
 
 const toText = (value: unknown, fallback = "") => {
@@ -2531,7 +2565,7 @@ router.get("/", async (req, res, next) => {
 
     let existing = await getCustomizationRow(lang);
     const initialPayload = existing
-      ? sanitizeCustomization(getCustomizationDraftPayload(existing))
+      ? applySeoMissingUploadFallbacks(sanitizeCustomization(getCustomizationDraftPayload(existing)))
       : sanitizeCustomization({});
 
     if (!existing) {
@@ -2539,7 +2573,7 @@ router.get("/", async (req, res, next) => {
       existing = await getCustomizationRow(lang);
     }
     const payload = existing
-      ? sanitizeCustomization(getCustomizationDraftPayload(existing))
+      ? applySeoMissingUploadFallbacks(sanitizeCustomization(getCustomizationDraftPayload(existing)))
       : initialPayload;
 
     return res.json({
@@ -2604,7 +2638,7 @@ const saveCustomizationDraft = async (req: any, res: any, next: any) => {
       mergeDeep(existingPayload, rawPayload),
       rawPayload
     );
-    const payload = sanitizeCustomization(mergedPayload);
+    const payload = sanitizeCustomization(applySeoMissingUploadFallbacks(mergedPayload));
     await upsertDraftCustomization(lang, payload, getActorUserId(req));
     const updatedRow = await getCustomizationRow(lang);
 
@@ -2653,9 +2687,11 @@ const publishCustomizationDraft = async (req: any, res: any, next: any) => {
       ? mergeDeep(basePayload, rawPayload)
       : basePayload;
     const payload = sanitizeCustomization(
-      hasBodyPayload
-        ? applySeoImageClearIntent(nextDraftPayload, rawPayload)
-        : nextDraftPayload
+      applySeoMissingUploadFallbacks(
+        hasBodyPayload
+          ? applySeoImageClearIntent(nextDraftPayload, rawPayload)
+          : nextDraftPayload
+      )
     );
 
     await upsertPublishedCustomization(lang, payload, getActorUserId(req));
