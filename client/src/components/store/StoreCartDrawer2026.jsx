@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, X, Trash2, ShieldCheck, Zap, Bookmark, Shield, RefreshCcw, Headphones } from 'lucide-react';
+import { ShoppingCart, ArrowLeft, Trash2, ShieldCheck, Zap, Bookmark, Shield, RefreshCcw, Headphones } from 'lucide-react';
 import { useCart } from '../../hooks/useCart.ts';
 import CartQuantityControl from './CartQuantityControl.jsx';
 import { useTranslation } from 'react-i18next';
@@ -105,16 +105,16 @@ function CartItemCard({ item, onUpdate, onRemove, isLoading, isIndo }) {
   };
 
   return (
-    <div className={`relative flex items-center gap-4 rounded-[24px] border border-slate-200 bg-white p-3 transition-opacity dark:border-white/10 dark:bg-slate-900 ${busy ? 'opacity-50' : 'opacity-100'}`}>
+    <div className={`relative flex gap-4 rounded-xl border border-slate-200 bg-white p-3 transition-opacity dark:border-white/10 dark:bg-slate-900 ${busy ? 'opacity-50' : 'opacity-100'}`}>
       <button 
         onClick={handleDelete}
         disabled={isLoading || busy}
-        className="absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-slate-50 text-slate-400 transition hover:bg-rose-50 hover:text-rose-500 dark:bg-slate-950 dark:hover:bg-rose-950/50"
+        className="absolute right-4 top-4 z-10 flex items-center justify-center text-slate-400 transition hover:text-rose-500 dark:hover:text-rose-400"
       >
-        <Trash2 className="h-3.5 w-3.5" />
+        <Trash2 className="h-4 w-4" />
       </button>
 
-      <Link to={`/product/${getItemSlug(item)}`} className="flex h-[86px] w-[86px] shrink-0 items-center justify-center overflow-hidden rounded-[16px] bg-slate-50 dark:bg-slate-950">
+      <Link to={`/product/${getItemSlug(item)}`} className="flex h-[86px] w-[86px] shrink-0 items-center justify-center overflow-hidden rounded-md bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/5">
         {getItemImage(item) ? (
           <img src={getItemImage(item)} alt={getItemName(item)} className="h-full w-full object-contain mix-blend-multiply dark:mix-blend-normal" />
         ) : (
@@ -123,18 +123,18 @@ function CartItemCard({ item, onUpdate, onRemove, isLoading, isIndo }) {
       </Link>
 
       <div className="flex flex-1 flex-col justify-center">
-        <div className="inline-flex w-fit items-center rounded-full bg-[var(--tp-accent)]/10 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-[var(--tp-accent)] dark:bg-[var(--tp-accent)]/20">
-          {isIndo && getCategoryLabel(item).toLowerCase() === 'product' ? 'Produk' : getCategoryLabel(item)}
+        <div className="inline-flex w-fit items-center rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+          PRODUCT
         </div>
-        <Link to={`/product/${getItemSlug(item)}`} className="mt-1 line-clamp-1 pr-6 text-[13px] font-bold text-slate-950 hover:text-[var(--tp-primary)] dark:text-white dark:hover:text-sky-400">
+        <Link to={`/product/${getItemSlug(item)}`} className="mt-1 line-clamp-1 pr-6 text-[14px] font-bold text-slate-950 hover:text-[var(--tp-primary)] dark:text-white dark:hover:text-sky-400">
           {getItemName(item)}
         </Link>
-        <div className="mt-0.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+        <div className="mt-0.5 text-[12px] font-medium text-slate-500 dark:text-slate-400">
           {qty} &times; {getUnitLabel(item)}
         </div>
         
         <div className="mt-2 flex items-center justify-between">
-          <div className="text-[13px] font-black text-slate-950 dark:text-white">
+          <div className="text-[14px] font-black text-slate-950 dark:text-white">
             {rupiah(getLineTotal(item))}
           </div>
           
@@ -172,32 +172,26 @@ function EmptyCart({ onClose, isIndo }) {
 
 function OrderSummary({ itemsCount, subtotal, isIndo }) {
   return (
-    <div className="rounded-[24px] border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-slate-900">
+    <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-slate-900">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-bold text-slate-950 dark:text-white">{isIndo ? "Ringkasan Pesanan" : "Order Summary"}</h3>
-        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{itemsCount} {isIndo ? "barang" : "items"}</span>
+        <h3 className="text-base font-black text-slate-950 dark:text-white">Order Summary</h3>
+        <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{itemsCount} items</span>
       </div>
       <div className="space-y-3 text-sm">
-        <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
-          <span>{isIndo ? "Subtotal" : "Subtotal"}</span>
-          <span className="font-semibold text-slate-950 dark:text-white">{rupiah(subtotal)}</span>
+        <div className="flex items-center justify-between text-slate-500 dark:text-slate-300">
+          <span>Subtotal</span>
+          <span className="font-bold text-slate-950 dark:text-white">{rupiah(subtotal)}</span>
         </div>
-        <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
+        <div className="flex items-center justify-between text-slate-500 dark:text-slate-300">
           <div className="flex items-center gap-2">
-            <span>{isIndo ? "Diskon" : "Discount"}</span>
-            <button className="text-[10px] font-bold text-[var(--tp-accent)] hover:underline">{isIndo ? "Tambah kode" : "Add code"}</button>
+            <span>Discount</span>
+            <button className="text-[13px] font-medium text-[var(--tp-accent)] hover:underline">Add code</button>
           </div>
-          <span className="font-semibold text-slate-950 dark:text-white">- Rp 0</span>
+          <span className="font-bold text-slate-950 dark:text-white">- Rp 0</span>
         </div>
-        <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
-          <span>{isIndo ? "Pengiriman" : "Shipping"}</span>
-          <span className="text-[11px] font-medium text-slate-400">{isIndo ? "Dihitung saat checkout" : "Calculated at checkout"}</span>
-        </div>
-      </div>
-      <div className="mt-4 border-t border-slate-100 pt-4 dark:border-white/5">
-        <div className="flex items-center justify-between">
-          <span className="font-bold text-slate-950 dark:text-white">{isIndo ? "Total" : "Total"}</span>
-          <span className="text-xl font-black text-slate-950 dark:text-white">{rupiah(subtotal)}</span>
+        <div className="flex items-center justify-between text-slate-500 dark:text-slate-300">
+          <span>Shipping</span>
+          <span className="text-[12px] font-medium text-[var(--tp-accent)] hover:underline">Calculated at checkout</span>
         </div>
       </div>
     </div>
@@ -249,42 +243,38 @@ export function StoreCartDrawer2026({
       <div 
         className={`fixed z-[100] flex flex-col bg-slate-50 transition-transform dark:bg-slate-950 store-cart-drawer-2026-sheet ${
           isBottom 
-            ? 'inset-x-0 bottom-0 max-h-[86vh] rounded-t-[32px] store-cart-drawer-2026-mobile-grip' 
+            ? 'inset-0 store-cart-drawer-2026-mobile-full' 
             : 'inset-y-0 right-0 w-full max-w-[440px]'
         }`}
         style={{ transform: visible ? 'translate3d(0,0,0)' : (isBottom ? 'translate3d(0,100%,0)' : 'translate3d(100%,0,0)') }}
       >
-        <div className={`flex shrink-0 items-center justify-between border-b border-slate-200 bg-white/95 px-5 py-4 backdrop-blur-md dark:border-white/10 dark:bg-slate-900/95 ${isBottom ? 'pt-8' : ''}`}>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--tp-primary)] text-white">
-              <ShoppingCart className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-base font-black text-slate-950 dark:text-white">{isIndo ? "Keranjang Belanja" : "Shopping Cart"}</h2>
-              <p className="text-xs font-bold text-slate-500 dark:text-slate-400">{itemCount} {isIndo ? "barang" : "items"}</p>
-            </div>
-          </div>
+        <div className={`flex shrink-0 items-center bg-white px-4 py-3 dark:bg-slate-900 ${isBottom ? 'pt-safe' : ''}`}>
           <button 
             onClick={closeDrawer}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-400 dark:hover:bg-slate-800"
+            className="flex items-center gap-1.5 text-[15px] font-bold text-[#034c85] transition hover:text-[#023b69] dark:text-sky-400"
           >
-            <X className="h-4 w-4" />
+            <ArrowLeft className="h-5 w-5" /> Back
           </button>
+          
+          <div className="ml-5 flex flex-col justify-center">
+            <h2 className="text-[17px] font-black leading-tight text-slate-950 dark:text-white">{isIndo ? "Keranjang Belanja" : "Shopping Cart"}</h2>
+            <p className="text-[12px] font-medium text-slate-500 dark:text-slate-400">{itemCount} {isIndo ? "barang" : "items"}</p>
+          </div>
         </div>
 
         {items.length > 0 && (
-          <div className="flex shrink-0 gap-2 overflow-x-auto border-b border-slate-200 bg-slate-50 px-5 py-2.5 store-cart-drawer-2026-scroll dark:border-white/10 dark:bg-slate-950">
+          <div className="flex shrink-0 gap-2 overflow-x-auto bg-slate-50 px-4 py-2.5 store-cart-drawer-2026-scroll dark:bg-slate-950 border-b border-slate-200 dark:border-white/10">
             <CartTrustPill icon={Zap} label={isIndo ? "Checkout cepat" : "Fast checkout"} />
             <CartTrustPill icon={ShieldCheck} label={isIndo ? "Pembayaran aman" : "Secure payment"} />
             <CartTrustPill icon={Bookmark} label={isIndo ? "Keranjang tersimpan" : "Saved cart"} />
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto px-5 py-4 store-cart-drawer-2026-scroll">
+        <div className="flex-1 overflow-y-auto px-4 pb-28 pt-4 store-cart-drawer-2026-scroll relative">
           {items.length === 0 ? (
             <EmptyCart onClose={closeDrawer} isIndo={isIndo} />
           ) : (
-            <div className="flex flex-col gap-4 pb-4">
+            <div className="flex flex-col gap-4">
               {items.map(item => (
                 <CartItemCard 
                   key={getCartTarget(item).lineId || getCartTarget(item).productId || item.id}
@@ -295,33 +285,32 @@ export function StoreCartDrawer2026({
                   isIndo={isIndo}
                 />
               ))}
-              <div className="mt-2">
+              <div className="mt-1">
                 <OrderSummary itemsCount={itemCount} subtotal={subtotal} isIndo={isIndo} />
               </div>
-              <div className="mt-2 flex items-center justify-center gap-4 text-[10px] font-bold text-slate-400 dark:text-slate-500">
-                <div className="flex items-center gap-1.5"><Shield className="h-3.5 w-3.5" /> 100% {isIndo ? "Aman" : "Secure"}</div>
-                <div className="flex items-center gap-1.5"><RefreshCcw className="h-3.5 w-3.5" /> {isIndo ? "Mudah Dikembalikan" : "Easy Returns"}</div>
-                <div className="flex items-center gap-1.5"><Headphones className="h-3.5 w-3.5" /> {isIndo ? "Dukungan 24/7" : "24/7 Support"}</div>
-              </div>
+              
+              <button 
+                onClick={handleViewCart}
+                className="mt-2 flex h-12 w-full items-center justify-center rounded-full border border-[var(--tp-accent)] text-sm font-bold text-[var(--tp-accent)] transition hover:bg-[var(--tp-accent)] hover:text-white dark:border-orange-400 dark:text-orange-400 dark:hover:bg-orange-500 dark:hover:text-white"
+              >
+                {isIndo ? "Lihat Keranjang" : "View Cart"}
+              </button>
             </div>
           )}
         </div>
 
         {items.length > 0 && (
-          <div className="shrink-0 border-t border-slate-200 bg-white/95 px-5 py-4 backdrop-blur-md dark:border-white/10 dark:bg-slate-900/95 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-            <div className="flex flex-col gap-3">
+          <div className="absolute bottom-0 left-0 w-full shrink-0 border-t border-slate-200 bg-white px-4 py-4 z-50 dark:border-white/10 dark:bg-slate-900 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-slate-950 dark:text-white">
+                <span className="text-[15px] font-bold">{isIndo ? "Total:" : "Total:"}</span>
+                <span className="text-[18px] font-black">{rupiah(subtotal)}</span>
+              </div>
               <button 
                 onClick={handleCheckout}
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--tp-accent)] text-sm font-bold text-white shadow-md transition hover:bg-[#e66404]"
+                className="flex h-[42px] px-6 items-center justify-center rounded-full bg-[var(--tp-accent)] text-sm font-bold text-white shadow-md transition hover:bg-[#e66404]"
               >
-                <ShieldCheck className="h-4 w-4" />
                 {isIndo ? "Lanjut ke Checkout" : "Proceed to Checkout"}
-              </button>
-              <button 
-                onClick={handleViewCart}
-                className="flex h-12 w-full items-center justify-center rounded-full border-2 border-[var(--tp-primary)] text-sm font-bold text-[var(--tp-primary)] transition hover:bg-[var(--tp-primary)] hover:text-white dark:border-white/10 dark:bg-slate-900 dark:text-sky-100 dark:hover:bg-slate-800"
-              >
-                {isIndo ? "Lihat Keranjang" : "View Cart"}
               </button>
             </div>
           </div>
