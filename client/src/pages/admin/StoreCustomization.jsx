@@ -216,6 +216,11 @@ const DEFAULT_PRODUCT_SLUG_BENEFIT_ITEMS = [
     visible: true,
   },
 ];
+const DEFAULT_PRODUCT_SLUG_SUMMARY_LABELS = [
+  { id: "organic", title: "100% Organic", icon: "shield", visible: true },
+  { id: "fresh-natural", title: "Fresh & Natural", icon: "badge", visible: true },
+  { id: "fast-delivery", title: "Fast Delivery", icon: "truck", visible: true },
+];
 const FAQ_ITEM_ORDINALS = [
   "One",
   "Two",
@@ -579,6 +584,7 @@ const getDefaultCustomization = () => ({
       ],
       items: DEFAULT_PRODUCT_SLUG_BENEFIT_ITEMS,
       benefitItems: DEFAULT_PRODUCT_SLUG_BENEFIT_ITEMS,
+      summaryLabels: DEFAULT_PRODUCT_SLUG_SUMMARY_LABELS,
     },
   },
   aboutUs: {
@@ -1218,6 +1224,32 @@ const normalizeRightBoxItems = (rightBoxSource = {}, fallbackDescriptions = []) 
   }));
 };
 
+const normalizeProductSlugSummaryLabels = (rightBoxSource = {}) => {
+  const source = isPlainObject(rightBoxSource) ? rightBoxSource : {};
+  const rawLabels = Array.isArray(source.summaryLabels)
+    ? source.summaryLabels
+    : Array.isArray(source.summary_labels)
+      ? source.summary_labels
+      : [];
+
+  return DEFAULT_PRODUCT_SLUG_SUMMARY_LABELS.map((fallback, index) => {
+    const item = isPlainObject(rawLabels[index]) ? rawLabels[index] : {};
+    return {
+      ...fallback,
+      ...item,
+      id: toText(item.id, fallback.id),
+      title: toText(item.title ?? item.label ?? item.text, fallback.title),
+      icon: toText(item.icon, fallback.icon),
+      visible:
+        typeof item.visible === "boolean"
+          ? item.visible
+          : typeof item.enabled === "boolean"
+            ? item.enabled
+            : fallback.visible,
+    };
+  });
+};
+
 const serializeRightBoxForPayload = (rightBoxState = {}) => {
   const defaults = getDefaultCustomization().productSlugPage.rightBox;
   const items = normalizeRightBoxItems(rightBoxState, defaults.descriptions);
@@ -1239,6 +1271,7 @@ const serializeRightBoxForPayload = (rightBoxState = {}) => {
     enabled: Boolean(rightBoxState?.enabled),
     items,
     benefitItems: items,
+    summaryLabels: normalizeProductSlugSummaryLabels(rightBoxState),
     descriptions,
     ...legacyDescriptionFields,
   };
@@ -2575,6 +2608,7 @@ const normalizeCustomizationPayload = (raw) => {
           productSlugRightBoxSource,
           defaultsProductSlugPage.rightBox.descriptions
         ),
+        summaryLabels: normalizeProductSlugSummaryLabels(productSlugRightBoxSource),
         descriptions: normalizeRightBoxDescriptions(
           productSlugRightBoxSource.descriptions,
           defaultsProductSlugPage.rightBox.descriptions,
@@ -5410,6 +5444,7 @@ export default function StoreCustomizationPage() {
       productSlugPageState?.rightBox,
       productSlugRightBoxDefaults.descriptions
     ),
+    summaryLabels: normalizeProductSlugSummaryLabels(productSlugPageState?.rightBox),
     descriptions: normalizeRightBoxDescriptions(
       productSlugPageState?.rightBox?.descriptions,
       productSlugRightBoxDefaults.descriptions,

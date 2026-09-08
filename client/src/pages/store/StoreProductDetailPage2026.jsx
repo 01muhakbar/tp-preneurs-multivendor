@@ -189,6 +189,12 @@ const DEFAULT_RIGHT_BOX_ITEMS = [
   { id: "pickup-point", title: "Pickup Point Delivery", icon: "pin", tone: "neutral" },
 ];
 
+const DEFAULT_PRODUCT_SUMMARY_LABELS = [
+  { id: "organic", title: "100% Organic", icon: "shield", visible: true },
+  { id: "fresh-natural", title: "Fresh & Natural", icon: "badge", visible: true },
+  { id: "fast-delivery", title: "Fast Delivery", icon: "truck", visible: true },
+];
+
 const RIGHT_BOX_ICON_MAP = {
   truck: Truck,
   clock: Clock,
@@ -197,6 +203,14 @@ const RIGHT_BOX_ICON_MAP = {
   shield: ShieldCheck,
   leaf: Leaf,
   pin: MapPin,
+  sparkles: Sparkles,
+};
+
+const PRODUCT_SUMMARY_ICON_MAP = {
+  shield: ShieldCheck,
+  badge: BadgeCheck,
+  truck: Truck,
+  leaf: Leaf,
   sparkles: Sparkles,
 };
 
@@ -229,6 +243,31 @@ const getRightBoxLegacyDescriptions = (source, fallbackItems) =>
 
 const isRecord = (value) =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+const normalizeProductSummaryLabels = (source) => {
+  const sourceLabels = Array.isArray(source?.summaryLabels)
+    ? source.summaryLabels
+    : Array.isArray(source?.summary_labels)
+      ? source.summary_labels
+      : [];
+
+  return DEFAULT_PRODUCT_SUMMARY_LABELS.map((fallback, index) => {
+    const item = isRecord(sourceLabels[index]) ? sourceLabels[index] : {};
+    return {
+      ...fallback,
+      ...item,
+      id: text(item.id, fallback.id),
+      title: text(item.title, item.label, item.text, fallback.title),
+      icon: text(item.icon, fallback.icon),
+      visible:
+        typeof item.visible === "boolean"
+          ? item.visible
+          : typeof item.enabled === "boolean"
+            ? item.enabled
+            : fallback.visible,
+    };
+  }).filter((item) => item.visible && text(item.title));
+};
 
 const normalizeProductRightBox = (rightBox, product, t) => {
   const fallbackItems = getDefaultRightBoxItems(product, t);
@@ -279,7 +318,7 @@ const normalizeProductRightBox = (rightBox, product, t) => {
     })
     .filter((item) => item.visible && text(item.title, item.message));
 
-  return { enabled, items };
+  return { enabled, items, summaryLabels: normalizeProductSummaryLabels(source) };
 };
 
 export const getReviews = (product) => {
@@ -752,6 +791,7 @@ function ProductSummary({
   onAddToCart,
   onBuyNow,
   isAdding,
+  summaryLabels = DEFAULT_PRODUCT_SUMMARY_LABELS,
   t,
 }) {
   const categoryName = getCategoryName(product);
@@ -769,6 +809,9 @@ function ProductSummary({
         : stock !== null && quantity > stock
           ? `Only ${stock} item${stock === 1 ? "" : "s"} available.`
           : "";
+  const visibleSummaryLabels = Array.isArray(summaryLabels)
+    ? summaryLabels.filter((item) => item?.visible !== false && text(item?.title))
+    : [];
 
   return (
     <section className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-slate-900 dark:shadow-none">
@@ -860,11 +903,23 @@ function ProductSummary({
           {t("productDetail.buyNow")}
         </button>
 
-        <div className="grid grid-cols-3 gap-2 border-t border-slate-200 pt-4 text-xs font-semibold text-slate-600 dark:border-white/10 dark:text-slate-300">
-          <div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-emerald-500" />100% Organic</div>
-          <div className="flex items-center gap-2"><BadgeCheck className="h-5 w-5 text-[var(--tp-primary)] dark:text-sky-300" />Fresh & Natural</div>
-          <div className="flex items-center gap-2"><Truck className="h-5 w-5 text-[var(--tp-primary)] dark:text-sky-300" />Fast Delivery</div>
-        </div>
+        {visibleSummaryLabels.length > 0 ? (
+          <div className="grid grid-cols-1 gap-2 border-t border-slate-200 pt-4 text-xs font-semibold text-slate-600 dark:border-white/10 dark:text-slate-300 sm:grid-cols-3">
+            {visibleSummaryLabels.slice(0, 3).map((item, index) => {
+              const Icon = PRODUCT_SUMMARY_ICON_MAP[item.icon] || Sparkles;
+              const iconClass =
+                index === 0
+                  ? "text-emerald-500"
+                  : "text-[var(--tp-primary)] dark:text-sky-300";
+              return (
+                <div key={item.id || `${item.title}-${index}`} className="flex min-w-0 items-center gap-2">
+                  <Icon className={`h-5 w-5 shrink-0 ${iconClass}`} />
+                  <span className="min-w-0 break-words">{item.title}</span>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
 
       </div>
     </section>
@@ -1453,6 +1508,7 @@ export default function StoreProductDetailPage2026() {
           onAddToCart={handleAddToCart}
           onBuyNow={handleBuyNow}
           isAdding={isAdding || cart.isLoading}
+          summaryLabels={rightBox.enabled ? rightBox.summaryLabels : []}
           t={t}
         />
       </section>

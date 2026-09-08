@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
+  BadgeCheck,
   Check,
   ChevronDown,
   Copy,
@@ -97,6 +98,12 @@ const DEFAULT_ITEMS = [
   },
 ];
 
+const DEFAULT_SUMMARY_LABELS = [
+  { id: "organic", title: "100% Organic", icon: "shield", visible: true },
+  { id: "fresh-natural", title: "Fresh & Natural", icon: "badge", visible: true },
+  { id: "fast-delivery", title: "Fast Delivery", icon: "truck", visible: true },
+];
+
 const ICON_OPTIONS = [
   { key: "truck", label: "Truck", icon: Truck },
   { key: "clock", label: "Clock", icon: PackageCheck },
@@ -105,6 +112,14 @@ const ICON_OPTIONS = [
   { key: "shield", label: "Shield", icon: ShieldCheck },
   { key: "leaf", label: "Leaf", icon: Leaf },
   { key: "pin", label: "Pin", icon: MapPin },
+  { key: "sparkles", label: "Sparkles", icon: Sparkles },
+];
+
+const SUMMARY_ICON_OPTIONS = [
+  { key: "shield", label: "Shield", icon: ShieldCheck },
+  { key: "badge", label: "Badge", icon: BadgeCheck },
+  { key: "truck", label: "Truck", icon: Truck },
+  { key: "leaf", label: "Leaf", icon: Leaf },
   { key: "sparkles", label: "Sparkles", icon: Sparkles },
 ];
 
@@ -124,6 +139,9 @@ const isPlainObject = (value) =>
 
 const getIconMeta = (key) =>
   ICON_OPTIONS.find((item) => item.key === key) || ICON_OPTIONS[ICON_OPTIONS.length - 1];
+
+const getSummaryIconMeta = (key) =>
+  SUMMARY_ICON_OPTIONS.find((item) => item.key === key) || SUMMARY_ICON_OPTIONS[0];
 
 const getToneMeta = (key) =>
   TONE_OPTIONS.find((item) => item.key === key) || TONE_OPTIONS[1];
@@ -174,6 +192,32 @@ const normalizeItems = (rightBox) => {
   }));
 };
 
+const normalizeSummaryLabels = (rightBox) => {
+  const source = isPlainObject(rightBox) ? rightBox : {};
+  const sourceLabels = Array.isArray(source.summaryLabels)
+    ? source.summaryLabels
+    : Array.isArray(source.summary_labels)
+      ? source.summary_labels
+      : [];
+
+  return DEFAULT_SUMMARY_LABELS.map((fallback, index) => {
+    const item = isPlainObject(sourceLabels[index]) ? sourceLabels[index] : {};
+    return {
+      ...fallback,
+      ...item,
+      id: toText(item.id, fallback.id),
+      title: toText(item.title ?? item.label ?? item.text, fallback.title),
+      icon: toText(item.icon, fallback.icon),
+      visible:
+        typeof item.visible === "boolean"
+          ? item.visible
+          : typeof item.enabled === "boolean"
+            ? item.enabled
+            : fallback.visible,
+    };
+  });
+};
+
 const normalizeValue = (value) => {
   const page = isPlainObject(value) ? value : {};
   const rightBox = isPlainObject(page.rightBox)
@@ -193,6 +237,7 @@ const normalizeValue = (value) => {
             ? rightBox.isEnabled
             : true,
       items: normalizeItems(rightBox),
+      summaryLabels: normalizeSummaryLabels(rightBox),
     },
   };
 };
@@ -204,6 +249,14 @@ const cloneWithItems = (draft, items) => ({
     items,
     benefitItems: items,
     descriptions: items.map((item) => toText(item.message)),
+  },
+});
+
+const cloneWithSummaryLabels = (draft, summaryLabels) => ({
+  ...draft,
+  rightBox: {
+    ...draft.rightBox,
+    summaryLabels,
   },
 });
 
@@ -390,6 +443,62 @@ function BenefitRow({ item, index, total, onChange, onMove, onDelete, onCopy }) 
   );
 }
 
+function SummaryLabelRow({ item, index, onChange }) {
+  const Icon = getSummaryIconMeta(item.icon).icon;
+
+  return (
+    <article className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_10px_30px_rgba(15,23,42,0.04)] dark:border-slate-800 dark:bg-slate-950 md:grid-cols-[44px_minmax(180px,1fr)_140px_92px] md:items-center">
+      <div className="flex items-center gap-3">
+        <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+          <Icon className="h-5 w-5" />
+        </span>
+        <span className="text-xs font-semibold text-slate-400 md:hidden">Label {index + 1}</span>
+      </div>
+      <label className="min-w-0">
+        <span className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">
+          Summary Label {index + 1}
+        </span>
+        <input
+          type="text"
+          value={item.title}
+          maxLength={36}
+          onChange={(event) => onChange({ ...item, title: event.target.value })}
+          className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-emerald-500/15"
+        />
+      </label>
+      <label className="min-w-0">
+        <span className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">
+          Icon
+        </span>
+        <span className="relative block">
+          <select
+            value={item.icon}
+            onChange={(event) => onChange({ ...item, icon: event.target.value })}
+            className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 pr-8 text-sm font-semibold text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-emerald-500/15"
+          >
+            {SUMMARY_ICON_OPTIONS.map((option) => (
+              <option key={option.key} value={option.key}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        </span>
+      </label>
+      <div className="flex items-center justify-between gap-3 md:justify-center">
+        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 md:hidden">
+          Visible
+        </span>
+        <Toggle
+          checked={item.visible}
+          ariaLabel={`Toggle ${item.title || `summary label ${index + 1}`} visibility`}
+          onChange={(next) => onChange({ ...item, visible: next })}
+        />
+      </div>
+    </article>
+  );
+}
+
 function ReadinessRing({ completion }) {
   const circumference = 2 * Math.PI * 39;
   const dash = (completion / 100) * circumference;
@@ -426,8 +535,9 @@ function ReadinessRing({ completion }) {
   );
 }
 
-function PreviewPanel({ enabled, items, mode, onModeChange }) {
+function PreviewPanel({ enabled, items, summaryLabels, mode, onModeChange }) {
   const visibleItems = items.filter((item) => item.visible && toText(item.message));
+  const visibleSummaryLabels = summaryLabels.filter((item) => item.visible && toText(item.title));
 
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_48px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-950">
@@ -488,6 +598,19 @@ function PreviewPanel({ enabled, items, mode, onModeChange }) {
             <h3 className="text-base font-extrabold text-slate-950 dark:text-white">
               Readiness Overview
             </h3>
+            {enabled && visibleSummaryLabels.length > 0 ? (
+              <div className="mt-4 grid gap-2 rounded-2xl border-t border-slate-200 pt-3 text-xs font-semibold text-slate-600 dark:border-slate-800 dark:text-slate-300 sm:grid-cols-3">
+                {visibleSummaryLabels.slice(0, 3).map((item, index) => {
+                  const Icon = getSummaryIconMeta(item.icon).icon;
+                  return (
+                    <div key={item.id || `${item.title}-${index}`} className="flex min-w-0 items-center gap-2">
+                      <Icon className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-300" />
+                      <span className="min-w-0 break-words">{item.title}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
             {enabled ? (
               <ul className="mt-4 space-y-3">
                 {visibleItems.map((item) => {
@@ -540,6 +663,7 @@ export default function StoreCustomizationSingleSetting2026({
   const [previewMode, setPreviewMode] = useState("desktop");
   const draft = useMemo(() => normalizeValue(value), [value]);
   const items = draft.rightBox.items;
+  const summaryLabels = draft.rightBox.summaryLabels;
   const visibleItems = items.filter((item) => item.visible);
   const hasContent =
     visibleItems.length > 0 &&
@@ -633,6 +757,13 @@ export default function StoreCustomizationSingleSetting2026({
       ...items.slice(index + 1),
     ];
     emit(cloneWithItems(draft, nextItems));
+  };
+
+  const updateSummaryLabel = (index, nextLabel) => {
+    const nextLabels = summaryLabels.map((item, itemIndex) =>
+      itemIndex === index ? nextLabel : item
+    );
+    emit(cloneWithSummaryLabels(draft, nextLabels));
   };
 
   const languageItems = languages.length
@@ -743,7 +874,34 @@ export default function StoreCustomizationSingleSetting2026({
           </div>
         </div>
 
-        <div className="p-5">
+        <div className="space-y-6 p-5">
+          <section>
+            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h3 className="text-lg font-extrabold text-slate-950 dark:text-white">
+                  Product Summary Labels
+                </h3>
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                  Edit the three compact labels shown below Buy Now on the product page.
+                </p>
+              </div>
+              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+                {summaryLabels.filter((item) => item.visible).length} visible
+              </p>
+            </div>
+            <div className="space-y-3">
+              {summaryLabels.map((item, index) => (
+                <SummaryLabelRow
+                  key={item.id || `summary-label-${index}`}
+                  item={item}
+                  index={index}
+                  onChange={(nextLabel) => updateSummaryLabel(index, nextLabel)}
+                />
+              ))}
+            </div>
+          </section>
+
+          <section>
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h3 className="text-lg font-extrabold text-slate-950 dark:text-white">
@@ -771,6 +929,7 @@ export default function StoreCustomizationSingleSetting2026({
               />
             ))}
           </div>
+          </section>
         </div>
       </section>
 
@@ -778,6 +937,7 @@ export default function StoreCustomizationSingleSetting2026({
         <PreviewPanel
           enabled={enabled}
           items={items}
+          summaryLabels={summaryLabels}
           mode={previewMode}
           onModeChange={setPreviewMode}
         />
