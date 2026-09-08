@@ -97,7 +97,7 @@ async function run() {
   const adminClient = new CookieClient();
   await loginAdmin(adminClient);
 
-  logStep("persist seo settings customization with legacy-safe media aliases");
+  logStep("persist seo settings customization with public media aliases");
   const updateResponse = await adminClient.request(
     `/api/admin/store/customization?lang=${encodeURIComponent(SMOKE_LANG)}`,
     {
@@ -105,12 +105,12 @@ async function run() {
       body: JSON.stringify({
         customization: {
           seoSettings: {
-            favicon: "data:image/png;base64,seo-favicon",
+            favicon: "/uploads/seo-favicon.png",
             metaTitle: "Store SEO Title",
             metaDescription: "Store SEO Description",
             metaUrl: "/seo-preview",
             metaKeywords: "store,seo,keywords",
-            metaImage: "data:image/png;base64,seo-meta-image",
+            metaImage: "/uploads/seo-meta-image.png",
           },
         },
       }),
@@ -128,7 +128,7 @@ async function run() {
   const adminSeo = reloadedAdmin.body?.data?.customization?.seoSettings;
   assert.equal(
     String(adminSeo?.faviconDataUrl || ""),
-    "data:image/png;base64,seo-favicon",
+    "/uploads/seo-favicon.png",
     "favicon alias should normalize to faviconDataUrl"
   );
   assert.equal(
@@ -148,7 +148,7 @@ async function run() {
   );
   assert.equal(
     String(adminSeo?.metaImageDataUrl || ""),
-    "data:image/png;base64,seo-meta-image",
+    "/uploads/seo-meta-image.png",
     "meta image alias should normalize to metaImageDataUrl"
   );
   logPass("admin seo-settings reload");
@@ -175,13 +175,13 @@ async function run() {
   );
   assert.equal(
     String(publicSeo?.faviconDataUrl || ""),
-    "data:image/png;base64,seo-favicon",
-    "public seo-settings should expose favicon data url"
+    "/uploads/seo-favicon.png",
+    "public seo-settings should expose favicon URL"
   );
   assert.equal(
     String(publicSeo?.metaImageDataUrl || ""),
-    "data:image/png;base64,seo-meta-image",
-    "public seo-settings should expose meta image data url"
+    "/uploads/seo-meta-image.png",
+    "public seo-settings should expose meta image URL"
   );
   logPass("public seo-settings serialization");
 
@@ -210,6 +210,11 @@ async function run() {
   assert.equal(String(partialSeo?.metaDescription || ""), "", "partial meta description should stay empty");
   assert.equal(String(partialSeo?.metaUrl || ""), "", "partial meta url should stay empty");
   assert.equal(String(partialSeo?.faviconDataUrl || ""), "", "partial favicon should stay empty");
+  assert.equal(String(partialSeo?.favicon || ""), "", "partial favicon alias should stay empty");
+  assert.equal(String(partialSeo?.faviconImage || ""), "", "partial favicon image alias should stay empty");
+  assert.equal(String(partialSeo?.metaImageDataUrl || ""), "", "partial meta image should stay empty");
+  assert.equal(String(partialSeo?.metaImage || ""), "", "partial meta image alias should stay empty");
+  assert.equal(String(partialSeo?.image || ""), "", "partial generic image alias should stay empty");
   logPass("partial seo-settings safety");
 
   console.log("[mvf-seo] OK");

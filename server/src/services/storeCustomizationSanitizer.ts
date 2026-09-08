@@ -602,6 +602,14 @@ const toText = (value: unknown, fallback = "") => {
   return normalized || fallback;
 };
 
+const firstText = (...values: unknown[]) => {
+  for (const value of values) {
+    const normalized = String(value ?? "").trim();
+    if (normalized) return normalized;
+  }
+  return "";
+};
+
 const hasOwnValue = (source: Record<string, unknown>, key: string) =>
   source && Object.prototype.hasOwnProperty.call(source, key);
 
@@ -1323,7 +1331,7 @@ const normalizeSeoSettings = (root: Record<string, any>) => {
     ...defaults,
     ...source,
     faviconDataUrl: toText(
-      source.faviconDataUrl ?? source.favicon ?? source.faviconImage ?? "",
+      firstText(source.faviconDataUrl, source.favicon, source.faviconImage),
       ""
     ),
     metaTitle: toText(source.metaTitle, defaults.metaTitle),
@@ -1331,7 +1339,7 @@ const normalizeSeoSettings = (root: Record<string, any>) => {
     metaUrl: toText(source.metaUrl, defaults.metaUrl),
     metaKeywords: toText(source.metaKeywords, defaults.metaKeywords),
     metaImageDataUrl: toText(
-      source.metaImageDataUrl ?? source.metaImage ?? source.image ?? "",
+      firstText(source.metaImageDataUrl, source.metaImage, source.image),
       ""
     ),
   };

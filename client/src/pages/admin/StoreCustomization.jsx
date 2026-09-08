@@ -913,6 +913,14 @@ const toText = (value, fallback = "") => {
   return normalized === "" ? fallback : normalized;
 };
 
+const firstText = (...values) => {
+  for (const value of values) {
+    const normalized = String(value ?? "").trim();
+    if (normalized) return normalized;
+  }
+  return "";
+};
+
 const hasOwnValue = (source, key) =>
   source && Object.prototype.hasOwnProperty.call(source, key);
 
@@ -2668,10 +2676,11 @@ const normalizeCustomizationPayload = (raw) => {
       ...defaultsSeoSettings,
       ...seoSettingsSource,
       faviconDataUrl: toText(
-        seoSettingsSource.faviconDataUrl ??
-          seoSettingsSource.favicon ??
-          seoSettingsSource.faviconImage ??
-          "",
+        firstText(
+          seoSettingsSource.faviconDataUrl,
+          seoSettingsSource.favicon,
+          seoSettingsSource.faviconImage
+        ),
         ""
       ),
       metaTitle: toText(seoSettingsSource.metaTitle, defaultsSeoSettings.metaTitle),
@@ -2685,10 +2694,11 @@ const normalizeCustomizationPayload = (raw) => {
         defaultsSeoSettings.metaKeywords
       ),
       metaImageDataUrl: toText(
-        seoSettingsSource.metaImageDataUrl ??
-          seoSettingsSource.metaImage ??
-          seoSettingsSource.image ??
-          "",
+        firstText(
+          seoSettingsSource.metaImageDataUrl,
+          seoSettingsSource.metaImage,
+          seoSettingsSource.image
+        ),
         ""
       ),
     },
@@ -3938,11 +3948,15 @@ export default function StoreCustomizationPage() {
         ...currentCustomization.seoSettings,
         ...seoSettingsState,
         faviconDataUrl: toText(seoSettingsState?.faviconDataUrl),
+        favicon: toText(seoSettingsState?.faviconDataUrl),
+        faviconImage: toText(seoSettingsState?.faviconDataUrl),
         metaTitle: toText(seoSettingsState?.metaTitle),
         metaDescription: toText(seoSettingsState?.metaDescription),
         metaUrl: toText(seoSettingsState?.metaUrl),
         metaKeywords: toText(seoSettingsState?.metaKeywords),
         metaImageDataUrl: toText(seoSettingsState?.metaImageDataUrl),
+        metaImage: toText(seoSettingsState?.metaImageDataUrl),
+        image: toText(seoSettingsState?.metaImageDataUrl),
       },
     };
 
@@ -4576,6 +4590,12 @@ export default function StoreCustomizationPage() {
     setSeoSettingsState((prev) => ({
       ...prev,
       [field]: value,
+      ...(field === "faviconDataUrl"
+        ? { favicon: value, faviconImage: value }
+        : {}),
+      ...(field === "metaImageDataUrl"
+        ? { metaImage: value, image: value }
+        : {}),
     }));
   };
 
@@ -4597,16 +4617,21 @@ export default function StoreCustomizationPage() {
       return;
     }
     try {
-      const dataUrl = await fileToDataUrl(file);
+      const result = await uploadAdminImage(file);
+      const uploadedUrl = String(result?.url || result?.data?.url || "").trim();
+      if (!uploadedUrl) {
+        throw new Error("Upload succeeded without an image URL.");
+      }
       setSeoImageErrors((prev) => ({
         ...prev,
         [fieldKey]: "",
       }));
-      onChangeSeoField(fieldKey, dataUrl);
+      onChangeSeoField(fieldKey, uploadedUrl);
     } catch (error) {
       setSeoImageErrors((prev) => ({
         ...prev,
-        [fieldKey]: error?.message || "Failed to process image.",
+        [fieldKey]:
+          error?.response?.data?.message || error?.message || "Failed to upload image.",
       }));
     }
   };

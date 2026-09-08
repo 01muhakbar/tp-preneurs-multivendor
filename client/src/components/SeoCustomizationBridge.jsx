@@ -32,6 +32,8 @@ const ensureLinkTag = (selector, attrs = {}) => {
   return element;
 };
 
+const isCrawlerUnsafeAsset = (value) => /^(data:|blob:)/i.test(String(value || "").trim());
+
 const buildDocumentTitle = (pathname, metaTitle, fallbackTitle, branding = {}) => {
   const workspaceBrandName =
     String(branding?.workspaceBrandName || "").trim() || "TP PRENEURS";
@@ -76,7 +78,7 @@ export default function SeoCustomizationBridge() {
       rel: "icon",
       type: "image/x-icon",
     });
-    const originalFaviconHref = faviconLink.getAttribute("href") || "/vite.svg";
+    const originalFaviconHref = faviconLink.getAttribute("href") || "/favicon.png";
     const workspaceFaviconHref = getWorkspaceFaviconUrl(
       location.pathname,
       branding,
@@ -111,7 +113,10 @@ export default function SeoCustomizationBridge() {
     );
     const nextDescription = seoSettings.metaDescription;
     const nextKeywords = seoSettings.metaKeywords;
-    const nextImage = resolveSeoAbsoluteUrl(resolveAssetUrl(seoSettings.metaImageDataUrl), currentUrl);
+    const resolvedMetaImage = resolveAssetUrl(seoSettings.metaImageDataUrl);
+    const nextImage = isCrawlerUnsafeAsset(resolvedMetaImage)
+      ? resolveSeoAbsoluteUrl("/og-image.png", currentUrl)
+      : resolveSeoAbsoluteUrl(resolvedMetaImage || "/og-image.png", currentUrl);
     const nextUrl = resolveSeoAbsoluteUrl(seoSettings.metaUrl, currentUrl);
 
     document.title = nextTitle;

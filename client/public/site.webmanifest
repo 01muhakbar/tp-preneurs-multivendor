@@ -1,0 +1,21 @@
+{
+  "name": "TP PRENEURS",
+  "short_name": "TP PRENEURS",
+  "description": "Temukan dan jual produk berkualitas di TP PRENEURS.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#f97316",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

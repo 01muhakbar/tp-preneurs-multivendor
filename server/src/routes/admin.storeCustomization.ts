@@ -656,9 +656,47 @@ const mergeDeep = (base: any, source: any): any => {
   return output;
 };
 
+const applySeoImageClearIntent = (
+  mergedPayload: Record<string, any>,
+  rawPayload: Record<string, any>
+) => {
+  if (!isPlainObject(rawPayload?.seoSettings) || !isPlainObject(mergedPayload?.seoSettings)) {
+    return mergedPayload;
+  }
+
+  const rawSeo = rawPayload.seoSettings;
+  const mergedSeo = mergedPayload.seoSettings;
+  if (
+    Object.prototype.hasOwnProperty.call(rawSeo, "faviconDataUrl") &&
+    toText(rawSeo.faviconDataUrl) === ""
+  ) {
+    mergedSeo.faviconDataUrl = "";
+    mergedSeo.favicon = "";
+    mergedSeo.faviconImage = "";
+  }
+  if (
+    Object.prototype.hasOwnProperty.call(rawSeo, "metaImageDataUrl") &&
+    toText(rawSeo.metaImageDataUrl) === ""
+  ) {
+    mergedSeo.metaImageDataUrl = "";
+    mergedSeo.metaImage = "";
+    mergedSeo.image = "";
+  }
+
+  return mergedPayload;
+};
+
 const toText = (value: unknown, fallback = "") => {
   const normalized = String(value ?? "").trim();
   return normalized || fallback;
+};
+
+const firstText = (...values: unknown[]) => {
+  for (const value of values) {
+    const normalized = String(value ?? "").trim();
+    if (normalized) return normalized;
+  }
+  return "";
 };
 
 const hasOwnValue = (source: Record<string, unknown>, key: string) =>
@@ -1298,7 +1336,7 @@ const normalizeSeoSettings = (root: Record<string, any>) => {
     ...defaults,
     ...source,
     faviconDataUrl: toText(
-      source.faviconDataUrl ?? source.favicon ?? source.faviconImage ?? "",
+      firstText(source.faviconDataUrl, source.favicon, source.faviconImage),
       ""
     ),
     metaTitle: toText(source.metaTitle, defaults.metaTitle),
@@ -1306,7 +1344,7 @@ const normalizeSeoSettings = (root: Record<string, any>) => {
     metaUrl: toText(source.metaUrl, defaults.metaUrl),
     metaKeywords: toText(source.metaKeywords, defaults.metaKeywords),
     metaImageDataUrl: toText(
-      source.metaImageDataUrl ?? source.metaImage ?? source.image ?? "",
+      firstText(source.metaImageDataUrl, source.metaImage, source.image),
       ""
     ),
   };
@@ -2562,7 +2600,11 @@ const saveCustomizationDraft = async (req: any, res: any, next: any) => {
 
     const existing = await getCustomizationRow(lang);
     const existingPayload = existing ? getCustomizationDraftPayload(existing) : {};
-    const payload = sanitizeCustomization(mergeDeep(existingPayload, rawPayload));
+    const mergedPayload = applySeoImageClearIntent(
+      mergeDeep(existingPayload, rawPayload),
+      rawPayload
+    );
+    const payload = sanitizeCustomization(mergedPayload);
     await upsertDraftCustomization(lang, payload, getActorUserId(req));
     const updatedRow = await getCustomizationRow(lang);
 
@@ -2610,7 +2652,11 @@ const publishCustomizationDraft = async (req: any, res: any, next: any) => {
     const nextDraftPayload = hasBodyPayload
       ? mergeDeep(basePayload, rawPayload)
       : basePayload;
-    const payload = sanitizeCustomization(nextDraftPayload);
+    const payload = sanitizeCustomization(
+      hasBodyPayload
+        ? applySeoImageClearIntent(nextDraftPayload, rawPayload)
+        : nextDraftPayload
+    );
 
     await upsertPublishedCustomization(lang, payload, getActorUserId(req));
     const updatedRow = await getCustomizationRow(lang);

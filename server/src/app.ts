@@ -132,6 +132,85 @@ const normalizeClientBaseUrl = () => {
   }
 };
 
+const getRequestOrigin = (req: express.Request) => {
+  const host = String(req.get("host") || "").trim();
+  if (!host) return "";
+  const forwardedProto = String(req.get("x-forwarded-proto") || "")
+    .split(",")[0]
+    ?.trim();
+  const protocol = forwardedProto || req.protocol || (req.secure ? "https" : "http");
+  return `${protocol}://${host}`;
+};
+
+const getPublicOrigin = (req?: express.Request) =>
+  (req ? getRequestOrigin(req) : "") || getRuntimePublicOrigin() || normalizeClientBaseUrl();
+
+app.get("/robots.txt", (req, res) => {
+  const origin = getPublicOrigin(req);
+  res.type("text/plain").send(
+    [
+      "User-agent: *",
+      "Allow: /",
+      "Disallow: /admin",
+      "Disallow: /seller",
+      "Disallow: /user",
+      "Disallow: /cart",
+      "Disallow: /checkout",
+      "Disallow: /wishlist",
+      "",
+      `Sitemap: ${origin}/sitemap.xml`,
+      "",
+    ].join("\n")
+  );
+});
+
+app.get("/sitemap.xml", (req, res) => {
+  const origin = getPublicOrigin(req);
+  const lastmod = new Date().toISOString();
+  const urls = [
+    { loc: "/", changefreq: "daily", priority: "1.0" },
+    { loc: "/shop", changefreq: "daily", priority: "0.8" },
+    { loc: "/search", changefreq: "weekly", priority: "0.6" },
+  ];
+  const body = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ...urls.map(
+      (url) => [
+        "  <url>",
+        `    <loc>${origin}${url.loc}</loc>`,
+        `    <lastmod>${lastmod}</lastmod>`,
+        `    <changefreq>${url.changefreq}</changefreq>`,
+        `    <priority>${url.priority}</priority>`,
+        "  </url>",
+      ].join("\n")
+    ),
+    "</urlset>",
+    "",
+  ].join("\n");
+  res.type("application/xml").send(body);
+});
+
+app.get(["/favicon.ico", "/favicon.svg"], (_req, res) => {
+  res.redirect(302, "/favicon.png");
+});
+
+app.get(["/site.webmanifest", "/manifest.webmanifest"], (_req, res) => {
+  res.type("application/manifest+json").send({
+    name: "TP PRENEURS",
+    short_name: "TP PRENEURS",
+    description: "Temukan dan jual produk berkualitas di TP PRENEURS.",
+    start_url: "/",
+    display: "standalone",
+    background_color: "#f8fafc",
+    theme_color: "#f97316",
+    icons: [
+      { src: "/favicon.png", sizes: "192x192", type: "image/png" },
+      { src: "/apple-touch-icon.png", sizes: "512x512", type: "image/png" },
+    ],
+  });
+});
+
 app.get("/payments/return", (req, res) => {
   const target = new URL("/user/my-orders", normalizeClientBaseUrl());
   const allowedKeys = ["merchantOrderId", "reference", "resultCode", "statusCode"];

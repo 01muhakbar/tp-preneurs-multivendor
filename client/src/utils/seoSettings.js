@@ -3,13 +3,21 @@ const toText = (value, fallback = "") => {
   return normalized || fallback;
 };
 
+const firstText = (...values) => {
+  for (const value of values) {
+    const normalized = String(value ?? "").trim();
+    if (normalized) return normalized;
+  }
+  return "";
+};
+
 const isAbsoluteHttpUrl = (value) => /^https?:\/\//i.test(String(value || "").trim());
 
 export const normalizeSeoSettings = (raw) => {
   const source = raw && typeof raw === "object" ? raw : {};
   return {
     faviconDataUrl: toText(
-      source.faviconDataUrl ?? source.favicon ?? source.faviconImage,
+      firstText(source.faviconDataUrl, source.favicon, source.faviconImage),
       ""
     ),
     metaTitle: toText(source.metaTitle, ""),
@@ -17,7 +25,7 @@ export const normalizeSeoSettings = (raw) => {
     metaUrl: toText(source.metaUrl, ""),
     metaKeywords: toText(source.metaKeywords, ""),
     metaImageDataUrl: toText(
-      source.metaImageDataUrl ?? source.metaImage ?? source.image,
+      firstText(source.metaImageDataUrl, source.metaImage, source.image),
       ""
     ),
   };
