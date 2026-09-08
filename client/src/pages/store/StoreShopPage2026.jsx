@@ -292,10 +292,12 @@ export default function StoreShopPage2026() {
 
             {initialLoading ? (
               <>
-                <div className={`${viewMode === "grid" ? "hidden sm:grid tp-shop-product-grid" : "tp-shop-product-list"}`} aria-label="Loading products">
-                  {Array.from({ length: viewMode === "grid" ? 9 : 5 }, (_, index) => (
-                    <ProductSkeleton key={index} list={viewMode === "list"} />
-                  ))}
+                <div className={`${viewMode === "grid" ? "hidden sm:block" : "block"}`} aria-label="Loading products">
+                  <div className={viewMode === "grid" ? "tp-shop-product-grid" : "tp-shop-product-list"}>
+                    {Array.from({ length: viewMode === "grid" ? 9 : 5 }, (_, index) => (
+                      <ProductSkeleton key={index} list={viewMode === "list"} />
+                    ))}
+                  </div>
                 </div>
                 {viewMode === "grid" ? (
                   <div className="sm:hidden grid grid-cols-2 gap-2 items-start mt-4" aria-label="Loading products">
@@ -339,12 +341,14 @@ export default function StoreShopPage2026() {
             {!initialLoading && cards.length ? (
               <>
                 {/* DESKTOP/LIST VIEW */}
-                <div className={`${viewMode === "grid" ? "hidden sm:grid tp-shop-product-grid" : "tp-shop-product-list"}`}>
-                  {cards.map((card, index) => (
-                    viewMode === "grid"
-                      ? <ShopProductCard2026 key={card.id || card.slug || index} {...productProps(card)} />
-                      : <ShopProductListItem2026 key={card.id || card.slug || index} {...productProps(card)} />
-                  ))}
+                <div className={`${viewMode === "grid" ? "hidden sm:block" : "block"}`}>
+                  <div className={viewMode === "grid" ? "tp-shop-product-grid" : "tp-shop-product-list"}>
+                    {cards.map((card, index) => (
+                      viewMode === "grid"
+                        ? <ShopProductCard2026 key={card.id || card.slug || index} {...productProps(card)} />
+                        : <ShopProductListItem2026 key={card.id || card.slug || index} {...productProps(card)} />
+                    ))}
+                  </div>
                 </div>
 
                 {/* MOBILE MASONRY GRID VIEW (Only when viewMode is grid) */}
