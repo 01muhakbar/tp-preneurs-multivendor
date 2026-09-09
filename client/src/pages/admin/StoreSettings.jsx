@@ -25,6 +25,7 @@ const GOOGLE_ANALYTICS_KEY_REGEX = /^(G|AW|UA)-[A-Z0-9-]+$/i;
 
 const DEFAULT_FORM = {
   cashOnDelivery: true,
+  manualTransferEnabled: true,
   stripeEnabled: true,
   stripeKey: "",
   stripeSecret: "",
@@ -108,6 +109,10 @@ const normalizeStoreSettings = (raw) => {
     cashOnDelivery: bool(
       source.cashOnDelivery ?? payments.cashOnDeliveryEnabled ?? cod.enabled,
       DEFAULT_FORM.cashOnDelivery
+    ),
+    manualTransferEnabled: bool(
+      source.manualTransferEnabled ?? payments.manualTransferEnabled ?? source.qrisEnabled,
+      DEFAULT_FORM.manualTransferEnabled
     ),
     stripeEnabled: bool(
       source.stripePayment ?? source.stripeEnabled ?? payments.stripeEnabled ?? stripe.enabled,
@@ -247,6 +252,7 @@ const buildUpdatePayload = (rawSettings, form) => {
   return {
     ...source,
     cashOnDelivery: form.cashOnDelivery,
+    manualTransferEnabled: form.manualTransferEnabled,
     stripePayment: form.stripeEnabled,
     stripeEnabled: form.stripeEnabled,
     stripeKey: form.stripeKey,
@@ -276,6 +282,7 @@ const buildUpdatePayload = (rawSettings, form) => {
     payments: {
       ...payments,
       cashOnDeliveryEnabled: form.cashOnDelivery,
+      manualTransferEnabled: form.manualTransferEnabled,
       stripeEnabled: form.stripeEnabled,
       stripeKey: form.stripeKey,
       stripeSecret: form.stripeSecret,
@@ -659,6 +666,7 @@ export default function StoreSettingsPage() {
   ].filter(Boolean).length;
   const enabledPayments = [
     form.cashOnDelivery,
+    form.manualTransferEnabled,
     form.stripeEnabled,
     form.razorpayEnabled,
     form.duitkuEnabled,
@@ -722,9 +730,9 @@ export default function StoreSettingsPage() {
         <KpiCard
           icon={CreditCard}
           title="Payments"
-          value={`${enabledPayments} / 4`}
-          helper={enabledPayments === 4 ? "Ready" : "Incomplete"}
-          tone={enabledPayments === 4 ? "green" : "amber"}
+          value={`${enabledPayments} / 5`}
+          helper={enabledPayments === 5 ? "Ready" : "Incomplete"}
+          tone={enabledPayments === 5 ? "green" : "amber"}
         />
         <KpiCard
           icon={BarChart3}
@@ -772,6 +780,13 @@ export default function StoreSettingsPage() {
               <Toggle
                 value={form.cashOnDelivery}
                 onChange={(value) => setField("cashOnDelivery", value)}
+              />
+            </Panel>
+
+            <Panel title="Manual Transfer (QRIS)" badge={{ label: form.manualTransferEnabled ? "Ready" : "Off", tone: form.manualTransferEnabled ? "success" : "neutral" }}>
+              <Toggle
+                value={form.manualTransferEnabled}
+                onChange={(value) => setField("manualTransferEnabled", value)}
               />
             </Panel>
 

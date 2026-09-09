@@ -1729,9 +1729,17 @@ export default function CheckoutPage() {
       ? availableCodes.includes("DUITKU") || publicStoreSettings?.payments?.duitkuEnabled === true
       : true;
 
+    const hasManualTransferAvailabilitySignal =
+      availableCodes.length > 0 ||
+      typeof publicStoreSettings?.payments?.manualTransferEnabled === "boolean";
+    const isManualTransferAvailable = hasManualTransferAvailabilitySignal
+      ? availableCodes.includes("MANUAL_QRIS") || publicStoreSettings?.payments?.manualTransferEnabled === true
+      : true;
+
     return PAYMENT_OPTIONS.filter(option => {
       if (option.id === "duitku") return isDuitkuAvailable;
-      return true; // Keep qris by default as fallback
+      if (option.id === "qris") return isManualTransferAvailable;
+      return true;
     });
   }, [checkoutPreviewGroups, isCheckoutSummaryReady, publicStoreSettings]);
   const paymentMethodNotice = previewHasPaymentBlocker

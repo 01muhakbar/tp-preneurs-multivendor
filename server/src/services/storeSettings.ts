@@ -6,6 +6,7 @@ export const STORE_SETTINGS_KEY = "storeSettings";
 export const DEFAULT_STORE_SETTINGS = {
   payments: {
     cashOnDeliveryEnabled: true,
+    manualTransferEnabled: true,
     stripeEnabled: true,
     stripeKey: "",
     stripeSecret: "",
@@ -58,6 +59,7 @@ type SettingsRow = {
 
 const PAYMENT_RUNTIME_SUPPORTED = {
   COD: true,
+  MANUAL_QRIS: true,
   STRIPE: true,
   RAZORPAY: false,
   DUITKU: true,
@@ -269,6 +271,10 @@ export const sanitizeStoreSettings = (rawData: unknown) => {
       cashOnDeliveryEnabled: toBool(
         paymentsSource.cashOnDeliveryEnabled,
         defaults.payments.cashOnDeliveryEnabled
+      ),
+      manualTransferEnabled: toBool(
+        paymentsSource.manualTransferEnabled,
+        defaults.payments.manualTransferEnabled
       ),
       stripeEnabled: toBool(paymentsSource.stripeEnabled, defaults.payments.stripeEnabled),
       stripeKey: toText(paymentsSource.stripeKey, ""),
@@ -629,6 +635,14 @@ export const buildStoreSettingsContracts = (rawSettings: unknown) => {
     runtimeSupported: PAYMENT_RUNTIME_SUPPORTED.COD,
   });
 
+  const manualTransferStatus = buildStatus({
+    requestedEnabled: settings.payments.manualTransferEnabled,
+    configured: true,
+    valid: true,
+    effectiveEnabled: Boolean(settings.payments.manualTransferEnabled),
+    runtimeSupported: PAYMENT_RUNTIME_SUPPORTED.MANUAL_QRIS,
+  });
+
   const buildSocialProvider = (
     code: "google" | "github" | "facebook",
     enabled: boolean,
@@ -721,6 +735,13 @@ export const buildStoreSettingsContracts = (rawSettings: unknown) => {
       description: "Pay when your order arrives.",
     });
   }
+  if (Boolean(settings.payments.manualTransferEnabled)) {
+    availableMethods.push({
+      code: "MANUAL_QRIS",
+      label: "Manual Transfer (QRIS by Store)",
+      description: "Pay via manual transfer or QRIS by Store.",
+    });
+  }
   if (stripeEffectiveEnabled) {
     availableMethods.push({
       code: "STRIPE",
@@ -795,6 +816,12 @@ export const buildStoreSettingsContracts = (rawSettings: unknown) => {
             effectiveEnabled: Boolean(settings.payments.cashOnDeliveryEnabled),
             runtimeSupported: PAYMENT_RUNTIME_SUPPORTED.COD,
             status: cashOnDeliveryStatus,
+          },
+          manualTransfer: {
+            requestedEnabled: Boolean(settings.payments.manualTransferEnabled),
+            effectiveEnabled: Boolean(settings.payments.manualTransferEnabled),
+            runtimeSupported: PAYMENT_RUNTIME_SUPPORTED.MANUAL_QRIS,
+            status: manualTransferStatus,
           },
           stripe: {
             requestedEnabled: Boolean(settings.payments.stripeEnabled),
