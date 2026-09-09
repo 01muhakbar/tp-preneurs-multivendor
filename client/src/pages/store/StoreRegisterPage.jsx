@@ -327,7 +327,7 @@ export default function StoreRegisterPage() {
     setFieldErrors({});
 
     const cleanPhone = String(form.phoneNumber || "").trim().replace(/[- ]/g, "");
-    if (!/^(?:\+62|62|0)8[1-9][0-9]{6,11}$/.test(cleanPhone)) {
+    if (!/^(?:\+62|62|0)?8[1-9][0-9]{6,11}$/.test(cleanPhone)) {
       setFieldErrors({ phoneNumber: ["Enter a valid Indonesian phone number starting with +62 or 08."] });
       return;
     }
