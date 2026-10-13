@@ -42,9 +42,11 @@ const initialForm = {
   phoneNumber: "",
   role: "staff",
   isActive: true,
+  storeName: "",
   sellerRoleCode: defaultSellerPreset?.value || "CATALOG_MANAGER",
   permissionKeys: defaultSellerPreset?.permissionKeys || [],
 };
+
 
 const truncateFileName = (value, maxLength = 36) => {
   const text = String(value ?? "").trim();
@@ -173,11 +175,13 @@ export default function AddStaffDrawer({
       phoneNumber: form.phoneNumber.trim() || null,
       role: form.role,
       isActive: Boolean(form.isActive),
+      storeName: isSellerRole ? form.storeName.trim() || null : null,
       sellerRoleCode: isSellerRole ? form.sellerRoleCode : null,
       permissionKeys: isSellerRole ? normalizePermissionKeys(form.permissionKeys) : [],
       password,
       image: imageFile,
     });
+
   };
 
   if (!open) return null;
@@ -421,9 +425,30 @@ export default function AddStaffDrawer({
                     </div>
 
                     <div>
+                      <label
+                        htmlFor="admin-create-staff-store-name"
+                        className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500"
+                      >
+                        Store Name (Optional)
+                      </label>
+                      <input
+                        id="admin-create-staff-store-name"
+                        value={form.storeName}
+                        onChange={(event) => setField({ storeName: event.target.value })}
+                        placeholder={form.name ? `${form.name}'s Store` : "Toko Penjual"}
+                        className={fieldClass}
+                        disabled={isSubmitting}
+                      />
+                      <p className="mt-1 text-[11px] leading-4 text-amber-700">
+                        Toko aktif akan otomatis dibuatkan dan terhubung ke akun ini agar penjual dapat langsung login di /seller/login.
+                      </p>
+                    </div>
+
+                    <div>
                       <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
                         Seller Preset
                       </label>
+
                       <select
                         value={form.sellerRoleCode}
                         onChange={(event) => applySellerPreset(event.target.value)}

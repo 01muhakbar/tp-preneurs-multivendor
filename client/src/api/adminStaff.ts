@@ -2,6 +2,13 @@ import { api } from "@/api/axios";
 
 export type StaffRole = "super_admin" | "admin" | "staff" | "seller" | string;
 
+export interface StaffStoreSummary {
+  id: number;
+  name: string;
+  slug: string;
+  status: string;
+}
+
 export interface StaffItem {
   id: number;
   name: string;
@@ -13,6 +20,7 @@ export interface StaffItem {
   isPendingApproval?: boolean;
   sellerRoleCode?: string | null;
   permissionKeys?: string[];
+  store?: StaffStoreSummary | null;
   isActive: boolean;
   isPublished: boolean;
   createdAt: string; // ISO
@@ -41,6 +49,7 @@ export interface StaffMutationPayload {
   email: string;
   phoneNumber?: string | null;
   role?: string;
+  storeName?: string | null;
   sellerRoleCode?: string | null;
   permissionKeys?: string[];
   isActive?: boolean;
@@ -54,6 +63,7 @@ export interface CreateStaffPayload {
   email: string;
   phoneNumber?: string | null;
   role: string;
+  storeName?: string | null;
   sellerRoleCode?: string | null;
   permissionKeys?: string[];
   isActive?: boolean;
@@ -71,9 +81,13 @@ function buildStaffFormData(payload: Partial<StaffMutationPayload>) {
     formData.append("phoneNumber", payload.phoneNumber == null ? "" : String(payload.phoneNumber));
   }
   if (hasOwn(payload, "role")) formData.append("role", String(payload.role ?? ""));
+  if (hasOwn(payload, "storeName")) {
+    formData.append("storeName", payload.storeName == null ? "" : String(payload.storeName));
+  }
   if (hasOwn(payload, "sellerRoleCode")) {
     formData.append("sellerRoleCode", payload.sellerRoleCode == null ? "" : String(payload.sellerRoleCode));
   }
+
   if (Array.isArray(payload.permissionKeys)) {
     formData.append("permissionKeys", JSON.stringify(payload.permissionKeys));
   }

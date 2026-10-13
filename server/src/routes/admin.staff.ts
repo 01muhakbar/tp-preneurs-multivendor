@@ -10,9 +10,11 @@ import {
   AdminPublicAuthError,
   approveAdminPendingStaffAccount,
 } from "../services/adminPublicAuth.service.js";
+import { ensureSellerStoreForUser } from "../services/seller/provisionSellerStore.js";
 
-const { User } = models as { User?: any };
+const { User, Store } = models as { User?: any; Store?: any };
 const router = Router();
+
 
 const uploadDir = path.resolve(process.cwd(), process.env.UPLOAD_DIR ?? "uploads/staff");
 fs.mkdirSync(uploadDir, { recursive: true });
@@ -220,6 +222,16 @@ function resolveSellerAccess(input: {
 
 function toStaffItem(row: any) {
   const normalizedStatus = String(row.status ?? "").toLowerCase().trim();
+  const rawStore = row.store ?? row.get?.("store") ?? null;
+  const store = rawStore
+    ? {
+        id: Number(rawStore.id ?? rawStore.get?.("id")),
+        name: String(rawStore.name ?? rawStore.get?.("name") ?? ""),
+        slug: String(rawStore.slug ?? rawStore.get?.("slug") ?? ""),
+        status: String(rawStore.status ?? rawStore.get?.("status") ?? "ACTIVE"),
+      }
+    : null;
+
   return {
     id: row.id,
     name: row.name,
@@ -232,6 +244,7 @@ function toStaffItem(row: any) {
     status: normalizedStatus || "active",
     isActive: normalizedStatus === "active",
     isPendingApproval: normalizedStatus === "pending_approval",
+    store,
     isPublished:
       typeof row.isPublished === "boolean"
         ? row.isPublished
@@ -338,6 +351,14 @@ router.get("/", async (req, res) => {
 
     const { rows, count } = await (User as any).findAndCountAll({
       where,
+      include: [
+        {
+          model: Store,
+          as: "store",
+          attributes: ["id", "name", "slug", "status"],
+          required: false,
+        },
+      ],
       offset: (page - 1) * limit,
       limit,
       order: [[sortBy, sortDir]],
@@ -360,9 +381,20 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const user = await (User as any).findByPk(id, { attributes: { exclude: ["password"] } });
+    const user = await (User as any).findByPk(id, {
+      include: [
+        {
+          model: Store,
+          as: "store",
+          attributes: ["id", "name", "slug", "status"],
+          required: false,
+        },
+      ],
+      attributes: { exclude: ["password"] },
+    });
     if (!user) return res.status(404).json({ success: false, message: "Staff record not found." });
     return res.json(toStaffItem(user));
+
   } catch (error) {
     return sendRouteError(res, error, "Failed to load staff detail.");
   }
@@ -416,7 +448,29 @@ router.post("/", staffImageUpload, async (req, res) => {
       password: passwordHash,
     });
 
-    return res.status(201).json(toStaffItem(created));
+    let provisionedStore: any = null;
+    if (role === "seller") {
+      try {
+        provisionedStore = await ensureSellerStoreForUser(created, {
+          storeName: toOptionalText(req.body.storeName),
+        });
+      } catch (storeError) {
+        console.error("[admin.staff] Failed to provision store for new seller:", storeError);
+      }
+    }
+
+    const responseItem = toStaffItem(created);
+    if (provisionedStore) {
+      responseItem.store = {
+        id: Number(provisionedStore.id),
+        name: String(provisionedStore.name),
+        slug: String(provisionedStore.slug),
+        status: String(provisionedStore.status || "ACTIVE"),
+      };
+    }
+
+    return res.status(201).json(responseItem);
+
   } catch (error) {
     return sendRouteError(res, error, "Failed to create staff.");
   }
@@ -529,7 +583,28 @@ router.patch("/:id", staffImageUpload, async (req, res) => {
     }
 
     await user.update(update);
+
+    if (normalizedRole === "seller") {
+      try {
+        await ensureSellerStoreForUser(user);
+      } catch (storeError) {
+        console.error("[admin.staff] Failed to ensure store for seller on patch:", storeError);
+      }
+    }
+
+    await user.reload({
+      include: [
+        {
+          model: Store,
+          as: "store",
+          attributes: ["id", "name", "slug", "status"],
+          required: false,
+        },
+      ],
+    });
+
     return res.json(toStaffItem(user));
+
   } catch (error) {
     return sendRouteError(res, error, "Failed to update staff.");
   }

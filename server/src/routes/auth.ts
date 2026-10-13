@@ -47,6 +47,7 @@ import {
   normalizeCanonicalRole,
 } from "../utils/role.js";
 import { listSellerAccessContexts } from "../services/seller/resolveSellerAccess.js";
+import { ensureSellerStoreForUser } from "../services/seller/provisionSellerStore.js";
 
 const { User } = models as { User?: any };
 const AUTH_DEBUG_COOKIES = process.env.AUTH_DEBUG_COOKIES === "true";
@@ -164,7 +165,24 @@ const respondWithScopedAuthUser = async (
 };
 
 const resolveSellerStoresForUser = async (userId: number) => {
-  const accessContexts = await listSellerAccessContexts({ userId });
+  let accessContexts = await listSellerAccessContexts({ userId });
+
+  if (accessContexts.length === 0 && User) {
+    try {
+      const user = await (User as any).findByPk(userId);
+      const role = String(user?.role || "").trim().toLowerCase();
+      const hasSellerAffinity = role === "seller" || Boolean(user?.sellerRoleCode);
+      const isActive = String(user?.status || "").trim().toLowerCase() === "active";
+
+      if (hasSellerAffinity && isActive) {
+        await ensureSellerStoreForUser(user);
+        accessContexts = await listSellerAccessContexts({ userId });
+      }
+    } catch (err) {
+      console.error("[auth] Failed to auto-provision seller store for user:", userId, err);
+    }
+  }
+
   return accessContexts
     .map((access) => ({
       id: access.store.id,
@@ -189,6 +207,7 @@ const resolveSellerStoresForUser = async (userId: number) => {
       return String(left.name || "").localeCompare(String(right.name || ""));
     });
 };
+
 
 const respondWithSellerAuthUser = async (req: any, res: any) => {
   if (!User) {

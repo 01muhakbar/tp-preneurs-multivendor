@@ -471,10 +471,28 @@ export default function EditStaffDrawer({
                       </p>
                     </div>
 
+                    {staff?.store ? (
+                      <div className="rounded-xl border border-amber-300 bg-white p-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-900">Connected Store Workspace</p>
+                        <div className="mt-1 flex items-center justify-between">
+                          <p className="text-sm font-semibold text-slate-900">{staff.store.name}</p>
+                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+                            {staff.store.status}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 text-xs text-slate-500">Store URL slug: /{staff.store.slug}</p>
+                      </div>
+                    ) : (
+                      <div className="rounded-xl border border-amber-200 bg-amber-100/60 p-2.5 text-xs text-amber-900">
+                        Toko penjual akan otomatis dihubungkan saat akun disimpan atau saat pertama kali seller login di /seller/login.
+                      </div>
+                    )}
+
                     <div>
                       <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
                         Seller Preset
                       </label>
+
                       <select
                         value={form.sellerRoleCode}
                         onChange={(event) => applySellerPreset(event.target.value)}

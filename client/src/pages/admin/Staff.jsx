@@ -809,7 +809,21 @@ export default function AdminStaffPage() {
                 <span className="font-semibold text-slate-700">Joining Date:</span>{" "}
                 {formatJoiningDate(viewTarget?.createdAt)}
               </p>
+              {viewTarget?.store ? (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs">
+                  <p className="font-semibold text-amber-900">Connected Store Workspace:</p>
+                  <p className="mt-0.5 font-medium text-slate-800">
+                    {viewTarget.store.name} <span className="text-slate-500">({viewTarget.store.slug})</span>
+                  </p>
+                  <p className="mt-0.5 text-[10px] font-semibold text-emerald-700">Status: {viewTarget.store.status}</p>
+                </div>
+              ) : normalizeRole(viewTarget?.role) === "seller" ? (
+                <div className="rounded-xl border border-amber-100 bg-amber-50/70 p-2.5 text-xs text-amber-800">
+                  Toko penjual akan otomatis terhubung saat seller login di /seller/login.
+                </div>
+              ) : null}
             </div>
+
           </div>
         </div>
       ) : null}
