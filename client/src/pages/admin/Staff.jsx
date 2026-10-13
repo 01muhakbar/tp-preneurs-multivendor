@@ -133,7 +133,7 @@ function ActiveStatusBadge({ isActive }) {
   );
 }
 
-function AccountStatusBadge({ staff }) {
+function AccountStatusBadge({ staff, isLiveActive }) {
   const normalizedStatus = toText(staff?.status).toLowerCase();
   if (normalizedStatus === "pending_approval") {
     return (
@@ -151,10 +151,15 @@ function AccountStatusBadge({ staff }) {
       </span>
     );
   }
+  const effectiveActive =
+    typeof isLiveActive === "boolean"
+      ? isLiveActive
+      : staff?.isActive !== false && normalizedStatus === "active";
   return (
-    <ActiveStatusBadge isActive={staff?.isActive !== false} />
+    <ActiveStatusBadge isActive={effectiveActive} />
   );
 }
+
 
 export default function AdminStaffPage() {
   const queryClient = useQueryClient();
@@ -254,10 +259,14 @@ export default function AdminStaffPage() {
   });
 
   const publishMutation = useMutation({
-    mutationFn: ({ id, isPublished }) => updateStaff(id, { isPublished }),
+    mutationFn: ({ id, isPublished, isActive }) =>
+      updateStaff(id, {
+        isPublished,
+        isActive: typeof isActive === "boolean" ? isActive : isPublished,
+      }),
     onSuccess: () => {
       setRowError("");
-      setNotice("Published status updated.");
+      setNotice("Account status updated.");
       queryClient.invalidateQueries({ queryKey: ["admin-staff"] });
     },
     onError: (error, variables) => {
@@ -301,7 +310,11 @@ export default function AdminStaffPage() {
         const id = Number(staff?.id);
         if (!id) return;
         if (typeof next[id] !== "boolean") {
-          next[id] = typeof staff?.isPublished === "boolean" ? staff.isPublished : true;
+          const isLive =
+            staff?.isActive !== false &&
+            staff?.isPublished !== false &&
+            toText(staff?.status).toLowerCase() === "active";
+          next[id] = isLive;
         }
       });
       return next;
@@ -355,7 +368,11 @@ export default function AdminStaffPage() {
   const getPublished = (staff) => {
     const id = Number(staff?.id);
     if (id && typeof publishedMap[id] === "boolean") return publishedMap[id];
-    return typeof staff?.isPublished === "boolean" ? staff.isPublished : true;
+    return (
+      staff?.isActive !== false &&
+      staff?.isPublished !== false &&
+      toText(staff?.status).toLowerCase() === "active"
+    );
   };
 
   const applyFilters = () => {
@@ -445,7 +462,12 @@ export default function AdminStaffPage() {
     setRowError("");
     setPendingPublishedId(id);
     setPublishedMap((prev) => ({ ...prev, [id]: nextValue }));
-    publishMutation.mutate({ id, isPublished: nextValue, previousValue });
+    publishMutation.mutate({
+      id,
+      isPublished: nextValue,
+      isActive: nextValue,
+      previousValue,
+    });
   };
 
   const onApproveStaff = (staff) => {
@@ -643,7 +665,10 @@ export default function AdminStaffPage() {
                       <td className={`${tableCell} w-[16%]`}>
                         <div className="space-y-1">
                           <div className="flex items-center justify-between gap-2">
-                            <AccountStatusBadge staff={staff} />
+                            <AccountStatusBadge
+                              staff={staff}
+                              isLiveActive={getPublished(staff)}
+                            />
                             <button
                               type="button"
                               onClick={() => onTogglePublished(staff)}
@@ -651,7 +676,7 @@ export default function AdminStaffPage() {
                               className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition ${
                                 getPublished(staff) ? "bg-[var(--admin-primary)]" : "bg-slate-300"
                               } ${isPublishing ? "cursor-not-allowed opacity-60" : ""}`}
-                              aria-label={`Toggle publish for ${getStaffName(staff)}`}
+                              aria-label={`Toggle status for ${getStaffName(staff)}`}
                             >
                               <span
                                 className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition ${
@@ -667,7 +692,7 @@ export default function AdminStaffPage() {
                                 ? UPDATING
                                 : getPublished(staff)
                                   ? "Live"
-                                  : "Hidden"}
+                                  : "Inactive"}
                           </div>
                         </div>
                       </td>
@@ -801,7 +826,9 @@ export default function AdminStaffPage() {
                 <span className="font-semibold text-slate-700">Status:</span>{" "}
                 {toText(viewTarget?.status).toLowerCase() === "pending_approval"
                   ? "Pending approval"
-                  : viewTarget?.isActive !== false
+                  : viewTarget?.isActive !== false &&
+                      viewTarget?.isPublished !== false &&
+                      toText(viewTarget?.status).toLowerCase() === "active"
                     ? "Active"
                     : "Inactive"}
               </p>

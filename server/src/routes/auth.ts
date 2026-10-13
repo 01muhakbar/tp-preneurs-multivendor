@@ -150,7 +150,7 @@ const respondWithScopedAuthUser = async (
     }
 
     const normalizedUser = await ensureClientUserActivationConsistency(dbUser);
-    if (String(normalizedUser.status || "").trim().toLowerCase() !== "active") {
+    if (String(normalizedUser.status || "").trim().toLowerCase() !== "active" || normalizedUser.isPublished === false) {
       return res.status(403).json({
         success: false,
         code: "ACCOUNT_NOT_ACTIVE",
@@ -172,7 +172,9 @@ const resolveSellerStoresForUser = async (userId: number) => {
       const user = await (User as any).findByPk(userId);
       const role = String(user?.role || "").trim().toLowerCase();
       const hasSellerAffinity = role === "seller" || Boolean(user?.sellerRoleCode);
-      const isActive = String(user?.status || "").trim().toLowerCase() === "active";
+      const isActive =
+        String(user?.status || "").trim().toLowerCase() === "active" &&
+        user?.isPublished !== false;
 
       if (hasSellerAffinity && isActive) {
         await ensureSellerStoreForUser(user);
@@ -221,13 +223,15 @@ const respondWithSellerAuthUser = async (req: any, res: any) => {
     }
 
     const normalizedUser = await ensureClientUserActivationConsistency(dbUser);
-    if (String(normalizedUser.status || "").trim().toLowerCase() !== "active") {
+    if (String(normalizedUser.status || "").trim().toLowerCase() !== "active" || normalizedUser.isPublished === false) {
+      clearScopedAuthCookie(req, res, "seller");
       return res.status(403).json({
         success: false,
         code: "ACCOUNT_NOT_ACTIVE",
         message: "Your account is not active.",
       });
     }
+
 
     const stores = await resolveSellerStoresForUser(Number(normalizedUser.id));
     if (stores.length === 0) {
@@ -391,13 +395,14 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    if (String(user.status || "").trim().toLowerCase() !== "active") {
+    if (String(user.status || "").trim().toLowerCase() !== "active" || user.isPublished === false) {
       return res.status(403).json({
         success: false,
         code: "ACCOUNT_NOT_ACTIVE",
         message: "Your account is not active.",
       });
     }
+
 
     await issueAuthSession(req, res, user, "storefront");
     logSetCookieDebug(res, "login");
@@ -478,13 +483,14 @@ router.post("/seller/login", async (req, res) => {
       });
     }
 
-    if (String(user.status || "").trim().toLowerCase() !== "active") {
+    if (String(user.status || "").trim().toLowerCase() !== "active" || user.isPublished === false) {
       return res.status(403).json({
         success: false,
         code: "ACCOUNT_NOT_ACTIVE",
         message: "Your account is not active.",
       });
     }
+
 
     const stores = await resolveSellerStoresForUser(Number(user.id));
     if (stores.length === 0) {
@@ -716,12 +722,13 @@ router.post("/admin/login", async (req, res) => {
       });
     }
 
-    if (String(user.status || "").trim().toLowerCase() !== "active") {
+    if (String(user.status || "").trim().toLowerCase() !== "active" || user.isPublished === false) {
       return res.status(403).json({
         code: "ACCOUNT_INACTIVE",
         message: "This account is inactive. Contact Admin Workspace to restore sign-in access.",
       });
     }
+
 
     await issueAuthSession(req, res, user, "admin");
     logSetCookieDebug(res, "admin_login");

@@ -232,6 +232,27 @@ function toStaffItem(row: any) {
       }
     : null;
 
+  const isPublished =
+    typeof row.isPublished === "boolean"
+      ? row.isPublished
+      : typeof row.is_published === "boolean"
+        ? row.is_published
+        : true;
+
+  const isPendingApproval = normalizedStatus === "pending_approval";
+  const isPendingVerification = normalizedStatus === "pending_verification";
+  const isActive = isPendingApproval || isPendingVerification
+    ? false
+    : normalizedStatus === "active" && isPublished;
+
+  const effectiveStatus = isPendingApproval
+    ? "pending_approval"
+    : isPendingVerification
+      ? "pending_verification"
+      : isActive
+        ? "active"
+        : "inactive";
+
   return {
     id: row.id,
     name: row.name,
@@ -241,16 +262,12 @@ function toStaffItem(row: any) {
     role: row.role,
     sellerRoleCode: row.sellerRoleCode ?? row.seller_role_code ?? null,
     permissionKeys: parseStringArray(row.permissionKeys ?? row.permission_keys),
-    status: normalizedStatus || "active",
-    isActive: normalizedStatus === "active",
-    isPendingApproval: normalizedStatus === "pending_approval",
+    status: effectiveStatus,
+    isActive,
+    isPendingApproval,
     store,
-    isPublished:
-      typeof row.isPublished === "boolean"
-        ? row.isPublished
-        : typeof row.is_published === "boolean"
-          ? row.is_published
-          : true,
+    isPublished,
+
     createdAt: row.created_at
       ? new Date(row.created_at).toISOString()
       : row.createdAt
@@ -532,10 +549,33 @@ router.patch("/:id", staffImageUpload, async (req, res) => {
         throw fail("Use the approve action to activate this staff account.", 409);
       }
       update.status = isActive ? "active" : "inactive";
+      if (typeof isPublished !== "boolean") {
+        update.isPublished = isActive;
+      }
     }
     if (typeof isPublished === "boolean") {
       update.isPublished = isPublished;
+      if (typeof isActive !== "boolean") {
+        if (
+          isSelfManagedAccountAction({
+            actorId: actorUser?.id,
+            actorRole: actorUser?.role,
+            targetId: id,
+          }) &&
+          !isPublished
+        ) {
+          throw fail(
+            "You cannot deactivate your own account from this account management flow.",
+            409
+          );
+        }
+        if (currentRole === "staff" && String(user.status ?? "").toLowerCase().trim() === "pending_approval") {
+          throw fail("Use the approve action to activate this staff account.", 409);
+        }
+        update.status = isPublished ? "active" : "inactive";
+      }
     }
+
     if (req.file) {
       update.avatarUrl = buildAvatarPath(req.file);
     }

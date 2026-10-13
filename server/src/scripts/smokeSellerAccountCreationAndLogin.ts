@@ -86,7 +86,7 @@ async function run() {
     body: JSON.stringify({
       name: "Toko Sophia",
       email: sellerEmail,
-      phoneNumber: "08123456789",
+      phoneNumber: `081${Date.now().toString().slice(-8)}`,
       password: sellerPassword,
       role: "seller",
       storeName: "Sophia Boutique",
