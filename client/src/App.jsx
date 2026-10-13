@@ -9,12 +9,12 @@ import { buildSellerWorkspacePath } from "./utils/sellerWorkspaceRoute.js";
 import { seller2026PreviewRoutes } from "./routes/seller2026RouteConfig.jsx";
 const StoreLayout = lazy(() => import("./components/Layout/StoreLayout.jsx"));
 const StoreCartPage = lazy(() => import("./pages/store/StoreCartPage.jsx"));
-const SellerLoginPage = lazy(() => import("./pages/seller/SellerLoginPage.jsx"));
-const SellerForgotPasswordPage = lazy(() => import("./pages/seller/SellerForgotPasswordPage.jsx"));
-const SellerCreateAccountPage = lazy(() => import("./pages/seller/SellerCreateAccountPage.jsx"));
-const SellerVerifyEmailPage = lazy(() => import("./pages/seller/SellerVerifyEmailPage.jsx"));
-const SellerStoreApplicationPage = lazy(() => import("./pages/seller/SellerStoreApplicationPage.jsx"));
-const Seller2026LiveAnalyticsPage = lazy(() => import("./pages/seller2026/Seller2026LiveAnalyticsPage.jsx"));
+const SellerLoginPage = lazy(() => import("./pages/seller/auth/SellerLoginPage.jsx"));
+const SellerForgotPasswordPage = lazy(() => import("./pages/seller/auth/SellerForgotPasswordPage.jsx"));
+const SellerCreateAccountPage = lazy(() => import("./pages/seller/auth/SellerCreateAccountPage.jsx"));
+const SellerVerifyEmailPage = lazy(() => import("./pages/seller/auth/SellerVerifyEmailPage.jsx"));
+const SellerStoreApplicationPage = lazy(() => import("./pages/seller/onboarding/SellerStoreApplicationPage.jsx"));
+const Seller2026LiveAnalyticsPage = lazy(() => import("./pages/seller/workspace/Seller2026LiveAnalyticsPage.jsx"));
 const StoreProductDetailPage = lazy(() => import("./pages/store/StoreProductDetailPage.jsx"));
 const CheckoutPage = lazy(() => import("./pages/store/Checkout.jsx"));
 const StoreLoginPage = lazy(() => import("./pages/store/StoreLoginPage.jsx"));
@@ -136,64 +136,64 @@ const AdminStoreKycPage = lazy(() => import("./pages/admin/AdminStoreKycPage.jsx
 const AdminStoreKycDetailPage = lazy(() => import("./pages/admin/AdminStoreKycDetailPage.jsx"));
 const SellerLayout = lazy(() => import("./layouts/SellerLayout.jsx"));
 const Seller2026LiveDashboardPage = lazy(() =>
-  import("./pages/seller2026/Seller2026LiveDashboardPage.jsx")
+  import("./pages/seller/workspace/Seller2026LiveDashboardPage.jsx")
 );
 const Seller2026LiveLegalTaxPage = lazy(() =>
-  import("./pages/seller2026/Seller2026LiveLegalTaxPage.jsx")
+  import("./pages/seller/workspace/Seller2026LiveLegalTaxPage.jsx")
 );
 const Seller2026LiveStorefrontPage = lazy(() =>
-  import("./pages/seller2026/Seller2026LiveStorefrontPage.jsx")
+  import("./pages/seller/workspace/Seller2026LiveStorefrontPage.jsx")
 );
 const Seller2026LiveProductsPage = lazy(() =>
-  import("./pages/seller2026/Seller2026LiveProductsPage.jsx")
+  import("./pages/seller/workspace/Seller2026LiveProductsPage.jsx")
 );
 const Seller2026LiveProductDetailPage = lazy(() =>
-  import("./pages/seller2026/Seller2026LiveProductDetailPage.jsx")
+  import("./pages/seller/workspace/Seller2026LiveProductDetailPage.jsx")
 );
 const Seller2026LiveProductEditorPage = lazy(() =>
-  import("./pages/seller2026/Seller2026LiveProductEditorPage.jsx")
+  import("./pages/seller/workspace/Seller2026LiveProductEditorPage.jsx")
 );
 const Seller2026LiveCategoriesPage = lazy(() =>
-  import("./pages/seller2026/Seller2026LiveCategoriesPage.jsx")
+  import("./pages/seller/workspace/Seller2026LiveCategoriesPage.jsx")
 );
 const Seller2026LiveProductReviewsPage = lazy(() =>
-  import("./pages/seller2026/Seller2026LiveProductReviewsPage.jsx")
+  import("./pages/seller/workspace/Seller2026LiveProductReviewsPage.jsx")
 );
 const Seller2026LiveAttributesPage = lazy(() =>
-  import("./pages/seller2026/Seller2026LiveAttributesPage.jsx")
+  import("./pages/seller/workspace/Seller2026LiveAttributesPage.jsx")
 );
 const Seller2026LiveAttributeValuesPage = lazy(() =>
-  import("./pages/seller2026/Seller2026LiveAttributeValuesPage.jsx")
+  import("./pages/seller/workspace/Seller2026LiveAttributeValuesPage.jsx")
 );
 const Seller2026LiveCouponsPage = lazy(() =>
-  import("./pages/seller2026/Seller2026LiveCouponsPage.jsx")
+  import("./pages/seller/workspace/Seller2026LiveCouponsPage.jsx")
 );
 const Seller2026LiveOrdersPage = lazy(() =>
-  import("./pages/seller2026/Seller2026LiveOrdersPage.jsx")
+  import("./pages/seller/workspace/Seller2026LiveOrdersPage.jsx")
 );
 const Seller2026LiveSuborderDetailPage = lazy(() =>
-  import("./pages/seller2026/Seller2026LiveSuborderDetailPage.jsx")
+  import("./pages/seller/workspace/Seller2026LiveSuborderDetailPage.jsx")
 );
 const Seller2026LivePaymentReviewPage = lazy(() =>
-  import("./pages/seller2026/Seller2026LivePaymentReviewPage.jsx")
+  import("./pages/seller/workspace/Seller2026LivePaymentReviewPage.jsx")
 );
 const Seller2026LivePaymentProfilePage = lazy(() =>
-  import("./pages/seller2026/Seller2026LivePaymentProfilePage.jsx")
+  import("./pages/seller/workspace/Seller2026LivePaymentProfilePage.jsx")
 );
-const Seller2026PaymentCenterPreviewPage = lazy(() =>
-  import("./pages/seller2026/Seller2026PaymentCenterPreviewPage.jsx")
+const SellerPaymentCenterPage = lazy(() =>
+  import("./pages/seller/workspace/SellerPaymentCenterPage.jsx")
 );
 const Seller2026LiveTeamPage = lazy(() =>
-  import("./pages/seller2026/Seller2026LiveTeamPage.jsx")
+  import("./pages/seller/workspace/Seller2026LiveTeamPage.jsx")
 );
 const Seller2026LiveMemberDetailPage = lazy(() =>
-  import("./pages/seller2026/Seller2026LiveMemberDetailPage.jsx")
+  import("./pages/seller/workspace/Seller2026LiveMemberDetailPage.jsx")
 );
 const Seller2026LiveTeamAuditPage = lazy(() =>
-  import("./pages/seller2026/Seller2026LiveTeamAuditPage.jsx")
+  import("./pages/seller/workspace/Seller2026LiveTeamAuditPage.jsx")
 );
 const Seller2026LiveNotificationsPage = lazy(() =>
-  import("./pages/seller2026/Seller2026LiveNotificationsPage.jsx")
+  import("./pages/seller/workspace/Seller2026LiveNotificationsPage.jsx")
 );
 const AdminPaymentAuditPage = lazy(() =>
   import("./pages/admin/AdminPaymentAuditPage.jsx")
@@ -517,7 +517,7 @@ export default function App() {
             <Route path="orders/:suborderId" element={<Seller2026LiveSuborderDetailPage />} />
             <Route path="payment-review" element={<Seller2026LivePaymentReviewPage />} />
             <Route path="payment-profile" element={<Seller2026LivePaymentProfilePage />} />
-            <Route path="payment-center" element={<Seller2026PaymentCenterPreviewPage productionMode={true} />} />
+            <Route path="payment-center" element={<SellerPaymentCenterPage productionMode={true} />} />
             <Route path="coupons" element={<LegacySellerCouponsRedirect />} />
             <Route path="catalog/coupons" element={<Seller2026LiveCouponsPage />} />
           </Route>

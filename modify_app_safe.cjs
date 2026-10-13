@@ -1,5 +1,5 @@
 const fs = require('fs');
-const file = 'client/src/pages/seller/SellerStoreApplicationPage.jsx';
+const file = 'client/src/pages/seller/onboarding/SellerStoreApplicationPage.jsx';
 let content = fs.readFileSync(file, 'utf8');
 
 // 1. Replace META_KEYS

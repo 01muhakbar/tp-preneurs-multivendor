@@ -44,7 +44,7 @@ function runSmokeTest() {
     },
     {
       name: "Seller2026LivePaymentProfilePage exists",
-      pass: checkFileExists("pages/seller2026/Seller2026LivePaymentProfilePage.jsx"),
+      pass: checkFileExists("pages/seller/workspace/Seller2026LivePaymentProfilePage.jsx"),
     },
     {
       name: "useSeller2026PaymentProfile hook exists",

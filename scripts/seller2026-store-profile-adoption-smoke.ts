@@ -46,7 +46,7 @@ function runSmokeTest() {
     },
     {
       name: "Seller2026LiveStorefrontPage exists",
-      pass: checkFileExists("pages/seller2026/Seller2026LiveStorefrontPage.jsx"),
+      pass: checkFileExists("pages/seller/workspace/Seller2026LiveStorefrontPage.jsx"),
     },
     {
       name: "useSeller2026Storefront hook exists",

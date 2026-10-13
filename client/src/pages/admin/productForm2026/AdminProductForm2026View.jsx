@@ -1,19 +1,27 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
   Box,
   Check,
+  ChevronDown,
   ChevronRight,
   Download,
   Eye,
   GripVertical,
+  HardDrive,
+  Info,
+  Maximize2,
+  Monitor,
   Package,
   Plus,
   Send,
+  Smartphone,
+  Sparkles,
   Tag,
   UploadCloud,
   X,
+  ZoomIn,
 } from "lucide-react";
 import {
   PRODUCT_FORM_2026_STEPS,
@@ -319,10 +327,88 @@ function MediaStep({
   const { t } = useTranslation("admin");
   const [draggedImageId, setDraggedImageId] = useState(null);
   const [dragOverImageId, setDragOverImageId] = useState(null);
-  const coverImage =
-    localImages.find((image) => image.id === meta.coverImageId) || localImages[0] || null;
-  const selectedDetails = coverImage ? meta.mediaDetails[coverImage.id] || {} : {};
+  const [selectedImageId, setSelectedImageId] = useState(null);
+  const [showGuideDetails, setShowGuideDetails] = useState(false);
+  const [dimensionsMap, setDimensionsMap] = useState({});
+
+  const coverImage = useMemo(
+    () => localImages.find((image) => image.id === meta.coverImageId) || localImages[0] || null,
+    [localImages, meta.coverImageId]
+  );
+
+  const activeImage = useMemo(() => {
+    if (selectedImageId) {
+      const match = localImages.find((img) => img.id === selectedImageId);
+      if (match) return match;
+    }
+    return coverImage;
+  }, [localImages, selectedImageId, coverImage]);
+
+  const isCoverActive = Boolean(activeImage && coverImage && activeImage.id === coverImage.id);
+  const selectedDetails = activeImage ? meta.mediaDetails[activeImage.id] || {} : {};
   const canReorderImages = typeof onReorderImages === "function" && localImages.length > 1;
+
+  const handleRecordDimensions = (imageId, event) => {
+    const img = event.currentTarget;
+    const width = Number(img.naturalWidth || 0);
+    const height = Number(img.naturalHeight || 0);
+    if (width > 0 && height > 0) {
+      setDimensionsMap((prev) => {
+        if (prev[imageId]?.width === width && prev[imageId]?.height === height) return prev;
+        return { ...prev, [imageId]: { width, height } };
+      });
+    }
+  };
+
+  const activeSpecs = useMemo(() => {
+    if (!activeImage) return null;
+    const dims =
+      dimensionsMap[activeImage.id] ||
+      (activeImage.width && activeImage.height
+        ? { width: activeImage.width, height: activeImage.height }
+        : null);
+    if (!dims || !dims.width || !dims.height) return null;
+
+    const { width, height } = dims;
+    const ratio = width / height;
+    const isSquare = Math.abs(ratio - 1) <= 0.06;
+    const isPortrait = ratio < 0.94;
+    const isLandscape = ratio > 1.06;
+
+    let ratioLabel = "1:1 Square";
+    if (isPortrait) {
+      ratioLabel = `${(width / height).toFixed(2)}:1 Portrait`;
+    } else if (isLandscape) {
+      ratioLabel = `1:${(height / width).toFixed(2)} Landscape`;
+    }
+
+    let quality = "optimal";
+    let qualityLabel = t("productForm.Status: Optimal for HD & Zoom");
+    if (width < 800 || height < 800) {
+      quality = "warning";
+      qualityLabel = t("productForm.Status: Low resolution (Min. 800px recommended)");
+    } else if (width < 1000 || height < 1000) {
+      quality = "good";
+      qualityLabel = t("productForm.Status: Good quality");
+    }
+
+    const fileSizeFormatted = activeImage.size
+      ? activeImage.size > 1024 * 1024
+        ? `${(activeImage.size / (1024 * 1024)).toFixed(1)} MB`
+        : `${Math.round(activeImage.size / 1024)} KB`
+      : null;
+
+    return {
+      width,
+      height,
+      ratio,
+      isSquare,
+      ratioLabel,
+      quality,
+      qualityLabel,
+      fileSizeFormatted,
+    };
+  }, [activeImage, dimensionsMap, t]);
 
   const resetDragState = () => {
     setDraggedImageId(null);
@@ -350,6 +436,160 @@ function MediaStep({
           </div>
           <span className="apf26-chip">{localImages.length} / 5 {t("productForm.image(s)")}</span>
         </div>
+
+        {/* Responsive Image Guidelines Banner */}
+        <div className="apf26-media-guidelines">
+          <div className="apf26-guidelines-header">
+            <div className="apf26-guidelines-header__info">
+              <div className="apf26-guidelines-header__badge">
+                <Sparkles size={14} />
+                <span>E-Commerce 2026 Ready</span>
+              </div>
+              <h4>{t("productForm.Responsive Visual Recommendations")}</h4>
+              <p>
+                {t(
+                  "productForm.Format and dimension guidelines to ensure your product visuals look sharp on Mobile, Tablet, Desktop, and Lightbox Zoom without slowing down page load times."
+                )}
+              </p>
+            </div>
+            <button
+              type="button"
+              className="apf26-guidelines-toggle"
+              onClick={() => setShowGuideDetails((prev) => !prev)}
+              aria-expanded={showGuideDetails}
+            >
+              <span>
+                {showGuideDetails
+                  ? t("productForm.Hide Detailed Matrix")
+                  : t("productForm.Show Screen Breakdown & Tips")}
+              </span>
+              <ChevronDown size={15} className={showGuideDetails ? "is-rotated" : ""} />
+            </button>
+          </div>
+
+          <div className="apf26-guidelines-grid">
+            <div className="apf26-guideline-card">
+              <div className="apf26-guideline-card__top">
+                <Maximize2 size={16} className="text-primary" />
+                <span className="apf26-guideline-card__label">{t("productForm.Aspect Ratio")}</span>
+              </div>
+              <strong className="apf26-guideline-card__value">{t("productForm.1:1 Square")}</strong>
+              <p className="apf26-guideline-card__desc">
+                {t("productForm.Ensures consistent alignment in catalog grids, search cards, and carts.")}
+              </p>
+            </div>
+
+            <div className="apf26-guideline-card is-highlighted">
+              <div className="apf26-guideline-card__top">
+                <Sparkles size={16} className="text-accent" />
+                <span className="apf26-guideline-card__label">{t("productForm.Optimal Dimensions")}</span>
+              </div>
+              <strong className="apf26-guideline-card__value">{t("productForm.1000 × 1000 px")}</strong>
+              <p className="apf26-guideline-card__desc">
+                {t("productForm.Min. 800 × 800 px, up to 1200 × 1200 px for crisp 4x Lightbox Zoom.")}
+              </p>
+            </div>
+
+            <div className="apf26-guideline-card">
+              <div className="apf26-guideline-card__top">
+                <HardDrive size={16} />
+                <span className="apf26-guideline-card__label">{t("productForm.File Format & Size")}</span>
+              </div>
+              <strong className="apf26-guideline-card__value">{t("productForm.WEBP / JPG / PNG")}</strong>
+              <p className="apf26-guideline-card__desc">
+                {t("productForm.Max 5 MB (ideal < 1 MB). WEBP delivers the fastest load speed.")}
+              </p>
+            </div>
+
+            <div className="apf26-guideline-card">
+              <div className="apf26-guideline-card__top">
+                <Info size={16} />
+                <span className="apf26-guideline-card__label">{t("productForm.Gallery Limit")}</span>
+              </div>
+              <strong className="apf26-guideline-card__value">{t("productForm.Up to 5 Images")}</strong>
+              <p className="apf26-guideline-card__desc">
+                {t("productForm.Image 1 is the primary Cover; images 2–5 show details & angles.")}
+              </p>
+            </div>
+          </div>
+
+          {showGuideDetails ? (
+            <div className="apf26-guidelines-drawer">
+              <div className="apf26-guidelines-drawer__section">
+                <h5>{t("productForm.Responsive Screen Breakdown")}</h5>
+                <div className="apf26-screen-matrix">
+                  <div className="apf26-screen-item">
+                    <div className="apf26-screen-item__header">
+                      <Smartphone size={15} />
+                      <strong>{t("productForm.Mobile (Smartphone)")}</strong>
+                      <span className="apf26-spec-pill">~240 × 240 px</span>
+                    </div>
+                    <p>
+                      {t(
+                        "productForm.Rendered at ~240px. High-DPI Retina screens require at least 720px input for razor-sharp clarity."
+                      )}
+                    </p>
+                  </div>
+                  <div className="apf26-screen-item">
+                    <div className="apf26-screen-item__header">
+                      <Monitor size={15} />
+                      <strong>{t("productForm.Desktop / Laptop")}</strong>
+                      <span className="apf26-spec-pill">340px - 480px</span>
+                    </div>
+                    <p>
+                      {t(
+                        "productForm.Rendered at 340px to 480px on product detail pages and 205-235px on catalog grids."
+                      )}
+                    </p>
+                  </div>
+                  <div className="apf26-screen-item">
+                    <div className="apf26-screen-item__header">
+                      <ZoomIn size={15} />
+                      <strong>{t("productForm.Lightbox Zoom (4x)")}</strong>
+                      <span className="apf26-spec-pill">Up to 85vh / 4x</span>
+                    </div>
+                    <p>
+                      {t(
+                        "productForm.Supports up to 4x interactive zoom (85vh height). 1000px+ input prevents pixelation."
+                      )}
+                    </p>
+                  </div>
+                  <div className="apf26-screen-item">
+                    <div className="apf26-screen-item__header">
+                      <Box size={15} />
+                      <strong>{t("productForm.Storefront Grid")}</strong>
+                      <span className="apf26-spec-pill">205px - 235px</span>
+                    </div>
+                    <p>
+                      {t(
+                        "productForm.Uniform 1:1 square display prevents irregular white margins and cropped edges."
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="apf26-guidelines-drawer__section">
+                <h5>{t("productForm.Photography Best Practices")}</h5>
+                <ul className="apf26-tips-list">
+                  <li>{t("productForm.Center the product occupying 75%–85% of the frame with even lighting.")}</li>
+                  <li>
+                    {t(
+                      "productForm.Use a clean neutral background (pure white or subtle light gray) to keep focus on the item."
+                    )}
+                  </li>
+                  <li>
+                    {t(
+                      "productForm.Use sRGB color space for accurate color reproduction across phones and laptops."
+                    )}
+                  </li>
+                </ul>
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        {/* Enhanced Uploader */}
         <div
           className="apf26-uploader"
           role="button"
@@ -364,11 +604,17 @@ function MediaStep({
           }}
           onDragOver={(event) => event.preventDefault()}
         >
-          <div>
-            <UploadCloud size={34} />
-            <strong>{t("productForm.Drag & drop images here")}</strong>
-            <p>{t("productForm.Only JPG, PNG, and WEBP images are accepted.")}</p>
-            <p>{t("productForm.Up to 5 images. Square 1:1 previews are recommended.")}</p>
+          <div className="apf26-uploader__inner">
+            <UploadCloud size={38} />
+            <strong>{t("productForm.Drag & drop images here or browse files")}</strong>
+            <p className="apf26-uploader__types">
+              {t("productForm.Accepted formats: JPG, PNG, WEBP • Max file size: 5 MB each")}
+            </p>
+            <div className="apf26-uploader__pills">
+              <span className="apf26-pill-spec">📐 {t("productForm.1:1 Square (1000 × 1000 px)")}</span>
+              <span className="apf26-pill-spec">🔍 {t("productForm.HD Retina & 4x Zoom Ready")}</span>
+              <span className="apf26-pill-spec">🖼️ {t("productForm.Up to 5 images")}</span>
+            </div>
           </div>
         </div>
         <input
@@ -382,15 +628,23 @@ function MediaStep({
             event.target.value = "";
           }}
         />
+
+        {/* Gallery List */}
         <div className="mt-5 apf26-gallery" role="list">
           {localImages.map((image) => {
             const isCover = coverImage?.id === image.id;
+            const isSelected = activeImage?.id === image.id;
+            const dims =
+              dimensionsMap[image.id] ||
+              (image.width && image.height ? { width: image.width, height: image.height } : null);
+
             return (
               <div
                 key={image.id}
                 className={[
                   "apf26-thumb",
                   isCover ? "is-cover" : "",
+                  isSelected ? "is-selected" : "",
                   draggedImageId === image.id ? "is-dragging" : "",
                   dragOverImageId === image.id && draggedImageId !== image.id ? "is-drag-over" : "",
                 ]
@@ -398,6 +652,10 @@ function MediaStep({
                   .join(" ")}
                 role="listitem"
                 draggable={canReorderImages}
+                onClick={(event) => {
+                  if (event.target.closest("button")) return;
+                  setSelectedImageId(image.id);
+                }}
                 onDragStart={(event) => {
                   if (!canReorderImages) return;
                   if (event.target.closest("button")) {
@@ -427,7 +685,18 @@ function MediaStep({
                 onDrop={(event) => handleImageDrop(event, image.id)}
                 onDragEnd={resetDragState}
               >
-                <img src={image.url} alt={image.name} />
+                <img
+                  src={image.url}
+                  alt={image.name}
+                  onLoad={(event) => handleRecordDimensions(image.id, event)}
+                />
+
+                {dims ? (
+                  <span className="apf26-thumb__dim" title={`${dims.width} × ${dims.height} px`}>
+                    {dims.width}×{dims.height}
+                  </span>
+                ) : null}
+
                 {canReorderImages ? (
                   <span
                     className="apf26-thumb__drag"
@@ -440,7 +709,10 @@ function MediaStep({
                 <button
                   type="button"
                   className="apf26-thumb__remove"
-                  onClick={() => onRemoveImage(image.id)}
+                  onClick={() => {
+                    if (selectedImageId === image.id) setSelectedImageId(null);
+                    onRemoveImage(image.id);
+                  }}
                   aria-label={t("productForm.Remove image")}
                 >
                   <X size={14} />
@@ -467,39 +739,99 @@ function MediaStep({
           </p>
         ) : null}
       </section>
+
+      {/* Aside Inspector */}
       <aside className="apf26-panel">
-        <h3>{t("productForm.Image Details")}</h3>
-        {coverImage ? (
+        <div className="flex items-center justify-between">
+          <h3>{t("productForm.Image Details")}</h3>
+          {activeImage && isCoverActive ? (
+            <span className="apf26-chip apf26-chip--sm">{t("productForm.Cover")}</span>
+          ) : null}
+        </div>
+
+        {activeImage ? (
           <div className="mt-4 apf26-product-preview">
-            <div className="apf26-thumb is-cover">
-              <img src={coverImage.url} alt={coverImage.name} />
+            <div className={`apf26-thumb ${isCoverActive ? "is-cover" : ""}`}>
+              <img
+                src={activeImage.url}
+                alt={activeImage.name}
+                onLoad={(event) => handleRecordDimensions(activeImage.id, event)}
+              />
             </div>
-            <p>{coverImage.name}</p>
+            <div className="mt-2.5 flex items-center justify-between gap-2">
+              <p className="apf26-preview-filename">{activeImage.name}</p>
+              {!isCoverActive ? (
+                <button
+                  type="button"
+                  className="apf26-btn-setcover"
+                  onClick={() => onSetCover(activeImage.id)}
+                >
+                  <Check size={12} />
+                  {t("productForm.Set as Cover")}
+                </button>
+              ) : null}
+            </div>
+
+            {/* Visual Specs Badge Box */}
+            <div className="apf26-specs-box mt-3">
+              <div className="apf26-specs-box__header">
+                <span className="apf26-specs-box__title">{t("productForm.Selected Visual Specs")}</span>
+                {activeSpecs ? (
+                  <span className={`apf26-quality-badge is-${activeSpecs.quality}`}>
+                    {activeSpecs.qualityLabel}
+                  </span>
+                ) : (
+                  <span className="apf26-quality-badge is-detecting">
+                    {t("productForm.Detecting...")}
+                  </span>
+                )}
+              </div>
+
+              {activeSpecs ? (
+                <div className="apf26-specs-box__details">
+                  <div className="apf26-spec-item">
+                    <span>{t("productForm.Resolution")}:</span>
+                    <strong>{activeSpecs.width} × {activeSpecs.height} px</strong>
+                  </div>
+                  <div className="apf26-spec-item">
+                    <span>{t("productForm.Aspect Ratio")}:</span>
+                    <strong>{activeSpecs.ratioLabel}</strong>
+                  </div>
+                  {activeSpecs.fileSizeFormatted ? (
+                    <div className="apf26-spec-item">
+                      <span>{t("productForm.File Size")}:</span>
+                      <strong>{activeSpecs.fileSizeFormatted}</strong>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
           </div>
         ) : (
           <p>{t("productForm.No image selected yet.")}</p>
         )}
+
         <div className="apf26-grid mt-4">
-          <TextField label={t("productForm.Alt Text")}>
+          <TextField label={t("productForm.Alt Text")} helper={t("productForm.Enter alt text for accessibility")}>
             <input
               className="apf26-input"
               value={selectedDetails.alt || ""}
               placeholder={t("productForm.Enter alt text for accessibility")}
-              disabled={!coverImage}
+              disabled={!activeImage}
               onChange={(event) =>
-                coverImage ? onMediaDetailChange(coverImage.id, { alt: event.target.value }) : null
+                activeImage ? onMediaDetailChange(activeImage.id, { alt: event.target.value }) : null
               }
             />
           </TextField>
-          <TextField label={t("productForm.Caption")}>
+          <TextField label={t("productForm.Caption")} helper={t("productForm.Enter a caption or note about this image")}>
             <textarea
               className="apf26-textarea"
               maxLength={200}
               value={selectedDetails.caption || ""}
               placeholder={t("productForm.Enter a caption or note about this image")}
-              disabled={!coverImage}
+              disabled={!activeImage}
               onChange={(event) =>
-                coverImage ? onMediaDetailChange(coverImage.id, { caption: event.target.value }) : null
+                activeImage ? onMediaDetailChange(activeImage.id, { caption: event.target.value }) : null
               }
             />
           </TextField>

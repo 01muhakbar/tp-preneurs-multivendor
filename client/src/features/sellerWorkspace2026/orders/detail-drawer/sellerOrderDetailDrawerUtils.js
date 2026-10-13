@@ -1,4 +1,4 @@
-import { normalizeSellerOrderDetailFor2026 } from "../../../../pages/seller2026/sellerOrderDetail2026Adapter.js";
+import { normalizeSellerOrderDetailFor2026 } from "../../../../pages/seller/workspace/sellerOrderDetail2026Adapter.js";
 
 export const normalizeDrawerOrderDetail = (detailData) => {
   if (!detailData) return null;

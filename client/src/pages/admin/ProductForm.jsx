@@ -921,6 +921,9 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
         file,
         remote: false,
         storedUrl: null,
+        width,
+        height,
+        size: Number(file.size || 0),
       });
     }
 
@@ -2138,11 +2141,11 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
                         <p className="text-base font-medium leading-tight text-slate-700">
                           Drag your images here
                         </p>
-                        <p className="mt-2 text-xs italic text-slate-500">
-                          (Only *.jpeg, *.webp and *.png images will be accepted)
+                        <p className="mt-2 text-xs text-slate-500">
+                          (Accepted: JPG, PNG, WEBP • Max 5 MB per image)
                         </p>
-                        <p className="mt-2 text-[11px] font-medium text-slate-500">
-                          Up to {MAX_PRODUCT_IMAGES} images. Square 1:1 previews are recommended.
+                        <p className="mt-2 text-[11px] font-medium text-slate-600">
+                          Recommended: 1:1 Square (1000 × 1000 px, min. 800 × 800 px) for sharp display on Mobile, Desktop & Lightbox Zoom.
                         </p>
                       </div>
                       <input

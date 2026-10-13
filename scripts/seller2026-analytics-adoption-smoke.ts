@@ -24,7 +24,7 @@ async function run() {
   const rootDir = process.cwd();
   const app = read(rootDir, "client/src/App.jsx");
   const flags = read(rootDir, "client/src/features/sellerWorkspace2026/sellerWorkspace2026Flags.js");
-  const page = read(rootDir, "client/src/pages/seller2026/Seller2026LiveAnalyticsPage.jsx");
+  const page = read(rootDir, "client/src/pages/seller/workspace/Seller2026LiveAnalyticsPage.jsx");
   const hook = read(rootDir, "client/src/features/sellerWorkspace2026/hooks/useSellerWorkspace2026Analytics.js");
   const adapter = read(
     rootDir,

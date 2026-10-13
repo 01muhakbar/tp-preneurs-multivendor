@@ -5,48 +5,48 @@ const RawSeller2026Workspace = lazy(() =>
   import("../features/seller2026/Seller2026Workspace.jsx")
 );
 const Seller2026ProductCatalogPreviewPage = lazy(() =>
-  import("../pages/seller2026/Seller2026ProductCatalogPreviewPage.jsx")
+  import("../pages/seller/preview/Seller2026ProductCatalogPreviewPage.jsx")
 );
 const Seller2026ProductAuthoringPreviewPage = lazy(() =>
-  import("../pages/seller2026/Seller2026ProductAuthoringPreviewPage.jsx")
+  import("../pages/seller/preview/Seller2026ProductAuthoringPreviewPage.jsx")
 );
 const Seller2026ProductReviewDetailPreviewPage = lazy(() =>
-  import("../pages/seller2026/Seller2026ProductReviewDetailPreviewPage.jsx").then((module) => ({
+  import("../pages/seller/preview/Seller2026ProductReviewDetailPreviewPage.jsx").then((module) => ({
     default: module.Seller2026ProductReviewDetailPreviewPage,
   }))
 );
 const Seller2026DashboardPage = lazy(() =>
-  import("../pages/seller2026/Seller2026Pages.jsx").then((module) => ({
+  import("../pages/seller/preview/Seller2026Pages.jsx").then((module) => ({
     default: module.Seller2026DashboardPage,
   }))
 );
 const Seller2026StoreProfilePage = lazy(() =>
-  import("../pages/seller2026/Seller2026Pages.jsx").then((module) => ({
+  import("../pages/seller/preview/Seller2026Pages.jsx").then((module) => ({
     default: module.Seller2026StoreProfilePage,
   }))
 );
 const Seller2026OrdersPreviewPage = lazy(() =>
-  import("../pages/seller2026/Seller2026Pages.jsx").then((module) => ({
+  import("../pages/seller/preview/Seller2026Pages.jsx").then((module) => ({
     default: module.Seller2026OrdersPreviewPage,
   }))
 );
-const Seller2026PaymentCenterPreviewPage = lazy(() =>
-  import("../pages/seller2026/Seller2026Pages.jsx").then((module) => ({
-    default: module.Seller2026PaymentCenterPreviewPage,
+const SellerPaymentCenterPage = lazy(() =>
+  import("../pages/seller/preview/Seller2026Pages.jsx").then((module) => ({
+    default: module.SellerPaymentCenterPage,
   }))
 );
 const Seller2026CouponsPreviewPage = lazy(() =>
-  import("../pages/seller2026/Seller2026Pages.jsx").then((module) => ({
+  import("../pages/seller/preview/Seller2026Pages.jsx").then((module) => ({
     default: module.Seller2026CouponsPreviewPage,
   }))
 );
 const Seller2026TeamPreviewPage = lazy(() =>
-  import("../pages/seller2026/Seller2026Pages.jsx").then((module) => ({
+  import("../pages/seller/preview/Seller2026Pages.jsx").then((module) => ({
     default: module.Seller2026TeamPreviewPage,
   }))
 );
 const Seller2026AnalyticsSyncPreviewPage = lazy(() =>
-  import("../pages/seller2026/Seller2026Pages.jsx").then((module) => ({
+  import("../pages/seller/preview/Seller2026Pages.jsx").then((module) => ({
     default: module.Seller2026AnalyticsSyncPreviewPage,
   }))
 );
@@ -125,7 +125,7 @@ export const seller2026PreviewRoutes = (
       <Route path="catalog/products/new" element={<Seller2026ProductAuthoringPreviewPage />} />
       <Route path="catalog/products/:productId" element={<Seller2026ProductReviewDetailPreviewPage />} />
       <Route path="orders" element={<Seller2026OrdersPreviewPage />} />
-      <Route path="payment-center" element={<Seller2026PaymentCenterPreviewPage />} />
+      <Route path="payment-center" element={<SellerPaymentCenterPage />} />
       <Route path="coupons" element={<Seller2026CouponsPreviewPage />} />
       <Route path="team" element={<Seller2026TeamPreviewPage />} />
       <Route path="analytics-sync" element={<Seller2026AnalyticsSyncPreviewPage />} />
