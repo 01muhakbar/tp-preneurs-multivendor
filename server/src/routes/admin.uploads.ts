@@ -9,7 +9,7 @@ const router = Router();
 
 const uploadDir = path.resolve(process.cwd(), "uploads");
 fs.mkdirSync(uploadDir, { recursive: true });
-const MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 const ALLOWED_UPLOAD_MIME_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -44,7 +44,7 @@ router.post("/uploads", requireStaffOrAdmin, (req, res) => {
   upload.single("file")(req, res, (error: any) => {
     if (error) {
       if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
-        return res.status(400).json({ message: "Image too large (max 2MB)." });
+        return res.status(400).json({ message: "Image too large (max 5MB)." });
       }
       return res.status(400).json({
         message: error?.message || "Invalid upload payload.",

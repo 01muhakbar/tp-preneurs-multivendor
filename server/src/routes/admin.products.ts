@@ -36,7 +36,7 @@ import {
 
 const router = Router();
 router.use(requireStaffOrAdmin);
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 } });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
 const asSingle = (v: unknown) => (Array.isArray(v) ? v[0] : v);
 

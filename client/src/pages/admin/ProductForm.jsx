@@ -862,108 +862,120 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
   const addFiles = async (files) => {
-    const incomingFiles = Array.from(files || []);
-    if (incomingFiles.length === 0) return;
+    try {
+      const incomingFiles = Array.from(files || []);
+      if (incomingFiles.length === 0) return;
 
-    const existingIds = new Set(localImages.map((item) => item.id));
-    const availableSlots = Math.max(0, MAX_PRODUCT_IMAGES - localImages.length);
+      const existingIds = new Set(localImages.map((item) => item.id));
+      const availableSlots = Math.max(0, MAX_PRODUCT_IMAGES - localImages.length);
 
-    if (availableSlots <= 0) {
-      setNotice({
-        type: "error",
-        message: `You can upload up to ${MAX_PRODUCT_IMAGES} product images.`,
-      });
-      return;
-    }
-
-    const nextImages = [];
-    let rejectedTypeCount = 0;
-    let rejectedSizeCount = 0;
-    let rejectedUnreadableCount = 0;
-    let skippedDuplicateCount = 0;
-    let skippedOverflowCount = 0;
-
-    for (const file of incomingFiles) {
-      if (nextImages.length >= availableSlots) {
-        skippedOverflowCount += 1;
-        continue;
-      }
-      if (!ACCEPTED_IMAGE_TYPES.has(file.type)) {
-        rejectedTypeCount += 1;
-        continue;
-      }
-      if (Number(file.size || 0) > MAX_PRODUCT_IMAGE_SIZE) {
-        rejectedSizeCount += 1;
-        continue;
+      if (availableSlots <= 0) {
+        setNotice({
+          type: "error",
+          message: `You can upload up to ${MAX_PRODUCT_IMAGES} product images.`,
+        });
+        return;
       }
 
-      const idValue = `${file.name}-${file.size}-${file.lastModified}`;
-      if (existingIds.has(idValue) || nextImages.some((item) => item.id === idValue)) {
-        skippedDuplicateCount += 1;
-        continue;
-      }
+      const nextImages = [];
+      let rejectedTypeCount = 0;
+      let rejectedSizeCount = 0;
+      let rejectedUnreadableCount = 0;
+      let skippedDuplicateCount = 0;
+      let skippedOverflowCount = 0;
 
-      try {
-        const { width, height } = await readImageDimensions(file);
-        if (width <= 0 || height <= 0) {
+      for (const file of incomingFiles) {
+        if (nextImages.length >= availableSlots) {
+          skippedOverflowCount += 1;
+          continue;
+        }
+        if (!ACCEPTED_IMAGE_TYPES.has(file.type)) {
+          rejectedTypeCount += 1;
+          continue;
+        }
+        if (Number(file.size || 0) > MAX_PRODUCT_IMAGE_SIZE) {
+          rejectedSizeCount += 1;
+          continue;
+        }
+
+        const idValue = `${file.name}-${file.size}-${file.lastModified}`;
+        if (existingIds.has(idValue) || nextImages.some((item) => item.id === idValue)) {
+          skippedDuplicateCount += 1;
+          continue;
+        }
+
+        let width = 0;
+        let height = 0;
+        try {
+          const dimensions = await readImageDimensions(file);
+          width = Number(dimensions?.width || 0);
+          height = Number(dimensions?.height || 0);
+          if (width <= 0 || height <= 0) {
+            rejectedUnreadableCount += 1;
+            continue;
+          }
+        } catch {
           rejectedUnreadableCount += 1;
           continue;
         }
-      } catch {
-        rejectedUnreadableCount += 1;
-        continue;
+
+        nextImages.push({
+          id: idValue,
+          name: file.name,
+          url: URL.createObjectURL(file),
+          file,
+          remote: false,
+          storedUrl: null,
+          width,
+          height,
+          size: Number(file.size || 0),
+        });
       }
 
-      nextImages.push({
-        id: idValue,
-        name: file.name,
-        url: URL.createObjectURL(file),
-        file,
-        remote: false,
-        storedUrl: null,
-        width,
-        height,
-        size: Number(file.size || 0),
-      });
-    }
+      if (nextImages.length > 0) {
+        setLocalImages((prev) => {
+          const merged = [...prev, ...nextImages];
+          setForm2026Meta((meta) => ({
+            ...meta,
+            coverImageId: meta.coverImageId || merged[0]?.id || null,
+          }));
+          return merged;
+        });
+      }
 
-    if (nextImages.length > 0) {
-      setLocalImages((prev) => {
-        const merged = [...prev, ...nextImages];
-        setForm2026Meta((meta) => ({
-          ...meta,
-          coverImageId: meta.coverImageId || merged[0]?.id || null,
-        }));
-        return merged;
-      });
-    }
+      const messageParts = [];
+      if (rejectedTypeCount > 0) {
+        messageParts.push(`${rejectedTypeCount} file harus JPG, PNG, atau WEBP`);
+      }
+      if (rejectedSizeCount > 0) {
+        messageParts.push(`${rejectedSizeCount} file melebihi batas 5MB`);
+      }
+      if (rejectedUnreadableCount > 0) {
+        messageParts.push(`${rejectedUnreadableCount} file tidak dapat dibaca sebagai gambar`);
+      }
+      if (skippedDuplicateCount > 0) {
+        messageParts.push(`${skippedDuplicateCount} file duplikat dilewati`);
+      }
+      if (skippedOverflowCount > 0) {
+        messageParts.push(`${skippedOverflowCount} file melebihi batas ${MAX_PRODUCT_IMAGES} gambar`);
+      }
 
-    const messageParts = [];
-    if (rejectedTypeCount > 0) {
-      messageParts.push(`${rejectedTypeCount} file harus JPG, PNG, atau WEBP`);
-    }
-    if (rejectedSizeCount > 0) {
-      messageParts.push(`${rejectedSizeCount} file melebihi batas 5MB`);
-    }
-    if (rejectedUnreadableCount > 0) {
-      messageParts.push(`${rejectedUnreadableCount} file tidak dapat dibaca sebagai gambar`);
-    }
-    if (skippedDuplicateCount > 0) {
-      messageParts.push(`${skippedDuplicateCount} file duplikat dilewati`);
-    }
-    if (skippedOverflowCount > 0) {
-      messageParts.push(`${skippedOverflowCount} file melebihi batas ${MAX_PRODUCT_IMAGES} gambar`);
-    }
+      if (messageParts.length > 0) {
+        setNotice({
+          type: nextImages.length > 0 ? "warning" : "error",
+          message: messageParts.join(". "),
+        });
+        return;
+      }
 
-    if (messageParts.length > 0) {
+      setNotice(null);
+    } catch (err) {
+      console.error("Error adding product images:", err);
       setNotice({
-        type: nextImages.length > 0 ? "warning" : "error",
-        message: messageParts.join(". "),
+        type: "error",
+        message: err?.message || "Failed to process selected images.",
       });
-      return;
     }
-
-    setNotice(null);
   };
 
   const removeImage = (imageId) => {
