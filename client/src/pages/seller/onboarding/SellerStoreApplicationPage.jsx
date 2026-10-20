@@ -205,8 +205,8 @@ function applicationToForm(application, user) {
     businessPostalCode: address.postalCode || "",
     businessAddress: address.addressLine1 || "",
     email: metadata.email || "",
-    phone: metadata.phone || "",
-    whatsapp: metadata.whatsapp || "",
+    phone: metadata.phone || metadata.whatsapp || address.phoneNumber || owner.phoneNumber || "",
+    whatsapp: metadata.whatsapp || metadata.phone || address.phoneNumber || owner.phoneNumber || "",
     addressLine1: metadata.addressLine1 || "",
     addressLine2: metadata.addressLine2 || "",
     province: metadata.province || "",
@@ -319,9 +319,8 @@ function validateStep(form, step) {
   if (step === 0) {
     required("storeName", "Store name");
     required("storeSlug", "Store slug");
-    required("category", "Business category");
     required("email", "Store Email");
-    required("phone", "Store Phone");
+    required("phone", "WhatsApp / Phone number");
     required("addressLine1", "Address Line 1");
     required("province", "Province");
     required("city", "City / Regency");
@@ -329,6 +328,13 @@ function validateStep(form, step) {
     required("postalCode", "Postal Code");
     if (text(form.storeSlug) && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(text(form.storeSlug))) {
       errors.storeSlug = "Use lowercase letters, numbers, and single hyphens only.";
+    }
+    if (text(form.email) && !/^\S+@\S+\.\S+$/.test(text(form.email))) {
+      errors.email = "Enter a valid email address.";
+    }
+    const cleanPhone = text(form.phone).replace(/[\s-]/g, "");
+    if (cleanPhone && !/^(?:\+?62|0)?8[0-9]{8,13}$/.test(cleanPhone)) {
+      errors.phone = "Enter a valid Indonesian WhatsApp / Phone number starting with +62 or 08.";
     }
   }
   if (step === 1) {
@@ -349,7 +355,8 @@ function validateStep(form, step) {
     if (text(form.ownerEmail) && !/^\S+@\S+\.\S+$/.test(text(form.ownerEmail))) {
       errors.ownerEmail = "Enter a valid email address.";
     }
-    if (text(form.ownerPhone) && !/^(?:\+62|08)[0-9]{8,14}$/.test(text(form.ownerPhone))) {
+    const cleanOwnerPhone = text(form.ownerPhone).replace(/[\s-]/g, "");
+    if (cleanOwnerPhone && !/^(?:\+?62|0)?8[0-9]{8,13}$/.test(cleanOwnerPhone)) {
       errors.ownerPhone = "Enter a valid Indonesian phone number starting with +62 or 08.";
     }
     if (form.birthDate) {
@@ -639,12 +646,17 @@ export default function SellerStoreApplicationPage() {
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/(^-|-$)+/g, "");
       }
+
+      if (name === "phone") {
+        next.whatsapp = value;
+      }
       
       return next;
     });
     setErrors((current) => {
       const next = { ...current };
       delete next[name];
+      if (name === "phone") delete next.whatsapp;
       if (name === "ownerProvince") {
         delete next.ownerCity;
         delete next.ownerSubdistrict;
@@ -811,14 +823,12 @@ export default function SellerStoreApplicationPage() {
           <div className="ssa-form-grid ssa-form-grid--two">
             <Field label="Store Name" name="storeName" value={form.storeName} error={errors.storeName} required placeholder="Enter your store name" autoComplete="organization" {...common} />
             <Field label="Store Slug" name="storeSlug" value={form.storeSlug} error={errors.storeSlug} required placeholder="your-store-slug" hint="This becomes your store's unique URL." {...common} />
-            <Field label="Business Category" name="category" value={form.category} error={errors.category} required as="select" options={["Fashion & Apparel", "Food & Beverage", "Beauty & Personal Care", "Home & Living", "Electronics", "Services", "Other"]} {...common} />
           </div>
           
           <h3 style={{ marginTop: 24, fontSize: '1.1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}><Headphones size={18} /> Contact</h3>
           <div className="ssa-form-grid ssa-form-grid--two">
-            <Field label="Store Email" name="email" value={form.email} error={errors.email} required type="email" {...common} />
-            <Field label="Phone" name="phone" value={form.phone} error={errors.phone} required {...common} />
-            <Field label="WhatsApp" name="whatsapp" value={form.whatsapp} error={errors.whatsapp} {...common} />
+            <Field label="Store Email" name="email" value={form.email} error={errors.email} required type="email" placeholder="store@example.com" {...common} />
+            <Field label="WhatsApp / Phone number" name="phone" value={form.phone} error={errors.phone} required as="indonesian-phone" type="tel" autoComplete="tel" placeholder="81234567890" {...common} />
           </div>
 
           <h3 style={{ marginTop: 24, fontSize: '1.1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}><MapPin size={18} /> Public Store Address</h3>
