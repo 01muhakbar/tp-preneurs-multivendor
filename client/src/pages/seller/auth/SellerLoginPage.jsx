@@ -158,7 +158,7 @@ const persistRememberedEmail = (remember, email) => {
 export default function SellerLoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { refreshSession, logout } = useSellerAuth();
+  const { user, isAuthenticated, refreshSession, logout } = useSellerAuth();
   const { resolvedTheme, setTheme } = useTheme();
   const { branding } = useStoreBranding();
   const { i18n, t } = useTranslation("seller");
@@ -185,6 +185,42 @@ export default function SellerLoginPage() {
     () => getSafeNextPath(location.search),
     [location.search]
   );
+
+  useEffect(() => {
+    let active = true;
+    if (isAuthenticated) {
+      api
+        .get("/auth/seller/me")
+        .then((res) => {
+          if (!active) return;
+          const data = res?.data?.data || res?.data;
+          const stores = data?.stores || [];
+          if (stores.length === 0 || data?.requiresOnboarding) {
+            navigate(
+              safeNextPath ||
+                data?.redirectTo ||
+                "/seller/store-application?from=seller-verify-email",
+              { replace: true }
+            );
+          } else {
+            const selectedStore = getPreferredStore(normalizeStores(stores));
+            const storeSlug = getStoreSlug(selectedStore);
+            if (storeSlug) {
+              navigate(
+                safeNextPath || `/seller/stores/${encodeURIComponent(storeSlug)}`,
+                { replace: true }
+              );
+            }
+          }
+        })
+        .catch(() => {
+          // Keep login form accessible if me query fails
+        });
+    }
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated, navigate, safeNextPath]);
 
   useEffect(() => {
     const rememberedEmail = readRememberedEmail();
@@ -246,10 +282,27 @@ export default function SellerLoginPage() {
       }
 
       await refreshSession({}, "seller");
+      await refreshSession({}, "account");
 
       try {
         localStorage.setItem("seller_login_path", "/seller/login");
       } catch {}
+
+      const responseData = loginResponse?.data || loginResponse;
+      const requiresOnboarding = Boolean(
+        responseData?.requiresOnboarding ||
+        (Array.isArray(responseData?.stores) && responseData.stores.length === 0)
+      );
+
+      if (requiresOnboarding) {
+        navigate(
+          safeNextPath ||
+            responseData?.redirectTo ||
+            "/seller/store-application?from=seller-verify-email",
+          { replace: true }
+        );
+        return;
+      }
 
       const storesResponse = await api.get("/seller/stores");
       const storesData = storesResponse?.data;
@@ -257,11 +310,11 @@ export default function SellerLoginPage() {
       const selectedStore = getPreferredStore(stores);
 
       if (!selectedStore) {
-        await logout?.();
-        navigate("/auth/login", { 
-          replace: true,
-          state: { authNotice: t("login.Access denied. Please login through the main page.", { defaultValue: "Akses ditolak. Silakan login melalui halaman utama." }) }
-        });
+        navigate(
+          safeNextPath ||
+            "/seller/store-application?from=seller-verify-email",
+          { replace: true }
+        );
         return;
       }
 
@@ -272,8 +325,11 @@ export default function SellerLoginPage() {
 
       const storeSlug = getStoreSlug(selectedStore);
       if (!storeSlug) {
-        await logout?.();
-        navigate("/auth/login", { replace: true });
+        navigate(
+          safeNextPath ||
+            "/seller/store-application?from=seller-verify-email",
+          { replace: true }
+        );
         return;
       }
 

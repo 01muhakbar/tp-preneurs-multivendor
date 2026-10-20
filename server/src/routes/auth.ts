@@ -234,20 +234,17 @@ const respondWithSellerAuthUser = async (req: any, res: any) => {
 
 
     const stores = await resolveSellerStoresForUser(Number(normalizedUser.id));
-    if (stores.length === 0) {
-      clearScopedAuthCookie(req, res, "seller");
-      return res.status(403).json({
-        success: false,
-        code: "SELLER_ACCESS_REQUIRED",
-        message: "This account is not connected to an active seller store.",
-      });
-    }
+    const requiresOnboarding = stores.length === 0;
 
     return res.json({
       success: true,
       data: {
         user: toAuthUser(normalizedUser),
         stores,
+        requiresOnboarding,
+        redirectTo: requiresOnboarding
+          ? "/seller/store-application?from=seller-verify-email"
+          : undefined,
       },
     });
   } catch {
@@ -493,15 +490,10 @@ router.post("/seller/login", async (req, res) => {
 
 
     const stores = await resolveSellerStoresForUser(Number(user.id));
-    if (stores.length === 0) {
-      return res.status(403).json({
-        success: false,
-        code: "SELLER_ACCESS_REQUIRED",
-        message: "This account is not connected to an active seller store.",
-      });
-    }
+    const requiresOnboarding = stores.length === 0;
 
     await issueAuthSession(req, res, user, "seller");
+    await issueAuthSession(req, res, user, "storefront");
     logSetCookieDebug(res, "seller_login");
 
     return res.json({
@@ -509,6 +501,10 @@ router.post("/seller/login", async (req, res) => {
       data: {
         user: toAuthUser(user),
         stores,
+        requiresOnboarding,
+        redirectTo: requiresOnboarding
+          ? "/seller/store-application?from=seller-verify-email"
+          : undefined,
       },
     });
   } catch (error) {
@@ -664,6 +660,7 @@ router.get("/account/me", (_req, _res) => {
 
 router.post("/logout", (req, res) => {
   clearScopedAuthCookie(req, res, "storefront");
+  clearScopedAuthCookie(req, res, "seller");
   return res.json({ success: true });
 });
 
@@ -673,6 +670,7 @@ router.get("/seller/me", (_req, _res) => {
 
 router.post("/seller/logout", (req, res) => {
   clearScopedAuthCookie(req, res, "seller");
+  clearScopedAuthCookie(req, res, "storefront");
   return res.json({ success: true });
 });
 

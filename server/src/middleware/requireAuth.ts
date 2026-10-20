@@ -29,12 +29,12 @@ const resolveCookieNamesForRequest = (req: Request) => {
   }
 
   if (isSellerRequest(req)) {
-    return [getSellerCookieName()];
+    return [getSellerCookieName(), getStorefrontCookieName()];
   }
   if (isAdminRequest(req)) {
     return [getAdminCookieName(), getStorefrontCookieName()];
   }
-  return [getStorefrontCookieName()];
+  return [getStorefrontCookieName(), getSellerCookieName()];
 };
 
 export default async function requireAuth(req: Request, res: Response, next: NextFunction) {

@@ -45,6 +45,7 @@ import {
   updateUserStoreApplicationDraft,
 } from "../../../api/userStoreApplications.ts";
 import { listSellerWorkspaceStores } from "../../../api/sellerWorkspace.ts";
+import { useSellerAuth } from "../../../auth/authDomainHooks.js";
 import { useTheme } from "../../../theme/ThemeProvider.jsx";
 import {
   getCityOptions,
@@ -172,8 +173,15 @@ const text = (value) => String(value ?? "").trim();
 const errorMessage = (error, fallback) =>
   error?.response?.data?.message || error?.message || fallback;
 
-function applicationToForm(application) {
-  if (!application) return INITIAL_FORM;
+function applicationToForm(application, user) {
+  if (!application) {
+    return {
+      ...INITIAL_FORM,
+      ownerName: user?.name || "",
+      ownerEmail: user?.email || "",
+      ownerPhone: user?.phoneNumber || "",
+    };
+  }
   const owner = application.ownerIdentitySnapshot || {};
   const store = application.storeInformationSnapshot || {};
   const address = application.operationalAddressSnapshot || {};
@@ -189,9 +197,9 @@ function applicationToForm(application) {
     storeName: store.storeName || "",
     storeSlug: store.storeSlug || "",
     category: store.storeCategory || "",
-    ownerName: owner.fullName || "",
-    ownerEmail: owner.email || application.applicant?.email || "",
-    ownerPhone: owner.phoneNumber || "",
+    ownerName: owner.fullName || user?.name || "",
+    ownerEmail: owner.email || application.applicant?.email || user?.email || "",
+    ownerPhone: owner.phoneNumber || user?.phoneNumber || "",
     birthDate: owner.birthDate || "",
     identityType: owner.identityType || "KTP",
     identityNumber: compliance.identityNumber || "",
@@ -568,6 +576,7 @@ function SellerIllustration() {
 export default function SellerStoreApplicationPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useSellerAuth();
   const { resolvedTheme, setTheme } = useTheme();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(INITIAL_FORM);
@@ -620,7 +629,7 @@ export default function SellerStoreApplicationPage() {
 
   useEffect(() => {
     if (!applicationQuery.isSuccess) return;
-    const nextForm = applicationToForm(application);
+    const nextForm = applicationToForm(application, user);
     setForm(nextForm);
     if (application?.currentStep) {
       let serverStep = SERVER_STEPS.indexOf(application.currentStep);
@@ -630,7 +639,7 @@ export default function SellerStoreApplicationPage() {
       }
       if (serverStep >= 0) setStep(serverStep);
     }
-  }, [application, applicationQuery.isSuccess]);
+  }, [application, applicationQuery.isSuccess, user]);
 
   useEffect(() => {
     if (application?.status !== "approved") return;

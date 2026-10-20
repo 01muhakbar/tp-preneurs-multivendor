@@ -75,7 +75,8 @@
     "smoke:store-application-activation": "tsx src/scripts/smokeStoreOnboardingActivation.ts",
     "smoke:admin-store-application": "tsx src/scripts/smokeAdminStoreApplications.ts",
     "smoke:seller-notifications": "tsx src/scripts/smokeSellerNotificationsMarkRead.ts",
-    "smoke:seller-reviews": "tsx src/scripts/smokeSellerReviews.ts"
+    "smoke:seller-reviews": "tsx src/scripts/smokeSellerReviews.ts",
+    "smoke:seller-login-onboarding": "tsx src/scripts/smokeSellerLoginOnboarding.ts"
   },
   "dependencies": {
     "@ecommerce/schemas": "workspace:*",
