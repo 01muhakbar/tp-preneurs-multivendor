@@ -305,6 +305,67 @@ async function run() {
     assert.equal(existingSellerLogin.body?.data?.stores?.[0]?.slug, expectedSlug);
     console.log("   -> Existing seller successfully logs in to their active store!");
 
+    console.log("[8] Testing payload robustness & user-friendly error responses...");
+    // 8a. Untrimmed email should succeed
+    const untrimmedLogin = await client.request("/api/auth/seller/login", {
+      method: "POST",
+      body: JSON.stringify({
+        email: `   ${existingSellerEmail}   `,
+        password,
+      }),
+    });
+    assert.equal(untrimmedLogin.status, 200, "Untrimmed email should be accepted and succeed");
+    console.log("   -> Untrimmed email successfully trimmed and logged in!");
+
+    // 8b. Phone number identifier should succeed
+    client.clearCookies();
+    const phoneLogin = await client.request("/api/auth/seller/login", {
+      method: "POST",
+      body: JSON.stringify({
+        email: "081234567890",
+        password,
+      }),
+    });
+    assert.equal(phoneLogin.status, 200, "Phone number login should be accepted and succeed");
+    console.log("   -> Phone number identifier successfully logged in!");
+
+    // 8c. Invalid identifier format should return 400 with friendly message
+    const invalidFormatLogin = await client.request("/api/auth/seller/login", {
+      method: "POST",
+      body: JSON.stringify({
+        email: "invalid_username_format",
+        password,
+      }),
+    });
+    assert.equal(invalidFormatLogin.status, 400);
+    assert.equal(invalidFormatLogin.body?.code, "INVALID_IDENTIFIER_FORMAT");
+    assert.notEqual(invalidFormatLogin.body?.message, "Invalid payload");
+    console.log("   -> Invalid identifier returned 400 with human-readable message (not 'Invalid payload')!");
+
+    // 8d. Empty email should return 400 with clear message
+    const emptyEmailLogin = await client.request("/api/auth/seller/login", {
+      method: "POST",
+      body: JSON.stringify({
+        email: "",
+        password,
+      }),
+    });
+    assert.equal(emptyEmailLogin.status, 400);
+    assert.equal(emptyEmailLogin.body?.message, "Email is required");
+    console.log("   -> Empty email returned 'Email is required'!");
+
+    // 8e. Short/wrong password should return 401 with 'Invalid credentials' (NOT 400 'Invalid payload')
+    const shortPasswordLogin = await client.request("/api/auth/seller/login", {
+      method: "POST",
+      body: JSON.stringify({
+        email: existingSellerEmail,
+        password: "123",
+      }),
+    });
+    assert.equal(shortPasswordLogin.status, 401);
+    assert.equal(shortPasswordLogin.body?.message, "Invalid credentials");
+    console.log("   -> Short wrong password cleanly evaluated to 401 Invalid credentials (never 400 'Invalid payload')!");
+
     console.log("\n>>> ALL ONBOARDING SELLER LOGIN SMOKE TESTS PASSED! <<<");
   } finally {
     server.close();

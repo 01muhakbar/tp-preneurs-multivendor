@@ -10,6 +10,7 @@ import {
   Eye,
   EyeOff,
   LockKeyhole,
+  Mail,
   Moon,
   PackageCheck,
   ShieldCheck,
@@ -233,12 +234,32 @@ export default function SellerLoginPage() {
 
   const validate = () => {
     const errors = {};
-    if (!email.trim()) {
-      errors.email = t("login.Enter your email or username.");
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      errors.email = t("login.Enter your email address.", {
+        defaultValue: "Enter your email address.",
+      });
+    } else {
+      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail.toLowerCase());
+      const digits = trimmedEmail.replace(/\D/g, "");
+      const isPhone = digits.length >= 8 && digits.length <= 16;
+      if (!isEmail && !isPhone) {
+        errors.email = t("login.Enter a valid email address.", {
+          defaultValue: "Enter a valid email address.",
+        });
+      }
     }
+
     if (!password) {
-      errors.password = t("login.Enter your password.");
+      errors.password = t("login.Enter your password.", {
+        defaultValue: "Enter your password.",
+      });
+    } else if (password.length < 6) {
+      errors.password = t("login.Password must be at least 6 characters.", {
+        defaultValue: "Password must be at least 6 characters.",
+      });
     }
+
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -345,12 +366,39 @@ export default function SellerLoginPage() {
         setSubmitError(t("login.This account belongs to Admin Workspace. Please use Admin Login."));
         setShowAdminLink(true);
       } else {
-        setSubmitError(
-          error?.response?.status === 429 && getRetryAfterSeconds(error) > 0
-            ? buildRetryAfterMessage(getRetryAfterSeconds(error))
-            : responseData?.message ||
-                t("login.We couldn't sign you in. Check your credentials and try again.")
-        );
+        const rawMessage = responseData?.message || "";
+        let displayError = rawMessage;
+
+        if (
+          !rawMessage ||
+          rawMessage === "Invalid payload" ||
+          rawMessage === "Please check your email and password format." ||
+          responseData?.code === "INVALID_PAYLOAD"
+        ) {
+          displayError = t("login.Check your email and password format.", {
+            defaultValue: "Invalid email or password format. Please verify and try again.",
+          });
+        } else if (
+          rawMessage === "Invalid credentials" ||
+          rawMessage === "Invalid credentials."
+        ) {
+          displayError = t("login.We couldn't sign you in. Check your credentials and try again.", {
+            defaultValue: "We couldn't sign you in. Check your credentials and try again.",
+          });
+        } else if (
+          rawMessage === "Please enter a valid email address." ||
+          responseData?.code === "INVALID_IDENTIFIER_FORMAT"
+        ) {
+          displayError = t("login.Enter a valid email address.", {
+            defaultValue: "Please enter a valid email address.",
+          });
+        }
+
+        if (error?.response?.status === 429 && getRetryAfterSeconds(error) > 0) {
+          displayError = buildRetryAfterMessage(getRetryAfterSeconds(error));
+        }
+
+        setSubmitError(displayError);
         const retryAfterSeconds = getRetryAfterSeconds(error);
         if (retryAfterSeconds > 0) {
           setCooldownSeconds(retryAfterSeconds);
@@ -482,21 +530,21 @@ export default function SellerLoginPage() {
 
             <form className="seller-login-form" onSubmit={handleSubmit} noValidate>
               <div className="seller-login-field">
-                <label htmlFor="seller-login-email">{t("login.Email or Username")}</label>
+                <label htmlFor="seller-login-email">{t("login.Email", { defaultValue: "Email" })}</label>
                 <div
                   className={`seller-login-input ${
                     fieldErrors.email ? "seller-login-input--error" : ""
                   }`}
                 >
-                  <UserRound size={19} aria-hidden="true" />
+                  <Mail size={19} aria-hidden="true" />
                   <input
                     id="seller-login-email"
                     ref={emailRef}
-                    type="text"
+                    type="email"
                     value={email}
                     onChange={handleEmailChange}
-                    placeholder={t("login.Enter your email or username")}
-                    autoComplete="username"
+                    placeholder={t("login.Enter your email address", { defaultValue: "Enter your email address" })}
+                    autoComplete="email"
                     aria-invalid={Boolean(fieldErrors.email)}
                     aria-describedby={
                       fieldErrors.email ? "seller-login-email-error" : undefined

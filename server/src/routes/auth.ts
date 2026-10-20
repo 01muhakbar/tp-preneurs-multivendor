@@ -328,10 +328,61 @@ router.get("/health", (_req, res) => {
   res.json({ ok: true, service: "auth" });
 });
 
+const isValidLoginIdentifier = (identifier: string): boolean => {
+  const normalized = String(identifier || "").trim().toLowerCase();
+  if (!normalized) return false;
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
+  if (isEmail) return true;
+  const digitsOnly = normalized.replace(/\D/g, "");
+  return digitsOnly.length >= 8 && digitsOnly.length <= 16;
+};
+
+const resolveLoginUser = async (identifier: string): Promise<any | null> => {
+  if (!User) return null;
+  const raw = String(identifier || "").trim();
+  const normalized = raw.toLowerCase();
+  if (!normalized) return null;
+
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
+  if (isEmail) {
+    return await User.findOne({ where: { email: normalized } });
+  }
+
+  const digitsOnly = normalized.replace(/\D/g, "");
+  if (digitsOnly.length >= 8 && digitsOnly.length <= 16) {
+    const phoneCandidates = Array.from(
+      new Set(
+        [
+          raw,
+          digitsOnly,
+          `+${digitsOnly}`,
+          digitsOnly.startsWith("62") ? `0${digitsOnly.slice(2)}` : null,
+          digitsOnly.startsWith("0") ? `62${digitsOnly.slice(1)}` : null,
+          digitsOnly.startsWith("0") ? `+62${digitsOnly.slice(1)}` : null,
+        ].filter(Boolean) as string[]
+      )
+    );
+    return await User.findOne({
+      where: {
+        phoneNumber: phoneCandidates,
+      },
+    });
+  }
+
+  return null;
+};
+
 router.post("/login", async (req, res) => {
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ success: false, message: "Invalid payload" });
+    const firstIssue = parsed.error.issues?.[0];
+    const message = firstIssue?.message || "Please check your email and password format.";
+    return res.status(400).json({
+      success: false,
+      code: "INVALID_PAYLOAD",
+      message,
+      errors: parsed.error.flatten(),
+    });
   }
 
   if (!User) {
@@ -339,13 +390,25 @@ router.post("/login", async (req, res) => {
   }
 
   const { email, password } = parsed.data;
+  const rawIdentifier = String(email || "").trim();
+  const normalizedIdentifier = rawIdentifier.toLowerCase();
+
+  if (!isValidLoginIdentifier(rawIdentifier)) {
+    return res.status(400).json({
+      success: false,
+      code: "INVALID_IDENTIFIER_FORMAT",
+      message: "Please enter a valid email address.",
+    });
+  }
 
   try {
     try {
-      const normalizedEmail = String(email || "").trim().toLowerCase();
+      const rateLimitKey = normalizedIdentifier.includes("@")
+        ? normalizedIdentifier
+        : normalizedIdentifier.replace(/\D/g, "");
       const context = getRequestContext(req);
       enforceAuthRateLimit(`login:ip:${context.ipAddress}`, 12, 15 * 60 * 1000);
-      enforceAuthRateLimit(`login:email:${normalizedEmail}`, 6, 15 * 60 * 1000);
+      enforceAuthRateLimit(`login:email:${rateLimitKey}`, 6, 15 * 60 * 1000);
     } catch (error) {
       if (error instanceof AuthRateLimitError) {
         return res.status(error.status).json({
@@ -360,7 +423,7 @@ router.post("/login", async (req, res) => {
       throw error;
     }
 
-    const user = await User.findOne({ where: { email: String(email || "").trim().toLowerCase() } });
+    const user = await resolveLoginUser(rawIdentifier);
 
     if (!user) {
       return res.status(401).json({ success: false, message: "Invalid credentials" });
@@ -419,7 +482,14 @@ router.post("/login", async (req, res) => {
 router.post("/seller/login", async (req, res) => {
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ success: false, message: "Invalid payload" });
+    const firstIssue = parsed.error.issues?.[0];
+    const message = firstIssue?.message || "Please check your email and password format.";
+    return res.status(400).json({
+      success: false,
+      code: "INVALID_PAYLOAD",
+      message,
+      errors: parsed.error.flatten(),
+    });
   }
 
   if (!User) {
@@ -427,13 +497,25 @@ router.post("/seller/login", async (req, res) => {
   }
 
   const { email, password } = parsed.data;
+  const rawIdentifier = String(email || "").trim();
+  const normalizedIdentifier = rawIdentifier.toLowerCase();
+
+  if (!isValidLoginIdentifier(rawIdentifier)) {
+    return res.status(400).json({
+      success: false,
+      code: "INVALID_IDENTIFIER_FORMAT",
+      message: "Please enter a valid email address.",
+    });
+  }
 
   try {
     try {
-      const normalizedEmail = String(email || "").trim().toLowerCase();
+      const rateLimitKey = normalizedIdentifier.includes("@")
+        ? normalizedIdentifier
+        : normalizedIdentifier.replace(/\D/g, "");
       const context = getRequestContext(req);
       enforceAuthRateLimit(`seller-login:ip:${context.ipAddress}`, 12, 15 * 60 * 1000);
-      enforceAuthRateLimit(`seller-login:email:${normalizedEmail}`, 6, 15 * 60 * 1000);
+      enforceAuthRateLimit(`seller-login:email:${rateLimitKey}`, 6, 15 * 60 * 1000);
     } catch (error) {
       if (error instanceof AuthRateLimitError) {
         return res.status(error.status).json({
@@ -448,7 +530,7 @@ router.post("/seller/login", async (req, res) => {
       throw error;
     }
 
-    const user = await User.findOne({ where: { email: String(email || "").trim().toLowerCase() } });
+    const user = await resolveLoginUser(rawIdentifier);
 
     if (!user) {
       return res.status(401).json({ success: false, message: "Invalid credentials" });
