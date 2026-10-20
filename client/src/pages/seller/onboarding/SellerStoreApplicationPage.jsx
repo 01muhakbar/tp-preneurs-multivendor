@@ -8,34 +8,23 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
-  Clock3,
   FileCheck2,
   FileText,
   Headphones,
   ImagePlus,
   Loader2,
-  LockKeyhole,
   LogOut,
   MapPin,
   Moon,
-  QrCode,
   Save,
   Send,
-  ShieldCheck,
   Store,
   Sun,
   UploadCloud,
   UserRound,
-  WalletCards,
   X,
 } from "lucide-react";
 import { api } from "../../../api/axios.ts";
-import {
-  PAYMENT_PROFILE_LIMITS,
-  PAYMENT_PROFILE_PAYMENT_TYPE,
-  PAYMENT_PROFILE_PROVIDER_CODE,
-  validatePaymentProfileDraft,
-} from "../../../api/paymentProfile.contract.ts";
 import {
   cancelUserStoreApplication,
   createUserStoreApplicationDraft,
@@ -70,7 +59,6 @@ const STEPS = [
   { key: "identity", title: "Store Identity", icon: Store },
   { key: "owner", title: "Owner Information", icon: UserRound },
   { key: "business", title: "Business Details", icon: Building2 },
-  { key: "payout", title: "Payment Profile", icon: WalletCards },
   { key: "documents", title: "Documents & Review", icon: FileCheck2 },
 ];
 
@@ -78,7 +66,6 @@ const SERVER_STEPS = [
   "store_information",
   "owner_identity",
   "operational_address",
-  "payout_payment",
   "compliance",
 ];
 
@@ -302,27 +289,9 @@ function formToPayload(form, visualStep) {
       country: text(form.businessCountry) || null,
       notes: text(form.legalEntity) || null,
     },
-    payoutPaymentSnapshot: {
-      providerCode: PAYMENT_PROFILE_PROVIDER_CODE,
-      paymentType: PAYMENT_PROFILE_PAYMENT_TYPE,
-      accountName: text(form.paymentAccountName) || null,
-      merchantName: text(form.paymentMerchantName) || null,
-      merchantId: text(form.paymentMerchantId) || null,
-      bankName: text(form.paymentBankName) || null,
-      accountNumber: text(form.paymentAccountNumber) || null,
-      accountHolderName: text(form.paymentAccountHolderName) || text(form.paymentAccountName) || null,
-      qrisImageUrl: text(form.paymentQrisImage?.url) || null,
-      qrisPayload: text(form.paymentQrisPayload) || null,
-      instructionText: text(form.paymentInstructionText) || null,
-      sellerNote: text(form.paymentSellerNote) || null,
-      payoutMethod: PAYMENT_PROFILE_PAYMENT_TYPE,
-      accountHolderMatchesIdentity:
-        text(form.paymentAccountHolderName || form.paymentAccountName).toLowerCase() ===
-        text(form.ownerName).toLowerCase(),
-    },
     complianceSnapshot: {
-      supportEmail: text(form.ownerEmail) || null,
-      supportPhone: text(form.ownerPhone) || null,
+      supportEmail: text(form.email) || text(form.ownerEmail) || null,
+      supportPhone: text(form.phone) || text(form.ownerPhone) || null,
       taxId: text(form.taxNumber) || null,
       identityNumber: text(form.identityNumber) || null,
       productTypes: text(form.category) || null,
@@ -338,21 +307,6 @@ function formToPayload(form, visualStep) {
       understandsStoreInactiveUntilApproved: Boolean(form.confirmAccuracy),
     },
     sellerOnboardingSnapshot: metadataFromForm(form),
-  };
-}
-
-function paymentProfileDraftFromForm(form) {
-  return {
-    accountName: text(form.paymentAccountName),
-    merchantName: text(form.paymentMerchantName),
-    merchantId: text(form.paymentMerchantId),
-    bankName: text(form.paymentBankName),
-    accountNumber: text(form.paymentAccountNumber),
-    accountHolderName: text(form.paymentAccountHolderName),
-    qrisImageUrl: text(form.paymentQrisImage?.url),
-    qrisPayload: text(form.paymentQrisPayload),
-    instructionText: text(form.paymentInstructionText),
-    sellerNote: text(form.paymentSellerNote),
   };
 }
 
@@ -415,21 +369,6 @@ function validateStep(form, step) {
     ].forEach(([key, label]) => required(key, label));
   }
   if (step === 3) {
-    const paymentErrors = validatePaymentProfileDraft(paymentProfileDraftFromForm(form));
-    if (paymentErrors.accountName) errors.paymentAccountName = paymentErrors.accountName;
-    if (paymentErrors.merchantName) errors.paymentMerchantName = paymentErrors.merchantName;
-    if (paymentErrors.merchantId) errors.paymentMerchantId = paymentErrors.merchantId;
-    if (paymentErrors.bankName) errors.paymentBankName = paymentErrors.bankName;
-    if (paymentErrors.accountNumber) errors.paymentAccountNumber = paymentErrors.accountNumber;
-    if (paymentErrors.accountHolderName) {
-      errors.paymentAccountHolderName = paymentErrors.accountHolderName;
-    }
-    if (paymentErrors.qrisImageUrl) errors.paymentQrisImage = paymentErrors.qrisImageUrl;
-    if (paymentErrors.qrisPayload) errors.paymentQrisPayload = paymentErrors.qrisPayload;
-    if (paymentErrors.instructionText) errors.paymentInstructionText = paymentErrors.instructionText;
-    if (paymentErrors.sellerNote) errors.paymentSellerNote = paymentErrors.sellerNote;
-  }
-  if (step === 4) {
     DOCUMENTS.filter((document) => document.required).forEach((document) => {
       if (!form.documents?.[document.key]) {
         errors[`documents.${document.key}`] = `${document.label} is required.`;
@@ -633,6 +572,9 @@ export default function SellerStoreApplicationPage() {
     setForm(nextForm);
     if (application?.currentStep) {
       let serverStep = SERVER_STEPS.indexOf(application.currentStep);
+      if (application.currentStep === "payout_payment") {
+        serverStep = 3;
+      }
       const step0Errors = validateStep(nextForm, 0);
       if (Object.keys(step0Errors).length > 0) {
         serverStep = 0;
@@ -735,7 +677,7 @@ export default function SellerStoreApplicationPage() {
       return;
     }
     try {
-      const nextStep = Math.min(4, step + 1);
+      const nextStep = Math.min(3, step + 1);
       await saveDraft({ visualStep: nextStep, message: "Progress saved. Continue with the next step." });
       setStep(nextStep);
       setErrors({});
@@ -818,7 +760,7 @@ export default function SellerStoreApplicationPage() {
     setActionError("");
     setNotice("");
     try {
-      const saved = await saveDraft({ visualStep: 4, message: "" });
+      const saved = await saveDraft({ visualStep: 3, message: "" });
       const wantsResubmit = ["revision_requested", "rejected"].includes(saved.status);
       const allowed = wantsResubmit ? saved.workflow?.canResubmit : saved.workflow?.canSubmit;
       if (!allowed) {
@@ -853,7 +795,7 @@ export default function SellerStoreApplicationPage() {
     [form]
   );
   const completedCount = stepValidity.filter(Boolean).length;
-  const progress = completedCount * 20;
+  const progress = Math.round((completedCount / STEPS.length) * 100);
   const status = application?.status || "draft";
   const ActiveStepIcon = STEPS[step].icon;
 
@@ -938,94 +880,6 @@ export default function SellerStoreApplicationPage() {
         </div>
       );
     }
-    if (step === 3) {
-      return (
-        <div className="ssa-payment-profile">
-          <div className="ssa-payment-contract" aria-label="Payment profile type">
-            <span><QrCode size={21} /><small>Payment method</small><strong>Static QRIS</strong></span>
-            <span><ShieldCheck size={21} /><small>Provider</small><strong>Manual QRIS</strong></span>
-          </div>
-
-          <div className="ssa-payment-grid">
-            <div className="ssa-qris-panel">
-              <div className="ssa-qris-upload-card">
-                <div className="ssa-qris-upload-header">
-                  <ImagePlus size={20} />
-                  <span>
-                    <strong>QRIS image</strong>
-                    <small>PNG or JPEG, maximum 5MB. Upload does not auto-save.</small>
-                  </span>
-                </div>
-                <UploadBox
-                  label="QRIS Image"
-                  value={form.paymentQrisImage}
-                  error={uploadErrors.paymentQrisImage || errors.paymentQrisImage}
-                  uploading={uploading.paymentQrisImage}
-                  onUpload={(file) => uploadFile("paymentQrisImage", file, {
-                    imageOnly: true,
-                    allowedTypes: ["image/jpeg", "image/png"],
-                    invalidTypeMessage: "Upload a PNG or JPEG QRIS image.",
-                  })}
-                  disabled={!isEditable}
-                  imageOnly
-                  accept="image/png,image/jpeg"
-                  formatHint="PNG or JPEG · Max 5MB"
-                />
-              </div>
-              {form.paymentQrisImage?.url ? (
-                <div className="ssa-qris-preview">
-                  <img src={form.paymentQrisImage.url} alt="QRIS payment profile preview" />
-                  <span><CheckCircle2 size={15} /> QRIS ready for admin review</span>
-                </div>
-              ) : (
-                <div className="ssa-qris-empty"><QrCode size={42} /><strong>No QRIS image yet</strong><span>Upload an image or enter its URL below.</span></div>
-              )}
-            </div>
-
-            <div className="ssa-payment-fields">
-              <section className="ssa-payment-section">
-                <h3>Required details</h3>
-                <p>Needed before admin review.</p>
-                <div className="ssa-form-grid ssa-form-grid--two">
-                  <Field label="Account Name" name="paymentAccountName" value={form.paymentAccountName} error={errors.paymentAccountName} required autoComplete="name" maxLength={PAYMENT_PROFILE_LIMITS.accountName} {...common} />
-                  <Field label="Merchant Name" name="paymentMerchantName" value={form.paymentMerchantName} error={errors.paymentMerchantName} required maxLength={PAYMENT_PROFILE_LIMITS.merchantName} {...common} />
-                  <Field label="Payout Bank" name="paymentBankName" value={form.paymentBankName} error={errors.paymentBankName} required maxLength={PAYMENT_PROFILE_LIMITS.bankName} hint="Bank used by Admin for seller withdrawal transfer." {...common} />
-                  <Field label="Payout Account Number" name="paymentAccountNumber" value={form.paymentAccountNumber} error={errors.paymentAccountNumber} required maxLength={PAYMENT_PROFILE_LIMITS.accountNumber} {...common} />
-                  <Field label="Payout Account Holder" name="paymentAccountHolderName" value={form.paymentAccountHolderName} error={errors.paymentAccountHolderName} required maxLength={PAYMENT_PROFILE_LIMITS.accountHolderName} {...common} />
-                </div>
-                <div className="ssa-form-grid" style={{ marginTop: 14 }}>
-                  <Field label="QRIS Image URL" name="paymentQrisImageUrl" value={form.paymentQrisImage?.url || ""} error={errors.paymentQrisImageUrl} required maxLength={PAYMENT_PROFILE_LIMITS.qrisImageUrl} hint="The image buyers will see after Admin approval." onChange={(name, value) => {
-                    setForm((current) => ({
-                      ...current,
-                      paymentQrisImage: value
-                        ? { ...(current.paymentQrisImage || {}), url: value, fileName: current.paymentQrisImage?.fileName || "Manual URL entry", size: current.paymentQrisImage?.size || 0, mimeType: current.paymentQrisImage?.mimeType || "image/png", uploadedAt: current.paymentQrisImage?.uploadedAt || new Date().toISOString() }
-                        : null,
-                    }));
-                    setErrors((current) => { const next = { ...current }; delete next.paymentQrisImage; delete next.paymentQrisImageUrl; return next; });
-                    setActionError("");
-                    setNotice("");
-                  }} disabled={!isEditable} />
-                </div>
-              </section>
-
-              <section className="ssa-payment-section">
-                <h3>Optional details</h3>
-                <p>Useful for audit, QR validation, and buyer instructions.</p>
-                <div className="ssa-form-grid ssa-form-grid--two">
-                  <Field label="Merchant ID" name="paymentMerchantId" value={form.paymentMerchantId} error={errors.paymentMerchantId} maxLength={PAYMENT_PROFILE_LIMITS.merchantId} hint="Optional" {...common} />
-                  <Field label="QRIS Payload" name="paymentQrisPayload" value={form.paymentQrisPayload} error={errors.paymentQrisPayload} as="textarea" rows={3} maxLength={PAYMENT_PROFILE_LIMITS.qrisPayload} hint="Optional QR data embedded in the code." {...common} />
-                  <Field label="Instruction Text" name="paymentInstructionText" value={form.paymentInstructionText} error={errors.paymentInstructionText} as="textarea" rows={3} maxLength={PAYMENT_PROFILE_LIMITS.instructionText} className="ssa-span-two" hint="Optional instructions shown to buyers." {...common} />
-                  <Field label="Seller Note" name="paymentSellerNote" value={form.paymentSellerNote} error={errors.paymentSellerNote} as="textarea" rows={3} maxLength={PAYMENT_PROFILE_LIMITS.sellerNote} className="ssa-span-two" hint="Optional note for the admin reviewer." {...common} />
-                </div>
-              </section>
-            </div>
-          </div>
-
-          <div className="ssa-info-banner"><ShieldCheck size={20} /><div><strong>Admin approval required</strong><span>This application only prepares a Payment Profile draft. Checkout will use QRIS only after the store and payment setup are reviewed and activated by an admin.</span></div></div>
-          <div className="ssa-security-note"><LockKeyhole size={19} /><span>Your QRIS setup is stored securely with this application.</span><b><ShieldCheck size={15} /> Review protected</b></div>
-        </div>
-      );
-    }
     return (
       <div className="ssa-review-step">
         <section>
@@ -1055,7 +909,7 @@ export default function SellerStoreApplicationPage() {
           <h3><FileCheck2 size={19} /> 2. Final Review Checklist</h3>
           <p>Confirm that every section is complete and accurate.</p>
           <div>
-            {STEPS.slice(0, 4).map((entry, index) => (
+            {STEPS.slice(0, 3).map((entry, index) => (
               <button type="button" key={entry.key} onClick={() => setStep(index)}>
                 {stepValidity[index] ? <CheckCircle2 size={18} /> : <span className="ssa-empty-dot" />}
                 <span><strong>{entry.title}</strong><small>{stepValidity[index] ? "Completed" : "Needs attention"}</small></span>
@@ -1120,7 +974,7 @@ export default function SellerStoreApplicationPage() {
         <div className="ssa-content-grid">
           <div className="ssa-workspace">
             <div className="ssa-page-heading">
-              <div><h1>Store Application</h1><p>Step {step + 1} of 5 <b>·</b> {STEPS[step].title}</p><span>{["Tell us about your store so customers can find and trust your brand.", "Tell us about the owner so we can verify your identity and build trust.", "Tell us how your business operates and fulfills customer orders.", "Prepare the QRIS checkout destination. Changes need admin approval.", "Upload the required documents and review your details before submitting."][step]}</span></div>
+              <div><h1>Store Application</h1><p>Step {step + 1} of 4 <b>·</b> {STEPS[step].title}</p><span>{["Tell us about your store so customers can find and trust your brand.", "Tell us about the owner so we can verify your identity and build trust.", "Tell us how your business operates and fulfills customer orders.", "Upload the required documents and review your details before submitting."][step]}</span></div>
               <div className="ssa-heading-icon"><ActiveStepIcon size={42} /></div>
             </div>
 
@@ -1138,7 +992,7 @@ export default function SellerStoreApplicationPage() {
               <div className="ssa-form-actions">
                 <button type="button" className="ssa-button ssa-button--secondary" onClick={() => setStep((current) => Math.max(0, current - 1))} disabled={step === 0 || isBusy}><ArrowLeft size={18} /> Back</button>
                 <button type="button" className="ssa-button ssa-button--secondary" onClick={() => saveDraft().catch(() => {})} disabled={!isEditable || isBusy}>{saveMutation.isPending ? <Loader2 className="ssa-spin" size={18} /> : <Save size={18} />} Save Draft</button>
-                {step < 4 ? (
+                {step < 3 ? (
                   <button type="button" className="ssa-button ssa-button--primary" onClick={continueStep} disabled={!isEditable || isBusy}>Continue <ArrowRight size={18} /></button>
                 ) : (
                   <button type="button" className="ssa-button ssa-button--submit" onClick={submitApplication} disabled={!isEditable || isBusy}>{actionMutation.isPending ? <Loader2 className="ssa-spin" size={18} /> : <Send size={18} />}{status === "revision_requested" ? "Resubmit Application" : "Submit Application"}</button>
@@ -1151,7 +1005,7 @@ export default function SellerStoreApplicationPage() {
           <aside className="ssa-summary">
             <section className="ssa-summary-card">
               <h2>Application Summary</h2>
-              <div className="ssa-progress-row"><div className="ssa-progress-ring" style={{ "--ssa-progress": `${progress * 3.6}deg` }}><span><strong>{progress}%</strong><small>{progress === 100 ? "Ready" : "Completed"}</small></span></div><p>{progress === 100 ? "Perfect! Your application is ready for review." : `Great progress! ${5 - completedCount} step${5 - completedCount === 1 ? "" : "s"} remaining.`}<b>{status.replaceAll("_", " ")}</b></p></div>
+              <div className="ssa-progress-row"><div className="ssa-progress-ring" style={{ "--ssa-progress": `${progress * 3.6}deg` }}><span><strong>{progress}%</strong><small>{progress === 100 ? "Ready" : "Completed"}</small></span></div><p>{progress === 100 ? "Perfect! Your application is ready for review." : `Great progress! ${STEPS.length - completedCount} step${STEPS.length - completedCount === 1 ? "" : "s"} remaining.`}<b>{status.replaceAll("_", " ")}</b></p></div>
             </section>
             <section className="ssa-summary-card"><h2>Verification Status</h2><div className="ssa-verification"><CheckCircle2 size={43} /><div><strong>Email Verified</strong><span>{form.ownerEmail || application?.applicant?.email || "Verified account"}</span><small>Identity linked to this application</small></div></div></section>
             <section className="ssa-summary-card"><h2>Requirements Checklist</h2><div className="ssa-requirements">{STEPS.map((entry, index) => <button type="button" className={step === index ? "is-active" : ""} key={entry.key} onClick={() => setStep(index)}>{stepValidity[index] ? <CheckCircle2 size={16} /> : <span />}{entry.title}</button>)}</div></section>

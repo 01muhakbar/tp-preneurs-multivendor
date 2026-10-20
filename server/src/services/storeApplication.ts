@@ -543,27 +543,6 @@ export function buildStoreApplicationCompleteness(application: any) {
       step: "operational_address",
     });
   }
-  if (!snapshots.payoutPaymentSnapshot.accountName) {
-    missingFields.push({
-      key: "payoutPaymentSnapshot.accountName",
-      label: "Payment account name",
-      step: "payout_payment",
-    });
-  }
-  if (!snapshots.payoutPaymentSnapshot.merchantName) {
-    missingFields.push({
-      key: "payoutPaymentSnapshot.merchantName",
-      label: "QRIS merchant name",
-      step: "payout_payment",
-    });
-  }
-  if (!snapshots.payoutPaymentSnapshot.qrisImageUrl) {
-    missingFields.push({
-      key: "payoutPaymentSnapshot.qrisImageUrl",
-      label: "QRIS image",
-      step: "payout_payment",
-    });
-  }
   if (!snapshots.complianceSnapshot.supportEmail) {
     missingFields.push({
       key: "complianceSnapshot.supportEmail",
@@ -579,7 +558,7 @@ export function buildStoreApplicationCompleteness(application: any) {
     });
   }
 
-  const totalFields = 12;
+  const totalFields = 9;
   const completedFields = totalFields - missingFields.length;
   const isComplete = missingFields.length === 0;
 

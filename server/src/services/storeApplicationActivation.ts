@@ -368,10 +368,7 @@ const ensureSubmittedPaymentProfileRequest = async (input: {
   const merchantName = toText(payout.merchantName);
   const qrisImageUrl = toText(payout.qrisImageUrl);
   if (!accountName || !merchantName || !qrisImageUrl) {
-    throw new StoreApplicationActivationError(
-      "PAYMENT_PROFILE_INCOMPLETE",
-      "Complete Account name, Merchant name, and QRIS image before approving this Store Application."
-    );
+    return null;
   }
 
   const activeProfile = await loadActivePaymentProfile(input.store, input.transaction);
@@ -511,11 +508,13 @@ export async function provisionApprovedStoreApplication(
         provisionedAt: new Date().toISOString(),
         provisionedMode,
         source: "store_application_approval",
-        paymentProfileRequestId: Number(getAttr(paymentProfileRequest, "id") || 0),
-        paymentProfileRequestStatus: String(
-          getAttr(paymentProfileRequest, "requestStatus") || "SUBMITTED"
-        ),
-        paymentProfileHandoffSource: "store_application",
+        paymentProfileRequestId: paymentProfileRequest
+          ? Number(getAttr(paymentProfileRequest, "id") || 0) || null
+          : null,
+        paymentProfileRequestStatus: paymentProfileRequest
+          ? String(getAttr(paymentProfileRequest, "requestStatus") || "SUBMITTED")
+          : null,
+        paymentProfileHandoffSource: paymentProfileRequest ? "store_application" : null,
       },
     });
 
