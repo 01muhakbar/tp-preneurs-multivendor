@@ -203,6 +203,16 @@ const normalizeDetail = (payload, fallbackId) => {
       type: ownerIdentity.identityType,
       idName: ownerIdentity.fullName,
       legalName: ownerIdentity.identityLegalName || ownerIdentity.legalName,
+      residentialAddress: ownerIdentity.residentialAddress,
+      region: [
+        ownerIdentity.subdistrict,
+        ownerIdentity.city,
+        ownerIdentity.province,
+        ownerIdentity.postalCode,
+        ownerIdentity.country,
+      ]
+        .filter(Boolean)
+        .join(", "),
     },
     identityMatch: {
       summary: identityMatch.summaryLabel || application.identityMatchLabel || "Partial Match",
@@ -565,6 +575,8 @@ export default function AdminStoreApplicationDetailPage() {
               { label: "ID Type", value: detail.identity.type },
               { label: "ID Name", value: detail.identity.idName },
               { label: "Legal Name", value: detail.identity.legalName },
+              { label: "Residential Address", value: detail.identity.residentialAddress, wide: true },
+              { label: "Residential Region", value: detail.identity.region, wide: true },
             ]}
           />
           <div className="asad-match-grid">

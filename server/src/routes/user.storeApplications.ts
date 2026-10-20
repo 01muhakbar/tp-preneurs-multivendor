@@ -263,8 +263,20 @@ router.patch("/store-applications/:applicationId/draft", async (req, res) => {
       !Array.isArray((application as any).internalMetadata)
         ? (application as any).internalMetadata
         : {};
+    const currentOnboarding =
+      currentMetadata &&
+      typeof currentMetadata === "object" &&
+      currentMetadata.sellerOnboarding2026 &&
+      typeof currentMetadata.sellerOnboarding2026 === "object"
+        ? currentMetadata.sellerOnboarding2026
+        : {};
     const sellerOnboardingMetadata = normalizedInput.sellerOnboardingSnapshot
-      ? { sellerOnboarding2026: normalizedInput.sellerOnboardingSnapshot }
+      ? {
+          sellerOnboarding2026: {
+            ...currentOnboarding,
+            ...normalizedInput.sellerOnboardingSnapshot,
+          },
+        }
       : {};
     const metadata = buildStoreApplicationMutationMetadata(currentMetadata, {
       lastEditedByUserId: userId,

@@ -241,6 +241,7 @@ const serializeAdminStoreApplicationDetail = (application: any) => {
   const snapshots = normalizeStoreApplicationSnapshots(application);
   const completeness = buildStoreApplicationCompleteness(application);
   const metadata = getInternalMetadata(application);
+  const onboarding = normalizeObject(metadata.sellerOnboarding2026);
   const adminReview = getAdminReviewMetadata(application);
   const activation = getActivationMetadata(application);
   const applicantIdentityMatch = buildApplicantIdentityMatch(application, applicantUser);
@@ -268,6 +269,12 @@ const serializeAdminStoreApplicationDetail = (application: any) => {
       identityNumber: toText(snapshots.complianceSnapshot?.identityNumber),
       identityLegalName: toText(snapshots.ownerIdentitySnapshot.identityLegalName),
       birthDate: toText(snapshots.ownerIdentitySnapshot.birthDate),
+      residentialAddress: toText(onboarding.residentialAddress),
+      country: toText(onboarding.ownerCountry) || "Indonesia",
+      province: toText(onboarding.ownerProvince),
+      city: toText(onboarding.ownerCity),
+      subdistrict: toText(onboarding.ownerSubdistrict),
+      postalCode: toText(onboarding.ownerPostalCode),
     },
     storeInformation: {
       storeName: toText(snapshots.storeInformationSnapshot.storeName),

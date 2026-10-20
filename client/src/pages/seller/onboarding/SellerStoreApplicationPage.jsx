@@ -179,7 +179,10 @@ function applicationToForm(application) {
   const address = application.operationalAddressSnapshot || {};
   const payout = application.payoutPaymentSnapshot || {};
   const compliance = application.complianceSnapshot || {};
-  const metadata = application.internalMetadata?.sellerOnboarding2026 || {};
+  const metadata =
+    application.internalMetadata?.sellerOnboarding2026 ||
+    application.sellerOnboardingSnapshot ||
+    {};
 
   return {
     ...INITIAL_FORM,
@@ -193,7 +196,14 @@ function applicationToForm(application) {
     identityType: owner.identityType || "KTP",
     identityNumber: compliance.identityNumber || "",
     taxNumber: compliance.taxId || "",
+    residentialAddress: metadata.residentialAddress || "",
+    ownerCountry: metadata.ownerCountry || "Indonesia",
+    ownerProvince: metadata.ownerProvince || "",
+    ownerCity: metadata.ownerCity || "",
+    ownerSubdistrict: metadata.ownerSubdistrict || "",
+    ownerPostalCode: metadata.ownerPostalCode || "",
     businessType: store.sellerType || INITIAL_FORM.businessType,
+    legalEntity: metadata.legalEntity || address.notes || INITIAL_FORM.legalEntity,
     businessCountry: address.country || "Indonesia",
     businessProvince: address.province || "",
     businessCity: address.city || "",
@@ -238,6 +248,9 @@ function applicationToForm(application) {
       metadata.documents && typeof metadata.documents === "object"
         ? metadata.documents
         : {},
+    confirmAccuracy: Boolean(
+      metadata.confirmAccuracy ?? compliance.authenticityConfirmed ?? false
+    ),
   };
 }
 
@@ -890,7 +903,7 @@ export default function SellerStoreApplicationPage() {
           <Field label="Identity Number" name="identityNumber" value={form.identityNumber} error={errors.identityNumber} required {...common} />
           <Field label="Tax ID (NPWP)" name="taxNumber" value={form.taxNumber} error={errors.taxNumber} hint="Optional at this stage." {...common} />
           <Field label="Residential Address" name="residentialAddress" value={form.residentialAddress} error={errors.residentialAddress} required className="ssa-span-two" autoComplete="street-address" {...common} />
-          <Field label="Country" name="ownerCountry" value="Indonesia" error={errors.ownerCountry} required {...common} disabled hint="Seller onboarding is currently available in Indonesia." />
+          <Field label="Country" name="ownerCountry" value={form.ownerCountry || "Indonesia"} error={errors.ownerCountry} required {...common} disabled hint="Seller onboarding is currently available in Indonesia." />
           <Field label="Province" name="ownerProvince" value={form.ownerProvince} error={errors.ownerProvince} required as="select" options={ownerProvinceOptions} placeholder="Select Province" {...common} />
           <Field label="City / Regency" name="ownerCity" value={form.ownerCity} error={errors.ownerCity} required as="select" options={ownerCityOptions} placeholder={form.ownerProvince ? "Select City / Regency" : "Select Province first"} {...common} disabled={!isEditable || !form.ownerProvince} />
           <Field label="Subdistrict" name="ownerSubdistrict" value={form.ownerSubdistrict} error={errors.ownerSubdistrict} required as="select" options={ownerSubdistrictOptions} placeholder={form.ownerCity ? "Select Subdistrict" : "Select City / Regency first"} {...common} disabled={!isEditable || !form.ownerCity} />
