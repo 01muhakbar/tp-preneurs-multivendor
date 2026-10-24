@@ -41,16 +41,27 @@ function TextField({
   required = false,
   helper,
   as = "input",
+  action,
   children,
   ...props
 }) {
   const Input = as;
   return (
     <div className="apf26-field">
-      <label>
-        {label}
-        {required ? <RequiredMark /> : null}
-      </label>
+      {action ? (
+        <div className="apf26-field-header">
+          <label>
+            {label}
+            {required ? <RequiredMark /> : null}
+          </label>
+          {action}
+        </div>
+      ) : (
+        <label>
+          {label}
+          {required ? <RequiredMark /> : null}
+        </label>
+      )}
       {children || (
         <Input
           className={as === "textarea" ? "apf26-textarea" : "apf26-input"}
@@ -220,6 +231,22 @@ function BasicStep({
                 placeholder={t("productForm.Enter product SKU")}
                 value={form.sku}
                 onChange={(event) => onFormChange({ sku: event.target.value })}
+                action={
+                  onGenerateSku ? (
+                    <button
+                      type="button"
+                      className="apf26-sku-action-btn"
+                      onClick={onGenerateSku}
+                      title={t("productForm.Auto-generate SKU")}
+                    >
+                      <Sparkles size={12} />
+                      <span>{t("productForm.Auto-generate SKU")}</span>
+                    </button>
+                  ) : null
+                }
+                helper={t(
+                  "productForm.Leave blank to generate automatically from product name and store."
+                )}
               />
               <TextField
                 label={t("productForm.Barcode (ISBN, EAN, UPC)")}
@@ -1735,6 +1762,7 @@ export default function AdminProductForm2026View({
   onBackToList,
   onFormChange,
   onNameChange,
+  onGenerateSku,
   onMetaChange,
   onSeoChange,
   onAddFiles,

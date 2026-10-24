@@ -132,3 +132,86 @@ export const getSellerProductForm2026Checklist = ({ form, meta, localImages }) =
       ? { ...item, helperKey: "Product is ready for draft save or review submission." }
       : item
   );
+
+export const generateProductSku = ({
+  name = "",
+  storeName = "",
+  storeSlug = "",
+  brand = "",
+  withSuffix = false,
+} = {}) => {
+  const trimmedName = String(name || "").trim();
+  if (!trimmedName) return "";
+
+  const parts = [];
+
+  const storeSource = String(storeName || storeSlug || "").trim();
+  if (storeSource) {
+    const storeWords = storeSource
+      .replace(/[^a-zA-Z0-9\s-_]/g, "")
+      .split(/[\s-_]+/)
+      .filter(Boolean);
+    if (storeWords.length > 1) {
+      const initials = storeWords.slice(0, 3).map((w) => w[0].toUpperCase()).join("");
+      if (initials) parts.push(initials);
+    } else if (storeWords.length === 1) {
+      parts.push(storeWords[0].slice(0, 3).toUpperCase());
+    }
+  }
+
+  const cleanBrand = String(brand || "").trim().replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  if (cleanBrand) {
+    parts.push(cleanBrand.slice(0, 4));
+  }
+
+  const nameWords = trimmedName
+    .replace(/[^a-zA-Z0-9\s]/g, "")
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (nameWords.length > 0) {
+    const nameCode = nameWords
+      .slice(0, 3)
+      .map((w) => w.toUpperCase().slice(0, 8))
+      .join("-");
+    if (nameCode) parts.push(nameCode);
+  }
+
+  if (withSuffix) {
+    const randomSuffix = Math.random().toString(36).substring(2, 5).toUpperCase();
+    parts.push(randomSuffix);
+  }
+
+  return parts.filter(Boolean).join("-");
+};
+
+export const generateVariantSku = ({
+  parentSku = "",
+  productName = "",
+  storeSlug = "",
+  storeName = "",
+  brand = "",
+  selections = [],
+  index = 1,
+} = {}) => {
+  const baseSku =
+    String(parentSku || "").trim() ||
+    generateProductSku({ name: productName, storeName, storeSlug, brand });
+
+  const attrTokens = (Array.isArray(selections) ? selections : [])
+    .map((s) => {
+      const val = String(s.value || s.label || "").trim();
+      const clean = val.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+      return clean.slice(0, 6);
+    })
+    .filter(Boolean);
+
+  if (baseSku && attrTokens.length > 0) {
+    return `${baseSku}-${attrTokens.join("-")}`;
+  }
+  if (baseSku) {
+    return `${baseSku}-V${index}`;
+  }
+  return "";
+};
+

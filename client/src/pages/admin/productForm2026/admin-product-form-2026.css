@@ -262,6 +262,54 @@
   min-width: 0;
 }
 
+.apf26-field-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.apf26-field-header label {
+  margin-bottom: 0 !important;
+}
+
+.apf26-sku-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(254, 111, 5, 0.08);
+  border: 1px solid rgba(254, 111, 5, 0.35);
+  color: #fe6f05;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  line-height: 1;
+}
+
+.apf26-sku-action-btn:hover {
+  background: #fe6f05;
+  color: #ffffff;
+  border-color: #fe6f05;
+  box-shadow: 0 2px 6px rgba(254, 111, 5, 0.22);
+}
+
+.dark .apf26-sku-action-btn,
+.admin-theme-dark .apf26-sku-action-btn {
+  background: rgba(254, 111, 5, 0.15);
+  border-color: rgba(254, 111, 5, 0.5);
+  color: #ff8528;
+}
+
+.dark .apf26-sku-action-btn:hover,
+.admin-theme-dark .apf26-sku-action-btn:hover {
+  background: #fe6f05;
+  color: #ffffff;
+}
+
 .apf26-field label,
 .apf26-choice strong {
   display: block;

@@ -18,6 +18,8 @@ import "./products2026/admin-products-2026.css";
 import AdminProductForm2026View from "./productForm2026/AdminProductForm2026View.jsx";
 import {
   createInitialProductForm2026Meta,
+  generateProductSku,
+  generateVariantSku,
   getCreatedAdminProductId,
   toOptionalNumber,
 } from "./productForm2026/adminProductForm2026Adapter.js";
@@ -472,6 +474,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
   const [tagInput, setTagInput] = useState("");
   const [seoKeywordInput, setSeoKeywordInput] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
+  const [skuTouched, setSkuTouched] = useState(false);
   const [localImages, setLocalImages] = useState([]);
   const [seo, setSeo] = useState(defaultSeoState);
   const [form, setForm] = useState({
@@ -608,6 +611,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
     setWizardStep(1);
     setMaxVisitedWizardStep(1);
     setSlugTouched(false);
+    setSkuTouched(false);
     setTagInput("");
     setSeoKeywordInput("");
     setLocalImages([]);
@@ -1104,11 +1108,23 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
   };
 
   const handleNameChange = (value) => {
-    setForm((prev) => ({
-      ...prev,
-      name: value,
-      slug: !slugTouched ? slugify(value) : prev.slug,
-    }));
+    setForm((prev) => {
+      const nextSku = !skuTouched
+        ? generateProductSku({
+            name: value,
+            storeName: selectedStore?.name,
+            storeSlug: selectedStore?.slug,
+            brand: form2026Meta?.brand,
+          })
+        : prev.sku;
+
+      return {
+        ...prev,
+        name: value,
+        slug: !slugTouched ? slugify(value) : prev.slug,
+        sku: nextSku,
+      };
+    });
   };
 
   const addSelectedAttribute = () => {
@@ -1229,7 +1245,15 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
         combination,
         combinationKey,
         selections,
-        sku: "",
+        sku: generateVariantSku({
+          parentSku: form.sku,
+          productName: form.name,
+          storeSlug: selectedStore?.slug,
+          storeName: selectedStore?.name,
+          brand: form2026Meta?.brand,
+          selections,
+          index: index + 1,
+        }),
         barcode: "",
         price: normalizeVariantNumber(form.price),
         salePrice: resolveSalePriceValue(form.salePrice),
@@ -1474,11 +1498,47 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
       setSlugTouched(true);
       patch.slug = slugify(patch.slug);
     }
+    if (Object.prototype.hasOwnProperty.call(patch, "sku")) {
+      setSkuTouched(true);
+    }
     setForm((prev) => ({ ...prev, ...patch }));
   };
 
   const updateForm2026Meta = (patch) => {
-    setForm2026Meta((prev) => ({ ...prev, ...patch }));
+    setForm2026Meta((prev) => {
+      const nextMeta = { ...prev, ...patch };
+      if (!skuTouched && patch.brand !== undefined && form.name) {
+        setForm((prevForm) => ({
+          ...prevForm,
+          sku: generateProductSku({
+            name: prevForm.name,
+            storeName: selectedStore?.name,
+            storeSlug: selectedStore?.slug,
+            brand: nextMeta.brand,
+          }),
+        }));
+      }
+      return nextMeta;
+    });
+  };
+
+  const handleGenerateSku = () => {
+    const generated = generateProductSku({
+      name: form.name,
+      storeName: selectedStore?.name,
+      storeSlug: selectedStore?.slug,
+      brand: form2026Meta?.brand,
+    });
+    if (generated) {
+      setForm((prev) => ({ ...prev, sku: generated }));
+      setSkuTouched(false);
+      setNotice({ type: "info", message: `SKU berhasil dibuat: ${generated}` });
+    } else {
+      setNotice({
+        type: "warning",
+        message: "Masukkan nama produk terlebih dahulu untuk membuat SKU.",
+      });
+    }
   };
 
   const updateSeoFields = (patch) => {
@@ -1665,6 +1725,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
         onBackToList={() => navigate("/admin/catalog/products")}
         onFormChange={updateFormFields}
         onNameChange={handleNameChange}
+        onGenerateSku={handleGenerateSku}
         onMetaChange={updateForm2026Meta}
         onSeoChange={updateSeoFields}
         onAddFiles={addFiles}

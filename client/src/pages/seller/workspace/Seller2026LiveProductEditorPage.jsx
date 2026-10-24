@@ -19,6 +19,8 @@ import { resolveAssetUrl } from "../../../lib/assetUrl.js";
 import AdminProductForm2026View from "../../admin/productForm2026/AdminProductForm2026View.jsx";
 import {
   createInitialProductForm2026Meta,
+  generateProductSku,
+  generateVariantSku,
   getCreatedAdminProductId,
   toOptionalNumber,
 } from "../../admin/productForm2026/adminProductForm2026Adapter.js";
@@ -386,6 +388,11 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
       ? initialDraft.slugTouched
       : false
   );
+  const [skuTouched, setSkuTouched] = useState(() =>
+    mode === "create" && typeof initialDraft?.skuTouched === "boolean"
+      ? initialDraft.skuTouched
+      : false
+  );
   const [localImages, setLocalImages] = useState([]);
   const [seo, setSeo] = useState(() => {
     if (mode === "create" && initialDraft?.seo) {
@@ -479,6 +486,7 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
     setVariants([]);
     setLocalImages([]);
     setSlugTouched(false);
+    setSkuTouched(false);
     setWizardStep(1);
     setMaxVisitedWizardStep(1);
     setNotice({
@@ -552,6 +560,7 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
       wizardStep,
       maxVisitedWizardStep,
       slugTouched,
+      skuTouched,
       savedAt: new Date().toISOString(),
     };
 
@@ -591,6 +600,7 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
     wizardStep,
     maxVisitedWizardStep,
     slugTouched,
+    skuTouched,
   ]);
 
   useEffect(() => {
@@ -781,19 +791,65 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
 
   const updateFormFields = (patch) => {
     if (Object.prototype.hasOwnProperty.call(patch, "slug")) setSlugTouched(true);
+    if (Object.prototype.hasOwnProperty.call(patch, "sku")) setSkuTouched(true);
     setForm((prev) => ({ ...prev, ...patch, storeId: String(storeId || prev.storeId || "") }));
   };
 
   const handleNameChange = (value) => {
-    setForm((prev) => ({
-      ...prev,
-      name: value,
-      slug: !slugTouched ? slugify(value) : prev.slug,
-    }));
+    setForm((prev) => {
+      const nextSku = !skuTouched
+        ? generateProductSku({
+            name: value,
+            storeName: sellerStore?.name,
+            storeSlug: sellerStore?.slug || workspaceStoreSlug,
+            brand: form2026Meta?.brand,
+          })
+        : prev.sku;
+
+      return {
+        ...prev,
+        name: value,
+        slug: !slugTouched ? slugify(value) : prev.slug,
+        sku: nextSku,
+      };
+    });
   };
 
   const updateForm2026Meta = (patch) => {
-    setForm2026Meta((prev) => ({ ...prev, ...patch }));
+    setForm2026Meta((prev) => {
+      const nextMeta = { ...prev, ...patch };
+      if (!skuTouched && patch.brand !== undefined && form.name) {
+        setForm((prevForm) => ({
+          ...prevForm,
+          sku: generateProductSku({
+            name: prevForm.name,
+            storeName: sellerStore?.name,
+            storeSlug: sellerStore?.slug || workspaceStoreSlug,
+            brand: nextMeta.brand,
+          }),
+        }));
+      }
+      return nextMeta;
+    });
+  };
+
+  const handleGenerateSku = () => {
+    const generated = generateProductSku({
+      name: form.name,
+      storeName: sellerStore?.name,
+      storeSlug: sellerStore?.slug || workspaceStoreSlug,
+      brand: form2026Meta?.brand,
+    });
+    if (generated) {
+      setForm((prev) => ({ ...prev, sku: generated }));
+      setSkuTouched(false);
+      setNotice({ type: "info", message: `SKU berhasil dibuat otomatis: ${generated}` });
+    } else {
+      setNotice({
+        type: "warning",
+        message: "Masukkan nama produk terlebih dahulu untuk membuat SKU.",
+      });
+    }
   };
 
   const updateSeoFields = (patch) => {
@@ -1084,7 +1140,15 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
         combination,
         combinationKey,
         selections,
-        sku: "",
+        sku: generateVariantSku({
+          parentSku: form.sku,
+          productName: form.name,
+          storeSlug: sellerStore?.slug || workspaceStoreSlug,
+          storeName: sellerStore?.name,
+          brand: form2026Meta?.brand,
+          selections,
+          index: index + 1,
+        }),
         barcode: "",
         price: normalizeVariantNumber(form.price),
         salePrice: resolveSalePriceValue(form.salePrice),
@@ -1426,6 +1490,7 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
         setVariants([]);
         setLocalImages([]);
         setSlugTouched(false);
+        setSkuTouched(false);
         setCreatedProduct(null);
         setWizardStep(1);
         setMaxVisitedWizardStep(1);
@@ -1435,6 +1500,7 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
       onBackToList={() => navigate(workspaceRoutes.catalog())}
       onFormChange={updateFormFields}
       onNameChange={handleNameChange}
+      onGenerateSku={handleGenerateSku}
       onMetaChange={updateForm2026Meta}
       onSeoChange={updateSeoFields}
       onAddFiles={addFiles}
