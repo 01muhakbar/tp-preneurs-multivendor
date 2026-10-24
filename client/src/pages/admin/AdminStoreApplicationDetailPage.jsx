@@ -93,9 +93,9 @@ const getStatusLabel = (status) => {
 
 const getStatusTone = (status) => {
   const normalized = String(status || "draft").toLowerCase();
-  if (["approved"].includes(normalized)) return "success";
-  if (["submitted", "under_review"].includes(normalized)) return "info";
-  if (["revision_requested"].includes(normalized)) return "warning";
+  if (["approved"].includes(normalized)) return "blue";
+  if (["submitted", "revision_requested"].includes(normalized)) return "orange";
+  if (["under_review"].includes(normalized)) return "blue";
   if (["rejected"].includes(normalized)) return "danger";
   return "neutral";
 };
@@ -281,11 +281,13 @@ function SummaryCard({ icon: Icon, label, value, helper, tone = "neutral", progr
   return (
     <section className={`asad-summary-card asad-summary-card--${tone}`}>
       <span className="asad-summary-card__icon" aria-hidden="true">
-        <Icon size={22} />
+        <Icon size={18} />
       </span>
       <div className="asad-summary-card__body">
-        <span>{label}</span>
-        <strong>{value}</strong>
+        <span className="asad-summary-card__label">{label}</span>
+        <strong className="asad-summary-card__value" title={typeof value === "string" ? value : undefined}>
+          {value}
+        </strong>
         {progress !== undefined ? (
           <span className="asad-progress">
             <span style={{ width: `${progress}%` }} />
@@ -294,6 +296,20 @@ function SummaryCard({ icon: Icon, label, value, helper, tone = "neutral", progr
         {helper ? <small className="asad-summary-card__helper">{helper}</small> : null}
       </div>
     </section>
+  );
+}
+
+function ReadinessItem({ icon: Icon, label, value, isReady }) {
+  return (
+    <div className={`asad-readiness-chip ${isReady ? "asad-readiness-chip--ready" : "asad-readiness-chip--pending"}`}>
+      <span className="asad-readiness-chip__icon" aria-hidden="true">
+        <Icon size={16} />
+      </span>
+      <div className="asad-readiness-chip__body">
+        <span className="asad-readiness-chip__label">{label}</span>
+        <strong className="asad-readiness-chip__value">{value}</strong>
+      </div>
+    </div>
   );
 }
 
@@ -312,15 +328,19 @@ function Section({ title, subtitle, children, className = "" }) {
 function FieldGrid({ fields, columns = "auto" }) {
   return (
     <div className={`asad-field-grid asad-field-grid--${columns}`}>
-      {fields.map((field) => (
-        <div
-          key={field.label}
-          className={`asad-field ${field.wide ? "asad-field--wide" : ""}`}
-        >
-          <span>{field.label}</span>
-          <strong>{text(field.value)}</strong>
-        </div>
-      ))}
+      {fields.map((field) => {
+        const valText = text(field.value);
+        const isEmpty = valText === DASH || !field.value;
+        return (
+          <div
+            key={field.label}
+            className={`asad-field ${field.wide ? "asad-field--wide" : ""}`}
+          >
+            <span>{field.label}</span>
+            <strong className={isEmpty ? "is-empty" : "has-value"}>{valText}</strong>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -329,8 +349,8 @@ function MatchTile({ label, value }) {
   const isMatch = value === true;
   const isMismatch = value === false;
   return (
-    <div className={`asad-match ${isMismatch ? "asad-match--danger" : "asad-match--success"}`}>
-      {isMismatch ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
+    <div className={`asad-match ${isMismatch ? "asad-match--warning" : "asad-match--success"}`}>
+      {isMismatch ? <AlertTriangle size={15} /> : <CheckCircle2 size={15} />}
       <div>
         <span>{label}</span>
         <strong>{isMismatch ? "Mismatch" : isMatch ? "Match" : DASH}</strong>
@@ -499,10 +519,10 @@ export default function AdminStoreApplicationDetailPage() {
           <h1>Store Application #{detail.id}</h1>
           <div className="asad-pills">
             <Pill tone={statusTone}>{detail.statusLabel}</Pill>
-            <Pill tone={publicStatus ? "success" : "neutral"}>
+            <Pill tone={publicStatus ? "blue" : "neutral"}>
               {publicStatus ? "Public" : "Not Public"}
             </Pill>
-            {hasReviewAction ? <Pill tone="warning">Action Needed</Pill> : <Pill tone="success">Reviewed</Pill>}
+            {hasReviewAction ? <Pill tone="orange">Action Needed</Pill> : <Pill tone="blue">Reviewed</Pill>}
           </div>
         </div>
         <div className="asad-header__actions">
@@ -515,20 +535,20 @@ export default function AdminStoreApplicationDetailPage() {
             className="asad-primary-button"
             onClick={() => reviewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
           >
-            Review
+            Review Application
           </button>
         </div>
       </header>
 
       <section className="asad-summary-grid" aria-label="Application summary">
         <SummaryCard icon={FileText} label="Status" value={detail.statusLabel} tone={statusTone} />
-        <SummaryCard icon={GitBranch} label="Step" value={detail.stepLabel} tone="info" />
+        <SummaryCard icon={GitBranch} label="Step" value={detail.stepLabel} tone="blue" />
         <SummaryCard
           icon={CheckCircle2}
-          label="Progress"
+          label="Completeness"
           value={`${detail.completeness.completed}/${detail.completeness.total}`}
           helper={`${detail.completeness.percent}% complete`}
-          tone="success"
+          tone="orange"
           progress={detail.completeness.percent}
         />
         <SummaryCard
@@ -536,32 +556,52 @@ export default function AdminStoreApplicationDetailPage() {
           label="Submitted"
           value={formatDate(detail.submittedAt)}
           helper={formatTime(detail.submittedAt)}
-          tone="warning"
+          tone="blue"
         />
         <SummaryCard icon={UserRound} label="Reviewer" value={text(detail.reviewer.name)} tone="neutral" />
         <SummaryCard
           icon={ShieldCheck}
           label="Identity Match"
           value={text(detail.identityMatch.summary)}
-          tone="purple"
+          tone="orange"
         />
       </section>
 
       <main className="asad-main-grid">
-        <Section title="Store Readiness" subtitle="Store access status.">
+        <Section title="Store Readiness">
           <div className="asad-readiness-grid">
-            <SummaryCard icon={Globe2} label="Visibility" value={publicStatus ? "Public" : "Not Public"} tone="warning" />
-            <SummaryCard icon={Database} label="Provisioned Store" value={boolText(provisionedStore)} tone="neutral" />
-            <SummaryCard icon={UsersRound} label="Owner Access" value={ownerAccess ? "Ready" : "Not Ready"} tone="neutral" />
-            <SummaryCard icon={UserRound} label="Seller Access" value={sellerAccess ? "Ready" : "Not Ready"} tone="neutral" />
+            <ReadinessItem
+              icon={Globe2}
+              label="Store Visibility"
+              value={publicStatus ? "Public" : "Not Public"}
+              isReady={publicStatus}
+            />
+            <ReadinessItem
+              icon={Database}
+              label="Provisioned Store"
+              value={boolText(provisionedStore)}
+              isReady={provisionedStore}
+            />
+            <ReadinessItem
+              icon={UsersRound}
+              label="Owner Access"
+              value={ownerAccess ? "Ready" : "Not Ready"}
+              isReady={ownerAccess}
+            />
+            <ReadinessItem
+              icon={UserRound}
+              label="Seller Access"
+              value={sellerAccess ? "Ready" : "Not Ready"}
+              isReady={sellerAccess}
+            />
           </div>
           <div className="asad-notice">
-            <AlertTriangle size={16} aria-hidden="true" />
-            Approval creates the store and owner access.
+            <AlertTriangle size={15} aria-hidden="true" />
+            <span>Admin approval will provision store workspace and activate seller access.</span>
           </div>
         </Section>
 
-        <Section title="Applicant Identity" subtitle="Account and identity.">
+        <Section title="Applicant Identity">
           <FieldGrid
             fields={[
               { label: "User ID", value: detail.applicant.userId },
@@ -586,7 +626,7 @@ export default function AdminStoreApplicationDetailPage() {
           </div>
         </Section>
 
-        <Section title="Store Information" subtitle="Store details.">
+        <Section title="Store Information">
           <FieldGrid
             fields={[
               { label: "Store Name", value: detail.store.name },
@@ -600,7 +640,7 @@ export default function AdminStoreApplicationDetailPage() {
           />
         </Section>
 
-        <Section title="Operational Verification" subtitle="Contact and address.">
+        <Section title="Operational Verification">
           <FieldGrid
             fields={[
               { label: "Contact", value: detail.operational.contact },
@@ -615,7 +655,7 @@ export default function AdminStoreApplicationDetailPage() {
           />
         </Section>
 
-        <Section title="Payment Profile" subtitle="Static QRIS request prepared during onboarding.">
+        <Section title="Payment Profile">
           {detail.financial.qrisImageUrl ? (
             <div className="asad-qris-preview">
               <img
@@ -623,7 +663,7 @@ export default function AdminStoreApplicationDetailPage() {
                 alt="Store application QRIS preview"
               />
               <div>
-                <span>QRIS image</span>
+                <span>QRIS Image</span>
                 <strong>Ready for Payment Profile review</strong>
                 <a
                   href={resolveAssetUrl(detail.financial.qrisImageUrl)}
@@ -650,7 +690,7 @@ export default function AdminStoreApplicationDetailPage() {
           />
         </Section>
 
-        <Section title="Compliance & Risk" subtitle="Risk signals.">
+        <Section title="Compliance & Risk">
           <FieldGrid
             fields={[
               { label: "Product Types", value: detail.compliance.productTypes },
@@ -669,7 +709,6 @@ export default function AdminStoreApplicationDetailPage() {
       <section className="asad-section asad-review" ref={reviewRef}>
         <div className="asad-section__head">
           <h2>Review Actions</h2>
-          <p>Choose an action.</p>
         </div>
         <div className="asad-action-grid">
           <button
@@ -677,10 +716,10 @@ export default function AdminStoreApplicationDetailPage() {
             className={`asad-action-card asad-action-card--approve ${activeAction === "approve" ? "is-active" : ""}`}
             onClick={() => setActiveAction("approve")}
           >
-            <CheckCircle2 size={28} aria-hidden="true" />
+            <CheckCircle2 size={24} aria-hidden="true" />
             <span>
               <strong>Approve</strong>
-              <small>Create store and grant access.</small>
+              <small>Provision store & activate access</small>
             </span>
           </button>
           <button
@@ -688,10 +727,10 @@ export default function AdminStoreApplicationDetailPage() {
             className={`asad-action-card asad-action-card--revision ${activeAction === "revision" ? "is-active" : ""}`}
             onClick={() => setActiveAction("revision")}
           >
-            <AlertTriangle size={28} aria-hidden="true" />
+            <AlertTriangle size={24} aria-hidden="true" />
             <span>
               <strong>Request Revision</strong>
-              <small>Send back for changes.</small>
+              <small>Send notes for seller correction</small>
             </span>
           </button>
           <button
@@ -699,10 +738,10 @@ export default function AdminStoreApplicationDetailPage() {
             className={`asad-action-card asad-action-card--reject ${activeAction === "reject" ? "is-active" : ""}`}
             onClick={() => setActiveAction("reject")}
           >
-            <XCircle size={28} aria-hidden="true" />
+            <XCircle size={24} aria-hidden="true" />
             <span>
               <strong>Reject</strong>
-              <small>Decline this application.</small>
+              <small>Decline this application</small>
             </span>
           </button>
         </div>
