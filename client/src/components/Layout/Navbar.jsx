@@ -73,6 +73,13 @@ const pageTitleFromPath = (pathname) => {
   ) {
     return "Coupons";
   }
+  if (
+    pathname.startsWith("/admin/store/applications") ||
+    pathname.startsWith("/admin/online-store/store-applications") ||
+    pathname.startsWith("/admin/store-applications")
+  ) {
+    return "Store Applications";
+  }
   if (pathname.startsWith("/admin/all-accounts")) return "All Accounts";
   if (pathname.startsWith("/admin/our-staff")) return "All Accounts";
   if (pathname.startsWith("/admin/settings")) return "Settings";

@@ -12,7 +12,11 @@ import {
 } from "../services/adminPublicAuth.service.js";
 import { ensureSellerStoreForUser } from "../services/seller/provisionSellerStore.js";
 
-const { User, Store } = models as { User?: any; Store?: any };
+const { User, Store, StoreApplication } = models as {
+  User?: any;
+  Store?: any;
+  StoreApplication?: any;
+};
 const router = Router();
 
 
@@ -220,7 +224,7 @@ function resolveSellerAccess(input: {
   };
 }
 
-function toStaffItem(row: any) {
+function toStaffItem(row: any, latestStoreApp?: any) {
   const normalizedStatus = String(row.status ?? "").toLowerCase().trim();
   const rawStore = row.store ?? row.get?.("store") ?? null;
   const store = rawStore
@@ -229,6 +233,18 @@ function toStaffItem(row: any) {
         name: String(rawStore.name ?? rawStore.get?.("name") ?? ""),
         slug: String(rawStore.slug ?? rawStore.get?.("slug") ?? ""),
         status: String(rawStore.status ?? rawStore.get?.("status") ?? "ACTIVE"),
+      }
+    : null;
+
+  const rawStoreApp = latestStoreApp ?? row.storeApplication ?? null;
+  const storeApplication = rawStoreApp
+    ? {
+        id: Number(rawStoreApp.id ?? rawStoreApp.get?.("id") ?? 0),
+        status: String(rawStoreApp.status ?? rawStoreApp.get?.("status") ?? "draft"),
+        currentStep: rawStoreApp.currentStep ?? rawStoreApp.get?.("currentStep") ?? null,
+        submittedAt: rawStoreApp.submittedAt
+          ? new Date(rawStoreApp.submittedAt).toISOString()
+          : null,
       }
     : null;
 
@@ -266,6 +282,7 @@ function toStaffItem(row: any) {
     isActive,
     isPendingApproval,
     store,
+    storeApplication,
     isPublished,
 
     createdAt: row.created_at
@@ -382,8 +399,32 @@ router.get("/", async (req, res) => {
       attributes: { exclude: ["password"] },
     });
 
+    const userIds = rows.map((r: any) => r.id).filter(Boolean);
+    const storeAppMap: Record<number, any> = {};
+    if (StoreApplication && userIds.length > 0) {
+      const storeApps = await StoreApplication.findAll({
+        where: { applicantUserId: { [Op.in]: userIds } },
+        attributes: [
+          "id",
+          "applicantUserId",
+          "status",
+          "currentStep",
+          "submittedAt",
+          "reviewedAt",
+          "updatedAt",
+        ],
+        order: [["id", "DESC"]],
+      });
+      for (const app of storeApps) {
+        const uid = Number(app.applicantUserId ?? app.get?.("applicantUserId"));
+        if (uid && !storeAppMap[uid]) {
+          storeAppMap[uid] = app;
+        }
+      }
+    }
+
     return res.json({
-      rows: rows.map(toStaffItem),
+      rows: rows.map((r: any) => toStaffItem(r, storeAppMap[r.id])),
       count,
       page,
       limit,
@@ -410,7 +451,25 @@ router.get("/:id", async (req, res) => {
       attributes: { exclude: ["password"] },
     });
     if (!user) return res.status(404).json({ success: false, message: "Staff record not found." });
-    return res.json(toStaffItem(user));
+
+    let latestApp = null;
+    if (StoreApplication) {
+      latestApp = await StoreApplication.findOne({
+        where: { applicantUserId: id },
+        attributes: [
+          "id",
+          "applicantUserId",
+          "status",
+          "currentStep",
+          "submittedAt",
+          "reviewedAt",
+          "updatedAt",
+        ],
+        order: [["id", "DESC"]],
+      });
+    }
+
+    return res.json(toStaffItem(user, latestApp));
 
   } catch (error) {
     return sendRouteError(res, error, "Failed to load staff detail.");

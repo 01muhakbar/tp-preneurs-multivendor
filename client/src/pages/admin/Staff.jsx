@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import {
   CheckCheck,
+  ClipboardCheck,
   Eye,
   Filter,
   Pencil,
@@ -110,6 +112,71 @@ function RoleBadge({ role }) {
       }`}
     >
       {formatRoleLabel(role)}
+    </span>
+  );
+}
+
+function StoreApplicationBadge({ staff }) {
+  if (normalizeRole(staff?.role) !== "seller") return null;
+
+  const app = staff?.storeApplication;
+  const store = staff?.store;
+
+  if (store && String(store.status).toUpperCase() === "ACTIVE") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9px] font-medium text-emerald-700">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+        Store: Active
+      </span>
+    );
+  }
+
+  if (!app) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-medium text-slate-500">
+        No Application
+      </span>
+    );
+  }
+
+  const status = String(app.status || "").toLowerCase();
+  const metaMap = {
+    submitted: {
+      label: "App: Submitted (In Queue)",
+      style: "border-amber-300 bg-amber-50 text-amber-800 font-semibold animate-pulse",
+    },
+    under_review: {
+      label: "App: In Review",
+      style: "border-sky-300 bg-sky-50 text-sky-800 font-semibold",
+    },
+    revision_requested: {
+      label: "App: Needs Revision",
+      style: "border-rose-200 bg-rose-50 text-rose-700",
+    },
+    approved: {
+      label: "App: Approved",
+      style: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    },
+    rejected: {
+      label: "App: Rejected",
+      style: "border-slate-200 bg-slate-100 text-slate-600",
+    },
+    draft: {
+      label: "App: Draft",
+      style: "border-slate-200 bg-slate-50 text-slate-500",
+    },
+  };
+
+  const meta = metaMap[status] || {
+    label: `App: ${status}`,
+    style: "border-slate-200 bg-slate-50 text-slate-600",
+  };
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] ${meta.style}`}
+    >
+      {meta.label}
     </span>
   );
 }
@@ -657,7 +724,10 @@ export default function AdminStaffPage() {
                         </div>
                       </td>
                       <td className={`${tableCell} w-[16%]`}>
-                        <RoleBadge role={staff?.role} />
+                        <div className="flex flex-col items-start gap-1">
+                          <RoleBadge role={staff?.role} />
+                          <StoreApplicationBadge staff={staff} />
+                        </div>
                       </td>
                       <td className={`${tableCell} w-[16%] whitespace-nowrap text-slate-600`}>
                         {formatJoiningDate(staff?.createdAt)}
@@ -709,6 +779,16 @@ export default function AdminStaffPage() {
                             >
                               <CheckCheck className="h-3.5 w-3.5" />
                             </button>
+                          ) : null}
+                          {staff?.storeApplication?.id ? (
+                            <Link
+                              to={`/admin/store/applications/${staff.storeApplication.id}`}
+                              className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-amber-300 bg-amber-50 text-amber-700 hover:border-amber-400 hover:bg-amber-100"
+                              title="Review Store Application"
+                              aria-label={`Review store application for ${getStaffName(staff)}`}
+                            >
+                              <ClipboardCheck className="h-3.5 w-3.5" />
+                            </Link>
                           ) : null}
                           <button
                             type="button"
@@ -844,9 +924,37 @@ export default function AdminStaffPage() {
                   </p>
                   <p className="mt-0.5 text-[10px] font-semibold text-emerald-700">Status: {viewTarget.store.status}</p>
                 </div>
-              ) : normalizeRole(viewTarget?.role) === "seller" ? (
+              ) : null}
+
+              {viewTarget?.storeApplication ? (
+                <div className="rounded-xl border border-sky-200 bg-sky-50/70 p-3 text-xs">
+                  <div className="flex items-center justify-between">
+                    <p className="font-semibold text-sky-900">Store Application:</p>
+                    <span className="rounded-full bg-sky-200/80 px-2 py-0.5 text-[10px] font-semibold text-sky-800 uppercase">
+                      {viewTarget.storeApplication.status}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-slate-600">
+                    Status: <strong className="text-slate-800">{viewTarget.storeApplication.status}</strong>
+                    {viewTarget.storeApplication.submittedAt && (
+                      <span className="ml-1 text-[11px] text-slate-500">
+                        (Submitted: {formatJoiningDate(viewTarget.storeApplication.submittedAt)})
+                      </span>
+                    )}
+                  </p>
+                  <div className="mt-2.5">
+                    <Link
+                      to={`/admin/store/applications/${viewTarget.storeApplication.id}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--admin-primary)] px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:opacity-95"
+                    >
+                      <ClipboardCheck className="h-3.5 w-3.5" />
+                      Open & Review Application
+                    </Link>
+                  </div>
+                </div>
+              ) : normalizeRole(viewTarget?.role) === "seller" && !viewTarget?.store ? (
                 <div className="rounded-xl border border-amber-100 bg-amber-50/70 p-2.5 text-xs text-amber-800">
-                  Toko penjual akan otomatis terhubung saat seller login di /seller/login.
+                  Seller belum memiliki permohonan toko yang diajukan.
                 </div>
               ) : null}
             </div>

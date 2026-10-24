@@ -965,11 +965,36 @@ export default function SellerStoreApplicationPage() {
       <section className="ssa-main">
         <header className="ssa-topbar">
           <div className="ssa-journey" aria-label="Seller onboarding progress">
-            {["Account Created", "Email Verified", "Store Application", "Review"].map((label, index) => (
-              <div className={`ssa-journey-step ${index < 2 ? "is-done" : index === 2 ? "is-active" : status !== "draft" ? "is-current" : ""}`} key={label}>
-                <span>{index < 2 ? <Check size={16} /> : index + 1}</span><small>{label}</small>
-              </div>
-            ))}
+            {["Account Created", "Email Verified", "Store Application", "Review"].map((label, index) => {
+              const isAccountOrEmail = index < 2;
+              const isStoreApp = index === 2;
+              const isReview = index === 3;
+
+              let stepClass = "";
+              if (isAccountOrEmail) {
+                stepClass = "is-done";
+              } else if (isStoreApp) {
+                stepClass = status && status !== "draft" ? "is-done" : "is-active";
+              } else if (isReview) {
+                if (status === "approved") {
+                  stepClass = "is-done";
+                } else if (status && status !== "draft") {
+                  stepClass = "is-active";
+                }
+              }
+
+              const isChecked =
+                isAccountOrEmail ||
+                (isStoreApp && Boolean(status && status !== "draft")) ||
+                (isReview && status === "approved");
+
+              return (
+                <div className={`ssa-journey-step ${stepClass}`} key={label}>
+                  <span>{isChecked ? <Check size={16} /> : index + 1}</span>
+                  <small>{label}</small>
+                </div>
+              );
+            })}
           </div>
           <div className="ssa-top-actions">
             <div className="ssa-theme-switch" aria-label="Color theme">
@@ -984,14 +1009,55 @@ export default function SellerStoreApplicationPage() {
         <div className="ssa-content-grid">
           <div className="ssa-workspace">
             <div className="ssa-page-heading">
-              <div><h1>Store Application</h1><p>Step {step + 1} of 4 <b>·</b> {STEPS[step].title}</p><span>{["Tell us about your store so customers can find and trust your brand.", "Tell us about the owner so we can verify your identity and build trust.", "Tell us how your business operates and fulfills customer orders.", "Upload the required documents and review your details before submitting."][step]}</span></div>
+              <div>
+                <h1>Store Application</h1>
+                <p>
+                  Step {step + 1} of {STEPS.length} <b>·</b> {STEPS[step].title}
+                  {!isEditable && status !== "approved" ? (
+                    <span style={{ marginLeft: 8, padding: "2px 8px", borderRadius: 9999, fontSize: 10, fontWeight: 700, backgroundColor: "rgba(56, 189, 248, 0.15)", color: "#38bdf8", border: "1px solid rgba(56, 189, 248, 0.3)" }}>
+                      Under Review
+                    </span>
+                  ) : null}
+                </p>
+                <span>{["Tell us about your store so customers can find and trust your brand.", "Tell us about the owner so we can verify your identity and build trust.", "Tell us how your business operates and fulfills customer orders.", "Upload the required documents and review your details before submitting."][step]}</span>
+              </div>
               <div className="ssa-heading-icon"><ActiveStepIcon size={42} /></div>
             </div>
 
-            {application?.revisionNote && <div className="ssa-workflow-message ssa-workflow-message--warning" role="alert"><strong>Revision requested</strong><span>{application.revisionNote}</span></div>}
-            {application?.rejectReason && <div className="ssa-workflow-message ssa-workflow-message--danger" role="alert"><strong>Application rejected</strong><span>{application.rejectReason}</span></div>}
-            {!isEditable && status !== "approved" && <div className="ssa-workflow-message"><strong>{application?.statusMeta?.label || "Application locked"}</strong><span>{application?.statusMeta?.description || "Editing is unavailable while admin review is in progress."}</span></div>}
-            {status === "approved" && <div className="ssa-workflow-message ssa-workflow-message--success" role="status"><strong>Your store application is approved.</strong><span>{workspaceSlug ? "Your seller workspace is ready." : "We're finishing your seller workspace access."}</span>{workspaceSlug && <Link to={`/seller/stores/${encodeURIComponent(workspaceSlug)}`}>Open Seller Workspace <ArrowRight size={16} /></Link>}</div>}
+            {application?.revisionNote && (
+              <div className="ssa-workflow-message ssa-workflow-message--warning" role="alert">
+                <strong>Revision requested</strong>
+                <span>{application.revisionNote}</span>
+              </div>
+            )}
+            {application?.rejectReason && (
+              <div className="ssa-workflow-message ssa-workflow-message--danger" role="alert">
+                <strong>Application rejected</strong>
+                <span>{application.rejectReason}</span>
+              </div>
+            )}
+            {!isEditable && status !== "approved" && (
+              <div className="ssa-workflow-message" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <Clock3 size={22} className="shrink-0" style={{ color: "#38bdf8" }} />
+                <div>
+                  <strong>{application?.statusMeta?.label || "Application Under Review"}</strong>
+                  <span style={{ display: "block", marginTop: 2 }}>
+                    {application?.statusMeta?.description || "Your store application was submitted and is in the review queue. Usually reviewed in 1–2 business days."}
+                  </span>
+                </div>
+              </div>
+            )}
+            {status === "approved" && (
+              <div className="ssa-workflow-message ssa-workflow-message--success" role="status">
+                <strong>Your store application is approved.</strong>
+                <span>{workspaceSlug ? "Your seller workspace is ready." : "We're finishing your seller workspace access."}</span>
+                {workspaceSlug && (
+                  <Link to={`/seller/stores/${encodeURIComponent(workspaceSlug)}`}>
+                    Open Seller Workspace <ArrowRight size={16} />
+                  </Link>
+                )}
+              </div>
+            )}
 
             <form className="ssa-form-card" onSubmit={(event) => event.preventDefault()}>
               <div className="ssa-card-title"><ActiveStepIcon size={20} /><strong>{STEPS[step].title}</strong>{application?.statusMeta && <span>{application.statusMeta.label}</span>}</div>
@@ -999,15 +1065,39 @@ export default function SellerStoreApplicationPage() {
 
               {(actionError || notice) && <div className={`ssa-action-message ${actionError ? "is-error" : "is-success"}`} role={actionError ? "alert" : "status"}>{actionError || notice}</div>}
 
-              <div className="ssa-form-actions">
-                <button type="button" className="ssa-button ssa-button--secondary" onClick={() => setStep((current) => Math.max(0, current - 1))} disabled={step === 0 || isBusy}><ArrowLeft size={18} /> Back</button>
-                <button type="button" className="ssa-button ssa-button--secondary" onClick={() => saveDraft().catch(() => {})} disabled={!isEditable || isBusy}>{saveMutation.isPending ? <Loader2 className="ssa-spin" size={18} /> : <Save size={18} />} Save Draft</button>
-                {step < 3 ? (
-                  <button type="button" className="ssa-button ssa-button--primary" onClick={continueStep} disabled={!isEditable || isBusy}>Continue <ArrowRight size={18} /></button>
-                ) : (
-                  <button type="button" className="ssa-button ssa-button--submit" onClick={submitApplication} disabled={!isEditable || isBusy}>{actionMutation.isPending ? <Loader2 className="ssa-spin" size={18} /> : <Send size={18} />}{status === "revision_requested" ? "Resubmit Application" : "Submit Application"}</button>
-                )}
-              </div>
+              {!isEditable && status !== "approved" ? (
+                <div className="ssa-form-actions ssa-form-actions--readonly" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                  <button
+                    type="button"
+                    className="ssa-button ssa-button--secondary"
+                    onClick={() => setStep((current) => Math.max(0, current - 1))}
+                    disabled={step === 0}
+                  >
+                    <ArrowLeft size={18} /> Previous Step
+                  </button>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: "var(--tp-muted, #94a3b8)", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <ShieldCheck size={16} style={{ color: "#38bdf8" }} /> Read-only mode while under review
+                  </span>
+                  <button
+                    type="button"
+                    className="ssa-button ssa-button--secondary"
+                    onClick={() => setStep((current) => Math.min(STEPS.length - 1, current + 1))}
+                    disabled={step === STEPS.length - 1}
+                  >
+                    Next Step <ArrowRight size={18} />
+                  </button>
+                </div>
+              ) : (
+                <div className="ssa-form-actions">
+                  <button type="button" className="ssa-button ssa-button--secondary" onClick={() => setStep((current) => Math.max(0, current - 1))} disabled={step === 0 || isBusy}><ArrowLeft size={18} /> Back</button>
+                  <button type="button" className="ssa-button ssa-button--secondary" onClick={() => saveDraft().catch(() => {})} disabled={!isEditable || isBusy}>{saveMutation.isPending ? <Loader2 className="ssa-spin" size={18} /> : <Save size={18} />} Save Draft</button>
+                  {step < STEPS.length - 1 ? (
+                    <button type="button" className="ssa-button ssa-button--primary" onClick={continueStep} disabled={!isEditable || isBusy}>Continue <ArrowRight size={18} /></button>
+                  ) : (
+                    <button type="button" className="ssa-button ssa-button--submit" onClick={submitApplication} disabled={!isEditable || isBusy}>{actionMutation.isPending ? <Loader2 className="ssa-spin" size={18} /> : <Send size={18} />}{status === "revision_requested" ? "Resubmit Application" : "Submit Application"}</button>
+                  )}
+                </div>
+              )}
               {application?.workflow?.canCancel && <button type="button" className="ssa-cancel-link" onClick={cancelApplication} disabled={isBusy}>Cancel application</button>}
             </form>
           </div>
@@ -1019,7 +1109,36 @@ export default function SellerStoreApplicationPage() {
             </section>
             <section className="ssa-summary-card"><h2>Verification Status</h2><div className="ssa-verification"><CheckCircle2 size={43} /><div><strong>Email Verified</strong><span>{form.ownerEmail || application?.applicant?.email || "Verified account"}</span><small>Identity linked to this application</small></div></div></section>
             <section className="ssa-summary-card"><h2>Requirements Checklist</h2><div className="ssa-requirements">{STEPS.map((entry, index) => <button type="button" className={step === index ? "is-active" : ""} key={entry.key} onClick={() => setStep(index)}>{stepValidity[index] ? <CheckCircle2 size={16} /> : <span />}{entry.title}</button>)}</div></section>
-            <section className="ssa-summary-card"><h2>Review Timeline</h2><div className="ssa-timeline"><span className={status !== "draft" ? "is-done" : "is-active"}><i>{status !== "draft" ? <Check size={13} /> : "1"}</i><b>Submitted</b><small>Your application enters the admin queue</small></span><span className={["under_review", "revision_requested"].includes(status) ? "is-active" : status === "approved" || status === "rejected" ? "is-done" : ""}><i>2</i><b>Admin Review</b><small>Usually completed in 1–2 days</small></span><span className={status === "approved" ? "is-done" : ""}><i>{status === "approved" ? <Check size={13} /> : "3"}</i><b>Activation</b><small>Publish your approved store</small></span></div></section>
+            <section className="ssa-summary-card">
+              <h2>Review Timeline</h2>
+              <div className="ssa-timeline">
+                <span className={status !== "draft" ? "is-done" : "is-active"}>
+                  <i>{status !== "draft" ? <Check size={13} /> : "1"}</i>
+                  <b>Submitted</b>
+                  <small>
+                    {application?.submittedAt
+                      ? `Submitted on ${new Date(application.submittedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+                      : "Your application enters the admin queue"}
+                  </small>
+                </span>
+                <span className={["submitted", "under_review", "revision_requested"].includes(status) ? (status === "revision_requested" ? "is-active is-warning" : "is-active") : status === "approved" || status === "rejected" ? "is-done" : ""}>
+                  <i>{status === "approved" ? <Check size={13} /> : "2"}</i>
+                  <b>Admin Review</b>
+                  <small>
+                    {status === "revision_requested"
+                      ? "Revision needed - see notes"
+                      : ["submitted", "under_review"].includes(status)
+                        ? "Under review (usually 1–2 days)"
+                        : "Usually completed in 1–2 days"}
+                  </small>
+                </span>
+                <span className={status === "approved" ? "is-done" : ""}>
+                  <i>{status === "approved" ? <Check size={13} /> : "3"}</i>
+                  <b>Activation</b>
+                  <small>{status === "approved" ? "Store workspace active" : "Publish your approved store"}</small>
+                </span>
+              </div>
+            </section>
             <section className="ssa-summary-card ssa-summary-help"><Headphones size={27} /><div><h2>Need Help?</h2><p>Our support team is ready to help.</p></div><a href="mailto:support@tpreneurs.com">Contact Support <ArrowRight size={16} /></a></section>
           </aside>
         </div>

@@ -21,6 +21,12 @@ export interface StaffItem {
   sellerRoleCode?: string | null;
   permissionKeys?: string[];
   store?: StaffStoreSummary | null;
+  storeApplication?: {
+    id: number;
+    status: string;
+    currentStep?: string | null;
+    submittedAt?: string | null;
+  } | null;
   isActive: boolean;
   isPublished: boolean;
   createdAt: string; // ISO
