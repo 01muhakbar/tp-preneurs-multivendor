@@ -7,6 +7,7 @@ import {
   StorePaymentProfile,
   StorePaymentProfileRequest,
   StoreRole,
+  User,
 } from "../models/index.js";
 import {
   buildStoreApplicationMutationMetadata,
@@ -529,6 +530,13 @@ export async function provisionApprovedStoreApplication(
       } as any,
       { transaction }
     );
+
+    if (User && applicantUserId > 0) {
+      await User.update(
+        { role: "seller" } as any,
+        { where: { id: applicantUserId } as any, transaction }
+      );
+    }
 
     return {
       store,

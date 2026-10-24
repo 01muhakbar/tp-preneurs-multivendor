@@ -397,6 +397,17 @@ router.post("/store-applications/:applicationId/submit", async (req, res) => {
       } as any
     );
 
+    if (User && userId > 0) {
+      try {
+        const applicantUser = await User.findByPk(userId);
+        if (applicantUser && String(applicantUser.role).toLowerCase() === "customer") {
+          await applicantUser.update({ role: "seller" });
+        }
+      } catch (err) {
+        console.warn("[user/store-applications:submit] Failed to sync user role to seller:", err);
+      }
+    }
+
     const updated = await loadOwnedStoreApplicationById(applicationId, userId);
 
     return res.json({
@@ -469,6 +480,17 @@ router.post("/store-applications/:applicationId/resubmit", async (req, res) => {
         }),
       } as any
     );
+
+    if (User && userId > 0) {
+      try {
+        const applicantUser = await User.findByPk(userId);
+        if (applicantUser && String(applicantUser.role).toLowerCase() === "customer") {
+          await applicantUser.update({ role: "seller" });
+        }
+      } catch (err) {
+        console.warn("[user/store-applications:resubmit] Failed to sync user role to seller:", err);
+      }
+    }
 
     const updated = await loadOwnedStoreApplicationById(applicationId, userId);
 

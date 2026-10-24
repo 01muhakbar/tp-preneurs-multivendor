@@ -275,7 +275,7 @@ function toStaffItem(row: any, latestStoreApp?: any) {
     email: row.email,
     phoneNumber: row.phoneNumber ?? row.phone_number ?? null,
     avatarUrl: normalizeAvatarUrl(row.avatarUrl ?? row.avatar_url),
-    role: row.role,
+    role: row.role === "customer" && rawStoreApp ? "seller" : row.role,
     sellerRoleCode: row.sellerRoleCode ?? row.seller_role_code ?? null,
     permissionKeys: parseStringArray(row.permissionKeys ?? row.permission_keys),
     status: effectiveStatus,
@@ -374,14 +374,66 @@ router.get("/", async (req, res) => {
         : "created_at";
     const sortDir = String(req.query.sort ?? "DESC").toUpperCase() === "ASC" ? "ASC" : "DESC";
 
-    const where: any = { role: toWhereRole(role) };
-    if (q) {
-      where[Op.or] = [
-        { name: { [Op.like]: `%${q}%` } },
-        { email: { [Op.like]: `%${q}%` } },
-        { phoneNumber: { [Op.like]: `%${q}%` } },
-      ];
+    let applicantUserIds: number[] = [];
+    if (StoreApplication) {
+      try {
+        const apps = await StoreApplication.findAll({
+          attributes: ["applicantUserId"],
+          raw: true,
+        });
+        applicantUserIds = Array.from(
+          new Set(
+            apps
+              .map((a: any) => Number(a.applicantUserId ?? a.applicant_user_id))
+              .filter((id: number) => Number.isFinite(id) && id > 0)
+          )
+        );
+      } catch (err) {
+        console.warn("[admin.staff] Failed to load applicant user ids:", err);
+      }
     }
+
+    const andConditions: any[] = [];
+
+    if (role === "seller") {
+      if (applicantUserIds.length > 0) {
+        andConditions.push({
+          [Op.or]: [
+            { role: "seller" },
+            { id: { [Op.in]: applicantUserIds } },
+          ],
+        });
+      } else {
+        andConditions.push({ role: "seller" });
+      }
+    } else if (role && MANAGED_ROLE_SET.has(role)) {
+      andConditions.push({ role });
+    } else if (role) {
+      andConditions.push({ role: "__none__" });
+    } else {
+      if (applicantUserIds.length > 0) {
+        andConditions.push({
+          [Op.or]: [
+            { role: { [Op.in]: [...MANAGED_ROLES] } },
+            { id: { [Op.in]: applicantUserIds } },
+          ],
+        });
+      } else {
+        andConditions.push({ role: { [Op.in]: [...MANAGED_ROLES] } });
+      }
+    }
+
+    if (q) {
+      andConditions.push({
+        [Op.or]: [
+          { name: { [Op.like]: `%${q}%` } },
+          { email: { [Op.like]: `%${q}%` } },
+          { phoneNumber: { [Op.like]: `%${q}%` } },
+        ],
+      });
+    }
+
+    const where: any = andConditions.length > 0 ? { [Op.and]: andConditions } : {};
 
     const { rows, count } = await (User as any).findAndCountAll({
       where,

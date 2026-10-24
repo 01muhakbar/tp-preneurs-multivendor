@@ -117,7 +117,7 @@ function RoleBadge({ role }) {
 }
 
 function StoreApplicationBadge({ staff }) {
-  if (normalizeRole(staff?.role) !== "seller") return null;
+  if (normalizeRole(staff?.role) !== "seller" && !staff?.storeApplication) return null;
 
   const app = staff?.storeApplication;
   const store = staff?.store;
