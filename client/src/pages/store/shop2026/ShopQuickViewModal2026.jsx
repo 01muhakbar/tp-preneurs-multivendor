@@ -1,5 +1,5 @@
 import { Image, Loader2, ShoppingCart, Star, X, Zap } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { useProduct } from "../../../storefront.jsx";
@@ -8,10 +8,30 @@ import { mapProductToShopCard } from "./shopProductAdapter.js";
 
 export default function ShopQuickViewModal2026({ card, onClose, onAdd, onBuyNow }) {
   const { data, isLoading, isError } = useProduct(card?.slug || "");
+  const [imageIndex, setImageIndex] = useState(0);
+  const [imageFailed, setImageFailed] = useState(false);
+
   const detail = useMemo(() => {
     const source = data?.data ?? data?.product ?? data;
     return source ? mapProductToShopCard(source) : card;
   }, [card, data]);
+
+  const imageCandidates = useMemo(() => {
+    if (Array.isArray(detail?.images) && detail.images.length > 0) {
+      return detail.images;
+    }
+    return detail?.image ? [detail.image] : [];
+  }, [detail?.images, detail?.image]);
+
+  const activeImage = imageCandidates[imageIndex] || null;
+
+  const handleImageError = () => {
+    if (imageIndex + 1 < imageCandidates.length) {
+      setImageIndex((prev) => prev + 1);
+    } else {
+      setImageFailed(true);
+    }
+  };
 
   useEffect(() => {
     if (!card) return undefined;
@@ -39,7 +59,11 @@ export default function ShopQuickViewModal2026({ card, onClose, onAdd, onBuyNow 
         ) : (
           <>
             <div className="tp-shop-modal__media">
-              {detail.image ? <img src={detail.image} alt={detail.name} /> : <Image />}
+              {activeImage && !imageFailed ? (
+                <img src={activeImage} alt={detail.name} onError={handleImageError} />
+              ) : (
+                <Image />
+              )}
               {detail.discount > 0 ? <span className="tp-product-card__discount">-{detail.discount}%</span> : null}
             </div>
             <div className="tp-shop-modal__content">

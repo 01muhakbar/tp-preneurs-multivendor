@@ -24,15 +24,47 @@ export const normalizeShopArray = (payload, keys = []) => {
 export const getShopCategoryValue = (category) =>
   readShopText(category?.slug, category?.code, category?.id, category?.name);
 
-const getImage = (product) => {
-  const resolved = resolveProductImageUrl(product);
-  if (resolved) return resolved;
+export const getProductImages = (product) => {
+  const images = [];
+  const primary = resolveProductImageUrl(product);
+  if (primary) images.push(primary);
+
+  const rawList = Array.isArray(product?.imagePaths)
+    ? product.imagePaths
+    : Array.isArray(product?.imageUrls)
+      ? product.imageUrls
+      : Array.isArray(product?.images)
+        ? product.images
+        : [];
+
+  for (const item of rawList) {
+    if (!item) continue;
+    const resolved = resolveProductImageUrl(typeof item === "string" ? { imageUrl: item } : item);
+    if (resolved && !images.includes(resolved)) {
+      images.push(resolved);
+    }
+  }
+
   const gallery = normalizeShopArray(product?.gallery ?? product?.media ?? product?.assets, [
     "items",
     "images",
   ]);
-  const first = gallery[0];
-  return readShopText(first?.url, first?.src, first?.imageUrl, first);
+  for (const item of gallery) {
+    const raw = readShopText(item?.url, item?.src, item?.imageUrl, item);
+    if (raw) {
+      const resolved = resolveProductImageUrl({ imageUrl: raw });
+      if (resolved && !images.includes(resolved)) {
+        images.push(resolved);
+      }
+    }
+  }
+
+  return images;
+};
+
+const getImage = (product) => {
+  const allImages = getProductImages(product);
+  return allImages[0] || "";
 };
 
 const getPrice = (product) => {
@@ -90,6 +122,8 @@ export function mapProductToShopCard(product) {
       ? purchaseState.isPurchasable
       : !(Number.isFinite(stockValue) && stockValue <= 0);
 
+  const allImages = getProductImages(product);
+
   return {
     raw: product,
     id: Number.isFinite(id) ? id : null,
@@ -97,7 +131,8 @@ export function mapProductToShopCard(product) {
     href: slug ? `/product/${encodeURIComponent(slug)}` : "#",
     name,
     category,
-    image: getImage(product),
+    image: allImages[0] || "",
+    images: allImages,
     price,
     originalPrice,
     discount: Math.max(

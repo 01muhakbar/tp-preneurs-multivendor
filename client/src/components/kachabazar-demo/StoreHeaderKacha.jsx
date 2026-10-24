@@ -90,9 +90,10 @@ const isNavItemActive = (pathname, href) => {
 };
 
 function LogoMark({ logoUrl, logoVersion }) {
+  const [imgError, setImgError] = useState(false);
   const src = resolveAssetUrl(logoUrl);
 
-  if (src) {
+  if (src && !imgError) {
     const separator = src.includes("?") ? "&" : "?";
     const versionedSrc = logoVersion ? `${src}${separator}v=${logoVersion}` : src;
     return (
@@ -104,6 +105,7 @@ function LogoMark({ logoUrl, logoVersion }) {
         <img
           src={versionedSrc}
           alt="TP Preneurs logo"
+          onError={() => setImgError(true)}
           className="h-full w-full object-contain object-left"
         />
       </Link>

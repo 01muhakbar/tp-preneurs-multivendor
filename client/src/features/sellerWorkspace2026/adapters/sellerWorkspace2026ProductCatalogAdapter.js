@@ -76,7 +76,15 @@ const mapProduct = (item) => {
     id: item.id ?? null,
     title: item.name ?? item.title ?? "Untitled",
     sku: item.sku ?? item.primarySku ?? null,
-    thumbnailUrl: item.thumbnailUrl ?? item.imageUrl ?? item.imageUrls?.[0] ?? null,
+    thumbnailUrl:
+      item.thumbnailUrl ??
+      item.mediaPreviewUrl ??
+      item.imageUrl ??
+      item.imageUrls?.[0] ??
+      item.promoImagePath ??
+      item.imagePaths?.[0] ??
+      item.images?.[0] ??
+      null,
     price: item.price ?? item.basePrice ?? null,
     compareAtPrice: item.compareAtPrice ?? item.salePrice ?? null,
     stock: item.stock ?? item.totalStock ?? 0,

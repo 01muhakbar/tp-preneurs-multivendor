@@ -1,5 +1,5 @@
 import { Eye, Heart, Image, Loader2, ShoppingCart, Star, Zap } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { formatCurrency } from "../../../utils/format.js";
@@ -28,8 +28,26 @@ export default function ShopProductCard2026({
 }) {
   const { i18n } = useTranslation();
   const isIndo = i18n.language === 'id' || i18n.language === 'id-ID';
+  const [imageIndex, setImageIndex] = useState(0);
   const [imageFailed, setImageFailed] = useState(false);
   const [pending, setPending] = useState("");
+
+  const imageCandidates = useMemo(() => {
+    if (Array.isArray(card.images) && card.images.length > 0) {
+      return card.images;
+    }
+    return card.image ? [card.image] : [];
+  }, [card.images, card.image]);
+
+  const activeImage = imageCandidates[imageIndex] || null;
+
+  const handleImageError = () => {
+    if (imageIndex + 1 < imageCandidates.length) {
+      setImageIndex((prev) => prev + 1);
+    } else {
+      setImageFailed(true);
+    }
+  };
 
   const run = async (action, callback) => {
     if (!card.id || !card.isPurchasable || pending) return;
@@ -45,8 +63,8 @@ export default function ShopProductCard2026({
     <article className="tp-product-card">
       <div className="tp-product-card__media">
         <Link to={card.href} aria-label={`View ${card.name}`}>
-          {card.image && !imageFailed ? (
-            <img src={card.image} alt={card.name} onError={() => setImageFailed(true)} />
+          {activeImage && !imageFailed ? (
+            <img src={activeImage} alt={card.name} onError={handleImageError} />
           ) : (
             <span className="tp-product-card__fallback"><Image aria-hidden="true" /></span>
           )}

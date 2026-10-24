@@ -261,7 +261,32 @@ export default function Seller2026LiveProductsPage() {
                 <article className="seller2026-product-row" key={product.id}>
                   <input type="checkbox" checked={selected.includes(product.id)} onChange={(event) => setSelected((current) => event.target.checked ? [...current, product.id] : current.filter((id) => id !== product.id))} />
                   <div className="seller2026-product-row__identity">
-                    <div>{product.thumbnailUrl ? <img src={resolveAssetUrl(product.thumbnailUrl)} alt="" /> : <Box size={20} />}</div>
+                    <div>
+                      {product.thumbnailUrl ? (
+                        <img
+                          src={resolveAssetUrl(product.thumbnailUrl)}
+                          alt=""
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.style.display = "none";
+                            const fallback = e.currentTarget.parentElement?.querySelector(".seller2026-product-thumb-fallback");
+                            if (fallback) fallback.style.display = "flex";
+                          }}
+                        />
+                      ) : null}
+                      <span
+                        className="seller2026-product-thumb-fallback"
+                        style={{
+                          display: product.thumbnailUrl ? "none" : "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: "100%",
+                          height: "100%",
+                        }}
+                      >
+                        <Box size={20} />
+                      </span>
+                    </div>
                     <span><strong>{product.name}</strong><small>{product.slug || product.sku}</small></span><Pill>{lifecycleLabel(product.status, isId)}</Pill>
                   </div>
                   <span data-label={isId ? "Kategori" : "Category"}>{product.category}</span>
