@@ -1,30 +1,41 @@
-/* ==========================================================================
-   Admin Store Application Detail Page (2026 Modern Edition)
-   Strict Palette: #034c85 (Brand Royal Blue) & #fe6f05 (Brand Vibrant Orange)
-   ========================================================================== */
+/**
+ * AdminStoreApplicationDetailPage.css
+ * TP Preneurs Admin Store Application Detail
+ * Strict Brand Palette: #034c85 (TP Royal Blue) & #fe6f05 (TP Vibrant Orange)
+ * Modern, Elegant Dark Mode Alignment
+ */
 
 .asad-page {
   /* Brand Tokens */
   --asad-brand-blue: #034c85;
+  --asad-brand-blue-hover: #023864;
+  --asad-brand-blue-light: #38bdf8;
+  --asad-brand-blue-soft: rgba(3, 76, 133, 0.18);
+  --asad-brand-blue-border: rgba(3, 76, 133, 0.38);
+
   --asad-brand-orange: #fe6f05;
-  --asad-brand-blue-soft: rgba(3, 76, 133, 0.16);
-  --asad-brand-orange-soft: rgba(254, 111, 5, 0.14);
+  --asad-brand-orange-hover: #e05e00;
+  --asad-brand-orange-light: #ff8528;
+  --asad-brand-orange-soft: rgba(254, 111, 5, 0.15);
+  --asad-brand-orange-border: rgba(254, 111, 5, 0.36);
 
-  /* Dark Theme Surfaces (Default admin shell alignment) */
+  /* Dark Theme Surfaces (Default aligned with Ruang Kerja Admin) */
   --asad-bg: transparent;
-  --asad-surface: #0a1628;
-  --asad-surface-card: #0e2039;
-  --asad-surface-hover: #132a4a;
-  --asad-border: #163054;
-  --asad-border-subtle: rgba(3, 76, 133, 0.28);
+  --asad-surface: #081424;
+  --asad-surface-card: #0d1e34;
+  --asad-surface-hover: #122846;
+  --asad-border: rgba(255, 255, 255, 0.08);
+  --asad-border-subtle: rgba(3, 76, 133, 0.32);
 
-  --asad-text: #f8fafc;
+  --asad-text: #f1f5f9;
   --asad-text-muted: #94a3b8;
   --asad-text-dim: #64748b;
+  --asad-danger: #ef4444;
 
-  --asad-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
-  --asad-glow-blue: 0 0 16px rgba(3, 76, 133, 0.35);
-  --asad-glow-orange: 0 0 16px rgba(254, 111, 5, 0.35);
+  --asad-shadow: 0 14px 34px rgba(0, 0, 0, 0.35);
+  --asad-shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.25);
+  --asad-glow-blue: 0 0 18px rgba(3, 76, 133, 0.4);
+  --asad-glow-orange: 0 0 18px rgba(254, 111, 5, 0.4);
 
   width: 100%;
   min-width: 0;
@@ -43,15 +54,16 @@
   font: inherit;
 }
 
-/* --------------------------------------------------------------------------
+/* ==========================================================================
    Header Bar
-   -------------------------------------------------------------------------- */
+   ========================================================================== */
+
 .asad-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 20px;
-  margin-bottom: 22px;
+  gap: 18px;
+  margin-bottom: 20px;
 }
 
 .asad-breadcrumb {
@@ -59,9 +71,10 @@
   align-items: center;
   gap: 8px;
   color: var(--asad-text-muted);
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
 }
 
 .asad-breadcrumb span:last-child {
@@ -72,7 +85,7 @@
 .asad-header h1 {
   margin: 0;
   color: var(--asad-text);
-  font-size: 26px;
+  font-size: 25px;
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1.2;
@@ -82,8 +95,8 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 7px;
+  margin-top: 8px;
 }
 
 .asad-pill {
@@ -94,20 +107,20 @@
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
-  padding: 0 12px;
+  padding: 0 11px;
   white-space: nowrap;
   letter-spacing: 0.02em;
 }
 
 .asad-pill--blue {
   background: var(--asad-brand-blue-soft);
-  border: 1px solid rgba(3, 76, 133, 0.45);
+  border: 1px solid var(--asad-brand-blue-border);
   color: #60a5fa;
 }
 
 .asad-pill--orange {
   background: var(--asad-brand-orange-soft);
-  border: 1px solid rgba(254, 111, 5, 0.45);
+  border: 1px solid var(--asad-brand-orange-border);
   color: var(--asad-brand-orange);
 }
 
@@ -157,7 +170,7 @@
 }
 
 .asad-primary-button:hover {
-  background: #e06204;
+  background: var(--asad-brand-orange-hover);
   transform: translateY(-1px);
   box-shadow: 0 6px 18px rgba(254, 111, 5, 0.4);
 }
@@ -175,17 +188,18 @@
   transform: translateY(-1px);
 }
 
-/* --------------------------------------------------------------------------
-   Summary Grid (KPI Metrics) - Responsive & Anti-Squish
-   -------------------------------------------------------------------------- */
+/* ==========================================================================
+   Summary Grid (KPI Metrics)
+   ========================================================================== */
+
 .asad-summary-grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
-  margin-bottom: 22px;
+  margin-bottom: 20px;
 }
 
-@media (max-width: 1440px) {
+@media (max-width: 1400px) {
   .asad-summary-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -211,13 +225,13 @@
   border: 1px solid var(--asad-border);
   border-radius: 12px;
   background: var(--asad-surface);
-  box-shadow: var(--asad-shadow);
-  padding: 14px 16px;
+  box-shadow: var(--asad-shadow-sm);
+  padding: 13px 15px;
   transition: border-color 0.15s ease, transform 0.15s ease;
 }
 
 .asad-summary-card:hover {
-  border-color: rgba(3, 76, 133, 0.6);
+  border-color: var(--asad-brand-blue-border);
   transform: translateY(-1px);
 }
 
@@ -234,13 +248,13 @@
 .asad-summary-card--blue .asad-summary-card__icon {
   background: var(--asad-brand-blue-soft);
   color: #60a5fa;
-  border: 1px solid rgba(3, 76, 133, 0.35);
+  border: 1px solid var(--asad-brand-blue-border);
 }
 
 .asad-summary-card--orange .asad-summary-card__icon {
   background: var(--asad-brand-orange-soft);
   color: var(--asad-brand-orange);
-  border: 1px solid rgba(254, 111, 5, 0.35);
+  border: 1px solid var(--asad-brand-orange-border);
 }
 
 .asad-summary-card--danger .asad-summary-card__icon {
@@ -266,7 +280,7 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -275,10 +289,10 @@
 .asad-summary-card__value {
   display: block;
   color: var(--asad-text);
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 800;
   line-height: 1.3;
-  margin-top: 3px;
+  margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -287,9 +301,9 @@
 .asad-summary-card__helper {
   display: block;
   color: var(--asad-text-dim);
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 600;
-  margin-top: 3px;
+  margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -300,25 +314,26 @@
   overflow: hidden;
   height: 4px;
   border-radius: 999px;
-  background: rgba(148, 163, 184, 0.2);
-  margin-top: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  margin-top: 5px;
 }
 
 .asad-progress span {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: var(--asad-brand-orange);
+  background: linear-gradient(90deg, var(--asad-brand-orange), var(--asad-brand-orange-light));
 }
 
-/* --------------------------------------------------------------------------
+/* ==========================================================================
    Main Layout Grid - Balanced 2 Columns
-   -------------------------------------------------------------------------- */
+   ========================================================================== */
+
 .asad-main-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  margin-bottom: 22px;
+  margin-bottom: 20px;
 }
 
 @media (max-width: 1080px) {
@@ -327,9 +342,10 @@
   }
 }
 
-/* --------------------------------------------------------------------------
+/* ==========================================================================
    Section Card
-   -------------------------------------------------------------------------- */
+   ========================================================================== */
+
 .asad-section {
   min-width: 0;
   border: 1px solid var(--asad-border);
@@ -339,13 +355,17 @@
   padding: 18px 20px;
 }
 
+.asad-section--full {
+  grid-column: 1 / -1;
+}
+
 .asad-section__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 14px;
   padding-bottom: 10px;
-  border-bottom: 1px solid rgba(22, 48, 84, 0.7);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .asad-section h2 {
@@ -368,9 +388,10 @@
   background: var(--asad-brand-blue);
 }
 
-/* --------------------------------------------------------------------------
-   Store Readiness (Anti-Squish Dedicated Component)
-   -------------------------------------------------------------------------- */
+/* ==========================================================================
+   Store Readiness Component
+   ========================================================================== */
+
 .asad-readiness-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -388,7 +409,7 @@
   min-width: 0;
   align-items: center;
   gap: 10px;
-  padding: 11px 14px;
+  padding: 10px 13px;
   border-radius: 10px;
   background: var(--asad-surface-card);
   border: 1px solid var(--asad-border);
@@ -408,13 +429,13 @@
 .asad-readiness-chip--ready .asad-readiness-chip__icon {
   background: var(--asad-brand-blue-soft);
   color: #60a5fa;
-  border: 1px solid rgba(3, 76, 133, 0.4);
+  border: 1px solid var(--asad-brand-blue-border);
 }
 
 .asad-readiness-chip--pending .asad-readiness-chip__icon {
   background: var(--asad-brand-orange-soft);
   color: var(--asad-brand-orange);
-  border: 1px solid rgba(254, 111, 5, 0.35);
+  border: 1px solid var(--asad-brand-orange-border);
 }
 
 .asad-readiness-chip__body {
@@ -432,36 +453,36 @@
 
 .asad-readiness-chip__value {
   display: inline-block;
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 800;
-  padding: 1px 8px;
-  border-radius: 6px;
+  padding: 1px 7px;
+  border-radius: 5px;
 }
 
 .asad-readiness-chip--ready .asad-readiness-chip__value {
-  background: rgba(3, 76, 133, 0.25);
+  background: var(--asad-brand-blue-soft);
   color: #93c5fd;
-  border: 1px solid rgba(3, 76, 133, 0.4);
+  border: 1px solid var(--asad-brand-blue-border);
 }
 
 .asad-readiness-chip--pending .asad-readiness-chip__value {
-  background: rgba(254, 111, 5, 0.12);
+  background: var(--asad-brand-orange-soft);
   color: var(--asad-brand-orange);
-  border: 1px solid rgba(254, 111, 5, 0.3);
+  border: 1px solid var(--asad-brand-orange-border);
 }
 
 .asad-notice {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   border-radius: 10px;
-  background: rgba(254, 111, 5, 0.08);
-  border: 1px solid rgba(254, 111, 5, 0.3);
+  background: var(--asad-brand-orange-soft);
+  border: 1px solid var(--asad-brand-orange-border);
   color: #fdba74;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   margin-top: 12px;
-  padding: 10px 14px;
+  padding: 9px 13px;
 }
 
 .asad-notice svg {
@@ -469,17 +490,29 @@
   color: var(--asad-brand-orange);
 }
 
-/* --------------------------------------------------------------------------
+/* ==========================================================================
    Field Key-Value Grid
-   -------------------------------------------------------------------------- */
+   ========================================================================== */
+
 .asad-field-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
+.asad-field-grid--4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .asad-field-grid--4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 640px) {
-  .asad-field-grid {
+  .asad-field-grid,
+  .asad-field-grid--4 {
     grid-template-columns: 1fr;
   }
 }
@@ -494,7 +527,7 @@
 }
 
 .asad-field:hover {
-  border-color: rgba(3, 76, 133, 0.5);
+  border-color: var(--asad-brand-blue-border);
 }
 
 .asad-field--wide {
@@ -504,7 +537,7 @@
 .asad-field span {
   display: block;
   color: var(--asad-text-muted);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
   margin-bottom: 2px;
   text-transform: uppercase;
@@ -525,14 +558,15 @@
   font-weight: 500;
 }
 
-/* --------------------------------------------------------------------------
+/* ==========================================================================
    Identity Match Grid & Tiles
-   -------------------------------------------------------------------------- */
+   ========================================================================== */
+
 .asad-match-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 @media (max-width: 640px) {
@@ -545,15 +579,15 @@
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   border-radius: 8px;
-  padding: 8px 12px;
+  padding: 8px 11px;
   font-size: 12px;
 }
 
 .asad-match--success {
-  background: rgba(3, 76, 133, 0.15);
-  border: 1px solid rgba(3, 76, 133, 0.4);
+  background: var(--asad-brand-blue-soft);
+  border: 1px solid var(--asad-brand-blue-border);
 }
 
 .asad-match--success svg {
@@ -566,8 +600,8 @@
 }
 
 .asad-match--warning {
-  background: rgba(254, 111, 5, 0.12);
-  border: 1px solid rgba(254, 111, 5, 0.35);
+  background: var(--asad-brand-orange-soft);
+  border: 1px solid var(--asad-brand-orange-border);
 }
 
 .asad-match--warning svg {
@@ -582,8 +616,9 @@
 .asad-match span {
   display: block;
   color: var(--asad-text-muted);
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 600;
+  text-transform: uppercase;
 }
 
 .asad-match strong {
@@ -592,67 +627,13 @@
   font-size: 12px;
 }
 
-/* --------------------------------------------------------------------------
-   QRIS Preview Card
-   -------------------------------------------------------------------------- */
-.asad-qris-preview {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  border: 1px solid var(--asad-border);
-  border-radius: 12px;
-  background: var(--asad-surface-card);
-  margin-bottom: 12px;
-  padding: 12px 16px;
-}
-
-.asad-qris-preview img {
-  width: 100px;
-  height: 100px;
-  border: 1px solid var(--asad-border);
-  border-radius: 10px;
-  background: #ffffff;
-  object-fit: contain;
-  padding: 4px;
-}
-
-.asad-qris-preview span {
-  color: var(--asad-text-muted);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  margin-bottom: 3px;
-  display: block;
-}
-
-.asad-qris-preview strong {
-  color: var(--asad-text);
-  font-size: 13.5px;
-  font-weight: 800;
-  margin-bottom: 6px;
-  display: block;
-}
-
-.asad-qris-preview a {
-  color: var(--asad-brand-orange);
-  font-size: 12px;
-  font-weight: 700;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.asad-qris-preview a:hover {
-  text-decoration: underline;
-}
-
-/* --------------------------------------------------------------------------
+/* ==========================================================================
    Review Actions Decision Center
-   -------------------------------------------------------------------------- */
+   ========================================================================== */
+
 .asad-review {
   margin-top: 10px;
-  border-color: rgba(3, 76, 133, 0.4);
+  border-color: var(--asad-brand-blue-border);
 }
 
 .asad-action-grid {
@@ -670,8 +651,8 @@
 .asad-action-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 16px;
+  gap: 12px;
+  padding: 14px 16px;
   border-radius: 12px;
   border: 1.5px solid var(--asad-border);
   background: var(--asad-surface-card);
@@ -682,7 +663,7 @@
 }
 
 .asad-action-card:hover {
-  border-color: rgba(3, 76, 133, 0.6);
+  border-color: var(--asad-brand-blue-border);
   transform: translateY(-2px);
   background: var(--asad-surface-hover);
 }
@@ -693,14 +674,14 @@
 
 .asad-action-card strong {
   display: block;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 800;
 }
 
 .asad-action-card small {
   display: block;
   color: var(--asad-text-muted);
-  font-size: 11.5px;
+  font-size: 11px;
   margin-top: 2px;
 }
 
@@ -737,30 +718,30 @@
 
 /* Action Form */
 .asad-action-form {
-  margin-top: 16px;
-  padding-top: 16px;
+  margin-top: 14px;
+  padding-top: 14px;
   border-top: 1px solid var(--asad-border);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .asad-action-form label span {
   display: block;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
   color: var(--asad-text-muted);
-  margin-bottom: 6px;
+  margin-bottom: 5px;
 }
 
 .asad-action-form textarea {
   width: 100%;
-  min-height: 80px;
-  border-radius: 10px;
+  min-height: 75px;
+  border-radius: 9px;
   border: 1px solid var(--asad-border);
   background: var(--asad-surface-card);
   color: var(--asad-text);
-  padding: 10px 14px;
+  padding: 9px 13px;
   font-size: 13px;
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -768,15 +749,15 @@
 }
 
 .asad-action-form textarea:focus {
-  border-color: var(--asad-brand-blue);
+  border-color: var(--asad-brand-blue-light);
   box-shadow: 0 0 0 3px rgba(3, 76, 133, 0.25);
 }
 
 .asad-submit {
   align-self: flex-start;
-  min-height: 40px;
-  padding: 0 22px;
-  font-size: 13.5px;
+  min-height: 38px;
+  padding: 0 20px;
+  font-size: 13px;
 }
 
 .asad-submit--approve {
@@ -785,8 +766,8 @@
   box-shadow: 0 4px 14px rgba(3, 76, 133, 0.35);
 }
 
-.asad-submit--approve:hover {
-  background: #023661;
+.asad-submit--approve:hover:not(:disabled) {
+  background: var(--asad-brand-blue-hover);
 }
 
 .asad-submit--revision {
@@ -795,8 +776,8 @@
   box-shadow: 0 4px 14px rgba(254, 111, 5, 0.35);
 }
 
-.asad-submit--revision:hover {
-  background: #e06204;
+.asad-submit--revision:hover:not(:disabled) {
+  background: var(--asad-brand-orange-hover);
 }
 
 .asad-submit--reject {
@@ -804,7 +785,7 @@
   color: #ffffff;
 }
 
-.asad-submit--reject:hover {
+.asad-submit--reject:hover:not(:disabled) {
   background: #b91c1c;
 }
 
@@ -813,13 +794,14 @@
   cursor: not-allowed;
 }
 
-/* --------------------------------------------------------------------------
+/* ==========================================================================
    Loading & Error States
-   -------------------------------------------------------------------------- */
+   ========================================================================== */
+
 .asad-loading-card,
 .asad-error-card {
   display: flex;
-  min-height: 320px;
+  min-height: 300px;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--asad-border);
@@ -828,7 +810,7 @@
   color: var(--asad-text-muted);
   box-shadow: var(--asad-shadow);
   text-align: center;
-  padding: 28px;
+  padding: 24px;
 }
 
 .asad-loading-card {
@@ -847,9 +829,7 @@
 }
 
 @keyframes asad-spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
 .asad-error-card {
@@ -863,10 +843,26 @@
   font-size: 20px;
 }
 
-/* --------------------------------------------------------------------------
-   Light Theme Override (Optional fallback)
-   -------------------------------------------------------------------------- */
-:where(html:not(.dark), body:not(.dark), [data-theme="light"]) .asad-page {
+/* ==========================================================================
+   Theme Scopes & Explicit Light Mode Fallback
+   ========================================================================== */
+
+/* Dark Mode Alignment (Ruang Kerja Admin default) */
+:where(.admin-theme-dark, .dark, [data-admin-theme="dark"]) .asad-page {
+  --asad-bg: transparent;
+  --asad-surface: #081424;
+  --asad-surface-card: #0d1e34;
+  --asad-surface-hover: #122846;
+  --asad-border: rgba(255, 255, 255, 0.08);
+  --asad-border-subtle: rgba(3, 76, 133, 0.35);
+  --asad-text: #f1f5f9;
+  --asad-text-muted: #94a3b8;
+  --asad-text-dim: #64748b;
+  --asad-shadow: 0 14px 34px rgba(0, 0, 0, 0.35);
+}
+
+/* Explicit Light Mode ONLY when parent container is explicitly light */
+:where(.admin-theme-light, [data-admin-theme="light"]):not(.dark):not(.admin-theme-dark) .asad-page {
   --asad-bg: #f8fafc;
   --asad-surface: #ffffff;
   --asad-surface-card: #f8fafc;

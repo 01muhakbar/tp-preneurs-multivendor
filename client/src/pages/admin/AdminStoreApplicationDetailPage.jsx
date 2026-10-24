@@ -11,13 +11,11 @@ import {
   FileText,
   GitBranch,
   Globe2,
-  IdCard,
   ShieldCheck,
   UserRound,
   UsersRound,
   XCircle,
 } from "lucide-react";
-import { resolveAssetUrl } from "../../lib/assetUrl.js";
 import {
   approveAdminStoreApplication,
   fetchAdminStoreApplicationDetail,
@@ -597,7 +595,7 @@ export default function AdminStoreApplicationDetailPage() {
           </div>
           <div className="asad-notice">
             <AlertTriangle size={15} aria-hidden="true" />
-            <span>Admin approval will provision store workspace and activate seller access.</span>
+            <span>Approval provisions store workspace & seller access.</span>
           </div>
         </Section>
 
@@ -655,43 +653,9 @@ export default function AdminStoreApplicationDetailPage() {
           />
         </Section>
 
-        <Section title="Payment Profile">
-          {detail.financial.qrisImageUrl ? (
-            <div className="asad-qris-preview">
-              <img
-                src={resolveAssetUrl(detail.financial.qrisImageUrl)}
-                alt="Store application QRIS preview"
-              />
-              <div>
-                <span>QRIS Image</span>
-                <strong>Ready for Payment Profile review</strong>
-                <a
-                  href={resolveAssetUrl(detail.financial.qrisImageUrl)}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Open full image
-                </a>
-              </div>
-            </div>
-          ) : null}
+        <Section title="Compliance & Risk" className="asad-section--full">
           <FieldGrid
-            fields={[
-              { label: "Payment Type", value: detail.financial.paymentType },
-              { label: "Provider", value: detail.financial.provider },
-              { label: "Account Name", value: detail.financial.accountName },
-              { label: "Merchant Name", value: detail.financial.merchantName },
-              { label: "Merchant ID", value: detail.financial.merchantId },
-              { label: "Name Match", value: boolText(detail.financial.nameMatch) },
-              { label: "QRIS Payload", value: detail.financial.qrisPayload, wide: true },
-              { label: "Instruction Text", value: detail.financial.instructionText, wide: true },
-              { label: "Seller Note", value: detail.financial.sellerNote, wide: true },
-            ]}
-          />
-        </Section>
-
-        <Section title="Compliance & Risk">
-          <FieldGrid
+            columns="4"
             fields={[
               { label: "Product Types", value: detail.compliance.productTypes },
               { label: "Brand Ownership", value: detail.compliance.brandOwnership },
