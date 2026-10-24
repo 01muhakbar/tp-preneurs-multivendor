@@ -155,6 +155,7 @@ function BasicStep({
   seoKeywordInput,
   onFormChange,
   onNameChange,
+  onGenerateSku,
   onMetaChange,
   onSeoChange,
   onTagInputChange,
@@ -1874,6 +1875,7 @@ export default function AdminProductForm2026View({
                 seoKeywordInput={seoKeywordInput}
                 onFormChange={onFormChange}
                 onNameChange={onNameChange}
+                onGenerateSku={onGenerateSku}
                 onMetaChange={onMetaChange}
                 onSeoChange={onSeoChange}
                 onTagInputChange={onTagInputChange}
