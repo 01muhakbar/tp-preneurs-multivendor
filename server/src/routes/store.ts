@@ -1123,7 +1123,7 @@ router.get(
         where.parent_id = { [Op.is]: null };
       }
       const productCountExpr = sequelize.literal(
-        "(SELECT COUNT(*) FROM products p WHERE p.category_id = Category.id AND p.status = 'active' AND p.published = true AND p.seller_submission_status = 'none' AND p.store_id IS NOT NULL)"
+        "(SELECT COUNT(*) FROM products p INNER JOIN stores s ON s.id = p.store_id INNER JOIN store_payment_profiles spp ON spp.id = s.active_store_payment_profile_id WHERE p.category_id = Category.id AND p.status = 'active' AND p.published = true AND p.seller_submission_status = 'none' AND s.status = 'ACTIVE' AND spp.is_active = true AND spp.verification_status = 'ACTIVE')"
       );
       const categoryOrder =
         sortParam === "popular" || sortParam === "most_popular"

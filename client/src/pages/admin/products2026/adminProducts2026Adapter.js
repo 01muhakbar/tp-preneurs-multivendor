@@ -137,6 +137,14 @@ export const normalizeAdminProduct2026 = (product) => {
           ? "Draft"
           : "Published";
 
+  const imageCandidates = [
+    imageUrl,
+    ...(Array.isArray(product?.imageUrls) ? product.imageUrls : []),
+    ...(Array.isArray(product?.imagePaths) ? product.imagePaths : []),
+    product?.imageUrl,
+    product?.promoImagePath,
+  ].filter(Boolean);
+
   return {
     id,
     name: product?.name || product?.title || `Product #${id}`,
@@ -160,6 +168,8 @@ export const normalizeAdminProduct2026 = (product) => {
       product?.updatedAt || product?.updated_at || product?.createdAt || product?.created_at
     ),
     imageUrl: imageUrl ? resolveAssetUrl(imageUrl) : FALLBACK_PRODUCT_IMAGE,
+    imageUrls: Array.from(new Set(imageCandidates.map((src) => resolveAssetUrl(src)).filter(Boolean))),
+    imagePaths: Array.from(new Set(imageCandidates.map((src) => resolveAssetUrl(src)).filter(Boolean))),
     raw: product,
   };
 };

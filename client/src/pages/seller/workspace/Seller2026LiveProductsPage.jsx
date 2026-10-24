@@ -95,6 +95,48 @@ function ProductSkeleton({ isId = false }) {
   return <div className="seller2026-dashboard seller2026-products" aria-label={isId ? "Memuat daftar produk" : "Loading products"}><div className="seller2026-skeleton" /><div className="seller2026-skeleton seller2026-skeleton--hero" /></div>;
 }
 
+
+function SellerProductThumbnail({ product }) {
+  const candidates = useMemo(() => {
+    const list = [
+      product?.thumbnailUrl,
+      product?.thumbnail,
+      ...(product?.imageUrls || []),
+      ...(product?.imagePaths || []),
+    ]
+      .filter(Boolean)
+      .map((src) => resolveAssetUrl(src));
+    return Array.from(new Set(list));
+  }, [product]);
+
+  const [index, setIndex] = useState(0);
+
+  if (candidates.length === 0 || index >= candidates.length) {
+    return (
+      <span
+        className="seller2026-product-thumb-fallback"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "100%",
+          height: "100%",
+        }}
+      >
+        <Box size={20} />
+      </span>
+    );
+  }
+
+  return (
+    <img
+      src={candidates[index]}
+      alt=""
+      onError={() => setIndex((prev) => prev + 1)}
+    />
+  );
+}
+
 export default function Seller2026LiveProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { sellerContext, workspaceStoreId: storeId, workspaceRoutes, isId = false } = useSellerWorkspaceRoute();
@@ -219,6 +261,45 @@ export default function Seller2026LiveProductsPage() {
         </div>
       ) : null}
 
+      {Boolean(data.summary.publishedBlocked > 0 || visibleProducts.some((p) => p.visibility === "published_blocked")) ? (
+        <div
+          className="seller2026-profile__notice seller2026-profile__notice--warning"
+          style={{
+            marginBottom: "16px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: "12px",
+            borderLeft: "4px solid #fe6f05",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <AlertTriangle size={18} style={{ color: "#fe6f05", flexShrink: 0 }} />
+            <span>
+              {isId
+                ? "Produk yang sudah Anda terbitkan belum tampil di etalase publik (Blocked) karena Profil Pembayaran Toko belum diatur atau belum diverifikasi oleh Admin."
+                : "Your published products are currently blocked from the public storefront because the store Payment Profile is not configured or awaiting verification."}
+            </span>
+          </div>
+          <Link
+            to={workspaceRoutes.paymentProfile ? workspaceRoutes.paymentProfile() : `/seller/stores/${sellerContext?.storeSlug || "sweet-flower"}/payment-profile`}
+            style={{
+              background: "#fe6f05",
+              color: "#ffffff",
+              padding: "6px 14px",
+              borderRadius: "6px",
+              fontWeight: 600,
+              textDecoration: "none",
+              fontSize: "13px",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {isId ? "Atur Profil Pembayaran" : "Setup Payment Profile"}
+          </Link>
+        </div>
+      ) : null}
+
       <section className="seller2026-products__catalog">
         <div className="seller2026-products-toolbar">
           <label><Search size={17} /><input value={query.search} onChange={(event) => updateQuery({ search: event.target.value, page: 1 })} placeholder={isId ? "Cari berdasarkan nama, SKU, atau slug..." : "Search by name, SKU, or slug..."} /></label>
@@ -262,30 +343,7 @@ export default function Seller2026LiveProductsPage() {
                   <input type="checkbox" checked={selected.includes(product.id)} onChange={(event) => setSelected((current) => event.target.checked ? [...current, product.id] : current.filter((id) => id !== product.id))} />
                   <div className="seller2026-product-row__identity">
                     <div>
-                      {product.thumbnailUrl ? (
-                        <img
-                          src={resolveAssetUrl(product.thumbnailUrl)}
-                          alt=""
-                          onError={(e) => {
-                            e.currentTarget.onerror = null;
-                            e.currentTarget.style.display = "none";
-                            const fallback = e.currentTarget.parentElement?.querySelector(".seller2026-product-thumb-fallback");
-                            if (fallback) fallback.style.display = "flex";
-                          }}
-                        />
-                      ) : null}
-                      <span
-                        className="seller2026-product-thumb-fallback"
-                        style={{
-                          display: product.thumbnailUrl ? "none" : "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          width: "100%",
-                          height: "100%",
-                        }}
-                      >
-                        <Box size={20} />
-                      </span>
+                      <SellerProductThumbnail product={product} />
                     </div>
                     <span><strong>{product.name}</strong><small>{product.slug || product.sku}</small></span><Pill>{lifecycleLabel(product.status, isId)}</Pill>
                   </div>
@@ -294,7 +352,7 @@ export default function Seller2026LiveProductsPage() {
                   <span className="is-sale" data-label={isId ? "Harga Diskon" : "Sale Price"}>{product.salePrice ? currency(product.salePrice) : "-"}</span>
                   <span data-label={isId ? "Stok" : "Stock"}>{product.stock}</span>
                   <span data-label={isId ? "Inventaris" : "Inventory"}><Pill>{inventory}</Pill></span>
-                  <span data-label={isId ? "Visibilitas" : "Visibility"}><Pill>{visibility}</Pill></span>
+                  <span data-label={isId ? "Visibilitas" : "Visibility"} title={product.visibility === "published_blocked" ? (isId ? "Produk diterbitkan namun etalase publik ditahan karena Profil Pembayaran Toko belum aktif/terverifikasi oleh Admin" : "Published but hidden from public storefront because store payment profile is not active/verified") : undefined}><Pill>{visibility}</Pill></span>
                   <span data-label={isId ? "Status Tinjauan" : "Review Status"}><Pill>{review}</Pill></span>
                   <Link className="seller2026-icon-button" to={workspaceRoutes.productDetail(product.id)} aria-label={isId ? `Pratinjau ${product.name}` : `Preview ${product.name}`}><Eye size={17} /></Link>
                   <button

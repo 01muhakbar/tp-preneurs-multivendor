@@ -336,6 +336,8 @@ export function adaptSellerProduct(value: unknown) {
     sku: text(product.sku || product.code, "No SKU"),
     thumbnailUrl: thumbnailUrl(product),
     thumbnail: thumbnailUrl(product),
+    imageUrls: array(product.imageUrls).map((item) => text(item)).filter(Boolean),
+    imagePaths: array(product.imagePaths).map((item) => text(item)).filter(Boolean),
     category: categoryLabel(product),
     stock: productStock(product),
     price: productPrice(product),

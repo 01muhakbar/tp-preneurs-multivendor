@@ -1742,6 +1742,8 @@ const toAdminProductListItem = (product: any, storeOperationalReadiness: any = n
     categories: resolveProductSelectedCategories(plain),
     imageUrl,
     promoImagePath: imageUrl,
+    imagePaths,
+    imageUrls: imagePaths,
     price: priceFields.price,
     originalPrice: priceFields.originalPrice,
     salePrice: priceFields.salePrice,

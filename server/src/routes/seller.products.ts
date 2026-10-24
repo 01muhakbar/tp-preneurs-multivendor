@@ -1914,10 +1914,9 @@ const resolveProductPreviewImage = (product: any) => {
   const promoImagePath = normalizeString(getAttr(product, "promoImagePath"));
   if (promoImagePath) return promoImagePath;
 
-  const imagePaths = getAttr(product, "imagePaths");
-  if (Array.isArray(imagePaths) && imagePaths.length > 0) {
-    const firstImage = normalizeString(imagePaths[0]);
-    return firstImage || null;
+  const imagePaths = normalizeStoredImagePathList(getAttr(product, "imagePaths"));
+  if (imagePaths.length > 0) {
+    return imagePaths[0];
   }
 
   return null;
@@ -2015,6 +2014,8 @@ const serializeProductListItem = (
     authoring,
     ownership: serializeProductOwnership(product),
     mediaPreviewUrl: resolveProductPreviewImage(product),
+    imagePaths: normalizeStoredImagePathList(getAttr(product, "imagePaths")),
+    imageUrls: normalizeStoredImagePathList(getAttr(product, "imagePaths")),
     category: serializeCategorySummary(category),
     createdAt: getAttr(product, "createdAt") || null,
     updatedAt: getAttr(product, "updatedAt") || null,

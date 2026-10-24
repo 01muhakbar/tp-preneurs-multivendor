@@ -27,7 +27,56 @@ import {
   FALLBACK_PRODUCT_IMAGE,
   getProducts2026PageWindow,
 } from "./adminProducts2026Adapter.js";
+import { resolveAssetUrl } from "../../../lib/assetUrl.js";
 import "./admin-products-2026.css";
+
+function AdminProductThumbnail({ product, alt = "" }) {
+  const candidates = useMemo(() => {
+    const rawImagePaths = product?.raw?.imagePaths;
+    let parsedRawPaths = [];
+    if (Array.isArray(rawImagePaths)) {
+      parsedRawPaths = rawImagePaths;
+    } else if (typeof rawImagePaths === "string") {
+      try {
+        const p = JSON.parse(rawImagePaths);
+        if (Array.isArray(p)) parsedRawPaths = p;
+        else if (rawImagePaths.trim()) parsedRawPaths = [rawImagePaths.trim()];
+      } catch {
+        if (rawImagePaths.trim()) parsedRawPaths = [rawImagePaths.trim()];
+      }
+    }
+
+    const list = [
+      product?.imageUrl,
+      ...(product?.imageUrls || []),
+      ...(product?.imagePaths || []),
+      ...parsedRawPaths,
+      product?.raw?.promoImagePath,
+    ]
+      .filter(Boolean)
+      .map((src) => resolveAssetUrl(src));
+
+    return Array.from(new Set(list));
+  }, [product]);
+
+  const [index, setIndex] = useState(0);
+
+  const currentSrc = candidates[index] || FALLBACK_PRODUCT_IMAGE;
+
+  return (
+    <img
+      src={currentSrc}
+      alt={alt || product?.name || ""}
+      onError={() => {
+        if (index + 1 < candidates.length) {
+          setIndex((prev) => prev + 1);
+        } else {
+          setIndex(candidates.length);
+        }
+      }}
+    />
+  );
+}
 
 const getStatusOptions = (t) => [
   { value: "all", label: t("products.All") },
@@ -613,14 +662,7 @@ export default function AdminProducts2026View({
                   </div>
                   
                   <div className="ap26-grid-item-image">
-                    <img
-                      src={product.imageUrl || FALLBACK_PRODUCT_IMAGE}
-                      alt={product.name}
-                      onError={(event) => {
-                        event.currentTarget.onerror = null;
-                        event.currentTarget.src = FALLBACK_PRODUCT_IMAGE;
-                      }}
-                    />
+                    <AdminProductThumbnail product={product} />
                   </div>
                   
                   <div className="ap26-grid-item-details">
@@ -705,14 +747,7 @@ export default function AdminProducts2026View({
                       </td>
                       <td className="ap26-cell-product" data-label={t("products.Product")}>
                         <div className="ap26-product-cell">
-                          <img
-                            src={product.imageUrl || FALLBACK_PRODUCT_IMAGE}
-                            alt={product.name}
-                            onError={(event) => {
-                              event.currentTarget.onerror = null;
-                              event.currentTarget.src = FALLBACK_PRODUCT_IMAGE;
-                            }}
-                          />
+                          <AdminProductThumbnail product={product} />
                           <div>
                             <strong>{product.name}</strong>
                             <span>{t("products.SKU")}: {product.sku}</span>
