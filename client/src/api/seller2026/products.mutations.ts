@@ -18,7 +18,9 @@ export type Seller2026ProductDraftPayload = {
   tags?: string[];
   imageUrls?: string[];
   hasVariants?: boolean;
+  variations?: any;
   price?: number;
+  salePrice?: number | null;
   compareAtPrice?: number | null;
   costPrice?: number | null;
   stock?: number;
@@ -64,6 +66,13 @@ const buildSafeProductDraftPayload = (payload: Seller2026ProductDraftPayload) =>
   const seoDescription = optionalText(payload.seoDescription);
   const categoryIds = positiveIds(payload.categoryIds);
 
+  const effectiveSalePrice =
+    typeof payload.salePrice === "number" && payload.salePrice > 0
+      ? payload.salePrice
+      : typeof payload.compareAtPrice === "number" && payload.compareAtPrice > 0
+        ? payload.compareAtPrice
+        : null;
+
   return {
     name: String(payload.name || "").trim(),
     slug: optionalText(payload.slug),
@@ -79,10 +88,7 @@ const buildSafeProductDraftPayload = (payload: Seller2026ProductDraftPayload) =>
         : categoryIds[0] || null,
     price: nonNegativeNumber(payload.price) ?? 0,
     costPrice: nonNegativeNumber(payload.costPrice) ?? null,
-    salePrice:
-      typeof payload.compareAtPrice === "number" && payload.compareAtPrice > 0
-        ? payload.compareAtPrice
-        : null,
+    salePrice: effectiveSalePrice,
     stock: Math.floor(nonNegativeNumber(payload.stock) ?? 0),
     lowStockThreshold: nonNegativeNumber(payload.lowStockThreshold) ?? null,
     weight: nonNegativeNumber(payload.weight) ?? null,
@@ -99,7 +105,8 @@ const buildSafeProductDraftPayload = (payload: Seller2026ProductDraftPayload) =>
     } : null,
     tags: textList(payload.tags),
     imageUrls: textList(payload.imageUrls).slice(0, 10),
-    hasVariants: false,
+    hasVariants: Boolean(payload.hasVariants),
+    variations: payload.hasVariants && payload.variations ? payload.variations : null,
     seo: seoTitle || seoDescription || (payload.seoKeywords && payload.seoKeywords.length) || payload.ogImageUrl ? { 
       metaTitle: seoTitle || "", 
       metaDescription: seoDescription || "",

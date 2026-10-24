@@ -634,7 +634,12 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
     const initialProductType = normalizeProductTypeMeta(
       product.productType ?? product.seo?.productType
     );
-    const dimensions = product.attributes?.dimensions || {};
+    const dimensions = product.attributes?.dimensions || product.dimensions || {};
+    const weightVal = product.attributes?.weight ?? product.weight;
+    const lengthVal = dimensions.length ?? product.length;
+    const widthVal = dimensions.width ?? product.width;
+    const heightVal = dimensions.height ?? product.height;
+    const lowStockVal = product.inventory?.lowStockThreshold ?? product.lowStockThreshold;
 
     setForm({
       name: product.name || "",
@@ -669,10 +674,11 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
         typeof product.pricing?.salePrice !== "undefined" &&
         Number(product.pricing?.salePrice) > 0,
       brand: product.productInfo?.brand || product.brand || "",
-      weight: product.attributes?.weight == null ? "" : String(product.attributes.weight),
-      length: dimensions.length == null ? "" : String(dimensions.length),
-      width: dimensions.width == null ? "" : String(dimensions.width),
-      height: dimensions.height == null ? "" : String(dimensions.height),
+      lowStockThreshold: lowStockVal == null ? "" : String(lowStockVal),
+      weight: weightVal == null ? "" : String(weightVal),
+      length: lengthVal == null ? "" : String(lengthVal),
+      width: widthVal == null ? "" : String(widthVal),
+      height: heightVal == null ? "" : String(heightVal),
       additionalNotes: String(product.descriptions?.notes || product.notes || ""),
     }));
     setLocalImages(
@@ -1250,17 +1256,24 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
         }
       : null;
 
+    const effectiveSalePrice = form2026Meta.enablePromoPrice
+      ? resolveSalePriceValue(form.salePrice)
+      : null;
+
     return {
       name: String(form.name || "").trim(),
       description: form.description || null,
       sku: String(form.sku || "").trim() || null,
       barcode: form.barcode || null,
+      brand: form2026Meta.brand || null,
       slug: form.slug || slugify(form.name),
       categoryIds: normalizeSelectedCategoryIds(form.categoryIds),
       defaultCategoryId: Number(form.defaultCategoryId) || null,
       price: Number(form.price || 0),
-      compareAtPrice: resolveSalePriceValue(form.salePrice),
+      salePrice: effectiveSalePrice,
+      compareAtPrice: effectiveSalePrice,
       stock: Math.floor(Number(form.stock || 0)),
+      lowStockThreshold: toOptionalNumber(form2026Meta.lowStockThreshold) ?? null,
       tags: form.tags,
       imageUrls: uploadedUrls,
       hasVariants,

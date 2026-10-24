@@ -71,6 +71,7 @@ export type ProductWriteDTO = {
   price?: number;
   salePrice?: number | null;
   stock?: number;
+  lowStockThreshold?: number | null;
   weight?: number | null;
   notes?: string | null;
   length?: number | null;
@@ -1052,6 +1053,10 @@ export const toSellerProductWritePayload = (value: ProductWriteDTO = {} as Produ
         ? value.salePrice
         : null,
     stock: typeof value.stock === "number" ? value.stock : 0,
+    lowStockThreshold:
+      typeof value.lowStockThreshold === "number" || value.lowStockThreshold === null
+        ? value.lowStockThreshold
+        : undefined,
     weight:
       typeof value.weight === "number" || value.weight === null
         ? value.weight

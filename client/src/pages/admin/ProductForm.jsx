@@ -729,6 +729,9 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
     setSeo(initialSeo);
     setForm2026Meta((prev) => ({
       ...prev,
+      brand: String(product.brand || product.productInfo?.brand || product.seo?.brand || ""),
+      lowStockThreshold:
+        product.lowStockThreshold == null ? "" : String(product.lowStockThreshold),
       enablePromoPrice:
         product.salePrice !== null &&
         typeof product.salePrice !== "undefined" &&
@@ -1325,7 +1328,10 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
     const sku = String(form.sku || "").trim();
     const price = Number(form.price);
     const stock = Number(form.stock || 0);
-    const salePrice = resolveSalePriceValue(form.salePrice);
+    const effectiveSalePrice = form2026Meta.enablePromoPrice
+      ? resolveSalePriceValue(form.salePrice)
+      : null;
+    const salePrice = effectiveSalePrice;
 
     if (!name) {
       setNotice({ type: "error", message: "Product title is required." });
@@ -1434,7 +1440,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
         name,
         description: form.description || undefined,
         price,
-        salePrice: salePrice ?? undefined,
+        salePrice: isEdit ? (salePrice ?? null) : (salePrice ?? undefined),
         stock,
         status: intent === "draft" ? "inactive" : normalizedStatus,
         ...(isEdit

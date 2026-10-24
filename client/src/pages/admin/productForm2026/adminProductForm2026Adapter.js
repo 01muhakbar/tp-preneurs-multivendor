@@ -80,7 +80,7 @@ export const buildProductForm2026Review = ({
         ? `${meta.length || 0} x ${meta.width || 0} x ${meta.height || 0} ${meta.dimensionUnit}`
         : "-",
     basePrice: form.price || "0",
-    salePrice: form.salePrice || "-",
+    salePrice: meta.enablePromoPrice && form.salePrice ? form.salePrice : "-",
     lowStockThreshold: meta.lowStockThreshold || "-",
     stock: form.stock || "0",
     status: titleCaseValue(form.status, "Active"),
