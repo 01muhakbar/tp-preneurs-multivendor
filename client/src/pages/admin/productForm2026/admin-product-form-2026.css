@@ -1355,6 +1355,45 @@
   color: #087a45;
 }
 
+.apf26-notice.is-info {
+  border-color: rgba(3, 76, 133, 0.35);
+  background: rgba(3, 76, 133, 0.1);
+  color: #034c85;
+}
+
+.dark .apf26-notice.is-info,
+.admin-theme-dark .apf26-notice.is-info {
+  border-color: rgba(3, 76, 133, 0.5);
+  background: rgba(3, 76, 133, 0.22);
+  color: #93c5fd;
+}
+
+.apf26-draft-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.apf26-draft-discard-btn {
+  background: transparent;
+  border: 1px solid #fe6f05;
+  color: #fe6f05;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 160ms ease;
+  white-space: nowrap;
+}
+
+.apf26-draft-discard-btn:hover {
+  background: #fe6f05;
+  color: #ffffff;
+}
+
 .apf26-success {
   min-height: 600px;
   display: grid;

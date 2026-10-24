@@ -1806,7 +1806,15 @@ export default function AdminProductForm2026View({
         success={isSuccess}
       />
       {notice ? (
-        <div className={`apf26-notice ${notice.type === "success" ? "is-success" : ""}`}>
+        <div
+          className={`apf26-notice ${
+            notice.type === "success"
+              ? "is-success"
+              : notice.type === "info"
+                ? "is-info"
+                : ""
+          }`}
+        >
           {notice.message}
         </div>
       ) : null}

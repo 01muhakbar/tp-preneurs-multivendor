@@ -270,13 +270,40 @@ function ProductEditorState({ type, message, onRetry }) {
   );
 }
 
+const getStoredProductDraft = (key) => {
+  if (typeof window === "undefined" || !key) return null;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") return parsed;
+  } catch (err) {
+    console.warn("Failed to parse stored product draft", err);
+  }
+  return null;
+};
+
+const clearStoredProductDraft = (key) => {
+  if (typeof window === "undefined" || !key) return;
+  try {
+    window.localStorage.removeItem(key);
+  } catch (err) {
+    console.warn("Failed to clear product draft", err);
+  }
+};
+
 export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { productId } = useParams();
   const fileInputRef = useRef(null);
   const localImagesRef = useRef([]);
-  const { sellerContext, workspaceStoreId: storeId, workspaceRoutes } = useSellerWorkspaceRoute();
+  const {
+    sellerContext,
+    workspaceStoreId: storeId,
+    workspaceStoreSlug,
+    workspaceRoutes,
+  } = useSellerWorkspaceRoute();
   const { permissions, sourceAvailable, can } = getSeller2026PagePermissions(sellerContext);
   const savePermission = mode === "edit" ? "CATALOG_PRODUCT_UPDATE" : "CATALOG_PRODUCT_CREATE";
   const canSave =
@@ -289,6 +316,16 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
     SELLER_2026_MUTATIONS.productSubmitReview;
   const isEdit = mode === "edit" && Boolean(productId);
   const queryEnabled = Boolean(storeId);
+
+  const draftStorageKey = useMemo(
+    () => `tp_seller_new_product_draft_${workspaceStoreSlug || storeId || "default"}`,
+    [workspaceStoreSlug, storeId]
+  );
+
+  const initialDraft = useMemo(() => {
+    if (mode !== "create") return null;
+    return getStoredProductDraft(draftStorageKey);
+  }, [draftStorageKey, mode]);
 
   const metaQuery = useQuery({
     queryKey: ["seller2026", "product-editor", "meta", storeId],
@@ -331,41 +368,230 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
   const attributes = Array.isArray(attributesQuery.data?.data) ? attributesQuery.data.data : [];
 
   const [notice, setNotice] = useState(null);
-  const [wizardStep, setWizardStep] = useState(1);
-  const [maxVisitedWizardStep, setMaxVisitedWizardStep] = useState(1);
+  const [wizardStep, setWizardStep] = useState(() =>
+    mode === "create" && initialDraft?.wizardStep
+      ? Math.min(6, Math.max(1, Number(initialDraft.wizardStep) || 1))
+      : 1
+  );
+  const [maxVisitedWizardStep, setMaxVisitedWizardStep] = useState(() =>
+    mode === "create" && initialDraft?.maxVisitedWizardStep
+      ? Math.min(6, Math.max(1, Number(initialDraft.maxVisitedWizardStep) || 1))
+      : 1
+  );
   const [createdProduct, setCreatedProduct] = useState(null);
   const [tagInput, setTagInput] = useState("");
   const [seoKeywordInput, setSeoKeywordInput] = useState("");
-  const [slugTouched, setSlugTouched] = useState(false);
+  const [slugTouched, setSlugTouched] = useState(() =>
+    mode === "create" && typeof initialDraft?.slugTouched === "boolean"
+      ? initialDraft.slugTouched
+      : false
+  );
   const [localImages, setLocalImages] = useState([]);
-  const [seo, setSeo] = useState(defaultSeoState);
-  const [form, setForm] = useState({
-    name: "",
-    description: "",
-    sku: "",
-    barcode: "",
-    storeId: String(storeId || ""),
-    categoryIds: [],
-    defaultCategoryId: null,
-    price: "",
-    salePrice: "",
-    stock: "",
-    slug: "",
-    tags: [],
-    status: "draft",
-    imageUrl: "",
+  const [seo, setSeo] = useState(() => {
+    if (mode === "create" && initialDraft?.seo) {
+      return { ...defaultSeoState, ...initialDraft.seo };
+    }
+    return defaultSeoState;
   });
-  const [form2026Meta, setForm2026Meta] = useState(createInitialProductForm2026Meta);
-  const [hasVariants, setHasVariants] = useState(false);
-  const [selectedAttributes, setSelectedAttributes] = useState([]);
-  const [selectedAttributeValues, setSelectedAttributeValues] = useState([]);
-  const [variants, setVariants] = useState([]);
+  const [form, setForm] = useState(() => {
+    const base = {
+      name: "",
+      description: "",
+      sku: "",
+      barcode: "",
+      storeId: String(storeId || ""),
+      categoryIds: [],
+      defaultCategoryId: null,
+      price: "",
+      salePrice: "",
+      stock: "",
+      slug: "",
+      tags: [],
+      status: "draft",
+      imageUrl: "",
+    };
+    if (mode === "create" && initialDraft?.form) {
+      return {
+        ...base,
+        ...initialDraft.form,
+        storeId: String(storeId || initialDraft.form.storeId || ""),
+      };
+    }
+    return base;
+  });
+  const [form2026Meta, setForm2026Meta] = useState(() => {
+    const base = createInitialProductForm2026Meta();
+    if (mode === "create" && initialDraft?.form2026Meta) {
+      return { ...base, ...initialDraft.form2026Meta };
+    }
+    return base;
+  });
+  const [hasVariants, setHasVariants] = useState(() =>
+    mode === "create" && typeof initialDraft?.hasVariants === "boolean"
+      ? initialDraft.hasVariants
+      : false
+  );
+  const [selectedAttributes, setSelectedAttributes] = useState(() =>
+    mode === "create" && Array.isArray(initialDraft?.selectedAttributes)
+      ? initialDraft.selectedAttributes
+      : []
+  );
+  const [selectedAttributeValues, setSelectedAttributeValues] = useState(() =>
+    mode === "create" && Array.isArray(initialDraft?.selectedAttributeValues)
+      ? initialDraft.selectedAttributeValues
+      : []
+  );
+  const [variants, setVariants] = useState(() =>
+    mode === "create" && Array.isArray(initialDraft?.variants)
+      ? initialDraft.variants
+      : []
+  );
   const [pendingAttributeId, setPendingAttributeId] = useState("");
   const [attributeSearch, setAttributeSearch] = useState("");
   const [attributeValueSearch, setAttributeValueSearch] = useState({});
   const [attributeValuesMap, setAttributeValuesMap] = useState({});
   const [attributeValuesLoading, setAttributeValuesLoading] = useState(false);
   const [variantImageUploadingId, setVariantImageUploadingId] = useState(null);
+
+  const handleDiscardDraft = () => {
+    clearStoredProductDraft(draftStorageKey);
+    setForm({
+      name: "",
+      description: "",
+      sku: "",
+      barcode: "",
+      storeId: String(storeId || ""),
+      categoryIds: [],
+      defaultCategoryId: null,
+      price: "",
+      salePrice: "",
+      stock: "",
+      slug: "",
+      tags: [],
+      status: "draft",
+      imageUrl: "",
+    });
+    setForm2026Meta(createInitialProductForm2026Meta());
+    setSeo(defaultSeoState);
+    setHasVariants(false);
+    setSelectedAttributes([]);
+    setSelectedAttributeValues([]);
+    setVariants([]);
+    setLocalImages([]);
+    setSlugTouched(false);
+    setWizardStep(1);
+    setMaxVisitedWizardStep(1);
+    setNotice({
+      type: "success",
+      message: "Draf telah dibersihkan. Anda dapat memulai pengisian baru.",
+    });
+  };
+
+  useEffect(() => {
+    if (mode === "create" && initialDraft) {
+      const hasMeaningful =
+        Boolean(initialDraft.form?.name?.trim()) ||
+        Boolean(initialDraft.form?.sku?.trim()) ||
+        Boolean(initialDraft.form?.description?.trim()) ||
+        Boolean(initialDraft.form?.price) ||
+        Boolean(initialDraft.form2026Meta?.brand?.trim()) ||
+        (Array.isArray(initialDraft.form?.categoryIds) && initialDraft.form.categoryIds.length > 0) ||
+        (Array.isArray(initialDraft.variants) && initialDraft.variants.length > 0) ||
+        initialDraft.wizardStep > 1;
+
+      if (hasMeaningful) {
+        const timeStr = initialDraft.savedAt
+          ? new Date(initialDraft.savedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+          : "";
+        setNotice({
+          type: "info",
+          message: (
+            <div className="apf26-draft-banner">
+              <span>
+                Draf terakhir berhasil dipulihkan otomatis{timeStr ? ` (${timeStr})` : ""}.
+              </span>
+              <button
+                type="button"
+                className="apf26-draft-discard-btn"
+                onClick={handleDiscardDraft}
+              >
+                Buang Draf
+              </button>
+            </div>
+          ),
+        });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftStorageKey]);
+
+  useEffect(() => {
+    if (mode !== "create" || isEdit) return;
+
+    const hasContent =
+      Boolean(form.name?.trim()) ||
+      Boolean(form.sku?.trim()) ||
+      Boolean(form.description?.trim()) ||
+      Boolean(form.price) ||
+      Boolean(form2026Meta?.brand?.trim()) ||
+      (Array.isArray(form.categoryIds) && form.categoryIds.length > 0) ||
+      Boolean(hasVariants) ||
+      (Array.isArray(variants) && variants.length > 0) ||
+      wizardStep > 1;
+
+    if (!hasContent) return;
+
+    const draft = {
+      form,
+      form2026Meta,
+      seo,
+      hasVariants,
+      selectedAttributes,
+      selectedAttributeValues,
+      variants,
+      wizardStep,
+      maxVisitedWizardStep,
+      slugTouched,
+      savedAt: new Date().toISOString(),
+    };
+
+    const timer = setTimeout(() => {
+      try {
+        window.localStorage.setItem(draftStorageKey, JSON.stringify(draft));
+      } catch (err) {
+        console.warn("Failed to auto-save product draft", err);
+      }
+    }, 400);
+
+    const handleBeforeUnload = () => {
+      try {
+        window.localStorage.setItem(draftStorageKey, JSON.stringify(draft));
+      } catch {
+        // ignore
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [
+    mode,
+    isEdit,
+    draftStorageKey,
+    form,
+    form2026Meta,
+    seo,
+    hasVariants,
+    selectedAttributes,
+    selectedAttributeValues,
+    variants,
+    wizardStep,
+    maxVisitedWizardStep,
+    slugTouched,
+  ]);
 
   useEffect(() => {
     if (storeId) setForm((prev) => ({ ...prev, storeId: String(storeId) }));
@@ -1006,6 +1232,7 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
       const savedId = saved?.id || saved?.product?.id || saved?.data?.id;
       if (!silent) setNotice({ type: "success", message: successMessage });
       if (!isEdit && savedId) {
+        clearStoredProductDraft(draftStorageKey);
         navigate(workspaceRoutes.productEdit(savedId), { replace: true });
       }
       return savedId || persistedId;
@@ -1021,6 +1248,7 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
       const id = await saveDraftProduct({ silent: true });
       if (!id) return;
       const result = await submitMutation.mutateAsync(id);
+      clearStoredProductDraft(draftStorageKey);
       setCreatedProduct(result || { id });
       setWizardStep(6);
       setMaxVisitedWizardStep(6);
@@ -1172,7 +1400,38 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
       onViewProduct={() => {
         if (createdProductId) navigate(workspaceRoutes.productDetail(createdProductId));
       }}
-      onAddAnother={() => navigate(workspaceRoutes.productCreate(), { replace: true })}
+      onAddAnother={() => {
+        clearStoredProductDraft(draftStorageKey);
+        setForm({
+          name: "",
+          description: "",
+          sku: "",
+          barcode: "",
+          storeId: String(storeId || ""),
+          categoryIds: [],
+          defaultCategoryId: null,
+          price: "",
+          salePrice: "",
+          stock: "",
+          slug: "",
+          tags: [],
+          status: "draft",
+          imageUrl: "",
+        });
+        setForm2026Meta(createInitialProductForm2026Meta());
+        setSeo(defaultSeoState);
+        setHasVariants(false);
+        setSelectedAttributes([]);
+        setSelectedAttributeValues([]);
+        setVariants([]);
+        setLocalImages([]);
+        setSlugTouched(false);
+        setCreatedProduct(null);
+        setWizardStep(1);
+        setMaxVisitedWizardStep(1);
+        setNotice(null);
+        navigate(workspaceRoutes.productCreate(), { replace: true });
+      }}
       onBackToList={() => navigate(workspaceRoutes.catalog())}
       onFormChange={updateFormFields}
       onNameChange={handleNameChange}
