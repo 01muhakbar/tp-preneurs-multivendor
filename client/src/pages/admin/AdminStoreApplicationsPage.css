@@ -1,18 +1,35 @@
+/**
+ * AdminStoreApplicationsPage.css
+ * TP Preneurs Admin Store Applications
+ * Strict Brand Palette: #034c85 (TP Deep Blue) and #fe6f05 (TP Vibrant Orange)
+ */
+
 .asa-page {
-  --asa-bg: var(--tp-bg);
-  --asa-surface: var(--tp-surface);
-  --asa-surface-soft: var(--tp-surface-soft);
-  --asa-border: var(--tp-border);
-  --asa-border-soft: rgb(var(--tp-primary-rgb) / 0.18);
-  --asa-text: var(--tp-text);
-  --asa-muted: var(--tp-muted);
-  --asa-primary: var(--tp-primary);
-  --asa-primary-blue: var(--tp-primary);
-  --asa-success: #10b981;
-  --asa-warning: #f59e0b;
+  --tp-blue: #034c85;
+  --tp-blue-hover: #023864;
+  --tp-blue-light: #0284c7;
+  --tp-blue-subtle: rgba(3, 76, 133, 0.16);
+  --tp-blue-border: rgba(3, 76, 133, 0.35);
+
+  --tp-orange: #fe6f05;
+  --tp-orange-hover: #e05e00;
+  --tp-orange-light: #ff8528;
+  --tp-orange-subtle: rgba(254, 111, 5, 0.14);
+  --tp-orange-border: rgba(254, 111, 5, 0.32);
+
+  --asa-bg: #030a14;
+  --asa-surface: #081424;
+  --asa-surface-soft: #0e1e34;
+  --asa-border: rgba(255, 255, 255, 0.08);
+  --asa-border-hover: rgba(255, 255, 255, 0.15);
+  --asa-text: #f1f5f9;
+  --asa-muted: #94a3b8;
+  --asa-subtle: #64748b;
   --asa-danger: #ef4444;
-  --asa-info: var(--tp-primary);
-  --asa-shadow: 0 18px 48px rgba(15, 23, 42, 0.07);
+
+  --asa-shadow: 0 16px 36px rgba(0, 0, 0, 0.3);
+  --asa-shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.2);
+
   color: var(--asa-text);
   min-width: 0;
   width: 100%;
@@ -30,36 +47,41 @@
   font: inherit;
 }
 
+/* ==========================================================================
+   Header
+   ========================================================================== */
+
 .asa-header {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 22px;
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
 .asa-eyebrow {
   display: block;
-  color: var(--asa-info);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0;
-  margin-bottom: 5px;
+  color: var(--tp-orange);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
 }
 
 .asa-header h1 {
   margin: 0;
   color: var(--asa-text);
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 800;
-  letter-spacing: 0;
-  line-height: 1.1;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
 }
 
 .asa-header p {
-  margin: 7px 0 0;
+  margin: 5px 0 0;
   color: var(--asa-muted);
-  font-size: 15px;
+  font-size: 13.5px;
   line-height: 1.4;
 }
 
@@ -67,20 +89,25 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 10px;
 }
 
 .asa-total-badge {
   display: inline-flex;
-  min-height: 36px;
+  min-height: 38px;
   align-items: center;
-  border-radius: 14px;
+  border-radius: 10px;
   background: var(--asa-surface-soft);
-  color: #334155;
+  border: 1px solid var(--asa-border);
+  color: var(--asa-text);
   font-size: 13px;
-  font-weight: 800;
-  padding: 0 16px;
+  font-weight: 700;
+  padding: 0 14px;
 }
+
+/* ==========================================================================
+   Buttons
+   ========================================================================== */
 
 .asa-primary,
 .asa-secondary,
@@ -90,33 +117,42 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  border-radius: 12px;
+  gap: 7px;
+  border-radius: 10px;
   text-decoration: none;
-  transition:
-    transform 150ms ease,
-    background 150ms ease,
-    border-color 150ms ease,
-    box-shadow 150ms ease;
+  font-size: 13px;
+  font-weight: 700;
+  transition: all 180ms ease;
+  cursor: pointer;
 }
 
 .asa-primary {
-  min-height: 44px;
-  border: 1px solid var(--asa-primary);
-  background: var(--asa-primary);
+  min-height: 40px;
+  border: 1px solid var(--tp-blue);
+  background: var(--tp-blue);
   color: #ffffff;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 800;
-  padding: 0 18px;
-  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.16);
+  padding: 0 16px;
+  box-shadow: 0 4px 16px rgba(3, 76, 133, 0.35);
 }
 
-.asa-primary:hover,
-.asa-secondary:hover,
-.asa-row-primary:hover,
-.asa-page-button:hover,
-.asa-icon-button:hover {
+.asa-primary:hover:not(:disabled) {
+  background: var(--tp-blue-hover);
+  border-color: var(--tp-blue-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(3, 76, 133, 0.45);
+}
+
+.asa-secondary {
+  min-height: 40px;
+  border: 1px solid var(--asa-border);
+  background: var(--asa-surface-soft);
+  color: var(--asa-text);
+  padding: 0 16px;
+}
+
+.asa-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--asa-border-hover);
   transform: translateY(-1px);
 }
 
@@ -124,243 +160,280 @@
 .asa-secondary:disabled,
 .asa-page-button:disabled {
   cursor: not-allowed;
-  opacity: 0.55;
+  opacity: 0.5;
   transform: none;
 }
 
-.asa-secondary {
-  min-height: 44px;
-  border: 1px solid var(--asa-border);
-  background: var(--asa-surface);
-  color: var(--asa-text);
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 800;
-  padding: 0 18px;
-}
+/* ==========================================================================
+   KPI Cards
+   ========================================================================== */
 
 .asa-kpis {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px;
-  margin-bottom: 22px;
+  gap: 14px;
+  margin-bottom: 20px;
 }
 
 .asa-kpi {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   border: 1px solid var(--asa-border);
-  border-radius: 18px;
+  border-radius: 14px;
   background: var(--asa-surface);
-  box-shadow: var(--asa-shadow);
-  padding: 24px;
+  box-shadow: var(--asa-shadow-sm);
+  padding: 16px 18px;
+  transition: border-color 180ms ease, transform 180ms ease;
+}
+
+.asa-kpi:hover {
+  border-color: var(--asa-border-hover);
+  transform: translateY(-1px);
 }
 
 .asa-kpi__icon {
   display: inline-flex;
-  width: 54px;
-  height: 54px;
+  width: 44px;
+  height: 44px;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  border-radius: 16px;
+  border-radius: 12px;
 }
 
-.asa-kpi div {
+.asa-kpi div,
+.asa-kpi__content {
   min-width: 0;
-}
-
-.asa-kpi p,
-.asa-kpi small {
-  margin: 0;
-  color: var(--asa-muted);
+  flex: 1;
 }
 
 .asa-kpi p {
-  font-size: 13px;
-  font-weight: 800;
+  margin: 0;
+  color: var(--asa-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .asa-kpi strong {
   display: block;
   color: var(--asa-text);
-  font-size: 26px;
-  line-height: 1;
-  margin: 8px 0 7px;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.1;
+  margin: 4px 0;
 }
 
 .asa-kpi small {
   display: block;
   overflow: hidden;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 11.5px;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.asa-kpi--warning .asa-kpi__icon {
-  background: rgba(245, 158, 11, 0.14);
-  color: var(--asa-warning);
+/* KPI Tones strictly adhering to #034c85 and #fe6f05 */
+.asa-kpi--orange .asa-kpi__icon {
+  background: var(--tp-orange-subtle);
+  color: var(--tp-orange);
+  border: 1px solid var(--tp-orange-border);
 }
 
-.asa-kpi--warning small {
-  color: #d97706;
+.asa-kpi--orange small {
+  color: var(--tp-orange);
 }
 
-.asa-kpi--success .asa-kpi__icon {
-  background: rgba(16, 185, 129, 0.14);
-  color: #059669;
+.asa-kpi--blue .asa-kpi__icon {
+  background: var(--tp-blue-subtle);
+  color: var(--tp-blue-light);
+  border: 1px solid var(--tp-blue-border);
 }
 
-.asa-kpi--success small {
-  color: #059669;
-}
-
-.asa-kpi--info .asa-kpi__icon {
-  background: rgba(37, 99, 235, 0.12);
-  color: var(--asa-info);
-}
-
-.asa-kpi--info small {
-  color: var(--asa-info);
+.asa-kpi--blue small {
+  color: var(--tp-blue-light);
 }
 
 .asa-kpi--neutral .asa-kpi__icon {
-  background: rgba(100, 116, 139, 0.12);
-  color: #475569;
+  background: rgba(148, 163, 184, 0.1);
+  color: var(--asa-muted);
+  border: 1px solid rgba(148, 163, 184, 0.18);
 }
 
-.asa-filter-panel,
-.asa-table-card,
-.asa-pagination {
-  border: 1px solid var(--asa-border);
-  border-radius: 18px;
-  background: var(--asa-surface);
-  box-shadow: var(--asa-shadow);
+.asa-kpi--neutral small {
+  color: var(--asa-muted);
 }
+
+/* ==========================================================================
+   Filter Panel
+   ========================================================================== */
 
 .asa-filter-panel {
+  border: 1px solid var(--asa-border);
+  border-radius: 14px;
+  background: var(--asa-surface);
+  box-shadow: var(--asa-shadow-sm);
   overflow: hidden;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .asa-status-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   border-bottom: 1px solid var(--asa-border);
-  padding: 16px 18px;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.12);
 }
 
 .asa-status-tabs button {
-  min-height: 34px;
+  min-height: 32px;
   border: 1px solid var(--asa-border);
-  border-radius: 999px;
-  background: var(--asa-surface);
-  color: #334155;
+  border-radius: 8px;
+  background: var(--asa-surface-soft);
+  color: var(--asa-muted);
   cursor: pointer;
   font-size: 12px;
-  font-weight: 800;
-  padding: 0 16px;
+  font-weight: 700;
+  padding: 0 14px;
+  transition: all 160ms ease;
+}
+
+.asa-status-tabs button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--asa-text);
+  border-color: var(--asa-border-hover);
 }
 
 .asa-status-tabs button.is-active {
-  border-color: var(--asa-primary);
-  background: var(--asa-primary);
+  border-color: var(--tp-blue);
+  background: var(--tp-blue);
   color: #ffffff;
+  box-shadow: 0 2px 10px rgba(3, 76, 133, 0.35);
 }
 
 .asa-filter-grid {
   display: grid;
-  grid-template-columns: minmax(170px, 250px) minmax(170px, 250px) minmax(260px, 1fr) auto auto;
-  gap: 16px;
+  grid-template-columns: minmax(170px, 220px) minmax(220px, 1fr) auto auto;
+  gap: 12px;
   align-items: end;
-  padding: 16px 18px;
+  padding: 14px 16px;
 }
 
 .asa-filter-grid label {
   display: grid;
   min-width: 0;
-  gap: 7px;
+  gap: 5px;
   position: relative;
 }
 
 .asa-filter-grid label > span {
   color: var(--asa-muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .asa-filter-grid select,
 .asa-filter-grid input {
   width: 100%;
-  min-height: 44px;
+  min-height: 40px;
   border: 1px solid var(--asa-border);
-  border-radius: 12px;
-  background: var(--asa-surface);
+  border-radius: 9px;
+  background: var(--asa-surface-soft);
   color: var(--asa-text);
+  font-size: 13px;
   outline: 0;
-  padding: 0 14px;
-}
-
-.asa-search-field svg {
-  bottom: 13px;
-  color: #64748b;
-  left: 14px;
-  position: absolute;
-}
-
-.asa-search-field input {
-  padding-left: 42px;
+  padding: 0 12px;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 
 .asa-filter-grid select:focus,
 .asa-filter-grid input:focus {
-  border-color: rgba(37, 99, 235, 0.5);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  border-color: var(--tp-blue-light);
+  box-shadow: 0 0 0 3px rgba(3, 76, 133, 0.25);
 }
 
+.asa-search-field svg {
+  bottom: 11px;
+  color: var(--asa-subtle);
+  left: 12px;
+  position: absolute;
+}
+
+.asa-search-field input {
+  padding-left: 38px;
+}
+
+/* ==========================================================================
+   Table Section & Anti-Squish Responsive Table
+   ========================================================================== */
+
 .asa-table-card {
+  border: 1px solid var(--asa-border);
+  border-radius: 14px;
+  background: var(--asa-surface);
+  box-shadow: var(--asa-shadow);
   overflow: visible;
 }
 
 .asa-table-scroll {
   overflow-x: auto;
   width: 100%;
+  border-radius: 14px;
 }
 
+/* Removed min-width: 1120px to eliminate horizontal scrollbar bug! */
 .asa-table {
   border-collapse: separate;
   border-spacing: 0;
-  min-width: 1120px;
+  min-width: 860px;
   width: 100%;
 }
 
 .asa-table th {
   background: var(--asa-surface-soft);
-  color: #475569;
-  font-size: 12px;
-  font-weight: 900;
-  padding: 14px 18px;
+  color: var(--asa-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 12px 14px;
   text-align: left;
   text-transform: uppercase;
+  border-bottom: 1px solid var(--asa-border);
+  white-space: nowrap;
 }
 
 .asa-table th:first-child {
-  border-top-left-radius: 18px;
+  border-top-left-radius: 13px;
+  padding-left: 18px;
 }
 
 .asa-table th:last-child {
-  border-top-right-radius: 18px;
+  border-top-right-radius: 13px;
+  padding-right: 18px;
 }
 
 .asa-table td {
   border-top: 1px solid var(--asa-border);
   color: var(--asa-text);
-  padding: 15px 18px;
+  padding: 13px 14px;
   vertical-align: middle;
+}
+
+.asa-table td:first-child {
+  padding-left: 18px;
+}
+
+.asa-table td:last-child {
+  padding-right: 18px;
+}
+
+.asa-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .asa-th-actions,
@@ -368,201 +441,321 @@
   text-align: right;
 }
 
+/* ==========================================================================
+   Table Cell: Applicant
+   ========================================================================== */
+
 .asa-person {
   align-items: center;
   display: flex;
-  gap: 13px;
+  gap: 12px;
   min-width: 0;
 }
 
 .asa-avatar {
   align-items: center;
-  border-radius: 50%;
+  border-radius: 10px;
   display: inline-flex;
   flex: 0 0 auto;
-  font-weight: 900;
-  height: 42px;
+  font-size: 13px;
+  font-weight: 800;
+  height: 38px;
   justify-content: center;
-  width: 42px;
+  width: 38px;
+  border: 1px solid transparent;
 }
 
-.asa-avatar--approved {
-  background: rgba(16, 185, 129, 0.14);
-  color: #047857;
+.asa-avatar--blue {
+  background: var(--tp-blue-subtle);
+  color: var(--tp-blue-light);
+  border-color: var(--tp-blue-border);
 }
 
-.asa-avatar--submitted,
-.asa-avatar--under_review {
-  background: rgba(37, 99, 235, 0.14);
-  color: #1d4ed8;
+.asa-avatar--orange {
+  background: var(--tp-orange-subtle);
+  color: var(--tp-orange);
+  border-color: var(--tp-orange-border);
 }
 
-.asa-avatar--revision_requested,
-.asa-avatar--rejected {
-  background: rgba(239, 68, 68, 0.12);
-  color: #dc2626;
+.asa-avatar--neutral {
+  background: rgba(148, 163, 184, 0.1);
+  color: var(--asa-muted);
+  border-color: rgba(148, 163, 184, 0.2);
 }
 
-.asa-avatar--cancelled,
-.asa-avatar--draft {
-  background: rgba(245, 158, 11, 0.14);
-  color: #b45309;
+.asa-person__info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
-.asa-person strong,
+.asa-person__info strong,
 .asa-store-cell strong {
   color: var(--asa-text);
-  display: block;
-  font-size: 14px;
-  font-weight: 900;
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.asa-person small,
-.asa-store-cell small,
-.asa-person em,
-.asa-store-cell em,
-.asa-date small,
-.asa-completion small,
-.asa-completion em {
+.asa-person__info small,
+.asa-store-cell small {
   color: var(--asa-muted);
-  display: block;
   font-size: 12px;
-  font-style: normal;
-  line-height: 1.45;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
+.asa-match-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  font-size: 10.5px;
+  font-weight: 700;
+  border-radius: 5px;
+  padding: 1px 6px;
+  margin-top: 3px;
+  letter-spacing: 0.02em;
+}
+
+.asa-match-badge--blue {
+  background: var(--tp-blue-subtle);
+  color: var(--tp-blue-light);
+  border: 1px solid var(--tp-blue-border);
+}
+
+.asa-match-badge--orange {
+  background: var(--tp-orange-subtle);
+  color: var(--tp-orange);
+  border: 1px solid var(--tp-orange-border);
+}
+
+.asa-match-badge--neutral {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--asa-muted);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+/* ==========================================================================
+   Table Cell: Store
+   ========================================================================== */
+
+.asa-store-cell {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.asa-store-cell small {
+  color: var(--tp-blue-light);
+}
+
+.asa-store-cell em {
+  color: var(--asa-subtle);
+  font-size: 11.5px;
+  font-style: normal;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ==========================================================================
+   Table Cell: Status
+   ========================================================================== */
 
 .asa-status-stack {
   align-items: flex-start;
-  display: grid;
-  gap: 7px;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.asa-status,
-.asa-step {
+.asa-status {
   align-items: center;
-  border-radius: 999px;
+  border-radius: 6px;
   display: inline-flex;
-  font-size: 12px;
-  font-weight: 900;
+  font-size: 11.5px;
+  font-weight: 700;
   justify-content: center;
   line-height: 1;
-  min-height: 24px;
-  padding: 0 10px;
-  width: max-content;
+  min-height: 22px;
+  padding: 0 8px;
+  letter-spacing: 0.01em;
 }
 
-.asa-status--success {
-  background: rgba(16, 185, 129, 0.14);
-  color: #047857;
+.asa-status--orange {
+  background: var(--tp-orange-subtle);
+  color: var(--tp-orange);
+  border: 1px solid var(--tp-orange-border);
 }
 
-.asa-status--warning {
-  background: rgba(245, 158, 11, 0.16);
-  color: #b45309;
+.asa-status--blue {
+  background: var(--tp-blue-subtle);
+  color: var(--tp-blue-light);
+  border: 1px solid var(--tp-blue-border);
 }
 
 .asa-status--danger {
-  background: rgba(239, 68, 68, 0.13);
-  color: #dc2626;
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
-.asa-status--info {
-  background: rgba(37, 99, 235, 0.13);
-  color: #1d4ed8;
+.asa-status--neutral {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--asa-muted);
+  border: 1px solid rgba(148, 163, 184, 0.2);
 }
 
-.asa-status--neutral,
 .asa-step {
-  background: rgba(100, 116, 139, 0.12);
-  color: #475569;
+  color: var(--asa-subtle);
+  font-size: 10.5px;
+  font-weight: 600;
+  padding-left: 2px;
 }
+
+/* ==========================================================================
+   Table Cell: Completion
+   ========================================================================== */
 
 .asa-completion {
-  min-width: 145px;
+  min-width: 125px;
 }
 
-.asa-completion strong {
+.asa-completion__header {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+
+.asa-completion__header strong {
   color: var(--asa-text);
-  display: block;
   font-size: 13px;
-  margin-bottom: 6px;
+  font-weight: 800;
+}
+
+.asa-completion__header small {
+  color: var(--asa-muted);
+  font-size: 11.5px;
 }
 
 .asa-progress {
-  background: #e2e8f0;
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 999px;
   display: block;
   height: 5px;
   overflow: hidden;
-  width: 130px;
+  width: 100%;
 }
 
 .asa-progress__bar {
   border-radius: inherit;
   display: block;
   height: 100%;
+  transition: width 300ms ease;
 }
 
-.asa-progress__bar--success {
-  background: var(--asa-success);
+.asa-progress__bar--blue {
+  background: linear-gradient(90deg, var(--tp-blue), var(--tp-blue-light));
 }
 
-.asa-progress__bar--info {
-  background: var(--asa-info);
+.asa-progress__bar--orange {
+  background: linear-gradient(90deg, var(--tp-orange), var(--tp-orange-light));
 }
 
-.asa-progress__bar--warning {
-  background: var(--asa-warning);
+.asa-completion em {
+  display: block;
+  color: var(--asa-subtle);
+  font-size: 11px;
+  font-style: normal;
+  margin-top: 4px;
 }
+
+/* ==========================================================================
+   Table Cell: Dates
+   ========================================================================== */
 
 .asa-date {
-  color: var(--asa-muted);
-  display: grid;
+  color: var(--asa-text);
+  display: flex;
+  flex-direction: column;
   gap: 2px;
-  grid-template-columns: auto minmax(0, 1fr);
-  min-width: 110px;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .asa-date svg {
-  margin-top: 2px;
+  display: none;
 }
 
 .asa-date small {
-  grid-column: 2;
+  color: var(--asa-subtle);
+  font-size: 11px;
+  font-weight: 500;
 }
+
+/* ==========================================================================
+   Table Cell: Actions
+   ========================================================================== */
 
 .asa-actions {
   align-items: center;
   display: flex;
-  gap: 10px;
+  gap: 8px;
   justify-content: flex-end;
   position: relative;
 }
 
 .asa-row-primary {
-  min-height: 38px;
-  min-width: 90px;
-  border: 1px solid var(--asa-border);
-  background: var(--asa-surface);
-  color: var(--asa-text);
-  font-size: 13px;
-  font-weight: 900;
-  padding: 0 16px;
+  min-height: 34px;
+  min-width: 74px;
+  border: 1px solid var(--tp-blue-border);
+  background: var(--tp-blue-subtle);
+  color: var(--tp-blue-light);
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 0 13px;
+}
+
+.asa-row-primary:hover {
+  background: var(--tp-blue);
+  color: #ffffff;
+  border-color: var(--tp-blue);
+  box-shadow: 0 2px 10px rgba(3, 76, 133, 0.35);
 }
 
 .asa-row-primary.is-review {
-  border-color: var(--asa-primary);
-  background: var(--asa-primary);
+  border-color: var(--tp-orange);
+  background: var(--tp-orange);
   color: #ffffff;
+  box-shadow: 0 2px 10px rgba(254, 111, 5, 0.35);
+}
+
+.asa-row-primary.is-review:hover {
+  background: var(--tp-orange-hover);
+  border-color: var(--tp-orange-hover);
+  box-shadow: 0 4px 14px rgba(254, 111, 5, 0.45);
 }
 
 .asa-icon-button {
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   border: 1px solid var(--asa-border);
-  background: var(--asa-surface);
+  background: var(--asa-surface-soft);
+  color: var(--asa-muted);
+}
+
+.asa-icon-button:hover {
+  background: rgba(255, 255, 255, 0.08);
   color: var(--asa-text);
-  cursor: pointer;
+  border-color: var(--asa-border-hover);
 }
 
 .asa-kebab {
@@ -570,62 +763,72 @@
 }
 
 .asa-menu {
-  background: var(--asa-surface);
-  border: 1px solid var(--asa-border);
-  border-radius: 14px;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
+  background: #09172a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
   display: grid;
-  min-width: 180px;
-  padding: 6px;
+  min-width: 170px;
+  padding: 5px;
   position: absolute;
   right: 0;
-  top: calc(100% + 8px);
-  z-index: 20;
+  top: calc(100% + 6px);
+  z-index: 30;
 }
 
 .asa-menu a,
 .asa-menu button {
   background: transparent;
   border: 0;
-  border-radius: 10px;
+  border-radius: 8px;
   color: var(--asa-text);
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 800;
-  padding: 10px 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 8px 12px;
   text-align: left;
   text-decoration: none;
+  transition: background 150ms ease, color 150ms ease;
 }
 
 .asa-menu a:hover,
 .asa-menu button:hover {
-  background: var(--asa-surface-soft);
+  background: var(--tp-blue-subtle);
+  color: #ffffff;
+}
+
+.asa-menu .asa-menu__danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
 }
 
 .asa-menu button:disabled {
-  color: var(--asa-muted);
+  color: var(--asa-subtle);
   cursor: not-allowed;
-  opacity: 0.55;
+  opacity: 0.4;
 }
+
+/* ==========================================================================
+   Skeleton & Loading
+   ========================================================================== */
 
 .asa-skeleton {
   animation: asa-pulse 1.2s ease-in-out infinite;
-  background: linear-gradient(90deg, #e2e8f0 0%, #f8fafc 48%, #e2e8f0 100%);
-  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.09) 50%, rgba(255, 255, 255, 0.04) 100%);
+  border-radius: 6px;
   display: block;
-  height: 18px;
+  height: 16px;
   width: 100%;
 }
 
 @keyframes asa-pulse {
-  0%,
-  100% {
-    opacity: 0.62;
-  }
-  50% {
-    opacity: 1;
-  }
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
 }
+
+/* ==========================================================================
+   Pagination
+   ========================================================================== */
 
 .asa-pagination {
   align-items: center;
@@ -633,42 +836,50 @@
   gap: 14px;
   justify-content: space-between;
   margin-top: 14px;
-  padding: 12px 18px;
+  padding: 12px 16px;
+  border: 1px solid var(--asa-border);
+  border-radius: 14px;
+  background: var(--asa-surface);
+  box-shadow: var(--asa-shadow-sm);
 }
 
 .asa-pagination p {
   color: var(--asa-muted);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 12.5px;
+  font-weight: 600;
   margin: 0;
 }
 
 .asa-pagination__controls {
   align-items: center;
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .asa-page-button {
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   border: 1px solid var(--asa-border);
-  background: var(--asa-surface);
+  background: var(--asa-surface-soft);
   color: var(--asa-text);
-  cursor: pointer;
+}
+
+.asa-page-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--asa-border-hover);
 }
 
 .asa-current-page {
   align-items: center;
-  background: var(--asa-primary);
-  border-radius: 10px;
+  background: var(--tp-blue);
+  border-radius: 8px;
   color: #ffffff;
   display: inline-flex;
-  font-size: 13px;
-  font-weight: 900;
-  height: 38px;
+  font-size: 12.5px;
+  font-weight: 800;
+  height: 34px;
   justify-content: center;
-  width: 38px;
+  width: 34px;
 }
 
 .asa-per-page {
@@ -680,126 +891,33 @@
 .asa-per-page select {
   appearance: none;
   border: 1px solid var(--asa-border);
-  border-radius: 11px;
-  background: var(--asa-surface);
+  border-radius: 9px;
+  background: var(--asa-surface-soft);
   color: var(--asa-text);
-  min-height: 38px;
+  font-size: 12.5px;
+  min-height: 34px;
   outline: 0;
-  padding: 0 38px 0 14px;
+  padding: 0 32px 0 12px;
 }
 
 .asa-per-page svg {
   color: var(--asa-muted);
   pointer-events: none;
   position: absolute;
-  right: 12px;
+  right: 10px;
 }
 
-:where(
-    html.dark,
-    body.dark,
-    [data-theme="dark"],
-    [data-admin-theme="dark"],
-    .admin-theme-dark
-  )
-  .asa-page {
-  --asa-bg: #020617;
-  --asa-surface: #07111f;
-  --asa-surface-soft: #0f1a2a;
-  --asa-border: #1e293b;
-  --asa-border-soft: rgba(148, 163, 184, 0.18);
-  --asa-text: #e5edf7;
-  --asa-muted: #93a4ba;
-  --asa-primary: #1d4ed8;
-  --asa-shadow: 0 22px 52px rgba(0, 0, 0, 0.28);
-}
+/* ==========================================================================
+   Responsive Breakpoints
+   ========================================================================== */
 
-:where(
-    html.dark,
-    body.dark,
-    [data-theme="dark"],
-    [data-admin-theme="dark"],
-    .admin-theme-dark
-  )
-  .asa-total-badge,
-:where(
-    html.dark,
-    body.dark,
-    [data-theme="dark"],
-    [data-admin-theme="dark"],
-    .admin-theme-dark
-  )
-  .asa-status-tabs button,
-:where(
-    html.dark,
-    body.dark,
-    [data-theme="dark"],
-    [data-admin-theme="dark"],
-    .admin-theme-dark
-  )
-  .asa-secondary,
-:where(
-    html.dark,
-    body.dark,
-    [data-theme="dark"],
-    [data-admin-theme="dark"],
-    .admin-theme-dark
-  )
-  .asa-icon-button,
-:where(
-    html.dark,
-    body.dark,
-    [data-theme="dark"],
-    [data-admin-theme="dark"],
-    .admin-theme-dark
-  )
-  .asa-row-primary,
-:where(
-    html.dark,
-    body.dark,
-    [data-theme="dark"],
-    [data-admin-theme="dark"],
-    .admin-theme-dark
-  )
-  .asa-page-button,
-:where(
-    html.dark,
-    body.dark,
-    [data-theme="dark"],
-    [data-admin-theme="dark"],
-    .admin-theme-dark
-  )
-  .asa-per-page select {
-  color: var(--asa-text);
-}
-
-:where(
-    html.dark,
-    body.dark,
-    [data-theme="dark"],
-    [data-admin-theme="dark"],
-    .admin-theme-dark
-  )
-  .asa-status--neutral,
-:where(
-    html.dark,
-    body.dark,
-    [data-theme="dark"],
-    [data-admin-theme="dark"],
-    .admin-theme-dark
-  )
-  .asa-step {
-  background: rgba(148, 163, 184, 0.16);
-  color: #cbd5e1;
-}
-
-@media (max-width: 1180px) {
+@media (max-width: 1100px) {
   .asa-kpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .asa-filter-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr 1fr;
   }
 
   .asa-search-field {
@@ -807,7 +925,7 @@
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 720px) {
   .asa-header,
   .asa-pagination {
     align-items: stretch;
@@ -820,7 +938,10 @@
     width: 100%;
   }
 
-  .asa-kpis,
+  .asa-kpis {
+    grid-template-columns: 1fr;
+  }
+
   .asa-filter-grid {
     grid-template-columns: 1fr;
   }

@@ -61,10 +61,10 @@ const STATUS_LABELS = {
 
 const STATUS_TONES = {
   draft: "neutral",
-  submitted: "warning",
-  under_review: "info",
-  revision_requested: "danger",
-  approved: "success",
+  submitted: "orange",
+  under_review: "blue",
+  revision_requested: "orange",
+  approved: "blue",
   rejected: "danger",
   cancelled: "neutral",
 };
@@ -108,6 +108,26 @@ const normalizeMeta = (payload, fallbackLength, params) => {
 const getApplicant = (entry) => {
   const applicant = entry?.applicant || entry?.user || entry?.owner || {};
   const identityMatch = applicant?.identityMatch || entry?.identityMatch || {};
+  const rawMatch = String(
+    identityMatch.summaryLabel ||
+    applicant.identityMatchLabel ||
+    entry?.identityMatchLabel ||
+    ""
+  ).toLowerCase();
+
+  let matchLabel = "Partial Match";
+  let matchTone = "orange";
+  if (rawMatch.includes("exact") || rawMatch.includes("full") || rawMatch.includes("all match")) {
+    matchLabel = "Full Match";
+    matchTone = "blue";
+  } else if (rawMatch.includes("mismatch") || rawMatch.includes("no match")) {
+    matchLabel = "Mismatch";
+    matchTone = "orange";
+  } else if (!rawMatch) {
+    matchLabel = "Unverified";
+    matchTone = "neutral";
+  }
+
   return {
     name:
       applicant.accountName ||
@@ -116,21 +136,22 @@ const getApplicant = (entry) => {
       entry?.ownerIdentity?.fullName ||
       "Unknown applicant",
     email: applicant.accountEmail || applicant.email || entry?.email || "-",
-    match:
-      identityMatch.summaryLabel ||
-      applicant.identityMatchLabel ||
-      entry?.identityMatchLabel ||
-      "mostly match",
+    matchLabel,
+    matchTone,
   };
 };
 
 const getStore = (entry) => {
   const store = entry?.store || entry?.storeInformation || entry?.storeSnapshot || {};
+  const category = String(store.storeCategory || store.category || "").trim();
+  let ownerType = String(store.sellerType || store.ownerType || store.type || "Individual").trim();
+  if (ownerType === "Individual / Sole Proprietor") ownerType = "Individual";
+  const validCategory = category && category !== "-" ? category : null;
+  const description = validCategory ? `${validCategory} • ${ownerType}` : ownerType;
   return {
     name: store.storeName || store.name || entry?.storeName || "-",
     slug: store.storeSlug || store.slug || entry?.storeSlug || "",
-    category: store.storeCategory || store.category || "-",
-    ownerType: store.sellerType || store.ownerType || store.type || "-",
+    description,
   };
 };
 
@@ -144,7 +165,7 @@ const getCompletion = (entry) => {
     total,
     percent: Math.max(0, Math.min(100, percent)),
     isComplete: Boolean(completeness.isComplete || (total > 0 && completed >= total)),
-    label: completeness.label || (total > 0 && completed >= total ? "Ready to submit" : "Needs completion"),
+    label: completeness.label || (total > 0 && completed >= total ? "Ready" : "Incomplete"),
   };
 };
 
@@ -195,9 +216,9 @@ function KpiCard({ icon: Icon, label, value, helper, tone }) {
   return (
     <section className={`asa-kpi asa-kpi--${tone}`}>
       <span className="asa-kpi__icon" aria-hidden="true">
-        <Icon size={24} />
+        <Icon size={20} />
       </span>
-      <div>
+      <div className="asa-kpi__content">
         <p>{label}</p>
         <strong>{value}</strong>
         <small>{helper}</small>
@@ -217,20 +238,29 @@ function StatusBadge({ status }) {
 
 function CompletionCell({ entry }) {
   const completion = getCompletion(entry);
-  const barTone = completion.isComplete ? "success" : completion.percent >= 60 ? "info" : "warning";
+  const status = getStatus(entry);
+  const isSubmitted = status === "submitted" || status === "under_review" || status === "approved";
+  const statusLabel = isSubmitted
+    ? status === "approved"
+      ? "Approved"
+      : "In Queue"
+    : completion.isComplete
+      ? "Ready"
+      : "Incomplete";
+
   return (
     <div className="asa-completion">
-      <strong>
-        {completion.completed}/{completion.total || 0}
-      </strong>
+      <div className="asa-completion__header">
+        <strong>{completion.percent}%</strong>
+        <small>({completion.completed}/{completion.total || 9})</small>
+      </div>
       <span className="asa-progress" aria-hidden="true">
         <span
-          className={`asa-progress__bar asa-progress__bar--${barTone}`}
+          className={`asa-progress__bar ${completion.percent === 100 ? "asa-progress__bar--blue" : "asa-progress__bar--orange"}`}
           style={{ width: `${completion.percent}%` }}
         />
       </span>
-      <small>{completion.percent}% complete</small>
-      <em>{completion.label}</em>
+      <em>{statusLabel}</em>
     </div>
   );
 }
@@ -267,17 +297,17 @@ function LoadingRows() {
 }
 
 function RowActions({ entry, isOpen, onToggle, onMutate }) {
+  const status = getStatus(entry);
+  const isReviewable = status === "submitted" || status === "under_review";
+  const buttonLabel = isReviewable ? "Review" : status === "draft" ? "Open" : "View";
+
   return (
     <div className="asa-actions">
       <Link
-        className={`asa-row-primary ${getStatus(entry) === "submitted" ? "is-review" : ""}`}
+        className={`asa-row-primary ${isReviewable ? "is-review" : ""}`}
         to={`/admin/store/applications/${entry.id}`}
       >
-        {getStatus(entry) === "submitted" || getStatus(entry) === "under_review"
-          ? "Review"
-          : getStatus(entry) === "draft"
-            ? "Open"
-            : "View"}
+        {buttonLabel}
       </Link>
       <div className="asa-kebab">
         <button
@@ -287,7 +317,7 @@ function RowActions({ entry, isOpen, onToggle, onMutate }) {
           aria-expanded={isOpen}
           onClick={onToggle}
         >
-          <MoreVertical size={18} aria-hidden="true" />
+          <MoreVertical size={17} aria-hidden="true" />
         </button>
         {isOpen ? (
           <div className="asa-menu">
@@ -297,7 +327,7 @@ function RowActions({ entry, isOpen, onToggle, onMutate }) {
               disabled={!canMutate(entry, "approve")}
               onClick={() => onMutate("approve", entry)}
             >
-              Approve
+              Approve store
             </button>
             <button
               type="button"
@@ -308,6 +338,7 @@ function RowActions({ entry, isOpen, onToggle, onMutate }) {
             </button>
             <button
               type="button"
+              className="asa-menu__danger"
               disabled={!canMutate(entry, "reject")}
               onClick={() => onMutate("reject", entry)}
             >
@@ -489,18 +520,30 @@ export default function AdminStoreApplicationsPage() {
           icon={AlertTriangle}
           label="Needs Action"
           value={kpis.needsAction}
-          helper="Requires your attention"
-          tone="warning"
+          helper="Awaiting review"
+          tone="orange"
         />
         <KpiCard
           icon={ShieldCheck}
           label="Verified"
           value={kpis.verified}
-          helper="All set"
-          tone="success"
+          helper="100% complete"
+          tone="blue"
         />
-        <KpiCard icon={Clock3} label="Ready" value={kpis.ready} helper="Waiting for updates" tone="info" />
-        <KpiCard icon={Archive} label="Total" value={kpis.total} helper="All applications" tone="neutral" />
+        <KpiCard
+          icon={Clock3}
+          label="Ready"
+          value={kpis.ready}
+          helper="Ready to process"
+          tone="orange"
+        />
+        <KpiCard
+          icon={Archive}
+          label="Total"
+          value={kpis.total}
+          helper="All submissions"
+          tone="blue"
+        />
       </section>
 
       <section className="asa-filter-panel">
@@ -510,28 +553,16 @@ export default function AdminStoreApplicationsPage() {
               key={option.value || "all"}
               type="button"
               className={filters.status === option.value ? "is-active" : ""}
-              onClick={() => setFilters((current) => ({ ...current, status: option.value }))}
+              onClick={() => {
+                setFilters((current) => ({ ...current, status: option.value }));
+                updateParams({ status: option.value, page: "1" });
+              }}
             >
               {option.label}
             </button>
           ))}
         </div>
         <div className="asa-filter-grid">
-          <label>
-            <span>Status</span>
-            <select
-              value={filters.status}
-              onChange={(event) =>
-                setFilters((current) => ({ ...current, status: event.target.value }))
-              }
-            >
-              {STATUS_OPTIONS.map((option) => (
-                <option key={option.value || "all-statuses"} value={option.value}>
-                  {option.value ? option.label : "All statuses"}
-                </option>
-              ))}
-            </select>
-          </label>
           <label>
             <span>Completeness</span>
             <select
@@ -616,13 +647,15 @@ export default function AdminStoreApplicationsPage() {
                       <tr key={entry.id}>
                         <td>
                           <div className="asa-person">
-                            <span className={`asa-avatar asa-avatar--${status}`}>
+                            <span className={`asa-avatar asa-avatar--${applicant.matchTone}`}>
                               {getInitials(applicant.name)}
                             </span>
-                            <div>
+                            <div className="asa-person__info">
                               <strong>{applicant.name}</strong>
                               <small>{applicant.email}</small>
-                              <em>Identity match: {applicant.match}</em>
+                              <span className={`asa-match-badge asa-match-badge--${applicant.matchTone}`}>
+                                {applicant.matchLabel}
+                              </span>
                             </div>
                           </div>
                         </td>
@@ -630,9 +663,7 @@ export default function AdminStoreApplicationsPage() {
                           <div className="asa-store-cell">
                             <strong>{store.name}</strong>
                             <small>{store.slug ? `@${store.slug}` : "No slug"}</small>
-                            <em>
-                              {store.category} • {store.ownerType}
-                            </em>
+                            <em>{store.description}</em>
                           </div>
                         </td>
                         <td>
