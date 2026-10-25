@@ -1,10 +1,7 @@
 const requiredStorePaymentProfileFields = [
-  { key: "accountName", label: "Account name" },
-  { key: "merchantName", label: "Merchant name" },
   { key: "bankName", label: "Payout bank" },
   { key: "accountNumber", label: "Payout account number" },
   { key: "accountHolderName", label: "Payout account holder" },
-  { key: "qrisImageUrl", label: "QRIS image" },
 ] as const;
 
 const editableSellerPaymentProfileFields = [

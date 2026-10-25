@@ -12,12 +12,9 @@ import { PAYMENT_PROFILE_LIMITS } from "../../../api/paymentProfile.contract.ts"
 
 const requiredComplete = (form) =>
   Boolean(
-    String(form.accountName || "").trim() &&
-      String(form.merchantName || "").trim() &&
-      String(form.bankName || "").trim() &&
+    String(form.bankName || "").trim() &&
       String(form.accountNumber || "").trim() &&
-      String(form.accountHolderName || "").trim() &&
-      String(form.qrisImageUrl || "").trim()
+      String(form.accountHolderName || "").trim()
   );
 
 function Field({ label, hint, multiline = false, ...props }) {
@@ -79,8 +76,8 @@ export default function Seller2026PaymentProfileEditor({
       <header>
         <div>
           <span>Seller request</span>
-          <h2>Payment method editor</h2>
-          <p>Changes stay outside checkout until Admin approves and activates them.</p>
+          <h2>Payment & Payout Editor</h2>
+          <p>Transaksi pembeli diproses via Payment Gateway Duitku. Lengkapi nomor rekening bank untuk pencairan dana toko.</p>
         </div>
         <button type="button" onClick={onClose} aria-label="Close editor">
           <X size={19} />
@@ -107,8 +104,8 @@ export default function Seller2026PaymentProfileEditor({
           <div>
             <FileImage size={20} />
             <span>
-              <strong>QRIS image</strong>
-              <small>PNG or JPEG, maximum 5MB. Upload does not auto-save.</small>
+              <strong>QRIS image (Optional)</strong>
+              <small>PNG or JPEG, maximum 5MB. Opsional untuk referensi toko.</small>
             </span>
           </div>
           <input
@@ -142,7 +139,39 @@ export default function Seller2026PaymentProfileEditor({
 
         <div className="s26-pp-editor__fields">
           <div className="s26-pp-editor__section">
-            <h3>Required details</h3>
+            <h3>Payout bank account (Required)</h3>
+            <div className="s26-pp-form-grid">
+              <Field
+                label="Bank name *"
+                value={form.bankName}
+                maxLength={PAYMENT_PROFILE_LIMITS.bankName}
+                disabled={locked || busy}
+                onChange={(event) => setField("bankName", event.target.value)}
+                hint="Bank tujuan pencairan dana penjualan toko."
+              />
+              <Field
+                label="Account number *"
+                value={form.accountNumber}
+                maxLength={PAYMENT_PROFILE_LIMITS.accountNumber}
+                disabled={locked || busy}
+                onChange={(event) => setField("accountNumber", event.target.value)}
+                hint="Nomor rekening bank toko."
+              />
+              <Field
+                label="Account holder name *"
+                value={form.accountHolderName}
+                maxLength={PAYMENT_PROFILE_LIMITS.accountHolderName}
+                disabled={locked || busy}
+                onChange={(event) =>
+                  setField("accountHolderName", event.target.value)
+                }
+                hint="Nama pemilik rekening sesuai buku tabungan."
+              />
+            </div>
+          </div>
+
+          <div className="s26-pp-editor__section">
+            <h3>Store & QRIS details (Optional)</h3>
             <div className="s26-pp-form-grid">
               <Field
                 label="Account name"
@@ -159,42 +188,12 @@ export default function Seller2026PaymentProfileEditor({
                 onChange={(event) => setField("merchantName", event.target.value)}
               />
               <Field
-                label="QRIS image URL"
+                label="QRIS image URL (Optional)"
                 value={form.qrisImageUrl}
                 maxLength={PAYMENT_PROFILE_LIMITS.qrisImageUrl}
                 disabled={locked || busy}
                 onChange={(event) => setField("qrisImageUrl", event.target.value)}
-                hint="The image buyers will see after Admin approval."
-              />
-            </div>
-          </div>
-
-          <div className="s26-pp-editor__section">
-            <h3>Payout bank account</h3>
-            <div className="s26-pp-form-grid">
-              <Field
-                label="Bank name"
-                value={form.bankName}
-                maxLength={PAYMENT_PROFILE_LIMITS.bankName}
-                disabled={locked || busy}
-                onChange={(event) => setField("bankName", event.target.value)}
-                hint="Admin uses this bank for seller withdrawal transfers."
-              />
-              <Field
-                label="Account number"
-                value={form.accountNumber}
-                maxLength={PAYMENT_PROFILE_LIMITS.accountNumber}
-                disabled={locked || busy}
-                onChange={(event) => setField("accountNumber", event.target.value)}
-              />
-              <Field
-                label="Account holder name"
-                value={form.accountHolderName}
-                maxLength={PAYMENT_PROFILE_LIMITS.accountHolderName}
-                disabled={locked || busy}
-                onChange={(event) =>
-                  setField("accountHolderName", event.target.value)
-                }
+                hint="Opsional. Transaksi checkout pembeli ditangani secara terpusat oleh Payment Gateway Duitku."
               />
             </div>
           </div>

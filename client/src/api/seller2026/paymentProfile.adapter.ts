@@ -137,22 +137,19 @@ export const emptySeller2026PaymentProfile: Seller2026PaymentProfileModel = {
   },
   completeness: {
     completedFields: 0,
-    totalFields: 6,
+    totalFields: 3,
     allRequiredPresent: false,
     missingFields: [
-      { key: "accountName", label: "Account name" },
-      { key: "merchantName", label: "Merchant name" },
       { key: "bankName", label: "Payout bank" },
       { key: "accountNumber", label: "Payout account number" },
       { key: "accountHolderName", label: "Payout account holder" },
-      { key: "qrisImageUrl", label: "QRIS image" },
     ],
   },
   progress: [
-    { key: "account", label: "Account", complete: false, detail: "Required" },
-    { key: "merchant", label: "Merchant", complete: false, detail: "Required" },
     { key: "payout", label: "Payout Account", complete: false, detail: "Required" },
-    { key: "qris", label: "QRIS Image", complete: false, detail: "Required" },
+    { key: "account", label: "Account", complete: false, detail: "Optional" },
+    { key: "merchant", label: "Merchant", complete: false, detail: "Optional" },
+    { key: "qris", label: "QRIS Image", complete: false, detail: "Optional" },
     { key: "approval", label: "Admin Approval", complete: false, detail: "Pending" },
   ],
   governance: {
@@ -223,12 +220,9 @@ export function adaptSeller2026PaymentProfile(
     completenessSource.allRequiredPresent !== undefined
       ? boolean(completenessSource.allRequiredPresent)
       : Boolean(
-          form.accountName &&
-            form.merchantName &&
-            form.bankName &&
+          form.bankName &&
             form.accountNumber &&
-            form.accountHolderName &&
-            form.qrisImageUrl
+            form.accountHolderName
         );
   const reviewCode = status(
     governanceReview.code ?? reviewStatus.code ?? reviewFeedback.code,
@@ -312,18 +306,6 @@ export function adaptSeller2026PaymentProfile(
     },
     progress: [
       {
-        key: "account",
-        label: "Account",
-        complete: Boolean(form.accountName),
-        detail: form.accountName ? "Complete" : "Required",
-      },
-      {
-        key: "merchant",
-        label: "Merchant",
-        complete: Boolean(form.merchantName),
-        detail: form.merchantName ? "Complete" : "Required",
-      },
-      {
         key: "payout",
         label: "Payout Account",
         complete: Boolean(form.bankName && form.accountNumber && form.accountHolderName),
@@ -333,10 +315,22 @@ export function adaptSeller2026PaymentProfile(
             : "Required",
       },
       {
+        key: "account",
+        label: "Account",
+        complete: Boolean(form.accountName),
+        detail: form.accountName ? "Complete" : "Optional",
+      },
+      {
+        key: "merchant",
+        label: "Merchant",
+        complete: Boolean(form.merchantName),
+        detail: form.merchantName ? "Complete" : "Optional",
+      },
+      {
         key: "qris",
         label: "QRIS Image",
         complete: Boolean(form.qrisImageUrl),
-        detail: form.qrisImageUrl ? "Complete" : "Required",
+        detail: form.qrisImageUrl ? "Complete" : "Optional",
       },
       {
         key: "approval",

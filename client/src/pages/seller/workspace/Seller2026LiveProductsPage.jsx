@@ -142,6 +142,7 @@ export default function Seller2026LiveProductsPage() {
   const { sellerContext, workspaceStoreId: storeId, workspaceRoutes, isId = false } = useSellerWorkspaceRoute();
   const { can } = getSeller2026PagePermissions(sellerContext);
   const canView = can("CATALOG_PRODUCT_READ");
+  const isStoreInactive = String(sellerContext?.store?.status || "").toUpperCase() === "INACTIVE";
   const query = {
     search: searchParams.get("q") || "",
     status: searchParams.get("status") || "all",
@@ -277,26 +278,48 @@ export default function Seller2026LiveProductsPage() {
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <AlertTriangle size={18} style={{ color: "#fe6f05", flexShrink: 0 }} />
             <span>
-              {isId
-                ? "Produk yang sudah Anda terbitkan belum tampil di etalase publik (Blocked) karena Profil Pembayaran Toko belum diatur atau belum diverifikasi oleh Admin."
-                : "Your published products are currently blocked from the public storefront because the store Payment Profile is not configured or awaiting verification."}
+              {isStoreInactive
+                ? (isId
+                    ? "Toko Anda saat ini berstatus Inactive (Menunggu persetujuan aktivasi Admin). Produk yang sudah Anda terbitkan akan otomatis tampil di etalase publik setelah status toko diaktifkan oleh Admin."
+                    : "Your store is currently inactive (awaiting Admin activation). Published products will automatically appear in the public storefront once your store is activated by Admin.")
+                : (isId
+                    ? "Produk yang sudah Anda terbitkan belum tampil di etalase publik karena sedang menunggu tinjauan kurasi Admin atau memerlukan revisi."
+                    : "Your published products are currently hidden from the public storefront because they are awaiting Admin review or require revisions.")}
             </span>
           </div>
-          <Link
-            to={workspaceRoutes.paymentProfile ? workspaceRoutes.paymentProfile() : `/seller/stores/${sellerContext?.storeSlug || "sweet-flower"}/payment-profile`}
-            style={{
-              background: "#fe6f05",
-              color: "#ffffff",
-              padding: "6px 14px",
-              borderRadius: "6px",
-              fontWeight: 600,
-              textDecoration: "none",
-              fontSize: "13px",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {isId ? "Atur Profil Pembayaran" : "Setup Payment Profile"}
-          </Link>
+          {isStoreInactive ? (
+            <Link
+              to={workspaceRoutes.storeProfile ? workspaceRoutes.storeProfile() : `/seller/stores/${sellerContext?.storeSlug || "sweet-flower"}/store-profile`}
+              style={{
+                background: "#fe6f05",
+                color: "#ffffff",
+                padding: "6px 14px",
+                borderRadius: "6px",
+                fontWeight: 600,
+                textDecoration: "none",
+                fontSize: "13px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {isId ? "Lihat Profil Toko" : "View Store Profile"}
+            </Link>
+          ) : (
+            <Link
+              to={workspaceRoutes.catalog ? workspaceRoutes.catalog() : `/seller/stores/${sellerContext?.storeSlug || "sweet-flower"}/catalog/products`}
+              style={{
+                background: "#fe6f05",
+                color: "#ffffff",
+                padding: "6px 14px",
+                borderRadius: "6px",
+                fontWeight: 600,
+                textDecoration: "none",
+                fontSize: "13px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {isId ? "Status Katalog" : "Catalog Status"}
+            </Link>
+          )}
         </div>
       ) : null}
 
@@ -352,7 +375,7 @@ export default function Seller2026LiveProductsPage() {
                   <span className="is-sale" data-label={isId ? "Harga Diskon" : "Sale Price"}>{product.salePrice ? currency(product.salePrice) : "-"}</span>
                   <span data-label={isId ? "Stok" : "Stock"}>{product.stock}</span>
                   <span data-label={isId ? "Inventaris" : "Inventory"}><Pill>{inventory}</Pill></span>
-                  <span data-label={isId ? "Visibilitas" : "Visibility"} title={product.visibility === "published_blocked" ? (isId ? "Produk diterbitkan namun etalase publik ditahan karena Profil Pembayaran Toko belum aktif/terverifikasi oleh Admin" : "Published but hidden from public storefront because store payment profile is not active/verified") : undefined}><Pill>{visibility}</Pill></span>
+                  <span data-label={isId ? "Visibilitas" : "Visibility"} title={product.visibility === "published_blocked" ? (isStoreInactive ? (isId ? "Produk diterbitkan namun etalase publik ditahan karena status toko belum diaktifkan oleh Admin" : "Published but hidden from public storefront because store is not yet active") : (isId ? "Produk diterbitkan namun etalase publik ditahan menunggu tinjauan Admin" : "Published but hidden from public storefront pending Admin review")) : undefined}><Pill>{visibility}</Pill></span>
                   <span data-label={isId ? "Status Tinjauan" : "Review Status"}><Pill>{review}</Pill></span>
                   <Link className="seller2026-icon-button" to={workspaceRoutes.productDetail(product.id)} aria-label={isId ? `Pratinjau ${product.name}` : `Preview ${product.name}`}><Eye size={17} /></Link>
                   <button

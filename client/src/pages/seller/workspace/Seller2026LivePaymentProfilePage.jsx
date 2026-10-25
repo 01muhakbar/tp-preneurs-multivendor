@@ -83,21 +83,7 @@ export default function Seller2026LivePaymentProfilePage() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [notice, setNotice] = useState(null);
 
-  useEffect(() => {
-    if (
-      !profileQuery.isLoading &&
-      !profile.checkoutReady &&
-      profile.governance.canEdit &&
-      !profile.governance.isReviewLocked
-    ) {
-      setEditorOpen(true);
-    }
-  }, [
-    profile.checkoutReady,
-    profile.governance.canEdit,
-    profile.governance.isReviewLocked,
-    profileQuery.isLoading,
-  ]);
+
 
   if (!canView) {
     return (
@@ -147,15 +133,15 @@ export default function Seller2026LivePaymentProfilePage() {
   const reviewDate = profile.review.reviewedAt || profile.updatedAt;
   const canEdit = profileQuery.canEdit;
   const readinessTitle = profile.checkoutReady
-    ? "Checkout is ready"
+    ? "Payout account is active"
     : profile.requestStatus.isSubmitted
-      ? "Checkout setup is under review"
-      : "Checkout setup needs review";
+      ? "Payout setup is under review"
+      : "Payout setup needs review";
   const readinessDescription = profile.checkoutReady
-    ? "Your active approved QRIS is available to buyers at checkout."
+    ? "Your payout bank account is active. Buyer checkout is processed via Duitku Payment Gateway."
     : profile.requestStatus.isSubmitted
-      ? "Admin is reviewing the submitted request. The active checkout setup is unchanged."
-      : "Complete the required request fields and submit them for Admin approval.";
+      ? "Admin is reviewing the submitted payout request. Buyer checkout remains active via Duitku Gateway."
+      : "Provide your payout bank details for revenue disbursements. Buyer checkout is processed via Duitku Gateway.";
 
   return (
     <main className="s26-pp">
@@ -166,7 +152,7 @@ export default function Seller2026LivePaymentProfilePage() {
       <header className="s26-pp-header">
         <div>
           <h1>Payment profile</h1>
-          <p>Manage your QRIS payment and checkout setup.</p>
+          <p>Manage your payout bank details. Buyer checkout is processed centrally via Duitku Gateway.</p>
         </div>
         <div>
           <StatusChip tone={profile.checkoutReady ? "green" : "amber"}>
@@ -210,21 +196,21 @@ export default function Seller2026LivePaymentProfilePage() {
 
       <section className="s26-pp-kpis">
         <article>
-          <span className={profile.checkoutReady ? "is-green" : "is-amber"}>
+          <span className="is-green">
             <CreditCard size={25} />
           </span>
           <div>
-            <small>Checkout status</small>
-            <strong>{profile.checkoutStatus}</strong>
-            <p>{profile.checkoutReady ? "Buyers can pay with QRIS" : "Awaiting approved setup"}</p>
+            <small>Buyer checkout</small>
+            <strong>Duitku Gateway</strong>
+            <p>Active (Centralized Gateway)</p>
           </div>
         </article>
         <article>
           <span className="is-blue"><QrCode size={25} /></span>
           <div>
-            <small>Payment method</small>
-            <strong>{active?.paymentTypeLabel || "Static QRIS"}</strong>
-            <p>QR shown at checkout</p>
+            <small>Payout method</small>
+            <strong>{active?.bankName ? `Bank ${active.bankName}` : "Bank Transfer"}</strong>
+            <p>Disbursement account</p>
           </div>
         </article>
         <article>
@@ -264,8 +250,8 @@ export default function Seller2026LivePaymentProfilePage() {
         <section className="s26-pp-panel s26-pp-preview">
           <header>
             <div>
-              <h2>QRIS Preview</h2>
-              <p>This approved QRIS is used by buyers at checkout.</p>
+              <h2>QRIS Preview (Opsional)</h2>
+              <p>Informasi QRIS opsional untuk toko. Transaksi checkout pembeli diproses via Duitku Gateway.</p>
             </div>
             {previewUrl ? (
               <a href={previewUrl} download target="_blank" rel="noreferrer">
@@ -281,7 +267,7 @@ export default function Seller2026LivePaymentProfilePage() {
             <div className="s26-pp-preview__empty">
               <FileImage size={36} />
               <strong>No QRIS image available</strong>
-              <span>Add a QRIS image in the seller request editor.</span>
+              <span>Add a QRIS image in the seller request editor if needed.</span>
             </div>
           )}
         </section>
@@ -290,8 +276,8 @@ export default function Seller2026LivePaymentProfilePage() {
           <section className="s26-pp-panel">
             <header>
               <div>
-                <h2>Payment details</h2>
-                <p>Checkout reads only the active approved snapshot.</p>
+                <h2>Payment & Payout details</h2>
+                <p>Rekening pencairan dana toko diverifikasi oleh Admin.</p>
               </div>
               <button
                 type="button"

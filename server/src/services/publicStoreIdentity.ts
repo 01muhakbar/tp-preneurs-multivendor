@@ -217,20 +217,6 @@ export const buildPublicStoreOperationalReadiness = (
     };
   }
 
-  if (!paymentProfile) {
-    return {
-      code: "PAYMENT_NOT_CONFIGURED",
-      label: "Payment setup missing",
-      tone: "warning",
-      description:
-        "This store is not operational yet because no active payment profile snapshot is available.",
-      isReady: false,
-      blockedBy: "PAYMENT_PROFILE",
-      storeStatusCode,
-      paymentProfileCode: paymentCode,
-    };
-  }
-
   if (paymentReadiness?.isReady) {
     return {
       code: "READY",
@@ -245,56 +231,17 @@ export const buildPublicStoreOperationalReadiness = (
     };
   }
 
-  if (paymentCode === "REJECTED") {
-    return {
-      code: "PAYMENT_REJECTED",
-      label: "Payment setup rejected",
-      tone: "danger",
-      description:
-        "This store is not operational yet because the latest payment setup was rejected and still needs seller follow-up.",
-      isReady: false,
-      blockedBy: "PAYMENT_PROFILE",
-      storeStatusCode,
-      paymentProfileCode: paymentCode,
-    };
-  }
-
-  if (paymentCode === "INACTIVE") {
-    return {
-      code: "PAYMENT_INACTIVE",
-      label: "Payment setup inactive",
-      tone: "neutral",
-      description:
-        "This store is not operational yet because the payment setup exists but is not active for buyer operations.",
-      isReady: false,
-      blockedBy: "PAYMENT_PROFILE",
-      storeStatusCode,
-      paymentProfileCode: paymentCode,
-    };
-  }
-
-  if (paymentCode === "INCOMPLETE") {
-    return {
-      code: "PAYMENT_INCOMPLETE",
-      label: "Payment setup incomplete",
-      tone: "warning",
-      description:
-        "This store is not operational yet because the payment setup is still incomplete and cannot be treated as live.",
-      isReady: false,
-      blockedBy: "PAYMENT_PROFILE",
-      storeStatusCode,
-      paymentProfileCode: paymentCode,
-    };
-  }
-
+  // Active stores operate via the centralized platform payment gateway (Duitku).
+  // Customer payments are processed securely by the platform gateway, so products
+  // can be published and purchased on the public storefront.
   return {
-    code: "PAYMENT_PENDING_REVIEW",
-    label: "Payment review pending",
-    tone: "warning",
+    code: "READY",
+    label: "Operational (Platform Gateway)",
+    tone: "success",
     description:
-      "This store is not operational yet because payment setup still waits for admin approval.",
-    isReady: false,
-    blockedBy: "PAYMENT_PROFILE",
+      "This store is operational on public storefront lanes via the platform payment gateway (Duitku).",
+    isReady: true,
+    blockedBy: null,
     storeStatusCode,
     paymentProfileCode: paymentCode,
   };

@@ -420,9 +420,9 @@ const buildPaymentProfileChecklistItem = (
 
   return {
     key: "payment_profile",
-    label: "Payment profile",
-    required: true,
-    infoOnly: false,
+    label: "Payment & Payout",
+    required: false,
+    infoOnly: true,
     visible: canView,
     isComplete,
     status,
