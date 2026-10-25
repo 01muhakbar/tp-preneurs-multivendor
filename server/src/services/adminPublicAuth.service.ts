@@ -512,7 +512,7 @@ export async function registerAdminStaffSelfSignup(
       throw new AdminPublicAuthError({
         status: 409,
         code: "CONTACT_UNAVAILABLE",
-        message: "We could not process this request.",
+        message: "This email address is already in use by another account.",
         errors: {
           email: ["This email is unavailable."],
         },
@@ -527,7 +527,7 @@ export async function registerAdminStaffSelfSignup(
     throw new AdminPublicAuthError({
       status: 409,
       code: "CONTACT_UNAVAILABLE",
-      message: "We could not process this request.",
+      message: "This phone number is already registered to another account.",
       errors: {
         phoneNumber: ["This phone number is unavailable."],
       },

@@ -492,7 +492,7 @@ export async function registerClientAccount(
     throw new ClientRegistrationError({
       status: 409,
       code: "CONTACT_UNAVAILABLE",
-      message: "We could not process this registration request.",
+      message: "This email address is already in use by another account.",
       errors: {
         email: ["This email is unavailable."],
       },
@@ -507,7 +507,7 @@ export async function registerClientAccount(
     throw new ClientRegistrationError({
       status: 409,
       code: "CONTACT_UNAVAILABLE",
-      message: "We could not process this registration request.",
+      message: "This phone number is already registered to another account.",
       errors: {
         phoneNumber: ["This phone number is unavailable."],
       },
@@ -519,7 +519,7 @@ export async function registerClientAccount(
     throw new ClientRegistrationError({
       status: 409,
       code: "CONTACT_UNAVAILABLE",
-      message: "We could not process this registration request.",
+      message: "This email address is already in use by another account.",
       errors: {
         email: ["This email is unavailable."],
       },
@@ -533,7 +533,7 @@ export async function registerClientAccount(
     throw new ClientRegistrationError({
       status: 409,
       code: "CONTACT_UNAVAILABLE",
-      message: "We could not process this registration request.",
+      message: "This phone number is already registered to another account.",
       errors: {
         phoneNumber: ["This phone number is unavailable."],
       },

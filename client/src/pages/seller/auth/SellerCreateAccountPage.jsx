@@ -236,8 +236,69 @@ export default function SellerCreateAccountPage() {
         replace: true,
       });
     } catch (error) {
+      const rawFieldErrors =
+        error?.response?.data?.errors?.fieldErrors ||
+        error?.response?.data?.errors ||
+        error?.fieldErrors ||
+        {};
+
+      const newFieldErrors = {};
+      const isIndonesian = i18n.language?.startsWith("id");
+
+      if (rawFieldErrors.fullName || rawFieldErrors.name) {
+        newFieldErrors.fullName = Array.isArray(rawFieldErrors.fullName || rawFieldErrors.name)
+          ? (rawFieldErrors.fullName || rawFieldErrors.name)[0]
+          : String(rawFieldErrors.fullName || rawFieldErrors.name);
+      }
+      if (rawFieldErrors.email) {
+        const msg = Array.isArray(rawFieldErrors.email) ? rawFieldErrors.email[0] : String(rawFieldErrors.email);
+        newFieldErrors.email = isIndonesian && (msg.toLowerCase().includes("unavailable") || msg.toLowerCase().includes("already") || msg.toLowerCase().includes("use"))
+          ? "Alamat email ini sudah terdaftar. Silakan gunakan email lain atau masuk."
+          : msg;
+      }
+      if (rawFieldErrors.phone || rawFieldErrors.phoneNumber) {
+        const msg = Array.isArray(rawFieldErrors.phone || rawFieldErrors.phoneNumber)
+          ? (rawFieldErrors.phone || rawFieldErrors.phoneNumber)[0]
+          : String(rawFieldErrors.phone || rawFieldErrors.phoneNumber);
+        newFieldErrors.phone = isIndonesian && (msg.toLowerCase().includes("unavailable") || msg.toLowerCase().includes("already") || msg.toLowerCase().includes("registered") || msg.toLowerCase().includes("use"))
+          ? "Nomor WhatsApp / telepon ini sudah terdaftar pada akun lain. Silakan gunakan nomor lain."
+          : msg;
+      }
+      if (rawFieldErrors.password) {
+        newFieldErrors.password = Array.isArray(rawFieldErrors.password)
+          ? rawFieldErrors.password[0]
+          : String(rawFieldErrors.password);
+      }
+      if (rawFieldErrors.confirmPassword || rawFieldErrors.passwordConfirm || rawFieldErrors.passwordConfirmation) {
+        newFieldErrors.confirmPassword = Array.isArray(rawFieldErrors.confirmPassword || rawFieldErrors.passwordConfirm || rawFieldErrors.passwordConfirmation)
+          ? (rawFieldErrors.confirmPassword || rawFieldErrors.passwordConfirm || rawFieldErrors.passwordConfirmation)[0]
+          : String(rawFieldErrors.confirmPassword || rawFieldErrors.passwordConfirm || rawFieldErrors.passwordConfirmation);
+      }
+      if (rawFieldErrors.agree || rawFieldErrors.termsAccepted) {
+        newFieldErrors.agree = Array.isArray(rawFieldErrors.agree || rawFieldErrors.termsAccepted)
+          ? (rawFieldErrors.agree || rawFieldErrors.termsAccepted)[0]
+          : String(rawFieldErrors.agree || rawFieldErrors.termsAccepted);
+      }
+
+      setFieldErrors(newFieldErrors);
+
+      let bannerMessage = error?.response?.data?.message;
+      if (newFieldErrors.phone) {
+        bannerMessage = isIndonesian
+          ? "Nomor telepon yang Anda masukkan sudah terdaftar pada akun lain. Silakan gunakan nomor telepon lain atau masuk ke akun yang sudah ada."
+          : (error?.response?.data?.message || "This phone number is already registered to another account. Please use a different phone number.");
+      } else if (newFieldErrors.email) {
+        bannerMessage = isIndonesian
+          ? "Alamat email yang Anda masukkan sudah terdaftar. Silakan gunakan email lain atau masuk ke akun Anda."
+          : (error?.response?.data?.message || "This email address is already registered. Please use another email or log in.");
+      } else if (error?.response?.status === 409) {
+        bannerMessage = isIndonesian
+          ? "Data pendaftaran sudah terdaftar pada akun lain. Silakan periksa kembali email dan nomor telepon Anda."
+          : (error?.response?.data?.message || "Registration conflict detected. Please review your details and try again.");
+      }
+
       setSubmitError(
-        error?.response?.data?.message ||
+        bannerMessage ||
           t("signup.Unable to create your seller account. Please review your details and try again.")
       );
     } finally {
