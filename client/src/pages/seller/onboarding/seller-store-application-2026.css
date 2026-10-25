@@ -227,3 +227,48 @@
 
 .ssa-logout-btn { display: flex; align-items: center; gap: 6px; border: 0; background: transparent; color: var(--tp-muted); font-size: 11px; font-weight: 600; cursor: pointer; transition: color 0.15s; }
 .ssa-logout-btn:hover { color: var(--tp-danger); }
+
+.ssa-same-address-card {
+  grid-column: 1 / -1;
+  background: color-mix(in srgb, var(--tp-primary) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tp-primary) 22%, var(--tp-border));
+  border-radius: 8px;
+  padding: 11px 15px;
+  margin: 4px 0 2px;
+  transition: all 0.2s ease;
+}
+.ssa-same-address-card:hover {
+  border-color: var(--tp-primary);
+}
+.dark .ssa-same-address-card {
+  background: color-mix(in srgb, var(--tp-primary) 18%, rgba(13, 27, 45, 0.85));
+  border-color: color-mix(in srgb, var(--tp-primary) 42%, var(--tp-border));
+}
+.ssa-same-address-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+.ssa-same-address-label input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--tp-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ssa-same-address-label div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ssa-same-address-label strong {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--tp-text);
+}
+.ssa-same-address-label small {
+  font-size: 10px;
+  color: var(--tp-muted);
+}

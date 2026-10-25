@@ -72,9 +72,9 @@ const SERVER_STEPS = [
 ];
 
 const DOCUMENTS = [
-  { key: "idCard", label: "ID Card (KTP / Passport)", required: true },
-  { key: "businessLicense", label: "Business License (NIB / SIUP)", required: true },
-  { key: "taxDocument", label: "Tax Document (NPWP)", required: true },
+  { key: "idCard", label: "ID Card (KTP / Passport)", required: false },
+  { key: "businessLicense", label: "Business License (NIB / SIUP)", required: false },
+  { key: "taxDocument", label: "Tax Document (NPWP)", required: false },
   { key: "storePhoto", label: "Store Photo", required: false },
 ];
 
@@ -86,6 +86,8 @@ const META_KEYS = [
   "ownerSubdistrict",
   "ownerPostalCode",
   "legalEntity",
+  "businessSubdistrict",
+  "sameAsOwnerAddress",
   "email",
   "phone",
   "whatsapp",
@@ -132,8 +134,10 @@ const INITIAL_FORM = {
   businessCountry: "Indonesia",
   businessProvince: "",
   businessCity: "",
+  businessSubdistrict: "",
   businessPostalCode: "",
   businessAddress: "",
+  sameAsOwnerAddress: false,
   email: "",
   phone: "",
   whatsapp: "",
@@ -202,10 +206,19 @@ function applicationToForm(application, user) {
     businessType: store.sellerType || INITIAL_FORM.businessType,
     legalEntity: metadata.legalEntity || address.notes || INITIAL_FORM.legalEntity,
     businessCountry: address.country || "Indonesia",
-    businessProvince: address.province || "",
-    businessCity: address.city || "",
-    businessPostalCode: address.postalCode || "",
-    businessAddress: address.addressLine1 || "",
+    businessProvince: address.province || metadata.businessProvince || "",
+    businessCity: address.city || metadata.businessCity || "",
+    businessSubdistrict: address.district || metadata.businessSubdistrict || "",
+    businessPostalCode: address.postalCode || metadata.businessPostalCode || "",
+    businessAddress: address.addressLine1 || metadata.businessAddress || "",
+    sameAsOwnerAddress: Boolean(
+      metadata.sameAsOwnerAddress ?? (
+        address.addressLine1 &&
+        metadata.residentialAddress &&
+        address.addressLine1 === metadata.residentialAddress &&
+        (address.province || metadata.businessProvince) === metadata.ownerProvince
+      )
+    ),
     email: metadata.email || "",
     phone: metadata.phone || metadata.whatsapp || address.phoneNumber || owner.phoneNumber || "",
     whatsapp: metadata.whatsapp || metadata.phone || address.phoneNumber || owner.phoneNumber || "",
@@ -286,9 +299,9 @@ function formToPayload(form, visualStep) {
       addressLine2: null,
       city: text(form.businessCity) || null,
       province: text(form.businessProvince) || null,
-      district: null,
+      district: text(form.businessSubdistrict) || null,
       postalCode: text(form.businessPostalCode) || null,
-      country: text(form.businessCountry) || null,
+      country: text(form.businessCountry) || "Indonesia",
       notes: text(form.legalEntity) || null,
     },
     complianceSnapshot: {
@@ -373,6 +386,7 @@ function validateStep(form, step) {
       ["businessCountry", "Country / region"],
       ["businessProvince", "Province / state"],
       ["businessCity", "City"],
+      ["businessSubdistrict", "Subdistrict"],
       ["businessPostalCode", "Postal code"],
       ["businessAddress", "Business address"],
     ].forEach(([key, label]) => required(key, label));
@@ -562,6 +576,56 @@ export default function SellerStoreApplicationPage() {
     [form.ownerProvince, form.ownerCity, form.ownerSubdistrict]
   );
 
+  const businessProvinceOptions = useMemo(
+    () => getProvinceOptions(form.businessProvince),
+    [form.businessProvince]
+  );
+  const businessCityOptions = useMemo(
+    () => getCityOptions(form.businessProvince, form.businessCity),
+    [form.businessProvince, form.businessCity]
+  );
+  const businessSubdistrictOptions = useMemo(
+    () => getDistrictOptions(
+      form.businessProvince,
+      form.businessCity,
+      form.businessSubdistrict
+    ),
+    [form.businessProvince, form.businessCity, form.businessSubdistrict]
+  );
+
+  const handleToggleSameAsOwner = useCallback((checked) => {
+    setForm((current) => {
+      if (checked) {
+        return {
+          ...current,
+          sameAsOwnerAddress: true,
+          businessAddress: current.residentialAddress || "",
+          businessProvince: current.ownerProvince || "",
+          businessCity: current.ownerCity || "",
+          businessSubdistrict: current.ownerSubdistrict || "",
+          businessPostalCode: current.ownerPostalCode || "",
+          businessCountry: current.ownerCountry || "Indonesia",
+        };
+      }
+      return {
+        ...current,
+        sameAsOwnerAddress: false,
+      };
+    });
+    if (checked) {
+      setErrors((current) => {
+        const next = { ...current };
+        delete next.businessAddress;
+        delete next.businessProvince;
+        delete next.businessCity;
+        delete next.businessSubdistrict;
+        delete next.businessPostalCode;
+        delete next.businessCountry;
+        return next;
+      });
+    }
+  }, []);
+
   const applicationQuery = useQuery({
     queryKey: APPLICATION_QUERY_KEY,
     queryFn: getCurrentUserStoreApplication,
@@ -640,6 +704,10 @@ export default function SellerStoreApplicationPage() {
           ? { ownerCity: "", ownerSubdistrict: "" }
           : {}),
         ...(name === "ownerCity" ? { ownerSubdistrict: "" } : {}),
+        ...(name === "businessProvince"
+          ? { businessCity: "", businessSubdistrict: "" }
+          : {}),
+        ...(name === "businessCity" ? { businessSubdistrict: "" } : {}),
       };
       
       if (name === "storeName") {
@@ -651,6 +719,22 @@ export default function SellerStoreApplicationPage() {
 
       if (name === "phone") {
         next.whatsapp = value;
+      }
+
+      if (current.sameAsOwnerAddress) {
+        if (name === "residentialAddress") next.businessAddress = value;
+        if (name === "ownerCountry") next.businessCountry = value;
+        if (name === "ownerProvince") {
+          next.businessProvince = value;
+          next.businessCity = "";
+          next.businessSubdistrict = "";
+        }
+        if (name === "ownerCity") {
+          next.businessCity = value;
+          next.businessSubdistrict = "";
+        }
+        if (name === "ownerSubdistrict") next.businessSubdistrict = value;
+        if (name === "ownerPostalCode") next.businessPostalCode = value;
       }
       
       return next;
@@ -664,6 +748,11 @@ export default function SellerStoreApplicationPage() {
         delete next.ownerSubdistrict;
       }
       if (name === "ownerCity") delete next.ownerSubdistrict;
+      if (name === "businessProvince") {
+        delete next.businessCity;
+        delete next.businessSubdistrict;
+      }
+      if (name === "businessCity") delete next.businessSubdistrict;
       return next;
     });
     setActionError("");
@@ -768,7 +857,7 @@ export default function SellerStoreApplicationPage() {
       setErrors(allErrors);
       const firstInvalidStep = STEPS.findIndex((_entry, index) => Object.keys(validateStep(form, index)).length > 0);
       if (firstInvalidStep >= 0) setStep(firstInvalidStep);
-      setActionError("Complete every required field and document before submitting.");
+      setActionError("Complete every required field before submitting.");
       return;
     }
     setActionError("");
@@ -882,11 +971,80 @@ export default function SellerStoreApplicationPage() {
             <div className="ssa-form-grid ssa-form-grid--three">
               <Field label="Business Type" name="businessType" value={form.businessType} error={errors.businessType} required as="select" options={["Individual / Sole Proprietor", "Partnership", "Limited Company", "Cooperative"]} {...common} />
               <Field label="Legal Entity" name="legalEntity" value={form.legalEntity} error={errors.legalEntity} required as="select" options={["Sole Proprietorship", "CV", "PT", "Cooperative", "Other"]} {...common} />
-              <Field label="Country / Region" name="businessCountry" value={form.businessCountry} error={errors.businessCountry} required {...common} />
-              <Field label="Province / State" name="businessProvince" value={form.businessProvince} error={errors.businessProvince} required {...common} />
-              <Field label="City" name="businessCity" value={form.businessCity} error={errors.businessCity} required {...common} />
-              <Field label="Postal Code" name="businessPostalCode" value={form.businessPostalCode} error={errors.businessPostalCode} required inputMode="numeric" {...common} />
-              <Field label="Business Address" name="businessAddress" value={form.businessAddress} error={errors.businessAddress} required className="ssa-span-three" autoComplete="street-address" {...common} />
+              <Field label="Country / Region" name="businessCountry" value={form.businessCountry || "Indonesia"} error={errors.businessCountry} required {...common} disabled hint="Seller onboarding is currently available in Indonesia." />
+
+              <div className="ssa-same-address-card ssa-span-three">
+                <label className="ssa-same-address-label">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(form.sameAsOwnerAddress)}
+                    disabled={!isEditable}
+                    onChange={(event) => handleToggleSameAsOwner(event.target.checked)}
+                  />
+                  <div>
+                    <strong>Same as Owner's Residential Address (Step 2 of 4)</strong>
+                    <small>Auto-fill and sync Address, Province, City, Subdistrict, and Postal Code from Step 2.</small>
+                  </div>
+                </label>
+              </div>
+
+              <Field
+                label="Business Address"
+                name="businessAddress"
+                value={form.businessAddress}
+                error={errors.businessAddress}
+                required
+                className="ssa-span-three"
+                autoComplete="street-address"
+                disabled={!isEditable || Boolean(form.sameAsOwnerAddress)}
+                {...common}
+              />
+              <Field
+                label="Province / State"
+                name="businessProvince"
+                value={form.businessProvince}
+                error={errors.businessProvince}
+                required
+                as="select"
+                options={businessProvinceOptions}
+                placeholder="Select Province"
+                disabled={!isEditable || Boolean(form.sameAsOwnerAddress)}
+                {...common}
+              />
+              <Field
+                label="City / Regency"
+                name="businessCity"
+                value={form.businessCity}
+                error={errors.businessCity}
+                required
+                as="select"
+                options={businessCityOptions}
+                placeholder={form.businessProvince ? "Select City / Regency" : "Select Province first"}
+                disabled={!isEditable || !form.businessProvince || Boolean(form.sameAsOwnerAddress)}
+                {...common}
+              />
+              <Field
+                label="Subdistrict"
+                name="businessSubdistrict"
+                value={form.businessSubdistrict}
+                error={errors.businessSubdistrict}
+                required
+                as="select"
+                options={businessSubdistrictOptions}
+                placeholder={form.businessCity ? "Select Subdistrict" : "Select City / Regency first"}
+                disabled={!isEditable || !form.businessCity || Boolean(form.sameAsOwnerAddress)}
+                {...common}
+              />
+              <Field
+                label="Postal Code"
+                name="businessPostalCode"
+                value={form.businessPostalCode}
+                error={errors.businessPostalCode}
+                required
+                inputMode="numeric"
+                disabled={!isEditable || Boolean(form.sameAsOwnerAddress)}
+                {...common}
+              />
             </div>
           </section>
         </div>
@@ -896,7 +1054,7 @@ export default function SellerStoreApplicationPage() {
       <div className="ssa-review-step">
         <section>
           <h3><UploadCloud size={19} /> 1. Upload Documents</h3>
-          <p>Upload clear, valid documents. Maximum file size 5MB.</p>
+          <p>Upload clear, valid documents (optional). Maximum file size 5MB.</p>
           <div className="ssa-document-grid">
             {DOCUMENTS.map((document) => {
               const file = form.documents?.[document.key];
@@ -1021,7 +1179,7 @@ export default function SellerStoreApplicationPage() {
                     </span>
                   ) : null}
                 </p>
-                <span>{["Tell us about your store so customers can find and trust your brand.", "Tell us about the owner so we can verify your identity and build trust.", "Tell us how your business operates and fulfills customer orders.", "Upload the required documents and review your details before submitting."][step]}</span>
+                <span>{["Tell us about your store so customers can find and trust your brand.", "Tell us about the owner so we can verify your identity and build trust.", "Tell us how your business operates and fulfills customer orders.", "Upload your documents (optional) and review your details before submitting."][step]}</span>
               </div>
               <div className="ssa-heading-icon"><ActiveStepIcon size={42} /></div>
             </div>
