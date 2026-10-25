@@ -216,15 +216,29 @@ export default function Seller2026LiveStorefrontPage() {
     }
   }, [editing, form, profileQuery.data]);
 
+  const EDITABLE_HASHES = [
+    "#store-identity",
+    "#owner-information",
+    "#business-details",
+    "#contact",
+    "#address",
+    "#shipping",
+    "#shipping-setup",
+    "#media",
+  ];
+
   useEffect(() => {
-    if (location.hash === "#shipping-setup" && canUpdate) setEditing(true);
+    if (location.hash && EDITABLE_HASHES.includes(location.hash) && canUpdate) {
+      setEditing(true);
+    }
   }, [canUpdate, location.hash]);
 
   useEffect(() => {
-    if (!editing || location.hash !== "#shipping-setup") return;
+    if (!editing || !location.hash) return;
+    const targetId = location.hash === "#shipping-setup" ? "shipping" : location.hash.replace("#", "");
     const timer = window.setTimeout(
-      () => document.getElementById("shipping-setup")?.scrollIntoView({ behavior: "smooth" }),
-      50
+      () => document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth" }),
+      100
     );
     return () => window.clearTimeout(timer);
   }, [editing, location.hash]);
@@ -241,6 +255,14 @@ export default function Seller2026LiveStorefrontPage() {
   const addressProvinces = getProvinceOptions(form?.province);
   const addressCities = getCityOptions(form?.province, form?.city);
   const addressDistricts = getDistrictOptions(form?.province, form?.city, form?.district);
+
+  const ownerProvinces = getProvinceOptions(form?.ownerProvince);
+  const ownerCities = getCityOptions(form?.ownerProvince, form?.ownerCity);
+  const ownerDistricts = getDistrictOptions(form?.ownerProvince, form?.ownerCity, form?.ownerSubdistrict);
+
+  const businessProvinces = getProvinceOptions(form?.businessProvince);
+  const businessCities = getCityOptions(form?.businessProvince, form?.businessCity);
+  const businessDistricts = getDistrictOptions(form?.businessProvince, form?.businessCity, form?.businessSubdistrict);
 
   const setValue = (key) => (event) =>
     setForm((current) => ({ ...current, [key]: event.target.value }));
@@ -283,6 +305,12 @@ export default function Seller2026LiveStorefrontPage() {
         description: emptyToNull(form.description),
         logoUrl: emptyToNull(form.logoUrl),
         bannerUrl: emptyToNull(form.bannerUrl),
+        email: emptyToNull(form.email),
+        phone: emptyToNull(form.phone),
+        whatsapp: emptyToNull(form.whatsapp),
+        websiteUrl: emptyToNull(form.websiteUrl),
+        instagramUrl: emptyToNull(form.instagramUrl),
+        tiktokUrl: emptyToNull(form.tiktokUrl),
         addressLine1: emptyToNull(form.addressLine1),
         addressLine2: emptyToNull(form.addressLine2),
         district: emptyToNull(form.district),
@@ -290,6 +318,38 @@ export default function Seller2026LiveStorefrontPage() {
         province: emptyToNull(form.province),
         postalCode: emptyToNull(form.postalCode),
         country: emptyToNull(form.country),
+        businessDetails: {
+          category: emptyToNull(form.category),
+          businessType: emptyToNull(form.businessType),
+          legalEntity: emptyToNull(form.legalEntity),
+          businessAddress: emptyToNull(form.businessAddress),
+          businessProvince: emptyToNull(form.businessProvince),
+          businessCity: emptyToNull(form.businessCity),
+          businessSubdistrict: emptyToNull(form.businessSubdistrict),
+          businessPostalCode: emptyToNull(form.businessPostalCode),
+          businessCountry: emptyToNull(form.businessCountry) || "Indonesia",
+          timeZone: emptyToNull(form.timeZone),
+          openTime: emptyToNull(form.openTime),
+          closeTime: emptyToNull(form.closeTime),
+          workingDays: emptyToNull(form.workingDays),
+          shippingMethod: emptyToNull(form.shippingMethod),
+          processingTime: emptyToNull(form.processingTime),
+        },
+        ownerIdentity: {
+          fullName: emptyToNull(form.ownerName),
+          email: emptyToNull(form.ownerEmail),
+          phoneNumber: emptyToNull(form.ownerPhone),
+          birthDate: emptyToNull(form.birthDate),
+          identityType: emptyToNull(form.identityType),
+          identityNumber: emptyToNull(form.identityNumber),
+          taxNumber: emptyToNull(form.taxNumber),
+          residentialAddress: emptyToNull(form.residentialAddress),
+          country: emptyToNull(form.ownerCountry) || "Indonesia",
+          province: emptyToNull(form.ownerProvince),
+          city: emptyToNull(form.ownerCity),
+          subdistrict: emptyToNull(form.ownerSubdistrict),
+          postalCode: emptyToNull(form.ownerPostalCode),
+        },
         shippingSetup: {
           shippingEnabled: Boolean(form.shippingEnabled),
           originContactName: emptyToNull(form.originContactName),
@@ -407,7 +467,18 @@ export default function Seller2026LiveStorefrontPage() {
               <Field required label={isId ? "Kategori Bisnis" : "Business Category"}>
                 <select value={form.category} onChange={setValue("category")}>
                   <option value="">{isId ? "Pilih kategori" : "Select category"}</option>
-                  {["Fashion & Apparel", "Food & Beverage", "Beauty & Personal Care", "Home & Living", "Electronics", "Services", "Other"].map(item => <option key={item} value={item}>{item}</option>)}
+                  {[
+                    "Fashion & Apparel",
+                    "Handmade & Crafts",
+                    "Food & Beverage",
+                    "Beauty & Personal Care",
+                    "Beauty & Care",
+                    "Home & Living",
+                    "Electronics & Gadgets",
+                    "Electronics",
+                    "Services",
+                    "Other"
+                  ].map(item => <option key={item} value={item}>{item}</option>)}
                 </select>
               </Field>
               <Field required label={isId ? "Deskripsi Singkat" : "Short Description"} multiline rows={4} maxLength={200} value={form.description} onChange={setValue("description")} placeholder={isId ? "Jelaskan toko, produk, dan apa yang membuat brand Anda istimewa." : "Describe your store, products, and what makes your brand special."} />
@@ -451,6 +522,87 @@ export default function Seller2026LiveStorefrontPage() {
 
                 <Field required label={isId ? "Negara" : "Country"} value={form.country} onChange={setValue("country")} />
                 <div />
+              </div>
+            </section>
+          </div>
+
+          <div className="seller2026-profile__form-grid" style={{ marginTop: 24 }}>
+            <section className="seller2026-card seller2026-profile__form-card" id="owner-information">
+              <h2>{isId ? "Informasi Pemilik" : "Owner Information"}</h2>
+              <div className="seller2026-profile__fields-two">
+                <Field required label={isId ? "Nama Lengkap" : "Full Name"} value={form.ownerName} onChange={setValue("ownerName")} />
+                <Field required label={isId ? "Email Pemilik" : "Owner Email"} type="email" value={form.ownerEmail} onChange={setValue("ownerEmail")} />
+                <Field required label={isId ? "Nomor Telepon / WA" : "Phone / WhatsApp"} value={form.ownerPhone} onChange={setValue("ownerPhone")} />
+                <Field label={isId ? "Tanggal Lahir" : "Date of Birth"} type="date" value={form.birthDate} onChange={setValue("birthDate")} />
+                <Field label={isId ? "Jenis Identitas" : "Identity Type"}>
+                  <select value={form.identityType} onChange={setValue("identityType")}>
+                    <option value="KTP">KTP</option>
+                    <option value="Passport">{isId ? "Paspor" : "Passport"}</option>
+                    <option value="Driver License">SIM</option>
+                  </select>
+                </Field>
+                <Field label={isId ? "Nomor Identitas (NIK/Paspor)" : "Identity Number"} value={form.identityNumber} onChange={setValue("identityNumber")} />
+                <Field label="NPWP" value={form.taxNumber} onChange={setValue("taxNumber")} />
+                <div />
+              </div>
+              <Field label={isId ? "Alamat Tempat Tinggal" : "Residential Address"} multiline rows={2} value={form.residentialAddress} onChange={setValue("residentialAddress")} />
+              <div className="seller2026-profile__fields-two">
+                <Field label={isId ? "Provinsi Pemilik" : "Owner Province"}>
+                  <select value={form.ownerProvince} onChange={(e) => setForm((curr) => ({ ...curr, ownerProvince: e.target.value, ownerCity: "", ownerSubdistrict: "" }))}>
+                    <option value="">{isId ? "Pilih provinsi" : "Select province"}</option>
+                    {ownerProvinces.map((item) => <option key={item}>{item}</option>)}
+                  </select>
+                </Field>
+                <Field label={isId ? "Kota/Kabupaten Pemilik" : "Owner City/Regency"}>
+                  <select value={form.ownerCity} onChange={(e) => setForm((curr) => ({ ...curr, ownerCity: e.target.value, ownerSubdistrict: "" }))}>
+                    <option value="">{isId ? "Pilih kota/kabupaten" : "Select city/regency"}</option>
+                    {ownerCities.map((item) => <option key={item}>{item}</option>)}
+                  </select>
+                </Field>
+                <Field label={isId ? "Kecamatan Pemilik" : "Owner Subdistrict"}>
+                  <select value={form.ownerSubdistrict} onChange={setValue("ownerSubdistrict")}>
+                    <option value="">{isId ? "Pilih kecamatan" : "Select subdistrict"}</option>
+                    {ownerDistricts.map((item) => <option key={item}>{item}</option>)}
+                  </select>
+                </Field>
+                <Field label={isId ? "Kode Pos Pemilik" : "Owner Postal Code"} value={form.ownerPostalCode} onChange={setValue("ownerPostalCode")} />
+              </div>
+            </section>
+
+            <section className="seller2026-card seller2026-profile__form-card" id="business-details">
+              <h2>{isId ? "Detail Bisnis" : "Business Details"}</h2>
+              <div className="seller2026-profile__fields-two">
+                <Field label={isId ? "Tipe Bisnis" : "Business Type"}>
+                  <select value={form.businessType} onChange={setValue("businessType")}>
+                    <option value="Individual / Sole Proprietor">{isId ? "Individu / Usaha Perorangan" : "Individual / Sole Proprietor"}</option>
+                    <option value="Partnership">{isId ? "Kemitraan" : "Partnership"}</option>
+                    <option value="Limited Company">{isId ? "Perseroan Terbatas (PT)" : "Limited Company"}</option>
+                    <option value="Cooperative">{isId ? "Koperasi" : "Cooperative"}</option>
+                  </select>
+                </Field>
+                <Field label={isId ? "Badan Usaha / Badan Hukum" : "Legal Entity"} value={form.legalEntity} onChange={setValue("legalEntity")} />
+              </div>
+              <Field label={isId ? "Alamat Operasional Bisnis" : "Business Operational Address"} multiline rows={2} value={form.businessAddress} onChange={setValue("businessAddress")} />
+              <div className="seller2026-profile__fields-two">
+                <Field label={isId ? "Provinsi Bisnis" : "Business Province"}>
+                  <select value={form.businessProvince} onChange={(e) => setForm((curr) => ({ ...curr, businessProvince: e.target.value, businessCity: "", businessSubdistrict: "" }))}>
+                    <option value="">{isId ? "Pilih provinsi" : "Select province"}</option>
+                    {businessProvinces.map((item) => <option key={item}>{item}</option>)}
+                  </select>
+                </Field>
+                <Field label={isId ? "Kota/Kabupaten Bisnis" : "Business City/Regency"}>
+                  <select value={form.businessCity} onChange={(e) => setForm((curr) => ({ ...curr, businessCity: e.target.value, businessSubdistrict: "" }))}>
+                    <option value="">{isId ? "Pilih kota/kabupaten" : "Select city/regency"}</option>
+                    {businessCities.map((item) => <option key={item}>{item}</option>)}
+                  </select>
+                </Field>
+                <Field label={isId ? "Kecamatan Bisnis" : "Business Subdistrict"}>
+                  <select value={form.businessSubdistrict} onChange={setValue("businessSubdistrict")}>
+                    <option value="">{isId ? "Pilih kecamatan" : "Select subdistrict"}</option>
+                    {businessDistricts.map((item) => <option key={item}>{item}</option>)}
+                  </select>
+                </Field>
+                <Field label={isId ? "Kode Pos Bisnis" : "Business Postal Code"} value={form.businessPostalCode} onChange={setValue("businessPostalCode")} />
               </div>
             </section>
           </div>

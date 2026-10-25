@@ -500,39 +500,39 @@ function applicationToForm(application, user) {
 
   return {
     ...INITIAL_FORM,
-    storeName: store.storeName || "",
-    storeSlug: store.storeSlug || "",
-    category: store.storeCategory || "",
-    ownerName: owner.fullName || user?.name || "",
-    ownerEmail: owner.email || application.applicant?.email || user?.email || "",
-    ownerPhone: owner.phoneNumber || user?.phoneNumber || "",
-    birthDate: owner.birthDate || "",
-    identityType: owner.identityType || "KTP",
-    identityNumber: compliance.identityNumber || "",
-    taxNumber: compliance.taxId || "",
+    storeName: store.storeName || metadata.storeName || "",
+    storeSlug: store.storeSlug || metadata.storeSlug || "",
+    category: store.storeCategory || metadata.category || "",
+    ownerName: owner.fullName || metadata.ownerName || user?.name || "",
+    ownerEmail: owner.email || metadata.ownerEmail || application.applicant?.email || user?.email || "",
+    ownerPhone: owner.phoneNumber || metadata.ownerPhone || user?.phoneNumber || "",
+    birthDate: owner.birthDate || metadata.birthDate || "",
+    identityType: owner.identityType || metadata.identityType || "KTP",
+    identityNumber: compliance.identityNumber || metadata.identityNumber || "",
+    taxNumber: compliance.taxId || metadata.taxNumber || "",
     residentialAddress: metadata.residentialAddress || "",
     ownerCountry: metadata.ownerCountry || "Indonesia",
     ownerProvince: metadata.ownerProvince || "",
     ownerCity: metadata.ownerCity || "",
     ownerSubdistrict: metadata.ownerSubdistrict || "",
     ownerPostalCode: metadata.ownerPostalCode || "",
-    businessType: store.sellerType || INITIAL_FORM.businessType,
+    businessType: store.sellerType || metadata.businessType || INITIAL_FORM.businessType,
     legalEntity: metadata.legalEntity || address.notes || INITIAL_FORM.legalEntity,
-    businessCountry: address.country || "Indonesia",
-    businessProvince: address.province || metadata.businessProvince || "",
-    businessCity: address.city || metadata.businessCity || "",
-    businessSubdistrict: address.district || metadata.businessSubdistrict || "",
-    businessPostalCode: address.postalCode || metadata.businessPostalCode || "",
-    businessAddress: address.addressLine1 || metadata.businessAddress || "",
+    businessCountry: address.country || metadata.businessCountry || "Indonesia",
+    businessProvince: metadata.businessProvince || address.province || "",
+    businessCity: metadata.businessCity || address.city || "",
+    businessSubdistrict: metadata.businessSubdistrict || address.district || "",
+    businessPostalCode: metadata.businessPostalCode || address.postalCode || "",
+    businessAddress: metadata.businessAddress || address.addressLine1 || "",
     sameAsOwnerAddress: Boolean(
       metadata.sameAsOwnerAddress ?? (
-        address.addressLine1 &&
+        (metadata.businessAddress || address.addressLine1) &&
         metadata.residentialAddress &&
-        address.addressLine1 === metadata.residentialAddress &&
-        (address.province || metadata.businessProvince) === metadata.ownerProvince
+        (metadata.businessAddress || address.addressLine1) === metadata.residentialAddress &&
+        (metadata.businessProvince || address.province) === metadata.ownerProvince
       )
     ),
-    email: metadata.email || "",
+    email: metadata.email || compliance.supportEmail || "",
     phone: metadata.phone || metadata.whatsapp || address.phoneNumber || owner.phoneNumber || "",
     whatsapp: metadata.whatsapp || metadata.phone || address.phoneNumber || owner.phoneNumber || "",
     addressLine1: metadata.addressLine1 || "",
@@ -578,10 +578,9 @@ function applicationToForm(application, user) {
 }
 
 function metadataFromForm(form) {
-  return META_KEYS.reduce((snapshot, key) => {
-    snapshot[key] = form[key];
-    return snapshot;
-  }, {});
+  return {
+    ...form,
+  };
 }
 
 function formToPayload(form, visualStep) {
@@ -600,26 +599,26 @@ function formToPayload(form, visualStep) {
       storeName: text(form.storeName) || null,
       storeSlug: text(form.storeSlug) || null,
       storeCategory: text(form.category) || null,
-      description: null,
+      description: text(form.description) || null,
       sellerType: text(form.businessType) || null,
       isSelfProduced: form.businessType === "Individual / Sole Proprietor",
       initialProductCount: null,
     },
     operationalAddressSnapshot: {
       contactName: text(form.ownerName) || null,
-      phoneNumber: text(form.ownerPhone) || null,
-      addressLine1: text(form.businessAddress) || null,
-      addressLine2: null,
-      city: text(form.businessCity) || null,
-      province: text(form.businessProvince) || null,
-      district: text(form.businessSubdistrict) || null,
-      postalCode: text(form.businessPostalCode) || null,
-      country: text(form.businessCountry) || "Indonesia",
+      phoneNumber: text(form.phone) || text(form.ownerPhone) || null,
+      addressLine1: text(form.businessAddress) || text(form.addressLine1) || null,
+      addressLine2: text(form.addressLine2) || null,
+      city: text(form.businessCity) || text(form.city) || null,
+      province: text(form.businessProvince) || text(form.province) || null,
+      district: text(form.businessSubdistrict) || text(form.district) || null,
+      postalCode: text(form.businessPostalCode) || text(form.postalCode) || null,
+      country: text(form.businessCountry) || text(form.country) || "Indonesia",
       notes: text(form.legalEntity) || null,
     },
     complianceSnapshot: {
       supportEmail: text(form.email) || text(form.ownerEmail) || null,
-      supportPhone: text(form.phone) || text(form.ownerPhone) || null,
+      supportPhone: text(form.phone) || text(form.whatsapp) || text(form.ownerPhone) || null,
       taxId: text(form.taxNumber) || null,
       identityNumber: text(form.identityNumber) || null,
       productTypes: text(form.category) || null,
@@ -665,7 +664,7 @@ function validateStep(form, step, lang = "en") {
     if (text(form.storeSlug) && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(text(form.storeSlug))) {
       errors.storeSlug = tStr("slugError");
     }
-    if (text(form.email) && !/^S+@S+.S+$/.test(text(form.email))) {
+    if (text(form.email) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text(form.email))) {
       errors.email = tStr("emailInvalid");
     }
     const cleanPhone = text(form.phone).replace(/[\s-]/g, "");
@@ -688,7 +687,7 @@ function validateStep(form, step, lang = "en") {
       ["ownerSubdistrict", isId ? "Kecamatan" : "Subdistrict"],
       ["ownerPostalCode", isId ? "Kode Pos" : "Postal code"],
     ].forEach(([key, label]) => required(key, label));
-    if (text(form.ownerEmail) && !/^\S+@\S+\.\S+$/.test(text(form.ownerEmail))) {
+    if (text(form.ownerEmail) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text(form.ownerEmail))) {
       errors.ownerEmail = tStr("emailInvalid");
     }
     const cleanOwnerPhone = text(form.ownerPhone).replace(/[\s-]/g, "");

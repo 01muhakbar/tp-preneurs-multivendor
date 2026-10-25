@@ -71,7 +71,7 @@ const resolveTypedSocialUrl = (value: unknown, platform: "instagram" | "tiktok")
   return null;
 };
 
-const readOnboardingMetadata = (application: any) => {
+export const readOnboardingMetadata = (application: any) => {
   const metadata = normalizeObject(getAttr(application, "internalMetadata"));
   return normalizeObject(metadata.sellerOnboarding2026);
 };
@@ -148,54 +148,109 @@ const buildStoreCreatePayload = (application: any, slug: string) => {
   const pickupSameAsBusiness = onboarding.pickupSameAsBusiness !== false;
   const pickupAddress = toText(onboarding.pickupAddress);
   const originAddressLine1 =
-    !pickupSameAsBusiness && pickupAddress
+    (!pickupSameAsBusiness && pickupAddress
       ? pickupAddress
-      : toText(snapshots.operationalAddressSnapshot.addressLine1);
+      : toText(snapshots.operationalAddressSnapshot.addressLine1)) ||
+    toText(onboarding.addressLine1) ||
+    toText(onboarding.businessAddress);
 
   return {
     ownerUserId: Number(getAttr(application, "applicantUserId") || 0),
     name:
       toText(snapshots.storeInformationSnapshot.storeName) ||
+      toText(onboarding.storeName) ||
       toText(snapshots.ownerIdentitySnapshot.fullName) ||
+      toText(onboarding.ownerName) ||
       `Store ${Number(getAttr(application, "applicantUserId") || 0)}`,
     slug,
     status: "INACTIVE",
-    description: toText(snapshots.storeInformationSnapshot.description),
+    description:
+      toText(snapshots.storeInformationSnapshot.description) ||
+      toText(onboarding.description) ||
+      "Toko resmi di TP Preneurs",
     logoUrl: readUploadedAssetUrl(onboarding.storeLogo),
     bannerUrl: readUploadedAssetUrl(onboarding.storeBanner),
     email:
       toText(snapshots.complianceSnapshot.supportEmail) ||
-      toText(snapshots.ownerIdentitySnapshot.email),
+      toText(onboarding.email) ||
+      toText(snapshots.ownerIdentitySnapshot.email) ||
+      toText(onboarding.ownerEmail),
     phone:
+      toText(onboarding.phone) ||
+      toText(onboarding.whatsapp) ||
       toText(snapshots.operationalAddressSnapshot.phoneNumber) ||
-      toText(snapshots.ownerIdentitySnapshot.phoneNumber),
+      toText(snapshots.ownerIdentitySnapshot.phoneNumber) ||
+      toText(onboarding.ownerPhone),
     whatsapp:
+      toText(onboarding.whatsapp) ||
+      toText(onboarding.phone) ||
       toText(snapshots.operationalAddressSnapshot.phoneNumber) ||
-      toText(snapshots.ownerIdentitySnapshot.phoneNumber),
-    websiteUrl: toText(snapshots.complianceSnapshot.websiteUrl),
-    instagramUrl: resolveTypedSocialUrl(
-      snapshots.complianceSnapshot.socialMediaUrl,
-      "instagram"
-    ),
-    tiktokUrl: resolveTypedSocialUrl(
-      snapshots.complianceSnapshot.socialMediaUrl,
-      "tiktok"
-    ),
-    addressLine1: toText(snapshots.operationalAddressSnapshot.addressLine1),
-    addressLine2: toText(snapshots.operationalAddressSnapshot.addressLine2),
-    city: toText(snapshots.operationalAddressSnapshot.city),
-    district: toText(snapshots.operationalAddressSnapshot.district),
-    province: toText(snapshots.operationalAddressSnapshot.province),
-    postalCode: toText(snapshots.operationalAddressSnapshot.postalCode),
-    country: toText(snapshots.operationalAddressSnapshot.country),
+      toText(snapshots.ownerIdentitySnapshot.phoneNumber) ||
+      toText(onboarding.ownerPhone),
+    websiteUrl:
+      toText(snapshots.complianceSnapshot.websiteUrl) ||
+      toText(onboarding.websiteUrl),
+    instagramUrl:
+      resolveTypedSocialUrl(
+        snapshots.complianceSnapshot.socialMediaUrl,
+        "instagram"
+      ) || toText(onboarding.instagramUrl),
+    tiktokUrl:
+      resolveTypedSocialUrl(
+        snapshots.complianceSnapshot.socialMediaUrl,
+        "tiktok"
+      ) || toText(onboarding.tiktokUrl),
+    addressLine1:
+      toText(onboarding.addressLine1) ||
+      toText(snapshots.operationalAddressSnapshot.addressLine1) ||
+      toText(onboarding.businessAddress),
+    addressLine2:
+      toText(onboarding.addressLine2) ||
+      toText(snapshots.operationalAddressSnapshot.addressLine2),
+    city:
+      toText(onboarding.city) ||
+      toText(snapshots.operationalAddressSnapshot.city) ||
+      toText(onboarding.businessCity),
+    district:
+      toText(onboarding.district) ||
+      toText(snapshots.operationalAddressSnapshot.district) ||
+      toText(onboarding.businessSubdistrict),
+    province:
+      toText(onboarding.province) ||
+      toText(snapshots.operationalAddressSnapshot.province) ||
+      toText(onboarding.businessProvince),
+    postalCode:
+      toText(onboarding.postalCode) ||
+      toText(snapshots.operationalAddressSnapshot.postalCode) ||
+      toText(onboarding.businessPostalCode),
+    country:
+      toText(onboarding.country) ||
+      toText(snapshots.operationalAddressSnapshot.country) ||
+      toText(onboarding.businessCountry) ||
+      "Indonesia",
     ownerIdentity: {
-      fullName: toText(snapshots.ownerIdentitySnapshot.fullName),
-      email: toText(snapshots.ownerIdentitySnapshot.email),
-      phoneNumber: toText(snapshots.ownerIdentitySnapshot.phoneNumber),
-      birthDate: toText(snapshots.ownerIdentitySnapshot.birthDate),
-      identityType: toText(snapshots.ownerIdentitySnapshot.identityType),
-      identityNumber: toText(snapshots.complianceSnapshot.identityNumber),
-      taxNumber: toText(snapshots.complianceSnapshot.taxId),
+      fullName:
+        toText(snapshots.ownerIdentitySnapshot.fullName) ||
+        toText(onboarding.ownerName),
+      email:
+        toText(snapshots.ownerIdentitySnapshot.email) ||
+        toText(onboarding.ownerEmail),
+      phoneNumber:
+        toText(snapshots.ownerIdentitySnapshot.phoneNumber) ||
+        toText(onboarding.ownerPhone),
+      birthDate:
+        toText(snapshots.ownerIdentitySnapshot.birthDate) ||
+        toText(onboarding.birthDate),
+      identityType:
+        toText(snapshots.ownerIdentitySnapshot.identityType) ||
+        toText(onboarding.identityType) ||
+        "KTP",
+      identityNumber:
+        toText(snapshots.complianceSnapshot.identityNumber) ||
+        toText(onboarding.identityNumber),
+      taxNumber:
+        toText(snapshots.complianceSnapshot.taxId) ||
+        toText(onboarding.taxNumber),
       residentialAddress: toText(onboarding.residentialAddress),
       country: toText(onboarding.ownerCountry) || "Indonesia",
       province: toText(onboarding.ownerProvince),
@@ -204,13 +259,36 @@ const buildStoreCreatePayload = (application: any, slug: string) => {
       postalCode: toText(onboarding.ownerPostalCode),
     },
     businessDetails: {
-      category: toText(snapshots.storeInformationSnapshot.storeCategory),
-      businessType: toText(snapshots.storeInformationSnapshot.sellerType),
+      category:
+        toText(snapshots.storeInformationSnapshot.storeCategory) ||
+        toText(onboarding.category),
+      businessType:
+        toText(snapshots.storeInformationSnapshot.sellerType) ||
+        toText(onboarding.businessType),
       legalEntity:
         toText(onboarding.legalEntity) ||
         toText(snapshots.operationalAddressSnapshot.notes),
       pickupSameAsBusiness,
       pickupAddress,
+      businessAddress:
+        toText(onboarding.businessAddress) ||
+        toText(snapshots.operationalAddressSnapshot.addressLine1),
+      businessProvince:
+        toText(onboarding.businessProvince) ||
+        toText(snapshots.operationalAddressSnapshot.province),
+      businessCity:
+        toText(onboarding.businessCity) ||
+        toText(snapshots.operationalAddressSnapshot.city),
+      businessSubdistrict:
+        toText(onboarding.businessSubdistrict) ||
+        toText(snapshots.operationalAddressSnapshot.district),
+      businessPostalCode:
+        toText(onboarding.businessPostalCode) ||
+        toText(snapshots.operationalAddressSnapshot.postalCode),
+      businessCountry:
+        toText(onboarding.businessCountry) ||
+        toText(snapshots.operationalAddressSnapshot.country) ||
+        "Indonesia",
       timeZone: toText(onboarding.timeZone),
       openTime: toText(onboarding.openTime),
       closeTime: toText(onboarding.closeTime),
@@ -222,20 +300,39 @@ const buildStoreCreatePayload = (application: any, slug: string) => {
       shippingEnabled: true,
       originContactName:
         toText(snapshots.operationalAddressSnapshot.contactName) ||
-        toText(snapshots.ownerIdentitySnapshot.fullName),
+        toText(snapshots.ownerIdentitySnapshot.fullName) ||
+        toText(onboarding.ownerName),
       originPhone:
         toText(snapshots.operationalAddressSnapshot.phoneNumber) ||
-        toText(snapshots.ownerIdentitySnapshot.phoneNumber),
+        toText(onboarding.phone) ||
+        toText(snapshots.ownerIdentitySnapshot.phoneNumber) ||
+        toText(onboarding.ownerPhone),
       originAddressLine1,
       originAddressLine2: pickupSameAsBusiness
-        ? toText(snapshots.operationalAddressSnapshot.addressLine2)
-        : null,
-      originDistrict: toText(snapshots.operationalAddressSnapshot.district),
-      originCity: toText(snapshots.operationalAddressSnapshot.city),
-      originProvince: toText(snapshots.operationalAddressSnapshot.province),
-      originPostalCode: toText(snapshots.operationalAddressSnapshot.postalCode),
-      originCountry: toText(snapshots.operationalAddressSnapshot.country) || "Indonesia",
-      pickupNotes: null,
+        ? toText(snapshots.operationalAddressSnapshot.addressLine2) ||
+          toText(onboarding.addressLine2)
+        : toText(onboarding.pickupAddressLine2),
+      originDistrict:
+        toText(snapshots.operationalAddressSnapshot.district) ||
+        toText(onboarding.district) ||
+        toText(onboarding.businessSubdistrict),
+      originCity:
+        toText(snapshots.operationalAddressSnapshot.city) ||
+        toText(onboarding.city) ||
+        toText(onboarding.businessCity),
+      originProvince:
+        toText(snapshots.operationalAddressSnapshot.province) ||
+        toText(onboarding.province) ||
+        toText(onboarding.businessProvince),
+      originPostalCode:
+        toText(snapshots.operationalAddressSnapshot.postalCode) ||
+        toText(onboarding.postalCode) ||
+        toText(onboarding.businessPostalCode),
+      originCountry:
+        toText(snapshots.operationalAddressSnapshot.country) ||
+        toText(onboarding.country) ||
+        "Indonesia",
+      pickupNotes: toText(onboarding.pickupNotes),
     },
   };
 };
