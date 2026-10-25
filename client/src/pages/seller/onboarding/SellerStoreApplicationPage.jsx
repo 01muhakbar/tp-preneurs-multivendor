@@ -768,18 +768,18 @@ function Field({
   return (
     <div className={`ssa-field ${className} ${error ? "ssa-field--error" : ""}`}>
       <label htmlFor={id}>
-        {label} {required && <span aria-hidden="true">*</span>}
+        <span>{label}</span>{required ? <span aria-hidden="true"> *</span> : null}
       </label>
       <div className="ssa-control-wrap">
         {as === "select" ? (
           <>
             <select {...controlProps}>
               <option value="">{placeholder}</option>
-              {options.map((option) => {
+              {options.map((option, optIdx) => {
                 const optVal = typeof option === "object" && option !== null ? option.value : option;
                 const optLabel = typeof option === "object" && option !== null ? option.label : option;
                 return (
-                  <option key={optVal} value={optVal}>{optLabel}</option>
+                  <option key={`${optVal}-${optIdx}`} value={optVal}>{optLabel}</option>
                 );
               })}
             </select>
@@ -1258,7 +1258,12 @@ export default function SellerStoreApplicationPage() {
   };
 
   if (applicationQuery.isLoading) {
-    return <main className="ssa-loading"><Loader2 className="ssa-spin" /><p>{t("loadingApp")}</p></main>;
+    return (
+      <main className="ssa-loading notranslate" translate="no">
+        <Loader2 className="ssa-spin" />
+        <p><span>{t("loadingApp")}</span></p>
+      </main>
+    );
   }
 
   const common = { onChange: updateField, disabled: !isEditable };
@@ -1268,7 +1273,7 @@ export default function SellerStoreApplicationPage() {
       return (
         <div className="ssa-section-stack">
           <section className="ssa-form-section">
-            <h3><Store size={18} /> {t("storeIdentitySection")}</h3>
+            <h3><Store size={18} /> <span>{t("storeIdentitySection")}</span></h3>
             <div className="ssa-form-grid ssa-form-grid--two">
               <Field label={t("storeName")} name="storeName" value={form.storeName} error={errors.storeName} required placeholder={lang === "id" ? "contoh: Studio Kerajinan Acme" : "e.g. Acme Craft Studio"} {...common} />
               <Field label={t("storeSlug")} name="storeSlug" value={form.storeSlug} error={errors.storeSlug} required hint={t("storeSlugHint")} {...common} />
@@ -1278,13 +1283,13 @@ export default function SellerStoreApplicationPage() {
             </div>
           </section>
 
-          <h3 style={{ marginTop: 24, fontSize: '1.1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}><Headphones size={18} /> {t("contactSection")}</h3>
+          <h3 style={{ marginTop: 24, fontSize: '1.1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}><Headphones size={18} /> <span>{t("contactSection")}</span></h3>
           <div className="ssa-form-grid ssa-form-grid--two">
             <Field label={t("storeEmail")} name="email" value={form.email} error={errors.email} required type="email" placeholder="store@example.com" {...common} />
             <Field label={t("phoneWhatsapp")} name="phone" value={form.phone} error={errors.phone} required as="indonesian-phone" type="tel" autoComplete="tel" placeholder="81234567890" {...common} />
           </div>
 
-          <h3 style={{ marginTop: 24, fontSize: '1.1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}><MapPin size={18} /> {t("publicStoreAddressSection")}</h3>
+          <h3 style={{ marginTop: 24, fontSize: '1.1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}><MapPin size={18} /> <span>{t("publicStoreAddressSection")}</span></h3>
           <div className="ssa-form-grid ssa-form-grid--two">
             <Field label={t("addressLine1")} name="addressLine1" value={form.addressLine1} error={errors.addressLine1} required {...common} />
             <Field label={t("addressLine2")} name="addressLine2" value={form.addressLine2} error={errors.addressLine2} placeholder={t("optional")} {...common} />
@@ -1329,7 +1334,7 @@ export default function SellerStoreApplicationPage() {
       return (
         <div className="ssa-section-stack">
           <section className="ssa-form-section">
-            <h3><Building2 size={18} /> {t("businessInfoSection")}</h3>
+            <h3><Building2 size={18} /> <span>{t("businessInfoSection")}</span></h3>
             <div className="ssa-form-grid ssa-form-grid--three">
               <Field
                 label={t("businessType")}
@@ -1455,7 +1460,7 @@ export default function SellerStoreApplicationPage() {
     return (
       <div className="ssa-review-step">
         <section>
-          <h3><UploadCloud size={19} /> {t("uploadDocumentsSection")}</h3>
+          <h3><UploadCloud size={19} /> <span>{t("uploadDocumentsSection")}</span></h3>
           <p>{t("uploadDocumentsDesc")}</p>
           <div className="ssa-document-grid">
             {DOCUMENTS.map((document) => {
@@ -1465,11 +1470,17 @@ export default function SellerStoreApplicationPage() {
               return (
                 <div className={`ssa-document-card ${file ? "ssa-document-card--done" : ""}`} key={document.key}>
                   <FileText size={27} />
-                  <div><strong>{docLabel}{!document.required && t("optionalTag")}</strong><span>{file?.fileName || t("noFileUploaded")}</span></div>
+                  <div>
+                    <strong>
+                      <span>{docLabel}</span>
+                      {!document.required ? <span> {t("optionalTag")}</span> : null}
+                    </strong>
+                    <span>{file?.fileName || t("noFileUploaded")}</span>
+                  </div>
                   {file ? <button type="button" onClick={() => removeDocument(document.key)} disabled={!isEditable} aria-label={`${t("removeFile")} ${docLabel}`}><X size={16} /></button> : null}
                   <label>
                     {uploading[key] ? <Loader2 className="ssa-spin" size={17} /> : file ? <CheckCircle2 size={17} /> : <UploadCloud size={17} />}
-                    {uploading[key] ? t("uploading") : file ? t("replaceFile") : t("chooseFile")}
+                    <span>{uploading[key] ? t("uploading") : file ? t("replaceFile") : t("chooseFile")}</span>
                     <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" disabled={!isEditable || uploading[key]} onChange={(event) => uploadFile(document.key, event.target.files?.[0] || null, { document: true })} />
                   </label>
                   {(uploadErrors[key] || errors[key]) && <span className="ssa-field-error" role="alert">{uploadErrors[key] || errors[key]}</span>}
@@ -1479,7 +1490,7 @@ export default function SellerStoreApplicationPage() {
           </div>
         </section>
         <section className="ssa-final-checklist">
-          <h3><FileCheck2 size={19} /> {t("finalChecklistSection")}</h3>
+          <h3><FileCheck2 size={19} /> <span>{t("finalChecklistSection")}</span></h3>
           <p>{t("finalChecklistDesc")}</p>
           <div>
             {STEPS.slice(0, 3).map((entry, index) => (
@@ -1501,7 +1512,7 @@ export default function SellerStoreApplicationPage() {
   };
 
   return (
-    <main className="ssa-page">
+    <main className="ssa-page notranslate" translate="no">
       <aside className="ssa-sidebar">
         <Link to="/seller/login" className="ssa-brand" aria-label="TP Preneurs Seller Workspace">
           <span 
@@ -1535,7 +1546,7 @@ export default function SellerStoreApplicationPage() {
             <strong>{t("needHelp")}</strong>
             <span>{t("supportTeamDesc")}</span>
           </div>
-          <a href="mailto:support@tpreneurs.com">{t("contactSupport")} <ArrowRight size={16} /></a>
+          <a href="mailto:support@tpreneurs.com"><span>{t("contactSupport")}</span> <ArrowRight size={16} /></a>
         </div>
       </aside>
 
@@ -1566,7 +1577,7 @@ export default function SellerStoreApplicationPage() {
                 (isReview && status === "approved");
 
               return (
-                <div className={`ssa-journey-step ${stepClass}`} key={index}>
+                <div className={`ssa-journey-step ${stepClass}`} key={`journey-${index}`}>
                   <span>{isChecked ? <Check size={16} /> : index + 1}</span>
                   <small>{label}</small>
                 </div>
@@ -1575,10 +1586,10 @@ export default function SellerStoreApplicationPage() {
           </div>
           <div className="ssa-top-actions">
             <div className="ssa-theme-switch" aria-label="Color theme">
-              <button type="button" className={resolvedTheme === "light" ? "is-active" : ""} onClick={() => setTheme("light")}><Sun size={16} /> {t("light")}</button>
-              <button type="button" className={resolvedTheme === "dark" ? "is-active" : ""} onClick={() => setTheme("dark")}><Moon size={16} /> {t("dark")}</button>
+              <button type="button" className={resolvedTheme === "light" ? "is-active" : ""} onClick={() => setTheme("light")}><Sun size={16} /> <span>{t("light")}</span></button>
+              <button type="button" className={resolvedTheme === "dark" ? "is-active" : ""} onClick={() => setTheme("dark")}><Moon size={16} /> <span>{t("dark")}</span></button>
             </div>
-            <button type="button" className="ssa-logout-btn" onClick={handleLogout} aria-label={t("logout")}><LogOut size={14} /> {t("logout")}</button>
+            <button type="button" className="ssa-logout-btn" onClick={handleLogout} aria-label={t("logout")}><LogOut size={14} /> <span>{t("logout")}</span></button>
             <div className="ssa-language-wrap">
               <select
                 className="ssa-language-select"
@@ -1600,7 +1611,9 @@ export default function SellerStoreApplicationPage() {
               <div>
                 <h1>{t("storeApplication")}</h1>
                 <p>
-                  {t("stepOf")} {step + 1} {t("of")} {STEPS.length} <b>·</b> {t(STEPS[step].titleKey)}
+                  <span>{t("stepOf")} {step + 1} {t("of")} {STEPS.length}</span>
+                  <b> · </b>
+                  <span>{t(STEPS[step].titleKey)}</span>
                   {!isEditable && status !== "approved" ? (
                     <span style={{ marginLeft: 8, padding: "2px 8px", borderRadius: 9999, fontSize: 10, fontWeight: 700, backgroundColor: "rgba(56, 189, 248, 0.15)", color: "#38bdf8", border: "1px solid rgba(56, 189, 248, 0.3)" }}>
                       {t("underReviewBadge")}
@@ -1641,14 +1654,14 @@ export default function SellerStoreApplicationPage() {
                 <span>{workspaceSlug ? t("appApprovedReady") : t("appApprovedFinishing")}</span>
                 {workspaceSlug && (
                   <Link to={`/seller/stores/${encodeURIComponent(workspaceSlug)}`}>
-                    {t("openSellerWorkspace")} <ArrowRight size={16} />
+                    <span>{t("openSellerWorkspace")}</span> <ArrowRight size={16} />
                   </Link>
                 )}
               </div>
             )}
 
             <form className="ssa-form-card" onSubmit={(event) => event.preventDefault()}>
-              <div className="ssa-card-title"><ActiveStepIcon size={20} /><strong>{t(STEPS[step].titleKey)}</strong>{application?.statusMeta && <span>{application.statusMeta.label}</span>}</div>
+              <div className="ssa-card-title"><ActiveStepIcon size={20} /><strong>{t(STEPS[step].titleKey)}</strong>{application?.statusMeta ? <span>{application.statusMeta.label}</span> : null}</div>
               {renderStep()}
 
               {(actionError || notice) && <div className={`ssa-action-message ${actionError ? "is-error" : "is-success"}`} role={actionError ? "alert" : "status"}>{actionError || notice}</div>}
@@ -1661,10 +1674,10 @@ export default function SellerStoreApplicationPage() {
                     onClick={() => setStep((current) => Math.max(0, current - 1))}
                     disabled={step === 0}
                   >
-                    <ArrowLeft size={18} /> {t("previousStep")}
+                    <ArrowLeft size={18} /> <span>{t("previousStep")}</span>
                   </button>
                   <span style={{ fontSize: 11, fontWeight: 600, color: "var(--tp-muted, #94a3b8)", display: "inline-flex", alignItems: "center", gap: 6 }}>
-                    <ShieldCheck size={16} style={{ color: "#38bdf8" }} /> {t("readOnlyMode")}
+                    <ShieldCheck size={16} style={{ color: "#38bdf8" }} /> <span>{t("readOnlyMode")}</span>
                   </span>
                   <button
                     type="button"
@@ -1672,17 +1685,17 @@ export default function SellerStoreApplicationPage() {
                     onClick={() => setStep((current) => Math.min(STEPS.length - 1, current + 1))}
                     disabled={step === STEPS.length - 1}
                   >
-                    {t("nextStep")} <ArrowRight size={18} />
+                    <span>{t("nextStep")}</span> <ArrowRight size={18} />
                   </button>
                 </div>
               ) : (
                 <div className="ssa-form-actions">
-                  <button type="button" className="ssa-button ssa-button--secondary" onClick={() => setStep((current) => Math.max(0, current - 1))} disabled={step === 0 || isBusy}><ArrowLeft size={18} /> {t("back")}</button>
-                  <button type="button" className="ssa-button ssa-button--secondary" onClick={() => saveDraft().catch(() => {})} disabled={!isEditable || isBusy}>{saveMutation.isPending ? <Loader2 className="ssa-spin" size={18} /> : <Save size={18} />} {t("saveDraft")}</button>
+                  <button type="button" className="ssa-button ssa-button--secondary" onClick={() => setStep((current) => Math.max(0, current - 1))} disabled={step === 0 || isBusy}><ArrowLeft size={18} /> <span>{t("back")}</span></button>
+                  <button type="button" className="ssa-button ssa-button--secondary" onClick={() => saveDraft().catch(() => {})} disabled={!isEditable || isBusy}>{saveMutation.isPending ? <Loader2 className="ssa-spin" size={18} /> : <Save size={18} />} <span>{t("saveDraft")}</span></button>
                   {step < STEPS.length - 1 ? (
-                    <button type="button" className="ssa-button ssa-button--primary" onClick={continueStep} disabled={!isEditable || isBusy}>{t("continue")} <ArrowRight size={18} /></button>
+                    <button type="button" className="ssa-button ssa-button--primary" onClick={continueStep} disabled={!isEditable || isBusy}><span>{t("continue")}</span> <ArrowRight size={18} /></button>
                   ) : (
-                    <button type="button" className="ssa-button ssa-button--submit" onClick={submitApplication} disabled={!isEditable || isBusy}>{actionMutation.isPending ? <Loader2 className="ssa-spin" size={18} /> : <Send size={18} />}{status === "revision_requested" ? t("resubmitApplication") : t("submitApplication")}</button>
+                    <button type="button" className="ssa-button ssa-button--submit" onClick={submitApplication} disabled={!isEditable || isBusy}>{actionMutation.isPending ? <Loader2 className="ssa-spin" size={18} /> : <Send size={18} />}<span>{status === "revision_requested" ? t("resubmitApplication") : t("submitApplication")}</span></button>
                   )}
                 </div>
               )}
@@ -1724,7 +1737,7 @@ export default function SellerStoreApplicationPage() {
                 {STEPS.map((entry, index) => (
                   <button type="button" className={step === index ? "is-active" : ""} key={entry.key} onClick={() => setStep(index)}>
                     {stepValidity[index] ? <CheckCircle2 size={16} /> : <span />}
-                    {t(entry.titleKey)}
+                    <span>{t(entry.titleKey)}</span>
                   </button>
                 ))}
               </div>
@@ -1765,7 +1778,7 @@ export default function SellerStoreApplicationPage() {
                 <h2>{t("needHelpSide")}</h2>
                 <p>{t("supportTeamReady")}</p>
               </div>
-              <a href="mailto:support@tpreneurs.com">{t("contactSupport")} <ArrowRight size={16} /></a>
+              <a href="mailto:support@tpreneurs.com"><span>{t("contactSupport")}</span> <ArrowRight size={16} /></a>
             </section>
           </aside>
         </div>
