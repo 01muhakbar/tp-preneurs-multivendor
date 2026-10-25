@@ -48,7 +48,7 @@ const nullableEmail = () =>
       const normalized = String(value).trim();
       return normalized ? normalized : null;
     },
-    z.string().email().max(160).nullable().optional()
+    z.string().max(160).nullable().optional()
   );
 
 const nullableInteger = () =>
@@ -115,6 +115,7 @@ export const payoutPaymentSnapshotSchema = z
     accountHolderName: nullableTrimmedString(160),
     accountNumber: nullableTrimmedString(120),
     bankName: nullableTrimmedString(160),
+    currency: nullableTrimmedString(16),
     qrisImageUrl: nullableTrimmedString(2_000_000),
     accountHolderMatchesIdentity: z.boolean().optional(),
   })
@@ -215,6 +216,7 @@ const DEFAULT_PAYOUT_PAYMENT_SNAPSHOT: PayoutPaymentSnapshot = {
   accountHolderName: null,
   accountNumber: null,
   bankName: null,
+  currency: "IDR",
   qrisImageUrl: null,
   accountHolderMatchesIdentity: false,
 };
@@ -480,6 +482,7 @@ export function normalizeStoreApplicationSnapshots(application: any) {
       sellerNote:
         payout.sellerNote ||
         (onboarding.paymentSellerNote ? String(onboarding.paymentSellerNote) : null),
+      currency: payout.currency || "IDR",
     },
     complianceSnapshot: complianceSnapshotSchema.parse(
       mergeSnapshot(
@@ -505,6 +508,12 @@ export function buildStoreApplicationCompleteness(application: any) {
     missingFields.push({
       key: "ownerIdentitySnapshot.email",
       label: "Owner email",
+      step: "owner_identity",
+    });
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(snapshots.ownerIdentitySnapshot.email))) {
+    missingFields.push({
+      key: "ownerIdentitySnapshot.email",
+      label: "Valid owner email",
       step: "owner_identity",
     });
   }
