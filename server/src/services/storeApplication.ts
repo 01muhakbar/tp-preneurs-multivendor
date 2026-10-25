@@ -437,11 +437,22 @@ export function normalizeStoreApplicationSnapshots(application: any) {
     String(payout.bankName || "").toUpperCase() === "MANUAL_QRIS" ||
     Boolean(payout.qrisImageUrl);
 
+  const rawCompliance = normalizeObject(getAttr(application, "complianceSnapshot"));
+  const parsedCompliance = complianceSnapshotSchema.parse(
+    mergeSnapshot(DEFAULT_COMPLIANCE_SNAPSHOT, rawCompliance)
+  );
+  const rawOwnerIdentity = normalizeObject(getAttr(application, "ownerIdentitySnapshot"));
+  const isAgreedToTerms = Boolean(
+    parsedCompliance.agreedToTerms ||
+    parsedCompliance.authenticityConfirmed ||
+    onboarding.confirmAccuracy
+  );
+
   return {
     ownerIdentitySnapshot: ownerIdentitySnapshotSchema.parse(
       mergeSnapshot(
         DEFAULT_OWNER_IDENTITY_SNAPSHOT,
-        normalizeObject(getAttr(application, "ownerIdentitySnapshot"))
+        rawOwnerIdentity
       )
     ),
     storeInformationSnapshot: storeInformationSnapshotSchema.parse(
@@ -484,12 +495,19 @@ export function normalizeStoreApplicationSnapshots(application: any) {
         (onboarding.paymentSellerNote ? String(onboarding.paymentSellerNote) : null),
       currency: payout.currency || "IDR",
     },
-    complianceSnapshot: complianceSnapshotSchema.parse(
-      mergeSnapshot(
-        DEFAULT_COMPLIANCE_SNAPSHOT,
-        normalizeObject(getAttr(application, "complianceSnapshot"))
-      )
-    ),
+    complianceSnapshot: {
+      ...parsedCompliance,
+      supportEmail:
+        parsedCompliance.supportEmail ||
+        (onboarding.email ? String(onboarding.email) : null) ||
+        (onboarding.ownerEmail ? String(onboarding.ownerEmail) : null) ||
+        (rawOwnerIdentity.email ? String(rawOwnerIdentity.email) : null),
+      agreedToTerms: isAgreedToTerms,
+      agreedToAdminReview: isAgreedToTerms || Boolean(parsedCompliance.agreedToAdminReview),
+      agreedToPlatformPolicy: isAgreedToTerms || Boolean(parsedCompliance.agreedToPlatformPolicy),
+      understandsStoreInactiveUntilApproved:
+        isAgreedToTerms || Boolean(parsedCompliance.understandsStoreInactiveUntilApproved),
+    },
   };
 }
 

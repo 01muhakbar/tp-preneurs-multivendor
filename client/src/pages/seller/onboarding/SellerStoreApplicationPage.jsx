@@ -572,7 +572,10 @@ function applicationToForm(application, user) {
         ? metadata.documents
         : {},
     confirmAccuracy: Boolean(
-      metadata.confirmAccuracy ?? compliance.authenticityConfirmed ?? false
+      metadata.confirmAccuracy ??
+      compliance.authenticityConfirmed ??
+      compliance.agreedToTerms ??
+      false
     ),
   };
 }
@@ -624,6 +627,10 @@ function formToPayload(form, visualStep) {
       productTypes: text(form.category) || null,
       brandOwnershipType: text(form.legalEntity) || null,
       authenticityConfirmed: Boolean(form.confirmAccuracy),
+      agreedToTerms: Boolean(form.confirmAccuracy),
+      agreedToAdminReview: Boolean(form.confirmAccuracy),
+      agreedToPlatformPolicy: Boolean(form.confirmAccuracy),
+      understandsStoreInactiveUntilApproved: true,
     },
     payoutPaymentSnapshot: {
       accountName: text(form.paymentAccountName) || null,
@@ -1187,7 +1194,19 @@ export default function SellerStoreApplicationPage() {
       const wantsResubmit = ["revision_requested", "rejected"].includes(saved.status);
       const allowed = wantsResubmit ? saved.workflow?.canResubmit : saved.workflow?.canSubmit;
       if (!allowed) {
-        setActionError(saved.statusMeta?.description || "This application cannot be submitted in its current status.");
+        const missing = Array.isArray(saved.completeness?.missingFields)
+          ? saved.completeness.missingFields.map((f) => f.label).filter(Boolean)
+          : [];
+        const missingText = missing.join(", ");
+        const defaultMsg = lang === "id"
+          ? "Lengkapi setiap rincian wajib sebelum mengirimkan aplikasi."
+          : (saved.statusMeta?.description || t("completeRequiredBeforeSubmit"));
+        const message = missingText
+          ? (lang === "id"
+              ? `Lengkapi rincian wajib berikut: ${missingText}`
+              : `Complete the required details before submitting: ${missingText}`)
+          : defaultMsg;
+        setActionError(message);
         return;
       }
       const submitted = await actionMutation.mutateAsync({
