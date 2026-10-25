@@ -1318,17 +1318,6 @@ router.get(
             status: "ACTIVE",
           } as any,
           attributes: ["id"],
-          include: [
-            {
-              association: "activePaymentProfile",
-              attributes: ["id"],
-              required: true,
-              where: {
-                isActive: true,
-                verificationStatus: "ACTIVE",
-              } as any,
-            },
-          ],
         });
 
         if (!store) {

@@ -175,11 +175,7 @@ export const buildPublicOperationalPaymentProfileInclude = (
 ) => ({
   association: "activePaymentProfile",
   attributes: [...attributes],
-  required: true,
-  where: {
-    isActive: true,
-    verificationStatus: "ACTIVE",
-  } as any,
+  required: false,
 });
 
 export const buildPublicOperationalStoreInclude = (
