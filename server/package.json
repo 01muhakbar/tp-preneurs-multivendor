@@ -88,11 +88,12 @@
     "dayjs": "^1.11.18",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
-    "multer": "^2.0.2",
-    "mysql2": "^3.10.0",
+    "multer": "^2.5.0",
+    "mysql2": "^3.23.1",
     "nodemailer": "^7.0.13",
-    "sequelize": "^6.37.3",
-    "stripe": "^21.0.1"
+    "sequelize": "^6.37.8",
+    "stripe": "^21.0.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",
