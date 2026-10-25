@@ -1278,10 +1278,15 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
       imageUrls: uploadedUrls,
       hasVariants,
       variations: variationPayload,
-      seoTitle: String(seo.metaTitle || "").trim() || null,
-      seoDescription: String(seo.metaDescription || "").trim() || null,
-      seoKeywords: seo.keywords,
-      ogImageUrl: String(seo.ogImageUrl || "").trim() || null,
+      seo:
+        seo.metaTitle || seo.metaDescription || (Array.isArray(seo.keywords) && seo.keywords.length) || seo.ogImageUrl
+          ? {
+              metaTitle: String(seo.metaTitle || "").trim() || null,
+              metaDescription: String(seo.metaDescription || "").trim() || null,
+              keywords: Array.isArray(seo.keywords) ? seo.keywords : [],
+              ogImageUrl: String(seo.ogImageUrl || "").trim() || null,
+            }
+          : null,
       productType: form2026Meta.productType || "physical",
       digitalAssetUrl: form2026Meta.productType === "digital" ? form2026Meta.digitalAssetUrl || null : null,
       weight: toOptionalNumber(form2026Meta.weight) ?? null,

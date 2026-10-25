@@ -775,14 +775,24 @@ const SELLER_AUTHORING_EDITABLE_FIELDS = [
   "defaultCategoryId",
   "price",
   "salePrice",
+  "compareAtPrice",
+  "costPrice",
   "stock",
+  "lowStockThreshold",
+  "brand",
+  "shortDescription",
   "imageUrls",
   "tags",
   "seo",
+  "seoTitle",
+  "seoDescription",
+  "seoKeywords",
+  "ogImageUrl",
   "productType",
   "digitalAssetUrl",
   "weight",
   "notes",
+  "additionalNotes",
   "length",
   "width",
   "height",
@@ -1176,7 +1186,7 @@ const parseSellerProductDraftPayload = async (body: any = {}, storeId?: number |
     .filter((key) => key && !allowedFieldSet.has(key as any));
 
   if (forbiddenFields.length > 0) {
-    const error = new Error("Seller product authoring payload contains read-only fields.");
+    const error = new Error(`Seller product authoring contains restricted fields: ${forbiddenFields.join(", ")}`);
     (error as any).status = 400;
     (error as any).code = "SELLER_PRODUCT_AUTHORING_FORBIDDEN_FIELDS";
     (error as any).fields = forbiddenFields;
@@ -1204,7 +1214,7 @@ const parseSellerProductDraftPayload = async (body: any = {}, storeId?: number |
   const slug = normalizeOptionalSlugInput(body?.slug);
   const categorySelection = await resolveSellerCategorySelection(body);
   const price = normalizeOptionalMoney(body?.price);
-  const salePrice = normalizeOptionalMoney(body?.salePrice);
+  const salePrice = normalizeOptionalMoney(body?.salePrice ?? body?.compareAtPrice);
   const stock = normalizeOptionalInteger(body?.stock);
   const weight = normalizeOptionalInteger(body?.weight);
   const notes = nullableString(body?.notes ?? body?.additionalNotes);
@@ -1218,11 +1228,21 @@ const parseSellerProductDraftPayload = async (body: any = {}, storeId?: number |
   const parsedHasVariants = parseOptionalBooleanInput(body?.hasVariants);
   const hasImageUrls = Array.isArray(body?.imageUrls);
   const tags = normalizeTagListInput(body?.tags);
+  const rawSeo =
+    body?.seo ||
+    (body?.seoTitle || body?.seoDescription || body?.seoKeywords || body?.ogImageUrl
+      ? {
+          metaTitle: body?.seoTitle,
+          metaDescription: body?.seoDescription,
+          keywords: body?.seoKeywords,
+          ogImageUrl: body?.ogImageUrl,
+        }
+      : undefined);
   const hasSeoPayload =
-    typeof body?.seo !== "undefined" ||
+    typeof rawSeo !== "undefined" ||
     typeof body?.productType !== "undefined" ||
     typeof body?.digitalAssetUrl !== "undefined";
-  const sanitizedSeo = hasSeoPayload ? sanitizeSellerProductSeo(body?.seo) : undefined;
+  const sanitizedSeo = hasSeoPayload ? sanitizeSellerProductSeo(rawSeo) : undefined;
   const seo = hasSeoPayload
     ? typeof body?.productType !== "undefined" || typeof body?.digitalAssetUrl !== "undefined"
       ? mergeProductTypeMetadataIntoSeo(sanitizedSeo, {

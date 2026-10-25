@@ -107,12 +107,16 @@ const buildSafeProductDraftPayload = (payload: Seller2026ProductDraftPayload) =>
     imageUrls: textList(payload.imageUrls).slice(0, 10),
     hasVariants: Boolean(payload.hasVariants),
     variations: payload.hasVariants && payload.variations ? payload.variations : null,
-    seo: seoTitle || seoDescription || (payload.seoKeywords && payload.seoKeywords.length) || payload.ogImageUrl ? { 
-      metaTitle: seoTitle || "", 
-      metaDescription: seoDescription || "",
-      keywords: textList(payload.seoKeywords),
-      ogImageUrl: optionalText(payload.ogImageUrl) || ""
-    } : null,
+    seo: (payload as any).seo
+      ? (payload as any).seo
+      : (seoTitle || seoDescription || (payload.seoKeywords && payload.seoKeywords.length) || payload.ogImageUrl)
+      ? {
+          metaTitle: seoTitle || "",
+          metaDescription: seoDescription || "",
+          keywords: textList(payload.seoKeywords),
+          ogImageUrl: optionalText(payload.ogImageUrl) || "",
+        }
+      : null,
   };
 };
 
