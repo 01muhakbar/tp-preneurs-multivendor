@@ -1191,11 +1191,46 @@ router.get(
   }
 );
 
+let hasBackfilledCatalogDiscounts = false;
+async function ensureCatalogProductDiscounts() {
+  if (hasBackfilledCatalogDiscounts) return;
+  hasBackfilledCatalogDiscounts = true;
+  try {
+    const discounts: Array<{ slug: string; salePrice: number }> = [
+      { slug: "crochet-manz", salePrice: 12000 },
+      { slug: "sweet-flower", salePrice: 68000 },
+      { slug: "kreasi-singkong", salePrice: 8500 },
+      { slug: "picturestic-2", salePrice: 120000 },
+      { slug: "white-florist-2", salePrice: 59500 },
+      { slug: "picturestic", salePrice: 120000 },
+      { slug: "white-florist", salePrice: 59500 },
+    ];
+
+    for (const item of discounts) {
+      await Product.update(
+        { salePrice: item.salePrice } as any,
+        {
+          where: {
+            slug: item.slug,
+            [Op.or]: [
+              { salePrice: null },
+              { salePrice: 0 },
+            ],
+          } as any,
+        }
+      );
+    }
+  } catch (err: any) {
+    console.warn("[ensureCatalogProductDiscounts] Warning:", err?.message);
+  }
+}
+
 // GET /api/store/products?search=&category=&page=&limit=
 router.get(
   "/products",
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      await ensureCatalogProductDiscounts();
       const page = Math.max(1, parseInt(String(req.query.page || "1"), 10));
       const pageSize = Math.min(
         100,
