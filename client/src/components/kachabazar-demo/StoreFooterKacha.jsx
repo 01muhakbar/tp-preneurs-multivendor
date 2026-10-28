@@ -302,7 +302,7 @@ export default function StoreFooterKacha({
               {footerLogoSrc ? (
                 <Link
                   to="/"
-                  className="flex h-[42px] w-[138px] items-center sm:h-[48px] sm:w-[164px]"
+                  className="flex h-[44px] w-auto max-w-[190px] items-center sm:h-[50px] sm:max-w-[240px]"
                   aria-label={`${brandingName} home`}
                 >
                   <img
@@ -315,7 +315,7 @@ export default function StoreFooterKacha({
                         setImgError(true);
                       }
                     }}
-                    className="h-full w-full object-contain object-left"
+                    className="h-full w-auto max-w-full object-contain object-left"
                   />
                 </Link>
               ) : (

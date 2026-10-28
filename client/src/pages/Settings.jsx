@@ -66,7 +66,7 @@ const BRANDING_ITEMS = [
     key: "client",
     field: "clientLogoUrl",
     label: "Client Logo",
-    helper: "Logo untuk area toko yang dilihat pelanggan.",
+    helper: "Logo horizontal navbar toko. Rekomendasi: 1600×400 px atau 1200×300 px (rasio 4:1) PNG transparan, crop pas tanpa margin vertikal.",
     previewClass: "aspect-[3.4/1] rounded-2xl",
     previewImageClass: "object-contain",
     assetType: "logo",
@@ -75,7 +75,7 @@ const BRANDING_ITEMS = [
     key: "admin",
     field: "adminLogoUrl",
     label: "Admin Logo",
-    helper: "Logo utama untuk area Admin Workspace.",
+    helper: "Logo utama untuk Admin Workspace. Rekomendasi: 512×512 px (1:1) PNG/JPG.",
     previewClass: "aspect-square rounded-2xl",
     previewImageClass: "object-contain",
     assetType: "logo",
@@ -84,7 +84,7 @@ const BRANDING_ITEMS = [
     key: "seller",
     field: "sellerLogoUrl",
     label: "Seller Logo",
-    helper: "Logo utama untuk area Seller Workspace.",
+    helper: "Logo utama untuk Seller Workspace. Rekomendasi: 512×512 px (1:1) PNG/JPG.",
     previewClass: "aspect-square rounded-2xl",
     previewImageClass: "object-contain",
     assetType: "logo",
@@ -374,7 +374,9 @@ function BrandingCard({
         </div>
 
         <div
-          className={`flex items-center justify-center overflow-hidden border border-slate-200 bg-white p-3 ${item.previewClass}`}
+          className={`flex items-center justify-center overflow-hidden border border-slate-200 bg-white ${
+            item.key === "client" ? "p-2 sm:p-2.5" : "p-3"
+          } ${item.previewClass}`}
         >
           {previewSrc ? (
             <img

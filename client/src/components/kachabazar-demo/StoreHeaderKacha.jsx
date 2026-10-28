@@ -107,7 +107,7 @@ function LogoMark({ logoUrl, logoVersion }) {
     return (
       <Link
         to="/"
-        className="flex h-[42px] w-[138px] shrink-0 items-center sm:h-[48px] sm:w-[164px]"
+        className="flex h-[44px] w-auto max-w-[190px] shrink-0 items-center sm:h-[52px] sm:max-w-[240px] lg:h-[58px] lg:max-w-[280px]"
         aria-label="TP Preneurs home"
       >
         <img
@@ -120,7 +120,7 @@ function LogoMark({ logoUrl, logoVersion }) {
               setImgError(true);
             }
           }}
-          className="h-full w-full object-contain object-left"
+          className="h-full w-auto max-w-full object-contain object-left"
         />
       </Link>
     );
@@ -129,7 +129,7 @@ function LogoMark({ logoUrl, logoVersion }) {
   return (
     <Link
       to="/"
-      className="flex h-[42px] min-w-[138px] items-center gap-2.5 sm:h-[48px] sm:min-w-[164px]"
+      className="flex h-[44px] min-w-[138px] items-center gap-2.5 sm:h-[52px] sm:min-w-[164px] lg:h-[58px] lg:min-w-[180px]"
       aria-label="TP Preneurs home"
     >
       <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#0052cc] to-[#003d99] shadow-sm">

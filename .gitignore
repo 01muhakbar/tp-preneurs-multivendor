@@ -24,7 +24,6 @@ tmp_mvp*.ps1
 **/tmp_*.out
 **/tmp_*.err
 **/tmp_*.pid
-client/dist/
 **/*.log
 .codex-artifacts/
 .codex-dev/
