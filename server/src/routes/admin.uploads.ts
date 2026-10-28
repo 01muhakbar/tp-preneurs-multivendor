@@ -53,6 +53,24 @@ router.post("/uploads", requireStaffOrAdmin, (req, res) => {
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
+
+    const mirrorDirs = [
+      path.resolve(process.cwd(), "server/public/uploads"),
+      path.resolve(process.cwd(), "public/uploads"),
+      path.resolve(process.cwd(), "server/uploads"),
+    ];
+    for (const dir of mirrorDirs) {
+      try {
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        const dest = path.join(dir, req.file.filename);
+        if (req.file.path && req.file.path !== dest && !fs.existsSync(dest)) {
+          fs.copyFileSync(req.file.path, dest);
+        }
+      } catch (_copyErr) {
+        // Ignore mirror error
+      }
+    }
+
     const url = `/uploads/${req.file.filename}`;
     return res.json({ url });
   });

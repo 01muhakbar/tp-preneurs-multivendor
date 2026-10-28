@@ -454,6 +454,24 @@ router.post("/upload", (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: "File is required" });
     }
 
+    // Mirror to candidate folders to guarantee persistence across deployment setups
+    const mirrorDirs = [
+      path.resolve(process.cwd(), "server/public/uploads/products"),
+      path.resolve(process.cwd(), "public/uploads/products"),
+      path.resolve(process.cwd(), "server/uploads/products"),
+    ];
+    for (const dir of mirrorDirs) {
+      try {
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        const dest = path.join(dir, req.file.filename);
+        if (req.file.path && req.file.path !== dest && !fs.existsSync(dest)) {
+          fs.copyFileSync(req.file.path, dest);
+        }
+      } catch (_copyErr) {
+        // Ignore mirror error
+      }
+    }
+
     const url = `/uploads/products/${req.file.filename}`;
     return res.status(201).json({ success: true, data: { url } });
   });

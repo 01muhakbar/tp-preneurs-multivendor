@@ -1931,8 +1931,14 @@ const serializeProductOwnership = (product: any) => ({
 });
 
 const resolveProductPreviewImage = (product: any) => {
+  const imageUrl = normalizeString(getAttr(product, "imageUrl"));
+  if (imageUrl) return imageUrl;
+
   const promoImagePath = normalizeString(getAttr(product, "promoImagePath"));
   if (promoImagePath) return promoImagePath;
+
+  const image = normalizeString(getAttr(product, "image"));
+  if (image) return image;
 
   const imagePaths = normalizeStoredImagePathList(getAttr(product, "imagePaths"));
   if (imagePaths.length > 0) {
@@ -2033,6 +2039,10 @@ const serializeProductListItem = (
     submission,
     authoring,
     ownership: serializeProductOwnership(product),
+    imageUrl: resolveProductPreviewImage(product),
+    thumbnailUrl: resolveProductPreviewImage(product),
+    image: resolveProductPreviewImage(product),
+    promoImagePath: resolveProductPreviewImage(product),
     mediaPreviewUrl: resolveProductPreviewImage(product),
     imagePaths: normalizeStoredImagePathList(getAttr(product, "imagePaths")),
     imageUrls: normalizeStoredImagePathList(getAttr(product, "imagePaths")),

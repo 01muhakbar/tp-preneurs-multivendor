@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { formatCurrency } from "../../../utils/format.js";
+import { resolveAssetUrl } from "../../../lib/assetUrl.js";
 
 export default function ShopProductListItem2026({
   card,
@@ -20,13 +21,23 @@ export default function ShopProductListItem2026({
   const roundedRating = Math.round(card.rating);
 
   const imageCandidates = useMemo(() => {
-    if (Array.isArray(card.images) && card.images.length > 0) {
-      return card.images;
+    const list = [
+      ...(Array.isArray(card.images) ? card.images : []),
+      card.image,
+      card.raw?.imageUrl,
+      card.raw?.promoImagePath,
+      card.raw?.image,
+    ]
+      .filter(Boolean)
+      .map((src) => resolveAssetUrl(src));
+    const unique = Array.from(new Set(list));
+    if (unique.length > 0) {
+      return [...unique, "/demo/placeholder-product.svg"];
     }
-    return card.image ? [card.image] : [];
-  }, [card.images, card.image]);
+    return ["/demo/placeholder-product.svg"];
+  }, [card.images, card.image, card.raw]);
 
-  const activeImage = imageCandidates[imageIndex] || null;
+  const activeImage = imageCandidates[imageIndex] || "/demo/placeholder-product.svg";
 
   const handleImageError = () => {
     if (imageIndex + 1 < imageCandidates.length) {
@@ -51,9 +62,15 @@ export default function ShopProductListItem2026({
       <div className="tp-product-list-item__media">
         <Link to={card.href} aria-label={`View ${card.name}`}>
           {activeImage && !imageFailed ? (
-            <img src={activeImage} alt={card.name} onError={handleImageError} />
+            <img src={activeImage} alt={card.name} onError={handleImageError} loading="lazy" />
           ) : (
-            <span className="tp-product-card__fallback"><Image /></span>
+            <span className="tp-product-card__fallback">
+              <img
+                src="/demo/placeholder-product.svg"
+                alt={card.name}
+                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              />
+            </span>
           )}
         </Link>
         {card.discount > 0 ? <span className="tp-product-card__discount">-{card.discount}%</span> : null}

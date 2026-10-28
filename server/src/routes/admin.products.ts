@@ -1698,7 +1698,14 @@ const resolveAdminPriceFields = (plain: any) => {
 const toAdminProductListItem = (product: any, storeOperationalReadiness: any = null) => {
   const plain = product?.get ? product.get({ plain: true }) : product;
   const imagePaths = normalizeImagePathList(plain?.imagePaths);
-  const imageUrl = normalizeUploadsUrl(plain?.promoImagePath) || imagePaths[0] || null;
+  const imageUrl =
+    normalizeUploadsUrl(plain?.imageUrl) ||
+    normalizeUploadsUrl(plain?.promoImagePath) ||
+    normalizeUploadsUrl(plain?.image) ||
+    imagePaths[0] ||
+    null;
+  const allImagePaths =
+    imageUrl && !imagePaths.includes(imageUrl) ? [imageUrl, ...imagePaths] : imagePaths;
   const priceFields = resolveAdminPriceFields(plain);
   const published =
     typeof plain?.published !== "undefined"
@@ -1742,8 +1749,8 @@ const toAdminProductListItem = (product: any, storeOperationalReadiness: any = n
     categories: resolveProductSelectedCategories(plain),
     imageUrl,
     promoImagePath: imageUrl,
-    imagePaths,
-    imageUrls: imagePaths,
+    imagePaths: allImagePaths,
+    imageUrls: allImagePaths,
     price: priceFields.price,
     originalPrice: priceFields.originalPrice,
     salePrice: priceFields.salePrice,
@@ -1772,7 +1779,14 @@ const toAdminProductListItem = (product: any, storeOperationalReadiness: any = n
 const toAdminProductDetail = (product: any, storeOperationalReadiness: any = null) => {
   const plain = product?.get ? product.get({ plain: true }) : product;
   const imagePaths = normalizeImagePathList(plain?.imagePaths);
-  const imageUrl = normalizeUploadsUrl(plain?.promoImagePath) || imagePaths[0] || null;
+  const imageUrl =
+    normalizeUploadsUrl(plain?.imageUrl) ||
+    normalizeUploadsUrl(plain?.promoImagePath) ||
+    normalizeUploadsUrl(plain?.image) ||
+    imagePaths[0] ||
+    null;
+  const allImagePaths =
+    imageUrl && !imagePaths.includes(imageUrl) ? [imageUrl, ...imagePaths] : imagePaths;
   const priceFields = resolveAdminPriceFields(plain);
   const tags = normalizeAdminProductTags(plain?.tags);
   const seo = normalizeAdminProductSeoResponse(plain?.seo);
@@ -1833,8 +1847,8 @@ const toAdminProductDetail = (product: any, storeOperationalReadiness: any = nul
     categories: resolveProductSelectedCategories(plain),
     imageUrl,
     promoImagePath: imageUrl,
-    imagePaths:
-      imageUrl && !imagePaths.includes(imageUrl) ? [imageUrl, ...imagePaths] : imagePaths,
+    imagePaths: allImagePaths,
+    imageUrls: allImagePaths,
     tags,
     seo,
     variations,

@@ -1,4 +1,5 @@
 import { resolveProductImageUrl } from "../../../utils/productImage.js";
+import { resolveAssetUrl } from "../../../lib/assetUrl.js";
 
 export const readShopText = (...values) => {
   for (const value of values) {
@@ -27,7 +28,10 @@ export const getShopCategoryValue = (category) =>
 export const getProductImages = (product) => {
   const images = [];
   const primary = resolveProductImageUrl(product);
-  if (primary) images.push(primary);
+  if (primary) {
+    const resolvedPrimary = resolveAssetUrl(primary);
+    if (resolvedPrimary) images.push(resolvedPrimary);
+  }
 
   const rawList = Array.isArray(product?.imagePaths)
     ? product.imagePaths
@@ -39,7 +43,8 @@ export const getProductImages = (product) => {
 
   for (const item of rawList) {
     if (!item) continue;
-    const resolved = resolveProductImageUrl(typeof item === "string" ? { imageUrl: item } : item);
+    const raw = resolveProductImageUrl(typeof item === "string" ? { imageUrl: item } : item);
+    const resolved = resolveAssetUrl(raw);
     if (resolved && !images.includes(resolved)) {
       images.push(resolved);
     }
@@ -52,11 +57,15 @@ export const getProductImages = (product) => {
   for (const item of gallery) {
     const raw = readShopText(item?.url, item?.src, item?.imageUrl, item);
     if (raw) {
-      const resolved = resolveProductImageUrl({ imageUrl: raw });
+      const resolved = resolveAssetUrl(resolveProductImageUrl({ imageUrl: raw }));
       if (resolved && !images.includes(resolved)) {
         images.push(resolved);
       }
     }
+  }
+
+  if (images.length === 0) {
+    images.push("/demo/placeholder-product.svg");
   }
 
   return images;

@@ -111,15 +111,31 @@ export const normalizeProductDisplayTags = (
 export const getProductVisibleImageUrls = (productLike) => {
   const primaryCandidates = [
     productLike?.imageUrl,
+    productLike?.image,
+    productLike?.thumbnailUrl,
+    productLike?.thumbnail,
+    productLike?.mediaPreviewUrl,
     productLike?.promoImageUrl,
     productLike?.promoImagePath,
   ]
     .map((value) => normalizeText(value))
     .filter(Boolean);
-  const galleryCandidates = [
+
+  let rawGallery = [
     ...(Array.isArray(productLike?.imageUrls) ? productLike.imageUrls : []),
     ...(Array.isArray(productLike?.imagePaths) ? productLike.imagePaths : []),
-  ]
+  ];
+
+  if (typeof productLike?.imagePaths === "string" && productLike.imagePaths.trim().startsWith("[")) {
+    try {
+      const parsed = JSON.parse(productLike.imagePaths);
+      if (Array.isArray(parsed)) rawGallery.push(...parsed);
+    } catch {
+      // ignore
+    }
+  }
+
+  const galleryCandidates = rawGallery
     .map((value) => normalizeText(value))
     .filter(Boolean);
 

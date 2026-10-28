@@ -25,23 +25,44 @@ const normalizeUploadsPath = (value) => {
 
 export const resolveProductImageUrl = (product) => {
   if (!product) return "";
+  if (typeof product === "string") return normalizeUploadsPath(product);
+
   const candidates = [
     product.imageUrl,
+    product.image_url,
+    product.thumbnailUrl,
+    product.thumbnail_url,
     product.image,
     product.thumbnail,
+    product.mediaPreviewUrl,
     product.photo,
     product.url,
   ];
   for (const candidate of candidates) {
     if (candidate) return normalizeUploadsPath(candidate);
   }
-  const promo = product.promoImagePath ?? product.promo_image_path;
+
+  const promo = product.promoImagePath ?? product.promo_image_path ?? product.media?.promoImageUrl;
   if (promo) return normalizeUploadsPath(promo);
-  const paths =
-    product.imagePaths ?? product.images ?? product.image_paths ?? null;
-  if (Array.isArray(paths) && paths.length > 0) {
-    return normalizeUploadsPath(paths[0]);
+
+  const rawPaths =
+    product.imagePaths ?? product.images ?? product.image_paths ?? product.imageUrls ?? product.media?.imageUrls ?? null;
+
+  if (Array.isArray(rawPaths) && rawPaths.length > 0) {
+    return normalizeUploadsPath(rawPaths[0]);
   }
+
+  if (typeof rawPaths === "string" && rawPaths.trim().startsWith("[")) {
+    try {
+      const parsed = JSON.parse(rawPaths);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return normalizeUploadsPath(parsed[0]);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   return "";
 };
 

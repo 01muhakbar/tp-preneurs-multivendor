@@ -747,7 +747,11 @@ export const mapSellerProductListItem = (item: any): ProductListItemDTO | null =
     submission: normalizeProductSubmission(item.submission),
     category: normalizeCategorySummary(item.category),
     ownership: item.ownership && typeof item.ownership === "object" ? item.ownership : null,
-    mediaPreviewUrl: normalizeText(item.mediaPreviewUrl) || null,
+    imageUrl: normalizeText(item.imageUrl || item.thumbnailUrl || item.mediaPreviewUrl) || null,
+    thumbnailUrl: normalizeText(item.thumbnailUrl || item.imageUrl || item.mediaPreviewUrl) || null,
+    mediaPreviewUrl: normalizeText(item.mediaPreviewUrl || item.imageUrl || item.thumbnailUrl) || null,
+    imageUrls: Array.isArray(item.imageUrls) ? item.imageUrls : [],
+    imagePaths: Array.isArray(item.imagePaths) ? item.imagePaths : [],
   }) as ProductListItemDTO;
 };
 

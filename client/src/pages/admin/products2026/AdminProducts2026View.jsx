@@ -48,6 +48,10 @@ function AdminProductThumbnail({ product, alt = "" }) {
 
     const list = [
       product?.imageUrl,
+      product?.raw?.imageUrl,
+      product?.raw?.image,
+      product?.raw?.thumbnailUrl,
+      product?.raw?.mediaPreviewUrl,
       ...(product?.imageUrls || []),
       ...(product?.imagePaths || []),
       ...parsedRawPaths,

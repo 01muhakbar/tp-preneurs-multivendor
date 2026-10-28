@@ -139,10 +139,14 @@ export const normalizeAdminProduct2026 = (product) => {
 
   const imageCandidates = [
     imageUrl,
+    product?.imageUrl,
+    product?.image,
+    product?.thumbnailUrl,
+    product?.thumbnail,
+    product?.mediaPreviewUrl,
+    product?.promoImagePath,
     ...(Array.isArray(product?.imageUrls) ? product.imageUrls : []),
     ...(Array.isArray(product?.imagePaths) ? product.imagePaths : []),
-    product?.imageUrl,
-    product?.promoImagePath,
   ].filter(Boolean);
 
   return {

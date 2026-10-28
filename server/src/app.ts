@@ -307,6 +307,10 @@ const uploadsCandidates = Array.from(
     path.resolve(process.cwd(), "server/uploads"),
     path.resolve(process.cwd(), "public/uploads"),
     path.resolve(process.cwd(), "server/public/uploads"),
+    path.resolve(process.cwd(), "../uploads"),
+    path.resolve(process.cwd(), "../server/uploads"),
+    path.resolve(process.cwd(), "../server/public/uploads"),
+    path.resolve(process.cwd(), "../public/uploads"),
   ])
 );
 uploadsCandidates.forEach((uploadsDir, index) => {
@@ -323,6 +327,31 @@ uploadsCandidates.forEach((uploadsDir, index) => {
       },
     })
   );
+});
+
+// Fallback for missing uploads: If an image was requested under /uploads but not found on disk,
+// serve a clean, branded product placeholder SVG instead of returning 404 JSON that breaks <img> tags.
+app.use("/uploads", (req, res, next) => {
+  if (["GET", "HEAD"].includes(req.method)) {
+    const ext = path.extname(req.path).toLowerCase();
+    if ([".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif"].includes(ext)) {
+      const fallbackCandidates = [
+        path.resolve(process.cwd(), "server/public/uploads/products/demo.svg"),
+        path.resolve(process.cwd(), "public/uploads/products/demo.svg"),
+        path.resolve(process.cwd(), "../server/public/uploads/products/demo.svg"),
+        path.resolve(process.cwd(), "client/public/demo/placeholder-product.svg"),
+        path.resolve(process.cwd(), "../client/public/demo/placeholder-product.svg"),
+      ];
+      for (const candidate of fallbackCandidates) {
+        if (fs.existsSync(candidate)) {
+          res.setHeader("Content-Type", "image/svg+xml");
+          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+          return res.sendFile(candidate);
+        }
+      }
+    }
+  }
+  next();
 });
 
 // protected baseline

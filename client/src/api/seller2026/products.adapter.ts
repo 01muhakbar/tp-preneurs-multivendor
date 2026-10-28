@@ -243,15 +243,19 @@ const categoryLabel = (value: Record<string, unknown>) => {
 const thumbnailUrl = (value: Record<string, unknown>) => {
   const media = object(value.media);
   const imageUrls = array(value.imageUrls).map((item) => text(item)).filter(Boolean);
+  const imagePaths = array(value.imagePaths).map((item) => text(item)).filter(Boolean);
   const mediaImageUrls = array(media.imageUrls).map((item) => text(item)).filter(Boolean);
   const images = array(value.images).map((item) => object(item));
   return (
+    text(value.imageUrl) ||
     text(value.thumbnailUrl) ||
     text(value.thumbnail) ||
     text(value.image) ||
+    text(value.promoImagePath) ||
     text(value.mediaPreviewUrl) ||
     text(media.promoImageUrl) ||
     imageUrls[0] ||
+    imagePaths[0] ||
     mediaImageUrls[0] ||
     text(images[0]?.url) ||
     null
@@ -336,8 +340,25 @@ export function adaptSellerProduct(value: unknown) {
     sku: text(product.sku || product.code, "No SKU"),
     thumbnailUrl: thumbnailUrl(product),
     thumbnail: thumbnailUrl(product),
-    imageUrls: array(product.imageUrls).map((item) => text(item)).filter(Boolean),
-    imagePaths: array(product.imagePaths).map((item) => text(item)).filter(Boolean),
+    imageUrl: thumbnailUrl(product),
+    imageUrls: Array.from(
+      new Set(
+        [
+          thumbnailUrl(product),
+          ...array(product.imageUrls).map((item) => text(item)),
+          ...array(product.imagePaths).map((item) => text(item)),
+        ].filter(Boolean) as string[]
+      )
+    ),
+    imagePaths: Array.from(
+      new Set(
+        [
+          thumbnailUrl(product),
+          ...array(product.imagePaths).map((item) => text(item)),
+          ...array(product.imageUrls).map((item) => text(item)),
+        ].filter(Boolean) as string[]
+      )
+    ),
     category: categoryLabel(product),
     stock: productStock(product),
     price: productPrice(product),

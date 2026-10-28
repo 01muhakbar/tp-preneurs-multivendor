@@ -99,8 +99,12 @@ function ProductSkeleton({ isId = false }) {
 function SellerProductThumbnail({ product }) {
   const candidates = useMemo(() => {
     const list = [
+      product?.imageUrl,
       product?.thumbnailUrl,
       product?.thumbnail,
+      product?.image,
+      product?.promoImagePath,
+      product?.mediaPreviewUrl,
       ...(product?.imageUrls || []),
       ...(product?.imagePaths || []),
     ]
@@ -121,7 +125,11 @@ function SellerProductThumbnail({ product }) {
           justifyContent: "center",
           width: "100%",
           height: "100%",
+          background: "linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9))",
+          color: "#94a3b8",
+          borderRadius: "6px",
         }}
+        title={product?.name || "Product"}
       >
         <Box size={20} />
       </span>
@@ -131,8 +139,9 @@ function SellerProductThumbnail({ product }) {
   return (
     <img
       src={candidates[index]}
-      alt=""
+      alt={product?.name || ""}
       onError={() => setIndex((prev) => prev + 1)}
+      style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "6px" }}
     />
   );
 }
