@@ -967,8 +967,10 @@ function ProductCard({ product, compact = false, showDiscount = false }) {
   const wishlist = useStorefrontWishlist();
   const [isAdding, setIsAdding] = useState(false);
   const [variantOpen, setVariantOpen] = useState(false);
-  const timerRef = useRef(null);
-  const imageSrc = product.imageUrl || "";
+  const imageSrc = useMemo(() => {
+    const raw = resolveProductImageUrl(product) || product?.imageUrl || product?.imagePaths?.[0] || "";
+    return raw ? resolveAssetUrl(raw) : "";
+  }, [product]);
   const discount = calcDiscount(product);
   const hasVariants = productHasVariantSelections(product?.variations);
   const stockValue = Number(product?.stock);

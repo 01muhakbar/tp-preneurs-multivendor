@@ -1,1 +1,0 @@
-import{j as e}from"./index-BdaFWIpN.js";function n({title:s="Coming Soon"}){return e.jsxs("div",{className:"space-y-2",children:[e.jsx("h1",{className:"text-2xl font-semibold",children:s}),e.jsx("p",{className:"text-sm text-slate-500",children:"This page is not implemented yet."})]})}export{n as default};

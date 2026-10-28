@@ -303,13 +303,17 @@ app.use("/api/user", userStoreApplicationsRouter);
 const uploadsCandidates = Array.from(
   new Set([
     path.resolve(process.cwd(), process.env.UPLOAD_DIR || "uploads"),
+    path.resolve(process.cwd(), "server/public/uploads"),
+    path.resolve(process.cwd(), "client/public/uploads"),
+    path.resolve(process.cwd(), "client/dist/uploads"),
     path.resolve(process.cwd(), "uploads"),
     path.resolve(process.cwd(), "server/uploads"),
     path.resolve(process.cwd(), "public/uploads"),
-    path.resolve(process.cwd(), "server/public/uploads"),
+    path.resolve(process.cwd(), "../server/public/uploads"),
+    path.resolve(process.cwd(), "../client/public/uploads"),
+    path.resolve(process.cwd(), "../client/dist/uploads"),
     path.resolve(process.cwd(), "../uploads"),
     path.resolve(process.cwd(), "../server/uploads"),
-    path.resolve(process.cwd(), "../server/public/uploads"),
     path.resolve(process.cwd(), "../public/uploads"),
   ])
 );

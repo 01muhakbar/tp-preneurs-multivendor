@@ -39,7 +39,10 @@ page.html
 test-html.cjs
 test-playwright.cjs
 test-puppeteer.js
-uploads/
-server/uploads/
-server/server/uploads/
+/uploads/
+/server/uploads/
+/server/server/uploads/
+scratch/
+!/server/public/uploads/
+!/server/public/uploads/**
 server/public/uploads/products/product-*
