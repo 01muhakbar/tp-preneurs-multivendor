@@ -80,7 +80,7 @@ const DUITKU_PAYMENT_METHOD_OPTIONS = [
   { code: "GQ", label: "QRIS Gudang Voucher", category: "QRIS" },
 ];
 
-const DEFAULT_DUITKU_PAYMENT_METHOD = "";
+const DEFAULT_DUITKU_PAYMENT_METHOD = "SP";
 const checkoutCustomerSchema = createOrderSchema.shape.customer;
 const DEFAULT_CHECKOUT_COPY = {
   personalDetails: {
@@ -1635,9 +1635,7 @@ export default function CheckoutPage() {
     checkoutPreviewSummary,
     canUseVisibleCartFallback:
       hasItems &&
-      !checkoutPreviewQuery.isLoading &&
-      !checkoutPreviewQuery.isError &&
-      checkoutPreviewStatus.isReady,
+      !checkoutPreviewQuery.isLoading,
   });
   const checkoutMode = checkoutPreviewData?.checkoutMode ?? "SINGLE_STORE";
   const singleStoreCheckoutGroup =
@@ -1707,15 +1705,9 @@ export default function CheckoutPage() {
   const isPreviewBlockingSubmission =
     previewBlocksPricingActions ||
     (!checkoutPreviewQuery.isError &&
-      (previewHasPaymentBlocker || checkoutPreviewInvalidItems.length > 0));
+      ((paymentOptionId !== "duitku" && previewHasPaymentBlocker) ||
+        checkoutPreviewInvalidItems.length > 0));
   const paymentOptions = useMemo(() => {
-    const allStoresPaymentReady =
-      isCheckoutSummaryReady &&
-      checkoutPreviewGroups.length > 0 &&
-      checkoutPreviewGroups.every((group) => group?.paymentAvailable === true);
-    
-    if (!allStoresPaymentReady) return [];
-
     const availableMethods = Array.isArray(publicStoreSettings?.payments?.methods)
       ? publicStoreSettings.payments.methods
       : [];
@@ -1729,19 +1721,25 @@ export default function CheckoutPage() {
       ? availableCodes.includes("DUITKU") || publicStoreSettings?.payments?.duitkuEnabled === true
       : true;
 
+    const allStoresManualPaymentReady =
+      checkoutPreviewGroups.length > 0 &&
+      checkoutPreviewGroups.every((group) => group?.paymentAvailable === true);
+
     const hasManualTransferAvailabilitySignal =
       availableCodes.length > 0 ||
       typeof publicStoreSettings?.payments?.manualTransferEnabled === "boolean";
-    const isManualTransferAvailable = hasManualTransferAvailabilitySignal
-      ? availableCodes.includes("MANUAL_QRIS") || publicStoreSettings?.payments?.manualTransferEnabled === true
-      : true;
+    const isManualTransferAvailable =
+      (hasManualTransferAvailabilitySignal
+        ? availableCodes.includes("MANUAL_QRIS") ||
+          publicStoreSettings?.payments?.manualTransferEnabled === true
+        : true) && allStoresManualPaymentReady;
 
-    return PAYMENT_OPTIONS.filter(option => {
+    return PAYMENT_OPTIONS.filter((option) => {
       if (option.id === "duitku") return isDuitkuAvailable;
       if (option.id === "qris") return isManualTransferAvailable;
       return true;
     });
-  }, [checkoutPreviewGroups, isCheckoutSummaryReady, publicStoreSettings]);
+  }, [checkoutPreviewGroups, publicStoreSettings]);
   const paymentMethodNotice = previewHasPaymentBlocker
     ? previewPaymentBlockerMessage ||
       "Payment is unavailable until every store has an active approved payment setup."
@@ -2559,20 +2557,24 @@ export default function CheckoutPage() {
       ...checkoutPreviewData,
       groups: checkoutPreviewDisplayGroups,
       summary: {
+        subtotalAmount: subtotalValue,
+        shippingAmount: shippingCost,
+        discountAmount: discountValue,
+        taxAmount: taxValue,
+        grandTotal: total,
         ...(checkoutPreviewData?.summary || {}),
         ...(checkoutPreviewSummary || {}),
       },
       invalidItems: checkoutPreviewInvalidMessages,
-      previewReady: isCheckoutSummaryReady,
+      previewReady: isCheckoutSummaryReady || (hasItems && summaryItems.length > 0),
       previewLoading: checkoutPreviewQuery.isLoading || checkoutPreviewQuery.isFetching,
       previewError: checkoutPreviewQuery.isError
         ? "The latest checkout preview is unavailable. Please wait and try again."
         : null,
       paymentReady:
-        isCheckoutSummaryReady &&
-        checkoutPreviewGroups.length > 0 &&
-        checkoutPreviewGroups.every((group) => group?.paymentAvailable === true) &&
-        paymentOptions.length > 0,
+        hasItems &&
+        paymentOptions.length > 0 &&
+        (!previewHasPaymentBlocker || paymentOptionId === "duitku"),
     },
     cartItems: summaryItems,
     couponCode,
@@ -2630,7 +2632,7 @@ export default function CheckoutPage() {
         submitMessage: !hasDuitkuChannelSelection
           ? "Choose a Duitku payment channel."
           : isPreviewBlockingSubmission
-          ? previewHasPaymentBlocker
+          ? (paymentOptionId !== "duitku" && previewHasPaymentBlocker)
             ? "Payment is unavailable for one or more stores."
             : checkoutPreviewInvalidItems.length > 0
               ? "Resolve invalid items before placing this order."

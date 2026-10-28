@@ -82,9 +82,10 @@ export function createCheckout2026ViewModel({ preview, cartItems, couponCode } =
     }));
   });
 
+  const hasGroupsOrItems = groups.length > 0 || normalizedCartItems.length > 0;
   return {
     checkoutMode: firstDefined(source.checkoutMode, "SINGLE_STORE"),
-    previewReady: source.previewReady === true,
+    previewReady: source.previewReady === true || hasGroupsOrItems,
     previewLoading: source.previewLoading === true,
     previewError: source.previewError || null,
     paymentReady: source.paymentReady === true,
@@ -95,11 +96,11 @@ export function createCheckout2026ViewModel({ preview, cartItems, couponCode } =
     cartItems: normalizedCartItems,
     itemCount: firstDefined(summary.totalItems, source.totalItems, normalizedCartItems.reduce((sum, item) => sum + item.quantity, 0)),
     amounts: {
-      subtotal: firstDefined(summary.subtotalAmount, summary.subtotal, source.subtotalAmount, null),
-      shipping: firstDefined(summary.shippingAmount, summary.shipping, source.shippingAmount, null),
-      discount: firstDefined(summary.discountAmount, summary.discount, source.discountAmount, null),
-      tax: firstDefined(summary.taxAmount, summary.tax, source.taxAmount, null),
-      total: firstDefined(summary.grandTotal, summary.total, source.grandTotal, null),
+      subtotal: firstDefined(summary.subtotalAmount, summary.subtotal, source.subtotalAmount, 0),
+      shipping: firstDefined(summary.shippingAmount, summary.shipping, source.shippingAmount, 0),
+      discount: firstDefined(summary.discountAmount, summary.discount, source.discountAmount, 0),
+      tax: firstDefined(summary.taxAmount, summary.tax, source.taxAmount, 0),
+      total: firstDefined(summary.grandTotal, summary.total, source.grandTotal, 0),
     },
   };
 }

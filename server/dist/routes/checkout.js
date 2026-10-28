@@ -964,7 +964,7 @@ const buildInvalidCheckoutItem = (product, reason, extras = {}) => {
         requested,
     };
 };
-const prepareCartGroups = (cartItems) => {
+const prepareCartGroups = (cartItems, options = {}) => {
     const groupsMap = new Map();
     const invalidItems = [];
     let totalItems = 0;
@@ -1016,11 +1016,14 @@ const prepareCartGroups = (cartItems) => {
         subtotalAmount += lineTotal;
         const store = product?.store ?? product?.get?.("store") ?? null;
         const paymentProfile = resolvePreferredStorePaymentProfile(store);
-        const paymentAvailable = Boolean(paymentProfile?.isActive) &&
+        const hasManualQris = Boolean(paymentProfile?.isActive) &&
             String(paymentProfile?.verificationStatus || "").toUpperCase() === "ACTIVE";
+        const paymentAvailable = Boolean(options.isDuitkuEnabled || hasManualQris);
         const paymentProfileStatus = paymentProfile
             ? String(paymentProfile.verificationStatus || "PENDING").toUpperCase()
-            : "MISSING";
+            : options.isDuitkuEnabled
+                ? "GATEWAY_ACTIVE"
+                : "MISSING";
         const paymentProfileStatusMeta = buildCheckoutPaymentProfileStatusMeta(paymentProfile);
         const paymentAvailabilityMeta = buildCheckoutPaymentAvailabilityMeta(paymentProfile);
         if (!groupsMap.has(storeId)) {
@@ -1034,7 +1037,7 @@ const prepareCartGroups = (cartItems) => {
                 shippingAmount: SHIPPING_PER_STORE_FALLBACK,
                 totalAmount: 0,
                 paymentAvailable,
-                paymentMethod: paymentAvailable ? "QRIS" : null,
+                paymentMethod: options.isDuitkuEnabled ? "DUITKU" : (paymentAvailable ? "QRIS" : null),
                 paymentProfileStatus,
                 paymentProfileStatusMeta,
                 paymentAvailabilityMeta,
@@ -1902,7 +1905,9 @@ router.post("/preview", checkoutPreviewRateLimit, async (req, res) => {
                 code: "CART_EMPTY",
             });
         }
-        const prepared = prepareCartGroups(await attachStoreSnapshotsToProducts(cartItems));
+        const dbSettings = await getPersistedStoreSettings();
+        const isDuitkuEnabled = Boolean(dbSettings?.payments?.duitkuEnabled);
+        const prepared = prepareCartGroups(await attachStoreSnapshotsToProducts(cartItems), { isDuitkuEnabled });
         return res.json({
             success: true,
             data: serializeCheckoutPreview(prepared),
@@ -2092,7 +2097,7 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
                 return cloneCheckoutProductForCartItem(lockedProduct, item?.CartItem ?? null);
             })
                 .filter(Boolean);
-            const prepared = prepareCartGroups(await attachStoreSnapshotsToProducts(lockedCartItems, tx));
+            const prepared = prepareCartGroups(await attachStoreSnapshotsToProducts(lockedCartItems, tx), { isDuitkuEnabled: isDuitkuRequested || Boolean(duitkuConfig?.enabled) });
             if (missingLockedItems.length > 0) {
                 prepared.invalidItems.unshift(...missingLockedItems);
                 prepared.summary.invalidItemCount = prepared.invalidItems.length;
@@ -2117,7 +2122,7 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
                 });
             }
             const inactiveGroups = prepared.groups.filter((group) => !group.paymentAvailable);
-            if (inactiveGroups.length > 0) {
+            if (inactiveGroups.length > 0 && !isDuitkuRequested) {
                 await tx.rollback();
                 return res.status(409).json({
                     success: false,

@@ -1,1 +1,0 @@
-import{b as s}from"./index-0uy-WhXP.js";const a=async o=>{const t={storeId:o?.storeId,storeSlug:o?.storeSlug},{data:e}=await s.get("/store/coupons",{params:t});return e},n=async o=>{const{data:t}=await s.post("/store/coupons/quote",o);return t};export{a as f,n as q};
