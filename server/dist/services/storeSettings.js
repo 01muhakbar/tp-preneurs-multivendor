@@ -1,0 +1,851 @@
+import { QueryTypes } from "sequelize";
+import { sequelize } from "../models/index.js";
+import { isMissingUploadAsset } from "../utils/uploadAsset.js";
+export const STORE_SETTINGS_KEY = "storeSettings";
+export const CANONICAL_BRANDING_CLIENT_LOGO_URL = "/uploads/branding/branding-client-1782537187787-ixm5z6x.png";
+export const CANONICAL_BRANDING_ADMIN_LOGO_URL = "/uploads/branding/branding-admin-1782538251335-qthh5fo.png";
+export const CANONICAL_BRANDING_SELLER_LOGO_URL = "/uploads/branding/branding-seller-1782538255759-ow5kggx.png";
+export const DEFAULT_STORE_SETTINGS = {
+    payments: {
+        cashOnDeliveryEnabled: true,
+        manualTransferEnabled: true,
+        stripeEnabled: true,
+        stripeKey: "",
+        stripeSecret: "",
+        stripeWebhookSecret: "",
+        razorPayEnabled: false,
+        razorPayKeyId: "",
+        razorPayKeySecret: "",
+        duitkuEnabled: false,
+        duitkuEnvironment: "sandbox",
+        duitkuSandboxMerchantCode: "",
+        duitkuSandboxApiKey: "",
+        duitkuProductionMerchantCode: "",
+        duitkuProductionApiKey: "",
+    },
+    socialLogin: {
+        googleEnabled: true,
+        googleClientId: "",
+        googleSecretKey: "",
+        githubEnabled: true,
+        githubId: "",
+        githubSecret: "",
+        facebookEnabled: true,
+        facebookId: "",
+        facebookSecret: "",
+    },
+    analytics: {
+        googleAnalyticsEnabled: true,
+        googleAnalyticKey: "",
+    },
+    chat: {
+        tawkEnabled: true,
+        tawkPropertyId: "",
+        tawkWidgetId: "",
+    },
+    branding: {
+        clientLogoUrl: CANONICAL_BRANDING_CLIENT_LOGO_URL,
+        adminLogoUrl: CANONICAL_BRANDING_ADMIN_LOGO_URL,
+        sellerLogoUrl: CANONICAL_BRANDING_SELLER_LOGO_URL,
+        adminLoginHeroUrl: "",
+        adminForgotPasswordHeroUrl: "",
+        adminCreateAccountHeroUrl: "",
+        workspaceBrandName: "TP PRENEURS",
+    },
+};
+const PAYMENT_RUNTIME_SUPPORTED = {
+    COD: true,
+    MANUAL_QRIS: true,
+    STRIPE: true,
+    RAZORPAY: false,
+    DUITKU: true,
+};
+const SOCIAL_RUNTIME_SUPPORTED = {
+    google: false,
+    github: false,
+    facebook: false,
+};
+const STRIPE_PUBLISHABLE_KEY_REGEX = /^pk_(test|live)_[A-Za-z0-9]+$/;
+const STRIPE_SECRET_KEY_REGEX = /^sk_(test|live)_[A-Za-z0-9]+$/;
+const STRIPE_WEBHOOK_SECRET_REGEX = /^whsec_[A-Za-z0-9]+$/;
+const RAZORPAY_KEY_ID_REGEX = /^rzp_(test|live)_[A-Za-z0-9]+$/;
+const RAZORPAY_SECRET_REGEX = /^[A-Za-z0-9_-]{8,128}$/;
+const DUITKU_MERCHANT_CODE_REGEX = /^[A-Za-z0-9]+$/;
+const DUITKU_API_KEY_REGEX = /^[A-Za-z0-9]+$/;
+const GOOGLE_ANALYTICS_KEY_REGEX = /^(G|AW|UA)-[A-Z0-9-]+$/;
+const TAWK_ID_REGEX = /^[A-Za-z0-9]{6,64}$/;
+const isPlainObject = (value) => Boolean(value) && typeof value === "object" && !Array.isArray(value);
+const cloneDefaults = () => JSON.parse(JSON.stringify(DEFAULT_STORE_SETTINGS));
+const toText = (value, fallback = "") => {
+    const normalized = String(value ?? "").trim();
+    return normalized || fallback;
+};
+const resolveSafeBrandingAsset = (candidate, fallback) => {
+    const text = toText(candidate, "");
+    if (!text)
+        return fallback;
+    if (isMissingUploadAsset(text)) {
+        return fallback;
+    }
+    return text;
+};
+const toBool = (value, fallback = false) => {
+    if (typeof value === "boolean")
+        return value;
+    if (typeof value === "number")
+        return value !== 0;
+    if (typeof value === "string") {
+        const normalized = value.trim().toLowerCase();
+        if (["true", "1", "yes", "on"].includes(normalized))
+            return true;
+        if (["false", "0", "no", "off"].includes(normalized))
+            return false;
+    }
+    return fallback;
+};
+const normalizeDuitkuEnvironment = (value, fallback = "sandbox") => {
+    const normalized = toText(value, fallback).toLowerCase();
+    return normalized === "production" ? "production" : "sandbox";
+};
+const mergeDeep = (base, source) => {
+    if (!isPlainObject(base))
+        return source;
+    const output = { ...base };
+    if (!isPlainObject(source))
+        return output;
+    for (const [key, sourceValue] of Object.entries(source)) {
+        const baseValue = output[key];
+        if (isPlainObject(baseValue) && isPlainObject(sourceValue)) {
+            output[key] = mergeDeep(baseValue, sourceValue);
+        }
+        else {
+            output[key] = sourceValue;
+        }
+    }
+    return output;
+};
+const maskSecret = (value) => {
+    const normalized = toText(value, "");
+    if (!normalized)
+        return "";
+    if (normalized.length <= 6)
+        return "••••••";
+    return `${normalized.slice(0, 3)}••••${normalized.slice(-2)}`;
+};
+const normalizeGoogleAnalyticsKey = (value) => {
+    const normalized = toText(value, "").toUpperCase();
+    return GOOGLE_ANALYTICS_KEY_REGEX.test(normalized) ? normalized : "";
+};
+const normalizeTawkId = (value) => {
+    const normalized = toText(value, "");
+    return TAWK_ID_REGEX.test(normalized) ? normalized : "";
+};
+const buildStatus = (input) => {
+    const requestedEnabled = Boolean(input.requestedEnabled);
+    const configured = Boolean(input.configured);
+    const valid = Boolean(input.valid);
+    const effectiveEnabled = Boolean(input.effectiveEnabled);
+    const runtimeSupported = Boolean(input.runtimeSupported);
+    const missingFields = Array.isArray(input.missingFields) ? input.missingFields : [];
+    const invalidFields = Array.isArray(input.invalidFields) ? input.invalidFields : [];
+    if (!requestedEnabled) {
+        return {
+            code: "DISABLED",
+            label: input.disabledLabel || "Disabled",
+            tone: "slate",
+            missingFields,
+            invalidFields,
+        };
+    }
+    if (invalidFields.length > 0) {
+        return {
+            code: "INVALID",
+            label: "Invalid configuration",
+            tone: "rose",
+            missingFields,
+            invalidFields,
+        };
+    }
+    if (missingFields.length > 0 || !configured) {
+        return {
+            code: "INCOMPLETE",
+            label: "Missing credentials",
+            tone: "amber",
+            missingFields,
+            invalidFields,
+        };
+    }
+    if (!runtimeSupported) {
+        return {
+            code: "CONFIGURED",
+            label: input.configuredButUnavailableLabel || "Configured",
+            tone: "blue",
+            missingFields,
+            invalidFields,
+        };
+    }
+    if (effectiveEnabled && valid) {
+        return {
+            code: "READY",
+            label: input.readyLabel || "Ready",
+            tone: "emerald",
+            missingFields,
+            invalidFields,
+        };
+    }
+    return {
+        code: "INCOMPLETE",
+        label: "Incomplete",
+        tone: "amber",
+        missingFields,
+        invalidFields,
+    };
+};
+export const sanitizeStoreSettings = (rawData) => {
+    const defaults = cloneDefaults();
+    const source = isPlainObject(rawData) ? rawData : {};
+    const sourceWithoutLegacyDuitkuRoot = { ...source };
+    delete sourceWithoutLegacyDuitkuRoot.duitkuEnabled;
+    delete sourceWithoutLegacyDuitkuRoot.duitkuEnvironment;
+    delete sourceWithoutLegacyDuitkuRoot.duitkuSandboxMerchantCode;
+    delete sourceWithoutLegacyDuitkuRoot.duitkuSandboxApiKey;
+    delete sourceWithoutLegacyDuitkuRoot.duitkuProductionMerchantCode;
+    delete sourceWithoutLegacyDuitkuRoot.duitkuProductionApiKey;
+    const paymentsSource = isPlainObject(source.payments) ? source.payments : {};
+    const paymentMethodsSource = isPlainObject(source.paymentMethods) ? source.paymentMethods : {};
+    const duitkuMethodSource = isPlainObject(paymentMethodsSource.duitku)
+        ? paymentMethodsSource.duitku
+        : {};
+    const socialLoginSource = isPlainObject(source.socialLogin) ? source.socialLogin : {};
+    const analyticsSource = isPlainObject(source.analytics) ? source.analytics : {};
+    const chatSource = isPlainObject(source.chat) ? source.chat : {};
+    const brandingSource = isPlainObject(source.branding) ? source.branding : {};
+    const duitkuEnvironment = normalizeDuitkuEnvironment(paymentsSource.duitkuEnvironment ??
+        duitkuMethodSource.environment ??
+        source.duitkuEnvironment, defaults.payments.duitkuEnvironment);
+    const fallbackDuitkuMerchantCode = duitkuEnvironment === "production"
+        ? source.duitkuProductionMerchantCode ??
+            duitkuMethodSource.productionMerchantCode ??
+            duitkuMethodSource.merchantCode
+        : source.duitkuSandboxMerchantCode ??
+            duitkuMethodSource.sandboxMerchantCode ??
+            duitkuMethodSource.merchantCode;
+    const fallbackDuitkuApiKey = duitkuEnvironment === "production"
+        ? source.duitkuProductionApiKey ??
+            duitkuMethodSource.productionApiKey ??
+            duitkuMethodSource.apiKey
+        : source.duitkuSandboxApiKey ??
+            duitkuMethodSource.sandboxApiKey ??
+            duitkuMethodSource.apiKey;
+    const sanitized = {
+        ...defaults,
+        ...sourceWithoutLegacyDuitkuRoot,
+        payments: {
+            ...defaults.payments,
+            ...paymentsSource,
+            cashOnDeliveryEnabled: toBool(paymentsSource.cashOnDeliveryEnabled, defaults.payments.cashOnDeliveryEnabled),
+            manualTransferEnabled: toBool(paymentsSource.manualTransferEnabled, defaults.payments.manualTransferEnabled),
+            stripeEnabled: toBool(paymentsSource.stripeEnabled, defaults.payments.stripeEnabled),
+            stripeKey: toText(paymentsSource.stripeKey, ""),
+            stripeSecret: toText(paymentsSource.stripeSecret, ""),
+            stripeWebhookSecret: toText(paymentsSource.stripeWebhookSecret, ""),
+            razorPayEnabled: toBool(paymentsSource.razorPayEnabled, defaults.payments.razorPayEnabled),
+            razorPayKeyId: toText(paymentsSource.razorPayKeyId, ""),
+            razorPayKeySecret: toText(paymentsSource.razorPayKeySecret, ""),
+            paypalEnabled: toBool(paymentsSource.paypalEnabled, defaults.payments.paypalEnabled),
+            paypalClientId: toText(paymentsSource.paypalClientId, ""),
+            paypalSecretKey: toText(paymentsSource.paypalSecretKey, ""),
+            duitkuEnabled: toBool(paymentsSource.duitkuEnabled ?? duitkuMethodSource.enabled ?? source.duitkuEnabled, defaults.payments.duitkuEnabled),
+            duitkuEnvironment: duitkuEnvironment,
+            duitkuSandboxMerchantCode: toText(paymentsSource.duitkuSandboxMerchantCode ??
+                duitkuMethodSource.sandboxMerchantCode ??
+                (duitkuEnvironment === "sandbox" ? fallbackDuitkuMerchantCode : ""), ""),
+            duitkuSandboxApiKey: toText(paymentsSource.duitkuSandboxApiKey ??
+                duitkuMethodSource.sandboxApiKey ??
+                (duitkuEnvironment === "sandbox" ? fallbackDuitkuApiKey : ""), ""),
+            duitkuProductionMerchantCode: toText(paymentsSource.duitkuProductionMerchantCode ??
+                duitkuMethodSource.productionMerchantCode ??
+                (duitkuEnvironment === "production" ? fallbackDuitkuMerchantCode : ""), ""),
+            duitkuProductionApiKey: toText(paymentsSource.duitkuProductionApiKey ??
+                duitkuMethodSource.productionApiKey ??
+                (duitkuEnvironment === "production" ? fallbackDuitkuApiKey : ""), ""),
+        },
+        paymentMethods: {
+            ...defaults.paymentMethods,
+            ...paymentMethodsSource,
+        },
+        socialLogin: {
+            ...defaults.socialLogin,
+            ...socialLoginSource,
+            googleEnabled: toBool(socialLoginSource.googleEnabled, defaults.socialLogin.googleEnabled),
+            googleClientId: toText(socialLoginSource.googleClientId, ""),
+            googleSecretKey: toText(socialLoginSource.googleSecretKey, ""),
+            githubEnabled: toBool(socialLoginSource.githubEnabled, defaults.socialLogin.githubEnabled),
+            githubId: toText(socialLoginSource.githubId, ""),
+            githubSecret: toText(socialLoginSource.githubSecret, ""),
+            facebookEnabled: toBool(socialLoginSource.facebookEnabled, defaults.socialLogin.facebookEnabled),
+            facebookId: toText(socialLoginSource.facebookId, ""),
+            facebookSecret: toText(socialLoginSource.facebookSecret, ""),
+        },
+        analytics: {
+            ...defaults.analytics,
+            ...analyticsSource,
+            googleAnalyticsEnabled: toBool(analyticsSource.googleAnalyticsEnabled, defaults.analytics.googleAnalyticsEnabled),
+            googleAnalyticKey: toText(analyticsSource.googleAnalyticKey, ""),
+        },
+        chat: {
+            ...defaults.chat,
+            ...chatSource,
+            tawkEnabled: toBool(chatSource.tawkEnabled, defaults.chat.tawkEnabled),
+            tawkPropertyId: toText(chatSource.tawkPropertyId, ""),
+            tawkWidgetId: toText(chatSource.tawkWidgetId, ""),
+        },
+        branding: {
+            ...defaults.branding,
+            ...brandingSource,
+            clientLogoUrl: resolveSafeBrandingAsset(brandingSource.clientLogoUrl, defaults.branding.clientLogoUrl),
+            adminLogoUrl: resolveSafeBrandingAsset(brandingSource.adminLogoUrl, defaults.branding.adminLogoUrl),
+            sellerLogoUrl: resolveSafeBrandingAsset(brandingSource.sellerLogoUrl, defaults.branding.sellerLogoUrl),
+            adminLoginHeroUrl: toText(brandingSource.adminLoginHeroUrl, defaults.branding.adminLoginHeroUrl),
+            adminForgotPasswordHeroUrl: toText(brandingSource.adminForgotPasswordHeroUrl, defaults.branding.adminForgotPasswordHeroUrl),
+            adminCreateAccountHeroUrl: toText(brandingSource.adminCreateAccountHeroUrl, defaults.branding.adminCreateAccountHeroUrl),
+            workspaceBrandName: toText(brandingSource.workspaceBrandName, defaults.branding.workspaceBrandName),
+        },
+    };
+    if (!sanitized.paymentMethods) {
+        sanitized.paymentMethods = {};
+    }
+    sanitized.paymentMethods.duitku = {
+        ...(sanitized.paymentMethods.duitku || {}),
+        environment: sanitized.payments.duitkuEnvironment,
+        sandboxMerchantCode: sanitized.payments.duitkuSandboxMerchantCode,
+        sandboxApiKey: sanitized.payments.duitkuSandboxApiKey,
+        productionMerchantCode: sanitized.payments.duitkuProductionMerchantCode,
+        productionApiKey: sanitized.payments.duitkuProductionApiKey,
+        apiKey: sanitized.payments.duitkuEnvironment === "production" ? sanitized.payments.duitkuProductionApiKey : sanitized.payments.duitkuSandboxApiKey,
+        merchantCode: sanitized.payments.duitkuEnvironment === "production" ? sanitized.payments.duitkuProductionMerchantCode : sanitized.payments.duitkuSandboxMerchantCode,
+    };
+    return sanitized;
+};
+export const mergeStoreSettingsForUpdate = (existingRaw, incomingRaw) => {
+    const existing = sanitizeStoreSettings(existingRaw);
+    const incoming = sanitizeStoreSettings(mergeDeep(existing, isPlainObject(incomingRaw) ? incomingRaw : {}));
+    return sanitizeStoreSettings({
+        ...incoming,
+        payments: {
+            ...incoming.payments,
+            stripeSecret: toText(incoming.payments.stripeSecret, "") || existing.payments.stripeSecret,
+            stripeWebhookSecret: toText(incoming.payments.stripeWebhookSecret, "") ||
+                existing.payments.stripeWebhookSecret,
+            razorPayKeySecret: toText(incoming.payments.razorPayKeySecret, "") || existing.payments.razorPayKeySecret,
+            duitkuSandboxApiKey: toText(incoming.payments.duitkuSandboxApiKey, "") || existing.payments.duitkuSandboxApiKey,
+            duitkuProductionApiKey: toText(incoming.payments.duitkuProductionApiKey, "") || existing.payments.duitkuProductionApiKey,
+        },
+        socialLogin: {
+            ...incoming.socialLogin,
+            googleSecretKey: toText(incoming.socialLogin.googleSecretKey, "") || existing.socialLogin.googleSecretKey,
+            githubSecret: toText(incoming.socialLogin.githubSecret, "") || existing.socialLogin.githubSecret,
+            facebookSecret: toText(incoming.socialLogin.facebookSecret, "") || existing.socialLogin.facebookSecret,
+        },
+    });
+};
+export const ensureSettingsTable = async () => {
+    await sequelize.query(`
+    CREATE TABLE IF NOT EXISTS settings (
+      \`key\` VARCHAR(191) NOT NULL,
+      \`value\` TEXT NOT NULL,
+      createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (\`key\`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+};
+const getSettingsRow = async (key) => {
+    const rows = await sequelize.query(`
+      SELECT \`key\`, \`value\`
+      FROM settings
+      WHERE \`key\` = :key
+      LIMIT 1
+    `, {
+        type: QueryTypes.SELECT,
+        replacements: { key },
+    });
+    return rows[0] || null;
+};
+export const getPersistedStoreSettings = async () => {
+    const row = await getSettingsRow(STORE_SETTINGS_KEY);
+    if (!row?.value) {
+        return sanitizeStoreSettings({});
+    }
+    try {
+        return sanitizeStoreSettings(JSON.parse(row.value));
+    }
+    catch {
+        return sanitizeStoreSettings({});
+    }
+};
+export const upsertStoreSettings = async (settings) => {
+    const value = JSON.stringify(sanitizeStoreSettings(settings));
+    await sequelize.query(`
+      INSERT INTO settings (\`key\`, \`value\`, createdAt, updatedAt)
+      VALUES (:key, :value, NOW(), NOW())
+      ON DUPLICATE KEY UPDATE
+        \`value\` = VALUES(\`value\`),
+        updatedAt = VALUES(updatedAt)
+    `, {
+        replacements: { key: STORE_SETTINGS_KEY, value },
+    });
+};
+export const buildStoreSettingsContracts = (rawSettings) => {
+    const settings = sanitizeStoreSettings(rawSettings);
+    const stripeKey = toText(settings.payments.stripeKey, "");
+    const stripeSecret = toText(settings.payments.stripeSecret, "");
+    const stripeWebhookSecret = toText(settings.payments.stripeWebhookSecret, "");
+    const stripeMissingFields = [];
+    const stripeInvalidFields = [];
+    if (!stripeKey)
+        stripeMissingFields.push("stripeKey");
+    if (!stripeSecret)
+        stripeMissingFields.push("stripeSecret");
+    if (stripeKey && !STRIPE_PUBLISHABLE_KEY_REGEX.test(stripeKey)) {
+        stripeInvalidFields.push("stripeKey");
+    }
+    if (stripeSecret && !STRIPE_SECRET_KEY_REGEX.test(stripeSecret)) {
+        stripeInvalidFields.push("stripeSecret");
+    }
+    const stripeConfigured = Boolean(stripeKey && stripeSecret);
+    const stripeValid = stripeConfigured && stripeInvalidFields.length === 0;
+    const stripeEffectiveEnabled = Boolean(settings.payments.stripeEnabled) &&
+        stripeValid &&
+        PAYMENT_RUNTIME_SUPPORTED.STRIPE;
+    const stripeStatus = buildStatus({
+        requestedEnabled: settings.payments.stripeEnabled,
+        configured: stripeConfigured,
+        valid: stripeValid,
+        effectiveEnabled: stripeEffectiveEnabled,
+        runtimeSupported: PAYMENT_RUNTIME_SUPPORTED.STRIPE,
+        missingFields: stripeMissingFields,
+        invalidFields: stripeInvalidFields,
+        configuredButUnavailableLabel: "Configured, runtime unavailable",
+    });
+    const stripeWebhookMissingFields = [];
+    const stripeWebhookInvalidFields = [];
+    if (!stripeWebhookSecret)
+        stripeWebhookMissingFields.push("stripeWebhookSecret");
+    if (stripeWebhookSecret &&
+        !STRIPE_WEBHOOK_SECRET_REGEX.test(stripeWebhookSecret)) {
+        stripeWebhookInvalidFields.push("stripeWebhookSecret");
+    }
+    const stripeWebhookConfigured = Boolean(stripeWebhookSecret);
+    const stripeWebhookValid = stripeWebhookConfigured && stripeWebhookInvalidFields.length === 0;
+    const stripeWebhookEffectiveEnabled = stripeEffectiveEnabled && stripeWebhookValid && PAYMENT_RUNTIME_SUPPORTED.STRIPE;
+    const stripeWebhookStatus = buildStatus({
+        requestedEnabled: Boolean(settings.payments.stripeEnabled),
+        configured: stripeWebhookConfigured,
+        valid: stripeWebhookValid,
+        effectiveEnabled: stripeWebhookEffectiveEnabled,
+        runtimeSupported: PAYMENT_RUNTIME_SUPPORTED.STRIPE,
+        missingFields: stripeWebhookMissingFields,
+        invalidFields: stripeWebhookInvalidFields,
+        readyLabel: "Ready for webhook verification",
+    });
+    const razorPayKeyId = toText(settings.payments.razorPayKeyId, "");
+    const razorPayKeySecret = toText(settings.payments.razorPayKeySecret, "");
+    const razorPayMissingFields = [];
+    const razorPayInvalidFields = [];
+    if (!razorPayKeyId)
+        razorPayMissingFields.push("razorPayKeyId");
+    if (!razorPayKeySecret)
+        razorPayMissingFields.push("razorPayKeySecret");
+    if (razorPayKeyId && !RAZORPAY_KEY_ID_REGEX.test(razorPayKeyId)) {
+        razorPayInvalidFields.push("razorPayKeyId");
+    }
+    if (razorPayKeySecret && !RAZORPAY_SECRET_REGEX.test(razorPayKeySecret)) {
+        razorPayInvalidFields.push("razorPayKeySecret");
+    }
+    const razorPayConfigured = Boolean(razorPayKeyId && razorPayKeySecret);
+    const razorPayValid = razorPayConfigured && razorPayInvalidFields.length === 0;
+    const razorPayEffectiveEnabled = Boolean(settings.payments.razorPayEnabled) &&
+        razorPayValid &&
+        PAYMENT_RUNTIME_SUPPORTED.RAZORPAY;
+    const razorPayStatus = buildStatus({
+        requestedEnabled: settings.payments.razorPayEnabled,
+        configured: razorPayConfigured,
+        valid: razorPayValid,
+        effectiveEnabled: razorPayEffectiveEnabled,
+        runtimeSupported: PAYMENT_RUNTIME_SUPPORTED.RAZORPAY,
+        missingFields: razorPayMissingFields,
+        invalidFields: razorPayInvalidFields,
+        configuredButUnavailableLabel: "Configured, runtime unavailable",
+    });
+    const duitkuEnvEnabled = settings.payments.duitkuEnabled !== undefined && settings.payments.duitkuEnabled !== null
+        ? Boolean(settings.payments.duitkuEnabled)
+        : toBool(process.env.DUITKU_ENABLED, false);
+    const duitkuEnvironment = normalizeDuitkuEnvironment(settings.payments.duitkuEnvironment, process.env.DUITKU_ENV || "sandbox");
+    const duitkuEnvMerchantCode = toText(process.env.DUITKU_MERCHANT_CODE, "");
+    const duitkuEnvApiKey = toText(process.env.DUITKU_API_KEY, "");
+    const duitkuSandboxMerchantCode = toText(settings.payments.duitkuSandboxMerchantCode, "") || duitkuEnvMerchantCode;
+    const duitkuSandboxApiKey = toText(settings.payments.duitkuSandboxApiKey, "") || duitkuEnvApiKey;
+    const duitkuProductionMerchantCode = toText(settings.payments.duitkuProductionMerchantCode, "") || duitkuEnvMerchantCode;
+    const duitkuProductionApiKey = toText(settings.payments.duitkuProductionApiKey, "") || duitkuEnvApiKey;
+    const duitkuMerchantCode = duitkuEnvironment === "sandbox" ? duitkuSandboxMerchantCode : duitkuProductionMerchantCode;
+    const duitkuApiKey = duitkuEnvironment === "sandbox" ? duitkuSandboxApiKey : duitkuProductionApiKey;
+    const duitkuMissingFields = [];
+    const duitkuInvalidFields = [];
+    if (!duitkuMerchantCode)
+        duitkuMissingFields.push("duitkuMerchantCode");
+    if (!duitkuApiKey)
+        duitkuMissingFields.push("duitkuApiKey");
+    if (duitkuMerchantCode && !DUITKU_MERCHANT_CODE_REGEX.test(duitkuMerchantCode)) {
+        duitkuInvalidFields.push("duitkuMerchantCode");
+    }
+    if (duitkuApiKey && !DUITKU_API_KEY_REGEX.test(duitkuApiKey)) {
+        duitkuInvalidFields.push("duitkuApiKey");
+    }
+    const duitkuConfigured = Boolean(duitkuMerchantCode && duitkuApiKey);
+    const duitkuValid = duitkuConfigured && duitkuInvalidFields.length === 0;
+    const duitkuEffectiveEnabled = duitkuEnvEnabled &&
+        duitkuValid &&
+        PAYMENT_RUNTIME_SUPPORTED.DUITKU;
+    const duitkuStatus = buildStatus({
+        requestedEnabled: duitkuEnvEnabled,
+        configured: duitkuConfigured,
+        valid: duitkuValid,
+        effectiveEnabled: duitkuEffectiveEnabled,
+        runtimeSupported: PAYMENT_RUNTIME_SUPPORTED.DUITKU,
+        missingFields: duitkuMissingFields,
+        invalidFields: duitkuInvalidFields,
+        configuredButUnavailableLabel: "Configured, runtime unavailable",
+    });
+    const cashOnDeliveryStatus = buildStatus({
+        requestedEnabled: settings.payments.cashOnDeliveryEnabled,
+        configured: true,
+        valid: true,
+        effectiveEnabled: Boolean(settings.payments.cashOnDeliveryEnabled),
+        runtimeSupported: PAYMENT_RUNTIME_SUPPORTED.COD,
+    });
+    const manualTransferStatus = buildStatus({
+        requestedEnabled: settings.payments.manualTransferEnabled,
+        configured: true,
+        valid: true,
+        effectiveEnabled: Boolean(settings.payments.manualTransferEnabled),
+        runtimeSupported: PAYMENT_RUNTIME_SUPPORTED.MANUAL_QRIS,
+    });
+    const buildSocialProvider = (code, enabled, clientId, secret) => {
+        const missingFields = [];
+        if (!clientId)
+            missingFields.push("clientId");
+        if (!secret)
+            missingFields.push("secret");
+        const configured = Boolean(clientId && secret);
+        const runtimeSupported = SOCIAL_RUNTIME_SUPPORTED[code];
+        const effectiveEnabled = enabled && configured && runtimeSupported;
+        const status = buildStatus({
+            requestedEnabled: enabled,
+            configured,
+            valid: configured,
+            effectiveEnabled,
+            runtimeSupported,
+            missingFields,
+            configuredButUnavailableLabel: "Configured, runtime unavailable",
+        });
+        return {
+            requestedEnabled: Boolean(enabled),
+            configured,
+            valid: configured,
+            runtimeSupported,
+            effectiveEnabled,
+            clientIdConfigured: Boolean(clientId),
+            secretConfigured: Boolean(secret),
+            secretMask: maskSecret(secret),
+            status,
+        };
+    };
+    const googleAnalyticsKey = toText(settings.analytics.googleAnalyticKey, "");
+    const normalizedAnalyticsKey = normalizeGoogleAnalyticsKey(googleAnalyticsKey);
+    const analyticsMissingFields = [];
+    const analyticsInvalidFields = [];
+    if (!googleAnalyticsKey)
+        analyticsMissingFields.push("googleAnalyticKey");
+    if (googleAnalyticsKey && !normalizedAnalyticsKey) {
+        analyticsInvalidFields.push("googleAnalyticKey");
+    }
+    const analyticsConfigured = Boolean(googleAnalyticsKey);
+    const analyticsValid = Boolean(normalizedAnalyticsKey);
+    const analyticsEffectiveEnabled = Boolean(settings.analytics.googleAnalyticsEnabled) && analyticsValid;
+    const analyticsStatus = buildStatus({
+        requestedEnabled: settings.analytics.googleAnalyticsEnabled,
+        configured: analyticsConfigured,
+        valid: analyticsValid,
+        effectiveEnabled: analyticsEffectiveEnabled,
+        runtimeSupported: true,
+        missingFields: analyticsMissingFields,
+        invalidFields: analyticsInvalidFields,
+    });
+    const tawkPropertyId = toText(settings.chat.tawkPropertyId, "");
+    const tawkWidgetId = toText(settings.chat.tawkWidgetId, "");
+    const normalizedTawkPropertyId = normalizeTawkId(tawkPropertyId);
+    const normalizedTawkWidgetId = normalizeTawkId(tawkWidgetId);
+    const tawkMissingFields = [];
+    const tawkInvalidFields = [];
+    if (!tawkPropertyId)
+        tawkMissingFields.push("tawkPropertyId");
+    if (!tawkWidgetId)
+        tawkMissingFields.push("tawkWidgetId");
+    if (tawkPropertyId && !normalizedTawkPropertyId) {
+        tawkInvalidFields.push("tawkPropertyId");
+    }
+    if (tawkWidgetId && !normalizedTawkWidgetId) {
+        tawkInvalidFields.push("tawkWidgetId");
+    }
+    const tawkConfigured = Boolean(tawkPropertyId && tawkWidgetId);
+    const tawkValid = Boolean(normalizedTawkPropertyId && normalizedTawkWidgetId);
+    const tawkEffectiveEnabled = Boolean(settings.chat.tawkEnabled) && tawkValid;
+    const tawkStatus = buildStatus({
+        requestedEnabled: settings.chat.tawkEnabled,
+        configured: tawkConfigured,
+        valid: tawkValid,
+        effectiveEnabled: tawkEffectiveEnabled,
+        runtimeSupported: true,
+        missingFields: tawkMissingFields,
+        invalidFields: tawkInvalidFields,
+    });
+    const availableMethods = [];
+    if (Boolean(settings.payments.cashOnDeliveryEnabled)) {
+        availableMethods.push({
+            code: "COD",
+            label: "Cash on Delivery",
+            description: "Pay when your order arrives.",
+        });
+    }
+    if (Boolean(settings.payments.manualTransferEnabled)) {
+        availableMethods.push({
+            code: "MANUAL_QRIS",
+            label: "Manual Transfer (QRIS by Store)",
+            description: "Pay via manual transfer or QRIS by Store.",
+        });
+    }
+    if (stripeEffectiveEnabled) {
+        availableMethods.push({
+            code: "STRIPE",
+            label: "Stripe",
+            description: "Pay securely with card via Stripe Checkout.",
+        });
+    }
+    if (duitkuEffectiveEnabled) {
+        availableMethods.push({
+            code: "DUITKU",
+            label: "Duitku",
+            description: "Pay with Duitku payment gateway.",
+        });
+    }
+    const fatalIssues = [];
+    for (const field of [
+        ...stripeInvalidFields,
+        ...stripeWebhookInvalidFields,
+        ...razorPayInvalidFields,
+        ...duitkuInvalidFields,
+    ]) {
+        fatalIssues.push({
+            section: "payments",
+            field,
+            message: `${field} format is invalid.`,
+        });
+    }
+    for (const field of analyticsInvalidFields) {
+        fatalIssues.push({
+            section: "analytics",
+            field,
+            message: `${field} format is invalid.`,
+        });
+    }
+    for (const field of tawkInvalidFields) {
+        fatalIssues.push({
+            section: "chat",
+            field,
+            message: `${field} format is invalid.`,
+        });
+    }
+    return {
+        persisted: settings,
+        admin: {
+            storeSettings: {
+                ...settings,
+                payments: {
+                    ...settings.payments,
+                    stripeSecret: "",
+                    stripeWebhookSecret: "",
+                    razorPayKeySecret: "",
+                    duitkuSandboxApiKey: "",
+                    duitkuProductionApiKey: "",
+                },
+                socialLogin: {
+                    ...settings.socialLogin,
+                    googleSecretKey: "",
+                    githubSecret: "",
+                    facebookSecret: "",
+                },
+            },
+            diagnostics: {
+                payments: {
+                    checkout: {
+                        availableMethods,
+                        availableMethodCodes: availableMethods.map((method) => method.code),
+                    },
+                    cashOnDelivery: {
+                        requestedEnabled: Boolean(settings.payments.cashOnDeliveryEnabled),
+                        effectiveEnabled: Boolean(settings.payments.cashOnDeliveryEnabled),
+                        runtimeSupported: PAYMENT_RUNTIME_SUPPORTED.COD,
+                        status: cashOnDeliveryStatus,
+                    },
+                    manualTransfer: {
+                        requestedEnabled: Boolean(settings.payments.manualTransferEnabled),
+                        effectiveEnabled: Boolean(settings.payments.manualTransferEnabled),
+                        runtimeSupported: PAYMENT_RUNTIME_SUPPORTED.MANUAL_QRIS,
+                        status: manualTransferStatus,
+                    },
+                    stripe: {
+                        requestedEnabled: Boolean(settings.payments.stripeEnabled),
+                        configured: stripeConfigured,
+                        valid: stripeValid,
+                        runtimeSupported: PAYMENT_RUNTIME_SUPPORTED.STRIPE,
+                        effectiveEnabled: stripeEffectiveEnabled,
+                        publicKeyConfigured: Boolean(stripeKey),
+                        secretConfigured: Boolean(stripeSecret),
+                        secretMask: maskSecret(stripeSecret),
+                        status: stripeStatus,
+                    },
+                    stripeWebhook: {
+                        requestedEnabled: Boolean(settings.payments.stripeEnabled),
+                        configured: stripeWebhookConfigured,
+                        valid: stripeWebhookValid,
+                        runtimeSupported: PAYMENT_RUNTIME_SUPPORTED.STRIPE,
+                        effectiveEnabled: stripeWebhookEffectiveEnabled,
+                        secretConfigured: Boolean(stripeWebhookSecret),
+                        secretMask: maskSecret(stripeWebhookSecret),
+                        status: stripeWebhookStatus,
+                    },
+                    razorpay: {
+                        requestedEnabled: Boolean(settings.payments.razorPayEnabled),
+                        configured: razorPayConfigured,
+                        valid: razorPayValid,
+                        runtimeSupported: PAYMENT_RUNTIME_SUPPORTED.RAZORPAY,
+                        effectiveEnabled: razorPayEffectiveEnabled,
+                        keyIdConfigured: Boolean(razorPayKeyId),
+                        secretConfigured: Boolean(razorPayKeySecret),
+                        secretMask: maskSecret(razorPayKeySecret),
+                        status: razorPayStatus,
+                    },
+                    duitku: {
+                        requestedEnabled: duitkuEnvEnabled,
+                        configured: duitkuConfigured,
+                        valid: duitkuValid,
+                        runtimeSupported: PAYMENT_RUNTIME_SUPPORTED.DUITKU,
+                        effectiveEnabled: duitkuEffectiveEnabled,
+                        sandboxMerchantCodeConfigured: Boolean(duitkuSandboxMerchantCode),
+                        sandboxApiKeyConfigured: Boolean(duitkuSandboxApiKey),
+                        sandboxApiKeyMask: maskSecret(duitkuSandboxApiKey),
+                        productionMerchantCodeConfigured: Boolean(duitkuProductionMerchantCode),
+                        productionApiKeyConfigured: Boolean(duitkuProductionApiKey),
+                        productionApiKeyMask: maskSecret(duitkuProductionApiKey),
+                        secretConfigured: Boolean(duitkuApiKey),
+                        status: duitkuStatus,
+                    },
+                },
+                socialLogin: {
+                    google: buildSocialProvider("google", Boolean(settings.socialLogin.googleEnabled), toText(settings.socialLogin.googleClientId, ""), toText(settings.socialLogin.googleSecretKey, "")),
+                    github: buildSocialProvider("github", Boolean(settings.socialLogin.githubEnabled), toText(settings.socialLogin.githubId, ""), toText(settings.socialLogin.githubSecret, "")),
+                    facebook: buildSocialProvider("facebook", Boolean(settings.socialLogin.facebookEnabled), toText(settings.socialLogin.facebookId, ""), toText(settings.socialLogin.facebookSecret, "")),
+                },
+                analytics: {
+                    googleAnalytics: {
+                        requestedEnabled: Boolean(settings.analytics.googleAnalyticsEnabled),
+                        configured: analyticsConfigured,
+                        valid: analyticsValid,
+                        effectiveEnabled: analyticsEffectiveEnabled,
+                        status: analyticsStatus,
+                    },
+                },
+                chat: {
+                    tawk: {
+                        requestedEnabled: Boolean(settings.chat.tawkEnabled),
+                        configured: tawkConfigured,
+                        valid: tawkValid,
+                        effectiveEnabled: tawkEffectiveEnabled,
+                        status: tawkStatus,
+                    },
+                },
+                validation: {
+                    fatalIssues,
+                },
+            },
+        },
+        public: {
+            storeSettings: {
+                payments: {
+                    cashOnDeliveryEnabled: Boolean(settings.payments.cashOnDeliveryEnabled),
+                    stripeEnabled: stripeEffectiveEnabled,
+                    razorPayEnabled: razorPayEffectiveEnabled,
+                    duitkuEnabled: duitkuEffectiveEnabled,
+                    stripeKey: stripeEffectiveEnabled ? stripeKey : "",
+                    razorPayKeyId: razorPayEffectiveEnabled ? razorPayKeyId : "",
+                    methods: availableMethods,
+                },
+                socialLogin: {
+                    googleEnabled: false,
+                    githubEnabled: false,
+                    facebookEnabled: false,
+                    googleClientId: "",
+                    githubId: "",
+                    facebookId: "",
+                },
+                analytics: {
+                    googleAnalyticsEnabled: analyticsEffectiveEnabled,
+                    googleAnalyticKey: analyticsEffectiveEnabled ? normalizedAnalyticsKey : "",
+                },
+                chat: {
+                    tawkEnabled: tawkEffectiveEnabled,
+                    tawkPropertyId: tawkEffectiveEnabled ? normalizedTawkPropertyId : "",
+                    tawkWidgetId: tawkEffectiveEnabled ? normalizedTawkWidgetId : "",
+                },
+                branding: {
+                    clientLogoUrl: toText(settings.branding.clientLogoUrl, ""),
+                    adminLogoUrl: toText(settings.branding.adminLogoUrl, ""),
+                    sellerLogoUrl: toText(settings.branding.sellerLogoUrl, ""),
+                    adminLoginHeroUrl: toText(settings.branding.adminLoginHeroUrl, ""),
+                    adminForgotPasswordHeroUrl: toText(settings.branding.adminForgotPasswordHeroUrl, ""),
+                    adminCreateAccountHeroUrl: toText(settings.branding.adminCreateAccountHeroUrl, ""),
+                    workspaceBrandName: toText(settings.branding.workspaceBrandName, "TP PRENEURS"),
+                },
+            },
+        },
+    };
+};
+export const getAvailableCheckoutPaymentMethods = (rawSettings) => {
+    const contracts = buildStoreSettingsContracts(rawSettings);
+    return Array.isArray(contracts.admin.diagnostics.payments.checkout.availableMethods)
+        ? contracts.admin.diagnostics.payments.checkout.availableMethods
+        : [];
+};
+export const getStripeRuntimeConfig = (rawSettings) => {
+    const settings = sanitizeStoreSettings(rawSettings);
+    const stripeKey = toText(settings.payments.stripeKey, "");
+    const stripeSecret = toText(settings.payments.stripeSecret, "");
+    const valid = Boolean(settings.payments.stripeEnabled) &&
+        STRIPE_PUBLISHABLE_KEY_REGEX.test(stripeKey) &&
+        STRIPE_SECRET_KEY_REGEX.test(stripeSecret);
+    return {
+        enabled: valid && PAYMENT_RUNTIME_SUPPORTED.STRIPE,
+        publishableKey: stripeKey,
+        secretKey: stripeSecret,
+        currency: "idr",
+    };
+};
+export const getStripeWebhookConfig = (rawSettings) => {
+    const settings = sanitizeStoreSettings(rawSettings);
+    const signingSecret = toText(settings.payments.stripeWebhookSecret, "");
+    return {
+        enabled: STRIPE_WEBHOOK_SECRET_REGEX.test(signingSecret),
+        signingSecret,
+    };
+};

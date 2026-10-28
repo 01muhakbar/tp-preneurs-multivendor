@@ -1,0 +1,399 @@
+// server/src/app.ts
+import "dotenv/config";
+import express from "express";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import fs from "fs";
+import path from "path";
+import { applyRenderExternalOriginFallbacks, getRuntimePublicOrigin, } from "./config/deploymentOrigin.js";
+import authFromCookie from "./middleware/authFromCookie.js";
+import { requestIdMiddleware } from "./middleware/requestId.js";
+import requireAuth from "./middleware/requireAuth.js";
+import { requireAdmin, requireStaffOrAdmin, requireSuperAdmin, } from "./middleware/requireRole.js";
+import { seoRenderer } from "./utils/seoRenderer.js";
+import authRouter from "./routes/auth.js";
+import cartRouter from "./routes/cartRoutes.js";
+import checkoutRouter from "./routes/checkout.js";
+import ordersRouter from "./routes/orders.js";
+import paymentsRouter from "./routes/payments.js";
+import sellerPaymentsRouter from "./routes/seller.payments.js";
+import sellerOrdersRouter from "./routes/seller.orders.js";
+import sellerPaymentProfilesRouter from "./routes/seller.paymentProfiles.js";
+import sellerProductsRouter from "./routes/seller.products.js";
+import sellerReviewsRouter from "./routes/seller.reviews.js";
+import sellerAttributesRouter from "./routes/seller.attributes.js";
+import sellerCategoriesRouter from "./routes/seller.categories.js";
+import productActivityRouter from "./routes/products.activity.js";
+import sellerStoreProfileRouter from "./routes/seller.storeProfile.js";
+import sellerTeamRouter from "./routes/seller.team.js";
+import sellerWorkspaceRouter from "./routes/seller.workspace.js";
+import sellerCouponsRouter from "./routes/seller.coupons.js";
+import sellerNotificationsRouter from "./routes/seller.notifications.js";
+import sellerWithdrawalsRouter from "./routes/seller.withdrawals.js";
+import userStoreApplicationsRouter from "./routes/user.storeApplications.js";
+import catalogRouter from "./routes/admin.catalog.js";
+import statsRouter from "./routes/admin.stats.js";
+import analyticsRouter from "./routes/admin.analytics.js";
+import staffRouter from "./routes/admin.staff.js";
+import adminProductsRouter from "./routes/admin.products.js";
+import adminUploadsRouter from "./routes/admin.uploads.js";
+import adminCategoriesRouter from "./routes/admin.categories.js";
+import adminOrdersRouter from "./routes/admin.orders.js";
+import adminCustomersRouter from "./routes/admin.customers.js";
+import adminCouponsRouter from "./routes/admin.coupons.js";
+import adminAttributesRouter from "./routes/admin.attributes.js";
+import adminAttributeValuesRouter from "./routes/admin.attributeValues.js";
+import adminProductAttributesRouter from "./routes/admin.productAttributes.js";
+import adminSettingsRouter from "./routes/admin.settings.js";
+import adminLanguagesRouter from "./routes/admin.languages.js";
+import adminCurrenciesRouter from "./routes/admin.currencies.js";
+import adminStoreCustomizationRouter from "./routes/admin.storeCustomization.js";
+import adminStoreProfilesRouter from "./routes/admin.storeProfiles.js";
+import adminStoreSettingsRouter from "./routes/admin.storeSettings.js";
+import adminNotificationsRouter from "./routes/admin.notifications.js";
+import adminStorePaymentProfilesRouter from "./routes/admin.storePaymentProfiles.js";
+import adminStoreApplicationsRouter from "./routes/admin.storeApplications.js";
+import adminPaymentsAuditRouter from "./routes/admin.payments.audit.js";
+import adminWithdrawalsRouter from "./routes/admin.withdrawals.js";
+import storeRouter from "./routes/store.js";
+import storesRouter from "./routes/stores.js";
+import storeCouponsRouter from "./routes/store.coupons.js";
+import storeCustomizationRouter from "./routes/store.customization.js";
+import storeSettingsRouter from "./routes/store.settings.js";
+import stripeWebhookRouter from "./routes/store.stripeWebhook.js";
+import duitkuCallbackRouter from "./routes/duitku.callback.js";
+import publicRouter from "./routes/public.js";
+import healthRouter from "./routes/health.js";
+applyRenderExternalOriginFallbacks();
+const app = express();
+// If behind a reverse proxy (nginx/vercel), allow req.secure via X-Forwarded-Proto
+app.set("trust proxy", 1);
+app.use((req, res, next) => {
+    // Paksa HTTPS di production (jika diakses via HTTP biasa)
+    if (process.env.NODE_ENV === "production" && !req.secure) {
+        return res.redirect(301, `https://${req.hostname}${req.originalUrl}`);
+    }
+    next();
+});
+const resolveClientDistDir = () => {
+    const configured = String(process.env.CLIENT_DIST_DIR || "").trim();
+    const candidates = [
+        configured ? path.resolve(process.cwd(), configured) : "",
+        path.resolve(process.cwd(), "client/dist"),
+        path.resolve(process.cwd(), "../client/dist"),
+    ].filter(Boolean);
+    return (candidates.find((candidate) => fs.existsSync(path.join(candidate, "index.html"))) || null);
+};
+const shouldServeClientRoute = (req) => {
+    if (!["GET", "HEAD"].includes(req.method))
+        return false;
+    if (req.path.startsWith("/api") || req.path.startsWith("/uploads")) {
+        return false;
+    }
+    return Boolean(req.accepts("html"));
+};
+app.use(requestIdMiddleware);
+app.use(cookieParser());
+app.use("/api/store", stripeWebhookRouter);
+app.use("/api/payments/duitku", duitkuCallbackRouter);
+app.use(express.json({ limit: "5mb" }));
+app.use(express.urlencoded({ extended: true, limit: "5mb" }));
+const normalizeClientBaseUrl = () => {
+    const configured = String(process.env.CLIENT_URL || process.env.CORS_ORIGIN || getRuntimePublicOrigin() || "").trim();
+    const fallback = "http://localhost:5173";
+    const candidate = configured || fallback;
+    try {
+        const url = new URL(candidate);
+        return `${url.protocol}//${url.host}`;
+    }
+    catch {
+        return fallback;
+    }
+};
+const getRequestOrigin = (req) => {
+    const host = String(req.get("host") || "").trim();
+    if (!host)
+        return "";
+    const forwardedProto = String(req.get("x-forwarded-proto") || "")
+        .split(",")[0]
+        ?.trim();
+    const protocol = forwardedProto || req.protocol || (req.secure ? "https" : "http");
+    return `${protocol}://${host}`;
+};
+const getPublicOrigin = (req) => (req ? getRequestOrigin(req) : "") || getRuntimePublicOrigin() || normalizeClientBaseUrl();
+app.get("/robots.txt", (req, res) => {
+    const origin = getPublicOrigin(req);
+    res.type("text/plain").send([
+        "User-agent: *",
+        "Allow: /",
+        "Disallow: /admin",
+        "Disallow: /seller",
+        "Disallow: /user",
+        "Disallow: /cart",
+        "Disallow: /checkout",
+        "Disallow: /wishlist",
+        "",
+        `Sitemap: ${origin}/sitemap.xml`,
+        "",
+    ].join("\n"));
+});
+app.get("/sitemap.xml", (req, res) => {
+    const origin = getPublicOrigin(req);
+    const lastmod = new Date().toISOString();
+    const urls = [
+        { loc: "/", changefreq: "daily", priority: "1.0" },
+        { loc: "/shop", changefreq: "daily", priority: "0.8" },
+        { loc: "/search", changefreq: "weekly", priority: "0.6" },
+    ];
+    const body = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+        ...urls.map((url) => [
+            "  <url>",
+            `    <loc>${origin}${url.loc}</loc>`,
+            `    <lastmod>${lastmod}</lastmod>`,
+            `    <changefreq>${url.changefreq}</changefreq>`,
+            `    <priority>${url.priority}</priority>`,
+            "  </url>",
+        ].join("\n")),
+        "</urlset>",
+        "",
+    ].join("\n");
+    res.type("application/xml").send(body);
+});
+app.get(["/favicon.ico", "/favicon.svg"], (_req, res) => {
+    res.redirect(302, "/favicon.png");
+});
+app.get(["/site.webmanifest", "/manifest.webmanifest"], (_req, res) => {
+    res.type("application/manifest+json").send({
+        name: "TP PRENEURS",
+        short_name: "TP PRENEURS",
+        description: "Temukan dan jual produk berkualitas di TP PRENEURS.",
+        start_url: "/",
+        display: "standalone",
+        background_color: "#f8fafc",
+        theme_color: "#f97316",
+        icons: [
+            { src: "/favicon.png", sizes: "192x192", type: "image/png" },
+            { src: "/apple-touch-icon.png", sizes: "512x512", type: "image/png" },
+        ],
+    });
+});
+app.get("/payments/return", (req, res) => {
+    const target = new URL("/user/my-orders", normalizeClientBaseUrl());
+    const allowedKeys = ["merchantOrderId", "reference", "resultCode", "statusCode"];
+    for (const key of allowedKeys) {
+        const value = req.query[key];
+        const first = Array.isArray(value) ? value[0] : value;
+        if (typeof first === "string" && first.trim()) {
+            target.searchParams.set(key, first.trim().slice(0, 128));
+        }
+    }
+    target.searchParams.set("duitkuReturn", "1");
+    return res.redirect(302, target.toString());
+});
+const parseOriginList = (...values) => values
+    .flatMap((value) => String(value || "").split(","))
+    .map((value) => value.trim())
+    .filter(Boolean);
+const allowedOrigins = new Set([
+    ...parseOriginList(process.env.CLIENT_URL, process.env.CORS_ORIGIN),
+    ...(process.env.NODE_ENV === "production" ? [] : ["http://localhost:5173"]),
+]);
+app.use(cors({
+    origin(origin, callback) {
+        if (!origin) {
+            callback(null, true);
+            return;
+        }
+        if (allowedOrigins.has(origin)) {
+            callback(null, true);
+            return;
+        }
+        // Fallback: If the origin is not explicitly in allowedOrigins,
+        // allow it if it matches the server's own public origin or we are in development.
+        // This prevents 403 Forbidden errors for static assets with crossorigin attributes.
+        const runtimeOrigin = getRuntimePublicOrigin();
+        if (runtimeOrigin && origin === runtimeOrigin) {
+            callback(null, true);
+            return;
+        }
+        // Default: Do not throw an error, just return false to deny CORS headers,
+        // which allows the request to proceed (so static files can still load)
+        // but prevents cross-origin API access.
+        callback(null, false);
+    },
+    credentials: true,
+}));
+// optional: boleh tetap dipakai, tapi pastikan tidak konflik dengan requireAuth
+app.use(authFromCookie);
+app.use("/api", healthRouter);
+// public
+app.use("/api", publicRouter);
+app.use("/api/auth", authRouter);
+app.use("/api/products", productActivityRouter);
+app.use("/api/cart", cartRouter);
+app.use("/api/checkout", checkoutRouter);
+app.use("/api/orders", ordersRouter);
+app.use("/api/payments", paymentsRouter);
+app.use("/api/seller", sellerPaymentsRouter);
+app.use("/api/seller", sellerOrdersRouter);
+app.use("/api/seller", sellerPaymentProfilesRouter);
+app.use("/api/seller", sellerProductsRouter);
+app.use("/api/seller", sellerReviewsRouter);
+app.use("/api/seller", sellerAttributesRouter);
+app.use("/api/seller", sellerCategoriesRouter);
+app.use("/api/seller", sellerStoreProfileRouter);
+app.use("/api/seller", sellerTeamRouter);
+app.use("/api/seller", sellerWorkspaceRouter);
+app.use("/api/seller", sellerCouponsRouter);
+app.use("/api/seller", sellerNotificationsRouter);
+app.use("/api/seller", sellerWithdrawalsRouter);
+app.use("/api/store", storeRouter);
+app.use("/api/stores", storesRouter);
+app.use("/api/store/coupons", storeCouponsRouter);
+app.use("/api/store/customization", storeCustomizationRouter);
+app.use("/api/store/settings", storeSettingsRouter);
+app.use("/api/user", userStoreApplicationsRouter);
+// serve uploaded files from all known locations (priority: configured runtime uploads first)
+const uploadsCandidates = Array.from(new Set([
+    path.resolve(process.cwd(), process.env.UPLOAD_DIR || "uploads"),
+    path.resolve(process.cwd(), "server/public/uploads"),
+    path.resolve(process.cwd(), "client/public/uploads"),
+    path.resolve(process.cwd(), "client/dist/uploads"),
+    path.resolve(process.cwd(), "uploads"),
+    path.resolve(process.cwd(), "server/uploads"),
+    path.resolve(process.cwd(), "public/uploads"),
+    path.resolve(process.cwd(), "../server/public/uploads"),
+    path.resolve(process.cwd(), "../client/public/uploads"),
+    path.resolve(process.cwd(), "../client/dist/uploads"),
+    path.resolve(process.cwd(), "../uploads"),
+    path.resolve(process.cwd(), "../server/uploads"),
+    path.resolve(process.cwd(), "../public/uploads"),
+]));
+uploadsCandidates.forEach((uploadsDir, index) => {
+    if (index === 0) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    app.use("/uploads", express.static(uploadsDir, {
+        setHeaders: (res) => {
+            res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+            res.setHeader("Pragma", "no-cache");
+            res.setHeader("Expires", "0");
+        },
+    }));
+});
+// Fallback for missing uploads: If an image was requested under /uploads but not found on disk,
+// serve a clean, branded product placeholder SVG instead of returning 404 JSON that breaks <img> tags.
+app.use("/uploads", (req, res, next) => {
+    if (["GET", "HEAD"].includes(req.method)) {
+        const ext = path.extname(req.path).toLowerCase();
+        if ([".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif"].includes(ext)) {
+            const fallbackCandidates = [
+                path.resolve(process.cwd(), "server/public/uploads/products/demo.svg"),
+                path.resolve(process.cwd(), "public/uploads/products/demo.svg"),
+                path.resolve(process.cwd(), "../server/public/uploads/products/demo.svg"),
+                path.resolve(process.cwd(), "client/public/demo/placeholder-product.svg"),
+                path.resolve(process.cwd(), "../client/public/demo/placeholder-product.svg"),
+            ];
+            for (const candidate of fallbackCandidates) {
+                if (fs.existsSync(candidate)) {
+                    res.setHeader("Content-Type", "image/svg+xml");
+                    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+                    return res.sendFile(candidate);
+                }
+            }
+        }
+    }
+    next();
+});
+// protected baseline
+app.use("/api/admin", requireAuth);
+// admin routes (matrix)
+app.use("/api/admin/catalog", requireAdmin, catalogRouter);
+app.use("/api/admin/stats", requireStaffOrAdmin, statsRouter);
+app.use("/api/admin/analytics", requireStaffOrAdmin, analyticsRouter);
+app.use("/api/admin/products", requireStaffOrAdmin, adminProductsRouter);
+app.use("/api/admin/orders", requireStaffOrAdmin, adminOrdersRouter);
+app.use("/api/admin/customers", requireStaffOrAdmin, adminCustomersRouter);
+app.use("/api/admin/notifications", requireStaffOrAdmin, adminNotificationsRouter);
+app.use("/api/admin/payments/audit", requireStaffOrAdmin, adminPaymentsAuditRouter);
+app.use("/api/admin/categories", requireAdmin, adminCategoriesRouter);
+app.use("/api/admin/store-customization", requireStaffOrAdmin, adminStoreCustomizationRouter);
+app.use("/api/admin/store-applications", requireStaffOrAdmin, adminStoreApplicationsRouter);
+app.use("/api/admin/withdrawals", requireAdmin, adminWithdrawalsRouter);
+app.use("/api/admin/settings", requireAdmin, adminSettingsRouter);
+app.use("/api/admin/uploads", requireStaffOrAdmin, adminUploadsRouter);
+app.use("/api/admin/coupons", requireAdmin, adminCouponsRouter);
+app.use("/api/admin/attributes", requireAdmin, adminAttributesRouter);
+app.use("/api/admin/settings", requireAdmin, adminSettingsRouter);
+app.use("/api/admin/languages", requireStaffOrAdmin, adminLanguagesRouter);
+app.use("/api/admin/currencies", requireAdmin, adminCurrenciesRouter);
+app.use("/api/admin/store/customization", requireAdmin, adminStoreCustomizationRouter);
+app.use("/api/admin", requireAdmin, adminStoreProfilesRouter);
+app.use("/api/admin/store/settings", requireAdmin, adminStoreSettingsRouter);
+app.use("/api/admin/stores", requireAdmin, adminStorePaymentProfilesRouter);
+app.use("/api/admin", requireAdmin, adminStoreApplicationsRouter);
+app.use("/api/admin", requireAdmin, adminAttributeValuesRouter);
+app.use("/api/admin", requireAdmin, adminProductAttributesRouter);
+// super admin only
+app.use("/api/admin/staff", requireSuperAdmin, staffRouter);
+// uploads (tentukan kebijakan; ini aku set staff+)
+app.use("/api/admin", requireStaffOrAdmin, adminUploadsRouter);
+if (process.env.NODE_ENV === "production") {
+    const clientDistDir = resolveClientDistDir();
+    if (clientDistDir) {
+        app.use(express.static(clientDistDir, {
+            index: false,
+            maxAge: "1y",
+            immutable: true,
+        }));
+        const renderer = seoRenderer(clientDistDir);
+        app.get("*", (req, res, next) => {
+            if (!shouldServeClientRoute(req)) {
+                next();
+                return;
+            }
+            renderer(req, res, next);
+        });
+    }
+    else {
+        console.warn("[server][production-warning] Client dist was not found. Build the client or set CLIENT_DIST_DIR.");
+    }
+}
+app.use((error, _req, res, next) => {
+    if (error?.message === "CORS origin not allowed.") {
+        return res.status(403).json({
+            success: false,
+            message: "CORS origin not allowed.",
+        });
+    }
+    if (error?.type === "entity.too.large" || error?.status === 413) {
+        return res.status(413).json({
+            success: false,
+            message: "Request payload is too large. Please upload a smaller image.",
+        });
+    }
+    // Log full error for debugging
+    console.error("Unhandled Error:", error);
+    if (error.original) {
+        console.error("Original Error:", error.original);
+    }
+    if (error.sqlMessage || error.sql) {
+        console.error("SQL Error:", error.sqlMessage, error.sql);
+    }
+    res.status(500).json({
+        success: false,
+        message: "Internal Server Error",
+        error: process.env.NODE_ENV === "development" ? error.message : undefined
+    });
+});
+// 404 handler (dev-only logging)
+app.use((req, res) => {
+    if (process.env.NODE_ENV === "development") {
+        console.log("[404]", req.method, req.originalUrl);
+    }
+    res.status(404).json({ success: false, message: "Not found" });
+});
+export default app;
+//restart 

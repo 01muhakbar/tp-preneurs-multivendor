@@ -1,0 +1,1724 @@
+import { Router } from "express";
+import { Op, QueryTypes } from "sequelize";
+import { requireAdmin, requireStaffOrAdmin } from "../middleware/requireRole.js";
+import { Order } from "../models/Order.js";
+import { User } from "../models/User.js";
+import { OrderItem } from "../models/OrderItem.js";
+import { Product } from "../models/Product.js";
+import { Payment } from "../models/Payment.js";
+import { Shipment } from "../models/Shipment.js";
+import { Store } from "../models/Store.js";
+import { Suborder } from "../models/Suborder.js";
+import { SuborderItem } from "../models/SuborderItem.js";
+import { TrackingEvent } from "../models/TrackingEvent.js";
+import { createUserOrderStatusUpdatedNotification } from "../services/notification.service.js";
+import { inspectParentOrderFinalizationEligibility, recalculateParentOrderFulfillmentStatus, resolveParentOrderFulfillmentStatus, resolveParentPaymentStatus, } from "../services/orderPaymentAggregation.service.js";
+import { resolveBuyerFacingPaymentStatus } from "../services/paymentCheckoutView.service.js";
+import { buildAction, buildAdminOrderContract, buildFulfillmentStatusMeta, buildPaymentStatusMeta, } from "../services/orderLifecycleContract.service.js";
+import { buildOrderShippingReadModel } from "../services/orderShippingReadModel.service.js";
+import { applyAdminShipmentCorrection } from "../services/shipmentMutation.service.js";
+import { fingerprintAuditValue, getRequestTraceId, logOperationalAuditEvent, } from "../services/operationalAudit.service.js";
+import { listAdminShippingReconciliationReport } from "../services/shippingReconciliationReport.service.js";
+import { resolveDuitkuPaymentMethodDisplay } from "../services/duitku/duitkuPaymentMethodDisplay.service.js";
+import { buildWithdrawalEligibilityMeta, summarizeWithdrawalEligibility, } from "../services/withdrawals/withdrawalEligibility.service.js";
+import { assertAdminOrderDeletionAllowed, deleteOrderCascade, } from "../services/orderDeletion.service.js";
+import sequelize from "../config/database.js";
+const router = Router();
+const asSingle = (v) => (Array.isArray(v) ? v[0] : v);
+const getAttr = (row, key) => row?.getDataValue?.(key) ??
+    row?.get?.(key) ??
+    row?.dataValues?.[key] ??
+    undefined;
+const csvEscape = (value) => {
+    const text = String(value ?? "");
+    if (!/[",\r\n]/.test(text))
+        return text;
+    return `"${text.replace(/"/g, '""')}"`;
+};
+const csvRow = (values) => values.map((value) => csvEscape(value)).join(",");
+const normalizeVariantSelectionsSnapshot = (value) => {
+    if (Array.isArray(value))
+        return value;
+    if (typeof value === "string") {
+        const trimmed = value.trim();
+        if (!trimmed)
+            return [];
+        try {
+            const parsed = JSON.parse(trimmed);
+            return Array.isArray(parsed) ? parsed : [];
+        }
+        catch {
+            return [];
+        }
+    }
+    return [];
+};
+const normalizeStatusInput = (raw) => {
+    const value = String(raw || "").toLowerCase().trim();
+    if (!value)
+        return "";
+    if (value === "shipping")
+        return "shipped";
+    if (value === "complete")
+        return "delivered";
+    if (value === "completed")
+        return "delivered";
+    if (value === "pending")
+        return "pending";
+    if (value === "processing")
+        return "processing";
+    if (value === "shipped")
+        return "shipped";
+    if (value === "delivered")
+        return "delivered";
+    if (value === "cancelled")
+        return "cancelled";
+    if (value === "cancel" || value === "canceled")
+        return "cancelled";
+    return "";
+};
+const toUiStatus = (raw) => {
+    const value = String(raw || "").toLowerCase().trim();
+    if (!value)
+        return "pending";
+    if (["pending_payment", "awaiting_payment", "unpaid"].includes(value)) {
+        return "pending";
+    }
+    if (["processing", "process", "packed", "confirmed", "paid"].includes(value)) {
+        return "processing";
+    }
+    if (["shipped", "shipping", "in_transit"].includes(value))
+        return "shipping";
+    if (["delivered", "completed", "complete"].includes(value))
+        return "complete";
+    if (["cancelled", "canceled", "cancel", "refunded", "failed"].includes(value)) {
+        return "cancelled";
+    }
+    return "pending";
+};
+const toAdminActionStatus = (raw) => {
+    const status = toUiStatus(raw);
+    if (status === "shipping")
+        return "shipping";
+    if (status === "complete")
+        return "delivered";
+    if (status === "cancelled")
+        return "cancel";
+    return status;
+};
+const normalizeSuborderPaymentStatus = (raw) => {
+    const value = String(raw || "UNPAID").toUpperCase().trim();
+    return value || "UNPAID";
+};
+const normalizeSuborderFulfillmentStatus = (raw) => {
+    const value = String(raw || "UNFULFILLED").toUpperCase().trim();
+    return value || "UNFULFILLED";
+};
+const STARTED_FULFILLMENT_STATUSES = new Set(["PROCESSING", "SHIPPED", "DELIVERED"]);
+const SHIPPED_COMPATIBLE_FULFILLMENT_STATUSES = new Set(["SHIPPED", "DELIVERED"]);
+const CLOSED_NEGATIVE_PAYMENT_STATUSES = new Set(["FAILED", "CANCELLED", "EXPIRED"]);
+const ADMIN_ACTION_OPTIONS = [
+    { code: "pending", label: "Pending", normalizedStatus: "pending" },
+    { code: "processing", label: "Processing", normalizedStatus: "processing" },
+    { code: "shipping", label: "In Delivery", normalizedStatus: "shipped" },
+    { code: "delivered", label: "Delivered", normalizedStatus: "delivered" },
+    { code: "cancel", label: "Cancelled", normalizedStatus: "cancelled" },
+];
+const loadAdminOrderTransitionSnapshot = async (orderId) => {
+    const suborders = await Suborder.findAll({
+        where: { orderId },
+        attributes: ["id", "suborderNumber", "storeId", "paymentStatus", "fulfillmentStatus"],
+    });
+    const normalized = suborders.map((suborder) => ({
+        id: Number(getAttr(suborder, "id") || 0),
+        suborderNumber: String(getAttr(suborder, "suborderNumber") || "").trim() || null,
+        storeId: Number(getAttr(suborder, "storeId") || 0) || null,
+        paymentStatus: normalizeSuborderPaymentStatus(getAttr(suborder, "paymentStatus")),
+        fulfillmentStatus: normalizeSuborderFulfillmentStatus(getAttr(suborder, "fulfillmentStatus")),
+    }));
+    const activeSuborders = normalized.filter((suborder) => suborder.fulfillmentStatus !== "CANCELLED");
+    return {
+        totalSuborders: normalized.length,
+        allSuborders: normalized,
+        activeSuborders,
+        aggregatePaymentStatus: resolveParentPaymentStatus(activeSuborders.map((suborder) => suborder.paymentStatus)),
+        aggregateFulfillmentStatus: resolveParentOrderFulfillmentStatus(activeSuborders.map((suborder) => suborder.fulfillmentStatus)),
+    };
+};
+const loadAdminOrderLifecycleReadContext = async (orderId) => {
+    const suborders = await Suborder.findAll({
+        where: { orderId },
+        attributes: ["id", "paymentStatus", "fulfillmentStatus"],
+        include: [
+            {
+                model: Payment,
+                as: "payments",
+                attributes: ["id", "status", "expiresAt", "updatedAt"],
+                required: false,
+            },
+        ],
+        order: [["id", "ASC"]],
+    });
+    const displayStatuses = suborders.map((suborder) => {
+        const payment = Array.isArray(suborder?.payments)
+            ? [...suborder.payments].sort((left, right) => {
+                const leftTime = new Date(getAttr(left, "updatedAt") || 0).getTime();
+                const rightTime = new Date(getAttr(right, "updatedAt") || 0).getTime();
+                if (rightTime !== leftTime)
+                    return rightTime - leftTime;
+                return Number(getAttr(right, "id") || 0) - Number(getAttr(left, "id") || 0);
+            })[0]
+            : null;
+        return resolveBuyerFacingPaymentStatus({
+            paymentStatus: getAttr(payment, "status") || "CREATED",
+            suborderPaymentStatus: getAttr(suborder, "paymentStatus") || "UNPAID",
+            expiresAt: getAttr(payment, "expiresAt") || null,
+        });
+    });
+    const fulfillmentStatuses = suborders.map((suborder) => normalizeSuborderFulfillmentStatus(getAttr(suborder, "fulfillmentStatus")));
+    return {
+        displayStatuses,
+        fulfillmentStatuses,
+    };
+};
+const getStaticAdminActionDisabledReason = (currentStatus, paymentStatus, actionCode) => {
+    if (actionCode === currentStatus) {
+        return "Order is already in this status.";
+    }
+    if (currentStatus === "cancel") {
+        return actionCode === "cancel"
+            ? "Order is already in this status."
+            : "Order is already cancelled and cannot return to the active fulfillment flow.";
+    }
+    if (currentStatus === "delivered") {
+        if (actionCode === "delivered")
+            return "Order is already in this status.";
+        if (actionCode === "cancel") {
+            return "Order is already delivered and is now in a final operational state, so cancellation is no longer allowed.";
+        }
+        return "Order is already delivered, so earlier operational statuses are no longer relevant.";
+    }
+    if (CLOSED_NEGATIVE_PAYMENT_STATUSES.has(paymentStatus) &&
+        ["processing", "shipping", "delivered"].includes(actionCode)) {
+        return `Parent payment is already ${paymentStatus.toLowerCase()}, so operational fulfillment cannot move forward from this snapshot.`;
+    }
+    return null;
+};
+const buildAdminTransitionActions = async (input) => {
+    const actions = [];
+    for (const option of ADMIN_ACTION_OPTIONS) {
+        const staticReason = getStaticAdminActionDisabledReason(input.currentStatus, input.paymentStatus, option.code);
+        let reason = staticReason;
+        if (!reason && (option.normalizedStatus === "processing" || option.normalizedStatus === "shipped")) {
+            const eligibility = await inspectAdminOrderTransitionEligibility(input.orderId, option.normalizedStatus);
+            if (!eligibility.allowed) {
+                reason = eligibility.message || "This order cannot move to the requested status yet.";
+            }
+        }
+        if (!reason && option.normalizedStatus === "delivered") {
+            const precheck = await inspectAdminOrderTransitionEligibility(input.orderId, "delivered");
+            if (!precheck.allowed) {
+                reason = precheck.message || "This order cannot be finalized yet.";
+            }
+            else {
+                const finalization = await inspectParentOrderFinalizationEligibility(input.orderId);
+                if (!finalization.allowed) {
+                    reason = "This order cannot be finalized yet.";
+                }
+            }
+        }
+        actions.push(buildAction({
+            code: option.code,
+            label: option.label,
+            enabled: !reason,
+            reason,
+            tone: !reason ? "emerald" : "stone",
+            nextStatus: option.normalizedStatus,
+            scope: "ADMIN_ORDER_STATUS",
+        }));
+    }
+    return actions;
+};
+const buildAdminContractForOrder = async (input) => {
+    const lifecycleContext = await loadAdminOrderLifecycleReadContext(input.orderId);
+    const currentActionStatus = toAdminActionStatus(input.orderStatus);
+    const availableActions = await buildAdminTransitionActions({
+        orderId: input.orderId,
+        currentStatus: currentActionStatus,
+        paymentStatus: input.paymentStatus,
+    });
+    return buildAdminOrderContract({
+        orderStatus: input.orderStatus,
+        paymentStatus: input.paymentStatus,
+        paymentMethod: input.paymentMethod,
+        displayStatuses: lifecycleContext.displayStatuses,
+        fulfillmentStatuses: lifecycleContext.fulfillmentStatuses,
+        availableActions,
+    });
+};
+const methodLabelFallback = (method) => {
+    const normalized = String(method || "").trim().toUpperCase();
+    if (normalized === "DUITKU")
+        return "Duitku POP";
+    if (normalized === "QRIS")
+        return "Static QRIS";
+    if (normalized === "COD" || normalized === "CASH")
+        return "COD";
+    return String(method || "").trim() || "Static QRIS";
+};
+const resolveAdminPaymentMethodLabel = (method, paymentCode) => resolveDuitkuPaymentMethodDisplay({
+    paymentMethod: method,
+    paymentCode,
+    fallback: methodLabelFallback(method),
+}) || methodLabelFallback(method);
+const loadLatestDuitkuPaymentCodes = async (orderIds) => {
+    const normalizedIds = Array.from(new Set(orderIds.filter((id) => Number.isFinite(id) && id > 0)));
+    const paymentCodeByOrderId = new Map();
+    if (normalizedIds.length === 0)
+        return paymentCodeByOrderId;
+    const placeholders = normalizedIds.map(() => "?").join(",");
+    const rows = (await sequelize.query(`
+      SELECT
+        opa.order_id AS orderId,
+        opae.payment_code AS paymentCode
+      FROM order_payment_attempt_events opae
+      INNER JOIN order_payment_attempts opa ON opa.id = opae.payment_attempt_id
+      WHERE opa.order_id IN (${placeholders})
+        AND opae.payment_code IS NOT NULL
+        AND opae.payment_code <> ''
+      ORDER BY opa.order_id ASC, opae.last_received_at DESC, opae.updated_at DESC, opae.id DESC
+    `, {
+        replacements: normalizedIds,
+        type: QueryTypes.SELECT,
+    }));
+    for (const row of rows) {
+        const orderId = Number(row?.orderId || 0);
+        if (!Number.isFinite(orderId) || orderId <= 0 || paymentCodeByOrderId.has(orderId)) {
+            continue;
+        }
+        paymentCodeByOrderId.set(orderId, String(row?.paymentCode || "").trim() || null);
+    }
+    return paymentCodeByOrderId;
+};
+const inspectAdminOrderTransitionEligibility = async (orderId, targetStatus) => {
+    const snapshot = await loadAdminOrderTransitionSnapshot(orderId);
+    const baseData = {
+        targetStatus,
+        totalSuborders: snapshot.totalSuborders,
+        activeSuborders: snapshot.activeSuborders.length,
+        aggregatePaymentStatus: snapshot.aggregatePaymentStatus,
+        aggregateFulfillmentStatus: snapshot.aggregateFulfillmentStatus,
+    };
+    if (snapshot.totalSuborders === 0) {
+        return {
+            allowed: true,
+            code: null,
+            message: null,
+            data: {
+                ...baseData,
+                reason: "LEGACY_ORDER_WITHOUT_SUBORDERS",
+                blockingSuborders: [],
+            },
+        };
+    }
+    if (snapshot.activeSuborders.length === 0) {
+        return {
+            allowed: false,
+            code: "PARENT_ORDER_HAS_NO_ACTIVE_SUBORDERS",
+            message: "Cannot move parent order forward because every linked suborder is already cancelled.",
+            data: {
+                ...baseData,
+                reason: "NO_ACTIVE_SUBORDERS",
+                blockingSuborders: [],
+            },
+        };
+    }
+    if (targetStatus === "processing") {
+        const hasStartedFulfillment = snapshot.activeSuborders.some((suborder) => STARTED_FULFILLMENT_STATUSES.has(suborder.fulfillmentStatus));
+        const hasFullySettledPayment = snapshot.aggregatePaymentStatus === "PAID";
+        if (hasStartedFulfillment || hasFullySettledPayment) {
+            return {
+                allowed: true,
+                code: null,
+                message: null,
+                data: {
+                    ...baseData,
+                    reason: hasStartedFulfillment
+                        ? "SUBORDER_FULFILLMENT_ALREADY_STARTED"
+                        : "ALL_ACTIVE_SUBORDERS_PAID",
+                    blockingSuborders: [],
+                },
+            };
+        }
+        const blockingSuborders = snapshot.activeSuborders.filter((suborder) => suborder.paymentStatus !== "PAID" &&
+            !STARTED_FULFILLMENT_STATUSES.has(suborder.fulfillmentStatus));
+        return {
+            allowed: false,
+            code: "PARENT_PROCESSING_BLOCKED_BY_SUBORDER_STATE",
+            message: "Cannot move parent order to processing while active suborders are still unpaid or not yet started by the seller.",
+            data: {
+                ...baseData,
+                reason: "ACTIVE_SUBORDERS_NOT_READY_FOR_PROCESSING",
+                blockingSuborders,
+            },
+        };
+    }
+    if (targetStatus === "shipped") {
+        const blockingSuborders = snapshot.activeSuborders.filter((suborder) => !SHIPPED_COMPATIBLE_FULFILLMENT_STATUSES.has(suborder.fulfillmentStatus));
+        if (blockingSuborders.length === 0) {
+            return {
+                allowed: true,
+                code: null,
+                message: null,
+                data: {
+                    ...baseData,
+                    reason: "ALL_ACTIVE_SUBORDERS_SHIPPED_OR_DELIVERED",
+                    blockingSuborders: [],
+                },
+            };
+        }
+        return {
+            allowed: false,
+            code: "PARENT_SHIPPING_BLOCKED_BY_SUBORDER_FULFILLMENT",
+            message: "Cannot move parent order to shipped while active suborders are still unfulfilled or processing.",
+            data: {
+                ...baseData,
+                reason: "ACTIVE_SUBORDERS_NOT_READY_FOR_SHIPPING",
+                blockingSuborders,
+            },
+        };
+    }
+    return {
+        allowed: true,
+        code: null,
+        message: null,
+        data: {
+            ...baseData,
+            reason: "NO_EXTRA_GUARD_REQUIRED",
+            blockingSuborders: [],
+        },
+    };
+};
+const methodPatternMap = {
+    qris: ["QRIS"],
+    duitku: ["DUITKU"],
+    cash: ["cod", "cash"],
+    card: ["card", "debit", "credit card", "credit_card", "visa", "master"],
+    credit: ["credit", "paylater", "installment"],
+};
+const normalizeMethodInput = (raw) => {
+    const value = String(raw || "").toLowerCase().trim();
+    if (!value)
+        return "";
+    if (["duitku", "duitku_pop", "duitku pop"].includes(value))
+        return "duitku";
+    if (["qris", "static_qris", "static qris"].includes(value))
+        return "qris";
+    if (value === "cash" || value === "cod")
+        return "cash";
+    if (value === "card" || value === "visa" || value === "mastercard")
+        return "card";
+    if (value === "credit")
+        return "credit";
+    return "";
+};
+const normalizePaymentStatusInput = (raw) => {
+    const value = String(raw || "").trim().toUpperCase();
+    const aliases = {
+        PAID: "PAID",
+        UNPAID: "UNPAID",
+        PENDING: "PENDING_CONFIRMATION",
+        PENDING_CONFIRMATION: "PENDING_CONFIRMATION",
+        WAITING_PAYMENT: "UNPAID",
+        FAILED: "FAILED",
+        EXPIRED: "EXPIRED",
+        CANCELLED: "CANCELLED",
+        CANCELED: "CANCELLED",
+    };
+    return aliases[value] || "";
+};
+const normalizeDeliveryStatusInput = (raw) => {
+    const value = String(raw || "").toLowerCase().trim();
+    if (!value)
+        return "";
+    if (["waiting_payment", "waiting-payment", "unpaid"].includes(value))
+        return "waiting_payment";
+    if (["ready_to_fulfill", "ready-to-fulfill", "ready", "ready_to_fulfillment"].includes(value)) {
+        return "ready_to_fulfill";
+    }
+    if (["processing", "packed"].includes(value))
+        return "processing";
+    if (["in_delivery", "in-delivery", "delivery", "shipping", "shipped", "out_for_delivery"].includes(value)) {
+        return "in_delivery";
+    }
+    if (["delivered", "complete", "completed"].includes(value))
+        return "delivered";
+    if (["cancelled", "canceled", "cancel"].includes(value))
+        return "cancelled";
+    if (["failed", "failed_delivery", "failed-delivery", "rejected"].includes(value))
+        return "failed";
+    return "";
+};
+const normalizeMethodOutput = (raw) => {
+    const value = String(raw || "").toLowerCase().trim();
+    if (!value)
+        return "qris";
+    if (value.includes("duitku"))
+        return "duitku";
+    if (value.includes("qris"))
+        return "qris";
+    if (value.includes("cod") || value.includes("cash"))
+        return "cash";
+    if (value.includes("credit card") || value.includes("credit_card"))
+        return "card";
+    if (value.includes("card") || value.includes("debit") || value.includes("visa")) {
+        return "card";
+    }
+    if (value.includes("credit") ||
+        value.includes("paylater") ||
+        value.includes("installment")) {
+        return "credit";
+    }
+    return "qris";
+};
+const toMethodLabel = (method) => {
+    if (method === "duitku")
+        return "Duitku POP";
+    if (method === "qris")
+        return "Static QRIS";
+    if (method === "card")
+        return "Card";
+    if (method === "credit")
+        return "Credit";
+    return "Cash";
+};
+const allowedStatuses = [
+    "pending",
+    "processing",
+    "shipping",
+    "complete",
+    "delivered",
+    "cancelled",
+    "cancel",
+];
+const isUiOrderStatus = (value) => allowedStatuses.includes(value);
+const parseDateAtBoundary = (raw, endOfDay) => {
+    const value = String(raw || "").trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value))
+        return null;
+    const suffix = endOfDay ? "T23:59:59.999" : "T00:00:00.000";
+    const date = new Date(`${value}${suffix}`);
+    if (Number.isNaN(date.getTime()))
+        return null;
+    return date;
+};
+const parsePositiveInt = (raw, fallback, min, max) => {
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed))
+        return fallback;
+    return Math.max(min, Math.min(max, Math.floor(parsed)));
+};
+const parseLimitDays = (raw) => {
+    const parsed = Number(raw);
+    if (![5, 7, 15, 30].includes(parsed))
+        return 0;
+    return parsed;
+};
+const buildOrdersWhere = (filters) => {
+    const where = {};
+    if (filters.userId) {
+        where.userId = filters.userId;
+    }
+    if (filters.search) {
+        const likeSearch = `%${filters.search}%`;
+        where[Op.or] = [
+            { invoiceNo: { [Op.like]: likeSearch } },
+            { customerName: { [Op.like]: likeSearch } },
+            { customerPhone: { [Op.like]: likeSearch } },
+            { "$customer.name$": { [Op.like]: likeSearch } },
+        ];
+    }
+    if (filters.status) {
+        where.status = filters.status;
+    }
+    if (filters.paymentStatus) {
+        where.paymentStatus = filters.paymentStatus;
+    }
+    if (filters.method) {
+        const patterns = methodPatternMap[filters.method] || [];
+        if (patterns.length > 0) {
+            const methodWhere = {
+                [Op.or]: patterns.map((pattern) => ({
+                    paymentMethod: { [Op.like]: `%${pattern}%` },
+                })),
+            };
+            where[Op.and] = [...(where[Op.and] || []), methodWhere];
+        }
+    }
+    // Rule: explicit startDate/endDate overrides limitDays.
+    if (filters.startDate || filters.endDate) {
+        where.createdAt = {};
+        if (filters.startDate)
+            where.createdAt[Op.gte] = filters.startDate;
+        if (filters.endDate)
+            where.createdAt[Op.lte] = filters.endDate;
+    }
+    else if (filters.limitDays > 0) {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        start.setDate(start.getDate() - filters.limitDays);
+        where.createdAt = { [Op.gte]: start };
+    }
+    return where;
+};
+const parseOrdersQuery = (query) => {
+    const page = parsePositiveInt(asSingle(query.page), 1, 1, 1_000_000);
+    const pageSize = parsePositiveInt(asSingle(query.pageSize) ?? asSingle(query.limit), 10, 1, 100);
+    const search = String(asSingle(query.customer) ?? asSingle(query.search) ?? asSingle(query.q) ?? "").trim();
+    const status = normalizeStatusInput(asSingle(query.status));
+    const paymentStatus = normalizePaymentStatusInput(asSingle(query.paymentStatus));
+    const method = normalizeMethodInput(asSingle(query.paymentMethod) ?? asSingle(query.method));
+    const deliveryStatus = normalizeDeliveryStatusInput(asSingle(query.deliveryStatus));
+    const limitDays = parseLimitDays(asSingle(query.limitDays));
+    const startDate = parseDateAtBoundary(asSingle(query.startDate), false);
+    const endDate = parseDateAtBoundary(asSingle(query.endDate), true);
+    const userIdRaw = Number(asSingle(query.userId));
+    const userId = Number.isFinite(userIdRaw) && userIdRaw > 0 ? userIdRaw : null;
+    const sortKey = String(asSingle(query.sortBy) || "orderDate").trim();
+    const sortMap = {
+        orderDate: "createdAt",
+        createdAt: "createdAt",
+        amount: "totalAmount",
+        totalAmount: "totalAmount",
+        invoiceNo: "invoiceNo",
+    };
+    const sortColumn = sortMap[sortKey] || "createdAt";
+    const sortDir = String(asSingle(query.sortDir) || "desc").toLowerCase() === "asc" ? "ASC" : "DESC";
+    const where = buildOrdersWhere({
+        search,
+        status,
+        paymentStatus,
+        method,
+        limitDays,
+        startDate,
+        endDate,
+        userId,
+    });
+    return {
+        page,
+        pageSize,
+        offset: (page - 1) * pageSize,
+        where,
+        filters: {
+            search,
+            status,
+            paymentStatus,
+            method,
+            deliveryStatus,
+            limitDays,
+            startDate: startDate ? startDate.toISOString() : null,
+            endDate: endDate ? endDate.toISOString() : null,
+            dateSource: startDate || endDate ? "dateRange" : limitDays > 0 ? "limitDays" : "none",
+        },
+        sort: {
+            sortBy: sortKey,
+            sortColumn,
+            sortDir,
+        },
+    };
+};
+const deliveryStatusMatches = (deliveryStatus, suborder) => {
+    const paymentStatus = normalizeSuborderPaymentStatus(getAttr(suborder, "paymentStatus"));
+    const fulfillmentStatus = normalizeSuborderFulfillmentStatus(getAttr(suborder, "fulfillmentStatus"));
+    const shipment = suborder?.shipment ?? suborder?.get?.("shipment") ?? null;
+    const shipmentStatus = String(getAttr(shipment, "status") || "").trim().toUpperCase();
+    if (deliveryStatus === "waiting_payment") {
+        return paymentStatus !== "PAID" || shipmentStatus === "WAITING_PAYMENT";
+    }
+    if (deliveryStatus === "ready_to_fulfill") {
+        return shipmentStatus === "READY_TO_FULFILL" || (paymentStatus === "PAID" && fulfillmentStatus === "UNFULFILLED");
+    }
+    if (deliveryStatus === "processing") {
+        return fulfillmentStatus === "PROCESSING" || ["PROCESSING", "PACKED"].includes(shipmentStatus);
+    }
+    if (deliveryStatus === "in_delivery") {
+        return fulfillmentStatus === "SHIPPED" || ["SHIPPED", "IN_TRANSIT", "OUT_FOR_DELIVERY"].includes(shipmentStatus);
+    }
+    if (deliveryStatus === "delivered") {
+        return fulfillmentStatus === "DELIVERED" || shipmentStatus === "DELIVERED";
+    }
+    if (deliveryStatus === "cancelled") {
+        return fulfillmentStatus === "CANCELLED" || shipmentStatus === "CANCELLED";
+    }
+    if (deliveryStatus === "failed") {
+        return ["FAILED", "EXPIRED"].includes(paymentStatus) || shipmentStatus === "FAILED_DELIVERY";
+    }
+    return true;
+};
+const listOrderIdsForDeliveryFilter = async (deliveryStatus) => {
+    if (!deliveryStatus)
+        return null;
+    const suborders = await Suborder.findAll({
+        attributes: ["orderId", "paymentStatus", "fulfillmentStatus"],
+        include: [
+            {
+                model: Shipment,
+                as: "shipment",
+                attributes: ["status"],
+                required: false,
+            },
+        ],
+    });
+    return Array.from(new Set(suborders
+        .filter((suborder) => deliveryStatusMatches(deliveryStatus, suborder))
+        .map((suborder) => Number(getAttr(suborder, "orderId") || 0))
+        .filter((orderId) => Number.isFinite(orderId) && orderId > 0)));
+};
+const applyDeliveryFilter = async (baseWhere, deliveryStatus) => {
+    if (!deliveryStatus)
+        return baseWhere;
+    const orderIds = await listOrderIdsForDeliveryFilter(deliveryStatus);
+    if (!orderIds || orderIds.length === 0) {
+        return { ...baseWhere, id: { [Op.in]: [] } };
+    }
+    return { ...baseWhere, id: { [Op.in]: orderIds } };
+};
+const summarizeAdminOrders = async (where) => {
+    const rows = await Order.findAll({
+        where,
+        attributes: ["status", "paymentStatus"],
+    });
+    return rows.reduce((summary, row) => {
+        const status = toUiStatus(getAttr(row, "status"));
+        const paymentStatus = String(getAttr(row, "paymentStatus") || "").toUpperCase().trim();
+        summary.totalOrders += 1;
+        if (status === "processing" || status === "shipping")
+            summary.processing += 1;
+        if (status === "complete")
+            summary.delivered += 1;
+        if (!paymentStatus || ["UNPAID", "FAILED", "EXPIRED", "CANCELLED"].includes(paymentStatus)) {
+            summary.paymentIssues += 1;
+        }
+        return summary;
+    }, { totalOrders: 0, processing: 0, delivered: 0, paymentIssues: 0 });
+};
+const resolveOrderWhere = (idOrRef) => {
+    const trimmed = String(idOrRef || "").trim();
+    const isNumeric = /^\d+$/.test(trimmed);
+    if (isNumeric) {
+        return { id: Number(trimmed) };
+    }
+    return { invoiceNo: trimmed };
+};
+const orderDetailInclude = [
+    { model: User, as: "customer", attributes: ["name", "email"] },
+    {
+        model: OrderItem,
+        as: "items",
+        attributes: [
+            "id",
+            "quantity",
+            "price",
+            "variantKey",
+            "variantLabel",
+            "variantSelections",
+            "skuSnapshot",
+            "barcodeSnapshot",
+            "imageSnapshot",
+            ["product_id", "productId"],
+        ],
+        include: [
+            {
+                model: Product,
+                as: "product",
+                attributes: ["id", "name"],
+            },
+        ],
+    },
+    {
+        model: Suborder,
+        as: "suborders",
+        attributes: [
+            "id",
+            "suborderNumber",
+            "storeId",
+            "subtotalAmount",
+            "shippingAmount",
+            "serviceFeeAmount",
+            "totalAmount",
+            "paymentMethod",
+            "paymentStatus",
+            "fulfillmentStatus",
+        ],
+        required: false,
+        include: [
+            {
+                model: Store,
+                as: "store",
+                attributes: ["id", "name", "slug"],
+                required: false,
+            },
+            {
+                model: SuborderItem,
+                as: "items",
+                attributes: [
+                    "id",
+                    "productNameSnapshot",
+                    "skuSnapshot",
+                    "variantKey",
+                    "variantLabel",
+                    "variantSelections",
+                    "barcodeSnapshot",
+                    "imageSnapshot",
+                    "qty",
+                    "priceSnapshot",
+                    "totalPrice",
+                    ["product_id", "productId"],
+                ],
+                required: false,
+                include: [
+                    {
+                        model: Product,
+                        as: "product",
+                        attributes: ["id", "name", "slug"],
+                        required: false,
+                    },
+                ],
+            },
+            {
+                model: Payment,
+                as: "payments",
+                attributes: [
+                    "id",
+                    "status",
+                    "paymentChannel",
+                    "paymentType",
+                    "expiresAt",
+                    "paidAt",
+                    "updatedAt",
+                ],
+                required: false,
+            },
+            {
+                model: Shipment,
+                as: "shipment",
+                attributes: [
+                    "id",
+                    "orderId",
+                    "suborderId",
+                    "storeId",
+                    "sellerUserId",
+                    "status",
+                    "courierCode",
+                    "courierService",
+                    "trackingNumber",
+                    "estimatedDelivery",
+                    "shippingFee",
+                    "shippingAddressSnapshot",
+                    "shippingRateSnapshot",
+                    "createdAt",
+                    "updatedAt",
+                ],
+                required: false,
+                include: [
+                    {
+                        model: TrackingEvent,
+                        as: "trackingEvents",
+                        attributes: [
+                            "id",
+                            "shipmentId",
+                            "eventType",
+                            "eventLabel",
+                            "eventDescription",
+                            "occurredAt",
+                            "source",
+                            "actorType",
+                            "actorId",
+                            "metadata",
+                            "createdAt",
+                        ],
+                        required: false,
+                    },
+                ],
+            },
+        ],
+    },
+];
+const toOrderDetailPayload = (orderItem, paymentCode = null) => {
+    const legacyItems = (orderItem.items ?? []).map((item) => ({
+        id: getAttr(item, "id"),
+        productId: getAttr(item, "productId") ?? item.get?.("productId") ?? item.product_id,
+        quantity: getAttr(item, "quantity"),
+        price: Number(getAttr(item, "price") || 0),
+        lineTotal: Number(getAttr(item, "price") || 0) *
+            Number(getAttr(item, "quantity") || 0),
+        variantKey: String(getAttr(item, "variantKey") || "").trim() || null,
+        variantLabel: String(getAttr(item, "variantLabel") || "").trim() || null,
+        variantSelections: normalizeVariantSelectionsSnapshot(getAttr(item, "variantSelections")),
+        sku: String(getAttr(item, "skuSnapshot") || "").trim() || null,
+        barcode: String(getAttr(item, "barcodeSnapshot") || "").trim() || null,
+        image: String(getAttr(item, "imageSnapshot") || "").trim() || null,
+        product: item.product
+            ? {
+                id: getAttr(item.product, "id"),
+                name: getAttr(item.product, "name"),
+            }
+            : null,
+    }));
+    const customer = orderItem.customer ?? null;
+    const suborders = Array.isArray(orderItem.suborders) ? orderItem.suborders : [];
+    const shippingReadModel = buildOrderShippingReadModel(suborders);
+    const groups = suborders.map((suborder) => {
+        const payments = Array.isArray(suborder?.payments)
+            ? [...suborder.payments].sort((left, right) => {
+                const leftTime = new Date(getAttr(left, "updatedAt") || 0).getTime();
+                const rightTime = new Date(getAttr(right, "updatedAt") || 0).getTime();
+                if (rightTime !== leftTime)
+                    return rightTime - leftTime;
+                return Number(getAttr(right, "id") || 0) - Number(getAttr(left, "id") || 0);
+            })
+            : [];
+        const latestPayment = payments[0] ?? null;
+        const paymentStatus = normalizeSuborderPaymentStatus(getAttr(suborder, "paymentStatus"));
+        const paymentMethodRaw = getAttr(suborder, "paymentMethod") ?? getAttr(orderItem, "paymentMethod") ?? "QRIS";
+        const paymentMethod = normalizeMethodOutput(paymentMethodRaw);
+        const paymentMethodLabel = resolveAdminPaymentMethodLabel(paymentMethodRaw, paymentCode);
+        const fulfillmentStatus = normalizeSuborderFulfillmentStatus(getAttr(suborder, "fulfillmentStatus"));
+        const withdrawalEligibility = buildWithdrawalEligibilityMeta({
+            paymentStatus,
+            fulfillmentStatus,
+            orderStatus: getAttr(orderItem, "status"),
+            totalAmount: getAttr(suborder, "totalAmount"),
+            serviceFeeAmount: getAttr(suborder, "serviceFeeAmount"),
+        });
+        const displayStatus = resolveBuyerFacingPaymentStatus({
+            paymentStatus: getAttr(latestPayment, "status") || "CREATED",
+            suborderPaymentStatus: paymentStatus,
+            expiresAt: getAttr(latestPayment, "expiresAt") || null,
+        });
+        const shippingSummary = shippingReadModel.suborders.get(Number(getAttr(suborder, "id") || 0)) ?? null;
+        return {
+            suborderId: Number(getAttr(suborder, "id") || 0) || null,
+            suborderNumber: String(getAttr(suborder, "suborderNumber") || "").trim() || null,
+            storeId: Number(getAttr(suborder, "storeId") || getAttr(suborder?.store, "id") || 0) || null,
+            storeName: String(getAttr(suborder?.store, "name") || `Store #${getAttr(suborder, "storeId")}`),
+            storeSlug: String(getAttr(suborder?.store, "slug") || "").trim() || null,
+            subtotalAmount: Number(getAttr(suborder, "subtotalAmount") || 0),
+            shippingAmount: Number(getAttr(suborder, "shippingAmount") || 0),
+            serviceFeeAmount: Number(getAttr(suborder, "serviceFeeAmount") || 0),
+            totalAmount: Number(getAttr(suborder, "totalAmount") || 0),
+            paymentMethod,
+            method: paymentMethod,
+            paymentMethodLabel,
+            methodLabel: paymentMethodLabel,
+            paymentCode,
+            paymentStatus,
+            paymentStatusMeta: buildPaymentStatusMeta(paymentStatus),
+            withdrawalEligibility,
+            fulfillmentStatus,
+            fulfillmentStatusMeta: buildFulfillmentStatusMeta(fulfillmentStatus),
+            shippingStatus: shippingSummary?.shippingStatus ?? fulfillmentStatus,
+            shippingStatusMeta: shippingSummary?.shippingStatusMeta ?? buildFulfillmentStatusMeta(fulfillmentStatus),
+            usedLegacyFallback: Boolean(shippingSummary?.usedLegacyFallback),
+            hasPersistedShipment: Boolean(shippingSummary?.hasPersistedShipment),
+            compatibilityMatchesStorage: typeof shippingSummary?.compatibilityMatchesStorage === "boolean"
+                ? shippingSummary.compatibilityMatchesStorage
+                : true,
+            payment: latestPayment
+                ? {
+                    id: Number(getAttr(latestPayment, "id") || 0) || null,
+                    status: String(getAttr(latestPayment, "status") || "CREATED"),
+                    statusMeta: buildPaymentStatusMeta(getAttr(latestPayment, "status") || "CREATED"),
+                    paymentChannel: String(getAttr(latestPayment, "paymentChannel") || ""),
+                    paymentType: String(getAttr(latestPayment, "paymentType") || ""),
+                    paymentMethod,
+                    paymentMethodLabel,
+                    paymentCode,
+                    displayStatus,
+                    displayStatusMeta: buildPaymentStatusMeta(displayStatus),
+                    expiresAt: getAttr(latestPayment, "expiresAt") || null,
+                    paidAt: getAttr(latestPayment, "paidAt") || null,
+                }
+                : null,
+            items: (Array.isArray(suborder?.items) ? suborder.items : []).map((item) => ({
+                id: Number(getAttr(item, "id") || 0) || null,
+                productId: Number(getAttr(item, "productId") || 0) || null,
+                productName: String(getAttr(item, "productNameSnapshot") ||
+                    getAttr(item?.product, "name") ||
+                    `Product #${getAttr(item, "productId")}`),
+                slug: String(getAttr(item?.product, "slug") || "").trim() || null,
+                qty: Number(getAttr(item, "qty") || 0),
+                price: Number(getAttr(item, "priceSnapshot") || 0),
+                lineTotal: Number(getAttr(item, "totalPrice") || 0),
+                image: String(getAttr(item, "imageSnapshot") || "").trim() || null,
+                variantKey: String(getAttr(item, "variantKey") || "").trim() || null,
+                variantLabel: String(getAttr(item, "variantLabel") || "").trim() || null,
+                variantSelections: normalizeVariantSelectionsSnapshot(getAttr(item, "variantSelections")),
+                sku: String(getAttr(item, "skuSnapshot") || "").trim() || null,
+                barcode: String(getAttr(item, "barcodeSnapshot") || "").trim() || null,
+            })),
+        };
+    });
+    const splitSnapshotItems = groups.flatMap((group) => (Array.isArray(group?.items) ? group.items : []).map((item) => ({
+        id: item.id,
+        productId: item.productId,
+        storeId: group.storeId,
+        name: item.productName,
+        productName: item.productName,
+        quantity: item.qty,
+        qty: item.qty,
+        price: item.price,
+        lineTotal: item.lineTotal,
+        variantKey: item.variantKey,
+        variantLabel: item.variantLabel,
+        variantSelections: item.variantSelections,
+        sku: item.sku,
+        barcode: item.barcode,
+        image: item.image,
+        product: item.productId
+            ? {
+                id: item.productId,
+                name: item.productName,
+                slug: item.slug,
+            }
+            : null,
+    })));
+    const items = splitSnapshotItems.length > 0 ? splitSnapshotItems : legacyItems;
+    const computedSubtotal = items.reduce((sum, item) => {
+        return sum + Number(item.lineTotal || 0);
+    }, 0);
+    const subtotalSnapshot = Number(getAttr(orderItem, "subtotalAmount"));
+    const shippingSnapshot = Number(getAttr(orderItem, "shippingAmount") ?? 0);
+    const serviceFeeAmount = Number(getAttr(orderItem, "serviceFeeAmount") || 0);
+    const discount = Number(getAttr(orderItem, "discountAmount") || 0);
+    const subtotal = Number.isFinite(subtotalSnapshot) ? subtotalSnapshot : computedSubtotal;
+    const shipping = Number.isFinite(shippingSnapshot) ? shippingSnapshot : 0;
+    const totalSnapshot = Number(getAttr(orderItem, "totalAmount"));
+    const totalAmount = Number.isFinite(totalSnapshot)
+        ? totalSnapshot
+        : Math.max(0, subtotal + shipping + serviceFeeAmount - discount);
+    const paymentMethodRaw = getAttr(orderItem, "paymentMethod") ?? "QRIS";
+    const paymentMethod = normalizeMethodOutput(paymentMethodRaw);
+    const paymentMethodLabel = resolveAdminPaymentMethodLabel(paymentMethodRaw, paymentCode);
+    const withdrawalEligibilitySummary = summarizeWithdrawalEligibility(groups.map((group) => group.withdrawalEligibility).filter(Boolean));
+    return {
+        id: getAttr(orderItem, "id"),
+        ref: getAttr(orderItem, "invoiceNo") ?? String(getAttr(orderItem, "id") ?? ""),
+        invoiceNo: getAttr(orderItem, "invoiceNo"),
+        checkoutMode: String(getAttr(orderItem, "checkoutMode") || "").toUpperCase().trim() || "LEGACY",
+        rawStatus: String(getAttr(orderItem, "status") || "pending"),
+        status: toUiStatus(getAttr(orderItem, "status")),
+        paymentStatus: String(getAttr(orderItem, "paymentStatus") || "").toUpperCase().trim() || "UNPAID",
+        paymentStatusMeta: buildPaymentStatusMeta(String(getAttr(orderItem, "paymentStatus") || "").toUpperCase().trim() || "UNPAID"),
+        withdrawalEligibility: withdrawalEligibilitySummary,
+        withdrawalEligibilitySummary,
+        totalAmount,
+        subtotal,
+        subtotalAmount: subtotal,
+        discount,
+        shipping,
+        serviceFeeAmount,
+        total: totalAmount,
+        grandTotal: totalAmount,
+        createdAt: getAttr(orderItem, "createdAt"),
+        updatedAt: getAttr(orderItem, "updatedAt"),
+        customerName: getAttr(orderItem, "customerName") ?? customer?.name ?? null,
+        customerPhone: getAttr(orderItem, "customerPhone") ?? null,
+        customerAddress: getAttr(orderItem, "customerAddress") ?? null,
+        customerNotes: getAttr(orderItem, "customerNotes") ?? null,
+        paymentMethod,
+        method: paymentMethod,
+        paymentMethodLabel,
+        methodLabel: paymentMethodLabel,
+        paymentCode,
+        shipmentCount: shippingReadModel.shipmentCount,
+        shippingStatus: shippingReadModel.shippingStatus,
+        shippingStatusMeta: shippingReadModel.shippingStatusMeta,
+        latestTrackingEvent: shippingReadModel.latestTrackingEvent,
+        hasActiveShipment: shippingReadModel.hasActiveShipment,
+        hasTrackingNumber: shippingReadModel.hasTrackingNumber,
+        usedLegacyFallback: shippingReadModel.usedLegacyFallback,
+        shipmentAuditMeta: shippingReadModel.shipmentAuditMeta,
+        suborderShipmentSummary: shippingReadModel.suborderShipmentSummary,
+        shipments: shippingReadModel.shipments,
+        groups,
+        items,
+    };
+};
+// GET list with pagination, search, status/method/date filters.
+router.get("/", requireStaffOrAdmin, async (req, res) => {
+    try {
+        const parsed = parseOrdersQuery(req.query || {});
+        const { page, pageSize, offset, where } = parsed;
+        const filteredWhere = await applyDeliveryFilter(where, parsed.filters.deliveryStatus);
+        const { rows, count } = await Order.findAndCountAll({
+            where: filteredWhere,
+            include: [
+                {
+                    model: User,
+                    as: "customer",
+                    attributes: ["id", "name", "email"],
+                    required: false,
+                },
+            ],
+            attributes: [
+                "id",
+                "invoiceNo",
+                "checkoutMode",
+                "status",
+                "paymentStatus",
+                "createdAt",
+                "totalAmount",
+                "customerName",
+                "customerPhone",
+                "paymentMethod",
+            ],
+            order: [[parsed.sort.sortColumn, parsed.sort.sortDir]],
+            limit: pageSize,
+            offset,
+            distinct: true,
+            col: "id",
+        });
+        const paymentCodeByOrderId = await loadLatestDuitkuPaymentCodes(rows.map((orderRow) => Number(getAttr(orderRow, "id") || 0)));
+        const items = await Promise.all(rows.map(async (orderRow) => {
+            const customer = orderRow?.customer ??
+                orderRow?.get?.("customer") ??
+                orderRow?.dataValues?.customer ??
+                null;
+            const id = Number(getAttr(orderRow, "id") || 0);
+            const invoiceNo = getAttr(orderRow, "invoiceNo");
+            const amount = Number(getAttr(orderRow, "totalAmount") ??
+                getAttr(orderRow, "total") ??
+                getAttr(orderRow, "grandTotal") ??
+                0);
+            const methodRaw = getAttr(orderRow, "paymentMethod") ?? "COD";
+            const method = normalizeMethodOutput(methodRaw);
+            const paymentCode = paymentCodeByOrderId.get(id) ?? null;
+            const paymentMethodLabel = resolveAdminPaymentMethodLabel(methodRaw, paymentCode);
+            const customerName = getAttr(orderRow, "customerName") ??
+                getAttr(orderRow, "shippingName") ??
+                customer?.name ??
+                "Guest";
+            const rawOrderStatus = String(getAttr(orderRow, "status") || "pending");
+            const paymentStatus = String(getAttr(orderRow, "paymentStatus") || "").toUpperCase().trim() || "UNPAID";
+            const suborders = await Suborder.findAll({
+                where: { orderId: id },
+                attributes: [
+                    "id",
+                    "paymentStatus",
+                    "fulfillmentStatus",
+                    "totalAmount",
+                    "serviceFeeAmount",
+                ],
+                include: [
+                    {
+                        model: Shipment,
+                        as: "shipment",
+                        required: false,
+                        include: [
+                            {
+                                model: TrackingEvent,
+                                as: "trackingEvents",
+                                attributes: [
+                                    "id",
+                                    "shipmentId",
+                                    "eventType",
+                                    "eventLabel",
+                                    "eventDescription",
+                                    "occurredAt",
+                                    "source",
+                                    "actorType",
+                                    "actorId",
+                                    "metadata",
+                                    "createdAt",
+                                ],
+                                required: false,
+                            },
+                        ],
+                    },
+                ],
+                order: [["id", "ASC"]],
+            });
+            const shippingReadModel = buildOrderShippingReadModel(suborders);
+            const withdrawalEligibilitySummary = summarizeWithdrawalEligibility(suborders.map((suborder) => buildWithdrawalEligibilityMeta({
+                paymentStatus: getAttr(suborder, "paymentStatus"),
+                fulfillmentStatus: getAttr(suborder, "fulfillmentStatus"),
+                orderStatus: rawOrderStatus,
+                totalAmount: getAttr(suborder, "totalAmount"),
+                serviceFeeAmount: getAttr(suborder, "serviceFeeAmount"),
+            })));
+            const contract = await buildAdminContractForOrder({
+                orderId: id,
+                orderStatus: rawOrderStatus,
+                paymentStatus,
+                paymentMethod: String(methodRaw || "COD"),
+            });
+            return {
+                id,
+                ref: invoiceNo ?? String(id ?? ""),
+                orderId: id,
+                invoiceNo,
+                checkoutMode: String(getAttr(orderRow, "checkoutMode") || "").toUpperCase().trim() || "LEGACY",
+                orderTime: getAttr(orderRow, "createdAt"),
+                createdAt: getAttr(orderRow, "createdAt"),
+                customerName,
+                customerEmail: customer?.email ?? null,
+                customerPhone: getAttr(orderRow, "customerPhone") ??
+                    getAttr(orderRow, "shippingPhone") ??
+                    customer?.phone ??
+                    null,
+                method,
+                paymentMethod: method,
+                methodLabel: paymentMethodLabel,
+                paymentMethodLabel,
+                paymentCode,
+                amount,
+                totalAmount: amount,
+                rawStatus: rawOrderStatus,
+                status: toUiStatus(rawOrderStatus),
+                paymentStatus,
+                paymentStatusMeta: buildPaymentStatusMeta(paymentStatus),
+                withdrawalEligibility: withdrawalEligibilitySummary,
+                withdrawalEligibilitySummary,
+                shippingStatus: shippingReadModel.shippingStatus,
+                shippingStatusMeta: shippingReadModel.shippingStatusMeta,
+                latestTrackingEvent: shippingReadModel.latestTrackingEvent,
+                hasActiveShipment: shippingReadModel.hasActiveShipment,
+                hasTrackingNumber: shippingReadModel.hasTrackingNumber,
+                usedLegacyFallback: shippingReadModel.usedLegacyFallback,
+                shipmentAuditMeta: shippingReadModel.shipmentAuditMeta,
+                suborderShipmentSummary: shippingReadModel.suborderShipmentSummary,
+                contract,
+            };
+        }));
+        const totalPages = Math.max(1, Math.ceil(count / pageSize));
+        const summary = await summarizeAdminOrders(filteredWhere);
+        return res.json({
+            success: true,
+            data: {
+                items,
+                total: count,
+                page,
+                pageSize,
+                totalPages,
+                // Backward compatibility for existing admin client consumers.
+                limit: pageSize,
+                totalItems: count,
+                filters: parsed.filters,
+                summary,
+            },
+        });
+    }
+    catch (error) {
+        console.error("[admin.orders list] error", error);
+        return res.status(500).json({ message: "Failed to load orders." });
+    }
+});
+const exportOrdersCsv = async (req, res) => {
+    try {
+        const parsed = parseOrdersQuery(req.query || {});
+        const filteredWhere = await applyDeliveryFilter(parsed.where, parsed.filters.deliveryStatus);
+        const rows = await Order.findAll({
+            where: filteredWhere,
+            attributes: [
+                "id",
+                "invoiceNo",
+                "checkoutMode",
+                "status",
+                "paymentStatus",
+                "createdAt",
+                "totalAmount",
+                "customerName",
+                "paymentMethod",
+            ],
+            include: [
+                {
+                    model: User,
+                    as: "customer",
+                    attributes: ["name", "email"],
+                    required: false,
+                },
+            ],
+            order: [[parsed.sort.sortColumn, parsed.sort.sortDir]],
+        });
+        const header = csvRow([
+            "Invoice No",
+            "Order Time",
+            "Customer Name",
+            "Method",
+            "Amount",
+            "Status",
+        ]);
+        const lines = rows.map((orderRow) => {
+            const customer = orderRow?.customer ??
+                orderRow?.get?.("customer") ??
+                orderRow?.dataValues?.customer ??
+                null;
+            const invoiceNo = getAttr(orderRow, "invoiceNo") ?? String(getAttr(orderRow, "id") ?? "");
+            const createdAt = getAttr(orderRow, "createdAt")
+                ? new Date(getAttr(orderRow, "createdAt")).toISOString().replace("T", " ").slice(0, 19)
+                : "";
+            const customerName = getAttr(orderRow, "customerName") ?? customer?.name ?? customer?.email ?? "Guest";
+            const method = toMethodLabel(normalizeMethodOutput(getAttr(orderRow, "paymentMethod") ?? "COD"));
+            const amount = Number(getAttr(orderRow, "totalAmount") ?? 0);
+            const status = toUiStatus(getAttr(orderRow, "status"));
+            return csvRow([invoiceNo, createdAt, customerName, method, amount, status]);
+        });
+        const now = new Date();
+        const stampDate = now.toISOString().slice(0, 10);
+        const filename = `tp-preneurs-orders-${stampDate}.csv`;
+        const csv = [header, ...lines].join("\n");
+        res.setHeader("Content-Type", "text/csv; charset=utf-8");
+        res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+        return res.status(200).send(csv);
+    }
+    catch (error) {
+        console.error("[admin.orders export] error", error);
+        return res.status(500).json({ message: "Failed to export orders." });
+    }
+};
+router.get("/export", requireStaffOrAdmin, exportOrdersCsv);
+router.get("/export.csv", requireStaffOrAdmin, exportOrdersCsv);
+const findOrderDetail = async (lookup, preferInvoiceLookup = false) => {
+    if (!lookup)
+        return null;
+    if (!preferInvoiceLookup) {
+        return Order.findOne({
+            where: resolveOrderWhere(lookup),
+            include: orderDetailInclude,
+        });
+    }
+    let orderItem = await Order.findOne({
+        where: { invoiceNo: lookup },
+        include: orderDetailInclude,
+    });
+    if (!orderItem && /^\d+$/.test(lookup)) {
+        // Backward-compat fallback for legacy numeric links.
+        orderItem = await Order.findOne({
+            where: { id: Number(lookup) },
+            include: orderDetailInclude,
+        });
+    }
+    return orderItem;
+};
+const sendOrderDetail = async (res, lookup, preferInvoiceLookup = false) => {
+    const orderItem = await findOrderDetail(lookup, preferInvoiceLookup);
+    if (!orderItem) {
+        return res.status(404).json({ message: "Not found" });
+    }
+    const orderId = Number(getAttr(orderItem, "id") || 0);
+    const paymentCodeByOrderId = await loadLatestDuitkuPaymentCodes([orderId]);
+    const payload = toOrderDetailPayload(orderItem, paymentCodeByOrderId.get(orderId) ?? null);
+    const contract = await buildAdminContractForOrder({
+        orderId: Number(payload.id || 0),
+        orderStatus: payload.rawStatus || payload.status || "pending",
+        paymentStatus: payload.paymentStatus || "UNPAID",
+        paymentMethod: String(payload.paymentMethod || payload.method || "COD"),
+    });
+    return res.json({
+        success: true,
+        data: {
+            ...payload,
+            contract,
+        },
+    });
+};
+router.get("/by-invoice/:invoiceNo", requireStaffOrAdmin, async (req, res) => {
+    const invoiceNo = String(asSingle(req.params.invoiceNo) ?? "").trim();
+    if (!invoiceNo) {
+        return res.status(400).json({ message: "Invalid invoice no" });
+    }
+    return sendOrderDetail(res, invoiceNo, true);
+});
+router.get("/shipping-reconciliation/report", requireStaffOrAdmin, async (req, res) => {
+    try {
+        const report = await listAdminShippingReconciliationReport(req.query || {});
+        return res.json({
+            success: true,
+            data: report.items,
+            meta: report.meta,
+        });
+    }
+    catch (error) {
+        console.error("[admin/orders:shipping-reconciliation] error", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to load shipping reconciliation report.",
+        });
+    }
+});
+router.get("/:id", requireStaffOrAdmin, async (req, res) => {
+    const idStr = String(asSingle(req.params.id) ?? "").trim();
+    if (!idStr) {
+        return res.status(400).json({ message: "Invalid id" });
+    }
+    return sendOrderDetail(res, idStr, false);
+});
+router.patch("/:id/suborders/:suborderId/shipment-correction", requireAdmin, async (req, res) => {
+    const idStr = String(asSingle(req.params.id) ?? "").trim();
+    const suborderId = Number(asSingle(req.params.suborderId));
+    if (!idStr || !Number.isFinite(suborderId) || suborderId <= 0) {
+        return res.status(400).json({
+            success: false,
+            code: "INVALID_ADMIN_SHIPMENT_CORRECTION_TARGET",
+            message: "Invalid order or suborder target.",
+        });
+    }
+    const targetStatus = String(req.body?.targetStatus || "").trim().toUpperCase();
+    const reason = String(req.body?.reason || "").trim();
+    const actorUserId = Number(req.user?.id || 0) || null;
+    const tx = await sequelize.transaction();
+    try {
+        const order = await Order.findOne({
+            where: resolveOrderWhere(idStr),
+            attributes: ["id", "invoiceNo", "status", "paymentStatus", "userId"],
+            transaction: tx,
+            lock: tx.LOCK.UPDATE,
+        });
+        if (!order) {
+            await tx.rollback();
+            return res.status(404).json({
+                success: false,
+                code: "ORDER_NOT_FOUND",
+                message: "Order was not found.",
+            });
+        }
+        const orderId = Number(getAttr(order, "id") || 0);
+        const suborder = await Suborder.findOne({
+            where: { id: suborderId, orderId },
+            attributes: [
+                "id",
+                "orderId",
+                "suborderNumber",
+                "storeId",
+                "paymentStatus",
+                "fulfillmentStatus",
+            ],
+            include: [
+                {
+                    model: Shipment,
+                    as: "shipment",
+                    required: false,
+                    include: [
+                        {
+                            model: TrackingEvent,
+                            as: "trackingEvents",
+                            required: false,
+                        },
+                    ],
+                },
+            ],
+            transaction: tx,
+            lock: tx.LOCK.UPDATE,
+        });
+        if (!suborder) {
+            await tx.rollback();
+            return res.status(404).json({
+                success: false,
+                code: "SUBORDER_NOT_FOUND",
+                message: "Suborder was not found for this order.",
+            });
+        }
+        const beforeState = {
+            orderId,
+            invoiceNo: String(getAttr(order, "invoiceNo") || ""),
+            suborderId: Number(getAttr(suborder, "id") || 0),
+            suborderNumber: String(getAttr(suborder, "suborderNumber") || ""),
+            paymentStatus: normalizeSuborderPaymentStatus(getAttr(suborder, "paymentStatus")),
+            fulfillmentStatus: normalizeSuborderFulfillmentStatus(getAttr(suborder, "fulfillmentStatus")),
+            shipmentStatus: String(getAttr(suborder.shipment, "status") || ""),
+        };
+        const correction = await applyAdminShipmentCorrection({
+            suborder,
+            targetStatus,
+            reason,
+            actorUserId,
+            transaction: tx,
+        });
+        const parentOrderSync = await recalculateParentOrderFulfillmentStatus(orderId, tx);
+        await tx.commit();
+        logOperationalAuditEvent("admin.shipment.correction", {
+            traceId: getRequestTraceId(req),
+            actorUserId,
+            orderId,
+            invoiceNo: beforeState.invoiceNo,
+            suborderId: beforeState.suborderId,
+            suborderNumber: beforeState.suborderNumber,
+            statusFrom: correction.fromShipmentStatus,
+            statusTo: correction.toShipmentStatus,
+            compatibilityFrom: beforeState.fulfillmentStatus,
+            compatibilityTo: correction.compatibilityFulfillmentStatus,
+            reasonFingerprint: fingerprintAuditValue(correction.reason),
+            reasonLength: correction.reason.length,
+        });
+        if (parentOrderSync?.changed && parentOrderSync.userId) {
+            try {
+                await createUserOrderStatusUpdatedNotification({
+                    userId: parentOrderSync.userId,
+                    orderId,
+                    invoiceNo: parentOrderSync.invoiceNo ||
+                        String(getAttr(order, "invoiceNo") || "").trim() ||
+                        null,
+                    statusFrom: parentOrderSync.previousStatus,
+                    statusTo: parentOrderSync.nextStatus,
+                });
+            }
+            catch (notifyError) {
+                console.warn("[admin/orders:shipment-correction] failed to create user status notification", notifyError);
+            }
+        }
+        return res.json({
+            success: true,
+            message: "Admin shipment correction applied.",
+            data: {
+                correction: {
+                    source: "ADMIN_SHIPPING_EXCEPTION_CORRECTION",
+                    orderId,
+                    invoiceNo: beforeState.invoiceNo,
+                    suborderId: beforeState.suborderId,
+                    suborderNumber: beforeState.suborderNumber,
+                    from: correction.fromShipmentStatus,
+                    to: correction.toShipmentStatus,
+                    compatibilityFrom: beforeState.fulfillmentStatus,
+                    compatibilityTo: correction.compatibilityFulfillmentStatus,
+                    shipmentId: Number(getAttr(correction.shipment, "id") || 0) || null,
+                },
+                parentOrderSync: parentOrderSync
+                    ? {
+                        changed: Boolean(parentOrderSync.changed),
+                        from: parentOrderSync.previousStatus,
+                        to: parentOrderSync.nextStatus,
+                        source: "SUBORDER_FULFILLMENT_AGGREGATION",
+                    }
+                    : null,
+            },
+        });
+    }
+    catch (error) {
+        try {
+            await tx.rollback();
+        }
+        catch {
+            // ignore rollback failure after primary error
+        }
+        const code = String(error?.code || "").toUpperCase();
+        const statusCode = Number(error?.statusCode || 0) || 500;
+        if (code) {
+            console.warn("[admin/orders:shipment-correction] rejected", {
+                code,
+                message: error?.message || "Failed to apply admin shipment correction.",
+            });
+            return res.status(statusCode).json({
+                success: false,
+                code,
+                message: error?.message || "Failed to apply admin shipment correction.",
+            });
+        }
+        console.error("[admin/orders:shipment-correction] error", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to apply admin shipment correction.",
+        });
+    }
+});
+router.patch("/:id/status", requireStaffOrAdmin, async (req, res) => {
+    const idStr = String(asSingle(req.params.id) ?? "");
+    if (!idStr) {
+        return res.status(400).json({ message: "Invalid id" });
+    }
+    const rawStatus = String(req.body?.status ?? "").toLowerCase().trim();
+    if (!rawStatus || !isUiOrderStatus(rawStatus)) {
+        return res.status(400).json({
+            message: `Status tidak valid. Gunakan salah satu dari: ${allowedStatuses.join(", ")}`,
+        });
+    }
+    const normalizedStatus = normalizeStatusInput(rawStatus);
+    if (!normalizedStatus) {
+        return res.status(400).json({
+            message: `Status tidak valid. Gunakan salah satu dari: ${allowedStatuses.join(", ")}`,
+        });
+    }
+    const existingOrder = await Order.findOne({
+        where: resolveOrderWhere(idStr),
+        attributes: ["id", "status", "invoiceNo", "userId"],
+    });
+    if (!existingOrder) {
+        return res.status(404).json({ message: "Pesanan tidak ditemukan." });
+    }
+    const previousStatus = toUiStatus(getAttr(existingOrder, "status"));
+    if (normalizedStatus === "cancelled" && previousStatus === "complete") {
+        return res.status(409).json({
+            success: false,
+            code: "PARENT_ORDER_FINALIZED",
+            message: "Parent order is already in a final delivered state, so it cannot be cancelled.",
+            data: {
+                currentStatus: previousStatus,
+                targetStatus: "cancelled",
+            },
+        });
+    }
+    if (normalizedStatus === "processing" || normalizedStatus === "shipped") {
+        const transitionCheck = await inspectAdminOrderTransitionEligibility(Number(getAttr(existingOrder, "id")), normalizedStatus);
+        if (!transitionCheck.allowed) {
+            return res.status(409).json({
+                success: false,
+                code: transitionCheck.code,
+                message: transitionCheck.message,
+                data: transitionCheck.data,
+            });
+        }
+    }
+    if (normalizedStatus === "delivered") {
+        const precheck = await inspectAdminOrderTransitionEligibility(Number(getAttr(existingOrder, "id")), normalizedStatus);
+        if (!precheck.allowed) {
+            return res.status(409).json({
+                success: false,
+                code: precheck.code,
+                message: precheck.message,
+                data: precheck.data,
+            });
+        }
+        const finalizationCheck = await inspectParentOrderFinalizationEligibility(Number(getAttr(existingOrder, "id")));
+        if (!finalizationCheck.allowed) {
+            const blockingStatuses = Array.from(new Set(finalizationCheck.blockingSuborders.map((suborder) => suborder.fulfillmentStatus)));
+            const blockingCount = finalizationCheck.blockingSuborders.length;
+            const suborderLabel = blockingCount === 1 ? "suborder" : "suborders";
+            const verb = blockingCount === 1 ? "is" : "are";
+            const statusSummary = blockingStatuses.length > 0 ? blockingStatuses.join(", ") : "UNKNOWN";
+            return res.status(409).json({
+                success: false,
+                code: "PARENT_FINALIZATION_BLOCKED_BY_SUBORDER_FULFILLMENT",
+                message: `Cannot finalize parent order while ${blockingCount} active ${suborderLabel} ${verb} still not delivered (${statusSummary}).`,
+                data: finalizationCheck,
+            });
+        }
+    }
+    const [updatedRows] = await Order.update({ status: normalizedStatus, updatedAt: new Date() }, { where: resolveOrderWhere(idStr) });
+    if (updatedRows === 0) {
+        return res.status(404).json({ message: "Pesanan tidak ditemukan." });
+    }
+    const updatedOrder = await Order.findOne({
+        where: resolveOrderWhere(idStr),
+        attributes: [
+            "id",
+            "invoiceNo",
+            "status",
+            "paymentStatus",
+            "paymentMethod",
+            "totalAmount",
+            "createdAt",
+            "updatedAt",
+            "userId",
+        ],
+    });
+    const updatedPaymentStatus = String(getAttr(updatedOrder, "paymentStatus") || "").toUpperCase().trim() || "UNPAID";
+    const updatedContract = await buildAdminContractForOrder({
+        orderId: Number(getAttr(updatedOrder, "id") || 0),
+        orderStatus: String(getAttr(updatedOrder, "status") || "pending"),
+        paymentStatus: updatedPaymentStatus,
+        paymentMethod: String(getAttr(updatedOrder, "paymentMethod") || "COD"),
+    });
+    try {
+        const userId = Number(getAttr(updatedOrder, "userId"));
+        if (Number.isFinite(userId) && userId > 0) {
+            await createUserOrderStatusUpdatedNotification({
+                userId,
+                orderId: Number(getAttr(updatedOrder, "id") || 0),
+                invoiceNo: String(getAttr(updatedOrder, "invoiceNo") || ""),
+                statusFrom: previousStatus,
+                statusTo: toUiStatus(getAttr(updatedOrder, "status")),
+            });
+        }
+    }
+    catch (notifyError) {
+        console.warn("[admin.orders] failed to create user status notification", notifyError);
+    }
+    return res.json({
+        success: true,
+        message: `Status pesanan berhasil diperbarui menjadi ${rawStatus}.`,
+        data: {
+            id: getAttr(updatedOrder, "id"),
+            invoiceNo: getAttr(updatedOrder, "invoiceNo"),
+            status: toUiStatus(getAttr(updatedOrder, "status")),
+            rawStatus: String(getAttr(updatedOrder, "status") || "pending"),
+            paymentStatus: updatedPaymentStatus,
+            paymentStatusMeta: buildPaymentStatusMeta(updatedPaymentStatus),
+            totalAmount: Number(getAttr(updatedOrder, "totalAmount") || 0),
+            createdAt: getAttr(updatedOrder, "createdAt"),
+            updatedAt: getAttr(updatedOrder, "updatedAt"),
+            contract: updatedContract,
+        },
+    });
+});
+router.post("/bulk-delete", requireAdmin, async (req, res) => {
+    let tx = null;
+    try {
+        const ids = Array.from(new Set((Array.isArray(req.body?.ids) ? req.body.ids : [])
+            .map((value) => Number(value))
+            .filter((value) => Number.isInteger(value) && value > 0)));
+        if (ids.length === 0) {
+            return res.status(400).json({
+                success: false,
+                code: "INVALID_ORDER_IDS",
+                message: "Select at least one order to delete.",
+            });
+        }
+        tx = await sequelize.transaction();
+        const deletableOrders = [];
+        for (const orderId of ids) {
+            const snapshot = await assertAdminOrderDeletionAllowed(orderId, tx);
+            deletableOrders.push({
+                orderId,
+                invoiceNo: String(getAttr(snapshot.order, "invoiceNo") || "").trim() || null,
+            });
+        }
+        for (const item of deletableOrders) {
+            await deleteOrderCascade(item.orderId, tx);
+        }
+        await tx.commit();
+        tx = null;
+        logOperationalAuditEvent("admin.orders.bulk_delete", {
+            traceId: getRequestTraceId(req),
+            actorUserId: Number(req.user?.id || 0) || null,
+            deletedCount: deletableOrders.length,
+            deletedOrders: deletableOrders,
+        });
+        return res.json({
+            success: true,
+            message: deletableOrders.length === 1
+                ? "Order deleted."
+                : `${deletableOrders.length} orders deleted.`,
+            data: {
+                deletedIds: deletableOrders.map((item) => item.orderId),
+                deletedOrders: deletableOrders,
+            },
+        });
+    }
+    catch (error) {
+        if (tx) {
+            try {
+                await tx.rollback();
+            }
+            catch {
+                // ignore rollback failure after primary error
+            }
+        }
+        const code = String(error?.code || "").toUpperCase();
+        const statusCode = Number(error?.statusCode || 0) || 500;
+        if (code) {
+            return res.status(statusCode).json({
+                success: false,
+                code,
+                message: error?.message || "Failed to delete selected orders.",
+                data: error?.data || null,
+            });
+        }
+        console.error("[admin.orders bulk-delete] error", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to delete selected orders.",
+        });
+    }
+});
+// Other CRUD endpoints for Orders can be added here following the same pattern as Customers
+export default router;

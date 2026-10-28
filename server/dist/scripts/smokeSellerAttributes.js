@@ -1,0 +1,220 @@
+import "dotenv/config";
+import assert from "node:assert/strict";
+import bcrypt from "bcrypt";
+import { QueryTypes } from "sequelize";
+import { Attribute, Store, User, sequelize } from "../models/index.js";
+const BASE_URL = String(process.env.BASE_URL || "http://localhost:3001").replace(/\/+$/, "");
+const DEFAULT_PASSWORD = process.env.MVF_SMOKE_PASSWORD || "mvf-smoke-123";
+const RUN_ID = `mvf-seller-attr-${Date.now()}`;
+class CookieClient {
+    constructor() {
+        this.cookie = "";
+    }
+    async request(path, init = {}) {
+        const headers = new Headers(init.headers || {});
+        headers.set("Accept", "application/json");
+        if (init.body && !headers.has("Content-Type")) {
+            headers.set("Content-Type", "application/json");
+        }
+        if (this.cookie)
+            headers.set("Cookie", this.cookie);
+        const response = await fetch(`${BASE_URL}${path}`, {
+            ...init,
+            headers,
+        });
+        const setCookie = response.headers.get("set-cookie");
+        if (setCookie) {
+            this.cookie = setCookie.split(";")[0] || this.cookie;
+        }
+        const text = await response.text();
+        let body = null;
+        try {
+            body = text ? JSON.parse(text) : null;
+        }
+        catch {
+            body = text;
+        }
+        return {
+            status: response.status,
+            ok: response.ok,
+            body,
+            text,
+            headers: response.headers,
+        };
+    }
+}
+const createdUserIds = [];
+const createdStoreIds = [];
+const createdAttributeIds = [];
+const createdAttributeValueIds = [];
+const logStep = (label) => console.log(`[seller-attributes] ${label}`);
+const logPass = (label) => console.log(`[seller-attributes] PASS ${label}`);
+const assertStatus = (response, status, label) => {
+    assert.equal(response.status, status, `${label}: expected HTTP ${status}, received ${response.status} (${response.text})`);
+};
+async function ensureServerReady() {
+    const response = await fetch(`${BASE_URL}/api/health`);
+    assert.equal(response.ok, true, `[seller-attributes] API not ready at ${BASE_URL}/api/health`);
+}
+async function createFixtureUser(label) {
+    const email = `${RUN_ID}-${label}@local.dev`;
+    const hashed = await bcrypt.hash(DEFAULT_PASSWORD, 10);
+    const user = await User.create({
+        name: `Seller Attributes ${label}`,
+        email,
+        password: hashed,
+        role: "customer",
+        status: "active",
+    });
+    const id = Number(user.getDataValue("id"));
+    createdUserIds.push(id);
+    return { id, email, password: DEFAULT_PASSWORD };
+}
+async function createFixtureStore(ownerUserId, label) {
+    const slug = `${RUN_ID}-${label}-store`.toLowerCase();
+    const store = await Store.create({
+        ownerUserId,
+        name: `${RUN_ID} ${label} store`,
+        slug,
+        status: "ACTIVE",
+    });
+    const id = Number(store.getDataValue("id"));
+    createdStoreIds.push(id);
+    return { id, slug };
+}
+async function createAttribute(name, published, values) {
+    const attribute = await Attribute.create({
+        name,
+        displayName: `${name} display`,
+        type: "dropdown",
+        published,
+        scope: "global",
+        createdByRole: "admin",
+        status: "active",
+    });
+    const attributeId = Number(attribute.getDataValue("id"));
+    assert.ok(attributeId > 0, "failed to seed attribute");
+    createdAttributeIds.push(attributeId);
+    const valueIds = [];
+    for (const value of values) {
+        const [_result, meta] = await sequelize.query(`
+        INSERT INTO attribute_values (attribute_id, value, status, created_at, updated_at)
+        VALUES (?, ?, 'active', NOW(), NOW())
+      `, {
+            replacements: [attributeId, value],
+        });
+        let valueId = Number(meta?.insertId || 0);
+        if (!valueId) {
+            const rows = await sequelize.query("SELECT id FROM attribute_values WHERE attribute_id = ? AND value = ? LIMIT 1", {
+                replacements: [attributeId, value],
+                type: QueryTypes.SELECT,
+            });
+            valueId = Number(rows[0]?.id || 0);
+        }
+        if (valueId > 0)
+            createdAttributeValueIds.push(valueId);
+        if (valueId > 0)
+            valueIds.push(valueId);
+    }
+    return { attributeId, valueIds };
+}
+async function login(client, email, password, label) {
+    const response = await client.request("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+    });
+    assertStatus(response, 200, label);
+}
+async function cleanupFixtures() {
+    if (createdAttributeValueIds.length > 0) {
+        await sequelize.query(`DELETE FROM attribute_values WHERE id IN (${createdAttributeValueIds.map(() => "?").join(",")})`, {
+            replacements: createdAttributeValueIds,
+            type: QueryTypes.DELETE,
+        });
+    }
+    if (createdAttributeIds.length > 0) {
+        await sequelize.query(`DELETE FROM attributes WHERE id IN (${createdAttributeIds.map(() => "?").join(",")})`, {
+            replacements: createdAttributeIds,
+            type: QueryTypes.DELETE,
+        });
+    }
+    if (createdStoreIds.length > 0) {
+        await Store.destroy({ where: { id: createdStoreIds }, force: true });
+    }
+    if (createdUserIds.length > 0) {
+        await User.destroy({ where: { id: createdUserIds }, force: true });
+    }
+}
+async function main() {
+    await ensureServerReady();
+    const seller = await createFixtureUser("seller");
+    const otherSeller = await createFixtureUser("other");
+    const sellerStore = await createFixtureStore(seller.id, "seller");
+    const otherStore = await createFixtureStore(otherSeller.id, "other");
+    const publishedName = `${RUN_ID}-published`;
+    const unpublishedName = `${RUN_ID}-hidden`;
+    const publishedAttribute = await createAttribute(publishedName, true, ["alpha", "beta"]);
+    await createAttribute(unpublishedName, false, ["gamma"]);
+    const sellerClient = new CookieClient();
+    await login(sellerClient, seller.email, seller.password, "seller login");
+    logStep("list published attributes");
+    const listResponse = await sellerClient.request(`/api/seller/stores/${sellerStore.id}/attributes?keyword=${encodeURIComponent(RUN_ID)}&limit=20`);
+    assertStatus(listResponse, 200, "seller attributes list");
+    const items = Array.isArray(listResponse.body?.data) ? listResponse.body.data : [];
+    assert.ok(items.some((item) => String(item?.name || "") === publishedName), "published attribute missing");
+    assert.ok(!items.some((item) => String(item?.name || "") === unpublishedName), "unpublished attribute leaked");
+    logPass("seller sees only published global attributes");
+    logStep("read published global attribute values");
+    const valuesResponse = await sellerClient.request(`/api/seller/stores/${sellerStore.id}/attributes/${publishedAttribute.attributeId}/values`);
+    assertStatus(valuesResponse, 200, "seller global attribute values");
+    assert.equal(valuesResponse.body?.attribute?.scope, "global", "global attribute scope mismatch");
+    assert.equal(valuesResponse.body?.attribute?.editable, false, "global attribute should be read-only");
+    const globalValues = Array.isArray(valuesResponse.body?.data) ? valuesResponse.body.data : [];
+    assert.deepEqual(globalValues.map((entry) => String(entry?.value || "")).sort(), ["alpha", "beta"], "global attribute values mismatch");
+    logPass("seller can read published global attribute values as read-only");
+    logStep("hide archived global attribute values");
+    await sequelize.query("UPDATE attribute_values SET status = 'archived' WHERE id = ?", {
+        replacements: [publishedAttribute.valueIds[1]],
+    });
+    const archivedValueResponse = await sellerClient.request(`/api/seller/stores/${sellerStore.id}/attributes/${publishedAttribute.attributeId}/values`);
+    assertStatus(archivedValueResponse, 200, "seller global attribute values after archive");
+    const activeGlobalValues = Array.isArray(archivedValueResponse.body?.data)
+        ? archivedValueResponse.body.data
+        : [];
+    assert.deepEqual(activeGlobalValues.map((entry) => String(entry?.value || "")).sort(), ["alpha"], "archived global attribute value leaked");
+    logPass("archived global values stay hidden from seller variant selection");
+    logStep("filter by option type");
+    const typeResponse = await sellerClient.request(`/api/seller/stores/${sellerStore.id}/attributes?optionType=dropdown&limit=20`);
+    assertStatus(typeResponse, 200, "seller attributes type filter");
+    const typeItems = Array.isArray(typeResponse.body?.data) ? typeResponse.body.data : [];
+    assert.ok(typeItems.every((item) => String(item?.type || "") === "dropdown"), "type filter mismatch");
+    logPass("option type filter works");
+    logStep("export seller attributes csv");
+    const exportCsv = await sellerClient.request(`/api/seller/stores/${sellerStore.id}/attributes/export?format=csv&keyword=${encodeURIComponent(RUN_ID)}`);
+    assertStatus(exportCsv, 200, "seller attributes export csv");
+    assert.match(String(exportCsv.headers.get("content-type") || ""), /text\/csv/i);
+    assert.match(exportCsv.text, /published/i);
+    assert.match(exportCsv.text, new RegExp(publishedName));
+    logPass("csv export works");
+    logStep("export seller attributes json");
+    const exportJson = await sellerClient.request(`/api/seller/stores/${sellerStore.id}/attributes/export?format=json&keyword=${encodeURIComponent(RUN_ID)}`);
+    assertStatus(exportJson, 200, "seller attributes export json");
+    assert.match(String(exportJson.headers.get("content-type") || ""), /application\/json/i);
+    assert.equal(exportJson.body?.scope, "seller-hybrid-attributes");
+    logPass("json export works");
+    logStep("cross-store access denied");
+    const forbiddenResponse = await sellerClient.request(`/api/seller/stores/${otherStore.id}/attributes`);
+    assert.equal(forbiddenResponse.status, 403, `cross-store access should be denied (${forbiddenResponse.text})`);
+    logPass("cross-store access denied");
+}
+main()
+    .then(async () => {
+    await cleanupFixtures();
+    console.log("[seller-attributes] PASS");
+    process.exit(0);
+})
+    .catch(async (error) => {
+    console.error("[seller-attributes] FAIL", error);
+    await cleanupFixtures();
+    process.exit(1);
+});

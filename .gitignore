@@ -4,7 +4,6 @@ server/.env
 client/.env.local
 client/.env.production.local
 node_modules/
-packages/schemas/dist/
 cookies*.txt
 *cookies*.txt
 *.cookies
@@ -26,7 +25,6 @@ tmp_mvp*.ps1
 **/tmp_*.err
 **/tmp_*.pid
 client/dist/
-server/dist/
 **/*.log
 .codex-artifacts/
 .codex-dev/

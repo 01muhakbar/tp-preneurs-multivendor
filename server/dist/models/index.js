@@ -1,0 +1,465 @@
+// server/src/models/index.ts
+import "dotenv/config";
+import sequelize from "../config/database.js";
+import { initUser, User } from "./User.js";
+import { Store } from "./Store.js";
+import { StoreRole } from "./StoreRole.js";
+import { StoreMember } from "./StoreMember.js";
+import { StoreAuditLog } from "./StoreAuditLog.js";
+import { StorePaymentProfile } from "./StorePaymentProfile.js";
+import { StorePaymentProfileRequest } from "./StorePaymentProfileRequest.js";
+import { StoreApplication } from "./StoreApplication.js";
+import { Product } from "./Product.js";
+import { Category } from "./Category.js";
+import { ProductCategory } from "./ProductCategory.js";
+import { Cart } from "./Cart.js";
+import { CartItem } from "./CartItem.js";
+import { Order } from "./Order.js";
+import { OrderItem } from "./OrderItem.js";
+import { Suborder } from "./Suborder.js";
+import { SuborderItem } from "./SuborderItem.js";
+import { Payment } from "./Payment.js";
+import { PaymentProof } from "./PaymentProof.js";
+import { PaymentStatusLog } from "./PaymentStatusLog.js";
+import { OrderCollectionClaim } from "./OrderCollectionClaim.js";
+import { OrderPaymentAttempt } from "./OrderPaymentAttempt.js";
+import { DuitkuCallbackInbox } from "./DuitkuCallbackInbox.js";
+import { OrderPaymentAttemptEvent } from "./OrderPaymentAttemptEvent.js";
+import { OrderPaymentSecurityEvent } from "./OrderPaymentSecurityEvent.js";
+import { Shipment } from "./Shipment.js";
+import { TrackingEvent } from "./TrackingEvent.js";
+import { Coupon } from "./Coupon.js";
+import { ProductReview } from "./ProductReview.js";
+import { Attribute } from "./Attribute.js";
+import { Language } from "./Language.js";
+import { Currency } from "./Currency.js";
+import { Notification } from "./Notification.js";
+import { UserAddress } from "./UserAddress.js";
+import { UserRegistrationVerification } from "./UserRegistrationVerification.js";
+import { StoreWithdrawal, initStoreWithdrawal } from "./StoreWithdrawal.js";
+import { ensureSystemStoreRoles } from "../services/seller/storeRoles.js";
+function normalizeTableName(input) {
+    if (typeof input === "string")
+        return input;
+    if (input && typeof input === "object") {
+        if (typeof input.tableName === "string")
+            return input.tableName;
+        if (typeof input.table === "string")
+            return input.table;
+    }
+    return String(input ?? "");
+}
+async function resolveProductsTableName(queryInterface) {
+    for (const candidate of ["products", "Products"]) {
+        try {
+            await queryInterface.describeTable(candidate);
+            return candidate;
+        }
+        catch {
+            // try next candidate
+        }
+    }
+    return null;
+}
+async function getProductUserIdForeignKeys(queryInterface, tableName) {
+    const [rows] = await queryInterface.sequelize.query(`
+      SELECT
+        kcu.TABLE_NAME AS tableName,
+        kcu.CONSTRAINT_NAME AS constraintName
+      FROM information_schema.KEY_COLUMN_USAGE kcu
+      WHERE kcu.TABLE_SCHEMA = DATABASE()
+        AND kcu.TABLE_NAME = :tableName
+        AND kcu.COLUMN_NAME = 'userId'
+        AND kcu.REFERENCED_TABLE_NAME IS NOT NULL
+    `, { replacements: { tableName } });
+    return Array.isArray(rows) ? rows : [];
+}
+async function dropProductUserIdForeignKeys(queryInterface) {
+    const productsTable = await resolveProductsTableName(queryInterface);
+    if (!productsTable)
+        return new Set();
+    const rows = await getProductUserIdForeignKeys(queryInterface, productsTable);
+    const names = new Set(rows.map((row) => String(row.constraintName)));
+    for (const constraintName of names) {
+        await queryInterface.removeConstraint(productsTable, constraintName);
+    }
+    return names;
+}
+function isUnknownConstraintError(error) {
+    const name = String(error?.name ?? "");
+    const message = String(error?.message ?? "").toLowerCase();
+    return name === "SequelizeUnknownConstraintError" || message.includes("does not exist");
+}
+// Registrasi semua model di sini
+function initModels() {
+    initUser(sequelize);
+    Store.initModel(sequelize);
+    StoreRole.initModel(sequelize);
+    StoreMember.initModel(sequelize);
+    StoreAuditLog.initModel(sequelize);
+    StorePaymentProfile.initModel(sequelize);
+    StorePaymentProfileRequest.initModel(sequelize);
+    StoreApplication.initModel(sequelize);
+    Product.initModel(sequelize);
+    Category.initModel(sequelize);
+    ProductCategory.initModel(sequelize);
+    Cart.initModel(sequelize);
+    CartItem.initModel(sequelize);
+    Order.initModel(sequelize);
+    OrderItem.initModel(sequelize);
+    Suborder.initModel(sequelize);
+    SuborderItem.initModel(sequelize);
+    Payment.initModel(sequelize);
+    PaymentProof.initModel(sequelize);
+    PaymentStatusLog.initModel(sequelize);
+    OrderCollectionClaim.initModel(sequelize);
+    OrderPaymentAttempt.initModel(sequelize);
+    DuitkuCallbackInbox.initModel(sequelize);
+    OrderPaymentAttemptEvent.initModel(sequelize);
+    OrderPaymentSecurityEvent.initModel(sequelize);
+    Shipment.initModel(sequelize);
+    TrackingEvent.initModel(sequelize);
+    Coupon.initModel(sequelize);
+    ProductReview.initModel(sequelize);
+    Attribute.initModel(sequelize);
+    Language.initModel(sequelize);
+    Currency.initModel(sequelize);
+    Notification.initModel(sequelize);
+    UserAddress.initModel(sequelize);
+    UserRegistrationVerification.initModel(sequelize);
+    initStoreWithdrawal(sequelize);
+    const models = {
+        User,
+        Store,
+        StoreRole,
+        StoreMember,
+        StoreAuditLog,
+        StorePaymentProfile,
+        StorePaymentProfileRequest,
+        StoreApplication,
+        StoreWithdrawal,
+        Product,
+        Category,
+        ProductCategory,
+        Cart,
+        CartItem,
+        Order,
+        OrderItem,
+        Suborder,
+        SuborderItem,
+        Payment,
+        PaymentProof,
+        PaymentStatusLog,
+        OrderCollectionClaim,
+        OrderPaymentAttempt,
+        DuitkuCallbackInbox,
+        OrderPaymentAttemptEvent,
+        OrderPaymentSecurityEvent,
+        Shipment,
+        TrackingEvent,
+        Coupon,
+        ProductReview,
+        Attribute,
+        Language,
+        Currency,
+        Notification,
+        UserAddress,
+        UserRegistrationVerification,
+    };
+    Object.values(models).forEach((model) => {
+        if (typeof model.associate === "function") {
+            model.associate(models);
+        }
+    });
+}
+// Jalankan init sekali waktu file ini di-import
+initModels();
+async function backfillProductCategoryAssignments() {
+    const products = await Product.findAll({
+        attributes: ["id", "categoryId", "defaultCategoryId"],
+    });
+    const categoryLinks = [];
+    for (const product of products) {
+        const productId = Number(product.get?.("id") ?? product.id);
+        const categoryId = Number(product.get?.("categoryId") ?? product.categoryId ?? 0);
+        const defaultCategoryId = Number(product.get?.("defaultCategoryId") ?? product.defaultCategoryId ?? 0);
+        const resolvedDefaultCategoryId = defaultCategoryId > 0 ? defaultCategoryId : categoryId > 0 ? categoryId : null;
+        if (resolvedDefaultCategoryId && defaultCategoryId <= 0) {
+            await product.update({ defaultCategoryId: resolvedDefaultCategoryId });
+        }
+        if (resolvedDefaultCategoryId) {
+            categoryLinks.push({
+                productId,
+                categoryId: resolvedDefaultCategoryId,
+            });
+        }
+    }
+    if (categoryLinks.length > 0) {
+        await ProductCategory.bulkCreate(categoryLinks, { ignoreDuplicates: true });
+    }
+}
+function buildStoreBaseName(user, ownerUserId) {
+    const name = String(user?.get?.("name") ?? user?.name ?? "").trim();
+    if (name)
+        return name;
+    const email = String(user?.get?.("email") ?? user?.email ?? "").trim();
+    if (email) {
+        return email
+            .split("@")[0]
+            .replace(/[._-]+/g, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+    }
+    return `Store ${ownerUserId}`;
+}
+function slugifyStoreBase(value, ownerUserId) {
+    const normalized = String(value || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "") || `store-${ownerUserId}`;
+    return `${normalized}-${ownerUserId}`;
+}
+async function ensureStoreForOwnerUser(ownerUserId) {
+    const existing = await Store.findOne({
+        where: { ownerUserId },
+        attributes: ["id", "ownerUserId", "name", "slug", "status"],
+    });
+    if (existing)
+        return existing;
+    const owner = await User.findByPk(ownerUserId, {
+        attributes: ["id", "name", "email"],
+    });
+    const baseName = buildStoreBaseName(owner, ownerUserId);
+    return Store.create({
+        ownerUserId,
+        name: baseName,
+        slug: slugifyStoreBase(baseName, ownerUserId),
+        status: "ACTIVE",
+    });
+}
+async function backfillStoreAssignments() {
+    const products = await Product.findAll({
+        attributes: ["id", "userId", "storeId"],
+    });
+    for (const product of products) {
+        const productId = Number(product.get?.("id") ?? product.id ?? 0);
+        const ownerUserId = Number(product.get?.("userId") ?? product.userId ?? 0);
+        const currentStoreId = Number(product.get?.("storeId") ?? product.storeId ?? 0);
+        if (!Number.isFinite(productId) || productId <= 0)
+            continue;
+        if (!Number.isFinite(ownerUserId) || ownerUserId <= 0)
+            continue;
+        const store = await ensureStoreForOwnerUser(ownerUserId);
+        const resolvedStoreId = Number(store.get?.("id") ?? store.id ?? 0);
+        if (!Number.isFinite(resolvedStoreId) || resolvedStoreId <= 0)
+            continue;
+        if (currentStoreId !== resolvedStoreId) {
+            await product.update({ storeId: resolvedStoreId });
+        }
+    }
+}
+async function backfillStorePaymentProfileFoundation() {
+    const profiles = await StorePaymentProfile.findAll({
+        attributes: [
+            "id",
+            "storeId",
+            "version",
+            "snapshotStatus",
+            "isActive",
+            "verificationStatus",
+            "verifiedByAdminId",
+            "verifiedAt",
+            "activatedByAdminId",
+            "activatedAt",
+        ],
+        order: [
+            ["storeId", "ASC"],
+            ["id", "ASC"],
+        ],
+    });
+    const activeProfileIdsByStore = new Map();
+    for (const profile of profiles) {
+        const profileId = Number(profile.get?.("id") ?? profile.id ?? 0);
+        const storeId = Number(profile.get?.("storeId") ?? profile.storeId ?? 0);
+        const version = Number(profile.get?.("version") ?? profile.version ?? 0);
+        const snapshotStatus = String(profile.get?.("snapshotStatus") ?? profile.snapshotStatus ?? "").toUpperCase();
+        const verificationStatus = String(profile.get?.("verificationStatus") ??
+            profile.verificationStatus ??
+            "").toUpperCase();
+        const isActive = Boolean(profile.get?.("isActive") ?? profile.isActive);
+        const verifiedByAdminId = Number(profile.get?.("verifiedByAdminId") ?? profile.verifiedByAdminId ?? 0) ||
+            null;
+        const verifiedAt = profile.get?.("verifiedAt") ??
+            profile.verifiedAt ??
+            null;
+        const activatedByAdminId = Number(profile.get?.("activatedByAdminId") ??
+            profile.activatedByAdminId ??
+            0) || null;
+        const activatedAt = profile.get?.("activatedAt") ??
+            profile.activatedAt ??
+            null;
+        const nextVersion = version > 0 ? version : 1;
+        const nextSnapshotStatus = isActive && verificationStatus === "ACTIVE" ? "ACTIVE" : "INACTIVE";
+        const updates = {};
+        if (version !== nextVersion)
+            updates.version = nextVersion;
+        if (snapshotStatus !== nextSnapshotStatus)
+            updates.snapshotStatus = nextSnapshotStatus;
+        if (nextSnapshotStatus === "ACTIVE" && !activatedAt) {
+            updates.activatedAt = verifiedAt || new Date();
+        }
+        if (nextSnapshotStatus === "ACTIVE" && !activatedByAdminId && verifiedByAdminId) {
+            updates.activatedByAdminId = verifiedByAdminId;
+        }
+        if (Object.keys(updates).length > 0) {
+            await profile.update(updates);
+        }
+        if (nextSnapshotStatus === "ACTIVE" && storeId > 0 && profileId > 0) {
+            activeProfileIdsByStore.set(storeId, profileId);
+        }
+    }
+    const stores = await Store.findAll({
+        attributes: ["id", "activeStorePaymentProfileId"],
+    });
+    for (const store of stores) {
+        const storeId = Number(store.get?.("id") ?? store.id ?? 0);
+        const activeStorePaymentProfileId = Number(store.get?.("activeStorePaymentProfileId") ??
+            store.activeStorePaymentProfileId ??
+            0) || null;
+        const expectedProfileId = activeProfileIdsByStore.get(storeId) || null;
+        if (activeStorePaymentProfileId !== expectedProfileId) {
+            await store.update({ activeStorePaymentProfileId: expectedProfileId });
+        }
+    }
+}
+async function hasTable(queryInterface, tableName) {
+    try {
+        await queryInterface.describeTable(tableName);
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
+async function hasColumn(queryInterface, tableName, columnName) {
+    try {
+        const description = await queryInterface.describeTable(tableName);
+        return Boolean(description?.[columnName]);
+    }
+    catch {
+        return false;
+    }
+}
+async function ensureAttributeValueTables(queryInterface) {
+    if (!(await hasTable(queryInterface, "attribute_values"))) {
+        await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS attribute_values (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        attribute_id INT UNSIGNED NOT NULL,
+        value VARCHAR(120) NOT NULL,
+        status ENUM('active', 'archived') NOT NULL DEFAULT 'active',
+        created_at DATETIME NOT NULL,
+        updated_at DATETIME NOT NULL,
+        UNIQUE KEY uniq_attribute_value (attribute_id, value),
+        INDEX idx_attribute_id (attribute_id),
+        INDEX idx_attribute_values_attribute_status (attribute_id, status),
+        CONSTRAINT fk_attribute_values_attribute
+          FOREIGN KEY (attribute_id) REFERENCES attributes(id)
+          ON DELETE CASCADE
+      )
+    `);
+    }
+    else if (!(await hasColumn(queryInterface, "attribute_values", "status"))) {
+        await sequelize.query(`
+      ALTER TABLE attribute_values
+      ADD COLUMN status ENUM('active', 'archived') NOT NULL DEFAULT 'active'
+    `);
+        await sequelize.query("UPDATE attribute_values SET status = 'active' WHERE status IS NULL");
+    }
+    if (!(await hasTable(queryInterface, "product_attribute_values"))) {
+        await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS product_attribute_values (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        product_id INT UNSIGNED NOT NULL,
+        attribute_id INT UNSIGNED NOT NULL,
+        attribute_value_id INT UNSIGNED NOT NULL,
+        created_at DATETIME NOT NULL,
+        updated_at DATETIME NOT NULL,
+        UNIQUE KEY uniq_product_attribute (product_id, attribute_id),
+        INDEX idx_product_id (product_id),
+        INDEX idx_attribute_id (attribute_id),
+        INDEX idx_value_id (attribute_value_id),
+        CONSTRAINT fk_pav_product
+          FOREIGN KEY (product_id) REFERENCES products(id)
+          ON DELETE CASCADE,
+        CONSTRAINT fk_pav_attribute
+          FOREIGN KEY (attribute_id) REFERENCES attributes(id)
+          ON DELETE CASCADE,
+        CONSTRAINT fk_pav_value
+          FOREIGN KEY (attribute_value_id) REFERENCES attribute_values(id)
+          ON DELETE CASCADE
+      )
+    `);
+    }
+}
+// Helper untuk sync schema → langsung terlihat di phpMyAdmin
+export async function syncDb() {
+    const queryInterface = sequelize.getQueryInterface();
+    const originalRemoveConstraint = queryInterface.removeConstraint.bind(queryInterface);
+    // Cleanup FK lama di products.userId hanya jika benar-benar ada.
+    await dropProductUserIdForeignKeys(queryInterface);
+    // Make constraint removal idempotent during alter sync for legacy DB variants.
+    queryInterface.removeConstraint = async (tableName, constraintName, options) => {
+        const normalizedTable = normalizeTableName(tableName).toLowerCase();
+        if (normalizedTable === "products") {
+            const resolvedProductsTable = await resolveProductsTableName(queryInterface);
+            if (resolvedProductsTable) {
+                const fkRows = await getProductUserIdForeignKeys(queryInterface, resolvedProductsTable);
+                const existingNames = new Set(fkRows.map((row) => String(row.constraintName)));
+                if (!existingNames.has(String(constraintName))) {
+                    return;
+                }
+            }
+        }
+        try {
+            return await originalRemoveConstraint(tableName, constraintName, options);
+        }
+        catch (error) {
+            if (isUnknownConstraintError(error))
+                return;
+            throw error;
+        }
+    };
+    try {
+        // gunakan alter agar kolom baru otomatis disesuaikan (aman untuk dev)
+        await sequelize.sync({ alter: true });
+        await ensureAttributeValueTables(queryInterface);
+        await ensureSystemStoreRoles();
+        await backfillProductCategoryAssignments();
+        await backfillStoreAssignments();
+        await backfillStorePaymentProfileFoundation();
+    }
+    finally {
+        queryInterface.removeConstraint = originalRemoveConstraint;
+    }
+}
+// Dev-only reset: drop & recreate tables to clean legacy data issues.
+export async function resetDbDev() {
+    if (process.env.NODE_ENV === "production") {
+        throw new Error("resetDbDev is disabled in production.");
+    }
+    await sequelize.authenticate();
+    await sequelize.query("SET FOREIGN_KEY_CHECKS = 0;");
+    try {
+        await sequelize.drop();
+        await sequelize.sync({ force: true });
+        await ensureAttributeValueTables(sequelize.getQueryInterface());
+        await ensureSystemStoreRoles();
+        await backfillStoreAssignments();
+        await backfillStorePaymentProfileFoundation();
+    }
+    finally {
+        await sequelize.query("SET FOREIGN_KEY_CHECKS = 1;");
+    }
+}
+export { sequelize, User, Store, StoreRole, StoreMember, StoreAuditLog, StorePaymentProfile, StorePaymentProfileRequest, StoreApplication, Product, Category, ProductCategory, Cart, CartItem, Order, OrderItem, Suborder, SuborderItem, Payment, PaymentProof, PaymentStatusLog, OrderCollectionClaim, OrderPaymentAttempt, DuitkuCallbackInbox, OrderPaymentAttemptEvent, OrderPaymentSecurityEvent, Shipment, TrackingEvent, Coupon, ProductReview, Attribute, Language, Currency, Notification, UserAddress, UserRegistrationVerification, StoreWithdrawal, };

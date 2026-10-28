@@ -1,0 +1,209 @@
+import { buildPublicStoreOperationalReadiness } from "./sharedContracts/publicStoreIdentity.js";
+const normalizeProductStatus = (value) => {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (normalized === "active")
+        return "active";
+    if (normalized === "inactive")
+        return "inactive";
+    return "draft";
+};
+const normalizeSubmissionStatus = (value) => {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (normalized === "submitted")
+        return "submitted";
+    if (normalized === "needs_revision")
+        return "needs_revision";
+    return "none";
+};
+const normalizeStoreStatus = (value) => String(value || "").trim().toUpperCase();
+const normalizeJsonValue = (value) => {
+    if (typeof value !== "string")
+        return value;
+    const trimmed = value.trim();
+    if (!trimmed)
+        return null;
+    try {
+        return JSON.parse(trimmed);
+    }
+    catch {
+        return value;
+    }
+};
+const normalizeVariantQuantity = (variant) => {
+    const raw = variant?.quantity === null || typeof variant?.quantity === "undefined" || variant?.quantity === ""
+        ? variant?.stock
+        : variant?.quantity;
+    if (raw === null || typeof raw === "undefined" || raw === "")
+        return null;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? Math.max(0, Math.round(parsed)) : 0;
+};
+const getVariationRoot = (variations) => {
+    const normalized = normalizeJsonValue(variations);
+    if (!normalized || typeof normalized !== "object")
+        return null;
+    return Array.isArray(normalized)
+        ? { hasVariants: normalized.length > 0, variants: normalized }
+        : normalized;
+};
+export const hasStorefrontSellableInventory = (input) => {
+    const stock = Number(input?.stock);
+    const hasBaseStock = Number.isFinite(stock) ? stock > 0 : true;
+    const variationRoot = getVariationRoot(input?.variations);
+    const variants = Array.isArray(variationRoot?.variants) ? variationRoot.variants : [];
+    const hasVariants = Boolean(variationRoot?.hasVariants) || variants.length > 0;
+    if (!hasVariants) {
+        return hasBaseStock;
+    }
+    return variants.some((variant) => {
+        const quantity = normalizeVariantQuantity(variant);
+        return quantity === null ? hasBaseStock : quantity > 0;
+    });
+};
+export const isStorefrontStoreActive = (input) => {
+    const storeStatus = normalizeStoreStatus(input?.storeStatus);
+    if (storeStatus === "ACTIVE") {
+        return true;
+    }
+    return false;
+};
+const resolveStoreOperationalReadiness = (input) => {
+    if (input?.storeOperationalReadiness && typeof input.storeOperationalReadiness === "object") {
+        return input.storeOperationalReadiness;
+    }
+    if (input?.store) {
+        return buildPublicStoreOperationalReadiness(input.store);
+    }
+    return null;
+};
+export const isStorefrontStoreOperationallyReady = (input) => {
+    const operationalReadiness = resolveStoreOperationalReadiness(input);
+    if (operationalReadiness) {
+        return Boolean(operationalReadiness.isReady);
+    }
+    return isStorefrontStoreActive({
+        storeStatus: input?.storeStatus,
+        storeId: input?.storeId,
+    });
+};
+export const buildProductVisibilitySnapshot = (input) => {
+    const isPublished = Boolean(input?.isPublished);
+    const status = normalizeProductStatus(input?.status);
+    const submissionStatus = normalizeSubmissionStatus(input?.submissionStatus);
+    const hasStock = hasStorefrontSellableInventory({
+        stock: input?.stock,
+        variations: input?.variations,
+    });
+    const operationalReadiness = resolveStoreOperationalReadiness(input);
+    const storeActive = isStorefrontStoreActive({
+        storeStatus: input?.storeStatus,
+        storeId: input?.storeId,
+    });
+    const storeOperational = operationalReadiness != null ? Boolean(operationalReadiness.isReady) : storeActive;
+    const reviewBlocked = submissionStatus !== "none";
+    const storefrontVisible = isPublished && status === "active" && !reviewBlocked && storeOperational;
+    const blockingSignals = [];
+    if (!isPublished) {
+        blockingSignals.push("PUBLISH_OFF");
+    }
+    if (status !== "active") {
+        blockingSignals.push("STATUS_NOT_ACTIVE");
+    }
+    if (submissionStatus === "submitted") {
+        blockingSignals.push("SELLER_REVIEW_PENDING");
+    }
+    if (submissionStatus === "needs_revision") {
+        blockingSignals.push("SELLER_REVISION_REQUIRED");
+    }
+    if (!storeActive) {
+        blockingSignals.push("STORE_NOT_ACTIVE");
+    }
+    else if (!storeOperational) {
+        blockingSignals.push("STORE_NOT_READY");
+    }
+    if (!hasStock) {
+        blockingSignals.push("OUT_OF_STOCK");
+    }
+    const stateCode = !isPublished
+        ? "INTERNAL_ONLY"
+        : storefrontVisible
+            ? "STOREFRONT_VISIBLE"
+            : "PUBLISHED_BLOCKED";
+    const reasonCode = !isPublished
+        ? "UNPUBLISHED"
+        : submissionStatus === "submitted"
+            ? "REVIEW_PENDING"
+            : submissionStatus === "needs_revision"
+                ? "REVISION_REQUIRED"
+                : !storeActive
+                    ? "STORE_NOT_ACTIVE"
+                    : !storeOperational
+                        ? "STORE_NOT_READY"
+                        : storefrontVisible
+                            ? "STOREFRONT_VISIBLE"
+                            : "STATUS_NOT_ACTIVE";
+    const sellerLabel = !isPublished
+        ? status === "draft"
+            ? "Draft in seller workspace"
+            : "Hidden from storefront"
+        : storefrontVisible
+            ? "Visible in storefront"
+            : submissionStatus === "submitted"
+                ? "Published but waiting admin review"
+                : submissionStatus === "needs_revision"
+                    ? "Published but revision is still required"
+                    : !storeActive
+                        ? "Published but store is inactive"
+                        : !storeOperational
+                            ? "Published but store is not operational"
+                            : "Published but blocked";
+    const storefrontReason = !isPublished
+        ? "Public storefront queries exclude this product because the publish flag is off."
+        : storefrontVisible
+            ? "Public storefront queries include this product because publish is on, status is active, and the store is operational."
+            : submissionStatus === "submitted"
+                ? "Publish is on, but this product is still waiting for the final admin review outcome and stays hidden from storefront queries."
+                : submissionStatus === "needs_revision"
+                    ? "Publish is on, but this product is still in revision-required review state and stays hidden from storefront queries."
+                    : !storeActive
+                        ? "Publish is on, but the linked store is not active, so storefront queries still exclude this product."
+                        : !storeOperational
+                            ? String(operationalReadiness?.description || "").trim() ||
+                                "Publish is on, but the linked store is not operational yet, so storefront queries still exclude this product."
+                            : "Publish is on, but public storefront queries still exclude this product until status becomes active.";
+    const sellerHint = !isPublished
+        ? "Seller can still review this product here, but customers cannot see it yet."
+        : storefrontVisible
+            ? "Seller and customer views are aligned for visibility."
+            : submissionStatus === "submitted"
+                ? "Seller can see that publish is on, but admin review still blocks storefront visibility."
+                : submissionStatus === "needs_revision"
+                    ? "Seller can see that publish is on, but revision follow-up still blocks storefront visibility."
+                    : !storeActive
+                        ? "Seller can keep this product published internally, but storefront visibility stays blocked until the store becomes active."
+                        : !storeOperational
+                            ? "Seller can keep this product published internally, but storefront visibility stays blocked until the store becomes operational."
+                            : "Seller can review this product here, but customers will not see it until status becomes active.";
+    return {
+        isPublished,
+        storefrontVisible,
+        stateCode,
+        label: isPublished ? "Published" : "Private",
+        publishLabel: isPublished ? "Published" : "Private",
+        sellerLabel,
+        storefrontLabel: storefrontVisible ? "Visible in storefront" : "Hidden from storefront",
+        storefrontReason,
+        sellerHint,
+        blockingSignals,
+        reasonCode,
+        storeOperational,
+        operationalReadiness: operationalReadiness
+            ? {
+                code: String(operationalReadiness.code || "UNKNOWN"),
+                label: String(operationalReadiness.label || "Unavailable"),
+                description: String(operationalReadiness.description || "").trim() || null,
+                isReady: Boolean(operationalReadiness.isReady),
+            }
+            : null,
+    };
+};
