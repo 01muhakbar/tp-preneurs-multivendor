@@ -76,13 +76,7 @@ const fallbackProducts = [
   { id: 90005, name: "Greek Yogurt Plain", slug: "greek-yogurt-plain", price: 27900, originalPrice: 32000, ratingAvg: 4.5, reviewCount: 5, stock: 14, emoji: "🥣", isFallback: true },
 ];
 
-const fallbackDiscountedProducts = [
-  { id: 90101, name: "Orange Juice 1L", slug: "orange-juice-1l", price: 14800, originalPrice: 18500, discountPercent: 20, emoji: "🍊", isFallback: true },
-  { id: 90102, name: "Milk Full Cream 1L", slug: "milk-full-cream-1l", price: 19500, originalPrice: 23000, discountPercent: 15, emoji: "🥛", isFallback: true },
-  { id: 90103, name: "Brown Rice 1kg", slug: "brown-rice-1kg", price: 23500, originalPrice: 28500, discountPercent: 18, emoji: "🍚", isFallback: true },
-  { id: 90104, name: "Honey Stars 300g", slug: "honey-stars-300g", price: 19800, originalPrice: 25500, discountPercent: 22, emoji: "🍯", isFallback: true },
-  { id: 90105, name: "Peanut Butter 340g", slug: "peanut-butter-340g", price: 21900, originalPrice: 26000, discountPercent: 16, emoji: "🥜", isFallback: true },
-];
+const fallbackDiscountedProducts = [];
 
 const POPULAR_SORT_OPTIONS = [
   { value: "featured", label: "Featured" },
@@ -1192,6 +1186,15 @@ export default function TPPreneurHomePage() {
   const [copiedCode, setCopiedCode] = useState("");
   const [popularCategory, setPopularCategory] = useState("all");
   const [popularSort, setPopularSort] = useState("");
+  const discountedSliderRef = useRef(null);
+  const scrollDiscounted = (direction) => {
+    if (!discountedSliderRef.current) return;
+    const scrollAmount = Math.max(260, Math.floor(discountedSliderRef.current.clientWidth * 0.75));
+    discountedSliderRef.current.scrollBy({
+      left: direction === "left" ? -scrollAmount : scrollAmount,
+      behavior: "smooth",
+    });
+  };
   const { data: homeCustomizationData } = useQuery({
     queryKey: ["store-customization", "home-page", currentLang],
     queryFn: () => getStoreCustomization({ lang: currentLang, include: "home" }),
@@ -1243,6 +1246,21 @@ export default function TPPreneurHomePage() {
       discounted: isDiscountedPopularFilter(filterBy),
     };
   }, [homeConfig]);
+  const latestDiscountedProductsConfig = useMemo(() => {
+    const source =
+      homeConfig?.latestDiscountedProducts && typeof homeConfig.latestDiscountedProducts === "object"
+        ? homeConfig.latestDiscountedProducts
+        : {};
+    return {
+      enabled: toBool(source.enabled, true),
+      title: toText(source.title, "Latest Discounted Products"),
+      description: toText(
+        source.description,
+        "See our latest discounted products below. Choose your daily needs from here and get a special discount."
+      ),
+      limit: toLimit(source.productsLimit, 5, 20),
+    };
+  }, [homeConfig]);
   const effectivePopularSort = popularSort || popularProductsConfig.sort;
   const {
     data: popularData,
@@ -1259,7 +1277,7 @@ export default function TPPreneurHomePage() {
   });
   const { data: discountedData, isLoading: discountedLoading } = useProducts({
     page: 1,
-    limit: 5,
+    limit: latestDiscountedProductsConfig.limit || 5,
     discounted: true,
     sort: "featured",
   });
@@ -1344,10 +1362,19 @@ export default function TPPreneurHomePage() {
 
   const discountedProducts = useMemo(() => {
     const source = extractList(discountedData);
-    return (source.length ? source : fallbackDiscountedProducts)
-      .slice(0, 5)
+    if (source.length > 0) {
+      return source
+        .slice(0, latestDiscountedProductsConfig.limit || 5)
+        .map((product, index) => normalizeProduct(product, index));
+    }
+    // Fall back to active catalog products from popularData (never dummy mock grocery items)
+    const catalogFallback = extractList(popularData)
+      .filter((p) => p && (p.id || p.slug))
+      .slice(0, latestDiscountedProductsConfig.limit || 5)
       .map((product, index) => normalizeProduct(product, index));
-  }, [discountedData]);
+
+    return catalogFallback;
+  }, [discountedData, popularData, latestDiscountedProductsConfig.limit]);
 
   const couponList = useMemo(() => {
     const selectedCodes = discountCouponBox.activeCouponCodes || [];
@@ -1642,41 +1669,60 @@ export default function TPPreneurHomePage() {
         </section>
       ) : null}
 
-      <section className="hidden lg:block space-y-5">
-        <div className="flex items-center justify-between gap-4">
-          <h2 className="flex items-center gap-3 text-2xl font-black text-[#071a3f] dark:text-white">
-            {isIndo ? "Produk Diskon Terbaru" : "Latest Discounted Products"}
-            <span className="h-2.5 w-2.5 rounded-full bg-[var(--tp-accent)]" />
-          </h2>
-          <div className="hidden items-center gap-3 sm:flex">
-            <button className="grid h-11 w-11 place-items-center rounded-full border border-[#dbe6f3] bg-white text-[var(--tp-primary)] transition hover:border-[var(--tp-primary)] hover:bg-[var(--tp-primary)] hover:text-white dark:border-sky-400/60 dark:bg-slate-950/70 dark:!text-sky-100 dark:hover:border-sky-300 dark:hover:bg-[var(--tp-primary)] dark:hover:!text-white">
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <Link
-              to="/search?discounted=true&page=1"
-              className="inline-flex h-11 items-center rounded-full border border-[var(--tp-primary)] bg-white/70 px-5 text-sm font-black text-[var(--tp-primary)] transition hover:bg-[var(--tp-primary)] hover:text-white dark:border-sky-400/70 dark:bg-slate-950/70 dark:!text-sky-100 dark:hover:border-sky-300 dark:hover:bg-[var(--tp-primary)] dark:hover:!text-white"
+      {latestDiscountedProductsConfig.enabled && discountedProducts.length > 0 ? (
+        <section className="hidden lg:block space-y-5">
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="flex items-center gap-3 text-2xl font-black text-[#071a3f] dark:text-white">
+              {isIndo
+                ? (latestDiscountedProductsConfig.title === "Latest Discounted Products"
+                    ? "Produk Diskon Terbaru"
+                    : latestDiscountedProductsConfig.title)
+                : latestDiscountedProductsConfig.title}
+              <span className="h-2.5 w-2.5 rounded-full bg-[var(--tp-accent)]" />
+            </h2>
+            <div className="hidden items-center gap-3 sm:flex">
+              <button
+                type="button"
+                onClick={() => scrollDiscounted("left")}
+                aria-label="Scroll previous discounted products"
+                className="grid h-11 w-11 place-items-center rounded-full border border-[#dbe6f3] bg-white text-[var(--tp-primary)] transition hover:border-[var(--tp-primary)] hover:bg-[var(--tp-primary)] hover:text-white dark:border-sky-400/60 dark:bg-slate-950/70 dark:!text-sky-100 dark:hover:border-sky-300 dark:hover:bg-[var(--tp-primary)] dark:hover:!text-white"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <Link
+                to="/shop?discounted=true"
+                className="inline-flex h-11 items-center rounded-full border border-[var(--tp-primary)] bg-white/70 px-5 text-sm font-black text-[var(--tp-primary)] transition hover:bg-[var(--tp-primary)] hover:text-white dark:border-sky-400/70 dark:bg-slate-950/70 dark:!text-sky-100 dark:hover:border-sky-300 dark:hover:bg-[var(--tp-primary)] dark:hover:!text-white"
+              >
+                {isIndo ? "Lihat semua" : "View all"}
+              </Link>
+              <button
+                type="button"
+                onClick={() => scrollDiscounted("right")}
+                aria-label="Scroll next discounted products"
+                className="grid h-11 w-11 place-items-center rounded-full border border-[var(--tp-accent)] bg-[var(--tp-accent)] text-white shadow-[0_10px_22px_rgba(255,111,0,0.22)] transition hover:bg-[#d95700]"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+          {discountedLoading && extractList(discountedData).length === 0 ? (
+            <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 lg:grid-cols-5">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div key={index} className="h-56 animate-pulse rounded-[18px] bg-white dark:bg-slate-800" />
+              ))}
+            </div>
+          ) : (
+            <div
+              ref={discountedSliderRef}
+              className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 overflow-x-auto scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
-              {isIndo ? "Lihat semua" : "View all"}
-            </Link>
-            <button className="grid h-11 w-11 place-items-center rounded-full border border-[var(--tp-accent)] bg-[var(--tp-accent)] text-white shadow-[0_10px_22px_rgba(255,111,0,0.22)] transition hover:bg-[#d95700]">
-              <ChevronRight className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-        {discountedLoading && extractList(discountedData).length === 0 ? (
-          <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 lg:grid-cols-5">
-            {Array.from({ length: 5 }).map((_, index) => (
-              <div key={index} className="h-56 animate-pulse rounded-[18px] bg-white dark:bg-slate-800" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
-            {discountedProducts.map((product) => (
-              <ProductCard key={product.id} product={product} showDiscount />
-            ))}
-          </div>
-        )}
-      </section>
+              {discountedProducts.map((product) => (
+                <ProductCard key={product.id} product={product} showDiscount />
+              ))}
+            </div>
+          )}
+        </section>
+      ) : null}
 
       <BenefitStrip isIndo={isIndo} />
 
