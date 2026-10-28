@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { getStoreSettings } from "../api/storeCustomizationPublic.ts";
+import { CANONICAL_CLIENT_LOGO_URL } from "../lib/branding.js";
 
 const EMPTY_BRANDING = {
-  clientLogoUrl: "",
+  clientLogoUrl: CANONICAL_CLIENT_LOGO_URL,
   adminLogoUrl: "",
   sellerLogoUrl: "",
   adminLoginHeroUrl: "",

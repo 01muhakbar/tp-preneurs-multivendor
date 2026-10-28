@@ -9,6 +9,7 @@ import {
 } from "../lib/adminApi.js";
 import { resolveAssetUrl } from "../lib/assetUrl.js";
 import {
+  CANONICAL_CLIENT_LOGO_URL,
   getWorkspaceLogoUrl,
   hasCustomBrandingLogo,
 } from "../lib/branding.js";
@@ -49,7 +50,7 @@ const DEFAULT_SETTINGS = {
 };
 
 const DEFAULT_BRANDING_SETTINGS = {
-  clientLogoUrl: "",
+  clientLogoUrl: CANONICAL_CLIENT_LOGO_URL,
   adminLogoUrl: "",
   sellerLogoUrl: "",
   adminLoginHeroUrl: "",
@@ -333,13 +334,23 @@ function BrandingCard({
   isUploading,
   onFileChange,
 }) {
+  const [imgError, setImgError] = useState(false);
+  useEffect(() => {
+    setImgError(false);
+  }, [logoUrl]);
+
   const hasCustomLogo = hasCustomBrandingLogo(logoUrl);
-  const previewSrc =
+  const canonicalFallback =
+    item.key === "client" ? resolveAssetUrl(CANONICAL_CLIENT_LOGO_URL) : null;
+
+  const primarySrc =
     item.assetType === "hero"
       ? resolveAssetUrl(logoUrl) || adminLoginHero
       : item.key === "client"
-      ? resolveAssetUrl(logoUrl)
+      ? resolveAssetUrl(logoUrl) || canonicalFallback
       : getWorkspaceLogoUrl(item.key, logoUrl);
+
+  const previewSrc = !imgError ? (primarySrc || canonicalFallback) : canonicalFallback;
 
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -353,12 +364,12 @@ function BrandingCard({
           </div>
           <span
             className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
-              hasCustomLogo
+              hasCustomLogo && !imgError
                 ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                 : "border-slate-200 bg-white text-slate-500"
             }`}
           >
-            {hasCustomLogo ? "Custom" : "Fallback"}
+            {hasCustomLogo && !imgError ? "Custom" : "Fallback"}
           </span>
         </div>
 
@@ -369,6 +380,11 @@ function BrandingCard({
             <img
               src={previewSrc}
               alt={`${item.label} preview`}
+              onError={() => {
+                if (!imgError && primarySrc !== canonicalFallback) {
+                  setImgError(true);
+                }
+              }}
               className={`h-full w-full ${item.previewImageClass || "object-contain"}`}
             />
           ) : (

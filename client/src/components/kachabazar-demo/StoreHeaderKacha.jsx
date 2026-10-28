@@ -26,6 +26,8 @@ import { useStorefrontWishlist } from "../../utils/storefrontWishlist.js";
 import { fetchUserUnreadNotificationCount } from "../../api/userNotifications.ts";
 import { getStoreHeaderCustomization, fetchPublicLanguages } from "../../api/public/storeCustomizationPublic.ts";
 
+import { CANONICAL_CLIENT_LOGO_URL } from "../../lib/branding.js";
+
 const PRIMARY = "var(--tp-primary)";
 const ACCENT = "var(--tp-accent)";
 
@@ -91,9 +93,15 @@ const isNavItemActive = (pathname, href) => {
 
 function LogoMark({ logoUrl, logoVersion }) {
   const [imgError, setImgError] = useState(false);
-  const src = resolveAssetUrl(logoUrl);
+  useEffect(() => {
+    setImgError(false);
+  }, [logoUrl]);
 
-  if (src && !imgError) {
+  const canonicalUrl = resolveAssetUrl(CANONICAL_CLIENT_LOGO_URL);
+  const primaryUrl = resolveAssetUrl(logoUrl) || canonicalUrl;
+  const src = !imgError ? primaryUrl : (primaryUrl !== canonicalUrl ? canonicalUrl : "");
+
+  if (src) {
     const separator = src.includes("?") ? "&" : "?";
     const versionedSrc = logoVersion ? `${src}${separator}v=${logoVersion}` : src;
     return (
@@ -105,7 +113,13 @@ function LogoMark({ logoUrl, logoVersion }) {
         <img
           src={versionedSrc}
           alt="TP Preneurs logo"
-          onError={() => setImgError(true)}
+          onError={() => {
+            if (!imgError && primaryUrl !== canonicalUrl) {
+              setImgError(true);
+            } else {
+              setImgError(true);
+            }
+          }}
           className="h-full w-full object-contain object-left"
         />
       </Link>
@@ -118,28 +132,20 @@ function LogoMark({ logoUrl, logoVersion }) {
       className="flex h-[42px] min-w-[138px] items-center gap-2.5 sm:h-[48px] sm:min-w-[164px]"
       aria-label="TP Preneurs home"
     >
-      <div className="relative h-11 w-[52px]">
-        <div
-          className="absolute left-0 top-1.5 h-8 w-9 rounded-r-[15px] rounded-tl-lg"
-          style={{ background: PRIMARY }}
-        />
-        <div
-          className="absolute left-6 top-0 h-11 w-4 rounded-full"
-          style={{ background: PRIMARY }}
-        />
-        <div
-          className="absolute right-0 top-1.5 grid h-8 w-8 place-items-center rounded-full"
-          style={{ background: ACCENT }}
-        >
-          <div className="h-4 w-4 rounded-full bg-white" />
-        </div>
+      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#0052cc] to-[#003d99] shadow-sm">
+        <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" stroke="currentColor">
+          <path
+            d="M9 18h6m-4 4h2m-5-8.5a6 6 0 1 1 8 0c-.8 1-1.5 2-1.5 3.5h-5c0-1.5-.7-2.5-1.5-3.5Z"
+            stroke="#ff7a00"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       </div>
       <div className="leading-none">
-        <div className="text-[21px] font-black tracking-tight text-[var(--tp-primary)]">
-          TP <span className="text-[var(--tp-accent)]">Preneurs</span>
-        </div>
-        <div className="mt-1 text-[8px] font-black uppercase tracking-[0.16em] text-[var(--tp-primary)]">
-          The Preneurs Power Hub
+        <div className="text-[20px] font-black tracking-tight text-[#0052cc] dark:text-white">
+          TP <span className="text-[#ff7a00]">PRENEURS</span>
         </div>
       </div>
     </Link>

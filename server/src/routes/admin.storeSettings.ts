@@ -148,6 +148,27 @@ router.post("/branding/:target/logo", (req: Request, res: Response, next) => {
       const existing = await getPersistedStoreSettings();
       const brandingField = BRANDING_TARGET_FIELD_BY_KEY[target];
       const uploadedLogoUrl = `/uploads/branding/${req.file.filename}`;
+
+      // Mirror uploaded file to secondary upload directories to ensure persistence
+      const mirrorDirs = [
+        path.resolve(process.cwd(), "server", "public", "uploads", "branding"),
+        path.resolve(process.cwd(), "public", "uploads", "branding"),
+        path.resolve(process.cwd(), "server", "uploads", "branding"),
+      ];
+      for (const dir of mirrorDirs) {
+        try {
+          if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+          }
+          const destFile = path.join(dir, req.file.filename);
+          if (destFile !== path.resolve(req.file.path)) {
+            fs.copyFileSync(req.file.path, destFile);
+          }
+        } catch {
+          // ignore non-fatal mirror failure
+        }
+      }
+
       const storeSettings = sanitizeStoreSettings({
         ...existing,
         branding: {

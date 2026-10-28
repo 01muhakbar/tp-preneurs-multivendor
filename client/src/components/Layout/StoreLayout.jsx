@@ -14,6 +14,7 @@ import {
   getStoreCustomization,
   getStoreSettings,
 } from "../../api/public/storeCustomizationPublic.ts";
+import { CANONICAL_CLIENT_LOGO_URL } from "../../lib/branding.js";
 
 const DEFAULT_PUBLIC_STORE_SETTINGS = {
   payments: {
@@ -43,7 +44,7 @@ const DEFAULT_PUBLIC_STORE_SETTINGS = {
     tawkWidgetId: "",
   },
   branding: {
-    clientLogoUrl: "",
+    clientLogoUrl: CANONICAL_CLIENT_LOGO_URL,
     adminLogoUrl: "",
     sellerLogoUrl: "",
     workspaceBrandName: "TP PRENEURS",

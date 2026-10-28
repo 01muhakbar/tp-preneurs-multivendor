@@ -19,10 +19,17 @@ const createSquareFallbackLogo = (label) =>
     </svg>
   `);
 
+export const CANONICAL_CLIENT_LOGO_URL =
+  "/uploads/branding/branding-client-1782537187787-ixm5z6x.png";
+
 export const DEFAULT_BRANDING_LOGOS = {
+  client: CANONICAL_CLIENT_LOGO_URL,
   admin: createSquareFallbackLogo("Admin Workspace logo"),
   seller: createSquareFallbackLogo("Seller Workspace logo"),
 };
+
+export const getClientLogoUrl = (logoUrl) =>
+  resolveAssetUrl(logoUrl) || resolveAssetUrl(CANONICAL_CLIENT_LOGO_URL);
 
 export const getWorkspaceLogoUrl = (workspaceKey, logoUrl) =>
   resolveAssetUrl(logoUrl) || DEFAULT_BRANDING_LOGOS[workspaceKey] || DEFAULT_BRANDING_LOGOS.admin;

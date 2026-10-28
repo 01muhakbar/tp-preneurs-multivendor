@@ -11,8 +11,10 @@ import {
   Twitter,
   Youtube,
 } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
+import { CANONICAL_CLIENT_LOGO_URL } from "../../lib/branding.js";
 import { useTranslation } from "react-i18next";
 
 const INDO_TRANSLATIONS = {
@@ -252,19 +254,20 @@ function FallbackBrand({ brandingName }) {
       className="flex h-[42px] min-w-[138px] items-center gap-2.5 sm:h-[48px] sm:min-w-[164px]"
       aria-label={`${brandingName} home`}
     >
-      <div className="relative h-11 w-[52px] shrink-0">
-        <div className="absolute left-0 top-1.5 h-8 w-9 rounded-r-[15px] rounded-tl-lg bg-[var(--tp-primary)]" />
-        <div className="absolute left-6 top-0 h-11 w-4 rounded-full bg-[var(--tp-primary)]" />
-        <div className="absolute right-0 top-1.5 grid h-8 w-8 place-items-center rounded-full bg-[var(--tp-accent)]">
-          <div className="h-4 w-4 rounded-full bg-white" />
-        </div>
+      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#0052cc] to-[#003d99] shadow-sm">
+        <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" stroke="currentColor">
+          <path
+            d="M9 18h6m-4 4h2m-5-8.5a6 6 0 1 1 8 0c-.8 1-1.5 2-1.5 3.5h-5c0-1.5-.7-2.5-1.5-3.5Z"
+            stroke="#ff7a00"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       </div>
       <div className="leading-none">
-        <p className="text-[21px] font-black tracking-tight text-[var(--tp-primary)] dark:text-white">
-          TP <span className="text-[var(--tp-accent)]">Preneurs</span>
-        </p>
-        <p className="mt-1 text-[8px] font-black uppercase tracking-[0.16em] text-[var(--tp-primary)] dark:text-sky-300">
-          The Preneurs Power Hub
+        <p className="text-[20px] font-black tracking-tight text-[#0052cc] dark:text-white">
+          TP <span className="text-[#ff7a00]">PRENEURS</span>
         </p>
       </div>
     </Link>
@@ -276,12 +279,17 @@ export default function StoreFooterKacha({
   brandingLogoUrl = "",
   brandingName = "TP Preneurs",
 }) {
+  const [imgError, setImgError] = useState(false);
   const { i18n } = useTranslation();
   const isIndo = i18n.language === "id" || i18n.language === "id-ID" || i18n.language?.startsWith("id") || (typeof window !== "undefined" && localStorage.getItem("store_language") === "Indonesia");
   const footer = normalizeFooterConfig(footerConfig, isIndo);
   const DEFAULT_FOOTER = getDefaultFooter(isIndo);
-  const footerLogoSrc =
-    resolveAssetUrl(footer.block4.footerLogoDataUrl) || resolveAssetUrl(brandingLogoUrl);
+
+  const canonicalUrl = resolveAssetUrl(CANONICAL_CLIENT_LOGO_URL);
+  const configuredLogo = resolveAssetUrl(footer.block4.footerLogoDataUrl) || resolveAssetUrl(brandingLogoUrl);
+  const primarySrc = configuredLogo || canonicalUrl;
+  const footerLogoSrc = !imgError ? primarySrc : (primarySrc !== canonicalUrl ? canonicalUrl : null);
+
   const paymentMethodSrc = resolveAssetUrl(footer.paymentMethod.imageDataUrl);
   const socialItems = SOCIAL_LINKS.filter(({ key }) => footer.socialLinks[key]);
 
@@ -300,6 +308,13 @@ export default function StoreFooterKacha({
                   <img
                     src={footerLogoSrc}
                     alt={`${brandingName} footer logo`}
+                    onError={() => {
+                      if (!imgError && primarySrc !== canonicalUrl) {
+                        setImgError(true);
+                      } else {
+                        setImgError(true);
+                      }
+                    }}
                     className="h-full w-full object-contain object-left"
                   />
                 </Link>

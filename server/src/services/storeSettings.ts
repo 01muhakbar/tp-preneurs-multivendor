@@ -1,7 +1,15 @@
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../models/index.js";
+import { isMissingUploadAsset } from "../utils/uploadAsset.js";
 
 export const STORE_SETTINGS_KEY = "storeSettings";
+
+export const CANONICAL_BRANDING_CLIENT_LOGO_URL =
+  "/uploads/branding/branding-client-1782537187787-ixm5z6x.png";
+export const CANONICAL_BRANDING_ADMIN_LOGO_URL =
+  "/uploads/branding/branding-admin-1782538251335-qthh5fo.png";
+export const CANONICAL_BRANDING_SELLER_LOGO_URL =
+  "/uploads/branding/branding-seller-1782538255759-ow5kggx.png";
 
 export const DEFAULT_STORE_SETTINGS = {
   payments: {
@@ -42,9 +50,9 @@ export const DEFAULT_STORE_SETTINGS = {
     tawkWidgetId: "",
   },
   branding: {
-    clientLogoUrl: "",
-    adminLogoUrl: "",
-    sellerLogoUrl: "",
+    clientLogoUrl: CANONICAL_BRANDING_CLIENT_LOGO_URL,
+    adminLogoUrl: CANONICAL_BRANDING_ADMIN_LOGO_URL,
+    sellerLogoUrl: CANONICAL_BRANDING_SELLER_LOGO_URL,
     adminLoginHeroUrl: "",
     adminForgotPasswordHeroUrl: "",
     adminCreateAccountHeroUrl: "",
@@ -89,6 +97,15 @@ const cloneDefaults = () => JSON.parse(JSON.stringify(DEFAULT_STORE_SETTINGS));
 const toText = (value: unknown, fallback = "") => {
   const normalized = String(value ?? "").trim();
   return normalized || fallback;
+};
+
+const resolveSafeBrandingAsset = (candidate: unknown, fallback: string): string => {
+  const text = toText(candidate, "");
+  if (!text) return fallback;
+  if (isMissingUploadAsset(text)) {
+    return fallback;
+  }
+  return text;
 };
 
 const toBool = (value: unknown, fallback = false) => {
@@ -364,9 +381,18 @@ export const sanitizeStoreSettings = (rawData: unknown) => {
     branding: {
       ...defaults.branding,
       ...brandingSource,
-      clientLogoUrl: toText(brandingSource.clientLogoUrl, defaults.branding.clientLogoUrl),
-      adminLogoUrl: toText(brandingSource.adminLogoUrl, defaults.branding.adminLogoUrl),
-      sellerLogoUrl: toText(brandingSource.sellerLogoUrl, defaults.branding.sellerLogoUrl),
+      clientLogoUrl: resolveSafeBrandingAsset(
+        brandingSource.clientLogoUrl,
+        defaults.branding.clientLogoUrl
+      ),
+      adminLogoUrl: resolveSafeBrandingAsset(
+        brandingSource.adminLogoUrl,
+        defaults.branding.adminLogoUrl
+      ),
+      sellerLogoUrl: resolveSafeBrandingAsset(
+        brandingSource.sellerLogoUrl,
+        defaults.branding.sellerLogoUrl
+      ),
       adminLoginHeroUrl: toText(
         brandingSource.adminLoginHeroUrl,
         defaults.branding.adminLoginHeroUrl
