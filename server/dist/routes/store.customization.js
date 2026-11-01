@@ -6,6 +6,8 @@ import { PUBLIC_STORE_IDENTITY_ATTRIBUTES, buildPublicOperationalPaymentProfileI
 import { buildEffectiveStoreMicrositeRichAboutPayload, buildPublicStoreCustomizationHeaderSettings, normalizeStoreCustomizationRichAboutPayload, parseStoredCustomization, sanitizeStoreCustomization, } from "../services/sharedContracts/storeCustomizationSanitizer.js";
 import { buildPublicOffersCustomization } from "../services/offersReadModel.js";
 import { isMissingUploadAsset } from "../utils/uploadAsset.js";
+import { createNotification } from "../services/notification.service.js";
+import sendEmail from "../utils/email.js";
 const router = Router();
 const normalizeLang = (value) => {
     const normalized = String(value || "en")
@@ -615,6 +617,73 @@ router.get("/", async (req, res, next) => {
             // Backward compatibility for existing consumers that still read top-level fields.
             lang,
             customization,
+        });
+    }
+    catch (error) {
+        return next(error);
+    }
+});
+router.post("/contact-message", async (req, res, next) => {
+    try {
+        const name = String(req.body?.name || "").trim();
+        const email = String(req.body?.email || "").trim();
+        const message = String(req.body?.message || "").trim();
+        if (!name || !email || !message) {
+            return res.status(400).json({
+                success: false,
+                message: "Mohon lengkapi semua kolom yang wajib diisi.",
+            });
+        }
+        const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        if (!emailValid) {
+            return res.status(400).json({
+                success: false,
+                message: "Format alamat email tidak valid.",
+            });
+        }
+        // 1. Simpan pesan ke notifikasi dasbor admin agar admin dapat melihatnya di lonceng & /admin/notifications
+        const snippet = message.length > 80 ? `${message.slice(0, 77)}...` : message;
+        await createNotification({
+            type: "CONTACT_MESSAGE",
+            title: `Pesan Baru dari ${name} (${email}): "${snippet}"`,
+            meta: {
+                name,
+                email,
+                message,
+                source: "contact-us",
+                submittedAt: new Date().toISOString(),
+            },
+        });
+        // 2. Teruskan pesan ke email admin jika SMTP terkonfigurasi
+        try {
+            await sendEmail({
+                email: "tppreneurs@gmail.com",
+                subject: `[TP Preneurs] Pesan Masuk Contact Us dari ${name}`,
+                text: `Nama: ${name}\nEmail: ${email}\n\nPesan:\n${message}`,
+                html: `
+          <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+            <div style="background-color: #034c85; color: white; padding: 18px 24px;">
+              <h2 style="margin: 0; font-size: 18px; font-weight: bold;">Pesan Baru via Halaman Contact Us</h2>
+            </div>
+            <div style="padding: 24px;">
+              <p style="margin: 0 0 8px;"><strong>Nama Pengirim:</strong> ${name}</p>
+              <p style="margin: 0 0 16px;"><strong>Email:</strong> <a href="mailto:${email}" style="color: #034c85;">${email}</a></p>
+              <p style="margin: 0 0 8px;"><strong>Isi Pesan:</strong></p>
+              <div style="background-color: #f8fafc; border-left: 4px solid #fe6f05; padding: 14px 18px; border-radius: 6px; white-space: pre-wrap; font-size: 14px;">${message}</div>
+            </div>
+            <div style="font-size: 12px; color: #64748b; background-color: #f1f5f9; padding: 12px 24px; border-top: 1px solid #e2e8f0;">
+              Pesan ini dikirimkan otomatis melalui formulir kontak https://tppreneurs.com/contact-us
+            </div>
+          </div>
+        `,
+            });
+        }
+        catch {
+            // SMTP tidak menggagalkan response bila kredensial belum diisi
+        }
+        return res.json({
+            success: true,
+            message: "Terima kasih! Pesan Anda telah kami terima dengan baik.",
         });
     }
     catch (error) {
