@@ -283,26 +283,40 @@ uploadsCandidates.forEach((uploadsDir, index) => {
         },
     }));
 });
-// Fallback for missing uploads: If an image was requested under /uploads but not found on disk,
-// serve a clean, branded product placeholder SVG instead of returning 404 JSON that breaks <img> tags.
+// Fallback for missing uploads: If an asset was requested under /uploads but not found on disk,
+// do NOT serve an SVG file with Content-Type: image/svg+xml for raster formats (.png, .jpg, .webp, etc.).
+// Serving SVG XML for a .png URL causes Hostinger CDN (hcdn) Image Optimizer to fail decoding the bitmap
+// and return "HTTP 422 Unprocessable Content (Invalid source image)".
+// Instead:
+// 1. If an .svg was requested, serve the fallback SVG.
+// 2. For raster images (.png, .jpg, .jpeg, .webp, .gif, .avif, .ico), return HTTP 404 with strict no-cache headers
+//    so client-side <img onError="..."> triggers gracefully and CDN does not choke or cache 422.
 app.use("/uploads", (req, res, next) => {
     if (["GET", "HEAD"].includes(req.method)) {
         const ext = path.extname(req.path).toLowerCase();
-        if ([".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif"].includes(ext)) {
-            const fallbackCandidates = [
-                path.resolve(process.cwd(), "server/public/uploads/products/demo.svg"),
-                path.resolve(process.cwd(), "public/uploads/products/demo.svg"),
-                path.resolve(process.cwd(), "../server/public/uploads/products/demo.svg"),
-                path.resolve(process.cwd(), "client/public/demo/placeholder-product.svg"),
-                path.resolve(process.cwd(), "../client/public/demo/placeholder-product.svg"),
-            ];
-            for (const candidate of fallbackCandidates) {
-                if (fs.existsSync(candidate)) {
-                    res.setHeader("Content-Type", "image/svg+xml");
-                    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-                    return res.sendFile(candidate);
+        const imageExtensions = [".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif", ".avif", ".ico"];
+        if (imageExtensions.includes(ext)) {
+            if (ext === ".svg") {
+                const fallbackCandidates = [
+                    path.resolve(process.cwd(), "server/public/uploads/products/demo.svg"),
+                    path.resolve(process.cwd(), "public/uploads/products/demo.svg"),
+                    path.resolve(process.cwd(), "../server/public/uploads/products/demo.svg"),
+                    path.resolve(process.cwd(), "client/public/demo/placeholder-product.svg"),
+                    path.resolve(process.cwd(), "../client/public/demo/placeholder-product.svg"),
+                ];
+                for (const candidate of fallbackCandidates) {
+                    if (fs.existsSync(candidate)) {
+                        res.setHeader("Content-Type", "image/svg+xml");
+                        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+                        return res.sendFile(candidate);
+                    }
                 }
             }
+            // For missing raster images, return a clean 404 instead of mismatched content-type
+            res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+            res.setHeader("Pragma", "no-cache");
+            res.setHeader("Expires", "0");
+            return res.status(404).send("File not found");
         }
     }
     next();
