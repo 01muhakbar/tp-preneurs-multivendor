@@ -4,6 +4,7 @@ import { Link, useLocation, useParams, useSearchParams } from "react-router-dom"
 import { fetchStoreProducts } from "../../api/public/storeProducts.ts";
 import { getStoreMicrositeRichAboutBySlug } from "../../api/public/storeCustomizationPublic.ts";
 import { getStorePublicIdentityBySlug } from "../../api/public/storePublicIdentity.ts";
+import { toPreferredWhatsAppLink } from "../../utils/storePublicIdentity.ts";
 import { buildStoreMicrosite2026ViewModel } from "./microsite2026/storeMicrosite2026Adapter.js";
 import StoreMicrosite2026View from "./microsite2026/StoreMicrosite2026View.jsx";
 import StoreMicrositeShell from "../../components/store/StoreMicrositeShell.jsx";
@@ -137,9 +138,13 @@ export default function StoreMicrositePage() {
 
   const handleChat = () => {
     const storeData = micrositeQuery.data?.data;
-    if (storeData?.whatsapp) {
-      const waNumber = storeData.whatsapp.replace(/\D+/g, "");
-      window.open(`https://wa.me/${waNumber}?text=Hello%20${encodeURIComponent(storeData.name || 'Store')},%20I%20have%20a%20question.`, '_blank');
+    const waUrl = toPreferredWhatsAppLink(
+      storeData?.whatsapp || storeData?.phone,
+      "",
+      `Halo ${storeData?.name || 'Store'}, saya ingin bertanya.`
+    );
+    if (waUrl) {
+      window.open(waUrl, '_blank');
     } else if (storeData?.phone) {
       window.open(`tel:${storeData.phone}`);
     } else {

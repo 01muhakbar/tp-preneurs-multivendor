@@ -43,6 +43,7 @@ import { resolveAssetUrl } from "../../lib/assetUrl.js";
 import { useProduct, useProducts } from "../../storefront.jsx";
 import { ensureProductImageUrl, resolveProductImageUrl } from "../../utils/productImage.js";
 import { useStorefrontWishlist } from "../../utils/storefrontWishlist.js";
+import { toPreferredWhatsAppLink } from "../../utils/storePublicIdentity.ts";
 import "./store-product-detail-2026.css";
 
 const DEFAULT_LIMIT = 8;
@@ -116,7 +117,12 @@ export const getProductImages = (product) => {
     ...(Array.isArray(product?.gallery) ? product.gallery.map((item) => item?.url ?? item?.imageUrl ?? item) : []),
   ];
   return Array.from(
-    new Set(candidates.map((item) => ensureProductImageUrl(item)).filter(Boolean))
+    new Set(
+      candidates
+        .map((item) => ensureProductImageUrl(item))
+        .filter(Boolean)
+        .map((image) => resolveAssetUrl(image))
+    )
   );
 };
 
@@ -500,7 +506,13 @@ function Badge({ children, tone = "blue" }) {
 
 function ProductImageLightbox({ images, activeIndex, onChangeIndex, onClose, productName }) {
   const [zoom, setZoom] = useState(1);
+  const [failedIndices, setFailedIndices] = useState(() => new Set());
   const activeImage = images[activeIndex] || "";
+  const isFailed = failedIndices.has(activeIndex) || !activeImage;
+
+  const markFailed = () => {
+    setFailedIndices((prev) => new Set(prev).add(activeIndex));
+  };
 
   useEffect(() => {
     setZoom(1);
@@ -520,7 +532,7 @@ function ProductImageLightbox({ images, activeIndex, onChangeIndex, onClose, pro
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [activeIndex, images.length, onChangeIndex, onClose]);
 
-  if (!activeImage) return null;
+  if (!activeImage && images.length === 0) return null;
 
   const handleZoomIn = (e) => { e.stopPropagation(); setZoom((z) => Math.min(z + 0.5, 4)); };
   const handleZoomOut = (e) => { e.stopPropagation(); setZoom((z) => Math.max(z - 0.5, 1)); };
@@ -532,10 +544,10 @@ function ProductImageLightbox({ images, activeIndex, onChangeIndex, onClose, pro
       </button>
 
       <div className="absolute top-4 left-1/2 z-20 flex -translate-x-1/2 gap-2">
-        <button type="button" onClick={handleZoomOut} disabled={zoom <= 1} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/15 disabled:opacity-30">
+        <button type="button" onClick={handleZoomOut} disabled={zoom <= 1 || isFailed} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/15 disabled:opacity-30">
           <ZoomOut className="h-5 w-5" />
         </button>
-        <button type="button" onClick={handleZoomIn} disabled={zoom >= 4} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/15 disabled:opacity-30">
+        <button type="button" onClick={handleZoomIn} disabled={zoom >= 4 || isFailed} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/15 disabled:opacity-30">
           <ZoomIn className="h-5 w-5" />
         </button>
       </div>
@@ -553,21 +565,30 @@ function ProductImageLightbox({ images, activeIndex, onChangeIndex, onClose, pro
       
       <div className="h-full w-full overflow-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex min-h-full min-w-full items-center justify-center">
-          <img
-            src={activeImage}
-            alt={productName || "Product image"}
-            className="transition-all duration-200"
-            style={{ 
-               height: zoom === 1 ? "85vh" : `${85 * zoom}vh`,
-               maxWidth: zoom === 1 ? "100%" : "none",
-               objectFit: "contain",
-               cursor: zoom > 1 ? "zoom-out" : "zoom-in",
-            }}
-            onClick={(e) => {
-               if (zoom === 1) handleZoomIn(e);
-               else setZoom(1);
-            }}
-          />
+          {!isFailed ? (
+            <img
+              src={activeImage}
+              alt={productName || "Product image"}
+              className="transition-all duration-200"
+              style={{ 
+                 height: zoom === 1 ? "85vh" : `${85 * zoom}vh`,
+                 maxWidth: zoom === 1 ? "100%" : "none",
+                 objectFit: "contain",
+                 cursor: zoom > 1 ? "zoom-out" : "zoom-in",
+              }}
+              onError={markFailed}
+              onClick={(e) => {
+                 if (zoom === 1) handleZoomIn(e);
+                 else setZoom(1);
+              }}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center text-white/70 p-8 text-center">
+              <ShoppingBag className="h-20 w-20 text-white/30 mb-3" />
+              <p className="text-base font-bold text-white">{productName || "Product image"}</p>
+              <p className="text-xs text-white/50 mt-1">Gambar sedang tidak tersedia</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -594,9 +615,15 @@ function ProductGallery({ product, selectedVariant }) {
   }, [product, selectedVariant]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [failedImages, setFailedImages] = useState(() => new Set());
   const activeImage = images[activeIndex] || images[0] || "";
   const productIdentifier = product?.id ?? product?.productId ?? getProductSlug(product);
   const isWishlisted = wishlist.isWishlisted(productIdentifier);
+
+  const markImageFailed = (src) => {
+    if (!src) return;
+    setFailedImages((prev) => new Set(prev).add(src));
+  };
 
   const handleWishlistToggle = () => {
     const variantSelections = Array.isArray(selectedVariant?.selections)
@@ -648,24 +675,32 @@ function ProductGallery({ product, selectedVariant }) {
           </button>
         ) : null}
         <div className="shop-product-2026-hide-scroll flex flex-1 gap-2 overflow-x-auto lg:max-h-[340px] lg:flex-none lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden">
-          {(images.length ? images : [""]).map((image, index) => (
-            <button
-              key={`${image || "fallback"}-${index}`}
-              type="button"
-              onClick={() => setActiveIndex(index)}
-              className={`h-14 w-20 shrink-0 overflow-hidden rounded-xl border bg-slate-50 transition lg:h-12 lg:w-[68px] dark:bg-slate-950 ${
-                index === activeIndex
-                  ? "border-[var(--tp-primary)] shadow-[0_0_0_2px_rgba(3,76,133,0.12)]"
-                  : "border-slate-200 dark:border-white/10"
-              }`}
-            >
-              {image ? (
-                <img src={image} alt={`${getProductName(product)} ${index + 1}`} className="h-full w-full object-contain p-1" />
-              ) : (
-                <ImageFallback categoryName={categoryName} />
-              )}
-            </button>
-          ))}
+          {(images.length ? images : [""]).map((image, index) => {
+            const isFailed = !image || failedImages.has(image);
+            return (
+              <button
+                key={`${image || "fallback"}-${index}`}
+                type="button"
+                onClick={() => setActiveIndex(index)}
+                className={`h-14 w-20 shrink-0 overflow-hidden rounded-xl border bg-slate-50 transition lg:h-12 lg:w-[68px] dark:bg-slate-950 ${
+                  index === activeIndex
+                    ? "border-[var(--tp-primary)] shadow-[0_0_0_2px_rgba(3,76,133,0.12)]"
+                    : "border-slate-200 dark:border-white/10"
+                }`}
+              >
+                {!isFailed ? (
+                  <img
+                    src={image}
+                    alt={`${getProductName(product)} ${index + 1}`}
+                    className="h-full w-full object-contain p-1"
+                    onError={() => markImageFailed(image)}
+                  />
+                ) : (
+                  <ImageFallback categoryName={categoryName} />
+                )}
+              </button>
+            );
+          })}
         </div>
         {images.length > 4 ? (
           <button
@@ -679,12 +714,13 @@ function ProductGallery({ product, selectedVariant }) {
         </div>
         <div className="relative order-1 overflow-hidden rounded-[1.25rem] bg-slate-100 dark:bg-slate-950 lg:order-2">
           <div className="flex h-[240px] w-full items-center justify-center sm:h-[280px] lg:h-[340px]">
-            {activeImage ? (
+            {activeImage && !failedImages.has(activeImage) ? (
               <button type="button" onClick={() => setIsLightboxOpen(true)} className="h-full w-full cursor-zoom-in outline-none">
                 <img
                   src={activeImage}
                   alt={getProductName(product)}
                   className="h-full w-full object-contain p-2 sm:p-3 transition hover:scale-105"
+                  onError={() => markImageFailed(activeImage)}
                 />
               </button>
             ) : (
@@ -930,6 +966,10 @@ function SellerCardFallback({ product, t }) {
   const seller = product?.sellerInfo || product?.store || {};
   const name = text(seller?.name, "Super Admin");
   const storeSlug = text(seller?.slug, product?.storeSlug);
+  const rawWhatsApp = seller?.whatsapp || seller?.phone;
+  const chatHref = rawWhatsApp
+    ? toPreferredWhatsAppLink(rawWhatsApp, "", `Halo ${name}, saya tertarik dengan produk "${product?.name || ''}" di TP Preneurs.`)
+    : null;
   return (
     <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-slate-900 dark:shadow-none">
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_1.3fr] lg:items-center">
@@ -950,15 +990,28 @@ function SellerCardFallback({ product, t }) {
               >
                 <Store className="h-4 w-4" /> {t("productDetail.visitStore")}
               </Link>
-              <button
-                type="button"
-                disabled
-                className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-5 text-sm font-bold text-slate-400 dark:border-white/10 dark:bg-slate-950"
-              >
-                <MessageCircle className="h-4 w-4" /> {t("productDetail.chat")}
-              </button>
+              {chatHref ? (
+                <a
+                  href={chatHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-10 items-center gap-2 rounded-xl bg-[var(--tp-primary)] px-5 text-sm font-bold text-white transition hover:bg-[var(--tp-accent)]"
+                >
+                  <MessageCircle className="h-4 w-4" /> {t("productDetail.chat")}
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-5 text-sm font-bold text-slate-400 dark:border-white/10 dark:bg-slate-950"
+                >
+                  <MessageCircle className="h-4 w-4" /> {t("productDetail.chat")}
+                </button>
+              )}
             </div>
-            <p className="mt-2 text-xs text-[var(--tp-primary)] dark:text-sky-300">{t("productDetail.chatNotAvailable")}</p>
+            {!chatHref ? (
+              <p className="mt-2 text-xs text-[var(--tp-primary)] dark:text-sky-300">{t("productDetail.chatNotAvailable")}</p>
+            ) : null}
           </div>
         </div>
         <div className="grid grid-cols-3 divide-x divide-slate-200 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 text-center dark:divide-white/10 dark:border-white/10 dark:bg-slate-950">
@@ -1514,7 +1567,7 @@ export default function StoreProductDetailPage2026() {
       </section>
 
       {product?.sellerInfo?.name ? (
-        <ProductSellerInfoCard sellerInfo={product.sellerInfo} />
+        <ProductSellerInfoCard sellerInfo={product.sellerInfo} product={product} />
       ) : (
         <SellerCardFallback product={product} t={t} />
       )}

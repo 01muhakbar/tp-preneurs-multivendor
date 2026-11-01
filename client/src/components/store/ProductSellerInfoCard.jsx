@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -15,6 +16,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { fetchSellerKycRequest } from "../../api/seller2026/kyc.ts";
 import { getStorePublicIdentityBySlug } from "../../api/storePublicIdentity.ts";
+import { toPreferredWhatsAppLink } from "../../utils/storePublicIdentity.ts";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
 import { useAuth } from "../../auth/useAuth.js";
 
@@ -133,7 +135,7 @@ function SellerLogo({ logoUrl, name, isVerified }) {
   );
 }
 
-export default function ProductSellerInfoCard({ sellerInfo }) {
+export default function ProductSellerInfoCard({ sellerInfo, product }) {
   const { t, i18n } = useTranslation();
   const auth = useAuth();
   if (!sellerInfo?.name) return null;
@@ -186,13 +188,35 @@ export default function ProductSellerInfoCard({ sellerInfo }) {
           : "border-slate-200 bg-slate-100 text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300";
   const statusDisplayLabel = translateStatusLabel(statusLabel, t);
   const reviewLabel = t("productDetail.reviewsCount", { count: ratingCount });
-  const isChatEnabled = sellerInfo.chatMode === "enabled" && sellerInfo.chatHref;
+
+  const rawWhatsApp =
+    sellerInfo.chatHref ||
+    identityResponse?.data?.whatsapp ||
+    sellerInfo.publicContact?.whatsapp ||
+    sellerInfo.whatsapp ||
+    identityResponse?.data?.phone ||
+    sellerInfo.phone;
+
+  const defaultChatText = product?.name
+    ? `Halo ${sellerInfo.name || "Seller"}, saya tertarik dengan produk "${product.name}" di TP Preneurs.`
+    : "";
+
+  const computedChatHref = useMemo(() => {
+    if (!rawWhatsApp) return null;
+    return toPreferredWhatsAppLink(rawWhatsApp, "", defaultChatText);
+  }, [rawWhatsApp, defaultChatText]);
+
+  const effectiveChatHref = computedChatHref || sellerInfo.chatHref;
+  const isChatEnabled =
+    (sellerInfo.chatMode === "enabled" || Boolean(computedChatHref)) &&
+    Boolean(effectiveChatHref);
   const isChatFallback =
+    !computedChatHref &&
     isOperationallyReady &&
     sellerInfo.chatMode === "contact_fallback" &&
     sellerInfo.chatHref;
   const chatButtonLabel =
-    sellerInfo.chatMode === "disabled"
+    !isChatEnabled && !isChatFallback
       ? isOperationallyReady
         ? t("productDetail.chatSoon")
         : t("productDetail.storeGated")
@@ -203,9 +227,9 @@ export default function ProductSellerInfoCard({ sellerInfo }) {
           operationalReadiness?.description,
           t("productDetail.storeNotOperational")
         )
-      : sellerInfo.chatMode === "contact_fallback"
+      : isChatFallback
       ? t("productDetail.useStorePageContact")
-      : sellerInfo.chatMode === "disabled"
+      : !isChatEnabled
         ? t("productDetail.chatNotAvailable")
         : "";
   const showOperationalMetrics = !operationalReadiness || isOperationallyReady;
@@ -319,7 +343,7 @@ export default function ProductSellerInfoCard({ sellerInfo }) {
           <div className="flex flex-wrap gap-1.5">
             {isChatEnabled ? (
               <a
-                href={sellerInfo.chatHref}
+                href={effectiveChatHref}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex h-9 items-center justify-center rounded-full bg-[var(--tp-primary)] px-4 text-[13px] font-bold !text-white shadow-sm transition hover:bg-[var(--tp-accent)] hover:!text-white"
@@ -330,7 +354,7 @@ export default function ProductSellerInfoCard({ sellerInfo }) {
               </a>
             ) : isChatFallback ? (
               <Link
-                to={sellerInfo.chatHref}
+                to={sellerInfo.chatHref || sellerInfo.visitStoreHref || `/store/${encodeURIComponent(sellerInfo.slug || "")}`}
                 className="inline-flex h-9 items-center justify-center rounded-full border border-slate-300 bg-white px-4 text-[13px] font-bold text-slate-800 transition hover:border-[var(--tp-primary)]/40 hover:text-[var(--tp-primary)] dark:border-white/15 dark:bg-white/5 dark:text-slate-100"
               >
                 <MessageCircleMore className="mr-1.5 h-3.5 w-3.5" />

@@ -18,6 +18,7 @@ import StoreFooterKacha from "../kachabazar-demo/StoreFooterKacha.jsx";
 import FloatingCartWidget from "../kachabazar-demo/FloatingCartWidget.jsx";
 import { StoreCartDrawer } from "../../pages/store/StoreCartPage.jsx";
 import useStoreBranding from "../../hooks/useStoreBranding.js";
+import { toPreferredWhatsAppLink } from "../../utils/storePublicIdentity.ts";
 
 const toText = (value, fallback = "") => {
   const normalized = String(value ?? "").trim();
@@ -30,13 +31,7 @@ export const buildStoreMicrositeHref = (slug) =>
 export const buildStoreMicrositeProductHref = (slug, productSlug) =>
   `${buildStoreMicrositeHref(slug)}/products/${encodeURIComponent(toText(productSlug))}`;
 
-const toWhatsAppHref = (value) => {
-  const safeValue = toText(value);
-  if (!safeValue) return "";
-  return /^https?:\/\//i.test(safeValue)
-    ? safeValue
-    : `https://wa.me/${safeValue.replace(/\D+/g, "")}`;
-};
+const toWhatsAppHref = (value) => toPreferredWhatsAppLink(value, "");
 
 const toExternalHref = (value) => {
   const safeValue = toText(value);

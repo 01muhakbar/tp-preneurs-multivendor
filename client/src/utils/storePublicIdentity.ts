@@ -52,7 +52,7 @@ const toText = (value: unknown, fallback = "") => {
   return normalized || fallback;
 };
 
-const isSafeWhatsAppUrl = (value: unknown) => {
+export const isSafeWhatsAppUrl = (value: unknown) => {
   const normalized = toText(value);
   if (!normalized) return false;
   const lowered = normalized.toLowerCase();
@@ -161,14 +161,67 @@ export const resolvePreferredText = (
 ) =>
   toText(preferredValue, toText(fallbackValue, finalFallback));
 
-export const toPreferredWhatsAppLink = (preferredValue: unknown, fallbackValue: unknown) => {
-  const preferred = toText(preferredValue);
-  if (isSafeWhatsAppUrl(preferred)) return preferred;
+export const normalizeWhatsAppDigits = (raw: unknown): string => {
+  const digits = String(raw ?? "").replace(/\D+/g, "");
+  if (!digits || digits.length < 5) return "";
+  // Indonesia local format: 08xx -> 628xx
+  if (digits.startsWith("0")) {
+    return `62${digits.slice(1)}`;
+  }
+  // Indonesia short format: 8xx (9 to 13 digits) -> 628xx
+  if (digits.startsWith("8") && digits.length >= 9 && digits.length <= 13) {
+    return `62${digits}`;
+  }
+  return digits;
+};
 
-  const digits = preferred.replace(/\D+/g, "");
-  if (digits) {
-    return `https://wa.me/${digits}`;
+export const toPreferredWhatsAppLink = (
+  preferredValue: unknown,
+  fallbackValue: unknown,
+  defaultText: string = ""
+): string => {
+  const preferred = toText(preferredValue);
+  if (preferred) {
+    if (/^https?:\/\//i.test(preferred)) {
+      try {
+        const url = new URL(preferred);
+        if (url.hostname.includes("wa.me")) {
+          const rawDigits = url.pathname.replace(/^\//, "").replace(/\D+/g, "");
+          const normalized = normalizeWhatsAppDigits(rawDigits);
+          if (normalized) {
+            url.pathname = `/${normalized}`;
+            if (defaultText && !url.searchParams.has("text")) {
+              url.searchParams.set("text", defaultText);
+            }
+            return url.toString();
+          }
+        } else if (url.hostname.includes("whatsapp.com")) {
+          const phone = url.searchParams.get("phone") || "";
+          const normalized = normalizeWhatsAppDigits(phone);
+          if (normalized) {
+            url.searchParams.set("phone", normalized);
+            if (defaultText && !url.searchParams.has("text")) {
+              url.searchParams.set("text", defaultText);
+            }
+            return url.toString();
+          }
+        }
+      } catch {
+        // Fall back to extracting digits if URL parsing failed
+      }
+    }
+
+    const normalizedDigits = normalizeWhatsAppDigits(preferred);
+    if (normalizedDigits) {
+      const query = defaultText ? `?text=${encodeURIComponent(defaultText)}` : "";
+      return `https://wa.me/${normalizedDigits}${query}`;
+    }
   }
 
-  return toText(fallbackValue);
+  const fallback = toText(fallbackValue);
+  if (fallback) {
+    return toPreferredWhatsAppLink(fallback, "", defaultText);
+  }
+
+  return "";
 };

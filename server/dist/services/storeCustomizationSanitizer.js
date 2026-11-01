@@ -1550,7 +1550,7 @@ export const buildPublicStoreCustomizationHeaderSettings = (lang, customization,
         ? customization.home.header || {}
         : {};
     const storePhone = toText(store?.phone);
-    const storeWhatsApp = toPreferredWhatsAppLink(store?.whatsapp, "");
+    const storeWhatsApp = toPreferredWhatsAppLink(store?.whatsapp || store?.phone, "");
     const storeLogoUrl = toText(store?.logoUrl);
     const customizationPhone = toText(headerSource.phoneNumber, "");
     const customizationWhatsApp = toText(headerSource.whatsAppLink, "");

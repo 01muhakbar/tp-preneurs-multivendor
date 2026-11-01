@@ -89,20 +89,64 @@ export const readStoreIdentityAttr = (store, key) => store?.getDataValue?.(key) 
     store?.dataValues?.[key] ??
     store?.[key] ??
     undefined;
-export const toPreferredWhatsAppLink = (preferredValue, fallbackValue) => {
+export const normalizeWhatsAppDigits = (raw) => {
+    const digits = String(raw ?? "").replace(/\D+/g, "");
+    if (!digits || digits.length < 5)
+        return "";
+    // Indonesia local format: 08xx -> 628xx
+    if (digits.startsWith("0")) {
+        return `62${digits.slice(1)}`;
+    }
+    // Indonesia short format: 8xx (9 to 13 digits) -> 628xx
+    if (digits.startsWith("8") && digits.length >= 9 && digits.length <= 13) {
+        return `62${digits}`;
+    }
+    return digits;
+};
+export const toPreferredWhatsAppLink = (preferredValue, fallbackValue, defaultText = "") => {
     const preferred = toText(preferredValue);
     if (preferred) {
-        const lowered = preferred.toLowerCase();
-        if (lowered.startsWith("https://wa.me/") ||
-            lowered.startsWith("https://api.whatsapp.com/")) {
-            return preferred;
+        if (/^https?:\/\//i.test(preferred)) {
+            try {
+                const url = new URL(preferred);
+                if (url.hostname.includes("wa.me")) {
+                    const rawDigits = url.pathname.replace(/^\//, "").replace(/\D+/g, "");
+                    const normalized = normalizeWhatsAppDigits(rawDigits);
+                    if (normalized) {
+                        url.pathname = `/${normalized}`;
+                        if (defaultText && !url.searchParams.has("text")) {
+                            url.searchParams.set("text", defaultText);
+                        }
+                        return url.toString();
+                    }
+                }
+                else if (url.hostname.includes("whatsapp.com")) {
+                    const phone = url.searchParams.get("phone") || "";
+                    const normalized = normalizeWhatsAppDigits(phone);
+                    if (normalized) {
+                        url.searchParams.set("phone", normalized);
+                        if (defaultText && !url.searchParams.has("text")) {
+                            url.searchParams.set("text", defaultText);
+                        }
+                        return url.toString();
+                    }
+                }
+            }
+            catch {
+                // Fall back to extracting digits if URL parsing failed
+            }
         }
-        const digits = preferred.replace(/\D+/g, "");
-        if (digits) {
-            return `https://wa.me/${digits}`;
+        const normalizedDigits = normalizeWhatsAppDigits(preferred);
+        if (normalizedDigits) {
+            const query = defaultText ? `?text=${encodeURIComponent(defaultText)}` : "";
+            return `https://wa.me/${normalizedDigits}${query}`;
         }
     }
-    return toText(fallbackValue);
+    const fallback = toText(fallbackValue);
+    if (fallback) {
+        return toPreferredWhatsAppLink(fallback, "", defaultText);
+    }
+    return "";
 };
 export const buildPublicStoreStatusMeta = (statusValue) => {
     const code = toText(statusValue, "ACTIVE").toUpperCase();
@@ -253,7 +297,9 @@ export const buildPublicStoreSummary = async (store) => {
         ? Number(Number(ratingAverageRaw).toFixed(1))
         : null;
     const ratingCount = Math.max(0, Math.round(Number(aggregate.ratingCount || 0)));
-    const storeWhatsApp = toPreferredWhatsAppLink(readStoreIdentityAttr(store, "whatsapp"), "");
+    const rawWhatsApp = readStoreIdentityAttr(store, "whatsapp") ||
+        readStoreIdentityAttr(store, "phone");
+    const storeWhatsApp = toPreferredWhatsAppLink(rawWhatsApp, "");
     const hasContact = Boolean(toText(readStoreIdentityAttr(store, "email")) ||
         toText(readStoreIdentityAttr(store, "phone")) ||
         storeWhatsApp);
@@ -345,7 +391,11 @@ export const serializePublicSellerInfo = async (store) => {
         ? Boolean(operationalReadiness.isReady)
         : true;
     const storeSlug = toText(identity.slug);
-    const storeWhatsApp = toPreferredWhatsAppLink(identity.whatsapp, "");
+    const rawWhatsApp = identity.whatsapp ||
+        readStoreIdentityAttr(store, "whatsapp") ||
+        identity.phone ||
+        readStoreIdentityAttr(store, "phone");
+    const storeWhatsApp = toPreferredWhatsAppLink(rawWhatsApp, "");
     const hasContactFallback = Boolean(isOperationallyReady && storeSlug && (identity.phone || identity.email));
     const chatMode = storeWhatsApp
         ? "enabled"

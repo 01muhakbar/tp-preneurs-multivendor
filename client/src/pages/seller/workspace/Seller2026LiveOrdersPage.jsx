@@ -11,6 +11,7 @@ import { getSeller2026PagePermissions } from "./seller2026PagePermissions.js";
 import SellerOrders2026View from "../../../features/sellerWorkspace2026/orders/SellerOrders2026View.jsx";
 import SellerOrderDetailDrawer2026 from "../../../features/sellerWorkspace2026/orders/detail-drawer/SellerOrderDetailDrawer2026.jsx";
 import SellerShippingLabelPrint from "../../../features/sellerWorkspace2026/orders/print/SellerShippingLabelPrint.jsx";
+import { toPreferredWhatsAppLink } from "../../../utils/storePublicIdentity.ts";
 
 const EXPORT_COLUMNS = [
   { key: "order", label: "Order" },
@@ -188,9 +189,9 @@ export default function Seller2026LiveOrdersPage() {
   };
 
   const handleMessageBuyer = (customer) => {
-    if (customer?.phone && customer.phone !== "Not set") {
-      const cleanPhone = customer.phone.replace(/\D/g, "");
-      window.open(`https://wa.me/${cleanPhone}`, "_blank");
+    const waUrl = toPreferredWhatsAppLink(customer?.phone, "");
+    if (waUrl) {
+      window.open(waUrl, "_blank");
     } else if (customer?.email) {
       window.open(`mailto:${customer.email}`, "_blank");
     } else {

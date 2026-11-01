@@ -156,7 +156,7 @@ function Pill({ children, tone = "neutral" }) {
   return <span className={`seller2026-pill seller2026-pill--${tone}`}>{children}</span>;
 }
 
-function Field({ label, multiline = false, required = false, children, ...props }) {
+function Field({ label, hint, multiline = false, required = false, children, ...props }) {
   return (
     <label className="seller2026-profile-field">
       <span>
@@ -165,6 +165,7 @@ function Field({ label, multiline = false, required = false, children, ...props 
       </span>
       {children ||
         (multiline ? <textarea {...props} /> : <input {...props} />)}
+      {hint ? <small style={{ fontSize: "11px", color: "var(--text-muted, #94a3b8)", marginTop: "4px", display: "block" }}>{hint}</small> : null}
     </label>
   );
 }
@@ -487,9 +488,19 @@ export default function Seller2026LiveStorefrontPage() {
               <h2>{isId ? "Kontak" : "Contact"}</h2>
               <div className="seller2026-profile__fields-two">
                 <Field required label={isId ? "Email Toko" : "Store Email"} type="email" value={form.email} onChange={setValue("email")} />
-                <Field required label={isId ? "Telepon" : "Phone"} value={form.phone} onChange={setValue("phone")} />
+                <Field required label={isId ? "Telepon" : "Phone"} value={form.phone} onChange={setValue("phone")} placeholder="08xxxxxxxxxx atau 628xxxxxxxxxx" />
               </div>
-              <Field label="WhatsApp" value={form.whatsapp} onChange={setValue("whatsapp")} />
+              <Field
+                label="WhatsApp"
+                value={form.whatsapp}
+                onChange={setValue("whatsapp")}
+                placeholder="08xxxxxxxxxx atau 628xxxxxxxxxx"
+                hint={
+                  isId
+                    ? "Digunakan untuk tombol 'Chat Toko' di halaman produk. Masukkan nomor WhatsApp aktif (contoh: 0852... atau 62852...)."
+                    : "Used for 'Chat Store' button on product pages. Enter an active WhatsApp number (e.g. 0852... or 62852...)."
+                }
+              />
               <div className="seller2026-profile__fields-two">
                 <Field label="Website URL" type="url" value={form.websiteUrl} onChange={setValue("websiteUrl")} />
                 <Field label="Instagram URL" type="url" value={form.instagramUrl} onChange={setValue("instagramUrl")} />
@@ -532,7 +543,7 @@ export default function Seller2026LiveStorefrontPage() {
               <div className="seller2026-profile__fields-two">
                 <Field required label={isId ? "Nama Lengkap" : "Full Name"} value={form.ownerName} onChange={setValue("ownerName")} />
                 <Field required label={isId ? "Email Pemilik" : "Owner Email"} type="email" value={form.ownerEmail} onChange={setValue("ownerEmail")} />
-                <Field required label={isId ? "Nomor Telepon / WA" : "Phone / WhatsApp"} value={form.ownerPhone} onChange={setValue("ownerPhone")} />
+                <Field required label={isId ? "Nomor Telepon / WA" : "Phone / WhatsApp"} value={form.ownerPhone} onChange={setValue("ownerPhone")} placeholder="08xxxxxxxxxx atau 628xxxxxxxxxx" />
                 <Field label={isId ? "Tanggal Lahir" : "Date of Birth"} type="date" value={form.birthDate} onChange={setValue("birthDate")} />
                 <Field label={isId ? "Jenis Identitas" : "Identity Type"}>
                   <select value={form.identityType} onChange={setValue("identityType")}>
