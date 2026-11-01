@@ -4,26 +4,21 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
   BarChart3,
-  CalendarDays,
   Check,
   CheckCircle2,
   ChevronDown,
+  ChevronUp,
   ClipboardCheck,
   Copy,
   Download,
   ExternalLink,
   FileSearch,
-  Filter,
   Info,
   Link2,
   Loader2,
-  MoreVertical,
-  PackageCheck,
   RefreshCw,
   RotateCcw,
   Search,
-  ShieldCheck,
-  Sparkles,
   Truck,
   X,
 } from "lucide-react";
@@ -41,21 +36,22 @@ import {
   correctAdminShipmentException,
   fetchAdminShippingReconciliationReport,
 } from "../../lib/adminApi.js";
+import "./AdminShippingReconciliationPage.css";
 
 const CATEGORY_OPTIONS = [
   { value: "", label: "All Categories" },
-  { value: "compatibilityMismatch", label: "Final mismatch" },
-  { value: "mixedShipmentOutcome", label: "Mixed outcome" },
-  { value: "activeShippingException", label: "Active exception" },
-  { value: "finalShippingException", label: "Final exception" },
-  { value: "trackingDataIncomplete", label: "Tracking gap" },
+  { value: "compatibilityMismatch", label: "Mismatch" },
+  { value: "mixedShipmentOutcome", label: "Mixed Outcome" },
+  { value: "activeShippingException", label: "Active Exception" },
+  { value: "finalShippingException", label: "Final Exception" },
+  { value: "trackingDataIncomplete", label: "Tracking Gap" },
   { value: "adminCorrectedRecent", label: "Corrected" },
 ];
 
 const STATUS_OPTIONS = [
   { value: "", label: "All Statuses" },
   { value: "INFO_RECEIVED", label: "Info Received" },
-  { value: "READY_TO_FULFILL", label: "Ready To Fulfill" },
+  { value: "READY_TO_FULFILL", label: "Ready" },
   { value: "PACKED", label: "Packed" },
   { value: "SHIPPED", label: "In Transit" },
   { value: "DELIVERED", label: "Delivered" },
@@ -69,79 +65,62 @@ const QUICK_FILTERS = [
   { value: "all", label: "All" },
   { value: "urgent", label: "Urgent" },
   { value: "mismatch", label: "Mismatch" },
-  { value: "active", label: "Active Exception" },
-  { value: "final", label: "Final Exception" },
-  { value: "tracking", label: "Tracking Gap" },
+  { value: "active", label: "Active" },
+  { value: "final", label: "Final" },
+  { value: "tracking", label: "Gaps" },
   { value: "corrected", label: "Corrected" },
 ];
 
 const CATEGORY_META = {
   compatibilityMismatch: {
-    label: "Final mismatch",
-    shortLabel: "Final mismatch",
+    label: "Mismatch",
+    shortLabel: "Mismatch",
     color: "#8b5cf6",
-    bg: "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-200",
-    Icon: Sparkles,
+    badgeClass: "asr2026-badge--neutral",
+    Icon: AlertCircle,
   },
   mixedShipmentOutcome: {
     label: "Mixed outcome",
     shortLabel: "Mismatch",
-    color: "#f97316",
-    bg: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-200",
+    color: "#fe6f05",
+    badgeClass: "asr2026-badge--urgent",
     Icon: AlertCircle,
   },
   activeShippingException: {
     label: "Active exception",
     shortLabel: "Active",
-    color: "#ef4444",
-    bg: "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-200",
+    color: "#fe6f05",
+    badgeClass: "asr2026-badge--urgent",
     Icon: AlertCircle,
   },
   finalShippingException: {
     label: "Final exception",
     shortLabel: "Final",
     color: "#64748b",
-    bg: "bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200",
+    badgeClass: "asr2026-badge--neutral",
     Icon: ClipboardCheck,
   },
   trackingDataIncomplete: {
     label: "Tracking gap",
-    shortLabel: "Tracking gap",
-    color: "#f59e0b",
-    bg: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-200",
+    shortLabel: "Gap",
+    color: "#034c85",
+    badgeClass: "asr2026-badge--blue",
     Icon: Link2,
   },
   adminCorrectedRecent: {
     label: "Corrected",
     shortLabel: "Corrected",
     color: "#059669",
-    bg: "bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] dark:bg-[var(--admin-primary-soft)]0/15 dark:text-emerald-200",
+    badgeClass: "asr2026-badge--success",
     Icon: CheckCircle2,
   },
 };
 
-const STATUS_STYLES = {
-  DELIVERED: "bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] dark:bg-[var(--admin-primary-soft)]0/15 dark:text-emerald-200",
-  SHIPPED: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-200",
-  INFO_RECEIVED: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-200",
-  FAILED_DELIVERY: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-200",
-  RETURNED: "bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200",
-  CANCELLED: "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-200",
-  PENDING: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-200",
-};
-
-const PRIORITY_STYLES = {
-  Urgent: "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-200",
-  Active: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-200",
-  Corrected: "bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] dark:bg-[var(--admin-primary-soft)]0/15 dark:text-emerald-200",
-  Review: "bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200",
-};
-
 const CHART_KEYS = [
-  { key: "urgent", label: "Urgent", color: "#ef4444" },
+  { key: "urgent", label: "Urgent", color: "#fe6f05" },
   { key: "active", label: "Active", color: "#f59e0b" },
-  { key: "tracking", label: "Tracking Gap", color: "#3b82f6" },
-  { key: "final", label: "Final", color: "#8b5cf6" },
+  { key: "tracking", label: "Tracking Gap", color: "#034c85" },
+  { key: "final", label: "Final", color: "#64748b" },
   { key: "corrected", label: "Corrected", color: "#059669" },
 ];
 
@@ -155,7 +134,6 @@ const DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
 const DATETIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
   month: "short",
   day: "numeric",
-  year: "numeric",
   hour: "2-digit",
   minute: "2-digit",
 });
@@ -233,14 +211,14 @@ const normalizeCategory = (category) => {
   if (typeof category === "string") {
     return {
       code: category,
-      label: CATEGORY_META[category]?.label || formatStatus(category, "Shipment issue"),
+      label: CATEGORY_META[category]?.label || formatStatus(category, "Issue"),
       detail: null,
     };
   }
   const code = normalizeText(category?.code || category?.key || category?.value);
   return {
     code,
-    label: normalizeText(category?.label, CATEGORY_META[code]?.label || formatStatus(code, "Shipment issue")),
+    label: normalizeText(category?.label, CATEGORY_META[code]?.label || formatStatus(code, "Issue")),
     detail: normalizeText(category?.detail || category?.description, ""),
   };
 };
@@ -327,7 +305,7 @@ const normalizeRow = (item, index) => {
     primaryCategory: primaryCategory.code ? primaryCategory : categories[0],
     issue: normalizeText(
       getNested(item, ["issue", "issueLabel", "primaryCategory.label"]),
-      primaryCategory.label || categories[0]?.label || "Shipment issue"
+      primaryCategory.label || categories[0]?.label || "Issue"
     ),
     etaDrift: normalizeText(getNested(item, ["etaDrift", "eta.drift", "tracking.etaDrift"]), ""),
     updatedAt,
@@ -401,16 +379,7 @@ const getCorrectionTarget = (row) => {
   return "";
 };
 
-const getIssueColor = (row) =>
-  CATEGORY_META[row.primaryCategory?.code]?.bg ||
-  "bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200";
-
-const getIssueIcon = (row) => CATEGORY_META[row.primaryCategory?.code]?.Icon || Info;
-
 const getCategoryColor = (code) => CATEGORY_META[code]?.color || "#64748b";
-
-const getStatusStyle = (status) =>
-  STATUS_STYLES[status] || "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-200";
 
 const getEtaDrift = (row) => {
   const explicit = normalizeText(row.etaDrift);
@@ -421,7 +390,7 @@ const getEtaDrift = (row) => {
   if (hours <= 0) return EMPTY_TEXT;
   if (hours < 24) return `+${hours}h`;
   const days = Math.max(1, Math.round(hours / 24));
-  return `+${days}d ${hours % 24}h`;
+  return `+${days}d`;
 };
 
 const buildCounts = (rows) =>
@@ -444,7 +413,7 @@ const buildCounts = (rows) =>
 const buildChartData = (rows) => {
   const buckets = new Map();
   rows.forEach((row) => {
-    const label = formatShortDate(row.updatedAt) || "No date";
+    const label = formatShortDate(row.updatedAt) || "N/A";
     if (!buckets.has(label)) {
       buckets.set(label, { name: label, urgent: 0, active: 0, tracking: 0, final: 0, corrected: 0 });
     }
@@ -476,145 +445,23 @@ const buildCategoryRows = (rows, metaCounts) => {
     .map(([code, count]) => ({
       code,
       count,
-      label: CATEGORY_META[code]?.label || formatStatus(code, "Shipment issue"),
+      label: CATEGORY_META[code]?.label || formatStatus(code, "Issue"),
       color: getCategoryColor(code),
     }));
 };
 
 const csvEscape = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
 
-function StatusBadge({ children, className = "" }) {
-  return (
-    <span className={`inline-flex max-w-full items-center rounded-full px-2.5 py-1 text-xs font-semibold ${className}`}>
-      <span className="truncate">{children}</span>
-    </span>
-  );
-}
-
-function MetricCard({ title, value, delta, icon: Icon, accent = "emerald", spark = "up" }) {
-  const accentClass =
-    accent === "rose"
-      ? "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-200"
-      : accent === "amber"
-        ? "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-200"
-        : accent === "sky"
-          ? "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-200"
-          : "bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] dark:bg-[var(--admin-primary-soft)]0/15 dark:text-emerald-200";
-  const lineClass =
-    accent === "rose" ? "bg-rose-500" : accent === "amber" ? "bg-amber-500" : "bg-[var(--admin-primary-soft)]0";
-
-  return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-200/50 transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-950 dark:shadow-none">
-      <div className="flex items-start justify-between gap-4">
-        <div className={`grid size-14 shrink-0 place-items-center rounded-full ${accentClass}`}>
-          <Icon className="size-6" aria-hidden="true" />
-        </div>
-        <div className="mt-6 flex h-10 w-24 items-end gap-1 opacity-80" aria-hidden="true">
-          {[35, 42, 38, 48, spark === "down" ? 30 : 58, 44, spark === "down" ? 24 : 68].map((height, index) => (
-            <span
-              key={`${title}-spark-${index}`}
-              className={`w-full rounded-full ${lineClass}`}
-              style={{ height: `${height}%`, opacity: 0.35 + index * 0.07 }}
-            />
-          ))}
-        </div>
-      </div>
-      <div className="mt-4">
-        <div className="flex items-center gap-2 text-sm font-medium text-slate-500 dark:text-slate-400">
-          {title}
-          <Info className="size-3.5" aria-hidden="true" />
-        </div>
-        <p className="mt-1 text-3xl font-semibold leading-none text-slate-950 dark:text-white">{value}</p>
-        <p
-          className={`mt-3 text-xs font-semibold ${
-            spark === "down" ? "text-[var(--admin-primary)] dark:text-emerald-300" : "text-[var(--admin-primary)] dark:text-emerald-300"
-          }`}
-        >
-          {delta}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function LoadingSkeleton() {
-  return (
-    <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <div
-            key={`shipping-skeleton-card-${index}`}
-            className="h-40 animate-pulse rounded-2xl border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-900"
-          />
-        ))}
-      </div>
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)]">
-        <div className="h-64 animate-pulse rounded-2xl border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-900" />
-        <div className="h-64 animate-pulse rounded-2xl border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-900" />
-      </div>
-      <div className="h-96 animate-pulse rounded-2xl border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-900" />
-    </div>
-  );
-}
-
-function ErrorState({ message, onRetry }) {
-  return (
-    <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-800 dark:border-rose-500/30 dark:bg-rose-950/30 dark:text-rose-100">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <AlertCircle className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
-          <div>
-            <h2 className="font-semibold">Shipping reconciliation could not load</h2>
-            <p className="mt-1 text-sm opacity-85">{message}</p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={onRetry}
-          className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700"
-        >
-          <RefreshCw className="size-4" aria-hidden="true" />
-          Retry
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function EmptyState({ onReset }) {
-  return (
-    <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center dark:border-slate-700 dark:bg-slate-950">
-      <div className="mx-auto grid size-14 place-items-center rounded-full bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] dark:bg-[var(--admin-primary-soft)]0/15 dark:text-emerald-200">
-        <FileSearch className="size-6" aria-hidden="true" />
-      </div>
-      <h2 className="mt-4 text-lg font-semibold text-slate-950 dark:text-white">No reconciliation rows found</h2>
-      <p className="mx-auto mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">
-        Current filters do not match any shipment exceptions from the report.
-      </p>
-      <button
-        type="button"
-        onClick={onReset}
-        className="mt-5 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
-      >
-        <RotateCcw className="size-4" aria-hidden="true" />
-        Reset filters
-      </button>
-    </div>
-  );
-}
-
 export default function AdminShippingReconciliationPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [quickFilter, setQuickFilter] = useState("all");
-  const [draftFilters, setDraftFilters] = useState({
-    invoice: "",
-    category: "",
-    status: "",
-    store: "",
-  });
-  const [filters, setFilters] = useState(draftFilters);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [storeFilter, setStoreFilter] = useState("");
   const [selectedKey, setSelectedKey] = useState("");
+  const [showOverview, setShowOverview] = useState(true);
 
   const reportQuery = useQuery({
     queryKey: ["admin", "shipping-reconciliation", "report"],
@@ -634,61 +481,55 @@ export default function AdminShippingReconciliationPage() {
   }, [rows]);
 
   const visibleRows = useMemo(() => {
-    const invoice = filters.invoice.trim().toLowerCase();
-    const store = filters.store.trim().toLowerCase();
-    const status = normalizeCode(filters.status);
+    const term = searchTerm.trim().toLowerCase();
+    const store = storeFilter.trim().toLowerCase();
+    const status = normalizeCode(statusFilter);
+
     return rows
       .filter((row) => matchesQuickFilter(row, quickFilter))
-      .filter((row) => !invoice || row.invoiceNo.toLowerCase().includes(invoice))
-      .filter((row) => !filters.category || hasCategory(row, filters.category))
+      .filter((row) => {
+        if (!term) return true;
+        return (
+          row.invoiceNo.toLowerCase().includes(term) ||
+          row.storeName.toLowerCase().includes(term) ||
+          row.trackingNumber.toLowerCase().includes(term)
+        );
+      })
+      .filter((row) => !categoryFilter || hasCategory(row, categoryFilter))
       .filter((row) => !status || row.status === status)
       .filter((row) => {
         if (!store) return true;
         return String(row.storeId || "").toLowerCase() === store || row.storeName.toLowerCase() === store;
       })
       .sort((a, b) => getPriority(b).rank - getPriority(a).rank);
-  }, [filters, quickFilter, rows]);
+  }, [categoryFilter, quickFilter, rows, searchTerm, statusFilter, storeFilter]);
 
   const selectedRow = useMemo(
-    () => visibleRows.find((row) => row._key === selectedKey) || visibleRows[0] || null,
+    () => visibleRows.find((row) => row._key === selectedKey) || null,
     [selectedKey, visibleRows]
   );
 
-  useEffect(() => {
-    if (selectedRow && selectedRow._key !== selectedKey) setSelectedKey(selectedRow._key);
-    if (!selectedRow && selectedKey) setSelectedKey("");
-  }, [selectedKey, selectedRow]);
-
   const allCounts = useMemo(() => buildCounts(rows), [rows]);
-  const visibleCounts = useMemo(() => buildCounts(visibleRows), [visibleRows]);
   const chartData = useMemo(() => buildChartData(visibleRows), [visibleRows]);
   const topCategories = useMemo(
     () => buildCategoryRows(rows, report.meta.categoryCounts),
     [report.meta.categoryCounts, rows]
   );
 
-  const dateRange = useMemo(() => {
-    const dates = rows.map((row) => parseDate(row.updatedAt)).filter(Boolean).sort((a, b) => a - b);
-    if (dates.length === 0) return "Current scan window";
-    const first = DATE_FORMATTER.format(dates[0]);
-    const last = DATE_FORMATTER.format(dates[dates.length - 1]);
-    return `${first} - ${last}, ${dates[dates.length - 1].getFullYear()}`;
-  }, [rows]);
-
   const lastSync = useMemo(() => {
     const dates = rows.map((row) => parseDate(row.updatedAt)).filter(Boolean).sort((a, b) => b - a);
-    return dates[0] ? formatDate(dates[0]) : "Just now";
+    return dates[0] ? formatDate(dates[0]) : "Live";
   }, [rows]);
 
   const correctionMutation = useMutation({
     mutationFn: ({ row, targetStatus }) =>
       correctAdminShipmentException(row.orderId, row.suborderId, {
         targetStatus,
-        reason: `Admin shipping reconciliation correction for ${row.invoiceNo}.`,
+        reason: `Reconciliation correction: ${row.invoiceNo}`,
       }),
     meta: { suppressGlobalToast: true },
     onSuccess: (payload) => {
-      toast.success(payload?.message || "Shipment correction applied.");
+      toast.success(payload?.message || "Correction applied.");
       queryClient.invalidateQueries({ queryKey: ["admin", "shipping-reconciliation"] });
       queryClient.invalidateQueries({ queryKey: ["admin-orders"], exact: false });
       queryClient.invalidateQueries({ queryKey: ["admin-order"], exact: false });
@@ -698,18 +539,17 @@ export default function AdminShippingReconciliationPage() {
     },
   });
 
-  const applySearch = () => setFilters({ ...draftFilters });
-
   const resetFilters = () => {
-    const empty = { invoice: "", category: "", status: "", store: "" };
-    setDraftFilters(empty);
-    setFilters(empty);
+    setSearchTerm("");
+    setCategoryFilter("");
+    setStatusFilter("");
+    setStoreFilter("");
     setQuickFilter("all");
   };
 
   const handleRefresh = async () => {
     await reportQuery.refetch();
-    toast.success("Shipping reconciliation refreshed.");
+    toast.success("Reconciliation refreshed.");
   };
 
   const handleExport = () => {
@@ -719,8 +559,8 @@ export default function AdminShippingReconciliationPage() {
       "Courier",
       "Tracking",
       "Issue",
-      "ETA Drift",
-      "Shipment Status",
+      "Drift",
+      "Status",
       "Priority",
       "Updated",
     ];
@@ -746,26 +586,23 @@ export default function AdminShippingReconciliationPage() {
     anchor.click();
     anchor.remove();
     URL.revokeObjectURL(url);
-    toast.success("CSV export generated.");
+    toast.success("CSV export downloaded.");
   };
 
-  const handleCopyTracking = async (row) => {
-    if (!row.trackingNumber || row.trackingNumber === EMPTY_TEXT) {
-      toast.error("Tracking number is unavailable.");
-      return;
-    }
-    await navigator.clipboard.writeText(row.trackingNumber);
-    toast.success("Tracking number copied.");
+  const handleCopy = async (text, label = "Item") => {
+    if (!text || text === EMPTY_TEXT) return;
+    await navigator.clipboard.writeText(text);
+    toast.success(`${label} copied.`);
   };
 
   const handleCorrect = (row, explicitTargetStatus) => {
     if (!row.orderId || !row.suborderId) {
-      toast.error("This row is missing order or suborder information.");
+      toast.error("Missing order or suborder ID.");
       return;
     }
     const targetStatus = explicitTargetStatus || getCorrectionTarget(row);
     if (!targetStatus) {
-      toast.error("No safe correction target is available for this shipment status.");
+      toast.error("No safe correction target available.");
       return;
     }
     correctionMutation.mutate({ row, targetStatus });
@@ -773,636 +610,659 @@ export default function AdminShippingReconciliationPage() {
 
   if (reportQuery.isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="asr2026">
         <SonnerToaster richColors position="top-right" />
-        <LoadingSkeleton />
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div className="asr2026-skeleton" style={{ height: 60 }} />
+          <div className="asr2026-metrics-grid">
+            <div className="asr2026-skeleton" style={{ height: 96 }} />
+            <div className="asr2026-skeleton" style={{ height: 96 }} />
+            <div className="asr2026-skeleton" style={{ height: 96 }} />
+            <div className="asr2026-skeleton" style={{ height: 96 }} />
+          </div>
+          <div className="asr2026-skeleton" style={{ height: 180 }} />
+          <div className="asr2026-skeleton" style={{ height: 260 }} />
+        </div>
       </div>
     );
   }
 
   if (reportQuery.isError) {
     return (
-      <div className="space-y-6">
+      <div className="asr2026">
         <SonnerToaster richColors position="top-right" />
-        <ErrorState
-          message={
-            reportQuery.error?.response?.data?.message ||
-            reportQuery.error?.message ||
-            "Failed to load shipping reconciliation report."
-          }
-          onRetry={() => reportQuery.refetch()}
-        />
+        <div className="asr2026-error-card">
+          <div className="asr2026-error-info">
+            <AlertCircle size={22} color="var(--asr-orange)" />
+            <div>
+              <h3 className="asr2026-error-title">Failed to load reconciliation</h3>
+              <p className="asr2026-error-desc">
+                {reportQuery.error?.response?.data?.message ||
+                  reportQuery.error?.message ||
+                  "Unable to connect to shipping service."}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => reportQuery.refetch()}
+            className="asr2026-btn asr2026-btn--primary asr2026-btn--sm"
+          >
+            <RefreshCw size={13} />
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
 
   const totalExceptions = report.meta.total || rows.length;
-  const selectedPriority = selectedRow ? getPriority(selectedRow) : { label: "Review" };
-  const selectedIssueIcon = selectedRow ? getIssueIcon(selectedRow) : Info;
-  const SelectedIssueIcon = selectedIssueIcon;
 
   return (
-    <div className="space-y-5 text-slate-900 dark:text-slate-100">
+    <div className="asr2026">
       <SonnerToaster richColors position="top-right" />
 
-      <section className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-normal text-slate-950 dark:text-white">
-            Shipping Reconciliation
-          </h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Track delivery gaps, timing mismatches, and shipment exceptions.
+      {/* HEADER SECTION */}
+      <header className="asr2026-header">
+        <div className="asr2026-header-left">
+          <div className="asr2026-title-row">
+            <h1 className="asr2026-title">
+              Shipping Reconciliation
+            </h1>
+            <span className="asr2026-title-badge">Live Queue</span>
+          </div>
+          <p className="asr2026-subtitle">
+            Monitor & reconcile delivery exceptions.
           </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <StatusBadge className="gap-1.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200">
-              <span className="size-1.5 rounded-full bg-[var(--admin-primary-soft)]0" aria-hidden="true" />
-              Live
-            </StatusBadge>
-            <StatusBadge className="gap-1.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200">
-              <ShieldCheck className="size-3.5" aria-hidden="true" />
-              Verified
-            </StatusBadge>
+        </div>
+
+        <div className="asr2026-header-actions">
+          <span className="asr2026-sync-info">
+            <CheckCircle2 size={13} style={{ color: "var(--asr-blue)" }} />
+            {lastSync}
+          </span>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={reportQuery.isFetching}
+            className="asr2026-btn"
+            title="Refresh data"
+          >
+            <RefreshCw size={14} className={reportQuery.isFetching ? "animate-spin" : ""} />
+            Refresh
+          </button>
+          <button
+            type="button"
+            onClick={handleExport}
+            className="asr2026-btn asr2026-btn--primary"
+            title="Export CSV report"
+          >
+            <Download size={14} />
+            Export CSV
+          </button>
+        </div>
+      </header>
+
+      {/* METRICS SUMMARY GRID */}
+      <section className="asr2026-metrics-grid">
+        <div className="asr2026-metric-card is-blue">
+          <div className="asr2026-metric-top">
+            <span className="asr2026-metric-title">Scanned Orders</span>
+            <div className="asr2026-metric-icon-wrap">
+              <BarChart3 size={17} />
+            </div>
+          </div>
+          <div className="asr2026-metric-value-row">
+            <span className="asr2026-metric-value">
+              {formatNumber(report.meta.scannedOrders || rows.length)}
+            </span>
+            <span className="asr2026-metric-pill">
+              {visibleRows.length} visible
+            </span>
           </div>
         </div>
 
-        <div className="flex flex-col items-start gap-3 lg:items-end">
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
-            >
-              <CalendarDays className="size-4" aria-hidden="true" />
-              {dateRange}
-              <ChevronDown className="size-4" aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              onClick={handleRefresh}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
-            >
-              <RefreshCw className={`size-4 ${reportQuery.isFetching ? "animate-spin" : ""}`} aria-hidden="true" />
-              Refresh
-            </button>
-            <button
-              type="button"
-              onClick={handleExport}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
-            >
-              <Download className="size-4" aria-hidden="true" />
-              Export Report
-            </button>
+        <div className="asr2026-metric-card is-orange">
+          <div className="asr2026-metric-top">
+            <span className="asr2026-metric-title">Urgent Exceptions</span>
+            <div className="asr2026-metric-icon-wrap">
+              <AlertCircle size={17} />
+            </div>
           </div>
-          <p className="inline-flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-            <CheckCircle2 className="size-4 text-[var(--admin-primary)]" aria-hidden="true" />
-            Last sync {lastSync}
-          </p>
-        </div>
-      </section>
-
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          title="Orders Scanned"
-          value={formatNumber(report.meta.scannedOrders || rows.length)}
-          delta={`${formatNumber(visibleRows.length)} visible exceptions`}
-          icon={BarChart3}
-          accent="emerald"
-        />
-        <MetricCard
-          title="Urgent Exceptions"
-          value={formatNumber(allCounts.urgent)}
-          delta={`${formatNumber(visibleCounts.urgent)} in current view`}
-          icon={AlertCircle}
-          accent="rose"
-          spark="up"
-        />
-        <MetricCard
-          title="Tracking Gaps"
-          value={formatNumber(allCounts.tracking)}
-          delta={`${formatNumber(visibleCounts.tracking)} filtered rows`}
-          icon={Link2}
-          accent="amber"
-          spark="down"
-        />
-        <MetricCard
-          title="Corrected Today"
-          value={formatNumber(allCounts.corrected)}
-          delta={`${formatNumber(visibleCounts.corrected)} visible corrections`}
-          icon={CheckCircle2}
-          accent="emerald"
-        />
-      </section>
-
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)]">
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-base font-semibold text-slate-950 dark:text-white">Exception Overview</h2>
-            <StatusBadge className="gap-1.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200">
-              <Sparkles className="size-3.5" aria-hidden="true" />
-              Stable view
-            </StatusBadge>
-          </div>
-          <div className="mt-5 flex flex-wrap gap-4">
-            {CHART_KEYS.map((item) => (
-              <span key={item.key} className="inline-flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-                <span className="size-2 rounded-sm" style={{ backgroundColor: item.color }} aria-hidden="true" />
-                {item.label}
-              </span>
-            ))}
-          </div>
-          <div className="mt-4 h-52">
-            {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 12, right: 8, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                  <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: "#64748b" }} />
-                  <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: "#64748b" }} />
-                  <Tooltip
-                    cursor={{ fill: "rgba(15, 23, 42, 0.05)" }}
-                    contentStyle={{
-                      borderRadius: 12,
-                      border: "1px solid #e2e8f0",
-                      boxShadow: "0 12px 30px rgba(15,23,42,0.12)",
-                    }}
-                  />
-                  {CHART_KEYS.map((item) => (
-                    <Bar key={item.key} dataKey={item.key} stackId="exceptions" fill={item.color} radius={[4, 4, 0, 0]} />
-                  ))}
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="grid h-full place-items-center rounded-xl border border-dashed border-slate-200 text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400">
-                No chartable exceptions in this view.
-              </div>
+          <div className="asr2026-metric-value-row">
+            <span className="asr2026-metric-value">{allCounts.urgent}</span>
+            {allCounts.urgent > 0 && (
+              <span className="asr2026-metric-pill has-alert">Action needed</span>
             )}
           </div>
-          <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4 dark:border-slate-800">
-            <div>
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Total Exceptions</p>
-              <p className="mt-1 text-2xl font-semibold text-slate-950 dark:text-white">{formatNumber(totalExceptions)}</p>
+        </div>
+
+        <div className="asr2026-metric-card is-blue">
+          <div className="asr2026-metric-top">
+            <span className="asr2026-metric-title">Tracking Gaps</span>
+            <div className="asr2026-metric-icon-wrap">
+              <Link2 size={17} />
             </div>
-            <button
-              type="button"
-              onClick={() => setQuickFilter("all")}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] dark:border-slate-800 dark:text-slate-300"
-            >
-              View All Insights
-              <ExternalLink className="size-4" aria-hidden="true" />
-            </button>
+          </div>
+          <div className="asr2026-metric-value-row">
+            <span className="asr2026-metric-value">{allCounts.tracking}</span>
+            <span className="asr2026-metric-sub">missing data</span>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-base font-semibold text-slate-950 dark:text-white">Top Categories</h2>
-            <StatusBadge className="gap-1.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200">
-              <PackageCheck className="size-3.5" aria-hidden="true" />
-              Updated
-            </StatusBadge>
+        <div className="asr2026-metric-card">
+          <div className="asr2026-metric-top">
+            <span className="asr2026-metric-title">Resolved</span>
+            <div className="asr2026-metric-icon-wrap">
+              <CheckCircle2 size={17} />
+            </div>
           </div>
-          <div className="mt-5 divide-y divide-slate-100 dark:divide-slate-800">
-            {topCategories.length > 0 ? (
-              topCategories.map((category) => {
-                const percent = totalExceptions ? Math.round((category.count / totalExceptions) * 1000) / 10 : 0;
-                const Icon = CATEGORY_META[category.code]?.Icon || Info;
+          <div className="asr2026-metric-value-row">
+            <span className="asr2026-metric-value">{allCounts.corrected}</span>
+            <span className="asr2026-metric-sub">corrected</span>
+          </div>
+        </div>
+      </section>
+
+      {/* OVERVIEW SECTION (COMPACT WITH TOGGLE) */}
+      <section className="asr2026-overview-card">
+        <div className="asr2026-overview-header">
+          <h2 className="asr2026-overview-heading">
+            Exceptions Overview
+            <span style={{ fontSize: "0.78rem", fontWeight: 500, color: "var(--asr-text-muted)" }}>
+              ({totalExceptions} total)
+            </span>
+          </h2>
+          <button
+            type="button"
+            onClick={() => setShowOverview(!showOverview)}
+            className="asr2026-btn asr2026-btn--sm"
+          >
+            {showOverview ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            {showOverview ? "Compact" : "Expand"}
+          </button>
+        </div>
+
+        {showOverview && (
+          <div className="asr2026-overview-grid">
+            <div className="asr2026-chart-container">
+              {chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 8, right: 8, left: -24, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--asr-border-subtle)" />
+                    <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "var(--asr-text-muted)" }} />
+                    <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "var(--asr-text-muted)" }} />
+                    <Tooltip
+                      cursor={{ fill: "rgba(3, 76, 133, 0.06)" }}
+                      contentStyle={{
+                        borderRadius: 8,
+                        background: "var(--asr-surface)",
+                        border: "1px solid var(--asr-border)",
+                        fontSize: 12,
+                        color: "var(--asr-text-title)",
+                      }}
+                    />
+                    {CHART_KEYS.map((item) => (
+                      <Bar key={item.key} dataKey={item.key} stackId="exceptions" fill={item.color} radius={[3, 3, 0, 0]} />
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div style={{ display: "grid", height: "100%", placeItems: "center", fontSize: "0.8rem", color: "var(--asr-text-muted)" }}>
+                  No exceptions recorded.
+                </div>
+              )}
+            </div>
+
+            <div className="asr2026-category-list">
+              {topCategories.map((category) => {
+                const percent = totalExceptions ? Math.round((category.count / totalExceptions) * 100) : 0;
                 return (
-                  <div key={category.code} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-3">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <span
-                        className="grid size-9 shrink-0 place-items-center rounded-full"
-                        style={{ backgroundColor: `${category.color}20`, color: category.color }}
-                      >
-                        <Icon className="size-4" aria-hidden="true" />
-                      </span>
-                      <span className="truncate text-sm font-medium text-slate-600 dark:text-slate-300">
+                  <div key={category.code} className="asr2026-category-item">
+                    <div className="asr2026-cat-info">
+                      <span className="asr2026-cat-dot" style={{ backgroundColor: category.color }} />
+                      <span className="asr2026-cat-label" title={category.label}>
                         {category.label}
                       </span>
                     </div>
-                    <div className="grid min-w-[210px] grid-cols-[42px_48px_minmax(80px,1fr)] items-center gap-4 text-sm">
-                      <span className="text-right font-semibold text-slate-950 dark:text-white">{category.count}</span>
-                      <span className="text-right text-xs text-slate-500 dark:text-slate-400">{percent}%</span>
-                      <span className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800">
-                        <span
-                          className="block h-full rounded-full"
-                          style={{ width: `${Math.min(100, percent)}%`, backgroundColor: category.color }}
+                    <div className="asr2026-cat-meta">
+                      <span className="asr2026-cat-count">{category.count}</span>
+                      <div className="asr2026-cat-bar-wrap">
+                        <div
+                          className="asr2026-cat-bar-fill"
+                          style={{ width: `${percent}%`, backgroundColor: category.color }}
                         />
-                      </span>
+                      </div>
                     </div>
                   </div>
                 );
-              })
-            ) : (
-              <div className="py-16 text-center text-sm text-slate-500 dark:text-slate-400">
-                No category counts are available.
-              </div>
+              })}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* FILTER & SEARCH TOOLBAR */}
+      <section className="asr2026-toolbar-card">
+        {/* Quick Filter Pills */}
+        <div className="asr2026-quick-filters">
+          {QUICK_FILTERS.map((f) => {
+            const count =
+              f.value === "all"
+                ? rows.length
+                : f.value === "urgent"
+                ? allCounts.urgent
+                : f.value === "mismatch"
+                ? allCounts.mismatch
+                : f.value === "active"
+                ? allCounts.active
+                : f.value === "final"
+                ? allCounts.final
+                : f.value === "tracking"
+                ? allCounts.tracking
+                : allCounts.corrected;
+
+            return (
+              <button
+                key={f.value}
+                type="button"
+                onClick={() => setQuickFilter(f.value)}
+                className={`asr2026-quick-btn ${quickFilter === f.value ? "is-active" : ""}`}
+              >
+                {f.label}
+                <span className="asr2026-quick-count">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Input Controls */}
+        <div className="asr2026-filter-inputs">
+          <div className="asr2026-input-box">
+            <Search size={14} style={{ color: "var(--asr-text-dim)" }} />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search invoice or store..."
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm("")}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--asr-text-dim)" }}
+              >
+                <X size={13} />
+              </button>
             )}
           </div>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="asr2026-select"
+          >
+            {STATUS_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="asr2026-select"
+          >
+            {CATEGORY_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={storeFilter}
+            onChange={(e) => setStoreFilter(e.target.value)}
+            className="asr2026-select"
+          >
+            <option value="">All Stores</option>
+            {stores.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="asr2026-btn"
+            title="Reset all filters"
+          >
+            <RotateCcw size={13} />
+            Reset
+          </button>
         </div>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="min-w-0 rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
-          <div className="border-b border-slate-100 p-4 dark:border-slate-800">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="mr-2 text-sm font-semibold text-slate-700 dark:text-slate-200">Quick Filters</span>
-              {QUICK_FILTERS.map((filter) => (
-                <button
-                  key={filter.value}
-                  type="button"
-                  onClick={() => setQuickFilter(filter.value)}
-                  className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                    quickFilter === filter.value
-                      ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] dark:border-[var(--admin-primary)] dark:bg-[var(--admin-primary-soft)]0/15 dark:text-emerald-200"
-                      : "border-slate-200 bg-white text-slate-500 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400"
-                  }`}
-                >
-                  {filter.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="border-b border-slate-100 p-4 dark:border-slate-800">
-            <div className="grid gap-3 lg:grid-cols-[minmax(180px,1.1fr)_minmax(170px,0.8fr)_minmax(170px,0.8fr)_minmax(170px,0.8fr)_auto_auto]">
-              <label className="block">
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Invoice No.</span>
-                <span className="mt-2 flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 dark:border-slate-800 dark:bg-slate-900">
-                  <Search className="size-4 text-slate-400" aria-hidden="true" />
-                  <input
-                    value={draftFilters.invoice}
-                    onChange={(event) => setDraftFilters((current) => ({ ...current, invoice: event.target.value }))}
-                    placeholder="Search invoice..."
-                    className="min-w-0 flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-white"
-                  />
-                </span>
-              </label>
-              <label className="block">
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Category</span>
-                <select
-                  value={draftFilters.category}
-                  onChange={(event) => setDraftFilters((current) => ({ ...current, category: event.target.value }))}
-                  className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[var(--admin-primary)] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
-                >
-                  {CATEGORY_OPTIONS.map((option) => (
-                    <option key={option.value || "all"} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block">
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Shipment Status</span>
-                <select
-                  value={draftFilters.status}
-                  onChange={(event) => setDraftFilters((current) => ({ ...current, status: event.target.value }))}
-                  className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[var(--admin-primary)] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
-                >
-                  {STATUS_OPTIONS.map((option) => (
-                    <option key={option.value || "all"} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block">
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Store</span>
-                <select
-                  value={draftFilters.store}
-                  onChange={(event) => setDraftFilters((current) => ({ ...current, store: event.target.value }))}
-                  className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[var(--admin-primary)] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
-                >
-                  <option value="">All Stores</option>
-                  {stores.map((store) => (
-                    <option key={store.value} value={store.value}>
-                      {store.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button
-                type="button"
-                onClick={applySearch}
-                className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--admin-primary-strong)]"
-              >
-                <Filter className="size-4" aria-hidden="true" />
-                Search
-              </button>
+      {/* WORKSPACE: TABLE / FEED + SLIDE-OVER DETAIL */}
+      <section className={`asr2026-workspace ${selectedRow ? "has-drawer" : ""}`}>
+        <div className="asr2026-table-card">
+          {visibleRows.length === 0 ? (
+            <div className="asr2026-empty">
+              <div className="asr2026-empty-icon">
+                <FileSearch size={22} />
+              </div>
+              <h3 className="asr2026-empty-title">No reconciliation records found</h3>
+              <p className="asr2026-empty-desc">
+                Current filter combination does not match any shipment exceptions.
+              </p>
               <button
                 type="button"
                 onClick={resetFilters}
-                className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-600 transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+                className="asr2026-btn asr2026-btn--sm"
+                style={{ marginTop: 8 }}
               >
-                Reset
+                Reset Filters
               </button>
             </div>
-          </div>
-
-          {visibleRows.length === 0 ? (
-            <div className="p-4">
-              <EmptyState onReset={resetFilters} />
-            </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-[1120px] w-full text-left text-sm">
-                <thead className="border-b border-slate-100 bg-slate-50 text-xs font-semibold text-slate-500 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-400">
-                  <tr>
-                    <th className="w-10 px-4 py-3">
-                      <span className="sr-only">Select</span>
-                    </th>
-                    <th className="px-4 py-3">Invoice</th>
-                    <th className="px-4 py-3">Store</th>
-                    <th className="px-4 py-3">Courier</th>
-                    <th className="px-4 py-3">Tracking</th>
-                    <th className="px-4 py-3">Issue</th>
-                    <th className="px-4 py-3">ETA Drift</th>
-                    <th className="px-4 py-3">Shipment Status</th>
-                    <th className="px-4 py-3">Priority</th>
-                    <th className="px-4 py-3">Updated</th>
-                    <th className="px-4 py-3">Action</th>
-                    <th className="w-10 px-4 py-3">
-                      <span className="sr-only">More</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {visibleRows.map((row) => {
-                    const priority = getPriority(row);
-                    const IssueIcon = getIssueIcon(row);
-                    const isSelected = selectedRow?._key === row._key;
-                    const correctionTarget = getCorrectionTarget(row);
-                    return (
-                      <tr
-                        key={row._key}
-                        className={`transition ${
-                          isSelected
-                            ? "bg-[var(--admin-primary-soft)]/70 dark:bg-[var(--admin-primary-soft)]0/10"
-                            : "hover:bg-slate-50 dark:hover:bg-slate-900/60"
-                        }`}
-                      >
-                        <td className="px-4 py-3">
-                          <button
-                            type="button"
-                            aria-label={`Select ${row.invoiceNo}`}
-                            onClick={() => setSelectedKey(row._key)}
-                            className={`grid size-4 place-items-center rounded border ${
-                              isSelected
-                                ? "border-[var(--admin-primary-strong)] bg-[var(--admin-primary)] text-white"
-                                : "border-slate-300 bg-white text-transparent dark:border-slate-700 dark:bg-slate-900"
-                            }`}
-                          >
-                            <Check className="size-3" aria-hidden="true" />
-                          </button>
-                        </td>
-                        <td className="px-4 py-3">
-                          {row.invoiceNo !== EMPTY_TEXT ? (
+            <>
+              {/* DESKTOP TABLE */}
+              <div className="asr2026-table-wrapper">
+                <table className="asr2026-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: 36 }}></th>
+                      <th>Invoice</th>
+                      <th>Store</th>
+                      <th>Status & Issue</th>
+                      <th>Tracking</th>
+                      <th>Drift</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleRows.map((row) => {
+                      const isSelected = selectedRow?._key === row._key;
+                      const correctionTarget = getCorrectionTarget(row);
+                      const issueMeta = CATEGORY_META[row.primaryCategory?.code];
+                      const IssueIcon = issueMeta?.Icon || Info;
+
+                      return (
+                        <tr
+                          key={row._key}
+                          className={isSelected ? "is-selected" : ""}
+                          onClick={() => setSelectedKey(isSelected ? "" : row._key)}
+                        >
+                          <td style={{ textAlign: "center" }}>
+                            <input
+                              type="radio"
+                              name="selected_exception"
+                              checked={isSelected}
+                              onChange={() => setSelectedKey(row._key)}
+                              style={{ accentColor: "var(--asr-blue)", cursor: "pointer" }}
+                            />
+                          </td>
+                          <td>
                             <Link
-                              to={`/admin/orders/${encodeURIComponent(row.invoiceNo)}`}
-                              className="font-semibold text-[var(--admin-primary)] hover:text-[var(--admin-primary-strong)] dark:text-emerald-300"
+                              to={row.orderDetailHref}
+                              onClick={(e) => e.stopPropagation()}
+                              className="asr2026-invoice-link"
+                              title={row.invoiceNo}
                             >
-                              {row.invoiceNo}
+                              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {row.invoiceNo}
+                              </span>
                             </Link>
-                          ) : (
-                            <span className="font-semibold text-slate-500">{EMPTY_TEXT}</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{row.storeName}</td>
-                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{row.courier}</td>
-                        <td className="px-4 py-3">
-                          <span className="inline-flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                            {row.trackingNumber}
-                            {row.trackingNumber !== EMPTY_TEXT ? (
+                          </td>
+                          <td>
+                            <div className="asr2026-store-name" title={row.storeName}>
+                              {row.storeName}
+                            </div>
+                          </td>
+                          <td>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                              <span className={`asr2026-badge ${row.status === "CANCELLED" || row.status === "FAILED_DELIVERY" ? "asr2026-badge--urgent" : "asr2026-badge--neutral"}`}>
+                                {row.statusLabel}
+                              </span>
+                              <span className={`asr2026-badge ${issueMeta?.badgeClass || "asr2026-badge--neutral"}`}>
+                                <IssueIcon size={12} />
+                                {row.issue}
+                              </span>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="asr2026-tracking-cell">
+                              <span>{row.trackingNumber}</span>
+                              {row.trackingNumber !== EMPTY_TEXT && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCopy(row.trackingNumber, "Tracking number");
+                                  }}
+                                  className="asr2026-copy-btn"
+                                  title="Copy tracking"
+                                >
+                                  <Copy size={13} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                          <td>
+                            {row.etaDrift ? (
+                              <span className="asr2026-drift-tag">{getEtaDrift(row)}</span>
+                            ) : (
+                              <span style={{ color: "var(--asr-text-dim)" }}>—</span>
+                            )}
+                          </td>
+                          <td onClick={(e) => e.stopPropagation()}>
+                            {correctionTarget ? (
                               <button
                                 type="button"
-                                aria-label={`Copy tracking number ${row.trackingNumber}`}
-                                onClick={() => handleCopyTracking(row)}
-                                className="rounded-md p-1 text-slate-400 transition hover:bg-slate-100 hover:text-[var(--admin-primary)] dark:hover:bg-slate-800"
+                                onClick={() => handleCorrect(row)}
+                                disabled={correctionMutation.isPending}
+                                className="asr2026-btn asr2026-btn--primary asr2026-btn--sm"
                               >
-                                <Copy className="size-3.5" aria-hidden="true" />
+                                {correctionMutation.isPending ? (
+                                  <Loader2 size={12} className="animate-spin" />
+                                ) : (
+                                  "Reconcile"
+                                )}
                               </button>
-                            ) : null}
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => navigate(row.orderDetailHref)}
+                                className="asr2026-btn asr2026-btn--sm"
+                              >
+                                Review
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* MOBILE CARDS FEED (< 768px) */}
+              <div className="asr2026-mobile-feed">
+                {visibleRows.map((row) => {
+                  const isSelected = selectedRow?._key === row._key;
+                  const issueMeta = CATEGORY_META[row.primaryCategory?.code];
+                  const IssueIcon = issueMeta?.Icon || Info;
+
+                  return (
+                    <div
+                      key={row._key}
+                      className={`asr2026-mobile-card ${isSelected ? "is-selected" : ""}`}
+                      onClick={() => setSelectedKey(isSelected ? "" : row._key)}
+                    >
+                      <div className="asr2026-mobile-card-top">
+                        <span className="asr2026-mobile-invoice">{row.invoiceNo}</span>
+                        <span className={`asr2026-badge ${row.status === "CANCELLED" || row.status === "FAILED_DELIVERY" ? "asr2026-badge--urgent" : "asr2026-badge--neutral"}`}>
+                          {row.statusLabel}
+                        </span>
+                      </div>
+
+                      <div className="asr2026-mobile-store-row">
+                        <span>{row.storeName}</span>
+                        {row.etaDrift && (
+                          <span className="asr2026-drift-tag">{getEtaDrift(row)}</span>
+                        )}
+                      </div>
+
+                      <div className="asr2026-mobile-badges">
+                        <span className={`asr2026-badge ${issueMeta?.badgeClass || "asr2026-badge--neutral"}`}>
+                          <IssueIcon size={12} />
+                          {row.issue}
+                        </span>
+                        {row.courier !== EMPTY_TEXT && (
+                          <span className="asr2026-badge asr2026-badge--neutral">
+                            {row.courier}
                           </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <StatusBadge className={`gap-1.5 ${getIssueColor(row)}`}>
-                            <IssueIcon className="size-3.5" aria-hidden="true" />
-                            {row.issue}
-                          </StatusBadge>
-                        </td>
-                        <td className="px-4 py-3 font-semibold text-rose-500 dark:text-rose-300">{getEtaDrift(row)}</td>
-                        <td className="px-4 py-3">
-                          <StatusBadge className={getStatusStyle(row.status)}>{row.statusLabel}</StatusBadge>
-                        </td>
-                        <td className="px-4 py-3">
-                          <StatusBadge className={PRIORITY_STYLES[priority.label]}>{priority.label}</StatusBadge>
-                        </td>
-                        <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400">{formatDate(row.updatedAt)}</td>
-                        <td className="px-4 py-3">
-                          {correctionTarget ? (
-                            <button
-                              type="button"
-                              onClick={() => handleCorrect(row)}
-                              disabled={correctionMutation.isPending}
-                              className="inline-flex h-9 min-w-20 items-center justify-center rounded-lg bg-[var(--admin-primary)] px-3 text-xs font-semibold text-white transition hover:bg-[var(--admin-primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                              {correctionMutation.isPending ? (
-                                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                              ) : (
-                                "Correct"
-                              )}
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => row.invoiceNo !== EMPTY_TEXT && navigate(`/admin/orders/${encodeURIComponent(row.invoiceNo)}`)}
-                              disabled={row.invoiceNo === EMPTY_TEXT}
-                              className="inline-flex h-9 min-w-20 items-center justify-center rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600 transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:text-slate-300"
-                            >
-                              Review
-                            </button>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <button
-                            type="button"
-                            aria-label={`More actions for ${row.invoiceNo}`}
-                            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
-                          >
-                            <MoreVertical className="size-4" aria-hidden="true" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
 
-        <aside className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-base font-semibold text-slate-700 dark:text-slate-200">Selected Exception</h2>
-            <button
-              type="button"
-              aria-label="Clear selected exception"
-              onClick={() => setSelectedKey("")}
-              className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
-            >
-              <X className="size-4" aria-hidden="true" />
-            </button>
-          </div>
+        {/* SELECTED EXCEPTION DETAIL DRAWER */}
+        {selectedRow && (
+          <aside className="asr2026-drawer">
+            <div className="asr2026-drawer-header">
+              <h3 className="asr2026-drawer-title">Exception Detail</h3>
+              <button
+                type="button"
+                onClick={() => setSelectedKey("")}
+                className="asr2026-drawer-close"
+                title="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
 
-          {selectedRow ? (
-            <div className="mt-5">
-              <div className="flex items-start gap-3">
-                <span className={`grid size-10 shrink-0 place-items-center rounded-full ${getIssueColor(selectedRow)}`}>
-                  <SelectedIssueIcon className="size-5" aria-hidden="true" />
+            <div className="asr2026-drawer-target">
+              <div className="asr2026-drawer-icon">
+                <Truck size={18} />
+              </div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="asr2026-drawer-inv">{selectedRow.invoiceNo}</div>
+                <div className="asr2026-drawer-store">{selectedRow.storeName}</div>
+              </div>
+            </div>
+
+            <div className="asr2026-spec-grid">
+              <span className="asr2026-spec-label">Status</span>
+              <span className="asr2026-spec-val">
+                <span className={`asr2026-badge ${selectedRow.status === "CANCELLED" || selectedRow.status === "FAILED_DELIVERY" ? "asr2026-badge--urgent" : "asr2026-badge--neutral"}`}>
+                  {selectedRow.statusLabel}
                 </span>
-                <div className="min-w-0">
-                  <p className="truncate font-semibold text-[var(--admin-primary)] dark:text-emerald-300">{selectedRow.invoiceNo}</p>
-                  <p className="mt-1 text-sm font-medium text-slate-600 dark:text-slate-300">{selectedRow.storeName}</p>
-                </div>
-              </div>
+              </span>
 
-              <dl className="mt-5 space-y-3 text-sm">
-                {[
-                  ["Courier", selectedRow.courier],
-                  ["Tracking No.", selectedRow.trackingNumber],
-                  ["Status", selectedRow.statusLabel],
-                  ["ETA", formatDate(selectedRow.updatedAt)],
-                  ["ETA Drift", getEtaDrift(selectedRow)],
-                  ["Issue", selectedRow.issue],
-                  ["Priority", selectedPriority.label],
-                ].map(([label, value]) => (
-                  <div key={label} className="grid grid-cols-[96px_minmax(0,1fr)] gap-3">
-                    <dt className="text-xs font-semibold text-slate-400 dark:text-slate-500">{label}</dt>
-                    <dd className="min-w-0 text-slate-600 dark:text-slate-300">
-                      {label === "Tracking No." && value !== EMPTY_TEXT ? (
-                        <span className="inline-flex min-w-0 items-center gap-2">
-                          <span className="truncate">{value}</span>
-                          <button
-                            type="button"
-                            aria-label={`Copy tracking number ${value}`}
-                            onClick={() => handleCopyTracking(selectedRow)}
-                            className="rounded-md p-1 text-slate-400 transition hover:bg-slate-100 hover:text-[var(--admin-primary)] dark:hover:bg-slate-800"
-                          >
-                            <Copy className="size-3.5" aria-hidden="true" />
-                          </button>
-                        </span>
-                      ) : label === "Status" ? (
-                        <StatusBadge className={getStatusStyle(selectedRow.status)}>{value}</StatusBadge>
-                      ) : label === "Priority" ? (
-                        <StatusBadge className={PRIORITY_STYLES[selectedPriority.label]}>{value}</StatusBadge>
-                      ) : (
-                        value
-                      )}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
+              <span className="asr2026-spec-label">Issue</span>
+              <span className="asr2026-spec-val">{selectedRow.issue}</span>
 
-              <div className="mt-5 border-t border-slate-100 pt-4 dark:border-slate-800">
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Notes</h3>
-                <ul className="mt-3 space-y-2 text-sm text-slate-500 dark:text-slate-400">
-                  {selectedRow.categories.slice(0, 3).map((category) => (
-                    <li key={category.code} className="flex gap-2">
-                      <span className="mt-2 size-1.5 shrink-0 rounded-full bg-slate-400" aria-hidden="true" />
-                      <span>{category.detail || category.label}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <span className="asr2026-spec-label">Courier</span>
+              <span className="asr2026-spec-val">{selectedRow.courier}</span>
 
-              <div className="mt-6 grid gap-2">
-                {selectedRow.status === "FAILED_DELIVERY" ? (
-                  <>
+              <span className="asr2026-spec-label">Tracking</span>
+              <span className="asr2026-spec-val">
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  {selectedRow.trackingNumber}
+                  {selectedRow.trackingNumber !== EMPTY_TEXT && (
                     <button
                       type="button"
-                      onClick={() => handleCorrect(selectedRow, "DELIVERED")}
-                      disabled={correctionMutation.isPending}
-                      className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--admin-primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
-                      title="Reconcile as Delivered"
+                      onClick={() => handleCopy(selectedRow.trackingNumber, "Tracking number")}
+                      className="asr2026-copy-btn"
                     >
-                      {correctionMutation.isPending ? (
-                        <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                      ) : (
-                        <Truck className="size-4" aria-hidden="true" />
-                      )}
-                      Reconcile as Delivered
+                      <Copy size={12} />
                     </button>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleCorrect(selectedRow, "RETURNED")}
-                        disabled={correctionMutation.isPending}
-                        className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
-                        title="Reconcile as Returned"
-                      >
-                        <RotateCcw className="size-3.5" aria-hidden="true" />
-                        Reconcile Returned
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleCorrect(selectedRow, "SHIPPED")}
-                        disabled={correctionMutation.isPending}
-                        className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
-                        title="Reconcile as Re-dispatched (In Transit)"
-                      >
-                        <Truck className="size-3.5" aria-hidden="true" />
-                        Reconcile In Transit
-                      </button>
-                    </div>
-                  </>
-                ) : selectedRow.status === "RETURNED" ? (
+                  )}
+                </span>
+              </span>
+
+              <span className="asr2026-spec-label">Drift</span>
+              <span className="asr2026-spec-val asr2026-drift-tag">
+                {getEtaDrift(selectedRow)}
+              </span>
+
+              <span className="asr2026-spec-label">Updated</span>
+              <span className="asr2026-spec-val">{formatDate(selectedRow.updatedAt)}</span>
+            </div>
+
+            <div className="asr2026-drawer-actions">
+              {selectedRow.status === "FAILED_DELIVERY" ? (
+                <>
                   <button
                     type="button"
-                    onClick={() => handleCorrect(selectedRow, "CANCELLED")}
+                    onClick={() => handleCorrect(selectedRow, "DELIVERED")}
                     disabled={correctionMutation.isPending}
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--admin-primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
-                    title="Reconcile as Cancelled"
+                    className="asr2026-btn asr2026-btn--primary"
                   >
-                    {correctionMutation.isPending ? (
-                      <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                    ) : (
-                      <Check className="size-4" aria-hidden="true" />
-                    )}
-                    Reconcile as Cancelled
+                    {correctionMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Truck size={14} />}
+                    Reconcile Delivered
                   </button>
-                ) : getCorrectionTarget(selectedRow) ? (
-                  <button
-                    type="button"
-                    onClick={() => handleCorrect(selectedRow)}
-                    disabled={correctionMutation.isPending}
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--admin-primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {correctionMutation.isPending ? (
-                      <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                    ) : (
-                      <Truck className="size-4" aria-hidden="true" />
-                    )}
-                    Reconcile Shipment ({getCorrectionTarget(selectedRow)})
-                  </button>
-                ) : (
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
-                    No automated status correction target is available for status &quot;{selectedRow.statusLabel}&quot;. Use Open Order below for full management.
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => handleCorrect(selectedRow, "RETURNED")}
+                      disabled={correctionMutation.isPending}
+                      className="asr2026-btn asr2026-btn--sm"
+                    >
+                      Returned
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCorrect(selectedRow, "SHIPPED")}
+                      disabled={correctionMutation.isPending}
+                      className="asr2026-btn asr2026-btn--sm"
+                    >
+                      In Transit
+                    </button>
                   </div>
-                )}
+                </>
+              ) : selectedRow.status === "RETURNED" ? (
                 <button
                   type="button"
-                  onClick={() => selectedRow.invoiceNo !== EMPTY_TEXT && navigate(`/admin/orders/${encodeURIComponent(selectedRow.invoiceNo)}`)}
-                  disabled={selectedRow.invoiceNo === EMPTY_TEXT}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-600 transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:text-slate-300"
+                  onClick={() => handleCorrect(selectedRow, "CANCELLED")}
+                  disabled={correctionMutation.isPending}
+                  className="asr2026-btn asr2026-btn--primary"
                 >
-                  <ExternalLink className="size-4" aria-hidden="true" />
-                  Open Order
+                  {correctionMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                  Reconcile Cancelled
                 </button>
-              </div>
+              ) : getCorrectionTarget(selectedRow) ? (
+                <button
+                  type="button"
+                  onClick={() => handleCorrect(selectedRow)}
+                  disabled={correctionMutation.isPending}
+                  className="asr2026-btn asr2026-btn--primary"
+                >
+                  {correctionMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Truck size={14} />}
+                  Reconcile ({getCorrectionTarget(selectedRow)})
+                </button>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={() => navigate(selectedRow.orderDetailHref)}
+                className="asr2026-btn"
+              >
+                <ExternalLink size={14} />
+                Open Order
+              </button>
             </div>
-          ) : (
-            <div className="grid min-h-72 place-items-center text-center text-sm text-slate-500 dark:text-slate-400">
-              Select a row to inspect its shipment exception.
-            </div>
-          )}
-        </aside>
+          </aside>
+        )}
       </section>
     </div>
   );
