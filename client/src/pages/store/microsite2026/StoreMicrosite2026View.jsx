@@ -46,30 +46,50 @@ function StoreHero({
 }) {
   const logoSrc = resolveAssetUrl(store.logoUrl);
   const bannerSrc = resolveAssetUrl(store.bannerUrl);
-  return (
-    <div className="relative overflow-hidden rounded-[32px] text-white hero-gradient shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
-      {bannerSrc ? (
-        <img
-          src={bannerSrc}
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 h-full w-full object-cover opacity-30 mix-blend-overlay"
-        />
-      ) : null}
-      <div className="absolute inset-0 opacity-20 bg-[url('/pattern-dots.svg')] bg-repeat"></div>
-      
-      {/* Accent Wave */}
-      <svg className="hero-accent-wave" viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg">
-        <path fill="var(--ms-accent)" fillOpacity="1" d="M0,192L48,197.3C96,203,192,213,288,208C384,203,480,181,576,176C672,171,768,181,864,197.3C960,213,1056,235,1152,213.3C1248,192,1344,128,1392,96L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
-      </svg>
+  const [logoLoadError, setLogoLoadError] = useState(false);
+  const [bannerLoadError, setBannerLoadError] = useState(false);
 
-      <div className="relative z-10 px-6 py-8 sm:px-10 sm:py-10 grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto]">
-        <div className="flex flex-col sm:flex-row items-start gap-6">
-          <div className="shrink-0 flex items-center justify-center overflow-hidden rounded-2xl bg-white w-24 h-24 sm:w-28 sm:h-28 shadow-lg">
-            {logoSrc ? (
-              <img src={logoSrc} alt={store.name} className="w-full h-full object-contain p-2" />
+  const hasValidBanner = Boolean(bannerSrc) && !bannerLoadError;
+  const hasValidLogo = Boolean(logoSrc) && !logoLoadError;
+
+  return (
+    <div className="relative min-h-[260px] sm:min-h-[290px] overflow-hidden rounded-[24px] sm:rounded-[32px] text-white hero-gradient shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
+      {hasValidBanner ? (
+        <>
+          <img
+            src={bannerSrc}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover object-center transition-all duration-500"
+            onError={() => setBannerLoadError(true)}
+          />
+          {/* Responsive Scrim: on desktop left-to-right to keep right banner art visible while protecting left text; on mobile bottom-to-top */}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/80 to-slate-900/40 sm:bg-gradient-to-r sm:from-slate-950/90 sm:via-slate-950/70 sm:to-slate-950/35" />
+          <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-slate-950/80 to-transparent pointer-events-none" />
+        </>
+      ) : (
+        <>
+          <div className="absolute inset-0 opacity-20 bg-[url('/pattern-dots.svg')] bg-repeat pointer-events-none" />
+          {/* Accent Wave - displayed when no custom banner is set */}
+          <svg className="hero-accent-wave pointer-events-none" viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg">
+            <path fill="var(--ms-accent)" fillOpacity="1" d="M0,192L48,197.3C96,203,192,213,288,208C384,203,480,181,576,176C672,171,768,181,864,197.3C960,213,1056,235,1152,213.3C1248,192,1344,128,1392,96L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+          </svg>
+        </>
+      )}
+
+      <div className="relative z-10 px-5 py-6 sm:px-8 sm:py-8 md:px-10 md:py-10 grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
+          <div className="shrink-0 flex items-center justify-center overflow-hidden rounded-2xl sm:rounded-3xl bg-white w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 shadow-xl ring-2 sm:ring-4 ring-white/20 transition-transform duration-300">
+            {hasValidLogo ? (
+              <img
+                src={logoSrc}
+                alt={`${store.name} Logo`}
+                className="w-full h-full object-contain p-1.5 sm:p-2"
+                onError={() => setLogoLoadError(true)}
+                loading="eager"
+              />
             ) : (
-              <ShoppingBag className="w-10 h-10 text-slate-300" />
+              <ShoppingBag className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400" />
             )}
           </div>
           
@@ -84,23 +104,23 @@ function StoreHero({
             </div>
 
             <div>
-              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight break-words">
                 {store.name}
               </h1>
               {store.handle && (
-                <p className="mt-1 text-sm text-white/80">{store.handle}</p>
+                <p className="mt-1 text-xs sm:text-sm text-white/80">{store.handle}</p>
               )}
             </div>
 
             {store.description && (
-              <p className="max-w-xl text-sm leading-relaxed text-white/90">
+              <p className="max-w-xl text-xs sm:text-sm leading-relaxed text-white/90">
                 {store.description}
               </p>
             )}
 
             {store.addressLabel && (
-              <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-sm text-white/90">
-                <MapPin className="h-4 w-4 shrink-0" />
+              <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs sm:text-sm text-white/90">
+                <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
                 <span className="truncate">{store.addressLabel}</span>
               </div>
             )}
@@ -108,13 +128,13 @@ function StoreHero({
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <button
                 onClick={onChat}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-orange-500 px-5 text-sm font-semibold text-white hover:bg-orange-600 transition"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-orange-500 px-5 text-sm font-semibold text-white hover:bg-orange-600 transition shadow-md hover:shadow-lg"
               >
                 <MessageCircleMore className="h-4 w-4" /> Chat
               </button>
               <button
                 onClick={onFollowToggle}
-                className={`inline-flex h-10 items-center justify-center gap-2 rounded-full border px-5 text-sm font-semibold transition ${isFollowed ? 'bg-white/20 border-white/30 text-white' : 'bg-white text-[var(--ms-primary)] hover:bg-slate-50'}`}
+                className={`inline-flex h-10 items-center justify-center gap-2 rounded-full border px-5 text-sm font-semibold transition ${isFollowed ? 'bg-white/20 border-white/30 text-white' : 'bg-white text-[var(--ms-primary)] hover:bg-slate-50 shadow-md'}`}
               >
                 <Heart className={`h-4 w-4 ${isFollowed ? 'fill-white' : ''}`} /> 
                 {isFollowed ? 'Following' : 'Follow Store'}
@@ -136,19 +156,19 @@ function StoreHero({
           </div>
           
           <div className="grid grid-cols-2 gap-3 mt-auto">
-            <div className="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
+            <div className="rounded-2xl border border-white/20 bg-white/10 p-3.5 sm:p-4 backdrop-blur-sm">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-white/70 flex items-center justify-between">
                 Products <Package className="h-3 w-3" />
               </p>
-              <p className="mt-1 text-xl font-bold text-white">{store.productCount}</p>
-              <p className="mt-0.5 text-xs text-white/70">items</p>
+              <p className="mt-1 text-lg sm:text-xl font-bold text-white">{store.productCount}</p>
+              <p className="mt-0.5 text-[11px] sm:text-xs text-white/70">items</p>
             </div>
-            <div className="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
+            <div className="rounded-2xl border border-white/20 bg-white/10 p-3.5 sm:p-4 backdrop-blur-sm">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-white/70 flex items-center justify-between">
                 Joined <CalendarDays className="h-3 w-3" />
               </p>
-              <p className="mt-1 text-lg font-bold text-white">{store.joinedLabel}</p>
-              <p className="mt-0.5 text-xs text-white/70">store age</p>
+              <p className="mt-1 text-base sm:text-lg font-bold text-white">{store.joinedLabel}</p>
+              <p className="mt-0.5 text-[11px] sm:text-xs text-white/70">store age</p>
             </div>
           </div>
         </div>

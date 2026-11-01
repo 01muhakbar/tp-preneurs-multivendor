@@ -483,11 +483,110 @@
 .seller2026-profile__tabs { border-bottom: 1px solid var(--seller2026-border); display: flex; gap: 6px; margin-bottom: 14px; overflow-x: auto; }
 .seller2026-profile__tabs a { border-bottom: 2px solid transparent; font-size: 11px; font-weight: 750; padding: 9px 14px; }
 .seller2026-profile__tabs a:first-child { border-color: var(--seller2026-success); }
-.seller2026-profile__media-grid { display: grid; gap: 14px; grid-template-columns: .8fr 1.2fr; margin-bottom: 14px; }
+.seller2026-profile__media-grid { display: grid; gap: 16px; grid-template-columns: 1fr 1.25fr; margin-bottom: 16px; }
 .seller2026-profile__media-card header { align-items: center; display: flex; font-size: 11px; justify-content: space-between; margin-bottom: 10px; text-transform: uppercase; }
+.seller2026-profile__media-badges { align-items: center; display: inline-flex; gap: 6px; }
+.seller2026-profile__spec-badge {
+  background: rgba(3, 76, 133, 0.08);
+  border: 1px solid rgba(3, 76, 133, 0.2);
+  border-radius: 9999px;
+  color: #034c85;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .02em;
+  padding: 2px 8px;
+  text-transform: none;
+}
+.dark .seller2026-profile__spec-badge,
+[data-theme="dark"] .seller2026-profile__spec-badge {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.28);
+  color: #38bdf8;
+}
+.seller2026-profile__media-guidelines {
+  background: var(--seller2026-surface-soft, #f8fafc);
+  border: 1px solid var(--seller2026-border, #e2e8f0);
+  border-radius: 8px;
+  display: grid;
+  font-size: 11px;
+  gap: 5px;
+  margin-bottom: 12px;
+  padding: 9px 11px;
+}
+.seller2026-profile__media-guidelines-row {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  justify-content: space-between;
+}
+.seller2026-profile__media-guidelines-item {
+  color: #334155;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.dark .seller2026-profile__media-guidelines-item,
+[data-theme="dark"] .seller2026-profile__media-guidelines-item {
+  color: #cbd5e1;
+}
+.seller2026-profile__media-guidelines-label {
+  color: #64748b;
+  font-weight: 600;
+}
+.dark .seller2026-profile__media-guidelines-label,
+[data-theme="dark"] .seller2026-profile__media-guidelines-label {
+  color: #94a3b8;
+}
+.seller2026-profile__media-guidelines-val {
+  font-weight: 700;
+}
+.seller2026-profile__media-guidelines-tips {
+  background: rgba(254, 111, 5, 0.07);
+  border-left: 3px solid #fe6f05;
+  border-radius: 0 4px 4px 0;
+  color: #475569;
+  font-size: 10.5px;
+  line-height: 1.45;
+  margin-top: 2px;
+  padding: 6px 8px;
+}
+.dark .seller2026-profile__media-guidelines-tips,
+[data-theme="dark"] .seller2026-profile__media-guidelines-tips {
+  background: rgba(254, 111, 5, 0.12);
+  color: #cbd5e1;
+}
 .seller2026-profile__media-preview { align-items: center; background: #0f172a; border-radius: 8px; color: #64748b; display: flex; justify-content: center; margin-bottom: 10px; overflow: hidden; }
-.seller2026-profile__media-preview--logo { height: 108px; width: 108px; }
-.seller2026-profile__media-preview--banner { height: 108px; width: 100%; }
+.seller2026-profile__media-preview--logo {
+  background: #ffffff;
+  border: 1px solid var(--seller2026-border);
+  height: 114px;
+  width: 114px;
+}
+.seller2026-profile__media-preview--logo img {
+  height: 100%;
+  object-fit: contain;
+  padding: 6px;
+  width: 100%;
+}
+.dark .seller2026-profile__media-preview--logo,
+[data-theme="dark"] .seller2026-profile__media-preview--logo {
+  background: #0f172a;
+}
+.seller2026-profile__media-preview--banner {
+  aspect-ratio: 3 / 1;
+  border: 1px solid var(--seller2026-border);
+  height: auto;
+  max-height: 130px;
+  min-height: 96px;
+  width: 100%;
+}
+.seller2026-profile__media-preview--banner img {
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  width: 100%;
+}
 .seller2026-profile__media-preview img { height: 100%; object-fit: cover; width: 100%; }
 .seller2026-profile__media-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 9px; }
 .seller2026-profile__form-grid { display: grid; gap: 14px; grid-template-columns: .9fr 1.05fr 1.15fr; margin-bottom: 14px; }

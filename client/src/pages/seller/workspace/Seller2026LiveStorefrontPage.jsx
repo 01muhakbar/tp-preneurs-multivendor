@@ -280,6 +280,26 @@ export default function Seller2026LiveStorefrontPage() {
   };
   const handleUpload = async (kind, file) => {
     if (!file) return;
+    const maxSizeBytes = kind === "logo" ? 2 * 1024 * 1024 : 5 * 1024 * 1024;
+    const maxSizeMb = kind === "logo" ? 2 : 5;
+    if (file.type && !file.type.startsWith("image/")) {
+      setNotice({
+        type: "error",
+        text: isId
+          ? "Format berkas tidak valid. Harap pilih gambar (PNG, JPG, atau WEBP)."
+          : "Invalid file format. Please choose an image (PNG, JPG, or WEBP).",
+      });
+      return;
+    }
+    if (file.size > maxSizeBytes) {
+      setNotice({
+        type: "error",
+        text: isId
+          ? `Ukuran berkas (${(file.size / (1024 * 1024)).toFixed(1)} MB) melebihi batas maksimal ${maxSizeMb} MB. Harap kompres atau pilih gambar yang lebih kecil.`
+          : `File size (${(file.size / (1024 * 1024)).toFixed(1)} MB) exceeds the maximum limit of ${maxSizeMb} MB. Please compress or choose a smaller image.`,
+      });
+      return;
+    }
     setUploading(kind);
     setNotice(null);
     try {
@@ -438,21 +458,108 @@ export default function Seller2026LiveStorefrontPage() {
 
           <section className="seller2026-profile__media-grid" id="media">
             {[
-              ["logo", isId ? "Gambar Logo" : "Logo Image", form.logoUrl, logoInputRef, Image],
-              ["banner", isId ? "Gambar Banner" : "Banner Image", form.bannerUrl, bannerInputRef, Image],
-            ].map(([kind, label, value, inputRef, Icon]) => (
-              <div className="seller2026-card seller2026-profile__media-card" key={kind}>
-                <header><strong>{label}</strong><Pill tone="success">{value ? (isId ? "Media Siap" : "Media Ready") : (isId ? "Perlu gambar" : "Needs image")}</Pill></header>
-                <div className={`seller2026-profile__media-preview seller2026-profile__media-preview--${kind}`}>
-                  {value ? <img src={resolveAssetUrl(value)} alt={`${data.name} ${kind}`} /> : <Icon size={28} />}
+              {
+                kind: "logo",
+                label: isId ? "Gambar Logo" : "Logo Image",
+                value: form.logoUrl,
+                inputRef: logoInputRef,
+                Icon: Image,
+                aspectBadge: isId ? "1:1 Persegi" : "1:1 Square",
+                recommended: "500 × 500 px",
+                minSize: "200 × 200 px",
+                formats: isId ? "PNG, JPG, WEBP (Transparan disarankan)" : "PNG, JPG, WEBP (Transparent recommended)",
+                maxSize: isId ? "Maks. 2 MB" : "Max 2 MB",
+                safeZoneHint: isId
+                  ? "Posisikan ikon/logo tepat di tengah dengan margin ruang tepi 10-15%. Logo otomatis responsif di avatar bulat maupun kartu etalase pada perangkat mobile dan desktop."
+                  : "Keep logo icon centered with 10-15% margin padding. It automatically adapts across circular avatars and store cards on mobile and desktop viewports.",
+              },
+              {
+                kind: "banner",
+                label: isId ? "Gambar Banner" : "Banner Image",
+                value: form.bannerUrl,
+                inputRef: bannerInputRef,
+                Icon: Image,
+                aspectBadge: isId ? "3:1 Panorama" : "3:1 Panorama",
+                recommended: "1920 × 640 px",
+                minSize: "1200 × 400 px",
+                formats: isId ? "JPG, PNG, WEBP (Kualitas tinggi)" : "JPG, PNG, WEBP (High quality)",
+                maxSize: isId ? "Maks. 5 MB" : "Max 5 MB",
+                safeZoneHint: isId
+                  ? "Area Aman Konten (Safe Zone): Letakkan teks penting, tipografi brand, dan visual utama di 60% area tengah agar tidak terpotong saat dibuka di smartphone atau tertutup tombol profil."
+                  : "Content Safe Zone: Place essential text, branding slogans, and primary visuals in the middle 60% area so it won't be cropped on mobile screens or covered by profile controls.",
+              },
+            ].map((mediaItem) => (
+              <div className="seller2026-card seller2026-profile__media-card" key={mediaItem.kind}>
+                <header>
+                  <strong>{mediaItem.label}</strong>
+                  <div className="seller2026-profile__media-badges">
+                    <span className="seller2026-profile__spec-badge">{mediaItem.aspectBadge}</span>
+                    <Pill tone={mediaItem.value ? "success" : "neutral"}>
+                      {mediaItem.value ? (isId ? "Media Siap" : "Media Ready") : (isId ? "Perlu gambar" : "Needs image")}
+                    </Pill>
+                  </div>
+                </header>
+
+                <div className="seller2026-profile__media-guidelines">
+                  <div className="seller2026-profile__media-guidelines-row">
+                    <span className="seller2026-profile__media-guidelines-item">
+                      <span className="seller2026-profile__media-guidelines-label">{isId ? "Rekomendasi:" : "Recommended:"}</span>
+                      <strong className="seller2026-profile__media-guidelines-val">{mediaItem.recommended}</strong>
+                      <span className="text-slate-400">({isId ? "Min" : "Min"} {mediaItem.minSize})</span>
+                    </span>
+                    <span className="seller2026-profile__media-guidelines-item">
+                      <span className="seller2026-profile__media-guidelines-label">{isId ? "Ukuran:" : "Size:"}</span>
+                      <strong className="seller2026-profile__media-guidelines-val">{mediaItem.maxSize}</strong>
+                    </span>
+                  </div>
+                  <div className="seller2026-profile__media-guidelines-row">
+                    <span className="seller2026-profile__media-guidelines-item">
+                      <span className="seller2026-profile__media-guidelines-label">{isId ? "Format:" : "Formats:"}</span>
+                      <span>{mediaItem.formats}</span>
+                    </span>
+                  </div>
+                  <div className="seller2026-profile__media-guidelines-tips">
+                    {mediaItem.safeZoneHint}
+                  </div>
                 </div>
-                <Field label={`${label.replace(" Image", "").replace("Gambar ", "")} URL`} value={value} onChange={setValue(`${kind}Url`)} />
+
+                <div className={`seller2026-profile__media-preview seller2026-profile__media-preview--${mediaItem.kind}`}>
+                  {mediaItem.value ? (
+                    <img src={resolveAssetUrl(mediaItem.value)} alt={`${data.name} ${mediaItem.kind}`} />
+                  ) : (
+                    <mediaItem.Icon size={28} />
+                  )}
+                </div>
+
+                <Field label={`${mediaItem.label.replace(" Image", "").replace("Gambar ", "")} URL`} value={mediaItem.value} onChange={setValue(`${mediaItem.kind}Url`)} />
                 <div className="seller2026-profile__media-actions">
-                  <input ref={inputRef} hidden type="file" accept="image/*" onChange={(event) => handleUpload(kind, event.target.files?.[0])} />
-                  <button className="seller2026-profile-button" type="button" onClick={() => inputRef.current?.click()} disabled={Boolean(uploading)}>
-                    <Upload size={14} />{uploading === kind ? (isId ? "Mengunggah..." : "Uploading...") : (isId ? (kind === "logo" ? "Ganti Logo" : "Ganti Banner") : `Replace ${kind === "logo" ? "Logo" : "Banner"}`)}
+                  <input
+                    ref={mediaItem.inputRef}
+                    hidden
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={(event) => {
+                      handleUpload(mediaItem.kind, event.target.files?.[0]);
+                      event.target.value = "";
+                    }}
+                  />
+                  <button
+                    className="seller2026-profile-button"
+                    type="button"
+                    onClick={() => mediaItem.inputRef.current?.click()}
+                    disabled={Boolean(uploading)}
+                  >
+                    <Upload size={14} />
+                    {uploading === mediaItem.kind
+                      ? (isId ? "Mengunggah..." : "Uploading...")
+                      : (isId ? (mediaItem.kind === "logo" ? "Ganti Logo" : "Ganti Banner") : `Replace ${mediaItem.kind === "logo" ? "Logo" : "Banner"}`)}
                   </button>
-                  <button className="seller2026-profile-button seller2026-profile-button--danger" type="button" onClick={() => removeMedia(kind)} disabled={!value}>
+                  <button
+                    className="seller2026-profile-button seller2026-profile-button--danger"
+                    type="button"
+                    onClick={() => removeMedia(mediaItem.kind)}
+                    disabled={!mediaItem.value}
+                  >
                     <Trash2 size={14} />{isId ? "Hapus" : "Remove"}
                   </button>
                 </div>

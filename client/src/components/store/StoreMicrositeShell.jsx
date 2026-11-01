@@ -172,6 +172,8 @@ export default function StoreMicrositeShell({
   hideHero = false,
 }) {
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
+  const [logoError, setLogoError] = useState(false);
+  const [bannerError, setBannerError] = useState(false);
   const location = useLocation();
   const { branding } = useStoreBranding();
   const storeName = toText(identity?.name, "Store");
@@ -264,18 +266,19 @@ export default function StoreMicrositeShell({
               compact ? "px-5 py-5 sm:px-6 sm:py-6" : "px-6 py-5 sm:px-7 sm:py-6"
             }`}
           >
-            {bannerSrc ? (
+            {bannerSrc && !bannerError ? (
               <img
                 src={bannerSrc}
                 alt=""
                 aria-hidden="true"
-                className="absolute inset-0 h-full w-full object-cover"
+                className="absolute inset-0 h-full w-full object-cover object-center"
+                onError={() => setBannerError(true)}
               />
             ) : null}
             <div
               className={`absolute inset-0 ${
-                bannerSrc
-                  ? "bg-gradient-to-r from-emerald-950/85 via-emerald-800/80 to-emerald-600/75"
+                bannerSrc && !bannerError
+                  ? "bg-gradient-to-t from-slate-950/95 via-slate-950/80 to-slate-900/50 sm:bg-gradient-to-r sm:from-slate-950/90 sm:via-slate-950/75 sm:to-slate-950/40"
                   : "bg-gradient-to-r from-emerald-700 via-emerald-600 to-emerald-500"
               }`}
             />
@@ -288,18 +291,19 @@ export default function StoreMicrositeShell({
             >
               <div className="flex items-start gap-4 sm:gap-5">
                 <div
-                  className={`flex shrink-0 items-center justify-center overflow-hidden rounded-[24px] border border-white/15 bg-white/10 ${
-                    compact ? "h-16 w-16" : "h-18 w-18 sm:h-20 sm:w-20"
-                  }`}
+                  className={`flex shrink-0 items-center justify-center overflow-hidden rounded-[20px] sm:rounded-[24px] border border-white/20 bg-white ${
+                    compact ? "h-14 w-14 sm:h-16 sm:w-16" : "h-16 w-16 sm:h-20 sm:w-20"
+                  } shadow-md`}
                 >
-                  {logoSrc ? (
+                  {logoSrc && !logoError ? (
                     <img
                       src={logoSrc}
                       alt={`${storeName} logo`}
-                      className="h-full w-full object-contain p-2"
+                      className="h-full w-full object-contain p-1.5 sm:p-2"
+                      onError={() => setLogoError(true)}
                     />
                   ) : (
-                    <StoreIcon className={`${compact ? "h-7 w-7" : "h-9 w-9"} text-white/80`} />
+                    <StoreIcon className={`${compact ? "h-6 w-6 sm:h-7 sm:w-7" : "h-8 w-8 sm:h-9 sm:w-9"} text-slate-400`} />
                   )}
                 </div>
 
