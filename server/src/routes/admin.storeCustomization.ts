@@ -2375,7 +2375,11 @@ const upsertPublishedCustomization = async (
   );
 };
 
-const headerLogoUploadDir = path.resolve(process.cwd(), "uploads", "store");
+const headerLogoUploadDir = path.resolve(
+  process.cwd(),
+  process.env.UPLOAD_DIR || "uploads",
+  "store"
+);
 fs.mkdirSync(headerLogoUploadDir, { recursive: true });
 
 const headerLogoMulter = multer({

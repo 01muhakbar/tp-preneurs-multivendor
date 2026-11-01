@@ -274,6 +274,21 @@ const uploadsCandidates = Array.from(new Set([
 uploadsCandidates.forEach((uploadsDir, index) => {
     if (index === 0) {
         fs.mkdirSync(uploadsDir, { recursive: true });
+        ["products", "branding", "store", "staff", "withdrawals"].forEach((sub) => {
+            try {
+                fs.mkdirSync(path.join(uploadsDir, sub), { recursive: true });
+            }
+            catch { }
+        });
+        // Ensure default fallback assets (e.g. demo.svg) exist in runtime persistent uploads
+        const defaultDemoSvg = path.resolve(process.cwd(), "server/public/uploads/products/demo.svg");
+        const targetDemoSvg = path.join(uploadsDir, "products", "demo.svg");
+        if (fs.existsSync(defaultDemoSvg) && !fs.existsSync(targetDemoSvg)) {
+            try {
+                fs.copyFileSync(defaultDemoSvg, targetDemoSvg);
+            }
+            catch { }
+        }
     }
     app.use("/uploads", express.static(uploadsDir, {
         setHeaders: (res) => {

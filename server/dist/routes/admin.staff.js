@@ -10,7 +10,7 @@ import { AdminPublicAuthError, approveAdminPendingStaffAccount, } from "../servi
 import { ensureSellerStoreForUser } from "../services/seller/provisionSellerStore.js";
 const { User, Store, StoreApplication } = models;
 const router = Router();
-const uploadDir = path.resolve(process.cwd(), process.env.UPLOAD_DIR ?? "uploads/staff");
+const uploadDir = path.resolve(process.cwd(), process.env.UPLOAD_DIR ? path.join(process.env.UPLOAD_DIR, "staff") : "uploads/staff");
 fs.mkdirSync(uploadDir, { recursive: true });
 const MANAGED_ROLES = ["staff", "admin", "super_admin", "seller"];
 const MANAGED_ROLE_SET = new Set(MANAGED_ROLES);

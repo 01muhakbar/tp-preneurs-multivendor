@@ -6,7 +6,7 @@ import { StoreWithdrawal } from "../models/StoreWithdrawal.js";
 import { Store } from "../models/Store.js";
 import { calculateWithdrawalBalance, transitionWithdrawalStatus, WithdrawalWorkflowError, } from "../services/withdrawals/withdrawalWorkflow.service.js";
 const VALID_FILTER_STATUSES = new Set(["PENDING", "PROCESSING", "COMPLETED", "REJECTED"]);
-const WITHDRAWAL_PROOF_UPLOAD_DIR = path.resolve(process.cwd(), "uploads", "withdrawals");
+const WITHDRAWAL_PROOF_UPLOAD_DIR = path.resolve(process.cwd(), process.env.UPLOAD_DIR || "uploads", "withdrawals");
 const MAX_PROOF_UPLOAD_BYTES = 3 * 1024 * 1024;
 const ALLOWED_PROOF_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 fs.mkdirSync(WITHDRAWAL_PROOF_UPLOAD_DIR, { recursive: true });

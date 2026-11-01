@@ -20,7 +20,10 @@ const { User, Store, StoreApplication } = models as {
 const router = Router();
 
 
-const uploadDir = path.resolve(process.cwd(), process.env.UPLOAD_DIR ?? "uploads/staff");
+const uploadDir = path.resolve(
+  process.cwd(),
+  process.env.UPLOAD_DIR ? path.join(process.env.UPLOAD_DIR, "staff") : "uploads/staff"
+);
 fs.mkdirSync(uploadDir, { recursive: true });
 
 const MANAGED_ROLES = ["staff", "admin", "super_admin", "seller"] as const;

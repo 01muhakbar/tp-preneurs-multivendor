@@ -1,10 +1,16 @@
 import { Router } from "express";
+import fs from "fs";
+import path from "path";
 import multer from "multer";
 // FIX: Added .js extension to all relative imports
 import { createProduct, deleteProduct, getAllProducts, getProductById, togglePublishStatus, updateProduct, } from "../controllers/adminProductController.js";
 import { protect, restrictTo } from "../middleware/authMiddleware.js";
 const router = Router();
-const upload = multer({ dest: "public/uploads/products" });
+const uploadDest = process.env.UPLOAD_DIR
+    ? path.resolve(process.cwd(), process.env.UPLOAD_DIR, "products")
+    : path.resolve(process.cwd(), "public/uploads/products");
+fs.mkdirSync(uploadDest, { recursive: true });
+const upload = multer({ dest: uploadDest });
 router
     .route("/")
     .get(protect, 

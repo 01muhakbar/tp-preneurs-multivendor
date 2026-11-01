@@ -1639,7 +1639,7 @@ const upsertPublishedCustomization = async (lang, payload, actorUserId = null) =
         updatedAt = NOW()
     `, { replacements: { lang, data: serialized, actorUserId } });
 };
-const headerLogoUploadDir = path.resolve(process.cwd(), "uploads", "store");
+const headerLogoUploadDir = path.resolve(process.cwd(), process.env.UPLOAD_DIR || "uploads", "store");
 fs.mkdirSync(headerLogoUploadDir, { recursive: true });
 const headerLogoMulter = multer({
     storage: multer.diskStorage({

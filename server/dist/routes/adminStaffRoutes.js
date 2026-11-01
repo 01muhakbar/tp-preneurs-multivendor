@@ -4,7 +4,7 @@ import path from "path";
 import fs from "fs";
 import { createStaff, listStaff, updateStatus, updatePublishedStatus, getStaff, updateStaff, deleteStaff, changePassword, } from "../controllers/adminStaffController.js";
 import { protect, restrictTo } from "../middleware/authMiddleware.js";
-const uploadDir = path.resolve(process.cwd(), process.env.UPLOAD_DIR ?? "uploads/staff");
+const uploadDir = path.resolve(process.cwd(), process.env.UPLOAD_DIR ? path.join(process.env.UPLOAD_DIR, "staff") : "uploads/staff");
 fs.mkdirSync(uploadDir, { recursive: true });
 const storage = multer.diskStorage({
     destination: (_, __, cb) => cb(null, uploadDir),

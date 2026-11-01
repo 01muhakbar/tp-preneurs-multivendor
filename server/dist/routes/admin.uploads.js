@@ -5,7 +5,7 @@ import multer from "multer";
 import { requireStaffOrAdmin } from "../middleware/requireRole.js";
 import { getAdminMe, updateAdminMe } from "../controllers/admin/adminProfileController.js";
 const router = Router();
-const uploadDir = path.resolve(process.cwd(), "uploads");
+const uploadDir = path.resolve(process.cwd(), process.env.UPLOAD_DIR || "uploads");
 fs.mkdirSync(uploadDir, { recursive: true });
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 const ALLOWED_UPLOAD_MIME_TYPES = new Set([

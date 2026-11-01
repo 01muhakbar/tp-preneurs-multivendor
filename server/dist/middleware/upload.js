@@ -8,7 +8,9 @@ const __dirname = path.dirname(__filename);
 // Tentukan lokasi penyimpanan
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        const uploadPath = path.join(__dirname, '../../public/uploads/products');
+        const uploadPath = process.env.UPLOAD_DIR
+            ? path.resolve(process.cwd(), process.env.UPLOAD_DIR, "products")
+            : path.join(__dirname, '../../public/uploads/products');
         // Buat direktori jika belum ada
         if (!fs.existsSync(uploadPath)) {
             fs.mkdirSync(uploadPath, { recursive: true });

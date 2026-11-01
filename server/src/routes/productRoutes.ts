@@ -1,4 +1,5 @@
 import express from "express";
+import fs from "fs";
 import multer from "multer";
 import path from "path";
 import { protect, restrictTo } from "../middleware/authMiddleware.js";
@@ -15,7 +16,11 @@ const storage: multer.StorageEngine = multer.diskStorage({
     file: Express.Multer.File,
     cb: (error: Error | null, destination: string) => void
   ) => {
-    cb(null, "public/images/products");
+    const targetDir = process.env.UPLOAD_DIR
+      ? path.resolve(process.cwd(), process.env.UPLOAD_DIR, "products")
+      : path.resolve(process.cwd(), "public/images/products");
+    fs.mkdirSync(targetDir, { recursive: true });
+    cb(null, targetDir);
   },
   filename: (
     req: express.Request,

@@ -4,7 +4,7 @@ import multer from "multer";
 import { Router } from "express";
 import { buildStoreSettingsContracts, ensureSettingsTable, getPersistedStoreSettings, mergeStoreSettingsForUpdate, sanitizeStoreSettings, upsertStoreSettings, } from "../services/storeSettings.js";
 const router = Router();
-const BRANDING_UPLOAD_DIR = path.resolve(process.cwd(), "uploads", "branding");
+const BRANDING_UPLOAD_DIR = path.resolve(process.cwd(), process.env.UPLOAD_DIR || "uploads", "branding");
 const BRANDING_UPLOAD_LIMIT_BYTES = 5 * 1024 * 1024;
 const BRANDING_TARGET_FIELD_BY_KEY = {
     client: "clientLogoUrl",

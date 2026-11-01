@@ -16,7 +16,7 @@ import { protect, restrictTo } from "../middleware/authMiddleware.js";
 
 const uploadDir = path.resolve(
   process.cwd(),
-  process.env.UPLOAD_DIR ?? "uploads/staff"
+  process.env.UPLOAD_DIR ? path.join(process.env.UPLOAD_DIR, "staff") : "uploads/staff"
 );
 fs.mkdirSync(uploadDir, { recursive: true });
 

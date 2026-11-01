@@ -340,7 +340,7 @@ router.get("/products/:slug", async (req, res) => {
         return res.status(500).json({ success: false, message: "Internal server error" });
     }
 });
-const UPLOAD_BASE_DIR = path.resolve(process.cwd(), "uploads");
+const UPLOAD_BASE_DIR = path.resolve(process.cwd(), process.env.UPLOAD_DIR || "uploads");
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 const ALLOWED_UPLOAD_MIME_TYPES = new Set([
     "image/jpeg",

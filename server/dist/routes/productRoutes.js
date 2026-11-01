@@ -1,4 +1,5 @@
 import express from "express";
+import fs from "fs";
 import multer from "multer";
 import path from "path";
 import { protect, restrictTo } from "../middleware/authMiddleware.js";
@@ -9,7 +10,11 @@ const router = express.Router();
 // Konfigurasi Multer untuk penyimpanan file
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, "public/images/products");
+        const targetDir = process.env.UPLOAD_DIR
+            ? path.resolve(process.cwd(), process.env.UPLOAD_DIR, "products")
+            : path.resolve(process.cwd(), "public/images/products");
+        fs.mkdirSync(targetDir, { recursive: true });
+        cb(null, targetDir);
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
