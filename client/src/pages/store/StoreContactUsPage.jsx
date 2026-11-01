@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import {
@@ -19,11 +19,14 @@ const BRAND_BLUE = "#034c85";
 const BRAND_ORANGE = "#fe6f05";
 
 const getStoreLang = (i18n) => {
-  const activeLanguage = String(i18n?.language || "").toLowerCase();
+  const activeLanguage = String(i18n?.resolvedLanguage || i18n?.language || "").toLowerCase();
   const storedLanguage =
     typeof window !== "undefined" ? String(localStorage.getItem("store_language") || "") : "";
   const normalizedStored = storedLanguage.toLowerCase();
-  return activeLanguage.startsWith("id") || normalizedStored === "indonesia" ? "id" : "en";
+  if (activeLanguage.startsWith("id") || normalizedStored === "indonesia" || normalizedStored === "bahasa indonesia") {
+    return "id";
+  }
+  return "en";
 };
 
 const DEFAULT_CONTACT_US_DISABLED = {
@@ -123,43 +126,175 @@ const normalizeContactUs = (raw, isIndonesian = false) => {
 
   // Clean email
   let cleanEmail = toText(emailBox.email, DEFAULT_CONTACT_US_DISABLED.emailBox.email);
-  if (cleanEmail.toLowerCase().includes("kachabazar.com")) {
-    cleanEmail = "support@tppreneurs.com";
+  if (!cleanEmail || cleanEmail.toLowerCase().includes("kachabazar.com")) {
+    cleanEmail = "tppreneurs@gmail.com";
   }
-  let cleanEmailText = toText(emailBox.text, DEFAULT_CONTACT_US_DISABLED.emailBox.text);
-  if (isKachabazarJargon(cleanEmailText)) {
-    cleanEmailText = isIndonesian ? "Respon cepat 1x24 jam" : "Fast response within 24h";
+
+  // Clean email text (subtitle)
+  let rawEmailText = toText(emailBox.text, DEFAULT_CONTACT_US_DISABLED.emailBox.text);
+  let cleanEmailText = "";
+  if (isIndonesian) {
+    cleanEmailText =
+      !rawEmailText || isKachabazarJargon(rawEmailText) || rawEmailText.toLowerCase().includes("fast response")
+        ? "Respon cepat 1x24 jam"
+        : rawEmailText;
+  } else {
+    cleanEmailText =
+      !rawEmailText || isKachabazarJargon(rawEmailText) || rawEmailText.toLowerCase().includes("respon cepat")
+        ? "Fast response within 24h"
+        : rawEmailText;
   }
 
   // Clean phone
   let cleanPhone = toText(callBox.phone, DEFAULT_CONTACT_US_DISABLED.callBox.phone);
-  if (cleanPhone === "029-00124667") {
-    cleanPhone = "+62 811-444-2026";
+  if (!cleanPhone || cleanPhone === "029-00124667") {
+    cleanPhone = "+62821-8866-824";
   }
-  let cleanCallText = toText(callBox.text, DEFAULT_CONTACT_US_DISABLED.callBox.text);
-  if (isKachabazarJargon(cleanCallText)) {
-    cleanCallText = isIndonesian ? "Senin - Jumat, 09:00 - 17:00 WITA" : "Mon - Fri, 09:00 - 17:00 WITA";
+
+  // Clean call text (hours)
+  let rawCallText = toText(callBox.text, DEFAULT_CONTACT_US_DISABLED.callBox.text);
+  let cleanCallText = "";
+  if (isIndonesian) {
+    cleanCallText =
+      !rawCallText || isKachabazarJargon(rawCallText) || rawCallText.toLowerCase().includes("mon - fri")
+        ? "Senin - Jumat, 09:00 - 17:00 WITA"
+        : rawCallText;
+  } else {
+    cleanCallText =
+      !rawCallText || isKachabazarJargon(rawCallText) || rawCallText.toLowerCase().includes("senin - jumat")
+        ? "Mon - Fri, 09:00 - 17:00 WITA"
+        : rawCallText;
   }
 
   // Clean address
   let cleanAddress = toText(addressBox.address, DEFAULT_CONTACT_US_DISABLED.addressBox.address);
-  if (isKachabazarJargon(cleanAddress)) {
+  if (!cleanAddress || isKachabazarJargon(cleanAddress)) {
     cleanAddress = "Jl. Tamalate No.1, Bonto Makkio, Kec. Rappocini, Kota Makassar, Sulawesi Selatan 90222";
   }
 
-  // Clean form copy
-  let cleanFormTitle = toText(contactForm.title, DEFAULT_CONTACT_US_DISABLED.contactForm.title);
-  if (isKachabazarJargon(cleanFormTitle) || cleanFormTitle === "For any support just send your query") {
-    cleanFormTitle = isIndonesian ? "Kirim Pesan" : "Send a Message";
+  // Page title translation
+  let rawPageTitle = toText(pageHeader.pageTitle, "").trim();
+  let cleanPageTitle = "";
+  if (isIndonesian) {
+    cleanPageTitle =
+      !rawPageTitle ||
+      rawPageTitle.toLowerCase() === "contact us" ||
+      rawPageTitle.toLowerCase() === "contact us." ||
+      rawPageTitle.toLowerCase() === "hubungi kami"
+        ? "Hubungi Kami"
+        : rawPageTitle;
+  } else {
+    cleanPageTitle =
+      !rawPageTitle ||
+      rawPageTitle.toLowerCase() === "hubungi kami" ||
+      rawPageTitle.toLowerCase() === "hubungi kami." ||
+      rawPageTitle.toLowerCase() === "contact us"
+        ? "Contact Us"
+        : rawPageTitle;
   }
-  let cleanFormDescription = toText(
-    contactForm.description,
-    DEFAULT_CONTACT_US_DISABLED.contactForm.description
-  );
-  if (isKachabazarJargon(cleanFormDescription)) {
-    cleanFormDescription = isIndonesian
-      ? "Silakan kirimkan pertanyaan atau pesan Anda. Tim kami akan segera merespons."
-      : "Have questions or need assistance? Send us a message and we'll reply shortly.";
+
+  // Email box title translation
+  let rawEmailTitle = toText(emailBox.title, "").trim();
+  let cleanEmailTitle = "";
+  if (isIndonesian) {
+    cleanEmailTitle =
+      !rawEmailTitle ||
+      rawEmailTitle.toLowerCase() === "email us" ||
+      rawEmailTitle.toLowerCase() === "email" ||
+      rawEmailTitle.toLowerCase() === "email kami"
+        ? "Email Kami"
+        : rawEmailTitle;
+  } else {
+    cleanEmailTitle =
+      !rawEmailTitle ||
+      rawEmailTitle.toLowerCase() === "email kami" ||
+      rawEmailTitle.toLowerCase() === "email" ||
+      rawEmailTitle.toLowerCase() === "email us"
+        ? "Email Us"
+        : rawEmailTitle;
+  }
+
+  // Call box title translation
+  let rawCallTitle = toText(callBox.title, "").trim();
+  let cleanCallTitle = "";
+  if (isIndonesian) {
+    cleanCallTitle =
+      !rawCallTitle ||
+      rawCallTitle.toLowerCase() === "call us" ||
+      rawCallTitle.toLowerCase() === "telepon" ||
+      rawCallTitle.toLowerCase() === "telepon kami"
+        ? "Telepon Kami"
+        : rawCallTitle;
+  } else {
+    cleanCallTitle =
+      !rawCallTitle ||
+      rawCallTitle.toLowerCase() === "telepon kami" ||
+      rawCallTitle.toLowerCase() === "telepon" ||
+      rawCallTitle.toLowerCase() === "call us"
+        ? "Call Us"
+        : rawCallTitle;
+  }
+
+  // Address box title translation
+  let rawAddressTitle = toText(addressBox.title, "").trim();
+  let cleanAddressTitle = "";
+  if (isIndonesian) {
+    cleanAddressTitle =
+      !rawAddressTitle ||
+      rawAddressTitle.toLowerCase() === "location" ||
+      rawAddressTitle.toLowerCase() === "lokasi kantor" ||
+      rawAddressTitle.toLowerCase() === "lokasi"
+        ? "Lokasi"
+        : rawAddressTitle;
+  } else {
+    cleanAddressTitle =
+      !rawAddressTitle ||
+      rawAddressTitle.toLowerCase() === "lokasi" ||
+      rawAddressTitle.toLowerCase() === "lokasi kantor" ||
+      rawAddressTitle.toLowerCase() === "location"
+        ? "Location"
+        : rawAddressTitle;
+  }
+
+  // Form title translation
+  let rawFormTitle = toText(contactForm.title, "");
+  let cleanFormTitle = "";
+  if (isIndonesian) {
+    cleanFormTitle =
+      !rawFormTitle ||
+      isKachabazarJargon(rawFormTitle) ||
+      rawFormTitle.toLowerCase() === "send a message" ||
+      rawFormTitle.toLowerCase() === "for any support just send your query"
+        ? "Kirim Pesan"
+        : rawFormTitle;
+  } else {
+    cleanFormTitle =
+      !rawFormTitle ||
+      isKachabazarJargon(rawFormTitle) ||
+      rawFormTitle.toLowerCase() === "kirim pesan" ||
+      rawFormTitle.toLowerCase() === "for any support just send your query"
+        ? "Send a Message"
+        : rawFormTitle;
+  }
+
+  // Form description translation
+  let rawFormDesc = toText(contactForm.description, "");
+  let cleanFormDescription = "";
+  if (isIndonesian) {
+    cleanFormDescription =
+      !rawFormDesc ||
+      isKachabazarJargon(rawFormDesc) ||
+      rawFormDesc.toLowerCase().includes("have questions or need assistance")
+        ? "Ada pertanyaan atau butuh bantuan? Kirimkan pesan Anda kepada tim kami."
+        : rawFormDesc;
+  } else {
+    cleanFormDescription =
+      !rawFormDesc ||
+      isKachabazarJargon(rawFormDesc) ||
+      rawFormDesc.toLowerCase().includes("ada pertanyaan atau butuh bantuan") ||
+      rawFormDesc.toLowerCase().includes("silakan kirimkan pertanyaan")
+        ? "Have questions or need assistance? Send us a message and our team will get back to you shortly."
+        : rawFormDesc;
   }
 
   return {
@@ -171,26 +306,23 @@ const normalizeContactUs = (raw, isIndonesian = false) => {
         pageHeader.imageDataUrl,
         pageHeader.image
       ),
-      pageTitle: toText(
-        pageHeader.pageTitle,
-        isIndonesian ? "Hubungi Kami" : "Contact Us"
-      ),
+      pageTitle: cleanPageTitle,
     },
     emailBox: {
       enabled: toBool(emailBox.enabled, DEFAULT_CONTACT_US_DISABLED.emailBox.enabled),
-      title: toText(emailBox.title, isIndonesian ? "Email" : "Email Us"),
+      title: cleanEmailTitle,
       email: cleanEmail,
       text: cleanEmailText,
     },
     callBox: {
       enabled: toBool(callBox.enabled, DEFAULT_CONTACT_US_DISABLED.callBox.enabled),
-      title: toText(callBox.title, isIndonesian ? "Telepon" : "Call Us"),
+      title: cleanCallTitle,
       phone: cleanPhone,
       text: cleanCallText,
     },
     addressBox: {
       enabled: toBool(addressBox.enabled, DEFAULT_CONTACT_US_DISABLED.addressBox.enabled),
-      title: toText(addressBox.title, isIndonesian ? "Lokasi" : "Location"),
+      title: cleanAddressTitle,
       address: cleanAddress,
     },
     middleLeftColumn: {
@@ -233,7 +365,22 @@ function ContactUsSkeleton() {
 
 export default function StoreContactUsPage() {
   const { i18n } = useTranslation();
-  const lang = getStoreLang(i18n);
+  const [activeLang, setActiveLang] = useState(() => getStoreLang(i18n));
+
+  useEffect(() => {
+    const syncLang = () => {
+      const nextLang = getStoreLang(i18n);
+      setActiveLang(nextLang);
+    };
+    i18n.on("languageChanged", syncLang);
+    window.addEventListener("storage", syncLang);
+    return () => {
+      i18n.off("languageChanged", syncLang);
+      window.removeEventListener("storage", syncLang);
+    };
+  }, [i18n]);
+
+  const lang = activeLang;
   const isIndonesian = lang === "id";
 
   const [form, setForm] = useState({ name: "", email: "", message: "" });
@@ -347,7 +494,7 @@ export default function StoreContactUsPage() {
     if (!isEmailValid) {
       setFormError(
         isIndonesian
-          ? "Format email yang dimasukkan tidak valid."
+          ? "Format alamat email yang dimasukkan tidak valid."
           : "Please enter a valid email address."
       );
       return;
@@ -575,13 +722,13 @@ export default function StoreContactUsPage() {
                   <form onSubmit={onSubmit} className="space-y-4">
                     <div>
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                        {isIndonesian ? "Nama Lengkap" : "Your Name"}{" "}
+                        {isIndonesian ? "Nama Lengkap" : "Full Name"}{" "}
                         <span className="text-[#fe6f05]">*</span>
                       </label>
                       <input
                         type="text"
                         required
-                        placeholder={isIndonesian ? "Masukkan nama Anda" : "Enter your name"}
+                        placeholder={isIndonesian ? "Masukkan nama lengkap Anda" : "Enter your full name"}
                         value={form.name}
                         onChange={(event) => onChange("name", event.target.value)}
                         className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 text-sm text-slate-900 transition-all placeholder:text-slate-400 focus:border-[#fe6f05] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#034c85]/20 dark:border-slate-700 dark:bg-slate-800/60 dark:text-white dark:focus:border-[#fe6f05] dark:focus:bg-slate-800"
@@ -590,7 +737,7 @@ export default function StoreContactUsPage() {
 
                     <div>
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                        {isIndonesian ? "Alamat Email" : "Your Email"}{" "}
+                        {isIndonesian ? "Alamat Email" : "Email Address"}{" "}
                         <span className="text-[#fe6f05]">*</span>
                       </label>
                       <input
