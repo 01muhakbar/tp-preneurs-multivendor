@@ -3,18 +3,18 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import {
+  AlertCircle,
   Bot,
+  CheckCircle2,
   ChevronDown,
-  ClipboardList,
   ExternalLink,
-  Filter,
   Grid2X2,
   LayoutList,
   PackageCheck,
   Plus,
+  RefreshCw,
   Save,
   Search,
-  ShieldCheck,
   Store,
   Truck,
   Upload,
@@ -57,32 +57,32 @@ const SHIPPING_FIELDS = [
 const ISSUE_LABELS = {
   logoUrl: "Logo",
   bannerUrl: "Banner",
-  phone: "Phone",
-  email: "Contact",
-  addressLine1: "Address",
-  postalCode: "Postal code",
-  description: "Description",
-  originContactName: "Contact",
-  originPhone: "Phone",
-  originAddressLine: "Address",
-  originCity: "City",
-  originProvince: "Province",
-  originPostalCode: "Postal code",
+  phone: "Telepon",
+  email: "Email",
+  addressLine1: "Alamat",
+  postalCode: "Kode Pos",
+  description: "Deskripsi",
+  originContactName: "Kontak Pengirim",
+  originPhone: "Telepon Pengirim",
+  originAddressLine: "Alamat Asal",
+  originCity: "Kota Asal",
+  originProvince: "Provinsi Asal",
+  originPostalCode: "Kode Pos Asal",
 };
 
 const FILTERS = [
-  { id: "all", label: "All" },
-  { id: "review", label: "Review" },
-  { id: "profile", label: "Profile" },
-  { id: "shipping", label: "Shipping" },
-  { id: "public", label: "Public" },
-  { id: "live", label: "Live" },
+  { id: "all", label: "Semua" },
+  { id: "review", label: "Perlu Tinjau" },
+  { id: "profile", label: "Profil" },
+  { id: "shipping", label: "Pengiriman" },
+  { id: "public", label: "Publik" },
+  { id: "live", label: "Aktif" },
 ];
 
 const getErrorMessage = (error) =>
   error?.response?.data?.message ||
   error?.message ||
-  "Unable to update store profile.";
+  "Gagal memperbarui profil toko.";
 
 const textValue = (value, fallback = "") => {
   const normalized = String(value ?? "").trim();
@@ -125,7 +125,7 @@ export const getStoreName = (entry) => {
     textValue(store.storeName) ||
     textValue(store.publicName) ||
     textValue(entry?.publicIdentity?.name) ||
-    "Untitled Store"
+    "Toko Tanpa Nama"
   );
 };
 
@@ -279,9 +279,9 @@ const getPreviewRows = (entry) => {
   return [
     { label: "Logo", ready: hasLogo },
     { label: "Banner", ready: hasBanner },
-    { label: "Description", ready: hasDescription },
-    { label: "Contact", ready: hasContact },
-    { label: "Address", ready: hasAddress },
+    { label: "Deskripsi", ready: hasDescription },
+    { label: "Kontak", ready: hasContact },
+    { label: "Alamat", ready: hasAddress },
   ];
 };
 
@@ -292,33 +292,22 @@ const getPriorityRank = (entry) => {
   return 2;
 };
 
-function MetricCard({ icon: Icon, label, value, helper, tone }) {
+function MetricCard({ icon: Icon, label, value, tone = "blue" }) {
   return (
-    <section className={`asp2026-metric asp2026-metric--${tone}`}>
-      <span className="asp2026-metric__icon" aria-hidden="true">
-        <Icon size={22} />
-      </span>
+    <div className={`asp2026-metric asp2026-metric--${tone}`}>
+      <div className="asp2026-metric__icon" aria-hidden="true">
+        <Icon size={20} />
+      </div>
       <div className="asp2026-metric__body">
         <p>{label}</p>
         <strong>{value}</strong>
       </div>
-      {helper ? <span className="asp2026-metric__helper">{helper}</span> : null}
-    </section>
+    </div>
   );
 }
 
 function Chip({ children, tone = "neutral" }) {
   return <span className={`asp2026-chip asp2026-chip--${tone}`}>{children}</span>;
-}
-
-function DetailsButton({ icon: Icon, label }) {
-  return (
-    <button type="button" className="asp2026-detail-button">
-      <Icon size={17} aria-hidden="true" />
-      <span>{label}</span>
-      <ChevronDown size={15} aria-hidden="true" />
-    </button>
-  );
 }
 
 function StoreReviewCard({
@@ -344,6 +333,7 @@ function StoreReviewCard({
   const statusLabel = getStatusLabel(entry);
   const summaryId = `asp2026-store-summary-${storeId}`;
   const detailId = `asp2026-store-detail-${storeId}`;
+  const previewRows = getPreviewRows(entry);
 
   const logoUrl = textValue(readValue(entry, "logoUrl"));
   const [uploadingField, setUploadingField] = useState(null);
@@ -356,10 +346,10 @@ function StoreReviewCard({
       const url = await uploadAdminStoreProfileImage(file);
       if (url) {
         onDraftChange({ [fieldName]: url });
-        toast.success(`${fieldName === "logoUrl" ? "Logo" : "Banner"} uploaded`);
+        toast.success(`${fieldName === "logoUrl" ? "Logo" : "Banner"} tersimpan`);
       }
     } catch (error) {
-      toast.error(getErrorMessage(error) || "Upload failed");
+      toast.error(getErrorMessage(error) || "Gagal upload");
     } finally {
       setUploadingField(null);
       event.target.value = "";
@@ -371,15 +361,23 @@ function StoreReviewCard({
 
   return (
     <article className={`asp2026-store-card ${expanded ? "is-expanded" : ""}`}>
-      <button
-        type="button"
+      {/* SUMMARY HEADER ROW */}
+      <div
         id={summaryId}
         className="asp2026-store-summary"
+        role="button"
+        tabIndex={0}
         aria-expanded={expanded}
         aria-controls={detailId}
         onClick={onToggle}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
       >
-        <span className="asp2026-avatar">
+        <div className="asp2026-avatar">
           {logoUrl ? (
             <img
               src={logoUrl}
@@ -390,39 +388,55 @@ function StoreReviewCard({
               }}
             />
           ) : null}
-          {getInitials(name)}
-        </span>
-        <span className="asp2026-store-title">
-          <strong>{name}</strong>
-          <small>{slug || "no-slug"}</small>
-        </span>
-        <span className="asp2026-summary-meta">
-          <span className="asp2026-summary-item">
+          <span>{getInitials(name)}</span>
+        </div>
+
+        <div className="asp2026-store-title">
+          <div className="asp2026-title-row">
+            <strong>{name}</strong>
+            {owner?.name ? (
+              <span className="asp2026-owner-badge" title={`Pemilik: ${owner.name}`}>
+                <UserRound size={12} aria-hidden="true" />
+                {owner.name}
+              </span>
+            ) : null}
+          </div>
+          <span className="asp2026-slug-text">/{slug || "tanpa-slug"}</span>
+        </div>
+
+        <div className="asp2026-summary-meta">
+          <div className="asp2026-summary-item">
             <small>Status</small>
-            <Chip tone={statusLabel === "Live" ? "success" : "neutral"}>{statusLabel}</Chip>
-          </span>
-          <span className="asp2026-summary-item">
-            <small>Profile</small>
-            <strong>
+            <Chip tone={statusLabel === "Live" ? "success" : "neutral"}>
+              {statusLabel === "Live" ? "Aktif" : "Nonaktif"}
+            </Chip>
+          </div>
+          <div className="asp2026-summary-item">
+            <small>Profil</small>
+            <strong className="asp2026-score-text">
               {profileScore.complete}/{profileScore.total}
             </strong>
-          </span>
-          <span className="asp2026-summary-item">
-            <small>Shipping</small>
+          </div>
+          <div className="asp2026-summary-item">
+            <small>Pengiriman</small>
             <Chip tone={shippingScore.missing ? "warning" : "success"}>
-              {shippingScore.missing ? `${shippingScore.missing} Missing` : "Ready"}
+              {shippingScore.missing ? `${shippingScore.missing} Kurang` : "Siap"}
             </Chip>
-          </span>
-          <span className="asp2026-summary-item">
-            <small>Priority</small>
-            <Chip tone={priorityTone}>{priority}</Chip>
-          </span>
-        </span>
-        <span className="asp2026-chevron" aria-hidden="true">
-          <ChevronDown size={20} />
-        </span>
-      </button>
+          </div>
+          <div className="asp2026-summary-item">
+            <small>Prioritas</small>
+            <Chip tone={priorityTone}>
+              {priority === "High" ? "Tinggi" : priority === "Medium" ? "Sedang" : "Normal"}
+            </Chip>
+          </div>
+        </div>
 
+        <div className="asp2026-chevron" aria-hidden="true">
+          <ChevronDown size={18} />
+        </div>
+      </div>
+
+      {/* EXPANDED CONTENT: 2-COLUMN MODERN LAYOUT */}
       {expanded ? (
         <div
           id={detailId}
@@ -430,116 +444,170 @@ function StoreReviewCard({
           role="region"
           aria-labelledby={summaryId}
         >
-          <section className="asp2026-panel asp2026-panel--issues">
+          {/* KOLOM KIRI: KESIAPAN & AUDIT */}
+          <section className="asp2026-panel asp2026-panel--readiness">
             <div className="asp2026-panel__head">
-              <h2>Issues</h2>
-              <Chip tone={issues.length ? "danger" : "success"}>
-                {issues.length ? `${issues.length} Missing` : "Clear"}
-              </Chip>
+              <div className="asp2026-head-title">
+                <h2>Kesiapan Toko</h2>
+                <Chip tone={publicReady ? "success" : "warning"}>
+                  {publicReady ? "Siap Tayang" : "Belum Siap"}
+                </Chip>
+              </div>
+              <button
+                type="button"
+                className="asp2026-ai-pill-btn"
+                title="Saran AI Kesiapan Toko"
+                onClick={() =>
+                  toast.success(
+                    issues.length
+                      ? `Perlu dilengkapi: ${issues.slice(0, 3).join(", ")}.`
+                      : "Profil toko lengkap dan siap digunakan!",
+                    { id: "ai-audit-toast" }
+                  )
+                }
+              >
+                <Bot size={13} aria-hidden="true" />
+                <span>Audit AI</span>
+              </button>
             </div>
-            <div className="asp2026-issue-grid">
-              {issues.length ? (
-                issues.map((issue) => (
-                  <span key={`${storeId}-${issue}`} className="asp2026-issue-chip">
-                    <span aria-hidden="true">!</span>
-                    {issue}
+
+            {/* CHECKLIST KESIAPAN */}
+            <div className="asp2026-checklist-grid">
+              {previewRows.map((row) => (
+                <div
+                  key={row.label}
+                  className={`asp2026-check-item ${row.ready ? "is-ready" : "is-missing"}`}
+                >
+                  <span className="asp2026-check-icon" aria-hidden="true">
+                    {row.ready ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
                   </span>
-                ))
+                  <span className="asp2026-check-name">{row.label}</span>
+                  <span className="asp2026-check-status">{row.ready ? "Siap" : "Kurang"}</span>
+                </div>
+              ))}
+              <div
+                className={`asp2026-check-item ${
+                  shippingScore.missing === 0 ? "is-ready" : "is-missing"
+                }`}
+              >
+                <span className="asp2026-check-icon" aria-hidden="true">
+                  {shippingScore.missing === 0 ? (
+                    <CheckCircle2 size={14} />
+                  ) : (
+                    <AlertCircle size={14} />
+                  )}
+                </span>
+                <span className="asp2026-check-name">Kurir</span>
+                <span className="asp2026-check-status">
+                  {shippingScore.missing === 0 ? "Siap" : `${shippingScore.missing} Kurang`}
+                </span>
+              </div>
+            </div>
+
+            {/* MISSING TAGS */}
+            {issues.length > 0 ? (
+              <div className="asp2026-missing-section">
+                <span className="asp2026-missing-title">Perlu Dilengkapi:</span>
+                <div className="asp2026-missing-tags">
+                  {issues.map((issue) => (
+                    <span key={`${storeId}-${issue}`} className="asp2026-tag-missing">
+                      {issue}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {/* ACTION STOREFRONT */}
+            <div className="asp2026-readiness-footer">
+              {storefrontHref ? (
+                <Link
+                  className="asp2026-action-btn asp2026-action-btn--secondary"
+                  to={storefrontHref}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <span>Buka Storefront</span>
+                  <ExternalLink size={14} aria-hidden="true" />
+                </Link>
               ) : (
-                <p className="asp2026-muted">Ready for publishing review.</p>
+                <button
+                  type="button"
+                  className="asp2026-action-btn asp2026-action-btn--secondary"
+                  disabled
+                >
+                  <span>Storefront Belum Siap</span>
+                </button>
               )}
             </div>
           </section>
 
-          <section className="asp2026-panel">
+          {/* KOLOM KANAN: FORM DATA UTAMA */}
+          <section className="asp2026-panel asp2026-panel--form">
             <div className="asp2026-panel__head">
-              <h2>Preview</h2>
-              <Chip tone={publicReady ? "success" : "warning"}>
-                {publicReady ? "Operational" : "Gated"}
-              </Chip>
+              <h2>Data Utama</h2>
+              {owner?.email ? (
+                <span className="asp2026-owner-email" title="Email Pemilik">
+                  {owner.email}
+                </span>
+              ) : null}
             </div>
-            <div className="asp2026-preview-list">
-              {getPreviewRows(entry).map((row) => (
-                <div key={row.label}>
-                  <span>{row.label}</span>
-                  <strong className={row.ready ? "is-ready" : "is-missing"}>
-                    {row.ready ? "Ready" : "Missing"}
-                  </strong>
-                </div>
-              ))}
-            </div>
-            {storefrontHref ? (
-              <Link className="asp2026-soft-button" to={storefrontHref}>
-                Open Storefront
-                <ExternalLink size={15} aria-hidden="true" />
-              </Link>
-            ) : (
-              <button type="button" className="asp2026-soft-button" disabled>
-                Open Storefront
-              </button>
-            )}
-          </section>
 
-          <section className="asp2026-panel asp2026-panel--ai">
-            <div className="asp2026-panel__head">
-              <h2>AI</h2>
-              <Bot size={18} aria-hidden="true" />
-            </div>
-            <button
-              type="button"
-              className="asp2026-ai-button"
-              onClick={() => toast("AI suggestions are preview-only for now.")}
-            >
-              <Bot size={17} aria-hidden="true" />
-              Suggest Fixes
-            </button>
-          </section>
-
-          <section className="asp2026-panel asp2026-panel--core">
-            <div className="asp2026-panel__head">
-              <h2>Core</h2>
-            </div>
             <form className="asp2026-core-form" onSubmit={onSave}>
-              <label>
-                <span>Store Name</span>
-                <input
-                  value={draft.name}
-                  onChange={(event) => onDraftChange({ name: event.target.value })}
-                  disabled={saving}
-                />
-              </label>
-              <label>
-                <span>Slug</span>
-                <input
-                  value={draft.slug}
-                  onChange={(event) => onDraftChange({ slug: event.target.value })}
-                  disabled={saving}
-                />
-              </label>
-              <label>
-                <span>Status</span>
-                <select
-                  value={draft.status}
-                  onChange={(event) => onDraftChange({ status: event.target.value })}
-                  disabled={saving}
-                >
-                  <option value="ACTIVE">Live</option>
-                  <option value="INACTIVE">Inactive</option>
-                </select>
-              </label>
-              <label className="asp2026-media-field">
-                <span>Logo URL</span>
-                <div className="asp2026-media-row">
+              <div className="asp2026-form-row-grid">
+                <label className="asp2026-form-field">
+                  <span className="asp2026-label-text">Nama Toko</span>
+                  <input
+                    type="text"
+                    value={draft.name || ""}
+                    onChange={(e) => onDraftChange({ name: e.target.value })}
+                    disabled={saving}
+                    placeholder="Nama Toko"
+                  />
+                </label>
+
+                <label className="asp2026-form-field">
+                  <span className="asp2026-label-text">Slug</span>
+                  <input
+                    type="text"
+                    value={draft.slug || ""}
+                    onChange={(e) => onDraftChange({ slug: e.target.value })}
+                    disabled={saving}
+                    placeholder="slug-toko"
+                  />
+                </label>
+
+                <label className="asp2026-form-field">
+                  <span className="asp2026-label-text">Status</span>
+                  <select
+                    value={draft.status || "ACTIVE"}
+                    onChange={(e) => onDraftChange({ status: e.target.value })}
+                    disabled={saving}
+                  >
+                    <option value="ACTIVE">Aktif (Live)</option>
+                    <option value="INACTIVE">Nonaktif</option>
+                  </select>
+                </label>
+              </div>
+
+              {/* MEDIA LOGO */}
+              <div className="asp2026-media-field">
+                <span className="asp2026-label-text">Logo Toko</span>
+                <div className="asp2026-media-input-group">
                   <input
                     type="text"
                     value={draft.logoUrl || ""}
-                    onChange={(event) => onDraftChange({ logoUrl: event.target.value })}
-                    placeholder="/uploads/... or https://..."
+                    onChange={(e) => onDraftChange({ logoUrl: e.target.value })}
+                    placeholder="/uploads/... atau https://..."
                     disabled={saving}
                   />
-                  <label className="asp2026-upload-btn">
-                    <Upload size={14} aria-hidden="true" />
-                    <span>{uploadingField === "logoUrl" ? "Uploading..." : "Upload"}</span>
+                  <label
+                    className={`asp2026-upload-btn ${
+                      uploadingField === "logoUrl" ? "is-uploading" : ""
+                    }`}
+                  >
+                    <Upload size={13} aria-hidden="true" />
+                    <span>{uploadingField === "logoUrl" ? "..." : "Upload"}</span>
                     <input
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
@@ -548,32 +616,38 @@ function StoreReviewCard({
                       onChange={(e) => handleUpload(e, "logoUrl")}
                     />
                   </label>
+                  {draft.logoUrl ? (
+                    <div className="asp2026-thumb-preview">
+                      <img
+                        src={draft.logoUrl}
+                        alt="Logo"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                    </div>
+                  ) : null}
                 </div>
-                {draft.logoUrl ? (
-                  <div className="asp2026-media-preview">
-                    <img
-                      src={draft.logoUrl}
-                      alt="Logo preview"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                      }}
-                    />
-                  </div>
-                ) : null}
-              </label>
-              <label className="asp2026-media-field">
-                <span>Banner URL</span>
-                <div className="asp2026-media-row">
+              </div>
+
+              {/* MEDIA BANNER */}
+              <div className="asp2026-media-field">
+                <span className="asp2026-label-text">Banner Toko</span>
+                <div className="asp2026-media-input-group">
                   <input
                     type="text"
                     value={draft.bannerUrl || ""}
-                    onChange={(event) => onDraftChange({ bannerUrl: event.target.value })}
-                    placeholder="/uploads/... or https://..."
+                    onChange={(e) => onDraftChange({ bannerUrl: e.target.value })}
+                    placeholder="/uploads/... atau https://..."
                     disabled={saving}
                   />
-                  <label className="asp2026-upload-btn">
-                    <Upload size={14} aria-hidden="true" />
-                    <span>{uploadingField === "bannerUrl" ? "Uploading..." : "Upload"}</span>
+                  <label
+                    className={`asp2026-upload-btn ${
+                      uploadingField === "bannerUrl" ? "is-uploading" : ""
+                    }`}
+                  >
+                    <Upload size={13} aria-hidden="true" />
+                    <span>{uploadingField === "bannerUrl" ? "..." : "Upload"}</span>
                     <input
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
@@ -582,62 +656,36 @@ function StoreReviewCard({
                       onChange={(e) => handleUpload(e, "bannerUrl")}
                     />
                   </label>
+                  {draft.bannerUrl ? (
+                    <div className="asp2026-thumb-preview asp2026-thumb-preview--banner">
+                      <img
+                        src={draft.bannerUrl}
+                        alt="Banner"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                    </div>
+                  ) : null}
                 </div>
-                {draft.bannerUrl ? (
-                  <div className="asp2026-media-preview">
-                    <img
-                      src={draft.bannerUrl}
-                      alt="Banner preview"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                      }}
-                    />
-                  </div>
-                ) : null}
-              </label>
-              <button type="submit" className="asp2026-primary-button" disabled={saving}>
-                <Save size={16} aria-hidden="true" />
-                {saving ? "Saving" : "Save Core"}
-              </button>
+              </div>
+
+              {/* FORM FOOTER */}
+              <div className="asp2026-form-footer">
+                <button
+                  type="submit"
+                  className="asp2026-action-btn asp2026-action-btn--primary"
+                  disabled={saving}
+                >
+                  <Save size={15} aria-hidden="true" />
+                  <span>{saving ? "Menyimpan..." : "Simpan Profil"}</span>
+                </button>
+              </div>
+
               {mutationError ? (
                 <p className="asp2026-form-error">{getErrorMessage(mutationError)}</p>
               ) : null}
             </form>
-          </section>
-
-          <section className="asp2026-panel asp2026-panel--details">
-            <div className="asp2026-panel__head">
-              <h2>Details</h2>
-            </div>
-            <div className="asp2026-detail-list">
-              <DetailsButton icon={UserRound} label={owner?.name || owner?.email || "Seller"} />
-              <DetailsButton icon={Store} label="Public" />
-              <DetailsButton icon={Truck} label="Shipping" />
-              <DetailsButton icon={ShieldCheck} label="Ownership" />
-            </div>
-          </section>
-
-          <section className="asp2026-panel asp2026-panel--ownership">
-            <div className="asp2026-panel__head">
-              <h2>Ownership</h2>
-            </div>
-            <div className="asp2026-ownership-grid">
-              <div>
-                <span className="asp2026-dot asp2026-dot--green" />
-                <strong>Admin</strong>
-                <small>Name, Slug, Status</small>
-              </div>
-              <div>
-                <span className="asp2026-dot asp2026-dot--blue" />
-                <strong>Seller</strong>
-                <small>Logo, Phone, Address</small>
-              </div>
-              <div>
-                <span className="asp2026-dot asp2026-dot--purple" />
-                <strong>Shared</strong>
-                <small>Description, Contact, Social</small>
-              </div>
-            </div>
           </section>
         </div>
       ) : null}
@@ -695,13 +743,13 @@ export default function AdminStoreProfilePage() {
     },
     onSuccess: async () => {
       setFailedStoreId(null);
-      toast.success("Core saved", { id: "admin-store-profile-core-saved" });
+      toast.success("Profil toko berhasil disimpan", { id: "admin-store-profile-saved" });
       await queryClient.invalidateQueries({ queryKey: STORE_PROFILES_QUERY_KEY });
       await queryClient.invalidateQueries({ queryKey: ["storefront"], exact: false });
     },
     onError: (error, variables) => {
       setFailedStoreId(variables?.storeId ?? null);
-      toast.error(getErrorMessage(error), { id: "admin-store-profile-core-error" });
+      toast.error(getErrorMessage(error), { id: "admin-store-profile-error" });
     },
     onSettled: () => {
       setPendingStoreId(null);
@@ -734,8 +782,9 @@ export default function AdminStoreProfilePage() {
       .filter((entry) => {
         if (!query) return true;
         const owner = getOwner(entry);
-        return [getStoreName(entry), getStoreSlug(entry), owner?.name, owner?.email]
-          .some((value) => String(value || "").toLowerCase().includes(query));
+        return [getStoreName(entry), getStoreSlug(entry), owner?.name, owner?.email].some(
+          (value) => String(value || "").toLowerCase().includes(query)
+        );
       })
       .sort((a, b) => {
         if (sortMode === "name") {
@@ -775,13 +824,13 @@ export default function AdminStoreProfilePage() {
   };
 
   if (profilesQuery.isLoading) {
-    return <AdminOpsLoadingState title="Loading store profiles..." />;
+    return <AdminOpsLoadingState title="Memuat profil toko..." />;
   }
 
   if (profilesQuery.isError) {
     return (
       <AdminOpsErrorState
-        message={getErrorMessage(profilesQuery.error) || "Failed to load store profiles."}
+        message={getErrorMessage(profilesQuery.error) || "Gagal memuat profil toko."}
         onRetry={() => profilesQuery.refetch()}
       />
     );
@@ -789,96 +838,106 @@ export default function AdminStoreProfilePage() {
 
   return (
     <div className={`asp2026 asp2026--${viewMode}`}>
+      {/* HEADER SECTION */}
       <header className="asp2026-header">
         <div>
-          <h1>Store Profile</h1>
-          <p>Review store readiness before publishing.</p>
+          <div className="asp2026-title-with-count">
+            <h1>Profil Toko</h1>
+            <span className="asp2026-count-pill">{stores.length}</span>
+          </div>
+          <p>Kesiapan operasional dan kelengkapan profil toko.</p>
         </div>
         <div className="asp2026-header__actions">
-          <Link className="asp2026-primary-button" to="/admin/store/applications">
-            <Plus size={17} aria-hidden="true" />
-            Add Store
+          <button
+            type="button"
+            className="asp2026-refresh-btn"
+            title="Segarkan data"
+            onClick={() => profilesQuery.refetch()}
+          >
+            <RefreshCw size={15} aria-hidden="true" />
+            <span>Segarkan</span>
+          </button>
+          <Link className="asp2026-primary-btn" to="/admin/store/applications">
+            <Plus size={16} aria-hidden="true" />
+            <span>Tambah Toko</span>
           </Link>
         </div>
       </header>
 
-      <section className="asp2026-metrics" aria-label="Store profile metrics">
-        <MetricCard icon={Store} label="Stores" value={summary.stores} helper="+3" tone="green" />
+      {/* 4 SLEEK METRIC CARDS */}
+      <section className="asp2026-metrics" aria-label="Metrik profil toko">
         <MetricCard
-          icon={ClipboardList}
-          label="Review"
+          icon={Store}
+          label="Total Toko"
+          value={summary.stores}
+          tone="navy"
+        />
+        <MetricCard
+          icon={AlertCircle}
+          label="Perlu Tinjau"
           value={summary.review}
-          helper={summary.stores ? `${Math.round((summary.review / summary.stores) * 100)}%` : "0%"}
           tone="orange"
         />
         <MetricCard
           icon={PackageCheck}
-          label="Profile"
+          label="Profil Kurang"
           value={summary.profile}
-          helper={summary.stores ? `${Math.round((summary.profile / summary.stores) * 100)}%` : "0%"}
-          tone="blue"
+          tone="navy-soft"
         />
         <MetricCard
           icon={Truck}
-          label="Shipping"
+          label="Kurir Kurang"
           value={summary.shipping}
-          helper={
-            summary.stores ? `${Math.round((summary.shipping / summary.stores) * 100)}%` : "0%"
-          }
-          tone="red"
+          tone="orange-soft"
         />
       </section>
 
-      <section className="asp2026-toolbar" aria-label="Store profile controls">
+      {/* TOOLBAR */}
+      <section className="asp2026-toolbar" aria-label="Pencarian dan kontrol toko">
         <label className="asp2026-search">
-          <Search size={18} aria-hidden="true" />
-          <span className="sr-only">Search store</span>
+          <Search size={16} aria-hidden="true" />
+          <span className="sr-only">Cari toko</span>
           <input
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Search store"
+            placeholder="Cari nama toko, slug, atau pemilik..."
           />
         </label>
+
         <select
           className="asp2026-select"
           value={sortMode}
           onChange={(event) => setSortMode(event.target.value)}
-          aria-label="Sort stores"
+          aria-label="Urutkan toko"
         >
-          <option value="priority">Priority: High first</option>
-          <option value="name">Name A-Z</option>
+          <option value="priority">Prioritas: Tertinggi</option>
+          <option value="name">Nama: A-Z</option>
         </select>
-        <div className="asp2026-view-toggle" aria-label="View mode">
+
+        <div className="asp2026-view-toggle" aria-label="Mode tampilan">
           <button
             type="button"
             className={viewMode === "list" ? "is-active" : ""}
             onClick={() => setViewMode("list")}
-            title="List view"
+            title="Tampilan List"
             aria-pressed={viewMode === "list"}
           >
-            <LayoutList size={18} aria-hidden="true" />
+            <LayoutList size={16} aria-hidden="true" />
           </button>
           <button
             type="button"
             className={viewMode === "grid" ? "is-active" : ""}
             onClick={() => setViewMode("grid")}
-            title="Grid view"
+            title="Tampilan Grid"
             aria-pressed={viewMode === "grid"}
           >
-            <Grid2X2 size={18} aria-hidden="true" />
+            <Grid2X2 size={16} aria-hidden="true" />
           </button>
         </div>
-        <button
-          type="button"
-          className="asp2026-filter-button"
-          onClick={() => toast("Advanced filters are not connected yet.")}
-        >
-          <Filter size={17} aria-hidden="true" />
-          Filters
-        </button>
       </section>
 
-      <nav className="asp2026-filters" aria-label="Store profile filters">
+      {/* FILTER TABS */}
+      <nav className="asp2026-filters" aria-label="Filter status toko">
         {FILTERS.map((filter) => (
           <button
             key={filter.id}
@@ -887,41 +946,42 @@ export default function AdminStoreProfilePage() {
             onClick={() => setActiveFilter(filter.id)}
           >
             {filter.label}
-            <span>{chipCounts[filter.id] || 0}</span>
+            <span className="asp2026-filter-count">{chipCounts[filter.id] || 0}</span>
           </button>
         ))}
       </nav>
 
+      {/* STORE LIST */}
       {stores.length === 0 ? (
         <AdminOpsEmptyState
-          title="No store profiles yet"
-          description="Store profiles will appear here after stores are created."
+          title="Belum ada profil toko"
+          description="Profil toko akan tampil di sini setelah toko dibuat."
           actions={
-            <Link className="asp2026-primary-button" to="/admin/store/applications">
-              <Plus size={17} aria-hidden="true" />
-              Add Store
+            <Link className="asp2026-primary-btn" to="/admin/store/applications">
+              <Plus size={16} aria-hidden="true" />
+              <span>Tambah Toko</span>
             </Link>
           }
         />
       ) : visibleStores.length === 0 ? (
         <AdminOpsEmptyState
-          title="No matching stores"
-          description="Try a different search or filter."
+          title="Toko tidak ditemukan"
+          description="Coba ubah kata kunci pencarian atau ganti filter."
           actions={
             <button
               type="button"
-              className="asp2026-soft-button"
+              className="asp2026-action-btn asp2026-action-btn--secondary"
               onClick={() => {
                 setSearchTerm("");
                 setActiveFilter("all");
               }}
             >
-              Reset filters
+              Reset Filter
             </button>
           }
         />
       ) : (
-        <section className="asp2026-store-list" aria-label="Store review list">
+        <section className="asp2026-store-list" aria-label="Daftar tinjauan toko">
           {visibleStores.map((entry) => {
             const storeId = getStoreId(entry);
             const draft = drafts[storeId] || {
