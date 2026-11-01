@@ -473,7 +473,7 @@ export default function StoreContactUsPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const onSubmit = (event) => {
+  const onSubmit = async (event) => {
     event.preventDefault();
     setFormError("");
     setFormSuccess("");
@@ -501,15 +501,37 @@ export default function StoreContactUsPage() {
     }
 
     setIsSubmitting(true);
-    window.setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      const response = await fetch("/api/store/customization/contact-message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, message }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.message ||
+            (isIndonesian
+              ? "Gagal mengirimkan pesan. Silakan coba kembali."
+              : "Failed to send message. Please try again.")
+        );
+      }
       setForm({ name: "", email: "", message: "" });
       setFormSuccess(
         isIndonesian
           ? "Terima kasih! Pesan Anda telah kami terima dengan baik."
           : "Thank you! We have received your message."
       );
-    }, 600);
+    } catch (err) {
+      setFormError(
+        err.message ||
+          (isIndonesian
+            ? "Terjadi kesalahan saat mengirim pesan."
+            : "An error occurred while sending your message.")
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (contactQuery.isLoading) return <ContactUsSkeleton />;
