@@ -460,7 +460,6 @@
     "No values available.": "Tidak ada nilai tersedia.",
     "Clear Variants": "Hapus Varian",
     "Generate Variants": "Buat Varian",
-    "Sale Price": "Harga Diskon",
     "Quantity": "Kuantitas",
     "Action": "Aksi",
     "Generate variants to review and edit each combination.": "Buat varian untuk meninjau dan mengedit setiap kombinasi.",
@@ -583,7 +582,6 @@
     "of": "dari",
     "categories": "kategori",
     "View details": "Lihat detail",
-    "Edit category": "Edit kategori",
     "View subcategories": "Lihat subkategori",
     "Add subcategory": "Tambah subkategori",
     "Unpublish category": "Batalkan publikasi kategori",
@@ -1149,5 +1147,113 @@
     "Send reset link": "Kirim tautan reset",
     "Back to login": "Kembali ke login",
     "All rights reserved.": "Hak cipta dilindungi."
+  },
+  "storeProfile": {
+    "title": "Profil Toko",
+    "subtitle": "Kesiapan operasional dan kelengkapan profil toko.",
+    "refresh": "Segarkan",
+    "addStore": "Tambah Toko",
+    "metrics": {
+      "totalStores": "Total Toko",
+      "needsReview": "Perlu Tinjau",
+      "missingProfile": "Profil Kurang",
+      "missingShipping": "Kurir Kurang"
+    },
+    "toolbar": {
+      "searchPlaceholder": "Cari nama toko, slug, atau pemilik...",
+      "sortBy": "Urutkan",
+      "priorityHigh": "Prioritas: Tertinggi",
+      "nameAsc": "Nama: A-Z",
+      "listView": "Tampilan List",
+      "gridView": "Tampilan Grid"
+    },
+    "filters": {
+      "all": "Semua",
+      "review": "Perlu Tinjau",
+      "profile": "Profil",
+      "shipping": "Pengiriman",
+      "public": "Publik",
+      "live": "Aktif"
+    },
+    "card": {
+      "untitled": "Toko Tanpa Nama",
+      "noSlug": "tanpa-slug",
+      "owner": "Pemilik",
+      "status": "Status",
+      "statusLive": "Aktif",
+      "statusInactive": "Nonaktif",
+      "profile": "Profil",
+      "shipping": "Pengiriman",
+      "ready": "Siap",
+      "missingCount": "{{count}} Kurang",
+      "priority": "Prioritas",
+      "priorityHigh": "Tinggi",
+      "priorityMedium": "Sedang",
+      "priorityNormal": "Normal"
+    },
+    "readiness": {
+      "title": "Kesiapan Toko",
+      "operational": "Siap Tayang",
+      "gated": "Belum Siap",
+      "aiAudit": "Audit AI",
+      "courier": "Kurir",
+      "needsCompletion": "Perlu Dilengkapi:",
+      "openStorefront": "Buka Storefront",
+      "storefrontNotReady": "Storefront Belum Siap",
+      "aiIssuesTip": "Perlu dilengkapi: {{items}}.",
+      "aiReadyTip": "Profil toko lengkap dan siap digunakan!"
+    },
+    "form": {
+      "title": "Data Utama",
+      "storeName": "Nama Toko",
+      "slug": "Slug",
+      "status": "Status",
+      "statusLive": "Aktif (Live)",
+      "statusInactive": "Nonaktif",
+      "logo": "Logo Toko",
+      "banner": "Banner Toko",
+      "upload": "Upload",
+      "uploading": "...",
+      "urlPlaceholder": "/uploads/... atau https://...",
+      "save": "Simpan Profil",
+      "saving": "Menyimpan..."
+    },
+    "issues": {
+      "logoUrl": "Logo",
+      "bannerUrl": "Banner",
+      "phone": "Telepon",
+      "email": "Email",
+      "addressLine1": "Alamat",
+      "postalCode": "Kode Pos",
+      "description": "Deskripsi",
+      "originContactName": "Kontak Pengirim",
+      "originPhone": "Telepon Pengirim",
+      "originAddressLine": "Alamat Asal",
+      "originCity": "Kota Asal",
+      "originProvince": "Provinsi Asal",
+      "originPostalCode": "Kode Pos Asal"
+    },
+    "checklist": {
+      "logo": "Logo",
+      "banner": "Banner",
+      "description": "Deskripsi",
+      "contact": "Kontak",
+      "address": "Alamat",
+      "ready": "Siap",
+      "missing": "Kurang"
+    },
+    "messages": {
+      "loading": "Memuat profil toko...",
+      "loadError": "Gagal memuat profil toko.",
+      "emptyTitle": "Belum ada profil toko",
+      "emptyDesc": "Profil toko akan tampil di sini setelah toko dibuat.",
+      "noResultsTitle": "Toko tidak ditemukan",
+      "noResultsDesc": "Coba ubah kata kunci pencarian atau ganti filter.",
+      "resetFilter": "Reset Filter",
+      "saveSuccess": "Profil toko berhasil disimpan",
+      "saveError": "Gagal memperbarui profil toko.",
+      "uploadSuccess": "{{field}} berhasil diunggah",
+      "uploadError": "Gagal mengunggah gambar"
+    }
   }
 }

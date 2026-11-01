@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 import {
   AlertCircle,
   Bot,
@@ -54,35 +55,35 @@ const SHIPPING_FIELDS = [
   "originPostalCode",
 ];
 
-const ISSUE_LABELS = {
-  logoUrl: "Logo",
-  bannerUrl: "Banner",
-  phone: "Telepon",
-  email: "Email",
-  addressLine1: "Alamat",
-  postalCode: "Kode Pos",
-  description: "Deskripsi",
-  originContactName: "Kontak Pengirim",
-  originPhone: "Telepon Pengirim",
-  originAddressLine: "Alamat Asal",
-  originCity: "Kota Asal",
-  originProvince: "Provinsi Asal",
-  originPostalCode: "Kode Pos Asal",
+const ISSUE_KEY_MAP = {
+  logoUrl: "logoUrl",
+  bannerUrl: "bannerUrl",
+  phone: "phone",
+  email: "email",
+  addressLine1: "addressLine1",
+  postalCode: "postalCode",
+  description: "description",
+  originContactName: "originContactName",
+  originPhone: "originPhone",
+  originAddressLine: "originAddressLine",
+  originCity: "originCity",
+  originProvince: "originProvince",
+  originPostalCode: "originPostalCode",
 };
 
 const FILTERS = [
-  { id: "all", label: "Semua" },
-  { id: "review", label: "Perlu Tinjau" },
-  { id: "profile", label: "Profil" },
-  { id: "shipping", label: "Pengiriman" },
-  { id: "public", label: "Publik" },
-  { id: "live", label: "Aktif" },
+  { id: "all", key: "all", defaultLabel: "Semua" },
+  { id: "review", key: "review", defaultLabel: "Perlu Tinjau" },
+  { id: "profile", key: "profile", defaultLabel: "Profil" },
+  { id: "shipping", key: "shipping", defaultLabel: "Pengiriman" },
+  { id: "public", key: "public", defaultLabel: "Publik" },
+  { id: "live", key: "live", defaultLabel: "Aktif" },
 ];
 
 const getErrorMessage = (error) =>
   error?.response?.data?.message ||
   error?.message ||
-  "Gagal memperbarui profil toko.";
+  "";
 
 const textValue = (value, fallback = "") => {
   const normalized = String(value ?? "").trim();
@@ -94,10 +95,14 @@ const normalizeKey = (key) =>
     .replace(/[_-\s]+(.)?/g, (_, letter) => (letter ? letter.toUpperCase() : ""))
     .replace(/^(.)/, (letter) => letter.toLowerCase());
 
-const formatFieldLabel = (value) => {
+const formatFieldLabel = (value, t) => {
   const source = String(value || "").trim();
-  const compact = ISSUE_LABELS[source] || ISSUE_LABELS[normalizeKey(source)];
-  if (compact) return compact;
+  const normalized = normalizeKey(source);
+  const issueKey = ISSUE_KEY_MAP[source] || ISSUE_KEY_MAP[normalized];
+  if (t && issueKey) {
+    const translated = t(`storeProfile.issues.${issueKey}`, "");
+    if (translated) return translated;
+  }
   return source
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replace(/[_-]/g, " ")
@@ -118,14 +123,14 @@ export const normalizeStores = (payload) => {
   return [];
 };
 
-export const getStoreName = (entry) => {
+export const getStoreName = (entry, fallback = "Toko Tanpa Nama") => {
   const store = entry?.store || entry || {};
   return (
     textValue(store.name) ||
     textValue(store.storeName) ||
     textValue(store.publicName) ||
     textValue(entry?.publicIdentity?.name) ||
-    "Toko Tanpa Nama"
+    fallback
   );
 };
 
@@ -175,10 +180,7 @@ export const readValue = (entry, key) => {
   return undefined;
 };
 
-const normalizeMissingLabel = (field) =>
-  formatFieldLabel(field?.label || field?.field || field?.key || field);
-
-export const getMissing = (entry, fields) => {
+export const getMissing = (entry, fields, t) => {
   const store = entry?.store || entry || {};
   const explicit =
     fields === PROFILE_FIELDS
@@ -188,10 +190,16 @@ export const getMissing = (entry, fields) => {
         : null;
 
   if (Array.isArray(explicit) && explicit.length > 0) {
-    return explicit.map(normalizeMissingLabel).filter(Boolean);
+    return explicit
+      .map((field) =>
+        formatFieldLabel(field?.label || field?.field || field?.key || field, t)
+      )
+      .filter(Boolean);
   }
 
-  return fields.filter((field) => !isPresent(readValue(entry, field))).map(formatFieldLabel);
+  return fields
+    .filter((field) => !isPresent(readValue(entry, field)))
+    .map((field) => formatFieldLabel(field, t));
 };
 
 export const getProfileScore = (entry) => {
@@ -260,12 +268,15 @@ const getInitials = (name) => {
     .join("");
 };
 
-const getIssueList = (entry) => {
-  const issues = [...getMissing(entry, PROFILE_FIELDS), ...getMissing(entry, SHIPPING_FIELDS)];
+const getIssueList = (entry, t) => {
+  const issues = [
+    ...getMissing(entry, PROFILE_FIELDS, t),
+    ...getMissing(entry, SHIPPING_FIELDS, t),
+  ];
   return Array.from(new Set(issues)).slice(0, 6);
 };
 
-const getPreviewRows = (entry) => {
+const getPreviewRows = (entry, t) => {
   const hasLogo = isPresent(readValue(entry, "logoUrl"));
   const hasBanner = isPresent(readValue(entry, "bannerUrl"));
   const hasDescription = isPresent(readValue(entry, "description"));
@@ -277,11 +288,11 @@ const getPreviewRows = (entry) => {
     isPresent(readValue(entry, "addressLine1")) ||
     isPresent(readValue(entry, "originAddressLine"));
   return [
-    { label: "Logo", ready: hasLogo },
-    { label: "Banner", ready: hasBanner },
-    { label: "Deskripsi", ready: hasDescription },
-    { label: "Kontak", ready: hasContact },
-    { label: "Alamat", ready: hasAddress },
+    { label: t("storeProfile.checklist.logo", "Logo"), ready: hasLogo },
+    { label: t("storeProfile.checklist.banner", "Banner"), ready: hasBanner },
+    { label: t("storeProfile.checklist.description", "Deskripsi"), ready: hasDescription },
+    { label: t("storeProfile.checklist.contact", "Kontak"), ready: hasContact },
+    { label: t("storeProfile.checklist.address", "Alamat"), ready: hasAddress },
   ];
 };
 
@@ -292,7 +303,7 @@ const getPriorityRank = (entry) => {
   return 2;
 };
 
-function MetricCard({ icon: Icon, label, value, tone = "blue" }) {
+function MetricCard({ icon: Icon, label, value, tone = "navy" }) {
   return (
     <div className={`asp2026-metric asp2026-metric--${tone}`}>
       <div className="asp2026-metric__icon" aria-hidden="true">
@@ -320,20 +331,22 @@ function StoreReviewCard({
   onDraftChange,
   onSave,
 }) {
+  const { t } = useTranslation("admin");
   const storeId = getStoreId(entry);
-  const name = getStoreName(entry);
+  const fallbackStoreName = t("storeProfile.card.untitled", "Toko Tanpa Nama");
+  const name = getStoreName(entry, fallbackStoreName);
   const slug = getStoreSlug(entry);
   const profileScore = getProfileScore(entry);
   const shippingScore = getShippingScore(entry);
   const priority = getPriority(entry);
-  const issues = getIssueList(entry);
+  const issues = useMemo(() => getIssueList(entry, t), [entry, t]);
   const owner = getOwner(entry);
   const storefrontHref = slug ? `/store/${encodeURIComponent(slug)}` : null;
   const publicReady = hasPublicReadiness(entry);
   const statusLabel = getStatusLabel(entry);
   const summaryId = `asp2026-store-summary-${storeId}`;
   const detailId = `asp2026-store-detail-${storeId}`;
-  const previewRows = getPreviewRows(entry);
+  const previewRows = useMemo(() => getPreviewRows(entry, t), [entry, t]);
 
   const logoUrl = textValue(readValue(entry, "logoUrl"));
   const [uploadingField, setUploadingField] = useState(null);
@@ -342,14 +355,25 @@ function StoreReviewCard({
     const file = event.target.files?.[0];
     if (!file) return;
     setUploadingField(fieldName);
+    const fieldLabel =
+      fieldName === "logoUrl"
+        ? t("storeProfile.checklist.logo", "Logo")
+        : t("storeProfile.checklist.banner", "Banner");
     try {
       const url = await uploadAdminStoreProfileImage(file);
       if (url) {
         onDraftChange({ [fieldName]: url });
-        toast.success(`${fieldName === "logoUrl" ? "Logo" : "Banner"} tersimpan`);
+        toast.success(
+          t("storeProfile.messages.uploadSuccess", "{{field}} berhasil diunggah", {
+            field: fieldLabel,
+          })
+        );
       }
     } catch (error) {
-      toast.error(getErrorMessage(error) || "Gagal upload");
+      toast.error(
+        getErrorMessage(error) ||
+          t("storeProfile.messages.uploadError", "Gagal mengunggah gambar")
+      );
     } finally {
       setUploadingField(null);
       event.target.value = "";
@@ -358,6 +382,18 @@ function StoreReviewCard({
 
   const priorityTone =
     priority === "High" ? "danger" : priority === "Medium" ? "warning" : "success";
+
+  const priorityLabel =
+    priority === "High"
+      ? t("storeProfile.card.priorityHigh", "Tinggi")
+      : priority === "Medium"
+        ? t("storeProfile.card.priorityMedium", "Sedang")
+        : t("storeProfile.card.priorityNormal", "Normal");
+
+  const statusText =
+    statusLabel === "Live"
+      ? t("storeProfile.card.statusLive", "Aktif")
+      : t("storeProfile.card.statusInactive", "Nonaktif");
 
   return (
     <article className={`asp2026-store-card ${expanded ? "is-expanded" : ""}`}>
@@ -395,39 +431,46 @@ function StoreReviewCard({
           <div className="asp2026-title-row">
             <strong>{name}</strong>
             {owner?.name ? (
-              <span className="asp2026-owner-badge" title={`Pemilik: ${owner.name}`}>
+              <span
+                className="asp2026-owner-badge"
+                title={`${t("storeProfile.card.owner", "Pemilik")}: ${owner.name}`}
+              >
                 <UserRound size={12} aria-hidden="true" />
                 {owner.name}
               </span>
             ) : null}
           </div>
-          <span className="asp2026-slug-text">/{slug || "tanpa-slug"}</span>
+          <span className="asp2026-slug-text">
+            /{slug || t("storeProfile.card.noSlug", "tanpa-slug")}
+          </span>
         </div>
 
         <div className="asp2026-summary-meta">
           <div className="asp2026-summary-item">
-            <small>Status</small>
+            <small>{t("storeProfile.card.status", "Status")}</small>
             <Chip tone={statusLabel === "Live" ? "success" : "neutral"}>
-              {statusLabel === "Live" ? "Aktif" : "Nonaktif"}
+              {statusText}
             </Chip>
           </div>
           <div className="asp2026-summary-item">
-            <small>Profil</small>
+            <small>{t("storeProfile.card.profile", "Profil")}</small>
             <strong className="asp2026-score-text">
               {profileScore.complete}/{profileScore.total}
             </strong>
           </div>
           <div className="asp2026-summary-item">
-            <small>Pengiriman</small>
+            <small>{t("storeProfile.card.shipping", "Pengiriman")}</small>
             <Chip tone={shippingScore.missing ? "warning" : "success"}>
-              {shippingScore.missing ? `${shippingScore.missing} Kurang` : "Siap"}
+              {shippingScore.missing
+                ? t("storeProfile.card.missingCount", "{{count}} Kurang", {
+                    count: shippingScore.missing,
+                  })
+                : t("storeProfile.card.ready", "Siap")}
             </Chip>
           </div>
           <div className="asp2026-summary-item">
-            <small>Prioritas</small>
-            <Chip tone={priorityTone}>
-              {priority === "High" ? "Tinggi" : priority === "Medium" ? "Sedang" : "Normal"}
-            </Chip>
+            <small>{t("storeProfile.card.priority", "Prioritas")}</small>
+            <Chip tone={priorityTone}>{priorityLabel}</Chip>
           </div>
         </div>
 
@@ -448,26 +491,35 @@ function StoreReviewCard({
           <section className="asp2026-panel asp2026-panel--readiness">
             <div className="asp2026-panel__head">
               <div className="asp2026-head-title">
-                <h2>Kesiapan Toko</h2>
+                <h2>{t("storeProfile.readiness.title", "Kesiapan Toko")}</h2>
                 <Chip tone={publicReady ? "success" : "warning"}>
-                  {publicReady ? "Siap Tayang" : "Belum Siap"}
+                  {publicReady
+                    ? t("storeProfile.readiness.operational", "Siap Tayang")
+                    : t("storeProfile.readiness.gated", "Belum Siap")}
                 </Chip>
               </div>
               <button
                 type="button"
                 className="asp2026-ai-pill-btn"
-                title="Saran AI Kesiapan Toko"
+                title={t("storeProfile.readiness.aiAudit", "Audit AI")}
                 onClick={() =>
                   toast.success(
                     issues.length
-                      ? `Perlu dilengkapi: ${issues.slice(0, 3).join(", ")}.`
-                      : "Profil toko lengkap dan siap digunakan!",
+                      ? t(
+                          "storeProfile.readiness.aiIssuesTip",
+                          "Perlu dilengkapi: {{items}}.",
+                          { items: issues.slice(0, 3).join(", ") }
+                        )
+                      : t(
+                          "storeProfile.readiness.aiReadyTip",
+                          "Profil toko lengkap dan siap digunakan!"
+                        ),
                     { id: "ai-audit-toast" }
                   )
                 }
               >
                 <Bot size={13} aria-hidden="true" />
-                <span>Audit AI</span>
+                <span>{t("storeProfile.readiness.aiAudit", "Audit AI")}</span>
               </button>
             </div>
 
@@ -482,7 +534,11 @@ function StoreReviewCard({
                     {row.ready ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
                   </span>
                   <span className="asp2026-check-name">{row.label}</span>
-                  <span className="asp2026-check-status">{row.ready ? "Siap" : "Kurang"}</span>
+                  <span className="asp2026-check-status">
+                    {row.ready
+                      ? t("storeProfile.checklist.ready", "Siap")
+                      : t("storeProfile.checklist.missing", "Kurang")}
+                  </span>
                 </div>
               ))}
               <div
@@ -497,9 +553,15 @@ function StoreReviewCard({
                     <AlertCircle size={14} />
                   )}
                 </span>
-                <span className="asp2026-check-name">Kurir</span>
+                <span className="asp2026-check-name">
+                  {t("storeProfile.readiness.courier", "Kurir")}
+                </span>
                 <span className="asp2026-check-status">
-                  {shippingScore.missing === 0 ? "Siap" : `${shippingScore.missing} Kurang`}
+                  {shippingScore.missing === 0
+                    ? t("storeProfile.checklist.ready", "Siap")
+                    : t("storeProfile.card.missingCount", "{{count}} Kurang", {
+                        count: shippingScore.missing,
+                      })}
                 </span>
               </div>
             </div>
@@ -507,7 +569,9 @@ function StoreReviewCard({
             {/* MISSING TAGS */}
             {issues.length > 0 ? (
               <div className="asp2026-missing-section">
-                <span className="asp2026-missing-title">Perlu Dilengkapi:</span>
+                <span className="asp2026-missing-title">
+                  {t("storeProfile.readiness.needsCompletion", "Perlu Dilengkapi:")}
+                </span>
                 <div className="asp2026-missing-tags">
                   {issues.map((issue) => (
                     <span key={`${storeId}-${issue}`} className="asp2026-tag-missing">
@@ -527,7 +591,7 @@ function StoreReviewCard({
                   target="_blank"
                   rel="noreferrer"
                 >
-                  <span>Buka Storefront</span>
+                  <span>{t("storeProfile.readiness.openStorefront", "Buka Storefront")}</span>
                   <ExternalLink size={14} aria-hidden="true" />
                 </Link>
               ) : (
@@ -536,7 +600,12 @@ function StoreReviewCard({
                   className="asp2026-action-btn asp2026-action-btn--secondary"
                   disabled
                 >
-                  <span>Storefront Belum Siap</span>
+                  <span>
+                    {t(
+                      "storeProfile.readiness.storefrontNotReady",
+                      "Storefront Belum Siap"
+                    )}
+                  </span>
                 </button>
               )}
             </div>
@@ -545,9 +614,12 @@ function StoreReviewCard({
           {/* KOLOM KANAN: FORM DATA UTAMA */}
           <section className="asp2026-panel asp2026-panel--form">
             <div className="asp2026-panel__head">
-              <h2>Data Utama</h2>
+              <h2>{t("storeProfile.form.title", "Data Utama")}</h2>
               {owner?.email ? (
-                <span className="asp2026-owner-email" title="Email Pemilik">
+                <span
+                  className="asp2026-owner-email"
+                  title={t("storeProfile.card.owner", "Pemilik")}
+                >
                   {owner.email}
                 </span>
               ) : null}
@@ -556,18 +628,22 @@ function StoreReviewCard({
             <form className="asp2026-core-form" onSubmit={onSave}>
               <div className="asp2026-form-row-grid">
                 <label className="asp2026-form-field">
-                  <span className="asp2026-label-text">Nama Toko</span>
+                  <span className="asp2026-label-text">
+                    {t("storeProfile.form.storeName", "Nama Toko")}
+                  </span>
                   <input
                     type="text"
                     value={draft.name || ""}
                     onChange={(e) => onDraftChange({ name: e.target.value })}
                     disabled={saving}
-                    placeholder="Nama Toko"
+                    placeholder={t("storeProfile.form.storeName", "Nama Toko")}
                   />
                 </label>
 
                 <label className="asp2026-form-field">
-                  <span className="asp2026-label-text">Slug</span>
+                  <span className="asp2026-label-text">
+                    {t("storeProfile.form.slug", "Slug")}
+                  </span>
                   <input
                     type="text"
                     value={draft.slug || ""}
@@ -578,27 +654,38 @@ function StoreReviewCard({
                 </label>
 
                 <label className="asp2026-form-field">
-                  <span className="asp2026-label-text">Status</span>
+                  <span className="asp2026-label-text">
+                    {t("storeProfile.form.status", "Status")}
+                  </span>
                   <select
                     value={draft.status || "ACTIVE"}
                     onChange={(e) => onDraftChange({ status: e.target.value })}
                     disabled={saving}
                   >
-                    <option value="ACTIVE">Aktif (Live)</option>
-                    <option value="INACTIVE">Nonaktif</option>
+                    <option value="ACTIVE">
+                      {t("storeProfile.form.statusLive", "Aktif (Live)")}
+                    </option>
+                    <option value="INACTIVE">
+                      {t("storeProfile.form.statusInactive", "Nonaktif")}
+                    </option>
                   </select>
                 </label>
               </div>
 
               {/* MEDIA LOGO */}
               <div className="asp2026-media-field">
-                <span className="asp2026-label-text">Logo Toko</span>
+                <span className="asp2026-label-text">
+                  {t("storeProfile.form.logo", "Logo Toko")}
+                </span>
                 <div className="asp2026-media-input-group">
                   <input
                     type="text"
                     value={draft.logoUrl || ""}
                     onChange={(e) => onDraftChange({ logoUrl: e.target.value })}
-                    placeholder="/uploads/... atau https://..."
+                    placeholder={t(
+                      "storeProfile.form.urlPlaceholder",
+                      "/uploads/... atau https://..."
+                    )}
                     disabled={saving}
                   />
                   <label
@@ -607,7 +694,11 @@ function StoreReviewCard({
                     }`}
                   >
                     <Upload size={13} aria-hidden="true" />
-                    <span>{uploadingField === "logoUrl" ? "..." : "Upload"}</span>
+                    <span>
+                      {uploadingField === "logoUrl"
+                        ? t("storeProfile.form.uploading", "...")
+                        : t("storeProfile.form.upload", "Upload")}
+                    </span>
                     <input
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
@@ -632,13 +723,18 @@ function StoreReviewCard({
 
               {/* MEDIA BANNER */}
               <div className="asp2026-media-field">
-                <span className="asp2026-label-text">Banner Toko</span>
+                <span className="asp2026-label-text">
+                  {t("storeProfile.form.banner", "Banner Toko")}
+                </span>
                 <div className="asp2026-media-input-group">
                   <input
                     type="text"
                     value={draft.bannerUrl || ""}
                     onChange={(e) => onDraftChange({ bannerUrl: e.target.value })}
-                    placeholder="/uploads/... atau https://..."
+                    placeholder={t(
+                      "storeProfile.form.urlPlaceholder",
+                      "/uploads/... atau https://..."
+                    )}
                     disabled={saving}
                   />
                   <label
@@ -647,7 +743,11 @@ function StoreReviewCard({
                     }`}
                   >
                     <Upload size={13} aria-hidden="true" />
-                    <span>{uploadingField === "bannerUrl" ? "..." : "Upload"}</span>
+                    <span>
+                      {uploadingField === "bannerUrl"
+                        ? t("storeProfile.form.uploading", "...")
+                        : t("storeProfile.form.upload", "Upload")}
+                    </span>
                     <input
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
@@ -678,7 +778,11 @@ function StoreReviewCard({
                   disabled={saving}
                 >
                   <Save size={15} aria-hidden="true" />
-                  <span>{saving ? "Menyimpan..." : "Simpan Profil"}</span>
+                  <span>
+                    {saving
+                      ? t("storeProfile.form.saving", "Menyimpan...")
+                      : t("storeProfile.form.save", "Simpan Profil")}
+                  </span>
                 </button>
               </div>
 
@@ -694,6 +798,7 @@ function StoreReviewCard({
 }
 
 export default function AdminStoreProfilePage() {
+  const { t, i18n } = useTranslation("admin");
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
@@ -743,13 +848,20 @@ export default function AdminStoreProfilePage() {
     },
     onSuccess: async () => {
       setFailedStoreId(null);
-      toast.success("Profil toko berhasil disimpan", { id: "admin-store-profile-saved" });
+      toast.success(
+        t("storeProfile.messages.saveSuccess", "Profil toko berhasil disimpan"),
+        { id: "admin-store-profile-saved" }
+      );
       await queryClient.invalidateQueries({ queryKey: STORE_PROFILES_QUERY_KEY });
       await queryClient.invalidateQueries({ queryKey: ["storefront"], exact: false });
     },
     onError: (error, variables) => {
       setFailedStoreId(variables?.storeId ?? null);
-      toast.error(getErrorMessage(error), { id: "admin-store-profile-error" });
+      toast.error(
+        getErrorMessage(error) ||
+          t("storeProfile.messages.saveError", "Gagal memperbarui profil toko."),
+        { id: "admin-store-profile-error" }
+      );
     },
     onSettled: () => {
       setPendingStoreId(null);
@@ -824,13 +936,20 @@ export default function AdminStoreProfilePage() {
   };
 
   if (profilesQuery.isLoading) {
-    return <AdminOpsLoadingState title="Memuat profil toko..." />;
+    return (
+      <AdminOpsLoadingState
+        title={t("storeProfile.messages.loading", "Memuat profil toko...")}
+      />
+    );
   }
 
   if (profilesQuery.isError) {
     return (
       <AdminOpsErrorState
-        message={getErrorMessage(profilesQuery.error) || "Gagal memuat profil toko."}
+        message={
+          getErrorMessage(profilesQuery.error) ||
+          t("storeProfile.messages.loadError", "Gagal memuat profil toko.")
+        }
         onRetry={() => profilesQuery.refetch()}
       />
     );
@@ -842,24 +961,29 @@ export default function AdminStoreProfilePage() {
       <header className="asp2026-header">
         <div>
           <div className="asp2026-title-with-count">
-            <h1>Profil Toko</h1>
+            <h1>{t("storeProfile.title", "Profil Toko")}</h1>
             <span className="asp2026-count-pill">{stores.length}</span>
           </div>
-          <p>Kesiapan operasional dan kelengkapan profil toko.</p>
+          <p>
+            {t(
+              "storeProfile.subtitle",
+              "Kesiapan operasional dan kelengkapan profil toko."
+            )}
+          </p>
         </div>
         <div className="asp2026-header__actions">
           <button
             type="button"
             className="asp2026-refresh-btn"
-            title="Segarkan data"
+            title={t("storeProfile.refresh", "Segarkan")}
             onClick={() => profilesQuery.refetch()}
           >
             <RefreshCw size={15} aria-hidden="true" />
-            <span>Segarkan</span>
+            <span>{t("storeProfile.refresh", "Segarkan")}</span>
           </button>
           <Link className="asp2026-primary-btn" to="/admin/store/applications">
             <Plus size={16} aria-hidden="true" />
-            <span>Tambah Toko</span>
+            <span>{t("storeProfile.addStore", "Tambah Toko")}</span>
           </Link>
         </div>
       </header>
@@ -868,25 +992,25 @@ export default function AdminStoreProfilePage() {
       <section className="asp2026-metrics" aria-label="Metrik profil toko">
         <MetricCard
           icon={Store}
-          label="Total Toko"
+          label={t("storeProfile.metrics.totalStores", "Total Toko")}
           value={summary.stores}
           tone="navy"
         />
         <MetricCard
           icon={AlertCircle}
-          label="Perlu Tinjau"
+          label={t("storeProfile.metrics.needsReview", "Perlu Tinjau")}
           value={summary.review}
           tone="orange"
         />
         <MetricCard
           icon={PackageCheck}
-          label="Profil Kurang"
+          label={t("storeProfile.metrics.missingProfile", "Profil Kurang")}
           value={summary.profile}
           tone="navy-soft"
         />
         <MetricCard
           icon={Truck}
-          label="Kurir Kurang"
+          label={t("storeProfile.metrics.missingShipping", "Kurir Kurang")}
           value={summary.shipping}
           tone="orange-soft"
         />
@@ -896,11 +1020,16 @@ export default function AdminStoreProfilePage() {
       <section className="asp2026-toolbar" aria-label="Pencarian dan kontrol toko">
         <label className="asp2026-search">
           <Search size={16} aria-hidden="true" />
-          <span className="sr-only">Cari toko</span>
+          <span className="sr-only">
+            {t("storeProfile.toolbar.searchPlaceholder", "Cari toko")}
+          </span>
           <input
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Cari nama toko, slug, atau pemilik..."
+            placeholder={t(
+              "storeProfile.toolbar.searchPlaceholder",
+              "Cari nama toko, slug, atau pemilik..."
+            )}
           />
         </label>
 
@@ -908,10 +1037,14 @@ export default function AdminStoreProfilePage() {
           className="asp2026-select"
           value={sortMode}
           onChange={(event) => setSortMode(event.target.value)}
-          aria-label="Urutkan toko"
+          aria-label={t("storeProfile.toolbar.sortBy", "Urutkan toko")}
         >
-          <option value="priority">Prioritas: Tertinggi</option>
-          <option value="name">Nama: A-Z</option>
+          <option value="priority">
+            {t("storeProfile.toolbar.priorityHigh", "Prioritas: Tertinggi")}
+          </option>
+          <option value="name">
+            {t("storeProfile.toolbar.nameAsc", "Nama: A-Z")}
+          </option>
         </select>
 
         <div className="asp2026-view-toggle" aria-label="Mode tampilan">
@@ -919,7 +1052,7 @@ export default function AdminStoreProfilePage() {
             type="button"
             className={viewMode === "list" ? "is-active" : ""}
             onClick={() => setViewMode("list")}
-            title="Tampilan List"
+            title={t("storeProfile.toolbar.listView", "Tampilan List")}
             aria-pressed={viewMode === "list"}
           >
             <LayoutList size={16} aria-hidden="true" />
@@ -928,7 +1061,7 @@ export default function AdminStoreProfilePage() {
             type="button"
             className={viewMode === "grid" ? "is-active" : ""}
             onClick={() => setViewMode("grid")}
-            title="Tampilan Grid"
+            title={t("storeProfile.toolbar.gridView", "Tampilan Grid")}
             aria-pressed={viewMode === "grid"}
           >
             <Grid2X2 size={16} aria-hidden="true" />
@@ -945,7 +1078,7 @@ export default function AdminStoreProfilePage() {
             className={activeFilter === filter.id ? "is-active" : ""}
             onClick={() => setActiveFilter(filter.id)}
           >
-            {filter.label}
+            {t(`storeProfile.filters.${filter.key}`, filter.defaultLabel)}
             <span className="asp2026-filter-count">{chipCounts[filter.id] || 0}</span>
           </button>
         ))}
@@ -954,19 +1087,25 @@ export default function AdminStoreProfilePage() {
       {/* STORE LIST */}
       {stores.length === 0 ? (
         <AdminOpsEmptyState
-          title="Belum ada profil toko"
-          description="Profil toko akan tampil di sini setelah toko dibuat."
+          title={t("storeProfile.messages.emptyTitle", "Belum ada profil toko")}
+          description={t(
+            "storeProfile.messages.emptyDesc",
+            "Profil toko akan tampil di sini setelah toko dibuat."
+          )}
           actions={
             <Link className="asp2026-primary-btn" to="/admin/store/applications">
               <Plus size={16} aria-hidden="true" />
-              <span>Tambah Toko</span>
+              <span>{t("storeProfile.addStore", "Tambah Toko")}</span>
             </Link>
           }
         />
       ) : visibleStores.length === 0 ? (
         <AdminOpsEmptyState
-          title="Toko tidak ditemukan"
-          description="Coba ubah kata kunci pencarian atau ganti filter."
+          title={t("storeProfile.messages.noResultsTitle", "Toko tidak ditemukan")}
+          description={t(
+            "storeProfile.messages.noResultsDesc",
+            "Coba ubah kata kunci pencarian atau ganti filter."
+          )}
           actions={
             <button
               type="button"
@@ -976,7 +1115,7 @@ export default function AdminStoreProfilePage() {
                 setActiveFilter("all");
               }}
             >
-              Reset Filter
+              {t("storeProfile.messages.resetFilter", "Reset Filter")}
             </button>
           }
         />

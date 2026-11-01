@@ -460,7 +460,6 @@
     "No values available.": "No values available.",
     "Clear Variants": "Clear Variants",
     "Generate Variants": "Generate Variants",
-    "Sale Price": "Sale Price",
     "Quantity": "Quantity",
     "Action": "Action",
     "Generate variants to review and edit each combination.": "Generate variants to review and edit each combination.",
@@ -583,7 +582,6 @@
     "of": "of",
     "categories": "categories",
     "View details": "View details",
-    "Edit category": "Edit category",
     "View subcategories": "View subcategories",
     "Add subcategory": "Add subcategory",
     "Unpublish category": "Unpublish category",
@@ -1149,5 +1147,113 @@
     "Send reset link": "Send reset link",
     "Back to login": "Back to login",
     "All rights reserved.": "All rights reserved."
+  },
+  "storeProfile": {
+    "title": "Store Profile",
+    "subtitle": "Review store readiness and profile completeness.",
+    "refresh": "Refresh",
+    "addStore": "Add Store",
+    "metrics": {
+      "totalStores": "Total Stores",
+      "needsReview": "Needs Review",
+      "missingProfile": "Missing Profile",
+      "missingShipping": "Missing Shipping"
+    },
+    "toolbar": {
+      "searchPlaceholder": "Search store name, slug, or owner...",
+      "sortBy": "Sort by",
+      "priorityHigh": "Priority: Highest",
+      "nameAsc": "Name: A-Z",
+      "listView": "List View",
+      "gridView": "Grid View"
+    },
+    "filters": {
+      "all": "All",
+      "review": "Review",
+      "profile": "Profile",
+      "shipping": "Shipping",
+      "public": "Public",
+      "live": "Active"
+    },
+    "card": {
+      "untitled": "Untitled Store",
+      "noSlug": "no-slug",
+      "owner": "Owner",
+      "status": "Status",
+      "statusLive": "Live",
+      "statusInactive": "Inactive",
+      "profile": "Profile",
+      "shipping": "Shipping",
+      "ready": "Ready",
+      "missingCount": "{{count}} Missing",
+      "priority": "Priority",
+      "priorityHigh": "High",
+      "priorityMedium": "Medium",
+      "priorityNormal": "Normal"
+    },
+    "readiness": {
+      "title": "Store Readiness",
+      "operational": "Ready to Publish",
+      "gated": "Not Ready",
+      "aiAudit": "AI Audit",
+      "courier": "Shipping",
+      "needsCompletion": "Needs Completion:",
+      "openStorefront": "Open Storefront",
+      "storefrontNotReady": "Storefront Not Ready",
+      "aiIssuesTip": "Needs completion: {{items}}.",
+      "aiReadyTip": "Store profile is complete and ready to use!"
+    },
+    "form": {
+      "title": "Core Data",
+      "storeName": "Store Name",
+      "slug": "Slug",
+      "status": "Status",
+      "statusLive": "Active (Live)",
+      "statusInactive": "Inactive",
+      "logo": "Store Logo",
+      "banner": "Store Banner",
+      "upload": "Upload",
+      "uploading": "...",
+      "urlPlaceholder": "/uploads/... or https://...",
+      "save": "Save Profile",
+      "saving": "Saving..."
+    },
+    "issues": {
+      "logoUrl": "Logo",
+      "bannerUrl": "Banner",
+      "phone": "Phone",
+      "email": "Email",
+      "addressLine1": "Address",
+      "postalCode": "Postal Code",
+      "description": "Description",
+      "originContactName": "Sender Contact",
+      "originPhone": "Sender Phone",
+      "originAddressLine": "Origin Address",
+      "originCity": "Origin City",
+      "originProvince": "Origin Province",
+      "originPostalCode": "Origin Postal Code"
+    },
+    "checklist": {
+      "logo": "Logo",
+      "banner": "Banner",
+      "description": "Description",
+      "contact": "Contact",
+      "address": "Address",
+      "ready": "Ready",
+      "missing": "Missing"
+    },
+    "messages": {
+      "loading": "Loading store profiles...",
+      "loadError": "Failed to load store profiles.",
+      "emptyTitle": "No store profiles yet",
+      "emptyDesc": "Store profiles will appear here after stores are created.",
+      "noResultsTitle": "No stores found",
+      "noResultsDesc": "Try changing your search query or active filter.",
+      "resetFilter": "Reset Filters",
+      "saveSuccess": "Store profile saved successfully",
+      "saveError": "Failed to update store profile.",
+      "uploadSuccess": "{{field}} uploaded successfully",
+      "uploadError": "Failed to upload image"
+    }
   }
 }
