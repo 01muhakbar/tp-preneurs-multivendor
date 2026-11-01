@@ -21,7 +21,6 @@ import {
 import { normalizeAdminOrder } from "../../services/adapters/orderAdapter.js";
 import {
   Ban,
-  CalendarDays,
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
@@ -33,10 +32,10 @@ import {
   Eye,
   FileText,
   Grid2X2,
-  MoreVertical,
   PackageCheck,
   Printer,
   RefreshCw,
+  RotateCcw,
   Search,
   ShoppingBag,
   Trash2,
@@ -70,7 +69,7 @@ const DEFAULT_FILTERS = {
 };
 
 const PAYMENT_STATUS_OPTIONS = [
-  { value: "", label: "All Statuses" },
+  { value: "", label: "All Payment Statuses" },
   { value: "PAID", label: "Paid" },
   { value: "UNPAID", label: "Unpaid" },
   { value: "PENDING_CONFIRMATION", label: "Pending confirmation" },
@@ -80,13 +79,13 @@ const PAYMENT_STATUS_OPTIONS = [
 ];
 
 const PAYMENT_METHOD_OPTIONS = [
-  { value: "", label: "All Methods" },
+  { value: "", label: "All Payment Methods" },
   { value: "qris", label: "Static QRIS" },
   { value: "duitku", label: "Duitku" },
 ];
 
 const DELIVERY_STATUS_OPTIONS = [
-  { value: "", label: "All Delivery Status" },
+  { value: "", label: "All Delivery Statuses" },
   { value: "waiting_payment", label: "Waiting payment" },
   { value: "ready_to_fulfill", label: "Ready to fulfill" },
   { value: "processing", label: "Processing" },
@@ -100,13 +99,13 @@ const ROW_LIMIT_OPTIONS = [10, 20, 50, 100];
 
 const COLUMN_DEFS = [
   { key: "invoice", label: "Invoice ID" },
-  { key: "orderDate", label: "Order Date" },
+  { key: "orderDate", label: "Date" },
   { key: "customer", label: "Customer" },
-  { key: "paymentMethod", label: "Payment Method" },
+  { key: "paymentMethod", label: "Method" },
   { key: "amount", label: "Amount" },
-  { key: "paymentStatus", label: "Payment Status" },
-  { key: "deliveryStatus", label: "Delivery Status" },
-  { key: "orderStatus", label: "Order Status" },
+  { key: "paymentStatus", label: "Payment" },
+  { key: "deliveryStatus", label: "Delivery" },
+  { key: "orderStatus", label: "Status" },
 ];
 
 const INITIAL_VISIBLE_COLUMNS = COLUMN_DEFS.reduce(
@@ -127,17 +126,6 @@ const normalizeToken = (value) =>
     .replace(/([a-z])([A-Z])/g, "$1_$2")
     .replace(/[\s-]+/g, "_")
     .toUpperCase();
-
-const formatDisplayDate = (value) => {
-  if (!value) return "Any";
-  const date = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
-};
 
 const getInvoiceParam = (order, view) =>
   toText(view?.invoiceNo || order?.invoiceNo || order?.invoice || order?.orderRef || order?.reference || order?.ref || order?.id);
@@ -165,12 +153,12 @@ const getDeliveryStatus = (order, view) => {
 
 const getTone = (raw) => {
   const value = normalizeToken(raw);
-  if (["PAID", "DELIVERED", "COMPLETED", "COMPLETE"].includes(value)) return "success";
-  if (["PROCESSING", "READY_TO_FULFILL", "READY", "SHIPPED", "IN_DELIVERY", "IN_TRANSIT", "OUT_FOR_DELIVERY"].includes(value)) return "info";
-  if (["PENDING", "WAITING_PAYMENT", "PENDING_CONFIRMATION", "EXPIRED", "UNFULFILLED"].includes(value)) return "warning";
-  if (["FAILED", "REJECTED", "FAILED_DELIVERY"].includes(value)) return "danger";
-  if (["CANCELLED", "CANCELED", "UNPAID"].includes(value)) return "muted";
-  return "muted";
+  if (["PAID", "DELIVERED", "COMPLETED", "COMPLETE"].includes(value)) return "green";
+  if (["PROCESSING", "READY_TO_FULFILL", "READY", "SHIPPED", "IN_DELIVERY", "IN_TRANSIT", "OUT_FOR_DELIVERY"].includes(value)) return "blue";
+  if (["PENDING", "WAITING_PAYMENT", "PENDING_CONFIRMATION", "EXPIRED", "UNFULFILLED"].includes(value)) return "orange";
+  if (["FAILED", "REJECTED", "FAILED_DELIVERY"].includes(value)) return "orange";
+  if (["CANCELLED", "CANCELED", "UNPAID"].includes(value)) return "neutral";
+  return "neutral";
 };
 
 const labelize = (raw) => {
@@ -206,9 +194,6 @@ const getPaymentMethodLabel = (view, order) => {
   if (normalized.includes("credit")) return "Credit";
   return raw || "Static QRIS";
 };
-
-const getOptionLabel = (options, value) =>
-  options.find((option) => option.value === value)?.label || labelize(value);
 
 const normalizeRows = (items) =>
   items.map((order) => ({
@@ -260,7 +245,6 @@ export default function Orders() {
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [bulkMenuOpen, setBulkMenuOpen] = useState(false);
   const [columnsMenuOpen, setColumnsMenuOpen] = useState(false);
-  const [openMoreId, setOpenMoreId] = useState(null);
   const [visibleColumns, setVisibleColumns] = useState(INITIAL_VISIBLE_COLUMNS);
   const [pendingUpdateId, setPendingUpdateId] = useState(null);
 
@@ -284,7 +268,6 @@ export default function Orders() {
       if (!target.closest?.("[data-admin-orders-menu]")) {
         setBulkMenuOpen(false);
         setColumnsMenuOpen(false);
-        setOpenMoreId(null);
       }
     };
     document.addEventListener("click", closeMenus);
@@ -368,8 +351,8 @@ export default function Orders() {
     meta: { suppressGlobalToast: true },
     onSuccess: (response) => {
       const stamp = new Date().toISOString().slice(0, 10);
-      const filename = downloadBlob(response, `tp-preneurs-orders-${stamp}.csv`);
-      toast.success(`Orders downloaded as ${filename}.`);
+      const filename = downloadBlob(response, `orders-${stamp}.csv`);
+      toast.success(`Exported as ${filename}.`);
     },
     onError: (error) => toast.error(getErrorMessage(error, "Failed to download orders.")),
   });
@@ -380,9 +363,9 @@ export default function Orders() {
   const totalPages = Math.max(1, Number(meta.totalPages || 1));
   const summary = meta.summary || {
     totalOrders: Number(meta.total || 0),
-    processing: rows.filter(({ order }) => getTone(getOrderStatus(order)) === "info").length,
-    delivered: rows.filter(({ order }) => getTone(getOrderStatus(order)) === "success").length,
-    paymentIssues: rows.filter(({ order }) => getTone(getPaymentStatus(order)) !== "success").length,
+    processing: rows.filter(({ order }) => getTone(getOrderStatus(order)) === "blue").length,
+    delivered: rows.filter(({ order }) => getTone(getOrderStatus(order)) === "green").length,
+    paymentIssues: rows.filter(({ order }) => getTone(getPaymentStatus(order)) !== "green").length,
   };
 
   useEffect(() => {
@@ -408,7 +391,6 @@ export default function Orders() {
     deleteMutation.isPending;
   const isInitialLoading = ordersQuery.isLoading && !ordersQuery.data;
   const isErrorState = ordersQuery.isError && !ordersQuery.data;
-  const showInlineError = ordersQuery.isError && Boolean(ordersQuery.data);
 
   const selectedPayload = () => ({
     ids: selectedRows.map(({ view }) => Number(view.id)).filter(Boolean),
@@ -474,7 +456,7 @@ export default function Orders() {
     if (selectedCount === 0) return toast.error("Select at least one order first.");
     const confirmed = window.confirm(
       selectedCount === 1
-        ? "Delete the selected order? This action cannot be undone."
+        ? "Delete selected order? This action cannot be undone."
         : `Delete ${selectedCount} selected orders? This action cannot be undone.`
     );
     if (!confirmed) return;
@@ -497,550 +479,693 @@ export default function Orders() {
 
   const onPrintInvoice = (order, view) => {
     const invoiceParam = getInvoiceParam(order, view);
-    if (!invoiceParam) return toast.error("Order detail is unavailable for this record.");
+    if (!invoiceParam) return toast.error("Order detail unavailable.");
     const printWindow = window.open(`/admin/orders/${encodeURIComponent(invoiceParam)}?print=1`, "_blank");
     if (!printWindow) toast.error("Pop-up blocked. Allow pop-ups to print invoice.");
   };
 
-  const onGoToPage = (event) => {
-    event.preventDefault();
-    const nextPage = Math.max(1, Math.min(totalPages, Number(goToPage) || 1));
-    setPage(nextPage);
+  const copyInvoice = (invoiceParam) => {
+    navigator.clipboard.writeText(invoiceParam).then(() => toast.success("Invoice copied."));
   };
-
-  const activeFilterChips = [
-    filters.startDate || filters.endDate
-      ? {
-          key: "date",
-          label: `Date: ${formatDisplayDate(filters.startDate)} - ${formatDisplayDate(filters.endDate)}`,
-          clear: () => {
-            updateFilter("startDate", "");
-            updateFilter("endDate", "");
-          },
-        }
-      : null,
-    filters.paymentStatus
-      ? {
-          key: "paymentStatus",
-          label: `Payment Status: ${labelize(filters.paymentStatus)}`,
-          clear: () => updateFilter("paymentStatus", ""),
-        }
-      : null,
-    filters.deliveryStatus
-      ? {
-          key: "deliveryStatus",
-          label: `Delivery Status: ${labelize(filters.deliveryStatus)}`,
-          clear: () => updateFilter("deliveryStatus", ""),
-        }
-      : null,
-    filters.paymentMethod
-      ? {
-          key: "paymentMethod",
-          label: `Payment Method: ${getOptionLabel(PAYMENT_METHOD_OPTIONS, filters.paymentMethod)}`,
-          clear: () => updateFilter("paymentMethod", ""),
-        }
-      : null,
-    filters.customer
-      ? {
-          key: "customer",
-          label: `Customer: ${filters.customer}`,
-          clear: () => {
-            setCustomerInput("");
-            updateFilter("customer", "");
-          },
-        }
-      : null,
-  ].filter(Boolean);
-
-  const metricCards = [
-    {
-      label: "Total Orders",
-      value: summary.totalOrders,
-      detail: "This range",
-      icon: ShoppingBag,
-      tone: "primary",
-    },
-    {
-      label: "Processing",
-      value: summary.processing,
-      detail: "Pending fulfillment",
-      icon: Clock3,
-      tone: "warning",
-    },
-    {
-      label: "Delivered",
-      value: summary.delivered,
-      detail: "Successfully delivered",
-      icon: CheckCircle2,
-      tone: "success",
-    },
-    {
-      label: "Payment Issues",
-      value: summary.paymentIssues,
-      detail: "Require attention",
-      icon: CreditCard,
-      tone: "danger",
-    },
-  ];
 
   return (
     <div className="admin-orders-2026">
-      <section className="orders-hero">
+      {/* HEADER SECTION */}
+      <header className="orders-hero">
         <div className="orders-title">
-          <span className="orders-title__icon" aria-hidden="true">
-            <CalendarDays size={24} />
-          </span>
-          <div>
-            <h1>Orders</h1>
-            <p>Manage and track customer orders</p>
+          <div className="orders-title__icon">
+            <ShoppingBag size={22} />
+          </div>
+          <div className="orders-title-text">
+            <div className="orders-title-row">
+              <h1>Orders</h1>
+              <span className="orders-badge-count">{meta.total || rows.length}</span>
+            </div>
+            <p>Manage customer orders</p>
           </div>
         </div>
 
         <div className="orders-actions">
-          {selectedCount > 0 ? (
-            <button type="button" className="orders-selection-pill" onClick={() => setSelectedIds(new Set())}>
-              {selectedCount} selected <X size={16} />
-            </button>
-          ) : null}
+          <button
+            type="button"
+            className="orders-btn"
+            onClick={() => invalidateOrders()}
+            disabled={ordersQuery.isFetching}
+            title="Refresh list"
+          >
+            <RefreshCw size={14} className={ordersQuery.isFetching ? "animate-spin" : ""} />
+            Refresh
+          </button>
+          <button
+            type="button"
+            className="orders-btn orders-btn--primary"
+            onClick={runDownload}
+            disabled={downloadMutation.isPending}
+            title="Export CSV"
+          >
+            <Download size={14} />
+            {downloadMutation.isPending ? "Exporting..." : "Export CSV"}
+          </button>
+        </div>
+      </header>
 
-          <div className="orders-menu-wrap" data-admin-orders-menu>
+      {/* DYNAMIC SELECTION ACTION BAR (Appears when >= 1 item selected) */}
+      {selectedCount > 0 && (
+        <section className="orders-floating-bar" aria-label="Selected actions">
+          <div className="orders-floating-info">
+            <span className="orders-floating-badge">{selectedCount}</span>
+            <span>orders selected</span>
+          </div>
+          <div className="orders-floating-actions">
             <button
               type="button"
-              className="orders-btn orders-btn--outline"
-              onClick={(event) => {
-                event.stopPropagation();
-                setBulkMenuOpen((open) => !open);
-              }}
+              className="orders-floating-btn"
+              onClick={runAssign}
               disabled={isBusy}
             >
-              <FileText size={17} />
-              Bulk Actions
-              {selectedCount > 0 ? <span className="orders-count-badge">{selectedCount}</span> : null}
-              <ChevronDown size={16} />
+              <Truck size={14} />
+              Assign
             </button>
-            {bulkMenuOpen ? (
-              <div className="orders-dropdown orders-dropdown--bulk">
-                {BULK_ACTIONS.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <button key={item.action} type="button" onClick={() => runBulkAction(item.action)}>
-                      <span className={`orders-menu-dot orders-menu-dot--${item.tone}`}>
-                        <Icon size={15} />
-                      </span>
+            <button
+              type="button"
+              className="orders-floating-btn"
+              onClick={runUnassign}
+              disabled={isBusy}
+            >
+              <UserRound size={14} />
+              Unassign
+            </button>
+            <div className="orders-menu-wrap" data-admin-orders-menu>
+              <button
+                type="button"
+                className="orders-floating-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setBulkMenuOpen(!bulkMenuOpen);
+                }}
+                disabled={isBusy}
+              >
+                <FileText size={14} />
+                Status <ChevronDown size={13} />
+              </button>
+              {bulkMenuOpen && (
+                <div className="orders-dropdown">
+                  {BULK_ACTIONS.map((item) => (
+                    <button
+                      key={item.action}
+                      type="button"
+                      onClick={() => runBulkAction(item.action)}
+                    >
+                      <item.icon size={14} />
                       {item.label}
                     </button>
-                  );
-                })}
-              </div>
-            ) : null}
+                  ))}
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              className="orders-floating-btn orders-floating-btn--danger"
+              onClick={runDelete}
+              disabled={isBusy}
+            >
+              <Trash2 size={14} />
+              Delete
+            </button>
+            <button
+              type="button"
+              className="orders-floating-close"
+              onClick={() => setSelectedIds(new Set())}
+              title="Clear selection"
+            >
+              <X size={16} />
+            </button>
           </div>
+        </section>
+      )}
 
-          <button type="button" className="orders-btn orders-btn--outline" onClick={runAssign} disabled={isBusy}>
-            <Truck size={17} />
-            Assign Delivery
-          </button>
-          <button type="button" className="orders-btn orders-btn--outline" onClick={runUnassign} disabled={isBusy}>
-            <UserRound size={17} />
-            Unassign
-          </button>
-          <button type="button" className="orders-btn orders-btn--danger" onClick={runDelete} disabled={isBusy}>
-            <Trash2 size={17} />
-            Delete
-          </button>
-          <button type="button" className="orders-btn orders-btn--primary" onClick={runDownload} disabled={downloadMutation.isPending}>
-            <Download size={17} />
-            {downloadMutation.isPending ? "Downloading..." : "Download All Orders"}
-          </button>
+      {/* METRICS SUMMARY CARDS */}
+      <section className="orders-metrics" aria-label="Order summary">
+        <div className="orders-metric-card is-blue">
+          <div className="orders-metric-top">
+            <span className="orders-metric-title">Total Orders</span>
+            <div className="orders-metric-icon">
+              <ShoppingBag size={17} />
+            </div>
+          </div>
+          <div className="orders-metric-val-row">
+            <span className="orders-metric-val">{summary.totalOrders}</span>
+            <span className="orders-metric-sub">Total</span>
+          </div>
+        </div>
+
+        <div className="orders-metric-card is-blue">
+          <div className="orders-metric-top">
+            <span className="orders-metric-title">Processing</span>
+            <div className="orders-metric-icon">
+              <Clock3 size={17} />
+            </div>
+          </div>
+          <div className="orders-metric-val-row">
+            <span className="orders-metric-val">{summary.processing}</span>
+            <span className="orders-metric-sub">Fulfillment</span>
+          </div>
+        </div>
+
+        <div className="orders-metric-card is-orange">
+          <div className="orders-metric-top">
+            <span className="orders-metric-title">Payment Issues</span>
+            <div className="orders-metric-icon">
+              <CreditCard size={17} />
+            </div>
+          </div>
+          <div className="orders-metric-val-row">
+            <span className="orders-metric-val">{summary.paymentIssues}</span>
+            <span className="orders-metric-sub">Attention</span>
+          </div>
+        </div>
+
+        <div className="orders-metric-card is-green">
+          <div className="orders-metric-top">
+            <span className="orders-metric-title">Delivered</span>
+            <div className="orders-metric-icon">
+              <CheckCircle2 size={17} />
+            </div>
+          </div>
+          <div className="orders-metric-val-row">
+            <span className="orders-metric-val">{summary.delivered}</span>
+            <span className="orders-metric-sub">Completed</span>
+          </div>
         </div>
       </section>
 
-      <section className="orders-metrics" aria-label="Order summary">
-        {metricCards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <article key={card.label} className="orders-metric">
-              <span className={`orders-metric__icon orders-metric__icon--${card.tone}`}>
-                <Icon size={24} />
-              </span>
-              <div>
-                <p>{card.label}</p>
-                <strong>{card.value}</strong>
-                <span>{card.detail}</span>
-              </div>
-            </article>
-          );
-        })}
-      </section>
+      {/* FILTER & SEARCH TOOLBAR */}
+      <section className="orders-filter-card">
+        {/* Quick Filter Chips */}
+        <div className="orders-quick-chips">
+          <button
+            type="button"
+            onClick={() => {
+              updateFilter("paymentStatus", "");
+              updateFilter("deliveryStatus", "");
+            }}
+            className={`orders-quick-chip ${!filters.paymentStatus && !filters.deliveryStatus ? "is-active" : ""}`}
+          >
+            All
+            <span className="orders-quick-count">{meta.total || rows.length}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              updateFilter("paymentStatus", "UNPAID");
+              updateFilter("deliveryStatus", "");
+            }}
+            className={`orders-quick-chip ${filters.paymentStatus === "UNPAID" ? "is-active" : ""}`}
+          >
+            Payment Issues
+            <span className="orders-quick-count">{summary.paymentIssues}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              updateFilter("paymentStatus", "");
+              updateFilter("deliveryStatus", "processing");
+            }}
+            className={`orders-quick-chip ${filters.deliveryStatus === "processing" ? "is-active" : ""}`}
+          >
+            Processing
+            <span className="orders-quick-count">{summary.processing}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              updateFilter("paymentStatus", "");
+              updateFilter("deliveryStatus", "delivered");
+            }}
+            className={`orders-quick-chip ${filters.deliveryStatus === "delivered" ? "is-active" : ""}`}
+          >
+            Delivered
+            <span className="orders-quick-count">{summary.delivered}</span>
+          </button>
+        </div>
 
-      <section className="orders-filter-panel">
-        <label className="orders-field orders-field--date">
-          <span>Date Range</span>
-          <div className="orders-date-range">
-            <CalendarDays size={16} />
-            <input type="date" value={filters.startDate} onChange={(event) => updateFilter("startDate", event.target.value)} />
-            <ChevronRight size={15} />
-            <input type="date" value={filters.endDate} onChange={(event) => updateFilter("endDate", event.target.value)} />
-          </div>
-        </label>
-
-        <label className="orders-field">
-          <span>Customer</span>
-          <div className="orders-input-with-icon">
-            <Search size={17} />
+        {/* Inputs Grid */}
+        <div className="orders-filter-grid">
+          <div className="orders-input-wrap">
+            <Search size={14} style={{ color: "var(--orders-dim)" }} />
             <input
-              type="search"
+              type="text"
               value={customerInput}
-              onChange={(event) => setCustomerInput(event.target.value)}
-              placeholder="Search customer..."
+              onChange={(e) => setCustomerInput(e.target.value)}
+              placeholder="Search customer or invoice..."
+            />
+            {customerInput && (
+              <button
+                type="button"
+                onClick={() => setCustomerInput("")}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--orders-dim)" }}
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
+          <select
+            value={filters.paymentStatus}
+            onChange={(e) => updateFilter("paymentStatus", e.target.value)}
+            className="orders-select"
+          >
+            {PAYMENT_STATUS_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={filters.deliveryStatus}
+            onChange={(e) => updateFilter("deliveryStatus", e.target.value)}
+            className="orders-select"
+          >
+            {DELIVERY_STATUS_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={filters.paymentMethod}
+            onChange={(e) => updateFilter("paymentMethod", e.target.value)}
+            className="orders-select"
+          >
+            {PAYMENT_METHOD_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+
+          <div className="orders-date-group">
+            <input
+              type="date"
+              value={filters.startDate}
+              onChange={(e) => updateFilter("startDate", e.target.value)}
+            />
+            <span style={{ color: "var(--orders-dim)", fontSize: "0.75rem" }}>—</span>
+            <input
+              type="date"
+              value={filters.endDate}
+              onChange={(e) => updateFilter("endDate", e.target.value)}
             />
           </div>
-        </label>
 
-        <label className="orders-field">
-          <span>Payment Status</span>
-          <select value={filters.paymentStatus} onChange={(event) => updateFilter("paymentStatus", event.target.value)}>
-            {PAYMENT_STATUS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </label>
-
-        <label className="orders-field">
-          <span>Payment Method</span>
-          <select value={filters.paymentMethod} onChange={(event) => updateFilter("paymentMethod", event.target.value)}>
-            {PAYMENT_METHOD_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </label>
-
-        <label className="orders-field">
-          <span>Delivery Status</span>
-          <select value={filters.deliveryStatus} onChange={(event) => updateFilter("deliveryStatus", event.target.value)}>
-            {DELIVERY_STATUS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </label>
-
-        <button type="button" className="orders-reset-btn" onClick={resetFilters}>
-          <RefreshCw size={17} />
-          Reset
-        </button>
-      </section>
-
-      {activeFilterChips.length > 0 ? (
-        <div className="orders-filter-chips">
-          {activeFilterChips.map((chip) => (
-            <button key={chip.key} type="button" onClick={chip.clear}>
-              {chip.label}
-              <X size={14} />
-            </button>
-          ))}
-          <button type="button" className="orders-filter-clear" onClick={resetFilters}>
-            Clear all
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="orders-btn"
+            title="Reset filters"
+          >
+            <RotateCcw size={13} />
+            Reset
           </button>
         </div>
-      ) : null}
+      </section>
 
-      {isInitialLoading ? <UiSkeleton variant="table" rows={8} /> : null}
+      {/* SKELETON / ERROR */}
+      {isInitialLoading && <UiSkeleton variant="table" rows={6} />}
 
-      {isErrorState ? (
+      {isErrorState && (
         <UiErrorState
           title={GENERIC_ERROR}
           message={getErrorMessage(ordersQuery.error)}
           onRetry={() => ordersQuery.refetch()}
         />
-      ) : null}
+      )}
 
-      {!isInitialLoading && !isErrorState ? (
+      {/* TABLE / CARDS CONTENT */}
+      {!isInitialLoading && !isErrorState && (
         <section className="orders-table-card">
-          {showInlineError ? (
-            <div className="orders-inline-error">
-              Could not refresh orders. Showing previous data.
-              <button type="button" onClick={() => ordersQuery.refetch()}>Try again</button>
-            </div>
-          ) : null}
-
           <div className="orders-table-toolbar">
             <div>
               Showing {rows.length > 0 ? (Number(meta.page || page) - 1) * Number(meta.limit || pageSize) + 1 : 0} to{" "}
               {Math.min(Number(meta.total || 0), (Number(meta.page || page) - 1) * Number(meta.limit || pageSize) + rows.length)} of{" "}
               {Number(meta.total || 0)} orders
-              {ordersQuery.isFetching && !isInitialLoading ? <UiUpdatingBadge /> : null}
+              {ordersQuery.isFetching && <UiUpdatingBadge />}
             </div>
+
             <div className="orders-table-tools">
               <div className="orders-menu-wrap" data-admin-orders-menu>
                 <button
                   type="button"
-                  className="orders-icon-btn orders-columns-btn"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setColumnsMenuOpen((open) => !open);
+                  className="orders-btn orders-btn--sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setColumnsMenuOpen(!columnsMenuOpen);
                   }}
                 >
-                  <Grid2X2 size={18} />
+                  <Grid2X2 size={13} />
                   Columns
-                  <ChevronDown size={15} />
+                  <ChevronDown size={12} />
                 </button>
-                {columnsMenuOpen ? (
-                  <div className="orders-dropdown orders-dropdown--columns">
-                    {COLUMN_DEFS.map((column) => (
-                      <label key={column.key}>
+                {columnsMenuOpen && (
+                  <div className="orders-dropdown">
+                    {COLUMN_DEFS.map((col) => (
+                      <label key={col.key}>
                         <input
                           type="checkbox"
-                          checked={Boolean(visibleColumns[column.key])}
+                          checked={Boolean(visibleColumns[col.key])}
                           onChange={() =>
-                            setVisibleColumns((current) => ({
-                              ...current,
-                              [column.key]: !current[column.key],
+                            setVisibleColumns((cur) => ({
+                              ...cur,
+                              [col.key]: !cur[col.key],
                             }))
                           }
                         />
-                        {column.label}
+                        {col.label}
                       </label>
                     ))}
                   </div>
-                ) : null}
+                )}
               </div>
-              <button type="button" className="orders-icon-btn" onClick={runDownload} aria-label="Download orders">
-                <Download size={18} />
-              </button>
             </div>
           </div>
 
-          {selectedCount > 0 ? (
-            <div className="orders-selected-bar">
-              <input
-                type="checkbox"
-                checked={allVisibleSelected}
-                onChange={toggleSelectAllVisible}
-                aria-label="Select all visible orders"
-              />
-              <span>{selectedCount} of {rows.length} orders selected</span>
-              <button type="button" onClick={toggleSelectAllVisible}>Select all {rows.length}</button>
+          {rows.length === 0 ? (
+            <div className="orders-empty">
+              <div className="orders-empty-icon">
+                <PackageCheck size={22} />
+              </div>
+              <h3 className="orders-empty-title">No orders found</h3>
+              <p className="orders-empty-desc">Adjust filters or search criteria.</p>
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="orders-btn orders-btn--sm"
+                style={{ marginTop: 8 }}
+              >
+                Reset Filters
+              </button>
             </div>
-          ) : null}
-
-          <div className="orders-table-scroll">
-            <table className="orders-table">
-              <thead>
-                <tr>
-                  <th className="orders-checkbox-col">
-                    <input
-                      type="checkbox"
-                      checked={allVisibleSelected}
-                      onChange={toggleSelectAllVisible}
-                      aria-label="Select all current page orders"
-                    />
-                  </th>
-                  {visibleColumns.invoice ? <th className="orders-col-invoice">Invoice ID</th> : null}
-                  {visibleColumns.orderDate ? (
-                    <th className="orders-col-date">
-                      <button
-                        type="button"
-                        className="orders-sort-btn"
-                        onClick={() => setSortDir((current) => (current === "desc" ? "asc" : "desc"))}
-                      >
-                        Order Date
-                        <ChevronDown className={sortDir === "asc" ? "is-ascending" : ""} size={15} />
-                      </button>
-                    </th>
-                  ) : null}
-                  {visibleColumns.customer ? <th className="orders-col-customer">Customer</th> : null}
-                  {visibleColumns.paymentMethod ? <th className="orders-col-method">Payment Method</th> : null}
-                  {visibleColumns.amount ? <th className="orders-col-amount">Amount</th> : null}
-                  {visibleColumns.paymentStatus ? <th className="orders-col-payment">Payment Status</th> : null}
-                  {visibleColumns.deliveryStatus ? <th className="orders-col-delivery">Delivery Status</th> : null}
-                  {visibleColumns.orderStatus ? <th className="orders-col-status">Order Status</th> : null}
-                  <th className="orders-col-actions">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.length > 0 ? rows.map(({ order, view }) => {
-                  const rowId = Number(view?.id || order?.id || 0);
-                  const invoiceParam = getInvoiceParam(order, view);
-                  const orderDateValue = getOrderDateValue(order, view);
-                  const paymentStatus = getPaymentStatus(order);
-                  const deliveryStatus = getDeliveryStatus(order, view);
-                  const orderStatus = getOrderStatus(order);
-                  const paymentMethod = getPaymentMethodLabel(view, order);
-                  const actionStatus = toAdminOrderActionValue(orderStatus);
-                  const contract = order?.contract || null;
-                  const actionOptions =
-                    Array.isArray(contract?.availableActions) && contract.availableActions.length > 0
-                      ? contract.availableActions
-                      : ADMIN_ORDER_ACTION_OPTIONS.map((option) => ({
-                          code: option.value,
-                          label: option.label,
-                          enabled: option.value === actionStatus,
-                        }));
-                  const isUpdating = pendingUpdateId === invoiceParam || pendingUpdateId === rowId;
-
-                  return (
-                    <tr key={rowId || invoiceParam} className={selectedIds.has(rowId) ? "is-selected" : ""}>
-                      <td className="orders-checkbox-col">
+          ) : (
+            <>
+              {/* DESKTOP TABLE (>= 768px) */}
+              <div className="orders-table-scroll">
+                <table className="orders-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: 36, textAlign: "center" }}>
                         <input
                           type="checkbox"
-                          checked={selectedIds.has(rowId)}
-                          onChange={() => toggleRowSelection(rowId)}
-                          aria-label={`Select order ${invoiceParam}`}
+                          checked={allVisibleSelected}
+                          onChange={toggleSelectAllVisible}
+                          aria-label="Select all"
                         />
-                      </td>
-                      {visibleColumns.invoice ? (
-                        <td className="orders-col-invoice">
-                          <Link className="orders-invoice-link" to={`/admin/orders/${encodeURIComponent(invoiceParam)}`}>
-                            {invoiceParam}
-                          </Link>
-                        </td>
-                      ) : null}
-                      {visibleColumns.orderDate ? <td className="orders-col-date">{formatDateTime(orderDateValue)}</td> : null}
-                      {visibleColumns.customer ? (
-                        <td className="orders-col-customer">
-                          <div className="orders-customer">
-                            <strong>{view.customerName}</strong>
-                            {view.customerType === "guest" ? <span>Guest</span> : null}
-                          </div>
-                        </td>
-                      ) : null}
-                      {visibleColumns.paymentMethod ? (
-                        <td className="orders-col-method">
-                          <div className="orders-method">
-                            <span>{paymentMethod}</span>
-                          </div>
-                        </td>
-                      ) : null}
-                      {visibleColumns.amount ? <td className="orders-col-amount orders-amount">{formatMoney(view.amount)}</td> : null}
-                      {visibleColumns.paymentStatus ? (
-                        <td className="orders-col-payment">
-                          <span className={`orders-chip orders-chip--${getTone(paymentStatus)}`}>{labelize(paymentStatus)}</span>
-                        </td>
-                      ) : null}
-                      {visibleColumns.deliveryStatus ? (
-                        <td className="orders-col-delivery">
-                          <span className={`orders-chip orders-chip--${getTone(deliveryStatus)}`}>{labelize(deliveryStatus)}</span>
-                        </td>
-                      ) : null}
-                      {visibleColumns.orderStatus ? (
-                        <td className="orders-col-status">
-                          <select
-                            className={`orders-status-select orders-status-select--${getTone(orderStatus)}`}
-                            value={actionStatus}
-                            disabled={isUpdating}
-                            onChange={(event) => onUpdateStatus(order, view, event.target.value)}
-                          >
-                            {actionOptions.map((option) => (
-                              <option
-                                key={option.code || option.value}
-                                value={option.code || option.value}
-                                disabled={option.enabled === false}
-                              >
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                      ) : null}
-                      <td className="orders-col-actions">
-                        <div className="orders-row-actions" data-admin-orders-menu>
-                          <button type="button" onClick={() => navigate(`/admin/orders/${encodeURIComponent(invoiceParam)}`)} aria-label="View detail">
-                            <Eye size={17} />
-                          </button>
-                          <button type="button" onClick={() => onPrintInvoice(order, view)} aria-label="Print invoice">
-                            <Printer size={17} />
-                          </button>
+                      </th>
+                      {visibleColumns.invoice && <th>Invoice</th>}
+                      {visibleColumns.orderDate && (
+                        <th>
                           <button
                             type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setOpenMoreId((current) => (current === rowId ? null : rowId));
-                            }}
-                            aria-label="More actions"
+                            onClick={() => setSortDir((c) => (c === "desc" ? "asc" : "desc"))}
+                            style={{ background: "none", border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, font: "inherit", color: "inherit", fontWeight: 700 }}
                           >
-                            <MoreVertical size={17} />
+                            Date
+                            <ChevronDown size={13} style={{ transform: sortDir === "asc" ? "rotate(180deg)" : "none" }} />
                           </button>
-                          {openMoreId === rowId ? (
-                            <div className="orders-dropdown orders-dropdown--row">
-                              <button type="button" onClick={() => navigator.clipboard.writeText(invoiceParam).then(() => toast.success("Invoice ID copied."))}>
-                                <Copy size={15} />
-                                Copy invoice ID
-                              </button>
-                              <button type="button" onClick={() => navigate(`/admin/orders/${encodeURIComponent(invoiceParam)}`)}>
+                        </th>
+                      )}
+                      {visibleColumns.customer && <th>Customer</th>}
+                      {visibleColumns.paymentMethod && <th>Method</th>}
+                      {visibleColumns.amount && <th>Amount</th>}
+                      {visibleColumns.paymentStatus && <th>Payment</th>}
+                      {visibleColumns.deliveryStatus && <th>Delivery</th>}
+                      {visibleColumns.orderStatus && <th>Status</th>}
+                      <th style={{ textAlign: "right" }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map(({ order, view }) => {
+                      const rowId = Number(view?.id || order?.id || 0);
+                      const invoiceParam = getInvoiceParam(order, view);
+                      const orderDateValue = getOrderDateValue(order, view);
+                      const paymentStatus = getPaymentStatus(order);
+                      const deliveryStatus = getDeliveryStatus(order, view);
+                      const orderStatus = getOrderStatus(order);
+                      const paymentMethod = getPaymentMethodLabel(view, order);
+                      const actionStatus = toAdminOrderActionValue(orderStatus);
+                      const contract = order?.contract || null;
+                      const actionOptions =
+                        Array.isArray(contract?.availableActions) && contract.availableActions.length > 0
+                          ? contract.availableActions
+                          : ADMIN_ORDER_ACTION_OPTIONS.map((opt) => ({
+                              code: opt.value,
+                              label: opt.label,
+                              enabled: opt.value === actionStatus,
+                            }));
+                      const isUpdating = pendingUpdateId === invoiceParam || pendingUpdateId === rowId;
+                      const isSelected = selectedIds.has(rowId);
+
+                      return (
+                        <tr key={rowId || invoiceParam} className={isSelected ? "is-selected" : ""}>
+                          <td style={{ textAlign: "center" }}>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleRowSelection(rowId)}
+                            />
+                          </td>
+                          {visibleColumns.invoice && (
+                            <td>
+                              <div className="orders-invoice-cell">
+                                <Link
+                                  to={`/admin/orders/${encodeURIComponent(invoiceParam)}`}
+                                  className="orders-invoice-link"
+                                  title={invoiceParam}
+                                >
+                                  {invoiceParam.length > 20
+                                    ? `${invoiceParam.slice(0, 14)}...${invoiceParam.slice(-4)}`
+                                    : invoiceParam}
+                                </Link>
+                                <button
+                                  type="button"
+                                  onClick={() => copyInvoice(invoiceParam)}
+                                  className="orders-copy-icon"
+                                  title="Copy Invoice ID"
+                                >
+                                  <Copy size={12} />
+                                </button>
+                              </div>
+                            </td>
+                          )}
+                          {visibleColumns.orderDate && (
+                            <td style={{ whiteSpace: "nowrap", color: "var(--orders-muted)" }}>
+                              {formatDateTime(orderDateValue)}
+                            </td>
+                          )}
+                          {visibleColumns.customer && (
+                            <td>
+                              <div className="orders-customer-name" title={view.customerName}>
+                                {view.customerName}
+                              </div>
+                            </td>
+                          )}
+                          {visibleColumns.paymentMethod && (
+                            <td>
+                              <span className="orders-badge orders-badge--blue">
+                                {paymentMethod}
+                              </span>
+                            </td>
+                          )}
+                          {visibleColumns.amount && (
+                            <td>
+                              <span className="orders-amount-text">
+                                {formatMoney(view.amount)}
+                              </span>
+                            </td>
+                          )}
+                          {visibleColumns.paymentStatus && (
+                            <td>
+                              <span className={`orders-badge ${paymentStatus === "PAID" ? "orders-badge--green" : "orders-badge--orange"}`}>
+                                {labelize(paymentStatus)}
+                              </span>
+                            </td>
+                          )}
+                          {visibleColumns.deliveryStatus && (
+                            <td>
+                              <span className={`orders-badge ${deliveryStatus === "DELIVERED" ? "orders-badge--green" : deliveryStatus === "IN_DELIVERY" || deliveryStatus === "PROCESSING" ? "orders-badge--blue" : "orders-badge--orange"}`}>
+                                {labelize(deliveryStatus)}
+                              </span>
+                            </td>
+                          )}
+                          {visibleColumns.orderStatus && (
+                            <td>
+                              <select
+                                className="orders-status-select"
+                                value={actionStatus}
+                                disabled={isUpdating}
+                                onChange={(e) => onUpdateStatus(order, view, e.target.value)}
+                              >
+                                {actionOptions.map((opt) => (
+                                  <option
+                                    key={opt.code || opt.value}
+                                    value={opt.code || opt.value}
+                                    disabled={opt.enabled === false}
+                                  >
+                                    {opt.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                          )}
+                          <td style={{ textAlign: "right" }}>
+                            <div className="orders-row-actions">
+                              <button
+                                type="button"
+                                onClick={() => navigate(`/admin/orders/${encodeURIComponent(invoiceParam)}`)}
+                                className="orders-action-btn"
+                                title="View Detail"
+                              >
                                 <Eye size={15} />
-                                View detail
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => onPrintInvoice(order, view)}
+                                className="orders-action-btn"
+                                title="Print Invoice"
+                              >
+                                <Printer size={15} />
                               </button>
                             </div>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                }) : (
-                  <tr>
-                    <td colSpan={10} className="orders-empty">
-                      <PackageCheck size={34} />
-                      <strong>No orders found</strong>
-                      <span>Adjust filters or reset the current search.</span>
-                      <button type="button" onClick={resetFilters}>Reset filters</button>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
 
+              {/* MOBILE ORDER CARDS (< 768px) */}
+              <div className="orders-mobile-feed">
+                {rows.map(({ order, view }) => {
+                  const rowId = Number(view?.id || order?.id || 0);
+                  const invoiceParam = getInvoiceParam(order, view);
+                  const paymentStatus = getPaymentStatus(order);
+                  const deliveryStatus = getDeliveryStatus(order, view);
+                  const isSelected = selectedIds.has(rowId);
+
+                  return (
+                    <div
+                      key={rowId || invoiceParam}
+                      className={`orders-mobile-card ${isSelected ? "is-selected" : ""}`}
+                    >
+                      <div className="orders-mobile-top">
+                        <span className="orders-mobile-inv">
+                          {invoiceParam.length > 22
+                            ? `${invoiceParam.slice(0, 16)}...`
+                            : invoiceParam}
+                        </span>
+                        <span className={`orders-badge ${paymentStatus === "PAID" ? "orders-badge--green" : "orders-badge--orange"}`}>
+                          {labelize(paymentStatus)}
+                        </span>
+                      </div>
+
+                      <div className="orders-mobile-mid">
+                        <span className="orders-mobile-customer">{view.customerName}</span>
+                        <span className="orders-mobile-amount">{formatMoney(view.amount)}</span>
+                      </div>
+
+                      <div className="orders-mobile-badges">
+                        <span className="orders-badge orders-badge--neutral">
+                          {getPaymentMethodLabel(view, order)}
+                        </span>
+                        <span className={`orders-badge ${deliveryStatus === "DELIVERED" ? "orders-badge--green" : "orders-badge--blue"}`}>
+                          {labelize(deliveryStatus)}
+                        </span>
+                      </div>
+
+                      <div className="orders-mobile-actions">
+                        <button
+                          type="button"
+                          onClick={() => onPrintInvoice(order, view)}
+                          className="orders-btn orders-btn--sm"
+                        >
+                          <Printer size={13} />
+                          Print
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/admin/orders/${encodeURIComponent(invoiceParam)}`)}
+                          className="orders-btn orders-btn--primary orders-btn--sm"
+                        >
+                          <Eye size={13} />
+                          Detail
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* PAGINATION */}
           <div className="orders-pagination">
-            <label>
-              Rows per page
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span>Rows per page:</span>
               <select
                 value={pageSize}
-                onChange={(event) => {
-                  setPageSize(Number(event.target.value));
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
                   setPage(1);
                 }}
+                className="orders-select"
+                style={{ height: 32, padding: "0 8px" }}
               >
-                {ROW_LIMIT_OPTIONS.map((option) => (
-                  <option key={option} value={option}>{option}</option>
+                {ROW_LIMIT_OPTIONS.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
                 ))}
               </select>
-            </label>
+            </div>
+
             <div className="orders-pages">
-              <button type="button" disabled={page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>
-                <ChevronLeft size={18} />
+              <button
+                type="button"
+                disabled={page <= 1}
+                onClick={() => setPage((c) => Math.max(1, c - 1))}
+                aria-label="Previous page"
+              >
+                <ChevronLeft size={16} />
               </button>
-              {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
+              {Array.from({ length: Math.min(5, totalPages) }, (_, idx) => {
                 const start = Math.max(1, Math.min(page - 2, totalPages - 4));
-                const pageNumber = start + index;
-                if (pageNumber > totalPages) return null;
+                const pageNum = start + idx;
+                if (pageNum > totalPages) return null;
                 return (
                   <button
-                    key={pageNumber}
+                    key={pageNum}
                     type="button"
-                    className={pageNumber === page ? "is-active" : ""}
-                    onClick={() => setPage(pageNumber)}
+                    className={pageNum === page ? "is-active" : ""}
+                    onClick={() => setPage(pageNum)}
                   >
-                    {pageNumber}
+                    {pageNum}
                   </button>
                 );
               })}
-              <button type="button" disabled={page >= totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))}>
-                <ChevronRight size={18} />
+              <button
+                type="button"
+                disabled={page >= totalPages}
+                onClick={() => setPage((c) => Math.min(totalPages, c + 1))}
+                aria-label="Next page"
+              >
+                <ChevronRight size={16} />
               </button>
             </div>
-            <form className="orders-go-page" onSubmit={onGoToPage}>
-              <span>Go to page</span>
-              <input
-                type="number"
-                min="1"
-                max={totalPages}
-                value={goToPage}
-                onChange={(event) => setGoToPage(event.target.value)}
-              />
-              <span>of {totalPages}</span>
-            </form>
           </div>
         </section>
-      ) : null}
+      )}
     </div>
   );
 }
