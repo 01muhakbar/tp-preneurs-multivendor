@@ -1,10 +1,31 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Mail, MapPin, PhoneCall } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import {
+  Mail,
+  MapPin,
+  PhoneCall,
+  Send,
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  ExternalLink,
+} from "lucide-react";
 import { getStoreCustomization } from "../../api/public/storeCustomizationPublic.ts";
 import { UiEmptyState, UiErrorState } from "../../components/primitives/state/index.js";
 
-const DEFAULT_LANG = "en";
+const BRAND_BLUE = "#034c85";
+const BRAND_ORANGE = "#fe6f05";
+
+const getStoreLang = (i18n) => {
+  const activeLanguage = String(i18n?.language || "").toLowerCase();
+  const storedLanguage =
+    typeof window !== "undefined" ? String(localStorage.getItem("store_language") || "") : "";
+  const normalizedStored = storedLanguage.toLowerCase();
+  return activeLanguage.startsWith("id") || normalizedStored === "indonesia" ? "id" : "en";
+};
+
 const DEFAULT_CONTACT_US_DISABLED = {
   pageHeader: {
     enabled: false,
@@ -74,7 +95,18 @@ const toTelHref = (value) => {
   return digits ? `tel:${digits}` : "";
 };
 
-const normalizeContactUs = (raw) => {
+const isKachabazarJargon = (value) => {
+  const normalized = String(value ?? "").toLowerCase();
+  return (
+    normalized.includes("kachabazar") ||
+    normalized.includes("process-centric total linkage") ||
+    normalized.includes("clicks-and-mortar ministerate") ||
+    normalized.includes("plagiarized strategic users") ||
+    normalized.includes("boho one, bridge street west")
+  );
+};
+
+const normalizeContactUs = (raw, isIndonesian = false) => {
   const source = raw && typeof raw === "object" ? raw : {};
   const pageHeader =
     source.pageHeader && typeof source.pageHeader === "object" ? source.pageHeader : {};
@@ -89,6 +121,47 @@ const normalizeContactUs = (raw) => {
   const contactForm =
     source.contactForm && typeof source.contactForm === "object" ? source.contactForm : {};
 
+  // Clean email
+  let cleanEmail = toText(emailBox.email, DEFAULT_CONTACT_US_DISABLED.emailBox.email);
+  if (cleanEmail.toLowerCase().includes("kachabazar.com")) {
+    cleanEmail = "support@tppreneurs.com";
+  }
+  let cleanEmailText = toText(emailBox.text, DEFAULT_CONTACT_US_DISABLED.emailBox.text);
+  if (isKachabazarJargon(cleanEmailText)) {
+    cleanEmailText = isIndonesian ? "Respon cepat 1x24 jam" : "Fast response within 24h";
+  }
+
+  // Clean phone
+  let cleanPhone = toText(callBox.phone, DEFAULT_CONTACT_US_DISABLED.callBox.phone);
+  if (cleanPhone === "029-00124667") {
+    cleanPhone = "+62 811-444-2026";
+  }
+  let cleanCallText = toText(callBox.text, DEFAULT_CONTACT_US_DISABLED.callBox.text);
+  if (isKachabazarJargon(cleanCallText)) {
+    cleanCallText = isIndonesian ? "Senin - Jumat, 09:00 - 17:00 WITA" : "Mon - Fri, 09:00 - 17:00 WITA";
+  }
+
+  // Clean address
+  let cleanAddress = toText(addressBox.address, DEFAULT_CONTACT_US_DISABLED.addressBox.address);
+  if (isKachabazarJargon(cleanAddress)) {
+    cleanAddress = "Jl. Tamalate No.1, Bonto Makkio, Kec. Rappocini, Kota Makassar, Sulawesi Selatan 90222";
+  }
+
+  // Clean form copy
+  let cleanFormTitle = toText(contactForm.title, DEFAULT_CONTACT_US_DISABLED.contactForm.title);
+  if (isKachabazarJargon(cleanFormTitle) || cleanFormTitle === "For any support just send your query") {
+    cleanFormTitle = isIndonesian ? "Kirim Pesan" : "Send a Message";
+  }
+  let cleanFormDescription = toText(
+    contactForm.description,
+    DEFAULT_CONTACT_US_DISABLED.contactForm.description
+  );
+  if (isKachabazarJargon(cleanFormDescription)) {
+    cleanFormDescription = isIndonesian
+      ? "Silakan kirimkan pertanyaan atau pesan Anda. Tim kami akan segera merespons."
+      : "Have questions or need assistance? Send us a message and we'll reply shortly.";
+  }
+
   return {
     pageHeader: {
       enabled: toBool(pageHeader.enabled, DEFAULT_CONTACT_US_DISABLED.pageHeader.enabled),
@@ -98,24 +171,27 @@ const normalizeContactUs = (raw) => {
         pageHeader.imageDataUrl,
         pageHeader.image
       ),
-      pageTitle: toText(pageHeader.pageTitle, DEFAULT_CONTACT_US_DISABLED.pageHeader.pageTitle),
+      pageTitle: toText(
+        pageHeader.pageTitle,
+        isIndonesian ? "Hubungi Kami" : "Contact Us"
+      ),
     },
     emailBox: {
       enabled: toBool(emailBox.enabled, DEFAULT_CONTACT_US_DISABLED.emailBox.enabled),
-      title: toText(emailBox.title, DEFAULT_CONTACT_US_DISABLED.emailBox.title),
-      email: toText(emailBox.email, DEFAULT_CONTACT_US_DISABLED.emailBox.email),
-      text: toText(emailBox.text, DEFAULT_CONTACT_US_DISABLED.emailBox.text),
+      title: toText(emailBox.title, isIndonesian ? "Email" : "Email Us"),
+      email: cleanEmail,
+      text: cleanEmailText,
     },
     callBox: {
       enabled: toBool(callBox.enabled, DEFAULT_CONTACT_US_DISABLED.callBox.enabled),
-      title: toText(callBox.title, DEFAULT_CONTACT_US_DISABLED.callBox.title),
-      phone: toText(callBox.phone, DEFAULT_CONTACT_US_DISABLED.callBox.phone),
-      text: toText(callBox.text, DEFAULT_CONTACT_US_DISABLED.callBox.text),
+      title: toText(callBox.title, isIndonesian ? "Telepon" : "Call Us"),
+      phone: cleanPhone,
+      text: cleanCallText,
     },
     addressBox: {
       enabled: toBool(addressBox.enabled, DEFAULT_CONTACT_US_DISABLED.addressBox.enabled),
-      title: toText(addressBox.title, DEFAULT_CONTACT_US_DISABLED.addressBox.title),
-      address: toText(addressBox.address, DEFAULT_CONTACT_US_DISABLED.addressBox.address),
+      title: toText(addressBox.title, isIndonesian ? "Lokasi" : "Location"),
+      address: cleanAddress,
     },
     middleLeftColumn: {
       enabled: toBool(
@@ -129,42 +205,42 @@ const normalizeContactUs = (raw) => {
     },
     contactForm: {
       enabled: toBool(contactForm.enabled, DEFAULT_CONTACT_US_DISABLED.contactForm.enabled),
-      title: toText(contactForm.title, DEFAULT_CONTACT_US_DISABLED.contactForm.title),
-      description: toText(
-        contactForm.description,
-        DEFAULT_CONTACT_US_DISABLED.contactForm.description
-      ),
+      title: cleanFormTitle,
+      description: cleanFormDescription,
     },
   };
 };
 
 function ContactUsSkeleton() {
   return (
-    <div className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:px-4 sm:py-8 lg:px-6">
-      <div className="h-48 animate-pulse rounded-3xl bg-slate-200 sm:h-56" />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="mx-auto max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+      <div className="h-44 sm:h-52 w-full animate-pulse rounded-3xl bg-slate-200 dark:bg-slate-800" />
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 3 }).map((_, index) => (
           <div
             key={`contact-skeleton-card-${index}`}
-            className="h-36 animate-pulse rounded-2xl bg-slate-100"
+            className="h-40 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800"
           />
         ))}
       </div>
-      <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="h-72 animate-pulse rounded-2xl bg-slate-100" />
-        <div className="h-72 animate-pulse rounded-2xl bg-slate-100" />
+      <div className="grid gap-6 lg:grid-cols-12">
+        <div className="hidden lg:block lg:col-span-5 h-80 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
+        <div className="lg:col-span-7 h-96 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
       </div>
     </div>
   );
 }
 
 export default function StoreContactUsPage() {
+  const { i18n } = useTranslation();
+  const lang = getStoreLang(i18n);
+  const isIndonesian = lang === "id";
+
   const [form, setForm] = useState({ name: "", email: "", message: "" });
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const lang = DEFAULT_LANG;
   const contactQuery = useQuery({
     queryKey: ["store-customization", "contact-us", lang],
     queryFn: () => getStoreCustomization({ lang, include: "contactUs" }),
@@ -172,7 +248,11 @@ export default function StoreContactUsPage() {
   });
 
   const contactUsRaw = contactQuery.data?.customization?.contactUs;
-  const contactUs = useMemo(() => normalizeContactUs(contactUsRaw), [contactUsRaw]);
+  const contactUs = useMemo(
+    () => normalizeContactUs(contactUsRaw, isIndonesian),
+    [contactUsRaw, isIndonesian]
+  );
+
   const cards = useMemo(
     () => [
       contactUs.emailBox.enabled &&
@@ -187,8 +267,8 @@ export default function StoreContactUsPage() {
             href: isDisplayEmail(contactUs.emailBox.email)
               ? `mailto:${contactUs.emailBox.email}`
               : "",
+            actionLabel: isIndonesian ? "Kirim Email" : "Send Email",
             Icon: Mail,
-            iconClassName: "bg-emerald-100 text-emerald-700",
           }
         : null,
       contactUs.callBox.enabled &&
@@ -201,8 +281,8 @@ export default function StoreContactUsPage() {
             primary: hasText(contactUs.callBox.phone) ? contactUs.callBox.phone : "",
             text: contactUs.callBox.text,
             href: toTelHref(contactUs.callBox.phone),
+            actionLabel: isIndonesian ? "Hubungi Sekarang" : "Call Now",
             Icon: PhoneCall,
-            iconClassName: "bg-sky-100 text-sky-700",
           }
         : null,
       contactUs.addressBox.enabled &&
@@ -212,13 +292,28 @@ export default function StoreContactUsPage() {
             title: contactUs.addressBox.title,
             primary: contactUs.addressBox.address,
             text: "",
-            href: "",
+            href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+              contactUs.addressBox.address
+            )}`,
+            actionLabel: isIndonesian ? "Buka di Google Maps" : "View on Google Maps",
             Icon: MapPin,
-            iconClassName: "bg-amber-100 text-amber-700",
           }
         : null,
     ].filter(Boolean),
-    [contactUs.addressBox.address, contactUs.addressBox.enabled, contactUs.addressBox.title, contactUs.callBox.enabled, contactUs.callBox.phone, contactUs.callBox.text, contactUs.callBox.title, contactUs.emailBox.email, contactUs.emailBox.enabled, contactUs.emailBox.text, contactUs.emailBox.title]
+    [
+      contactUs.addressBox.address,
+      contactUs.addressBox.enabled,
+      contactUs.addressBox.title,
+      contactUs.callBox.enabled,
+      contactUs.callBox.phone,
+      contactUs.callBox.text,
+      contactUs.callBox.title,
+      contactUs.emailBox.email,
+      contactUs.emailBox.enabled,
+      contactUs.emailBox.text,
+      contactUs.emailBox.title,
+      isIndonesian,
+    ]
   );
 
   const hasAnyEnabledSection =
@@ -242,11 +337,19 @@ export default function StoreContactUsPage() {
     const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
     if (!name || !email || !message) {
-      setFormError("Please complete all required fields.");
+      setFormError(
+        isIndonesian
+          ? "Mohon lengkapi semua kolom yang wajib diisi."
+          : "Please complete all required fields."
+      );
       return;
     }
     if (!isEmailValid) {
-      setFormError("Please enter a valid email address.");
+      setFormError(
+        isIndonesian
+          ? "Format email yang dimasukkan tidak valid."
+          : "Please enter a valid email address."
+      );
       return;
     }
 
@@ -254,8 +357,12 @@ export default function StoreContactUsPage() {
     window.setTimeout(() => {
       setIsSubmitting(false);
       setForm({ name: "", email: "", message: "" });
-      setFormSuccess("Thanks! We received your message.");
-    }, 800);
+      setFormSuccess(
+        isIndonesian
+          ? "Terima kasih! Pesan Anda telah kami terima dengan baik."
+          : "Thank you! We have received your message."
+      );
+    }, 600);
   };
 
   if (contactQuery.isLoading) return <ContactUsSkeleton />;
@@ -264,11 +371,11 @@ export default function StoreContactUsPage() {
     const errorMessage =
       contactQuery.error?.response?.data?.message ||
       contactQuery.error?.message ||
-      "Failed to load contact page.";
+      (isIndonesian ? "Gagal memuat halaman kontak." : "Failed to load contact page.");
     return (
-      <div className="mx-auto max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-6">
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <UiErrorState
-          title="Failed to load Contact Us."
+          title={isIndonesian ? "Gagal Memuat Kontak" : "Failed to load Contact Us"}
           message={errorMessage}
           onRetry={() => contactQuery.refetch()}
         />
@@ -278,10 +385,10 @@ export default function StoreContactUsPage() {
 
   if (!contactUsRaw) {
     return (
-      <div className="mx-auto max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-6">
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <UiEmptyState
-          title="Contact content is not configured yet."
-          description="Please check back later."
+          title={isIndonesian ? "Konten kontak belum dikonfigurasi." : "Contact content is not configured yet."}
+          description={isIndonesian ? "Silakan periksa kembali nanti." : "Please check back later."}
         />
       </div>
     );
@@ -289,10 +396,10 @@ export default function StoreContactUsPage() {
 
   if (!hasAnyEnabledSection) {
     return (
-      <div className="mx-auto max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-6">
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <UiEmptyState
-          title="Contact page is disabled."
-          description="All contact blocks are currently disabled."
+          title={isIndonesian ? "Halaman kontak sedang dinonaktifkan." : "Contact page is disabled."}
+          description={isIndonesian ? "Semua blok kontak saat ini dimatikan oleh admin." : "All contact blocks are currently disabled."}
         />
       </div>
     );
@@ -306,148 +413,255 @@ export default function StoreContactUsPage() {
     hasText(contactUs.contactForm.title) || hasText(contactUs.contactForm.description);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:px-4 sm:py-8 lg:px-6">
+    <div
+      className="min-h-screen bg-slate-50/60 pb-16 text-slate-900 dark:bg-[#07121e] dark:text-slate-100"
+      style={{
+        "--brand-blue": BRAND_BLUE,
+        "--brand-orange": BRAND_ORANGE,
+      }}
+    >
+      {/* 1. HERO HEADER */}
       {contactUs.pageHeader.enabled ? (
-        <header
-          className="relative overflow-hidden rounded-3xl border border-slate-200 bg-slate-900 px-6 py-12 text-white sm:px-8 sm:py-16"
+        <section
+          className="relative overflow-hidden border-b border-slate-200/80 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#034c85]/15 via-transparent to-transparent dark:border-white/10 dark:bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] dark:from-[#034c85]/30 dark:via-[#07121e] dark:to-[#07121e]"
           style={
             hasHeroBackground
               ? {
-                  backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.58), rgba(15, 23, 42, 0.58)), url(${contactUs.pageHeader.backgroundImageDataUrl})`,
+                  backgroundImage: `linear-gradient(135deg, rgba(3,76,133,0.92), rgba(7,18,30,0.85)), url(${contactUs.pageHeader.backgroundImageDataUrl})`,
                   backgroundSize: "cover",
                   backgroundPosition: "center",
                 }
               : undefined
           }
         >
-          <h1 className="text-3xl font-bold sm:text-4xl">{contactUs.pageHeader.pageTitle}</h1>
-        </header>
-      ) : null}
+          {/* Subtle Decorative Ambient Glow */}
+          <div className="pointer-events-none absolute -top-24 right-1/4 h-72 w-72 rounded-full bg-[#fe6f05]/15 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-24 left-1/4 h-72 w-72 rounded-full bg-[#034c85]/20 blur-3xl" />
 
-      {cards.length > 0 ? (
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {cards.map((card) => (
-            <article
-              key={card.key}
-              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-            >
-              <span
-                className={`inline-flex h-11 w-11 items-center justify-center rounded-xl ${card.iconClassName}`}
-              >
-                <card.Icon className="h-5 w-5" />
-              </span>
-              {hasText(card.title) ? (
-                <h2 className="mt-4 text-base font-semibold text-slate-900">{card.title}</h2>
-              ) : null}
-              {hasText(card.primary) ? (
-                card.href ? (
-                  <a
-                    href={card.href}
-                    className="mt-1 inline-flex text-sm font-medium text-slate-700 hover:text-emerald-700"
-                  >
-                    {card.primary}
-                  </a>
-                ) : (
-                  <p className="mt-1 text-sm font-medium text-slate-700">{card.primary}</p>
-                )
-              ) : null}
-              {hasText(card.text) ? (
-                <p className="mt-2 text-xs leading-6 text-slate-500">{card.text}</p>
-              ) : null}
-            </article>
-          ))}
-        </section>
-      ) : null}
+          <div className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8 text-center">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-[#034c85]/20 bg-white/70 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-[#034c85] shadow-xs backdrop-blur-md dark:border-white/15 dark:bg-white/10 dark:text-orange-300">
+              <Sparkles className="h-3.5 w-3.5 text-[#fe6f05]" />
+              <span>{isIndonesian ? "Pusat Bantuan & Kontak" : "Support & Help Center"}</span>
+            </div>
 
-      {showMiddleLeftImage || showContactForm ? (
-        <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-          <div
-            className={`grid gap-5 ${
-              showMiddleLeftImage && showContactForm
-                ? "lg:grid-cols-[0.9fr_1.1fr]"
-                : "lg:grid-cols-1"
-            }`}
-          >
-            {showMiddleLeftImage ? (
-              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-                <img
-                  src={contactUs.middleLeftColumn.imageDataUrl}
-                  alt="Contact us"
-                  className="h-full w-full object-cover"
-                />
-              </div>
-            ) : null}
+            <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl dark:text-white">
+              {contactUs.pageHeader.pageTitle}
+            </h1>
 
-            {showContactForm ? (
-              <div className="space-y-4">
-                {hasContactFormHeading ? (
-                  <div>
-                    {hasText(contactUs.contactForm.title) ? (
-                      <h2 className="text-2xl font-bold text-slate-900">
-                        {contactUs.contactForm.title}
-                      </h2>
-                    ) : null}
-                    {hasText(contactUs.contactForm.description) ? (
-                      <p className="mt-2 text-sm leading-7 text-slate-600">
-                        {contactUs.contactForm.description}
-                      </p>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                <form onSubmit={onSubmit} className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-slate-700">Your Name *</label>
-                    <input
-                      type="text"
-                      value={form.name}
-                      onChange={(event) => onChange("name", event.target.value)}
-                      className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm focus:border-emerald-400 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-slate-700">Your Email *</label>
-                    <input
-                      type="email"
-                      value={form.email}
-                      onChange={(event) => onChange("email", event.target.value)}
-                      className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm focus:border-emerald-400 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-slate-700">Message *</label>
-                    <textarea
-                      rows={5}
-                      value={form.message}
-                      onChange={(event) => onChange("message", event.target.value)}
-                      className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm focus:border-emerald-400 focus:outline-none"
-                    />
-                  </div>
-
-                  {formError ? (
-                    <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-                      {formError}
-                    </div>
-                  ) : null}
-                  {formSuccess ? (
-                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-                      {formSuccess}
-                    </div>
-                  ) : null}
-
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-600 px-6 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {isSubmitting ? "Sending..." : "Send Message"}
-                  </button>
-                </form>
-              </div>
-            ) : null}
+            <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base dark:text-slate-300">
+              {isIndonesian
+                ? "Hubungi tim kami untuk konsultasi, kerja sama, dan bantuan layanan TP Preneurs."
+                : "Reach out to our team for questions, partnerships, or customer assistance."}
+            </p>
           </div>
         </section>
       ) : null}
+
+      <div className="mx-auto max-w-7xl space-y-10 px-4 pt-8 sm:px-6 sm:pt-10 lg:px-8">
+        {/* 2. CONTACT INFO CARDS */}
+        {cards.length > 0 ? (
+          <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {cards.map((card) => {
+              const Icon = card.Icon;
+              return (
+                <article
+                  key={card.key}
+                  className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#fe6f05]/40 hover:shadow-xl hover:shadow-[#034c85]/10 dark:border-white/10 dark:bg-slate-900/70"
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[#034c85]/10 text-[#034c85] transition-colors duration-300 group-hover:bg-[#fe6f05]/15 group-hover:text-[#fe6f05] dark:bg-white/10 dark:text-orange-400">
+                        <Icon className="h-6 w-6" />
+                      </div>
+                      <span className="text-xs font-bold uppercase tracking-wider text-[#fe6f05]">
+                        {card.title}
+                      </span>
+                    </div>
+
+                    <div>
+                      {hasText(card.primary) ? (
+                        card.href ? (
+                          <a
+                            href={card.href}
+                            target={card.key === "address" ? "_blank" : undefined}
+                            rel={card.key === "address" ? "noopener noreferrer" : undefined}
+                            className="text-base font-bold text-slate-900 transition-colors hover:text-[#fe6f05] dark:text-white dark:hover:text-[#fe6f05]"
+                          >
+                            {card.primary}
+                          </a>
+                        ) : (
+                          <p className="text-base font-bold text-slate-900 dark:text-white">
+                            {card.primary}
+                          </p>
+                        )
+                      ) : null}
+
+                      {hasText(card.text) ? (
+                        <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                          {card.text}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {card.href ? (
+                    <div className="mt-5 pt-3 border-t border-slate-100 dark:border-white/5">
+                      <a
+                        href={card.href}
+                        target={card.key === "address" ? "_blank" : undefined}
+                        rel={card.key === "address" ? "noopener noreferrer" : undefined}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#034c85] transition-colors hover:text-[#fe6f05] dark:text-slate-300 dark:hover:text-[#fe6f05]"
+                      >
+                        <span>{card.actionLabel}</span>
+                        {card.key === "address" ? (
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        ) : (
+                          <Send className="h-3.5 w-3.5" />
+                        )}
+                      </a>
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })}
+          </section>
+        ) : null}
+
+        {/* 3. CONTACT FORM & MIDDLE LEFT IMAGE */}
+        {showMiddleLeftImage || showContactForm ? (
+          <section className="overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-6 shadow-sm sm:p-8 lg:p-10 dark:border-white/10 dark:bg-slate-900/70">
+            <div
+              className={`grid gap-8 lg:gap-12 items-center ${
+                showMiddleLeftImage && showContactForm
+                  ? "lg:grid-cols-12"
+                  : "max-w-2xl mx-auto"
+              }`}
+            >
+              {/* Optional Middle Left Column Graphic */}
+              {showMiddleLeftImage ? (
+                <div className="lg:col-span-5 flex justify-center">
+                  <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50 shadow-md dark:border-white/10 dark:bg-slate-800">
+                    <img
+                      src={contactUs.middleLeftColumn.imageDataUrl}
+                      alt={isIndonesian ? "Kontak TP Preneurs" : "Contact TP Preneurs"}
+                      className="h-full max-h-[460px] w-full object-cover"
+                    />
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Contact Form Block */}
+              {showContactForm ? (
+                <div
+                  className={
+                    showMiddleLeftImage ? "lg:col-span-7 space-y-6" : "w-full space-y-6"
+                  }
+                >
+                  {hasContactFormHeading ? (
+                    <div>
+                      {hasText(contactUs.contactForm.title) ? (
+                        <h2 className="text-2xl font-extrabold tracking-tight text-[#034c85] sm:text-3xl dark:text-white">
+                          {contactUs.contactForm.title}
+                        </h2>
+                      ) : null}
+                      {hasText(contactUs.contactForm.description) ? (
+                        <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                          {contactUs.contactForm.description}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  <form onSubmit={onSubmit} className="space-y-4">
+                    <div>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                        {isIndonesian ? "Nama Lengkap" : "Your Name"}{" "}
+                        <span className="text-[#fe6f05]">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder={isIndonesian ? "Masukkan nama Anda" : "Enter your name"}
+                        value={form.name}
+                        onChange={(event) => onChange("name", event.target.value)}
+                        className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 text-sm text-slate-900 transition-all placeholder:text-slate-400 focus:border-[#fe6f05] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#034c85]/20 dark:border-slate-700 dark:bg-slate-800/60 dark:text-white dark:focus:border-[#fe6f05] dark:focus:bg-slate-800"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                        {isIndonesian ? "Alamat Email" : "Your Email"}{" "}
+                        <span className="text-[#fe6f05]">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        placeholder={isIndonesian ? "contoh@email.com" : "example@email.com"}
+                        value={form.email}
+                        onChange={(event) => onChange("email", event.target.value)}
+                        className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 text-sm text-slate-900 transition-all placeholder:text-slate-400 focus:border-[#fe6f05] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#034c85]/20 dark:border-slate-700 dark:bg-slate-800/60 dark:text-white dark:focus:border-[#fe6f05] dark:focus:bg-slate-800"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                        {isIndonesian ? "Pesan atau Pertanyaan" : "Message"}{" "}
+                        <span className="text-[#fe6f05]">*</span>
+                      </label>
+                      <textarea
+                        rows={4}
+                        required
+                        placeholder={
+                          isIndonesian
+                            ? "Tuliskan pesan atau pertanyaan Anda di sini..."
+                            : "Write your message or inquiry here..."
+                        }
+                        value={form.message}
+                        onChange={(event) => onChange("message", event.target.value)}
+                        className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-3 text-sm text-slate-900 transition-all placeholder:text-slate-400 focus:border-[#fe6f05] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#034c85]/20 dark:border-slate-700 dark:bg-slate-800/60 dark:text-white dark:focus:border-[#fe6f05] dark:focus:bg-slate-800"
+                      />
+                    </div>
+
+                    {formError ? (
+                      <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50/80 px-3.5 py-2.5 text-xs font-medium text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300">
+                        <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" />
+                        <span>{formError}</span>
+                      </div>
+                    ) : null}
+
+                    {formSuccess ? (
+                      <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/80 px-3.5 py-2.5 text-xs font-medium text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300">
+                        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                        <span>{formSuccess}</span>
+                      </div>
+                    ) : null}
+
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="group inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#034c85] px-7 text-sm font-bold text-white shadow-md shadow-[#034c85]/20 transition-all hover:bg-[#023964] hover:shadow-lg hover:shadow-[#fe6f05]/20 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin text-white" />
+                            <span>{isIndonesian ? "Mengirimkan..." : "Sending..."}</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>{isIndonesian ? "Kirim Pesan" : "Send Message"}</span>
+                            <Send className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 text-orange-300" />
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
+      </div>
     </div>
   );
 }

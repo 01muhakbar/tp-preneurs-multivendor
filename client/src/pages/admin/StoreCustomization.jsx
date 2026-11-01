@@ -709,20 +709,20 @@ const getDefaultCustomization = () => ({
     },
     emailBox: {
       enabled: true,
-      title: "Email Us",
-      email: "info@kachabazar.com",
-      text: "Interactively grow empowered for process-centric total linkage.",
+      title: "Email",
+      email: "support@tppreneurs.com",
+      text: "Respon cepat 1x24 jam",
     },
     callBox: {
       enabled: true,
-      title: "Call Us",
-      phone: "029-00124667",
-      text: "Distinctively disseminate focused solutions clicks-and-mortar ministerate.",
+      title: "Telepon",
+      phone: "+62 811-444-2026",
+      text: "Senin - Jumat, 09:00 - 17:00 WITA",
     },
     addressBox: {
       enabled: true,
-      title: "Location",
-      address: "Boho One, Bridge Street West, Middlesbrough, North Yorkshire, TS2 1AE.",
+      title: "Lokasi",
+      address: "Jl. Tamalate No.1, Bonto Makkio, Kec. Rappocini, Kota Makassar, Sulawesi Selatan 90222",
     },
     middleLeftColumn: {
       enabled: true,
@@ -730,9 +730,8 @@ const getDefaultCustomization = () => ({
     },
     contactForm: {
       enabled: true,
-      title: "For any support just send your query",
-      description:
-        "Collaboratively promote client-focused convergence vis-a-vis customer-directed alignments via plagiarized strategic users and standardized infrastructures.",
+      title: "Kirim Pesan",
+      description: "Silakan kirimkan pertanyaan atau pesan Anda kepada kami.",
     },
   },
   checkout: {
