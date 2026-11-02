@@ -449,9 +449,10 @@ const QUICK_DELIVERY_BILINGUAL_MAP = {
   },
   description: {
     id: "Akses langsung produk digital, media belajar interaktif, dan karya riset mahasiswa.",
-    en: "Instant access to curated student digital creations, interactive media, and research tools.",
+    en: "Instant access to curated student digital creations, learning media, and research tools.",
     aliases: [
       "akses langsung produk digital, media belajar interaktif, dan karya riset mahasiswa.",
+      "instant access to curated student digital creations, learning media, and research tools.",
       "instant access to curated student digital creations, interactive media, and research tools.",
       "same-day delivery in select cities with real-time tracking.",
       "choose your daily necessary product from our kachabazar shop and get some special offers. see our latest discounted products from here and get a special discount."
@@ -491,6 +492,57 @@ const resolveBilingualQuickDelivery = (field, rawValue, isIndo) => {
     current.includes("fast and reliable delivery")
   ) {
     return mapping ? mapping[targetLang] : text;
+  }
+
+  if (field === "description") {
+    if (
+      current.includes("instant access") ||
+      current.includes("student digital creations") ||
+      current.includes("curated student") ||
+      current.includes("learning media") ||
+      current.includes("interactive media") ||
+      current.includes("akses langsung") ||
+      current.includes("media belajar") ||
+      current.includes("karya riset")
+    ) {
+      return mapping ? mapping[targetLang] : text;
+    }
+  }
+
+  if (field === "title") {
+    if (
+      current.includes("shop online") ||
+      current.includes("belanja online") ||
+      current.includes("belanja produk inovasi") ||
+      current.includes("quick delivery")
+    ) {
+      return mapping ? mapping[targetLang] : text;
+    }
+  }
+
+  if (field === "subTitle") {
+    if (
+      current.includes("digital & innovation") ||
+      current.includes("produk digital") ||
+      current.includes("karya digital") ||
+      current.includes("organic products")
+    ) {
+      return mapping ? mapping[targetLang] : text;
+    }
+  }
+
+  if (field === "buttonName") {
+    if (
+      current.includes("start shopping") ||
+      current.includes("mulai belanja") ||
+      current.includes("download app") ||
+      current.includes("buy now") ||
+      current.includes("learn more") ||
+      current.includes("jelajahi produk") ||
+      current.includes("shop now")
+    ) {
+      return mapping ? mapping[targetLang] : text;
+    }
   }
 
   if (mapping) {
