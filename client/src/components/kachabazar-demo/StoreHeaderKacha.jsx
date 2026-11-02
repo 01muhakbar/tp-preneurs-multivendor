@@ -590,8 +590,9 @@ export default function StoreHeaderKacha({
                 />
                 <button
                   type="submit"
-                  aria-label="Search"
-                  className="absolute right-1 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-[#fe6f05] text-white shadow-xs transition hover:bg-[#e05e00]"
+                  aria-label={isIndo ? "Cari" : "Search"}
+                  title={isIndo ? "Cari Produk" : "Search Products"}
+                  className="absolute right-1 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-white bg-[#034c85] shadow-xs transition-all duration-200 hover:bg-[#fe6f05] hover:scale-105 active:scale-95"
                 >
                   <Search className="h-4 w-4" />
                 </button>
@@ -662,8 +663,9 @@ export default function StoreHeaderKacha({
                   />
                   <button
                     type="submit"
-                    aria-label="Search"
-                    className="absolute right-1.5 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-white bg-[#fe6f05] shadow-[0_4px_14px_rgba(254,111,5,0.35)] transition hover:bg-[#e05e00] hover:scale-[1.03]"
+                    aria-label={isIndo ? "Cari" : "Search"}
+                    title={isIndo ? "Cari Produk" : "Search Products"}
+                    className="absolute right-1.5 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-white bg-[#034c85] shadow-[0_4px_12px_rgba(3,76,133,0.25)] transition-all duration-200 hover:bg-[#fe6f05] hover:shadow-[0_4px_14px_rgba(254,111,5,0.4)] hover:scale-105 active:scale-95"
                   >
                     <Search className="h-5 w-5" />
                   </button>
@@ -774,8 +776,9 @@ export default function StoreHeaderKacha({
                 />
                 <button
                   type="submit"
-                  aria-label="Search"
-                  className="absolute right-1.5 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-white bg-[#fe6f05] hover:bg-[#e05e00] transition"
+                  aria-label={isIndo ? "Cari" : "Search"}
+                  title={isIndo ? "Cari Produk" : "Search Products"}
+                  className="absolute right-1.5 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-white bg-[#034c85] shadow-xs transition-all duration-200 hover:bg-[#fe6f05] hover:scale-105 active:scale-95"
                 >
                   <Search className="h-5 w-5" />
                 </button>
