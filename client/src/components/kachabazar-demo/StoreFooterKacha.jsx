@@ -14,7 +14,7 @@ import {
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
-import { CANONICAL_CLIENT_LOGO_URL } from "../../lib/branding.js";
+import { CANONICAL_CLIENT_LOGO_URL, getCachedClientLogoUrl } from "../../lib/branding.js";
 import { useTranslation } from "react-i18next";
 
 const INDO_TRANSLATIONS = {
@@ -285,7 +285,7 @@ export default function StoreFooterKacha({
   const footer = normalizeFooterConfig(footerConfig, isIndo);
   const DEFAULT_FOOTER = getDefaultFooter(isIndo);
 
-  const canonicalUrl = resolveAssetUrl(CANONICAL_CLIENT_LOGO_URL);
+  const canonicalUrl = resolveAssetUrl(getCachedClientLogoUrl() || CANONICAL_CLIENT_LOGO_URL);
   const configuredLogo = resolveAssetUrl(footer.block4.footerLogoDataUrl) || resolveAssetUrl(brandingLogoUrl);
   const primarySrc = configuredLogo || canonicalUrl;
   const footerLogoSrc = !imgError ? primarySrc : (primarySrc !== canonicalUrl ? canonicalUrl : null);

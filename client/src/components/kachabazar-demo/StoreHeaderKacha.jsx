@@ -26,7 +26,7 @@ import { useStorefrontWishlist } from "../../utils/storefrontWishlist.js";
 import { fetchUserUnreadNotificationCount } from "../../api/userNotifications.ts";
 import { getStoreHeaderCustomization, fetchPublicLanguages } from "../../api/public/storeCustomizationPublic.ts";
 
-import { CANONICAL_CLIENT_LOGO_URL } from "../../lib/branding.js";
+import { CANONICAL_CLIENT_LOGO_URL, getCachedClientLogoUrl } from "../../lib/branding.js";
 
 const PRIMARY = "var(--tp-primary)";
 const ACCENT = "var(--tp-accent)";
@@ -97,7 +97,7 @@ function LogoMark({ logoUrl, logoVersion }) {
     setImgError(false);
   }, [logoUrl]);
 
-  const canonicalUrl = resolveAssetUrl(CANONICAL_CLIENT_LOGO_URL);
+  const canonicalUrl = resolveAssetUrl(getCachedClientLogoUrl() || CANONICAL_CLIENT_LOGO_URL);
   const primaryUrl = resolveAssetUrl(logoUrl) || canonicalUrl;
   const src = !imgError ? primaryUrl : (primaryUrl !== canonicalUrl ? canonicalUrl : "");
 
@@ -246,7 +246,27 @@ export default function StoreHeaderKacha({
     staleTime: 60_000,
     retry: 1,
     refetchOnWindowFocus: false,
+    initialData: () => {
+      if (typeof window === "undefined") return undefined;
+      try {
+        const raw = window.localStorage.getItem(`tp_header_customization_${currentLang}`);
+        return raw ? JSON.parse(raw) : undefined;
+      } catch {
+        return undefined;
+      }
+    },
   });
+
+  useEffect(() => {
+    if (headerCustomizationQuery.data && typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem(
+          `tp_header_customization_${currentLang}`,
+          JSON.stringify(headerCustomizationQuery.data)
+        );
+      } catch {}
+    }
+  }, [headerCustomizationQuery.data, currentLang]);
   const headerCust = headerCustomizationQuery.data?.data || customization?.header || {};
   const activeIdentity = publicIdentityOverride || identity || null;
   const displayPhone = activeIdentity?.phone || headerCust.phoneNumber || storeSettings?.contact?.phone || "565555";

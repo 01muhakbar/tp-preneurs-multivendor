@@ -12,6 +12,7 @@ import {
   CANONICAL_CLIENT_LOGO_URL,
   getWorkspaceLogoUrl,
   hasCustomBrandingLogo,
+  setCachedStoreBranding,
 } from "../lib/branding.js";
 import {
   AdminOpsErrorState,
@@ -478,6 +479,7 @@ export default function Settings() {
     onSuccess: (data) => {
       const nextBranding = normalizeBrandingSettings(data);
       setBrandingForm(nextBranding);
+      setCachedStoreBranding(nextBranding);
       setBrandingFeedback({
         type: "success",
         message: "Workspace brand text updated successfully.",

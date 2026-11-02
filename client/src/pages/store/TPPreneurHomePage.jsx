@@ -216,9 +216,9 @@ const getSliderImageFocusClass = (value) => {
 const defaultSliderSlides = [
   {
     imageDataUrl: "",
-    title: "Fresh groceries for everyday living",
-    description: "Premium quality fruits, vegetables, dairy & more. Delivered fresh to your door.",
-    buttonName: "Shop Now",
+    title: "Ekosistem Edupreneur & Inovasi Kampus",
+    description: "Temukan produk digital, media edukasi, dan karya teknologi mahasiswa terbaik.",
+    buttonName: "Mulai Belanja",
     buttonLink: "/shop",
     imageFocus: "right",
   },
@@ -1401,7 +1401,27 @@ export default function TPPreneurHomePage() {
     staleTime: 60_000,
     retry: 1,
     refetchOnWindowFocus: false,
+    initialData: () => {
+      if (typeof window === "undefined") return undefined;
+      try {
+        const raw = window.localStorage.getItem(`tp_home_customization_home_page_${currentLang}`);
+        return raw ? JSON.parse(raw) : undefined;
+      } catch {
+        return undefined;
+      }
+    },
   });
+
+  useEffect(() => {
+    if (homeCustomizationData && typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem(
+          `tp_home_customization_home_page_${currentLang}`,
+          JSON.stringify(homeCustomizationData)
+        );
+      } catch {}
+    }
+  }, [homeCustomizationData, currentLang]);
 
   const homeConfig =
     homeCustomizationData?.customization?.home ||

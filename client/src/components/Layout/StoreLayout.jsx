@@ -14,7 +14,13 @@ import {
   getStoreCustomization,
   getStoreSettings,
 } from "../../api/public/storeCustomizationPublic.ts";
-import { CANONICAL_CLIENT_LOGO_URL } from "../../lib/branding.js";
+import {
+  CANONICAL_CLIENT_LOGO_URL,
+  getCachedClientLogoUrl,
+  getCachedStoreSettings,
+  setCachedStoreSettings,
+  setCachedStoreBranding,
+} from "../../lib/branding.js";
 
 const DEFAULT_PUBLIC_STORE_SETTINGS = {
   payments: {
@@ -44,7 +50,7 @@ const DEFAULT_PUBLIC_STORE_SETTINGS = {
     tawkWidgetId: "",
   },
   branding: {
-    clientLogoUrl: CANONICAL_CLIENT_LOGO_URL,
+    clientLogoUrl: getCachedClientLogoUrl(),
     adminLogoUrl: "",
     sellerLogoUrl: "",
     workspaceBrandName: "TP PRENEURS",
@@ -199,6 +205,7 @@ export default function StoreLayout() {
     queryFn: getStoreSettings,
     staleTime: 60_000,
     retry: 1,
+    initialData: () => getCachedStoreSettings(),
   });
   const { i18n } = useTranslation();
   const isIndo = i18n.language === "id" || i18n.language === "id-ID" || i18n.language?.startsWith("id") || (typeof window !== "undefined" && localStorage.getItem("store_language") === "Indonesia");
@@ -210,7 +217,37 @@ export default function StoreLayout() {
     staleTime: 60_000,
     retry: 1,
     refetchOnWindowFocus: false,
+    initialData: () => {
+      if (typeof window === "undefined") return undefined;
+      try {
+        const raw = window.localStorage.getItem(`tp_home_customization_store_layout_${currentLang}`);
+        return raw ? JSON.parse(raw) : undefined;
+      } catch {
+        return undefined;
+      }
+    },
   });
+
+  useEffect(() => {
+    if (storeSettingsQuery.data) {
+      setCachedStoreSettings(storeSettingsQuery.data);
+      const liveBranding = storeSettingsQuery.data?.data?.storeSettings?.branding;
+      if (liveBranding) {
+        setCachedStoreBranding(liveBranding);
+      }
+    }
+  }, [storeSettingsQuery.data]);
+
+  useEffect(() => {
+    if (homeCustomizationQuery.data && typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem(
+          `tp_home_customization_store_layout_${currentLang}`,
+          JSON.stringify(homeCustomizationQuery.data)
+        );
+      } catch {}
+    }
+  }, [homeCustomizationQuery.data, currentLang]);
   const storeSettings = normalizePublicStoreSettings(
     storeSettingsQuery.data?.data?.storeSettings
   );
