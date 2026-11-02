@@ -143,12 +143,14 @@ const DEFAULT_CUSTOMIZATION = {
         },
         quickDelivery: {
             enabled: true,
-            subTitle: "Organic Products and Food",
-            title: "Quick Delivery to Your Home",
-            description: "There are many products you will find in our shop, Choose your daily necessary product from our KachaBazar shop and get some special offers. See Our latest discounted products from here and get a special discount.",
-            buttonName: "Download App",
-            buttonLink: "#",
+            subTitle: "Digital & Innovation Products",
+            title: "Shop Online with Ease",
+            description: "Instant access to curated student digital creations, learning media, and research tools.",
+            buttonName: "Start Shopping",
+            buttonLink: "/shop",
             imageDataUrl: "",
+            displayOn: "Desktop & Mobile",
+            status: "ready",
         },
         latestDiscountedProducts: {
             enabled: true,
@@ -931,12 +933,31 @@ const normalizeHome = (root) => {
         quickDelivery: {
             ...defaults.quickDelivery,
             enabled: toBool(quickDeliverySource.enabled, defaults.quickDelivery.enabled),
-            subTitle: toText(quickDeliverySource.subTitle, defaults.quickDelivery.subTitle),
-            title: toText(quickDeliverySource.title, defaults.quickDelivery.title),
-            description: toText(quickDeliverySource.description, defaults.quickDelivery.description),
-            buttonName: toText(quickDeliverySource.buttonName, defaults.quickDelivery.buttonName),
-            buttonLink: toText(quickDeliverySource.buttonLink, defaults.quickDelivery.buttonLink),
+            subTitle: (() => {
+                const val = toText(quickDeliverySource.subTitle, defaults.quickDelivery.subTitle);
+                return val.toLowerCase() === "organic products and food" ? defaults.quickDelivery.subTitle : val;
+            })(),
+            title: (() => {
+                const val = toText(quickDeliverySource.title, defaults.quickDelivery.title);
+                return val.toLowerCase() === "quick delivery to your home" ? defaults.quickDelivery.title : val;
+            })(),
+            description: (() => {
+                const val = toText(quickDeliverySource.description, defaults.quickDelivery.description);
+                return val.toLowerCase().includes("choose your daily necessary product from our kachabazar shop")
+                    ? defaults.quickDelivery.description
+                    : val;
+            })(),
+            buttonName: (() => {
+                const val = toText(quickDeliverySource.buttonName, defaults.quickDelivery.buttonName);
+                return val.toLowerCase() === "download app" ? defaults.quickDelivery.buttonName : val;
+            })(),
+            buttonLink: (() => {
+                const val = toText(quickDeliverySource.buttonLink, defaults.quickDelivery.buttonLink);
+                return val === "#" ? defaults.quickDelivery.buttonLink : val;
+            })(),
             imageDataUrl: toText(quickDeliverySource.imageDataUrl, ""),
+            displayOn: toText(quickDeliverySource.displayOn, "Desktop & Mobile"),
+            status: toText(quickDeliverySource.status, defaults.quickDelivery.status || "ready"),
         },
         latestDiscountedProducts: {
             ...defaults.latestDiscountedProducts,

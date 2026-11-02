@@ -18,7 +18,9 @@ import {
   ShieldCheck,
   ShoppingBag,
   Smartphone,
+  Sparkles,
   Store,
+  Trash2,
   Truck,
   UploadCloud,
   X,
@@ -124,20 +126,14 @@ const DEFAULT_CONFIG = {
   },
   quickDelivery: {
     enabled: true,
-    subTitle: "Fast and reliable delivery to your doorstep.",
-    title: "Quick Delivery",
-    description: "Same-day delivery in select cities with real-time tracking.",
-    buttonName: "Learn More",
-    buttonLink: "/delivery",
+    subTitle: "KARYA DIGITAL & INOVASI",
+    title: "Belanja Produk Inovasi TP Preneurs",
+    description: "Akses langsung produk digital, media belajar interaktif, dan karya riset mahasiswa.",
+    buttonName: "Mulai Belanja",
+    buttonLink: "/shop",
     imageDataUrl: "",
-    displayStyle: "Horizontal",
-    status: "draft",
-    features: [
-      "Same-day delivery in select cities",
-      "Real-time order tracking",
-      "Safe & secure packaging",
-      "Easy returns & exchanges",
-    ],
+    displayOn: "Desktop & Mobile",
+    status: "ready",
   },
   footer: {
     block1: {
@@ -333,6 +329,54 @@ const resolveBilingualPromo = (field, rawValue, isIndo) => {
   return text;
 };
 
+const QUICK_DELIVERY_BILINGUAL_MAP = {
+  title: {
+    id: "Belanja Produk Inovasi TP Preneurs",
+    en: "Shop Online with Ease",
+  },
+  subTitle: {
+    id: "KARYA DIGITAL & INOVASI",
+    en: "DIGITAL & INNOVATION PRODUCTS",
+  },
+  description: {
+    id: "Akses langsung produk digital, media belajar interaktif, dan karya riset mahasiswa.",
+    en: "Instant access to curated student digital creations, interactive media, and research tools.",
+  },
+  buttonName: {
+    id: "Mulai Belanja",
+    en: "Start Shopping",
+  },
+};
+
+const resolveBilingualQuickDelivery = (field, rawValue, isIndo) => {
+  const text = toText(rawValue);
+  const targetLang = isIndo ? "id" : "en";
+  const oppositeLang = isIndo ? "en" : "id";
+  const mapping = QUICK_DELIVERY_BILINGUAL_MAP[field];
+
+  if (
+    !text ||
+    text.toLowerCase().includes("quick delivery to your home") ||
+    text.toLowerCase().includes("organic products and food") ||
+    text.toLowerCase().includes("choose your daily necessary product") ||
+    text.toLowerCase().includes("download app")
+  ) {
+    return mapping ? mapping[targetLang] : text;
+  }
+
+  if (mapping) {
+    const canonicalOpposite = mapping[oppositeLang].toLowerCase();
+    const canonicalTarget = mapping[targetLang].toLowerCase();
+    const current = text.trim().toLowerCase();
+
+    if (current === canonicalOpposite || current === canonicalTarget) {
+      return mapping[targetLang];
+    }
+  }
+
+  return text;
+};
+
 const normalizeHomeValue = (value, language = "en") => {
   const isIndo = String(language || "").toLowerCase().startsWith("id");
   const source = isPlainObject(value) ? value : {};
@@ -372,9 +416,14 @@ const normalizeHomeValue = (value, language = "en") => {
     quickDelivery: {
       ...DEFAULT_CONFIG.quickDelivery,
       ...(isPlainObject(merged.quickDelivery) ? merged.quickDelivery : {}),
-      features: Array.isArray(merged.quickDelivery?.features)
-        ? merged.quickDelivery.features.map((item) => toText(item)).filter(Boolean).slice(0, 4)
-        : DEFAULT_CONFIG.quickDelivery.features,
+      title: resolveBilingualQuickDelivery("title", merged.quickDelivery?.title, isIndo),
+      subTitle: resolveBilingualQuickDelivery("subTitle", merged.quickDelivery?.subTitle || merged.quickDelivery?.subtitle, isIndo),
+      description: resolveBilingualQuickDelivery("description", merged.quickDelivery?.description, isIndo),
+      buttonName: resolveBilingualQuickDelivery("buttonName", merged.quickDelivery?.buttonName, isIndo),
+      buttonLink: normalizeLink(merged.quickDelivery?.buttonLink, "/shop"),
+      imageDataUrl: toText(merged.quickDelivery?.imageDataUrl),
+      displayOn: toText(merged.quickDelivery?.displayOn, "Desktop & Mobile"),
+      status: toText(merged.quickDelivery?.status, "ready"),
     },
     footer: {
       ...DEFAULT_CONFIG.footer,
@@ -1419,35 +1468,160 @@ export default function StoreCustomizationHomeSettings2026({
           </MerchandisingCard>
           </div>
 
-          <MerchandisingCard icon={Truck} title="Quick Delivery Section" description="Highlight fast delivery and service benefits." status={draft.quickDelivery.status || "draft"} enabled={draft.quickDelivery.enabled} onEnabledChange={(next) => updateDraft(["quickDelivery", "enabled"], next)}>
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-              <Field label="Title" value={draft.quickDelivery.title} onChange={(next) => updateDraft(["quickDelivery", "title"], next)} max={60} />
-              <Field label="Button Name" value={draft.quickDelivery.buttonName} onChange={(next) => updateDraft(["quickDelivery", "buttonName"], next)} max={30} />
-              <Field label="Button Link" value={draft.quickDelivery.buttonLink} onChange={(next) => updateDraft(["quickDelivery", "buttonLink"], next)} max={120} />
-              <TextAreaField label="Description" value={draft.quickDelivery.description || draft.quickDelivery.subTitle} onChange={(next) => updateDraft(["quickDelivery", "description"], next)} max={200} />
-              <div className="lg:col-span-2">
-                <span className="mb-1.5 block text-xs font-semibold text-slate-600 dark:text-slate-300">Feature Points (Max 4)</span>
-                <div className="space-y-2">
-                  {(draft.quickDelivery.features || []).map((feature, index) => (
-                    <div key={`${feature}-${index}`} className="flex items-center gap-2">
+          <MerchandisingCard
+            icon={Sparkles}
+            title={isIndo ? "Shop Online with Ease (Koleksi Digital & Inovasi)" : "Shop Online with Ease (Digital & Innovation Showcase)"}
+            description={
+              isIndo
+                ? "Kelola tampilan dan konten showcase produk digital & karya inovasi TP Preneurs di halaman utama storefront."
+                : "Manage the digital and innovation showcase banner on the storefront homepage."
+            }
+            status={draft.quickDelivery.status || "ready"}
+            enabled={draft.quickDelivery.enabled}
+            onEnabledChange={(next) => updateDraft(["quickDelivery", "enabled"], next)}
+          >
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <Field
+                  label={isIndo ? "Judul Utama (Title)" : "Title"}
+                  value={draft.quickDelivery.title}
+                  onChange={(next) => updateDraft(["quickDelivery", "title"], next)}
+                  max={60}
+                />
+                <Field
+                  label={isIndo ? "Subjudul / Badge (Eyebrow)" : "Eyebrow / Subtitle"}
+                  value={draft.quickDelivery.subTitle}
+                  onChange={(next) => updateDraft(["quickDelivery", "subTitle"], next)}
+                  max={60}
+                />
+                <Field
+                  label={isIndo ? "Teks Tombol (Button Name)" : "Button Name"}
+                  value={draft.quickDelivery.buttonName}
+                  onChange={(next) => updateDraft(["quickDelivery", "buttonName"], next)}
+                  max={30}
+                />
+                <Field
+                  label={isIndo ? "Link Tombol (Button Link)" : "Button Link"}
+                  value={draft.quickDelivery.buttonLink}
+                  onChange={(next) => updateDraft(["quickDelivery", "buttonLink"], next)}
+                  max={120}
+                />
+                <SelectField
+                  label={isIndo ? "Tampilkan Pada (Display On)" : "Display On"}
+                  value={draft.quickDelivery.displayOn || "Desktop & Mobile"}
+                  onChange={(next) => updateDraft(["quickDelivery", "displayOn"], next)}
+                  options={["Desktop & Mobile", "Desktop Only", "Mobile Only"]}
+                />
+                <SelectField
+                  label={isIndo ? "Status Publikasi" : "Status"}
+                  value={draft.quickDelivery.status || "ready"}
+                  onChange={(next) => updateDraft(["quickDelivery", "status"], next)}
+                  options={["ready", "needs review", "draft"]}
+                />
+              </div>
+
+              <TextAreaField
+                label={isIndo ? "Deskripsi Ringkas" : "Description"}
+                value={draft.quickDelivery.description}
+                onChange={(next) => updateDraft(["quickDelivery", "description"], next)}
+                max={200}
+              />
+
+              {/* Banner Image Uploader & Live Preview */}
+              <div className="rounded-2xl border border-slate-200/80 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-900/40">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                      {isIndo ? "Gambar Visual Showcase (Opsional)" : "Showcase Visual Image (Optional)"}
+                    </h4>
+                    <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                      {isIndo
+                        ? "Rasio landscape/16:9 disarankan. Jika dikosongkan, grid pilar inovasi interaktif akan ditampilkan otomatis."
+                        : "Recommended 16:9 landscape. If empty, the interactive digital innovation grid is displayed."}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
+                      <UploadCloud className="h-4 w-4 text-[var(--admin-primary,#034c85)]" />
+                      <span>{isIndo ? "Unggah Gambar" : "Upload Image"}</span>
                       <input
-                        value={feature}
-                        onChange={(event) => {
-                          const next = [...(draft.quickDelivery.features || [])];
-                          next[index] = event.target.value;
-                          updateDraft(["quickDelivery", "features"], next);
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = () => updateDraft(["quickDelivery", "imageDataUrl"], reader.result);
+                            reader.readAsDataURL(file);
+                          }
                         }}
-                        className={inputClass}
                       />
+                    </label>
+                    {draft.quickDelivery.imageDataUrl ? (
                       <button
                         type="button"
-                        onClick={() => updateDraft(["quickDelivery", "features"], (draft.quickDelivery.features || []).filter((_, itemIndex) => itemIndex !== index))}
-                        className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 dark:border-slate-800"
+                        onClick={() => updateDraft(["quickDelivery", "imageDataUrl"], "")}
+                        className="inline-flex items-center gap-1 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-400"
                       >
-                        <X className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span>{isIndo ? "Hapus" : "Remove"}</span>
                       </button>
+                    ) : null}
+                  </div>
+                </div>
+
+                {/* Live Mini Preview */}
+                <div className="mt-4 overflow-hidden rounded-xl border border-white/10 bg-gradient-to-r from-[#022f53] via-[#034c85] to-[#045a9a] p-4 text-white shadow-md">
+                  <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-2 mb-3">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-200">
+                      {isIndo ? "Preview Tampilan Storefront" : "Storefront Preview"}
+                    </span>
+                    <span className="text-[10px] font-semibold text-orange-300">
+                      TP Preneurs
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="space-y-1.5 flex-1 min-w-0">
+                      {draft.quickDelivery.subTitle ? (
+                        <span className="inline-block rounded-full bg-[#fe6f05]/20 border border-[#fe6f05]/30 px-2.5 py-0.5 text-[10px] font-bold text-orange-200">
+                          {draft.quickDelivery.subTitle}
+                        </span>
+                      ) : null}
+                      <h4 className="text-sm sm:text-base font-black truncate text-white">
+                        {draft.quickDelivery.title || "Shop Online with Ease"}
+                      </h4>
+                      {draft.quickDelivery.description ? (
+                        <p className="text-xs text-blue-100/90 line-clamp-1">
+                          {draft.quickDelivery.description}
+                        </p>
+                      ) : null}
+                      <div className="pt-1">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[#fe6f05] px-3 py-1 text-[11px] font-bold text-white shadow-sm">
+                          {draft.quickDelivery.buttonName || "Start Shopping"}
+                          <span className="text-[9px]">→</span>
+                        </span>
+                      </div>
                     </div>
-                  ))}
+
+                    {draft.quickDelivery.imageDataUrl ? (
+                      <div className="h-20 w-32 shrink-0 overflow-hidden rounded-xl border border-white/20">
+                        <img
+                          src={draft.quickDelivery.imageDataUrl}
+                          alt="Preview"
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="h-20 w-32 shrink-0 rounded-xl border border-white/10 bg-white/10 p-2 flex flex-col justify-center items-center text-center">
+                        <span className="text-[10px] font-bold text-orange-200">TP Preneurs</span>
+                        <span className="text-[9px] text-blue-100">
+                          {isIndo ? "Grid Inovasi Digital" : "Digital Innovation Grid"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

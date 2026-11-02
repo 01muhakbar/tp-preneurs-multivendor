@@ -1330,6 +1330,40 @@ export default function TPPreneurHomePage() {
     };
   }, [homeConfig, isIndo]);
 
+  const quickDeliveryConfig = useMemo(() => {
+    const source =
+      homeConfig?.quickDelivery && typeof homeConfig.quickDelivery === "object"
+        ? homeConfig.quickDelivery
+        : {};
+    return {
+      enabled: toBool(source.enabled, true),
+      title: toText(
+        source.title,
+        isIndo
+          ? "Belanja Produk Inovasi TP Preneurs"
+          : "Shop Online with Ease"
+      ),
+      subTitle: toText(
+        source.subTitle || source.subtitle,
+        isIndo ? "KARYA DIGITAL & INOVASI" : "DIGITAL & INNOVATION PRODUCTS"
+      ),
+      description: toText(
+        source.description,
+        isIndo
+          ? "Akses langsung produk digital, media belajar interaktif, dan karya riset mahasiswa."
+          : "Instant access to curated student digital creations, interactive media, and research tools."
+      ),
+      buttonName: toText(
+        source.buttonName,
+        isIndo ? "Mulai Belanja" : "Start Shopping"
+      ),
+      buttonLink: normalizeLink(source.buttonLink, "/shop"),
+      imageDataUrl: toText(source.imageDataUrl),
+      displayOn: toText(source.displayOn, "Desktop & Mobile"),
+      status: toText(source.status, "ready"),
+    };
+  }, [homeConfig, isIndo]);
+
   const categories = useMemo(() => {
     const source = extractList(categoriesData);
     return source
@@ -1762,7 +1796,27 @@ export default function TPPreneurHomePage() {
       ) : null}
 
 
-      <DiscoverDigitalProductsHero />
+      {quickDeliveryConfig.enabled ? (
+        <div
+          className={
+            quickDeliveryConfig.displayOn === "Desktop Only"
+              ? "hidden lg:block"
+              : quickDeliveryConfig.displayOn === "Mobile Only"
+                ? "lg:hidden"
+                : ""
+          }
+        >
+          <DiscoverDigitalProductsHero
+            title={quickDeliveryConfig.title}
+            subTitle={quickDeliveryConfig.subTitle}
+            description={quickDeliveryConfig.description}
+            buttonName={quickDeliveryConfig.buttonName}
+            buttonLink={quickDeliveryConfig.buttonLink}
+            imageDataUrl={quickDeliveryConfig.imageDataUrl}
+            isIndo={isIndo}
+          />
+        </div>
+      ) : null}
 
       <PromoStrip isIndo={isIndo} />
     </div>

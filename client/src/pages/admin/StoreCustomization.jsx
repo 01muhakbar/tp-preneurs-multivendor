@@ -501,13 +501,15 @@ const getDefaultCustomization = (targetLang = "en") => {
     },
     quickDelivery: {
       enabled: true,
-      subTitle: "Organic Products and Food",
-      title: "Quick Delivery to Your Home",
+      subTitle: "KARYA DIGITAL & INOVASI",
+      title: "Belanja Produk Inovasi TP Preneurs",
       description:
-        "There are many products you will find in our shop, Choose your daily necessary product from our KachaBazar shop and get some special offers. See Our latest discounted products from here and get a special discount.",
-      buttonName: "Download App",
-      buttonLink: "#",
+        "Akses langsung produk digital, media belajar interaktif, dan karya riset mahasiswa.",
+      buttonName: "Mulai Belanja",
+      buttonLink: "/shop",
       imageDataUrl: "",
+      displayOn: "Desktop & Mobile",
+      status: "ready",
     },
     latestDiscountedProducts: {
       enabled: true,
@@ -10213,7 +10215,7 @@ export default function StoreCustomizationPage() {
                 <Settings className="h-4 w-4" />
               </span>
               <h2 className="text-base font-semibold text-slate-900">
-                Quick Delivery Section
+                Shop Online with Ease (Koleksi Digital & Inovasi)
               </h2>
             </div>
 

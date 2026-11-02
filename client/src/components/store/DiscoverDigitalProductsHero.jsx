@@ -1,101 +1,162 @@
-import { ArrowRight, CloudDownload, FileText, Monitor, ShoppingBag, Smartphone, Zap, Star } from "lucide-react";
+import React from "react";
+import { ArrowRight, Sparkles, Smartphone, GraduationCap, Lightbulb, BookOpen, ShieldCheck, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import "./discover-digital-products-hero.css";
 
-const digitalProductCards = [
-  { id: 1, title: "Mobile Apps", rating: "4.9", icon: Smartphone, tone: "phone" },
-  { id: 2, title: "Software & Tools", rating: "4.8", icon: Monitor, tone: "software", featured: true },
-  { id: 3, title: "Cloud Storage", rating: "4.7", icon: CloudDownload, tone: "cloud" },
-  { id: 4, title: "E-Books & Guides", rating: "4.8", icon: FileText, tone: "ebook" },
-  { id: 5, title: "Shopping Bags", rating: "4.9", icon: ShoppingBag, tone: "bag" },
-];
+export default function DiscoverDigitalProductsHero({
+  title,
+  subTitle,
+  description,
+  buttonName,
+  buttonLink = "/shop",
+  imageDataUrl,
+  isIndo: propIsIndo,
+}) {
+  const { t, i18n } = useTranslation();
+  const currentLang = (i18n.language || "id").toLowerCase();
+  const isIndo = typeof propIsIndo === "boolean" ? propIsIndo : currentLang.startsWith("id");
 
-export default function DiscoverDigitalProductsHero() {
-  const { t } = useTranslation();
+  // Fallback defaults tailored to TP Preneurs
+  const displayEyebrow = subTitle || t("home.eyebrow", isIndo ? "KARYA DIGITAL & INOVASI" : "DIGITAL & INNOVATION PRODUCTS");
+  const displayTitle = title || t("home.heading1", isIndo ? "Belanja Produk Inovasi TP Preneurs" : "Shop Online with Ease");
+  const displayDescription = description || t("home.description", isIndo 
+    ? "Akses langsung produk digital, media belajar interaktif, dan karya riset mahasiswa."
+    : "Instant access to curated student digital creations, interactive media, and research tools."
+  );
+  const displayButtonName = buttonName || t("home.startShopping", isIndo ? "Mulai Belanja" : "Start Shopping");
+  const displayLink = buttonLink || "/shop";
 
-  // Split heading to color the last two words with accent color
-  const headingText = t("home.heading1", "Shop Online with Ease");
-  const words = headingText.split(" ");
-  let firstPart = headingText;
-  let lastTwo = "";
+  // Split title to give accent color to the last 2 words
+  const words = displayTitle.trim().split(" ");
+  let firstPart = displayTitle;
+  let highlightPart = "";
   if (words.length >= 2) {
-    lastTwo = words.splice(-2).join(" ");
+    highlightPart = words.splice(-2).join(" ");
     firstPart = words.join(" ");
   }
 
+  // Showcase pillars for TP Preneurs
+  const digitalPillars = isIndo ? [
+    { id: 1, title: "Aplikasi & Web", subtitle: "Siap pakai & inovatif", icon: Smartphone },
+    { id: 2, title: "Media Belajar", subtitle: "Interaktif & edukatif", icon: GraduationCap, featured: true },
+    { id: 3, title: "Riset & Solusi", subtitle: "Karya inovasi mahasiswa", icon: Lightbulb },
+    { id: 4, title: "Modul & Panduan", subtitle: "Materi aplikatif", icon: BookOpen },
+  ] : [
+    { id: 1, title: "Apps & Web", subtitle: "Ready-to-use solutions", icon: Smartphone },
+    { id: 2, title: "Learning Media", subtitle: "Interactive & educational", icon: GraduationCap, featured: true },
+    { id: 3, title: "Research & Tools", subtitle: "Student innovative projects", icon: Lightbulb },
+    { id: 4, title: "Guides & Modules", subtitle: "Practical courseware", icon: BookOpen },
+  ];
+
   return (
     <section 
-      aria-labelledby="storefront-discover-heading" 
-      className="tp-discover-hero w-full overflow-hidden"
+      aria-labelledby="tp-digital-showcase-heading"
+      className="tp-showcase-hero relative w-full overflow-hidden rounded-3xl"
     >
-      <div className="relative z-10 grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center p-8 sm:p-12 lg:p-16">
+      {/* Background Ambient Glows */}
+      <div className="tp-showcase-hero__glow-blue pointer-events-none absolute -top-24 -left-24 h-96 w-96 rounded-full blur-3xl opacity-50" />
+      <div className="tp-showcase-hero__glow-orange pointer-events-none absolute -bottom-24 -right-24 h-96 w-96 rounded-full blur-3xl opacity-35" />
+
+      <div className="relative z-10 grid gap-8 lg:gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center px-6 py-8 sm:px-10 sm:py-12 lg:px-14 lg:py-14">
         
-        {/* Left Column: Text Content */}
-        <div className="tp-discover-hero__content space-y-6">
-          <div className="tp-discover-hero__eyebrow inline-flex items-center gap-2.5 rounded-full px-4 py-2">
-            <Zap className="h-4 w-4 text-[var(--tp-accent)]" aria-hidden="true" />
-            <p className="text-xs font-black uppercase tracking-[0.24em] text-[var(--tp-accent)]">
-              {t("home.eyebrow", "DISCOVER YOUR FAVORITE PRODUCTS")}
-            </p>
-          </div>
+        {/* Left Column: Concise Content */}
+        <div className="tp-showcase-hero__content flex flex-col items-start space-y-4 sm:space-y-5 text-left">
           
-          <h2 id="storefront-discover-heading" className="tp-discover-hero__title max-w-2xl text-4xl font-black leading-[1.15] tracking-tight sm:text-5xl lg:text-6xl">
-            {firstPart} <br className="hidden lg:block" />
-            <span className="text-[var(--tp-accent)] whitespace-nowrap">{lastTwo}</span>
+          {/* Eyebrow Badge */}
+          <div className="tp-showcase-hero__eyebrow inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider">
+            <Sparkles className="h-3.5 w-3.5 text-[#fe6f05]" aria-hidden="true" />
+            <span className="text-[#fe6f05] font-black text-[11px] sm:text-xs">
+              {displayEyebrow}
+            </span>
+          </div>
+
+          {/* Heading */}
+          <h2 id="tp-digital-showcase-heading" className="tp-showcase-hero__title text-2xl font-black leading-tight tracking-tight sm:text-4xl lg:text-5xl text-white">
+            {firstPart} <span className="text-[#fe6f05] inline-block">{highlightPart}</span>
           </h2>
-          
-          <p className="tp-discover-hero__desc max-w-xl text-base font-medium leading-relaxed sm:text-lg">
-            {t("home.description", "Explore a wide range of quality products from trusted sellers. Enjoy exclusive deals, fast delivery, and a seamless shopping experience.")}
+
+          {/* Concise Description */}
+          <p className="tp-showcase-hero__desc text-sm sm:text-base font-medium leading-relaxed text-blue-100/90 max-w-xl">
+            {displayDescription}
           </p>
-          
-          <div className="pt-4">
+
+          {/* Action Button & Badges */}
+          <div className="pt-2 flex flex-wrap items-center gap-4">
             <Link
-              to="/shop"
-              className="tp-discover-hero__cta group relative inline-flex h-14 items-center gap-3 overflow-hidden px-10 text-base font-black transition-all hover:-translate-y-1"
+              to={displayLink}
+              className="tp-showcase-hero__cta group relative inline-flex h-12 sm:h-13 items-center gap-2.5 overflow-hidden rounded-full px-7 sm:px-8 text-sm sm:text-base font-bold text-white transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
             >
-              <span className="absolute inset-0 -translate-x-full bg-white/20 transition-transform duration-700 ease-out group-hover:translate-x-full" />
-              <span className="relative z-10">{t("home.startShopping", "Start Shopping")}</span>
-              <ArrowRight className="relative z-10 h-5 w-5 transition-transform group-hover:translate-x-1" />
+              <span className="relative z-10">{displayButtonName}</span>
+              <ArrowRight className="relative z-10 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
-          </div>
-        </div>
-        
-        {/* Right Column: Visual Cluster */}
-        <div className="tp-discover-hero__visual relative h-[450px] lg:h-[520px] w-full">
-          
-          <div className="tp-discover-hero__cluster absolute inset-0 mx-auto w-full max-w-[500px]">
-            {digitalProductCards.map((card) => (
-              <div 
-                key={card.id} 
-                className={`tp-digital-card tp-digital-card--${card.tone} ${card.featured ? "tp-digital-card--featured" : ""}`}
-              >
-                <div className="tp-digital-card__icon-wrapper">
-                  <card.icon className="tp-digital-card__icon" aria-hidden="true" />
-                </div>
-                <div className="tp-digital-card__info">
-                  <p className="tp-digital-card__title">{card.title}</p>
-                  <div className="tp-digital-card__rating">
-                    <span>{card.rating}</span>
-                    <Star className="h-3 w-3 fill-current text-[var(--tp-accent)]" />
-                  </div>
-                </div>
-              </div>
-            ))}
-            
-            {/* Bottom Info Chip */}
-            <div className="tp-discover-hero__chip">
-              <div className="tp-discover-hero__chip-icon">
-                <Zap className="h-5 w-5 text-white" />
-              </div>
-              <div className="tp-discover-hero__chip-text">
-                <p className="font-black text-[var(--tp-primary)] uppercase text-[10px] tracking-wider dark:text-blue-400">Instant Access</p>
-                <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">Get your digital products <strong>immediately</strong></p>
-              </div>
+
+            {/* Quick Micro-Trust Badge */}
+            <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-200/90">
+              <ShieldCheck className="h-4 w-4 text-[#fe6f05]" />
+              <span>{isIndo ? "Karya Terverifikasi & Akses Cepat" : "Verified Student Creations"}</span>
             </div>
           </div>
-          
         </div>
+
+        {/* Right Column: Visual */}
+        <div className="tp-showcase-hero__visual w-full">
+          {imageDataUrl ? (
+            <div className="relative mx-auto max-w-md sm:max-w-lg overflow-hidden rounded-2xl border border-white/15 bg-white/5 shadow-2xl backdrop-blur-sm p-2 transition-transform hover:scale-[1.01]">
+              <img
+                src={imageDataUrl}
+                alt={displayTitle}
+                className="h-auto max-h-[360px] w-full rounded-xl object-cover"
+                loading="lazy"
+              />
+            </div>
+          ) : (
+            <div className="tp-showcase-hero__grid-wrapper relative mx-auto w-full max-w-md lg:max-w-none">
+              {/* Modern Responsive TP Preneurs Cards Grid */}
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                {digitalPillars.map((pillar) => {
+                  const Icon = pillar.icon;
+                  return (
+                    <div
+                      key={pillar.id}
+                      className={`tp-showcase-card rounded-2xl p-4 sm:p-5 transition-all duration-300 hover:translate-y-[-3px] ${
+                        pillar.featured
+                          ? "tp-showcase-card--featured"
+                          : "border-white/10"
+                      }`}
+                    >
+                      <div className="tp-showcase-card__icon-box mb-3 inline-flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <h3 className="tp-showcase-card__title text-xs sm:text-sm font-bold text-white">
+                        {pillar.title}
+                      </h3>
+                      <p className="tp-showcase-card__subtitle text-[11px] sm:text-xs text-blue-200/80 mt-0.5 line-clamp-1">
+                        {pillar.subtitle}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Bottom Quick Badge Pill */}
+              <div className="tp-showcase-hero__chip mt-3.5 inline-flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/10 px-4 py-2.5 backdrop-blur-md">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#fe6f05]">
+                    <Zap className="h-3.5 w-3.5 text-white" />
+                  </div>
+                  <span className="text-xs font-bold text-white">
+                    {isIndo ? "Ekosistem Edupreneur & Inovasi" : "TP Preneurs Digital Hub"}
+                  </span>
+                </div>
+                <span className="text-[11px] font-semibold text-orange-200">
+                  {isIndo ? "Karya Kampus" : "Campus Creations"}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
       </div>
     </section>
   );
