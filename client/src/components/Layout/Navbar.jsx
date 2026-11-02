@@ -229,6 +229,9 @@ export default function Navbar({
     setSelectedLanguage(nextValue);
     persistLanguage(nextValue);
     i18n.changeLanguage(nextValue.isoCode);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("adminLanguageChange", { detail: nextValue }));
+    }
     setLangOpen(false);
   };
 

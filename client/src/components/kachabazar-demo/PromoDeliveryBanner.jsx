@@ -14,8 +14,51 @@ const isLegacyGroceryValue = (value) => {
   return (
     str === "100% natural quality organic product" ||
     str.includes("see our latest discounted products from here") ||
-    str.includes("category=breakfast")
+    str.includes("category=breakfast") ||
+    str === "buy now"
   );
+};
+
+const PROMO_BILINGUAL_MAP = {
+  subTitle: {
+    id: "Koleksi Eksklusif TP Preneurs",
+    en: "TP Preneurs Exclusive Collection",
+  },
+  title: {
+    id: "Karya Inovatif Mahasiswa & Edupreneur",
+    en: "Innovative Student & Edupreneur Creations",
+  },
+  description: {
+    id: "Dukung karya technopreneur muda dengan produk kreatif dan solusi terbaik.",
+    en: "Empower young technopreneurs with curated creative and learning products.",
+  },
+  buttonName: {
+    id: "Jelajahi Produk",
+    en: "Explore Products",
+  },
+};
+
+const resolveBilingualText = (field, rawValue, isIndo) => {
+  const text = toText(rawValue);
+  const targetLang = isIndo ? "id" : "en";
+  const oppositeLang = isIndo ? "en" : "id";
+  const mapping = PROMO_BILINGUAL_MAP[field];
+
+  if (!text || isLegacyGroceryValue(text)) {
+    return mapping ? mapping[targetLang] : text;
+  }
+
+  if (mapping) {
+    const canonicalOpposite = mapping[oppositeLang].toLowerCase();
+    const canonicalTarget = mapping[targetLang].toLowerCase();
+    const current = text.trim().toLowerCase();
+
+    if (current === canonicalOpposite || current === canonicalTarget) {
+      return mapping[targetLang];
+    }
+  }
+
+  return text;
 };
 
 export default function PromoDeliveryBanner({
@@ -27,25 +70,10 @@ export default function PromoDeliveryBanner({
   imageDataUrl = "",
   isIndo = true,
 }) {
-  const rawSubTitle = toText(subTitle);
-  const eyebrow = isLegacyGroceryValue(rawSubTitle) || !rawSubTitle
-    ? (isIndo ? "Koleksi Eksklusif TP Preneurs" : "TP Preneurs Exclusive Collection")
-    : rawSubTitle;
-
-  const rawTitle = toText(title);
-  const headline = isLegacyGroceryValue(rawTitle) || !rawTitle
-    ? (isIndo ? "Karya Inovatif Mahasiswa & Edupreneur" : "Innovative Student & Edupreneur Creations")
-    : rawTitle;
-
-  const rawDesc = toText(description);
-  const cleanedDesc = isLegacyGroceryValue(rawDesc)
-    ? (isIndo ? "Dukung karya technopreneur muda dengan produk kreatif dan solusi terbaik." : "Empower young technopreneurs with curated creative and learning products.")
-    : rawDesc;
-
-  const rawBtn = toText(buttonName);
-  const ctaLabel = isLegacyGroceryValue(rawBtn) || !rawBtn
-    ? (isIndo ? "Jelajahi Produk" : "Explore Products")
-    : rawBtn;
+  const eyebrow = resolveBilingualText("subTitle", subTitle, isIndo);
+  const headline = resolveBilingualText("title", title, isIndo);
+  const cleanedDesc = resolveBilingualText("description", description, isIndo);
+  const ctaLabel = resolveBilingualText("buttonName", buttonName, isIndo);
 
   const rawLink = toText(buttonLink);
   const ctaLink = isLegacyGroceryValue(rawLink) || !rawLink ? "/shop" : rawLink;
@@ -137,12 +165,14 @@ export default function PromoDeliveryBanner({
                   </div>
                   <div>
                     <p className="text-xs font-black uppercase tracking-wider text-white">TP Preneurs</p>
-                    <p className="text-[10px] text-blue-200">Technopreneur Hub</p>
+                    <p className="text-[10px] text-blue-200">
+                      {isIndo ? "Pusat Teknopreneur" : "Technopreneur Hub"}
+                    </p>
                   </div>
                 </div>
                 <span className="inline-flex items-center gap-1 rounded-full bg-[#fe6f05]/20 px-2.5 py-0.5 text-[11px] font-bold text-[#fe6f05]">
                   <Sparkles className="h-3 w-3" />
-                  Inovasi
+                  {isIndo ? "Inovasi" : "Innovation"}
                 </span>
               </div>
 
@@ -151,22 +181,32 @@ export default function PromoDeliveryBanner({
                 <div className="rounded-xl border border-white/10 bg-white/10 p-3 backdrop-blur-sm transition-all hover:bg-white/15">
                   <div className="flex items-center gap-2 text-orange-300">
                     <CheckCircle2 className="h-4 w-4 text-[#fe6f05]" />
-                    <span className="text-xs font-bold text-white">Karya Asli</span>
+                    <span className="text-xs font-bold text-white">
+                      {isIndo ? "Karya Asli" : "Original Work"}
+                    </span>
                   </div>
-                  <p className="mt-1 text-[11px] leading-tight text-blue-100/80">Kreativitas & riset mahasiswa</p>
+                  <p className="mt-1 text-[11px] leading-tight text-blue-100/80">
+                    {isIndo ? "Kreativitas & riset mahasiswa" : "Student creativity & research"}
+                  </p>
                 </div>
 
                 <div className="rounded-xl border border-white/10 bg-white/10 p-3 backdrop-blur-sm transition-all hover:bg-white/15">
                   <div className="flex items-center gap-2 text-orange-300">
                     <Award className="h-4 w-4 text-[#fe6f05]" />
-                    <span className="text-xs font-bold text-white">Terverifikasi</span>
+                    <span className="text-xs font-bold text-white">
+                      {isIndo ? "Terverifikasi" : "Verified"}
+                    </span>
                   </div>
-                  <p className="mt-1 text-[11px] leading-tight text-blue-100/80">Kualitas & siap bersaing</p>
+                  <p className="mt-1 text-[11px] leading-tight text-blue-100/80">
+                    {isIndo ? "Kualitas & siap bersaing" : "High quality & market-ready"}
+                  </p>
                 </div>
               </div>
 
               <div className="mt-3 flex items-center justify-between rounded-xl bg-[#012d52]/60 px-3.5 py-2 border border-white/10">
-                <span className="text-xs font-semibold text-blue-100">Ekosistem Kewirausahaan Mahasiswa</span>
+                <span className="text-xs font-semibold text-blue-100">
+                  {isIndo ? "Ekosistem Kewirausahaan Mahasiswa" : "Student Entrepreneurship Hub"}
+                </span>
                 <span className="h-2 w-2 rounded-full bg-[#fe6f05] shadow-[0_0_6px_#fe6f05]" />
               </div>
             </div>

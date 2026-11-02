@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
@@ -380,7 +381,51 @@ const DEFAULT_TERMS_AND_CONDITIONS_HTML = [
   "<p>To the fullest extent permitted by law, we exclude all representations and warranties relating to this website and its use.</p>",
 ].join("");
 
-const getDefaultCustomization = () => ({
+const PROMO_BILINGUAL_MAP = {
+  subtitle: {
+    id: "Koleksi Eksklusif TP Preneurs",
+    en: "TP Preneurs Exclusive Collection",
+  },
+  title: {
+    id: "Karya Inovatif Mahasiswa & Edupreneur",
+    en: "Innovative Student & Edupreneur Creations",
+  },
+  description: {
+    id: "Dukung karya technopreneur muda dengan produk kreatif dan solusi terbaik.",
+    en: "Empower young technopreneurs with curated creative and learning products.",
+  },
+  buttonName: {
+    id: "Jelajahi Produk",
+    en: "Explore Products",
+  },
+};
+
+const resolveBilingualPromo = (field, rawValue, isIndo) => {
+  const text = toText(rawValue);
+  const targetLang = isIndo ? "id" : "en";
+  const oppositeLang = isIndo ? "en" : "id";
+  const mapping = PROMO_BILINGUAL_MAP[field];
+
+  if (!text || text.toLowerCase() === "100% natural quality organic product" || text.toLowerCase().includes("see our latest discounted products from here") || text.toLowerCase() === "buy now") {
+    return mapping ? mapping[targetLang] : text;
+  }
+
+  if (mapping) {
+    const canonicalOpposite = mapping[oppositeLang].toLowerCase();
+    const canonicalTarget = mapping[targetLang].toLowerCase();
+    const current = text.trim().toLowerCase();
+
+    if (current === canonicalOpposite || current === canonicalTarget) {
+      return mapping[targetLang];
+    }
+  }
+
+  return text;
+};
+
+const getDefaultCustomization = (targetLang = "en") => {
+  const isIndo = String(targetLang || "").toLowerCase().startsWith("id");
+  return {
   home: {
     header: {
       headerText: "We are available 24/7, Need help??",
@@ -413,11 +458,16 @@ const getDefaultCustomization = () => ({
     },
     promotionBanner: {
       enabled: true,
-      title: "Karya Inovatif Mahasiswa & Edupreneur",
-      subtitle: "Koleksi Eksklusif TP Preneurs",
-      description:
-        "Dukung karya technopreneur muda dengan produk kreatif dan solusi terbaik.",
-      buttonName: "Jelajahi Produk",
+      title: isIndo
+        ? "Karya Inovatif Mahasiswa & Edupreneur"
+        : "Innovative Student & Edupreneur Creations",
+      subtitle: isIndo
+        ? "Koleksi Eksklusif TP Preneurs"
+        : "TP Preneurs Exclusive Collection",
+      description: isIndo
+        ? "Dukung karya technopreneur muda dengan produk kreatif dan solusi terbaik."
+        : "Empower young technopreneurs with curated creative and learning products.",
+      buttonName: isIndo ? "Jelajahi Produk" : "Explore Products",
       buttonLink: "/shop",
       imageDataUrl: "",
       displayOn: "Desktop & Mobile",
@@ -852,7 +902,8 @@ const getDefaultCustomization = () => ({
     metaKeywords: "",
     metaImageDataUrl: "",
   },
-});
+  };
+};
 
 const normalizeLanguage = (item) => ({
   id: Number(item?.id || 0),
@@ -1934,8 +1985,9 @@ const normalizeDashboardSetting = (source, defaults) => {
   };
 };
 
-const normalizeCustomizationPayload = (raw) => {
-  const defaults = getDefaultCustomization();
+const normalizeCustomizationPayload = (raw, targetLang = "en") => {
+  const defaults = getDefaultCustomization(targetLang);
+  const isIndo = String(targetLang || "").toLowerCase().startsWith("id");
   const source = isPlainObject(raw) ? raw : {};
   const merged = mergeDeep(defaults, source);
 
@@ -2296,35 +2348,10 @@ const normalizeCustomizationPayload = (raw) => {
           promotionBannerSource.enabled,
           defaultsHome.promotionBanner.enabled
         ),
-        title: (() => {
-          const val = toText(promotionBannerSource.title, defaultsHome.promotionBanner.title);
-          return val.toLowerCase() === "100% natural quality organic product"
-            ? defaultsHome.promotionBanner.title
-            : val;
-        })(),
-        subtitle: toText(
-          promotionBannerSource.subtitle,
-          defaultsHome.promotionBanner.subtitle
-        ),
-        description: (() => {
-          const val = toText(
-            promotionBannerSource.description,
-            defaultsHome.promotionBanner.description
-          );
-          return val.toLowerCase().includes("see our latest discounted products from here")
-            ? defaultsHome.promotionBanner.description
-            : val;
-        })(),
-        buttonName: (() => {
-          const val = toText(
-            promotionBannerSource.buttonName,
-            defaultsHome.promotionBanner.buttonName
-          );
-          return val.toLowerCase() === "buy now" &&
-            toText(promotionBannerSource.title).toLowerCase() === "100% natural quality organic product"
-            ? defaultsHome.promotionBanner.buttonName
-            : val;
-        })(),
+        title: resolveBilingualPromo("title", promotionBannerSource.title || defaultsHome.promotionBanner.title, isIndo),
+        subtitle: resolveBilingualPromo("subtitle", promotionBannerSource.subtitle || defaultsHome.promotionBanner.subtitle, isIndo),
+        description: resolveBilingualPromo("description", promotionBannerSource.description || defaultsHome.promotionBanner.description, isIndo),
+        buttonName: resolveBilingualPromo("buttonName", promotionBannerSource.buttonName || defaultsHome.promotionBanner.buttonName, isIndo),
         buttonLink: (() => {
           const val = toText(
             promotionBannerSource.buttonLink,
@@ -3105,6 +3132,7 @@ function ImageUploadField({
 }
 
 export default function StoreCustomizationPage() {
+  const { i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -3266,6 +3294,37 @@ export default function StoreCustomizationPage() {
     setLang(fallback.isoCode);
   }, [publishedLanguages, lang]);
 
+  useEffect(() => {
+    const handleStorage = (event) => {
+      if (event.key === ADMIN_LANGUAGE_KEY) {
+        const nextLang = getStoredAdminLanguageIso();
+        if (nextLang && nextLang !== lang) {
+          setLang(nextLang);
+        }
+      }
+    };
+    const handleAdminLanguageChange = (event) => {
+      const nextLang = String(event?.detail?.isoCode || getStoredAdminLanguageIso() || "en").toLowerCase();
+      if (nextLang && nextLang !== lang) {
+        setLang(nextLang);
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("adminLanguageChange", handleAdminLanguageChange);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("adminLanguageChange", handleAdminLanguageChange);
+    };
+  }, [lang]);
+
+  useEffect(() => {
+    const currentIso = String(i18n?.language || "").trim().toLowerCase();
+    const targetLang = currentIso === "id" || currentIso.startsWith("id") ? "id" : "en";
+    if (targetLang && targetLang !== lang) {
+      setLang(targetLang);
+    }
+  }, [i18n?.language, lang]);
+
   const customizationQuery = useQuery({
     queryKey: ["admin-store-customization", lang],
     enabled: Boolean(lang),
@@ -3284,7 +3343,7 @@ export default function StoreCustomizationPage() {
     if (!customizationQuery.data) return;
     const payload = unwrapCustomizationEnvelope(customizationQuery.data);
     setCustomizationMeta(unwrapCustomizationMeta(customizationQuery.data));
-    const normalized = normalizeCustomizationPayload(payload);
+    const normalized = normalizeCustomizationPayload(payload, lang);
     setHomeState(normalized.home);
     setProductSlugPageState(normalized.productSlugPage);
     setAboutUsState(normalized.aboutUs);
@@ -3366,7 +3425,7 @@ export default function StoreCustomizationPage() {
     onSuccess: async (data, _variables, context) => {
       const payload = unwrapCustomizationEnvelope(data);
       setCustomizationMeta(unwrapCustomizationMeta(data));
-      const normalized = normalizeCustomizationPayload(payload);
+      const normalized = normalizeCustomizationPayload(payload, lang);
       setHomeState(normalized.home);
       setProductSlugPageState(normalized.productSlugPage);
       setAboutUsState(normalized.aboutUs);
@@ -3513,7 +3572,8 @@ export default function StoreCustomizationPage() {
     setNotice(null);
     const current = queryClient.getQueryData(["admin-store-customization", lang]);
     const currentCustomization = normalizeCustomizationPayload(
-      unwrapCustomizationEnvelope(current)
+      unwrapCustomizationEnvelope(current),
+      lang
     );
 
     const nextPayload = {
@@ -4124,7 +4184,8 @@ export default function StoreCustomizationPage() {
   const onResetProductSlugSingleSetting = () => {
     const current = queryClient.getQueryData(["admin-store-customization", lang]);
     const currentCustomization = normalizeCustomizationPayload(
-      unwrapCustomizationEnvelope(current || customizationQuery.data)
+      unwrapCustomizationEnvelope(current || customizationQuery.data),
+      lang
     );
     setProductSlugPageState(currentCustomization.productSlugPage);
     setNotice({
