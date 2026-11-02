@@ -24,6 +24,9 @@ const INDO_TRANSLATIONS = {
   "Careers": "Karir",
   "Latest News": "Berita Terbaru",
   "Categories": "Kategori",
+  "Products": "Katalog Produk",
+  "Offers": "Promo & Penawaran",
+  "Wishlist": "Favorit / Wishlist",
   "Fish & Meat": "Ikan & Daging",
   "Soft Drink": "Minuman Ringan",
   "Milk & Dairy": "Susu & Olahan",
@@ -52,6 +55,22 @@ const tLabel = (label, isIndo) => {
   return INDO_TRANSLATIONS[label] || label;
 };
 
+const sanitizeFooterDummyInfo = (field, fallback) => {
+  const str = String(field || "").trim();
+  if (
+    !str ||
+    str.includes("Lake Hestertown") ||
+    str.includes("Andre Plain") ||
+    str.includes("02.356.1666") ||
+    str.includes("ccruidk@test.com") ||
+    str.includes("6599887766") ||
+    str.includes("565555")
+  ) {
+    return fallback;
+  }
+  return str;
+};
+
 const getDefaultFooter = (isIndo) => ({
   block1: {
     enabled: true,
@@ -59,18 +78,18 @@ const getDefaultFooter = (isIndo) => ({
     links: [
       { label: isIndo ? "Tentang Kami" : "About Us", href: "/about-us" },
       { label: isIndo ? "Hubungi Kami" : "Contact Us", href: "/contact-us" },
-      { label: isIndo ? "Karir" : "Careers", href: "#" },
-      { label: isIndo ? "Berita Terbaru" : "Latest News", href: "#" },
+      { label: isIndo ? "Katalog Produk" : "Products", href: "/shop" },
+      { label: isIndo ? "Promo & Penawaran" : "Offers", href: "/offers" },
     ],
   },
   block2: {
     enabled: true,
     title: isIndo ? "Kategori" : "Categories",
     links: [
-      { label: isIndo ? "Ikan & Daging" : "Fish & Meat", href: "/search?category=fish-meat&page=1" },
-      { label: isIndo ? "Minuman Ringan" : "Soft Drink", href: "/search?category=drinks&page=1" },
-      { label: isIndo ? "Susu & Olahan" : "Milk & Dairy", href: "/search?category=milk-dairy&page=1" },
-      { label: isIndo ? "Kecantikan & Kesehatan" : "Beauty & Health", href: "/search?category=beauty-health&page=1" },
+      { label: isIndo ? "Elektronik" : "Electronics", href: "/search?category=electronics" },
+      { label: isIndo ? "Fashion" : "Fashion", href: "/search?category=fashion" },
+      { label: isIndo ? "Buku" : "Books", href: "/search?category=books" },
+      { label: isIndo ? "Kantor" : "Office", href: "/search?category=office" },
     ],
   },
   block3: {
@@ -79,16 +98,16 @@ const getDefaultFooter = (isIndo) => ({
     links: [
       { label: isIndo ? "Dasbor" : "Dashboard", href: "/user/dashboard" },
       { label: isIndo ? "Pesanan Saya" : "My Orders", href: "/user/my-orders" },
-      { label: isIndo ? "Pesanan Terakhir" : "Recent Orders", href: "/user/dashboard" },
+      { label: isIndo ? "Favorit / Wishlist" : "Wishlist", href: "/wishlist" },
       { label: isIndo ? "Perbarui Profil" : "Update Profile", href: "/user/update-profile" },
     ],
   },
   block4: {
     enabled: true,
     footerLogoDataUrl: "",
-    address: "Fakultas Ilmu Pendidikan Kampus UNM Tidung Jl. Tamalate 1 Makassar",
-    phone: "0411-0884457",
-    email: "tp.fip@unm.ac.id",
+    address: "Kampus UNM Tidung, Jl. Tamalate 1, Makassar",
+    phone: "+62 821-8866-824",
+    email: "tppreneurs@gmail.com",
   },
   socialLinks: {
     enabled: true,
@@ -96,8 +115,7 @@ const getDefaultFooter = (isIndo) => ({
     twitter: "https://twitter.com/",
     instagram: "https://www.instagram.com/",
     youtube: "https://www.youtube.com/",
-    linkedin: "https://www.linkedin.com/",
-    whatsapp: "https://web.whatsapp.com/",
+    whatsapp: "https://wa.me/628218866824",
   },
   paymentMethod: {
     enabled: true,
@@ -105,7 +123,7 @@ const getDefaultFooter = (isIndo) => ({
   },
   bottomContact: {
     enabled: true,
-    contactNumber: "+65 9988 7766",
+    contactNumber: "+62 821-8866-824",
   },
 });
 
@@ -139,17 +157,29 @@ const isPlainObject = (value) =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
 const normalizeFooterLinks = (rawLinks, fallbackLinks, isIndo) => {
-  const source = Array.isArray(rawLinks) ? rawLinks : fallbackLinks;
+  const source = Array.isArray(rawLinks) && rawLinks.length > 0 ? rawLinks : fallbackLinks;
   return source
     .map((item, index) => {
       const sourceItem = isPlainObject(item) ? item : {};
       const fallbackItem = fallbackLinks[index] || { label: "", href: "" };
+      let label = toText(sourceItem.label, fallbackItem.label);
+      let href = toText(sourceItem.href, fallbackItem.href);
+
+      // Clean dead '#' links and duplicate dashboard links
+      if (href === "#") {
+        href = fallbackItem.href !== "#" ? fallbackItem.href : "/shop";
+      }
+      if (index === 2 && href === "/user/dashboard" && fallbackItem.href === "/wishlist") {
+        href = "/wishlist";
+        label = isIndo ? "Favorit / Wishlist" : "Wishlist";
+      }
+
       return {
-        label: tLabel(toText(sourceItem.label, fallbackItem.label), isIndo),
-        href: toText(sourceItem.href, fallbackItem.href),
+        label: tLabel(label, isIndo),
+        href,
       };
     })
-    .filter((item) => item.label && item.href);
+    .filter((item) => item.label && item.href && item.href !== "#");
 };
 
 const normalizeFooterConfig = (rawFooter, isIndo) => {
@@ -182,9 +212,9 @@ const normalizeFooterConfig = (rawFooter, isIndo) => {
     block4: {
       enabled: toBool(block4.enabled, DEFAULT_FOOTER.block4.enabled),
       footerLogoDataUrl: toText(block4.footerLogoDataUrl),
-      address: toText(block4.address, DEFAULT_FOOTER.block4.address),
-      phone: toText(block4.phone, DEFAULT_FOOTER.block4.phone),
-      email: toText(block4.email, DEFAULT_FOOTER.block4.email),
+      address: sanitizeFooterDummyInfo(toText(block4.address), DEFAULT_FOOTER.block4.address),
+      phone: sanitizeFooterDummyInfo(toText(block4.phone), DEFAULT_FOOTER.block4.phone),
+      email: sanitizeFooterDummyInfo(toText(block4.email), DEFAULT_FOOTER.block4.email),
     },
     socialLinks: {
       ...DEFAULT_FOOTER.socialLinks,
@@ -199,8 +229,8 @@ const normalizeFooterConfig = (rawFooter, isIndo) => {
     },
     bottomContact: {
       enabled: toBool(bottomContact.enabled, DEFAULT_FOOTER.bottomContact.enabled),
-      contactNumber: toText(
-        bottomContact.contactNumber,
+      contactNumber: sanitizeFooterDummyInfo(
+        toText(bottomContact.contactNumber),
         DEFAULT_FOOTER.bottomContact.contactNumber
       ),
     },
@@ -211,7 +241,7 @@ const isInternalHref = (href) => /^\/(?!\/)/.test(String(href || "").trim());
 
 function FooterLink({ href, children }) {
   const className =
-    "text-sm font-semibold text-[#31486e] transition hover:text-[var(--tp-accent)] dark:text-slate-300 dark:hover:text-orange-300";
+    "text-sm font-semibold text-[#31486e] transition hover:text-[#fe6f05] dark:text-slate-300 dark:hover:text-orange-400";
 
   if (isInternalHref(href)) {
     return (
@@ -232,11 +262,12 @@ function FooterLinkBlock({ title, links }) {
   if (!links.length) return null;
 
   return (
-    <section className="space-y-5">
-      <h3 className="text-sm font-black uppercase tracking-[0.18em] text-[var(--tp-primary)] dark:text-sky-300">
-        {title}
+    <section className="space-y-4">
+      <h3 className="text-sm font-black uppercase tracking-[0.18em] text-[#034c85] dark:text-sky-300 flex items-center gap-1.5">
+        <span>{title}</span>
+        <span className="h-1.5 w-1.5 rounded-full bg-[#fe6f05] inline-block" />
       </h3>
-      <ul className="space-y-3">
+      <ul className="space-y-2.5">
         {links.map((link) => (
           <li key={`${link.label}-${link.href}`}>
             <FooterLink href={link.href}>{link.label}</FooterLink>
@@ -254,11 +285,11 @@ function FallbackBrand({ brandingName }) {
       className="flex h-[42px] min-w-[138px] items-center gap-2.5 sm:h-[48px] sm:min-w-[164px]"
       aria-label={`${brandingName} home`}
     >
-      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#0052cc] to-[#003d99] shadow-sm">
+      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#034c85] to-[#023157] shadow-sm">
         <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" stroke="currentColor">
           <path
             d="M9 18h6m-4 4h2m-5-8.5a6 6 0 1 1 8 0c-.8 1-1.5 2-1.5 3.5h-5c0-1.5-.7-2.5-1.5-3.5Z"
-            stroke="#ff7a00"
+            stroke="#fe6f05"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -266,8 +297,8 @@ function FallbackBrand({ brandingName }) {
         </svg>
       </div>
       <div className="leading-none">
-        <p className="text-[20px] font-black tracking-tight text-[#0052cc] dark:text-white">
-          TP <span className="text-[#ff7a00]">PRENEURS</span>
+        <p className="text-[20px] font-black tracking-tight text-[#034c85] dark:text-white">
+          TP <span className="text-[#fe6f05]">PRENEURS</span>
         </p>
       </div>
     </Link>
@@ -294,11 +325,11 @@ export default function StoreFooterKacha({
   const socialItems = SOCIAL_LINKS.filter(({ key }) => footer.socialLinks[key]);
 
   return (
-    <footer className="bg-[#f7fbff] px-4 pb-6 pt-0 dark:bg-slate-950 sm:px-5 lg:px-6">
-      <div className="mx-auto max-w-[1232px] overflow-hidden rounded-[28px] border border-white bg-white shadow-[0_18px_42px_rgba(var(--tp-primary-rgb)/0.10)] dark:border-slate-800 dark:bg-slate-900">
-        <div className="grid gap-10 border-b border-[#dbe6f3] px-6 py-8 dark:border-slate-800 md:grid-cols-2 xl:grid-cols-[1.35fr_0.7fr_0.8fr_1.35fr] xl:px-10">
+    <footer className="bg-transparent px-4 pb-6 pt-0 sm:px-5 lg:px-6">
+      <div className="mx-auto max-w-[1232px] overflow-hidden rounded-[28px] border border-[#034c85]/10 bg-white shadow-[0_18px_42px_rgba(3,76,133,0.07)] dark:border-slate-800 dark:bg-slate-900">
+        <div className="grid gap-10 border-b border-[#034c85]/10 px-6 py-8 dark:border-slate-800 md:grid-cols-2 xl:grid-cols-[1.35fr_0.75fr_0.8fr_1.3fr] xl:px-10">
           {footer.block4.enabled ? (
-            <section className="space-y-5">
+            <section className="space-y-4">
               {footerLogoSrc ? (
                 <Link
                   to="/"
@@ -321,23 +352,35 @@ export default function StoreFooterKacha({
               ) : (
                 <FallbackBrand brandingName={brandingName} />
               )}
-              <div className="space-y-3 text-sm font-medium leading-6 text-[#31486e] dark:text-slate-300">
+              <div className="space-y-2.5 text-sm font-medium leading-6 text-slate-600 dark:text-slate-300">
                 {footer.block4.address ? (
-                  <p className="flex gap-3">
-                    <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-[var(--tp-primary)] dark:text-sky-300" />
+                  <p className="flex items-start gap-2.5">
+                    <MapPin className="mt-1 h-4.5 w-4.5 shrink-0 text-[#034c85] dark:text-sky-400" />
                     <span>{footer.block4.address}</span>
                   </p>
                 ) : null}
                 {footer.block4.phone ? (
-                  <p className="flex items-center gap-3">
-                    <Phone className="h-5 w-5 shrink-0 text-[var(--tp-primary)] dark:text-sky-300" />
-                    <span>{footer.block4.phone}</span>
+                  <p className="flex items-center gap-2.5">
+                    <Phone className="h-4.5 w-4.5 shrink-0 text-[#034c85] dark:text-sky-400" />
+                    <a
+                      href="https://wa.me/628218866824"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="transition hover:text-[#fe6f05]"
+                    >
+                      {footer.block4.phone}
+                    </a>
                   </p>
                 ) : null}
                 {footer.block4.email ? (
-                  <p className="flex items-center gap-3">
-                    <Mail className="h-5 w-5 shrink-0 text-[var(--tp-primary)] dark:text-sky-300" />
-                    <span>{footer.block4.email}</span>
+                  <p className="flex items-center gap-2.5">
+                    <Mail className="h-4.5 w-4.5 shrink-0 text-[#034c85] dark:text-sky-400" />
+                    <a
+                      href={`mailto:${footer.block4.email}`}
+                      className="transition hover:text-[#fe6f05]"
+                    >
+                      {footer.block4.email}
+                    </a>
                   </p>
                 ) : null}
               </div>
@@ -351,13 +394,14 @@ export default function StoreFooterKacha({
             <FooterLinkBlock title={footer.block3.title} links={footer.block3.links} />
           ) : null}
 
-          <section className="space-y-8">
+          <section className="space-y-6">
             {footer.socialLinks.enabled && socialItems.length > 0 ? (
-              <div className="space-y-4">
-                <h3 className="text-sm font-black uppercase tracking-[0.18em] text-[var(--tp-primary)] dark:text-sky-300">
-                  {isIndo ? "Ikuti Kami" : "Follow Us"}
+              <div className="space-y-3">
+                <h3 className="text-sm font-black uppercase tracking-[0.18em] text-[#034c85] dark:text-sky-300 flex items-center gap-1.5">
+                  <span>{isIndo ? "Ikuti Kami" : "Follow Us"}</span>
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#fe6f05] inline-block" />
                 </h3>
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-2.5">
                   {socialItems.map(({ key, label, Icon }) => (
                     <a
                       key={key}
@@ -365,9 +409,9 @@ export default function StoreFooterKacha({
                       target="_blank"
                       rel="noreferrer"
                       aria-label={label}
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#b9cbe1] bg-white text-[var(--tp-primary)] transition hover:border-[var(--tp-accent)] hover:bg-[var(--tp-accent)] hover:text-white dark:border-slate-700 dark:bg-slate-950 dark:text-sky-300"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#034c85]/15 bg-white text-[#034c85] transition-all hover:scale-105 hover:border-[#fe6f05] hover:bg-[#fe6f05] hover:text-white dark:border-slate-700 dark:bg-slate-800 dark:text-sky-300 dark:hover:bg-[#fe6f05]"
                     >
-                      <Icon className="h-4.5 w-4.5" />
+                      <Icon className="h-4 w-4" />
                     </a>
                   ))}
                 </div>
@@ -375,33 +419,42 @@ export default function StoreFooterKacha({
             ) : null}
 
             {footer.bottomContact.enabled && footer.bottomContact.contactNumber ? (
-              <div className="flex items-center gap-4">
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[#b9cbe1] text-[var(--tp-primary)] dark:border-slate-700 dark:text-sky-300">
-                  <Headphones className="h-6 w-6" />
+              <a
+                href={
+                  footer.bottomContact.contactNumber.includes("wa.me")
+                    ? footer.bottomContact.contactNumber
+                    : `https://wa.me/${footer.bottomContact.contactNumber.replace(/[^0-9]/g, "") || "628218866824"}`
+                }
+                target="_blank"
+                rel="noreferrer"
+                className="group flex items-center gap-3.5 rounded-2xl border border-[#034c85]/15 bg-slate-50/80 p-3 transition hover:border-[#fe6f05]/40 hover:bg-[#fe6f05]/5 dark:border-slate-800 dark:bg-slate-800/40 dark:hover:border-[#fe6f05]/40"
+              >
+                <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#034c85] text-white shadow-md shadow-[#034c85]/20 transition-colors group-hover:bg-[#fe6f05]">
+                  <Headphones className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-lg font-black text-[var(--tp-primary)] dark:text-white">
-                    {isIndo ? "Butuh bantuan?" : "Need help?"}{" "}
-                    <a href={`tel:${footer.bottomContact.contactNumber.replace(/\s+/g, "")}`}>
-                      {footer.bottomContact.contactNumber}
-                    </a>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#fe6f05]">
+                    {isIndo ? "Butuh Bantuan?" : "Need Help?"}
                   </p>
-                  <p className="text-sm font-semibold text-[#31486e] dark:text-slate-300">
-                    {isIndo ? "Kami tersedia" : "We're available"} <span className="text-[var(--tp-accent)]">24/7</span>
+                  <p className="text-base font-extrabold text-[#034c85] transition-colors group-hover:text-[#fe6f05] dark:text-sky-300">
+                    {footer.bottomContact.contactNumber}
+                  </p>
+                  <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                    {isIndo ? "Chat WhatsApp 24/7" : "WhatsApp Chat 24/7"}
                   </p>
                 </div>
-              </div>
+              </a>
             ) : null}
 
             {footer.paymentMethod.enabled && paymentMethodSrc ? (
-              <div className="space-y-3">
-                <h3 className="text-sm font-black uppercase tracking-[0.18em] text-[var(--tp-primary)] dark:text-sky-300">
+              <div className="space-y-2">
+                <h3 className="text-xs font-black uppercase tracking-[0.18em] text-[#034c85] dark:text-sky-300">
                   {isIndo ? "Metode Pembayaran" : "Payment Methods"}
                 </h3>
                 <img
                   src={paymentMethodSrc}
                   alt={isIndo ? "Metode pembayaran" : "Payment methods"}
-                  className="max-h-10 max-w-full rounded-lg object-contain object-left"
+                  className="max-h-8 max-w-full rounded-lg object-contain object-left"
                   loading="lazy"
                 />
               </div>
@@ -409,16 +462,16 @@ export default function StoreFooterKacha({
           </section>
         </div>
 
-        <div className="flex flex-col gap-4 px-6 py-5 text-sm font-semibold text-[#557099] dark:text-slate-400 md:flex-row md:items-center md:justify-between xl:px-10">
+        <div className="flex flex-col gap-3 px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 sm:text-sm md:flex-row md:items-center md:justify-between xl:px-10">
           <p>© 2026 TP Preneurs. {isIndo ? "Hak cipta dilindungi." : "All rights reserved."}</p>
-          <div className="flex flex-wrap gap-4 md:gap-8">
-            <Link to="/privacy-policy" className="transition hover:text-[var(--tp-accent)]">
+          <div className="flex flex-wrap gap-4 md:gap-6">
+            <Link to="/privacy-policy" className="transition hover:text-[#fe6f05]">
               {isIndo ? "Kebijakan Privasi" : "Privacy Policy"}
             </Link>
-            <Link to="/terms-and-conditions" className="transition hover:text-[var(--tp-accent)]">
+            <Link to="/terms-and-conditions" className="transition hover:text-[#fe6f05]">
               {isIndo ? "Syarat & Ketentuan" : "Terms & Conditions"}
             </Link>
-            <Link to="/refund-policy" className="transition hover:text-[var(--tp-accent)]">
+            <Link to="/refund-policy" className="transition hover:text-[#fe6f05]">
               {isIndo ? "Kebijakan Pengembalian" : "Refund Policy"}
             </Link>
           </div>

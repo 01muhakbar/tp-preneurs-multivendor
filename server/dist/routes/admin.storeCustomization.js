@@ -85,9 +85,9 @@ const DEFAULT_FAQS_ITEMS = [
 const DEFAULT_CUSTOMIZATION = {
     home: {
         header: {
-            headerText: "We are available 24/7, Need help??",
-            phoneNumber: "565555",
-            whatsAppLink: "",
+            headerText: "Layanan Konsumen & Bantuan",
+            phoneNumber: "+62 821-8866-824",
+            whatsAppLink: "https://wa.me/628218866824",
             headerLogoUrl: "",
             logoDataUrl: "",
         },
@@ -190,18 +190,18 @@ const DEFAULT_CUSTOMIZATION = {
                 links: [
                     { label: "About Us", href: "/about-us" },
                     { label: "Contact Us", href: "/contact-us" },
-                    { label: "Careers", href: "#" },
-                    { label: "Latest News", href: "#" },
+                    { label: "Products", href: "/shop" },
+                    { label: "Offers", href: "/offers" },
                 ],
             },
             block2: {
                 enabled: true,
-                title: "Latest News",
+                title: "Categories",
                 links: [
-                    { label: "Fish & Meat", href: "/search?category=fish-meat" },
-                    { label: "Soft Drink", href: "/search?category=drinks" },
-                    { label: "Milk & Dairy", href: "/search?category=milk-dairy" },
-                    { label: "Beauty & Health", href: "/search?category=beauty-health" },
+                    { label: "Electronics", href: "/search?category=electronics" },
+                    { label: "Fashion", href: "/search?category=fashion" },
+                    { label: "Books", href: "/search?category=books" },
+                    { label: "Office", href: "/search?category=office" },
                 ],
             },
             block3: {
@@ -210,24 +210,24 @@ const DEFAULT_CUSTOMIZATION = {
                 links: [
                     { label: "Dashboard", href: "/user/dashboard" },
                     { label: "My Orders", href: "/user/my-orders" },
-                    { label: "Recent Orders", href: "/user/dashboard" },
+                    { label: "Wishlist", href: "/wishlist" },
                     { label: "Update Profile", href: "/user/update-profile" },
                 ],
             },
             block4: {
                 enabled: true,
                 footerLogoDataUrl: "",
-                address: "987 Andre Plain Suite High Street 838, Lake Hestertown, USA",
-                phone: "02.356.1666",
-                email: "ccruidk@test.com",
+                address: "Kampus UNM Tidung, Jl. Tamalate 1, Makassar",
+                phone: "+62 821-8866-824",
+                email: "tppreneurs@gmail.com",
             },
             socialLinks: {
                 enabled: true,
                 facebook: "https://www.facebook.com/",
                 twitter: "https://twitter.com/",
-                pinterest: "https://www.pinterest.com/",
-                linkedin: "https://www.linkedin.com/",
-                whatsapp: "https://web.whatsapp.com/",
+                instagram: "https://www.instagram.com/",
+                youtube: "https://www.youtube.com/",
+                whatsapp: "https://wa.me/628218866824",
             },
             paymentMethod: {
                 enabled: true,
@@ -235,7 +235,7 @@ const DEFAULT_CUSTOMIZATION = {
             },
             bottomContact: {
                 enabled: true,
-                contactNumber: "+6599887766",
+                contactNumber: "+62 821-8866-824",
             },
         },
         menuEditor: {

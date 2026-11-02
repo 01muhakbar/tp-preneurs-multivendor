@@ -132,11 +132,11 @@ function LogoMark({ logoUrl, logoVersion }) {
       className="flex h-[44px] min-w-[138px] items-center gap-2.5 sm:h-[52px] sm:min-w-[164px] lg:h-[58px] lg:min-w-[180px]"
       aria-label="TP Preneurs home"
     >
-      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#0052cc] to-[#003d99] shadow-sm">
+      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#034c85] to-[#023157] shadow-sm">
         <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" stroke="currentColor">
           <path
             d="M9 18h6m-4 4h2m-5-8.5a6 6 0 1 1 8 0c-.8 1-1.5 2-1.5 3.5h-5c0-1.5-.7-2.5-1.5-3.5Z"
-            stroke="#ff7a00"
+            stroke="#fe6f05"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -144,8 +144,8 @@ function LogoMark({ logoUrl, logoVersion }) {
         </svg>
       </div>
       <div className="leading-none">
-        <div className="text-[20px] font-black tracking-tight text-[#0052cc] dark:text-white">
-          TP <span className="text-[#ff7a00]">PRENEURS</span>
+        <div className="text-[20px] font-black tracking-tight text-[#034c85] dark:text-white">
+          TP <span className="text-[#fe6f05]">PRENEURS</span>
         </div>
       </div>
     </Link>
@@ -269,8 +269,15 @@ export default function StoreHeaderKacha({
   }, [headerCustomizationQuery.data, currentLang]);
   const headerCust = headerCustomizationQuery.data?.data || customization?.header || {};
   const activeIdentity = publicIdentityOverride || identity || null;
-  const displayPhone = activeIdentity?.phone || headerCust.phoneNumber || storeSettings?.contact?.phone || "565555";
-  const displayHeaderText = headerCust.headerText || t("header.help");
+  const rawPhone = activeIdentity?.phone || headerCust.phoneNumber || storeSettings?.contact?.phone || "+62 821-8866-824";
+  const displayPhone = String(rawPhone).includes("565555") || !rawPhone ? "+62 821-8866-824" : rawPhone;
+  const rawHeaderText = headerCust.headerText;
+  const isDummyHeader = !rawHeaderText || rawHeaderText.includes("We are available 24/7") || rawHeaderText.includes("565555");
+  const displayHeaderText = isDummyHeader
+    ? (isIndo ? "Layanan Bantuan & Konsultasi" : "Customer Support & Hub")
+    : rawHeaderText;
+  const phoneDigits = String(displayPhone).replace(/[^0-9]/g, "");
+  const phoneHref = phoneDigits ? `https://wa.me/${phoneDigits}` : "https://wa.me/628218866824";
   const displayLogoUrl = activeIdentity?.logoUrl || headerCust.headerLogoUrl || brandingLogoUrl;
   const navigate = useNavigate();
   const location = useLocation();
@@ -488,8 +495,6 @@ export default function StoreHeaderKacha({
   };
 
   const utilityItems = [
-    { key: "about-us", label: t("header.aboutUs"), href: "/about-us" },
-    { key: "contact-us", label: t("header.contactUs"), href: "/contact-us" },
     {
       key: "my-account",
       label: t("header.myAccount"),
@@ -503,10 +508,72 @@ export default function StoreHeaderKacha({
   return (
     <header className="sticky top-0 z-50 border-b border-[#e3edf8] bg-[#f7fbff]/95 text-[#071a3f] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95 dark:text-slate-100">
       {/* MOBILE HEADER (lg:hidden) */}
-      <div className="lg:hidden w-full flex flex-col">
-        {/* Row 1: Search + Cart */}
-        <div className="flex items-center gap-3 w-full bg-[var(--tp-primary)] px-4 py-3">
-          <div ref={searchRootRef} className="flex-1 relative">
+      <div className="lg:hidden w-full flex flex-col bg-white dark:bg-slate-900 border-b border-[#e3edf8] dark:border-slate-800 shadow-xs">
+        {/* Top mini info strip: Support */}
+        <div className="flex items-center justify-between px-3.5 py-1 text-[11px] font-semibold bg-[#034c85] text-white">
+          <div className="flex items-center gap-1.5 truncate">
+            <Headphones className="h-3.5 w-3.5 text-[#fe6f05] shrink-0" />
+            <span className="truncate">{displayHeaderText}</span>
+          </div>
+          <a
+            href={phoneHref}
+            target="_blank"
+            rel="noreferrer"
+            className="shrink-0 font-bold text-[#fe6f05] bg-white/10 px-2 py-0.5 rounded-full hover:bg-white/20 transition"
+          >
+            {displayPhone}
+          </a>
+        </div>
+
+        {/* Row 1: Logo + Theme + Wishlist + Cart + Account */}
+        <div className="flex items-center justify-between gap-2 px-3.5 py-2.5">
+          <div className="shrink-0 max-w-[145px] sm:max-w-[180px]">
+            <LogoMark logoUrl={displayLogoUrl} />
+          </div>
+
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <ThemeToggle
+              variant="icon"
+              className="h-9 w-9 border-slate-200 text-[#034c85] dark:border-slate-700 dark:text-slate-100"
+            />
+            <Link
+              to="/wishlist"
+              aria-label="Wishlist"
+              className="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-[#034c85] shadow-xs dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+            >
+              <Heart className="h-4.5 w-4.5" />
+              {wishlist.count > 0 ? (
+                <span className="absolute -right-1 -top-1 inline-flex min-w-4.5 h-4.5 items-center justify-center rounded-full bg-[#fe6f05] px-1 text-[10px] font-black text-white">
+                  {wishlist.count}
+                </span>
+              ) : null}
+            </Link>
+            <button
+              type="button"
+              aria-label="Open cart"
+              onClick={onCartClick}
+              className="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-[#034c85] shadow-xs dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+            >
+              <ShoppingCart className="h-4.5 w-4.5" />
+              {count > 0 ? (
+                <span className="absolute -right-1 -top-1 inline-flex min-w-4.5 h-4.5 items-center justify-center rounded-full bg-[#fe6f05] px-1 text-[10px] font-black text-white">
+                  {count}
+                </span>
+              ) : null}
+            </button>
+            <Link
+              to={isAccountSession ? "/user/my-account" : "/auth/login"}
+              aria-label={isAccountSession ? "My account" : "Login"}
+              className="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-[#034c85] shadow-xs dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+            >
+              <UserRound className="h-4.5 w-4.5" />
+            </Link>
+          </div>
+        </div>
+
+        {/* Row 2: Search input */}
+        <div className="px-3.5 pb-2.5 pt-0.5">
+          <div ref={searchRootRef} className="relative w-full">
             <form onSubmit={submitSearch}>
               <label className="relative block">
                 <span className="sr-only">Search products</span>
@@ -514,14 +581,13 @@ export default function StoreHeaderKacha({
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   onFocus={() => setSearchFocused(true)}
-                  placeholder={t("header.searchPlaceholder")}
-                  className="h-11 w-full rounded-full border-none bg-white px-5 pr-[48px] text-sm font-semibold text-[#42577b] outline-none"
+                  placeholder={isIndo ? "Cari produk digital, karya & buku..." : "Search products & campus works..."}
+                  className="h-10 w-full rounded-full border border-[#c8d7ea] bg-slate-50 px-4 pr-[46px] text-xs sm:text-sm font-semibold text-[#034c85] outline-none transition placeholder:text-slate-400 focus:border-[#034c85] focus:bg-white focus:ring-2 focus:ring-[#034c85]/15 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                 />
                 <button
                   type="submit"
                   aria-label="Search"
-                  className="absolute right-1 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-white"
-                  style={{ background: PRIMARY }}
+                  className="absolute right-1 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-[#fe6f05] text-white shadow-xs transition hover:bg-[#e05e00]"
                 >
                   <Search className="h-4 w-4" />
                 </button>
@@ -538,38 +604,14 @@ export default function StoreHeaderKacha({
               isIndo={isIndo}
             />
           </div>
-          
-          <button
-            type="button"
-            aria-label="Open cart"
-            onClick={onCartClick}
-            className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white hover:bg-white/10"
-          >
-            <ShoppingCart className="h-6 w-6" />
-            {count > 0 ? (
-              <span className="absolute -right-0.5 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--tp-accent)] px-1.5 text-[10px] font-black text-white">
-                {count}
-              </span>
-            ) : null}
-          </button>
-        </div>
-
-        {/* Row 2: Logo + Support Text */}
-        <div className="flex items-center justify-between gap-3 px-4 py-3 bg-white dark:bg-slate-900 border-b border-[#e3edf8] dark:border-slate-800">
-          <div className="shrink-0">
-            <LogoMark logoUrl={displayLogoUrl} />
-          </div>
-          <div className="text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-300 text-right leading-tight">
-            {displayHeaderText} <span className="font-black text-[var(--tp-accent)] block sm:inline">{displayPhone}</span>
-          </div>
         </div>
       </div>
 
-      <div className="hidden lg:flex mx-auto w-full max-w-7xl items-center justify-between gap-4 px-4 py-1.5 text-sm text-slate-600 sm:px-5 lg:px-6 dark:text-slate-300">
-        <div className="flex min-w-0 items-center gap-3">
-          <Headphones className="h-[18px] w-[18px] shrink-0 text-[var(--tp-primary)] dark:text-sky-300" />
-          <span className="truncate">{displayHeaderText}</span>
-          <a href={`tel:${String(displayPhone).replace(/\s+/g, "")}`} className="font-black text-[var(--tp-accent)]">
+      <div className="hidden lg:flex mx-auto w-full max-w-7xl items-center justify-between gap-4 px-4 py-1.5 text-xs sm:text-sm text-slate-600 sm:px-5 lg:px-6 dark:text-slate-300">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <Headphones className="h-4 w-4 shrink-0 text-[#034c85] dark:text-sky-300" />
+          <span className="truncate font-medium">{displayHeaderText}:</span>
+          <a href={phoneHref} target="_blank" rel="noreferrer" className="font-black text-[#fe6f05] hover:underline">
             {displayPhone}
           </a>
         </div>
@@ -582,12 +624,12 @@ export default function StoreHeaderKacha({
                   type="button"
                   onClick={item.action}
                   disabled={isLoggingOut}
-                  className="font-semibold transition hover:text-[var(--tp-accent)] disabled:cursor-wait disabled:opacity-60"
+                  className="font-semibold transition hover:text-[#fe6f05] disabled:cursor-wait disabled:opacity-60"
                 >
                   {item.label}
                 </button>
               ) : (
-                <Link to={item.href} className="font-semibold transition hover:text-[var(--tp-accent)]">
+                <Link to={item.href} className="font-semibold transition hover:text-[#fe6f05]">
                   {item.label}
                 </Link>
               )}
@@ -611,14 +653,13 @@ export default function StoreHeaderKacha({
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
                     onFocus={() => setSearchFocused(true)}
-                    placeholder={t("header.searchPlaceholder")}
-                    className="h-11 w-full rounded-full border border-[#c8d7ea] bg-white px-6 pr-[58px] text-base font-semibold text-[#42577b] outline-none transition placeholder:text-[#667798] focus:border-[var(--tp-primary)] focus:ring-4 focus:ring-[rgb(var(--tp-primary-rgb)/0.1)] dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
+                    placeholder={isIndo ? "Cari produk digital, karya inovasi & buku..." : "Search digital products, innovation works & books..."}
+                    className="h-11 w-full rounded-full border border-[#c8d7ea] bg-white px-6 pr-[58px] text-base font-semibold text-[#42577b] outline-none transition placeholder:text-[#667798] focus:border-[#034c85] focus:ring-4 focus:ring-[#034c85]/10 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
                   <button
                     type="submit"
                     aria-label="Search"
-                    className="absolute right-1.5 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-white shadow-[0_10px_20px_rgba(var(--tp-primary-rgb)/0.2)] transition hover:scale-[1.03]"
-                    style={{ background: PRIMARY }}
+                    className="absolute right-1.5 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-white bg-[#fe6f05] shadow-[0_4px_14px_rgba(254,111,5,0.35)] transition hover:bg-[#e05e00] hover:scale-[1.03]"
                   >
                     <Search className="h-5 w-5" />
                   </button>
@@ -710,14 +751,13 @@ export default function StoreHeaderKacha({
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   onFocus={() => setSearchFocused(true)}
-                  placeholder="Search products"
-                  className="h-12 w-full rounded-full border border-[#c8d7ea] bg-white px-5 pr-14 text-base font-semibold text-[#42577b] outline-none focus:border-[var(--tp-primary)] focus:ring-4 focus:ring-[rgb(var(--tp-primary-rgb)/0.1)] dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                  placeholder={isIndo ? "Cari produk digital, karya inovasi & buku..." : "Search digital products, innovation works & books..."}
+                  className="h-11 w-full rounded-full border border-[#c8d7ea] bg-white px-5 pr-14 text-sm font-semibold text-[#42577b] outline-none focus:border-[#034c85] focus:ring-4 focus:ring-[#034c85]/10 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                 />
                 <button
                   type="submit"
                   aria-label="Search"
-                  className="absolute right-1.5 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-white"
-                  style={{ background: PRIMARY }}
+                  className="absolute right-1.5 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-white bg-[#fe6f05] hover:bg-[#e05e00] transition"
                 >
                   <Search className="h-5 w-5" />
                 </button>
@@ -731,6 +771,7 @@ export default function StoreHeaderKacha({
               submitSearch={submitSearch}
               setSearchFocused={setSearchFocused}
               setSearch={setSearch}
+              isIndo={isIndo}
             />
           </div>
         </div>
@@ -743,8 +784,7 @@ export default function StoreHeaderKacha({
               <button
                 type="button"
                 onClick={() => setCategoriesOpen((value) => !value)}
-                className="inline-flex h-10 items-center gap-2.5 rounded-full px-4 text-base font-black text-white shadow-[0_10px_22px_rgba(var(--tp-primary-rgb)/0.17)] sm:px-5"
-                style={{ background: PRIMARY }}
+                className="inline-flex h-10 items-center gap-2.5 rounded-full px-4 text-base font-black text-white bg-[#034c85] hover:bg-[#023863] shadow-[0_4px_14px_rgba(3,76,133,0.25)] transition sm:px-5"
                 aria-expanded={categoriesOpen}
               >
                 <Menu className="h-5 w-5" />
@@ -796,10 +836,10 @@ export default function StoreHeaderKacha({
                   key={item.label}
                   to={item.href}
                   aria-current={isActive ? "page" : undefined}
-                  className={`relative inline-flex h-9 items-center gap-2 rounded-full px-3.5 text-base font-black transition hover:bg-[var(--tp-primary-soft)] hover:text-[var(--tp-primary)] dark:hover:bg-slate-800 ${
+                  className={`relative inline-flex h-9 items-center gap-2 rounded-full px-3.5 text-base font-black transition ${
                     isActive
-                      ? "bg-[var(--tp-primary-soft)] text-[var(--tp-primary)] dark:text-sky-200"
-                      : "text-[#071a3f] dark:text-slate-100"
+                      ? "bg-[#034c85]/10 text-[#034c85] dark:bg-sky-950/60 dark:text-sky-300"
+                      : "text-[#071a3f] hover:bg-slate-100 hover:text-[#034c85] dark:text-slate-100 dark:hover:bg-slate-800"
                   }`}
                 >
                   <span>{item.label}</span>
@@ -813,7 +853,7 @@ export default function StoreHeaderKacha({
             <button
               type="button"
               onClick={() => setLanguageOpen(!languageOpen)}
-              className="inline-flex h-9 shrink-0 items-center gap-2.5 rounded-full px-3 text-base font-black text-[#071a3f] transition hover:bg-[var(--tp-primary-soft)] dark:text-slate-100 dark:hover:bg-slate-800 sm:px-4"
+              className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full px-3 text-base font-black text-[#034c85] transition hover:bg-[#034c85]/10 dark:text-slate-100 dark:hover:bg-slate-800 sm:px-4"
               aria-expanded={languageOpen}
             >
               <Globe2 className="h-5 w-5" />
@@ -832,7 +872,7 @@ export default function StoreHeaderKacha({
                       key={langObj.isoCode}
                       type="button"
                       onClick={() => changeLanguage(langObj)}
-                      className={`block w-full rounded-xl px-4 py-2.5 text-left text-sm font-bold transition hover:bg-[var(--tp-primary-soft)] hover:text-[var(--tp-accent)] dark:hover:bg-slate-800 ${language === langObj.name ? "text-[var(--tp-accent)] bg-[var(--tp-primary-soft)] dark:bg-slate-800" : "text-[#071a3f] dark:text-slate-100"}`}
+                      className={`block w-full rounded-xl px-4 py-2.5 text-left text-sm font-bold transition hover:bg-[#034c85]/10 hover:text-[#fe6f05] dark:hover:bg-slate-800 ${language === langObj.name ? "text-[#fe6f05] bg-[#034c85]/10 dark:bg-slate-800" : "text-[#071a3f] dark:text-slate-100"}`}
                     >
                       {langObj.name}
                     </button>

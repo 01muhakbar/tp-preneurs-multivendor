@@ -652,9 +652,9 @@ const getDefaultCustomization = (targetLang = "en") => {
   return {
   home: {
     header: {
-      headerText: "We are available 24/7, Need help??",
-      phoneNumber: "565555",
-      whatsAppLink: "",
+      headerText: isIndo ? "Layanan Konsumen & Bantuan" : "Customer Support & Help",
+      phoneNumber: "+62 821-8866-824",
+      whatsAppLink: "https://wa.me/628218866824",
       headerLogoUrl: "",
       logoDataUrl: "",
     },
@@ -769,48 +769,48 @@ const getDefaultCustomization = (targetLang = "en") => {
     footer: {
       block1: {
         enabled: true,
-        title: "Company",
+        title: isIndo ? "Perusahaan" : "Company",
         links: [
-          { label: "About Us", href: "/about-us" },
-          { label: "Contact Us", href: "/contact-us" },
-          { label: "Careers", href: "#" },
-          { label: "Latest News", href: "#" },
+          { label: isIndo ? "Tentang Kami" : "About Us", href: "/about-us" },
+          { label: isIndo ? "Hubungi Kami" : "Contact Us", href: "/contact-us" },
+          { label: isIndo ? "Katalog Produk" : "Products", href: "/shop" },
+          { label: isIndo ? "Promo & Penawaran" : "Offers", href: "/offers" },
         ],
       },
       block2: {
         enabled: true,
-        title: "Latest News",
+        title: isIndo ? "Kategori" : "Categories",
         links: [
-          { label: "Fish & Meat", href: "/search?category=fish-meat" },
-          { label: "Soft Drink", href: "/search?category=drinks" },
-          { label: "Milk & Dairy", href: "/search?category=milk-dairy" },
-          { label: "Beauty & Health", href: "/search?category=beauty-health" },
+          { label: isIndo ? "Elektronik" : "Electronics", href: "/search?category=electronics" },
+          { label: isIndo ? "Fashion" : "Fashion", href: "/search?category=fashion" },
+          { label: isIndo ? "Buku" : "Books", href: "/search?category=books" },
+          { label: isIndo ? "Kantor" : "Office", href: "/search?category=office" },
         ],
       },
       block3: {
         enabled: true,
-        title: "My Account",
+        title: isIndo ? "Akun Saya" : "My Account",
         links: [
-          { label: "Dashboard", href: "/user/dashboard" },
-          { label: "My Orders", href: "/user/my-orders" },
-          { label: "Recent Orders", href: "/user/dashboard" },
-          { label: "Update Profile", href: "/user/update-profile" },
+          { label: isIndo ? "Dasbor" : "Dashboard", href: "/user/dashboard" },
+          { label: isIndo ? "Pesanan Saya" : "My Orders", href: "/user/my-orders" },
+          { label: isIndo ? "Favorit / Wishlist" : "Wishlist", href: "/wishlist" },
+          { label: isIndo ? "Perbarui Profil" : "Update Profile", href: "/user/update-profile" },
         ],
       },
       block4: {
         enabled: true,
         footerLogoDataUrl: "",
-        address: "987 Andre Plain Suite High Street 838, Lake Hestertown, USA",
-        phone: "02.356.1666",
-        email: "ccruidk@test.com",
+        address: "Kampus UNM Tidung, Jl. Tamalate 1, Makassar",
+        phone: "+62 821-8866-824",
+        email: "tppreneurs@gmail.com",
       },
       socialLinks: {
         enabled: true,
         facebook: "https://www.facebook.com/",
         twitter: "https://twitter.com/",
-        pinterest: "https://www.pinterest.com/",
-        linkedin: "https://www.linkedin.com/",
-        whatsapp: "https://web.whatsapp.com/",
+        instagram: "https://www.instagram.com/",
+        youtube: "https://www.youtube.com/",
+        whatsapp: "https://wa.me/628218866824",
       },
       paymentMethod: {
         enabled: true,
@@ -818,7 +818,7 @@ const getDefaultCustomization = (targetLang = "en") => {
       },
       bottomContact: {
         enabled: true,
-        contactNumber: "+6599887766",
+        contactNumber: "+62 821-8866-824",
       },
       newsletter: {
         enabled: true,
