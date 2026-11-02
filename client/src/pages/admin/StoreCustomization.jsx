@@ -731,6 +731,14 @@ const getDefaultCustomization = (targetLang = "en") => {
         enabled: true,
         contactNumber: "+6599887766",
       },
+      newsletter: {
+        enabled: true,
+        title: "Berlangganan Newsletter & Info Inovasi",
+        subtitle: "Dapatkan update katalog produk kreatif mahasiswa dan penawaran spesial.",
+        productStatTitle: "Karya Inovatif Mahasiswa & Edupreneur",
+        productStatSubtitle: "Katalog Produk Asli & Terverifikasi",
+        buttonText: "Berlangganan",
+      },
     },
     menuEditor: {
       labels: {
@@ -2794,6 +2802,33 @@ const normalizeCustomizationPayload = (raw, targetLang = "en") => {
           contactNumber: toText(
             footerBottomContactSource.contactNumber,
             defaultsHome.footer.bottomContact.contactNumber
+          ),
+        },
+        newsletter: {
+          ...defaultsHome.footer?.newsletter,
+          enabled: toBool(
+            footerSource.newsletter?.enabled,
+            defaultsHome.footer?.newsletter?.enabled ?? true
+          ),
+          title: toText(
+            footerSource.newsletter?.title,
+            defaultsHome.footer?.newsletter?.title || "Berlangganan Newsletter & Info Inovasi"
+          ),
+          subtitle: toText(
+            footerSource.newsletter?.subtitle,
+            defaultsHome.footer?.newsletter?.subtitle || "Dapatkan update katalog produk kreatif mahasiswa dan penawaran spesial."
+          ),
+          productStatTitle: toText(
+            footerSource.newsletter?.productStatTitle,
+            defaultsHome.footer?.newsletter?.productStatTitle || "Karya Inovatif Mahasiswa & Edupreneur"
+          ),
+          productStatSubtitle: toText(
+            footerSource.newsletter?.productStatSubtitle,
+            defaultsHome.footer?.newsletter?.productStatSubtitle || "Katalog Produk Asli & Terverifikasi"
+          ),
+          buttonText: toText(
+            footerSource.newsletter?.buttonText,
+            defaultsHome.footer?.newsletter?.buttonText || "Berlangganan"
           ),
         },
       },

@@ -253,6 +253,14 @@ const DEFAULT_CUSTOMIZATION = {
         enabled: true,
         contactNumber: "+6599887766",
       },
+      newsletter: {
+        enabled: true,
+        title: "Berlangganan Newsletter & Info Inovasi",
+        subtitle: "Dapatkan update katalog karya inovatif mahasiswa dan penawaran spesial.",
+        productStatTitle: "Karya Inovatif Mahasiswa & Edupreneur",
+        productStatSubtitle: "Katalog Produk Asli & Terverifikasi",
+        buttonText: "Berlangganan",
+      },
     },
     menuEditor: {
       labels: {
@@ -966,6 +974,11 @@ const normalizeHome = (root: Record<string, any>) => {
   const footerBottomContactSource = isPlainObject(footerSource.bottomContact)
     ? footerSource.bottomContact
     : {};
+  const footerNewsletterSource = isPlainObject(footerSource.newsletter)
+    ? footerSource.newsletter
+    : isPlainObject(homeCandidate.newsletter)
+      ? homeCandidate.newsletter
+      : {};
 
   const enabled = {
     showCategories: toBool(enabledSource.showCategories, enabledDefaults.showCategories),
@@ -1332,6 +1345,33 @@ const normalizeHome = (root: Record<string, any>) => {
         contactNumber: toText(
           footerBottomContactSource.contactNumber,
           defaults.footer.bottomContact.contactNumber
+        ),
+      },
+      newsletter: {
+        ...defaults.footer?.newsletter,
+        enabled: toBool(
+          footerNewsletterSource.enabled,
+          defaults.footer?.newsletter?.enabled ?? true
+        ),
+        title: toText(
+          footerNewsletterSource.title,
+          defaults.footer?.newsletter?.title || "Berlangganan Newsletter & Info Inovasi"
+        ),
+        subtitle: toText(
+          footerNewsletterSource.subtitle,
+          defaults.footer?.newsletter?.subtitle || "Dapatkan update katalog produk kreatif mahasiswa dan penawaran spesial."
+        ),
+        productStatTitle: toText(
+          footerNewsletterSource.productStatTitle,
+          defaults.footer?.newsletter?.productStatTitle || "Karya Inovatif Mahasiswa & Edupreneur"
+        ),
+        productStatSubtitle: toText(
+          footerNewsletterSource.productStatSubtitle,
+          defaults.footer?.newsletter?.productStatSubtitle || "Katalog Produk Asli & Terverifikasi"
+        ),
+        buttonText: toText(
+          footerNewsletterSource.buttonText,
+          defaults.footer?.newsletter?.buttonText || "Berlangganan"
         ),
       },
     },

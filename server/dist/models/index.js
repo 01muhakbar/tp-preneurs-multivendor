@@ -37,6 +37,7 @@ import { Notification } from "./Notification.js";
 import { UserAddress } from "./UserAddress.js";
 import { UserRegistrationVerification } from "./UserRegistrationVerification.js";
 import { StoreWithdrawal, initStoreWithdrawal } from "./StoreWithdrawal.js";
+import { NewsletterSubscriber } from "./NewsletterSubscriber.js";
 import { ensureSystemStoreRoles } from "../services/seller/storeRoles.js";
 function normalizeTableName(input) {
     if (typeof input === "string")
@@ -127,6 +128,7 @@ function initModels() {
     Notification.initModel(sequelize);
     UserAddress.initModel(sequelize);
     UserRegistrationVerification.initModel(sequelize);
+    NewsletterSubscriber.initModel(sequelize);
     initStoreWithdrawal(sequelize);
     const models = {
         User,
@@ -165,6 +167,7 @@ function initModels() {
         Notification,
         UserAddress,
         UserRegistrationVerification,
+        NewsletterSubscriber,
     };
     Object.values(models).forEach((model) => {
         if (typeof model.associate === "function") {
@@ -462,4 +465,4 @@ export async function resetDbDev() {
         await sequelize.query("SET FOREIGN_KEY_CHECKS = 1;");
     }
 }
-export { sequelize, User, Store, StoreRole, StoreMember, StoreAuditLog, StorePaymentProfile, StorePaymentProfileRequest, StoreApplication, Product, Category, ProductCategory, Cart, CartItem, Order, OrderItem, Suborder, SuborderItem, Payment, PaymentProof, PaymentStatusLog, OrderCollectionClaim, OrderPaymentAttempt, DuitkuCallbackInbox, OrderPaymentAttemptEvent, OrderPaymentSecurityEvent, Shipment, TrackingEvent, Coupon, ProductReview, Attribute, Language, Currency, Notification, UserAddress, UserRegistrationVerification, StoreWithdrawal, };
+export { sequelize, User, Store, StoreRole, StoreMember, StoreAuditLog, StorePaymentProfile, StorePaymentProfileRequest, StoreApplication, Product, Category, ProductCategory, Cart, CartItem, Order, OrderItem, Suborder, SuborderItem, Payment, PaymentProof, PaymentStatusLog, OrderCollectionClaim, OrderPaymentAttempt, DuitkuCallbackInbox, OrderPaymentAttemptEvent, OrderPaymentSecurityEvent, Shipment, TrackingEvent, Coupon, ProductReview, Attribute, Language, Currency, Notification, UserAddress, UserRegistrationVerification, StoreWithdrawal, NewsletterSubscriber, };

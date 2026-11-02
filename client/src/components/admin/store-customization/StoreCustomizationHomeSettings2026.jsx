@@ -1,6 +1,8 @@
 import { useMemo, useRef, useState } from "react";
 import {
+  ArrowRight,
   Boxes,
+  CheckCircle2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -12,6 +14,7 @@ import {
   Image,
   Layers3,
   Link,
+  Mail,
   Megaphone,
   Monitor,
   Search,
@@ -189,6 +192,15 @@ const DEFAULT_CONFIG = {
     bottomContact: {
       enabled: true,
       contactNumber: "+65 9988 7766",
+    },
+    newsletter: {
+      enabled: true,
+      title: "Berlangganan Newsletter & Info Inovasi",
+      subtitle: "Dapatkan update katalog produk kreatif mahasiswa dan penawaran spesial.",
+      productStatTitle: "Karya Inovatif Mahasiswa & Edupreneur",
+      productStatSubtitle: "Katalog Produk Asli & Terverifikasi",
+      buttonText: "Berlangganan",
+      status: "ready",
     },
   },
 };
@@ -542,6 +554,10 @@ const normalizeHomeValue = (value, language = "en") => {
       bottomContact: {
         ...DEFAULT_CONFIG.footer.bottomContact,
         ...(isPlainObject(merged.footer?.bottomContact) ? merged.footer.bottomContact : {}),
+      },
+      newsletter: {
+        ...DEFAULT_CONFIG.footer.newsletter,
+        ...(isPlainObject(merged.footer?.newsletter) ? merged.footer.newsletter : {}),
       },
     },
   };
@@ -948,6 +964,13 @@ export default function StoreCustomizationHomeSettings2026({
       detail: isIndo ? "Teks dan banner promosi" : "Promotional text and banners",
       icon: Megaphone,
       status: draft.promotionBanner.status || "ready",
+    },
+    {
+      key: "newsletter",
+      title: isIndo ? "Newsletter & Katalog Produk" : "Newsletter & Product Catalog",
+      detail: isIndo ? "Kelola informasi newsletter dan etalase produk asli" : "Manage newsletter and real product showcase stats",
+      icon: Mail,
+      status: draft.footer?.newsletter?.enabled !== false ? "ready" : "draft",
     },
     {
       key: "footer",
@@ -1729,6 +1752,127 @@ export default function StoreCustomizationHomeSettings2026({
           })()}
         </div>
 
+      </section>
+
+      <section ref={setSectionRef("newsletter")} className={`${cardClass} p-5 scroll-mt-24`}>
+        <SectionTitle
+          icon={Mail}
+          title={isIndo ? "Newsletter & Statistik Produk Terunggah" : "Newsletter & Uploaded Products Stat"}
+          description={
+            isIndo
+              ? "Kelola teks informasi langganan newsletter dan etalase jumlah produk asli terverifikasi TP Preneurs."
+              : "Manage newsletter subscription texts and verified TP Preneurs uploaded product statistics."
+          }
+          action={
+            <Toggle
+              checked={Boolean(draft.footer?.newsletter?.enabled !== false)}
+              onChange={(next) => updateDraft(["footer", "newsletter", "enabled"], next)}
+              ariaLabel="Toggle newsletter section"
+            />
+          }
+        />
+
+        <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <Field
+            label={isIndo ? "Judul Statistik Produk" : "Product Stat Title"}
+            value={draft.footer?.newsletter?.productStatTitle}
+            onChange={(next) => updateDraft(["footer", "newsletter", "productStatTitle"], next)}
+            max={80}
+          />
+          <Field
+            label={isIndo ? "Subjudul Statistik Produk" : "Product Stat Subtitle"}
+            value={draft.footer?.newsletter?.productStatSubtitle}
+            onChange={(next) => updateDraft(["footer", "newsletter", "productStatSubtitle"], next)}
+            max={100}
+          />
+          <Field
+            label={isIndo ? "Judul Newsletter" : "Newsletter Title"}
+            value={draft.footer?.newsletter?.title}
+            onChange={(next) => updateDraft(["footer", "newsletter", "title"], next)}
+            max={80}
+          />
+          <Field
+            label={isIndo ? "Subjudul Newsletter" : "Newsletter Subtitle"}
+            value={draft.footer?.newsletter?.subtitle}
+            onChange={(next) => updateDraft(["footer", "newsletter", "subtitle"], next)}
+            max={120}
+          />
+          <div className="lg:col-span-2">
+            <Field
+              label={isIndo ? "Teks Tombol Berlangganan" : "Subscribe Button Text"}
+              value={draft.footer?.newsletter?.buttonText}
+              onChange={(next) => updateDraft(["footer", "newsletter", "buttonText"], next)}
+              max={40}
+            />
+          </div>
+        </div>
+
+        {/* Live Preview of the section */}
+        <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              {isIndo ? "PREVIEW TAMPILAN STOREFRONT" : "STOREFRONT LIVE PREVIEW"}
+            </span>
+            <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+              {draft.footer?.newsletter?.enabled !== false ? (isIndo ? "Aktif" : "Active") : (isIndo ? "Nonaktif" : "Disabled")}
+            </span>
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border border-[#034c85]/20 bg-gradient-to-br from-white via-[#f0f6fc] to-[#e6f0fa] p-5 dark:border-[#034c85]/40 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-950">
+            <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-12">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 lg:col-span-7 lg:border-r lg:border-[#034c85]/15 lg:pr-6 dark:lg:border-slate-800">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#034c85] text-[#fe6f05] shadow-md shadow-[#034c85]/20">
+                  <ShoppingBag className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#fe6f05]/15 px-2.5 py-0.5 text-xs font-black text-[#fe6f05]">
+                      <Sparkles className="h-3 w-3" />
+                      {isIndo ? "Katalog Produk Asli" : "Authentic Product Catalog"}
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#034c85]/10 px-2 py-0.5 text-xs font-bold text-[#034c85] dark:bg-white/10 dark:text-blue-200">
+                      <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                      {isIndo ? "Terverifikasi" : "Verified"}
+                    </span>
+                  </div>
+                  <h4 className="mt-1 text-base font-extrabold text-[#034c85] dark:text-white">
+                    {draft.footer?.newsletter?.productStatTitle || (isIndo ? "Karya Inovatif Mahasiswa & Edupreneur" : "Innovative Student & Edupreneur Creations")}
+                  </h4>
+                  <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                    {draft.footer?.newsletter?.productStatSubtitle || (isIndo ? "Katalog Produk Asli & Terverifikasi" : "Authentic & Verified Product Catalog")}
+                  </p>
+                </div>
+              </div>
+
+              <div className="lg:col-span-5">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-[#fe6f05]" />
+                  <h4 className="text-sm font-extrabold text-[#034c85] dark:text-white">
+                    {draft.footer?.newsletter?.title || (isIndo ? "Berlangganan Newsletter" : "Subscribe to Our Newsletter")}
+                  </h4>
+                </div>
+                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                  {draft.footer?.newsletter?.subtitle || (isIndo ? "Dapatkan update katalog inovasi terbaru." : "Get the latest innovation catalog updates.")}
+                </p>
+                <div className="mt-3 flex gap-2">
+                  <input
+                    type="email"
+                    disabled
+                    placeholder={isIndo ? "Masukkan alamat email Anda" : "Enter your email address"}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-900"
+                  />
+                  <button
+                    type="button"
+                    disabled
+                    className="whitespace-nowrap rounded-xl bg-[#fe6f05] px-4 py-2 text-xs font-black text-white"
+                  >
+                    {draft.footer?.newsletter?.buttonText || (isIndo ? "Berlangganan" : "Subscribe")}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section ref={setSectionRef("footer")} className={`${cardClass} p-5 scroll-mt-24`}>

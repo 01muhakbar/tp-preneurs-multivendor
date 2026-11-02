@@ -2,7 +2,7 @@ import { Router } from "express";
 import { Op, QueryTypes } from "sequelize";
 import { createOrderSchema, reviewCreateSchema, reviewUpdateSchema, } from "@ecommerce/schemas";
 import { z } from "zod";
-import { Category, Order, OrderItem, Payment, Product, ProductReview, Shipment, Store, Suborder, SuborderItem, TrackingEvent, User, sequelize, } from "../models/index.js";
+import { Category, Order, OrderItem, Payment, Product, ProductReview, Shipment, Store, Suborder, SuborderItem, TrackingEvent, User, NewsletterSubscriber, sequelize, } from "../models/index.js";
 import { validateCoupon } from "../services/coupon.service.js";
 import { buildPublicOperationalStoreInclude, buildPublicStoreOperationalReadiness, serializePublicSellerInfo, } from "../services/sharedContracts/publicStoreIdentity.js";
 import { sanitizeVariationsForRuntime } from "../services/attributeVariationRuntimeValidation.js";
@@ -1015,6 +1015,81 @@ router.get("/categories", async (req, res, next) => {
             .filter(Boolean);
         res.json({
             data: normalized,
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+// GET /api/store/products/count
+router.get("/products/count", async (_req, res, next) => {
+    try {
+        const where = buildPublicProductWhere();
+        const count = await Product.count({ where });
+        res.json({
+            success: true,
+            count: Number(count || 0),
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+// POST /api/store/newsletter/subscribe
+router.post("/newsletter/subscribe", async (req, res, next) => {
+    try {
+        const email = String(req.body?.email || "").trim().toLowerCase();
+        const lang = String(req.body?.lang || req.query.lang || "id").trim().toLowerCase();
+        const isIndo = lang.startsWith("id");
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: isIndo ? "Alamat email wajib diisi." : "Email address is required.",
+            });
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email) || email.length > 190) {
+            return res.status(400).json({
+                success: false,
+                message: isIndo ? "Format alamat email tidak valid." : "Invalid email address format.",
+            });
+        }
+        await NewsletterSubscriber.sync();
+        const [subscriber, created] = await NewsletterSubscriber.findOrCreate({
+            where: { email },
+            defaults: {
+                email,
+                status: "active",
+                source: String(req.body?.source || "storefront_footer"),
+                lang,
+            },
+        });
+        if (!created) {
+            if (subscriber.status !== "active") {
+                subscriber.status = "active";
+                await subscriber.save();
+                return res.json({
+                    success: true,
+                    alreadySubscribed: false,
+                    message: isIndo
+                        ? "Langganan newsletter Anda telah aktif kembali!"
+                        : "Your newsletter subscription has been reactivated!",
+                });
+            }
+            return res.json({
+                success: true,
+                alreadySubscribed: true,
+                message: isIndo
+                    ? "Email Anda sudah terdaftar dalam newsletter kami."
+                    : "You are already subscribed to our newsletter.",
+            });
+        }
+        return res.status(201).json({
+            success: true,
+            alreadySubscribed: false,
+            message: isIndo
+                ? "Terima kasih! Anda berhasil berlangganan newsletter TP Preneurs."
+                : "Thank you! You have successfully subscribed to the TP Preneurs newsletter.",
         });
     }
     catch (error) {

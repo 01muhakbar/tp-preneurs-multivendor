@@ -9,7 +9,11 @@ import {
   fetchStoreCategories,
   fetchStoreProductById,
   fetchStoreProducts,
+  fetchStoreProductsCount,
+  subscribeNewsletter,
 } from "./api/public/storeProducts.ts";
+
+export { fetchStoreProductsCount, subscribeNewsletter };
 
 const getImageSrc = (product) => resolveProductImageUrl(product);
 

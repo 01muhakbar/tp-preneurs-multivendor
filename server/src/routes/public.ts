@@ -5,7 +5,7 @@ import path from "path";
 import fs from "fs";
 import multer from "multer";
 import bcrypt from "bcrypt";
-import { Category, Product, User, Language } from "../models/index.js";
+import { Category, Product, User, Language, NewsletterSubscriber } from "../models/index.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { buildPublicOperationalStoreInclude } from "../services/sharedContracts/publicStoreIdentity.js";
 import { hasStorefrontSellableInventory } from "../services/productVisibility.js";
@@ -475,6 +475,75 @@ router.post("/upload", (req: Request, res: Response) => {
     const url = `/uploads/products/${req.file.filename}`;
     return res.status(201).json({ success: true, data: { url } });
   });
+});
+
+router.post("/newsletter/subscribe", async (req: Request, res: Response) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const lang = String(req.body?.lang || req.query.lang || "id").trim().toLowerCase();
+    const isIndo = lang.startsWith("id");
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: isIndo ? "Alamat email wajib diisi." : "Email address is required.",
+      });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email) || email.length > 190) {
+      return res.status(400).json({
+        success: false,
+        message: isIndo ? "Format alamat email tidak valid." : "Invalid email address format.",
+      });
+    }
+
+    await NewsletterSubscriber.sync();
+
+    const [subscriber, created] = await NewsletterSubscriber.findOrCreate({
+      where: { email },
+      defaults: {
+        email,
+        status: "active",
+        source: String(req.body?.source || "storefront_footer"),
+        lang,
+      },
+    });
+
+    if (!created) {
+      if (subscriber.status !== "active") {
+        subscriber.status = "active";
+        await subscriber.save();
+        return res.json({
+          success: true,
+          alreadySubscribed: false,
+          message: isIndo
+            ? "Langganan newsletter Anda telah aktif kembali!"
+            : "Your newsletter subscription has been reactivated!",
+        });
+      }
+      return res.json({
+        success: true,
+        alreadySubscribed: true,
+        message: isIndo
+          ? "Email Anda sudah terdaftar dalam newsletter kami."
+          : "You are already subscribed to our newsletter.",
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      alreadySubscribed: false,
+      message: isIndo
+        ? "Terima kasih! Anda berhasil berlangganan newsletter TP Preneurs."
+        : "Thank you! You have successfully subscribed to the TP Preneurs newsletter.",
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || "Internal server error.",
+    });
+  }
 });
 
 export default router;

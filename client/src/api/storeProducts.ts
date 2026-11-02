@@ -65,3 +65,26 @@ export const fetchStoreProductById = async (
   });
   return normalizeStorefrontProductDetailResponse(data);
 };
+
+export const fetchStoreProductsCount = async (): Promise<number> => {
+  try {
+    const { data } = await api.get<{ success: boolean; count: number }>("/store/products/count");
+    if (typeof data?.count === "number") {
+      return data.count;
+    }
+  } catch {
+    // fallback to products query
+  }
+  const fallback = await fetchStoreProducts({ limit: 1 });
+  return fallback?.meta?.total ?? fallback?.data?.meta?.total ?? 0;
+};
+
+export const subscribeNewsletter = async (payload: {
+  email: string;
+  lang?: string;
+  source?: string;
+}): Promise<{ success: boolean; message: string; alreadySubscribed?: boolean }> => {
+  const { data } = await api.post("/store/newsletter/subscribe", payload);
+  return data;
+};
+

@@ -6,6 +6,7 @@ import {
   BadgeCheck,
   BadgePercent,
   BookOpen,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -15,9 +16,12 @@ import {
   Handshake,
   Heart,
   Lightbulb,
+  Loader2,
   Mail,
   Rocket,
+  ShoppingBag,
   ShoppingCart,
+  Sparkles,
   Star,
   Ticket,
   UserRound,
@@ -31,7 +35,7 @@ import DiscoverDigitalProductsHero from "../../components/store/DiscoverDigitalP
 import PromoDeliveryBanner from "../../components/kachabazar-demo/PromoDeliveryBanner.jsx";
 import { getStoreCustomization } from "../../api/public/storeCustomizationPublic.ts";
 import { fetchStoreCoupons } from "../../api/public/storeCoupons.ts";
-import { useCategories, useProducts } from "../../storefront.jsx";
+import { useCategories, useProducts, fetchStoreProductsCount, subscribeNewsletter } from "../../storefront.jsx";
 import { formatCurrency } from "../../utils/format.js";
 import { resolveProductImageUrl } from "../../utils/productImage.js";
 import { productHasVariantSelections } from "../../utils/publicProductVariations.js";
@@ -1103,76 +1107,178 @@ function ProductCard({ product, compact = false, showDiscount = false }) {
   );
 }
 
-function PromoStrip({ isIndo }) {
+function PromoStrip({ isIndo, config }) {
   const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [subscribed, setSubscribed] = useState(false);
 
-  const handleSubscribe = (e) => {
+  const { data: countData } = useQuery({
+    queryKey: ["storefront", "products-total-count"],
+    queryFn: () => fetchStoreProductsCount(),
+    staleTime: 60_000,
+    retry: 1,
+  });
+
+  const totalProducts =
+    typeof countData === "number"
+      ? countData
+      : (countData?.count ?? countData?.meta?.total ?? 0);
+
+  if (config?.enabled === false) {
+    return null;
+  }
+
+  const handleSubscribe = async (e) => {
     e.preventDefault();
-    if (!email) {
+    const cleanEmail = email.trim();
+    if (!cleanEmail) {
       toast.error(isIndo ? "Silakan masukkan alamat email." : "Please enter an email address.");
       return;
     }
-    toast.success(isIndo ? "Berhasil berlangganan newsletter!" : "Successfully subscribed to our newsletter!");
-    setEmail("");
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      toast.error(isIndo ? "Format alamat email tidak valid." : "Invalid email address format.");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const res = await subscribeNewsletter({
+        email: cleanEmail,
+        lang: isIndo ? "id" : "en",
+        source: "storefront_footer",
+      });
+      if (res?.success) {
+        toast.success(res.message || (isIndo ? "Berhasil berlangganan newsletter!" : "Successfully subscribed to newsletter!"));
+        setSubscribed(true);
+        setEmail("");
+      } else {
+        toast.error(res?.message || (isIndo ? "Gagal berlangganan. Silakan coba lagi." : "Failed to subscribe. Please try again."));
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || (isIndo ? "Terjadi kesalahan saat memproses langganan." : "An error occurred while subscribing."));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
+  const productStatTitle =
+    config?.productStatTitle ||
+    (isIndo
+      ? "Karya Inovatif Mahasiswa & Edupreneur"
+      : "Innovative Student & Edupreneur Creations");
+
+  const productStatSubtitle =
+    config?.productStatSubtitle ||
+    (isIndo
+      ? "Katalog Produk Asli & Terverifikasi"
+      : "Authentic & Verified Product Catalog");
+
+  const newsletterTitle =
+    config?.title ||
+    (isIndo ? "Berlangganan Newsletter" : "Subscribe to Our Newsletter");
+
+  const newsletterSubtitle =
+    config?.subtitle ||
+    (isIndo
+      ? "Dapatkan update katalog inovasi terbaru langsung ke email Anda."
+      : "Get the latest innovation catalog updates delivered to your inbox.");
+
+  const buttonText =
+    config?.buttonText || (isIndo ? "Berlangganan" : "Subscribe");
+
   return (
-    <section className="grid gap-6 rounded-[24px] bg-white p-4 shadow-[0_14px_34px_rgba(3,76,133,0.08)] dark:bg-slate-900 sm:rounded-[28px] sm:p-6 xl:grid-cols-2">
-      <div className="flex flex-col gap-4 border-[#dbe6f3] dark:border-slate-800 sm:flex-row sm:items-center sm:gap-5 xl:border-r xl:pr-10">
-        <div className="flex -space-x-3">
-          {["A", "K", "M", "S"].map((item, index) => (
-            <span
-              key={item}
-              className="grid h-11 w-11 place-items-center rounded-full border-2 border-white bg-[var(--tp-primary)] text-sm font-black text-white dark:border-slate-900"
-              style={{ background: index % 2 ? ACCENT : PRIMARY }}
-            >
-              {item}
-            </span>
-          ))}
-        </div>
-        <div>
-          <h3 className="text-lg font-black text-[var(--tp-primary)] dark:text-white">
-            {isIndo ? "Dipercaya oleh Ribuan Pelanggan yang Puas" : "Trusted by Thousands of Happy Customers"}
-          </h3>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="rounded-lg bg-[var(--tp-primary)] px-3 py-2 text-sm font-black text-white">
-              4.8
-            </span>
-            <StarRating value={5} />
-            <span className="text-sm font-semibold text-[#557099] dark:text-slate-300">
-              ({isIndo ? "120Rb+ Ulasan" : "120K+ Reviews"})
-            </span>
+    <section className="relative overflow-hidden rounded-[24px] border border-[#034c85]/15 bg-gradient-to-br from-white via-[#f0f6fc] to-[#e6f0fa] p-5 shadow-[0_12px_32px_rgba(3,76,133,0.08)] dark:border-[#034c85]/40 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-950 sm:rounded-[28px] sm:p-7 lg:p-8">
+      {/* Subtle decorative glow */}
+      <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-[#fe6f05]/10 blur-3xl dark:bg-[#fe6f05]/5" />
+      <div className="pointer-events-none absolute -bottom-20 -left-20 h-48 w-48 rounded-full bg-[#034c85]/10 blur-3xl dark:bg-[#034c85]/20" />
+
+      <div className="relative grid grid-cols-1 items-center gap-6 lg:grid-cols-12 lg:gap-8">
+        {/* Left Side: Real Product Count & Authentic TP Preneurs Showcase */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5 lg:col-span-6 xl:col-span-7 lg:border-r lg:border-[#034c85]/15 lg:pr-8 dark:lg:border-slate-800">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#034c85] text-[#fe6f05] shadow-lg shadow-[#034c85]/25">
+            <ShoppingBag className="h-8 w-8" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#fe6f05]/15 px-3 py-1 text-xs font-black uppercase tracking-wider text-[#fe6f05]">
+                <Sparkles className="h-3 w-3" />
+                {totalProducts > 0
+                  ? `${totalProducts} ${isIndo ? "Produk Aktif" : "Active Products"}`
+                  : isIndo
+                    ? "Katalog TP Preneurs"
+                    : "TP Preneurs Catalog"}
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#034c85]/10 px-2.5 py-1 text-xs font-bold text-[#034c85] dark:bg-white/10 dark:text-blue-200">
+                <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                {isIndo ? "Terverifikasi" : "Verified"}
+              </span>
+            </div>
+            <h3 className="mt-2 text-lg font-black tracking-tight text-[#034c85] dark:text-white sm:text-xl">
+              {productStatTitle}
+            </h3>
+            <p className="mt-1 text-xs font-semibold text-slate-600 dark:text-slate-300 sm:text-sm">
+              {productStatSubtitle}
+            </p>
           </div>
         </div>
-      </div>
 
-      <div className="flex items-center gap-5">
-        <div className="min-w-0 flex-1">
-          <h3 className="text-lg font-black text-[var(--tp-primary)] dark:text-white">
-            {isIndo ? "Berlangganan Newsletter Kami" : "Subscribe to Our Newsletter"}
-          </h3>
-          <p className="mt-1 text-sm font-medium text-[#557099] dark:text-slate-300">
-            {isIndo ? "Dapatkan penawaran, tips & pembaruan terbaru." : "Get the latest offers, tips & updates."}
-          </p>
-          <form onSubmit={handleSubscribe} className="mt-4 flex flex-col overflow-hidden rounded-xl border border-[#dbe6f3] bg-white dark:border-slate-700 dark:bg-slate-950 sm:flex-row">
-            <label className="sr-only" htmlFor="newsletter-email">
-              Email address
-            </label>
-            <div className="hidden items-center pl-4 pr-2 text-[#557099] dark:text-slate-400 sm:flex">
-              <Mail className="h-5 w-5" />
+        {/* Right Side: Functional Newsletter Form */}
+        <div className="lg:col-span-6 xl:col-span-5">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-[#fe6f05]" />
+              <h3 className="text-lg font-black text-[#034c85] dark:text-white sm:text-xl">
+                {newsletterTitle}
+              </h3>
             </div>
-            <input
-              id="newsletter-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={isIndo ? "Masukkan alamat email Anda" : "Enter your email address"}
-              className="min-w-0 flex-1 bg-transparent px-4 py-3 text-sm font-semibold text-[#071a3f] outline-none dark:text-white sm:px-0 sm:py-2.5 sm:pr-4"
-            />
-            <button type="submit" className="bg-[var(--tp-accent)] px-5 py-3 text-sm font-black text-white sm:py-0">
-              {isIndo ? "Berlangganan" : "Subscribe"}
-            </button>
-          </form>
+            <p className="mt-1 text-xs font-medium text-slate-600 dark:text-slate-300 sm:text-sm">
+              {newsletterSubtitle}
+            </p>
+
+            <form onSubmit={handleSubscribe} className="mt-3.5 flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="relative min-w-0 flex-1">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                  <Mail className="h-4 w-4" />
+                </div>
+                <input
+                  type="email"
+                  value={email}
+                  disabled={submitting}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={isIndo ? "Masukkan alamat email Anda" : "Enter your email address"}
+                  className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-xs font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#034c85] focus:ring-2 focus:ring-[#034c85]/20 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:border-[#fe6f05] sm:text-sm"
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#fe6f05] px-5 text-xs font-extrabold text-white shadow-md shadow-[#fe6f05]/30 transition hover:bg-[#e06002] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 sm:text-sm"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>{isIndo ? "Memproses..." : "Subscribing..."}</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{buttonText}</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </button>
+            </form>
+
+            {subscribed && (
+              <p className="mt-2 flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                {isIndo
+                  ? "Terima kasih telah bergabung dengan newsletter kami!"
+                  : "Thank you for subscribing to our newsletter!"}
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </section>
@@ -1953,7 +2059,10 @@ export default function TPPreneurHomePage() {
         </div>
       ) : null}
 
-      <PromoStrip isIndo={isIndo} />
+      <PromoStrip
+        isIndo={isIndo}
+        config={homeConfig.footer?.newsletter || homeConfig.newsletter}
+      />
     </div>
   );
 }
