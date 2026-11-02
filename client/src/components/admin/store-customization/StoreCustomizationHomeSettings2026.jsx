@@ -485,6 +485,95 @@ const resolveBilingualQuickDelivery = (field, rawValue, isIndo) => {
   return text;
 };
 
+const NEWSLETTER_BILINGUAL_MAP = {
+  productStatTitle: {
+    id: "Karya Inovatif Mahasiswa & Edupreneur",
+    en: "Innovative Student & Edupreneur Creations",
+    aliases: [
+      "karya inovatif mahasiswa & edupreneur",
+      "innovative student & edupreneur creations",
+      "trusted by thousands of happy customers",
+      "dipercaya oleh ribuan pelanggan yang puas",
+      "karya inovatif mahasiswa",
+      "innovative student creations"
+    ]
+  },
+  productStatSubtitle: {
+    id: "Katalog Produk Asli & Terverifikasi",
+    en: "Authentic & Verified Product Catalog",
+    aliases: [
+      "katalog produk asli & terverifikasi",
+      "authentic & verified product catalog",
+      "katalog produk terverifikasi",
+      "verified product catalog",
+      "120k+ reviews",
+      "120rb+ ulasan"
+    ]
+  },
+  title: {
+    id: "Berlangganan Newsletter & Info Inovasi",
+    en: "Subscribe to Newsletter & Innovation Updates",
+    aliases: [
+      "berlangganan newsletter & info inovasi",
+      "subscribe to newsletter & innovation updates",
+      "berlangganan newsletter kami",
+      "subscribe to our newsletter",
+      "berlangganan newsletter",
+      "subscribe to newsletter"
+    ]
+  },
+  subtitle: {
+    id: "Dapatkan update katalog karya inovatif mahasiswa dan penawaran spesial.",
+    en: "Get updates on student innovative creations catalog and special offers.",
+    aliases: [
+      "dapatkan update katalog karya inovatif mahasiswa dan penawaran spesial.",
+      "get updates on student innovative creations catalog and special offers.",
+      "dapatkan update katalog inovasi terbaru langsung ke email anda.",
+      "get the latest innovation catalog updates delivered to your inbox.",
+      "dapatkan update katalog inovasi terbaru.",
+      "get the latest innovation catalog updates.",
+      "dapatkan update katalog produk kreatif mahasiswa dan penawaran spesial.",
+      "dapatkan penawaran, tips & pembaruan terbaru.",
+      "get the latest offers, tips & updates."
+    ]
+  },
+  buttonText: {
+    id: "Berlangganan",
+    en: "Subscribe",
+    aliases: [
+      "berlangganan",
+      "subscribe",
+      "berlangganan newsletter",
+      "subscribe now"
+    ]
+  }
+};
+
+const resolveBilingualNewsletter = (field, rawValue, isIndoParam) => {
+  const targetLang = isIndoParam ? "id" : "en";
+  const oppositeLang = isIndoParam ? "en" : "id";
+  const mapping = NEWSLETTER_BILINGUAL_MAP[field];
+
+  if (!mapping) return rawValue || "";
+
+  const text = (rawValue || "").toString().trim();
+  if (!text) return mapping[targetLang];
+
+  const current = text.toLowerCase();
+  const canonicalTarget = mapping[targetLang].toLowerCase();
+  const canonicalOpposite = mapping[oppositeLang].toLowerCase();
+
+  if (
+    current === canonicalTarget ||
+    current === canonicalOpposite ||
+    mapping.aliases?.some((alias) => current.includes(alias.toLowerCase()))
+  ) {
+    return mapping[targetLang];
+  }
+
+  return text || mapping[targetLang];
+};
+
 const normalizeHomeValue = (value, language = "en") => {
   const isIndo = String(language || "").toLowerCase().startsWith("id");
   const source = isPlainObject(value) ? value : {};
@@ -558,6 +647,11 @@ const normalizeHomeValue = (value, language = "en") => {
       newsletter: {
         ...DEFAULT_CONFIG.footer.newsletter,
         ...(isPlainObject(merged.footer?.newsletter) ? merged.footer.newsletter : {}),
+        title: resolveBilingualNewsletter("title", merged.footer?.newsletter?.title, isIndo),
+        subtitle: resolveBilingualNewsletter("subtitle", merged.footer?.newsletter?.subtitle, isIndo),
+        productStatTitle: resolveBilingualNewsletter("productStatTitle", merged.footer?.newsletter?.productStatTitle, isIndo),
+        productStatSubtitle: resolveBilingualNewsletter("productStatSubtitle", merged.footer?.newsletter?.productStatSubtitle, isIndo),
+        buttonText: resolveBilingualNewsletter("buttonText", merged.footer?.newsletter?.buttonText, isIndo),
       },
     },
   };
@@ -1836,10 +1930,10 @@ export default function StoreCustomizationHomeSettings2026({
                     </span>
                   </div>
                   <h4 className="mt-1 text-base font-extrabold text-[#034c85] dark:text-white">
-                    {draft.footer?.newsletter?.productStatTitle || (isIndo ? "Karya Inovatif Mahasiswa & Edupreneur" : "Innovative Student & Edupreneur Creations")}
+                    {resolveBilingualNewsletter("productStatTitle", draft.footer?.newsletter?.productStatTitle, isIndo)}
                   </h4>
                   <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                    {draft.footer?.newsletter?.productStatSubtitle || (isIndo ? "Katalog Produk Asli & Terverifikasi" : "Authentic & Verified Product Catalog")}
+                    {resolveBilingualNewsletter("productStatSubtitle", draft.footer?.newsletter?.productStatSubtitle, isIndo)}
                   </p>
                 </div>
               </div>
@@ -1848,11 +1942,11 @@ export default function StoreCustomizationHomeSettings2026({
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-[#fe6f05]" />
                   <h4 className="text-sm font-extrabold text-[#034c85] dark:text-white">
-                    {draft.footer?.newsletter?.title || (isIndo ? "Berlangganan Newsletter" : "Subscribe to Our Newsletter")}
+                    {resolveBilingualNewsletter("title", draft.footer?.newsletter?.title, isIndo)}
                   </h4>
                 </div>
                 <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                  {draft.footer?.newsletter?.subtitle || (isIndo ? "Dapatkan update katalog inovasi terbaru." : "Get the latest innovation catalog updates.")}
+                  {resolveBilingualNewsletter("subtitle", draft.footer?.newsletter?.subtitle, isIndo)}
                 </p>
                 <div className="mt-3 flex gap-2">
                   <input
@@ -1866,7 +1960,7 @@ export default function StoreCustomizationHomeSettings2026({
                     disabled
                     className="whitespace-nowrap rounded-xl bg-[#fe6f05] px-4 py-2 text-xs font-black text-white"
                   >
-                    {draft.footer?.newsletter?.buttonText || (isIndo ? "Berlangganan" : "Subscribe")}
+                    {resolveBilingualNewsletter("buttonText", draft.footer?.newsletter?.buttonText, isIndo)}
                   </button>
                 </div>
               </div>

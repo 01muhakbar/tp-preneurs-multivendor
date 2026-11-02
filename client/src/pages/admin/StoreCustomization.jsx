@@ -558,6 +558,95 @@ const resolveBilingualQuickDelivery = (field, rawValue, isIndo) => {
   return text;
 };
 
+const NEWSLETTER_BILINGUAL_MAP = {
+  productStatTitle: {
+    id: "Karya Inovatif Mahasiswa & Edupreneur",
+    en: "Innovative Student & Edupreneur Creations",
+    aliases: [
+      "karya inovatif mahasiswa & edupreneur",
+      "innovative student & edupreneur creations",
+      "trusted by thousands of happy customers",
+      "dipercaya oleh ribuan pelanggan yang puas",
+      "karya inovatif mahasiswa",
+      "innovative student creations"
+    ]
+  },
+  productStatSubtitle: {
+    id: "Katalog Produk Asli & Terverifikasi",
+    en: "Authentic & Verified Product Catalog",
+    aliases: [
+      "katalog produk asli & terverifikasi",
+      "authentic & verified product catalog",
+      "katalog produk terverifikasi",
+      "verified product catalog",
+      "120k+ reviews",
+      "120rb+ ulasan"
+    ]
+  },
+  title: {
+    id: "Berlangganan Newsletter & Info Inovasi",
+    en: "Subscribe to Newsletter & Innovation Updates",
+    aliases: [
+      "berlangganan newsletter & info inovasi",
+      "subscribe to newsletter & innovation updates",
+      "berlangganan newsletter kami",
+      "subscribe to our newsletter",
+      "berlangganan newsletter",
+      "subscribe to newsletter"
+    ]
+  },
+  subtitle: {
+    id: "Dapatkan update katalog karya inovatif mahasiswa dan penawaran spesial.",
+    en: "Get updates on student innovative creations catalog and special offers.",
+    aliases: [
+      "dapatkan update katalog karya inovatif mahasiswa dan penawaran spesial.",
+      "get updates on student innovative creations catalog and special offers.",
+      "dapatkan update katalog inovasi terbaru langsung ke email anda.",
+      "get the latest innovation catalog updates delivered to your inbox.",
+      "dapatkan update katalog inovasi terbaru.",
+      "get the latest innovation catalog updates.",
+      "dapatkan update katalog produk kreatif mahasiswa dan penawaran spesial.",
+      "dapatkan penawaran, tips & pembaruan terbaru.",
+      "get the latest offers, tips & updates."
+    ]
+  },
+  buttonText: {
+    id: "Berlangganan",
+    en: "Subscribe",
+    aliases: [
+      "berlangganan",
+      "subscribe",
+      "berlangganan newsletter",
+      "subscribe now"
+    ]
+  }
+};
+
+const resolveBilingualNewsletter = (field, rawValue, isIndoParam) => {
+  const targetLang = isIndoParam ? "id" : "en";
+  const oppositeLang = isIndoParam ? "en" : "id";
+  const mapping = NEWSLETTER_BILINGUAL_MAP[field];
+
+  if (!mapping) return rawValue || "";
+
+  const text = (rawValue || "").toString().trim();
+  if (!text) return mapping[targetLang];
+
+  const current = text.toLowerCase();
+  const canonicalTarget = mapping[targetLang].toLowerCase();
+  const canonicalOpposite = mapping[oppositeLang].toLowerCase();
+
+  if (
+    current === canonicalTarget ||
+    current === canonicalOpposite ||
+    mapping.aliases?.some((alias) => current.includes(alias.toLowerCase()))
+  ) {
+    return mapping[targetLang];
+  }
+
+  return text || mapping[targetLang];
+};
+
 const getDefaultCustomization = (targetLang = "en") => {
   const isIndo = String(targetLang || "").toLowerCase().startsWith("id");
   return {
@@ -733,11 +822,19 @@ const getDefaultCustomization = (targetLang = "en") => {
       },
       newsletter: {
         enabled: true,
-        title: "Berlangganan Newsletter & Info Inovasi",
-        subtitle: "Dapatkan update katalog produk kreatif mahasiswa dan penawaran spesial.",
-        productStatTitle: "Karya Inovatif Mahasiswa & Edupreneur",
-        productStatSubtitle: "Katalog Produk Asli & Terverifikasi",
-        buttonText: "Berlangganan",
+        title: isIndo
+          ? "Berlangganan Newsletter & Info Inovasi"
+          : "Subscribe to Newsletter & Innovation Updates",
+        subtitle: isIndo
+          ? "Dapatkan update katalog karya inovatif mahasiswa dan penawaran spesial."
+          : "Get updates on student innovative creations catalog and special offers.",
+        productStatTitle: isIndo
+          ? "Karya Inovatif Mahasiswa & Edupreneur"
+          : "Innovative Student & Edupreneur Creations",
+        productStatSubtitle: isIndo
+          ? "Katalog Produk Asli & Terverifikasi"
+          : "Authentic & Verified Product Catalog",
+        buttonText: isIndo ? "Berlangganan" : "Subscribe",
       },
     },
     menuEditor: {
@@ -2810,25 +2907,30 @@ const normalizeCustomizationPayload = (raw, targetLang = "en") => {
             footerSource.newsletter?.enabled,
             defaultsHome.footer?.newsletter?.enabled ?? true
           ),
-          title: toText(
+          title: resolveBilingualNewsletter(
+            "title",
             footerSource.newsletter?.title,
-            defaultsHome.footer?.newsletter?.title || "Berlangganan Newsletter & Info Inovasi"
+            isIndo
           ),
-          subtitle: toText(
+          subtitle: resolveBilingualNewsletter(
+            "subtitle",
             footerSource.newsletter?.subtitle,
-            defaultsHome.footer?.newsletter?.subtitle || "Dapatkan update katalog produk kreatif mahasiswa dan penawaran spesial."
+            isIndo
           ),
-          productStatTitle: toText(
+          productStatTitle: resolveBilingualNewsletter(
+            "productStatTitle",
             footerSource.newsletter?.productStatTitle,
-            defaultsHome.footer?.newsletter?.productStatTitle || "Karya Inovatif Mahasiswa & Edupreneur"
+            isIndo
           ),
-          productStatSubtitle: toText(
+          productStatSubtitle: resolveBilingualNewsletter(
+            "productStatSubtitle",
             footerSource.newsletter?.productStatSubtitle,
-            defaultsHome.footer?.newsletter?.productStatSubtitle || "Katalog Produk Asli & Terverifikasi"
+            isIndo
           ),
-          buttonText: toText(
+          buttonText: resolveBilingualNewsletter(
+            "buttonText",
             footerSource.newsletter?.buttonText,
-            defaultsHome.footer?.newsletter?.buttonText || "Berlangganan"
+            isIndo
           ),
         },
       },

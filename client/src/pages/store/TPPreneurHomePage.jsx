@@ -1107,6 +1107,95 @@ function ProductCard({ product, compact = false, showDiscount = false }) {
   );
 }
 
+const NEWSLETTER_BILINGUAL_MAP = {
+  productStatTitle: {
+    id: "Karya Inovatif Mahasiswa & Edupreneur",
+    en: "Innovative Student & Edupreneur Creations",
+    aliases: [
+      "karya inovatif mahasiswa & edupreneur",
+      "innovative student & edupreneur creations",
+      "trusted by thousands of happy customers",
+      "dipercaya oleh ribuan pelanggan yang puas",
+      "karya inovatif mahasiswa",
+      "innovative student creations"
+    ]
+  },
+  productStatSubtitle: {
+    id: "Katalog Produk Asli & Terverifikasi",
+    en: "Authentic & Verified Product Catalog",
+    aliases: [
+      "katalog produk asli & terverifikasi",
+      "authentic & verified product catalog",
+      "katalog produk terverifikasi",
+      "verified product catalog",
+      "120k+ reviews",
+      "120rb+ ulasan"
+    ]
+  },
+  title: {
+    id: "Berlangganan Newsletter & Info Inovasi",
+    en: "Subscribe to Newsletter & Innovation Updates",
+    aliases: [
+      "berlangganan newsletter & info inovasi",
+      "subscribe to newsletter & innovation updates",
+      "berlangganan newsletter kami",
+      "subscribe to our newsletter",
+      "berlangganan newsletter",
+      "subscribe to newsletter"
+    ]
+  },
+  subtitle: {
+    id: "Dapatkan update katalog karya inovatif mahasiswa dan penawaran spesial.",
+    en: "Get updates on student innovative creations catalog and special offers.",
+    aliases: [
+      "dapatkan update katalog karya inovatif mahasiswa dan penawaran spesial.",
+      "get updates on student innovative creations catalog and special offers.",
+      "dapatkan update katalog inovasi terbaru langsung ke email anda.",
+      "get the latest innovation catalog updates delivered to your inbox.",
+      "dapatkan update katalog inovasi terbaru.",
+      "get the latest innovation catalog updates.",
+      "dapatkan update katalog produk kreatif mahasiswa dan penawaran spesial.",
+      "dapatkan penawaran, tips & pembaruan terbaru.",
+      "get the latest offers, tips & updates."
+    ]
+  },
+  buttonText: {
+    id: "Berlangganan",
+    en: "Subscribe",
+    aliases: [
+      "berlangganan",
+      "subscribe",
+      "berlangganan newsletter",
+      "subscribe now"
+    ]
+  }
+};
+
+const resolveBilingualNewsletter = (field, rawValue, isIndoParam) => {
+  const targetLang = isIndoParam ? "id" : "en";
+  const oppositeLang = isIndoParam ? "en" : "id";
+  const mapping = NEWSLETTER_BILINGUAL_MAP[field];
+
+  if (!mapping) return rawValue || "";
+
+  const text = (rawValue || "").toString().trim();
+  if (!text) return mapping[targetLang];
+
+  const current = text.toLowerCase();
+  const canonicalTarget = mapping[targetLang].toLowerCase();
+  const canonicalOpposite = mapping[oppositeLang].toLowerCase();
+
+  if (
+    current === canonicalTarget ||
+    current === canonicalOpposite ||
+    mapping.aliases?.some((alias) => current.includes(alias.toLowerCase()))
+  ) {
+    return mapping[targetLang];
+  }
+
+  return text || mapping[targetLang];
+};
+
 function PromoStrip({ isIndo, config }) {
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -1162,30 +1251,35 @@ function PromoStrip({ isIndo, config }) {
     }
   };
 
-  const productStatTitle =
-    config?.productStatTitle ||
-    (isIndo
-      ? "Karya Inovatif Mahasiswa & Edupreneur"
-      : "Innovative Student & Edupreneur Creations");
+  const productStatTitle = resolveBilingualNewsletter(
+    "productStatTitle",
+    config?.productStatTitle,
+    isIndo
+  );
 
-  const productStatSubtitle =
-    config?.productStatSubtitle ||
-    (isIndo
-      ? "Katalog Produk Asli & Terverifikasi"
-      : "Authentic & Verified Product Catalog");
+  const productStatSubtitle = resolveBilingualNewsletter(
+    "productStatSubtitle",
+    config?.productStatSubtitle,
+    isIndo
+  );
 
-  const newsletterTitle =
-    config?.title ||
-    (isIndo ? "Berlangganan Newsletter" : "Subscribe to Our Newsletter");
+  const newsletterTitle = resolveBilingualNewsletter(
+    "title",
+    config?.title,
+    isIndo
+  );
 
-  const newsletterSubtitle =
-    config?.subtitle ||
-    (isIndo
-      ? "Dapatkan update katalog inovasi terbaru langsung ke email Anda."
-      : "Get the latest innovation catalog updates delivered to your inbox.");
+  const newsletterSubtitle = resolveBilingualNewsletter(
+    "subtitle",
+    config?.subtitle,
+    isIndo
+  );
 
-  const buttonText =
-    config?.buttonText || (isIndo ? "Berlangganan" : "Subscribe");
+  const buttonText = resolveBilingualNewsletter(
+    "buttonText",
+    config?.buttonText,
+    isIndo
+  );
 
   return (
     <section className="relative overflow-hidden rounded-[24px] border border-[#034c85]/15 bg-gradient-to-br from-white via-[#f0f6fc] to-[#e6f0fa] p-5 shadow-[0_12px_32px_rgba(3,76,133,0.08)] dark:border-[#034c85]/40 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-950 sm:rounded-[28px] sm:p-7 lg:p-8">
