@@ -4,6 +4,89 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import "./discover-digital-products-hero.css";
 
+const QUICK_DELIVERY_BILINGUAL_MAP = {
+  subTitle: {
+    id: "PRODUK DIGITAL & INOVASI",
+    en: "DIGITAL & INNOVATION PRODUCTS",
+    aliases: [
+      "produk digital & inovasi",
+      "digital & innovation products",
+      "karya digital & inovasi",
+      "organic products and food",
+      "fast and reliable delivery to your doorstep."
+    ]
+  },
+  title: {
+    id: "Belanja Online dengan Mudah",
+    en: "Shop Online with Ease",
+    aliases: [
+      "belanja online dengan mudah",
+      "shop online with ease",
+      "belanja produk inovasi tp preneurs",
+      "quick delivery to your home",
+      "quick delivery",
+      "100% natural quality organic product"
+    ]
+  },
+  description: {
+    id: "Akses langsung produk digital, media belajar interaktif, dan karya riset mahasiswa.",
+    en: "Instant access to curated student digital creations, interactive media, and research tools.",
+    aliases: [
+      "akses langsung produk digital, media belajar interaktif, dan karya riset mahasiswa.",
+      "instant access to curated student digital creations, interactive media, and research tools.",
+      "same-day delivery in select cities with real-time tracking.",
+      "there are many products you will find in our shop, choose your daily necessary product from our kachabazar shop and get some special offers. see our latest discounted products from here and get a special discount."
+    ]
+  },
+  buttonName: {
+    id: "Mulai Belanja",
+    en: "Start Shopping",
+    aliases: [
+      "mulai belanja",
+      "start shopping",
+      "download app",
+      "buy now",
+      "learn more",
+      "jelajahi produk"
+    ]
+  },
+};
+
+const resolveBilingualText = (field, rawValue, isIndo) => {
+  const text = String(rawValue || "").trim();
+  const targetLang = isIndo ? "id" : "en";
+  const oppositeLang = isIndo ? "en" : "id";
+  const mapping = QUICK_DELIVERY_BILINGUAL_MAP[field];
+
+  if (!text) {
+    return mapping ? mapping[targetLang] : text;
+  }
+
+  const current = text.toLowerCase();
+
+  if (
+    current.includes("quick delivery to your home") ||
+    current.includes("organic products and food") ||
+    current.includes("choose your daily necessary product") ||
+    current.includes("download app") ||
+    current.includes("fast and reliable delivery")
+  ) {
+    return mapping ? mapping[targetLang] : text;
+  }
+
+  if (mapping) {
+    const canonicalOpposite = mapping[oppositeLang].toLowerCase();
+    const canonicalTarget = mapping[targetLang].toLowerCase();
+    const isAlias = Array.isArray(mapping.aliases) && mapping.aliases.some((alias) => alias.toLowerCase() === current);
+
+    if (current === canonicalOpposite || current === canonicalTarget || isAlias) {
+      return mapping[targetLang];
+    }
+  }
+
+  return text;
+};
+
 export default function DiscoverDigitalProductsHero({
   title,
   subTitle,
@@ -13,18 +96,15 @@ export default function DiscoverDigitalProductsHero({
   imageDataUrl,
   isIndo: propIsIndo,
 }) {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const currentLang = (i18n.language || "id").toLowerCase();
   const isIndo = typeof propIsIndo === "boolean" ? propIsIndo : currentLang.startsWith("id");
 
-  // Fallback defaults tailored to TP Preneurs
-  const displayEyebrow = subTitle || t("home.eyebrow", isIndo ? "KARYA DIGITAL & INOVASI" : "DIGITAL & INNOVATION PRODUCTS");
-  const displayTitle = title || t("home.heading1", isIndo ? "Belanja Produk Inovasi TP Preneurs" : "Shop Online with Ease");
-  const displayDescription = description || t("home.description", isIndo 
-    ? "Akses langsung produk digital, media belajar interaktif, dan karya riset mahasiswa."
-    : "Instant access to curated student digital creations, interactive media, and research tools."
-  );
-  const displayButtonName = buttonName || t("home.startShopping", isIndo ? "Mulai Belanja" : "Start Shopping");
+  // Dynamic bilingual resolution for TP Preneurs
+  const displayEyebrow = resolveBilingualText("subTitle", subTitle, isIndo);
+  const displayTitle = resolveBilingualText("title", title, isIndo);
+  const displayDescription = resolveBilingualText("description", description, isIndo);
+  const displayButtonName = resolveBilingualText("buttonName", buttonName, isIndo);
   const displayLink = buttonLink || "/shop";
 
   // Split title to give accent color to the last 2 words

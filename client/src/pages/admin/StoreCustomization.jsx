@@ -423,6 +423,89 @@ const resolveBilingualPromo = (field, rawValue, isIndo) => {
   return text;
 };
 
+const QUICK_DELIVERY_BILINGUAL_MAP = {
+  subTitle: {
+    id: "PRODUK DIGITAL & INOVASI",
+    en: "DIGITAL & INNOVATION PRODUCTS",
+    aliases: [
+      "produk digital & inovasi",
+      "digital & innovation products",
+      "karya digital & inovasi",
+      "organic products and food",
+      "fast and reliable delivery to your doorstep."
+    ]
+  },
+  title: {
+    id: "Belanja Online dengan Mudah",
+    en: "Shop Online with Ease",
+    aliases: [
+      "belanja online dengan mudah",
+      "shop online with ease",
+      "belanja produk inovasi tp preneurs",
+      "quick delivery to your home",
+      "quick delivery",
+      "100% natural quality organic product"
+    ]
+  },
+  description: {
+    id: "Akses langsung produk digital, media belajar interaktif, dan karya riset mahasiswa.",
+    en: "Instant access to curated student digital creations, interactive media, and research tools.",
+    aliases: [
+      "akses langsung produk digital, media belajar interaktif, dan karya riset mahasiswa.",
+      "instant access to curated student digital creations, interactive media, and research tools.",
+      "same-day delivery in select cities with real-time tracking.",
+      "choose your daily necessary product from our kachabazar shop and get some special offers. see our latest discounted products from here and get a special discount."
+    ]
+  },
+  buttonName: {
+    id: "Mulai Belanja",
+    en: "Start Shopping",
+    aliases: [
+      "mulai belanja",
+      "start shopping",
+      "download app",
+      "buy now",
+      "learn more",
+      "jelajahi produk"
+    ]
+  },
+};
+
+const resolveBilingualQuickDelivery = (field, rawValue, isIndo) => {
+  const text = toText(rawValue);
+  const targetLang = isIndo ? "id" : "en";
+  const oppositeLang = isIndo ? "en" : "id";
+  const mapping = QUICK_DELIVERY_BILINGUAL_MAP[field];
+
+  if (!text) {
+    return mapping ? mapping[targetLang] : text;
+  }
+
+  const current = text.trim().toLowerCase();
+
+  if (
+    current.includes("quick delivery to your home") ||
+    current.includes("organic products and food") ||
+    current.includes("choose your daily necessary product") ||
+    current.includes("download app") ||
+    current.includes("fast and reliable delivery")
+  ) {
+    return mapping ? mapping[targetLang] : text;
+  }
+
+  if (mapping) {
+    const canonicalOpposite = mapping[oppositeLang].toLowerCase();
+    const canonicalTarget = mapping[targetLang].toLowerCase();
+    const isAlias = Array.isArray(mapping.aliases) && mapping.aliases.some((alias) => alias.toLowerCase() === current);
+
+    if (current === canonicalOpposite || current === canonicalTarget || isAlias) {
+      return mapping[targetLang];
+    }
+  }
+
+  return text;
+};
+
 const getDefaultCustomization = (targetLang = "en") => {
   const isIndo = String(targetLang || "").toLowerCase().startsWith("id");
   return {
@@ -501,11 +584,12 @@ const getDefaultCustomization = (targetLang = "en") => {
     },
     quickDelivery: {
       enabled: true,
-      subTitle: "KARYA DIGITAL & INOVASI",
-      title: "Belanja Produk Inovasi TP Preneurs",
-      description:
-        "Akses langsung produk digital, media belajar interaktif, dan karya riset mahasiswa.",
-      buttonName: "Mulai Belanja",
+      subTitle: isIndo ? "PRODUK DIGITAL & INOVASI" : "DIGITAL & INNOVATION PRODUCTS",
+      title: isIndo ? "Belanja Online dengan Mudah" : "Shop Online with Ease",
+      description: isIndo
+        ? "Akses langsung produk digital, media belajar interaktif, dan karya riset mahasiswa."
+        : "Instant access to curated student digital creations, interactive media, and research tools.",
+      buttonName: isIndo ? "Mulai Belanja" : "Start Shopping",
       buttonLink: "/shop",
       imageDataUrl: "",
       displayOn: "Desktop & Mobile",
@@ -2451,21 +2535,44 @@ const normalizeCustomizationPayload = (raw, targetLang = "en") => {
       quickDelivery: {
         ...defaultsHome.quickDelivery,
         enabled: toBool(quickDeliverySource.enabled, defaultsHome.quickDelivery.enabled),
-        subTitle: toText(quickDeliverySource.subTitle, defaultsHome.quickDelivery.subTitle),
-        title: toText(quickDeliverySource.title, defaultsHome.quickDelivery.title),
-        description: toText(
-          quickDeliverySource.description,
-          defaultsHome.quickDelivery.description
+        subTitle: resolveBilingualQuickDelivery(
+          "subTitle",
+          quickDeliverySource.subTitle || quickDeliverySource.subtitle || defaultsHome.quickDelivery.subTitle,
+          isIndo
         ),
-        buttonName: toText(
-          quickDeliverySource.buttonName,
-          defaultsHome.quickDelivery.buttonName
+        title: resolveBilingualQuickDelivery(
+          "title",
+          quickDeliverySource.title || defaultsHome.quickDelivery.title,
+          isIndo
         ),
-        buttonLink: toText(
-          quickDeliverySource.buttonLink,
-          defaultsHome.quickDelivery.buttonLink
+        description: resolveBilingualQuickDelivery(
+          "description",
+          quickDeliverySource.description || defaultsHome.quickDelivery.description,
+          isIndo
         ),
+        buttonName: resolveBilingualQuickDelivery(
+          "buttonName",
+          quickDeliverySource.buttonName || defaultsHome.quickDelivery.buttonName,
+          isIndo
+        ),
+        buttonLink: (() => {
+          const val = toText(
+            quickDeliverySource.buttonLink,
+            defaultsHome.quickDelivery.buttonLink
+          );
+          return val === "#" || val.toLowerCase().includes("delivery")
+            ? defaultsHome.quickDelivery.buttonLink
+            : val;
+        })(),
         imageDataUrl: toText(quickDeliverySource.imageDataUrl, ""),
+        displayOn: toText(
+          quickDeliverySource.displayOn,
+          defaultsHome.quickDelivery.displayOn || "Desktop & Mobile"
+        ),
+        status: toText(
+          quickDeliverySource.status,
+          defaultsHome.quickDelivery.status || "ready"
+        ),
       },
       latestDiscountedProducts: {
         ...defaultsHome.latestDiscountedProducts,

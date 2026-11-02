@@ -3,6 +3,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "../Layout/Sidebar.jsx";
 import Navbar from "../Layout/Navbar.jsx";
 import AdminSearchPalette from "../admin/AdminSearchPalette.jsx";
+import ErrorBoundary from "../common/ErrorBoundary.js";
 import useStoredBoolean from "../../hooks/useStoredBoolean.js";
 import "../Layout/MainLayout.css";
 
@@ -94,7 +95,9 @@ export default function AdminLayout() {
           onOpenSearchPalette={() => setSearchPaletteOpen(true)}
         />
         <main className="layout__page admin-page-shell">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
       <AdminSearchPalette

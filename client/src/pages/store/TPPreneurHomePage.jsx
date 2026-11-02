@@ -1330,6 +1330,89 @@ export default function TPPreneurHomePage() {
     };
   }, [homeConfig, isIndo]);
 
+  const QUICK_DELIVERY_BILINGUAL_MAP = {
+    subTitle: {
+      id: "PRODUK DIGITAL & INOVASI",
+      en: "DIGITAL & INNOVATION PRODUCTS",
+      aliases: [
+        "produk digital & inovasi",
+        "digital & innovation products",
+        "karya digital & inovasi",
+        "organic products and food",
+        "fast and reliable delivery to your doorstep."
+      ]
+    },
+    title: {
+      id: "Belanja Online dengan Mudah",
+      en: "Shop Online with Ease",
+      aliases: [
+        "belanja online dengan mudah",
+        "shop online with ease",
+        "belanja produk inovasi tp preneurs",
+        "quick delivery to your home",
+        "quick delivery",
+        "100% natural quality organic product"
+      ]
+    },
+    description: {
+      id: "Akses langsung produk digital, media belajar interaktif, dan karya riset mahasiswa.",
+      en: "Instant access to curated student digital creations, interactive media, and research tools.",
+      aliases: [
+        "akses langsung produk digital, media belajar interaktif, dan karya riset mahasiswa.",
+        "instant access to curated student digital creations, interactive media, and research tools.",
+        "same-day delivery in select cities with real-time tracking.",
+        "choose your daily necessary product from our kachabazar shop and get some special offers. see our latest discounted products from here and get a special discount."
+      ]
+    },
+    buttonName: {
+      id: "Mulai Belanja",
+      en: "Start Shopping",
+      aliases: [
+        "mulai belanja",
+        "start shopping",
+        "download app",
+        "buy now",
+        "learn more",
+        "jelajahi produk"
+      ]
+    },
+  };
+
+  const resolveBilingualQuickDelivery = (field, rawValue, isIndoParam) => {
+    const text = toText(rawValue);
+    const targetLang = isIndoParam ? "id" : "en";
+    const oppositeLang = isIndoParam ? "en" : "id";
+    const mapping = QUICK_DELIVERY_BILINGUAL_MAP[field];
+
+    if (!text) {
+      return mapping ? mapping[targetLang] : text;
+    }
+
+    const current = text.trim().toLowerCase();
+
+    if (
+      current.includes("quick delivery to your home") ||
+      current.includes("organic products and food") ||
+      current.includes("choose your daily necessary product") ||
+      current.includes("download app") ||
+      current.includes("fast and reliable delivery")
+    ) {
+      return mapping ? mapping[targetLang] : text;
+    }
+
+    if (mapping) {
+      const canonicalOpposite = mapping[oppositeLang].toLowerCase();
+      const canonicalTarget = mapping[targetLang].toLowerCase();
+      const isAlias = Array.isArray(mapping.aliases) && mapping.aliases.some((alias) => alias.toLowerCase() === current);
+
+      if (current === canonicalOpposite || current === canonicalTarget || isAlias) {
+        return mapping[targetLang];
+      }
+    }
+
+    return text;
+  };
+
   const quickDeliveryConfig = useMemo(() => {
     const source =
       homeConfig?.quickDelivery && typeof homeConfig.quickDelivery === "object"
@@ -1337,25 +1420,25 @@ export default function TPPreneurHomePage() {
         : {};
     return {
       enabled: toBool(source.enabled, true),
-      title: toText(
+      title: resolveBilingualQuickDelivery(
+        "title",
         source.title,
         isIndo
-          ? "Belanja Produk Inovasi TP Preneurs"
-          : "Shop Online with Ease"
       ),
-      subTitle: toText(
+      subTitle: resolveBilingualQuickDelivery(
+        "subTitle",
         source.subTitle || source.subtitle,
-        isIndo ? "KARYA DIGITAL & INOVASI" : "DIGITAL & INNOVATION PRODUCTS"
+        isIndo
       ),
-      description: toText(
+      description: resolveBilingualQuickDelivery(
+        "description",
         source.description,
         isIndo
-          ? "Akses langsung produk digital, media belajar interaktif, dan karya riset mahasiswa."
-          : "Instant access to curated student digital creations, interactive media, and research tools."
       ),
-      buttonName: toText(
+      buttonName: resolveBilingualQuickDelivery(
+        "buttonName",
         source.buttonName,
-        isIndo ? "Mulai Belanja" : "Start Shopping"
+        isIndo
       ),
       buttonLink: normalizeLink(source.buttonLink, "/shop"),
       imageDataUrl: toText(source.imageDataUrl),
