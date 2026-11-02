@@ -1074,16 +1074,12 @@ function ProductCard({ product, compact = false, showDiscount = false }) {
             </Link>
           ) : null}
         </div>
-        {!compact ? (
-          toNumber(product.reviewCount, 0) > 0 ? (
-            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[#557099] dark:text-slate-300">
-              <StarRating value={product.ratingAvg} />
-              <span>{toNumber(product.ratingAvg, 0).toFixed(1)}</span>
-              <span>({toNumber(product.reviewCount, 0)} {isIndo ? "ulasan" : "reviews"})</span>
-            </div>
-          ) : (
-            <p className="text-xs font-semibold text-[#7185a4] dark:text-slate-400">{isIndo ? "Belum ada ulasan" : "No reviews yet"}</p>
-          )
+        {!compact && toNumber(product.reviewCount, 0) > 0 ? (
+          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[#557099] dark:text-slate-300">
+            <StarRating value={product.ratingAvg} />
+            <span>{toNumber(product.ratingAvg, 0).toFixed(1)}</span>
+            <span>({toNumber(product.reviewCount, 0)} {isIndo ? "ulasan" : "reviews"})</span>
+          </div>
         ) : null}
         </div>
         <div className="flex flex-wrap items-baseline gap-3 pt-1">
@@ -1386,6 +1382,35 @@ export default function TPPreneurHomePage() {
   const [copiedCode, setCopiedCode] = useState("");
   const [popularCategory, setPopularCategory] = useState("all");
   const [popularSort, setPopularSort] = useState("");
+  const popularCarouselRef = useRef(null);
+  const [canScrollPopularLeft, setCanScrollPopularLeft] = useState(false);
+  const [canScrollPopularRight, setCanScrollPopularRight] = useState(true);
+
+  const checkPopularScroll = () => {
+    const el = popularCarouselRef.current;
+    if (!el) return;
+    setCanScrollPopularLeft(el.scrollLeft > 10);
+    setCanScrollPopularRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 10);
+  };
+
+  const scrollPopularLeft = () => {
+    if (!popularCarouselRef.current) return;
+    const scrollAmount = popularCarouselRef.current.clientWidth;
+    popularCarouselRef.current.scrollBy({
+      left: -scrollAmount,
+      behavior: "smooth",
+    });
+  };
+
+  const scrollPopularRight = () => {
+    if (!popularCarouselRef.current) return;
+    const scrollAmount = popularCarouselRef.current.clientWidth;
+    popularCarouselRef.current.scrollBy({
+      left: scrollAmount,
+      behavior: "smooth",
+    });
+  };
+
   const discountedSliderRef = useRef(null);
   const scrollDiscounted = (direction) => {
     if (!discountedSliderRef.current) return;
@@ -1729,9 +1754,13 @@ export default function TPPreneurHomePage() {
   const popularProducts = useMemo(() => {
     const source = extractList(popularData);
     return source
-      .slice(0, popularProductsConfig.limit)
+      .slice(0, 10)
       .map((product, index) => normalizeProduct(product, index));
-  }, [popularData, popularProductsConfig.limit]);
+  }, [popularData]);
+
+  useEffect(() => {
+    checkPopularScroll();
+  }, [popularProducts]);
 
   useEffect(() => {
     if (popularCategory === "all" || categoriesLoading || categories.length === 0) return;
@@ -1746,6 +1775,16 @@ export default function TPPreneurHomePage() {
   
   const displayPopularTitle = isIndo && popularProductsConfig.title === "Popular Products" ? "Produk Populer" : popularProductsConfig.title;
   const displayPopularBtn = isIndo && popularProductsConfig.buttonName === "View all" ? "Lihat semua" : popularProductsConfig.buttonName;
+
+  const isDefaultPopularDesc = !popularProductsConfig.description ||
+    popularProductsConfig.description.includes("See all our popular products") ||
+    popularProductsConfig.description.includes("daily needs") ||
+    popularProductsConfig.description.includes("Discover products customers are exploring") ||
+    popularProductsConfig.description.includes("free shipping");
+
+  const displayPopularDesc = isDefaultPopularDesc
+    ? (isIndo ? "Koleksi produk terpopuler pilihan edupreneur kampus." : "Discover top products from campus edupreneurs.")
+    : popularProductsConfig.description;
 
   const featuredHeading = useMemo(
     () => splitHeadingAccent(displayFeaturedTitle, isIndo ? "Kategori Unggulan" : "Shop by Category"),
@@ -1896,21 +1935,21 @@ export default function TPPreneurHomePage() {
             <div className="min-w-0 max-w-2xl">
               <h2 className="flex items-center gap-3 text-2xl font-black text-[#071a3f] dark:text-white">
                 {displayPopularTitle}
-                <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--tp-accent)]" />
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#fe6f05]" />
               </h2>
-              {popularProductsConfig.description ? (
-                <p className="mt-3 max-w-xl text-sm font-medium leading-6 text-[#557099] dark:text-slate-300">
-                  {popularProductsConfig.description}
+              {displayPopularDesc ? (
+                <p className="mt-2 max-w-xl text-sm font-medium leading-relaxed text-[#557099] dark:text-slate-300">
+                  {displayPopularDesc}
                 </p>
               ) : null}
             </div>
-            <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:flex-nowrap">
+            <div className="flex shrink-0 items-center gap-3">
               <label className="relative">
                 <span className="sr-only">Sort popular products</span>
                 <select
                   value={effectivePopularSort}
                   onChange={(event) => setPopularSort(event.target.value)}
-                  className="h-11 min-w-52 appearance-none rounded-full border border-[#dbe6f3] bg-white py-0 pl-5 pr-11 text-sm font-bold text-[#31486e] outline-none transition focus:border-[var(--tp-primary)] focus:ring-2 focus:ring-[var(--tp-primary)]/15 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                  className="h-11 min-w-48 appearance-none rounded-full border border-[#dbe6f3] bg-white py-0 pl-4 pr-10 text-xs font-bold text-[#31486e] outline-none transition focus:border-[#034c85] focus:ring-2 focus:ring-[#034c85]/15 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
                 >
                   {POPULAR_SORT_OPTIONS.map((option) => {
                     let label = option.label;
@@ -1924,19 +1963,49 @@ export default function TPPreneurHomePage() {
                     return <option key={option.value} value={option.value}>{label}</option>;
                   })}
                 </select>
-                <ChevronRight className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 rotate-90 text-[#557099] dark:!text-sky-300" />
+                <ChevronRight className="pointer-events-none absolute right-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 rotate-90 text-[#557099] dark:!text-sky-300" />
               </label>
+
               <Link
                 to={popularViewAllHref}
-                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-[var(--tp-primary)] bg-white/70 px-5 text-sm font-black text-[var(--tp-primary)] transition hover:bg-[var(--tp-primary)] hover:text-white dark:border-sky-400/70 dark:bg-slate-950/70 dark:!text-sky-100 dark:hover:border-sky-300 dark:hover:bg-[var(--tp-primary)] dark:hover:!text-white"
+                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-[#034c85] bg-white px-5 text-xs font-black text-[#034c85] transition hover:border-[#fe6f05] hover:bg-[#fe6f05] hover:text-white dark:border-sky-400 dark:bg-slate-900 dark:text-sky-200 dark:hover:border-[#fe6f05] dark:hover:bg-[#fe6f05] dark:hover:text-white"
               >
                 {displayPopularBtn}
                 <ArrowRight className="h-4 w-4" />
               </Link>
+
+              <div className="flex items-center gap-1.5 ml-1">
+                <button
+                  type="button"
+                  onClick={scrollPopularLeft}
+                  disabled={!canScrollPopularLeft}
+                  aria-label={isIndo ? "Produk sebelumnya" : "Previous products"}
+                  className={`grid h-11 w-11 place-items-center rounded-full border transition ${
+                    canScrollPopularLeft
+                      ? "border-[#034c85]/20 bg-white text-[#034c85] hover:border-[#fe6f05] hover:bg-[#fe6f05] hover:text-white shadow-sm dark:bg-slate-800 dark:text-sky-200 dark:hover:border-[#fe6f05] dark:hover:bg-[#fe6f05] dark:hover:text-white cursor-pointer"
+                      : "border-slate-200 bg-slate-100/60 text-slate-300 cursor-not-allowed dark:border-slate-800 dark:bg-slate-800/30 dark:text-slate-600"
+                  }`}
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={scrollPopularRight}
+                  disabled={!canScrollPopularRight}
+                  aria-label={isIndo ? "Produk berikutnya" : "Next products"}
+                  className={`grid h-11 w-11 place-items-center rounded-full border transition ${
+                    canScrollPopularRight
+                      ? "border-[#034c85]/20 bg-white text-[#034c85] hover:border-[#fe6f05] hover:bg-[#fe6f05] hover:text-white shadow-sm dark:bg-slate-800 dark:text-sky-200 dark:hover:border-[#fe6f05] dark:hover:bg-[#fe6f05] dark:hover:text-white cursor-pointer"
+                      : "border-slate-200 bg-slate-100/60 text-slate-300 cursor-not-allowed dark:border-slate-800 dark:bg-slate-800/30 dark:text-slate-600"
+                  }`}
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 border-t border-[#e8f0f8] pt-5 dark:border-slate-800">
+          <div className="flex flex-wrap items-center gap-2.5 border-t border-[#e8f0f8] pt-4 dark:border-slate-800">
             {[{ id: "all", slug: "all", name: isIndo ? "Semua" : "All" }, ...categories].map((category) => {
               const active = popularCategory === category.slug;
               return (
@@ -1945,10 +2014,10 @@ export default function TPPreneurHomePage() {
                   type="button"
                   aria-pressed={active}
                   onClick={() => setPopularCategory(category.slug)}
-                  className={`inline-flex h-9 items-center rounded-full border px-5 text-sm font-bold transition ${
+                  className={`inline-flex h-9 items-center rounded-full border px-4 text-xs font-bold transition ${
                     active
-                      ? "border-[var(--tp-primary)] bg-[var(--tp-primary)] text-white"
-                      : "border-[#dbe6f3] text-[#31486e] hover:border-[var(--tp-primary)] hover:text-[var(--tp-primary)] dark:border-slate-700 dark:text-slate-300"
+                      ? "border-[#034c85] bg-[#034c85] text-white shadow-sm"
+                      : "border-[#dbe6f3] bg-white text-[#31486e] hover:border-[#fe6f05] hover:text-[#fe6f05] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-[#fe6f05] dark:hover:text-[#fe6f05]"
                   }`}
                 >
                   {category.name}
@@ -1961,9 +2030,9 @@ export default function TPPreneurHomePage() {
           </div>
 
           {popularLoading && popularProducts.length === 0 ? (
-            <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-5" aria-label="Loading products">
-              {Array.from({ length: Math.min(popularProductsConfig.limit, 10) }).map((_, index) => (
-                <div key={index} className="h-72 animate-pulse rounded-[18px] bg-[#f0f6fd] dark:bg-slate-800" />
+            <div className="flex gap-4 overflow-hidden pt-1" aria-label="Loading products">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div key={index} className="w-[calc((100%-4*1rem)/5)] shrink-0 h-72 animate-pulse rounded-[18px] bg-[#f0f6fd] dark:bg-slate-800" />
               ))}
             </div>
           ) : popularError && popularProducts.length === 0 ? (
@@ -1990,9 +2059,18 @@ export default function TPPreneurHomePage() {
                   <button type="button" onClick={() => refetchPopular()} className="underline">Try again</button>
                 </div>
               ) : null}
-              <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+              <div
+                ref={popularCarouselRef}
+                onScroll={checkPopularScroll}
+                className="flex gap-4 overflow-x-auto scroll-smooth pb-2 pt-1 snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+              >
                 {popularProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} showDiscount />
+                  <div
+                    key={product.id}
+                    className="w-[calc((100%-4*1rem)/5)] shrink-0 snap-start flex flex-col"
+                  >
+                    <ProductCard product={product} showDiscount />
+                  </div>
                 ))}
               </div>
             </>
