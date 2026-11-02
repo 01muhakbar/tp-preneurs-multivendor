@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Monitor, Moon, Sun } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "../../theme/ThemeProvider.jsx";
 
 const OPTIONS = [
@@ -9,7 +10,7 @@ const OPTIONS = [
 ];
 
 const iconButtonClass =
-  "inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-[var(--tp-primary)] hover:text-[var(--tp-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tp-primary-rgb)/0.35)] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800";
+  "inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition-all duration-200 hover:scale-105 hover:border-[#fe6f05] hover:text-[#fe6f05] hover:bg-[#fe6f05]/5 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fe6f05]/35 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-[#fe6f05] dark:hover:text-[#fe6f05] dark:hover:bg-slate-800";
 
 function CurrentIcon({ resolvedTheme }) {
   const Icon = resolvedTheme === "dark" ? Moon : Sun;
@@ -114,8 +115,10 @@ function MenuToggle({ className = "" }) {
   );
 }
 
-export default function ThemeToggle({ variant = "icon", className = "" }) {
+export default function ThemeToggle({ variant = "icon", className = "", title }) {
   const { theme, resolvedTheme, toggleTheme } = useTheme();
+  const { i18n } = useTranslation();
+  const isIndo = i18n?.language?.startsWith("id") || (typeof window !== "undefined" && localStorage.getItem("store_language") === "Indonesia");
 
   if (variant === "segmented") {
     return <SegmentedToggle className={className} />;
@@ -125,13 +128,17 @@ export default function ThemeToggle({ variant = "icon", className = "" }) {
     return <MenuToggle className={className} />;
   }
 
+  const defaultTitle = isIndo
+    ? `Ganti tema tampilan (${resolvedTheme === "dark" ? "Mode Gelap aktif" : "Mode Terang aktif"})`
+    : `Toggle appearance (${resolvedTheme === "dark" ? "Dark mode active" : "Light mode active"})`;
+
   return (
     <button
       type="button"
       onClick={toggleTheme}
       aria-pressed={resolvedTheme === "dark"}
       aria-label={`Switch appearance. Current preference is ${theme}, resolved ${resolvedTheme}.`}
-      title={`Appearance: ${theme}`}
+      title={title || defaultTitle}
       className={`${iconButtonClass} ${className}`}
     >
       <CurrentIcon resolvedTheme={resolvedTheme} />

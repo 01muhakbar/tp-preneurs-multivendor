@@ -3,6 +3,10 @@
   z-index: 80;
 }
 
+.store-header-notification-button {
+  cursor: pointer !important;
+}
+
 .store-header-notification-button.is-open {
   border-color: rgba(3, 76, 133, 0.55) !important;
   box-shadow:

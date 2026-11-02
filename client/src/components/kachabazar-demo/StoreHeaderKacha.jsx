@@ -152,13 +152,13 @@ function LogoMark({ logoUrl, logoVersion }) {
   );
 }
 
-function IconButton({ as: Component = "button", to, children, label, badge, onClick }) {
+function IconButton({ as: Component = "button", to, children, label, title, badge, onClick }) {
   const commonClass =
-    "relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#d8e4f2] bg-white text-[#071a3f] shadow-[0_6px_16px_rgba(var(--tp-primary-rgb)/0.07)] transition hover:border-[var(--tp-primary)]/35 hover:text-[var(--tp-primary)] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-[var(--tp-primary)]";
+    "relative inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#d8e4f2] bg-white text-[#071a3f] shadow-[0_6px_16px_rgba(var(--tp-primary-rgb)/0.07)] transition-all duration-200 hover:scale-105 hover:border-[#fe6f05] hover:text-[#fe6f05] hover:bg-[#fe6f05]/5 active:scale-95 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-[#fe6f05] dark:hover:text-[#fe6f05] dark:hover:bg-slate-800";
 
   if (Component === Link) {
     return (
-      <Link to={to} aria-label={label} className={commonClass}>
+      <Link to={to} aria-label={label} title={title || label} className={commonClass}>
         {children}
         {badge ? (
           <span className="absolute -right-0.5 -top-1 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-black text-white" style={{ background: ACCENT }}>
@@ -170,7 +170,7 @@ function IconButton({ as: Component = "button", to, children, label, badge, onCl
   }
 
   return (
-    <button type="button" onClick={onClick} aria-label={label} className={commonClass}>
+    <button type="button" onClick={onClick} aria-label={label} title={title || label} className={commonClass}>
       {children}
       {badge ? (
         <span className="absolute -right-0.5 -top-1 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-black text-white" style={{ background: ACCENT }}>
@@ -534,12 +534,14 @@ export default function StoreHeaderKacha({
           <div className="flex items-center gap-1.5 sm:gap-2">
             <ThemeToggle
               variant="icon"
-              className="h-9 w-9 border-slate-200 text-[#034c85] dark:border-slate-700 dark:text-slate-100"
+              title={isIndo ? "Ganti tema tampilan (Terang / Gelap)" : "Toggle appearance (Light / Dark)"}
+              className="h-9 w-9 border-slate-200 text-[#034c85] dark:border-slate-700 dark:text-slate-100 cursor-pointer transition-all duration-200 hover:scale-105 hover:border-[#fe6f05] hover:text-[#fe6f05] dark:hover:border-[#fe6f05] dark:hover:text-[#fe6f05]"
             />
             <Link
               to="/wishlist"
-              aria-label="Wishlist"
-              className="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-[#034c85] shadow-xs dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+              aria-label={isIndo ? "Favorit" : "Wishlist"}
+              title={isIndo ? "Produk Favorit / Wishlist" : "Wishlist"}
+              className="relative inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-[#034c85] shadow-xs transition-all duration-200 hover:scale-105 hover:border-[#fe6f05] hover:text-[#fe6f05] active:scale-95 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:border-[#fe6f05] dark:hover:text-[#fe6f05]"
             >
               <Heart className="h-4.5 w-4.5" />
               {wishlist.count > 0 ? (
@@ -550,9 +552,10 @@ export default function StoreHeaderKacha({
             </Link>
             <button
               type="button"
-              aria-label="Open cart"
+              aria-label={isIndo ? "Buka keranjang belanja" : "Open cart"}
+              title={isIndo ? "Keranjang Belanja" : "Shopping Cart"}
               onClick={onCartClick}
-              className="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-[#034c85] shadow-xs dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+              className="relative inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-[#034c85] shadow-xs transition-all duration-200 hover:scale-105 hover:border-[#fe6f05] hover:text-[#fe6f05] active:scale-95 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:border-[#fe6f05] dark:hover:text-[#fe6f05]"
             >
               <ShoppingCart className="h-4.5 w-4.5" />
               {count > 0 ? (
@@ -563,8 +566,9 @@ export default function StoreHeaderKacha({
             </button>
             <Link
               to={isAccountSession ? "/user/my-account" : "/auth/login"}
-              aria-label={isAccountSession ? "My account" : "Login"}
-              className="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-[#034c85] shadow-xs dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+              aria-label={isAccountSession ? (isIndo ? "Akun saya" : "My account") : (isIndo ? "Masuk" : "Login")}
+              title={isAccountSession ? (isIndo ? "Akun Saya" : "My Account") : (isIndo ? "Masuk ke Akun" : "Login")}
+              className="relative inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-[#034c85] shadow-xs transition-all duration-200 hover:scale-105 hover:border-[#fe6f05] hover:text-[#fe6f05] active:scale-95 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:border-[#fe6f05] dark:hover:text-[#fe6f05]"
             >
               <UserRound className="h-4.5 w-4.5" />
             </Link>
@@ -681,24 +685,37 @@ export default function StoreHeaderKacha({
               <div className="hidden sm:block">
                 <ThemeToggle
                   variant="icon"
-                  className="h-10 w-10 border-[#d8e4f2] text-[#071a3f] shadow-[0_6px_16px_rgba(var(--tp-primary-rgb)/0.07)] hover:text-[var(--tp-primary)] dark:border-slate-700"
+                  title={isIndo ? "Ganti tema tampilan (Terang / Gelap)" : "Toggle appearance (Light / Dark)"}
+                  className="h-10 w-10 border-[#d8e4f2] text-[#071a3f] shadow-[0_6px_16px_rgba(var(--tp-primary-rgb)/0.07)] hover:text-[#fe6f05] hover:border-[#fe6f05] dark:border-slate-700 dark:hover:border-[#fe6f05] dark:hover:text-[#fe6f05]"
                 />
               </div>
               <div className="hidden sm:block">
-                <IconButton as={Link} to="/wishlist" label="Wishlist" badge={wishlist.count > 0 ? wishlist.count : null}>
+                <IconButton
+                  as={Link}
+                  to="/wishlist"
+                  label={isIndo ? "Favorit" : "Wishlist"}
+                  title={isIndo ? "Produk Favorit / Wishlist" : "Wishlist"}
+                  badge={wishlist.count > 0 ? wishlist.count : null}
+                >
                   <Heart className="h-5 w-5" />
                 </IconButton>
               </div>
-              <IconButton label="Open cart" badge={count > 0 ? count : null} onClick={onCartClick}>
+              <IconButton
+                label={isIndo ? "Buka keranjang belanja" : "Open shopping cart"}
+                title={isIndo ? "Keranjang Belanja" : "Shopping Cart"}
+                badge={count > 0 ? count : null}
+                onClick={onCartClick}
+              >
                 <ShoppingCart className="h-5 w-5" />
               </IconButton>
               <div ref={notificationRootRef} className="store-header-notification-anchor">
                 <button
                   type="button"
-                  aria-label="Notifications"
+                  aria-label={isIndo ? "Notifikasi" : "Notifications"}
+                  title={isIndo ? "Notifikasi" : "Notifications"}
                   aria-expanded={notificationsOpen}
                   onClick={handleToggleNotifications}
-                  className={`store-header-notification-button relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#d8e4f2] bg-white text-[#071a3f] shadow-[0_6px_16px_rgba(var(--tp-primary-rgb)/0.07)] transition hover:border-[var(--tp-primary)]/35 hover:text-[var(--tp-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tp-primary-rgb)/0.24)] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-[var(--tp-primary)] ${notificationsOpen ? "is-open" : ""}`}
+                  className={`store-header-notification-button relative inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#d8e4f2] bg-white text-[#071a3f] shadow-[0_6px_16px_rgba(var(--tp-primary-rgb)/0.07)] transition-all duration-200 hover:scale-105 hover:border-[#fe6f05] hover:text-[#fe6f05] hover:bg-[#fe6f05]/5 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fe6f05]/35 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-[#fe6f05] dark:hover:text-[#fe6f05] dark:hover:bg-slate-800 ${notificationsOpen ? "is-open" : ""}`}
                 >
                   <Bell className="h-5 w-5" />
                   {unreadBadge ? (
@@ -719,7 +736,8 @@ export default function StoreHeaderKacha({
               <IconButton
                 as={Link}
                 to={isAccountSession ? "/user/my-account" : "/auth/login"}
-                label={isAccountSession ? "My account" : "Login"}
+                label={isAccountSession ? (isIndo ? "Akun saya" : "My account") : (isIndo ? "Masuk" : "Login")}
+                title={isAccountSession ? (isIndo ? "Akun Saya" : "My Account") : (isIndo ? "Masuk ke Akun" : "Login")}
               >
                 {isAccountSession ? (
                   accountAvatarSrc ? (
@@ -784,12 +802,13 @@ export default function StoreHeaderKacha({
               <button
                 type="button"
                 onClick={() => setCategoriesOpen((value) => !value)}
-                className="inline-flex h-10 items-center gap-2.5 rounded-full px-4 text-base font-black text-white bg-[#034c85] hover:bg-[#023863] shadow-[0_4px_14px_rgba(3,76,133,0.25)] transition sm:px-5"
+                title={isIndo ? "Kategori Produk" : "Product Categories"}
+                className="group inline-flex h-10 cursor-pointer items-center gap-2.5 rounded-full px-4 text-base font-black text-white bg-[#034c85] hover:bg-[#023863] shadow-[0_4px_14px_rgba(3,76,133,0.25)] transition-all duration-200 hover:scale-[1.02] active:scale-95 sm:px-5"
                 aria-expanded={categoriesOpen}
               >
-                <Menu className="h-5 w-5" />
+                <Menu className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
                 <span>{t("header.categories")}</span>
-                <ChevronDown className="h-4 w-4" />
+                <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${categoriesOpen ? "rotate-180 text-[#fe6f05]" : "group-hover:translate-y-0.5"}`} />
               </button>
               {categoriesOpen ? (
                 <div className="absolute left-0 top-[calc(100%+10px)] z-50 w-72 overflow-hidden rounded-[22px] border border-[#d8e4f2] bg-white p-2 shadow-[0_22px_45px_rgba(var(--tp-primary-rgb)/0.16)] dark:border-slate-700 dark:bg-slate-900">
@@ -853,12 +872,13 @@ export default function StoreHeaderKacha({
             <button
               type="button"
               onClick={() => setLanguageOpen(!languageOpen)}
-              className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full px-3 text-base font-black text-[#034c85] transition hover:bg-[#034c85]/10 dark:text-slate-100 dark:hover:bg-slate-800 sm:px-4"
+              title={isIndo ? "Pilih Bahasa / Select Language" : "Select Language / Pilih Bahasa"}
+              className="group inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-full border border-[#034c85]/20 bg-slate-50/80 px-3.5 text-base font-black text-[#034c85] shadow-xs transition-all duration-200 hover:scale-[1.02] hover:border-[#fe6f05] hover:bg-[#fe6f05]/5 hover:text-[#fe6f05] active:scale-95 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:border-[#fe6f05] dark:hover:text-[#fe6f05] sm:px-4"
               aria-expanded={languageOpen}
             >
-              <Globe2 className="h-5 w-5" />
+              <Globe2 className="h-5 w-5 transition-transform duration-200 group-hover:rotate-12 text-[#034c85] group-hover:text-[#fe6f05] dark:text-slate-100 dark:group-hover:text-[#fe6f05]" />
               <span className="hidden sm:inline">{language}</span>
-              <ChevronDown className="h-4 w-4" />
+              <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${languageOpen ? "rotate-180 text-[#fe6f05]" : "group-hover:translate-y-0.5"}`} />
             </button>
             {languageOpen && (
               <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-40 overflow-hidden rounded-[18px] border border-[#d8e4f2] bg-white p-2 shadow-[0_22px_45px_rgba(var(--tp-primary-rgb)/0.16)] dark:border-slate-700 dark:bg-slate-900">
@@ -872,7 +892,7 @@ export default function StoreHeaderKacha({
                       key={langObj.isoCode}
                       type="button"
                       onClick={() => changeLanguage(langObj)}
-                      className={`block w-full rounded-xl px-4 py-2.5 text-left text-sm font-bold transition hover:bg-[#034c85]/10 hover:text-[#fe6f05] dark:hover:bg-slate-800 ${language === langObj.name ? "text-[#fe6f05] bg-[#034c85]/10 dark:bg-slate-800" : "text-[#071a3f] dark:text-slate-100"}`}
+                      className={`block w-full cursor-pointer rounded-xl px-4 py-2.5 text-left text-sm font-bold transition hover:bg-[#034c85]/10 hover:text-[#fe6f05] dark:hover:bg-slate-800 ${language === langObj.name ? "text-[#fe6f05] bg-[#034c85]/10 dark:bg-slate-800" : "text-[#071a3f] dark:text-slate-100"}`}
                     >
                       {langObj.name}
                     </button>
