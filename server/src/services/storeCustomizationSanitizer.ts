@@ -120,15 +120,15 @@ const DEFAULT_CUSTOMIZATION = {
     },
     promotionBanner: {
       enabled: true,
-      title: "100% Natural Quality Organic Product",
-      subtitle: "",
+      title: "Karya Inovatif Mahasiswa & Edupreneur",
+      subtitle: "Koleksi Eksklusif TP Preneurs",
       description:
-        "See Our latest discounted products from here and get a special discount product",
-      buttonName: "Buy Now",
-      buttonLink: "/search?category=breakfast",
+        "Dukung karya technopreneur muda dengan produk kreatif dan solusi terbaik.",
+      buttonName: "Jelajahi Produk",
+      buttonLink: "/shop",
       imageDataUrl: "",
       displayOn: "Desktop & Mobile",
-      status: "needsReview",
+      status: "ready",
     },
     featuredCategories: {
       enabled: true,
@@ -1025,23 +1025,44 @@ const normalizeHome = (root: Record<string, any>) => {
         promotionBannerSource.enabled,
         defaults.promotionBanner.enabled
       ),
-      title: toText(promotionBannerSource.title, defaults.promotionBanner.title),
+      title: (() => {
+        const val = toText(promotionBannerSource.title, defaults.promotionBanner.title);
+        return val.toLowerCase() === "100% natural quality organic product"
+          ? defaults.promotionBanner.title
+          : val;
+      })(),
       subtitle: toText(
         promotionBannerSource.subtitle,
         defaults.promotionBanner.subtitle
       ),
-      description: toText(
-        promotionBannerSource.description,
-        defaults.promotionBanner.description
-      ),
-      buttonName: toText(
-        promotionBannerSource.buttonName,
-        defaults.promotionBanner.buttonName
-      ),
-      buttonLink: toText(
-        promotionBannerSource.buttonLink,
-        defaults.promotionBanner.buttonLink
-      ),
+      description: (() => {
+        const val = toText(
+          promotionBannerSource.description,
+          defaults.promotionBanner.description
+        );
+        return val.toLowerCase().includes("see our latest discounted products from here")
+          ? defaults.promotionBanner.description
+          : val;
+      })(),
+      buttonName: (() => {
+        const val = toText(
+          promotionBannerSource.buttonName,
+          defaults.promotionBanner.buttonName
+        );
+        return val.toLowerCase() === "buy now" &&
+          toText(promotionBannerSource.title).toLowerCase() === "100% natural quality organic product"
+          ? defaults.promotionBanner.buttonName
+          : val;
+      })(),
+      buttonLink: (() => {
+        const val = toText(
+          promotionBannerSource.buttonLink,
+          defaults.promotionBanner.buttonLink
+        );
+        return val.toLowerCase() === "/search?category=breakfast"
+          ? defaults.promotionBanner.buttonLink
+          : val;
+      })(),
       imageDataUrl: toText(promotionBannerSource.imageDataUrl, ""),
       displayOn: toText(
         promotionBannerSource.displayOn,

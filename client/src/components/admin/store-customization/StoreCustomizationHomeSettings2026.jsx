@@ -87,14 +87,14 @@ const DEFAULT_CONFIG = {
   },
   promotionBanner: {
     enabled: true,
-    title: "Big Deals. Bigger Savings.",
-    subtitle: "Limited time offers on top categories",
-    description: "Shop handpicked products at special prices. Offer valid for a limited time only.",
-    buttonName: "Shop Now",
-    buttonLink: "/collections/deals",
+    title: "Karya Inovatif Mahasiswa & Edupreneur",
+    subtitle: "Koleksi Eksklusif TP Preneurs",
+    description: "Dukung karya technopreneur muda dengan produk kreatif dan solusi terbaik.",
+    buttonName: "Jelajahi Produk",
+    buttonLink: "/shop",
     imageDataUrl: "",
     displayOn: "Desktop & Mobile",
-    status: "needsReview",
+    status: "ready",
   },
   featuredCategories: {
     enabled: true,
@@ -747,7 +747,7 @@ export default function StoreCustomizationHomeSettings2026({
       title: "Promotion Banner",
       detail: "Promotional text and banners",
       icon: Megaphone,
-      status: draft.promotionBanner.status || "needsReview",
+      status: draft.promotionBanner.status || "ready",
     },
     {
       key: "footer",
@@ -1173,7 +1173,7 @@ export default function StoreCustomizationHomeSettings2026({
             icon={Megaphone}
             title="Promotion Banner"
             description="Display promotional banners to highlight offers and campaigns."
-            status={draft.promotionBanner.status || "needsReview"}
+            status={draft.promotionBanner.status || "ready"}
             enabled={draft.promotionBanner.enabled}
             onEnabledChange={(next) => updateDraft(["promotionBanner", "enabled"], next)}
           >
@@ -1183,7 +1183,7 @@ export default function StoreCustomizationHomeSettings2026({
               <Field label="Button Link" value={draft.promotionBanner.buttonLink} onChange={(next) => updateDraft(["promotionBanner", "buttonLink"], next)} max={120} />
               <Field label="Subtitle" value={draft.promotionBanner.subtitle} onChange={(next) => updateDraft(["promotionBanner", "subtitle"], next)} max={100} />
               <SelectField label="Display On" value={draft.promotionBanner.displayOn || "Desktop & Mobile"} onChange={(next) => updateDraft(["promotionBanner", "displayOn"], next)} options={["Desktop & Mobile", "Desktop Only", "Mobile Only"]} />
-              <SelectField label="Status" value={normalizeStatus(draft.promotionBanner.status, "needsReview")} onChange={(next) => updateDraft(["promotionBanner", "status"], next)} options={["ready", "needsReview", "draft"]} />
+              <SelectField label="Status" value={normalizeStatus(draft.promotionBanner.status, "ready")} onChange={(next) => updateDraft(["promotionBanner", "status"], next)} options={["ready", "needsReview", "draft"]} />
               <div className="lg:col-span-3">
                 <TextAreaField label="Description" value={draft.promotionBanner.description} onChange={(next) => updateDraft(["promotionBanner", "description"], next)} max={200} />
               </div>
@@ -1193,12 +1193,12 @@ export default function StoreCustomizationHomeSettings2026({
                     <div className="min-w-0">
                       <h3 className="text-sm font-extrabold text-slate-950 dark:text-white">Banner Image</h3>
                       <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
-                        Used as the visual on the promotion banner in the storefront homepage.
+                        Rekomendasi rasio 16:9 atau landscape. Digunakan pada visual banner promosi di halaman utama storefront.
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-extrabold text-slate-700 dark:border-slate-800 dark:text-slate-200">
-                        <UploadCloud className="h-4 w-4 text-emerald-600" />
+                      <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-extrabold text-slate-700 hover:border-[#034c85] transition dark:border-slate-800 dark:text-slate-200">
+                        <UploadCloud className="h-4 w-4 text-[#fe6f05]" />
                         {uploadingImageKey === "promotionBanner" ? "Uploading..." : "Upload Image"}
                         <input
                           type="file"
@@ -1232,6 +1232,55 @@ export default function StoreCustomizationHomeSettings2026({
                       className="mt-4 h-44 w-full rounded-xl bg-slate-50 object-cover dark:bg-slate-900"
                     />
                   ) : null}
+
+                  {/* Live Mini Preview of Storefront Banner */}
+                  <div className="mt-4 overflow-hidden rounded-2xl border border-[#034c85]/30 bg-gradient-to-r from-[#034c85] via-[#023e6f] to-[#012d52] p-4 text-white shadow-md">
+                    <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-3">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-orange-200">
+                        Preview Tampilan Banner Storefront
+                      </span>
+                      <span className="rounded-full bg-[#fe6f05] px-2 py-0.5 text-[10px] font-black text-white">
+                        #034c85 • #fe6f05
+                      </span>
+                    </div>
+                    <div className="flex flex-col md:flex-row items-center gap-4 justify-between">
+                      <div className="space-y-1.5 flex-1 min-w-0">
+                        {draft.promotionBanner.subtitle ? (
+                          <span className="inline-block rounded-full bg-white/15 px-2.5 py-0.5 text-[10px] font-bold uppercase text-orange-200">
+                            {draft.promotionBanner.subtitle}
+                          </span>
+                        ) : null}
+                        <h4 className="text-base sm:text-lg font-black truncate text-white">
+                          {draft.promotionBanner.title || "Karya Inovatif Mahasiswa & Edupreneur"}
+                        </h4>
+                        {draft.promotionBanner.description ? (
+                          <p className="text-xs text-blue-100/90 line-clamp-1">
+                            {draft.promotionBanner.description}
+                          </p>
+                        ) : null}
+                        <div className="pt-1">
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#fe6f05] px-3.5 py-1 text-xs font-bold text-white shadow-sm">
+                            {draft.promotionBanner.buttonName || "Jelajahi Produk"}
+                            <span className="text-[10px]">→</span>
+                          </span>
+                        </div>
+                      </div>
+                      {draft.promotionBanner.imageDataUrl ? (
+                        <div className="h-20 w-32 shrink-0 overflow-hidden rounded-xl border border-white/20">
+                          <img
+                            src={draft.promotionBanner.imageDataUrl}
+                            alt="Preview"
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-20 w-32 shrink-0 rounded-xl border border-white/10 bg-white/10 p-2 flex flex-col justify-center items-center text-center">
+                          <span className="text-[10px] font-bold text-orange-200">TP Preneurs</span>
+                          <span className="text-[9px] text-blue-100">Grafis Inovasi</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

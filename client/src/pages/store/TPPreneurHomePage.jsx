@@ -1303,19 +1303,32 @@ export default function TPPreneurHomePage() {
         ? homeConfig.promotionBanner
         : {};
     return {
-      enabled: toBool(source.enabled, false),
-      title: toText(source.title, "Big Deals. Bigger Savings."),
-      subTitle: toText(source.subtitle),
+      enabled: toBool(source.enabled, true),
+      title: toText(
+        source.title,
+        isIndo
+          ? "Karya Inovatif Mahasiswa & Edupreneur"
+          : "Innovative Student & Edupreneur Creations"
+      ),
+      subTitle: toText(
+        source.subtitle || source.subTitle,
+        isIndo ? "Koleksi Eksklusif TP Preneurs" : "TP Preneurs Exclusive Collection"
+      ),
       description: toText(
         source.description,
-        "Shop handpicked products at special prices. Offer valid for a limited time only."
+        isIndo
+          ? "Dukung karya technopreneur muda dengan produk kreatif dan solusi terbaik."
+          : "Empower young technopreneurs with curated creative and learning products."
       ),
-      buttonName: toText(source.buttonName, "Shop Now"),
+      buttonName: toText(
+        source.buttonName,
+        isIndo ? "Jelajahi Produk" : "Explore Products"
+      ),
       buttonLink: normalizeLink(source.buttonLink, "/shop"),
       imageDataUrl: toText(source.imageDataUrl),
       displayOn: toText(source.displayOn, "Desktop & Mobile"),
     };
-  }, [homeConfig]);
+  }, [homeConfig, isIndo]);
 
   const categories = useMemo(() => {
     const source = extractList(categoriesData);
@@ -1743,6 +1756,7 @@ export default function TPPreneurHomePage() {
             buttonName={promotionBannerConfig.buttonName}
             buttonLink={promotionBannerConfig.buttonLink}
             imageDataUrl={promotionBannerConfig.imageDataUrl}
+            isIndo={isIndo}
           />
         </div>
       ) : null}
