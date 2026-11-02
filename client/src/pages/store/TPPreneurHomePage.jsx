@@ -1968,7 +1968,7 @@ export default function TPPreneurHomePage() {
 
               <Link
                 to={popularViewAllHref}
-                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-[#034c85] bg-white px-5 text-xs font-black text-[#034c85] transition hover:border-[#fe6f05] hover:bg-[#fe6f05] hover:text-white dark:border-sky-400 dark:bg-slate-900 dark:text-sky-200 dark:hover:border-[#fe6f05] dark:hover:bg-[#fe6f05] dark:hover:text-white"
+                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-[#034c85] bg-white px-5 text-xs font-black text-[#034c85] transition hover:border-[#fe6f05] hover:bg-[#fe6f05] hover:text-white dark:!border-sky-400 dark:!bg-slate-900 dark:!text-white dark:hover:!border-[#fe6f05] dark:hover:!bg-[#fe6f05] dark:hover:!text-white"
               >
                 {displayPopularBtn}
                 <ArrowRight className="h-4 w-4" />
@@ -1982,8 +1982,8 @@ export default function TPPreneurHomePage() {
                   aria-label={isIndo ? "Produk sebelumnya" : "Previous products"}
                   className={`grid h-11 w-11 place-items-center rounded-full border transition ${
                     canScrollPopularLeft
-                      ? "border-[#034c85]/20 bg-white text-[#034c85] hover:border-[#fe6f05] hover:bg-[#fe6f05] hover:text-white shadow-sm dark:bg-slate-800 dark:text-sky-200 dark:hover:border-[#fe6f05] dark:hover:bg-[#fe6f05] dark:hover:text-white cursor-pointer"
-                      : "border-slate-200 bg-slate-100/60 text-slate-300 cursor-not-allowed dark:border-slate-800 dark:bg-slate-800/30 dark:text-slate-600"
+                      ? "border-[#034c85]/20 bg-white text-[#034c85] hover:border-[#fe6f05] hover:bg-[#fe6f05] hover:text-white shadow-sm dark:!border-slate-700 dark:!bg-slate-900 dark:!text-white dark:hover:!border-[#fe6f05] dark:hover:!bg-[#fe6f05] dark:hover:!text-white cursor-pointer"
+                      : "border-slate-200 bg-slate-100/60 text-slate-300 cursor-not-allowed dark:!border-slate-800 dark:!bg-slate-800/40 dark:!text-slate-600"
                   }`}
                 >
                   <ChevronLeft className="h-5 w-5" />
@@ -1995,8 +1995,8 @@ export default function TPPreneurHomePage() {
                   aria-label={isIndo ? "Produk berikutnya" : "Next products"}
                   className={`grid h-11 w-11 place-items-center rounded-full border transition ${
                     canScrollPopularRight
-                      ? "border-[#034c85]/20 bg-white text-[#034c85] hover:border-[#fe6f05] hover:bg-[#fe6f05] hover:text-white shadow-sm dark:bg-slate-800 dark:text-sky-200 dark:hover:border-[#fe6f05] dark:hover:bg-[#fe6f05] dark:hover:text-white cursor-pointer"
-                      : "border-slate-200 bg-slate-100/60 text-slate-300 cursor-not-allowed dark:border-slate-800 dark:bg-slate-800/30 dark:text-slate-600"
+                      ? "border-[#034c85]/20 bg-white text-[#034c85] hover:border-[#fe6f05] hover:bg-[#fe6f05] hover:text-white shadow-sm dark:!border-slate-700 dark:!bg-slate-900 dark:!text-white dark:hover:!border-[#fe6f05] dark:hover:!bg-[#fe6f05] dark:hover:!text-white cursor-pointer"
+                      : "border-slate-200 bg-slate-100/60 text-slate-300 cursor-not-allowed dark:!border-slate-800 dark:!bg-slate-800/40 dark:!text-slate-600"
                   }`}
                 >
                   <ChevronRight className="h-5 w-5" />
