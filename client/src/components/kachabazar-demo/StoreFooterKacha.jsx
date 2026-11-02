@@ -64,7 +64,8 @@ const sanitizeFooterDummyInfo = (field, fallback) => {
     str.includes("02.356.1666") ||
     str.includes("ccruidk@test.com") ||
     str.includes("6599887766") ||
-    str.includes("565555")
+    str.includes("565555") ||
+    str.includes("Kampus UNM Tidung")
   ) {
     return fallback;
   }
@@ -105,7 +106,7 @@ const getDefaultFooter = (isIndo) => ({
   block4: {
     enabled: true,
     footerLogoDataUrl: "",
-    address: "Kampus UNM Tidung, Jl. Tamalate 1, Makassar",
+    address: "Jl. Tamalate No.1, Bonto Makkio, Kec. Rappocini, Kota Makassar, Sulawesi Selatan 90222",
     phone: "+62 821-8866-824",
     email: "tppreneurs@gmail.com",
   },
@@ -354,10 +355,16 @@ export default function StoreFooterKacha({
               )}
               <div className="space-y-2.5 text-sm font-medium leading-6 text-slate-600 dark:text-slate-300">
                 {footer.block4.address ? (
-                  <p className="flex items-start gap-2.5">
-                    <MapPin className="mt-1 h-4.5 w-4.5 shrink-0 text-[#034c85] dark:text-sky-400" />
+                  <a
+                    href={`https://maps.google.com/?q=${encodeURIComponent(footer.block4.address)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={isIndo ? "Buka lokasi di Google Maps" : "Open location in Google Maps"}
+                    className="group flex items-start gap-2.5 cursor-pointer transition hover:text-[#fe6f05]"
+                  >
+                    <MapPin className="mt-1 h-4.5 w-4.5 shrink-0 text-[#034c85] transition-colors group-hover:text-[#fe6f05] dark:text-sky-400" />
                     <span>{footer.block4.address}</span>
-                  </p>
+                  </a>
                 ) : null}
                 {footer.block4.phone ? (
                   <p className="flex items-center gap-2.5">

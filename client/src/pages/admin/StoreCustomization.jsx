@@ -800,7 +800,7 @@ const getDefaultCustomization = (targetLang = "en") => {
       block4: {
         enabled: true,
         footerLogoDataUrl: "",
-        address: "Kampus UNM Tidung, Jl. Tamalate 1, Makassar",
+        address: "Jl. Tamalate No.1, Bonto Makkio, Kec. Rappocini, Kota Makassar, Sulawesi Selatan 90222",
         phone: "+62 821-8866-824",
         email: "tppreneurs@gmail.com",
       },
