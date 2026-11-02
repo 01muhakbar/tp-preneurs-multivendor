@@ -1239,9 +1239,6 @@ export default function StoreCustomizationHomeSettings2026({
                       <span className="text-[11px] font-bold uppercase tracking-wider text-orange-200">
                         Preview Tampilan Banner Storefront
                       </span>
-                      <span className="rounded-full bg-[#fe6f05] px-2 py-0.5 text-[10px] font-black text-white">
-                        #034c85 • #fe6f05
-                      </span>
                     </div>
                     <div className="flex flex-col md:flex-row items-center gap-4 justify-between">
                       <div className="space-y-1.5 flex-1 min-w-0">

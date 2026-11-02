@@ -166,8 +166,8 @@ export default function PromoDeliveryBanner({
               </div>
 
               <div className="mt-3 flex items-center justify-between rounded-xl bg-[#012d52]/60 px-3.5 py-2 border border-white/10">
-                <span className="text-xs font-semibold text-blue-100">Ekosistem Kewirausahaan</span>
-                <span className="text-xs font-black text-[#fe6f05]">#034c85 • #fe6f05</span>
+                <span className="text-xs font-semibold text-blue-100">Ekosistem Kewirausahaan Mahasiswa</span>
+                <span className="h-2 w-2 rounded-full bg-[#fe6f05] shadow-[0_0_6px_#fe6f05]" />
               </div>
             </div>
           )}
