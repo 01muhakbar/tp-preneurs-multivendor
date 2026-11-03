@@ -713,8 +713,9 @@ const getDefaultCustomization = (targetLang = "en") => {
       enabled: true,
       title: "Popular Products",
       subtitle: "",
-      description:
-        "See all our popular products in this week. You can choose your daily needs products from this list and get some special offer with free shipping.",
+      description: isIndo
+        ? "Koleksi produk terpopuler pilihan edupreneur kampus."
+        : "Discover top products from campus edupreneurs.",
       source: "Best Selling",
       productsLimit: 18,
       filterBy: "All Categories",
@@ -739,8 +740,9 @@ const getDefaultCustomization = (targetLang = "en") => {
     latestDiscountedProducts: {
       enabled: true,
       title: "Latest Discounted Products",
-      description:
-        "See Our latest discounted products below. Choose your daily needs from here and get a special discount with free shipping.",
+      description: isIndo
+        ? "Pilihan produk diskon dan penawaran terbaik dari edupreneur kampus."
+        : "Top discounted products and best offers from campus edupreneurs.",
       productsLimit: 18,
     },
     getYourDailyNeeds: {

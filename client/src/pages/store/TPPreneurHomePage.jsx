@@ -1770,12 +1770,13 @@ export default function TPPreneurHomePage() {
       .map((category, index) => normalizeCategory(category, index));
   }, [categoriesData, featuredCategoriesConfig.limit]);
 
+  const popularProductsLimit = popularProductsConfig.limit || 10;
   const popularProducts = useMemo(() => {
     const source = extractList(popularData);
     return source
-      .slice(0, 10)
+      .slice(0, popularProductsLimit)
       .map((product, index) => normalizeProduct(product, index));
-  }, [popularData]);
+  }, [popularData, popularProductsLimit]);
 
   useEffect(() => {
     checkPopularScroll();
@@ -1795,11 +1796,13 @@ export default function TPPreneurHomePage() {
   const displayPopularTitle = isIndo && popularProductsConfig.title === "Popular Products" ? "Produk Populer" : popularProductsConfig.title;
   const displayPopularBtn = isIndo && popularProductsConfig.buttonName === "View all" ? "Lihat semua" : popularProductsConfig.buttonName;
 
+  const legacyPopularDescTemplates = [
+    "See all our popular products in this week. You can choose your daily needs products from this list and get some special offer with free shipping.",
+    "See all our popular products in this week.",
+    "Discover products customers are exploring across the marketplace."
+  ];
   const isDefaultPopularDesc = !popularProductsConfig.description ||
-    popularProductsConfig.description.includes("See all our popular products") ||
-    popularProductsConfig.description.includes("daily needs") ||
-    popularProductsConfig.description.includes("Discover products customers are exploring") ||
-    popularProductsConfig.description.includes("free shipping");
+    legacyPopularDescTemplates.includes(popularProductsConfig.description.trim());
 
   const displayPopularDesc = isDefaultPopularDesc
     ? (isIndo ? "Koleksi produk terpopuler pilihan edupreneur kampus." : "Discover top products from campus edupreneurs.")
@@ -1820,21 +1823,22 @@ export default function TPPreneurHomePage() {
     return query ? `/shop?${query}` : "/shop";
   }, [effectivePopularSort, popularCategory, popularProductsConfig.buttonLink, popularProductsConfig.discounted]);
 
+  const discountedProductsLimit = latestDiscountedProductsConfig.limit || 10;
   const discountedProducts = useMemo(() => {
     const source = extractList(discountedData);
     if (source.length > 0) {
       return source
-        .slice(0, 10)
+        .slice(0, discountedProductsLimit)
         .map((product, index) => normalizeProduct(product, index));
     }
     // Fall back to active catalog products from popularData (never dummy mock grocery items)
     const catalogFallback = extractList(popularData)
       .filter((p) => p && (p.id || p.slug))
-      .slice(0, 10)
+      .slice(0, discountedProductsLimit)
       .map((product, index) => normalizeProduct(product, index));
 
     return catalogFallback;
-  }, [discountedData, popularData]);
+  }, [discountedData, popularData, discountedProductsLimit]);
 
   useEffect(() => {
     checkDiscountedScroll();
@@ -1846,10 +1850,14 @@ export default function TPPreneurHomePage() {
         : latestDiscountedProductsConfig.title)
     : latestDiscountedProductsConfig.title;
 
+  const legacyDiscountedDescTemplates = [
+    "See all our latest discounted products in this week. You can choose your daily needs products from this list and get some special offer with free shipping.",
+    "See Our latest discounted products below. Choose your daily needs from here and get a special discount with free shipping.",
+    "See our latest discounted products from here and get a special discount.",
+    "See our latest discounted products in this week."
+  ];
   const isDefaultDiscountedDesc = !latestDiscountedProductsConfig.description ||
-    latestDiscountedProductsConfig.description.includes("See our latest discounted products") ||
-    latestDiscountedProductsConfig.description.includes("daily needs") ||
-    latestDiscountedProductsConfig.description.includes("special discount");
+    legacyDiscountedDescTemplates.includes(latestDiscountedProductsConfig.description.trim());
 
   const displayDiscountedDesc = isDefaultDiscountedDesc
     ? (isIndo ? "Pilihan produk diskon dan penawaran terbaik dari edupreneur kampus." : "Top discounted products and best offers from campus edupreneurs.")
