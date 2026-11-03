@@ -1412,11 +1412,30 @@ export default function TPPreneurHomePage() {
   };
 
   const discountedSliderRef = useRef(null);
-  const scrollDiscounted = (direction) => {
+  const [canScrollDiscountedLeft, setCanScrollDiscountedLeft] = useState(false);
+  const [canScrollDiscountedRight, setCanScrollDiscountedRight] = useState(true);
+
+  const checkDiscountedScroll = () => {
+    const el = discountedSliderRef.current;
+    if (!el) return;
+    setCanScrollDiscountedLeft(el.scrollLeft > 10);
+    setCanScrollDiscountedRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 10);
+  };
+
+  const scrollDiscountedLeft = () => {
     if (!discountedSliderRef.current) return;
-    const scrollAmount = Math.max(260, Math.floor(discountedSliderRef.current.clientWidth * 0.75));
+    const scrollAmount = discountedSliderRef.current.clientWidth;
     discountedSliderRef.current.scrollBy({
-      left: direction === "left" ? -scrollAmount : scrollAmount,
+      left: -scrollAmount,
+      behavior: "smooth",
+    });
+  };
+
+  const scrollDiscountedRight = () => {
+    if (!discountedSliderRef.current) return;
+    const scrollAmount = discountedSliderRef.current.clientWidth;
+    discountedSliderRef.current.scrollBy({
+      left: scrollAmount,
       behavior: "smooth",
     });
   };
@@ -1503,7 +1522,7 @@ export default function TPPreneurHomePage() {
         source.description,
         "See our latest discounted products below. Choose your daily needs from here and get a special discount."
       ),
-      limit: toLimit(source.productsLimit, 5, 20),
+      limit: toLimit(source.productsLimit, 10, 20),
     };
   }, [homeConfig]);
   const effectivePopularSort = popularSort || popularProductsConfig.sort;
@@ -1522,7 +1541,7 @@ export default function TPPreneurHomePage() {
   });
   const { data: discountedData, isLoading: discountedLoading } = useProducts({
     page: 1,
-    limit: latestDiscountedProductsConfig.limit || 5,
+    limit: 10,
     discounted: true,
     sort: "featured",
   });
@@ -1805,17 +1824,36 @@ export default function TPPreneurHomePage() {
     const source = extractList(discountedData);
     if (source.length > 0) {
       return source
-        .slice(0, latestDiscountedProductsConfig.limit || 5)
+        .slice(0, 10)
         .map((product, index) => normalizeProduct(product, index));
     }
     // Fall back to active catalog products from popularData (never dummy mock grocery items)
     const catalogFallback = extractList(popularData)
       .filter((p) => p && (p.id || p.slug))
-      .slice(0, latestDiscountedProductsConfig.limit || 5)
+      .slice(0, 10)
       .map((product, index) => normalizeProduct(product, index));
 
     return catalogFallback;
-  }, [discountedData, popularData, latestDiscountedProductsConfig.limit]);
+  }, [discountedData, popularData]);
+
+  useEffect(() => {
+    checkDiscountedScroll();
+  }, [discountedProducts]);
+
+  const displayDiscountedTitle = isIndo
+    ? (latestDiscountedProductsConfig.title === "Latest Discounted Products"
+        ? "Produk Diskon Terbaru"
+        : latestDiscountedProductsConfig.title)
+    : latestDiscountedProductsConfig.title;
+
+  const isDefaultDiscountedDesc = !latestDiscountedProductsConfig.description ||
+    latestDiscountedProductsConfig.description.includes("See our latest discounted products") ||
+    latestDiscountedProductsConfig.description.includes("daily needs") ||
+    latestDiscountedProductsConfig.description.includes("special discount");
+
+  const displayDiscountedDesc = isDefaultDiscountedDesc
+    ? (isIndo ? "Pilihan produk diskon dan penawaran terbaik dari edupreneur kampus." : "Top discounted products and best offers from campus edupreneurs.")
+    : latestDiscountedProductsConfig.description;
 
   const couponList = useMemo(() => {
     const selectedCodes = discountCouponBox.activeCouponCodes || [];
@@ -2150,54 +2188,79 @@ export default function TPPreneurHomePage() {
       ) : null}
 
       {latestDiscountedProductsConfig.enabled && discountedProducts.length > 0 ? (
-        <section className="hidden lg:block space-y-5">
-          <div className="flex items-center justify-between gap-4">
-            <h2 className="flex items-center gap-3 text-2xl font-black text-[#071a3f] dark:text-white">
-              {isIndo
-                ? (latestDiscountedProductsConfig.title === "Latest Discounted Products"
-                    ? "Produk Diskon Terbaru"
-                    : latestDiscountedProductsConfig.title)
-                : latestDiscountedProductsConfig.title}
-              <span className="h-2.5 w-2.5 rounded-full bg-[var(--tp-accent)]" />
-            </h2>
-            <div className="hidden items-center gap-3 sm:flex">
-              <button
-                type="button"
-                onClick={() => scrollDiscounted("left")}
-                aria-label="Scroll previous discounted products"
-                className="grid h-11 w-11 place-items-center rounded-full border border-[#dbe6f3] bg-white text-[var(--tp-primary)] transition hover:border-[var(--tp-primary)] hover:bg-[var(--tp-primary)] hover:text-white dark:border-sky-400/60 dark:bg-slate-950/70 dark:!text-sky-100 dark:hover:border-sky-300 dark:hover:bg-[var(--tp-primary)] dark:hover:!text-white"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
+        <section className="hidden lg:block space-y-5 rounded-[28px] bg-white p-5 shadow-[0_14px_34px_rgba(3,76,133,0.08)] dark:bg-slate-900 sm:p-7">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 max-w-2xl">
+              <h2 className="flex items-center gap-3 text-2xl font-black text-[#071a3f] dark:text-white">
+                {displayDiscountedTitle}
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#fe6f05]" />
+              </h2>
+              {displayDiscountedDesc ? (
+                <p className="mt-2 max-w-xl text-sm font-medium leading-relaxed text-[#557099] dark:text-slate-300">
+                  {displayDiscountedDesc}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="flex shrink-0 items-center gap-3">
               <Link
                 to="/shop?discounted=true"
-                className="inline-flex h-11 items-center rounded-full border border-[var(--tp-primary)] bg-white/70 px-5 text-sm font-black text-[var(--tp-primary)] transition hover:bg-[var(--tp-primary)] hover:text-white dark:border-sky-400/70 dark:bg-slate-950/70 dark:!text-sky-100 dark:hover:border-sky-300 dark:hover:bg-[var(--tp-primary)] dark:hover:!text-white"
+                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-[#034c85] bg-white px-5 text-xs font-black text-[#034c85] transition hover:border-[#fe6f05] hover:bg-[#fe6f05] hover:text-white dark:!border-sky-400 dark:!bg-slate-900 dark:!text-white dark:hover:!border-[#fe6f05] dark:hover:!bg-[#fe6f05] dark:hover:!text-white"
               >
                 {isIndo ? "Lihat semua" : "View all"}
+                <ArrowRight className="h-4 w-4" />
               </Link>
-              <button
-                type="button"
-                onClick={() => scrollDiscounted("right")}
-                aria-label="Scroll next discounted products"
-                className="grid h-11 w-11 place-items-center rounded-full border border-[var(--tp-accent)] bg-[var(--tp-accent)] text-white shadow-[0_10px_22px_rgba(255,111,0,0.22)] transition hover:bg-[#d95700]"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
+
+              <div className="flex items-center gap-1.5 ml-1">
+                <button
+                  type="button"
+                  onClick={scrollDiscountedLeft}
+                  disabled={!canScrollDiscountedLeft}
+                  aria-label={isIndo ? "Produk diskon sebelumnya" : "Previous discounted products"}
+                  className={`grid h-11 w-11 place-items-center rounded-full border transition ${
+                    canScrollDiscountedLeft
+                      ? "border-[#034c85]/20 bg-white text-[#034c85] hover:border-[#fe6f05] hover:bg-[#fe6f05] hover:text-white shadow-sm dark:!border-slate-700 dark:!bg-slate-900 dark:!text-white dark:hover:!border-[#fe6f05] dark:hover:!bg-[#fe6f05] dark:hover:!text-white cursor-pointer"
+                      : "border-slate-200 bg-slate-100/60 text-slate-300 cursor-not-allowed dark:!border-slate-800 dark:!bg-slate-800/40 dark:!text-slate-600"
+                  }`}
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={scrollDiscountedRight}
+                  disabled={!canScrollDiscountedRight}
+                  aria-label={isIndo ? "Produk diskon berikutnya" : "Next discounted products"}
+                  className={`grid h-11 w-11 place-items-center rounded-full border transition ${
+                    canScrollDiscountedRight
+                      ? "border-[#034c85]/20 bg-white text-[#034c85] hover:border-[#fe6f05] hover:bg-[#fe6f05] hover:text-white shadow-sm dark:!border-slate-700 dark:!bg-slate-900 dark:!text-white dark:hover:!border-[#fe6f05] dark:hover:!bg-[#fe6f05] dark:hover:!text-white cursor-pointer"
+                      : "border-slate-200 bg-slate-100/60 text-slate-300 cursor-not-allowed dark:!border-slate-800 dark:!bg-slate-800/40 dark:!text-slate-600"
+                  }`}
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </div>
             </div>
           </div>
+
           {discountedLoading && extractList(discountedData).length === 0 ? (
-            <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 lg:grid-cols-5">
+            <div className="flex gap-4 overflow-hidden pt-1" aria-label="Loading discounted products">
               {Array.from({ length: 5 }).map((_, index) => (
-                <div key={index} className="h-56 animate-pulse rounded-[18px] bg-white dark:bg-slate-800" />
+                <div key={index} className="w-[calc((100%-4*1rem)/5)] shrink-0 h-72 animate-pulse rounded-[18px] bg-[#f0f6fd] dark:bg-slate-800" />
               ))}
             </div>
           ) : (
             <div
               ref={discountedSliderRef}
-              className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 overflow-x-auto scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              onScroll={checkDiscountedScroll}
+              className="flex gap-4 overflow-x-auto scroll-smooth pb-2 pt-1 snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
             >
               {discountedProducts.map((product) => (
-                <ProductCard key={product.id} product={product} showDiscount />
+                <div
+                  key={product.id}
+                  className="w-[calc((100%-4*1rem)/5)] shrink-0 snap-start flex flex-col"
+                >
+                  <ProductCard product={product} showDiscount />
+                </div>
               ))}
             </div>
           )}
