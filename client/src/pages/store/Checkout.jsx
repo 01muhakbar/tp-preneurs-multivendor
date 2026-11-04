@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useOutletContext } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { WalletCards, CreditCard } from "lucide-react";
 import { createOrderSchema } from "@ecommerce/schemas";
 import { useAuth } from "../../auth/useAuth.js";
@@ -82,72 +83,73 @@ const DUITKU_PAYMENT_METHOD_OPTIONS = [
 
 const DEFAULT_DUITKU_PAYMENT_METHOD = "SP";
 const checkoutCustomerSchema = createOrderSchema.shape.customer;
-const DEFAULT_CHECKOUT_COPY = {
+const getDefaultCheckoutCopy = (isIndo = false) => ({
   personalDetails: {
-    sectionTitle: "Personal Details",
+    sectionTitle: isIndo ? "Data Pemesan" : "Personal Details",
     sectionHint: "",
-    firstNameLabel: "First Name",
-    lastNameLabel: "Last Name",
-    emailLabel: "Email Address",
-    phoneLabel: "Phone Number",
-    firstNamePlaceholder: "First Name",
-    lastNamePlaceholder: "Last Name",
-    emailPlaceholder: "Email Address",
-    phonePlaceholder: "Phone Number",
+    firstNameLabel: isIndo ? "Nama Depan" : "First Name",
+    lastNameLabel: isIndo ? "Nama Belakang" : "Last Name",
+    emailLabel: isIndo ? "Alamat Email" : "Email Address",
+    phoneLabel: isIndo ? "Nomor Telepon" : "Phone Number",
+    firstNamePlaceholder: isIndo ? "Nama Depan" : "First Name",
+    lastNamePlaceholder: isIndo ? "Nama Belakang" : "Last Name",
+    emailPlaceholder: isIndo ? "email@contoh.com" : "Email Address",
+    phonePlaceholder: isIndo ? "08xxxxxxxxxx" : "Phone Number",
   },
   shippingDetails: {
-    sectionTitle: "Shipping Details",
+    sectionTitle: isIndo ? "Alamat Pengiriman" : "Shipping Details",
     sectionHint: "",
-    provinceLabel: "Province",
-    cityLabel: "City/Regency",
-    districtLabel: "Subdistrict",
-    postalCodeLabel: "Postal Code",
-    streetNameLabel: "Street Name",
-    houseNumberLabel: "House Number",
-    buildingLabel: "Building",
-    otherDetailsLabel: "Other Details",
-    provincePlaceholder: "Select Province",
-    cityPlaceholder: "Select City/Regency",
-    districtPlaceholder: "Select Subdistrict",
-    postalCodePlaceholder: "Postal Code",
-    streetNamePlaceholder: "Street Name",
-    houseNumberPlaceholder: "House Number",
-    buildingPlaceholder: "Building",
-    otherDetailsPlaceholder: "Block / Unit / Reference",
-    defaultShippingToggleLabel: "Use Default Shipping Address",
-    defaultShippingToggleEnabledLabel: "Yes",
-    defaultShippingToggleDisabledLabel: "No",
-    defaultShippingLoadingLabel: "Loading your default shipping address...",
-    paymentMethodLabel: "Payment Method",
-    paymentMethodPlaceholder: "Select a preferred payment option.",
+    provinceLabel: isIndo ? "Provinsi" : "Province",
+    cityLabel: isIndo ? "Kota / Kabupaten" : "City/Regency",
+    districtLabel: isIndo ? "Kecamatan" : "Subdistrict",
+    postalCodeLabel: isIndo ? "Kode Pos" : "Postal Code",
+    streetNameLabel: isIndo ? "Nama Jalan / Alamat" : "Street Name",
+    houseNumberLabel: isIndo ? "Nomor Rumah" : "House Number",
+    buildingLabel: isIndo ? "Gedung / Unit" : "Building",
+    otherDetailsLabel: isIndo ? "Catatan Tambahan" : "Other Details",
+    provincePlaceholder: isIndo ? "Pilih Provinsi" : "Select Province",
+    cityPlaceholder: isIndo ? "Pilih Kota / Kabupaten" : "Select City/Regency",
+    districtPlaceholder: isIndo ? "Pilih Kecamatan" : "Select Subdistrict",
+    postalCodePlaceholder: isIndo ? "Kode Pos" : "Postal Code",
+    streetNamePlaceholder: isIndo ? "Nama Jalan / RT / RW" : "Street Name",
+    houseNumberPlaceholder: isIndo ? "Nomor Rumah" : "House Number",
+    buildingPlaceholder: isIndo ? "Gedung / Unit" : "Building",
+    otherDetailsPlaceholder: isIndo ? "Patokan / Blok (opsional)" : "Block / Unit / Reference",
+    defaultShippingToggleLabel: isIndo ? "Gunakan Alamat Utama" : "Use Default Shipping Address",
+    defaultShippingToggleEnabledLabel: isIndo ? "Ya" : "Yes",
+    defaultShippingToggleDisabledLabel: isIndo ? "Tidak" : "No",
+    defaultShippingLoadingLabel: isIndo ? "Memuat alamat pengiriman utama..." : "Loading your default shipping address...",
+    paymentMethodLabel: isIndo ? "Metode Pembayaran" : "Payment Method",
+    paymentMethodPlaceholder: isIndo ? "Pilih metode pembayaran." : "Select a preferred payment option.",
   },
   buttons: {
-    continueButtonLabel: "Back to Cart",
-    confirmButtonLabel: "Place an Order",
-    processingButtonLabel: "Processing...",
+    continueButtonLabel: isIndo ? "Kembali ke Keranjang" : "Back to Cart",
+    confirmButtonLabel: isIndo ? "Buat Pesanan Sekarang" : "Place an Order",
+    processingButtonLabel: isIndo ? "Memproses Pesanan..." : "Processing...",
   },
   cartItemSection: {
-    sectionTitle: "Checkout Summary",
-    orderSummaryLabel: "Order Summary",
+    sectionTitle: isIndo ? "Ringkasan Checkout" : "Checkout Summary",
+    orderSummaryLabel: isIndo ? "Ringkasan Pesanan" : "Order Summary",
     sectionDescription: "",
-    estimatedTotalLabel: "Estimated Total",
-    itemCountSuffix: "Items",
-    applyButtonLabel: "Apply",
-    applyingButtonLabel: "Applying...",
-    couponCodeLabel: "Coupon Code",
-    couponCodePlaceholder: "Coupon Code",
+    estimatedTotalLabel: isIndo ? "Estimasi Total" : "Estimated Total",
+    itemCountSuffix: isIndo ? "Produk" : "Items",
+    applyButtonLabel: isIndo ? "Gunakan" : "Apply",
+    applyingButtonLabel: isIndo ? "Memproses..." : "Applying...",
+    couponCodeLabel: isIndo ? "Kode Kupon / Promo" : "Coupon Code",
+    couponCodePlaceholder: isIndo ? "Masukkan kode kupon" : "Coupon Code",
     couponHelperText: "",
-    itemPriceLabel: "Item Price",
-    subTotalLabel: "Subtotal",
-    shippingLabel: "Shipping",
-    discountLabel: "Discount",
-    taxLabel: "Tax",
-    totalCostLabel: "TOTAL COST",
+    itemPriceLabel: isIndo ? "Harga Satuan" : "Item Price",
+    subTotalLabel: isIndo ? "Subtotal" : "Subtotal",
+    shippingLabel: isIndo ? "Ongkos Kirim" : "Shipping",
+    discountLabel: isIndo ? "Diskon" : "Discount",
+    taxLabel: isIndo ? "Pajak" : "Tax",
+    totalCostLabel: isIndo ? "TOTAL PEMBAYARAN" : "TOTAL COST",
     postSubmitNotice: "",
     confirmationHelperText: "",
     summaryReadyHint: "",
   },
-};
+});
+const DEFAULT_CHECKOUT_COPY = getDefaultCheckoutCopy(false);
 
 const CHECKOUT_REQUEST_KEY_STORAGE_KEY = "tppreneurs.checkout.request";
 const IS_CHECKOUT_PREVIEW_DEBUG_ENABLED = Boolean(import.meta.env?.DEV);
@@ -269,33 +271,34 @@ const normalizeRegionPlaceholder = (value, fallback) => {
 const normalizeCheckoutButtonLabel = (value, fallback) => {
   const normalized = toCopyText(value, fallback);
   const lowered = normalized.toLowerCase();
-  if (lowered === "continue shipping") return DEFAULT_CHECKOUT_COPY.buttons.continueButtonLabel;
-  if (lowered === "confirm order") return DEFAULT_CHECKOUT_COPY.buttons.confirmButtonLabel;
+  if (lowered === "continue shipping" || lowered === "back to cart") return fallback;
+  if (lowered === "confirm order" || lowered === "place an order") return fallback;
   return normalized;
 };
 
 const normalizeCheckoutSectionTitle = (value, fallback) => {
   const normalized = toCopyText(value, fallback);
   return normalized.toLowerCase() === "cart item section"
-    ? DEFAULT_CHECKOUT_COPY.cartItemSection.sectionTitle
+    ? fallback
     : normalized;
 };
 
 const normalizeCheckoutSubtotalLabel = (value, fallback) => {
   const normalized = toCopyText(value, fallback);
   return normalized.toLowerCase() === "sub total"
-    ? DEFAULT_CHECKOUT_COPY.cartItemSection.subTotalLabel
+    ? fallback
     : normalized;
 };
 
 const normalizeCheckoutTotalLabel = (value, fallback) => {
   const normalized = toCopyText(value, fallback);
   return normalized.toLowerCase() === "total cost"
-    ? DEFAULT_CHECKOUT_COPY.cartItemSection.totalCostLabel
+    ? fallback
     : normalized;
 };
 
-const normalizeCheckoutCopy = (raw) => {
+const normalizeCheckoutCopy = (raw, isIndo = false) => {
+  const defaults = getDefaultCheckoutCopy(isIndo);
   const source = raw && typeof raw === "object" ? raw : {};
   const personalDetails =
     source.personalDetails && typeof source.personalDetails === "object"
@@ -315,233 +318,233 @@ const normalizeCheckoutCopy = (raw) => {
     personalDetails: {
       sectionTitle: toCopyText(
         personalDetails.sectionTitle,
-        DEFAULT_CHECKOUT_COPY.personalDetails.sectionTitle
+        defaults.personalDetails.sectionTitle
       ),
       sectionHint: toCopyText(
         personalDetails.sectionHint,
-        DEFAULT_CHECKOUT_COPY.personalDetails.sectionHint
+        defaults.personalDetails.sectionHint
       ),
       firstNameLabel: toCopyText(
         personalDetails.firstNameLabel,
-        DEFAULT_CHECKOUT_COPY.personalDetails.firstNameLabel
+        defaults.personalDetails.firstNameLabel
       ),
       lastNameLabel: toCopyText(
         personalDetails.lastNameLabel,
-        DEFAULT_CHECKOUT_COPY.personalDetails.lastNameLabel
+        defaults.personalDetails.lastNameLabel
       ),
       emailLabel: toCopyText(
         personalDetails.emailLabel,
-        DEFAULT_CHECKOUT_COPY.personalDetails.emailLabel
+        defaults.personalDetails.emailLabel
       ),
       phoneLabel: toCopyText(
         personalDetails.phoneLabel,
-        DEFAULT_CHECKOUT_COPY.personalDetails.phoneLabel
+        defaults.personalDetails.phoneLabel
       ),
       firstNamePlaceholder: toCopyText(
         personalDetails.firstNamePlaceholder,
-        DEFAULT_CHECKOUT_COPY.personalDetails.firstNamePlaceholder
+        defaults.personalDetails.firstNamePlaceholder
       ),
       lastNamePlaceholder: toCopyText(
         personalDetails.lastNamePlaceholder,
-        DEFAULT_CHECKOUT_COPY.personalDetails.lastNamePlaceholder
+        defaults.personalDetails.lastNamePlaceholder
       ),
       emailPlaceholder: toCopyText(
         personalDetails.emailPlaceholder,
-        DEFAULT_CHECKOUT_COPY.personalDetails.emailPlaceholder
+        defaults.personalDetails.emailPlaceholder
       ),
       phonePlaceholder: toCopyText(
         personalDetails.phonePlaceholder,
-        DEFAULT_CHECKOUT_COPY.personalDetails.phonePlaceholder
+        defaults.personalDetails.phonePlaceholder
       ),
     },
     shippingDetails: {
       sectionTitle: toCopyText(
         shippingDetails.sectionTitle,
-        DEFAULT_CHECKOUT_COPY.shippingDetails.sectionTitle
+        defaults.shippingDetails.sectionTitle
       ),
       sectionHint: toCopyText(
         shippingDetails.sectionHint,
-        DEFAULT_CHECKOUT_COPY.shippingDetails.sectionHint
+        defaults.shippingDetails.sectionHint
       ),
       provinceLabel: normalizeRegionLabel(
         shippingDetails.provinceLabel ?? shippingDetails.countryLabel,
-        DEFAULT_CHECKOUT_COPY.shippingDetails.provinceLabel
+        defaults.shippingDetails.provinceLabel
       ),
       cityLabel: normalizeRegionLabel(
         shippingDetails.cityLabel,
-        DEFAULT_CHECKOUT_COPY.shippingDetails.cityLabel
+        defaults.shippingDetails.cityLabel
       ),
       districtLabel: normalizeRegionLabel(
         shippingDetails.districtLabel,
-        DEFAULT_CHECKOUT_COPY.shippingDetails.districtLabel
+        defaults.shippingDetails.districtLabel
       ),
       postalCodeLabel: toCopyText(
         shippingDetails.postalCodeLabel ?? shippingDetails.zipLabel,
-        DEFAULT_CHECKOUT_COPY.shippingDetails.postalCodeLabel
+        defaults.shippingDetails.postalCodeLabel
       ),
       streetNameLabel: toCopyText(
         shippingDetails.streetNameLabel ?? shippingDetails.streetAddressLabel,
-        DEFAULT_CHECKOUT_COPY.shippingDetails.streetNameLabel
+        defaults.shippingDetails.streetNameLabel
       ),
       houseNumberLabel: toCopyText(
         shippingDetails.houseNumberLabel,
-        DEFAULT_CHECKOUT_COPY.shippingDetails.houseNumberLabel
+        defaults.shippingDetails.houseNumberLabel
       ),
       buildingLabel: toCopyText(
         shippingDetails.buildingLabel,
-        DEFAULT_CHECKOUT_COPY.shippingDetails.buildingLabel
+        defaults.shippingDetails.buildingLabel
       ),
       otherDetailsLabel: toCopyText(
         shippingDetails.otherDetailsLabel,
-        DEFAULT_CHECKOUT_COPY.shippingDetails.otherDetailsLabel
+        defaults.shippingDetails.otherDetailsLabel
       ),
       provincePlaceholder: normalizeRegionPlaceholder(
         shippingDetails.provincePlaceholder ?? shippingDetails.countryPlaceholder,
-        DEFAULT_CHECKOUT_COPY.shippingDetails.provincePlaceholder
+        defaults.shippingDetails.provincePlaceholder
       ),
       cityPlaceholder: normalizeRegionPlaceholder(
         shippingDetails.cityPlaceholder,
-        DEFAULT_CHECKOUT_COPY.shippingDetails.cityPlaceholder
+        defaults.shippingDetails.cityPlaceholder
       ),
       districtPlaceholder: normalizeRegionPlaceholder(
         shippingDetails.districtPlaceholder,
-        DEFAULT_CHECKOUT_COPY.shippingDetails.districtPlaceholder
+        defaults.shippingDetails.districtPlaceholder
       ),
       postalCodePlaceholder: toCopyText(
         shippingDetails.postalCodePlaceholder ?? shippingDetails.zipPlaceholder,
-        DEFAULT_CHECKOUT_COPY.shippingDetails.postalCodePlaceholder
+        defaults.shippingDetails.postalCodePlaceholder
       ),
       streetNamePlaceholder: toCopyText(
         shippingDetails.streetNamePlaceholder ?? shippingDetails.streetAddressPlaceholder,
-        DEFAULT_CHECKOUT_COPY.shippingDetails.streetNamePlaceholder
+        defaults.shippingDetails.streetNamePlaceholder
       ),
       houseNumberPlaceholder: toCopyText(
         shippingDetails.houseNumberPlaceholder,
-        DEFAULT_CHECKOUT_COPY.shippingDetails.houseNumberPlaceholder
+        defaults.shippingDetails.houseNumberPlaceholder
       ),
       buildingPlaceholder: toCopyText(
         shippingDetails.buildingPlaceholder,
-        DEFAULT_CHECKOUT_COPY.shippingDetails.buildingPlaceholder
+        defaults.shippingDetails.buildingPlaceholder
       ),
       otherDetailsPlaceholder: toCopyText(
         shippingDetails.otherDetailsPlaceholder,
-        DEFAULT_CHECKOUT_COPY.shippingDetails.otherDetailsPlaceholder
+        defaults.shippingDetails.otherDetailsPlaceholder
       ),
       defaultShippingToggleLabel: toCopyText(
         shippingDetails.defaultShippingToggleLabel,
-        DEFAULT_CHECKOUT_COPY.shippingDetails.defaultShippingToggleLabel
+        defaults.shippingDetails.defaultShippingToggleLabel
       ),
       defaultShippingToggleEnabledLabel: toCopyText(
         shippingDetails.defaultShippingToggleEnabledLabel,
-        DEFAULT_CHECKOUT_COPY.shippingDetails.defaultShippingToggleEnabledLabel
+        defaults.shippingDetails.defaultShippingToggleEnabledLabel
       ),
       defaultShippingToggleDisabledLabel: toCopyText(
         shippingDetails.defaultShippingToggleDisabledLabel,
-        DEFAULT_CHECKOUT_COPY.shippingDetails.defaultShippingToggleDisabledLabel
+        defaults.shippingDetails.defaultShippingToggleDisabledLabel
       ),
       defaultShippingLoadingLabel: toCopyText(
         shippingDetails.defaultShippingLoadingLabel,
-        DEFAULT_CHECKOUT_COPY.shippingDetails.defaultShippingLoadingLabel
+        defaults.shippingDetails.defaultShippingLoadingLabel
       ),
       paymentMethodLabel: toCopyText(
         shippingDetails.paymentMethodLabel,
-        DEFAULT_CHECKOUT_COPY.shippingDetails.paymentMethodLabel
+        defaults.shippingDetails.paymentMethodLabel
       ),
       paymentMethodPlaceholder: toCopyText(
         shippingDetails.paymentMethodPlaceholder,
-        DEFAULT_CHECKOUT_COPY.shippingDetails.paymentMethodPlaceholder
+        defaults.shippingDetails.paymentMethodPlaceholder
       ),
     },
     buttons: {
       continueButtonLabel: normalizeCheckoutButtonLabel(
         buttons.continueButtonLabel,
-        DEFAULT_CHECKOUT_COPY.buttons.continueButtonLabel
+        defaults.buttons.continueButtonLabel
       ),
       confirmButtonLabel: normalizeCheckoutButtonLabel(
         buttons.confirmButtonLabel,
-        DEFAULT_CHECKOUT_COPY.buttons.confirmButtonLabel
+        defaults.buttons.confirmButtonLabel
       ),
       processingButtonLabel: toCopyText(
         buttons.processingButtonLabel,
-        DEFAULT_CHECKOUT_COPY.buttons.processingButtonLabel
+        defaults.buttons.processingButtonLabel
       ),
     },
     cartItemSection: {
       sectionTitle: normalizeCheckoutSectionTitle(
         cartItemSection.sectionTitle,
-        DEFAULT_CHECKOUT_COPY.cartItemSection.sectionTitle
+        defaults.cartItemSection.sectionTitle
       ),
       orderSummaryLabel: toCopyText(
         cartItemSection.orderSummaryLabel,
-        DEFAULT_CHECKOUT_COPY.cartItemSection.orderSummaryLabel
+        defaults.cartItemSection.orderSummaryLabel
       ),
       sectionDescription: toCopyText(
         cartItemSection.sectionDescription,
-        DEFAULT_CHECKOUT_COPY.cartItemSection.sectionDescription
+        defaults.cartItemSection.sectionDescription
       ),
       estimatedTotalLabel: toCopyText(
         cartItemSection.estimatedTotalLabel,
-        DEFAULT_CHECKOUT_COPY.cartItemSection.estimatedTotalLabel
+        defaults.cartItemSection.estimatedTotalLabel
       ),
       itemCountSuffix: toCopyText(
         cartItemSection.itemCountSuffix,
-        DEFAULT_CHECKOUT_COPY.cartItemSection.itemCountSuffix
+        defaults.cartItemSection.itemCountSuffix
       ),
       applyButtonLabel: toCopyText(
         cartItemSection.applyButtonLabel,
-        DEFAULT_CHECKOUT_COPY.cartItemSection.applyButtonLabel
+        defaults.cartItemSection.applyButtonLabel
       ),
       applyingButtonLabel: toCopyText(
         cartItemSection.applyingButtonLabel,
-        DEFAULT_CHECKOUT_COPY.cartItemSection.applyingButtonLabel
+        defaults.cartItemSection.applyingButtonLabel
       ),
       couponCodeLabel: toCopyText(
         cartItemSection.couponCodeLabel,
-        DEFAULT_CHECKOUT_COPY.cartItemSection.couponCodeLabel
+        defaults.cartItemSection.couponCodeLabel
       ),
       couponCodePlaceholder: toCopyText(
         cartItemSection.couponCodePlaceholder,
-        DEFAULT_CHECKOUT_COPY.cartItemSection.couponCodePlaceholder
+        defaults.cartItemSection.couponCodePlaceholder
       ),
       couponHelperText: toCopyText(
         cartItemSection.couponHelperText,
-        DEFAULT_CHECKOUT_COPY.cartItemSection.couponHelperText
+        defaults.cartItemSection.couponHelperText
       ),
       itemPriceLabel: toCopyText(
         cartItemSection.itemPriceLabel,
-        DEFAULT_CHECKOUT_COPY.cartItemSection.itemPriceLabel
+        defaults.cartItemSection.itemPriceLabel
       ),
       subTotalLabel: normalizeCheckoutSubtotalLabel(
         cartItemSection.subTotalLabel,
-        DEFAULT_CHECKOUT_COPY.cartItemSection.subTotalLabel
+        defaults.cartItemSection.subTotalLabel
       ),
       shippingLabel: toCopyText(
         cartItemSection.shippingLabel,
-        DEFAULT_CHECKOUT_COPY.cartItemSection.shippingLabel
+        defaults.cartItemSection.shippingLabel
       ),
       discountLabel: toCopyText(
         cartItemSection.discountLabel,
-        DEFAULT_CHECKOUT_COPY.cartItemSection.discountLabel
+        defaults.cartItemSection.discountLabel
       ),
       taxLabel: toCopyText(
         cartItemSection.taxLabel,
-        DEFAULT_CHECKOUT_COPY.cartItemSection.taxLabel
+        defaults.cartItemSection.taxLabel
       ),
       totalCostLabel: normalizeCheckoutTotalLabel(
         cartItemSection.totalCostLabel,
-        DEFAULT_CHECKOUT_COPY.cartItemSection.totalCostLabel
+        defaults.cartItemSection.totalCostLabel
       ),
       postSubmitNotice: toCopyText(
         cartItemSection.postSubmitNotice,
-        DEFAULT_CHECKOUT_COPY.cartItemSection.postSubmitNotice
+        defaults.cartItemSection.postSubmitNotice
       ),
       confirmationHelperText: toCopyText(
         cartItemSection.confirmationHelperText,
-        DEFAULT_CHECKOUT_COPY.cartItemSection.confirmationHelperText
+        defaults.cartItemSection.confirmationHelperText
       ),
       summaryReadyHint: toCopyText(
         cartItemSection.summaryReadyHint,
-        DEFAULT_CHECKOUT_COPY.cartItemSection.summaryReadyHint
+        defaults.cartItemSection.summaryReadyHint
       ),
     },
   };
@@ -1362,6 +1365,30 @@ export default function CheckoutPage() {
   const phoneRef = useRef(null);
   const provinceRef = useRef(null);
   const streetNameRef = useRef(null);
+
+  const { i18n } = useTranslation();
+  const [, setLangSyncCounter] = useState(0);
+
+  // Reactive language detection that responds dynamically to header language dropdown
+  const isIndo =
+    i18n.language === "id" ||
+    i18n.language === "id-ID" ||
+    i18n.language?.startsWith("id") ||
+    (typeof window !== "undefined" &&
+      (localStorage.getItem("store_language") === "Indonesia" ||
+        localStorage.getItem("store_language") === "Bahasa Indonesia"));
+  const lang = isIndo ? "id" : "en";
+
+  useEffect(() => {
+    const handleSync = () => setLangSyncCounter((c) => c + 1);
+    i18n.on("languageChanged", handleSync);
+    window.addEventListener("storage", handleSync);
+    return () => {
+      i18n.off("languageChanged", handleSync);
+      window.removeEventListener("storage", handleSync);
+    };
+  }, [i18n]);
+
   const resolveHasAuthHint = () => {
     try {
       return (
@@ -1374,15 +1401,15 @@ export default function CheckoutPage() {
   };
   const hasCheckoutAuthHint = resolveHasAuthHint();
   const checkoutCustomizationQuery = useQuery({
-    queryKey: ["store-customization", "checkout", "en"],
-    queryFn: () => getStoreCustomization({ lang: "en", include: "checkout" }),
+    queryKey: ["store-customization", "checkout", lang],
+    queryFn: () => getStoreCustomization({ lang, include: "checkout" }),
     staleTime: 60_000,
     retry: 1,
   });
 
   const checkoutCopy = useMemo(
-    () => normalizeCheckoutCopy(checkoutCustomizationQuery.data?.customization?.checkout),
-    [checkoutCustomizationQuery.data]
+    () => normalizeCheckoutCopy(checkoutCustomizationQuery.data?.customization?.checkout, isIndo),
+    [checkoutCustomizationQuery.data, isIndo]
   );
   useEffect(() => {
     if (!checkoutCustomizationQuery.isError) return;
@@ -2584,6 +2611,8 @@ export default function CheckoutPage() {
     <Checkout2026View
       viewModel={checkout2026ViewModel}
       copy={checkoutCopy}
+      isIndo={isIndo}
+      lang={lang}
       form={{
         firstName,
         lastName,

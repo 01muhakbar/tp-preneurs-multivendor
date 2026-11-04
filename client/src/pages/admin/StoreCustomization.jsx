@@ -7,6 +7,7 @@ import {
   ChevronDown,
   ChevronRight,
   Copy,
+  CreditCard,
   Eye,
   MoreHorizontal,
   Plus,
@@ -1077,74 +1078,80 @@ const getDefaultCustomization = (targetLang = "en") => {
   },
   checkout: {
     personalDetails: {
-      sectionTitle: "Personal Details",
-      sectionHint: "Enter your contact details.",
-      firstNameLabel: "First Name",
-      lastNameLabel: "Last Name",
-      emailLabel: "Email Address",
-      phoneLabel: "Phone Number",
-      firstNamePlaceholder: "First Name",
-      lastNamePlaceholder: "Last Name",
-      emailPlaceholder: "Email Address",
-      phonePlaceholder: "Phone Number",
+      sectionTitle: isIndo ? "Data Pemesan" : "Personal Details",
+      sectionHint: isIndo ? "Masukkan detail kontak Anda." : "Enter your contact details.",
+      firstNameLabel: isIndo ? "Nama Depan" : "First Name",
+      lastNameLabel: isIndo ? "Nama Belakang" : "Last Name",
+      emailLabel: isIndo ? "Alamat Email" : "Email Address",
+      phoneLabel: isIndo ? "Nomor Telepon" : "Phone Number",
+      firstNamePlaceholder: isIndo ? "Nama Depan" : "First Name",
+      lastNamePlaceholder: isIndo ? "Nama Belakang" : "Last Name",
+      emailPlaceholder: isIndo ? "email@contoh.com" : "Email Address",
+      phonePlaceholder: isIndo ? "08xxxxxxxxxx" : "Phone Number",
     },
     shippingDetails: {
-      sectionTitle: "Shipping Details",
-      sectionHint: "Confirm the delivery destination.",
-      provinceLabel: "Province",
-      cityLabel: "City/Regency",
-      districtLabel: "Subdistrict",
-      postalCodeLabel: "Postal Code",
-      streetNameLabel: "Street Name",
-      houseNumberLabel: "House Number",
-      buildingLabel: "Building",
-      otherDetailsLabel: "Other Details",
-      provincePlaceholder: "Select Province",
-      cityPlaceholder: "Select City/Regency",
-      districtPlaceholder: "Select Subdistrict",
-      postalCodePlaceholder: "Postal Code",
-      streetNamePlaceholder: "Street Name",
-      houseNumberPlaceholder: "House Number",
-      buildingPlaceholder: "Building",
-      otherDetailsPlaceholder: "Block / Unit / Reference",
-      defaultShippingToggleLabel: "Use Default Shipping Address",
-      defaultShippingToggleEnabledLabel: "Yes",
-      defaultShippingToggleDisabledLabel: "No",
-      defaultShippingLoadingLabel: "Loading your default shipping address...",
-      paymentMethodLabel: "Payment Method",
-      paymentMethodPlaceholder: "Select a preferred payment option.",
+      sectionTitle: isIndo ? "Alamat Pengiriman" : "Shipping Details",
+      sectionHint: isIndo ? "Tentukan tujuan pengiriman pesanan Anda." : "Confirm the delivery destination.",
+      provinceLabel: isIndo ? "Provinsi" : "Province",
+      cityLabel: isIndo ? "Kota / Kabupaten" : "City/Regency",
+      districtLabel: isIndo ? "Kecamatan" : "Subdistrict",
+      postalCodeLabel: isIndo ? "Kode Pos" : "Postal Code",
+      streetNameLabel: isIndo ? "Nama Jalan / Alamat" : "Street Name",
+      houseNumberLabel: isIndo ? "Nomor Rumah" : "House Number",
+      buildingLabel: isIndo ? "Gedung / Unit" : "Building",
+      otherDetailsLabel: isIndo ? "Catatan Tambahan" : "Other Details",
+      provincePlaceholder: isIndo ? "Pilih Provinsi" : "Select Province",
+      cityPlaceholder: isIndo ? "Pilih Kota / Kabupaten" : "Select City/Regency",
+      districtPlaceholder: isIndo ? "Pilih Kecamatan" : "Select Subdistrict",
+      postalCodePlaceholder: isIndo ? "Kode Pos" : "Postal Code",
+      streetNamePlaceholder: isIndo ? "Nama Jalan / RT / RW" : "Street Name",
+      houseNumberPlaceholder: isIndo ? "Nomor Rumah" : "House Number",
+      buildingPlaceholder: isIndo ? "Gedung / Lantai / Unit" : "Building",
+      otherDetailsPlaceholder: isIndo ? "Patokan / Blok (opsional)" : "Block / Unit / Reference",
+      defaultShippingToggleLabel: isIndo ? "Gunakan Alamat Utama" : "Use Default Shipping Address",
+      defaultShippingToggleEnabledLabel: isIndo ? "Ya" : "Yes",
+      defaultShippingToggleDisabledLabel: isIndo ? "Tidak" : "No",
+      defaultShippingLoadingLabel: isIndo ? "Memuat alamat pengiriman utama Anda..." : "Loading your default shipping address...",
+      paymentMethodLabel: isIndo ? "Metode Pembayaran" : "Payment Method",
+      paymentMethodPlaceholder: isIndo ? "Pilih metode pembayaran yang tersedia." : "Select a preferred payment option.",
     },
     buttons: {
-      continueButtonLabel: "Back to Cart",
-      confirmButtonLabel: "Place an Order",
-      processingButtonLabel: "Processing...",
+      continueButtonLabel: isIndo ? "Kembali ke Keranjang" : "Back to Cart",
+      confirmButtonLabel: isIndo ? "Buat Pesanan Sekarang" : "Place an Order",
+      processingButtonLabel: isIndo ? "Memproses Pesanan..." : "Processing...",
     },
     cartItemSection: {
-      sectionTitle: "Checkout Summary",
-      orderSummaryLabel: "Order Summary",
-      sectionDescription:
-        "Review items, coupon impact, and the final amount before you submit.",
-      estimatedTotalLabel: "Estimated Total",
-      itemCountSuffix: "Items",
-      applyButtonLabel: "Apply",
-      applyingButtonLabel: "Applying...",
-      couponCodeLabel: "Coupon Code",
-      couponCodePlaceholder: "Coupon Code",
-      couponHelperText:
-        "Use this single field for either a platform coupon or the linked store coupon.",
-      itemPriceLabel: "Item Price",
-      subTotalLabel: "Subtotal",
-      shippingLabel: "Shipping",
-      discountLabel: "Discount",
-      taxLabel: "Tax",
-      totalCostLabel: "TOTAL COST",
-      postSubmitNotice:
-        "After placing the order, you will be redirected to the payment page with a trackable order reference.",
-      confirmationHelperText:
-        "By placing this order, you confirm the contact and shipping details above.",
-      summaryReadyHint: "Discounts and store settings are reflected live in this summary.",
-      submitNextLabel: "Submit Next",
-      previewFirstLabel: "Preview First",
+      sectionTitle: isIndo ? "Ringkasan Checkout" : "Checkout Summary",
+      orderSummaryLabel: isIndo ? "Ringkasan Pesanan" : "Order Summary",
+      sectionDescription: isIndo
+        ? "Tinjau pesanan dan total pembayaran sebelum melanjutkan."
+        : "Review items, coupon impact, and the final amount before you submit.",
+      estimatedTotalLabel: isIndo ? "Estimasi Total" : "Estimated Total",
+      itemCountSuffix: isIndo ? "Produk" : "Items",
+      applyButtonLabel: isIndo ? "Gunakan" : "Apply",
+      applyingButtonLabel: isIndo ? "Memproses..." : "Applying...",
+      couponCodeLabel: isIndo ? "Kode Kupon / Promo" : "Coupon Code",
+      couponCodePlaceholder: isIndo ? "Masukkan kode promo" : "Coupon Code",
+      couponHelperText: isIndo
+        ? "Gunakan kolom ini untuk kupon platform atau kupon toko."
+        : "Use this single field for either a platform coupon or the linked store coupon.",
+      itemPriceLabel: isIndo ? "Harga Satuan" : "Item Price",
+      subTotalLabel: isIndo ? "Subtotal" : "Subtotal",
+      shippingLabel: isIndo ? "Ongkos Kirim" : "Shipping",
+      discountLabel: isIndo ? "Diskon" : "Discount",
+      taxLabel: isIndo ? "Pajak" : "Tax",
+      totalCostLabel: isIndo ? "TOTAL PEMBAYARAN" : "TOTAL COST",
+      postSubmitNotice: isIndo
+        ? "Setelah membuat pesanan, Anda akan diarahkan ke halaman pembayaran yang aman."
+        : "After placing the order, you will be redirected to the payment page with a trackable order reference.",
+      confirmationHelperText: isIndo
+        ? "Dengan membuat pesanan, Anda menyetujui rincian kontak dan pengiriman di atas."
+        : "By placing this order, you confirm the contact and shipping details above.",
+      summaryReadyHint: isIndo
+        ? "Diskon dan ongkos kirim toko tercermin secara langsung pada ringkasan ini."
+        : "Discounts and store settings are reflected live in this summary.",
+      submitNextLabel: isIndo ? "Lanjut Pembayaran" : "Submit Next",
+      previewFirstLabel: isIndo ? "Pratinjau Pesanan" : "Preview First",
     },
   },
   dashboardSetting: {
@@ -8953,6 +8960,26 @@ export default function StoreCustomizationPage() {
         </div>
       ) : activeTab === "checkout" ? (
         <div className="flex flex-col gap-5">
+          <div className="flex items-center justify-between rounded-xl border border-sky-200 bg-sky-50/80 p-3.5 text-xs text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-200">
+            <div className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4 text-[#fe6f05]" />
+              <span>
+                {isIndo
+                  ? "Pengaturan halaman Checkout: Kelola teks data kontak, detail alamat pengiriman, opsi tombol aksi, dan ringkasan pesanan."
+                  : "Checkout Page Settings: Manage personal details copy, shipping form labels, action buttons, and order summary labels."}
+              </span>
+            </div>
+            <Link
+              to="/checkout"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-bold text-[#034c85] hover:underline dark:text-sky-300"
+            >
+              <span>{isIndo ? "Buka Checkout" : "View Checkout"}</span>
+              <ChevronRight className="h-3 w-3" />
+            </Link>
+          </div>
+
           <section className={sectionCard}>
             <div className="flex items-center gap-2">
               <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
