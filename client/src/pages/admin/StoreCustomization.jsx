@@ -11,6 +11,7 @@ import {
   MoreHorizontal,
   Plus,
   Settings,
+  ShoppingCart,
   Sparkles,
   Store,
   Upload,
@@ -52,6 +53,7 @@ const TABS = [
   { key: "faqs", label: "FAQs" },
   { key: "offers", label: "Offers" },
   { key: "contactUs", label: "Contact Us" },
+  { key: "shoppingCart", label: "Shopping Cart" },
   { key: "checkout", label: "Checkout" },
   { key: "dashboardSetting", label: "Dashboard Setting" },
   { key: "seoSettings", label: "Seo Settings" },
@@ -69,6 +71,7 @@ const STORE_TAB_BY_KEY = {
   faqs: "FAQ-setting",
   offers: "offers-setting",
   contactUs: "contact-us-setting",
+  shoppingCart: "shopping-cart-setting",
   checkout: "checkout-setting",
   dashboardSetting: "dashboard-setting",
   seoSettings: "seo-settings",
@@ -77,6 +80,10 @@ const KEY_BY_STORE_TAB = {
   ...Object.fromEntries(
     Object.entries(STORE_TAB_BY_KEY).map(([tabKey, storeTab]) => [storeTab, tabKey])
   ),
+  "shopping-cart-setting": "shoppingCart",
+  "shopping-cart": "shoppingCart",
+  "cart-setting": "shoppingCart",
+  "cart": "shoppingCart",
   "shop-settings": "shop",
   "shop-setting": "shop",
 };
@@ -1202,6 +1209,29 @@ const getDefaultCustomization = (targetLang = "en") => {
       imageDataUrl: "",
     },
   },
+  shoppingCart: {
+    pageHeader: {
+      enabled: true,
+      eyebrow: isIndo ? "KERANJANG ANDA" : "YOUR CART",
+      pageTitle: isIndo ? "Keranjang Belanja" : "Shopping Cart",
+      description: isIndo
+        ? "Tinjau produk pilihan Anda dan lanjutkan ke pembayaran."
+        : "Review your items and proceed to secure checkout.",
+      headerImageDataUrl: "",
+    },
+    orderSummary: {
+      enabled: true,
+      orderSummaryTitle: isIndo ? "Ringkasan Pesanan" : "Order Summary",
+      checkoutButtonText: isIndo ? "Lanjut ke Pembayaran" : "Proceed to Checkout",
+      continueShoppingText: isIndo ? "Lanjut Belanja" : "Continue Shopping",
+      emptyCartTitle: isIndo ? "Keranjang Belanja Kosong" : "Your Cart is Empty",
+      emptyCartDescription: isIndo
+        ? "Temukan produk edukasi & karya inovasi kampus dan tambahkan ke keranjang."
+        : "Discover campus innovation works and add them to your cart.",
+      emptyCartButtonText: isIndo ? "Mulai Belanja" : "Start Shopping",
+      trustBadgeText: isIndo ? "Transaksi Aman & Terverifikasi" : "Safe & Verified Checkout",
+    },
+  },
   };
 };
 
@@ -1778,6 +1808,62 @@ const normalizeOffers = (source, defaults) => {
       enabled: toBool(dealsSectionSource.enabled, defaults.dealsSection.enabled),
       title: toText(dealsSectionSource.title, defaults.dealsSection.title),
       description: toText(dealsSectionSource.description, defaults.dealsSection.description),
+    },
+  };
+};
+
+const normalizeShoppingCart = (source, defaults) => {
+  const cartSource = isPlainObject(source) ? source : {};
+  const pageHeaderSource = isPlainObject(cartSource.pageHeader) ? cartSource.pageHeader : {};
+  const orderSummarySource = isPlainObject(cartSource.orderSummary) ? cartSource.orderSummary : {};
+
+  return {
+    ...defaults,
+    ...cartSource,
+    pageHeader: {
+      ...defaults.pageHeader,
+      ...pageHeaderSource,
+      enabled: toBool(pageHeaderSource.enabled, defaults.pageHeader.enabled),
+      eyebrow: toText(pageHeaderSource.eyebrow, defaults.pageHeader.eyebrow),
+      pageTitle: toText(pageHeaderSource.pageTitle, defaults.pageHeader.pageTitle),
+      description: toText(pageHeaderSource.description, defaults.pageHeader.description),
+      headerImageDataUrl: toText(
+        pageHeaderSource.headerImageDataUrl ?? pageHeaderSource.backgroundImageDataUrl ?? "",
+        ""
+      ),
+    },
+    orderSummary: {
+      ...defaults.orderSummary,
+      ...orderSummarySource,
+      enabled: toBool(orderSummarySource.enabled, defaults.orderSummary.enabled),
+      orderSummaryTitle: toText(
+        orderSummarySource.orderSummaryTitle,
+        defaults.orderSummary.orderSummaryTitle
+      ),
+      checkoutButtonText: toText(
+        orderSummarySource.checkoutButtonText,
+        defaults.orderSummary.checkoutButtonText
+      ),
+      continueShoppingText: toText(
+        orderSummarySource.continueShoppingText,
+        defaults.orderSummary.continueShoppingText
+      ),
+      emptyCartTitle: toText(
+        orderSummarySource.emptyCartTitle,
+        defaults.orderSummary.emptyCartTitle
+      ),
+      emptyCartDescription: toText(
+        orderSummarySource.emptyCartDescription,
+        defaults.orderSummary.emptyCartDescription
+      ),
+      emptyCartButtonText: toText(
+        orderSummarySource.emptyCartButtonText,
+        defaults.orderSummary.emptyCartButtonText
+      ),
+      trustBadgeText: toText(
+        orderSummarySource.trustBadgeText,
+        defaults.orderSummary.trustBadgeText
+      ),
     },
   };
 };
@@ -2424,6 +2510,7 @@ const normalizeCustomizationPayload = (raw, targetLang = "en") => {
       : {};
   const offersSource = isPlainObject(source.offers) ? source.offers : {};
   const contactUsSource = isPlainObject(source.contactUs) ? source.contactUs : {};
+  const shoppingCartSource = isPlainObject(source.shoppingCart) ? source.shoppingCart : {};
   const checkoutSource = isPlainObject(source.checkout) ? source.checkout : {};
   const dashboardSettingSource = isPlainObject(source.dashboardSetting)
     ? source.dashboardSetting
@@ -2577,6 +2664,7 @@ const normalizeCustomizationPayload = (raw, targetLang = "en") => {
   const defaultsFaqs = defaults.faqs;
   const defaultsOffers = defaults.offers;
   const defaultsContactUs = defaults.contactUs;
+  const defaultsShoppingCart = defaults.shoppingCart;
   const defaultsCheckout = defaults.checkout;
   const defaultsDashboardSetting = defaults.dashboardSetting;
   const defaultsSeoSettings = defaults.seoSettings;
@@ -3236,6 +3324,7 @@ const normalizeCustomizationPayload = (raw, targetLang = "en") => {
     faqs: normalizeFaqs(faqsSource, defaultsFaqs),
     offers: normalizeOffers(offersSource, defaultsOffers),
     contactUs: normalizeContactUs(contactUsSource, defaultsContactUs),
+    shoppingCart: normalizeShoppingCart(shoppingCartSource, defaultsShoppingCart),
     checkout: normalizeCheckout(checkoutSource, defaultsCheckout),
     dashboardSetting: normalizeDashboardSetting(
       dashboardSettingSource,
@@ -3607,6 +3696,11 @@ export default function StoreCustomizationPage() {
   const [contactUsState, setContactUsState] = useState(
     () => getDefaultCustomization().contactUs
   );
+  const [shoppingCartState, setShoppingCartState] = useState(
+    () => getDefaultCustomization().shoppingCart
+  );
+  const [shoppingCartDropActive, setShoppingCartDropActive] = useState(false);
+  const [shoppingCartImageError, setShoppingCartImageError] = useState("");
   const [checkoutState, setCheckoutState] = useState(
     () => getDefaultCustomization().checkout
   );
@@ -3802,6 +3896,7 @@ export default function StoreCustomizationPage() {
     setFaqsState(normalized.faqs);
     setOffersState(normalized.offers);
     setContactUsState(normalized.contactUs);
+    setShoppingCartState(normalized.shoppingCart);
     setCheckoutState(normalized.checkout);
     setDashboardSettingState(normalized.dashboardSetting);
     setSeoSettingsState(normalized.seoSettings);
@@ -3885,6 +3980,7 @@ export default function StoreCustomizationPage() {
       setFaqsState(normalized.faqs);
       setOffersState(normalized.offers);
       setContactUsState(normalized.contactUs);
+      setShoppingCartState(normalized.shoppingCart);
       setCheckoutState(normalized.checkout);
       setDashboardSettingState(normalized.dashboardSetting);
       setSeoSettingsState(normalized.seoSettings);
@@ -4437,6 +4533,47 @@ export default function StoreCustomizationPage() {
           enabled: Boolean(contactUsState?.contactForm?.enabled),
           title: toText(contactUsState?.contactForm?.title),
           description: toText(contactUsState?.contactForm?.description),
+        },
+      },
+      shoppingCart: {
+        ...currentCustomization.shoppingCart,
+        ...shoppingCartState,
+        pageHeader: {
+          ...currentCustomization.shoppingCart?.pageHeader,
+          ...shoppingCartState?.pageHeader,
+          enabled: Boolean(shoppingCartState?.pageHeader?.enabled),
+          eyebrow: toText(shoppingCartState?.pageHeader?.eyebrow),
+          pageTitle: toText(shoppingCartState?.pageHeader?.pageTitle),
+          description: toText(shoppingCartState?.pageHeader?.description),
+          headerImageDataUrl: toText(
+            shoppingCartState?.pageHeader?.headerImageDataUrl
+          ),
+        },
+        orderSummary: {
+          ...currentCustomization.shoppingCart?.orderSummary,
+          ...shoppingCartState?.orderSummary,
+          enabled: Boolean(shoppingCartState?.orderSummary?.enabled),
+          orderSummaryTitle: toText(
+            shoppingCartState?.orderSummary?.orderSummaryTitle
+          ),
+          checkoutButtonText: toText(
+            shoppingCartState?.orderSummary?.checkoutButtonText
+          ),
+          continueShoppingText: toText(
+            shoppingCartState?.orderSummary?.continueShoppingText
+          ),
+          emptyCartTitle: toText(
+            shoppingCartState?.orderSummary?.emptyCartTitle
+          ),
+          emptyCartDescription: toText(
+            shoppingCartState?.orderSummary?.emptyCartDescription
+          ),
+          emptyCartButtonText: toText(
+            shoppingCartState?.orderSummary?.emptyCartButtonText
+          ),
+          trustBadgeText: toText(
+            shoppingCartState?.orderSummary?.trustBadgeText
+          ),
         },
       },
       checkout: {
@@ -5945,6 +6082,42 @@ export default function StoreCustomizationPage() {
     onChangeContactUsImageField(fieldKey, "");
   };
 
+  const onChangeShoppingCartHeaderField = (field, value) => {
+    setShoppingCartState((prev) => ({
+      ...prev,
+      pageHeader: {
+        ...prev?.pageHeader,
+        [field]: value,
+      },
+    }));
+  };
+
+  const onChangeShoppingCartOrderSummaryField = (field, value) => {
+    setShoppingCartState((prev) => ({
+      ...prev,
+      orderSummary: {
+        ...prev?.orderSummary,
+        [field]: value,
+      },
+    }));
+  };
+
+  const onHandleShoppingCartImage = async (file) => {
+    if (!file) return;
+    const validation = validateCustomizationLogoFile(file);
+    if (!validation.valid) {
+      setShoppingCartImageError(validation.error);
+      return;
+    }
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      setShoppingCartImageError("");
+      onChangeShoppingCartHeaderField("headerImageDataUrl", dataUrl);
+    } catch (error) {
+      setShoppingCartImageError(error?.message || "Failed to process image.");
+    }
+  };
+
   const onChangeCheckoutField = (sectionKey, field, value) => {
     setCheckoutState((prev) => ({
       ...prev,
@@ -6322,6 +6495,65 @@ export default function StoreCustomizationPage() {
       description: toText(
         contactUsState?.contactForm?.description,
         contactUsDefaults.contactForm.description
+      ),
+    },
+  };
+  const shoppingCartDefaults = getDefaultCustomization().shoppingCart;
+  const shoppingCart = {
+    ...shoppingCartDefaults,
+    ...(shoppingCartState || {}),
+    pageHeader: {
+      ...shoppingCartDefaults.pageHeader,
+      ...(shoppingCartState?.pageHeader || {}),
+      enabled: Boolean(shoppingCartState?.pageHeader?.enabled),
+      eyebrow: toText(
+        shoppingCartState?.pageHeader?.eyebrow,
+        shoppingCartDefaults.pageHeader.eyebrow
+      ),
+      pageTitle: toText(
+        shoppingCartState?.pageHeader?.pageTitle,
+        shoppingCartDefaults.pageHeader.pageTitle
+      ),
+      description: toText(
+        shoppingCartState?.pageHeader?.description,
+        shoppingCartDefaults.pageHeader.description
+      ),
+      headerImageDataUrl: toText(
+        shoppingCartState?.pageHeader?.headerImageDataUrl,
+        ""
+      ),
+    },
+    orderSummary: {
+      ...shoppingCartDefaults.orderSummary,
+      ...(shoppingCartState?.orderSummary || {}),
+      enabled: Boolean(shoppingCartState?.orderSummary?.enabled),
+      orderSummaryTitle: toText(
+        shoppingCartState?.orderSummary?.orderSummaryTitle,
+        shoppingCartDefaults.orderSummary.orderSummaryTitle
+      ),
+      checkoutButtonText: toText(
+        shoppingCartState?.orderSummary?.checkoutButtonText,
+        shoppingCartDefaults.orderSummary.checkoutButtonText
+      ),
+      continueShoppingText: toText(
+        shoppingCartState?.orderSummary?.continueShoppingText,
+        shoppingCartDefaults.orderSummary.continueShoppingText
+      ),
+      emptyCartTitle: toText(
+        shoppingCartState?.orderSummary?.emptyCartTitle,
+        shoppingCartDefaults.orderSummary.emptyCartTitle
+      ),
+      emptyCartDescription: toText(
+        shoppingCartState?.orderSummary?.emptyCartDescription,
+        shoppingCartDefaults.orderSummary.emptyCartDescription
+      ),
+      emptyCartButtonText: toText(
+        shoppingCartState?.orderSummary?.emptyCartButtonText,
+        shoppingCartDefaults.orderSummary.emptyCartButtonText
+      ),
+      trustBadgeText: toText(
+        shoppingCartState?.orderSummary?.trustBadgeText,
+        shoppingCartDefaults.orderSummary.trustBadgeText
       ),
     },
   };
@@ -8486,6 +8718,234 @@ export default function StoreCustomizationPage() {
                     )
                   }
                   className={textAreaBase}
+                />
+              </label>
+            </div>
+          </section>
+        </div>
+      ) : activeTab === "shoppingCart" ? (
+        <div className="flex flex-col gap-5">
+          <div className="flex items-center justify-between rounded-xl border border-sky-200 bg-sky-50/80 p-3.5 text-xs text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-200">
+            <div className="flex items-center gap-2">
+              <ShoppingCart className="h-4 w-4 text-[#fe6f05]" />
+              <span>
+                {isIndo
+                  ? "Pengaturan halaman Keranjang Belanja (Shopping Cart): Kelola teks judul, ringkasan pesanan, pesan keranjang kosong, dan banner header."
+                  : "Shopping Cart Page Settings: Manage header text, order summary labels, empty cart messages, and header image."}
+              </span>
+            </div>
+            <Link
+              to="/cart"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-bold text-[#034c85] hover:underline dark:text-sky-300"
+            >
+              <span>{isIndo ? "Lihat Keranjang" : "View Cart"}</span>
+              <ChevronRight className="h-3 w-3" />
+            </Link>
+          </div>
+
+          <section className={sectionCard}>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                <Settings className="h-4 w-4" />
+              </span>
+              <h2 className="text-base font-semibold text-slate-900">
+                {isIndo ? "Header Keranjang" : "Cart Page Header"}
+              </h2>
+            </div>
+            <div className="mt-4 h-px w-full bg-slate-200" />
+
+            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[320px_1fr]">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  {isIndo ? "Aktifkan Header" : "Enable Header"}
+                </p>
+                <SegmentedToggle
+                  value={Boolean(shoppingCart.pageHeader.enabled)}
+                  onChange={(value) => onChangeShoppingCartHeaderField("enabled", value)}
+                />
+              </div>
+              <ImageUploadField
+                id="cart-page-header-image-input"
+                label={isIndo ? "Banner / Gambar Header" : "Header Image / Banner"}
+                error={shoppingCartImageError}
+                dropActive={shoppingCartDropActive}
+                onDropActiveChange={setShoppingCartDropActive}
+                onInputChange={async (event) => {
+                  const file = event.target.files?.[0];
+                  await onHandleShoppingCartImage(file);
+                  event.target.value = "";
+                }}
+                onDrop={async (event) => {
+                  event.preventDefault();
+                  setShoppingCartDropActive(false);
+                  const file = event.dataTransfer?.files?.[0];
+                  await onHandleShoppingCartImage(file);
+                }}
+                previewDataUrl={shoppingCart.pageHeader.headerImageDataUrl}
+                onRemove={() => {
+                  setShoppingCartImageError("");
+                  onChangeShoppingCartHeaderField("headerImageDataUrl", "");
+                }}
+                previewAlt="Shopping cart header banner"
+              />
+              <label className="block xl:col-span-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {isIndo ? "Teks Eyebrow / Badge" : "Eyebrow / Badge Text"}
+                </span>
+                <input
+                  type="text"
+                  value={shoppingCart?.pageHeader?.eyebrow || ""}
+                  onChange={(e) => onChangeShoppingCartHeaderField("eyebrow", e.target.value)}
+                  className={`${inputBase} mt-2`}
+                  placeholder={isIndo ? "KERANJANG ANDA" : "YOUR CART"}
+                />
+              </label>
+              <label className="block xl:col-span-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {isIndo ? "Judul Halaman" : "Page Title"}
+                </span>
+                <input
+                  type="text"
+                  value={shoppingCart?.pageHeader?.pageTitle || ""}
+                  onChange={(e) => onChangeShoppingCartHeaderField("pageTitle", e.target.value)}
+                  className={`${inputBase} mt-2`}
+                  placeholder={isIndo ? "Keranjang Belanja" : "Shopping Cart"}
+                />
+              </label>
+              <label className="block xl:col-span-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {isIndo ? "Deskripsi Halaman (Ringkas)" : "Page Description (Concise)"}
+                </span>
+                <textarea
+                  rows={2}
+                  value={shoppingCart?.pageHeader?.description || ""}
+                  onChange={(e) => onChangeShoppingCartHeaderField("description", e.target.value)}
+                  className={`${textAreaBase} mt-2`}
+                  placeholder={
+                    isIndo
+                      ? "Tinjau produk pilihan Anda dan lanjutkan ke pembayaran."
+                      : "Review your items and proceed to secure checkout."
+                  }
+                />
+              </label>
+            </div>
+          </section>
+
+          <section className={sectionCard}>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                <Settings className="h-4 w-4" />
+              </span>
+              <h2 className="text-base font-semibold text-slate-900">
+                {isIndo ? "Ringkasan Pesanan & Tombol Checkout" : "Order Summary & Checkout Action"}
+              </h2>
+            </div>
+            <div className="mt-4 h-px w-full bg-slate-200" />
+
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <label className="block">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {isIndo ? "Judul Ringkasan Pesanan" : "Order Summary Title"}
+                </span>
+                <input
+                  type="text"
+                  value={shoppingCart?.orderSummary?.orderSummaryTitle || ""}
+                  onChange={(e) => onChangeShoppingCartOrderSummaryField("orderSummaryTitle", e.target.value)}
+                  className={`${inputBase} mt-2`}
+                  placeholder={isIndo ? "Ringkasan Pesanan" : "Order Summary"}
+                />
+              </label>
+              <label className="block">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {isIndo ? "Teks Tombol Lanjut ke Checkout" : "Proceed to Checkout Button Text"}
+                </span>
+                <input
+                  type="text"
+                  value={shoppingCart?.orderSummary?.checkoutButtonText || ""}
+                  onChange={(e) => onChangeShoppingCartOrderSummaryField("checkoutButtonText", e.target.value)}
+                  className={`${inputBase} mt-2`}
+                  placeholder={isIndo ? "Lanjut ke Pembayaran" : "Proceed to Checkout"}
+                />
+              </label>
+              <label className="block">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {isIndo ? "Teks Tombol Lanjut Belanja" : "Continue Shopping Button Text"}
+                </span>
+                <input
+                  type="text"
+                  value={shoppingCart?.orderSummary?.continueShoppingText || ""}
+                  onChange={(e) => onChangeShoppingCartOrderSummaryField("continueShoppingText", e.target.value)}
+                  className={`${inputBase} mt-2`}
+                  placeholder={isIndo ? "Lanjut Belanja" : "Continue Shopping"}
+                />
+              </label>
+              <label className="block">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {isIndo ? "Teks Keamanan / Trust Badge" : "Trust Badge Text"}
+                </span>
+                <input
+                  type="text"
+                  value={shoppingCart?.orderSummary?.trustBadgeText || ""}
+                  onChange={(e) => onChangeShoppingCartOrderSummaryField("trustBadgeText", e.target.value)}
+                  className={`${inputBase} mt-2`}
+                  placeholder={isIndo ? "Transaksi Aman & Terverifikasi" : "Safe & Verified Checkout"}
+                />
+              </label>
+            </div>
+          </section>
+
+          <section className={sectionCard}>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                <Settings className="h-4 w-4" />
+              </span>
+              <h2 className="text-base font-semibold text-slate-900">
+                {isIndo ? "Pesan Keranjang Kosong" : "Empty Cart State"}
+              </h2>
+            </div>
+            <div className="mt-4 h-px w-full bg-slate-200" />
+
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <label className="block md:col-span-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {isIndo ? "Judul Keranjang Kosong" : "Empty Cart Title"}
+                </span>
+                <input
+                  type="text"
+                  value={shoppingCart?.orderSummary?.emptyCartTitle || ""}
+                  onChange={(e) => onChangeShoppingCartOrderSummaryField("emptyCartTitle", e.target.value)}
+                  className={`${inputBase} mt-2`}
+                  placeholder={isIndo ? "Keranjang Belanja Kosong" : "Your Cart is Empty"}
+                />
+              </label>
+              <label className="block md:col-span-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {isIndo ? "Deskripsi Keranjang Kosong" : "Empty Cart Description"}
+                </span>
+                <textarea
+                  rows={2}
+                  value={shoppingCart?.orderSummary?.emptyCartDescription || ""}
+                  onChange={(e) => onChangeShoppingCartOrderSummaryField("emptyCartDescription", e.target.value)}
+                  className={`${textAreaBase} mt-2`}
+                  placeholder={
+                    isIndo
+                      ? "Temukan produk edukasi & karya inovasi kampus dan tambahkan ke keranjang."
+                      : "Discover campus innovation works and add them to your cart."
+                  }
+                />
+              </label>
+              <label className="block">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {isIndo ? "Teks Tombol Mulai Belanja" : "Start Shopping Button Text"}
+                </span>
+                <input
+                  type="text"
+                  value={shoppingCart?.orderSummary?.emptyCartButtonText || ""}
+                  onChange={(e) => onChangeShoppingCartOrderSummaryField("emptyCartButtonText", e.target.value)}
+                  className={`${inputBase} mt-2`}
+                  placeholder={isIndo ? "Mulai Belanja" : "Start Shopping"}
                 />
               </label>
             </div>

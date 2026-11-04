@@ -490,6 +490,25 @@ const DEFAULT_CUSTOMIZATION = {
             previewFirstLabel: "Preview First",
         },
     },
+    shoppingCart: {
+        pageHeader: {
+            enabled: true,
+            eyebrow: "KERANJANG ANDA",
+            pageTitle: "Keranjang Belanja",
+            description: "Tinjau produk pilihan Anda dan lanjutkan ke pembayaran.",
+            headerImageDataUrl: "",
+        },
+        orderSummary: {
+            enabled: true,
+            orderSummaryTitle: "Ringkasan Pesanan",
+            checkoutButtonText: "Lanjut ke Pembayaran",
+            continueShoppingText: "Lanjut Belanja",
+            emptyCartTitle: "Keranjang Belanja Kosong",
+            emptyCartDescription: "Temukan karya inovasi dan produk edupreneur kampus pilihan Anda.",
+            emptyCartButtonText: "Mulai Belanja",
+            trustBadgeText: "Transaksi Aman & Terverifikasi",
+        },
+    },
     dashboardSetting: {
         dashboard: {
             sectionTitle: "Dashboard",

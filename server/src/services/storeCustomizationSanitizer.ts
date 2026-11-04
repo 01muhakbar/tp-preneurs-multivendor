@@ -539,6 +539,25 @@ const DEFAULT_CUSTOMIZATION = {
       previewFirstLabel: "Preview First",
     },
   },
+  shoppingCart: {
+    pageHeader: {
+      enabled: true,
+      eyebrow: "KERANJANG ANDA",
+      pageTitle: "Keranjang Belanja",
+      description: "Tinjau produk pilihan Anda dan lanjutkan ke pembayaran.",
+      headerImageDataUrl: "",
+    },
+    orderSummary: {
+      enabled: true,
+      orderSummaryTitle: "Ringkasan Pesanan",
+      checkoutButtonText: "Lanjut ke Pembayaran",
+      continueShoppingText: "Lanjut Belanja",
+      emptyCartTitle: "Keranjang Belanja Kosong",
+      emptyCartDescription: "Temukan karya inovasi dan produk edupreneur kampus pilihan Anda.",
+      emptyCartButtonText: "Mulai Belanja",
+      trustBadgeText: "Transaksi Aman & Terverifikasi",
+    },
+  },
   dashboardSetting: {
     dashboard: {
       sectionTitle: "Dashboard",
@@ -2202,6 +2221,68 @@ const normalizeCheckout = (root: Record<string, any>) => {
   };
 };
 
+const normalizeShoppingCart = (root: Record<string, any>) => {
+  const defaults = cloneStoreCustomizationDefaults().shoppingCart;
+  const source = isPlainObject(root.shoppingCart) ? root.shoppingCart : {};
+  const pageHeaderSource = isPlainObject(source.pageHeader) ? source.pageHeader : {};
+  const orderSummarySource = isPlainObject(source.orderSummary) ? source.orderSummary : {};
+
+  return {
+    ...defaults,
+    ...source,
+    pageHeader: {
+      ...defaults.pageHeader,
+      ...pageHeaderSource,
+      enabled: toBool(pageHeaderSource.enabled, defaults.pageHeader.enabled),
+      eyebrow: toText(pageHeaderSource.eyebrow, defaults.pageHeader.eyebrow),
+      pageTitle: toText(pageHeaderSource.pageTitle, defaults.pageHeader.pageTitle),
+      description: toText(pageHeaderSource.description, defaults.pageHeader.description),
+      headerImageDataUrl: toText(
+        firstText(
+          pageHeaderSource.headerImageDataUrl,
+          pageHeaderSource.backgroundImageDataUrl,
+          pageHeaderSource.imageDataUrl,
+          pageHeaderSource.image
+        ),
+        ""
+      ),
+    },
+    orderSummary: {
+      ...defaults.orderSummary,
+      ...orderSummarySource,
+      enabled: toBool(orderSummarySource.enabled, defaults.orderSummary.enabled),
+      orderSummaryTitle: toText(
+        orderSummarySource.orderSummaryTitle,
+        defaults.orderSummary.orderSummaryTitle
+      ),
+      checkoutButtonText: toText(
+        orderSummarySource.checkoutButtonText,
+        defaults.orderSummary.checkoutButtonText
+      ),
+      continueShoppingText: toText(
+        orderSummarySource.continueShoppingText,
+        defaults.orderSummary.continueShoppingText
+      ),
+      emptyCartTitle: toText(
+        orderSummarySource.emptyCartTitle,
+        defaults.orderSummary.emptyCartTitle
+      ),
+      emptyCartDescription: toText(
+        orderSummarySource.emptyCartDescription,
+        defaults.orderSummary.emptyCartDescription
+      ),
+      emptyCartButtonText: toText(
+        orderSummarySource.emptyCartButtonText,
+        defaults.orderSummary.emptyCartButtonText
+      ),
+      trustBadgeText: toText(
+        orderSummarySource.trustBadgeText,
+        defaults.orderSummary.trustBadgeText
+      ),
+    },
+  };
+};
+
 const normalizeDashboardSetting = (root: Record<string, any>) => {
   const defaults = cloneStoreCustomizationDefaults().dashboardSetting;
   const source = isPlainObject(root.dashboardSetting) ? root.dashboardSetting : {};
@@ -2368,6 +2449,7 @@ export const sanitizeStoreCustomization = (rawData: unknown) => {
   const normalizedOffers = normalizeOffers(source);
   const normalizedContactUs = normalizeContactUs(source);
   const normalizedCheckout = normalizeCheckout(source);
+  const normalizedShoppingCart = normalizeShoppingCart(source);
   const normalizedDashboardSetting = normalizeDashboardSetting(source);
   const normalizedSeoSettings = normalizeSeoSettings(source);
   const output = {
@@ -2382,6 +2464,7 @@ export const sanitizeStoreCustomization = (rawData: unknown) => {
     offers: normalizedOffers,
     contactUs: normalizedContactUs,
     checkout: normalizedCheckout,
+    shoppingCart: normalizedShoppingCart,
     dashboardSetting: normalizedDashboardSetting,
     seoSettings: normalizedSeoSettings,
   };

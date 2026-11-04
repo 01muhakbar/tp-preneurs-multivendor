@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { getStoreCustomization } from "../../api/public/storeCustomizationPublic.ts";
 import { previewCheckoutByStore } from "../../api/public/storeCheckout.ts";
 import { useCart } from "../../hooks/useCart.ts";
 import { formatCurrency } from "../../utils/format.js";
@@ -106,6 +108,37 @@ export { StoreCartDrawer } from "../../components/store/StoreCartDrawer2026.jsx"
 
 export default function StoreCartPage() {
   const navigate = useNavigate();
+  const { i18n } = useTranslation();
+  const [, setLangSyncCounter] = useState(0);
+
+  // Reactive language detection that listens to header language changes
+  const isIndo =
+    i18n.language === "id" ||
+    i18n.language === "id-ID" ||
+    i18n.language?.startsWith("id") ||
+    (typeof window !== "undefined" &&
+      (localStorage.getItem("store_language") === "Indonesia" ||
+        localStorage.getItem("store_language") === "Bahasa Indonesia"));
+  const lang = isIndo ? "id" : "en";
+
+  useEffect(() => {
+    const handleSync = () => setLangSyncCounter((c) => c + 1);
+    i18n.on("languageChanged", handleSync);
+    window.addEventListener("storage", handleSync);
+    return () => {
+      i18n.off("languageChanged", handleSync);
+      window.removeEventListener("storage", handleSync);
+    };
+  }, [i18n]);
+
+  const customizationQuery = useQuery({
+    queryKey: ["store-customization", "cart-page", lang],
+    queryFn: () => getStoreCustomization({ lang, include: "shoppingCart" }),
+    staleTime: 60_000,
+  });
+
+  const cartCustomization = customizationQuery.data?.customization?.shoppingCart || null;
+
   const {
     cart,
     items,
@@ -228,6 +261,9 @@ export default function StoreCartPage() {
   return (
     <StoreCart2026View
       viewModel={viewModel}
+      customization={cartCustomization}
+      isIndo={isIndo}
+      lang={lang}
       status={{
         loading: showSkeleton,
         fatalError: isFatalError,

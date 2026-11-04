@@ -1,6 +1,7 @@
 import {
   BadgeCheck,
   CircleHelp,
+  CreditCard,
   Gift,
   Grid3X3,
   Home,
@@ -21,7 +22,8 @@ export const STORE_CUSTOMIZATION_TAB_ITEMS = [
   { key: "faqs", label: "FAQs", icon: CircleHelp },
   { key: "offers", label: "Offers", icon: Gift },
   { key: "contactUs", label: "Contact", icon: ShoppingBag },
-  { key: "checkout", label: "Checkout", icon: ShoppingCart },
+  { key: "shoppingCart", label: "Shopping Cart", icon: ShoppingCart },
+  { key: "checkout", label: "Checkout", icon: CreditCard },
   { key: "dashboardSetting", label: "Dashboard", icon: Grid3X3 },
   { key: "seoSettings", label: "SEO", icon: Search },
 ];
