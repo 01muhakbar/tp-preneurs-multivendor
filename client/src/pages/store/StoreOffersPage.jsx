@@ -1,14 +1,14 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   Check,
-  Clock,
   Copy,
   ExternalLink,
   Flame,
+  GraduationCap,
   Percent,
   ShieldCheck,
   ShoppingBag,
@@ -51,29 +51,184 @@ const toBool = (value, fallback = false) => {
 const toPlainObject = (value) =>
   value && typeof value === "object" && !Array.isArray(value) ? value : {};
 
+/* ---------------------------------------------------------
+   BILINGUAL DICTIONARY & SMART RESOLVER
+   Ensures accurate translations when language is toggled.
+   --------------------------------------------------------- */
+const OFFERS_BILINGUAL_MAP = {
+  eyebrow: {
+    id: "PROMO & PENAWARAN SPESIAL",
+    en: "SPECIAL OFFERS & PROMOTIONS",
+    aliases: [
+      "promo & penawaran spesial",
+      "penawaran spesial",
+      "mega offer & promo",
+      "special offers & promotions",
+      "special offers",
+      "mega offer & promotions",
+      "exclusive mega deals",
+      "mega promo",
+      "promo spesial",
+      "katalog promo",
+    ],
+  },
+  pageTitle: {
+    id: "Mega Offer",
+    en: "Mega Offer",
+    aliases: [
+      "mega offer",
+      "mega offer eksklusif",
+      "exclusive mega offer",
+      "mega offer & diskon eksklusif",
+      "mega offer & diskon",
+    ],
+  },
+  description: {
+    id: "Nikmati penawaran harga terbaik untuk produk kreatif dan karya inovasi mahasiswa.",
+    en: "Enjoy the best deals on creative products and student innovation works.",
+    aliases: [
+      "nikmati penawaran harga terbaik untuk produk kreatif dan karya inovasi mahasiswa.",
+      "dapatkan penawaran terbaik dan kupon diskon spesial untuk produk edukasi pilihan.",
+      "enjoy the best prices and exclusive deals on student creative and innovation products.",
+      "enjoy the best deals on creative products and student innovation works.",
+      "discover the best limited-time deals and discount coupons for top educational products.",
+    ],
+  },
+  dealsTitle: {
+    id: "Produk Promo Pilihan",
+    en: "Featured Promotional Deals",
+    aliases: [
+      "produk promo pilihan",
+      "koleksi produk diskon",
+      "promo produk pilihan",
+      "featured promotional deals",
+      "special discounted deals",
+      "discounted deals collection",
+      "special promotional deals",
+    ],
+  },
+  dealsDescription: {
+    id: "Karya inovasi dan produk edupreneur dengan diskon spesial.",
+    en: "Student innovation works and edupreneur products with exclusive discounts.",
+    aliases: [
+      "karya inovasi dan produk edupreneur dengan diskon spesial.",
+      "hemat lebih banyak untuk karya inovasi dan media belajar.",
+      "student innovation works and edupreneur products with exclusive discounts.",
+      "save big on student innovation works and digital learning products.",
+      "jelajahi produk berkualitas dengan potongan harga menarik.",
+    ],
+  },
+};
+
+const resolveOffersBilingual = (field, rawValue, isIndo) => {
+  const text = toText(rawValue);
+  const targetLang = isIndo ? "id" : "en";
+  const oppositeLang = isIndo ? "en" : "id";
+  const config = OFFERS_BILINGUAL_MAP[field];
+
+  if (!config) return text;
+  if (!text) return config[targetLang];
+
+  const current = text.trim().toLowerCase();
+
+  // 1. Direct alias match
+  if (Array.isArray(config.aliases)) {
+    const isMatched = config.aliases.some((alias) => alias.toLowerCase() === current);
+    if (isMatched) return config[targetLang];
+  }
+
+  // 2. Canonical target / opposite match
+  if (
+    current === config[oppositeLang].toLowerCase() ||
+    current === config[targetLang].toLowerCase()
+  ) {
+    return config[targetLang];
+  }
+
+  // 3. Smart contextual phrase matching
+  if (field === "eyebrow") {
+    if (
+      current.includes("promo") ||
+      current.includes("penawaran") ||
+      current.includes("special offer") ||
+      current.includes("mega offer")
+    ) {
+      return config[targetLang];
+    }
+  }
+
+  if (field === "description") {
+    if (
+      current.includes("nikmati penawaran") ||
+      current.includes("karya inovasi mahasiswa") ||
+      current.includes("produk kreatif") ||
+      current.includes("enjoy the best") ||
+      current.includes("discover the best") ||
+      current.includes("educational products")
+    ) {
+      return config[targetLang];
+    }
+  }
+
+  if (field === "dealsTitle") {
+    if (
+      current.includes("produk promo") ||
+      current.includes("produk diskon") ||
+      current.includes("promo pilihan") ||
+      current.includes("promotional deals") ||
+      current.includes("discounted deals")
+    ) {
+      return config[targetLang];
+    }
+  }
+
+  if (field === "dealsDescription") {
+    if (
+      current.includes("karya inovasi") ||
+      current.includes("diskon spesial") ||
+      current.includes("edupreneur") ||
+      current.includes("student innovation") ||
+      current.includes("exclusive discounts") ||
+      current.includes("save big")
+    ) {
+      return config[targetLang];
+    }
+  }
+
+  // 4. Fallback if current language is English but text contains Indonesian words
+  if (!isIndo) {
+    if (
+      current.includes("dan ") ||
+      current.includes("untuk ") ||
+      current.includes("dengan ") ||
+      current.includes("pilihan") ||
+      current.includes("terbaik")
+    ) {
+      return config.en;
+    }
+  }
+
+  return text;
+};
+
 const normalizeOffers = (raw, isIndo) => {
   const source = toPlainObject(raw);
   const pageHeader = toPlainObject(source.pageHeader);
   const superDiscount = toPlainObject(source.superDiscount);
   const dealsSection = toPlainObject(source.dealsSection);
 
-  const defaultEyebrow = isIndo ? "MEGA OFFER & PROMO" : "MEGA OFFER & PROMOTIONS";
-  const defaultTitle = isIndo ? "Mega Offer & Diskon Eksklusif" : "Exclusive Mega Offer";
-  const defaultDesc = isIndo
-    ? "Dapatkan penawaran terbaik dan kupon diskon spesial untuk produk edukasi pilihan."
-    : "Discover the best limited-time deals and discount coupons for top educational products.";
-
-  const defaultDealsTitle = isIndo ? "Koleksi Produk Diskon" : "Discounted Deals Collection";
-  const defaultDealsDesc = isIndo
-    ? "Hemat lebih banyak untuk karya inovasi dan media belajar."
-    : "Save big on student innovation works and digital learning products.";
+  const rawEyebrow = toText(pageHeader.eyebrow);
+  const rawTitle = toText(pageHeader.pageTitle);
+  const rawDesc = toText(pageHeader.description);
+  const rawDealsTitle = toText(dealsSection.title);
+  const rawDealsDesc = toText(dealsSection.description);
 
   return {
     pageHeader: {
       enabled: toBool(pageHeader.enabled, true),
-      eyebrow: toText(pageHeader.eyebrow, defaultEyebrow),
-      pageTitle: toText(pageHeader.pageTitle, defaultTitle),
-      description: toText(pageHeader.description, defaultDesc),
+      eyebrow: resolveOffersBilingual("eyebrow", rawEyebrow, isIndo),
+      pageTitle: resolveOffersBilingual("pageTitle", rawTitle, isIndo),
+      description: resolveOffersBilingual("description", rawDesc, isIndo),
       backgroundImageDataUrl: toText(
         pageHeader.backgroundImageDataUrl ||
           pageHeader.backgroundImage ||
@@ -91,8 +246,8 @@ const normalizeOffers = (raw, isIndo) => {
     },
     dealsSection: {
       enabled: toBool(dealsSection.enabled, true),
-      title: toText(dealsSection.title, defaultDealsTitle),
-      description: toText(dealsSection.description, defaultDealsDesc),
+      title: resolveOffersBilingual("dealsTitle", rawDealsTitle, isIndo),
+      description: resolveOffersBilingual("dealsDescription", rawDealsDesc, isIndo),
     },
   };
 };
@@ -123,13 +278,27 @@ export default function StoreOffersPage() {
 
   const [copiedCode, setCopiedCode] = useState("");
   const [quickViewCard, setQuickViewCard] = useState(null);
+  const [, setLangSyncCounter] = useState(0);
 
+  // Reactive language detection that listens to header language changes
   const isIndo =
     i18n.language === "id" ||
     i18n.language === "id-ID" ||
     i18n.language?.startsWith("id") ||
-    (typeof window !== "undefined" && localStorage.getItem("store_language") === "Indonesia");
+    (typeof window !== "undefined" &&
+      (localStorage.getItem("store_language") === "Indonesia" ||
+        localStorage.getItem("store_language") === "Bahasa Indonesia"));
   const lang = isIndo ? "id" : "en";
+
+  useEffect(() => {
+    const handleSync = () => setLangSyncCounter((c) => c + 1);
+    i18n.on("languageChanged", handleSync);
+    window.addEventListener("storage", handleSync);
+    return () => {
+      i18n.off("languageChanged", handleSync);
+      window.removeEventListener("storage", handleSync);
+    };
+  }, [i18n]);
 
   // Fetch offers customization
   const offersQuery = useQuery({
@@ -183,17 +352,20 @@ export default function StoreOffersPage() {
   // Handle coupon copy
   const handleCopyCoupon = (code) => {
     if (!code || !navigator?.clipboard?.writeText) return;
-    navigator.clipboard.writeText(code).then(() => {
-      setCopiedCode(code);
-      toast.success(
-        isIndo
-          ? `Kode voucher "${code}" berhasil disalin!`
-          : `Coupon code "${code}" copied!`
-      );
-      setTimeout(() => setCopiedCode(""), 2200);
-    }).catch(() => {
-      toast.error(isIndo ? "Gagal menyalin kode." : "Failed to copy code.");
-    });
+    navigator.clipboard
+      .writeText(code)
+      .then(() => {
+        setCopiedCode(code);
+        toast.success(
+          isIndo
+            ? `Kode voucher "${code}" berhasil disalin!`
+            : `Coupon code "${code}" copied!`
+        );
+        setTimeout(() => setCopiedCode(""), 2200);
+      })
+      .catch(() => {
+        toast.error(isIndo ? "Gagal menyalin kode." : "Failed to copy code.");
+      });
   };
 
   // Cart actions
@@ -237,7 +409,7 @@ export default function StoreOffersPage() {
 
   return (
     <div className="tp-offers-container">
-      {/* 1. HERO BANNER */}
+      {/* 1. HERO BANNER WITH 2-COLUMN BALANCED LAYOUT */}
       {isHeaderEnabled ? (
         <header
           className={`tp-offers-hero ${hasHeaderBackground ? "has-custom-bg" : ""}`}
@@ -249,57 +421,135 @@ export default function StoreOffersPage() {
               : undefined
           }
         >
-          <div className="tp-offers-hero__content">
-            <div className="tp-offers-hero__eyebrow">
-              <span className="tp-offers-hero__dot" />
-              <span>{offers.pageHeader.eyebrow}</span>
+          <div className="tp-offers-hero__grid">
+            {/* Left Content Column */}
+            <div className="tp-offers-hero__left">
+              <div className="tp-offers-hero__eyebrow">
+                <span className="tp-offers-hero__dot" />
+                <span>{offers.pageHeader.eyebrow}</span>
+              </div>
+
+              <h1 className="tp-offers-hero__title">{offers.pageHeader.pageTitle}</h1>
+              <p className="tp-offers-hero__desc">{offers.pageHeader.description}</p>
+
+              <div className="tp-offers-hero__badges">
+                <div className="tp-offers-hero__pill">
+                  <Flame />
+                  <span>{isIndo ? "Penawaran Terbatas" : "Limited Time"}</span>
+                </div>
+                <div className="tp-offers-hero__pill">
+                  <ShieldCheck />
+                  <span>{isIndo ? "Voucher Terverifikasi" : "Verified Coupons"}</span>
+                </div>
+                <div className="tp-offers-hero__pill">
+                  <ShoppingBag />
+                  <span>{isIndo ? "Diskon Otomatis" : "Instant Savings"}</span>
+                </div>
+              </div>
             </div>
 
-            <h1 className="tp-offers-hero__title">{offers.pageHeader.pageTitle}</h1>
-            <p className="tp-offers-hero__desc">{offers.pageHeader.description}</p>
-
-            <div className="tp-offers-hero__badges">
-              <div className="tp-offers-hero__pill">
-                <Flame />
-                <span>{isIndo ? "Penawaran Terbatas" : "Limited Time"}</span>
-              </div>
-              <div className="tp-offers-hero__pill">
-                <ShieldCheck />
-                <span>{isIndo ? "Voucher Terverifikasi" : "Verified Coupons"}</span>
-              </div>
-              <div className="tp-offers-hero__pill">
-                <ShoppingBag />
-                <span>{isIndo ? "Diskon Otomatis" : "Instant Savings"}</span>
-              </div>
-            </div>
-
-            {/* Featured Coupon pill in hero if enabled */}
+            {/* Right Column: Visual Ticket Showcase Card (Solves Empty Void) */}
             {shouldRenderSuperDiscount && featuredCoupon ? (
-              <div className="tp-offers-super-badge">
-                <Ticket className="h-4 w-4 text-[#fe6f05]" />
-                <span className="text-xs font-semibold text-slate-200">
-                  {isIndo ? "Kupon Unggulan:" : "Featured Coupon:"}
-                </span>
-                <span className="tp-offers-super-badge__code">{featuredCoupon.code}</span>
-                <button
-                  type="button"
-                  onClick={() => handleCopyCoupon(featuredCoupon.code)}
-                  className="tp-offers-super-badge__btn"
-                >
-                  {copiedCode === featuredCoupon.code ? (
-                    <>
-                      <Check className="h-3 w-3" />
-                      <span>{isIndo ? "Tersalin" : "Copied"}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-3 w-3" />
-                      <span>{isIndo ? "Salin Kode" : "Copy Code"}</span>
-                    </>
-                  )}
-                </button>
+              <div className="tp-offers-hero__right">
+                <div className="tp-hero-showcase-ticket">
+                  <div className="tp-hero-showcase-ticket__header">
+                    <span className="tp-hero-showcase-ticket__badge">
+                      <Sparkles className="h-3 w-3" />
+                      {isIndo ? "Kupon Unggulan" : "Featured Voucher"}
+                    </span>
+                    <span className="tp-hero-showcase-ticket__discount">
+                      {featuredCoupon.discountType === "percent"
+                        ? `${featuredCoupon.amount}% OFF`
+                        : `${formatCurrency(featuredCoupon.amount)} OFF`}
+                    </span>
+                  </div>
+
+                  <div className="tp-hero-showcase-ticket__divider">
+                    <span className="tp-hero-showcase-ticket__notch-left" />
+                    <span className="tp-hero-showcase-ticket__notch-right" />
+                  </div>
+
+                  <div className="tp-hero-showcase-ticket__body">
+                    <div>
+                      <h4 className="text-sm font-bold text-white">
+                        {featuredCoupon.campaignName ||
+                          (isIndo ? "Voucher Diskon Spesial" : "Special Discount Coupon")}
+                      </h4>
+                      <p className="mt-0.5 text-xs text-slate-300">
+                        {featuredCoupon.minSpend > 0
+                          ? isIndo
+                            ? `Min. belanja ${formatCurrency(featuredCoupon.minSpend)}`
+                            : `Min. spend ${formatCurrency(featuredCoupon.minSpend)}`
+                          : isIndo
+                            ? "Tanpa minimum belanja"
+                            : "No minimum spend required"}
+                      </p>
+                    </div>
+
+                    <div className="tp-hero-showcase-ticket__code-box">
+                      <span className="tp-hero-showcase-ticket__code">{featuredCoupon.code}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyCoupon(featuredCoupon.code)}
+                        className={`tp-hero-showcase-ticket__copy-btn ${
+                          copiedCode === featuredCoupon.code ? "is-copied" : ""
+                        }`}
+                        aria-label={`Copy coupon ${featuredCoupon.code}`}
+                      >
+                        {copiedCode === featuredCoupon.code ? (
+                          <>
+                            <Check className="h-3.5 w-3.5" />
+                            <span>{isIndo ? "Tersalin" : "Copied"}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3.5 w-3.5" />
+                            <span>{isIndo ? "Salin Kode" : "Copy Code"}</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    <div className="tp-hero-showcase-ticket__meta">
+                      <span className="flex items-center gap-1">
+                        <Tag className="h-3 w-3 text-[#fe6f05]" />
+                        <span>{isIndo ? "Potongan saat checkout" : "Applied at checkout"}</span>
+                      </span>
+                      <span className="rounded bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-slate-300">
+                        {featuredCoupon.scopeType === "PLATFORM" ? "Platform" : "Store"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
-            ) : null}
+            ) : (
+              <div className="tp-offers-hero__right">
+                <div className="tp-hero-showcase-ticket">
+                  <div className="tp-hero-showcase-ticket__header">
+                    <span className="tp-hero-showcase-ticket__badge">
+                      <Sparkles className="h-3 w-3" />
+                      {isIndo ? "Promo Spesial" : "Special Promo"}
+                    </span>
+                    <span className="tp-hero-showcase-ticket__discount">
+                      {isIndo ? "Diskon Eksklusif" : "Exclusive Deals"}
+                    </span>
+                  </div>
+                  <div className="tp-hero-showcase-ticket__body">
+                    <p className="text-xs text-slate-200">
+                      {isIndo
+                        ? "Dapatkan potongan harga langsung untuk berbagai produk inovasi & karya kreatif mahasiswa."
+                        : "Enjoy instant discounts on various student innovation products and creative works."}
+                    </p>
+                    <Link
+                      to="/shop"
+                      className="tp-hero-showcase-ticket__copy-btn justify-center text-center"
+                    >
+                      {isIndo ? "Jelajahi Produk Diskon" : "Explore Discounted Deals"}
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </header>
       ) : null}
@@ -354,7 +604,7 @@ export default function StoreOffersPage() {
                             : `Min. spend ${formatCurrency(coupon.minSpend)}`
                           : isIndo
                             ? "Tanpa minimum belanja"
-                            : "No minimum spend"}
+                            : "No minimum spend required"}
                       </p>
 
                       <div className="tp-voucher-card__code-row">
@@ -399,7 +649,7 @@ export default function StoreOffersPage() {
         </section>
       ) : null}
 
-      {/* 3. DEALS CATALOG SECTION */}
+      {/* 3. DEALS CATALOG SECTION (BILINGUAL SYNCHRONIZED) */}
       {shouldRenderDeals ? (
         <section className="mt-10 sm:mt-14">
           <div className="tp-offers-section-header">
