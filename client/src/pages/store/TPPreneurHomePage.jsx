@@ -92,23 +92,23 @@ const POPULAR_SORT_OPTIONS = [
 
 const benefitItems = [
   {
-    title: "Learning Media Innovation",
-    text: "Digital learning solutions shaped for quality, usefulness, and real classroom impact.",
-    Icon: Lightbulb,
-  },
-  {
-    title: "Collaborative Creation",
-    text: "A student-powered space for turning creative ideas into practical education products.",
+    title: "Collaborative Creation Space",
+    text: "Turning creative student ideas into tangible educational products.",
     Icon: Handshake,
   },
   {
-    title: "Edupreneur Growth",
-    text: "Helping students package, manage, and market their work professionally.",
+    title: "Educational Quality First",
+    text: "Prioritizing learning effectiveness with targeted educational technology.",
+    Icon: Lightbulb,
+  },
+  {
+    title: "Edupreneurial Spirit",
+    text: "Helping students package, manage, and market creations professionally.",
     Icon: Rocket,
   },
   {
     title: "Accessible Learning Solutions",
-    text: "Interactive media designed to answer today's education challenges.",
+    text: "Accessible interactive media answering contemporary education challenges.",
     Icon: BookOpen,
   },
 ];
@@ -817,115 +817,233 @@ function MainSliderSection({
   );
 }
 
+const normalizeComparisonText = (str) =>
+  String(str || "")
+    .toLowerCase()
+    .replace(/[.,:;!?()[\]{}"'`]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const FEATURE_PROMO_BILINGUAL_MAP = {
+  eyebrow: {
+    id: "KOMITMEN VISI MISI",
+    en: "VISION-MISSION COMMITMENTS",
+    aliases: [
+      "komitmen visi misi",
+      "vision-mission commitments",
+      "vision mission commitments",
+      "komitmen visi & misi",
+      "visi & misi",
+      "vision & mission",
+      "visi misi",
+      "vision mission",
+    ],
+  },
+  title: {
+    id: "Pusat Inovasi & Edupreneurship Media Belajar Digital",
+    en: "Center for Digital Learning & Edupreneurship Innovation",
+    aliases: [
+      "built for meaningful digital learning impact",
+      "dibangun untuk dampak pembelajaran digital",
+      "pusat inovasi & edupreneurship media belajar digital",
+      "center for digital learning & edupreneurship innovation",
+      "pusat inovasi dan edupreneurship media belajar digital",
+      "pusat inovasi & edupreneurship",
+      "center for digital learning",
+    ],
+  },
+  description: {
+    id: "Solusi media pembelajaran interaktif yang berkualitas tinggi, aplikatif, dan berdaya saing.",
+    en: "High-quality, practical, and competitive digital learning solutions.",
+    aliases: [
+      "a practical snapshot of tp preneurs' vision and mission: create, improve, grow, and make learning easier to access",
+      "a practical snapshot of tp preneurs' vision and mission",
+      "a practical snapshot of tp preneurs",
+      "ringkasan praktis visi dan misi: berkreasi, meningkatkan kualitas, bertumbuh, dan mempermudah akses belajar",
+      "ringkasan praktis visi dan misi",
+      "solusi media pembelajaran interaktif yang berkualitas tinggi, aplikatif, dan berdaya saing",
+      "solusi media pembelajaran interaktif yang berkualitas, aplikatif, dan berdaya saing",
+      "high-quality, practical, and competitive digital learning solutions",
+    ],
+  },
+  item1Title: {
+    id: "Ruang Kolaborasi Cipta Karya",
+    en: "Collaborative Creation Space",
+    aliases: [
+      "ruang kolaborasi cipta karya",
+      "collaborative creation space",
+      "collaborative creation",
+      "kolaborasi cipta karya",
+      "learning media innovation",
+      "inovasi media pembelajaran",
+      "free shipping from €500.00",
+      "campus verified works",
+    ],
+  },
+  item1Text: {
+    id: "Wadah mahasiswa mewujudkan ide kreatif menjadi produk edukasi nyata.",
+    en: "Turning creative student ideas into tangible educational products.",
+    aliases: [
+      "wadah mahasiswa mewujudkan ide kreatif menjadi produk edukasi nyata",
+      "turning creative student ideas into tangible educational products",
+      "digital learning solutions shaped for quality, usefulness, and real classroom impact",
+      "solusi media pembelajaran interaktif untuk kualitas pembelajaran nyata",
+      "providing a platform for students to develop creative ideas into tangible educational products",
+      "menyediakan wadah bagi mahasiswa untuk mengembangkan ide kreatif menjadi produk pembelajaran yang nyata dan aplikatif",
+      "free shipping from €500.00",
+      "free shipping",
+    ],
+  },
+  item2Title: {
+    id: "Mengutamakan Kualitas Edukasi",
+    en: "Educational Quality First",
+    aliases: [
+      "mengutamakan kualitas edukasi",
+      "educational quality first",
+      "kualitas edukasi",
+      "educational quality",
+      "support 24/7 at anytime",
+      "direct whatsapp support",
+    ],
+  },
+  item2Text: {
+    id: "Menjamin efektivitas belajar dengan pemanfaatan teknologi tepat sasaran.",
+    en: "Prioritizing learning effectiveness with targeted educational technology.",
+    aliases: [
+      "menjamin efektivitas belajar dengan pemanfaatan teknologi tepat sasaran",
+      "prioritizing learning effectiveness with targeted educational technology",
+      "a student-powered space for turning creative ideas into practical education products",
+      "wadah mahasiswa mengubah ide kreatif menjadi produk pendidikan praktis",
+      "ensuring every product prioritizes learning effectiveness and targeted technology use",
+      "memastikan setiap produk dirancang dengan mengutamakan efektivitas belajar dan pemanfaatan teknologi tepat sasaran",
+      "support 24/7 at anytime",
+      "support 24/7",
+    ],
+  },
+  item3Title: {
+    id: "Membangun Jiwa Edupreneurship",
+    en: "Edupreneurial Spirit",
+    aliases: [
+      "membangun jiwa edupreneurship",
+      "edupreneurial spirit",
+      "edupreneur growth",
+      "pertumbuhan edupreneur",
+      "jiwa edupreneurship",
+      "secure payment totally safe",
+      "secure payment",
+    ],
+  },
+  item3Text: {
+    id: "Membimbing mahasiswa mengelola dan memasarkan karya secara profesional.",
+    en: "Helping students package, manage, and market creations professionally.",
+    aliases: [
+      "membimbing mahasiswa mengelola dan memasarkan karya secara profesional",
+      "helping students package, manage, and market creations professionally",
+      "helping students package, manage, and market their work professionally",
+      "helping students manage, package, and market their work professionally",
+      "menumbuhkan pola pikir wirausaha agar mahasiswa mampu mengelola, mengemas, dan memasarkan karya secara profesional",
+      "membantu mahasiswa mengemas, mengelola, dan memasarkan karya secara profesional",
+      "secure payment totally safe",
+      "secure payment",
+    ],
+  },
+  item4Title: {
+    id: "Menghadirkan Solusi Belajar",
+    en: "Accessible Learning Solutions",
+    aliases: [
+      "menghadirkan solusi belajar",
+      "accessible learning solutions",
+      "learning solutions",
+      "solusi belajar aksesibel",
+      "solusi belajar",
+      "latest offer upto 20% off",
+      "exclusive student deals",
+    ],
+  },
+  item4Text: {
+    id: "Media belajar interaktif menjawab tantangan pendidikan masa kini.",
+    en: "Accessible interactive media answering contemporary education challenges.",
+    aliases: [
+      "media belajar interaktif menjawab tantangan pendidikan masa kini",
+      "akses media belajar interaktif menjawab tantangan pendidikan masa kini",
+      "accessible interactive media answering contemporary education challenges",
+      "interactive media designed to answer today's education challenges",
+      "media interaktif dirancang untuk menjawab tantangan pendidikan masa kini",
+      "providing accessible interactive media that answers contemporary education challenges",
+      "memberikan akses mudah terhadap media belajar interaktif yang mampu menjawab tantangan pendidikan masa kini",
+      "latest offer upto 20% off",
+    ],
+  },
+};
+
+const resolveBilingualFeaturePromo = (field, rawValue, isIndoParam) => {
+  const targetLang = isIndoParam ? "id" : "en";
+  const oppositeLang = isIndoParam ? "en" : "id";
+  const mapping = FEATURE_PROMO_BILINGUAL_MAP[field];
+
+  if (!mapping) return rawValue || "";
+
+  const text = (rawValue || "").toString().trim();
+  if (!text) return mapping[targetLang];
+
+  const currentNorm = normalizeComparisonText(text);
+  const targetNorm = normalizeComparisonText(mapping[targetLang]);
+  const oppositeNorm = normalizeComparisonText(mapping[oppositeLang]);
+
+  if (
+    currentNorm === targetNorm ||
+    currentNorm === oppositeNorm ||
+    mapping.aliases?.some((alias) => {
+      const aliasNorm = normalizeComparisonText(alias);
+      return (
+        currentNorm === aliasNorm ||
+        currentNorm.includes(aliasNorm) ||
+        aliasNorm.includes(currentNorm)
+      );
+    })
+  ) {
+    return mapping[targetLang];
+  }
+
+  return text;
+};
+
 function BenefitStrip({ isIndo, config }) {
   if (config && config.enabled === false) {
     return null;
   }
 
-  const eyebrowText =
-    config?.eyebrow && config.eyebrow.trim() !== ""
-      ? config.eyebrow
-      : isIndo
-        ? "KOMITMEN VISI MISI"
-        : "VISION-MISSION COMMITMENTS";
+  const eyebrowText = resolveBilingualFeaturePromo("eyebrow", config?.eyebrow, isIndo);
+  const visionTitle = resolveBilingualFeaturePromo("title", config?.title, isIndo);
+  const visionDesc = resolveBilingualFeaturePromo("description", config?.description, isIndo);
 
-  const isDefaultOrEmptyTitle =
-    !config?.title ||
-    config.title === "Built for meaningful digital learning impact" ||
-    config.title === "Dibangun untuk dampak pembelajaran digital";
+  const item1Title = resolveBilingualFeaturePromo(
+    "item1Title",
+    config?.item1Title || config?.freeShippingText,
+    isIndo
+  );
+  const item1Text = resolveBilingualFeaturePromo("item1Text", config?.item1Text, isIndo);
 
-  const visionTitle = isDefaultOrEmptyTitle
-    ? isIndo
-      ? "Pusat Inovasi & Edupreneurship Media Belajar Digital"
-      : "Center for Digital Learning & Edupreneurship Innovation"
-    : config.title;
+  const item2Title = resolveBilingualFeaturePromo(
+    "item2Title",
+    config?.item2Title || config?.supportText,
+    isIndo
+  );
+  const item2Text = resolveBilingualFeaturePromo("item2Text", config?.item2Text, isIndo);
 
-  const isDefaultOrEmptyDesc =
-    !config?.description ||
-    config.description.includes("A practical snapshot of TP Preneurs") ||
-    config.description.includes("Ringkasan praktis visi dan misi");
+  const item3Title = resolveBilingualFeaturePromo(
+    "item3Title",
+    config?.item3Title || config?.securePaymentText,
+    isIndo
+  );
+  const item3Text = resolveBilingualFeaturePromo("item3Text", config?.item3Text, isIndo);
 
-  const visionDesc = isDefaultOrEmptyDesc
-    ? isIndo
-      ? "Solusi media pembelajaran interaktif yang berkualitas tinggi, aplikatif, dan berdaya saing."
-      : "High-quality, practical, and competitive digital learning solutions."
-    : config.description;
-
-  const legacyItem1Titles = [
-    "Free Shipping From €500.00",
-    "Campus Verified Works",
-    "Learning Media Innovation",
-    "Inovasi Media Pembelajaran",
-  ];
-  const item1Title =
-    config?.item1Title && !legacyItem1Titles.includes(config.item1Title)
-      ? config.item1Title
-      : isIndo
-        ? "Ruang Kolaborasi Cipta Karya"
-        : "Collaborative Creation Space";
-  const item1Text =
-    config?.item1Text && config.item1Text.trim() !== ""
-      ? config.item1Text
-      : isIndo
-        ? "Wadah mahasiswa mewujudkan ide kreatif menjadi produk edukasi nyata."
-        : "Turning creative student ideas into tangible educational products.";
-
-  const legacyItem2Titles = [
-    "Support 24/7 At Anytime",
-    "Direct WhatsApp Support",
-    "Collaborative Creation",
-    "Kolaborasi Cipta Karya",
-  ];
-  const item2Title =
-    config?.item2Title && !legacyItem2Titles.includes(config.item2Title)
-      ? config.item2Title
-      : isIndo
-        ? "Mengutamakan Kualitas Edukasi"
-        : "Educational Quality First";
-  const item2Text =
-    config?.item2Text && config.item2Text.trim() !== ""
-      ? config.item2Text
-      : isIndo
-        ? "Menjamin efektivitas belajar dengan pemanfaatan teknologi tepat sasaran."
-        : "Prioritizing learning effectiveness with targeted educational technology.";
-
-  const legacyItem3Titles = [
-    "Secure Payment Totally Safe",
-    "Secure Payment",
-    "Edupreneur Growth",
-    "Pertumbuhan Edupreneur",
-  ];
-  const item3Title =
-    config?.item3Title && !legacyItem3Titles.includes(config.item3Title)
-      ? config.item3Title
-      : isIndo
-        ? "Membangun Jiwa Edupreneurship"
-        : "Edupreneurial Spirit";
-  const item3Text =
-    config?.item3Text && config.item3Text.trim() !== ""
-      ? config.item3Text
-      : isIndo
-        ? "Membimbing mahasiswa mengelola dan memasarkan karya secara profesional."
-        : "Helping students package, manage, and market creations professionally.";
-
-  const legacyItem4Titles = [
-    "Latest Offer Upto 20% Off",
-    "Exclusive Student Deals",
-    "Accessible Learning Solutions",
-    "Solusi Belajar Aksesibel",
-  ];
-  const item4Title =
-    config?.item4Title && !legacyItem4Titles.includes(config.item4Title)
-      ? config.item4Title
-      : isIndo
-        ? "Menghadirkan Solusi Belajar"
-        : "Accessible Learning Solutions";
-  const item4Text =
-    config?.item4Text && config.item4Text.trim() !== ""
-      ? config.item4Text
-      : isIndo
-        ? "Media belajar interaktif menjawab tantangan pendidikan masa kini."
-        : "Accessible interactive media answering contemporary education challenges.";
+  const item4Title = resolveBilingualFeaturePromo(
+    "item4Title",
+    config?.item4Title || config?.latestOfferText,
+    isIndo
+  );
+  const item4Text = resolveBilingualFeaturePromo("item4Text", config?.item4Text, isIndo);
 
   const items = [
     { title: item1Title, text: item1Text, Icon: Handshake },
