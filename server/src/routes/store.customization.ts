@@ -748,6 +748,86 @@ router.get("/microsites/:slug/rich-about", async (req, res, next) => {
   }
 });
 
+const buildPublicCategoriesCustomization = (categories: any, lang: string) => {
+  if (!categories || typeof categories !== "object") return categories;
+  if (lang !== "en") return categories;
+  const hero = categories.hero || {};
+  const sections = categories.sections || {};
+  return {
+    ...categories,
+    hero: {
+      ...hero,
+      eyebrow:
+        hero.eyebrow === "JELAJAHI KATALOG" || !hero.eyebrow
+          ? "CURATED DISCOVERY"
+          : hero.eyebrow,
+      title:
+        hero.title === "Kategori Produk" || !hero.title
+          ? "Explore Categories"
+          : hero.title,
+      subtitle:
+        hero.subtitle === "Temukan ragam karya inovasi, produk edupreneur, dan solusi kreatif kampus." ||
+        !hero.subtitle
+          ? "Browse curated campus innovations, edupreneur products, and creative solutions."
+          : hero.subtitle,
+      searchPlaceholder:
+        hero.searchPlaceholder === "Cari produk, kategori, atau toko..." || !hero.searchPlaceholder
+          ? "Search products, categories, or stores..."
+          : hero.searchPlaceholder,
+      chip1:
+        hero.chip1 === "Kategori Terverifikasi" || !hero.chip1
+          ? "Verified Categories"
+          : hero.chip1,
+      chip2:
+        hero.chip2 === "Penjual Terpercaya" || !hero.chip2
+          ? "Trusted Sellers"
+          : hero.chip2,
+      chip3:
+        hero.chip3 === "Akses Cepat" || !hero.chip3
+          ? "Fast Discovery"
+          : hero.chip3,
+      primaryButtonLabel:
+        hero.primaryButtonLabel === "Semua Kategori" || !hero.primaryButtonLabel
+          ? "Shop All Categories"
+          : hero.primaryButtonLabel,
+      secondaryButtonLabel:
+        hero.secondaryButtonLabel === "Penawaran Terbaik" || !hero.secondaryButtonLabel
+          ? "Top Offers"
+          : hero.secondaryButtonLabel,
+    },
+    sections: {
+      ...sections,
+      shopByCategoryTitle:
+        sections.shopByCategoryTitle === "Pilihan Berdasarkan Kategori" || !sections.shopByCategoryTitle
+          ? "Shop by Category"
+          : sections.shopByCategoryTitle,
+      shopByCategorySubtitle:
+        sections.shopByCategorySubtitle ===
+          "Pilihan produk berdasarkan rumpun karya dan inovasi kampus." || !sections.shopByCategorySubtitle
+          ? "Curated products organized by campus innovation categories."
+          : sections.shopByCategorySubtitle,
+      featuredCollectionsTitle:
+        sections.featuredCollectionsTitle === "Koleksi Unggulan" || !sections.featuredCollectionsTitle
+          ? "Featured Collections"
+          : sections.featuredCollectionsTitle,
+      featuredCollectionsSubtitle:
+        sections.featuredCollectionsSubtitle ===
+          "Pilihan kurasi produk untuk momen dan kebutuhan terbaik Anda." || !sections.featuredCollectionsSubtitle
+          ? "Curated selections for your moments and essential needs."
+          : sections.featuredCollectionsSubtitle,
+      topStoresTitle:
+        sections.topStoresTitle === "Toko & Penjual Terverifikasi" || !sections.topStoresTitle
+          ? "Top Verified Stores"
+          : sections.topStoresTitle,
+      topStoresSubtitle:
+        sections.topStoresSubtitle ===
+          "Daftar toko edupreneur kampus dengan reputasi dan produk terpercaya." || !sections.topStoresSubtitle
+          ? "Trusted campus edupreneurs with verified ratings and quality works."
+          : sections.topStoresSubtitle,
+    },
+  };
+};
+
 // GET /api/store/customization?lang=en (public read-only, whitelist response)
 // Response contract: { success: true, data: { lang, customization } }
 router.get("/", async (req, res, next) => {
@@ -860,7 +940,7 @@ router.get("/", async (req, res, next) => {
       customization.shoppingCart = sanitized.shoppingCart;
     }
     if (includeCategories) {
-      customization.categories = sanitized.categories;
+      customization.categories = buildPublicCategoriesCustomization(sanitized.categories, lang);
     }
     if (includeSeoSettings) {
       customization.seoSettings = sanitized.seoSettings;

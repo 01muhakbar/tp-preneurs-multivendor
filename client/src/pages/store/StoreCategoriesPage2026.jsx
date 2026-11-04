@@ -150,6 +150,70 @@ const featuredCollections = [
   },
 ];
 
+const CATEGORIES_PAGE_I18N = {
+  en: {
+    eyebrow: "CURATED DISCOVERY",
+    title: "Explore Categories",
+    subtitle: "Browse curated campus innovations, edupreneur products, and creative solutions.",
+    searchPlaceholder: "Search products, categories, or stores...",
+    searchButton: "Search",
+    chip1: "Verified Categories",
+    chip2: "Trusted Sellers",
+    chip3: "Fast Discovery",
+    primaryButtonLabel: "Shop All Categories",
+    secondaryButtonLabel: "Top Offers",
+    showcaseTitle: "TP-Preneurs Catalog",
+    showcasePill: "100% Real",
+    showcaseFooter: "Innovative Campus & Edupreneur Works",
+    shopByCategoryTitle: "Shop by Category",
+    shopByCategorySubtitle: "Curated products organized by campus innovation categories.",
+    featuredCollectionsTitle: "Featured Collections",
+    featuredCollectionsSubtitle: "Curated selections for your moments and essential needs.",
+    topStoresTitle: "Top Verified Stores",
+    topStoresSubtitle: "Trusted campus edupreneurs with verified ratings and quality works.",
+  },
+  id: {
+    eyebrow: "JELAJAHI KATALOG",
+    title: "Kategori Produk",
+    subtitle: "Temukan ragam karya inovasi, produk edupreneur, dan solusi kreatif kampus.",
+    searchPlaceholder: "Cari produk, kategori, atau toko...",
+    searchButton: "Cari",
+    chip1: "Kategori Terverifikasi",
+    chip2: "Penjual Terpercaya",
+    chip3: "Akses Cepat",
+    primaryButtonLabel: "Semua Kategori",
+    secondaryButtonLabel: "Penawaran Terbaik",
+    showcaseTitle: "Katalog TP-Preneurs",
+    showcasePill: "100% Asli",
+    showcaseFooter: "Karya Inovatif & Edupreneur Kampus",
+    shopByCategoryTitle: "Pilihan Berdasarkan Kategori",
+    shopByCategorySubtitle: "Pilihan produk berdasarkan rumpun karya dan inovasi kampus.",
+    featuredCollectionsTitle: "Koleksi Unggulan",
+    featuredCollectionsSubtitle: "Pilihan kurasi produk untuk momen dan kebutuhan terbaik Anda.",
+    topStoresTitle: "Toko & Penjual Terverifikasi",
+    topStoresSubtitle: "Daftar toko edupreneur kampus dengan reputasi dan produk terpercaya.",
+  },
+};
+
+const resolveBilingualText = (customValue, key, isIndo) => {
+  const trimmed = String(customValue ?? "").trim();
+  const idDefault = CATEGORIES_PAGE_I18N.id[key] || "";
+  const enDefault = CATEGORIES_PAGE_I18N.en[key] || "";
+
+  if (!trimmed) {
+    return isIndo ? idDefault : enDefault;
+  }
+
+  if (
+    trimmed.toLowerCase() === idDefault.toLowerCase() ||
+    trimmed.toLowerCase() === enDefault.toLowerCase()
+  ) {
+    return isIndo ? idDefault : enDefault;
+  }
+
+  return trimmed;
+};
+
 const toText = (value, fallback = "") => {
   const text = String(value ?? "").trim();
   return text || fallback;
@@ -419,51 +483,66 @@ export default function StoreCategoriesPage2026() {
 
   // Customization variables with localized fallbacks
   const heroEnabled = categoriesConfig?.hero?.enabled ?? true;
-  const heroEyebrow = categoriesConfig?.hero?.eyebrow || (isIndo ? "JELAJAHI KATALOG" : "CURATED DISCOVERY");
-  const heroTitle = categoriesConfig?.hero?.title || (isIndo ? "Kategori Produk" : "Explore Categories");
-  const heroSubtitle =
-    categoriesConfig?.hero?.subtitle ||
-    (isIndo
-      ? "Temukan ragam karya inovasi, produk edupreneur, dan solusi kreatif kampus."
-      : "Browse curated collections across campus innovations and trusted edupreneur products.");
-  const searchPlaceholder =
-    categoriesConfig?.hero?.searchPlaceholder ||
-    (isIndo ? "Cari produk, kategori, atau toko..." : "Search products, categories, or stores...");
-  const chip1 = categoriesConfig?.hero?.chip1 || (isIndo ? "Kategori Terverifikasi" : "Verified Categories");
-  const chip2 = categoriesConfig?.hero?.chip2 || (isIndo ? "Penjual Terpercaya" : "Trusted Sellers");
-  const chip3 = categoriesConfig?.hero?.chip3 || (isIndo ? "Akses Cepat" : "Instant Access");
-  const primaryButtonLabel = categoriesConfig?.hero?.primaryButtonLabel || (isIndo ? "Semua Kategori" : "Shop All Categories");
+  const heroEyebrow = resolveBilingualText(categoriesConfig?.hero?.eyebrow, "eyebrow", isIndo);
+  const heroTitle = resolveBilingualText(categoriesConfig?.hero?.title, "title", isIndo);
+  const heroSubtitle = resolveBilingualText(categoriesConfig?.hero?.subtitle, "subtitle", isIndo);
+  const searchPlaceholder = resolveBilingualText(
+    categoriesConfig?.hero?.searchPlaceholder,
+    "searchPlaceholder",
+    isIndo
+  );
+  const searchButtonLabel = isIndo
+    ? CATEGORIES_PAGE_I18N.id.searchButton
+    : CATEGORIES_PAGE_I18N.en.searchButton;
+  const chip1 = resolveBilingualText(categoriesConfig?.hero?.chip1, "chip1", isIndo);
+  const chip2 = resolveBilingualText(categoriesConfig?.hero?.chip2, "chip2", isIndo);
+  const chip3 = resolveBilingualText(categoriesConfig?.hero?.chip3, "chip3", isIndo);
+  const primaryButtonLabel = resolveBilingualText(
+    categoriesConfig?.hero?.primaryButtonLabel,
+    "primaryButtonLabel",
+    isIndo
+  );
   const primaryButtonLink = categoriesConfig?.hero?.primaryButtonLink || "/shop";
-  const secondaryButtonLabel = categoriesConfig?.hero?.secondaryButtonLabel || (isIndo ? "Penawaran Terbaik" : "View Top Offers");
+  const secondaryButtonLabel = resolveBilingualText(
+    categoriesConfig?.hero?.secondaryButtonLabel,
+    "secondaryButtonLabel",
+    isIndo
+  );
   const secondaryButtonLink = categoriesConfig?.hero?.secondaryButtonLink || "/offers";
   const heroImageDataUrl = categoriesConfig?.hero?.heroImageDataUrl || "";
 
-  const shopByCategoryTitle =
-    categoriesConfig?.sections?.shopByCategoryTitle ||
-    (isIndo ? "Pilihan Berdasarkan Kategori" : "Shop by Category");
-  const shopByCategorySubtitle =
-    categoriesConfig?.sections?.shopByCategorySubtitle ||
-    (isIndo
-      ? "Pilihan produk berdasarkan rumpun karya dan inovasi kampus."
-      : "Curated products organized by campus innovation categories.");
+  const shopByCategoryTitle = resolveBilingualText(
+    categoriesConfig?.sections?.shopByCategoryTitle,
+    "shopByCategoryTitle",
+    isIndo
+  );
+  const shopByCategorySubtitle = resolveBilingualText(
+    categoriesConfig?.sections?.shopByCategorySubtitle,
+    "shopByCategorySubtitle",
+    isIndo
+  );
 
-  const featuredCollectionsTitle =
-    categoriesConfig?.sections?.featuredCollectionsTitle ||
-    (isIndo ? "Koleksi Unggulan" : "Featured Collections");
-  const featuredCollectionsSubtitle =
-    categoriesConfig?.sections?.featuredCollectionsSubtitle ||
-    (isIndo
-      ? "Pilihan kurasi produk untuk momen dan kebutuhan terbaik Anda."
-      : "Curated selections for your moments and essential needs.");
+  const featuredCollectionsTitle = resolveBilingualText(
+    categoriesConfig?.sections?.featuredCollectionsTitle,
+    "featuredCollectionsTitle",
+    isIndo
+  );
+  const featuredCollectionsSubtitle = resolveBilingualText(
+    categoriesConfig?.sections?.featuredCollectionsSubtitle,
+    "featuredCollectionsSubtitle",
+    isIndo
+  );
 
-  const topStoresTitle =
-    categoriesConfig?.sections?.topStoresTitle ||
-    (isIndo ? "Toko & Penjual Terverifikasi" : "Top Verified Stores");
-  const topStoresSubtitle =
-    categoriesConfig?.sections?.topStoresSubtitle ||
-    (isIndo
-      ? "Daftar toko edupreneur kampus dengan reputasi dan produk terpercaya."
-      : "Trusted campus edupreneurs with verified ratings and quality works.");
+  const topStoresTitle = resolveBilingualText(
+    categoriesConfig?.sections?.topStoresTitle,
+    "topStoresTitle",
+    isIndo
+  );
+  const topStoresSubtitle = resolveBilingualText(
+    categoriesConfig?.sections?.topStoresSubtitle,
+    "topStoresSubtitle",
+    isIndo
+  );
 
   return (
     <div className="store-categories-2026">
@@ -485,7 +564,7 @@ export default function StoreCategoriesPage2026() {
                 placeholder={searchPlaceholder}
                 aria-label={searchPlaceholder}
               />
-              <button type="submit">{isIndo ? "Cari" : "Search"}</button>
+              <button type="submit">{searchButtonLabel}</button>
             </form>
 
             <div className="store-categories-2026__value-chips" aria-label="Marketplace highlights">
@@ -525,9 +604,11 @@ export default function StoreCategoriesPage2026() {
                 <div className="store-categories-2026__showcase-header">
                   <div className="store-categories-2026__showcase-badge">
                     <BadgeCheck size={18} />
-                    <span>TP-Preneurs Catalog</span>
+                    <span>{isIndo ? CATEGORIES_PAGE_I18N.id.showcaseTitle : CATEGORIES_PAGE_I18N.en.showcaseTitle}</span>
                   </div>
-                  <span className="store-categories-2026__showcase-pill">100% Real</span>
+                  <span className="store-categories-2026__showcase-pill">
+                    {isIndo ? CATEGORIES_PAGE_I18N.id.showcasePill : CATEGORIES_PAGE_I18N.en.showcasePill}
+                  </span>
                 </div>
 
                 <div className="store-categories-2026__showcase-list">
@@ -550,7 +631,7 @@ export default function StoreCategoriesPage2026() {
 
                 <div className="store-categories-2026__showcase-footer">
                   <Package size={14} />
-                  <span>{isIndo ? "Karya Inovatif & Edupreneur Kampus" : "Innovative Campus & Edupreneur Works"}</span>
+                  <span>{isIndo ? CATEGORIES_PAGE_I18N.id.showcaseFooter : CATEGORIES_PAGE_I18N.en.showcaseFooter}</span>
                 </div>
               </div>
             )}
