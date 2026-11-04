@@ -763,6 +763,30 @@ const getDefaultCustomization = (targetLang = "en") => {
     },
     featurePromoSection: {
       enabled: true,
+      eyebrow: isIndo ? "KOMITMEN VISI MISI" : "VISION-MISSION COMMITMENTS",
+      title: isIndo
+        ? "Pusat Inovasi & Edupreneurship Media Belajar Digital"
+        : "Center for Digital Learning & Edupreneurship Innovation",
+      description: isIndo
+        ? "Solusi media pembelajaran interaktif yang berkualitas, aplikatif, dan berdaya saing."
+        : "High-quality, practical, and competitive digital learning solutions.",
+      imageDataUrl: "",
+      item1Title: isIndo ? "Ruang Kolaborasi Cipta Karya" : "Collaborative Creation Space",
+      item1Text: isIndo
+        ? "Wadah mahasiswa mewujudkan ide kreatif menjadi produk edukasi nyata."
+        : "Turning creative student ideas into tangible educational products.",
+      item2Title: isIndo ? "Mengutamakan Kualitas Edukasi" : "Educational Quality First",
+      item2Text: isIndo
+        ? "Menjamin efektivitas belajar dengan pemanfaatan teknologi tepat sasaran."
+        : "Prioritizing learning effectiveness with targeted educational technology.",
+      item3Title: isIndo ? "Membangun Jiwa Edupreneurship" : "Edupreneurial Spirit",
+      item3Text: isIndo
+        ? "Membimbing mahasiswa mengelola dan memasarkan karya secara profesional."
+        : "Helping students package, manage, and market creations professionally.",
+      item4Title: isIndo ? "Menghadirkan Solusi Belajar" : "Accessible Learning Solutions",
+      item4Text: isIndo
+        ? "Akses media belajar interaktif menjawab tantangan pendidikan masa kini."
+        : "Accessible interactive media answering contemporary education challenges.",
       freeShippingText: "Free Shipping From €500.00",
       supportText: "Support 24/7 At Anytime",
       securePaymentText: "Secure Payment Totally Safe",
@@ -2791,6 +2815,51 @@ const normalizeCustomizationPayload = (raw, targetLang = "en") => {
           featurePromoSectionSource.enabled,
           defaultsHome.featurePromoSection.enabled
         ),
+        eyebrow: toText(
+          featurePromoSectionSource.eyebrow,
+          defaultsHome.featurePromoSection.eyebrow
+        ),
+        title: toText(
+          featurePromoSectionSource.title,
+          defaultsHome.featurePromoSection.title
+        ),
+        description: toText(
+          featurePromoSectionSource.description,
+          defaultsHome.featurePromoSection.description
+        ),
+        imageDataUrl: toText(featurePromoSectionSource.imageDataUrl, ""),
+        item1Title: toText(
+          featurePromoSectionSource.item1Title,
+          defaultsHome.featurePromoSection.item1Title
+        ),
+        item1Text: toText(
+          featurePromoSectionSource.item1Text,
+          defaultsHome.featurePromoSection.item1Text
+        ),
+        item2Title: toText(
+          featurePromoSectionSource.item2Title,
+          defaultsHome.featurePromoSection.item2Title
+        ),
+        item2Text: toText(
+          featurePromoSectionSource.item2Text,
+          defaultsHome.featurePromoSection.item2Text
+        ),
+        item3Title: toText(
+          featurePromoSectionSource.item3Title,
+          defaultsHome.featurePromoSection.item3Title
+        ),
+        item3Text: toText(
+          featurePromoSectionSource.item3Text,
+          defaultsHome.featurePromoSection.item3Text
+        ),
+        item4Title: toText(
+          featurePromoSectionSource.item4Title,
+          defaultsHome.featurePromoSection.item4Title
+        ),
+        item4Text: toText(
+          featurePromoSectionSource.item4Text,
+          defaultsHome.featurePromoSection.item4Text
+        ),
         freeShippingText: toText(
           featurePromoSectionSource.freeShippingText,
           defaultsHome.featurePromoSection.freeShippingText
@@ -3481,6 +3550,8 @@ export default function StoreCustomizationPage() {
   const [couponCodeInput, setCouponCodeInput] = useState("");
   const [quickDeliveryImageError, setQuickDeliveryImageError] = useState("");
   const [isQuickDeliveryDropActive, setIsQuickDeliveryDropActive] = useState(false);
+  const [featurePromoImageError, setFeaturePromoImageError] = useState("");
+  const [isFeaturePromoDropActive, setIsFeaturePromoDropActive] = useState(false);
   const [dailyNeedsImageErrors, setDailyNeedsImageErrors] = useState({
     imageLeftDataUrl: "",
     imageRightDataUrl: "",
@@ -4002,6 +4073,18 @@ export default function StoreCustomizationPage() {
         featurePromoSection: {
           ...currentCustomization.home?.featurePromoSection,
           enabled: Boolean(homeState.featurePromoSection.enabled),
+          eyebrow: toText(homeState.featurePromoSection.eyebrow),
+          title: toText(homeState.featurePromoSection.title),
+          description: toText(homeState.featurePromoSection.description),
+          imageDataUrl: toText(homeState.featurePromoSection.imageDataUrl),
+          item1Title: toText(homeState.featurePromoSection.item1Title),
+          item1Text: toText(homeState.featurePromoSection.item1Text),
+          item2Title: toText(homeState.featurePromoSection.item2Title),
+          item2Text: toText(homeState.featurePromoSection.item2Text),
+          item3Title: toText(homeState.featurePromoSection.item3Title),
+          item3Text: toText(homeState.featurePromoSection.item3Text),
+          item4Title: toText(homeState.featurePromoSection.item4Title),
+          item4Text: toText(homeState.featurePromoSection.item4Text),
           freeShippingText: toText(homeState.featurePromoSection.freeShippingText),
           supportText: toText(homeState.featurePromoSection.supportText),
           securePaymentText: toText(homeState.featurePromoSection.securePaymentText),
@@ -4898,6 +4981,40 @@ export default function StoreCustomizationPage() {
     onChangeSimpleHomeBlock("quickDelivery", "imageDataUrl", "");
   };
 
+  const onHandleFeaturePromoFile = async (file) => {
+    if (!file) return;
+    const validation = validateCustomizationLogoFile(file);
+    if (!validation.valid) {
+      setFeaturePromoImageError(validation.error);
+      return;
+    }
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      setFeaturePromoImageError("");
+      onChangeSimpleHomeBlock("featurePromoSection", "imageDataUrl", dataUrl);
+    } catch (error) {
+      setFeaturePromoImageError(error?.message || "Failed to process image.");
+    }
+  };
+
+  const onFeaturePromoImageChange = async (event) => {
+    const file = event.target.files?.[0];
+    await onHandleFeaturePromoFile(file);
+    event.target.value = "";
+  };
+
+  const onDropFeaturePromoImage = async (event) => {
+    event.preventDefault();
+    setIsFeaturePromoDropActive(false);
+    const file = event.dataTransfer?.files?.[0];
+    await onHandleFeaturePromoFile(file);
+  };
+
+  const onRemoveFeaturePromoImage = () => {
+    setFeaturePromoImageError("");
+    onChangeSimpleHomeBlock("featurePromoSection", "imageDataUrl", "");
+  };
+
   const onChangeDailyNeedsButtonField = (buttonKey, field, value) => {
     setHomeState((prev) => ({
       ...prev,
@@ -5770,6 +5887,18 @@ export default function StoreCustomizationPage() {
   };
   const featurePromoSection = homeState.featurePromoSection || {
     enabled: true,
+    eyebrow: "",
+    title: "",
+    description: "",
+    imageDataUrl: "",
+    item1Title: "",
+    item1Text: "",
+    item2Title: "",
+    item2Text: "",
+    item3Title: "",
+    item3Text: "",
+    item4Title: "",
+    item4Text: "",
     freeShippingText: "",
     supportText: "",
     securePaymentText: "",
@@ -11098,7 +11227,7 @@ export default function StoreCustomizationPage() {
                 <Settings className="h-4 w-4" />
               </span>
               <h2 className="text-base font-semibold text-slate-900">
-                Feature Promo Section
+                Vision &amp; Mission Commitments
               </h2>
             </div>
 
@@ -11115,17 +11244,18 @@ export default function StoreCustomizationPage() {
                 />
               </div>
 
-              <label className="block">
+              <label className="block md:col-span-2">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Free Shipping
+                  Badge Tag / Eyebrow
                 </span>
                 <input
                   type="text"
-                  value={featurePromoSection.freeShippingText}
+                  value={featurePromoSection.eyebrow || ""}
+                  placeholder="VISION-MISSION COMMITMENTS"
                   onChange={(event) =>
                     onChangeSimpleHomeBlock(
                       "featurePromoSection",
-                      "freeShippingText",
+                      "eyebrow",
                       event.target.value
                     )
                   }
@@ -11133,17 +11263,18 @@ export default function StoreCustomizationPage() {
                 />
               </label>
 
-              <label className="block">
+              <label className="block md:col-span-2">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Support
+                  Vision Title (Judul Visi Utama)
                 </span>
                 <input
                   type="text"
-                  value={featurePromoSection.supportText}
+                  value={featurePromoSection.title || ""}
+                  placeholder="Pusat Inovasi & Edupreneurship Media Belajar Digital"
                   onChange={(event) =>
                     onChangeSimpleHomeBlock(
                       "featurePromoSection",
-                      "supportText",
+                      "title",
                       event.target.value
                     )
                   }
@@ -11151,41 +11282,255 @@ export default function StoreCustomizationPage() {
                 />
               </label>
 
-              <label className="block">
+              <label className="block md:col-span-2">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Secure Payment
+                  Vision Description (Deskripsi Ringkas Visi)
                 </span>
-                <input
-                  type="text"
-                  value={featurePromoSection.securePaymentText}
+                <textarea
+                  rows={3}
+                  value={featurePromoSection.description || ""}
+                  placeholder="Solusi media pembelajaran interaktif yang berkualitas, aplikatif, dan berdaya saing."
                   onChange={(event) =>
                     onChangeSimpleHomeBlock(
                       "featurePromoSection",
-                      "securePaymentText",
+                      "description",
                       event.target.value
                     )
                   }
-                  className={`${inputBase} mt-2`}
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-[var(--admin-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary-soft)]"
                 />
               </label>
 
-              <label className="block">
+              <div className="space-y-2 md:col-span-2">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Latest Offer
+                  Content Image (Unggah Gambar Visual Visi-Misi)
                 </span>
                 <input
-                  type="text"
-                  value={featurePromoSection.latestOfferText}
-                  onChange={(event) =>
-                    onChangeSimpleHomeBlock(
-                      "featurePromoSection",
-                      "latestOfferText",
-                      event.target.value
-                    )
-                  }
-                  className={`${inputBase} mt-2`}
+                  ref={featurePromoFileInputRef}
+                  id="feature-promo-image-input"
+                  type="file"
+                  accept=".png,.jpeg,.jpg,.webp"
+                  onChange={onFeaturePromoImageChange}
+                  className="hidden"
                 />
-              </label>
+                <button
+                  type="button"
+                  onClick={() => featurePromoFileInputRef.current?.click()}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    setIsFeaturePromoDropActive(true);
+                  }}
+                  onDragLeave={() => setIsFeaturePromoDropActive(false)}
+                  onDrop={onDropFeaturePromoImage}
+                  className={`flex w-full flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${
+                    isFeaturePromoDropActive
+                      ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)]"
+                      : "border-slate-300 bg-slate-50 hover:border-slate-400"
+                  }`}
+                >
+                  <Upload className="h-5 w-5 text-slate-500" />
+                  <p className="mt-2 text-sm font-medium text-slate-700">
+                    Klik atau seret gambar ke sini
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    (Mendukung *.jpeg, *.jpg, *.png, dan *.webp)
+                  </p>
+                </button>
+
+                {featurePromoImageError ? (
+                  <p className="text-xs text-rose-600">{featurePromoImageError}</p>
+                ) : null}
+
+                {featurePromoSection.imageDataUrl ? (
+                  <div className="relative inline-flex rounded-xl border border-slate-200 bg-white p-2">
+                    <img
+                      src={featurePromoSection.imageDataUrl}
+                      alt="Vision & Mission preview"
+                      className="h-24 w-36 rounded-md object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={onRemoveFeaturePromoImage}
+                      className="absolute -right-2 -top-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 hover:bg-slate-100"
+                      aria-label="Remove image"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+
+              {/* 4 Mission Commitments Cards */}
+              <div className="md:col-span-2 pt-2">
+                <p className="text-xs font-bold uppercase tracking-wider text-[#034c85]">
+                  4 Komitmen Misi (Sesuai Halaman /about-us)
+                </p>
+                <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+                  {/* Item 1 */}
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
+                    <span className="text-xs font-bold text-[#fe6f05]">Misi 01</span>
+                    <label className="block">
+                      <span className="text-xs font-medium text-slate-600">Judul</span>
+                      <input
+                        type="text"
+                        value={featurePromoSection.item1Title || featurePromoSection.freeShippingText || ""}
+                        placeholder="Ruang Kolaborasi Cipta Karya"
+                        onChange={(event) => {
+                          const val = event.target.value;
+                          setHomeState((prev) => ({
+                            ...prev,
+                            featurePromoSection: {
+                              ...prev.featurePromoSection,
+                              item1Title: val,
+                              freeShippingText: val,
+                            },
+                          }));
+                        }}
+                        className={`${inputBase} mt-1`}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-medium text-slate-600">Deskripsi Ringkas</span>
+                      <textarea
+                        rows={2}
+                        value={featurePromoSection.item1Text || ""}
+                        placeholder="Wadah mahasiswa mewujudkan ide kreatif menjadi produk edukasi nyata."
+                        onChange={(event) =>
+                          onChangeSimpleHomeBlock(
+                            "featurePromoSection",
+                            "item1Text",
+                            event.target.value
+                          )
+                        }
+                        className={`${inputBase} mt-1`}
+                      />
+                    </label>
+                  </div>
+
+                  {/* Item 2 */}
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
+                    <span className="text-xs font-bold text-[#fe6f05]">Misi 02</span>
+                    <label className="block">
+                      <span className="text-xs font-medium text-slate-600">Judul</span>
+                      <input
+                        type="text"
+                        value={featurePromoSection.item2Title || featurePromoSection.supportText || ""}
+                        placeholder="Mengutamakan Kualitas Edukasi"
+                        onChange={(event) => {
+                          const val = event.target.value;
+                          setHomeState((prev) => ({
+                            ...prev,
+                            featurePromoSection: {
+                              ...prev.featurePromoSection,
+                              item2Title: val,
+                              supportText: val,
+                            },
+                          }));
+                        }}
+                        className={`${inputBase} mt-1`}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-medium text-slate-600">Deskripsi Ringkas</span>
+                      <textarea
+                        rows={2}
+                        value={featurePromoSection.item2Text || ""}
+                        placeholder="Menjamin efektivitas belajar dengan pemanfaatan teknologi tepat sasaran."
+                        onChange={(event) =>
+                          onChangeSimpleHomeBlock(
+                            "featurePromoSection",
+                            "item2Text",
+                            event.target.value
+                          )
+                        }
+                        className={`${inputBase} mt-1`}
+                      />
+                    </label>
+                  </div>
+
+                  {/* Item 3 */}
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
+                    <span className="text-xs font-bold text-[#fe6f05]">Misi 03</span>
+                    <label className="block">
+                      <span className="text-xs font-medium text-slate-600">Judul</span>
+                      <input
+                        type="text"
+                        value={featurePromoSection.item3Title || featurePromoSection.securePaymentText || ""}
+                        placeholder="Membangun Jiwa Edupreneurship"
+                        onChange={(event) => {
+                          const val = event.target.value;
+                          setHomeState((prev) => ({
+                            ...prev,
+                            featurePromoSection: {
+                              ...prev.featurePromoSection,
+                              item3Title: val,
+                              securePaymentText: val,
+                            },
+                          }));
+                        }}
+                        className={`${inputBase} mt-1`}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-medium text-slate-600">Deskripsi Ringkas</span>
+                      <textarea
+                        rows={2}
+                        value={featurePromoSection.item3Text || ""}
+                        placeholder="Membimbing mahasiswa mengelola dan memasarkan karya secara profesional."
+                        onChange={(event) =>
+                          onChangeSimpleHomeBlock(
+                            "featurePromoSection",
+                            "item3Text",
+                            event.target.value
+                          )
+                        }
+                        className={`${inputBase} mt-1`}
+                      />
+                    </label>
+                  </div>
+
+                  {/* Item 4 */}
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
+                    <span className="text-xs font-bold text-[#fe6f05]">Misi 04</span>
+                    <label className="block">
+                      <span className="text-xs font-medium text-slate-600">Judul</span>
+                      <input
+                        type="text"
+                        value={featurePromoSection.item4Title || featurePromoSection.latestOfferText || ""}
+                        placeholder="Menghadirkan Solusi Belajar"
+                        onChange={(event) => {
+                          const val = event.target.value;
+                          setHomeState((prev) => ({
+                            ...prev,
+                            featurePromoSection: {
+                              ...prev.featurePromoSection,
+                              item4Title: val,
+                              latestOfferText: val,
+                            },
+                          }));
+                        }}
+                        className={`${inputBase} mt-1`}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-medium text-slate-600">Deskripsi Ringkas</span>
+                      <textarea
+                        rows={2}
+                        value={featurePromoSection.item4Text || ""}
+                        placeholder="Akses media belajar interaktif menjawab tantangan pendidikan masa kini."
+                        onChange={(event) =>
+                          onChangeSimpleHomeBlock(
+                            "featurePromoSection",
+                            "item4Text",
+                            event.target.value
+                          )
+                        }
+                        className={`${inputBase} mt-1`}
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
 

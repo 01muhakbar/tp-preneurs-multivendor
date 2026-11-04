@@ -817,79 +817,192 @@ function MainSliderSection({
   );
 }
 
-function BenefitStrip({ isIndo }) {
-  const items = isIndo ? [
-    {
-      title: "Inovasi Media Pembelajaran",
-      text: "Solusi pembelajaran digital yang berkualitas, bernilai guna, dan berdampak nyata.",
-      Icon: Lightbulb,
-    },
-    {
-      title: "Kolaborasi Cipta Karya",
-      text: "Ruang bagi mahasiswa untuk mengubah ide kreatif menjadi produk edukasi aplikatif.",
-      Icon: Handshake,
-    },
-    {
-      title: "Pertumbuhan Edupreneur",
-      text: "Membantu mahasiswa mengelola, mengemas, dan memasarkan karya secara profesional.",
-      Icon: Rocket,
-    },
-    {
-      title: "Solusi Belajar Aksesibel",
-      text: "Media interaktif yang dirancang untuk menjawab tantangan pendidikan masa kini.",
-      Icon: BookOpen,
-    },
-  ] : benefitItems;
-  const content = isIndo
-    ? {
-        eyebrow: "KOMITMEN VISI MISI",
-        title: "Dibangun untuk dampak pembelajaran digital",
-        description:
-          "Ringkasan praktis visi dan misi TP Preneurs: berkarya, meningkatkan kualitas, bertumbuh, dan memudahkan akses belajar.",
-      }
-    : {
-        eyebrow: "VISION-MISSION COMMITMENTS",
-        title: "Built for meaningful digital learning impact",
-        description:
-          "A practical snapshot of TP Preneurs' vision and mission: create, improve, grow, and make learning easier to access.",
-      };
+function BenefitStrip({ isIndo, config }) {
+  if (config && config.enabled === false) {
+    return null;
+  }
+
+  const eyebrowText =
+    config?.eyebrow && config.eyebrow.trim() !== ""
+      ? config.eyebrow
+      : isIndo
+        ? "KOMITMEN VISI MISI"
+        : "VISION-MISSION COMMITMENTS";
+
+  const isDefaultOrEmptyTitle =
+    !config?.title ||
+    config.title === "Built for meaningful digital learning impact" ||
+    config.title === "Dibangun untuk dampak pembelajaran digital";
+
+  const visionTitle = isDefaultOrEmptyTitle
+    ? isIndo
+      ? "Pusat Inovasi & Edupreneurship Media Belajar Digital"
+      : "Center for Digital Learning & Edupreneurship Innovation"
+    : config.title;
+
+  const isDefaultOrEmptyDesc =
+    !config?.description ||
+    config.description.includes("A practical snapshot of TP Preneurs") ||
+    config.description.includes("Ringkasan praktis visi dan misi");
+
+  const visionDesc = isDefaultOrEmptyDesc
+    ? isIndo
+      ? "Solusi media pembelajaran interaktif yang berkualitas tinggi, aplikatif, dan berdaya saing."
+      : "High-quality, practical, and competitive digital learning solutions."
+    : config.description;
+
+  const legacyItem1Titles = [
+    "Free Shipping From €500.00",
+    "Campus Verified Works",
+    "Learning Media Innovation",
+    "Inovasi Media Pembelajaran",
+  ];
+  const item1Title =
+    config?.item1Title && !legacyItem1Titles.includes(config.item1Title)
+      ? config.item1Title
+      : isIndo
+        ? "Ruang Kolaborasi Cipta Karya"
+        : "Collaborative Creation Space";
+  const item1Text =
+    config?.item1Text && config.item1Text.trim() !== ""
+      ? config.item1Text
+      : isIndo
+        ? "Wadah mahasiswa mewujudkan ide kreatif menjadi produk edukasi nyata."
+        : "Turning creative student ideas into tangible educational products.";
+
+  const legacyItem2Titles = [
+    "Support 24/7 At Anytime",
+    "Direct WhatsApp Support",
+    "Collaborative Creation",
+    "Kolaborasi Cipta Karya",
+  ];
+  const item2Title =
+    config?.item2Title && !legacyItem2Titles.includes(config.item2Title)
+      ? config.item2Title
+      : isIndo
+        ? "Mengutamakan Kualitas Edukasi"
+        : "Educational Quality First";
+  const item2Text =
+    config?.item2Text && config.item2Text.trim() !== ""
+      ? config.item2Text
+      : isIndo
+        ? "Menjamin efektivitas belajar dengan pemanfaatan teknologi tepat sasaran."
+        : "Prioritizing learning effectiveness with targeted educational technology.";
+
+  const legacyItem3Titles = [
+    "Secure Payment Totally Safe",
+    "Secure Payment",
+    "Edupreneur Growth",
+    "Pertumbuhan Edupreneur",
+  ];
+  const item3Title =
+    config?.item3Title && !legacyItem3Titles.includes(config.item3Title)
+      ? config.item3Title
+      : isIndo
+        ? "Membangun Jiwa Edupreneurship"
+        : "Edupreneurial Spirit";
+  const item3Text =
+    config?.item3Text && config.item3Text.trim() !== ""
+      ? config.item3Text
+      : isIndo
+        ? "Membimbing mahasiswa mengelola dan memasarkan karya secara profesional."
+        : "Helping students package, manage, and market creations professionally.";
+
+  const legacyItem4Titles = [
+    "Latest Offer Upto 20% Off",
+    "Exclusive Student Deals",
+    "Accessible Learning Solutions",
+    "Solusi Belajar Aksesibel",
+  ];
+  const item4Title =
+    config?.item4Title && !legacyItem4Titles.includes(config.item4Title)
+      ? config.item4Title
+      : isIndo
+        ? "Menghadirkan Solusi Belajar"
+        : "Accessible Learning Solutions";
+  const item4Text =
+    config?.item4Text && config.item4Text.trim() !== ""
+      ? config.item4Text
+      : isIndo
+        ? "Media belajar interaktif menjawab tantangan pendidikan masa kini."
+        : "Accessible interactive media answering contemporary education challenges.";
+
+  const items = [
+    { title: item1Title, text: item1Text, Icon: Handshake },
+    { title: item2Title, text: item2Text, Icon: Lightbulb },
+    { title: item3Title, text: item3Text, Icon: Rocket },
+    { title: item4Title, text: item4Text, Icon: BookOpen },
+  ];
 
   return (
-    <section className="rounded-[24px] border border-[#dbe6f3] bg-white p-4 shadow-[0_18px_40px_rgba(3,76,133,0.08)] dark:border-slate-800 dark:bg-slate-900 sm:p-5">
-      <div className="grid gap-4 lg:grid-cols-[0.82fr_1.45fr] lg:items-stretch">
-        <div className="rounded-xl bg-[#f7fbff] p-5 dark:bg-slate-950 sm:p-6">
-          <p className="text-xs font-black uppercase tracking-[0.28em] text-[var(--tp-accent)]">
-            {content.eyebrow}
-          </p>
-          <h2 className="mt-3 max-w-md text-2xl font-black leading-tight text-[var(--tp-primary)] dark:text-white sm:text-3xl">
-            {content.title}
-          </h2>
-          <p className="mt-4 max-w-lg text-sm font-medium leading-7 text-[#557099] dark:text-slate-300">
-            {content.description}
-          </p>
+    <section className="rounded-[28px] border border-[#dbe6f3] bg-white p-5 shadow-[0_16px_36px_rgba(3,76,133,0.06)] dark:border-slate-800 dark:bg-slate-900 sm:p-7">
+      <div className="grid gap-6 lg:grid-cols-[1fr_1.35fr] lg:items-stretch">
+        <div className="flex flex-col justify-between rounded-[22px] border border-[#034c85]/10 bg-gradient-to-br from-[#034c85]/[0.04] to-[#fe6f05]/[0.03] p-6 dark:border-slate-800 dark:from-slate-950 dark:to-slate-900 sm:p-7">
+          <div>
+            <div className="inline-flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-[#fe6f05]" />
+              <p className="text-xs font-black uppercase tracking-[0.25em] text-[#fe6f05]">
+                {eyebrowText}
+              </p>
+            </div>
+            <h2 className="mt-3 text-2xl font-black leading-tight text-[#034c85] dark:text-white sm:text-3xl">
+              {visionTitle}
+            </h2>
+            <p className="mt-3 text-sm font-medium leading-relaxed text-[#557099] dark:text-slate-300">
+              {visionDesc}
+            </p>
+          </div>
+
+          {config?.imageDataUrl ? (
+            <div className="mt-5 overflow-hidden rounded-2xl border border-[#034c85]/15 shadow-md">
+              <img
+                src={config.imageDataUrl}
+                alt={visionTitle}
+                className="h-44 w-full object-cover transition-transform duration-500 hover:scale-105 sm:h-52"
+              />
+            </div>
+          ) : (
+            <div className="mt-5 flex items-center gap-3.5 rounded-2xl border border-[#034c85]/10 bg-white/80 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/60">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[#034c85] text-white shadow-[0_4px_12px_rgba(3,76,133,0.25)]">
+                <Sparkles className="h-6 w-6 text-[#fe6f05]" />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-xs font-bold text-[#034c85] dark:text-sky-300">
+                  {isIndo ? "Pusat Inovasi Edukasi" : "Education Innovation Hub"}
+                </p>
+                <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                  {isIndo ? "Teknologi Pendidikan & Edupreneur" : "EdTech & Edupreneurial Network"}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
           {items.map(({ title, text, Icon }, index) => (
             <article
-              key={title}
-              className="group min-h-[154px] rounded-lg border border-[#dbe6f3] bg-white p-4 transition duration-300 hover:-translate-y-1 hover:border-[var(--tp-accent)] hover:shadow-[0_16px_30px_rgba(3,76,133,0.14)] dark:border-slate-800 dark:bg-slate-950 dark:hover:border-orange-400 sm:p-5"
+              key={index}
+              className="group relative flex flex-col justify-between rounded-[20px] border border-[#dbe6f3] bg-white p-5 transition duration-300 hover:-translate-y-1 hover:border-[#fe6f05] hover:shadow-[0_14px_30px_rgba(3,76,133,0.1)] dark:border-slate-800 dark:bg-slate-950 dark:hover:border-[#fe6f05]"
             >
-              <div className="flex items-start gap-4">
-                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-[#edf6ff] text-[var(--tp-primary)] transition duration-300 group-hover:bg-[var(--tp-primary)] group-hover:text-white dark:bg-slate-800 dark:text-sky-300">
-                  <Icon className="h-6 w-6" />
+              <div>
+                <div className="flex items-center justify-between">
+                  <div className="grid h-11 w-11 place-items-center rounded-xl bg-[#edf6ff] text-[#034c85] transition duration-300 group-hover:bg-[#034c85] group-hover:text-white dark:bg-slate-800 dark:text-sky-300">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <span className="text-xs font-black text-slate-400 transition duration-300 group-hover:text-[#fe6f05]">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
                 </div>
-                <span className="ml-auto text-xs font-black text-[#adc6df] transition duration-300 group-hover:text-[var(--tp-accent)]">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
+                <h3 className="mt-4 text-base font-black leading-snug text-[#071a3f] dark:text-white">
+                  {title}
+                </h3>
+                <p className="mt-2 text-xs font-medium leading-relaxed text-[#557099] dark:text-slate-300">
+                  {text}
+                </p>
               </div>
-              <h3 className="mt-4 text-base font-black leading-snug text-[#071a3f] dark:text-white">
-                {title}
-              </h3>
-              <p className="mt-2 text-sm font-medium leading-6 text-[#557099] dark:text-slate-300">
-                {text}
-              </p>
-              <span className="mt-4 block h-1 w-8 rounded-full bg-[var(--tp-accent)] transition-all duration-300 group-hover:w-14" />
+              <div className="mt-4 pt-1">
+                <span className="block h-1 w-7 rounded-full bg-[#fe6f05] transition-all duration-300 group-hover:w-14" />
+              </div>
             </article>
           ))}
         </div>
@@ -1763,6 +1876,28 @@ export default function TPPreneurHomePage() {
     };
   }, [homeConfig, isIndo]);
 
+  const featurePromoConfig = useMemo(() => {
+    const source =
+      homeConfig?.featurePromoSection && typeof homeConfig.featurePromoSection === "object"
+        ? homeConfig.featurePromoSection
+        : {};
+    return {
+      enabled: toBool(source.enabled, true),
+      eyebrow: toText(source.eyebrow),
+      title: toText(source.title),
+      description: toText(source.description),
+      imageDataUrl: toText(source.imageDataUrl),
+      item1Title: toText(source.item1Title || source.freeShippingText),
+      item1Text: toText(source.item1Text),
+      item2Title: toText(source.item2Title || source.supportText),
+      item2Text: toText(source.item2Text),
+      item3Title: toText(source.item3Title || source.securePaymentText),
+      item3Text: toText(source.item3Text),
+      item4Title: toText(source.item4Title || source.latestOfferText),
+      item4Text: toText(source.item4Text),
+    };
+  }, [homeConfig]);
+
   const categories = useMemo(() => {
     const source = extractList(categoriesData);
     return source
@@ -2275,7 +2410,7 @@ export default function TPPreneurHomePage() {
         </section>
       ) : null}
 
-      <BenefitStrip isIndo={isIndo} />
+      <BenefitStrip isIndo={isIndo} config={featurePromoConfig} />
 
       {promotionBannerConfig.enabled ? (
         <div
