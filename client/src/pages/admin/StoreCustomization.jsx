@@ -1181,9 +1181,9 @@ const getDefaultCustomization = (targetLang = "en") => {
   shop: {
     header: {
       enabled: true,
-      eyebrow: isIndo ? "KATALOG EDUPRENEUR" : "EDUPRENEUR CATALOG",
-      title: isIndo ? "Karya Inovasi & Produk Kampus" : "Campus Innovation & Digital Works",
-      titleAccent: isIndo ? "Edupreneur" : "Digital Works",
+      eyebrow: isIndo ? "KATALOG EDUPRENEUR KAMPUS" : "CAMPUS EDUPRENEUR CATALOG",
+      title: isIndo ? "Katalog Produk & Karya Inovasi," : "Explore Curated Works,",
+      titleAccent: isIndo ? "Edupreneur Kampus" : "Campus Edupreneurs",
       description: isIndo
         ? "Temukan media belajar digital, buku, dan karya kreatif inovatif mahasiswa."
         : "Discover digital learning media, books, and student creative innovations.",
@@ -7028,7 +7028,7 @@ export default function StoreCustomizationPage() {
                   <input
                     type="text"
                     value={shopState?.header?.title ?? ""}
-                    placeholder="Karya Inovasi & Produk Kampus"
+                    placeholder="Katalog Produk & Karya Inovasi,"
                     onChange={(e) =>
                       setShopState((prev) => ({
                         ...prev,

@@ -78,26 +78,26 @@ export default function ShopHero2026({ query, onSearch, shopConfig }) {
   // Resolve copy text with concise bilingual fallbacks
   const eyebrow =
     shopConfig?.eyebrow?.trim() ||
-    (isIndo ? "Koleksi Edupreneur Kampus" : "Campus Edupreneur Collection");
+    (isIndo ? "Katalog Edupreneur Kampus" : "Campus Edupreneur Collection");
 
   const title =
     shopConfig?.title?.trim() ||
-    (isIndo ? "Jelajahi Produk Terbaik," : "Explore Top Quality Works,");
+    (isIndo ? "Katalog Produk & Karya Inovasi," : "Explore Curated Works,");
 
   const titleAccent =
     shopConfig?.titleAccent?.trim() ||
-    (isIndo ? "Karya Inovasi Edupreneur" : "From Campus Edupreneurs");
+    (isIndo ? "Edupreneur Kampus" : "From Campus Edupreneurs");
 
   const description =
     shopConfig?.description?.trim() ||
     (isIndo
-      ? "Temukan karya inovasi mahasiswa dan produk kreatif terkurasi langsung dari kampus."
-      : "Discover student innovations and curated creative works directly from campus.");
+      ? "Temukan media belajar digital, buku, dan produk kreatif unggulan karya mahasiswa."
+      : "Discover student innovations, digital learning media, and curated campus creative works.");
 
   const searchPlaceholder =
     shopConfig?.searchPlaceholder?.trim() ||
     (isIndo
-      ? "Cari produk digital, karya inovasi & buku..."
+      ? "Cari produk, kategori, atau karya mahasiswa..."
       : "Search digital products, innovation works & books...");
 
   const bannerImage = resolveAssetUrl(shopConfig?.imageDataUrl || "");
@@ -143,6 +143,7 @@ export default function ShopHero2026({ query, onSearch, shopConfig }) {
             onChange={(event) => setDraft(event.target.value)}
             placeholder={searchPlaceholder}
             autoComplete="off"
+            style={{ backgroundColor: "transparent" }}
           />
           {draft ? (
             <button
@@ -198,6 +199,7 @@ export default function ShopHero2026({ query, onSearch, shopConfig }) {
         </div>
       ) : (
         <div className="tp-shop-showcase" aria-hidden="true">
+          <div className="tp-shop-showcase__glow" />
           <div className="tp-shop-showcase__dots" />
           <div className="tp-shop-showcase__arc" />
 
@@ -208,23 +210,24 @@ export default function ShopHero2026({ query, onSearch, shopConfig }) {
             </div>
             <p className="tp-shop-showcase__hub-name">TP PRENEURS</p>
             <span className="tp-shop-showcase__hub-tag">
+              <Sparkles className="w-3 h-3 text-[#fe6f05]" />
               {isIndo ? "Inovasi Kampus" : "Campus Innovation"}
             </span>
           </div>
 
           {/* Floating Feature Badges */}
           <div className="tp-shop-showcase__float tp-shop-showcase__float--quality">
-            <Award className="w-5 h-5 text-[#fe6f05]" />
+            <Award className="w-4 h-4 text-[#fe6f05]" />
             <small>{isIndo ? "Karya Terverifikasi" : "Verified Quality"}</small>
           </div>
 
           <div className="tp-shop-showcase__float tp-shop-showcase__float--student">
-            <CheckCircle2 className="w-5 h-5 text-[#00c274]" />
+            <CheckCircle2 className="w-4 h-4 text-[#00c274]" />
             <small>{isIndo ? "100% Produk Kampus" : "Student Works"}</small>
           </div>
 
           <div className="tp-shop-showcase__float tp-shop-showcase__float--products">
-            <ShoppingBag className="w-5 h-5 text-[#fe6f05]" />
+            <ShoppingBag className="w-4 h-4 text-[#38bdf8]" />
             <small>{isIndo ? "Kreatif & Inovatif" : "Creative & Innovative"}</small>
           </div>
         </div>

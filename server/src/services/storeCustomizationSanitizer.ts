@@ -581,10 +581,10 @@ const DEFAULT_CUSTOMIZATION = {
   shop: {
     header: {
       enabled: true,
-      eyebrow: "KATALOG EDUPRENEUR",
-      title: "Karya Inovasi & Produk Kampus",
-      titleAccent: "Edupreneur",
-      description: "Temukan media belajar digital, buku, dan karya kreatif mahasiswa.",
+      eyebrow: "KATALOG EDUPRENEUR KAMPUS",
+      title: "Katalog Produk & Karya Inovasi,",
+      titleAccent: "Edupreneur Kampus",
+      description: "Temukan media belajar digital, buku, dan produk kreatif unggulan mahasiswa.",
       searchPlaceholder: "Cari produk, kategori, atau karya mahasiswa...",
       popularSearches: "",
       imageDataUrl: "",
