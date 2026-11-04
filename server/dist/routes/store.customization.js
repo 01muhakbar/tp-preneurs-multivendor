@@ -380,7 +380,25 @@ const mergeShopMediaFallback = (localized, fallback) => {
         },
     };
 };
-const mergeCustomizationMediaFallback = (localized, fallback) => mergeShopMediaFallback(mergeAboutUsMediaFallback(mergeMainSliderMediaFallback(localized, fallback), fallback), fallback);
+const mergeOffersMediaFallback = (localized, fallback) => {
+    const localizedOffers = localized?.offers;
+    const fallbackOffers = fallback?.offers;
+    if (!fallbackOffers)
+        return localized;
+    return {
+        ...localized,
+        offers: {
+            ...localizedOffers,
+            pageHeader: {
+                ...localizedOffers?.pageHeader,
+                backgroundImageDataUrl: toText(localizedOffers?.pageHeader?.backgroundImageDataUrl) ||
+                    toText(fallbackOffers?.pageHeader?.backgroundImageDataUrl) ||
+                    "",
+            },
+        },
+    };
+};
+const mergeCustomizationMediaFallback = (localized, fallback) => mergeOffersMediaFallback(mergeShopMediaFallback(mergeAboutUsMediaFallback(mergeMainSliderMediaFallback(localized, fallback), fallback), fallback), fallback);
 const normalizeSlug = (value) => String(value || "")
     .trim()
     .toLowerCase()

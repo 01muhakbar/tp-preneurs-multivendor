@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import {
   ChevronDown,
+  ChevronRight,
   Copy,
   Eye,
   MoreHorizontal,
@@ -1019,12 +1020,19 @@ const getDefaultCustomization = (targetLang = "en") => {
   offers: {
     pageHeader: {
       enabled: true,
+      eyebrow: "MEGA OFFER & PROMO",
       backgroundImageDataUrl: "",
-      pageTitle: "Mega Offer",
+      pageTitle: "Mega Offer Eksklusif",
+      description: "Dapatkan penawaran terbaik dan kupon diskon spesial untuk produk edukasi pilihan.",
     },
     superDiscount: {
       enabled: true,
       activeCouponCode: "ALL",
+    },
+    dealsSection: {
+      enabled: true,
+      title: "Koleksi Produk Diskon",
+      description: "Hemat lebih banyak untuk karya inovasi dan media belajar.",
     },
   },
   contactUs: {
@@ -1733,6 +1741,9 @@ const normalizeOffers = (source, defaults) => {
   const superDiscountSource = isPlainObject(offersSource.superDiscount)
     ? offersSource.superDiscount
     : {};
+  const dealsSectionSource = isPlainObject(offersSource.dealsSection)
+    ? offersSource.dealsSection
+    : {};
 
   return {
     ...defaults,
@@ -1741,6 +1752,7 @@ const normalizeOffers = (source, defaults) => {
       ...defaults.pageHeader,
       ...pageHeaderSource,
       enabled: toBool(pageHeaderSource.enabled, defaults.pageHeader.enabled),
+      eyebrow: toText(pageHeaderSource.eyebrow, defaults.pageHeader.eyebrow),
       backgroundImageDataUrl: toText(
         pageHeaderSource.backgroundImageDataUrl ??
           pageHeaderSource.backgroundImage ??
@@ -1749,6 +1761,7 @@ const normalizeOffers = (source, defaults) => {
         ""
       ),
       pageTitle: toText(pageHeaderSource.pageTitle, defaults.pageHeader.pageTitle),
+      description: toText(pageHeaderSource.description, defaults.pageHeader.description),
     },
     superDiscount: {
       ...defaults.superDiscount,
@@ -1758,6 +1771,13 @@ const normalizeOffers = (source, defaults) => {
         superDiscountSource.activeCouponCode ?? superDiscountSource.couponCode ?? "",
         defaults.superDiscount.activeCouponCode
       ).toUpperCase(),
+    },
+    dealsSection: {
+      ...defaults.dealsSection,
+      ...dealsSectionSource,
+      enabled: toBool(dealsSectionSource.enabled, defaults.dealsSection.enabled),
+      title: toText(dealsSectionSource.title, defaults.dealsSection.title),
+      description: toText(dealsSectionSource.description, defaults.dealsSection.description),
     },
   };
 };
@@ -4346,10 +4366,12 @@ export default function StoreCustomizationPage() {
           ...currentCustomization.offers?.pageHeader,
           ...offersState?.pageHeader,
           enabled: Boolean(offersState?.pageHeader?.enabled),
+          eyebrow: toText(offersState?.pageHeader?.eyebrow),
           backgroundImageDataUrl: toText(
             offersState?.pageHeader?.backgroundImageDataUrl
           ),
           pageTitle: toText(offersState?.pageHeader?.pageTitle),
+          description: toText(offersState?.pageHeader?.description),
         },
         superDiscount: {
           ...currentCustomization.offers?.superDiscount,
@@ -4359,6 +4381,13 @@ export default function StoreCustomizationPage() {
             offersState?.superDiscount?.activeCouponCode,
             "ALL"
           ).toUpperCase(),
+        },
+        dealsSection: {
+          ...currentCustomization.offers?.dealsSection,
+          ...offersState?.dealsSection,
+          enabled: Boolean(offersState?.dealsSection?.enabled),
+          title: toText(offersState?.dealsSection?.title),
+          description: toText(offersState?.dealsSection?.description),
         },
       },
       contactUs: {
@@ -5765,6 +5794,16 @@ export default function StoreCustomizationPage() {
     }));
   };
 
+  const onChangeOffersDealsField = (field, value) => {
+    setOffersState((prev) => ({
+      ...prev,
+      dealsSection: {
+        ...prev?.dealsSection,
+        [field]: value,
+      },
+    }));
+  };
+
   const setOffersDropActiveField = (fieldKey, value) => {
     setOffersDropActive((prev) => ({
       ...prev,
@@ -6210,8 +6249,10 @@ export default function StoreCustomizationPage() {
       ...offersDefaults.pageHeader,
       ...(offersState?.pageHeader || {}),
       enabled: Boolean(offersState?.pageHeader?.enabled),
+      eyebrow: toText(offersState?.pageHeader?.eyebrow, offersDefaults.pageHeader.eyebrow),
       backgroundImageDataUrl: toText(offersState?.pageHeader?.backgroundImageDataUrl, ""),
       pageTitle: toText(offersState?.pageHeader?.pageTitle, offersDefaults.pageHeader.pageTitle),
+      description: toText(offersState?.pageHeader?.description, offersDefaults.pageHeader.description),
     },
     superDiscount: {
       ...offersDefaults.superDiscount,
@@ -6221,6 +6262,13 @@ export default function StoreCustomizationPage() {
         offersState?.superDiscount?.activeCouponCode,
         offersDefaults.superDiscount.activeCouponCode
       ).toUpperCase(),
+    },
+    dealsSection: {
+      ...offersDefaults.dealsSection,
+      ...(offersState?.dealsSection || {}),
+      enabled: Boolean(offersState?.dealsSection?.enabled),
+      title: toText(offersState?.dealsSection?.title, offersDefaults.dealsSection.title),
+      description: toText(offersState?.dealsSection?.description, offersDefaults.dealsSection.description),
     },
   };
   const contactUsDefaults = getDefaultCustomization().contactUs;
@@ -7850,6 +7898,24 @@ export default function StoreCustomizationPage() {
         </div>
       ) : activeTab === "offers" ? (
         <div className="flex flex-col gap-5">
+          <div className="flex items-center justify-between rounded-xl border border-sky-200 bg-sky-50/80 p-3.5 text-xs text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-200">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-[#fe6f05]" />
+              <span>
+                {isIndo
+                  ? "Kelola banner promosi dan voucher Mega Offer lebih lengkap di menu Katalog > Campaigns."
+                  : "Manage full campaign hero banners and vouchers in Catalog > Campaigns."}
+              </span>
+            </div>
+            <Link
+              to="/admin/catalog/campaigns"
+              className="inline-flex items-center gap-1 font-bold text-[#034c85] hover:underline dark:text-sky-300"
+            >
+              <span>{isIndo ? "Buka Campaigns" : "Open Campaigns"}</span>
+              <ChevronRight className="h-3 w-3" />
+            </Link>
+          </div>
+
           <section className={sectionCard}>
             <div className="flex items-center gap-2">
               <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
@@ -7899,6 +7965,20 @@ export default function StoreCustomizationPage() {
               />
               <label className="block xl:col-span-2">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Eyebrow / Badge Tag
+                </span>
+                <input
+                  type="text"
+                  value={offers?.pageHeader?.eyebrow || ""}
+                  onChange={(event) =>
+                    onChangeOffersPageHeaderField("eyebrow", event.target.value)
+                  }
+                  className={`${inputBase} mt-2`}
+                  placeholder="MEGA OFFER & PROMO"
+                />
+              </label>
+              <label className="block xl:col-span-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Page Title
                 </span>
                 <input
@@ -7908,6 +7988,20 @@ export default function StoreCustomizationPage() {
                     onChangeOffersPageHeaderField("pageTitle", event.target.value)
                   }
                   className={`${inputBase} mt-2`}
+                />
+              </label>
+              <label className="block xl:col-span-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Page Description
+                </span>
+                <textarea
+                  value={offers?.pageHeader?.description || ""}
+                  onChange={(event) =>
+                    onChangeOffersPageHeaderField("description", event.target.value)
+                  }
+                  className={`${textAreaBase} mt-2`}
+                  rows={2}
+                  placeholder="Dapatkan penawaran terbaik dan kupon diskon spesial..."
                 />
               </label>
             </div>
@@ -7986,6 +8080,62 @@ export default function StoreCustomizationPage() {
                     Failed to load coupons list. You can still save the selected code.
                   </p>
                 ) : null}
+              </div>
+            </div>
+          </section>
+
+          <section className={sectionCard}>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                <Settings className="h-4 w-4" />
+              </span>
+              <h2 className="text-base font-semibold text-slate-900">
+                Discounted Deals Catalog Section
+              </h2>
+            </div>
+            <div className="mt-4 h-px w-full bg-slate-200" />
+
+            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[320px_1fr]">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  Enable This Block
+                </p>
+                <SegmentedToggle
+                  value={Boolean(offers.dealsSection.enabled)}
+                  onChange={(value) => onChangeOffersBlockEnabled("dealsSection", value)}
+                />
+              </div>
+
+              <div className="space-y-4">
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Section Title
+                  </span>
+                  <input
+                    type="text"
+                    value={offers?.dealsSection?.title || ""}
+                    onChange={(event) =>
+                      onChangeOffersDealsField("title", event.target.value)
+                    }
+                    className={`${inputBase} mt-2`}
+                    placeholder="Koleksi Produk Diskon"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Section Description
+                  </span>
+                  <input
+                    type="text"
+                    value={offers?.dealsSection?.description || ""}
+                    onChange={(event) =>
+                      onChangeOffersDealsField("description", event.target.value)
+                    }
+                    className={`${inputBase} mt-2`}
+                    placeholder="Hemat lebih banyak untuk karya inovasi..."
+                  />
+                </label>
               </div>
             </div>
           </section>

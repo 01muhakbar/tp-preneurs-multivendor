@@ -78,6 +78,7 @@ const AdminCustomerOrdersPage = lazy(() =>
 const AdminCouponsPage = lazy(() => import("./pages/admin/AdminCouponsPage.jsx"));
 const AdminCouponDetailPage = lazy(() => import("./pages/admin/AdminCouponDetailPage.jsx"));
 const AdminCouponCreatePage = lazy(() => import("./pages/admin/AdminCouponCreatePage.jsx"));
+const AdminCampaignsPage = lazy(() => import("./pages/admin/AdminCampaignsPage.jsx"));
 const AdminProfilePage = lazy(() => import("./pages/admin/Profile.jsx"));
 const ComingSoon = lazy(() => import("./pages/admin/ComingSoon.jsx"));
 const LanguagesPage = lazy(() => import("./pages/Languages.jsx"));
@@ -694,6 +695,18 @@ export default function App() {
                     <AdminCouponsPage />
                   </RequirePerm>
                 }
+              />
+              <Route
+                path="catalog/campaigns"
+                element={
+                  <RequirePerm perm="COUPONS_CRUD">
+                    <AdminCampaignsPage />
+                  </RequirePerm>
+                }
+              />
+              <Route
+                path="campaigns"
+                element={<Navigate to="/admin/catalog/campaigns" replace />}
               />
               <Route
                 path="catalog/coupons/new"

@@ -1,0 +1,449 @@
+/* ==========================================================================
+   TP-PRENEURS OFFERS & CAMPAIGNS 2026 REDESIGN
+   Color Palette: Primary Navy (#034c85), Accent Orange (#fe6f05)
+   ========================================================================== */
+
+.tp-offers-container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 4rem;
+}
+
+@media (min-width: 640px) {
+  .tp-offers-container {
+    padding: 2rem 1.5rem 5rem;
+  }
+}
+
+/* ---------------------------------------------------------
+   1. HERO BANNER
+   --------------------------------------------------------- */
+.tp-offers-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  background-color: #034c85;
+  background-image: 
+    radial-gradient(circle at top right, rgba(254, 111, 5, 0.18) 0%, transparent 55%),
+    radial-gradient(circle at bottom left, rgba(3, 76, 133, 0.8) 0%, #022b4d 100%);
+  color: #ffffff;
+  padding: 2.5rem 1.5rem;
+  box-shadow: 0 10px 30px -10px rgba(3, 76, 133, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: all 0.3s ease;
+}
+
+@media (min-width: 768px) {
+  .tp-offers-hero {
+    padding: 3.5rem 3rem;
+  }
+}
+
+.tp-offers-hero.has-custom-bg {
+  background-size: cover;
+  background-position: center;
+}
+
+.tp-offers-hero__content {
+  position: relative;
+  z-index: 2;
+  max-width: 680px;
+}
+
+.tp-offers-hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(254, 111, 5, 0.35);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fe6f05;
+  margin-bottom: 1rem;
+}
+
+.tp-offers-hero__dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 9999px;
+  background-color: #fe6f05;
+  box-shadow: 0 0 10px #fe6f05;
+  animation: tpPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes tpPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.tp-offers-hero__title {
+  font-size: 1.85rem;
+  font-weight: 800;
+  line-height: 1.18;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  margin: 0 0 0.85rem;
+}
+
+@media (min-width: 768px) {
+  .tp-offers-hero__title {
+    font-size: 2.65rem;
+  }
+}
+
+.tp-offers-hero__desc {
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.88);
+  margin: 0 0 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .tp-offers-hero__desc {
+    font-size: 1.05rem;
+  }
+}
+
+.tp-offers-hero__badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.tp-offers-hero__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.3rem 0.75rem;
+  border-radius: 0.5rem;
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+}
+
+.tp-offers-hero__pill svg {
+  color: #fe6f05;
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+/* ---------------------------------------------------------
+   2. FEATURED SUPER DISCOUNT HERO BANNER CARD
+   --------------------------------------------------------- */
+.tp-offers-super-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding: 0.6rem 1rem;
+  border-radius: 1rem;
+  background: rgba(2, 43, 77, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(254, 111, 5, 0.4);
+}
+
+.tp-offers-super-badge__code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+  padding: 0.2rem 0.55rem;
+  border-radius: 0.375rem;
+  background: rgba(254, 111, 5, 0.2);
+  border: 1px dashed #fe6f05;
+}
+
+.tp-offers-super-badge__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 2rem;
+  padding: 0 0.75rem;
+  border-radius: 0.5rem;
+  background: #fe6f05;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+}
+
+.tp-offers-super-badge__btn:hover {
+  background: #e05e00;
+  transform: translateY(-1px);
+}
+
+/* ---------------------------------------------------------
+   3. SECTION HEADERS
+   --------------------------------------------------------- */
+.tp-offers-section-header {
+  display: flex;
+  flex-direction: column;
+  margin-top: 3rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .tp-offers-section-header {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+}
+
+.tp-offers-section-header__tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #fe6f05;
+  margin-bottom: 0.25rem;
+}
+
+.tp-offers-section-header__title {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.dark .tp-offers-section-header__title {
+  color: #f8fafc;
+}
+
+.tp-offers-section-header__desc {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+}
+
+.dark .tp-offers-section-header__desc {
+  color: #94a3b8;
+}
+
+/* ---------------------------------------------------------
+   4. VOUCHER TICKETS GRID & CARDS
+   --------------------------------------------------------- */
+.tp-offers-vouchers-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .tp-offers-vouchers-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .tp-offers-vouchers-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.tp-voucher-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.05);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark .tp-voucher-card {
+  background: #0f172a;
+  border-color: #1e293b;
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.3);
+}
+
+.tp-voucher-card:hover {
+  transform: translateY(-3px);
+  border-color: #034c85;
+  box-shadow: 0 12px 24px -6px rgba(3, 76, 133, 0.15);
+}
+
+.dark .tp-voucher-card:hover {
+  border-color: #38bdf8;
+  box-shadow: 0 12px 24px -6px rgba(56, 189, 248, 0.12);
+}
+
+.tp-voucher-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.15rem 1.25rem 0.85rem;
+  background: linear-gradient(135deg, rgba(3, 76, 133, 0.04) 0%, rgba(254, 111, 5, 0.04) 100%);
+  border-bottom: 1px dashed #cbd5e1;
+}
+
+.dark .tp-voucher-card__top {
+  background: linear-gradient(135deg, rgba(3, 76, 133, 0.15) 0%, rgba(254, 111, 5, 0.1) 100%);
+  border-bottom-color: #334155;
+}
+
+.tp-voucher-card__discount {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  font-size: 1.45rem;
+  font-weight: 900;
+  color: #fe6f05;
+  letter-spacing: -0.02em;
+}
+
+.tp-voucher-card__badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  background: rgba(3, 76, 133, 0.1);
+  color: #034c85;
+}
+
+.dark .tp-voucher-card__badge {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+}
+
+.tp-voucher-card__body {
+  padding: 1.1rem 1.25rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.tp-voucher-card__name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.4rem;
+}
+
+.dark .tp-voucher-card__name {
+  color: #f1f5f9;
+}
+
+.tp-voucher-card__condition {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin-bottom: 0.75rem;
+}
+
+.dark .tp-voucher-card__condition {
+  color: #94a3b8;
+}
+
+.tp-voucher-card__code-row {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.65rem;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+}
+
+.dark .tp-voucher-card__code-row {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.tp-voucher-card__code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #034c85;
+}
+
+.dark .tp-voucher-card__code {
+  color: #38bdf8;
+}
+
+.tp-voucher-card__copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 1.85rem;
+  padding: 0 0.65rem;
+  border-radius: 0.45rem;
+  background: #034c85;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tp-voucher-card__copy-btn:hover {
+  background: #02335a;
+}
+
+.tp-voucher-card__copy-btn.is-copied {
+  background: #10b981;
+}
+
+/* ---------------------------------------------------------
+   5. DEALS PRODUCTS GRID
+   --------------------------------------------------------- */
+.tp-offers-products-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .tp-offers-products-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .tp-offers-products-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* ---------------------------------------------------------
+   6. EMPTY & SKELETON STATES
+   --------------------------------------------------------- */
+.tp-offers-skeleton-hero {
+  height: 220px;
+  border-radius: 1.5rem;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: tpShimmer 1.5s infinite;
+}
+
+.dark .tp-offers-skeleton-hero {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% 100%;
+}
+
+@keyframes tpShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

@@ -529,12 +529,37 @@ const mergeShopMediaFallback = (
   };
 };
 
+const mergeOffersMediaFallback = (
+  localized: Record<string, any>,
+  fallback: Record<string, any>
+) => {
+  const localizedOffers = localized?.offers;
+  const fallbackOffers = fallback?.offers;
+  if (!fallbackOffers) return localized;
+  return {
+    ...localized,
+    offers: {
+      ...localizedOffers,
+      pageHeader: {
+        ...localizedOffers?.pageHeader,
+        backgroundImageDataUrl:
+          toText(localizedOffers?.pageHeader?.backgroundImageDataUrl) ||
+          toText(fallbackOffers?.pageHeader?.backgroundImageDataUrl) ||
+          "",
+      },
+    },
+  };
+};
+
 const mergeCustomizationMediaFallback = (
   localized: Record<string, any>,
   fallback: Record<string, any>
 ) =>
-  mergeShopMediaFallback(
-    mergeAboutUsMediaFallback(mergeMainSliderMediaFallback(localized, fallback), fallback),
+  mergeOffersMediaFallback(
+    mergeShopMediaFallback(
+      mergeAboutUsMediaFallback(mergeMainSliderMediaFallback(localized, fallback), fallback),
+      fallback
+    ),
     fallback
   );
 

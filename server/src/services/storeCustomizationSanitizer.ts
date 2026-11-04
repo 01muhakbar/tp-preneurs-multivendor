@@ -419,12 +419,19 @@ const DEFAULT_CUSTOMIZATION = {
   offers: {
     pageHeader: {
       enabled: true,
+      eyebrow: "PROMO & PENAWARAN SPESIAL",
+      pageTitle: "Mega Offer Edupreneur",
+      description: "Nikmati penawaran harga terbaik untuk produk kreatif dan karya inovasi mahasiswa.",
       backgroundImageDataUrl: "",
-      pageTitle: "Mega Offer",
     },
     superDiscount: {
       enabled: true,
       activeCouponCode: "ALL",
+    },
+    dealsSection: {
+      enabled: true,
+      title: "Produk Promo Pilihan",
+      description: "Karya inovasi dan produk edupreneur dengan diskon spesial.",
     },
   },
   contactUs: {
@@ -1780,6 +1787,9 @@ const normalizeOffers = (root: Record<string, any>) => {
   const superDiscountSource = isPlainObject(source.superDiscount)
     ? source.superDiscount
     : {};
+  const dealsSectionSource = isPlainObject(source.dealsSection)
+    ? source.dealsSection
+    : {};
 
   return {
     ...defaults,
@@ -1788,14 +1798,18 @@ const normalizeOffers = (root: Record<string, any>) => {
       ...defaults.pageHeader,
       ...pageHeaderSource,
       enabled: toBool(pageHeaderSource.enabled, defaults.pageHeader.enabled),
+      eyebrow: toText(pageHeaderSource.eyebrow, defaults.pageHeader.eyebrow),
+      pageTitle: toText(pageHeaderSource.pageTitle, defaults.pageHeader.pageTitle),
+      description: toText(pageHeaderSource.description, defaults.pageHeader.description),
       backgroundImageDataUrl: toText(
-        pageHeaderSource.backgroundImageDataUrl ??
-          pageHeaderSource.backgroundImage ??
-          pageHeaderSource.imageDataUrl ??
-          "",
+        firstText(
+          pageHeaderSource.backgroundImageDataUrl,
+          pageHeaderSource.backgroundImage,
+          pageHeaderSource.imageDataUrl,
+          pageHeaderSource.image
+        ),
         ""
       ),
-      pageTitle: toText(pageHeaderSource.pageTitle, defaults.pageHeader.pageTitle),
     },
     superDiscount: {
       ...defaults.superDiscount,
@@ -1805,6 +1819,13 @@ const normalizeOffers = (root: Record<string, any>) => {
         superDiscountSource.activeCouponCode ?? superDiscountSource.couponCode ?? "",
         defaults.superDiscount.activeCouponCode
       ).toUpperCase(),
+    },
+    dealsSection: {
+      ...defaults.dealsSection,
+      ...dealsSectionSource,
+      enabled: toBool(dealsSectionSource.enabled, defaults.dealsSection.enabled),
+      title: toText(dealsSectionSource.title, defaults.dealsSection.title),
+      description: toText(dealsSectionSource.description, defaults.dealsSection.description),
     },
   };
 };

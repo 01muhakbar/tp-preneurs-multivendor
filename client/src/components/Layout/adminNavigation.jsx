@@ -142,8 +142,9 @@ export const ADMIN_NAVIGATION = [
   {
     section: "Catalog",
     label: "Campaigns",
+    to: "/admin/catalog/campaigns",
     icon: IconTarget,
-    disabled: true,
+    perm: "COUPONS_CRUD",
   },
   {
     section: "Sales",

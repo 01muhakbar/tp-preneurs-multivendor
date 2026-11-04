@@ -374,12 +374,19 @@ const DEFAULT_CUSTOMIZATION = {
     offers: {
         pageHeader: {
             enabled: true,
+            eyebrow: "PROMO & PENAWARAN SPESIAL",
+            pageTitle: "Mega Offer Edupreneur",
+            description: "Nikmati penawaran harga terbaik untuk produk kreatif dan karya inovasi mahasiswa.",
             backgroundImageDataUrl: "",
-            pageTitle: "Mega Offer",
         },
         superDiscount: {
             enabled: true,
             activeCouponCode: "ALL",
+        },
+        dealsSection: {
+            enabled: true,
+            title: "Produk Promo Pilihan",
+            description: "Karya inovasi dan produk edupreneur dengan diskon spesial.",
         },
     },
     contactUs: {
@@ -1225,6 +1232,9 @@ const normalizeOffers = (root) => {
     const superDiscountSource = isPlainObject(source.superDiscount)
         ? source.superDiscount
         : {};
+    const dealsSectionSource = isPlainObject(source.dealsSection)
+        ? source.dealsSection
+        : {};
     return {
         ...defaults,
         ...source,
@@ -1232,17 +1242,23 @@ const normalizeOffers = (root) => {
             ...defaults.pageHeader,
             ...pageHeaderSource,
             enabled: toBool(pageHeaderSource.enabled, defaults.pageHeader.enabled),
-            backgroundImageDataUrl: toText(pageHeaderSource.backgroundImageDataUrl ??
-                pageHeaderSource.backgroundImage ??
-                pageHeaderSource.imageDataUrl ??
-                "", ""),
+            eyebrow: toText(pageHeaderSource.eyebrow, defaults.pageHeader.eyebrow),
             pageTitle: toText(pageHeaderSource.pageTitle, defaults.pageHeader.pageTitle),
+            description: toText(pageHeaderSource.description, defaults.pageHeader.description),
+            backgroundImageDataUrl: toText(firstText(pageHeaderSource.backgroundImageDataUrl, pageHeaderSource.backgroundImage, pageHeaderSource.imageDataUrl, pageHeaderSource.image), ""),
         },
         superDiscount: {
             ...defaults.superDiscount,
             ...superDiscountSource,
             enabled: toBool(superDiscountSource.enabled, defaults.superDiscount.enabled),
             activeCouponCode: toText(superDiscountSource.activeCouponCode ?? superDiscountSource.couponCode ?? "", defaults.superDiscount.activeCouponCode).toUpperCase(),
+        },
+        dealsSection: {
+            ...defaults.dealsSection,
+            ...dealsSectionSource,
+            enabled: toBool(dealsSectionSource.enabled, defaults.dealsSection.enabled),
+            title: toText(dealsSectionSource.title, defaults.dealsSection.title),
+            description: toText(dealsSectionSource.description, defaults.dealsSection.description),
         },
     };
 };
