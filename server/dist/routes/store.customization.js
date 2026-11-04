@@ -362,7 +362,25 @@ const mergeAboutUsMediaFallback = (localized, fallback) => {
         },
     };
 };
-const mergeCustomizationMediaFallback = (localized, fallback) => mergeAboutUsMediaFallback(mergeMainSliderMediaFallback(localized, fallback), fallback);
+const mergeShopMediaFallback = (localized, fallback) => {
+    const localizedShop = localized?.shop;
+    const fallbackShop = fallback?.shop;
+    if (!fallbackShop)
+        return localized;
+    return {
+        ...localized,
+        shop: {
+            ...localizedShop,
+            header: {
+                ...localizedShop?.header,
+                imageDataUrl: toText(localizedShop?.header?.imageDataUrl) ||
+                    toText(fallbackShop?.header?.imageDataUrl) ||
+                    "",
+            },
+        },
+    };
+};
+const mergeCustomizationMediaFallback = (localized, fallback) => mergeShopMediaFallback(mergeAboutUsMediaFallback(mergeMainSliderMediaFallback(localized, fallback), fallback), fallback);
 const normalizeSlug = (value) => String(value || "")
     .trim()
     .toLowerCase()
@@ -564,6 +582,13 @@ router.get("/", async (req, res, next) => {
             includeSet.has("productslugpage") ||
             includeSet.has("product-slug-page") ||
             includeSet.has("product_slug_page");
+        const includeShop = !includeProvided ||
+            includeSet.has("shop") ||
+            includeSet.has("shopsettings") ||
+            includeSet.has("shop-settings") ||
+            includeSet.has("shop_settings") ||
+            includeSet.has("shoppage") ||
+            includeSet.has("shop-page");
         const row = await getCustomizationRow(lang);
         const rowHasPublishedCustomization = hasPublishedCustomization(row);
         const fallbackRow = lang !== "en" ? await getCustomizationRow("en") : null;
@@ -607,6 +632,9 @@ router.get("/", async (req, res, next) => {
         }
         if (includeProductSlugPage) {
             customization.productSlugPage = sanitized.productSlugPage;
+        }
+        if (includeShop) {
+            customization.shop = sanitized.shop;
         }
         return res.json({
             success: true,

@@ -9,10 +9,12 @@ import {
   ShieldCheck,
   ShoppingBag,
   ShoppingCart,
+  Store,
 } from "lucide-react";
 
 export const STORE_CUSTOMIZATION_TAB_ITEMS = [
   { key: "home", label: "Home Page", icon: Home },
+  { key: "shop", label: "Shop Page", icon: Store },
   { key: "productSlugPage", label: "Product Slug Page", icon: Package },
   { key: "aboutUs", label: "About Us", icon: BadgeCheck },
   { key: "privacyPolicyTerms", label: "Privacy & T&C", icon: ShieldCheck },

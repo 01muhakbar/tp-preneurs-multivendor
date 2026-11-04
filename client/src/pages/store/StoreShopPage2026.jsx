@@ -1,8 +1,10 @@
 import { ChevronLeft, ChevronRight, SearchX, SlidersHorizontal, X } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { getStoreCustomization } from "../../api/public/storeCustomizationPublic.ts";
 import { useCategories, useProducts } from "../../storefront.jsx";
 import { useCart } from "../../hooks/useCart.ts";
 import { productHasVariantSelections } from "../../utils/publicProductVariations.js";
@@ -115,6 +117,14 @@ export default function StoreShopPage2026() {
   const sort = SHOP_SORT_OPTIONS.some((option) => option.value === requestedSort) ? requestedSort : "featured";
   const page = toPositiveInteger(searchParams.get("page"), 1);
   const limit = toPositiveInteger(searchParams.get("limit"), DEFAULT_LIMIT);
+
+  const currentLang = isIndo ? "id" : "en";
+  const { data: shopCustomizationData } = useQuery({
+    queryKey: ["store-customization", "shop", currentLang],
+    queryFn: () => getStoreCustomization({ lang: currentLang, include: "shop" }),
+    staleTime: 60 * 1000,
+  });
+  const shopConfig = shopCustomizationData?.customization?.shop?.header;
 
   const commit = useCallback((next, { resetPage = true } = {}) => {
     const params = new URLSearchParams(searchParams);
@@ -258,7 +268,11 @@ export default function StoreShopPage2026() {
   return (
     <div className="tp-shop-page">
       <div className="tp-shop-container">
-        <ShopHero2026 query={query} onSearch={(value) => commit({ q: value })} />
+        <ShopHero2026
+          query={query}
+          onSearch={(value) => commit({ q: value })}
+          shopConfig={shopConfig}
+        />
         <ShopCategoryRail2026
           categories={categories}
           activeCategory={category}

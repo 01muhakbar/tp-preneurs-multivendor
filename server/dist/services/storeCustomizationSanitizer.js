@@ -546,6 +546,18 @@ const DEFAULT_CUSTOMIZATION = {
         metaKeywords: "",
         metaImageDataUrl: "",
     },
+    shop: {
+        header: {
+            enabled: true,
+            eyebrow: "KATALOG EDUPRENEUR",
+            title: "Karya Inovasi & Produk Kampus",
+            titleAccent: "Edupreneur",
+            description: "Temukan media belajar digital, buku, dan karya kreatif mahasiswa.",
+            searchPlaceholder: "Cari produk, kategori, atau karya mahasiswa...",
+            popularSearches: "",
+            imageDataUrl: "",
+        },
+    },
 };
 const isPlainObject = (value) => !!value && typeof value === "object" && !Array.isArray(value);
 const normalizeLang = (value) => {
@@ -1122,6 +1134,32 @@ const normalizeSeoSettings = (root) => {
         metaImageDataUrl: toText(firstText(source.metaImageDataUrl, source.metaImage, source.image), ""),
     };
 };
+const normalizeShop = (root) => {
+    const defaults = cloneStoreCustomizationDefaults().shop;
+    const source = isPlainObject(root.shop)
+        ? root.shop
+        : isPlainObject(root.shopPage)
+            ? root.shopPage
+            : {};
+    const headerDefaults = defaults.header;
+    const headerSource = isPlainObject(source.header) ? source.header : {};
+    return {
+        ...defaults,
+        ...source,
+        header: {
+            ...headerDefaults,
+            ...headerSource,
+            enabled: toBool(headerSource.enabled, headerDefaults.enabled),
+            eyebrow: toText(headerSource.eyebrow, headerDefaults.eyebrow),
+            title: toText(headerSource.title, headerDefaults.title),
+            titleAccent: toText(headerSource.titleAccent, headerDefaults.titleAccent),
+            description: toText(headerSource.description, headerDefaults.description),
+            searchPlaceholder: toText(headerSource.searchPlaceholder, headerDefaults.searchPlaceholder),
+            popularSearches: toText(headerSource.popularSearches, headerDefaults.popularSearches),
+            imageDataUrl: toText(firstText(headerSource.imageDataUrl, headerSource.image, headerSource.bannerImage), ""),
+        },
+    };
+};
 const normalizeAboutUs = (root) => {
     const defaults = cloneStoreCustomizationDefaults().aboutUs;
     const source = isPlainObject(root.aboutUs) ? root.aboutUs : {};
@@ -1561,6 +1599,7 @@ export const sanitizeStoreCustomization = (rawData) => {
     const source = isPlainObject(rawData) ? rawData : {};
     const merged = mergeStoreCustomizationDeep(cloneStoreCustomizationDefaults(), source);
     const normalizedHome = normalizeHome(source);
+    const normalizedShop = normalizeShop(source);
     const normalizedProductSlugPage = normalizeProductSlugPage(source);
     const normalizedAboutUs = normalizeAboutUs(source);
     const normalizedPrivacyPolicy = normalizePolicyPage(source, "privacyPolicy");
@@ -1574,6 +1613,7 @@ export const sanitizeStoreCustomization = (rawData) => {
     const output = {
         ...merged,
         home: normalizedHome,
+        shop: normalizedShop,
         productSlugPage: normalizedProductSlugPage,
         aboutUs: normalizedAboutUs,
         privacyPolicy: normalizedPrivacyPolicy,

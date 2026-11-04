@@ -507,10 +507,36 @@ const mergeAboutUsMediaFallback = (
   };
 };
 
+const mergeShopMediaFallback = (
+  localized: Record<string, any>,
+  fallback: Record<string, any>
+) => {
+  const localizedShop = localized?.shop;
+  const fallbackShop = fallback?.shop;
+  if (!fallbackShop) return localized;
+  return {
+    ...localized,
+    shop: {
+      ...localizedShop,
+      header: {
+        ...localizedShop?.header,
+        imageDataUrl:
+          toText(localizedShop?.header?.imageDataUrl) ||
+          toText(fallbackShop?.header?.imageDataUrl) ||
+          "",
+      },
+    },
+  };
+};
+
 const mergeCustomizationMediaFallback = (
   localized: Record<string, any>,
   fallback: Record<string, any>
-) => mergeAboutUsMediaFallback(mergeMainSliderMediaFallback(localized, fallback), fallback);
+) =>
+  mergeShopMediaFallback(
+    mergeAboutUsMediaFallback(mergeMainSliderMediaFallback(localized, fallback), fallback),
+    fallback
+  );
 
 const normalizeSlug = (value: unknown) =>
   String(value || "")
@@ -741,6 +767,14 @@ router.get("/", async (req, res, next) => {
       includeSet.has("productslugpage") ||
       includeSet.has("product-slug-page") ||
       includeSet.has("product_slug_page");
+    const includeShop =
+      !includeProvided ||
+      includeSet.has("shop") ||
+      includeSet.has("shopsettings") ||
+      includeSet.has("shop-settings") ||
+      includeSet.has("shop_settings") ||
+      includeSet.has("shoppage") ||
+      includeSet.has("shop-page");
 
     const row = await getCustomizationRow(lang);
     const rowHasPublishedCustomization = hasPublishedCustomization(row);
@@ -793,6 +827,9 @@ router.get("/", async (req, res, next) => {
     }
     if (includeProductSlugPage) {
       customization.productSlugPage = sanitized.productSlugPage;
+    }
+    if (includeShop) {
+      customization.shop = sanitized.shop;
     }
 
     return res.json({

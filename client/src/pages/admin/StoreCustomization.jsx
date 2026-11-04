@@ -11,6 +11,7 @@ import {
   Plus,
   Settings,
   Sparkles,
+  Store,
   Upload,
   Wand2,
   X,
@@ -43,6 +44,7 @@ const ADMIN_LANGUAGE_KEY = "adminLanguage";
 
 const TABS = [
   { key: "home", label: "Home Page" },
+  { key: "shop", label: "Shop Page" },
   { key: "productSlugPage", label: "Product Slug Page" },
   { key: "aboutUs", label: "About Us" },
   { key: "privacyPolicyTerms", label: "Privacy Policy and T&C" },
@@ -59,6 +61,7 @@ const ABOUT_US_CUSTOMIZATION_PATH = "/admin/customization";
 const DEFAULT_TAB_KEY = "home";
 const STORE_TAB_BY_KEY = {
   home: "home-settings",
+  shop: "shop",
   productSlugPage: "single-setting",
   aboutUs: "about-us-setting",
   privacyPolicyTerms: "privacy-setting",
@@ -69,9 +72,13 @@ const STORE_TAB_BY_KEY = {
   dashboardSetting: "dashboard-setting",
   seoSettings: "seo-settings",
 };
-const KEY_BY_STORE_TAB = Object.fromEntries(
-  Object.entries(STORE_TAB_BY_KEY).map(([tabKey, storeTab]) => [storeTab, tabKey])
-);
+const KEY_BY_STORE_TAB = {
+  ...Object.fromEntries(
+    Object.entries(STORE_TAB_BY_KEY).map(([tabKey, storeTab]) => [storeTab, tabKey])
+  ),
+  "shop-settings": "shop",
+  "shop-setting": "shop",
+};
 const normalizeRoutePath = (pathname) => {
   if (!pathname) return STORE_CUSTOMIZATION_PATH;
   if (pathname.length > 1 && pathname.endsWith("/")) return pathname.slice(0, -1);
@@ -1170,6 +1177,22 @@ const getDefaultCustomization = (targetLang = "en") => {
     metaUrl: "",
     metaKeywords: "",
     metaImageDataUrl: "",
+  },
+  shop: {
+    header: {
+      enabled: true,
+      eyebrow: isIndo ? "KATALOG EDUPRENEUR" : "EDUPRENEUR CATALOG",
+      title: isIndo ? "Karya Inovasi & Produk Kampus" : "Campus Innovation & Digital Works",
+      titleAccent: isIndo ? "Edupreneur" : "Digital Works",
+      description: isIndo
+        ? "Temukan media belajar digital, buku, dan karya kreatif inovatif mahasiswa."
+        : "Discover digital learning media, books, and student creative innovations.",
+      searchPlaceholder: isIndo
+        ? "Cari produk, kategori, atau karya mahasiswa..."
+        : "Search products, categories, or student works...",
+      popularSearches: "",
+      imageDataUrl: "",
+    },
   },
   };
 };
@@ -2331,6 +2354,12 @@ const normalizeCustomizationPayload = (raw, targetLang = "en") => {
   const footerBottomContactSource = isPlainObject(footerSource.bottomContact)
     ? footerSource.bottomContact
     : {};
+  const shopSource = isPlainObject(source.shop)
+    ? source.shop
+    : isPlainObject(source.shopPage)
+      ? source.shopPage
+      : {};
+  const shopHeaderSource = isPlainObject(shopSource.header) ? shopSource.header : {};
   const productSlugPageSource = isPlainObject(source.productSlugPage)
     ? source.productSlugPage
     : isPlainObject(source.productSlug)
@@ -2520,6 +2549,7 @@ const normalizeCustomizationPayload = (raw, targetLang = "en") => {
       };
 
   const defaultsHome = defaults.home;
+  const defaultsShop = defaults.shop || {};
   const defaultsProductSlugPage = defaults.productSlugPage;
   const defaultsAboutUs = defaults.aboutUs;
   const defaultsPrivacyPolicy = defaults.privacyPolicy;
@@ -3221,6 +3251,31 @@ const normalizeCustomizationPayload = (raw, targetLang = "en") => {
         ""
       ),
     },
+    shop: {
+      ...defaultsShop,
+      ...shopSource,
+      header: {
+        ...defaultsShop.header,
+        ...shopHeaderSource,
+        enabled: toBool(shopHeaderSource.enabled, defaultsShop.header?.enabled ?? true),
+        eyebrow: toText(shopHeaderSource.eyebrow, defaultsShop.header?.eyebrow ?? ""),
+        title: toText(shopHeaderSource.title, defaultsShop.header?.title ?? ""),
+        titleAccent: toText(shopHeaderSource.titleAccent, defaultsShop.header?.titleAccent ?? ""),
+        description: toText(shopHeaderSource.description, defaultsShop.header?.description ?? ""),
+        searchPlaceholder: toText(
+          shopHeaderSource.searchPlaceholder,
+          defaultsShop.header?.searchPlaceholder ?? ""
+        ),
+        popularSearches: toText(
+          shopHeaderSource.popularSearches,
+          defaultsShop.header?.popularSearches ?? ""
+        ),
+        imageDataUrl: toText(
+          firstText(shopHeaderSource.imageDataUrl, shopHeaderSource.image, shopHeaderSource.bannerImage),
+          ""
+        ),
+      },
+    },
   };
 };
 
@@ -3514,6 +3569,9 @@ export default function StoreCustomizationPage() {
   const [activeAboutUsMemberTab, setActiveAboutUsMemberTab] = useState("member-0");
   const [lang, setLang] = useState(getStoredAdminLanguageIso);
   const [homeState, setHomeState] = useState(() => getDefaultCustomization().home);
+  const [shopState, setShopState] = useState(() => getDefaultCustomization().shop);
+  const [shopImageError, setShopImageError] = useState("");
+  const [shopDropActive, setShopDropActive] = useState(false);
   const [productSlugPageState, setProductSlugPageState] = useState(
     () => getDefaultCustomization().productSlugPage
   );
@@ -3716,6 +3774,7 @@ export default function StoreCustomizationPage() {
     setCustomizationMeta(unwrapCustomizationMeta(customizationQuery.data));
     const normalized = normalizeCustomizationPayload(payload, lang);
     setHomeState(normalized.home);
+    setShopState(normalized.shop);
     setProductSlugPageState(normalized.productSlugPage);
     setAboutUsState(normalized.aboutUs);
     setPrivacyPolicyState(normalized.privacyPolicy);
@@ -3798,6 +3857,7 @@ export default function StoreCustomizationPage() {
       setCustomizationMeta(unwrapCustomizationMeta(data));
       const normalized = normalizeCustomizationPayload(payload, lang);
       setHomeState(normalized.home);
+      setShopState(normalized.shop);
       setProductSlugPageState(normalized.productSlugPage);
       setAboutUsState(normalized.aboutUs);
       setPrivacyPolicyState(normalized.privacyPolicy);
@@ -4524,6 +4584,22 @@ export default function StoreCustomizationPage() {
         metaImage: toText(seoSettingsState?.metaImageDataUrl),
         image: toText(seoSettingsState?.metaImageDataUrl),
       },
+      shop: {
+        ...currentCustomization.shop,
+        ...shopState,
+        header: {
+          ...currentCustomization.shop?.header,
+          ...shopState?.header,
+          enabled: toBool(shopState?.header?.enabled, true),
+          eyebrow: toText(shopState?.header?.eyebrow),
+          title: toText(shopState?.header?.title),
+          titleAccent: toText(shopState?.header?.titleAccent),
+          description: toText(shopState?.header?.description),
+          searchPlaceholder: toText(shopState?.header?.searchPlaceholder),
+          popularSearches: toText(shopState?.header?.popularSearches),
+          imageDataUrl: toText(shopState?.header?.imageDataUrl),
+        },
+      },
     };
 
     if (shouldPublish) {
@@ -4539,6 +4615,12 @@ export default function StoreCustomizationPage() {
             status: "published",
             publishStatus: "published",
           },
+        };
+      } else if (activeTab === "shop") {
+        nextPayload.shop = {
+          ...nextPayload.shop,
+          status: "published",
+          publishStatus: "published",
         };
       } else {
         nextPayload.home = {
@@ -5311,6 +5393,39 @@ export default function StoreCustomizationPage() {
       contentSection: {
         ...prev?.contentSection,
         [field]: value,
+      },
+    }));
+  };
+
+  const onHandleShopHeaderImage = async (file) => {
+    if (!file) return;
+    const validation = validateCustomizationLogoFile(file);
+    if (!validation.valid) {
+      setShopImageError(validation.error);
+      return;
+    }
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      setShopImageError("");
+      setShopState((prev) => ({
+        ...prev,
+        header: {
+          ...prev.header,
+          imageDataUrl: dataUrl,
+        },
+      }));
+    } catch (error) {
+      setShopImageError(error?.message || "Failed to process image.");
+    }
+  };
+
+  const onRemoveShopHeaderImage = () => {
+    setShopImageError("");
+    setShopState((prev) => ({
+      ...prev,
+      header: {
+        ...prev.header,
+        imageDataUrl: "",
       },
     }));
   };
@@ -6805,7 +6920,185 @@ export default function StoreCustomizationPage() {
             }
             isLoading={isLoadingHeader}
           />
-      ) : activeTab === "aboutUs" ? (
+        ) : activeTab === "shop" ? (
+          <div className="flex flex-col gap-5">
+            <section className={sectionCard}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-[#034c85] dark:bg-blue-900/30 dark:text-sky-300">
+                    <Store className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900 dark:text-white">Shop Page Header & Banner</h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Kelola teks, aksen warna, deskripsi, pencarian populer, dan gambar header halaman https://tppreneurs.com/shop.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 h-px w-full bg-slate-200 dark:bg-slate-800" />
+
+              <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[320px_1fr]">
+                <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+                    Status Banner Header
+                  </p>
+                  <SegmentedToggle
+                    value={Boolean(shopState?.header?.enabled ?? true)}
+                    onChange={(val) =>
+                      setShopState((prev) => ({
+                        ...prev,
+                        header: { ...prev.header, enabled: val },
+                      }))
+                    }
+                  />
+                  <p className="mt-2 text-[11px] text-slate-500">
+                    Aktifkan atau nonaktifkan banner visual di bagian atas halaman katalog produk /shop.
+                  </p>
+                </div>
+
+                <ImageUploadField
+                  id="shop-header-image-input"
+                  label="Gambar Banner / Showcase Visual (Opsional)"
+                  error={shopImageError}
+                  dropActive={shopDropActive}
+                  onDropActiveChange={setShopDropActive}
+                  onInputChange={async (event) => {
+                    const file = event.target.files?.[0];
+                    if (file) await onHandleShopHeaderImage(file);
+                    event.target.value = "";
+                  }}
+                  onDrop={async (event) => {
+                    event.preventDefault();
+                    setShopDropActive(false);
+                    const file = event.dataTransfer.files?.[0];
+                    if (file) await onHandleShopHeaderImage(file);
+                  }}
+                  previewDataUrl={shopState?.header?.imageDataUrl}
+                  onRemove={onRemoveShopHeaderImage}
+                  previewAlt="Shop Header Banner Preview"
+                  previewClassName="h-28 w-44 object-cover rounded-xl border border-slate-200 dark:border-slate-700"
+                />
+              </div>
+
+              <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+                    Teks Eyebrow / Label Atas
+                  </span>
+                  <input
+                    type="text"
+                    value={shopState?.header?.eyebrow ?? ""}
+                    placeholder="KATALOG EDUPRENEUR"
+                    onChange={(e) =>
+                      setShopState((prev) => ({
+                        ...prev,
+                        header: { ...prev.header, eyebrow: e.target.value },
+                      }))
+                    }
+                    className={`${inputBase} mt-1.5`}
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+                    Aksen Judul (Warna Oranye <span className="font-bold text-[#fe6f05]">#fe6f05</span>)
+                  </span>
+                  <input
+                    type="text"
+                    value={shopState?.header?.titleAccent ?? ""}
+                    placeholder="Edupreneur"
+                    onChange={(e) =>
+                      setShopState((prev) => ({
+                        ...prev,
+                        header: { ...prev.header, titleAccent: e.target.value },
+                      }))
+                    }
+                    className={`${inputBase} mt-1.5`}
+                  />
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Kata ini akan diwarnai oranye #fe6f05 untuk aksen visual elegan pada judul.
+                  </p>
+                </label>
+
+                <label className="block sm:col-span-2">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+                    Judul Utama
+                  </span>
+                  <input
+                    type="text"
+                    value={shopState?.header?.title ?? ""}
+                    placeholder="Karya Inovasi & Produk Kampus"
+                    onChange={(e) =>
+                      setShopState((prev) => ({
+                        ...prev,
+                        header: { ...prev.header, title: e.target.value },
+                      }))
+                    }
+                    className={`${inputBase} mt-1.5`}
+                  />
+                </label>
+
+                <label className="block sm:col-span-2">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+                    Deskripsi Ringkas
+                  </span>
+                  <textarea
+                    rows={2}
+                    value={shopState?.header?.description ?? ""}
+                    placeholder="Temukan media belajar digital, buku, dan karya kreatif inovatif mahasiswa."
+                    onChange={(e) =>
+                      setShopState((prev) => ({
+                        ...prev,
+                        header: { ...prev.header, description: e.target.value },
+                      }))
+                    }
+                    className={`${inputBase} mt-1.5`}
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+                    Placeholder Kolom Pencarian
+                  </span>
+                  <input
+                    type="text"
+                    value={shopState?.header?.searchPlaceholder ?? ""}
+                    placeholder="Cari produk, kategori, atau karya mahasiswa..."
+                    onChange={(e) =>
+                      setShopState((prev) => ({
+                        ...prev,
+                        header: { ...prev.header, searchPlaceholder: e.target.value },
+                      }))
+                    }
+                    className={`${inputBase} mt-1.5`}
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+                    Pencarian Populer (Pisahkan dengan koma)
+                  </span>
+                  <input
+                    type="text"
+                    value={shopState?.header?.popularSearches ?? ""}
+                    placeholder="Dapoer D'Sayang, White Florist, Picturestic, Reparasi Kursi, Kreasi Singkong"
+                    onChange={(e) =>
+                      setShopState((prev) => ({
+                        ...prev,
+                        header: { ...prev.header, popularSearches: e.target.value },
+                      }))
+                    }
+                    className={`${inputBase} mt-1.5`}
+                  />
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Kosongkan untuk otomatis menampilkan produk terpopuler/unggulan secara dinamis dari database.
+                  </p>
+                </label>
+              </div>
+            </section>
+          </div>
+        ) : activeTab === "aboutUs" ? (
         <div className="flex flex-col gap-5">
           <section className={sectionCard}>
             <div className="flex items-center gap-2">
