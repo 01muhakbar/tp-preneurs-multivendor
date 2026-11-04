@@ -366,7 +366,7 @@ gtag('config', '${key}');`;
         brandingLogoUrl={storeSettings.branding.clientLogoUrl}
         storeSettings={storeSettings}
       />
-      <main className={isShopRoute ? "w-full" : "mx-auto w-full max-w-7xl px-4 py-6 pb-24 sm:pb-8"}>
+      <main className={isShopRoute ? "w-full" : "mx-auto w-full max-w-7xl px-4 sm:px-5 lg:px-6 py-6 pb-24 sm:pb-8"}>
         <Outlet context={{ storeSettings, footerConfig }} />
       </main>
       {!isCheckoutRoute ? (

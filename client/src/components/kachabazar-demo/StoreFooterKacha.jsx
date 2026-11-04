@@ -326,8 +326,9 @@ export default function StoreFooterKacha({
   const socialItems = SOCIAL_LINKS.filter(({ key }) => footer.socialLinks[key]);
 
   return (
-    <footer className="bg-transparent px-4 pb-6 pt-0 sm:px-5 lg:px-6">
-      <div className="mx-auto max-w-[1232px] overflow-hidden rounded-[28px] border border-[#034c85]/10 bg-white shadow-[0_18px_42px_rgba(3,76,133,0.07)] dark:border-slate-800 dark:bg-slate-900">
+    <footer className="bg-transparent">
+      <div className="mx-auto w-full max-w-7xl px-4 pb-6 pt-0 sm:px-5 lg:px-6">
+        <div className="overflow-hidden rounded-[28px] border border-[#034c85]/10 bg-white shadow-[0_18px_42px_rgba(3,76,133,0.07)] dark:border-slate-800 dark:bg-slate-900">
         <div className="grid gap-10 border-b border-[#034c85]/10 px-6 py-8 dark:border-slate-800 md:grid-cols-2 xl:grid-cols-[1.35fr_0.75fr_0.8fr_1.3fr] xl:px-10">
           {footer.block4.enabled ? (
             <section className="space-y-4">
@@ -482,6 +483,7 @@ export default function StoreFooterKacha({
               {isIndo ? "Kebijakan Pengembalian" : "Refund Policy"}
             </Link>
           </div>
+        </div>
         </div>
       </div>
     </footer>

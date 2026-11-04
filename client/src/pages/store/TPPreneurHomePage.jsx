@@ -2154,7 +2154,7 @@ export default function TPPreneurHomePage() {
   };
 
   return (
-    <div className="mx-0 w-full overflow-x-hidden space-y-5 bg-[#f7fbff] pb-8 text-[#071a3f] dark:bg-slate-950 sm:mx-1 sm:space-y-6 sm:pb-0 lg:mx-2">
+    <div className="w-full space-y-5 bg-[#f7fbff] pb-8 text-[#071a3f] dark:bg-slate-950 sm:space-y-6 sm:pb-0">
       {/* MOBILE QUICK ACCESS MENU */}
       <div className="relative lg:hidden mx-4 mb-2">
         <div className="flex overflow-x-auto no-scrollbar gap-2 snap-x pb-2 pr-6">

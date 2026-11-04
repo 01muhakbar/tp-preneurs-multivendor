@@ -799,7 +799,7 @@ export default function StoreHeaderKacha({
       </div>
 
       <div className="hidden lg:block mx-auto mt-2 w-full max-w-7xl px-4 pb-2 sm:px-5 lg:px-6">
-        <div className="flex min-h-[52px] items-center justify-between gap-4 overflow-visible rounded-[18px] border border-white/80 bg-white px-3 py-1.5 shadow-[0_8px_20px_rgba(var(--tp-primary-rgb)/0.06)] dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex min-h-[52px] items-center justify-between gap-4 overflow-visible rounded-[18px] border border-white/80 bg-white px-4 py-1.5 shadow-[0_8px_20px_rgba(var(--tp-primary-rgb)/0.06)] dark:border-slate-800 dark:bg-slate-900">
           <div className="flex min-w-0 items-center gap-2 md:gap-4">
             <div className="relative" ref={categoriesRootRef} data-demo-dropdown>
               <button
