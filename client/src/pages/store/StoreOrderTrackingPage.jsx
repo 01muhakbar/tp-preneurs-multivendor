@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { fetchStoreOrder } from "../../api/public/storeOrders.ts";
 import { TRANSFER_INSTRUCTIONS } from "../../config/paymentInstructions.ts";
 import { isOrderContractFinal } from "../../utils/orderContract.ts";
@@ -38,6 +39,28 @@ export default function StoreOrderTrackingPage() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState("");
 
+  const { i18n } = useTranslation();
+  const [, setLangSyncCounter] = useState(0);
+
+  const isIndo =
+    i18n.language === "id" ||
+    i18n.language === "id-ID" ||
+    i18n.language?.startsWith("id") ||
+    (typeof window !== "undefined" &&
+      (localStorage.getItem("store_language") === "Indonesia" ||
+        localStorage.getItem("store_language") === "Bahasa Indonesia"));
+  const lang = isIndo ? "id" : "en";
+
+  useEffect(() => {
+    const handleSync = () => setLangSyncCounter((c) => c + 1);
+    i18n.on("languageChanged", handleSync);
+    window.addEventListener("storage", handleSync);
+    return () => {
+      i18n.off("languageChanged", handleSync);
+      window.removeEventListener("storage", handleSync);
+    };
+  }, [i18n]);
+
   const trackingQuery = useQuery({
     queryKey: ["store-order-tracking", ref],
     queryFn: () => fetchStoreOrder(ref),
@@ -56,12 +79,12 @@ export default function StoreOrderTrackingPage() {
     [trackingQuery.data]
   );
   const tracking2026 = useMemo(
-    () => normalizeStoreOrderTrackingFor2026({ tracking: rawTracking }),
-    [rawTracking]
+    () => normalizeStoreOrderTrackingFor2026({ tracking: rawTracking, isIndo }),
+    [rawTracking, isIndo]
   );
 
   const invalidReferenceError = !ref
-    ? new Error("Order tracking requires a valid public invoice reference.")
+    ? new Error(isIndo ? "Pelacakan pesanan membutuhkan nomor referensi invoice yang valid." : "Order tracking requires a valid public invoice reference.")
     : null;
 
   const handlePrintInvoice = () => {
@@ -82,25 +105,25 @@ export default function StoreOrderTrackingPage() {
         pdf.setFont("helvetica", "bold");
         pdf.text(`${label}:`, margin, y);
         pdf.setFont("helvetica", "normal");
-        pdf.text(String(value || "-"), margin + 38, y);
+        pdf.text(String(value || "-"), margin + 42, y);
         y += 7;
       };
 
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(20);
-      pdf.text("ORDER INVOICE", margin, y);
+      pdf.text(isIndo ? "INVOICE PESANAN" : "ORDER INVOICE", margin, y);
       pdf.setFontSize(10);
       pdf.text("TP PRENEURS", pageWidth - margin, y, { align: "right" });
       y += 11;
-      write("Reference", tracking2026.reference);
-      write("Created", tracking2026.createdAtLabel);
-      write("Status", tracking2026.status.label);
-      write("Payment", `${tracking2026.payment.method} - ${tracking2026.payment.label}`);
-      write("Customer", tracking2026.customer.name);
+      write(isIndo ? "Nomor Pesanan" : "Reference", tracking2026.reference);
+      write(isIndo ? "Tanggal" : "Created", tracking2026.createdAtLabel);
+      write(isIndo ? "Status" : "Status", tracking2026.status.label);
+      write(isIndo ? "Pembayaran" : "Payment", `${tracking2026.payment.method} - ${tracking2026.payment.label}`);
+      write(isIndo ? "Pelanggan" : "Customer", tracking2026.customer.name);
       y += 3;
 
       pdf.setFont("helvetica", "bold");
-      pdf.text("Items", margin, y);
+      pdf.text(isIndo ? "Rincian Produk" : "Items", margin, y);
       y += 7;
       tracking2026.items.forEach((item, index) => {
         if (y > 270) {
@@ -123,12 +146,12 @@ export default function StoreOrderTrackingPage() {
       y += 8;
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(14);
-      pdf.text("Total", margin, y);
+      pdf.text(isIndo ? "Total Pembayaran" : "Total", margin, y);
       pdf.text(tracking2026.totals.totalLabel, pageWidth - margin, y, { align: "right" });
       pdf.save(`${safeFileName(tracking2026.reference)}.pdf`);
     } catch (error) {
       console.error("[store/order-tracking-2026] invoice download failed", error);
-      setDownloadError("Unable to download the invoice. Use Print Invoice as a fallback.");
+      setDownloadError(isIndo ? "Gagal mengunduh invoice. Silakan gunakan tombol Cetak Invoice." : "Unable to download the invoice. Use Print Invoice as a fallback.");
     } finally {
       setIsDownloading(false);
     }
@@ -145,7 +168,9 @@ export default function StoreOrderTrackingPage() {
     if (typeof window === "undefined") return;
     const phone = String(TRANSFER_INSTRUCTIONS.whatsapp || "").replace(/\D/g, "");
     const message = encodeURIComponent(
-      `Hello, I need help with order ${tracking2026?.reference || ref}.`
+      isIndo
+        ? `Halo, saya butuh bantuan untuk pesanan ${tracking2026?.reference || ref}.`
+        : `Hello, I need help with order ${tracking2026?.reference || ref}.`
     );
     window.open(`https://wa.me/${phone}?text=${message}`, "_blank", "noopener,noreferrer");
   };
@@ -153,6 +178,8 @@ export default function StoreOrderTrackingPage() {
   return (
     <StoreOrderTracking2026View
       tracking={tracking2026}
+      isIndo={isIndo}
+      lang={lang}
       isLoading={Boolean(ref) && trackingQuery.isLoading && !trackingQuery.data}
       error={invalidReferenceError || (trackingQuery.isError ? trackingQuery.error : null)}
       isDownloading={isDownloading}
