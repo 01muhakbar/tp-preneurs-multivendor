@@ -11,6 +11,7 @@ import {
   ShoppingCart,
   UserRound,
   Bell,
+  Check,
 } from "lucide-react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAccountAuth } from "../../auth/authDomainHooks.js";
@@ -309,6 +310,8 @@ export default function StoreHeaderKacha({
   // LANGUAGE STATE
   const [languageOpen, setLanguageOpen] = useState(false);
   const languageRootRef = useRef(null);
+  const [mobileLanguageOpen, setMobileLanguageOpen] = useState(false);
+  const mobileLanguageRootRef = useRef(null);
   const [language, setLanguage] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("store_language") || "English";
@@ -355,8 +358,10 @@ export default function StoreHeaderKacha({
     if (typeof window !== "undefined") {
       localStorage.setItem("store_language", langObj.name);
       i18n.changeLanguage(langObj.isoCode);
+      window.dispatchEvent(new Event("storage"));
     }
     setLanguageOpen(false);
+    setMobileLanguageOpen(false);
   };
   
   useEffect(() => {
@@ -377,6 +382,27 @@ export default function StoreHeaderKacha({
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [languageOpen]);
+
+  useEffect(() => {
+    if (!mobileLanguageOpen) return undefined;
+    const handlePointerDown = (event) => {
+      if (!(event.target instanceof Node)) return;
+      if (!mobileLanguageRootRef.current?.contains(event.target)) {
+        setMobileLanguageOpen(false);
+      }
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") setMobileLanguageOpen(false);
+    };
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown, { passive: true });
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [mobileLanguageOpen]);
 
   const categories = useMemo(() => extractList(categoriesData).slice(0, 8), [categoriesData]);
   const accountDisplayName = user?.name || user?.fullName || user?.email || "Account";
@@ -509,20 +535,61 @@ export default function StoreHeaderKacha({
     <header className="sticky top-0 z-50 border-b border-[#e3edf8] bg-[#f7fbff]/95 text-[#071a3f] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95 dark:text-slate-100">
       {/* MOBILE HEADER (lg:hidden) */}
       <div className="lg:hidden w-full flex flex-col bg-white dark:bg-slate-900 border-b border-[#e3edf8] dark:border-slate-800 shadow-xs">
-        {/* Top mini info strip: Support */}
-        <div className="flex items-center justify-between px-3.5 py-1 text-[11px] font-semibold bg-[#034c85] text-white">
-          <div className="flex items-center gap-1.5 truncate">
-            <Headphones className="h-3.5 w-3.5 text-[#fe6f05] shrink-0" />
-            <span className="truncate">{displayHeaderText}</span>
-          </div>
+        {/* Top mini info strip: Support + Language */}
+        <div className="flex items-center justify-between gap-2 px-3.5 py-1 text-[11px] font-semibold bg-[#034c85] text-white">
           <a
             href={phoneHref}
             target="_blank"
             rel="noreferrer"
-            className="shrink-0 font-bold text-[#fe6f05] bg-white/10 px-2 py-0.5 rounded-full hover:bg-white/20 transition"
+            className="flex min-w-0 items-center gap-1.5 font-bold text-white transition hover:text-[#fe6f05]"
+            title={isIndo ? "Hubungi Bantuan via WhatsApp" : "Contact Support via WhatsApp"}
           >
-            {displayPhone}
+            <Headphones className="h-3.5 w-3.5 shrink-0 text-[#fe6f05]" />
+            <span className="truncate text-[10px] sm:text-[11px] tracking-tight">{displayPhone}</span>
           </a>
+
+          <div className="relative shrink-0" ref={mobileLanguageRootRef}>
+            <button
+              type="button"
+              onClick={() => setMobileLanguageOpen((prev) => !prev)}
+              title={isIndo ? "Pilih Bahasa / Select Language" : "Select Language / Pilih Bahasa"}
+              className="group inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-2.5 py-0.5 text-[11px] font-black text-white shadow-xs transition hover:bg-white/20 active:scale-95"
+              aria-expanded={mobileLanguageOpen}
+            >
+              <Globe2 className="h-3.5 w-3.5 text-[#fe6f05] transition-transform duration-200 group-hover:rotate-12" />
+              <span>{isIndo ? "ID" : "EN"}</span>
+              <ChevronDown className={`h-3 w-3 text-white/80 transition-transform duration-200 ${mobileLanguageOpen ? "rotate-180 text-[#fe6f05]" : ""}`} />
+            </button>
+            {mobileLanguageOpen && (
+              <div className="absolute right-0 top-[calc(100%+6px)] z-50 w-36 overflow-hidden rounded-xl border border-white/15 bg-[#022847] p-1.5 shadow-[0_12px_28px_rgba(0,0,0,0.35)] backdrop-blur-md">
+                {(publishedLanguages.length > 0 ? publishedLanguages : [
+                  { name: "Indonesia", isoCode: "id" },
+                  { name: "English", isoCode: "en" },
+                ]).map((langObj) => {
+                  const isSelected = language === langObj.name;
+                  const flag = langObj.isoCode === "id" ? "🇮🇩" : langObj.isoCode === "en" ? "🇬🇧" : "🌐";
+                  return (
+                    <button
+                      key={langObj.isoCode}
+                      type="button"
+                      onClick={() => changeLanguage(langObj)}
+                      className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-xs font-bold transition ${
+                        isSelected
+                          ? "bg-[#fe6f05] text-white shadow-xs"
+                          : "text-white/90 hover:bg-white/10 hover:text-white"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className="text-sm">{flag}</span>
+                        <span>{langObj.name}</span>
+                      </span>
+                      {isSelected ? <Check className="h-3.5 w-3.5" /> : null}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Row 1: Logo + Theme + Wishlist + Cart + Account */}
