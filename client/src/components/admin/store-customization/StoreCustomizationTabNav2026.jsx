@@ -3,6 +3,7 @@ import {
   CircleHelp,
   CreditCard,
   Gift,
+  Grid2X2,
   Grid3X3,
   Home,
   Package,
@@ -24,6 +25,7 @@ export const STORE_CUSTOMIZATION_TAB_ITEMS = [
   { key: "contactUs", label: "Contact", icon: ShoppingBag },
   { key: "shoppingCart", label: "Shopping Cart", icon: ShoppingCart },
   { key: "checkout", label: "Checkout", icon: CreditCard },
+  { key: "categories", label: "Categories", icon: Grid2X2 },
   { key: "dashboardSetting", label: "Dashboard", icon: Grid3X3 },
   { key: "seoSettings", label: "SEO", icon: Search },
 ];

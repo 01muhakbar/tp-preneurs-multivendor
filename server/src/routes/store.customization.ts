@@ -776,6 +776,18 @@ router.get("/", async (req, res, next) => {
       includeSet.has("contact-us") ||
       includeSet.has("contact_us");
     const includeCheckout = !includeProvided || includeSet.has("checkout");
+    const includeShoppingCart =
+      !includeProvided ||
+      includeSet.has("shoppingcart") ||
+      includeSet.has("shopping-cart") ||
+      includeSet.has("shopping_cart") ||
+      includeSet.has("cart");
+    const includeCategories =
+      !includeProvided ||
+      includeSet.has("categories") ||
+      includeSet.has("category") ||
+      includeSet.has("categories-setting") ||
+      includeSet.has("categories_setting");
     const includeSeoSettings =
       !includeProvided ||
       includeSet.has("seo") ||
@@ -843,6 +855,12 @@ router.get("/", async (req, res, next) => {
     }
     if (includeCheckout) {
       customization.checkout = sanitized.checkout;
+    }
+    if (includeShoppingCart) {
+      customization.shoppingCart = sanitized.shoppingCart;
+    }
+    if (includeCategories) {
+      customization.categories = sanitized.categories;
     }
     if (includeSeoSettings) {
       customization.seoSettings = sanitized.seoSettings;

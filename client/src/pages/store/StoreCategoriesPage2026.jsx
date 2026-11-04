@@ -2,114 +2,153 @@ import {
   ArrowRight,
   BadgeCheck,
   BadgeDollarSign,
-  Baby,
   BookOpen,
   BriefcaseBusiness,
-  Car,
-  Dumbbell,
   Flame,
-  Gamepad2,
   Gem,
-  Gift,
   Grid2X2,
-  Headphones,
-  HeartPulse,
-  Home,
-  Laptop,
   MapPin,
-  Monitor,
-  PackageSearch,
+  Package,
   RotateCcw,
   Search,
   ShieldCheck,
-  Shirt,
   ShoppingBag,
   ShoppingBasket,
-  Sofa,
   Sparkles,
   Star,
   Store,
   Tags,
+  UtensilsCrossed,
   Zap,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { getStoreCustomization } from "../../api/public/storeCustomizationPublic.ts";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
 import { useCategories, useProducts } from "../../storefront.jsx";
 import "./store-categories-2026.css";
 
-const fallbackCategories = [
-  { name: "Electronics", slug: "electronics", description: "Smart tech for every lifestyle.", iconKey: "electronics", productCount: 18450 },
-  { name: "Fashion", slug: "fashion", description: "Trendy styles for every you.", iconKey: "fashion", productCount: 24120 },
-  { name: "Grocery", slug: "grocery", description: "Daily essentials delivered.", iconKey: "grocery", productCount: 12840 },
-  { name: "Home & Living", slug: "home-living", description: "Make your house a happy home.", iconKey: "home", productCount: 16730 },
-  { name: "Beauty", slug: "beauty", description: "Glow with confidence.", iconKey: "beauty", productCount: 8210 },
-  { name: "Sports", slug: "sports", description: "Gear up, stay active.", iconKey: "sports", productCount: 9140 },
-  { name: "Books", slug: "books", description: "Stories that inspire.", iconKey: "books", productCount: 6530 },
-  { name: "Kids & Toys", slug: "kids-toys", description: "Fun, safe, educational.", iconKey: "kids", productCount: 11250 },
-  { name: "Health", slug: "health", description: "Healthier you, better life.", iconKey: "health", productCount: 7890 },
-  { name: "Automotive", slug: "automotive", description: "Performance you can trust.", iconKey: "automotive", productCount: 13640 },
-  { name: "Office", slug: "office", description: "Everything for a productive day.", iconKey: "office", productCount: 5780 },
-  { name: "Gift Ideas", slug: "gift-ideas", description: "Perfect gifts for every occasion.", iconKey: "gift", productCount: 4210 },
+const REAL_FALLBACK_CATEGORIES = [
+  {
+    name: "Makanan dan Minuman",
+    nameEn: "Food & Beverage",
+    slug: "makanan-dan-minuman",
+    descId: "Kuliner lezat, kudapan, dan minuman inovatif karya edupreneur.",
+    descEn: "Delicious culinary delights, snacks, and innovative beverages.",
+    icon: UtensilsCrossed,
+  },
+  {
+    name: "Kerajinan dan Kreatif",
+    nameEn: "Crafts & Creative",
+    slug: "kerajinan-dan-kreatif",
+    descId: "Produk kriya, cinderamata, dan karya seni kreatif mahasiswa.",
+    descEn: "Handicrafts, souvenirs, and creative student art pieces.",
+    icon: Sparkles,
+  },
+  {
+    name: "Jasa",
+    nameEn: "Services",
+    slug: "jasa",
+    descId: "Layanan profesional, percetakan, dan jasa kreatif kampus.",
+    descEn: "Professional services, printing, and campus creative solutions.",
+    icon: BriefcaseBusiness,
+  },
+  {
+    name: "Buku",
+    nameEn: "Books",
+    slug: "buku",
+    descId: "Buku ajar, karya ilmiah, modul, dan referensi literasi.",
+    descEn: "Textbooks, scientific works, modules, and literacy references.",
+    icon: BookOpen,
+  },
 ];
 
+const REAL_CATEGORY_METAS = {
+  "makanan dan minuman": {
+    nameEn: "Food & Beverage",
+    descId: "Kuliner lezat, kudapan, dan aneka minuman karya edupreneur.",
+    descEn: "Delicious culinary delights, snacks, and edupreneur beverages.",
+    icon: UtensilsCrossed,
+  },
+  "makanan & minuman": {
+    nameEn: "Food & Beverage",
+    descId: "Kuliner lezat, kudapan, dan aneka minuman karya edupreneur.",
+    descEn: "Delicious culinary delights, snacks, and edupreneur beverages.",
+    icon: UtensilsCrossed,
+  },
+  "kerajinan dan kreatif": {
+    nameEn: "Crafts & Creative Works",
+    descId: "Kriya eksklusif, cinderamata, dan karya seni mahasiswa.",
+    descEn: "Exclusive handicrafts, souvenirs, and student creative works.",
+    icon: Sparkles,
+  },
+  "kerajinan & kreatif": {
+    nameEn: "Crafts & Creative Works",
+    descId: "Kriya eksklusif, cinderamata, dan karya seni mahasiswa.",
+    descEn: "Exclusive handicrafts, souvenirs, and student creative works.",
+    icon: Sparkles,
+  },
+  "jasa": {
+    nameEn: "Professional Services",
+    descId: "Layanan profesional, jasa kreatif, dan keahlian kampus.",
+    descEn: "Professional services, creative works, and campus expertise.",
+    icon: BriefcaseBusiness,
+  },
+  "buku": {
+    nameEn: "Books & Literature",
+    descId: "Buku ajar, karya ilmiah, modul belajar, dan karya literasi.",
+    descEn: "Textbooks, academic works, study modules, and literature.",
+    icon: BookOpen,
+  },
+};
+
 const quickFilters = [
-  { label: "All", icon: Grid2X2, to: "/shop" },
-  { label: "Trending", icon: Flame, to: "/search?sort=popular&page=1" },
-  { label: "New", icon: Sparkles, to: "/search?sort=newest&page=1" },
-  { label: "Budget", icon: BadgeDollarSign, to: "/search?maxPrice=100000&page=1" },
-  { label: "Premium", icon: Gem, to: "/search?minPrice=1000000&page=1" },
-  { label: "Local Brands", icon: MapPin, to: "/search?q=local+brands&page=1" },
-  { label: "Best Rated", icon: Star, to: "/search?minRating=4&page=1" },
+  { labelId: "Semua", labelEn: "All", icon: Grid2X2, to: "/shop" },
+  { labelId: "Tren Populer", labelEn: "Trending", icon: Flame, to: "/search?sort=popular&page=1" },
+  { labelId: "Produk Baru", labelEn: "New Arrivals", icon: Sparkles, to: "/search?sort=newest&page=1" },
+  { labelId: "Harga Hemat", labelEn: "Budget Friendly", icon: BadgeDollarSign, to: "/search?maxPrice=100000&page=1" },
+  { labelId: "Karya Unggulan", labelEn: "Featured", icon: Gem, to: "/search?minPrice=1000000&page=1" },
+  { labelId: "Karya Lokal", labelEn: "Local Campus", icon: MapPin, to: "/search?q=lokal&page=1" },
+  { labelId: "Rating Tertinggi", labelEn: "Top Rated", icon: Star, to: "/search?minRating=4&page=1" },
 ];
 
 const popularTerms = [
-  ["Headphones", Headphones],
-  ["Skincare", Sparkles],
-  ["Kitchen", ShoppingBasket],
-  ["Sneakers", Shirt],
-  ["Gaming", Gamepad2],
-  ["Books", BookOpen],
+  { id: "Kuliner", en: "Culinary" },
+  { id: "Kue & Snack", en: "Snacks" },
+  { id: "Kriya", en: "Handicrafts" },
+  { id: "Jasa Desain", en: "Design Services" },
+  { id: "Buku Ajar", en: "Textbooks" },
+  { id: "Merchandise", en: "Merchandise" },
 ];
 
 const featuredCollections = [
   {
-    title: "Tech Essentials",
-    query: "tech essentials",
-    description: "Must-have gadgets for modern life.",
-    icon: Laptop,
+    titleId: "Kuliner & Kudapan Edupreneur",
+    titleEn: "Campus Culinary & Snacks",
+    query: "makanan",
+    descId: "Aneka rasa hidangan dan cemilan karya mahasiswa.",
+    descEn: "Delicious meals and snacks crafted by student entrepreneurs.",
+    icon: ShoppingBasket,
   },
   {
-    title: "Home Refresh",
-    query: "home refresh",
-    description: "Upgrade your space with comfort.",
-    icon: Sofa,
+    titleId: "Kriya & Cinderamata",
+    titleEn: "Crafts & Memorabilia",
+    query: "kerajinan",
+    descId: "Karya seni unik dan cinderamata beridentitas kampus.",
+    descEn: "Unique handcrafted items and campus souvenirs.",
+    icon: Sparkles,
   },
   {
-    title: "Weekend Picks",
-    query: "weekend picks",
-    description: "Top picks for your best weekend.",
-    icon: ShoppingBag,
+    titleId: "Pustaka & Referensi Ilmiah",
+    titleEn: "Books & Academic References",
+    query: "buku",
+    descId: "Buku kurikulum, referensi keilmuan, dan jurnal.",
+    descEn: "Curriculum books, academic references, and journals.",
+    icon: BookOpen,
   },
 ];
-
-const iconMap = {
-  electronics: Monitor,
-  fashion: Shirt,
-  grocery: ShoppingBasket,
-  home: Home,
-  beauty: Sparkles,
-  sports: Dumbbell,
-  books: BookOpen,
-  kids: Baby,
-  health: HeartPulse,
-  automotive: Car,
-  office: BriefcaseBusiness,
-  gift: Gift,
-};
-
-const categoryIconKeys = Object.keys(iconMap);
 
 const toText = (value, fallback = "") => {
   const text = String(value ?? "").trim();
@@ -140,79 +179,6 @@ const extractList = (payload) => {
   return [];
 };
 
-const INDO_CATEGORY_TRANSLATIONS = {
-  // Category Names
-  "Electronics": "Elektronik",
-  "Fashion": "Fashion",
-  "Grocery": "Kebutuhan Pokok",
-  "Home & Living": "Rumah & Tempat Tinggal",
-  "Beauty": "Kecantikan",
-  "Sports": "Olahraga",
-  "Books": "Buku",
-  "Kids & Toys": "Anak & Mainan",
-  "Health": "Kesehatan",
-  "Automotive": "Otomotif",
-  "Office": "Kantor",
-  "Gift Ideas": "Ide Hadiah",
-  "Fish & Meat": "Ikan & Daging",
-  "Soft Drink": "Minuman Ringan",
-  "Milk & Dairy": "Susu & Olahan",
-  "Beauty & Health": "Kecantikan & Kesehatan",
-  "Snacks": "Camilan",
-  "Beverages": "Minuman",
-  "Baby Care": "Perawatan Bayi",
-  "Fruits & Vegetables": "Buah & Sayur",
-  "Fresh Produce": "Produk Segar",
-  "Rice & Grains": "Beras & Biji-bijian",
-  "Kitchen": "Dapur",
-  "Sneakers": "Sepatu Kets",
-  "Gaming": "Gaming",
-  "Headphones": "Headphone",
-  "Skincare": "Perawatan Kulit",
-  "Category": "Kategori",
-  "All": "Semua",
-  "Trending": "Tren",
-  "New": "Baru",
-  "Budget": "Hemat",
-  "Premium": "Premium",
-  "Local Brands": "Brand Lokal",
-  "Best Rated": "Rating Tertinggi",
-  "Tech Essentials": "Kebutuhan Teknologi",
-  "Home Refresh": "Pembaruan Rumah",
-  "Weekend Picks": "Pilihan Akhir Pekan",
-
-  // Category Descriptions
-  "Smart tech for every lifestyle.": "Teknologi pintar untuk setiap gaya hidup.",
-  "Trendy styles for every you.": "Gaya trendi untuk penampilanmu.",
-  "Daily essentials delivered.": "Kebutuhan harian dikirim ke rumah.",
-  "Make your house a happy home.": "Jadikan rumahmu tempat yang nyaman.",
-  "Glow with confidence.": "Tampil bersinar dengan percaya diri.",
-  "Gear up, stay active.": "Lengkapi perlengkapan, tetap aktif.",
-  "Stories that inspire.": "Cerita yang menginspirasi.",
-  "Fun, safe, educational.": "Seru, aman, dan edukatif.",
-  "Healthier you, better life.": "Diri lebih sehat, hidup lebih baik.",
-  "Performance you can trust.": "Performa yang dapat diandalkan.",
-  "Everything for a productive day.": "Semua kebutuhan untuk hari produktif.",
-  "Perfect gifts for every occasion.": "Hadiah sempurna untuk setiap momen.",
-  "Must-have gadgets for modern life.": "Gadget wajib untuk gaya hidup modern.",
-  "Upgrade your space with comfort.": "Tingkatkan kenyamanan ruangan Anda.",
-  "Top picks for your best weekend.": "Pilihan terbaik untuk akhir pekan Anda.",
-  "Explore products.": "Jelajahi produk.",
-  "Explore products": "Jelajahi produk"
-};
-
-const translateText = (text, isIndo) => {
-  if (!isIndo || !text) return text;
-  return INDO_CATEGORY_TRANSLATIONS[text] || text;
-};
-
-const formatCount = (value, t, isIndo) => {
-  const number = toNumber(value);
-  if (number === null || number <= 0) return t ? t("categoriesPage.exploreProducts", "Explore products") : "Explore products";
-  const numStr = isIndo ? number.toLocaleString("id-ID") : number.toLocaleString("en-US");
-  return t ? t("categoriesPage.productsCount", "{{count}}+ products", { count: numStr }) : `${numStr}+ products`;
-};
-
 const buildSearchPath = (params) => {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
@@ -224,50 +190,55 @@ const buildSearchPath = (params) => {
   return `/search?${query.toString()}`;
 };
 
-const normalizeCategory = (category, index, isIndo) => {
+const normalizeCategory = (category, index, isIndo, productCountFallback = 0) => {
   const rawName = toText(
     category?.name || category?.title || category?.label || category?.categoryName,
-    fallbackCategories[index % fallbackCategories.length]?.name || "Category"
+    ""
   );
-  const name = translateText(rawName, isIndo);
-  const slug = toText(category?.slug || category?.code || category?.id, toSlug(rawName));
-  const iconKey =
-    fallbackCategories.find((item) => item.slug === slug || item.name === rawName || item.name === name)?.iconKey ||
-    categoryIconKeys[index % categoryIconKeys.length];
+  const normalizedKey = rawName.toLowerCase();
+  const meta = REAL_CATEGORY_METAS[normalizedKey] || null;
 
-  const rawDesc = toText(
-    category?.description || category?.shortDescription || category?.summary,
-    fallbackCategories[index % fallbackCategories.length]?.description || "Explore products."
-  );
-  const description = translateText(rawDesc, isIndo);
+  let displayName = rawName;
+  if (!displayName) {
+    const fallback = REAL_FALLBACK_CATEGORIES[index % REAL_FALLBACK_CATEGORIES.length];
+    displayName = isIndo ? fallback.name : fallback.nameEn;
+  } else if (!isIndo && meta?.nameEn) {
+    displayName = meta.nameEn;
+  }
+
+  const slug = toText(category?.slug || category?.code || category?.id, toSlug(displayName));
+
+  let description = toText(category?.description || category?.shortDescription || category?.summary, "");
+  if (!description) {
+    if (meta) {
+      description = isIndo ? meta.descId : meta.descEn;
+    } else {
+      const fallback = REAL_FALLBACK_CATEGORIES[index % REAL_FALLBACK_CATEGORIES.length];
+      description = isIndo ? fallback.descId : fallback.descEn;
+    }
+  }
+
+  const Icon = meta?.icon || (index % 4 === 0 ? UtensilsCrossed : index % 4 === 1 ? Sparkles : index % 4 === 2 ? BriefcaseBusiness : BookOpen);
+
+  const productCount =
+    category?.productCount ??
+    category?.productsCount ??
+    category?.totalProducts ??
+    category?.count ??
+    category?.products_count ??
+    productCountFallback;
 
   return {
     ...category,
     id: category?.id ?? category?._id ?? slug,
-    name,
+    name: displayName,
     slug,
     description,
     image: resolveAssetUrl(toText(category?.image || category?.imageUrl || category?.iconUrl)),
-    iconKey,
-    productCount:
-      category?.productCount ??
-      category?.productsCount ??
-      category?.totalProducts ??
-      category?.count ??
-      category?.products_count,
+    Icon,
+    productCount,
   };
 };
-
-const normalizeProductImage = (product) =>
-  resolveAssetUrl(
-    toText(
-      product?.imageUrl ||
-        product?.thumbnail ||
-        product?.image ||
-        product?.images?.[0] ||
-        product?.media?.[0]?.url
-    )
-  );
 
 const buildTopStores = (products) => {
   const storeMap = new Map();
@@ -323,78 +294,116 @@ const buildTopStores = (products) => {
     .slice(0, 4);
 };
 
-function CategorySkeletonGrid({ t, isIndo }) {
-  return (
-    <div className="store-categories-2026__grid" aria-label={t ? t("categoriesPage.loadingCategories", "Loading categories") : "Loading categories"}>
-      {Array.from({ length: 10 }, (_, index) => (
-        <div className="store-categories-2026__skeleton-card" key={`category-skeleton-${index}`}>
-          <span />
-          <i />
-          <b />
-          <em />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function CategoryCard({ category, index, t, isIndo }) {
-  const Icon = iconMap[category.iconKey] || iconMap[categoryIconKeys[index % categoryIconKeys.length]];
-  const isFeature = index === 0 || index === 3;
+function CategoryCard({ category, index, isIndo }) {
+  const Icon = category.Icon;
+  const isFeature = index === 0;
 
   return (
     <Link
       to={buildSearchPath({ category: category.slug })}
       className={`store-categories-2026__category-card ${isFeature ? "is-featured" : ""}`}
-      style={{ "--category-index": index % 6 }}
     >
-      <span className="store-categories-2026__category-icon">
-        <Icon size={24} />
-      </span>
-      <span className="store-categories-2026__category-copy">
-        <strong>{category.name}</strong>
-        <small>{category.description}</small>
-        <em>{formatCount(category.productCount, t, isIndo)}</em>
-      </span>
-      {category.image ? (
-        <span className="store-categories-2026__category-media" aria-hidden="true">
-          <img src={category.image} alt="" loading="lazy" />
+      <div className="store-categories-2026__category-card-top">
+        <span className="store-categories-2026__category-icon" aria-hidden="true">
+          <Icon size={24} />
         </span>
-      ) : null}
-      <span className="store-categories-2026__round-arrow" aria-hidden="true">
-        <ArrowRight size={17} />
-      </span>
+        <span className="store-categories-2026__category-count-badge">
+          {category.productCount > 0
+            ? `${category.productCount} ${isIndo ? "Produk" : "Products"}`
+            : (isIndo ? "Lihat Produk" : "Browse Items")}
+        </span>
+      </div>
+
+      <div className="store-categories-2026__category-copy">
+        <strong className="store-categories-2026__category-name">{category.name}</strong>
+        <p className="store-categories-2026__category-desc">{category.description}</p>
+      </div>
+
+      <div className="store-categories-2026__category-footer">
+        <span className="store-categories-2026__explore-text">
+          {isIndo ? "Jelajahi Produk" : "Explore Products"}
+        </span>
+        <span className="store-categories-2026__round-arrow" aria-hidden="true">
+          <ArrowRight size={16} />
+        </span>
+      </div>
     </Link>
   );
 }
 
 export default function StoreCategoriesPage2026() {
-  const { t, i18n } = useTranslation();
-  const isIndo = i18n.language === "id" || i18n.language === "id-ID" || i18n.language?.startsWith("id") || (typeof window !== "undefined" && localStorage.getItem("store_language") === "Indonesia");
+  const { i18n } = useTranslation();
   const navigate = useNavigate();
+  const [, setLangSyncCounter] = useState(0);
+
+  const isIndo =
+    i18n.language === "id" ||
+    i18n.language === "id-ID" ||
+    i18n.language?.startsWith("id") ||
+    (typeof window !== "undefined" &&
+      (localStorage.getItem("store_language") === "Indonesia" ||
+        localStorage.getItem("store_language") === "Bahasa Indonesia"));
+  const lang = isIndo ? "id" : "en";
+
+  useEffect(() => {
+    const handleSync = () => setLangSyncCounter((c) => c + 1);
+    i18n.on("languageChanged", handleSync);
+    window.addEventListener("storage", handleSync);
+    return () => {
+      i18n.off("languageChanged", handleSync);
+      window.removeEventListener("storage", handleSync);
+    };
+  }, [i18n]);
+
   const [searchValue, setSearchValue] = useState("");
+
+  const customizationQuery = useQuery({
+    queryKey: ["store-customization", "categories", lang],
+    queryFn: () => getStoreCustomization({ lang, include: "categories" }),
+    staleTime: 60_000,
+  });
+
+  const categoriesConfig = customizationQuery.data?.customization?.categories;
+
   const categoriesQuery = useCategories({ parentsOnly: true });
   const productsQuery = useProducts({
     page: 1,
-    limit: 24,
+    limit: 30,
     sort: "popular",
     keepPreviousData: true,
     staleTime: 60_000,
   });
 
-  const liveCategories = useMemo(
-    () => extractList(categoriesQuery.data).map((cat, idx) => normalizeCategory(cat, idx, isIndo)),
-    [categoriesQuery.data, isIndo]
-  );
-  const categories = liveCategories.length
-    ? liveCategories.slice(0, 12)
-    : fallbackCategories.map((cat, idx) => normalizeCategory(cat, idx, isIndo));
   const products = useMemo(() => extractList(productsQuery.data), [productsQuery.data]);
+
+  const rawCategories = useMemo(() => extractList(categoriesQuery.data), [categoriesQuery.data]);
+
+  // Compute product count per category slug from fetched products
+  const categoryCountMap = useMemo(() => {
+    const map = new Map();
+    products.forEach((p) => {
+      const catSlug = toSlug(p?.category?.slug || p?.category?.name || p?.categoryName || "");
+      if (catSlug) {
+        map.set(catSlug, (map.get(catSlug) || 0) + 1);
+      }
+    });
+    return map;
+  }, [products]);
+
+  const liveCategories = useMemo(() => {
+    if (!rawCategories.length) return [];
+    return rawCategories.map((cat, idx) => {
+      const count = categoryCountMap.get(toSlug(cat?.slug || cat?.name || "")) || 0;
+      return normalizeCategory(cat, idx, isIndo, count);
+    });
+  }, [rawCategories, categoryCountMap, isIndo]);
+
+  const categories = useMemo(() => {
+    if (liveCategories.length) return liveCategories;
+    return REAL_FALLBACK_CATEGORIES.map((cat, idx) => normalizeCategory(cat, idx, isIndo, 0));
+  }, [liveCategories, isIndo]);
+
   const topStores = useMemo(() => buildTopStores(products), [products]);
-  const productImages = useMemo(
-    () => products.map(normalizeProductImage).filter(Boolean).slice(0, 6),
-    [products]
-  );
 
   const submitSearch = (event) => {
     event.preventDefault();
@@ -407,89 +416,170 @@ export default function StoreCategoriesPage2026() {
   };
 
   const isInitialLoading = categoriesQuery.isLoading && !categoriesQuery.data;
-  const showFallbackNotice =
-    !isInitialLoading && !categoriesQuery.isError && liveCategories.length === 0;
+
+  // Customization variables with localized fallbacks
+  const heroEnabled = categoriesConfig?.hero?.enabled ?? true;
+  const heroEyebrow = categoriesConfig?.hero?.eyebrow || (isIndo ? "JELAJAHI KATALOG" : "CURATED DISCOVERY");
+  const heroTitle = categoriesConfig?.hero?.title || (isIndo ? "Kategori Produk" : "Explore Categories");
+  const heroSubtitle =
+    categoriesConfig?.hero?.subtitle ||
+    (isIndo
+      ? "Temukan ragam karya inovasi, produk edupreneur, dan solusi kreatif kampus."
+      : "Browse curated collections across campus innovations and trusted edupreneur products.");
+  const searchPlaceholder =
+    categoriesConfig?.hero?.searchPlaceholder ||
+    (isIndo ? "Cari produk, kategori, atau toko..." : "Search products, categories, or stores...");
+  const chip1 = categoriesConfig?.hero?.chip1 || (isIndo ? "Kategori Terverifikasi" : "Verified Categories");
+  const chip2 = categoriesConfig?.hero?.chip2 || (isIndo ? "Penjual Terpercaya" : "Trusted Sellers");
+  const chip3 = categoriesConfig?.hero?.chip3 || (isIndo ? "Akses Cepat" : "Instant Access");
+  const primaryButtonLabel = categoriesConfig?.hero?.primaryButtonLabel || (isIndo ? "Semua Kategori" : "Shop All Categories");
+  const primaryButtonLink = categoriesConfig?.hero?.primaryButtonLink || "/shop";
+  const secondaryButtonLabel = categoriesConfig?.hero?.secondaryButtonLabel || (isIndo ? "Penawaran Terbaik" : "View Top Offers");
+  const secondaryButtonLink = categoriesConfig?.hero?.secondaryButtonLink || "/offers";
+  const heroImageDataUrl = categoriesConfig?.hero?.heroImageDataUrl || "";
+
+  const shopByCategoryTitle =
+    categoriesConfig?.sections?.shopByCategoryTitle ||
+    (isIndo ? "Pilihan Berdasarkan Kategori" : "Shop by Category");
+  const shopByCategorySubtitle =
+    categoriesConfig?.sections?.shopByCategorySubtitle ||
+    (isIndo
+      ? "Pilihan produk berdasarkan rumpun karya dan inovasi kampus."
+      : "Curated products organized by campus innovation categories.");
+
+  const featuredCollectionsTitle =
+    categoriesConfig?.sections?.featuredCollectionsTitle ||
+    (isIndo ? "Koleksi Unggulan" : "Featured Collections");
+  const featuredCollectionsSubtitle =
+    categoriesConfig?.sections?.featuredCollectionsSubtitle ||
+    (isIndo
+      ? "Pilihan kurasi produk untuk momen dan kebutuhan terbaik Anda."
+      : "Curated selections for your moments and essential needs.");
+
+  const topStoresTitle =
+    categoriesConfig?.sections?.topStoresTitle ||
+    (isIndo ? "Toko & Penjual Terverifikasi" : "Top Verified Stores");
+  const topStoresSubtitle =
+    categoriesConfig?.sections?.topStoresSubtitle ||
+    (isIndo
+      ? "Daftar toko edupreneur kampus dengan reputasi dan produk terpercaya."
+      : "Trusted campus edupreneurs with verified ratings and quality works.");
 
   return (
     <div className="store-categories-2026">
-      <section className="store-categories-2026__hero">
-        <div className="store-categories-2026__hero-copy">
-          <p className="store-categories-2026__eyebrow">
-            <Tags size={17} />
-            {t("categoriesPage.heroEyebrow", "Curated marketplace discovery")}
-          </p>
-          <h1>{t("categoriesPage.heroTitle", "Explore Categories")}</h1>
-          <p>
-            {t("categoriesPage.heroSubtitle", "Browse curated collections across the marketplace and jump into trusted product selections faster.")}
-          </p>
+      {heroEnabled ? (
+        <section className="store-categories-2026__hero">
+          <div className="store-categories-2026__hero-copy">
+            <p className="store-categories-2026__eyebrow">
+              <Tags size={16} />
+              {heroEyebrow}
+            </p>
+            <h1>{heroTitle}</h1>
+            <p className="store-categories-2026__hero-subtitle">{heroSubtitle}</p>
 
-          <form className="store-categories-2026__search" onSubmit={submitSearch}>
-            <Search size={19} />
-            <input
-              value={searchValue}
-              onChange={(event) => setSearchValue(event.target.value)}
-              placeholder={t("categoriesPage.searchPlaceholder", "Search products, categories, or stores")}
-              aria-label={t("categoriesPage.searchPlaceholder", "Search products, categories, or stores")}
-            />
-            <button type="submit">{t("categoriesPage.searchBtn", "Search")}</button>
-          </form>
+            <form className="store-categories-2026__search" onSubmit={submitSearch}>
+              <Search size={18} />
+              <input
+                value={searchValue}
+                onChange={(event) => setSearchValue(event.target.value)}
+                placeholder={searchPlaceholder}
+                aria-label={searchPlaceholder}
+              />
+              <button type="submit">{isIndo ? "Cari" : "Search"}</button>
+            </form>
 
-          <div className="store-categories-2026__value-chips" aria-label="Marketplace highlights">
-            <span><Grid2X2 size={17} />{t("categoriesPage.chip1", "120+ Categories")}</span>
-            <span><ShieldCheck size={17} />{t("categoriesPage.chip2", "Trusted Sellers")}</span>
-            <span><Zap size={17} />{t("categoriesPage.chip3", "Fast Discovery")}</span>
+            <div className="store-categories-2026__value-chips" aria-label="Marketplace highlights">
+              <span>
+                <Grid2X2 size={16} />
+                {chip1}
+              </span>
+              <span>
+                <ShieldCheck size={16} />
+                {chip2}
+              </span>
+              <span>
+                <Zap size={16} />
+                {chip3}
+              </span>
+            </div>
+
+            <div className="store-categories-2026__hero-actions">
+              <Link className="store-categories-2026__btn store-categories-2026__btn--primary" to={primaryButtonLink}>
+                {primaryButtonLabel} <ArrowRight size={17} />
+              </Link>
+              <Link className="store-categories-2026__btn store-categories-2026__btn--outline" to={secondaryButtonLink}>
+                {secondaryButtonLabel} <Tags size={17} />
+              </Link>
+            </div>
           </div>
 
-          <div className="store-categories-2026__hero-actions">
-            <Link className="store-categories-2026__btn store-categories-2026__btn--primary" to="/shop">
-              {t("categoriesPage.shopAllBtn", "Shop All Categories")} <ArrowRight size={18} />
-            </Link>
-            <Link className="store-categories-2026__btn store-categories-2026__btn--outline" to="/offers">
-              {t("categoriesPage.viewTopOffersBtn", "View Top Offers")} <Tags size={18} />
-            </Link>
-          </div>
-        </div>
+          <div className="store-categories-2026__hero-visual" aria-hidden="true">
+            {heroImageDataUrl ? (
+              <img
+                src={resolveAssetUrl(heroImageDataUrl)}
+                alt="Categories Hero"
+                className="store-categories-2026__hero-custom-img"
+              />
+            ) : (
+              <div className="store-categories-2026__showcase-card">
+                <div className="store-categories-2026__showcase-header">
+                  <div className="store-categories-2026__showcase-badge">
+                    <BadgeCheck size={18} />
+                    <span>TP-Preneurs Catalog</span>
+                  </div>
+                  <span className="store-categories-2026__showcase-pill">100% Real</span>
+                </div>
 
-        <div className="store-categories-2026__hero-visual" aria-hidden="true">
-          <div className="store-categories-2026__visual-badge"><Headphones /></div>
-          <div className="store-categories-2026__visual-card">
-            {productImages[0] ? <img src={productImages[0]} alt="" /> : <PackageSearch />}
-            <span />
-            <span />
-          </div>
-          <div className="store-categories-2026__shopping-bags">
-            <span />
-            <span />
-          </div>
-          <div className="store-categories-2026__visual-product">
-            {productImages[1] ? <img src={productImages[1]} alt="" /> : <ShoppingBag />}
-          </div>
-        </div>
-      </section>
+                <div className="store-categories-2026__showcase-list">
+                  {categories.slice(0, 4).map((cat, idx) => {
+                    const CatIcon = cat.Icon;
+                    return (
+                      <div key={cat.slug || idx} className="store-categories-2026__showcase-row">
+                        <span className="store-categories-2026__showcase-icon">
+                          <CatIcon size={16} />
+                        </span>
+                        <div className="store-categories-2026__showcase-info">
+                          <strong>{cat.name}</strong>
+                          <small>{cat.description}</small>
+                        </div>
+                        <ArrowRight size={14} className="store-categories-2026__showcase-arrow" />
+                      </div>
+                    );
+                  })}
+                </div>
 
-      <section className="store-categories-2026__filters" aria-label={t("categoriesPage.quickFilters", "Quick filters")}>
+                <div className="store-categories-2026__showcase-footer">
+                  <Package size={14} />
+                  <span>{isIndo ? "Karya Inovatif & Edupreneur Kampus" : "Innovative Campus & Edupreneur Works"}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      ) : null}
+
+      <section className="store-categories-2026__filters" aria-label={isIndo ? "Filter Cepat" : "Quick filters"}>
         <div className="store-categories-2026__filter-row">
-          {quickFilters.map(({ label, icon: Icon, to }, index) => (
+          {quickFilters.map(({ labelId, labelEn, icon: Icon, to }, index) => (
             <Link
-              key={label}
+              key={labelEn}
               to={to}
               className={`store-categories-2026__filter-chip ${index === 0 ? "is-active" : ""}`}
             >
-              <Icon size={17} />
-              {translateText(label, isIndo)}
+              <Icon size={16} />
+              {isIndo ? labelId : labelEn}
             </Link>
           ))}
           <Link className="store-categories-2026__view-link" to="/shop">
-            {t("categoriesPage.viewAll", "View all")} <ArrowRight size={16} />
+            {isIndo ? "Lihat Semua" : "View all"} <ArrowRight size={15} />
           </Link>
         </div>
 
         <div className="store-categories-2026__popular-row">
-          <strong>{t("categoriesPage.popularLabel", "Popular:")}</strong>
-          {popularTerms.map(([label, Icon]) => (
-            <Link key={label} to={buildSearchPath({ q: label })}>
-              <Icon size={17} />
-              {translateText(label, isIndo)}
+          <strong>{isIndo ? "Pencarian Populer:" : "Popular Searches:"}</strong>
+          {popularTerms.map((term) => (
+            <Link key={term.en} to={buildSearchPath({ q: isIndo ? term.id : term.en })}>
+              {isIndo ? term.id : term.en}
             </Link>
           ))}
         </div>
@@ -498,34 +588,37 @@ export default function StoreCategoriesPage2026() {
       <section className="store-categories-2026__section" aria-labelledby="category-grid-title">
         <div className="store-categories-2026__section-heading">
           <div>
-            <h2 id="category-grid-title">{t("categoriesPage.shopByCategoryTitle", "Shop by Category")}</h2>
-            <p>{t("categoriesPage.shopByCategorySubtitle", "Browse live public catalog categories from the marketplace API.")}</p>
+            <h2 id="category-grid-title">{shopByCategoryTitle}</h2>
+            <p>{shopByCategorySubtitle}</p>
           </div>
-          <Link to="/shop">{t("categoriesPage.viewAll", "View all")} <ArrowRight size={16} /></Link>
+          <Link to="/shop">
+            {isIndo ? "Lihat Semua" : "View all"} <ArrowRight size={15} />
+          </Link>
         </div>
 
         {categoriesQuery.isError ? (
           <div className="store-categories-2026__notice store-categories-2026__notice--error">
             <div>
-              <strong>{t("categoriesPage.categoriesNotLoadedTitle", "Categories could not be loaded")}</strong>
-              <p>{categoriesQuery.error?.response?.data?.message || categoriesQuery.error?.message || t("categoriesPage.categoriesNotLoadedMsg", "Please try again in a moment.")}</p>
+              <strong>{isIndo ? "Gagal memuat kategori" : "Categories could not be loaded"}</strong>
+              <p>
+                {categoriesQuery.error?.response?.data?.message ||
+                  categoriesQuery.error?.message ||
+                  (isIndo ? "Silakan coba beberapa saat lagi." : "Please try again in a moment.")}
+              </p>
             </div>
             <button type="button" onClick={() => categoriesQuery.refetch()}>
-              <RotateCcw size={16} />
-              {t("categoriesPage.retryBtn", "Retry")}
+              <RotateCcw size={15} />
+              {isIndo ? "Coba Lagi" : "Retry"}
             </button>
           </div>
         ) : null}
 
-        {showFallbackNotice ? (
-          <div className="store-categories-2026__notice">
-            <strong>{t("categoriesPage.liveNotPublishedTitle", "Live categories are not published yet.")}</strong>
-            <p>{t("categoriesPage.liveNotPublishedMsg", "Showing guided discovery cards while public categories become available.")}</p>
-          </div>
-        ) : null}
-
         {isInitialLoading ? (
-          <CategorySkeletonGrid t={t} isIndo={isIndo} />
+          <div className="store-categories-2026__grid">
+            {Array.from({ length: 4 }, (_, idx) => (
+              <div key={`cat-skel-${idx}`} className="store-categories-2026__skeleton-card" />
+            ))}
+          </div>
         ) : (
           <div className="store-categories-2026__grid">
             {categories.map((category, index) => (
@@ -533,7 +626,6 @@ export default function StoreCategoriesPage2026() {
                 key={category.id || category.slug || category.name}
                 category={category}
                 index={index}
-                t={t}
                 isIndo={isIndo}
               />
             ))}
@@ -544,22 +636,26 @@ export default function StoreCategoriesPage2026() {
       <section className="store-categories-2026__section" aria-labelledby="featured-collections-title">
         <div className="store-categories-2026__section-heading">
           <div>
-            <h2 id="featured-collections-title">{t("categoriesPage.featuredCollectionsTitle", "Featured Collections")}</h2>
-            <p>{t("categoriesPage.featuredCollectionsSubtitle", "Useful product paths for shoppers who know the moment, not the exact item.")}</p>
+            <h2 id="featured-collections-title">{featuredCollectionsTitle}</h2>
+            <p>{featuredCollectionsSubtitle}</p>
           </div>
-          <Link to="/shop">{t("categoriesPage.viewAllCollections", "View all collections")} <ArrowRight size={16} /></Link>
+          <Link to="/shop">
+            {isIndo ? "Lihat Semua Koleksi" : "View all collections"} <ArrowRight size={15} />
+          </Link>
         </div>
         <div className="store-categories-2026__collection-grid">
-          {featuredCollections.map(({ title, query, description, icon: Icon }, index) => (
-            <Link key={title} to={buildSearchPath({ q: query })} className="store-categories-2026__collection-card">
-              <span>
-                <strong>{translateText(title, isIndo)}</strong>
-                <small>{translateText(description, isIndo)}</small>
-                <em>{t("categoriesPage.shopCollections", "Shop collections")} <ArrowRight size={15} /></em>
+          {featuredCollections.map(({ titleId, titleEn, query, descId, descEn, icon: Icon }) => (
+            <Link key={titleEn} to={buildSearchPath({ q: query })} className="store-categories-2026__collection-card">
+              <span className="store-categories-2026__collection-copy">
+                <strong>{isIndo ? titleId : titleEn}</strong>
+                <small>{isIndo ? descId : descEn}</small>
+                <em>
+                  {isIndo ? "Buka Koleksi" : "Shop Collection"} <ArrowRight size={14} />
+                </em>
               </span>
-              <i aria-hidden="true">
-                {productImages[index + 2] ? <img src={productImages[index + 2]} alt="" /> : <Icon />}
-              </i>
+              <span className="store-categories-2026__collection-icon" aria-hidden="true">
+                <Icon size={28} />
+              </span>
             </Link>
           ))}
         </div>
@@ -568,24 +664,13 @@ export default function StoreCategoriesPage2026() {
       <section className="store-categories-2026__section" aria-labelledby="top-stores-title">
         <div className="store-categories-2026__section-heading">
           <div>
-            <h2 id="top-stores-title">{t("categoriesPage.topStoresTitle", "Top Stores in This Category")}</h2>
-            <p>{t("categoriesPage.topStoresSubtitle", "Derived from popular public products when seller metadata is available.")}</p>
+            <h2 id="top-stores-title">{topStoresTitle}</h2>
+            <p>{topStoresSubtitle}</p>
           </div>
-          <Link to="/shop">{t("categoriesPage.viewAllStores", "View all stores")} <ArrowRight size={16} /></Link>
+          <Link to="/shop">
+            {isIndo ? "Lihat Semua Toko" : "View all stores"} <ArrowRight size={15} />
+          </Link>
         </div>
-
-        {productsQuery.isError ? (
-          <div className="store-categories-2026__notice store-categories-2026__notice--error">
-            <div>
-              <strong>{t("categoriesPage.storeSignalsNotLoadedTitle", "Store signals could not be loaded")}</strong>
-              <p>{productsQuery.error?.response?.data?.message || productsQuery.error?.message || t("categoriesPage.storeSignalsNotLoadedMsg", "Popular product data is temporarily unavailable.")}</p>
-            </div>
-            <button type="button" onClick={() => productsQuery.refetch()}>
-              <RotateCcw size={16} />
-              {t("categoriesPage.retryBtn", "Retry")}
-            </button>
-          </div>
-        ) : null}
 
         {productsQuery.isLoading && !productsQuery.data ? (
           <div className="store-categories-2026__store-grid">
@@ -601,12 +686,16 @@ export default function StoreCategoriesPage2026() {
                   <span className="store-categories-2026__store-avatar">
                     {storeItem.image ? <img src={storeItem.image} alt="" /> : <Store size={22} />}
                   </span>
-                  <span>
+                  <div className="store-categories-2026__store-info">
                     <strong>{storeItem.name}</strong>
-                    <small><BadgeCheck size={14} /> {t("categoriesPage.verified", "Verified")}</small>
-                    <em>{storeItem.rating.toFixed(1)} <Star size={13} /> ({t("categoriesPage.storeProductsCount", "{{count}} products", { count: storeItem.products })})</em>
-                  </span>
-                  <ArrowRight size={17} />
+                    <small>
+                      <BadgeCheck size={14} /> {isIndo ? "Terverifikasi" : "Verified"}
+                    </small>
+                    <em>
+                      {storeItem.rating.toFixed(1)} <Star size={13} /> · {storeItem.products} {isIndo ? "Produk" : "Products"}
+                    </em>
+                  </div>
+                  <ArrowRight size={16} className="store-categories-2026__store-arrow" />
                 </>
               );
 
@@ -631,9 +720,15 @@ export default function StoreCategoriesPage2026() {
           </div>
         ) : (
           <div className="store-categories-2026__notice">
-            <strong>{t("categoriesPage.topStoresEmptyTitle", "Top stores will appear here soon.")}</strong>
-            <p>{t("categoriesPage.topStoresEmptyMsg", "Popular products need store metadata before this block can rank stores.")}</p>
-            <Link to="/shop">{t("categoriesPage.browseProductsBtn", "Browse products")} <ArrowRight size={16} /></Link>
+            <strong>{isIndo ? "Daftar toko edupreneur segera hadir" : "Top stores will appear here soon."}</strong>
+            <p>
+              {isIndo
+                ? "Jelajahi berbagai produk pilihan di marketplace TP-Preneurs."
+                : "Browse curated products across the TP-Preneurs marketplace."}
+            </p>
+            <Link to="/shop" className="store-categories-2026__link-inline">
+              {isIndo ? "Mulai Belanja" : "Browse products"} <ArrowRight size={15} />
+            </Link>
           </div>
         )}
       </section>

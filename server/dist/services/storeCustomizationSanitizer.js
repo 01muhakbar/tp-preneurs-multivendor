@@ -526,6 +526,31 @@ const DEFAULT_CUSTOMIZATION = {
             trustBadgeText: "Transaksi Aman & Terverifikasi",
         },
     },
+    categories: {
+        hero: {
+            enabled: true,
+            eyebrow: "JELAJAHI KATALOG",
+            title: "Kategori Produk",
+            subtitle: "Temukan ragam karya inovasi, produk edupreneur, dan solusi kreatif kampus.",
+            searchPlaceholder: "Cari produk, kategori, atau toko...",
+            chip1: "Kategori Terverifikasi",
+            chip2: "Penjual Terpercaya",
+            chip3: "Akses Cepat",
+            primaryButtonLabel: "Semua Kategori",
+            primaryButtonLink: "/shop",
+            secondaryButtonLabel: "Penawaran Terbaik",
+            secondaryButtonLink: "/offers",
+            heroImageDataUrl: "",
+        },
+        sections: {
+            shopByCategoryTitle: "Pilihan Berdasarkan Kategori",
+            shopByCategorySubtitle: "Pilihan produk berdasarkan rumpun karya dan inovasi kampus.",
+            featuredCollectionsTitle: "Koleksi Unggulan",
+            featuredCollectionsSubtitle: "Pilihan kurasi produk untuk momen dan kebutuhan terbaik Anda.",
+            topStoresTitle: "Toko & Penjual Terverifikasi",
+            topStoresSubtitle: "Daftar toko edupreneur kampus dengan reputasi dan produk terpercaya.",
+        },
+    },
     dashboardSetting: {
         dashboard: {
             sectionTitle: "Dashboard",
@@ -1609,6 +1634,43 @@ const normalizeShoppingCart = (root) => {
         },
     };
 };
+const normalizeCategories = (root) => {
+    const defaults = cloneStoreCustomizationDefaults().categories;
+    const source = isPlainObject(root.categories) ? root.categories : {};
+    const heroSource = isPlainObject(source.hero) ? source.hero : {};
+    const sectionsSource = isPlainObject(source.sections) ? source.sections : {};
+    return {
+        ...defaults,
+        ...source,
+        hero: {
+            ...defaults.hero,
+            ...heroSource,
+            enabled: toBool(heroSource.enabled, defaults.hero.enabled),
+            eyebrow: toText(heroSource.eyebrow, defaults.hero.eyebrow),
+            title: toText(heroSource.title, defaults.hero.title),
+            subtitle: toText(heroSource.subtitle, defaults.hero.subtitle),
+            searchPlaceholder: toText(heroSource.searchPlaceholder, defaults.hero.searchPlaceholder),
+            chip1: toText(heroSource.chip1, defaults.hero.chip1),
+            chip2: toText(heroSource.chip2, defaults.hero.chip2),
+            chip3: toText(heroSource.chip3, defaults.hero.chip3),
+            primaryButtonLabel: toText(heroSource.primaryButtonLabel, defaults.hero.primaryButtonLabel),
+            primaryButtonLink: toText(heroSource.primaryButtonLink, defaults.hero.primaryButtonLink),
+            secondaryButtonLabel: toText(heroSource.secondaryButtonLabel, defaults.hero.secondaryButtonLabel),
+            secondaryButtonLink: toText(heroSource.secondaryButtonLink, defaults.hero.secondaryButtonLink),
+            heroImageDataUrl: toText(firstText(heroSource.heroImageDataUrl, heroSource.backgroundImageDataUrl, heroSource.imageDataUrl, heroSource.image), ""),
+        },
+        sections: {
+            ...defaults.sections,
+            ...sectionsSource,
+            shopByCategoryTitle: toText(sectionsSource.shopByCategoryTitle, defaults.sections.shopByCategoryTitle),
+            shopByCategorySubtitle: toText(sectionsSource.shopByCategorySubtitle, defaults.sections.shopByCategorySubtitle),
+            featuredCollectionsTitle: toText(sectionsSource.featuredCollectionsTitle, defaults.sections.featuredCollectionsTitle),
+            featuredCollectionsSubtitle: toText(sectionsSource.featuredCollectionsSubtitle, defaults.sections.featuredCollectionsSubtitle),
+            topStoresTitle: toText(sectionsSource.topStoresTitle, defaults.sections.topStoresTitle),
+            topStoresSubtitle: toText(sectionsSource.topStoresSubtitle, defaults.sections.topStoresSubtitle),
+        },
+    };
+};
 const normalizeDashboardSetting = (root) => {
     const defaults = cloneStoreCustomizationDefaults().dashboardSetting;
     const source = isPlainObject(root.dashboardSetting) ? root.dashboardSetting : {};
@@ -1675,6 +1737,7 @@ export const sanitizeStoreCustomization = (rawData) => {
     const normalizedContactUs = normalizeContactUs(source);
     const normalizedCheckout = normalizeCheckout(source);
     const normalizedShoppingCart = normalizeShoppingCart(source);
+    const normalizedCategories = normalizeCategories(source);
     const normalizedDashboardSetting = normalizeDashboardSetting(source);
     const normalizedSeoSettings = normalizeSeoSettings(source);
     const output = {
@@ -1690,6 +1753,7 @@ export const sanitizeStoreCustomization = (rawData) => {
         contactUs: normalizedContactUs,
         checkout: normalizedCheckout,
         shoppingCart: normalizedShoppingCart,
+        categories: normalizedCategories,
         dashboardSetting: normalizedDashboardSetting,
         seoSettings: normalizedSeoSettings,
     };

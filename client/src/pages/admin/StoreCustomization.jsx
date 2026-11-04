@@ -9,6 +9,7 @@ import {
   Copy,
   CreditCard,
   Eye,
+  Grid2X2,
   MoreHorizontal,
   Plus,
   Settings,
@@ -56,6 +57,7 @@ const TABS = [
   { key: "contactUs", label: "Contact Us" },
   { key: "shoppingCart", label: "Shopping Cart" },
   { key: "checkout", label: "Checkout" },
+  { key: "categories", label: "Categories Page" },
   { key: "dashboardSetting", label: "Dashboard Setting" },
   { key: "seoSettings", label: "Seo Settings" },
 ];
@@ -74,6 +76,7 @@ const STORE_TAB_BY_KEY = {
   contactUs: "contact-us-setting",
   shoppingCart: "shopping-cart-setting",
   checkout: "checkout-setting",
+  categories: "categories",
   dashboardSetting: "dashboard-setting",
   seoSettings: "seo-settings",
 };
@@ -85,6 +88,10 @@ const KEY_BY_STORE_TAB = {
   "shopping-cart": "shoppingCart",
   "cart-setting": "shoppingCart",
   "cart": "shoppingCart",
+  "categories-setting": "categories",
+  "categories": "categories",
+  "category-setting": "categories",
+  "category": "categories",
   "shop-settings": "shop",
   "shop-setting": "shop",
 };
@@ -1239,6 +1246,41 @@ const getDefaultCustomization = (targetLang = "en") => {
       trustBadgeText: isIndo ? "Transaksi Aman & Terverifikasi" : "Safe & Verified Checkout",
     },
   },
+  categories: {
+    hero: {
+      enabled: true,
+      eyebrow: isIndo ? "JELAJAHI KATALOG" : "CURATED DISCOVERY",
+      title: isIndo ? "Kategori Produk" : "Explore Categories",
+      subtitle: isIndo
+        ? "Temukan ragam karya inovasi, produk edupreneur, dan solusi kreatif kampus."
+        : "Browse curated collections across campus innovations and trusted edupreneur products.",
+      searchPlaceholder: isIndo
+        ? "Cari produk, kategori, atau toko..."
+        : "Search products, categories, or stores...",
+      chip1: isIndo ? "Kategori Terverifikasi" : "Verified Categories",
+      chip2: isIndo ? "Penjual Terpercaya" : "Trusted Sellers",
+      chip3: isIndo ? "Akses Cepat" : "Instant Access",
+      primaryButtonLabel: isIndo ? "Semua Kategori" : "Shop All Categories",
+      primaryButtonLink: "/shop",
+      secondaryButtonLabel: isIndo ? "Penawaran Terbaik" : "View Top Offers",
+      secondaryButtonLink: "/offers",
+      heroImageDataUrl: "",
+    },
+    sections: {
+      shopByCategoryTitle: isIndo ? "Pilihan Berdasarkan Kategori" : "Shop by Category",
+      shopByCategorySubtitle: isIndo
+        ? "Pilihan produk berdasarkan rumpun karya dan inovasi kampus."
+        : "Curated products organized by campus innovation categories.",
+      featuredCollectionsTitle: isIndo ? "Koleksi Unggulan" : "Featured Collections",
+      featuredCollectionsSubtitle: isIndo
+        ? "Pilihan kurasi produk untuk momen dan kebutuhan terbaik Anda."
+        : "Curated selections for your moments and essential needs.",
+      topStoresTitle: isIndo ? "Toko & Penjual Terverifikasi" : "Top Verified Stores",
+      topStoresSubtitle: isIndo
+        ? "Daftar toko edupreneur kampus dengan reputasi dan produk terpercaya."
+        : "Trusted campus edupreneurs with verified ratings and quality works.",
+    },
+  },
   };
 };
 
@@ -1870,6 +1912,65 @@ const normalizeShoppingCart = (source, defaults) => {
       trustBadgeText: toText(
         orderSummarySource.trustBadgeText,
         defaults.orderSummary.trustBadgeText
+      ),
+    },
+  };
+};
+
+const normalizeCategories = (source, defaults) => {
+  const categoriesSource = isPlainObject(source) ? source : {};
+  const heroSource = isPlainObject(categoriesSource.hero) ? categoriesSource.hero : {};
+  const sectionsSource = isPlainObject(categoriesSource.sections) ? categoriesSource.sections : {};
+
+  return {
+    ...defaults,
+    ...categoriesSource,
+    hero: {
+      ...defaults.hero,
+      ...heroSource,
+      enabled: toBool(heroSource.enabled, defaults.hero.enabled),
+      eyebrow: toText(heroSource.eyebrow, defaults.hero.eyebrow),
+      title: toText(heroSource.title, defaults.hero.title),
+      subtitle: toText(heroSource.subtitle, defaults.hero.subtitle),
+      searchPlaceholder: toText(heroSource.searchPlaceholder, defaults.hero.searchPlaceholder),
+      chip1: toText(heroSource.chip1, defaults.hero.chip1),
+      chip2: toText(heroSource.chip2, defaults.hero.chip2),
+      chip3: toText(heroSource.chip3, defaults.hero.chip3),
+      primaryButtonLabel: toText(heroSource.primaryButtonLabel, defaults.hero.primaryButtonLabel),
+      primaryButtonLink: toText(heroSource.primaryButtonLink, defaults.hero.primaryButtonLink),
+      secondaryButtonLabel: toText(heroSource.secondaryButtonLabel, defaults.hero.secondaryButtonLabel),
+      secondaryButtonLink: toText(heroSource.secondaryButtonLink, defaults.hero.secondaryButtonLink),
+      heroImageDataUrl: toText(
+        heroSource.heroImageDataUrl ?? heroSource.backgroundImageDataUrl ?? "",
+        ""
+      ),
+    },
+    sections: {
+      ...defaults.sections,
+      ...sectionsSource,
+      shopByCategoryTitle: toText(
+        sectionsSource.shopByCategoryTitle,
+        defaults.sections.shopByCategoryTitle
+      ),
+      shopByCategorySubtitle: toText(
+        sectionsSource.shopByCategorySubtitle,
+        defaults.sections.shopByCategorySubtitle
+      ),
+      featuredCollectionsTitle: toText(
+        sectionsSource.featuredCollectionsTitle,
+        defaults.sections.featuredCollectionsTitle
+      ),
+      featuredCollectionsSubtitle: toText(
+        sectionsSource.featuredCollectionsSubtitle,
+        defaults.sections.featuredCollectionsSubtitle
+      ),
+      topStoresTitle: toText(
+        sectionsSource.topStoresTitle,
+        defaults.sections.topStoresTitle
+      ),
+      topStoresSubtitle: toText(
+        sectionsSource.topStoresSubtitle,
+        defaults.sections.topStoresSubtitle
       ),
     },
   };
@@ -2519,6 +2620,7 @@ const normalizeCustomizationPayload = (raw, targetLang = "en") => {
   const contactUsSource = isPlainObject(source.contactUs) ? source.contactUs : {};
   const shoppingCartSource = isPlainObject(source.shoppingCart) ? source.shoppingCart : {};
   const checkoutSource = isPlainObject(source.checkout) ? source.checkout : {};
+  const categoriesSource = isPlainObject(source.categories) ? source.categories : {};
   const dashboardSettingSource = isPlainObject(source.dashboardSetting)
     ? source.dashboardSetting
     : {};
@@ -2673,6 +2775,7 @@ const normalizeCustomizationPayload = (raw, targetLang = "en") => {
   const defaultsContactUs = defaults.contactUs;
   const defaultsShoppingCart = defaults.shoppingCart;
   const defaultsCheckout = defaults.checkout;
+  const defaultsCategories = defaults.categories;
   const defaultsDashboardSetting = defaults.dashboardSetting;
   const defaultsSeoSettings = defaults.seoSettings;
   return {
@@ -3333,6 +3436,7 @@ const normalizeCustomizationPayload = (raw, targetLang = "en") => {
     contactUs: normalizeContactUs(contactUsSource, defaultsContactUs),
     shoppingCart: normalizeShoppingCart(shoppingCartSource, defaultsShoppingCart),
     checkout: normalizeCheckout(checkoutSource, defaultsCheckout),
+    categories: normalizeCategories(categoriesSource, defaultsCategories),
     dashboardSetting: normalizeDashboardSetting(
       dashboardSettingSource,
       defaultsDashboardSetting
@@ -3711,6 +3815,11 @@ export default function StoreCustomizationPage() {
   const [checkoutState, setCheckoutState] = useState(
     () => getDefaultCustomization().checkout
   );
+  const [categoriesState, setCategoriesState] = useState(
+    () => getDefaultCustomization().categories
+  );
+  const [categoriesDropActive, setCategoriesDropActive] = useState(false);
+  const [categoriesImageError, setCategoriesImageError] = useState("");
   const [dashboardSettingState, setDashboardSettingState] = useState(
     () => getDefaultCustomization().dashboardSetting
   );
@@ -3905,6 +4014,7 @@ export default function StoreCustomizationPage() {
     setContactUsState(normalized.contactUs);
     setShoppingCartState(normalized.shoppingCart);
     setCheckoutState(normalized.checkout);
+    setCategoriesState(normalized.categories);
     setDashboardSettingState(normalized.dashboardSetting);
     setSeoSettingsState(normalized.seoSettings);
     setMainSliderImageErrors({});
@@ -3989,6 +4099,7 @@ export default function StoreCustomizationPage() {
       setContactUsState(normalized.contactUs);
       setShoppingCartState(normalized.shoppingCart);
       setCheckoutState(normalized.checkout);
+      setCategoriesState(normalized.categories);
       setDashboardSettingState(normalized.dashboardSetting);
       setSeoSettingsState(normalized.seoSettings);
       setWhatsAppLinkServerError("");
@@ -4673,6 +4784,37 @@ export default function StoreCustomizationPage() {
           summaryReadyHint: toText(checkoutState?.cartItemSection?.summaryReadyHint),
           submitNextLabel: toText(checkoutState?.cartItemSection?.submitNextLabel),
           previewFirstLabel: toText(checkoutState?.cartItemSection?.previewFirstLabel),
+        },
+      },
+      categories: {
+        ...currentCustomization.categories,
+        ...categoriesState,
+        hero: {
+          ...currentCustomization.categories?.hero,
+          ...categoriesState?.hero,
+          enabled: Boolean(categoriesState?.hero?.enabled),
+          eyebrow: toText(categoriesState?.hero?.eyebrow),
+          title: toText(categoriesState?.hero?.title),
+          subtitle: toText(categoriesState?.hero?.subtitle),
+          searchPlaceholder: toText(categoriesState?.hero?.searchPlaceholder),
+          chip1: toText(categoriesState?.hero?.chip1),
+          chip2: toText(categoriesState?.hero?.chip2),
+          chip3: toText(categoriesState?.hero?.chip3),
+          primaryButtonLabel: toText(categoriesState?.hero?.primaryButtonLabel),
+          primaryButtonLink: toText(categoriesState?.hero?.primaryButtonLink),
+          secondaryButtonLabel: toText(categoriesState?.hero?.secondaryButtonLabel),
+          secondaryButtonLink: toText(categoriesState?.hero?.secondaryButtonLink),
+          heroImageDataUrl: toText(categoriesState?.hero?.heroImageDataUrl),
+        },
+        sections: {
+          ...currentCustomization.categories?.sections,
+          ...categoriesState?.sections,
+          shopByCategoryTitle: toText(categoriesState?.sections?.shopByCategoryTitle),
+          shopByCategorySubtitle: toText(categoriesState?.sections?.shopByCategorySubtitle),
+          featuredCollectionsTitle: toText(categoriesState?.sections?.featuredCollectionsTitle),
+          featuredCollectionsSubtitle: toText(categoriesState?.sections?.featuredCollectionsSubtitle),
+          topStoresTitle: toText(categoriesState?.sections?.topStoresTitle),
+          topStoresSubtitle: toText(categoriesState?.sections?.topStoresSubtitle),
         },
       },
       dashboardSetting: {
@@ -6145,6 +6287,42 @@ export default function StoreCustomizationPage() {
     }));
   };
 
+  const onChangeCategoriesHeroField = (field, value) => {
+    setCategoriesState((prev) => ({
+      ...prev,
+      hero: {
+        ...prev?.hero,
+        [field]: value,
+      },
+    }));
+  };
+
+  const onChangeCategoriesSectionsField = (field, value) => {
+    setCategoriesState((prev) => ({
+      ...prev,
+      sections: {
+        ...prev?.sections,
+        [field]: value,
+      },
+    }));
+  };
+
+  const onHandleCategoriesImage = async (file) => {
+    if (!file) return;
+    const validation = validateCustomizationLogoFile(file);
+    if (!validation.valid) {
+      setCategoriesImageError(validation.error);
+      return;
+    }
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      setCategoriesImageError("");
+      onChangeCategoriesHeroField("heroImageDataUrl", dataUrl);
+    } catch (error) {
+      setCategoriesImageError(error?.message || "Failed to process image.");
+    }
+  };
+
   const activeMainSliderMeta = MAIN_SLIDER_TABS.find(
     (tab) => tab.key === activeMainSliderTab
   );
@@ -6821,6 +6999,38 @@ export default function StoreCustomizationPage() {
         checkoutState?.cartItemSection?.previewFirstLabel,
         checkoutDefaults.cartItemSection.previewFirstLabel
       ),
+    },
+  };
+  const categoriesDefaults = getDefaultCustomization().categories;
+  const categories = {
+    ...categoriesDefaults,
+    ...(categoriesState || {}),
+    hero: {
+      ...categoriesDefaults.hero,
+      ...(categoriesState?.hero || {}),
+      enabled: Boolean(categoriesState?.hero?.enabled),
+      eyebrow: toText(categoriesState?.hero?.eyebrow, categoriesDefaults.hero.eyebrow),
+      title: toText(categoriesState?.hero?.title, categoriesDefaults.hero.title),
+      subtitle: toText(categoriesState?.hero?.subtitle, categoriesDefaults.hero.subtitle),
+      searchPlaceholder: toText(categoriesState?.hero?.searchPlaceholder, categoriesDefaults.hero.searchPlaceholder),
+      chip1: toText(categoriesState?.hero?.chip1, categoriesDefaults.hero.chip1),
+      chip2: toText(categoriesState?.hero?.chip2, categoriesDefaults.hero.chip2),
+      chip3: toText(categoriesState?.hero?.chip3, categoriesDefaults.hero.chip3),
+      primaryButtonLabel: toText(categoriesState?.hero?.primaryButtonLabel, categoriesDefaults.hero.primaryButtonLabel),
+      primaryButtonLink: toText(categoriesState?.hero?.primaryButtonLink, categoriesDefaults.hero.primaryButtonLink),
+      secondaryButtonLabel: toText(categoriesState?.hero?.secondaryButtonLabel, categoriesDefaults.hero.secondaryButtonLabel),
+      secondaryButtonLink: toText(categoriesState?.hero?.secondaryButtonLink, categoriesDefaults.hero.secondaryButtonLink),
+      heroImageDataUrl: toText(categoriesState?.hero?.heroImageDataUrl, ""),
+    },
+    sections: {
+      ...categoriesDefaults.sections,
+      ...(categoriesState?.sections || {}),
+      shopByCategoryTitle: toText(categoriesState?.sections?.shopByCategoryTitle, categoriesDefaults.sections.shopByCategoryTitle),
+      shopByCategorySubtitle: toText(categoriesState?.sections?.shopByCategorySubtitle, categoriesDefaults.sections.shopByCategorySubtitle),
+      featuredCollectionsTitle: toText(categoriesState?.sections?.featuredCollectionsTitle, categoriesDefaults.sections.featuredCollectionsTitle),
+      featuredCollectionsSubtitle: toText(categoriesState?.sections?.featuredCollectionsSubtitle, categoriesDefaults.sections.featuredCollectionsSubtitle),
+      topStoresTitle: toText(categoriesState?.sections?.topStoresTitle, categoriesDefaults.sections.topStoresTitle),
+      topStoresSubtitle: toText(categoriesState?.sections?.topStoresSubtitle, categoriesDefaults.sections.topStoresSubtitle),
     },
   };
   const dashboardSettingDefaults = getDefaultCustomization().dashboardSetting;
@@ -10007,6 +10217,348 @@ export default function StoreCustomizationPage() {
                   className={`${inputBase} mt-2`}
                 />
               </label>
+            </div>
+          </section>
+        </div>
+      ) : activeTab === "categories" ? (
+        <div className="flex flex-col gap-5">
+          <div className="flex items-center justify-between rounded-xl border border-sky-200 bg-sky-50/80 p-3.5 text-xs text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-200">
+            <div className="flex items-center gap-2">
+              <Grid2X2 className="h-4 w-4 text-[#fe6f05]" />
+              <span>
+                {isIndo
+                  ? "Pengaturan halaman Explore Categories: Kelola teks banner hero, highlight chip, tombol tindakan, dan judul seksi kurasi."
+                  : "Explore Categories Page Settings: Manage hero banner copy, highlight chips, action buttons, and section titles."}
+              </span>
+            </div>
+            <Link
+              to="/categories"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-bold text-[#034c85] hover:underline dark:text-sky-300"
+            >
+              <span>{isIndo ? "Buka Halaman Kategori" : "View Categories"}</span>
+              <ChevronRight className="h-3 w-3" />
+            </Link>
+          </div>
+
+          <section className={sectionCard}>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                <Settings className="h-4 w-4" />
+              </span>
+              <h2 className="text-base font-semibold text-slate-900">
+                {isIndo ? "Banner Hero & Pencarian" : "Hero Banner & Search"}
+              </h2>
+            </div>
+            <div className="mt-4 h-px w-full bg-slate-200" />
+
+            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[320px_1fr]">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  {isIndo ? "Aktifkan Hero Banner" : "Enable Hero Banner"}
+                </p>
+                <SegmentedToggle
+                  value={Boolean(categories.hero.enabled)}
+                  onChange={(value) => onChangeCategoriesHeroField("enabled", value)}
+                />
+              </div>
+
+              <ImageUploadField
+                id="categories-page-hero-image-input"
+                label={isIndo ? "Gambar / Banner Hero" : "Hero Image / Banner"}
+                error={categoriesImageError}
+                dropActive={categoriesDropActive}
+                onDropActiveChange={setCategoriesDropActive}
+                onInputChange={async (event) => {
+                  const file = event.target.files?.[0];
+                  await onHandleCategoriesImage(file);
+                  event.target.value = "";
+                }}
+                onDrop={async (event) => {
+                  event.preventDefault();
+                  setCategoriesDropActive(false);
+                  const file = event.dataTransfer?.files?.[0];
+                  await onHandleCategoriesImage(file);
+                }}
+                previewDataUrl={categories.hero.heroImageDataUrl}
+                onRemove={() => {
+                  setCategoriesImageError("");
+                  onChangeCategoriesHeroField("heroImageDataUrl", "");
+                }}
+                previewAlt="Categories hero banner"
+              />
+
+              <label className="block xl:col-span-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {isIndo ? "Teks Eyebrow" : "Eyebrow Text"}
+                </span>
+                <input
+                  type="text"
+                  value={categories?.hero?.eyebrow || ""}
+                  onChange={(e) => onChangeCategoriesHeroField("eyebrow", e.target.value)}
+                  className={`${inputBase} mt-2`}
+                  placeholder={isIndo ? "JELAJAHI KATALOG" : "CURATED DISCOVERY"}
+                />
+              </label>
+
+              <label className="block xl:col-span-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {isIndo ? "Judul Utama Hero" : "Hero Title"}
+                </span>
+                <input
+                  type="text"
+                  value={categories?.hero?.title || ""}
+                  onChange={(e) => onChangeCategoriesHeroField("title", e.target.value)}
+                  className={`${inputBase} mt-2`}
+                  placeholder={isIndo ? "Kategori Produk" : "Explore Categories"}
+                />
+              </label>
+
+              <label className="block xl:col-span-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {isIndo ? "Subjudul / Deskripsi Hero" : "Hero Subtitle"}
+                </span>
+                <textarea
+                  rows={2}
+                  value={categories?.hero?.subtitle || ""}
+                  onChange={(e) => onChangeCategoriesHeroField("subtitle", e.target.value)}
+                  className={`${textAreaBase} mt-2`}
+                  placeholder={
+                    isIndo
+                      ? "Temukan ragam karya inovasi, produk edupreneur, dan solusi kreatif kampus."
+                      : "Browse curated collections across campus innovations and trusted edupreneur products."
+                  }
+                />
+              </label>
+
+              <label className="block xl:col-span-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {isIndo ? "Placeholder Kolom Pencarian" : "Search Input Placeholder"}
+                </span>
+                <input
+                  type="text"
+                  value={categories?.hero?.searchPlaceholder || ""}
+                  onChange={(e) => onChangeCategoriesHeroField("searchPlaceholder", e.target.value)}
+                  className={`${inputBase} mt-2`}
+                  placeholder={isIndo ? "Cari produk, kategori, atau toko..." : "Search products, categories, or stores..."}
+                />
+              </label>
+
+              <div className="grid grid-cols-1 gap-3 xl:col-span-2 sm:grid-cols-3">
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {isIndo ? "Chip Highlight 1" : "Highlight Chip 1"}
+                  </span>
+                  <input
+                    type="text"
+                    value={categories?.hero?.chip1 || ""}
+                    onChange={(e) => onChangeCategoriesHeroField("chip1", e.target.value)}
+                    className={`${inputBase} mt-2`}
+                    placeholder={isIndo ? "Kategori Terverifikasi" : "Verified Categories"}
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {isIndo ? "Chip Highlight 2" : "Highlight Chip 2"}
+                  </span>
+                  <input
+                    type="text"
+                    value={categories?.hero?.chip2 || ""}
+                    onChange={(e) => onChangeCategoriesHeroField("chip2", e.target.value)}
+                    className={`${inputBase} mt-2`}
+                    placeholder={isIndo ? "Penjual Terpercaya" : "Trusted Sellers"}
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {isIndo ? "Chip Highlight 3" : "Highlight Chip 3"}
+                  </span>
+                  <input
+                    type="text"
+                    value={categories?.hero?.chip3 || ""}
+                    onChange={(e) => onChangeCategoriesHeroField("chip3", e.target.value)}
+                    className={`${inputBase} mt-2`}
+                    placeholder={isIndo ? "Akses Cepat" : "Instant Access"}
+                  />
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 xl:col-span-2 sm:grid-cols-2">
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {isIndo ? "Teks Tombol Utama" : "Primary Button Label"}
+                  </span>
+                  <input
+                    type="text"
+                    value={categories?.hero?.primaryButtonLabel || ""}
+                    onChange={(e) => onChangeCategoriesHeroField("primaryButtonLabel", e.target.value)}
+                    className={`${inputBase} mt-2`}
+                    placeholder={isIndo ? "Semua Kategori" : "Shop All Categories"}
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {isIndo ? "Tautan Tombol Utama" : "Primary Button Link"}
+                  </span>
+                  <input
+                    type="text"
+                    value={categories?.hero?.primaryButtonLink || ""}
+                    onChange={(e) => onChangeCategoriesHeroField("primaryButtonLink", e.target.value)}
+                    className={`${inputBase} mt-2`}
+                    placeholder="/shop"
+                  />
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 xl:col-span-2 sm:grid-cols-2">
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {isIndo ? "Teks Tombol Sekunder" : "Secondary Button Label"}
+                  </span>
+                  <input
+                    type="text"
+                    value={categories?.hero?.secondaryButtonLabel || ""}
+                    onChange={(e) => onChangeCategoriesHeroField("secondaryButtonLabel", e.target.value)}
+                    className={`${inputBase} mt-2`}
+                    placeholder={isIndo ? "Penawaran Terbaik" : "View Top Offers"}
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {isIndo ? "Tautan Tombol Sekunder" : "Secondary Button Link"}
+                  </span>
+                  <input
+                    type="text"
+                    value={categories?.hero?.secondaryButtonLink || ""}
+                    onChange={(e) => onChangeCategoriesHeroField("secondaryButtonLink", e.target.value)}
+                    className={`${inputBase} mt-2`}
+                    placeholder="/offers"
+                  />
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <section className={sectionCard}>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                <Settings className="h-4 w-4" />
+              </span>
+              <h2 className="text-base font-semibold text-slate-900">
+                {isIndo ? "Judul & Keterangan Seksi" : "Section Headings & Descriptions"}
+              </h2>
+            </div>
+            <div className="mt-4 h-px w-full bg-slate-200" />
+
+            <div className="mt-4 grid grid-cols-1 gap-4">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                <h3 className="mb-3 text-sm font-bold text-slate-800">
+                  {isIndo ? "Seksi Kategori (Shop by Category)" : "Shop by Category Section"}
+                </h3>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      {isIndo ? "Judul Seksi" : "Section Title"}
+                    </span>
+                    <input
+                      type="text"
+                      value={categories?.sections?.shopByCategoryTitle || ""}
+                      onChange={(e) => onChangeCategoriesSectionsField("shopByCategoryTitle", e.target.value)}
+                      className={`${inputBase} mt-2`}
+                      placeholder={isIndo ? "Pilihan Berdasarkan Kategori" : "Shop by Category"}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      {isIndo ? "Subjudul Seksi" : "Section Subtitle"}
+                    </span>
+                    <input
+                      type="text"
+                      value={categories?.sections?.shopByCategorySubtitle || ""}
+                      onChange={(e) => onChangeCategoriesSectionsField("shopByCategorySubtitle", e.target.value)}
+                      className={`${inputBase} mt-2`}
+                      placeholder={
+                        isIndo
+                          ? "Pilihan produk berdasarkan rumpun karya dan inovasi kampus."
+                          : "Curated products organized by campus innovation categories."
+                      }
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                <h3 className="mb-3 text-sm font-bold text-slate-800">
+                  {isIndo ? "Seksi Koleksi Unggulan (Featured Collections)" : "Featured Collections Section"}
+                </h3>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      {isIndo ? "Judul Seksi" : "Section Title"}
+                    </span>
+                    <input
+                      type="text"
+                      value={categories?.sections?.featuredCollectionsTitle || ""}
+                      onChange={(e) => onChangeCategoriesSectionsField("featuredCollectionsTitle", e.target.value)}
+                      className={`${inputBase} mt-2`}
+                      placeholder={isIndo ? "Koleksi Unggulan" : "Featured Collections"}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      {isIndo ? "Subjudul Seksi" : "Section Subtitle"}
+                    </span>
+                    <input
+                      type="text"
+                      value={categories?.sections?.featuredCollectionsSubtitle || ""}
+                      onChange={(e) => onChangeCategoriesSectionsField("featuredCollectionsSubtitle", e.target.value)}
+                      className={`${inputBase} mt-2`}
+                      placeholder={
+                        isIndo
+                          ? "Pilihan kurasi produk untuk momen dan kebutuhan terbaik Anda."
+                          : "Curated selections for your moments and essential needs."
+                      }
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                <h3 className="mb-3 text-sm font-bold text-slate-800">
+                  {isIndo ? "Seksi Toko Terverifikasi (Top Stores)" : "Top Stores Section"}
+                </h3>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      {isIndo ? "Judul Seksi" : "Section Title"}
+                    </span>
+                    <input
+                      type="text"
+                      value={categories?.sections?.topStoresTitle || ""}
+                      onChange={(e) => onChangeCategoriesSectionsField("topStoresTitle", e.target.value)}
+                      className={`${inputBase} mt-2`}
+                      placeholder={isIndo ? "Toko & Penjual Terverifikasi" : "Top Verified Stores"}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      {isIndo ? "Subjudul Seksi" : "Section Subtitle"}
+                    </span>
+                    <input
+                      type="text"
+                      value={categories?.sections?.topStoresSubtitle || ""}
+                      onChange={(e) => onChangeCategoriesSectionsField("topStoresSubtitle", e.target.value)}
+                      className={`${inputBase} mt-2`}
+                      placeholder={
+                        isIndo
+                          ? "Daftar toko edupreneur kampus dengan reputasi dan produk terpercaya."
+                          : "Trusted campus edupreneurs with verified ratings and quality works."
+                      }
+                    />
+                  </label>
+                </div>
+              </div>
             </div>
           </section>
         </div>

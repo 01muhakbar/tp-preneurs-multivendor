@@ -564,6 +564,31 @@ const DEFAULT_CUSTOMIZATION = {
       trustBadgeText: "Transaksi Aman & Terverifikasi",
     },
   },
+  categories: {
+    hero: {
+      enabled: true,
+      eyebrow: "JELAJAHI KATALOG",
+      title: "Kategori Produk",
+      subtitle: "Temukan ragam karya inovasi, produk edupreneur, dan solusi kreatif kampus.",
+      searchPlaceholder: "Cari produk, kategori, atau toko...",
+      chip1: "Kategori Terverifikasi",
+      chip2: "Penjual Terpercaya",
+      chip3: "Akses Cepat",
+      primaryButtonLabel: "Semua Kategori",
+      primaryButtonLink: "/shop",
+      secondaryButtonLabel: "Penawaran Terbaik",
+      secondaryButtonLink: "/offers",
+      heroImageDataUrl: "",
+    },
+    sections: {
+      shopByCategoryTitle: "Pilihan Berdasarkan Kategori",
+      shopByCategorySubtitle: "Pilihan produk berdasarkan rumpun karya dan inovasi kampus.",
+      featuredCollectionsTitle: "Koleksi Unggulan",
+      featuredCollectionsSubtitle: "Pilihan kurasi produk untuk momen dan kebutuhan terbaik Anda.",
+      topStoresTitle: "Toko & Penjual Terverifikasi",
+      topStoresSubtitle: "Daftar toko edupreneur kampus dengan reputasi dan produk terpercaya.",
+    },
+  },
   dashboardSetting: {
     dashboard: {
       sectionTitle: "Dashboard",
