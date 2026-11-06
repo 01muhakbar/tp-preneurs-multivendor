@@ -187,43 +187,50 @@ const normalizeOrderVariantSelectionsOutput = (raw) => {
     }
     return [];
 };
-const mapSuborderSnapshotItemsForBuyerDetail = (suborders) => suborders.flatMap((suborder) => (Array.isArray(suborder?.items) ? suborder.items : []).map((item) => {
-    const product = item?.product ?? item?.get?.("product") ?? null;
-    const productId = Number(getAttr(item, "productId") || getAttr(product, "id") || 0) || null;
-    const qty = Number(getAttr(item, "qty") || 0);
-    const price = Number(getAttr(item, "priceSnapshot") || 0);
-    const lineTotalSnapshot = Number(getAttr(item, "totalPrice"));
-    const name = String(getAttr(item, "productNameSnapshot") ||
-        getAttr(product, "name") ||
-        `Product #${productId || "-"}`);
-    const imageUrl = normalizeUploadsUrl(getAttr(item, "imageSnapshot") || null);
-    const slug = String(getAttr(product, "slug") || "").trim() || null;
-    return {
-        id: Number(getAttr(item, "id") || 0) || null,
-        productId,
-        storeId: Number(getAttr(item, "storeId") || getAttr(suborder, "storeId") || 0) || null,
-        name,
-        productName: name,
-        product: productId
-            ? {
-                id: productId,
-                name,
-                slug,
-            }
-            : null,
-        imageUrl,
-        image: imageUrl,
-        quantity: qty,
-        qty,
-        price,
-        lineTotal: Number.isFinite(lineTotalSnapshot) ? lineTotalSnapshot : price * qty,
-        variantKey: String(getAttr(item, "variantKey") || "").trim() || null,
-        variantLabel: String(getAttr(item, "variantLabel") || "").trim() || null,
-        variantSelections: normalizeOrderVariantSelectionsOutput(getAttr(item, "variantSelections")),
-        sku: String(getAttr(item, "skuSnapshot") || "").trim() || null,
-        barcode: String(getAttr(item, "barcodeSnapshot") || "").trim() || null,
-    };
-}));
+const mapSuborderSnapshotItemsForBuyerDetail = (suborders) => suborders.flatMap((suborder) => {
+    const store = suborder?.store ?? suborder?.get?.("store") ?? null;
+    const storeName = String(getAttr(store, "name") || "").trim() || null;
+    const storeSlug = String(getAttr(store, "slug") || "").trim() || null;
+    return (Array.isArray(suborder?.items) ? suborder.items : []).map((item) => {
+        const product = item?.product ?? item?.get?.("product") ?? null;
+        const productId = Number(getAttr(item, "productId") || getAttr(product, "id") || 0) || null;
+        const qty = Number(getAttr(item, "qty") || 0);
+        const price = Number(getAttr(item, "priceSnapshot") || 0);
+        const lineTotalSnapshot = Number(getAttr(item, "totalPrice"));
+        const name = String(getAttr(item, "productNameSnapshot") ||
+            getAttr(product, "name") ||
+            `Product #${productId || "-"}`);
+        const imageUrl = normalizeUploadsUrl(getAttr(item, "imageSnapshot") || null);
+        const slug = String(getAttr(product, "slug") || "").trim() || null;
+        return {
+            id: Number(getAttr(item, "id") || 0) || null,
+            productId,
+            storeId: Number(getAttr(item, "storeId") || getAttr(suborder, "storeId") || 0) || null,
+            storeName,
+            storeSlug,
+            name,
+            productName: name,
+            product: productId
+                ? {
+                    id: productId,
+                    name,
+                    slug,
+                }
+                : null,
+            imageUrl,
+            image: imageUrl,
+            quantity: qty,
+            qty,
+            price,
+            lineTotal: Number.isFinite(lineTotalSnapshot) ? lineTotalSnapshot : price * qty,
+            variantKey: String(getAttr(item, "variantKey") || "").trim() || null,
+            variantLabel: String(getAttr(item, "variantLabel") || "").trim() || null,
+            variantSelections: normalizeOrderVariantSelectionsOutput(getAttr(item, "variantSelections")),
+            sku: String(getAttr(item, "skuSnapshot") || "").trim() || null,
+            barcode: String(getAttr(item, "barcodeSnapshot") || "").trim() || null,
+        };
+    });
+});
 const resolveOrderAmountSnapshot = (order, computedSubtotal = 0) => {
     const subtotalAmount = toNumber(getAttr(order, "subtotalAmount") ?? order?.subtotalAmount ?? order?.subtotal_amount);
     const shippingAmount = toNumber(getAttr(order, "shippingAmount") ??
@@ -2018,6 +2025,14 @@ router.get("/orders/my/:id", protect, async (req, res, next) => {
                 customerPhone: order.customerPhone ?? null,
                 customerAddress: order.customerAddress ?? null,
                 items,
+                storeSplits: paymentGroups.map((sub) => ({
+                    id: sub.id,
+                    storeId: sub.store?.id || sub.storeId,
+                    storeName: sub.store?.name || null,
+                    storeSlug: sub.store?.slug || null,
+                    fulfillmentStatus: sub.fulfillmentStatus,
+                    paymentStatus: sub.paymentStatus,
+                })),
             },
         });
     }

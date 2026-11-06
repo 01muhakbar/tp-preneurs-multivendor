@@ -465,7 +465,21 @@ const buildTimelineFallback = ({ paymentStatus, shipmentStatus, placedAt }) => {
   return events;
 };
 
-export const normalizeOrderDetailFor2026 = ({ order, payment }) => {
+export const isIndonesianLanguage = (i18nInstance) => {
+  if (typeof window !== "undefined") {
+    const stored = String(localStorage.getItem("store_language") || "").trim().toLowerCase();
+    if (stored === "indonesia" || stored === "id" || stored === "bahasa indonesia") {
+      return true;
+    }
+    if (stored === "english" || stored === "en") {
+      return false;
+    }
+  }
+  const current = String(i18nInstance?.language || "").trim().toLowerCase();
+  return current.startsWith("id");
+};
+
+export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false }) => {
   const source = asObject(order);
   const grouped = asObject(payment);
   const id = source.id ?? grouped.orderId ?? null;
@@ -567,7 +581,196 @@ export const normalizeOrderDetailFor2026 = ({ order, payment }) => {
   );
   const availableActions = normalizeAvailableActions(contract);
 
+  const isDelivered =
+    orderStatus.code === "COMPLETED" ||
+    orderStatus.code === "DELIVERED" ||
+    shipmentStatus.code === "DELIVERED" ||
+    truthStatus.isDelivered;
+
+  const isShipping =
+    orderStatus.code === "SHIPPED" ||
+    orderStatus.code === "IN_DELIVERY" ||
+    shipmentStatus.code === "SHIPPED" ||
+    shipmentStatus.code === "IN_DELIVERY";
+
+  const isPacking =
+    orderStatus.code === "PROCESSING" ||
+    orderStatus.code === "READY_TO_FULFILL" ||
+    orderStatus.code === "TO_PACK" ||
+    shipmentStatus.code === "READY_TO_FULFILL";
+
+  const isUnpaid =
+    paymentStatus.code === "UNPAID" ||
+    paymentStatus.code === "PENDING" ||
+    orderStatus.code === "UNPAID" ||
+    orderStatus.code === "PENDING";
+
+  const isCancelled =
+    orderStatus.code === "CANCELLED" ||
+    orderStatus.code === "FAILED" ||
+    orderStatus.code === "EXPIRED" ||
+    paymentStatus.code === "FAILED" ||
+    paymentStatus.code === "EXPIRED";
+
+  const bannerTone = isDelivered
+    ? "success"
+    : isShipping || isPacking
+      ? "blue"
+      : isUnpaid
+        ? "warning"
+        : isCancelled
+          ? "danger"
+          : "neutral";
+
+  const bannerTitle = isDelivered
+    ? isIndo ? "Pesanan Selesai" : "Order Completed"
+    : isShipping
+      ? isIndo ? "Pesanan Sedang Dikirim" : "Order in Transit"
+      : isPacking
+        ? isIndo ? "Pesanan Sedang Dikemas" : "Order is Being Packed"
+        : isUnpaid
+          ? isIndo ? "Menunggu Pembayaran" : "Awaiting Payment"
+          : isCancelled
+            ? isIndo ? "Pesanan Dibatalkan" : "Order Cancelled"
+            : orderStatus.label;
+
+  const bannerSubnote = isDelivered
+    ? isIndo ? "Pesanan telah diterima dengan baik di alamat tujuan." : "Order has safely arrived at destination address."
+    : isShipping
+      ? isIndo ? "Paket sedang dalam perjalanan bersama kurir pengiriman." : "Package is in transit with the delivery courier."
+      : isPacking
+        ? isIndo ? "Penjual sedang menyiapkan barang pesanan Anda." : "Seller is packing and preparing your order."
+        : isUnpaid
+          ? isIndo ? "Silakan selesaikan pembayaran sebelum batas waktu berakhir." : "Please complete payment before timeout."
+          : isCancelled
+            ? isIndo ? "Pesanan ini telah dibatalkan." : "This order has been cancelled."
+            : "";
+
+  const primaryCourier =
+    text(primaryShipment?.courier) ||
+    text(source.courierName) ||
+    (isIndo ? "Pengiriman Standar" : "Standard Delivery");
+  const primaryTrackingNo =
+    text(primaryShipment?.trackingNumber) ||
+    text(source.trackingNumber) ||
+    reference;
+  const latestTimelineEvent = timeline?.[timeline.length - 1] || null;
+  const shippingStatusText =
+    latestTimelineEvent?.label ||
+    (isDelivered
+      ? isIndo ? "Pesanan tiba di alamat tujuan." : "Package arrived at destination."
+      : isShipping
+        ? isIndo ? "Paket sedang dalam perjalanan." : "Package is on the way."
+        : isPacking
+          ? isIndo ? "Pesanan sedang dikemas oleh penjual." : "Order is being packed by seller."
+          : isIndo ? "Menunggu konfirmasi pembayaran." : "Waiting for payment confirmation.");
+  const shippingTimestamp =
+    latestTimelineEvent?.happenedAtDisplay ||
+    (placedAt ? formatDateTime(placedAt) : "-");
+
+  const recipientName = text(source.customerName || source.customer?.name, isIndo ? "Pelanggan" : "Customer");
+  const recipientPhone = text(source.customerPhone || source.customer?.phone, "-");
+  const recipientAddress = text(
+    source.customerAddress ||
+      source.customer?.address ||
+      source.shippingDetails?.address ||
+      source.shippingDetails?.destination ||
+      "-",
+    "-"
+  );
+
+  const primaryStoreName =
+    items[0]?.storeName ||
+    storeBreakdown[0]?.storeName ||
+    source.storeName ||
+    (isIndo ? "Toko Penjual" : "Seller Store");
+
+  const paymentMethodDisplay = text(
+    source.paymentMethodLabel ||
+      grouped.paymentMethodLabel ||
+      source.paymentMethod ||
+      grouped.paymentMethod,
+    isIndo ? "Pembayaran Online" : "Online Payment"
+  );
+
+  const customerNotes = text(
+    source.notes || source.customerNote || source.customerNotes || source.note || ""
+  );
+
+  const timelineDates = {
+    orderPlaced: placedAt ? formatDateTime(placedAt) : "-",
+    paidAt: payment.paidAt
+      ? formatDateTime(payment.paidAt)
+      : isUnpaid
+        ? null
+        : placedAt
+          ? formatDateTime(placedAt)
+          : null,
+    shippedAt: primaryShipment?.createdAt ? formatDateTime(primaryShipment.createdAt) : null,
+    deliveredAt: primaryShipment?.deliveredOn
+      ? formatDateTime(primaryShipment.deliveredOn)
+      : isDelivered && placedAt
+        ? formatDateTime(placedAt)
+        : null,
+  };
+
+  const shopeeDetail = {
+    banner: {
+      title: bannerTitle,
+      tone: bannerTone,
+      subnote: bannerSubnote,
+      isDelivered,
+      isShipping,
+      isPacking,
+      isUnpaid,
+      isCancelled,
+    },
+    shippingInfo: {
+      courier: primaryCourier,
+      trackingNumber: primaryTrackingNo,
+      statusText: shippingStatusText,
+      timestamp: shippingTimestamp,
+      hasTracking: Boolean(trackingUrl || publicTrackingPath || timeline.length),
+      trackingPath: trackingUrl || publicTrackingPath || "",
+    },
+    shippingAddress: {
+      name: recipientName,
+      phone: recipientPhone,
+      address: recipientAddress,
+    },
+    storeProducts: {
+      storeName: primaryStoreName,
+      storeBadge: "Star",
+      items,
+      summary: {
+        subtotal,
+        subtotalDisplay: formatCurrency(subtotal),
+        shipping,
+        shippingDisplay: formatCurrency(shipping),
+        serviceFee,
+        serviceFeeDisplay: formatCurrency(serviceFee),
+        discount,
+        discountDisplay: formatCurrency(discount),
+        total,
+        totalDisplay: formatCurrency(total),
+      },
+    },
+    helpActions: {
+      returnUrl: `/contact-us?topic=return&ref=${encodeURIComponent(reference)}`,
+      chatUrl: `/contact-us?topic=seller&ref=${encodeURIComponent(reference)}`,
+      supportUrl: `/contact-us?topic=order&ref=${encodeURIComponent(reference)}`,
+    },
+    orderMeta: {
+      orderNo: reference,
+      paymentMethod: paymentMethodDisplay,
+      sellerNote: customerNotes,
+      invoiceUrl,
+      timeline: timelineDates,
+    },
+  };
+
   return {
+    shopeeDetail,
     account: {
       customerName: text(source.customerName || source.customer?.name),
       customerPhone: text(source.customerPhone || source.customer?.phone),

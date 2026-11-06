@@ -244,8 +244,11 @@ const normalizeOrderVariantSelectionsOutput = (raw: any) => {
 };
 
 const mapSuborderSnapshotItemsForBuyerDetail = (suborders: any[]) =>
-  suborders.flatMap((suborder: any) =>
-    (Array.isArray(suborder?.items) ? suborder.items : []).map((item: any) => {
+  suborders.flatMap((suborder: any) => {
+    const store = suborder?.store ?? suborder?.get?.("store") ?? null;
+    const storeName = String(getAttr(store, "name") || "").trim() || null;
+    const storeSlug = String(getAttr(store, "slug") || "").trim() || null;
+    return (Array.isArray(suborder?.items) ? suborder.items : []).map((item: any) => {
       const product = item?.product ?? item?.get?.("product") ?? null;
       const productId =
         Number(getAttr(item, "productId") || getAttr(product, "id") || 0) || null;
@@ -265,6 +268,8 @@ const mapSuborderSnapshotItemsForBuyerDetail = (suborders: any[]) =>
         productId,
         storeId:
           Number(getAttr(item, "storeId") || getAttr(suborder, "storeId") || 0) || null,
+        storeName,
+        storeSlug,
         name,
         productName: name,
         product: productId
@@ -288,8 +293,8 @@ const mapSuborderSnapshotItemsForBuyerDetail = (suborders: any[]) =>
         sku: String(getAttr(item, "skuSnapshot") || "").trim() || null,
         barcode: String(getAttr(item, "barcodeSnapshot") || "").trim() || null,
       };
-    })
-  );
+    });
+  });
 
 const resolveOrderAmountSnapshot = (order: any, computedSubtotal = 0) => {
   const subtotalAmount = toNumber(
@@ -2323,6 +2328,14 @@ router.get(
           customerPhone: order.customerPhone ?? null,
           customerAddress: order.customerAddress ?? null,
           items,
+          storeSplits: paymentGroups.map((sub: any) => ({
+            id: sub.id,
+            storeId: sub.store?.id || sub.storeId,
+            storeName: sub.store?.name || null,
+            storeSlug: sub.store?.slug || null,
+            fulfillmentStatus: sub.fulfillmentStatus,
+            paymentStatus: sub.paymentStatus,
+          })),
         },
       });
     } catch (error) {

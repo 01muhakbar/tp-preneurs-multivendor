@@ -1,12 +1,14 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { Link, useNavigate, useParams, useOutletContext } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { api } from "../../api/axios.ts";
 import { fetchOrderCheckoutPayment } from "../../api/orderPayments.ts";
 import { isOrderContractFinal } from "../../utils/orderContract.ts";
 import { isSplitOperationallyFinal } from "../../utils/splitOperationalTruth.ts";
 import AccountOrderDetail2026View from "./AccountOrderDetail2026View.jsx";
-import { normalizeOrderDetailFor2026 } from "./accountOrderDetail2026Adapter.js";
+import { isIndonesianLanguage, normalizeOrderDetailFor2026 } from "./accountOrderDetail2026Adapter.js";
 import { useAuth } from "../../auth/useAuth.js";
 
 const fetchOrder = async (orderId) => {
@@ -27,6 +29,23 @@ export default function AccountOrderDetailPage() {
   const auth = useAuth();
   const user = auth?.user || null;
   const { dashboardSettingCopy } = useOutletContext() || {};
+  const { i18n } = useTranslation();
+  const [, setLangSync] = useState(0);
+
+  useEffect(() => {
+    const handleSync = () => setLangSync((c) => c + 1);
+    i18n?.on?.("languageChanged", handleSync);
+    window.addEventListener("storage", handleSync);
+    window.addEventListener("store_language_changed", handleSync);
+    return () => {
+      i18n?.off?.("languageChanged", handleSync);
+      window.removeEventListener("storage", handleSync);
+      window.removeEventListener("store_language_changed", handleSync);
+    };
+  }, [i18n]);
+
+  const isIndo = isIndonesianLanguage(i18n);
+
   const orderQuery = useQuery({
     queryKey: ["account", "orders", id],
     queryFn: () => fetchOrder(id),
@@ -56,6 +75,7 @@ export default function AccountOrderDetailPage() {
     ? normalizeOrderDetailFor2026({
         order: orderDetail,
         payment: paymentReadModel,
+        isIndo,
       })
     : null;
 
@@ -144,6 +164,7 @@ export default function AccountOrderDetailPage() {
       groupedOrder={paymentReadModel}
       user={user}
       dashboardSettingCopy={dashboardSettingCopy}
+      isIndo={isIndo}
     />
   );
 }
