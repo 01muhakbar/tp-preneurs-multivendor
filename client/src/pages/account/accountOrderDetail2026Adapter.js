@@ -227,7 +227,7 @@ const normalizeItem = (value, index, storeInfo = {}) => {
   const lineTotal = asNumber(item.lineTotal ?? item.totalPrice, unitPrice * quantity);
   return {
     id: text(item.id ?? item.productId ?? `${storeInfo.storeId || "item"}-${index}`),
-    productId: item.productId ?? item.product?.id ?? null,
+    productId: item.productId ?? item.product_id ?? item.product?.id ?? null,
     storeId: item.storeId ?? storeInfo.storeId ?? null,
     storeName: text(item.storeName || storeInfo.storeName),
     name: text(item.name || item.productName || item.product?.name, "Product"),

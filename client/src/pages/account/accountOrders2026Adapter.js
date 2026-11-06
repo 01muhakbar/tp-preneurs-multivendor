@@ -90,15 +90,15 @@ const resolveFilterBucket = (order, truthStatus, contractSummary) => {
 const normalizeItem = (item) => {
   const it = asObject(item);
   return {
-    id: asNumber(it.id, 0),
-    productId: asNumber(it.productId, 0),
-    name: text(it.name || it.productName || it.title, "Produk"),
-    image: text(it.image || it.imageSnapshot || it.imageUrl, ""),
+    id: asNumber(it.id ?? it.order_item_id ?? it.orderItemId, 0),
+    productId: asNumber(it.productId ?? it.product_id ?? it.itemId ?? it.product?.id, 0),
+    name: text(it.name || it.productName || it.title || it.product?.name, "Produk"),
+    image: text(it.image || it.imageSnapshot || it.imageUrl || it.product?.image, ""),
     variant: text(it.variant || it.variantLabel || it.variantKey, ""),
     price: asNumber(it.price || it.priceSnapshot, 0),
     quantity: Math.max(1, asNumber(it.quantity || it.qty, 1)),
     totalPrice: asNumber(it.totalPrice || it.price, 0),
-    slug: text(it.slug || it.productSlug, ""),
+    slug: text(it.slug || it.productSlug || it.product?.slug, ""),
     isReviewed: Boolean(it.isReviewed),
     reviewId: asNumber(it.reviewId, null),
     rating: asNumber(it.rating, null),

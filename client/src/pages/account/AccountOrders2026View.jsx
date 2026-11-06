@@ -302,21 +302,34 @@ function ShopeeOrderCard({ order, LinkComponent, t }) {
             >
               {t.buyAgain}
             </LinkComponent>
-            {order.isReviewed || (items.length > 0 && items.every((it) => it.isReviewed)) ? (
-              <LinkComponent
-                to={`/user/my-reviews?tab=reviewed${items[0]?.productId ? `&productId=${items[0].productId}` : ""}`}
-                className="tp-shopee-btn tp-shopee-btn--outline"
-              >
-                {t.viewReview}
-              </LinkComponent>
-            ) : (
-              <LinkComponent
-                to={`/user/my-reviews${items.find((it) => !it.isReviewed)?.productId || items[0]?.productId ? `?productId=${items.find((it) => !it.isReviewed)?.productId || items[0]?.productId}` : ""}`}
-                className="tp-shopee-btn tp-shopee-btn--accent"
-              >
-                {t.review}
-              </LinkComponent>
-            )}
+            {(() => {
+              const targetPid =
+                items.find((it) => !it.isReviewed && Number(it.productId) > 0)?.productId ||
+                items.find((it) => Number(it.productId) > 0)?.productId ||
+                null;
+              const isOrderFullyReviewed =
+                order.isReviewed || (items.length > 0 && items.every((it) => it.isReviewed));
+
+              if (isOrderFullyReviewed) {
+                return (
+                  <LinkComponent
+                    to={`/user/my-reviews?tab=reviewed${targetPid ? `&productId=${targetPid}` : ""}`}
+                    className="tp-shopee-btn tp-shopee-btn--outline"
+                  >
+                    {t.viewReview}
+                  </LinkComponent>
+                );
+              }
+
+              return (
+                <LinkComponent
+                  to={`/user/my-reviews${targetPid ? `?productId=${targetPid}` : ""}`}
+                  className="tp-shopee-btn tp-shopee-btn--accent"
+                >
+                  {t.review}
+                </LinkComponent>
+              );
+            })()}
           </>
         )}
 

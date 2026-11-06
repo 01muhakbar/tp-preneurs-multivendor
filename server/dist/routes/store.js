@@ -187,6 +187,24 @@ const normalizeOrderVariantSelectionsOutput = (raw) => {
     }
     return [];
 };
+const tableCache = new Map();
+const resolveExistingTableName = async (candidates, fallback) => {
+    const cacheKey = candidates.join("|");
+    if (tableCache.has(cacheKey)) {
+        return tableCache.get(cacheKey);
+    }
+    const qi = sequelize.getQueryInterface();
+    for (const name of candidates) {
+        try {
+            await qi.describeTable(name);
+            tableCache.set(cacheKey, name);
+            return name;
+        }
+        catch { }
+    }
+    tableCache.set(cacheKey, fallback);
+    return fallback;
+};
 const mapSuborderSnapshotItemsForBuyerDetail = (suborders) => suborders.flatMap((suborder) => {
     const store = suborder?.store ?? suborder?.get?.("store") ?? null;
     const storeName = String(getAttr(store, "name") || "").trim() || null;
@@ -766,34 +784,48 @@ const validateReviewSubmission = (comment, images) => {
 };
 const hasEligibleDeliveredOrderItem = async (userId, productId) => {
     try {
-        const [rows] = await sequelize.query(`SELECT 1
-       FROM (
-         SELECT oi.product_id
-         FROM orderitems oi
-         INNER JOIN orders o ON o.id = oi.order_id
-         LEFT JOIN suborders sub ON sub.order_id = o.id
-         WHERE o.user_id = :userId
-           AND oi.product_id = :productId
-           AND (
-             LOWER(COALESCE(o.status, '')) IN ('delivered', 'completed', 'complete', 'selesai')
-             OR LOWER(COALESCE(sub.fulfillment_status, '')) IN ('delivered', 'completed', 'complete', 'selesai')
-             OR (LOWER(COALESCE(sub.payment_status, '')) = 'paid' AND LOWER(COALESCE(sub.fulfillment_status, '')) IN ('delivered', 'completed', 'selesai'))
-           )
-         UNION
-         SELECT soi.product_id
-         FROM suborder_items soi
-         INNER JOIN suborders sub ON sub.id = soi.suborder_id
-         INNER JOIN orders o ON o.id = sub.order_id
+        const suborderItemTable = await resolveExistingTableName(["suborder_items", "SuborderItems", "suborderitems"], "suborder_items");
+        const suborderTable = await resolveExistingTableName(["suborders", "Suborders"], "suborders");
+        const orderTable = await resolveExistingTableName(["orders", "Orders"], "orders");
+        // 1. Check in suborder_items
+        try {
+            const [rows] = await sequelize.query(`SELECT 1
+         FROM ${suborderItemTable} soi
+         INNER JOIN ${suborderTable} sub ON sub.id = soi.suborder_id
+         INNER JOIN ${orderTable} o ON o.id = sub.order_id
          WHERE o.user_id = :userId
            AND soi.product_id = :productId
            AND (
-             LOWER(COALESCE(o.status, '')) IN ('delivered', 'completed', 'complete', 'selesai')
-             OR LOWER(COALESCE(sub.fulfillment_status, '')) IN ('delivered', 'completed', 'complete', 'selesai')
-             OR (LOWER(COALESCE(sub.payment_status, '')) = 'paid' AND LOWER(COALESCE(sub.fulfillment_status, '')) IN ('delivered', 'completed', 'selesai'))
+             LOWER(COALESCE(o.status, '')) IN ('delivered', 'completed', 'complete', 'selesai', 'fulfilled')
+             OR LOWER(COALESCE(sub.fulfillment_status, '')) IN ('delivered', 'completed', 'complete', 'selesai', 'fulfilled')
+             OR (LOWER(COALESCE(sub.payment_status, '')) = 'paid' AND LOWER(COALESCE(sub.fulfillment_status, '')) IN ('delivered', 'completed', 'selesai', 'fulfilled'))
            )
-       ) AS eligible
-       LIMIT 1`, { replacements: { userId, productId } });
-        return Array.isArray(rows) && rows.length > 0;
+         LIMIT 1`, { replacements: { userId, productId } });
+            if (Array.isArray(rows) && rows.length > 0)
+                return true;
+        }
+        catch { }
+        // 2. Check in legacy order items table (order_items / orderitems)
+        for (const legacyTable of ["order_items", "OrderItems", "orderitems"]) {
+            try {
+                const [rows] = await sequelize.query(`SELECT 1
+           FROM ${legacyTable} oi
+           INNER JOIN ${orderTable} o ON o.id = oi.order_id
+           LEFT JOIN ${suborderTable} sub ON sub.order_id = o.id
+           WHERE o.user_id = :userId
+             AND oi.product_id = :productId
+             AND (
+               LOWER(COALESCE(o.status, '')) IN ('delivered', 'completed', 'complete', 'selesai', 'fulfilled')
+               OR LOWER(COALESCE(sub.fulfillment_status, '')) IN ('delivered', 'completed', 'complete', 'selesai', 'fulfilled')
+               OR (LOWER(COALESCE(sub.payment_status, '')) = 'paid' AND LOWER(COALESCE(sub.fulfillment_status, '')) IN ('delivered', 'completed', 'selesai', 'fulfilled'))
+             )
+           LIMIT 1`, { replacements: { userId, productId } });
+                if (Array.isArray(rows) && rows.length > 0)
+                    return true;
+            }
+            catch { }
+        }
+        return false;
     }
     catch (error) {
         console.error("[hasEligibleDeliveredOrderItem] check error", error);
@@ -1668,6 +1700,8 @@ router.get("/my/orders", protect, async (req, res, next) => {
                 duitkuPaymentCodeByOrderId.set(orderId, String(row?.paymentCode || "").trim() || null);
             }
             try {
+                const suborderItemTable = await resolveExistingTableName(["suborder_items", "SuborderItems", "suborderitems"], "suborder_items");
+                const suborderTable = await resolveExistingTableName(["suborders", "Suborders"], "suborders");
                 const itemRows = (await sequelize.query(`
               SELECT
                 si.id,
@@ -1681,8 +1715,8 @@ router.get("/my/orders", protect, async (req, res, next) => {
                 si.qty AS quantity,
                 si.total_price AS totalPrice,
                 p.slug AS productSlug
-              FROM suborder_items si
-              INNER JOIN suborders s ON s.id = si.suborder_id
+              FROM ${suborderItemTable} si
+              INNER JOIN ${suborderTable} s ON s.id = si.suborder_id
               LEFT JOIN products p ON p.id = si.product_id
               WHERE s.order_id IN (${placeholders})
               ORDER BY si.id ASC
@@ -1708,9 +1742,10 @@ router.get("/my/orders", protect, async (req, res, next) => {
                         slug: item.productSlug || null,
                     });
                 }
-                // Fallback to orderitems for any orders missing items in suborder_items
+                // Fallback to legacy order items for any orders missing items in suborder_items
                 const missingOrderIds = orderIds.filter((id) => !itemsByOrderId.has(id) || itemsByOrderId.get(id).length === 0);
                 if (missingOrderIds.length > 0) {
+                    const legacyItemTable = await resolveExistingTableName(["orderitems", "order_items", "OrderItems"], "orderitems");
                     const missingPlaceholders = missingOrderIds.map(() => "?").join(", ");
                     const legacyItemRows = (await sequelize.query(`
                 SELECT
@@ -1723,7 +1758,7 @@ router.get("/my/orders", protect, async (req, res, next) => {
                   oi.price,
                   oi.quantity,
                   p.slug AS productSlug
-                FROM orderitems oi
+                FROM ${legacyItemTable} oi
                 LEFT JOIN products p ON p.id = oi.product_id
                 WHERE oi.order_id IN (${missingPlaceholders})
                 ORDER BY oi.id ASC
@@ -2731,59 +2766,107 @@ router.get("/my/reviews/need", protect, async (req, res) => {
         const userId = getAuthUserId(req, res);
         if (!userId)
             return;
-        const [candidateRows] = await sequelize.query(`SELECT
-           matched.product_id AS productId,
-           MAX(matched.order_id) AS orderId,
-           MAX(matched.invoice_no) AS orderRef,
-           MAX(matched.created_at) AS orderedAt
-         FROM (
-           SELECT
-             oi.product_id,
-             o.id AS order_id,
-             o.invoice_no,
-             o.created_at
-           FROM orderitems oi
-           INNER JOIN orders o ON o.id = oi.order_id
-           LEFT JOIN suborders sub ON sub.order_id = o.id
+        const suborderItemTable = await resolveExistingTableName(["suborder_items", "SuborderItems", "suborderitems"], "suborder_items");
+        const suborderTable = await resolveExistingTableName(["suborders", "Suborders"], "suborders");
+        const orderTable = await resolveExistingTableName(["orders", "Orders"], "orders");
+        const productReviewTable = await resolveExistingTableName(["product_reviews", "ProductReviews", "productreviews"], "product_reviews");
+        // 1. Fetch delivered/completed items from suborder_items
+        let candidateItems = [];
+        try {
+            const [suborderRows] = await sequelize.query(`SELECT
+             soi.product_id AS productId,
+             o.id AS orderId,
+             o.invoice_no AS orderRef,
+             o.created_at AS orderedAt
+           FROM ${suborderItemTable} soi
+           INNER JOIN ${suborderTable} sub ON sub.id = soi.suborder_id
+           INNER JOIN ${orderTable} o ON o.id = sub.order_id
            WHERE o.user_id = :userId
              AND (
-               LOWER(COALESCE(o.status, '')) IN ('delivered', 'completed', 'complete', 'selesai')
-               OR LOWER(COALESCE(sub.fulfillment_status, '')) IN ('delivered', 'completed', 'complete', 'selesai')
-               OR (LOWER(COALESCE(sub.payment_status, '')) = 'paid' AND LOWER(COALESCE(sub.fulfillment_status, '')) IN ('delivered', 'completed', 'selesai'))
-             )
-           UNION
-           SELECT
-             soi.product_id,
-             o.id AS order_id,
-             o.invoice_no,
-             o.created_at
-           FROM suborder_items soi
-           INNER JOIN suborders sub ON sub.id = soi.suborder_id
-           INNER JOIN orders o ON o.id = sub.order_id
-           WHERE o.user_id = :userId
-             AND (
-               LOWER(COALESCE(o.status, '')) IN ('delivered', 'completed', 'complete', 'selesai')
-               OR LOWER(COALESCE(sub.fulfillment_status, '')) IN ('delivered', 'completed', 'complete', 'selesai')
-               OR (LOWER(COALESCE(sub.payment_status, '')) = 'paid' AND LOWER(COALESCE(sub.fulfillment_status, '')) IN ('delivered', 'completed', 'selesai'))
-             )
-         ) AS matched
-         LEFT JOIN product_reviews pr
-           ON pr.product_id = matched.product_id
-          AND pr.user_id = :userId
-         WHERE pr.id IS NULL
-         GROUP BY matched.product_id
-         ORDER BY orderedAt DESC`, { replacements: { userId } });
-        const rows = Array.isArray(candidateRows) ? candidateRows : [];
-        if (rows.length === 0) {
+               LOWER(COALESCE(o.status, '')) IN ('delivered', 'completed', 'complete', 'selesai', 'fulfilled')
+               OR LOWER(COALESCE(sub.fulfillment_status, '')) IN ('delivered', 'completed', 'complete', 'selesai', 'fulfilled')
+               OR (LOWER(COALESCE(sub.payment_status, '')) = 'paid' AND LOWER(COALESCE(sub.fulfillment_status, '')) IN ('delivered', 'completed', 'selesai', 'fulfilled'))
+             )`, { replacements: { userId } });
+            if (Array.isArray(suborderRows)) {
+                candidateItems.push(...suborderRows);
+            }
+        }
+        catch (subErr) {
+            console.error("[store/my/reviews/need] suborder query error", subErr);
+        }
+        // 2. Fetch delivered/completed items from legacy order items (order_items / orderitems)
+        for (const legacyTable of ["order_items", "OrderItems", "orderitems"]) {
+            try {
+                const [legacyRows] = await sequelize.query(`SELECT
+               oi.product_id AS productId,
+               o.id AS orderId,
+               o.invoice_no AS orderRef,
+               o.created_at AS orderedAt
+             FROM ${legacyTable} oi
+             INNER JOIN ${orderTable} o ON o.id = oi.order_id
+             LEFT JOIN ${suborderTable} sub ON sub.order_id = o.id
+             WHERE o.user_id = :userId
+               AND (
+                 LOWER(COALESCE(o.status, '')) IN ('delivered', 'completed', 'complete', 'selesai', 'fulfilled')
+                 OR LOWER(COALESCE(sub.fulfillment_status, '')) IN ('delivered', 'completed', 'complete', 'selesai', 'fulfilled')
+                 OR (LOWER(COALESCE(sub.payment_status, '')) = 'paid' AND LOWER(COALESCE(sub.fulfillment_status, '')) IN ('delivered', 'completed', 'selesai', 'fulfilled'))
+               )`, { replacements: { userId } });
+                if (Array.isArray(legacyRows) && legacyRows.length > 0) {
+                    candidateItems.push(...legacyRows);
+                    break;
+                }
+            }
+            catch {
+                // try next candidate table
+            }
+        }
+        // Filter valid products
+        const validItems = candidateItems.filter((it) => it && Number(it.productId) > 0);
+        if (validItems.length === 0) {
             return res.json({
                 success: true,
                 items: [],
                 meta: { totalItems: 0 },
             });
         }
-        const productIds = rows.map((r) => Number(r.productId)).filter(Boolean);
+        // Group candidate items by product_id (latest order wins)
+        const itemByProductId = new Map();
+        for (const item of validItems) {
+            const pid = Number(item.productId);
+            const existing = itemByProductId.get(pid);
+            if (!existing || new Date(item.orderedAt || 0) > new Date(existing.orderedAt || 0)) {
+                itemByProductId.set(pid, item);
+            }
+        }
+        const candidateProductIds = Array.from(itemByProductId.keys());
+        // Query which of these products have already been reviewed by this user
+        let reviewedProductIds = new Set();
+        if (candidateProductIds.length > 0) {
+            try {
+                const reviewRows = (await sequelize.query(`SELECT DISTINCT product_id AS productId
+             FROM ${productReviewTable}
+             WHERE user_id = :userId AND product_id IN (:productIds)`, {
+                    replacements: { userId, productIds: candidateProductIds },
+                    type: QueryTypes.SELECT,
+                }));
+                reviewedProductIds = new Set(reviewRows.map((r) => Number(r.productId)).filter(Boolean));
+            }
+            catch (revErr) {
+                console.error("[store/my/reviews/need] review lookup error", revErr);
+            }
+        }
+        // Keep only products that haven't been reviewed yet
+        const unreviewedProductIds = candidateProductIds.filter((pid) => !reviewedProductIds.has(pid));
+        if (unreviewedProductIds.length === 0) {
+            return res.json({
+                success: true,
+                items: [],
+                meta: { totalItems: 0 },
+            });
+        }
+        // Fetch product and store details
         const products = await Product.findAll({
-            where: { id: productIds },
+            where: { id: unreviewedProductIds },
             attributes: ["id", "storeId", "name", "slug", "promoImagePath", "imagePaths"],
             include: [
                 {
@@ -2795,18 +2878,18 @@ router.get("/my/reviews/need", protect, async (req, res) => {
             ],
         });
         const productMap = new Map(products.map((p) => [Number(p.id), p]));
-        const items = rows.map((row) => {
-            const pid = Number(row.productId ?? row.product_id);
+        const items = unreviewedProductIds.map((pid) => {
+            const row = itemByProductId.get(pid);
             const product = productMap.get(pid);
             const store = product?.store ?? null;
             const imagePaths = parseImagePaths(product?.imagePaths);
             const rawImage = product?.promoImagePath || imagePaths[0] || null;
-            const orderId = Number(row.orderId ?? row.order_id);
+            const orderId = Number(row?.orderId);
             return {
                 productId: pid,
                 orderId: Number.isFinite(orderId) ? orderId : null,
-                orderRef: row.orderRef ?? row.order_ref ?? null,
-                orderedAt: row.orderedAt ?? row.ordered_at ?? null,
+                orderRef: row?.orderRef ?? null,
+                orderedAt: row?.orderedAt ?? null,
                 name: String(product?.name || `Product #${pid || "-"}`),
                 slug: product?.slug ? String(product.slug) : null,
                 image: normalizeUploadsUrl(rawImage),

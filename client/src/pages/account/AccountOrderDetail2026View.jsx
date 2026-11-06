@@ -729,22 +729,37 @@ export default function AccountOrderDetail2026View({
             >
               {t.payNow}
             </LinkComponent>
-          ) : (
-            <LinkComponent
-              to={
-                orderDetail.isReviewed
-                  ? `/user/my-reviews?tab=reviewed${orderDetail.items?.[0]?.productId ? `&productId=${orderDetail.items[0].productId}` : ""}`
-                  : `/user/my-reviews${orderDetail.items?.find((it) => !it.isReviewed)?.productId || orderDetail.items?.[0]?.productId ? `?productId=${orderDetail.items?.find((it) => !it.isReviewed)?.productId || orderDetail.items?.[0]?.productId}` : ""}`
-              }
-              className={
-                orderDetail.isReviewed
-                  ? "tp-shopee-detail__btn-outline"
-                  : "tp-shopee-detail__btn-orange"
-              }
-            >
-              {orderDetail.isReviewed ? t.viewReview : t.review}
-            </LinkComponent>
-          )}
+          ) : (() => {
+            const targetPid =
+              orderDetail.items?.find((it) => !it.isReviewed && Number(it.productId) > 0)?.productId ||
+              orderDetail.items?.find((it) => Number(it.productId) > 0)?.productId ||
+              null;
+            const isOrderFullyReviewed =
+              orderDetail.isReviewed ||
+              (Array.isArray(orderDetail.items) &&
+                orderDetail.items.length > 0 &&
+                orderDetail.items.every((it) => it.isReviewed));
+
+            if (isOrderFullyReviewed) {
+              return (
+                <LinkComponent
+                  to={`/user/my-reviews?tab=reviewed${targetPid ? `&productId=${targetPid}` : ""}`}
+                  className="tp-shopee-detail__btn-outline"
+                >
+                  {t.viewReview}
+                </LinkComponent>
+              );
+            }
+
+            return (
+              <LinkComponent
+                to={`/user/my-reviews${targetPid ? `?productId=${targetPid}` : ""}`}
+                className="tp-shopee-detail__btn-orange"
+              >
+                {t.review}
+              </LinkComponent>
+            );
+          })()}
         </div>
       </div>
 
