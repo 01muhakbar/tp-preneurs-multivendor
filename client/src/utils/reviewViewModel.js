@@ -99,11 +99,11 @@ export const getReviewImageUrls = (review) =>
     .filter(Boolean)
     .slice(0, MAX_REVIEW_IMAGES);
 
-export const formatReviewDate = (value) => {
+export const formatReviewDate = (value, isIndo = false) => {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleDateString("en-GB", {
+  return date.toLocaleDateString(isIndo ? "id-ID" : "en-GB", {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -116,6 +116,11 @@ export const normalizeNeedReviewItem = (item = {}) => {
   const name =
     toText(item.name ?? item.productName ?? item.product?.name) ||
     (productId ? `Product #${productId}` : "Product");
+  const storeId = toNumberOrNull(item.storeId ?? item.store_id ?? item.store?.id);
+  const storeSlug = toText(item.storeSlug ?? item.store_slug ?? item.store?.slug) || null;
+  const storeName =
+    toText(item.storeName ?? item.store?.name ?? item.vendor?.name) ||
+    "";
 
   return {
     id: productId ? `need-${productId}-${orderId ?? "order"}` : `need-${name}`,
@@ -126,9 +131,9 @@ export const normalizeNeedReviewItem = (item = {}) => {
     name,
     slug: toText(item.slug ?? item.product?.slug) || null,
     imageUrl: getAssetUrl(item),
-    storeName:
-      toText(item.storeName ?? item.store?.name ?? item.vendor?.name) ||
-      "Storefront order",
+    storeId,
+    storeSlug,
+    storeName,
     raw: item,
   };
 };
@@ -143,6 +148,24 @@ export const normalizeReviewedItem = (review = {}) => {
   const name =
     toText(product.name ?? review.productName ?? review.name) ||
     (productId ? `Product #${productId}` : "Reviewed product");
+  const storeId = toNumberOrNull(
+    product.storeId ?? product.store_id ?? review.storeId ?? review.store_id ?? product.store?.id
+  );
+  const storeSlug =
+    toText(
+      product.storeSlug ??
+        product.store_slug ??
+        review.storeSlug ??
+        review.store_slug ??
+        product.store?.slug
+    ) || null;
+  const storeName =
+    toText(
+      product.storeName ??
+        product.store?.name ??
+        review.storeName ??
+        review.store?.name
+    ) || "";
 
   return {
     id: reviewId ? `review-${reviewId}` : `review-product-${productId ?? name}`,
@@ -158,9 +181,9 @@ export const normalizeReviewedItem = (review = {}) => {
     images: getReviewImageUrls(review),
     createdAt: review.createdAt ?? review.created_at ?? null,
     updatedAt: review.updatedAt ?? review.updated_at ?? null,
-    storeName:
-      toText(product.storeName ?? product.store?.name ?? review.storeName) ||
-      "Storefront order",
+    storeId,
+    storeSlug,
+    storeName,
     review,
   };
 };

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
 import {
   ChevronLeft,
@@ -31,18 +32,184 @@ import { useSeller2026Products } from "../../../hooks/seller2026/useSeller2026Pr
 import { getSeller2026PagePermissions } from "./seller2026PagePermissions.js";
 import "../../../features/sellerWorkspace2026/Seller2026Reviews.css";
 
-const STATUS_TABS = [
-  { id: "all", label: "All Reviews", countKey: "totalReviews" },
-  { id: "pending", label: "Pending", countKey: "pending" },
-  { id: "published", label: "Published", countKey: "published" },
-  { id: "hidden", label: "Hidden", countKey: "hidden" },
-];
-const SORT_OPTIONS = [
-  ["newest", "Newest"],
-  ["oldest", "Oldest"],
-  ["rating_high", "Rating High"],
-  ["rating_low", "Rating Low"],
-];
+const isIndonesianLanguage = (i18nInstance) => {
+  const current = String(
+    i18nInstance?.language ||
+      localStorage.getItem("app_lang") ||
+      localStorage.getItem("seller_language") ||
+      localStorage.getItem("store_language") ||
+      localStorage.getItem("i18nextLng") ||
+      "id"
+  ).toLowerCase();
+  return current.startsWith("id");
+};
+
+const SELLER_REVIEWS_I18N = {
+  id: {
+    pageTitle: "Ulasan Produk",
+    pageSubtitle: "Pantau dan tanggapi ulasan dari pembeli.",
+    totalReviews: "Total Ulasan",
+    totalReviewsHelper: "Semua ulasan produk",
+    averageRating: "Rata-rata Penilaian",
+    averageRatingHelper: "Berdasarkan seluruh ulasan",
+    pendingReplies: "Menunggu Balasan",
+    pendingRepliesHelper: "Perlu ditanggapi segera",
+    responseRate: "Tingkat Balasan",
+    responseRateHelper: "Cakupan respon ulasan",
+    allReviews: "Semua Ulasan",
+    pending: "Menunggu",
+    published: "Dipublikasikan",
+    hidden: "Disembunyikan",
+    searchPlaceholder: "Cari di dalam ulasan produk...",
+    filters: "Filter",
+    sortPrefix: "Urutkan:",
+    newest: "Terbaru",
+    oldest: "Terlama",
+    ratingHigh: "Rating Tertinggi",
+    ratingLow: "Rating Terendah",
+    allProducts: "Semua Produk",
+    allRatings: "Semua Rating",
+    rowsPerPage: "Baris per halaman",
+    resetFilters: "Atur Ulang Filter",
+    activeFilters: "Filter Aktif:",
+    clearAll: "Hapus Semua",
+    clearFilters: "Hapus Filter",
+    noReviewsFound: "Belum ada ulasan ditemukan",
+    noReviewsDescEmpty: "Ulasan pembeli untuk toko ini akan muncul di sini.",
+    noReviewsDescFiltered: "Coba kata kunci pencarian atau status ulasan lain.",
+    tableProduct: "Produk",
+    tableReviewer: "Pembeli",
+    tableRating: "Penilaian",
+    tableComment: "Ulasan",
+    tableDate: "Tanggal",
+    tableStatus: "Status",
+    tableActions: "Aksi",
+    replyBtn: "Balas",
+    viewBtn: "Lihat",
+    storeReplied: "Toko membalas",
+    verifiedBuyer: "Pembeli Terverifikasi",
+    noComment: "Tidak ada komentar tertulis.",
+    showing: "Menampilkan",
+    to: "hingga",
+    of: "dari",
+    reviews: "ulasan",
+    drawerTitle: "Detail Ulasan",
+    sku: "SKU",
+    viewProduct: "Lihat Produk",
+    storeReplyTitle: "Balasan Toko",
+    helpful: "Membantu",
+    notHelpful: "Tidak Membantu",
+    reviewStatus: "Status Ulasan",
+    publishReview: "Tampilkan Ulasan",
+    hideReview: "Sembunyikan Ulasan",
+    replyToCustomer: "Balas Ulasan Pembeli",
+    replyPlaceholder: "Tulis balasan yang ramah dan solutif untuk pembeli...",
+    replyHint: "Balasan Anda akan tampil pada ulasan produk.",
+    sendReply: "Kirim Balasan",
+    sendingReply: "Mengirim...",
+    platformReport: "Laporan ke Platform",
+    reported: "Dilaporkan",
+    reportReview: "Laporkan Ulasan",
+    reportPlaceholder: "Jelaskan mengapa ulasan ini perlu ditinjau oleh platform...",
+    cancel: "Batal",
+    submitReport: "Kirim Laporan",
+    latestReason: "Alasan terkini:",
+    writeReplyError: "Tulis balasan sebelum mengirim.",
+    replySentSuccess: "Balasan berhasil dikirim ke pembeli.",
+    replySendError: "Gagal mengirimkan balasan.",
+    hideSuccess: "Ulasan berhasil disembunyikan dari etalase.",
+    publishSuccess: "Ulasan berhasil dipublikasikan.",
+    statusError: "Gagal memperbarui visibilitas ulasan.",
+    reportSuccess: "Ulasan berhasil dilaporkan untuk audit platform.",
+    reportReasonError: "Tuliskan alasan pelaporan ulasan.",
+    reportError: "Gagal melaporkan ulasan.",
+    retry: "Coba Lagi",
+    filterByProduct: "Filter berdasarkan produk ini",
+    perPage: "/ halaman",
+  },
+  en: {
+    pageTitle: "Product Reviews",
+    pageSubtitle: "Monitor and respond to customer feedback.",
+    totalReviews: "Total Reviews",
+    totalReviewsHelper: "All time reviews",
+    averageRating: "Average Rating",
+    averageRatingHelper: "Based on all reviews",
+    pendingReplies: "Pending Replies",
+    pendingRepliesHelper: "Need your attention",
+    responseRate: "Response Rate",
+    responseRateHelper: "Customer response coverage",
+    allReviews: "All Reviews",
+    pending: "Pending",
+    published: "Published",
+    hidden: "Hidden",
+    searchPlaceholder: "Search reviews...",
+    filters: "Filters",
+    sortPrefix: "Sort:",
+    newest: "Newest",
+    oldest: "Oldest",
+    ratingHigh: "Rating High",
+    ratingLow: "Rating Low",
+    allProducts: "All Products",
+    allRatings: "All Ratings",
+    rowsPerPage: "Rows per page",
+    resetFilters: "Reset filters",
+    activeFilters: "Active Filters:",
+    clearAll: "Clear All",
+    clearFilters: "Clear filters",
+    noReviewsFound: "No reviews found",
+    noReviewsDescEmpty: "Customer reviews for this store will appear here.",
+    noReviewsDescFiltered: "Try another search or review status.",
+    tableProduct: "Product",
+    tableReviewer: "Reviewer",
+    tableRating: "Rating",
+    tableComment: "Comment",
+    tableDate: "Date",
+    tableStatus: "Status",
+    tableActions: "Actions",
+    replyBtn: "Reply",
+    viewBtn: "View",
+    storeReplied: "Store replied",
+    verifiedBuyer: "Verified Buyer",
+    noComment: "No written comment.",
+    showing: "Showing",
+    to: "to",
+    of: "of",
+    reviews: "reviews",
+    drawerTitle: "Review Detail",
+    sku: "SKU",
+    viewProduct: "View Product",
+    storeReplyTitle: "Store reply",
+    helpful: "Helpful",
+    notHelpful: "Not Helpful",
+    reviewStatus: "Review Status",
+    publishReview: "Publish Review",
+    hideReview: "Hide Review",
+    replyToCustomer: "Reply to Customer",
+    replyPlaceholder: "Write a thoughtful reply to your customer...",
+    replyHint: "Your reply becomes visible on the product review.",
+    sendReply: "Send Reply",
+    sendingReply: "Sending...",
+    platformReport: "Platform Report",
+    reported: "Reported",
+    reportReview: "Report Review",
+    reportPlaceholder: "Explain why this review needs platform attention...",
+    cancel: "Cancel",
+    submitReport: "Submit Report",
+    latestReason: "Latest reason:",
+    writeReplyError: "Write a reply before sending.",
+    replySentSuccess: "Reply sent to the customer.",
+    replySendError: "Unable to send the reply.",
+    hideSuccess: "Review hidden from the storefront.",
+    publishSuccess: "Review published.",
+    statusError: "Unable to update review visibility.",
+    reportSuccess: "Review reported for platform audit.",
+    reportReasonError: "Add a reason for the report.",
+    reportError: "Unable to report the review.",
+    retry: "Retry",
+    filterByProduct: "Filter by this product",
+    perPage: "/ page",
+  },
+};
 
 const readPositive = (value, fallback) => {
   const parsed = Number(value);
@@ -100,8 +267,14 @@ function ProductThumb({ review, large = false }) {
   );
 }
 
-function ReviewStatus({ review }) {
-  return <span className={`s26-review-status is-${review.status}`}>{review.statusLabel}</span>;
+function ReviewStatus({ review, t }) {
+  const label =
+    review.status === "pending"
+      ? (t?.pending || "Pending")
+      : review.status === "hidden"
+        ? (t?.hidden || "Hidden")
+        : (t?.published || "Published");
+  return <span className={`s26-review-status is-${review.status}`}>{label}</span>;
 }
 
 function LoadingState() {
@@ -116,7 +289,7 @@ function LoadingState() {
   );
 }
 
-function ReviewDrawer({ storeId, reviewId, canMutate, onClose }) {
+function ReviewDrawer({ storeId, reviewId, canMutate, onClose, t }) {
   const detailQuery = useSeller2026ReviewDetail(storeId, reviewId);
   const { replyMutation, statusMutation, reportMutation, isMutating } =
     useSeller2026ReviewMutations(storeId);
@@ -140,13 +313,13 @@ function ReviewDrawer({ storeId, reviewId, canMutate, onClose }) {
 
   const sendReply = async () => {
     const value = reply.trim();
-    if (!value) return toast.error("Write a reply before sending.");
+    if (!value) return toast.error(t.writeReplyError);
     try {
       await replyMutation.mutateAsync({ reviewId, payload: { reply: value } });
-      toast.success("Reply sent to the customer.");
+      toast.success(t.replySentSuccess);
       void detailQuery.refetch();
     } catch (error) {
-      toast.error(message(error, "Unable to send the reply."));
+      toast.error(message(error, t.replySendError));
     }
   };
 
@@ -161,24 +334,24 @@ function ReviewDrawer({ storeId, reviewId, canMutate, onClose }) {
           reason: nextStatus === "hidden" ? "Hidden by seller review management" : "",
         },
       });
-      toast.success(nextStatus === "hidden" ? "Review hidden from the storefront." : "Review published.");
+      toast.success(nextStatus === "hidden" ? t.hideSuccess : t.publishSuccess);
       void detailQuery.refetch();
     } catch (error) {
-      toast.error(message(error, "Unable to update review visibility."));
+      toast.error(message(error, t.statusError));
     }
   };
 
   const submitReport = async () => {
     const reason = reportReason.trim();
-    if (!reason) return toast.error("Add a reason for the report.");
+    if (!reason) return toast.error(t.reportReasonError);
     try {
       await reportMutation.mutateAsync({ reviewId, payload: { reason } });
-      toast.success("Review reported for platform audit.");
+      toast.success(t.reportSuccess);
       setShowReport(false);
       setReportReason("");
       void detailQuery.refetch();
     } catch (error) {
-      toast.error(message(error, "Unable to report the review."));
+      toast.error(message(error, t.reportError));
     }
   };
 
@@ -188,9 +361,9 @@ function ReviewDrawer({ storeId, reviewId, canMutate, onClose }) {
         <header className="s26-review-drawer__header">
           <div>
             <span>Catalog / Reviews</span>
-            <h2>Review Detail</h2>
+            <h2>{t.drawerTitle}</h2>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close review detail"><X size={20} /></button>
+          <button type="button" onClick={onClose} aria-label="Close"><X size={20} /></button>
         </header>
 
         {detailQuery.isLoading ? (
@@ -198,7 +371,7 @@ function ReviewDrawer({ storeId, reviewId, canMutate, onClose }) {
         ) : detailQuery.isError || !review ? (
           <div className="s26-review-drawer__error">
             <p>{message(detailQuery.error, "Unable to load review detail.")}</p>
-            <button type="button" onClick={() => detailQuery.refetch()}><RefreshCw size={16} /> Retry</button>
+            <button type="button" onClick={() => detailQuery.refetch()}><RefreshCw size={16} /> {t.retry}</button>
           </div>
         ) : (
           <div className="s26-review-drawer__body">
@@ -206,44 +379,44 @@ function ReviewDrawer({ storeId, reviewId, canMutate, onClose }) {
               <div className="s26-review-detail-product">
                 <ProductThumb review={review} large />
                 <div>
-                  <span>Product</span>
+                  <span>{t.tableProduct}</span>
                   <h3>{review.productName}</h3>
-                  <p>SKU: {review.productSku}</p>
+                  <p>{t.sku}: {review.productSku || "-"}</p>
                   <strong>{rupiah(review.productPrice)}</strong>
                   {review.productSlug ? (
-                    <Link to={`/product/${encodeURIComponent(review.productSlug)}`}>View Product</Link>
+                    <Link to={`/product/${encodeURIComponent(review.productSlug)}`}>{t.viewProduct}</Link>
                   ) : null}
                 </div>
               </div>
               <div className="s26-review-detail-reviewer">
                 <span className="s26-review-avatar">{review.reviewerInitials}</span>
-                <div><strong>{review.reviewerName}</strong><span>Verified Buyer</span></div>
+                <div><strong>{review.reviewerName}</strong><span>{t.verifiedBuyer}</span></div>
                 <time>{review.createdAtLabel}</time>
               </div>
               <Stars rating={review.rating} />
-              <p className="s26-review-detail-comment">{review.comment || "No written comment."}</p>
+              <p className="s26-review-detail-comment">{review.comment || t.noComment}</p>
               {review.images.length ? (
                 <div className="s26-review-detail-images">
                   {review.images.map((image, index) => (
                     <a href={image} target="_blank" rel="noopener noreferrer" key={`${review.id}-${index}`}>
-                      <img src={image} alt={`Customer review ${index + 1}`} onError={(event) => { event.currentTarget.style.display = "none"; }} />
+                      <img src={image} alt={`Review photo ${index + 1}`} onError={(event) => { event.currentTarget.style.display = "none"; }} />
                     </a>
                   ))}
                 </div>
               ) : null}
               {review.reply ? (
                 <div className="s26-review-existing-reply">
-                  <strong>Store reply</strong><p>{review.reply}</p>
+                  <strong>{t.storeReplyTitle}</strong><p>{review.reply}</p>
                 </div>
               ) : null}
               <div className="s26-review-votes">
-                Helpful ({review.helpfulCount}) <span>•</span> Not Helpful ({review.notHelpfulCount})
+                {t.helpful} ({review.helpfulCount}) <span>•</span> {t.notHelpful} ({review.notHelpfulCount})
               </div>
             </section>
 
             <section className="s26-review-action-card">
               <div className="s26-review-action-card__title">
-                <h3>Review Status</h3><ReviewStatus review={review} />
+                <h3>{t.reviewStatus}</h3><ReviewStatus review={review} t={t} />
               </div>
               <button
                 type="button"
@@ -252,35 +425,35 @@ function ReviewDrawer({ storeId, reviewId, canMutate, onClose }) {
                 disabled={!canMutate || isMutating}
               >
                 {review.isHidden ? <Eye size={18} /> : <EyeOff size={18} />}
-                {review.isHidden ? "Publish Review" : "Hide Review"}
+                {review.isHidden ? t.publishReview : t.hideReview}
               </button>
             </section>
 
             <section className="s26-review-action-card">
               <div className="s26-review-action-card__title">
-                <h3>Reply to Customer</h3><span>{reply.length}/500</span>
+                <h3>{t.replyToCustomer}</h3><span>{reply.length}/500</span>
               </div>
               <textarea
                 ref={textareaRef}
                 value={reply}
                 maxLength={500}
                 onChange={(event) => setReply(event.target.value)}
-                placeholder="Write a thoughtful reply to your customer..."
+                placeholder={t.replyPlaceholder}
                 disabled={!canMutate || isMutating}
               />
               <div className="s26-review-action-card__footer">
-                <small>Your reply becomes visible on the product review.</small>
+                <small>{t.replyHint}</small>
                 <button type="button" onClick={sendReply} disabled={!canMutate || isMutating || !reply.trim()}>
                   {replyMutation.isPending ? <Loader2 size={17} className="animate-spin" /> : <Send size={17} />}
-                  Send Reply
+                  {replyMutation.isPending ? t.sendingReply : t.sendReply}
                 </button>
               </div>
             </section>
 
             <section className="s26-review-action-card">
               <div className="s26-review-action-card__title">
-                <h3>Platform Report</h3>
-                {review.isReported ? <span className="is-reported">Reported</span> : null}
+                <h3>{t.platformReport}</h3>
+                {review.isReported ? <span className="is-reported">{t.reported}</span> : null}
               </div>
               {showReport ? (
                 <>
@@ -288,22 +461,22 @@ function ReviewDrawer({ storeId, reviewId, canMutate, onClose }) {
                     value={reportReason}
                     maxLength={1000}
                     onChange={(event) => setReportReason(event.target.value)}
-                    placeholder="Explain why this review needs platform attention..."
+                    placeholder={t.reportPlaceholder}
                     disabled={!canMutate || isMutating}
                   />
                   <div className="s26-review-report-actions">
-                    <button type="button" onClick={() => setShowReport(false)} disabled={isMutating}>Cancel</button>
+                    <button type="button" onClick={() => setShowReport(false)} disabled={isMutating}>{t.cancel}</button>
                     <button type="button" onClick={submitReport} disabled={!canMutate || isMutating || !reportReason.trim()}>
-                      {reportMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Flag size={16} />} Submit Report
+                      {reportMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Flag size={16} />} {t.submitReport}
                     </button>
                   </div>
                 </>
               ) : (
                 <button type="button" className="s26-review-report" onClick={() => setShowReport(true)} disabled={!canMutate || isMutating}>
-                  <Flag size={17} /> Report Review
+                  <Flag size={17} /> {t.reportReview}
                 </button>
               )}
-              {review.isReported && review.reportReason ? <p className="s26-review-report-note">Latest reason: {review.reportReason}</p> : null}
+              {review.isReported && review.reportReason ? <p className="s26-review-report-note">{t.latestReason} {review.reportReason}</p> : null}
             </section>
           </div>
         )}
@@ -321,10 +494,45 @@ export default function Seller2026LiveProductReviewsPage() {
   const { can } = getSeller2026PagePermissions(sellerContext);
   const canView = can("CATALOG_PRODUCT_READ");
   const canMutate = can("CATALOG_PRODUCT_UPDATE");
+
+  const { i18n } = useTranslation();
+  const [, setLangSync] = useState(0);
+
+  useEffect(() => {
+    const handleSync = () => setLangSync((c) => c + 1);
+    i18n?.on?.("languageChanged", handleSync);
+    window.addEventListener("storage", handleSync);
+    window.addEventListener("seller_language_changed", handleSync);
+    window.addEventListener("store_language_changed", handleSync);
+    return () => {
+      i18n?.off?.("languageChanged", handleSync);
+      window.removeEventListener("storage", handleSync);
+      window.removeEventListener("seller_language_changed", handleSync);
+      window.removeEventListener("store_language_changed", handleSync);
+    };
+  }, [i18n]);
+
+  const isIndo = isIndonesianLanguage(i18n);
+  const t = isIndo ? SELLER_REVIEWS_I18N.id : SELLER_REVIEWS_I18N.en;
+
+  const STATUS_TABS = useMemo(() => [
+    { id: "all", label: t.allReviews, countKey: "totalReviews" },
+    { id: "pending", label: t.pending, countKey: "pending" },
+    { id: "published", label: t.published, countKey: "published" },
+    { id: "hidden", label: t.hidden, countKey: "hidden" },
+  ], [t]);
+
+  const SORT_OPTIONS = useMemo(() => [
+    ["newest", t.newest],
+    ["oldest", t.oldest],
+    ["rating_high", t.ratingHigh],
+    ["rating_low", t.ratingLow],
+  ], [t]);
+
   const status = ["pending", "published", "hidden"].includes(searchParams.get("status"))
     ? searchParams.get("status")
     : "all";
-  const sort = SORT_OPTIONS.some(([value]) => value === searchParams.get("sort"))
+  const sort = ["newest", "oldest", "rating_high", "rating_low"].includes(searchParams.get("sort"))
     ? searchParams.get("sort")
     : "newest";
   const page = readPositive(searchParams.get("page"), 1);
@@ -374,7 +582,10 @@ export default function Seller2026LiveProductReviewsPage() {
   if (!canView) {
     return (
       <div className="seller2026-reviews-page">
-        <section className="s26-reviews-state is-error"><h2>Reviews unavailable</h2><p>You do not have permission to view product reviews.</p></section>
+        <section className="s26-reviews-state is-error">
+          <h2>{isIndo ? "Akses Ulasan Tidak Tersedia" : "Reviews unavailable"}</h2>
+          <p>{isIndo ? "Anda tidak memiliki izin untuk melihat ulasan produk." : "You do not have permission to view product reviews."}</p>
+        </section>
       </div>
     );
   }
@@ -390,16 +601,19 @@ export default function Seller2026LiveProductReviewsPage() {
   return (
     <div className="seller2026-reviews-page">
       <header className="s26-reviews-heading">
-        <div><h1>Product Reviews</h1><p>Monitor and respond to customer feedback.</p></div>
+        <div>
+          <h1>{t.pageTitle}</h1>
+          <p>{t.pageSubtitle}</p>
+        </div>
       </header>
 
       <section className="s26-reviews-stats">
-        <StatCard icon={MessageSquareText} label="Total Reviews" value={stats.totalReviews || 0} helper="All time reviews" tone="primary" />
-        <StatCard icon={Star} label="Average Rating" value={(stats.averageRating || 0).toFixed(1)} helper="Based on all reviews" tone="accent">
+        <StatCard icon={MessageSquareText} label={t.totalReviews} value={stats.totalReviews || 0} helper={t.totalReviewsHelper} tone="primary" />
+        <StatCard icon={Star} label={t.averageRating} value={(stats.averageRating || 0).toFixed(1)} helper={t.averageRatingHelper} tone="accent">
           <Stars rating={Math.round(stats.averageRating || 0)} compact />
         </StatCard>
-        <StatCard icon={MessageCircle} label="Pending Replies" value={stats.pendingReplies || 0} helper="Need your attention" tone="orange" />
-        <StatCard icon={TrendingUp} label="Response Rate" value={`${stats.responseRate || 0}%`} helper="Customer response coverage" tone="success" />
+        <StatCard icon={MessageCircle} label={t.pendingReplies} value={stats.pendingReplies || 0} helper={t.pendingRepliesHelper} tone="orange" />
+        <StatCard icon={TrendingUp} label={t.responseRate} value={`${stats.responseRate || 0}%`} helper={t.responseRateHelper} tone="success" />
       </section>
 
       <section className="s26-reviews-toolbar">
@@ -420,66 +634,154 @@ export default function Seller2026LiveProductReviewsPage() {
         <div className="s26-reviews-controls">
           <form onSubmit={submitSearch} className="s26-reviews-search">
             <Search size={18} />
-            <input value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Search reviews..." aria-label="Search reviews" />
+            <input
+              value={searchDraft}
+              onChange={(event) => setSearchDraft(event.target.value)}
+              placeholder={t.searchPlaceholder}
+              aria-label={t.searchPlaceholder}
+            />
           </form>
-          <button type="button" className={filtersOpen ? "is-active" : ""} onClick={() => setFiltersOpen((value) => !value)}><Filter size={18} /> Filters</button>
+          <button type="button" className={filtersOpen ? "is-active" : ""} onClick={() => setFiltersOpen((value) => !value)}>
+            <Filter size={18} /> {t.filters}
+          </button>
           <select value={sort} onChange={(event) => updateQuery({ sort: event.target.value, page: 1 })} aria-label="Sort reviews">
-            {SORT_OPTIONS.map(([value, label]) => <option value={value} key={value}>Sort: {label}</option>)}
+            {SORT_OPTIONS.map(([value, label]) => (
+              <option value={value} key={value}>{t.sortPrefix} {label}</option>
+            ))}
           </select>
         </div>
       </section>
 
       {filtersOpen ? (
         <section className="s26-reviews-filter-panel">
-          <label>Status<select value={status} onChange={(event) => updateQuery({ status: event.target.value, page: 1 })}>{STATUS_TABS.map((tab) => <option value={tab.id} key={tab.id}>{tab.label}</option>)}</select></label>
-          <label>Product<select value={productId || ""} onChange={(event) => updateQuery({ productId: event.target.value, page: 1 })}><option value="">All Products</option>{products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
-          <label>Rating<select value={rating || ""} onChange={(event) => updateQuery({ rating: event.target.value, page: 1 })}><option value="">All Ratings</option>{[5, 4, 3, 2, 1].map((value) => <option value={value} key={value}>{value} Star{value > 1 ? "s" : ""}</option>)}</select></label>
-          <label>Rows per page<select value={limit} onChange={(event) => updateQuery({ limit: Number(event.target.value), page: 1 })}>{[10, 20, 50].map((value) => <option value={value} key={value}>{value}</option>)}</select></label>
-          <button type="button" onClick={() => { setSearchDraft(""); setSearchParams({}); }}>Reset filters</button>
+          <label>
+            {t.tableStatus}
+            <select value={status} onChange={(event) => updateQuery({ status: event.target.value, page: 1 })}>
+              {STATUS_TABS.map((tab) => <option value={tab.id} key={tab.id}>{tab.label}</option>)}
+            </select>
+          </label>
+          <label>
+            {t.tableProduct}
+            <select value={productId || ""} onChange={(event) => updateQuery({ productId: event.target.value, page: 1 })}>
+              <option value="">{t.allProducts}</option>
+              {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </label>
+          <label>
+            {t.tableRating}
+            <select value={rating || ""} onChange={(event) => updateQuery({ rating: event.target.value, page: 1 })}>
+              <option value="">{t.allRatings}</option>
+              {[5, 4, 3, 2, 1].map((value) => (
+                <option value={value} key={value}>{value} {isIndo ? "Bintang" : `Star${value > 1 ? "s" : ""}`}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            {t.rowsPerPage}
+            <select value={limit} onChange={(event) => updateQuery({ limit: Number(event.target.value), page: 1 })}>
+              {[10, 20, 50].map((value) => <option value={value} key={value}>{value}</option>)}
+            </select>
+          </label>
+          <button type="button" onClick={() => { setSearchDraft(""); setSearchParams({}); }}>{t.resetFilters}</button>
         </section>
       ) : null}
 
       {productId || rating ? (
         <div className="s26-reviews-active-filters" style={{ display: "flex", gap: "8px", alignItems: "center", margin: "10px 0", flexWrap: "wrap" }}>
-          <span style={{ fontSize: "13px", color: "var(--s26-text-muted, #64748b)" }}>Active Filters:</span>
+          <span style={{ fontSize: "13px", color: "var(--s26-text-muted, #64748b)" }}>{t.activeFilters}</span>
           {productId ? (
             <span className="s26-review-status is-published" style={{ display: "inline-flex", alignItems: "center", gap: "4px", cursor: "pointer" }} onClick={() => updateQuery({ productId: "" })}>
-              Product Filter <X size={13} />
+              {t.tableProduct} <X size={13} />
             </span>
           ) : null}
           {rating ? (
             <span className="s26-review-status is-published" style={{ display: "inline-flex", alignItems: "center", gap: "4px", cursor: "pointer" }} onClick={() => updateQuery({ rating: "" })}>
-              {rating} Star{rating > 1 ? "s" : ""} <X size={13} />
+              {rating} {isIndo ? "Bintang" : `Star${rating > 1 ? "s" : ""}`} <X size={13} />
             </span>
           ) : null}
-          <button type="button" style={{ border: "none", background: "none", color: "var(--s26-primary, #3b82f6)", fontSize: "13px", cursor: "pointer", textDecoration: "underline" }} onClick={() => { setSearchDraft(""); setSearchParams({}); }}>Clear All</button>
+          <button type="button" style={{ border: "none", background: "none", color: "var(--review-primary, #034c85)", fontSize: "13px", cursor: "pointer", textDecoration: "underline" }} onClick={() => { setSearchDraft(""); setSearchParams({}); }}>
+            {t.clearAll}
+          </button>
         </div>
       ) : null}
 
       {reviewsQuery.isError ? (
         <section className="s26-reviews-state is-error">
-          <MessageSquareText size={34} /><h2>Unable to load reviews</h2><p>{message(reviewsQuery.error, "Please try again.")}</p>
-          <button type="button" onClick={() => reviewsQuery.refetch()}><RefreshCw size={16} /> Retry</button>
+          <MessageSquareText size={34} />
+          <h2>{isIndo ? "Gagal memuat ulasan" : "Unable to load reviews"}</h2>
+          <p>{message(reviewsQuery.error, isIndo ? "Silakan coba lagi." : "Please try again.")}</p>
+          <button type="button" onClick={() => reviewsQuery.refetch()}><RefreshCw size={16} /> {t.retry}</button>
         </section>
       ) : view?.items.length === 0 ? (
         <section className="s26-reviews-state">
-          <PackageOpen size={38} /><h2>No reviews found</h2><p>{search || status !== "all" || productId || rating ? "Try another search or review status." : "Customer reviews for this store will appear here."}</p>
-          {search || status !== "all" || productId || rating ? <button type="button" onClick={() => { setSearchDraft(""); setSearchParams({}); }}>Clear filters</button> : null}
+          <PackageOpen size={38} />
+          <h2>{t.noReviewsFound}</h2>
+          <p>{search || status !== "all" || productId || rating ? t.noReviewsDescFiltered : t.noReviewsDescEmpty}</p>
+          {search || status !== "all" || productId || rating ? (
+            <button type="button" onClick={() => { setSearchDraft(""); setSearchParams({}); }}>{t.clearFilters}</button>
+          ) : null}
         </section>
       ) : (
         <section className="s26-reviews-table-wrap">
           <table className="s26-reviews-table">
-            <thead><tr><th>Product</th><th>Reviewer</th><th>Rating</th><th>Comment</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead>
+              <tr>
+                <th>{t.tableProduct}</th>
+                <th>{t.tableReviewer}</th>
+                <th>{t.tableRating}</th>
+                <th>{t.tableComment}</th>
+                <th>{t.tableDate}</th>
+                <th>{t.tableStatus}</th>
+                <th>{t.tableActions}</th>
+              </tr>
+            </thead>
             <tbody>
               {view.items.map((review) => (
                 <tr key={review.id}>
-                  <td data-label="Product"><div className="s26-review-product" style={{ cursor: "pointer" }} onClick={() => updateQuery({ productId: review.productId, page: 1 })} title="Filter by this product"><ProductThumb review={review} /><div><strong>{review.productName}</strong><span>SKU: {review.productSku}</span><small>{rupiah(review.productPrice)}</small></div></div></td>
-                  <td data-label="Reviewer"><div className="s26-review-reviewer"><span className="s26-review-avatar">{review.reviewerInitials}</span><div><strong>{review.reviewerName}</strong>{review.verifiedBuyer ? <span>Verified Buyer</span> : null}</div></div></td>
-                  <td data-label="Rating"><Stars rating={review.rating} compact /></td>
-                  <td data-label="Comment"><p className="s26-review-comment">{review.comment || "No written comment."}</p>{review.reply ? <small className="s26-review-replied">Store replied</small> : null}</td>
-                  <td data-label="Date"><time className="s26-review-date">{review.createdAtLabel}</time></td>
-                  <td data-label="Status"><ReviewStatus review={review} /></td>
-                  <td data-label="Actions"><div className="s26-review-row-actions"><button type="button" onClick={() => setSelectedReviewId(review.id)}><MessageCircle size={16} /> {review.reply ? "View" : "Reply"}</button><button type="button" aria-label={`View ${review.productName} review`} onClick={() => setSelectedReviewId(review.id)}><Eye size={17} /></button><button type="button" aria-label="More review actions" onClick={() => setSelectedReviewId(review.id)}><MoreHorizontal size={17} /></button></div></td>
+                  <td data-label={t.tableProduct}>
+                    <div
+                      className="s26-review-product"
+                      style={{ cursor: "pointer" }}
+                      onClick={() => updateQuery({ productId: review.productId, page: 1 })}
+                      title={t.filterByProduct}
+                    >
+                      <ProductThumb review={review} />
+                      <div>
+                        <strong>{review.productName}</strong>
+                        <span>{t.sku}: {review.productSku || "-"}</span>
+                        <small>{rupiah(review.productPrice)}</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td data-label={t.tableReviewer}>
+                    <div className="s26-review-reviewer">
+                      <span className="s26-review-avatar">{review.reviewerInitials}</span>
+                      <div>
+                        <strong>{review.reviewerName}</strong>
+                        {review.verifiedBuyer ? <span>{t.verifiedBuyer}</span> : null}
+                      </div>
+                    </div>
+                  </td>
+                  <td data-label={t.tableRating}><Stars rating={review.rating} compact /></td>
+                  <td data-label={t.tableComment}>
+                    <p className="s26-review-comment">{review.comment || t.noComment}</p>
+                    {review.reply ? <small className="s26-review-replied">{t.storeReplied}</small> : null}
+                  </td>
+                  <td data-label={t.tableDate}><time className="s26-review-date">{review.createdAtLabel}</time></td>
+                  <td data-label={t.tableStatus}><ReviewStatus review={review} t={t} /></td>
+                  <td data-label={t.tableActions}>
+                    <div className="s26-review-row-actions">
+                      <button type="button" onClick={() => setSelectedReviewId(review.id)}>
+                        <MessageCircle size={16} /> {review.reply ? t.viewBtn : t.replyBtn}
+                      </button>
+                      <button type="button" aria-label={`View ${review.productName} review`} onClick={() => setSelectedReviewId(review.id)}>
+                        <Eye size={17} />
+                      </button>
+                      <button type="button" aria-label="More review actions" onClick={() => setSelectedReviewId(review.id)}>
+                        <MoreHorizontal size={17} />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -489,17 +791,37 @@ export default function Seller2026LiveProductReviewsPage() {
 
       {!reviewsQuery.isError && pagination.total > 0 ? (
         <footer className="s26-reviews-pagination">
-          <span>Showing {pagination.from} to {pagination.to} of {pagination.total} reviews</span>
+          <span>
+            {t.showing} {pagination.from} {t.to} {pagination.to} {t.of} {pagination.total} {t.reviews}
+          </span>
           <div>
-            <button type="button" disabled={pagination.page <= 1} onClick={() => updateQuery({ page: pagination.page - 1 })} aria-label="Previous page"><ChevronLeft size={17} /></button>
-            {pages.map((number) => <button type="button" key={number} className={number === pagination.page ? "is-active" : ""} onClick={() => updateQuery({ page: number })}>{number}</button>)}
-            <button type="button" disabled={pagination.page >= pagination.totalPages} onClick={() => updateQuery({ page: pagination.page + 1 })} aria-label="Next page"><ChevronRight size={17} /></button>
-            <select value={limit} onChange={(event) => updateQuery({ limit: Number(event.target.value), page: 1 })} aria-label="Reviews per page">{[10, 20, 50].map((value) => <option value={value} key={value}>{value} / page</option>)}</select>
+            <button type="button" disabled={pagination.page <= 1} onClick={() => updateQuery({ page: pagination.page - 1 })} aria-label="Previous page">
+              <ChevronLeft size={17} />
+            </button>
+            {pages.map((number) => (
+              <button type="button" key={number} className={number === pagination.page ? "is-active" : ""} onClick={() => updateQuery({ page: number })}>
+                {number}
+              </button>
+            ))}
+            <button type="button" disabled={pagination.page >= pagination.totalPages} onClick={() => updateQuery({ page: pagination.page + 1 })} aria-label="Next page">
+              <ChevronRight size={17} />
+            </button>
+            <select value={limit} onChange={(event) => updateQuery({ limit: Number(event.target.value), page: 1 })} aria-label="Reviews per page">
+              {[10, 20, 50].map((value) => <option value={value} key={value}>{value} {t.perPage}</option>)}
+            </select>
           </div>
         </footer>
       ) : null}
 
-      {selectedReviewId ? <ReviewDrawer storeId={storeId} reviewId={selectedReviewId} canMutate={canMutate} onClose={() => setSelectedReviewId(null)} /> : null}
+      {selectedReviewId ? (
+        <ReviewDrawer
+          storeId={storeId}
+          reviewId={selectedReviewId}
+          canMutate={canMutate}
+          onClose={() => setSelectedReviewId(null)}
+          t={t}
+        />
+      ) : null}
     </div>
   );
 }

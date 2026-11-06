@@ -530,12 +530,15 @@ const buildOrdersWhere = (filters) => {
         where.userId = filters.userId;
     }
     if (filters.search) {
-        const likeSearch = `%${filters.search}%`;
+        const trimmedSearch = filters.search.trim();
+        const likeSearch = `%${trimmedSearch}%`;
+        const numericSearch = Number(trimmedSearch.replace(/\D/g, ""));
         where[Op.or] = [
             { invoiceNo: { [Op.like]: likeSearch } },
             { customerName: { [Op.like]: likeSearch } },
             { customerPhone: { [Op.like]: likeSearch } },
             { "$customer.name$": { [Op.like]: likeSearch } },
+            ...(Number.isFinite(numericSearch) && numericSearch > 0 ? [{ id: numericSearch }] : []),
         ];
     }
     if (filters.status) {
@@ -1298,6 +1301,16 @@ const findOrderDetail = async (lookup, preferInvoiceLookup = false) => {
             where: { id: Number(lookup) },
             include: orderDetailInclude,
         });
+    }
+    if (!orderItem && /^TP-\d{6}-(\d+)$/i.test(lookup)) {
+        const match = lookup.match(/^TP-\d{6}-(\d+)$/i);
+        const parsedId = Number(match?.[1]);
+        if (Number.isFinite(parsedId) && parsedId > 0) {
+            orderItem = await Order.findOne({
+                where: { id: parsedId },
+                include: orderDetailInclude,
+            });
+        }
     }
     return orderItem;
 };

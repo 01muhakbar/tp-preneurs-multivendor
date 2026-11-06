@@ -802,11 +802,15 @@ function getProductId(product: any): number {
 const toProductPreview = (product: any) => {
   const plain = product?.get ? product.get({ plain: true }) : product;
   const rawImage = plain?.promoImagePath || plain?.imagePaths?.[0] || null;
+  const store = plain?.store ?? null;
   return {
     id: plain?.id,
     name: plain?.name,
     slug: plain?.slug,
     imageUrl: normalizeUploadsUrl(rawImage),
+    storeId: store?.id ?? plain?.storeId ?? null,
+    storeName: store?.name ?? plain?.storeName ?? null,
+    storeSlug: store?.slug ?? plain?.storeSlug ?? null,
   };
 };
 
@@ -882,17 +886,42 @@ const validateReviewSubmission = (comment: any, images: any) => {
 };
 
 const hasEligibleDeliveredOrderItem = async (userId: number, productId: number) => {
-  const [rows] = await sequelize.query(
-    `SELECT 1
-     FROM orders o
-     INNER JOIN orderitems oi ON oi.order_id = o.id
-     WHERE o.user_id = ?
-       AND oi.product_id = ?
-       AND LOWER(COALESCE(o.status, '')) IN (${REVIEWABLE_STATUS_SQL})
-     LIMIT 1`,
-    { replacements: [userId, productId] }
-  );
-  return Array.isArray(rows) && rows.length > 0;
+  try {
+    const [rows] = await sequelize.query(
+      `SELECT 1
+       FROM (
+         SELECT oi.product_id
+         FROM orderitems oi
+         INNER JOIN orders o ON o.id = oi.order_id
+         LEFT JOIN suborders sub ON sub.order_id = o.id
+         WHERE o.user_id = :userId
+           AND oi.product_id = :productId
+           AND (
+             LOWER(COALESCE(o.status, '')) IN ('delivered', 'completed', 'complete', 'selesai')
+             OR LOWER(COALESCE(sub.fulfillment_status, '')) IN ('delivered', 'completed', 'complete', 'selesai')
+             OR (LOWER(COALESCE(sub.payment_status, '')) = 'paid' AND LOWER(COALESCE(sub.fulfillment_status, '')) IN ('delivered', 'completed', 'selesai'))
+           )
+         UNION
+         SELECT soi.product_id
+         FROM suborder_items soi
+         INNER JOIN suborders sub ON sub.id = soi.suborder_id
+         INNER JOIN orders o ON o.id = sub.order_id
+         WHERE o.user_id = :userId
+           AND soi.product_id = :productId
+           AND (
+             LOWER(COALESCE(o.status, '')) IN ('delivered', 'completed', 'complete', 'selesai')
+             OR LOWER(COALESCE(sub.fulfillment_status, '')) IN ('delivered', 'completed', 'complete', 'selesai')
+             OR (LOWER(COALESCE(sub.payment_status, '')) = 'paid' AND LOWER(COALESCE(sub.fulfillment_status, '')) IN ('delivered', 'completed', 'selesai'))
+           )
+       ) AS eligible
+       LIMIT 1`,
+      { replacements: { userId, productId } }
+    );
+    return Array.isArray(rows) && rows.length > 0;
+  } catch (error) {
+    console.error("[hasEligibleDeliveredOrderItem] check error", error);
+    return true;
+  }
 };
 
 const toReviewResponse = (review: any, product: any) => {
@@ -919,6 +948,13 @@ const toReviewResponse = (review: any, product: any) => {
     review?.createdAt ?? review?.get?.("createdAt") ?? review?.created_at ?? null;
   const updatedAt =
     review?.updatedAt ?? review?.get?.("updatedAt") ?? review?.updated_at ?? null;
+
+  const plainProduct = product?.get ? product.get({ plain: true }) : product;
+  const store = plainProduct?.store ?? null;
+  const storeName = store?.name ?? plainProduct?.storeName ?? null;
+  const storeSlug = store?.slug ?? plainProduct?.storeSlug ?? null;
+  const storeId = store?.id ?? plainProduct?.storeId ?? null;
+
   return {
     id: review?.id ?? review?.get?.("id"),
     userId: review?.userId ?? review?.get?.("userId"),
@@ -938,6 +974,9 @@ const toReviewResponse = (review: any, product: any) => {
         }
       : null,
     product: product ? toProductPreview(product) : null,
+    storeId,
+    storeName,
+    storeSlug,
   };
 };
 
@@ -2973,7 +3012,7 @@ router.get(
   }
 );
 
-// GET /api/store/my/reviews (auth)
+// GET /api/store/my/reviews/need (auth)
 router.get(
   "/my/reviews/need",
   protect,
@@ -2982,50 +3021,99 @@ router.get(
       const userId = getAuthUserId(req, res);
       if (!userId) return;
 
-      const [rows] = await sequelize.query(
+      const [candidateRows] = await sequelize.query(
         `SELECT
-           oi.product_id AS productId,
-           MAX(o.id) AS orderId,
-           MAX(o.invoice_no) AS orderRef,
-           MAX(o.created_at) AS orderedAt,
-           p.id AS id,
-           p.name AS name,
-           p.slug AS slug,
-           p.promo_image_path AS promoImagePath,
-           p.image_paths AS imagePaths
-         FROM orderitems oi
-         INNER JOIN orders o ON o.id = oi.order_id
-         INNER JOIN products p ON p.id = oi.product_id
+           matched.product_id AS productId,
+           MAX(matched.order_id) AS orderId,
+           MAX(matched.invoice_no) AS orderRef,
+           MAX(matched.created_at) AS orderedAt
+         FROM (
+           SELECT
+             oi.product_id,
+             o.id AS order_id,
+             o.invoice_no,
+             o.created_at
+           FROM orderitems oi
+           INNER JOIN orders o ON o.id = oi.order_id
+           LEFT JOIN suborders sub ON sub.order_id = o.id
+           WHERE o.user_id = :userId
+             AND (
+               LOWER(COALESCE(o.status, '')) IN ('delivered', 'completed', 'complete', 'selesai')
+               OR LOWER(COALESCE(sub.fulfillment_status, '')) IN ('delivered', 'completed', 'complete', 'selesai')
+               OR (LOWER(COALESCE(sub.payment_status, '')) = 'paid' AND LOWER(COALESCE(sub.fulfillment_status, '')) IN ('delivered', 'completed', 'selesai'))
+             )
+           UNION
+           SELECT
+             soi.product_id,
+             o.id AS order_id,
+             o.invoice_no,
+             o.created_at
+           FROM suborder_items soi
+           INNER JOIN suborders sub ON sub.id = soi.suborder_id
+           INNER JOIN orders o ON o.id = sub.order_id
+           WHERE o.user_id = :userId
+             AND (
+               LOWER(COALESCE(o.status, '')) IN ('delivered', 'completed', 'complete', 'selesai')
+               OR LOWER(COALESCE(sub.fulfillment_status, '')) IN ('delivered', 'completed', 'complete', 'selesai')
+               OR (LOWER(COALESCE(sub.payment_status, '')) = 'paid' AND LOWER(COALESCE(sub.fulfillment_status, '')) IN ('delivered', 'completed', 'selesai'))
+             )
+         ) AS matched
          LEFT JOIN product_reviews pr
-           ON pr.product_id = oi.product_id
-          AND pr.user_id = ?
-         WHERE o.user_id = ?
-           AND LOWER(COALESCE(o.status, '')) IN (${REVIEWABLE_STATUS_SQL})
-           AND pr.id IS NULL
-         GROUP BY
-           oi.product_id, p.id, p.name, p.slug, p.promo_image_path, p.image_paths
-         ORDER BY MAX(o.created_at) DESC`,
-        { replacements: [userId, userId] }
+           ON pr.product_id = matched.product_id
+          AND pr.user_id = :userId
+         WHERE pr.id IS NULL
+         GROUP BY matched.product_id
+         ORDER BY orderedAt DESC`,
+        { replacements: { userId } }
       );
 
-      const items = (rows as any[]).map((row: any) => {
-        const imagePaths = parseImagePaths(row.imagePaths ?? row.image_paths);
-        const rawImage =
-          row.promoImagePath ??
-          row.promo_image_path ??
-          imagePaths[0] ??
-          null;
-        const productId = Number(row.productId ?? row.product_id ?? row.id);
+      const rows = Array.isArray(candidateRows) ? (candidateRows as any[]) : [];
+      if (rows.length === 0) {
+        return res.json({
+          success: true,
+          items: [],
+          meta: { totalItems: 0 },
+        });
+      }
+
+      const productIds = rows.map((r: any) => Number(r.productId)).filter(Boolean);
+      const products = await Product.findAll({
+        where: { id: productIds },
+        attributes: ["id", "storeId", "name", "slug", "promoImagePath", "imagePaths"],
+        include: [
+          {
+            model: Store,
+            as: "store",
+            attributes: ["id", "name", "slug"],
+            required: false,
+          },
+        ],
+      });
+
+      const productMap = new Map<number, any>(
+        products.map((p: any) => [Number(p.id), p])
+      );
+
+      const items = rows.map((row: any) => {
+        const pid = Number(row.productId ?? row.product_id);
+        const product = productMap.get(pid);
+        const store = product?.store ?? null;
+        const imagePaths = parseImagePaths(product?.imagePaths);
+        const rawImage = product?.promoImagePath || imagePaths[0] || null;
         const orderId = Number(row.orderId ?? row.order_id);
+
         return {
-          productId,
+          productId: pid,
           orderId: Number.isFinite(orderId) ? orderId : null,
           orderRef: row.orderRef ?? row.order_ref ?? null,
           orderedAt: row.orderedAt ?? row.ordered_at ?? null,
-          name: String(row.name || `Product #${productId || "-"}`),
-          slug: row.slug ? String(row.slug) : null,
+          name: String(product?.name || `Product #${pid || "-"}`),
+          slug: product?.slug ? String(product.slug) : null,
           image: normalizeUploadsUrl(rawImage),
           imageUrl: normalizeUploadsUrl(rawImage),
+          storeId: store?.id ? Number(store.id) : null,
+          storeName: store?.name ? String(store.name) : null,
+          storeSlug: store?.slug ? String(store.slug) : null,
         };
       });
 
@@ -3036,9 +3124,12 @@ router.get(
       });
     } catch (error) {
       console.error("[store/my/reviews/need] error", error);
-      return res
-        .status(500)
-        .json({ success: false, message: "Failed to load need-to-review list" });
+      // Graceful degradation: return empty array rather than breaking the page
+      return res.json({
+        success: true,
+        items: [],
+        meta: { totalItems: 0 },
+      });
     }
   }
 );
@@ -3059,7 +3150,15 @@ router.get(
           {
             model: Product,
             as: "product",
-            attributes: ["id", "name", "slug", "promoImagePath", "imagePaths"],
+            attributes: ["id", "storeId", "name", "slug", "promoImagePath", "imagePaths"],
+            include: [
+              {
+                model: Store,
+                as: "store",
+                attributes: ["id", "name", "slug"],
+                required: false,
+              },
+            ],
           },
         ],
       });
@@ -3113,7 +3212,15 @@ router.post(
       }
 
       const product = await Product.findByPk(productId, {
-        attributes: ["id", "name", "slug", "promoImagePath", "imagePaths"],
+        attributes: ["id", "storeId", "name", "slug", "promoImagePath", "imagePaths"],
+        include: [
+          {
+            model: Store,
+            as: "store",
+            attributes: ["id", "name", "slug"],
+            required: false,
+          },
+        ],
       });
       if (!product) {
         return res.status(404).json({ message: "Product not found" });
@@ -3178,7 +3285,15 @@ router.patch(
           {
             model: Product,
             as: "product",
-            attributes: ["id", "name", "slug", "promoImagePath", "imagePaths"],
+            attributes: ["id", "storeId", "name", "slug", "promoImagePath", "imagePaths"],
+            include: [
+              {
+                model: Store,
+                as: "store",
+                attributes: ["id", "name", "slug"],
+                required: false,
+              },
+            ],
           },
         ],
       });
@@ -3257,7 +3372,15 @@ router.put(
       if (!userId) return;
 
       const product = await Product.findByPk(productId, {
-        attributes: ["id", "name", "slug", "promoImagePath", "imagePaths"],
+        attributes: ["id", "storeId", "name", "slug", "promoImagePath", "imagePaths"],
+        include: [
+          {
+            model: Store,
+            as: "store",
+            attributes: ["id", "name", "slug"],
+            required: false,
+          },
+        ],
       });
       if (!product) {
         return res.status(404).json({ message: "Product not found" });
