@@ -130,6 +130,24 @@ const normalizeToken = (value) =>
 const getInvoiceParam = (order, view) =>
   toText(view?.invoiceNo || order?.invoiceNo || order?.invoice || order?.orderRef || order?.reference || order?.ref || order?.id);
 
+const formatCompactOrderNumber = (invoiceNo, orderId, createdAt) => {
+  const raw = String(invoiceNo || "").trim();
+  if (!raw && !orderId) return "-";
+  if (/^TP-\d{6}-\w+/i.test(raw)) return raw;
+
+  const d = createdAt ? new Date(createdAt) : null;
+  const dateStr =
+    d && !Number.isNaN(d.getTime())
+      ? `${String(d.getFullYear()).slice(-2)}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`
+      : "261104";
+
+  const numPart = orderId
+    ? String(orderId).padStart(4, "0")
+    : raw.replace(/[^A-Za-z0-9]/g, "").slice(-4) || "0001";
+
+  return `TP-${dateStr}-${numPart}`;
+};
+
 const getOrderDateValue = (order, view) =>
   view?.orderTime || order?.orderDate || order?.createdAt || order?.created_at || order?.order_time || null;
 
@@ -943,15 +961,13 @@ export default function Orders() {
                                   className="orders-invoice-link"
                                   title={invoiceParam}
                                 >
-                                  {invoiceParam.length > 20
-                                    ? `${invoiceParam.slice(0, 14)}...${invoiceParam.slice(-4)}`
-                                    : invoiceParam}
+                                  {formatCompactOrderNumber(invoiceParam, rowId, orderDateValue)}
                                 </Link>
                                 <button
                                   type="button"
                                   onClick={() => copyInvoice(invoiceParam)}
                                   className="orders-copy-icon"
-                                  title="Copy Invoice ID"
+                                  title={`Copy ${invoiceParam}`}
                                 >
                                   <Copy size={12} />
                                 </button>
@@ -1060,10 +1076,8 @@ export default function Orders() {
                       className={`orders-mobile-card ${isSelected ? "is-selected" : ""}`}
                     >
                       <div className="orders-mobile-top">
-                        <span className="orders-mobile-inv">
-                          {invoiceParam.length > 22
-                            ? `${invoiceParam.slice(0, 16)}...`
-                            : invoiceParam}
+                        <span className="orders-mobile-inv" title={invoiceParam}>
+                          {formatCompactOrderNumber(invoiceParam, rowId, getOrderDateValue(order, view))}
                         </span>
                         <span className={`orders-badge ${paymentStatus === "PAID" ? "orders-badge--green" : "orders-badge--orange"}`}>
                           {labelize(paymentStatus)}

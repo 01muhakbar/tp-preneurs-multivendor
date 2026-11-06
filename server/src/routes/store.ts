@@ -2057,6 +2057,7 @@ router.get(
           "discountAmount",
           "paymentMethod",
           "createdAt",
+          "updatedAt",
           "shippingDetails",
           "customerName",
           "customerPhone",
@@ -2109,7 +2110,16 @@ router.get(
       }));
       const paymentGroups = await Suborder.findAll({
         where: { orderId },
-        attributes: ["id", "paymentStatus", "fulfillmentStatus", "expiresAt"],
+        attributes: [
+          "id",
+          "suborderNumber",
+          "paymentStatus",
+          "fulfillmentStatus",
+          "expiresAt",
+          "paidAt",
+          "createdAt",
+          "updatedAt",
+        ],
         include: [
           {
             model: Store,
@@ -2317,6 +2327,7 @@ router.get(
           paymentEntry: paymentEntryWithPath,
           contract,
           createdAt: order.createdAt,
+          updatedAt: (order as any).updatedAt || null,
           shippingDetails: normalizeShippingDetailsOutput(
             (order as any).shippingDetails ??
               order.get?.("shippingDetails") ??
@@ -2330,6 +2341,7 @@ router.get(
           items,
           storeSplits: paymentGroups.map((sub: any) => ({
             id: sub.id,
+            suborderNumber: sub.suborderNumber || null,
             storeId: sub.store?.id || sub.storeId,
             storeName: sub.store?.name || null,
             storeSlug: sub.store?.slug || null,
@@ -2337,6 +2349,9 @@ router.get(
             storeWhatsapp: sub.store?.whatsapp || null,
             fulfillmentStatus: sub.fulfillmentStatus,
             paymentStatus: sub.paymentStatus,
+            paidAt: sub.paidAt || (Array.isArray(sub.payments) && sub.payments[0]?.status === "PAID" ? sub.payments[0].updatedAt : null),
+            createdAt: sub.createdAt,
+            updatedAt: sub.updatedAt,
           })),
         },
       });
@@ -2478,6 +2493,7 @@ router.get(
           "discountAmount",
           "paymentMethod",
           "createdAt",
+          "updatedAt",
           "shippingDetails",
           "customerName",
           "customerPhone",

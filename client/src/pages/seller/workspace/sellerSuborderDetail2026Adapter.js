@@ -47,6 +47,24 @@ export const formatDateShort = (value, isIndo = false) => {
   }).format(date);
 };
 
+export const formatCompactOrderNumber = (invoiceNo, orderId, createdAt) => {
+  const raw = String(invoiceNo || "").trim();
+  if (!raw && !orderId) return "-";
+  if (/^TP-\d{6}-\w+/i.test(raw)) return raw;
+
+  const d = createdAt ? new Date(createdAt) : null;
+  const dateStr =
+    d && !Number.isNaN(d.getTime())
+      ? `${String(d.getFullYear()).slice(-2)}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`
+      : "261104";
+
+  const numPart = orderId
+    ? String(orderId).padStart(4, "0")
+    : raw.replace(/[^A-Za-z0-9]/g, "").slice(-4) || "0001";
+
+  return `TP-${dateStr}-${numPart}`;
+};
+
 export const paymentStatusLabel = (status, isIndo = false) => {
   const norm = String(status || "").toUpperCase();
   if (norm === "PAID") return isIndo ? "Lunas" : "Paid";
@@ -340,10 +358,19 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
   const safeTracking =
     rawTracking && !rawTracking.toLowerCase().includes("no tracking") ? rawTracking : "";
 
+  const rawParentOrderNo = text(order.orderNumber ?? order.invoiceNo, "Order");
+  const parentOrderId = order.orderId || order.order?.id || null;
+  const compactReference = formatCompactOrderNumber(rawParentOrderNo, parentOrderId, createdAt);
+  const compactSuborderNo = order.suborderNo
+    ? order.suborderNo.replace(/^STORE-IDEMP-[A-Fa-f0-9]+/, compactReference)
+    : `${compactReference}-S01`;
+
   return {
     id: order.suborderId ?? order.id ?? null,
-    reference: text(order.orderNumber ?? order.invoiceNo, "Order"),
-    suborderNo: text(order.suborderNo, isIndo ? "Sub-pesanan Toko" : "Store suborder"),
+    reference: compactReference,
+    rawReference: rawParentOrderNo,
+    suborderNo: compactSuborderNo,
+    rawSuborderNo: text(order.suborderNo, isIndo ? "Sub-pesanan Toko" : "Store suborder"),
     scopeLabel: text(order.channel, isIndo ? "Pesanan Toko Tunggal" : "Single Store"),
     ordersPath: routes.orders || "/seller/stores",
     createdAt,

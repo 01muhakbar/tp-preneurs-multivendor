@@ -78,21 +78,42 @@ export const buildStoreWhatsAppUrl = ({ whatsappNumber, orderRef = "", storeName
   return `https://wa.me/${digits}?text=${encodeURIComponent(textMsg)}`;
 };
 
-const formatDateTime = (value) => {
+export const formatCompactOrderNumber = (invoiceNo, orderId, createdAt) => {
+  const raw = String(invoiceNo || "").trim();
+  if (!raw && !orderId) return "-";
+
+  if (/^TP-\d{6}-\w+/i.test(raw)) return raw;
+
+  const d = createdAt ? new Date(createdAt) : null;
+  const dateStr =
+    d && !Number.isNaN(d.getTime())
+      ? `${String(d.getFullYear()).slice(-2)}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`
+      : "261104";
+
+  const numPart = orderId
+    ? String(orderId).padStart(4, "0")
+    : raw.replace(/[^A-Za-z0-9]/g, "").slice(-4) || "0001";
+
+  return `TP-${dateStr}-${numPart}`;
+};
+
+export const formatDateTime = (value, isIndo = false) => {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("en-US", {
+  const locale = isIndo ? "id-ID" : "en-US";
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
 };
 
-const formatDateOnly = (value) => {
+export const formatDateOnly = (value, isIndo = false) => {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("en-US", {
+  const locale = isIndo ? "id-ID" : "en-US";
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
   }).format(date);
 };
@@ -367,6 +388,9 @@ const normalizeStoreGroup = (value, index) => {
       buyerShipment.label
     ),
     items,
+    paidAt: group.paidAt || group.payment?.paidAt || null,
+    createdAt: group.createdAt || null,
+    updatedAt: group.updatedAt || null,
     buyerActions: ["SUBMIT_PAYMENT_PROOF", "CANCEL_PAYMENT"]
       .map((code) => getSplitOperationalBuyerAction(group, code))
       .filter(Boolean)
@@ -580,16 +604,18 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false }) 
     (id && hasEnabledSplitPaymentAction
       ? `/user/my-orders/${encodeURIComponent(String(id))}/payment`
       : "");
-  const reference =
+  const rawInvoiceNo =
     resolvePublicOrderReference(
       source.invoiceNo,
       source.ref,
       grouped.invoiceNo,
       grouped.ref
     ) || (id ? `#${id}` : "Order");
+  const compactOrderNo = formatCompactOrderNumber(rawInvoiceNo, id, placedAt);
+  const reference = compactOrderNo;
   const publicTrackingPath =
-    reference && !/^#?\d+$/.test(reference)
-      ? `/order/${encodeURIComponent(reference)}`
+    rawInvoiceNo && !/^#?\d+$/.test(rawInvoiceNo)
+      ? `/order/${encodeURIComponent(rawInvoiceNo)}`
       : "";
   const invoiceUrl = text(
     source.invoiceUrl ||
@@ -706,7 +732,7 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false }) 
           : isIndo ? "Menunggu konfirmasi pembayaran." : "Waiting for payment confirmation.");
   const shippingTimestamp =
     latestTimelineEvent?.happenedAtDisplay ||
-    (placedAt ? formatDateTime(placedAt) : "-");
+    (placedAt ? formatDateTime(placedAt, isIndo) : "-");
 
   const recipientName = text(source.customerName || source.customer?.name, isIndo ? "Pelanggan" : "Customer");
   const recipientPhone = text(source.customerPhone || source.customer?.phone, "-");
@@ -759,20 +785,39 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false }) 
     source.notes || source.customerNote || source.customerNotes || source.note || ""
   );
 
+  const realPaidAt =
+    storeBreakdown[0]?.paidAt ||
+    asArray(source.storeSplits).find((s) => asObject(s).paidAt)?.paidAt ||
+    grouped.paidAt ||
+    payment?.paidAt ||
+    source.paidAt ||
+    null;
+
+  const realDeliveredAt =
+    primaryShipment?.deliveredOn ||
+    storeBreakdown[0]?.updatedAt ||
+    asArray(source.storeSplits).find((s) => asObject(s).updatedAt)?.updatedAt ||
+    (isDelivered ? source.updatedAt || grouped.updatedAt : null);
+
+  const realShippedAt =
+    primaryShipment?.createdAt ||
+    primaryShipment?.shippedAt ||
+    null;
+
   const timelineDates = {
-    orderPlaced: placedAt ? formatDateTime(placedAt) : "-",
-    paidAt: (grouped.paidAt || payment?.paidAt)
-      ? formatDateTime(grouped.paidAt || payment.paidAt)
+    orderPlaced: placedAt ? formatDateTime(placedAt, isIndo) : "-",
+    paidAt: realPaidAt
+      ? formatDateTime(realPaidAt, isIndo)
       : isUnpaid
         ? null
         : placedAt
-          ? formatDateTime(placedAt)
+          ? formatDateTime(placedAt, isIndo)
           : null,
-    shippedAt: primaryShipment?.createdAt ? formatDateTime(primaryShipment.createdAt) : null,
-    deliveredAt: primaryShipment?.deliveredOn
-      ? formatDateTime(primaryShipment.deliveredOn)
-      : isDelivered && placedAt
-        ? formatDateTime(placedAt)
+    shippedAt: realShippedAt ? formatDateTime(realShippedAt, isIndo) : null,
+    deliveredAt: realDeliveredAt
+      ? formatDateTime(realDeliveredAt, isIndo)
+      : isDelivered && (source.updatedAt || placedAt)
+        ? formatDateTime(source.updatedAt || placedAt, isIndo)
         : null,
   };
 
@@ -820,17 +865,18 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false }) 
       },
     },
     helpActions: {
-      returnUrl: `/contact-us?topic=return&ref=${encodeURIComponent(reference)}`,
+      returnUrl: `/contact-us?topic=return&ref=${encodeURIComponent(compactOrderNo)}`,
       chatUrl:
         buildStoreWhatsAppUrl({
           whatsappNumber: primaryStoreWhatsapp,
-          orderRef: reference,
+          orderRef: compactOrderNo,
           storeName: primaryStoreName,
-        }) || `/contact-us?topic=seller&ref=${encodeURIComponent(reference)}`,
-      supportUrl: `/contact-us?topic=order&ref=${encodeURIComponent(reference)}`,
+        }) || `/contact-us?topic=seller&ref=${encodeURIComponent(compactOrderNo)}`,
+      supportUrl: `/contact-us?topic=order&ref=${encodeURIComponent(compactOrderNo)}`,
     },
     orderMeta: {
-      orderNo: reference,
+      orderNo: compactOrderNo,
+      rawOrderNo: rawInvoiceNo,
       paymentMethod: paymentMethodDisplay,
       sellerNote: customerNotes,
       invoiceUrl,
@@ -847,7 +893,12 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false }) 
     },
     order: {
       id,
-      code: reference,
+      code: compactOrderNo,
+      rawCode: rawInvoiceNo,
+      reference: compactOrderNo,
+      rawReference: rawInvoiceNo,
+      placedAt,
+      placedAtDisplay: formatDateTime(placedAt, isIndo),
       reference,
       placedAt,
       placedAtDisplay: formatDateTime(placedAt),

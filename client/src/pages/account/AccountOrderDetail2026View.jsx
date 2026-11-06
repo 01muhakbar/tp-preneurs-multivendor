@@ -619,10 +619,16 @@ export default function AccountOrderDetail2026View({
           <div className="tp-shopee-detail__meta-row">
             <span className="tp-shopee-detail__meta-label">{t.orderNo}</span>
             <div className="tp-shopee-detail__meta-val-copy">
-              <strong className="tp-shopee-detail__order-num">{orderMeta.orderNo}</strong>
+              <strong
+                className="tp-shopee-detail__order-num"
+                title={orderMeta.rawOrderNo ? `Invoice: ${orderMeta.rawOrderNo}` : orderMeta.orderNo}
+              >
+                {orderMeta.orderNo}
+              </strong>
               <button
                 type="button"
                 className="tp-shopee-detail__copy-pill"
+                title={t.copy}
                 onClick={() => handleCopyOrderNo(orderMeta.orderNo)}
               >
                 {t.copy}
