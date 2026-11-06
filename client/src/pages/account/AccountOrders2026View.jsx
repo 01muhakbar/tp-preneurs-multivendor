@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   ChevronRight,
-  MessageCircle,
   Package,
   Search,
   Star,
@@ -488,16 +487,6 @@ export default function AccountOrders2026View({
           >
             <Search size={20} />
           </button>
-          <a
-            href="https://wa.me/628218866824"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="tp-shopee-header__icon-btn relative"
-            aria-label="Chat support"
-          >
-            <MessageCircle size={20} />
-            <span className="tp-shopee-header__badge">10</span>
-          </a>
         </div>
       </header>
 

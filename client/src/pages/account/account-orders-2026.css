@@ -96,25 +96,6 @@
   background: var(--tp-orders-orange-light);
 }
 
-.tp-shopee-header__badge {
-  position: absolute;
-  top: 1px;
-  right: 1px;
-  min-width: 17px;
-  height: 17px;
-  padding: 0 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: var(--tp-orders-orange);
-  color: #ffffff;
-  font-size: 10px;
-  font-weight: 800;
-  line-height: 1;
-  border: 2px solid var(--tp-orders-card-bg);
-}
-
 /* Search Bar (Expandable) */
 .tp-shopee-search-bar {
   padding: 8px 18px 12px;
