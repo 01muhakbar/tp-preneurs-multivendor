@@ -564,6 +564,14 @@ export function adaptSeller2026SuborderDetail(value: unknown): Seller2026Suborde
   const trackingEvents = shipments.flatMap((shipment) => array(shipment.trackingEvents ?? shipment.events));
   const printLabel = object(detail.printLabel);
 
+  const isShippingStatusEnum = (val: string) =>
+    ["DELIVERED", "SHIPPED", "PROCESSING", "PACKED", "UNFULFILLED", "CANCELLED", "PENDING", "COMPLETED", "UNKNOWN"].includes(
+      String(val || "").trim().toUpperCase()
+    );
+
+  const rawMethod = text(shipments[0]?.courierService ?? detail.shippingMethod ?? detail.deliveryMethod);
+  const rawCourier = text(shipments[0]?.courierCode ?? shipments[0]?.courierService ?? detail.courierCode);
+
   return {
     suborder: {
       id: suborderId,
@@ -598,9 +606,9 @@ export function adaptSeller2026SuborderDetail(value: unknown): Seller2026Suborde
       note: text(order.note) || undefined,
     },
     shipping: {
-      method: text(detail.shippingStatus ?? shipments[0]?.courierService) || undefined,
+      method: isShippingStatusEnum(rawMethod) ? undefined : (rawMethod || undefined),
       trackingNo: text(shipments[0]?.trackingNumber, "No tracking number yet."),
-      courier: text(shipments[0]?.courierCode ?? shipments[0]?.courierService) || undefined,
+      courier: isShippingStatusEnum(rawCourier) ? undefined : (rawCourier || undefined),
       estimate: text(shipments[0]?.estimate) || undefined,
     },
     payment: {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import SellerSuborderDetail2026PageView from "./SellerSuborderDetail2026PageView.jsx";
 import {
   buildSellerSuborderFulfillmentPayload2026,
@@ -25,9 +26,50 @@ const copyText = async (value) => {
 };
 
 export default function Seller2026LiveSuborderDetailPage() {
+  const { i18n } = useTranslation();
   const { suborderId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [, setLangSyncCounter] = useState(0);
+
+  useEffect(() => {
+    const handleSync = () => setLangSyncCounter((c) => c + 1);
+    i18n.on("languageChanged", handleSync);
+    window.addEventListener("storage", handleSync);
+    return () => {
+      i18n.off("languageChanged", handleSync);
+      window.removeEventListener("storage", handleSync);
+    };
+  }, [i18n]);
+
+  const isIndo = (() => {
+    const lang = (i18n.language || "").toLowerCase();
+    if (lang.startsWith("id")) return true;
+    if (typeof window !== "undefined") {
+      try {
+        const stored = JSON.parse(
+          window.localStorage.getItem("seller_language") || "null"
+        );
+        if (
+          stored?.isoCode?.toLowerCase()?.startsWith("id") ||
+          stored?.name?.toLowerCase()?.includes("indonesia")
+        ) {
+          return true;
+        }
+      } catch {
+        // ignore
+      }
+      const storeLang = window.localStorage.getItem("store_language") || "";
+      if (
+        storeLang.toLowerCase().includes("indonesia") ||
+        storeLang.toLowerCase() === "id"
+      ) {
+        return true;
+      }
+    }
+    return false;
+  })();
+
   const {
     sellerContext,
     workspaceStoreId,
@@ -58,6 +100,7 @@ export default function Seller2026LiveSuborderDetailPage() {
           routes: {
             orders: workspaceRoutes.orders(),
           },
+          isIndo,
         })
       : null;
 
@@ -85,7 +128,13 @@ export default function Seller2026LiveSuborderDetailPage() {
     const copied = await copyText(orderDetail2026?.reference);
     setNotice({
       type: copied ? "success" : "error",
-      text: copied ? "Order reference copied." : "Unable to copy order reference.",
+      text: copied
+        ? isIndo
+          ? `${orderDetail2026?.reference} berhasil disalin.`
+          : "Order reference copied."
+        : isIndo
+        ? "Gagal menyalin nomor pesanan."
+        : "Unable to copy order reference.",
     });
   };
 
@@ -110,11 +159,17 @@ export default function Seller2026LiveSuborderDetailPage() {
         queryClient.invalidateQueries({ queryKey: ["seller2026", "dashboard", workspaceStoreId] }),
         queryClient.invalidateQueries({ queryKey: ["seller", "notifications", workspaceStoreId] }),
       ]);
-      setNotice({ type: "success", text: "Seller fulfillment updated." });
+      setNotice({
+        type: "success",
+        text: isIndo ? "Status pengiriman berhasil diperbarui." : "Seller fulfillment updated.",
+      });
     } catch (error) {
       setNotice({
         type: "error",
-        text: getErrorMessage(error, "Failed to update seller fulfillment."),
+        text: getErrorMessage(
+          error,
+          isIndo ? "Gagal memperbarui status pengiriman." : "Failed to update seller fulfillment."
+        ),
       });
     }
   };
@@ -124,11 +179,17 @@ export default function Seller2026LiveSuborderDetailPage() {
     try {
       await detailQuery.updateInternalNote({ note: internalNoteDraft });
       await detailQuery.refetch();
-      setNotice({ type: "success", text: "Internal note saved." });
+      setNotice({
+        type: "success",
+        text: isIndo ? "Catatan internal berhasil disimpan." : "Internal note saved.",
+      });
     } catch (error) {
       setNotice({
         type: "error",
-        text: getErrorMessage(error, "Failed to save internal note."),
+        text: getErrorMessage(
+          error,
+          isIndo ? "Gagal menyimpan catatan internal." : "Failed to save internal note."
+        ),
       });
     }
   };
@@ -144,6 +205,7 @@ export default function Seller2026LiveSuborderDetailPage() {
       searchQuery={searchQuery}
       fulfillmentDraft={fulfillmentDraft}
       notice={notice}
+      isIndo={isIndo}
       onSearchChange={setSearchQuery}
       onCopyReference={handleCopyReference}
       onBack={handleBack}
