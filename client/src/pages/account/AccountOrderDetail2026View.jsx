@@ -258,6 +258,20 @@ export default function AccountOrderDetail2026View({
   const [isAddressExpanded, setIsAddressExpanded] = useState(false);
 
   const shopee = orderDetail?.shopeeDetail || null;
+  const storeSlug =
+    shopee?.storeProducts?.storeSlug ||
+    orderDetail?.storeProducts?.storeSlug ||
+    rawOrder?.storeSlug ||
+    rawOrder?.store?.slug ||
+    "kreasi-singkong";
+
+  // Must be called unconditionally at top of component according to React Rules of Hooks
+  const { data: storeIdentityData } = useQuery({
+    queryKey: ["public-store-identity", storeSlug],
+    queryFn: () => getStorePublicIdentityBySlug(storeSlug),
+    enabled: Boolean(storeSlug),
+    staleTime: 60_000,
+  });
 
   const handleCopyOrderNo = async (val) => {
     if (!val) return;
@@ -353,26 +367,20 @@ export default function AccountOrderDetail2026View({
     },
   };
 
-  const storeSlug = storeProducts.storeSlug || "kreasi-singkong";
-  const { data: storeIdentityData } = useQuery({
-    queryKey: ["public-store-identity", storeSlug],
-    queryFn: () => getStorePublicIdentityBySlug(storeSlug),
-    enabled: Boolean(storeSlug),
-    staleTime: 60_000,
-  });
-
   const effectiveWhatsapp =
     storeIdentityData?.data?.whatsapp ||
     storeIdentityData?.data?.phone ||
-    storeProducts.storeWhatsapp ||
+    storeProducts?.storeWhatsapp ||
     "0895800536593";
 
   const sellerChatUrl =
     buildStoreWhatsAppUrl({
       whatsappNumber: effectiveWhatsapp,
-      orderRef: orderMeta.orderNo,
-      storeName: storeProducts.storeName,
+      orderRef: orderMeta?.orderNo || "",
+      storeName: storeProducts?.storeName || "",
     }) || shopee?.helpActions?.chatUrl || "https://wa.me/62895800536593";
+
+  const fullShippingAddress = String(shippingAddress?.address || "-");
 
   return (
     <>
@@ -443,11 +451,11 @@ export default function AccountOrderDetail2026View({
             </div>
             <p className="tp-shopee-detail__address-text">
               {isAddressExpanded
-                ? shippingAddress.address
-                : shippingAddress.address.length > 85
-                  ? `${shippingAddress.address.slice(0, 85)}... `
-                  : shippingAddress.address}
-              {shippingAddress.address.length > 85 && (
+                ? fullShippingAddress
+                : fullShippingAddress.length > 85
+                  ? `${fullShippingAddress.slice(0, 85)}... `
+                  : fullShippingAddress}
+              {fullShippingAddress.length > 85 && (
                 <button
                   type="button"
                   className="tp-shopee-detail__inline-expand"
