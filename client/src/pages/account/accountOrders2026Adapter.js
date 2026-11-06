@@ -353,6 +353,20 @@ const normalizeOrder = (value, options = {}) => {
   };
 };
 
+export const isIndonesianLanguage = (i18nInstance) => {
+  if (typeof window !== "undefined") {
+    const stored = String(localStorage.getItem("store_language") || "").trim().toLowerCase();
+    if (stored === "indonesia" || stored === "id" || stored === "bahasa indonesia") {
+      return true;
+    }
+    if (stored === "english" || stored === "en") {
+      return false;
+    }
+  }
+  const current = String(i18nInstance?.language || "").trim().toLowerCase();
+  return current.startsWith("id");
+};
+
 export const normalizeAccountOrdersFor2026 = (response, options = {}) => {
   const source = asObject(response);
   const rawOrders = Array.isArray(response)

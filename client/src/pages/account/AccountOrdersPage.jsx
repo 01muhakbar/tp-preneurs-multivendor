@@ -5,7 +5,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { fetchStoreMyOrders } from "../../api/storeOrders.ts";
 import { isOrderContractFinal } from "../../utils/orderContract.ts";
 import AccountOrders2026View from "./AccountOrders2026View.jsx";
-import { normalizeAccountOrdersFor2026 } from "./accountOrders2026Adapter.js";
+import { isIndonesianLanguage, normalizeAccountOrdersFor2026 } from "./accountOrders2026Adapter.js";
 
 const shouldPollAccountOrders = (orders) =>
   Array.isArray(orders) &&
@@ -16,35 +16,24 @@ const shouldPollAccountOrders = (orders) =>
 
 export default function AccountOrdersPage() {
   const { i18n } = useTranslation();
-  const [langCode, setLangCode] = useState(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("store_language");
-      if (stored === "Indonesia" || stored === "id") return "id";
-    }
-    const current = i18n.language || "";
-    return current.toLowerCase().startsWith("id") ? "id" : "en";
-  });
+  const [, setLangSync] = useState(0);
 
   useEffect(() => {
-    const handleLangChange = () => {
-      let code = "en";
-      if (typeof window !== "undefined") {
-        const stored = localStorage.getItem("store_language");
-        if (stored === "Indonesia" || stored === "id") code = "id";
-        else if (i18n.language?.toLowerCase().startsWith("id")) code = "id";
-      }
-      setLangCode(code);
+    const handleSync = () => {
+      setLangSync((prev) => prev + 1);
     };
 
-    i18n.on("languageChanged", handleLangChange);
-    window.addEventListener("storage", handleLangChange);
+    i18n?.on?.("languageChanged", handleSync);
+    window.addEventListener("storage", handleSync);
+    window.addEventListener("store_language_changed", handleSync);
     return () => {
-      i18n.off("languageChanged", handleLangChange);
-      window.removeEventListener("storage", handleLangChange);
+      i18n?.off?.("languageChanged", handleSync);
+      window.removeEventListener("storage", handleSync);
+      window.removeEventListener("store_language_changed", handleSync);
     };
   }, [i18n]);
 
-  const isIndo = langCode === "id";
+  const isIndo = isIndonesianLanguage(i18n);
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedPage = Number(searchParams.get("page") || 1);
   const page = Number.isFinite(requestedPage) ? Math.max(1, requestedPage) : 1;

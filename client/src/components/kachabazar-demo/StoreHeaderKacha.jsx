@@ -348,6 +348,8 @@ export default function StoreHeaderKacha({
         if (typeof window !== "undefined") {
           localStorage.setItem("store_language", matched.name);
           i18n.changeLanguage(matched.isoCode);
+          window.dispatchEvent(new Event("storage"));
+          window.dispatchEvent(new CustomEvent("store_language_changed", { detail: matched }));
         }
       }
     }
@@ -359,6 +361,7 @@ export default function StoreHeaderKacha({
       localStorage.setItem("store_language", langObj.name);
       i18n.changeLanguage(langObj.isoCode);
       window.dispatchEvent(new Event("storage"));
+      window.dispatchEvent(new CustomEvent("store_language_changed", { detail: langObj }));
     }
     setLanguageOpen(false);
     setMobileLanguageOpen(false);

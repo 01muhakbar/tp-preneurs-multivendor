@@ -15,6 +15,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { fetchStoreProducts } from "../../api/storeProducts.ts";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
 import { formatCurrency } from "../../utils/format.js";
+import { isIndonesianLanguage } from "./accountOrders2026Adapter.js";
 import "./account-orders-2026.css";
 
 const MY_ORDERS_I18N = {
@@ -390,42 +391,21 @@ export default function AccountOrders2026View({
 }) {
   const navigate = useNavigate();
   const { i18n } = useTranslation();
-  const [langCode, setLangCode] = useState(() => {
-    if (typeof isIndoProp === "boolean") return isIndoProp ? "id" : "en";
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("store_language");
-      if (stored === "Indonesia" || stored === "id") return "id";
-    }
-    const current = i18n?.language || "";
-    return current.toLowerCase().startsWith("id") ? "id" : "en";
-  });
+  const [, setLangSync] = useState(0);
 
   useEffect(() => {
-    if (typeof isIndoProp === "boolean") {
-      setLangCode(isIndoProp ? "id" : "en");
-    }
-  }, [isIndoProp]);
-
-  useEffect(() => {
-    const handleLangChange = () => {
-      let code = "en";
-      if (typeof window !== "undefined") {
-        const stored = localStorage.getItem("store_language");
-        if (stored === "Indonesia" || stored === "id") code = "id";
-        else if (i18n?.language?.toLowerCase().startsWith("id")) code = "id";
-      }
-      setLangCode(code);
-    };
-
-    i18n?.on?.("languageChanged", handleLangChange);
-    window.addEventListener("storage", handleLangChange);
+    const handleSync = () => setLangSync((prev) => prev + 1);
+    i18n?.on?.("languageChanged", handleSync);
+    window.addEventListener("storage", handleSync);
+    window.addEventListener("store_language_changed", handleSync);
     return () => {
-      i18n?.off?.("languageChanged", handleLangChange);
-      window.removeEventListener("storage", handleLangChange);
+      i18n?.off?.("languageChanged", handleSync);
+      window.removeEventListener("storage", handleSync);
+      window.removeEventListener("store_language_changed", handleSync);
     };
   }, [i18n]);
 
-  const isIndo = langCode === "id";
+  const isIndo = typeof isIndoProp === "boolean" ? isIndoProp : isIndonesianLanguage(i18n);
   const t = isIndo ? MY_ORDERS_I18N.id : MY_ORDERS_I18N.en;
 
   // 7 Status Tabs as required by user
