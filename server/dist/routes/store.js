@@ -1528,6 +1528,7 @@ router.get("/my/orders", protect, async (req, res, next) => {
             .filter((value) => Number.isFinite(value) && value > 0);
         const paymentGroupsByOrderId = new Map();
         const duitkuPaymentCodeByOrderId = new Map();
+        const itemsByOrderId = new Map();
         if (orderIds.length > 0) {
             const placeholders = orderIds.map(() => "?").join(", ");
             const paymentRows = (await sequelize.query(`
@@ -1621,6 +1622,51 @@ router.get("/my/orders", protect, async (req, res, next) => {
                 }
                 duitkuPaymentCodeByOrderId.set(orderId, String(row?.paymentCode || "").trim() || null);
             }
+            try {
+                const itemRows = (await sequelize.query(`
+              SELECT
+                si.id,
+                si.suborder_id AS suborderId,
+                s.order_id AS orderId,
+                si.product_id AS productId,
+                si.product_name_snapshot AS name,
+                si.image_snapshot AS image,
+                si.variant_label AS variant,
+                si.price_snapshot AS price,
+                si.qty AS quantity,
+                si.total_price AS totalPrice,
+                p.slug AS productSlug
+              FROM suborder_items si
+              INNER JOIN suborders s ON s.id = si.suborder_id
+              LEFT JOIN products p ON p.id = si.product_id
+              WHERE s.order_id IN (${placeholders})
+              ORDER BY si.id ASC
+            `, {
+                    replacements: orderIds,
+                    type: QueryTypes.SELECT,
+                }));
+                for (const item of itemRows) {
+                    const orderId = Number(item.orderId);
+                    if (!itemsByOrderId.has(orderId)) {
+                        itemsByOrderId.set(orderId, []);
+                    }
+                    itemsByOrderId.get(orderId).push({
+                        id: item.id,
+                        suborderId: item.suborderId,
+                        productId: item.productId,
+                        name: item.name || "Product",
+                        image: item.image || null,
+                        variant: item.variant || null,
+                        price: Number(item.price || 0),
+                        quantity: Number(item.quantity || 1),
+                        totalPrice: Number(item.totalPrice || item.price || 0),
+                        slug: item.productSlug || null,
+                    });
+                }
+            }
+            catch {
+                // fallback to empty items if query fails
+            }
         }
         const total = Number(countRow?.total ?? countRow?.count ?? 0);
         const totalPages = Math.max(1, Math.ceil(total / limit));
@@ -1647,6 +1693,8 @@ router.get("/my/orders", protect, async (req, res, next) => {
                     fulfillmentStatuses: paymentGroups.map((group) => group.fulfillmentStatus),
                     statusSummaryOverride: aggregateStatusSummary,
                 });
+                const orderItems = itemsByOrderId.get(orderId) ?? [];
+                const totalItemsCount = orderItems.reduce((acc, it) => acc + (Number(it.quantity) || 1), 0);
                 return {
                     id: row.id,
                     invoiceNo: row.invoice_no ?? row.invoiceNo ?? null,
@@ -1666,6 +1714,8 @@ router.get("/my/orders", protect, async (req, res, next) => {
                     paymentCode,
                     paymentEntry,
                     contract,
+                    items: orderItems,
+                    itemsCount: totalItemsCount,
                     storeNames: Array.from(new Set(paymentGroups
                         .map((group) => group.storeName)
                         .filter((name) => typeof name === "string" && name.trim().length > 0))),

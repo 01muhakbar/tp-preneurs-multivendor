@@ -1,308 +1,382 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
-  ArrowRight,
-  CalendarDays,
-  Check,
-  ChevronDown,
-  Copy,
-  CreditCard,
+  ChevronRight,
+  MessageCircle,
   Package,
-  RotateCcw,
   Search,
+  Star,
   Store,
   Truck,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { Link, useNavigate } from "react-router-dom";
+import { fetchStoreProducts } from "../../api/storeProducts.ts";
+import { resolveAssetUrl } from "../../lib/assetUrl.js";
 import { formatCurrency } from "../../utils/format.js";
 import "./account-orders-2026.css";
 
 const MY_ORDERS_I18N = {
   en: {
     title: "My Orders",
-    subtitle: "Track and manage all your orders in one place.",
-    filterAll: "All Orders",
-    filterPending: "Pending",
-    filterProcessing: "Processing",
-    filterCompleted: "Completed",
-    filterCancelled: "Cancelled",
-    searchPlaceholder: "Search order ID or store...",
-    allStatuses: "All statuses",
-    clearBtn: "Clear",
-    copy: "Copy",
-    copied: "Copied!",
-    payment: "Payment",
-    shipping: "Shipping",
-    status: "Status",
-    totalAmount: "Total Amount",
-    viewDetails: "View Details",
-    continuePayment: "Pay Now",
+    tabAll: "All",
+    tabUnpaid: "Unpaid",
+    tabToPack: "To Pack",
+    tabShipping: "Shipping",
+    tabCompleted: "Completed",
+    tabReturns: "Returns",
+    tabCancelled: "Cancelled",
+    searchPlaceholder: "Search order or product...",
+    emptyTitle: "No orders yet",
+    recommendationsTitle: "You May Also Like",
+    totalProduct: "Total {{count}} product(s)",
+    buyAgain: "Buy Again",
+    review: "Review",
+    requestReturn: "Return",
+    payNow: "Pay Now",
+    viewDetails: "Order Details",
+    track: "Track",
+    contactSeller: "Contact Seller",
+    returnDetails: "Refund Details",
     store: "Store",
-    unknownStatus: "Unknown",
-    unpaid: "Unpaid",
-    emptyTitle: "No matching orders found",
-    emptyTitleNoFilter: "No orders yet",
-    emptyDesc: "Try adjusting your search, status, or date filters.",
-    emptyDescNoFilter: "Your order history will appear here once you make a purchase.",
-    clearFilters: "Clear filters",
-    startShopping: "Start Shopping",
-    authError: "Please log in again to view your orders.",
-    loadError: "Failed to load orders.",
-    showing: "Showing {{start}} to {{end}} of {{total}} orders",
-    matching: ", {{count}} matching on this page",
-    supportTitle: "Need assistance? Call +62 821-8866-824",
-    supportDesc: "Customer support is ready to help you.",
+    sold: "sold",
+    rating: "Store Rating",
+    back: "Back",
   },
   id: {
     title: "Pesanan Saya",
-    subtitle: "Lacak dan kelola semua pesanan Anda dalam satu tempat.",
-    filterAll: "Semua Pesanan",
-    filterPending: "Menunggu",
-    filterProcessing: "Diproses",
-    filterCompleted: "Selesai",
-    filterCancelled: "Dibatalkan",
-    searchPlaceholder: "Cari ID pesanan atau toko...",
-    allStatuses: "Semua status",
-    clearBtn: "Reset",
-    copy: "Salin",
-    copied: "Tersalin!",
-    payment: "Pembayaran",
-    shipping: "Pengiriman",
-    status: "Status",
-    totalAmount: "Total Belanja",
-    viewDetails: "Lihat Detail",
-    continuePayment: "Bayar Sekarang",
+    tabAll: "Semua",
+    tabUnpaid: "Belum Bayar",
+    tabToPack: "Dikemas",
+    tabShipping: "Dikirim",
+    tabCompleted: "Selesai",
+    tabReturns: "Pengembalian",
+    tabCancelled: "Dibatalkan",
+    searchPlaceholder: "Cari pesanan atau produk...",
+    emptyTitle: "Belum ada pesanan",
+    recommendationsTitle: "Kamu Mungkin Juga Suka",
+    totalProduct: "Total {{count}} produk",
+    buyAgain: "Beli Lagi",
+    review: "Nilai",
+    requestReturn: "Ajukan Pengembalian",
+    payNow: "Bayar Sekarang",
+    viewDetails: "Rincian Pesanan",
+    track: "Lacak",
+    contactSeller: "Hubungi Penjual",
+    returnDetails: "Rincian Pengembalian",
     store: "Toko",
-    unknownStatus: "Tidak diketahui",
-    unpaid: "Belum Bayar",
-    emptyTitle: "Tidak ada pesanan yang sesuai",
-    emptyTitleNoFilter: "Belum ada pesanan",
-    emptyDesc: "Coba sesuaikan pencarian, status, atau filter tanggal.",
-    emptyDescNoFilter: "Riwayat pesanan Anda akan muncul di sini setelah berbelanja.",
-    clearFilters: "Hapus filter",
-    startShopping: "Mulai Belanja",
-    authError: "Silakan masuk kembali untuk melihat pesanan Anda.",
-    loadError: "Gagal memuat pesanan.",
-    showing: "Menampilkan {{start}} sampai {{end}} dari {{total}} pesanan",
-    matching: ", {{count}} cocok di halaman ini",
-    supportTitle: "Butuh bantuan? Hubungi +62 821-8866-824",
-    supportDesc: "Layanan bantuan pelanggan siap mendampingi Anda.",
+    sold: "terjual",
+    rating: "Penilaian Toko",
+    back: "Kembali",
   },
 };
 
-const formatDateTime = (value, isIndo) => {
-  if (!value) return { date: "-", time: "" };
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return { date: "-", time: "" };
-  const locale = isIndo ? "id-ID" : "en-US";
-  return {
-    date: new Intl.DateTimeFormat(locale, {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }).format(date),
-    time: new Intl.DateTimeFormat(locale, {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: !isIndo,
-    }).format(date),
-  };
-};
-
-const toDateInputValue = (value) => {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
-
-const getPageNumbers = (page, totalPages) => {
-  const size = Math.min(5, totalPages);
-  let start = Math.max(1, page - Math.floor(size / 2));
-  const end = Math.min(totalPages, start + size - 1);
-  start = Math.max(1, end - size + 1);
-  return Array.from({ length: end - start + 1 }, (_, index) => start + index);
-};
-
-function LoadingCards() {
+function EmptyClipboardIcon() {
   return (
-    <div className="tp-orders-2026__loading" aria-label="Loading orders">
-      {Array.from({ length: 3 }).map((_, index) => (
-        <span key={index} />
-      ))}
+    <div className="tp-empty-orders__icon-wrap" aria-hidden="true">
+      <svg
+        width="110"
+        height="120"
+        viewBox="0 0 110 120"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="tp-empty-orders__svg"
+      >
+        <circle cx="55" cy="62" r="48" fill="#F0F4F8" />
+        <circle cx="38" cy="28" r="3.5" fill="#FFB74D" />
+        <circle cx="78" cy="30" r="2.5" fill="#FFA726" />
+        <circle cx="43" cy="23" r="2" fill="#81D4FA" />
+        <rect
+          x="32"
+          y="26"
+          width="46"
+          height="62"
+          rx="5"
+          fill="#FFE0B2"
+          stroke="#FFA726"
+          strokeWidth="1.5"
+        />
+        <rect
+          x="35"
+          y="29"
+          width="40"
+          height="56"
+          rx="3"
+          fill="#FFFFFF"
+        />
+        <rect x="44" y="22" width="22" height="7" rx="3.5" fill="#4DB6AC" />
+        <circle cx="55" cy="25" r="2" fill="#FFFFFF" />
+        {/* checklist lines */}
+        <rect x="42" y="38" width="5" height="5" rx="1" fill="#E0E6ED" />
+        <rect x="50" y="39" width="20" height="3" rx="1.5" fill="#CFD8DC" />
+        <rect x="42" y="47" width="5" height="5" rx="1" fill="#E0E6ED" />
+        <rect x="50" y="48" width="18" height="3" rx="1.5" fill="#CFD8DC" />
+        <rect x="42" y="56" width="5" height="5" rx="1" fill="#E0E6ED" />
+        <rect x="50" y="57" width="22" height="3" rx="1.5" fill="#CFD8DC" />
+        <rect x="42" y="65" width="5" height="5" rx="1" fill="#E0E6ED" />
+        <rect x="50" y="66" width="16" height="3" rx="1.5" fill="#CFD8DC" />
+        {/* pencil */}
+        <g transform="translate(62, 58) rotate(35)">
+          <rect x="0" y="0" width="8" height="28" rx="2" fill="#26A69A" />
+          <path d="M0 28L4 35L8 28Z" fill="#FFCC80" />
+          <path d="M3 33L4 35L5 33Z" fill="#37474F" />
+          <rect x="0" y="0" width="8" height="5" fill="#EF5350" />
+        </g>
+      </svg>
     </div>
   );
 }
 
-function FilterTab({ filter, count, isActive, onClick }) {
-  return (
-    <button
-      type="button"
-      className={`tp-orders-filter-tab${isActive ? " is-active" : ""}`}
-      onClick={onClick}
-    >
-      <span>{filter.label}</span>
-      <strong>{count || 0}</strong>
-    </button>
-  );
-}
+function ProductRecommendationGrid({ t }) {
+  const productsQuery = useQuery({
+    queryKey: ["storefront", "recommendations", "my-orders"],
+    queryFn: () => fetchStoreProducts({ limit: 6 }),
+    staleTime: 5 * 60 * 1000,
+  });
 
-function StatusPill({ status }) {
-  return (
-    <span
-      className={`tp-orders-status tp-orders-status--${status.tone || "neutral"}`}
-    >
-      <i aria-hidden="true" />
-      {status.label}
-    </span>
-  );
-}
+  const products = Array.isArray(productsQuery.data?.products)
+    ? productsQuery.data.products
+    : [];
 
-function PaymentPill({ payment }) {
-  return (
-    <span
-      className={`tp-orders-payment-pill tp-orders-payment-pill--${
-        payment.tone || "neutral"
-      }`}
-    >
-      {payment.label}
-    </span>
-  );
-}
-
-function OrderCard({ order, LinkComponent, t, isIndo }) {
-  const [copied, setCopied] = useState(false);
-  const placed = formatDateTime(order.date || order.createdAt, isIndo);
-  const status = order.status || {
-    label: t.unknownStatus,
-    tone: "neutral",
-    bucket: "pending",
-  };
-  const paymentState = order.paymentState || order.payment || {
-    label: t.unpaid,
-    tone: "neutral",
-  };
-  const storeDisplay = order.primaryStoreName || (order.storeNames && order.storeNames[0]) || null;
-  const rawId = String(order.displayId || order.reference || "");
-
-  const handleCopy = (e) => {
-    e.stopPropagation();
-    const cleanId = rawId.replace(/^#/, "");
-    if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(cleanId);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
+  if (products.length === 0) return null;
 
   return (
-    <article className={`tp-order-card tp-order-card--${status.tone || "neutral"}`}>
-      <div className="tp-order-card__identity">
-        <span className="tp-order-card__icon" aria-hidden="true">
-          <Package />
-        </span>
-        <div className="tp-order-card__main">
-          <div className="tp-order-card__ref-row">
-            <h2 className="tp-order-card__ref" title={rawId}>
-              {rawId}
-            </h2>
-            <button
-              type="button"
-              className="tp-order-card__copy-btn"
-              onClick={handleCopy}
-              title={copied ? t.copied : t.copy}
-              aria-label={copied ? t.copied : t.copy}
+    <div className="tp-orders-recommendations">
+      <div className="tp-orders-recommendations__divider">
+        <span />
+        <h3>{t.recommendationsTitle}</h3>
+        <span />
+      </div>
+
+      <div className="tp-orders-recommendations__grid">
+        {products.slice(0, 6).map((product) => {
+          const imageSrc = resolveAssetUrl(product.image || product.images?.[0] || "");
+          const discount = product.discountPercent || (product.salePrice && product.price > product.salePrice ? Math.round(((product.price - product.salePrice) / product.price) * 100) : null);
+          const displayPrice = product.salePrice || product.price || 0;
+          return (
+            <Link
+              key={product.id}
+              to={product.slug ? `/products/${product.slug}` : "/shop"}
+              className="tp-rec-card"
             >
-              {copied ? <Check size={13} className="tp-order-card__copy-success" /> : <Copy size={13} />}
-              <span className="tp-order-card__copy-tooltip">{copied ? t.copied : t.copy}</span>
-            </button>
-          </div>
-          <p className="tp-order-card__date">
-            {placed.date}
-            {placed.time ? (
-              <>
-                <i aria-hidden="true" />
-                {placed.time}
-              </>
-            ) : null}
-          </p>
-          <div className="tp-order-card__store-row">
-            <span className="tp-order-card__store-pill">
-              <Store size={12} aria-hidden="true" />
-              <span>{storeDisplay || t.store}</span>
-            </span>
-          </div>
+              <div className="tp-rec-card__image-wrap">
+                {imageSrc ? (
+                  <img src={imageSrc} alt={product.name} loading="lazy" />
+                ) : (
+                  <div className="tp-rec-card__image-placeholder">
+                    <Package size={28} />
+                  </div>
+                )}
+                {discount ? (
+                  <span className="tp-rec-card__discount-tag">-{discount}%</span>
+                ) : null}
+              </div>
+              <div className="tp-rec-card__body">
+                <h4 className="tp-rec-card__title" title={product.name}>
+                  {product.name}
+                </h4>
+                <div className="tp-rec-card__price-row">
+                  <span className="tp-rec-card__price">
+                    {formatCurrency(displayPrice)}
+                  </span>
+                </div>
+                <div className="tp-rec-card__meta">
+                  <span className="tp-rec-card__rating">
+                    <Star size={11} fill="#fe6f05" color="#fe6f05" />
+                    <span>5.0</span>
+                  </span>
+                  <span className="tp-rec-card__location">
+                    <Truck size={11} />
+                    <span>Kota Makassar</span>
+                  </span>
+                </div>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ShopeeOrderCard({ order, LinkComponent, t }) {
+  const items = Array.isArray(order.items) && order.items.length > 0
+    ? order.items
+    : [
+        {
+          id: order.id,
+          name: order.primaryStoreName ? `${order.primaryStoreName} Produk` : order.reference,
+          image: "",
+          variant: "Standard",
+          price: order.total || order.totalAmount,
+          quantity: 1,
+        },
+      ];
+
+  const totalCount = order.totalItemCount || items.reduce((acc, it) => acc + (it.quantity || 1), 0);
+  const storeName = order.primaryStoreName || order.storeNames?.[0] || t.store;
+  const statusLabel = order.status?.label || t.tabCompleted;
+  const bucket = order.status?.bucket || "completed";
+
+  return (
+    <article className="tp-shopee-card">
+      {/* 1. Header: Store Badge + Store Name + Status */}
+      <header className="tp-shopee-card__header">
+        <div className="tp-shopee-card__store">
+          <span className="tp-shopee-card__store-tag">Star</span>
+          <strong className="tp-shopee-card__store-name">{storeName}</strong>
+          <ChevronRight size={14} className="tp-shopee-card__store-chevron" aria-hidden="true" />
         </div>
+        <span className="tp-shopee-card__status-text">{statusLabel}</span>
+      </header>
+
+      {/* 2. Product Items */}
+      <div className="tp-shopee-card__items">
+        {items.map((item, idx) => {
+          const itemImg = resolveAssetUrl(item.image);
+          return (
+            <Link
+              key={item.id || idx}
+              to={order.href || "#"}
+              className="tp-shopee-card__item-link"
+            >
+              <div className="tp-shopee-card__item">
+                <div className="tp-shopee-card__thumb">
+                  {itemImg ? (
+                    <img src={itemImg} alt={item.name} loading="lazy" />
+                  ) : (
+                    <div className="tp-shopee-card__thumb-fallback">
+                      <Package size={22} />
+                    </div>
+                  )}
+                </div>
+                <div className="tp-shopee-card__info">
+                  <h3 className="tp-shopee-card__product-name" title={item.name}>
+                    {item.name}
+                  </h3>
+                  <div className="tp-shopee-card__variant-row">
+                    <span className="tp-shopee-card__variant">
+                      {item.variant ? item.variant : "Standard item"}
+                    </span>
+                    <span className="tp-shopee-card__qty">x{item.quantity || 1}</span>
+                  </div>
+                  <div className="tp-shopee-card__item-price">
+                    {formatCurrency(item.price || order.total || 0)}
+                  </div>
+                </div>
+              </div>
+            </Link>
+          );
+        })}
       </div>
 
-      <div className="tp-order-card__payment">
-        <div>
-          <CreditCard aria-hidden="true" />
-          <span>
-            <small>{t.payment}</small>
-            <strong>{order.paymentMethod}</strong>
-          </span>
-        </div>
-        <div>
-          <Truck aria-hidden="true" />
-          <span>
-            <small>{t.shipping}</small>
-            <strong>{formatCurrency(order.shipping ?? order.shippingAmount)}</strong>
-          </span>
-        </div>
+      {/* 3. Total Order Summary Row */}
+      <div className="tp-shopee-card__summary">
+        <span className="tp-shopee-card__total-label">
+          {t.totalProduct.replace("{{count}}", String(totalCount))}:
+        </span>
+        <strong className="tp-shopee-card__total-amount">
+          {formatCurrency(order.total ?? order.totalAmount)}
+        </strong>
       </div>
 
-      <div className="tp-order-card__state">
-        <small>{t.status}</small>
-        <div className="tp-order-card__pills">
-          <StatusPill status={status} />
-          <PaymentPill payment={paymentState} />
-        </div>
-      </div>
+      {/* 4. Action Buttons */}
+      <footer className="tp-shopee-card__actions">
+        {bucket === "completed" && (
+          <>
+            <LinkComponent
+              to={items[0]?.slug ? `/products/${items[0].slug}` : "/shop"}
+              className="tp-shopee-btn tp-shopee-btn--secondary"
+            >
+              {t.buyAgain}
+            </LinkComponent>
+            <LinkComponent
+              to={order.href || "#"}
+              className="tp-shopee-btn tp-shopee-btn--accent"
+            >
+              {t.review}
+            </LinkComponent>
+          </>
+        )}
 
-      <div className="tp-order-card__total">
-        <small>{t.totalAmount}</small>
-        <strong>{formatCurrency(order.total ?? order.totalAmount)}</strong>
-      </div>
+        {bucket === "unpaid" && (
+          <>
+            <LinkComponent
+              to={order.href || "#"}
+              className="tp-shopee-btn tp-shopee-btn--secondary"
+            >
+              {t.viewDetails}
+            </LinkComponent>
+            <LinkComponent
+              to={order.paymentAction?.path || `${order.href}/payment`}
+              className="tp-shopee-btn tp-shopee-btn--primary"
+            >
+              {t.payNow}
+            </LinkComponent>
+          </>
+        )}
 
-      <div className="tp-order-card__actions">
-        {order.href ? (
-          <LinkComponent className="tp-order-card__cta" to={order.href}>
+        {bucket === "to_pack" && (
+          <>
+            <a
+              href="https://wa.me/628218866824"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="tp-shopee-btn tp-shopee-btn--secondary"
+            >
+              {t.contactSeller}
+            </a>
+            <LinkComponent
+              to={order.href || "#"}
+              className="tp-shopee-btn tp-shopee-btn--accent"
+            >
+              {t.viewDetails}
+            </LinkComponent>
+          </>
+        )}
+
+        {bucket === "shipping" && (
+          <>
+            <LinkComponent
+              to={order.href || "#"}
+              className="tp-shopee-btn tp-shopee-btn--secondary"
+            >
+              {t.track}
+            </LinkComponent>
+            <LinkComponent
+              to={order.href || "#"}
+              className="tp-shopee-btn tp-shopee-btn--accent"
+            >
+              {t.viewDetails}
+            </LinkComponent>
+          </>
+        )}
+
+        {bucket === "returns" && (
+          <LinkComponent
+            to={order.href || "#"}
+            className="tp-shopee-btn tp-shopee-btn--accent"
+          >
+            {t.returnDetails}
+          </LinkComponent>
+        )}
+
+        {bucket === "cancelled" && (
+          <LinkComponent
+            to={order.href || "#"}
+            className="tp-shopee-btn tp-shopee-btn--secondary"
+          >
             {t.viewDetails}
           </LinkComponent>
-        ) : null}
-        {order.paymentAction?.path ? (
-          <LinkComponent className="tp-order-card__payment-cta" to={order.paymentAction.path}>
-            {order.paymentAction.label || t.continuePayment}
-          </LinkComponent>
-        ) : null}
-      </div>
+        )}
+      </footer>
     </article>
   );
 }
 
-function EmptyOrders({ hasFilters, onClearFilters, LinkComponent, t }) {
-  return (
-    <div className="tp-orders-2026__empty">
-      <Package aria-hidden="true" />
-      <h2>{hasFilters ? t.emptyTitle : t.emptyTitleNoFilter}</h2>
-      <p>{hasFilters ? t.emptyDesc : t.emptyDescNoFilter}</p>
-      {hasFilters ? (
-        <button type="button" onClick={onClearFilters}>
-          {t.clearFilters}
-        </button>
-      ) : (
-        <LinkComponent to="/shop">{t.startShopping}</LinkComponent>
-      )}
-    </div>
-  );
-}
-
 export default function AccountOrders2026View({
-  LinkComponent,
+  LinkComponent = Link,
   orders,
   counts,
   page,
@@ -313,8 +387,8 @@ export default function AccountOrders2026View({
   error,
   onPageChange,
   isIndo: isIndoProp,
-  cartSummary,
 }) {
+  const navigate = useNavigate();
   const { i18n } = useTranslation();
   const [langCode, setLangCode] = useState(() => {
     if (typeof isIndoProp === "boolean") return isIndoProp ? "id" : "en";
@@ -354,28 +428,31 @@ export default function AccountOrders2026View({
   const isIndo = langCode === "id";
   const t = isIndo ? MY_ORDERS_I18N.id : MY_ORDERS_I18N.en;
 
-  const FILTERS = useMemo(
+  // 7 Status Tabs as required by user
+  const TABS = useMemo(
     () => [
-      { code: "all", label: t.filterAll },
-      { code: "pending", label: t.filterPending },
-      { code: "processing", label: t.filterProcessing },
-      { code: "completed", label: t.filterCompleted },
-      { code: "cancelled", label: t.filterCancelled },
+      { code: "all", label: t.tabAll },
+      { code: "unpaid", label: t.tabUnpaid },
+      { code: "to_pack", label: t.tabToPack },
+      { code: "shipping", label: t.tabShipping },
+      { code: "completed", label: t.tabCompleted },
+      { code: "returns", label: t.tabReturns },
+      { code: "cancelled", label: t.tabCancelled },
     ],
     [t]
   );
 
-  const [activeFilter, setActiveFilter] = useState("all");
-  const [searchValue, setSearchValue] = useState("");
-  const [statusValue, setStatusValue] = useState("all");
-  const [dateValue, setDateValue] = useState("");
-  const normalizedSearch = searchValue.trim().toLowerCase();
-  const effectiveStatus = statusValue !== "all" ? statusValue : activeFilter;
+  const [activeTab, setActiveTab] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
   const safeOrders = Array.isArray(orders) ? orders : [];
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+
   const filteredOrders = useMemo(
     () =>
       safeOrders.filter((order) => {
-        if (effectiveStatus !== "all" && order.status?.bucket !== effectiveStatus) {
+        if (activeTab !== "all" && order.status?.bucket !== activeTab) {
           return false;
         }
         if (normalizedSearch) {
@@ -384,185 +461,124 @@ export default function AccountOrders2026View({
             order.reference,
             order.primaryStoreName,
             order.status?.label,
-            order.paymentState?.label,
-            order.payment?.label,
             order.paymentMethod,
-            order.storeMode,
-            order.checkoutMode?.label,
             ...(Array.isArray(order.storeNames) ? order.storeNames : []),
+            ...(Array.isArray(order.items) ? order.items.map((it) => it.name) : []),
           ]
             .join(" ")
             .toLowerCase();
           if (!searchable.includes(normalizedSearch)) return false;
         }
-        if (dateValue && toDateInputValue(order.date || order.createdAt) !== dateValue) {
-          return false;
-        }
         return true;
       }),
-    [dateValue, effectiveStatus, normalizedSearch, safeOrders]
+    [activeTab, normalizedSearch, safeOrders]
   );
-  const pageNumbers = getPageNumbers(page, totalPages);
-  const firstVisible = totalOrders === 0 ? 0 : (page - 1) * pageSize + 1;
-  const lastVisible = Math.min(totalOrders, (page - 1) * pageSize + safeOrders.length);
-  const clearFilters = () => {
-    setActiveFilter("all");
-    setStatusValue("all");
-    setSearchValue("");
-    setDateValue("");
-  };
-  const hasFilters =
-    activeFilter !== "all" ||
-    statusValue !== "all" ||
-    Boolean(normalizedSearch) ||
-    Boolean(dateValue);
 
   return (
-    <section className="tp-orders-2026 tporders2026-root">
-      <header className="tp-orders-2026__heading">
-        <h1>{t.title}</h1>
-        <p>{t.subtitle}</p>
+    <div className="tp-shopee-orders-page">
+      {/* 1. Mobile/Desktop Top Header Bar */}
+      <header className="tp-shopee-header">
+        <div className="tp-shopee-header__left">
+          <button
+            type="button"
+            className="tp-shopee-header__back-btn"
+            onClick={() => navigate("/user/dashboard")}
+            aria-label={t.back}
+          >
+            <ArrowLeft size={22} />
+          </button>
+          <h1 className="tp-shopee-header__title">{t.title}</h1>
+        </div>
+
+        <div className="tp-shopee-header__right">
+          <button
+            type="button"
+            className={`tp-shopee-header__icon-btn${isSearchOpen ? " is-active" : ""}`}
+            onClick={() => setIsSearchOpen((prev) => !prev)}
+            aria-label="Search"
+          >
+            <Search size={20} />
+          </button>
+          <a
+            href="https://wa.me/628218866824"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="tp-shopee-header__icon-btn relative"
+            aria-label="Chat support"
+          >
+            <MessageCircle size={20} />
+            <span className="tp-shopee-header__badge">10</span>
+          </a>
+        </div>
       </header>
 
-      <div className="tp-orders-2026__tabs" aria-label="Order status filters">
-        {FILTERS.map((filter) => (
-          <FilterTab
-            filter={filter}
-            count={counts?.[filter.code] || 0}
-            isActive={activeFilter === filter.code}
-            onClick={() => {
-              setActiveFilter(filter.code);
-              setStatusValue("all");
-            }}
-            key={filter.code}
-          />
-        ))}
-      </div>
-
-      <div className="tp-orders-toolbar">
-        <label className="tp-orders-toolbar__field tp-orders-toolbar__search">
-          <input
-            type="search"
-            value={searchValue}
-            onChange={(event) => setSearchValue(event.target.value)}
-            placeholder={t.searchPlaceholder}
-          />
-          <Search aria-hidden="true" />
-        </label>
-
-        <label className="tp-orders-toolbar__field tp-orders-toolbar__select">
-          <select
-            value={statusValue}
-            onChange={(event) => {
-              setStatusValue(event.target.value);
-              if (event.target.value !== "all") setActiveFilter("all");
-            }}
-            aria-label="Filter by status"
-          >
-            <option value="all">{t.allStatuses}</option>
-            {FILTERS.slice(1).map((filter) => (
-              <option value={filter.code} key={filter.code}>
-                {filter.label}
-              </option>
-            ))}
-          </select>
-          <ChevronDown aria-hidden="true" />
-        </label>
-
-        <label className="tp-orders-toolbar__field tp-orders-toolbar__date">
-          <CalendarDays aria-hidden="true" />
-          <input
-            type="date"
-            value={dateValue}
-            onChange={(event) => setDateValue(event.target.value)}
-            aria-label="Filter by order date"
-          />
-        </label>
-
-        <button
-          type="button"
-          className="tp-orders-toolbar__clear"
-          onClick={clearFilters}
-          disabled={!hasFilters}
-        >
-          <RotateCcw aria-hidden="true" />
-          {t.clearBtn}
-        </button>
-      </div>
-
-      {error ? (
-        <div className="tp-orders-2026__alert" role="alert">
-          {error?.response?.status === 401
-            ? t.authError
-            : error?.response?.data?.message || error?.message || t.loadError}
-        </div>
-      ) : isLoading ? (
-        <LoadingCards />
-      ) : filteredOrders.length === 0 ? (
-        <EmptyOrders
-          hasFilters={hasFilters}
-          onClearFilters={clearFilters}
-          LinkComponent={LinkComponent}
-          t={t}
-        />
-      ) : (
-        <div className="tp-orders-2026__list">
-          {filteredOrders.map((order) => (
-            <OrderCard
-              order={order}
-              LinkComponent={LinkComponent}
-              key={order.id || order.displayId || order.reference}
-              t={t}
-              isIndo={isIndo}
+      {/* Expandable Search Input (if active) */}
+      {isSearchOpen && (
+        <div className="tp-shopee-search-bar">
+          <div className="tp-shopee-search-bar__inner">
+            <Search size={16} className="text-slate-400" />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t.searchPlaceholder}
+              autoFocus
             />
-          ))}
+          </div>
         </div>
       )}
 
-      {!error && !isLoading && totalOrders > 0 && filteredOrders.length > 0 ? (
-        <footer className="tp-orders-2026__pagination">
-          <p>
-            {t.showing
-              .replace("{{start}}", String(hasFilters ? 1 : firstVisible))
-              .replace("{{end}}", String(hasFilters ? filteredOrders.length : lastVisible))
-              .replace("{{total}}", String(hasFilters ? filteredOrders.length : totalOrders))}
-            {hasFilters && totalOrders !== filteredOrders.length
-              ? t.matching.replace("{{count}}", String(filteredOrders.length))
-              : ""}
-          </p>
-          <nav aria-label="Order pagination">
-            <button
-              type="button"
-              onClick={() => onPageChange(page - 1)}
-              disabled={page <= 1}
-              aria-label="Previous page"
-            >
-              <ArrowLeft aria-hidden="true" />
-            </button>
-            {pageNumbers.map((pageNumber) => (
+      {/* 2. 7 Status Tabs Bar (Horizontal Scrollable) */}
+      <nav className="tp-shopee-tabs" aria-label="Status Pesanan">
+        <div className="tp-shopee-tabs__scroll">
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.code;
+            const count = counts?.[tab.code] || 0;
+            return (
               <button
                 type="button"
-                className={pageNumber === page ? "is-active" : ""}
-                onClick={() => onPageChange(pageNumber)}
-                aria-current={pageNumber === page ? "page" : undefined}
-                key={pageNumber}
+                key={tab.code}
+                className={`tp-shopee-tab${isActive ? " is-active" : ""}`}
+                onClick={() => setActiveTab(tab.code)}
               >
-                {pageNumber}
+                <span>{tab.label}</span>
+                {count > 0 && activeTab !== tab.code ? (
+                  <small className="tp-shopee-tab__count">({count})</small>
+                ) : null}
               </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => onPageChange(page + 1)}
-              disabled={page >= totalPages}
-              aria-label="Next page"
-            >
-              <ArrowRight aria-hidden="true" />
-            </button>
-          </nav>
-        </footer>
-      ) : null}
+            );
+          })}
+        </div>
+      </nav>
 
-      {cartSummary ? <aside className="tp-orders-2026__cart">{cartSummary}</aside> : null}
-    </section>
+      {/* 3. Main Content: Orders List OR Empty State + Recommendations */}
+      <main className="tp-shopee-orders-content">
+        {isLoading ? (
+          <div className="tp-shopee-loading" aria-label="Memuat pesanan">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div key={idx} className="tp-shopee-loading__skeleton" />
+            ))}
+          </div>
+        ) : filteredOrders.length > 0 ? (
+          <div className="tp-shopee-card-list">
+            {filteredOrders.map((order) => (
+              <ShopeeOrderCard
+                key={order.id || order.displayId || order.reference}
+                order={order}
+                LinkComponent={LinkComponent}
+                t={t}
+              />
+            ))}
+          </div>
+        ) : (
+          /* Empty State + Recommendations as in Reference Images 2, 3, 4 */
+          <div className="tp-empty-orders">
+            <EmptyClipboardIcon />
+            <p className="tp-empty-orders__title">{t.emptyTitle}</p>
+            <ProductRecommendationGrid t={t} />
+          </div>
+        )}
+      </main>
+    </div>
   );
 }

@@ -64,13 +64,42 @@ const normalizeCheckoutMode = (value) => {
   };
 };
 
-const resolveFilterBucket = (truthStatus) => {
-  if (truthStatus.bucket === "complete") return "completed";
-  if (truthStatus.bucket === "cancelled") return "cancelled";
-  if (truthStatus.bucket === "processing" || truthStatus.bucket === "shipping") {
-    return "processing";
+const resolveFilterBucket = (order, truthStatus, contractSummary) => {
+  const statusCode = text(contractSummary?.code || truthStatus?.code || order?.status, "").toUpperCase();
+  const paymentCode = text(order?.paymentStatus || contractSummary?.paymentStatus, "").toUpperCase();
+  const fulfillmentStatus = text(order?.fulfillmentStatus || order?.stores?.[0]?.fulfillmentStatus, "").toUpperCase();
+
+  if (/CANCELLED|CANCELED|FAILED|EXPIRED|VOID/.test(statusCode) || /CANCELLED|FAILED|EXPIRED/.test(paymentCode)) {
+    return "cancelled";
   }
-  return "pending";
+  if (/REFUNDED|RETURNED|RETURN/.test(statusCode) || /REFUNDED|RETURNED/.test(fulfillmentStatus)) {
+    return "returns";
+  }
+  if (paymentCode !== "PAID" && paymentCode !== "SETTLED") {
+    return "unpaid";
+  }
+  if (statusCode === "DELIVERED" || statusCode === "COMPLETED" || fulfillmentStatus === "DELIVERED") {
+    return "completed";
+  }
+  if (statusCode === "SHIPPED" || statusCode === "IN_DELIVERY" || fulfillmentStatus === "SHIPPED") {
+    return "shipping";
+  }
+  return "to_pack";
+};
+
+const normalizeItem = (item) => {
+  const it = asObject(item);
+  return {
+    id: asNumber(it.id, 0),
+    productId: asNumber(it.productId, 0),
+    name: text(it.name || it.productName || it.title, "Produk"),
+    image: text(it.image || it.imageSnapshot || it.imageUrl, ""),
+    variant: text(it.variant || it.variantLabel || it.variantKey, ""),
+    price: asNumber(it.price || it.priceSnapshot, 0),
+    quantity: Math.max(1, asNumber(it.quantity || it.qty, 1)),
+    totalPrice: asNumber(it.totalPrice || it.price, 0),
+    slug: text(it.slug || it.productSlug, ""),
+  };
 };
 
 const resolveVisualTone = (codeValue, labelValue, fallbackTone) => {
@@ -214,7 +243,17 @@ const normalizeOrder = (value, options = {}) => {
     ) || (id ? `#${id}` : "Order");
   const statusCode = text(contractSummary?.code || truthStatus.code, "UNKNOWN").toUpperCase();
   const rawStatusLabel = text(contractSummary?.label || truthStatus.label, "Unknown");
+  const bucket = resolveFilterBucket(order, truthStatus, contractSummary);
+  const bucketLabels = {
+    completed: { en: "Completed", id: "Selesai" },
+    to_pack: { en: "To Pack", id: "Dikemas" },
+    shipping: { en: "On Delivery", id: "Dikirim" },
+    unpaid: { en: "Unpaid", id: "Belum Bayar" },
+    returns: { en: "Refund Completed", id: "Pengembalian Dana Selesai" },
+    cancelled: { en: "Cancelled", id: "Dibatalkan" },
+  };
   const statusLabel =
+    bucketLabels[bucket]?.[isIndo ? "id" : "en"] ||
     STATUS_TRANSLATIONS[statusCode]?.[isIndo ? "id" : "en"] ||
     (isIndo && rawStatusLabel === "In progress"
       ? "Sedang Diproses"
@@ -249,6 +288,29 @@ const normalizeOrder = (value, options = {}) => {
   const totalAmount = asNumber(order.totalAmount ?? order.total, 0);
   const paymentMethod = text(order.paymentMethodLabel || order.paymentMethod || order.method, "-");
 
+  const rawItems = asArray(order.items);
+  const items = rawItems.map(normalizeItem);
+  const effectiveItems =
+    items.length > 0
+      ? items
+      : [
+          {
+            id: id,
+            productId: 0,
+            name: primaryStoreName ? `${primaryStoreName} Produk` : reference,
+            image: "",
+            variant: "",
+            price: totalAmount,
+            quantity: 1,
+            totalPrice: totalAmount,
+            slug: "",
+          },
+        ];
+  const totalItemCount = asNumber(
+    order.itemsCount,
+    effectiveItems.reduce((acc, it) => acc + (it.quantity || 1), 0)
+  );
+
   return {
     id,
     displayId: reference,
@@ -261,13 +323,15 @@ const normalizeOrder = (value, options = {}) => {
     primaryStoreName,
     storeMode: checkoutMode.shortLabel,
     checkoutMode,
+    items: effectiveItems,
+    totalItemCount,
     status: {
       code: statusCode,
       label: statusLabel,
       tone: statusTone,
       description: text(contractSummary?.description || truthStatus.summary?.description),
       isFinal: Boolean(contractSummary?.isFinal ?? truthStatus.isFinal),
-      bucket: resolveFilterBucket(truthStatus),
+      bucket,
     },
     statusKey: statusCode,
     statusTone,
@@ -321,9 +385,11 @@ export const normalizeAccountOrdersFor2026 = (response, options = {}) => {
     totalPages,
     counts: {
       all: totalOrders,
-      pending: orders.filter((order) => order.status.bucket === "pending").length,
-      processing: orders.filter((order) => order.status.bucket === "processing").length,
+      unpaid: orders.filter((order) => order.status.bucket === "unpaid").length,
+      to_pack: orders.filter((order) => order.status.bucket === "to_pack").length,
+      shipping: orders.filter((order) => order.status.bucket === "shipping").length,
       completed: orders.filter((order) => order.status.bucket === "completed").length,
+      returns: orders.filter((order) => order.status.bucket === "returns").length,
       cancelled: orders.filter((order) => order.status.bucket === "cancelled").length,
     },
   };
