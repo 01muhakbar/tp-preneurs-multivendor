@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { useSeller2026Orders } from "../../../hooks/seller2026/useSeller2026Orders.ts";
 import { useSeller2026SuborderDetail } from "../../../hooks/seller2026/useSeller2026SuborderDetail.ts";
 import { getSellerSuborderShippingLabel } from "../../../api/sellerOrders.ts";
@@ -32,9 +33,50 @@ const errorMessage = (error, fallback) =>
   error?.response?.data?.message || error?.message || fallback;
 
 export default function Seller2026LiveOrdersPage() {
+  const { i18n } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [, setLangSyncCounter] = useState(0);
+
+  useEffect(() => {
+    const handleSync = () => setLangSyncCounter((c) => c + 1);
+    i18n.on("languageChanged", handleSync);
+    window.addEventListener("storage", handleSync);
+    return () => {
+      i18n.off("languageChanged", handleSync);
+      window.removeEventListener("storage", handleSync);
+    };
+  }, [i18n]);
+
+  const isIndo = (() => {
+    const lang = (i18n.language || "").toLowerCase();
+    if (lang.startsWith("id")) return true;
+    if (typeof window !== "undefined") {
+      try {
+        const stored = JSON.parse(
+          window.localStorage.getItem("seller_language") || "null"
+        );
+        if (
+          stored?.isoCode?.toLowerCase()?.startsWith("id") ||
+          stored?.name?.toLowerCase()?.includes("indonesia")
+        ) {
+          return true;
+        }
+      } catch {
+        // ignore
+      }
+      const storeLang = window.localStorage.getItem("store_language") || "";
+      if (
+        storeLang.toLowerCase().includes("indonesia") ||
+        storeLang.toLowerCase() === "id"
+      ) {
+        return true;
+      }
+    }
+    return false;
+  })();
+
   const { sellerContext, workspaceStoreId: storeId, workspaceRoutes } = useSellerWorkspaceRoute();
   const { can } = getSeller2026PagePermissions(sellerContext);
   const canView = can("ORDER_READ");
@@ -131,7 +173,12 @@ export default function Seller2026LiveOrdersPage() {
       })),
       `seller-orders-${new Date().toISOString().slice(0, 10)}.csv`
     );
-    setNotice({ type: "success", text: `${rows.length} visible order(s) exported.` });
+    setNotice({
+      type: "success",
+      text: isIndo
+        ? `${rows.length} pesanan berhasil diekspor.`
+        : `${rows.length} visible order(s) exported.`,
+    });
   };
 
   const resetFilters = () => {
@@ -142,9 +189,17 @@ export default function Seller2026LiveOrdersPage() {
   const copyOrderNumber = async (orderNumber) => {
     try {
       await navigator.clipboard.writeText(orderNumber);
-      setNotice({ type: "success", text: `${orderNumber} copied.` });
+      setNotice({
+        type: "success",
+        text: isIndo ? `${orderNumber} berhasil disalin.` : `${orderNumber} copied.`,
+      });
     } catch {
-      setNotice({ type: "error", text: "Unable to copy order number." });
+      setNotice({
+        type: "error",
+        text: isIndo
+          ? "Gagal menyalin nomor pesanan."
+          : "Unable to copy order number.",
+      });
     }
   };
 

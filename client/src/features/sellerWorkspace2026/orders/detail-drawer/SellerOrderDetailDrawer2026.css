@@ -697,3 +697,69 @@
     margin-left: 0;
   }
 }
+
+/* Dark Mode Overrides */
+.dark .tpsodd2026-drawer {
+  background: #07111f;
+  color: #f1f5f9;
+}
+
+.dark .tpsodd2026-header {
+  background: #0d1b2c;
+  border-bottom-color: #1e334d;
+}
+
+.dark .tpsodd2026-header-bottom h2 {
+  color: #f8fafc;
+}
+
+.dark .tpsodd2026-stepper {
+  background: #0d1b2c;
+  border-color: #1e334d;
+}
+
+.dark .tpsodd2026-card {
+  background: #0d1b2c;
+  border-color: #1e334d;
+  color: #f1f5f9;
+}
+
+.dark .tpsodd2026-card-header {
+  border-bottom-color: #1e334d;
+  color: #f1f5f9;
+}
+
+.dark .tpsodd2026-item {
+  border-bottom-color: #1e334d;
+}
+
+.dark .tpsodd2026-fields input,
+.dark .tpsodd2026-note textarea {
+  background: #132438;
+  border-color: #1e334d;
+  color: #f8fafc;
+}
+
+.dark .tpsodd2026-note footer {
+  color: #94a3b8;
+}
+
+.dark .tpsodd2026-payment-summary {
+  border-top-color: #1e334d;
+}
+
+.dark .tpsodd2026-footer {
+  background: #0d1b2c;
+  border-top-color: #1e334d;
+}
+
+.dark .tpsodd2026-btn-outline {
+  background: #132438;
+  border-color: #1e334d;
+  color: #e2e8f0;
+}
+
+.dark .tpsodd2026-btn-outline:hover:not(:disabled) {
+  background: #1e334d;
+}
+

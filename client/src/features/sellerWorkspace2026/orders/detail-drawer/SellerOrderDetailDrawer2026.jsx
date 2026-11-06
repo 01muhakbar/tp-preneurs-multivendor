@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   AlertTriangle,
   Box,
@@ -35,6 +36,47 @@ export default function SellerOrderDetailDrawer2026({
   onViewInvoice,
   onFulfillmentAction,
 }) {
+  const { i18n } = useTranslation();
+  const [, setLangSyncCounter] = useState(0);
+
+  useEffect(() => {
+    const handleSync = () => setLangSyncCounter((c) => c + 1);
+    i18n.on("languageChanged", handleSync);
+    window.addEventListener("storage", handleSync);
+    return () => {
+      i18n.off("languageChanged", handleSync);
+      window.removeEventListener("storage", handleSync);
+    };
+  }, [i18n]);
+
+  const isIndo = (() => {
+    const lang = (i18n.language || "").toLowerCase();
+    if (lang.startsWith("id")) return true;
+    if (typeof window !== "undefined") {
+      try {
+        const stored = JSON.parse(
+          window.localStorage.getItem("seller_language") || "null"
+        );
+        if (
+          stored?.isoCode?.toLowerCase()?.startsWith("id") ||
+          stored?.name?.toLowerCase()?.includes("indonesia")
+        ) {
+          return true;
+        }
+      } catch {
+        // ignore
+      }
+      const storeLang = window.localStorage.getItem("store_language") || "";
+      if (
+        storeLang.toLowerCase().includes("indonesia") ||
+        storeLang.toLowerCase() === "id"
+      ) {
+        return true;
+      }
+    }
+    return false;
+  })();
+
   const [internalNote, setInternalNote] = useState("");
   const [isSavingNote, setIsSavingNote] = useState(false);
   const [fulfillmentDraft, setFulfillmentDraft] = useState({});
@@ -133,13 +175,13 @@ export default function SellerOrderDetailDrawer2026({
 
         {isLoading ? (
           <div className="tpsodd2026-body">
-            <p>Loading order details...</p>
+            <p>{isIndo ? "Memuat rincian pesanan..." : "Loading order details..."}</p>
           </div>
         ) : error ? (
           <div className="tpsodd2026-body">
             <AlertTriangle color="#ef4444" size={48} />
-            <h3>Unable to load order detail</h3>
-            <p>{error?.message || "Failed to load from server."}</p>
+            <h3>{isIndo ? "Gagal memuat rincian pesanan" : "Unable to load order detail"}</h3>
+            <p>{error?.message || (isIndo ? "Gagal memuat dari server." : "Failed to load from server.")}</p>
           </div>
         ) : order ? (
           <>
@@ -155,7 +197,7 @@ export default function SellerOrderDetailDrawer2026({
                     <div key={step.code} className={`tpsodd2026-step ${step.complete ? 'is-complete' : step.active ? 'is-active' : ''}`}>
                       <div className="tpsodd2026-step-icon"><Icon size={16} /></div>
                       <strong>{step.label}</strong>
-                      <small>{step.dateLabel || "Pending"}</small>
+                      <small>{step.dateLabel || (isIndo ? "Menunggu" : "Pending")}</small>
                     </div>
                   );
                 })}
@@ -165,7 +207,7 @@ export default function SellerOrderDetailDrawer2026({
                 <section className="tpsodd2026-card">
                   <header className="tpsodd2026-card-header">
                     <span><UserRound size={14} /></span>
-                    Customer
+                    {isIndo ? "Pelanggan" : "Customer"}
                   </header>
                   <div className="tpsodd2026-customer">
                     <div className="tpsodd2026-customer-avatar">
@@ -182,7 +224,7 @@ export default function SellerOrderDetailDrawer2026({
                 <section className="tpsodd2026-card tpsodd2026-items-card">
                   <header className="tpsodd2026-card-header">
                     <span><Box size={14} /></span>
-                    Items ({order.items.length})
+                    {isIndo ? `Produk (${order.items.length})` : `Items (${order.items.length})`}
                   </header>
                   <div className="tpsodd2026-items-list">
                     {order.items.map((item) => (
@@ -194,9 +236,9 @@ export default function SellerOrderDetailDrawer2026({
                           <strong>{item.name}</strong>
                           <small>{item.variantLabel}</small>
                           <div className="tpsodd2026-item-price">
-                            <div><dt>Qty</dt><dd>{item.quantity}</dd></div>
-                            <div><dt>Price</dt><dd>{item.priceLabel}</dd></div>
-                            <div><dt>Total</dt><dd className="is-total">{item.subtotalLabel}</dd></div>
+                            <div><dt>{isIndo ? "Jml" : "Qty"}</dt><dd>{item.quantity}</dd></div>
+                            <div><dt>{isIndo ? "Harga" : "Price"}</dt><dd>{item.priceLabel}</dd></div>
+                            <div><dt>{isIndo ? "Total" : "Total"}</dt><dd className="is-total">{item.subtotalLabel}</dd></div>
                           </div>
                         </div>
                       </article>
@@ -209,21 +251,21 @@ export default function SellerOrderDetailDrawer2026({
                 <section className="tpsodd2026-card">
                   <header className="tpsodd2026-card-header">
                     <span><Truck size={14} /></span>
-                    Shipping / Courier
+                    {isIndo ? "Pengiriman / Kurir" : "Shipping / Courier"}
                   </header>
                   <div className="tpsodd2026-shipping-info">
                     <div className="tpsodd2026-fields">
                       <label>
-                        <span>Tracking Number</span>
+                        <span>{isIndo ? "Nomor Resi" : "Tracking Number"}</span>
                         <input
                           value={fulfillmentDraft?.trackingNumber || ""}
                           onChange={changeFulfillmentField("trackingNumber")}
-                          placeholder="Input tracking number"
+                          placeholder={isIndo ? "Masukkan nomor resi" : "Input tracking number"}
                           disabled={isShippingReadonly || isUpdating}
                         />
                       </label>
                       <label>
-                        <span>Shipping Provider</span>
+                        <span>{isIndo ? "Ekspedisi / Kurir" : "Shipping Provider"}</span>
                         <input
                           value={fulfillmentDraft?.shippingProvider || ""}
                           onChange={changeFulfillmentField("shippingProvider")}
@@ -232,7 +274,7 @@ export default function SellerOrderDetailDrawer2026({
                         />
                       </label>
                       <label>
-                        <span>Courier Service</span>
+                        <span>{isIndo ? "Layanan" : "Courier Service"}</span>
                         <input
                           value={fulfillmentDraft?.courierService || ""}
                           onChange={changeFulfillmentField("courierService")}
@@ -245,8 +287,8 @@ export default function SellerOrderDetailDrawer2026({
                       <div className="tpsodd2026-shipping-hint">
                         <Clock3 size={16} />
                         <div>
-                          <strong>Drop-off by {order.shipping.estimate}</strong>
-                          <div>Ship within SLA to avoid late shipment.</div>
+                          <strong>{isIndo ? `Kirim sebelum ${order.shipping.estimate}` : `Drop-off by ${order.shipping.estimate}`}</strong>
+                          <div>{isIndo ? "Kirim tepat waktu sesuai SLA untuk menghindari keterlambatan." : "Ship within SLA to avoid late shipment."}</div>
                         </div>
                       </div>
                     )}
@@ -256,19 +298,19 @@ export default function SellerOrderDetailDrawer2026({
                 <section className="tpsodd2026-card">
                   <header className="tpsodd2026-card-header">
                     <span><FileText size={14} /></span>
-                    Internal Note
+                    {isIndo ? "Catatan Internal" : "Internal Note"}
                   </header>
                   <div className="tpsodd2026-note">
                     <textarea 
-                      placeholder="Add a private note about this order..."
+                      placeholder={isIndo ? "Tambahkan catatan internal toko mengenai pesanan ini..." : "Add a private note about this order..."}
                       value={internalNote}
                       onChange={(e) => setInternalNote(e.target.value)}
                       onBlur={handleNoteBlur}
                       disabled={isSavingNote || isUpdating}
                     />
                     <footer>
-                      <span>Only visible to your store</span>
-                      {isSavingNote ? <span>Saving...</span> : null}
+                      <span>{isIndo ? "Hanya terlihat oleh toko Anda" : "Only visible to your store"}</span>
+                      {isSavingNote ? <span>{isIndo ? "Menyimpan..." : "Saving..."}</span> : null}
                     </footer>
                   </div>
                 </section>
@@ -277,11 +319,11 @@ export default function SellerOrderDetailDrawer2026({
               <section className="tpsodd2026-card">
                 <header className="tpsodd2026-card-header">
                   <span><Check size={14} /></span>
-                  Payment Summary
+                  {isIndo ? "Ringkasan Pembayaran" : "Payment Summary"}
                 </header>
                 <div className="tpsodd2026-payment-method">
                   <div>
-                    <span>Method</span>
+                    <span>{isIndo ? "Metode" : "Method"}</span>
                     <strong>{order.payment.method}</strong>
                   </div>
                   <span className={`tpsodd2026-pill is-${order.paymentStatus.tone}`}>
@@ -289,12 +331,12 @@ export default function SellerOrderDetailDrawer2026({
                   </span>
                 </div>
                 <div className="tpsodd2026-payment-summary">
-                  <div><dt>Subtotal ({order.items.length} Item)</dt><dd>{order.totals.subtotalLabel}</dd></div>
-                  <div><dt>Shipping</dt><dd>{order.totals.shippingFeeLabel}</dd></div>
-                  <div><dt>Service Fee</dt><dd>{order.totals.serviceFeeLabel}</dd></div>
-                  <div><dt>Discount</dt><dd className="is-discount">-{order.totals.discountLabel}</dd></div>
+                  <div><dt>{isIndo ? `Subtotal (${order.items.length} Produk)` : `Subtotal (${order.items.length} Item)`}</dt><dd>{order.totals.subtotalLabel}</dd></div>
+                  <div><dt>{isIndo ? "Ongkos Kirim" : "Shipping"}</dt><dd>{order.totals.shippingFeeLabel}</dd></div>
+                  <div><dt>{isIndo ? "Biaya Layanan" : "Service Fee"}</dt><dd>{order.totals.serviceFeeLabel}</dd></div>
+                  <div><dt>{isIndo ? "Diskon" : "Discount"}</dt><dd className="is-discount">-{order.totals.discountLabel}</dd></div>
                   <div className="tpsodd2026-payment-total">
-                    <dt>Total Paid</dt>
+                    <dt>{isIndo ? "Total Dibayar" : "Total Paid"}</dt>
                     <dd>{order.totals.totalLabel}</dd>
                   </div>
                 </div>
@@ -309,16 +351,16 @@ export default function SellerOrderDetailDrawer2026({
                 disabled={isUpdating || !order.canPrintLabel}
                 title={order.printLabelReason}
               >
-                <Printer size={16} /> Print Label
+                <Printer size={16} /> {isIndo ? "Cetak Label" : "Print Label"}
               </button>
-              <button type="button" className="tpsodd2026-btn-outline" onClick={() => onMessageBuyer(order.customer)} disabled={!order.canMessageBuyer || isUpdating} title={order.canMessageBuyer ? "" : "Buyer contact info unavailable"}>
-                <MessageCircle size={16} /> Message Buyer
+              <button type="button" className="tpsodd2026-btn-outline" onClick={() => onMessageBuyer(order.customer)} disabled={!order.canMessageBuyer || isUpdating} title={order.canMessageBuyer ? "" : (isIndo ? "Kontak pembeli tidak tersedia" : "Buyer contact info unavailable")}>
+                <MessageCircle size={16} /> {isIndo ? "Hubungi Pembeli" : "Message Buyer"}
               </button>
               <button type="button" className="tpsodd2026-btn-outline" onClick={() => onCopyReference(order.reference)} disabled={isUpdating}>
-                <Copy size={16} /> Copy Ref
+                <Copy size={16} /> {isIndo ? "Salin Ref" : "Copy Ref"}
               </button>
               <button type="button" className="tpsodd2026-btn-outline" onClick={onViewInvoice} disabled={isUpdating}>
-                <ExternalLink size={16} /> View Invoice
+                <ExternalLink size={16} /> {isIndo ? "Lihat Invoice" : "View Invoice"}
               </button>
 
               {order.primaryAction && (() => {
@@ -326,7 +368,7 @@ export default function SellerOrderDetailDrawer2026({
                 const isShippingIncomplete = isMarkShipped && (!fulfillmentDraft?.trackingNumber?.trim() || !fulfillmentDraft?.shippingProvider?.trim() || !fulfillmentDraft?.courierService?.trim());
                 const isDisabled = order.primaryAction.disabled || isUpdating || isShippingIncomplete;
                 const disableReason = isShippingIncomplete 
-                  ? "Please fill in Tracking Number, Shipping Provider, and Courier Service." 
+                  ? (isIndo ? "Silakan isi Nomor Resi, Ekspedisi, dan Layanan Kurir." : "Please fill in Tracking Number, Shipping Provider, and Courier Service.")
                   : order.primaryAction.reason;
 
                 return (
