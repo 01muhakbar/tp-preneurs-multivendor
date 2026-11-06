@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   CheckCircle2,
+  ChevronRight,
   CircleHelp,
-  Clock,
   Copy,
   Headphones,
   Package,
@@ -18,14 +18,12 @@ import "./store-order-tracking-2026.css";
 
 const TRACKING_I18N = {
   id: {
+    home: "Beranda",
+    trackOrder: "Lacak Pesanan",
     back: "Kembali",
     inTransit: "Sedang Dikirim",
     outForDelivery: "Menuju Alamatmu",
     delivered: "Pesanan Tiba",
-    arrivingBy: (date) => `Pesanan tiba pada ${date}`,
-    guaranteeBanner: (date) =>
-      `Garansi Tiba: Dapatkan Voucher Rp10.000 jika pesanan belum tiba ${date}.`,
-    learnMore: "Selengkapnya",
     orderDetails: "Rincian Pesanan",
     copied: "Nomor resi berhasil disalin!",
     copyFailed: "Gagal menyalin nomor resi",
@@ -39,14 +37,12 @@ const TRACKING_I18N = {
     needHelp: "Bantuan Pesanan",
   },
   en: {
+    home: "Home",
+    trackOrder: "Track Order",
     back: "Back",
     inTransit: "In Transit",
     outForDelivery: "Out for Delivery",
     delivered: "Order Arrived",
-    arrivingBy: (date) => `Order arriving by ${date}`,
-    guaranteeBanner: (date) =>
-      `On-Time Guarantee: Get a Rp10,000 voucher if order doesn't arrive by ${date}.`,
-    learnMore: "Learn more",
     orderDetails: "Order Details",
     copied: "Tracking number copied to clipboard!",
     copyFailed: "Failed to copy tracking number",
@@ -171,12 +167,12 @@ export default function StoreOrderTracking2026View({
     }
   };
 
-  const handleGuaranteeNotice = () => {
+  const handleHelpNotice = () => {
     toast(
       isIndo
-        ? "Garansi Tiba menjamin pesanan sampai tepat waktu. Voucher kompensasi diberikan jika pesanan terlambat."
-        : "On-Time Guarantee ensures your package arrives on schedule or receive a voucher compensation.",
-      { icon: "🛡️" }
+        ? "Informasi pelacakan ini sinkron langsung dengan sistem pengiriman penjual dan admin."
+        : "This tracking status is synchronized with seller fulfillment and admin operations.",
+      { icon: "ℹ️" }
     );
   };
 
@@ -226,7 +222,7 @@ export default function StoreOrderTracking2026View({
           <button
             type="button"
             className="tp-track-header__icon-btn"
-            onClick={handleGuaranteeNotice}
+            onClick={handleHelpNotice}
             aria-label={T.needHelp}
             title={T.needHelp}
           >
@@ -235,11 +231,20 @@ export default function StoreOrderTracking2026View({
         </div>
       </header>
 
+      {/* Desktop Breadcrumbs */}
+      <nav className="tp-track-breadcrumb" aria-label="Breadcrumb">
+        <LinkComponent to="/">{T.home}</LinkComponent>
+        <ChevronRight aria-hidden="true" className="tp-track-breadcrumb__sep" />
+        <LinkComponent to="/user/my-orders">{T.trackOrder}</LinkComponent>
+        <ChevronRight aria-hidden="true" className="tp-track-breadcrumb__sep" />
+        <span className="tp-track-breadcrumb__current">{tracking.reference}</span>
+      </nav>
+
       <main className="tp-track-main">
         {/* 2. Top Status Card with Horizontal 3-Step Stepper */}
         <section className="tp-track-card tp-track-status-card">
           <div className="tp-track-status__title">
-            {T.arrivingBy(tracking.estimatedDeliveryLabel)}
+            {tracking.statusHeadline}
           </div>
 
           <div className="tp-track-stepper">
@@ -270,18 +275,7 @@ export default function StoreOrderTracking2026View({
           </div>
         </section>
 
-        {/* 3. On-Time Guarantee Banner */}
-        <section className="tp-track-guarantee-banner" onClick={handleGuaranteeNotice} role="button" tabIndex={0}>
-          <div className="tp-track-guarantee__left">
-            <Clock aria-hidden="true" className="tp-track-guarantee__icon" />
-            <span className="tp-track-guarantee__text">
-              {T.guaranteeBanner(tracking.guaranteeDateLabel)}
-            </span>
-          </div>
-          <span className="tp-track-guarantee__link">{T.learnMore}</span>
-        </section>
-
-        {/* 4. Courier & Shipment Card */}
+        {/* 3. Courier & Shipment Card */}
         <section className="tp-track-card tp-track-courier-card">
           <div className="tp-track-courier__thumb">
             {tracking.primaryThumbnail ? (
@@ -300,16 +294,18 @@ export default function StoreOrderTracking2026View({
           <div className="tp-track-courier__info">
             <div className="tp-track-courier__name">{tracking.courierName}</div>
             <div className="tp-track-courier__resi">
-              <span>{tracking.trackingNumber}</span>
-              <button
-                type="button"
-                className="tp-track-copy-btn"
-                onClick={() => handleCopy(tracking.trackingNumber)}
-                aria-label="Salin nomor resi"
-                title="Salin nomor resi"
-              >
-                <Copy aria-hidden="true" />
-              </button>
+              <span>{tracking.trackingNumberDisplay}</span>
+              {tracking.hasRealTrackingNumber ? (
+                <button
+                  type="button"
+                  className="tp-track-copy-btn"
+                  onClick={() => handleCopy(tracking.trackingNumber)}
+                  aria-label="Salin nomor resi"
+                  title="Salin nomor resi"
+                >
+                  <Copy aria-hidden="true" />
+                </button>
+              ) : null}
             </div>
           </div>
 
@@ -323,7 +319,7 @@ export default function StoreOrderTracking2026View({
           </div>
         </section>
 
-        {/* 5. Linimasa Pengiriman (Vertical Tracking Timeline) */}
+        {/* 4. Linimasa Pengiriman (Vertical Tracking Timeline) */}
         <section className="tp-track-card tp-track-timeline-card">
           <div className="tp-track-timeline">
             {tracking.timeline.map((event, idx) => (
@@ -349,7 +345,7 @@ export default function StoreOrderTracking2026View({
           </div>
         </section>
 
-        {/* 6. Product Recommendations Section */}
+        {/* 5. Product Recommendations Section */}
         <TrackingRecommendationGrid isIndo={isIndo} LinkComponent={LinkComponent} />
       </main>
     </div>
