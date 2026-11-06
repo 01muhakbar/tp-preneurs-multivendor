@@ -40,6 +40,14 @@ const titleCase = (value, fallback = "") =>
     .replace(/[_-]+/g, " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
+export const slugifyStoreName = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
 const formatDateTime = (value) => {
   if (!value) return "-";
   const date = new Date(value);
@@ -685,6 +693,16 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false }) 
     source.storeName ||
     (isIndo ? "Toko Penjual" : "Seller Store");
 
+  const primaryStoreSlug =
+    text(source.storeSlug) ||
+    text(source.store?.slug) ||
+    text(storeBreakdown[0]?.storeSlug) ||
+    text(items[0]?.storeSlug) ||
+    text(asArray(source.storeSplits).find((s) => asObject(s).storeSlug)?.storeSlug) ||
+    text(asArray(grouped.groups).find((g) => asObject(g).storeSlug)?.storeSlug) ||
+    slugifyStoreName(primaryStoreName) ||
+    "kreasi-singkong";
+
   const paymentMethodDisplay = text(
     source.paymentMethodLabel ||
       grouped.paymentMethodLabel ||
@@ -740,6 +758,7 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false }) 
     },
     storeProducts: {
       storeName: primaryStoreName,
+      storeSlug: primaryStoreSlug,
       storeBadge: "Star",
       items,
       summary: {

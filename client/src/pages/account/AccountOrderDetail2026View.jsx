@@ -42,6 +42,7 @@ const DETAIL_I18N = {
     shippingDelivered: "Package arrived at destination address.",
     shippingAddress: "Shipping Address",
     store: "Store",
+    visitStore: "Visit {{name}}",
     totalOrder: "Order Total",
     subtotalProducts: "Product Subtotal",
     shippingFee: "Shipping Fee",
@@ -89,6 +90,7 @@ const DETAIL_I18N = {
     shippingDelivered: "Pesanan tiba di alamat tujuan.",
     shippingAddress: "Alamat Pengiriman",
     store: "Toko",
+    visitStore: "Kunjungi {{name}}",
     totalOrder: "Total Pesanan",
     subtotalProducts: "Subtotal Produk",
     shippingFee: "Total Ongkos Kirim",
@@ -325,6 +327,7 @@ export default function AccountOrderDetail2026View({
 
   const storeProducts = shopee?.storeProducts || {
     storeName: t.store,
+    storeSlug: "kreasi-singkong",
     storeBadge: "Star",
     items: orderDetail.items || [],
     summary: {
@@ -437,9 +440,16 @@ export default function AccountOrderDetail2026View({
         {/* 4. Produk Pesanan yang Dipesan */}
         <section className="tp-shopee-detail__card tp-shopee-detail__card--products">
           <header className="tp-shopee-detail__store-header">
-            <span className="tp-shopee-detail__store-tag">{storeProducts.storeBadge || "Star"}</span>
-            <strong className="tp-shopee-detail__store-name">{storeProducts.storeName}</strong>
-            <ChevronRight size={14} className="tp-shopee-detail__store-chevron" />
+            <Link
+              to={`/store/${storeProducts.storeSlug || "kreasi-singkong"}`}
+              className="tp-shopee-detail__store-btn"
+              title={(t.visitStore || "Kunjungi {{name}}").replace("{{name}}", storeProducts.storeName)}
+              aria-label={(t.visitStore || "Kunjungi {{name}}").replace("{{name}}", storeProducts.storeName)}
+            >
+              <span className="tp-shopee-detail__store-tag">{storeProducts.storeBadge || "Star"}</span>
+              <strong className="tp-shopee-detail__store-name">{storeProducts.storeName}</strong>
+              <ChevronRight size={14} className="tp-shopee-detail__store-chevron" />
+            </Link>
           </header>
 
           <div className="tp-shopee-detail__items-list">

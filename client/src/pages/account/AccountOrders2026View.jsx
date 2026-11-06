@@ -41,6 +41,7 @@ const MY_ORDERS_I18N = {
     contactSeller: "Contact Seller",
     returnDetails: "Refund Details",
     store: "Store",
+    visitStore: "Visit {{name}}",
     sold: "sold",
     rating: "Store Rating",
     back: "Back",
@@ -67,6 +68,7 @@ const MY_ORDERS_I18N = {
     contactSeller: "Hubungi Penjual",
     returnDetails: "Rincian Pengembalian",
     store: "Toko",
+    visitStore: "Kunjungi {{name}}",
     sold: "terjual",
     rating: "Penilaian Toko",
     back: "Kembali",
@@ -217,6 +219,8 @@ function ShopeeOrderCard({ order, LinkComponent, t }) {
 
   const totalCount = order.totalItemCount || items.reduce((acc, it) => acc + (it.quantity || 1), 0);
   const storeName = order.primaryStoreName || order.storeNames?.[0] || t.store;
+  const storeSlug = order.primaryStoreSlug || order.storeSlug || "kreasi-singkong";
+  const visitStoreLabel = (t.visitStore || "Kunjungi {{name}}").replace("{{name}}", storeName);
   const statusLabel = order.status?.label || t.tabCompleted;
   const bucket = order.status?.bucket || "completed";
 
@@ -224,11 +228,16 @@ function ShopeeOrderCard({ order, LinkComponent, t }) {
     <article className="tp-shopee-card">
       {/* 1. Header: Store Badge + Store Name + Status */}
       <header className="tp-shopee-card__header">
-        <div className="tp-shopee-card__store">
+        <Link
+          to={`/store/${storeSlug}`}
+          className="tp-shopee-card__store-btn"
+          title={visitStoreLabel}
+          aria-label={visitStoreLabel}
+        >
           <span className="tp-shopee-card__store-tag">Star</span>
           <strong className="tp-shopee-card__store-name">{storeName}</strong>
           <ChevronRight size={14} className="tp-shopee-card__store-chevron" aria-hidden="true" />
-        </div>
+        </Link>
         <span className="tp-shopee-card__status-text">{statusLabel}</span>
       </header>
 

@@ -238,11 +238,56 @@
   border-bottom: 1px solid #f8fafc;
 }
 
-.tp-shopee-card__store {
-  display: flex;
+.tp-shopee-card__store,
+.tp-shopee-card__store-btn {
+  display: inline-flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
+  text-decoration: none;
+  color: inherit;
+  padding: 4px 8px;
+  margin: -4px -8px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.18s ease-in-out;
+}
+
+.tp-shopee-card__store-btn:hover {
+  background: rgba(3, 76, 133, 0.06);
+  border-color: rgba(3, 76, 133, 0.2);
+  box-shadow: 0 2px 6px rgba(3, 76, 133, 0.08);
+}
+
+.tp-shopee-card__store-btn:hover .tp-shopee-card__store-name {
+  color: #034c85;
+}
+
+.tp-shopee-card__store-btn:hover .tp-shopee-card__store-chevron {
+  color: #034c85;
+  transform: translateX(2px);
+}
+
+.tp-shopee-card__store-btn:active {
+  transform: scale(0.98);
+}
+
+[data-theme="dark"] .tp-shopee-card__store-btn:hover,
+.dark .tp-shopee-card__store-btn:hover {
+  background: rgba(254, 111, 5, 0.12);
+  border-color: rgba(254, 111, 5, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .tp-shopee-card__store-btn:hover .tp-shopee-card__store-name,
+.dark .tp-shopee-card__store-btn:hover .tp-shopee-card__store-name {
+  color: #fe6f05;
+}
+
+[data-theme="dark"] .tp-shopee-card__store-btn:hover .tp-shopee-card__store-chevron,
+.dark .tp-shopee-card__store-btn:hover .tp-shopee-card__store-chevron {
+  color: #fe6f05;
 }
 
 .tp-shopee-card__store-tag {

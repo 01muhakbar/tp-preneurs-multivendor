@@ -208,6 +208,27 @@ const PAYMENT_TRANSLATIONS = {
   ACTION_REQUIRED: { en: "Action Required", id: "Perlu Tindakan" },
 };
 
+export const slugifyStoreName = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+export const resolveStoreSlug = (order, primaryStoreName = "") => {
+  const directSlug =
+    order?.storeSlug ||
+    order?.store?.slug ||
+    asArray(order?.stores).find((s) => asObject(s).slug)?.slug ||
+    asArray(order?.storeSplits).find((s) => asObject(s).storeSlug)?.storeSlug ||
+    asArray(order?.groups).find((g) => asObject(g).storeSlug)?.storeSlug;
+
+  const valid = text(directSlug);
+  if (valid) return valid;
+  return slugifyStoreName(primaryStoreName) || "store";
+};
+
 const normalizeStoreNames = (order) => {
   const names = [
     order.storeName,
@@ -234,6 +255,7 @@ const normalizeOrder = (value, options = {}) => {
   const checkoutMode = normalizeCheckoutMode(order.checkoutMode);
   const storeNames = normalizeStoreNames(order);
   const primaryStoreName = storeNames.length > 0 ? storeNames[0] : "";
+  const primaryStoreSlug = resolveStoreSlug(order, primaryStoreName);
   const reference =
     resolvePublicOrderReference(
       order.invoiceNo,
@@ -321,6 +343,8 @@ const normalizeOrder = (value, options = {}) => {
     createdAt,
     storeNames,
     primaryStoreName,
+    primaryStoreSlug,
+    storeSlug: primaryStoreSlug,
     storeMode: checkoutMode.shortLabel,
     checkoutMode,
     items: effectiveItems,
