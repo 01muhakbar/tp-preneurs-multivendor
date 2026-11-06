@@ -1,183 +1,151 @@
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
-  Box,
-  Check,
+  CheckCircle2,
   CircleHelp,
-  Download,
-  Mail,
-  MapPin,
+  Clock,
+  Copy,
+  Headphones,
   Package,
-  Printer,
-  ShieldCheck,
+  Star,
   Truck,
-  WalletCards,
 } from "lucide-react";
+import { toast } from "react-hot-toast";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
+import { formatCurrency } from "../../utils/format.js";
+import { fetchStoreProducts } from "../../api/storeProducts.ts";
 import "./store-order-tracking-2026.css";
 
-function StatusPill({ status }) {
-  return (
-    <span className={`tpord2026-pill tpord2026-pill--${status?.tone || "slate"}`}>
-      {status?.label || "Not set"}
-    </span>
-  );
-}
+const TRACKING_I18N = {
+  id: {
+    back: "Kembali",
+    inTransit: "Sedang Dikirim",
+    outForDelivery: "Menuju Alamatmu",
+    delivered: "Pesanan Tiba",
+    arrivingBy: (date) => `Pesanan tiba pada ${date}`,
+    guaranteeBanner: (date) =>
+      `Garansi Tiba: Dapatkan Voucher Rp10.000 jika pesanan belum tiba ${date}.`,
+    learnMore: "Selengkapnya",
+    orderDetails: "Rincian Pesanan",
+    copied: "Nomor resi berhasil disalin!",
+    copyFailed: "Gagal menyalin nomor resi",
+    youMayAlsoLike: "Kamu Mungkin Juga Suka",
+    sold: "terjual",
+    instant: "INSTANT",
+    loading: "Memuat pelacakan pesanan...",
+    notFound: "Pelacakan Pesanan Tidak Ditemukan",
+    notFoundDesc: "Nomor referensi pesanan tidak ditemukan atau belum terdaftar.",
+    backToHome: "Kembali ke Beranda",
+    needHelp: "Bantuan Pesanan",
+  },
+  en: {
+    back: "Back",
+    inTransit: "In Transit",
+    outForDelivery: "Out for Delivery",
+    delivered: "Order Arrived",
+    arrivingBy: (date) => `Order arriving by ${date}`,
+    guaranteeBanner: (date) =>
+      `On-Time Guarantee: Get a Rp10,000 voucher if order doesn't arrive by ${date}.`,
+    learnMore: "Learn more",
+    orderDetails: "Order Details",
+    copied: "Tracking number copied to clipboard!",
+    copyFailed: "Failed to copy tracking number",
+    youMayAlsoLike: "You Might Also Like",
+    sold: "sold",
+    instant: "INSTANT",
+    loading: "Loading order tracking...",
+    notFound: "Order Tracking Unavailable",
+    notFoundDesc: "The order reference was not found or is no longer accessible.",
+    backToHome: "Back to Home",
+    needHelp: "Order Help",
+  },
+};
 
-function LoadingState() {
+function TrackingRecommendationGrid({ isIndo, LinkComponent }) {
+  const [products, setProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const T = isIndo ? TRACKING_I18N.id : TRACKING_I18N.en;
+
+  useEffect(() => {
+    let active = true;
+    fetchStoreProducts({ limit: 6 })
+      .then((res) => {
+        if (!active) return;
+        const list = Array.isArray(res?.data)
+          ? res.data
+          : Array.isArray(res?.items)
+            ? res.items
+            : Array.isArray(res)
+              ? res
+              : [];
+        setProducts(list.slice(0, 4));
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (isLoading && products.length === 0) return null;
+  if (!products.length) return null;
+
   return (
-    <div className="tpord2026-page">
-      <div className="tpord2026-skeleton tpord2026-skeleton--hero" />
-      <div className="tpord2026-layout">
-        <div className="tpord2026-skeleton tpord2026-skeleton--tall" />
-        <div className="tpord2026-skeleton tpord2026-skeleton--tall" />
+    <section className="tp-track-rec">
+      <div className="tp-track-rec__header">
+        <span className="tp-track-rec__line" />
+        <h2 className="tp-track-rec__title">{T.youMayAlsoLike}</h2>
+        <span className="tp-track-rec__line" />
       </div>
-    </div>
-  );
-}
 
-function ErrorState({ error, Link, T }) {
-  return (
-    <section className="tpord2026-state">
-      <CircleHelp aria-hidden="true" />
-      <h1>{T.orderTrackingUnavailable}</h1>
-      <p>
-        {error?.response?.data?.message ||
-          error?.message ||
-          (T.isIndo ? "Periksa kembali nomor pesanan Anda dan coba beberapa saat lagi." : "Check the order reference and try again.")}
-      </p>
-      <Link to="/" className="tpord2026-back-btn">
-        <ArrowLeft aria-hidden="true" />
-        {T.backToHome}
-      </Link>
-    </section>
-  );
-}
+      <div className="tp-track-rec__grid">
+        {products.map((item) => {
+          const imageSrc = resolveAssetUrl(item.image || item.thumbnail || "");
+          const name = item.name || item.title || "Produk";
+          const displayPrice = Number(item.price || item.salePrice || 0);
+          const slug = item.slug || item.id;
+          const rating = (Number(item.rating || item.avgRating || 5.0)).toFixed(1);
+          const soldCount = item.soldCount || item.sales || Math.floor(Math.random() * 25 + 5);
 
-function Progress({ steps, status, T }) {
-  return (
-    <section className="tpord2026-card tpord2026-progress-card">
-      <header>
-        <div>
-          <span className="tpord2026-card-icon" aria-hidden="true"><Package /></span>
-          <div>
-            <h2>{T.deliveryProgress}</h2>
-            <p>{T.deliveryProgressDesc}</p>
-          </div>
-        </div>
-      </header>
-      <div className="tpord2026-progress">
-        {steps.map((step) => {
-          const Icon =
-            step.code === "SHIPPING"
-              ? Truck
-              : step.code === "DELIVERED"
-                ? ShieldCheck
-                : step.complete
-                  ? Check
-                  : Box;
           return (
-            <article
-              key={step.code}
-              className={step.complete ? "is-complete" : step.active ? "is-active" : ""}
+            <LinkComponent
+              key={item.id}
+              to={`/product/${slug}`}
+              className="tp-track-rec__card"
             >
-              <span aria-hidden="true"><Icon /></span>
-              <strong>{step.label}</strong>
-              <small>{step.dateLabel}</small>
-            </article>
+              <div className="tp-track-rec__thumb">
+                {imageSrc ? (
+                  <img src={imageSrc} alt={name} loading="lazy" />
+                ) : (
+                  <div className="tp-track-rec__fallback">
+                    <Package aria-hidden="true" />
+                  </div>
+                )}
+                <span className="tp-track-rec__discount">-8%</span>
+              </div>
+              <div className="tp-track-rec__info">
+                <div className="tp-track-rec__badges">
+                  <span className="tp-track-rec__badge tp-track-rec__badge--star">Star+</span>
+                  <span className="tp-track-rec__badge tp-track-rec__badge--mall">Mall</span>
+                </div>
+                <h3 className="tp-track-rec__name">{name}</h3>
+                <div className="tp-track-rec__price">{formatCurrency(displayPrice)}</div>
+                <div className="tp-track-rec__meta">
+                  <span className="tp-track-rec__rating">
+                    <Star aria-hidden="true" /> {rating}
+                  </span>
+                  <span className="tp-track-rec__sold">{soldCount} {T.sold}</span>
+                </div>
+                <div className="tp-track-rec__origin">
+                  <span className="tp-track-rec__instant">{T.instant}</span>
+                  <span>KOTA MAKASSAR</span>
+                </div>
+              </div>
+            </LinkComponent>
           );
         })}
-      </div>
-    </section>
-  );
-}
-
-function ShipmentCard({ shipment, T }) {
-  return (
-    <article className="tpord2026-shipment">
-      <header>
-        <div>
-          <span className="tpord2026-shipment-icon" aria-hidden="true"><Truck /></span>
-          <div>
-            <strong>{shipment.storeName}</strong>
-            <small>{shipment.suborderNumber} · {T.itemsCount(shipment.itemCount)}</small>
-          </div>
-        </div>
-        <StatusPill status={shipment.status} />
-      </header>
-      <div className="tpord2026-shipment__body">
-        <dl>
-          <div><dt>{T.source}</dt><dd>{shipment.sourceLabel}</dd></div>
-          <div><dt>{T.trackingNumber}</dt><dd>{shipment.trackingNumber}</dd></div>
-          <div><dt>{T.courier}</dt><dd>{shipment.courier}</dd></div>
-        </dl>
-        <ol>
-          {shipment.timeline.length ? (
-            shipment.timeline.map((event) => (
-              <li key={event.id}>
-                <i aria-hidden="true" />
-                <div>
-                  <strong>{event.label}</strong>
-                  <small>{event.happenedAtLabel}</small>
-                  {event.description ? <p>{event.description}</p> : null}
-                </div>
-              </li>
-            ))
-          ) : (
-            <li>
-              <i aria-hidden="true" />
-              <div>
-                <strong>{T.waitingForTracking}</strong>
-                <small>{T.trackingNotSet}</small>
-              </div>
-            </li>
-          )}
-        </ol>
-      </div>
-    </article>
-  );
-}
-
-function ItemsTable({ items, T }) {
-  return (
-    <section className="tpord2026-card tpord2026-items">
-      <header>
-        <span className="tpord2026-card-icon" aria-hidden="true"><Package /></span>
-        <h2>{T.orderItems}</h2>
-      </header>
-      <div className="tpord2026-table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>{T.product}</th>
-              <th>{T.variant}</th>
-              <th>{T.qty}</th>
-              <th>{T.price}</th>
-              <th>{T.subtotal}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length ? (
-              items.map((item) => (
-                <tr key={item.id}>
-                  <td>
-                    <span className="tpord2026-product">
-                      <span aria-hidden="true">
-                        {item.imageUrl ? <img src={resolveAssetUrl(item.imageUrl)} alt="" /> : <Box />}
-                      </span>
-                      <strong>{item.name}</strong>
-                    </span>
-                  </td>
-                  <td>{item.variant}</td>
-                  <td>{item.quantity}</td>
-                  <td>{item.priceLabel}</td>
-                  <td>{item.subtotalLabel}</td>
-                </tr>
-              ))
-            ) : (
-              <tr><td colSpan={5}>{T.noItems}</td></tr>
-            )}
-          </tbody>
-        </table>
       </div>
     </section>
   );
@@ -186,288 +154,204 @@ function ItemsTable({ items, T }) {
 export default function StoreOrderTracking2026View({
   tracking,
   isIndo = false,
-  lang = "en",
   isLoading = false,
   error = null,
-  isDownloading = false,
-  downloadError = "",
   LinkComponent = "a",
-  onDownloadInvoice,
-  onPrintInvoice,
-  onEmailSupport,
   onWhatsAppSupport,
 }) {
-  const Link = LinkComponent;
+  const T = isIndo ? TRACKING_I18N.id : TRACKING_I18N.en;
 
-  const T = isIndo
-    ? {
-        isIndo: true,
-        backToHome: "Kembali ke Beranda",
-        orderDate: "Tanggal Pesanan:",
-        orderNumber: "Pesanan #",
-        paymentMethod: "Metode Pembayaran",
-        paymentStatus: "Status Pembayaran",
-        shipmentStatus: "Status Pengiriman",
-        totalAmount: "Total Pembayaran",
-        weWillKeepYouUpdated: "Pembaruan Pengiriman",
-        keepThisPage: "Simpan halaman ini untuk memantau status pesanan dan pengiriman secara langsung.",
-        deliveryProgress: "Tahapan Pesanan",
-        deliveryProgressDesc: "Lacak perkembangan proses pesanan Anda hingga tiba di tujuan.",
-        storeShipments: (count) => `Pengiriman Toko (${count})`,
-        shippingInformation: "Informasi Pengiriman",
-        shippingStatus: "Status Pengiriman",
-        deliveryAddress: "Alamat Pengiriman",
-        paymentInformation: "Informasi Pembayaran",
-        status: "Status",
-        method: "Metode",
-        orderItems: "Daftar Produk",
-        product: "Produk",
-        variant: "Varian",
-        qty: "Jumlah",
-        price: "Harga",
-        subtotal: "Subtotal",
-        orderSummary: "Ringkasan Pembayaran",
-        shippingFee: "Ongkos Kirim",
-        serviceFee: "Biaya Layanan",
-        discount: "Diskon",
-        thankYou: "Terima Kasih!",
-        orderReceivedNotice: "Pesanan Anda telah dikonfirmasi dan sedang diproses.",
-        downloadInvoice: "Unduh Invoice",
-        preparingPdf: "Menyiapkan PDF...",
-        printInvoice: "Cetak Invoice",
-        needHelp: "Butuh bantuan terkait pesanan Anda?",
-        emailUs: "Kirim Email",
-        whatsapp: "Chat WhatsApp",
-        source: "Pengiriman",
-        trackingNumber: "Nomor Resi",
-        courier: "Jasa Kurir",
-        itemsCount: (count) => `${count} Produk`,
-        waitingForTracking: "Menunggu pembaruan nomor resi",
-        trackingNotSet: "Segera diperbarui oleh penjual",
-        orderTrackingUnavailable: "Pelacakan Pesanan Tidak Ditemukan",
-        noItems: "Tidak ada produk dalam pesanan ini.",
-        noShipmentYet: "Belum ada rincian paket pengiriman yang aktif.",
-      }
-    : {
-        isIndo: false,
-        backToHome: "Back to Home",
-        orderDate: "Order Date:",
-        orderNumber: "Order #",
-        paymentMethod: "Payment Method",
-        paymentStatus: "Payment Status",
-        shipmentStatus: "Shipment Status",
-        totalAmount: "Total Amount",
-        weWillKeepYouUpdated: "Live Tracking Updates",
-        keepThisPage: "Check back here anytime for real-time delivery progress.",
-        deliveryProgress: "Delivery Progress",
-        deliveryProgressDesc: "Track every stage of this order from payment to delivery.",
-        storeShipments: (count) => `Store Shipments (${count})`,
-        shippingInformation: "Shipping Information",
-        shippingStatus: "Shipping Status",
-        deliveryAddress: "Delivery Address",
-        paymentInformation: "Payment Information",
-        status: "Status",
-        method: "Method",
-        orderItems: "Order Items",
-        product: "Product",
-        variant: "Variant",
-        qty: "Qty",
-        price: "Price",
-        subtotal: "Subtotal",
-        orderSummary: "Order Summary",
-        shippingFee: "Shipping",
-        serviceFee: "Service Fee",
-        discount: "Discount",
-        thankYou: "Thank You!",
-        orderReceivedNotice: "Your order has been confirmed and is being processed.",
-        downloadInvoice: "Download Invoice",
-        preparingPdf: "Preparing PDF...",
-        printInvoice: "Print Invoice",
-        needHelp: "Need help? Contact our support team",
-        emailUs: "Email Us",
-        whatsapp: "WhatsApp",
-        source: "Shipment",
-        trackingNumber: "Tracking Number",
-        courier: "Courier",
-        itemsCount: (count) => `${count} item${count > 1 ? "s" : ""}`,
-        waitingForTracking: "Waiting for tracking update",
-        trackingNotSet: "Pending seller assignment",
-        orderTrackingUnavailable: "Order tracking unavailable",
-        noItems: "No items found in this order.",
-        noShipmentYet: "No shipment details available yet.",
-      };
+  const handleCopy = (text) => {
+    if (!text) return;
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(text);
+      toast.success(T.copied);
+    } else {
+      toast.error(T.copyFailed);
+    }
+  };
 
-  if (isLoading) return <LoadingState />;
-  if (error || !tracking) return <ErrorState error={error} Link={Link} T={T} />;
+  const handleGuaranteeNotice = () => {
+    toast(
+      isIndo
+        ? "Garansi Tiba menjamin pesanan sampai tepat waktu. Voucher kompensasi diberikan jika pesanan terlambat."
+        : "On-Time Guarantee ensures your package arrives on schedule or receive a voucher compensation.",
+      { icon: "🛡️" }
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <div className="tp-track-wrapper">
+        <div className="tp-track-skeleton tp-track-skeleton--header" />
+        <div className="tp-track-skeleton tp-track-skeleton--card" />
+        <div className="tp-track-skeleton tp-track-skeleton--timeline" />
+      </div>
+    );
+  }
+
+  if (error || !tracking) {
+    return (
+      <div className="tp-track-wrapper">
+        <div className="tp-track-error-card">
+          <CircleHelp aria-hidden="true" className="tp-track-error-icon" />
+          <h1>{T.notFound}</h1>
+          <p>{T.notFoundDesc}</p>
+          <LinkComponent to="/" className="tp-track-back-home">
+            <ArrowLeft aria-hidden="true" /> {T.backToHome}
+          </LinkComponent>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="tpord2026-page" data-public-order-tracking-2026="true">
-      <div className="tpord2026-topline">
-        <Link to="/"><ArrowLeft aria-hidden="true" /> {T.backToHome}</Link>
-        <span>{T.orderDate} {tracking.createdAtLabel}</span>
-      </div>
-
-      <section className="tpord2026-hero">
-        <div className="tpord2026-hero__main">
-          <div className="tpord2026-title">
-            <h1>{T.orderNumber}{tracking.reference}</h1>
-            <StatusPill status={tracking.status} />
-          </div>
-          <p>{tracking.status.description}</p>
-          <div className="tpord2026-facts">
-            <div>
-              <WalletCards aria-hidden="true" />
-              <span>
-                <small>{T.paymentMethod}</small>
-                <strong>{tracking.payment.method}</strong>
-              </span>
-            </div>
-            <div>
-              <Check aria-hidden="true" />
-              <span>
-                <small>{T.paymentStatus}</small>
-                <strong>{tracking.payment.label}</strong>
-              </span>
-            </div>
-            <div>
-              <Truck aria-hidden="true" />
-              <span>
-                <small>{T.shipmentStatus}</small>
-                <strong>{tracking.shipment.countLabel}</strong>
-              </span>
-            </div>
-            <div>
-              <Package aria-hidden="true" />
-              <span>
-                <small>{T.totalAmount}</small>
-                <strong>{tracking.totals.totalLabel}</strong>
-              </span>
-            </div>
-          </div>
+    <div className="tp-track-wrapper">
+      {/* 1. Header Navigation Bar */}
+      <header className="tp-track-header">
+        <LinkComponent to={tracking.orderDetailUrl || "/user/my-orders"} className="tp-track-header__back" aria-label={T.back}>
+          <ArrowLeft aria-hidden="true" />
+        </LinkComponent>
+        <h1 className="tp-track-header__title">{tracking.statusTitle}</h1>
+        <div className="tp-track-header__actions">
+          <button
+            type="button"
+            className="tp-track-header__icon-btn"
+            onClick={onWhatsAppSupport}
+            aria-label="Customer Support"
+            title="Customer Support"
+          >
+            <Headphones aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="tp-track-header__icon-btn"
+            onClick={handleGuaranteeNotice}
+            aria-label={T.needHelp}
+            title={T.needHelp}
+          >
+            <CircleHelp aria-hidden="true" />
+          </button>
         </div>
-        <aside>
-          <ShieldCheck aria-hidden="true" />
-          <strong>{T.weWillKeepYouUpdated}</strong>
-          <span>{T.keepThisPage}</span>
-        </aside>
-      </section>
+      </header>
 
-      <div className="tpord2026-layout">
-        <main>
-          <Progress steps={tracking.progress} status={tracking.status} T={T} />
-
-          <section className="tpord2026-card">
-            <header>
-              <span className="tpord2026-card-icon" aria-hidden="true"><Truck /></span>
-              <div>
-                <h2>{T.storeShipments(tracking.shipments.length)}</h2>
-              </div>
-            </header>
-            <div className="tpord2026-shipment-list">
-              {tracking.shipments.length ? (
-                tracking.shipments.map((shipment) => (
-                  <ShipmentCard shipment={shipment} key={shipment.id} T={T} />
-                ))
-              ) : (
-                <p className="tpord2026-empty">{T.noShipmentYet}</p>
-              )}
-            </div>
-          </section>
-
-          <ItemsTable items={tracking.items} T={T} />
-        </main>
-
-        <aside className="tpord2026-side">
-          <section className="tpord2026-card">
-            <header>
-              <span className="tpord2026-card-icon" aria-hidden="true"><Truck /></span>
-              <h2>{T.shippingInformation}</h2>
-            </header>
-            <dl className="tpord2026-details">
-              <div><dt>{T.shippingStatus}</dt><dd>{tracking.shipment.label}</dd></div>
-              <div><dt>{T.courier}</dt><dd>{tracking.shipment.trackingNumber}</dd></div>
-            </dl>
-          </section>
-
-          <section className="tpord2026-card">
-            <header>
-              <span className="tpord2026-card-icon" aria-hidden="true"><MapPin /></span>
-              <h2>{T.deliveryAddress}</h2>
-            </header>
-            <div className="tpord2026-address">
-              <strong>{tracking.customer.name}</strong>
-              {tracking.customer.phone ? <span>{tracking.customer.phone}</span> : null}
-              {tracking.customer.email ? <span>{tracking.customer.email}</span> : null}
-              <p>{tracking.customer.address}</p>
-            </div>
-          </section>
-
-          <section className="tpord2026-card">
-            <header>
-              <span className="tpord2026-card-icon" aria-hidden="true"><WalletCards /></span>
-              <h2>{T.paymentInformation}</h2>
-            </header>
-            <dl className="tpord2026-details">
-              <div><dt>{T.status}</dt><dd><StatusPill status={tracking.payment} /></dd></div>
-              <div><dt>{T.method}</dt><dd>{tracking.payment.method}</dd></div>
-            </dl>
-          </section>
-        </aside>
-      </div>
-
-      <section className="tpord2026-card tpord2026-summary">
-        <header>
-          <span className="tpord2026-card-icon" aria-hidden="true"><WalletCards /></span>
-          <h2>{T.orderSummary}</h2>
-        </header>
-        <dl>
-          <div><dt>{T.paymentMethod}</dt><dd>{tracking.payment.method}</dd></div>
-          <div><dt>{T.shippingFee}</dt><dd>{tracking.totals.shippingLabel}</dd></div>
-          <div><dt>{T.serviceFee}</dt><dd>{tracking.totals.serviceFeeLabel}</dd></div>
-          <div><dt>{T.discount}</dt><dd>{tracking.totals.discountLabel}</dd></div>
-          <div className="tpord2026-summary__total">
-            <dt>{T.totalAmount}</dt>
-            <dd>{tracking.totals.totalLabel}</dd>
+      <main className="tp-track-main">
+        {/* 2. Top Status Card with Horizontal 3-Step Stepper */}
+        <section className="tp-track-card tp-track-status-card">
+          <div className="tp-track-status__title">
+            {T.arrivingBy(tracking.estimatedDeliveryLabel)}
           </div>
-        </dl>
-        {downloadError ? <p className="tpord2026-error">{downloadError}</p> : null}
-        <div className="tpord2026-summary__footer">
-          <p>
-            <ShieldCheck aria-hidden="true" />
-            <span>
-              <strong>{T.thankYou}</strong>
-              {T.orderReceivedNotice}
+
+          <div className="tp-track-stepper">
+            {tracking.steps.map((step, idx) => {
+              const isPast = idx < tracking.activeStepIndex;
+              const isCurrent = idx === tracking.activeStepIndex;
+              const isDone = isPast || (isCurrent && tracking.activeStepIndex === 2);
+
+              return (
+                <div
+                  key={step.code}
+                  className={`tp-track-step ${isDone ? "is-done" : ""} ${isCurrent ? "is-current" : ""}`}
+                >
+                  <div className="tp-track-step__icon-box">
+                    {idx === 0 && <Package aria-hidden="true" />}
+                    {idx === 1 && <Truck aria-hidden="true" />}
+                    {idx === 2 && <CheckCircle2 aria-hidden="true" />}
+                  </div>
+                  <div className="tp-track-step__label">{step.label}</div>
+                  {idx < tracking.steps.length - 1 && (
+                    <div
+                      className={`tp-track-step__line ${isPast ? "is-done" : ""}`}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* 3. On-Time Guarantee Banner */}
+        <section className="tp-track-guarantee-banner" onClick={handleGuaranteeNotice} role="button" tabIndex={0}>
+          <div className="tp-track-guarantee__left">
+            <Clock aria-hidden="true" className="tp-track-guarantee__icon" />
+            <span className="tp-track-guarantee__text">
+              {T.guaranteeBanner(tracking.guaranteeDateLabel)}
             </span>
-          </p>
-          <div className="tpord2026-action-buttons">
-            <button
-              type="button"
-              className="tpord2026-outline-btn"
-              onClick={onDownloadInvoice}
-              disabled={isDownloading}
-            >
-              <Download aria-hidden="true" />
-              {isDownloading ? T.preparingPdf : T.downloadInvoice}
-            </button>
-            <button
-              type="button"
-              className="tpord2026-primary-btn"
-              onClick={onPrintInvoice}
-            >
-              <Printer aria-hidden="true" />
-              {T.printInvoice}
-            </button>
           </div>
-        </div>
-      </section>
+          <span className="tp-track-guarantee__link">{T.learnMore}</span>
+        </section>
 
-      <footer className="tpord2026-help">
-        <span>{T.needHelp}</span>
-        <div>
-          <button type="button" onClick={onEmailSupport}><Mail aria-hidden="true" /> {T.emailUs}</button>
-          <button type="button" onClick={onWhatsAppSupport}><CircleHelp aria-hidden="true" /> {T.whatsapp}</button>
-        </div>
-      </footer>
+        {/* 4. Courier & Shipment Card */}
+        <section className="tp-track-card tp-track-courier-card">
+          <div className="tp-track-courier__thumb">
+            {tracking.primaryThumbnail ? (
+              <img
+                src={resolveAssetUrl(tracking.primaryThumbnail)}
+                alt="Product thumbnail"
+                loading="lazy"
+              />
+            ) : (
+              <div className="tp-track-courier__fallback">
+                <Package aria-hidden="true" />
+              </div>
+            )}
+          </div>
+
+          <div className="tp-track-courier__info">
+            <div className="tp-track-courier__name">{tracking.courierName}</div>
+            <div className="tp-track-courier__resi">
+              <span>{tracking.trackingNumber}</span>
+              <button
+                type="button"
+                className="tp-track-copy-btn"
+                onClick={() => handleCopy(tracking.trackingNumber)}
+                aria-label="Salin nomor resi"
+                title="Salin nomor resi"
+              >
+                <Copy aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+
+          <div className="tp-track-courier__action">
+            <LinkComponent
+              to={tracking.orderDetailUrl || "/user/my-orders"}
+              className="tp-track-order-details-btn"
+            >
+              {T.orderDetails}
+            </LinkComponent>
+          </div>
+        </section>
+
+        {/* 5. Linimasa Pengiriman (Vertical Tracking Timeline) */}
+        <section className="tp-track-card tp-track-timeline-card">
+          <div className="tp-track-timeline">
+            {tracking.timeline.map((event, idx) => (
+              <div
+                key={event.id || idx}
+                className={`tp-track-timeline__item ${event.isLatest ? "is-latest" : ""}`}
+              >
+                <div className="tp-track-timeline__time">{event.dateLabel}</div>
+                <div className="tp-track-timeline__node">
+                  <span className="tp-track-timeline__dot" />
+                  {idx < tracking.timeline.length - 1 && (
+                    <span className="tp-track-timeline__line" />
+                  )}
+                </div>
+                <div className="tp-track-timeline__content">
+                  <p className="tp-track-timeline__label">{event.label}</p>
+                  {event.description && (
+                    <p className="tp-track-timeline__desc">{event.description}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 6. Product Recommendations Section */}
+        <TrackingRecommendationGrid isIndo={isIndo} LinkComponent={LinkComponent} />
+      </main>
     </div>
   );
 }

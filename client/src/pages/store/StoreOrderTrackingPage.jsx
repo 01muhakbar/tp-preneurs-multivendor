@@ -9,6 +9,7 @@ import { isSplitOperationallyFinal } from "../../utils/splitOperationalTruth.ts"
 import StoreOrderTracking2026View from "./StoreOrderTracking2026View.jsx";
 import {
   getStoreTrackingSafeRef2026,
+  isIndonesianLanguage,
   normalizeStoreOrderTrackingFor2026,
 } from "./storeOrderTracking2026Adapter.js";
 
@@ -42,22 +43,18 @@ export default function StoreOrderTrackingPage() {
   const { i18n } = useTranslation();
   const [, setLangSyncCounter] = useState(0);
 
-  const isIndo =
-    i18n.language === "id" ||
-    i18n.language === "id-ID" ||
-    i18n.language?.startsWith("id") ||
-    (typeof window !== "undefined" &&
-      (localStorage.getItem("store_language") === "Indonesia" ||
-        localStorage.getItem("store_language") === "Bahasa Indonesia"));
+  const isIndo = isIndonesianLanguage(i18n);
   const lang = isIndo ? "id" : "en";
 
   useEffect(() => {
     const handleSync = () => setLangSyncCounter((c) => c + 1);
-    i18n.on("languageChanged", handleSync);
+    i18n?.on?.("languageChanged", handleSync);
     window.addEventListener("storage", handleSync);
+    window.addEventListener("store_language_changed", handleSync);
     return () => {
-      i18n.off("languageChanged", handleSync);
+      i18n?.off?.("languageChanged", handleSync);
       window.removeEventListener("storage", handleSync);
+      window.removeEventListener("store_language_changed", handleSync);
     };
   }, [i18n]);
 

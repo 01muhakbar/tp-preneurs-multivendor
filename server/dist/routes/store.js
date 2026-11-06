@@ -2510,6 +2510,8 @@ router.get("/orders/:ref", publicTrackingRateLimit, async (req, res, next) => {
             : [];
         return res.json({
             data: {
+                id: Number(orderId),
+                orderId: Number(orderId),
                 ref: invoiceNo || refParam,
                 invoiceNo,
                 checkoutMode: String(order.checkoutMode ??

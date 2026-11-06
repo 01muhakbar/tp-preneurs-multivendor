@@ -2889,6 +2889,8 @@ router.get(
 
       return res.json({
         data: {
+          id: Number(orderId),
+          orderId: Number(orderId),
           ref: invoiceNo || refParam,
           invoiceNo,
           checkoutMode:
