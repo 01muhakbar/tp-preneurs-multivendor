@@ -71,13 +71,21 @@ export default function AccountOrderDetailPage() {
 
   const orderDetail = orderQuery.data?.data ?? orderQuery.data?.data?.data ?? null;
   const paymentReadModel = groupedQuery.data?.data ?? null;
-  const orderDetail2026 = orderDetail
-    ? normalizeOrderDetailFor2026({
+  let orderDetail2026 = null;
+  let adapterError = null;
+
+  if (orderDetail) {
+    try {
+      orderDetail2026 = normalizeOrderDetailFor2026({
         order: orderDetail,
         payment: paymentReadModel,
         isIndo,
-      })
-    : null;
+      });
+    } catch (err) {
+      console.error("[AccountOrderDetailPage] adapter error", err);
+      adapterError = err;
+    }
+  }
 
   const scrollToTimeline = () => {
     document
@@ -151,7 +159,7 @@ export default function AccountOrderDetailPage() {
     <AccountOrderDetail2026View
       orderDetail={orderDetail2026}
       isLoading={orderQuery.isLoading}
-      error={invalidIdError || (orderQuery.isError ? orderQuery.error : null) || missingOrderError}
+      error={invalidIdError || (orderQuery.isError ? orderQuery.error : null) || missingOrderError || adapterError}
       LinkComponent={Link}
       onPrint={handlePrint}
       onInvoice={handleInvoice}

@@ -717,8 +717,8 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false }) 
 
   const timelineDates = {
     orderPlaced: placedAt ? formatDateTime(placedAt) : "-",
-    paidAt: payment.paidAt
-      ? formatDateTime(payment.paidAt)
+    paidAt: (grouped.paidAt || payment?.paidAt)
+      ? formatDateTime(grouped.paidAt || payment.paidAt)
       : isUnpaid
         ? null
         : placedAt
