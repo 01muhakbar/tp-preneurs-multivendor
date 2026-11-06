@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import {
@@ -586,6 +586,8 @@ export default function AccountMyReviewPage() {
 
   const activeTab = searchParams.get("tab") === "reviewed" ? "reviewed" : "need";
   const page = clampPage(searchParams.get("page"));
+  const targetProductId = Number(searchParams.get("productId")) || null;
+  const autoOpenedRef = useRef(false);
   const [modalState, setModalState] = useState({
     open: false,
     mode: "create",
@@ -666,6 +668,37 @@ export default function AccountMyReviewPage() {
     }
   }, [activeTab, page, totalPages]);
 
+  useEffect(() => {
+    if (!targetProductId || autoOpenedRef.current) return;
+    if (needQuery.isLoading || reviewedQuery.isLoading) return;
+
+    const needMatch = needItems.find(
+      (entry) => Number(entry.productId) === targetProductId
+    );
+    if (needMatch) {
+      autoOpenedRef.current = true;
+      setSubmitError("");
+      setSubmitSuccess("");
+      setModalState({ open: true, mode: "create", item: needMatch });
+      return;
+    }
+
+    const reviewedMatch = reviewedItems.find(
+      (entry) => Number(entry.productId) === targetProductId
+    );
+    if (reviewedMatch && activeTab !== "reviewed") {
+      autoOpenedRef.current = true;
+      routeTo("reviewed", 1);
+    }
+  }, [
+    targetProductId,
+    needItems,
+    reviewedItems,
+    needQuery.isLoading,
+    reviewedQuery.isLoading,
+    activeTab,
+  ]);
+
   const saveReviewMutation = useMutation({
     mutationFn: async ({ item, mode, form }) => {
       if (
@@ -716,6 +749,7 @@ export default function AccountMyReviewPage() {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["account", "reviews"] }),
+        queryClient.invalidateQueries({ queryKey: ["account", "orders"] }),
         queryClient.invalidateQueries({ queryKey: ["seller2026", "reviews"] }),
         queryClient.invalidateQueries({ queryKey: ["storefront", "product"] }),
       ]);

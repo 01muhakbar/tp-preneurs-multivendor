@@ -71,6 +71,7 @@ const DETAIL_I18N = {
     youMayAlsoLike: "You May Also Like",
     buyAgain: "Buy Again",
     review: "Review",
+    viewReview: "View Review",
     payNow: "Pay Now",
     track: "Track",
     details: "Details",
@@ -119,6 +120,7 @@ const DETAIL_I18N = {
     youMayAlsoLike: "Kamu Mungkin Juga Suka",
     buyAgain: "Beli Lagi",
     review: "Nilai",
+    viewReview: "Lihat Penilaian",
     payNow: "Bayar Sekarang",
     track: "Lacak",
     details: "Rincian",
@@ -729,10 +731,18 @@ export default function AccountOrderDetail2026View({
             </LinkComponent>
           ) : (
             <LinkComponent
-              to="/user/my-reviews"
-              className="tp-shopee-detail__btn-orange"
+              to={
+                orderDetail.isReviewed
+                  ? `/user/my-reviews?tab=reviewed${orderDetail.items?.[0]?.productId ? `&productId=${orderDetail.items[0].productId}` : ""}`
+                  : `/user/my-reviews${orderDetail.items?.find((it) => !it.isReviewed)?.productId || orderDetail.items?.[0]?.productId ? `?productId=${orderDetail.items?.find((it) => !it.isReviewed)?.productId || orderDetail.items?.[0]?.productId}` : ""}`
+              }
+              className={
+                orderDetail.isReviewed
+                  ? "tp-shopee-detail__btn-outline"
+                  : "tp-shopee-detail__btn-orange"
+              }
             >
-              {t.review}
+              {orderDetail.isReviewed ? t.viewReview : t.review}
             </LinkComponent>
           )}
         </div>

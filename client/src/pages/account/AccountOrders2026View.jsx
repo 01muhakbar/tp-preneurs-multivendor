@@ -33,6 +33,7 @@ const MY_ORDERS_I18N = {
     totalProduct: "Total {{count}} product(s)",
     buyAgain: "Buy Again",
     review: "Review",
+    viewReview: "View Review",
     requestReturn: "Return",
     payNow: "Pay Now",
     viewDetails: "Order Details",
@@ -60,6 +61,7 @@ const MY_ORDERS_I18N = {
     totalProduct: "Total {{count}} produk",
     buyAgain: "Beli Lagi",
     review: "Nilai",
+    viewReview: "Lihat Penilaian",
     requestReturn: "Ajukan Pengembalian",
     payNow: "Bayar Sekarang",
     viewDetails: "Rincian Pesanan",
@@ -300,12 +302,21 @@ function ShopeeOrderCard({ order, LinkComponent, t }) {
             >
               {t.buyAgain}
             </LinkComponent>
-            <LinkComponent
-              to={order.href || "#"}
-              className="tp-shopee-btn tp-shopee-btn--accent"
-            >
-              {t.review}
-            </LinkComponent>
+            {order.isReviewed || (items.length > 0 && items.every((it) => it.isReviewed)) ? (
+              <LinkComponent
+                to={`/user/my-reviews?tab=reviewed${items[0]?.productId ? `&productId=${items[0].productId}` : ""}`}
+                className="tp-shopee-btn tp-shopee-btn--outline"
+              >
+                {t.viewReview}
+              </LinkComponent>
+            ) : (
+              <LinkComponent
+                to={`/user/my-reviews${items.find((it) => !it.isReviewed)?.productId || items[0]?.productId ? `?productId=${items.find((it) => !it.isReviewed)?.productId || items[0]?.productId}` : ""}`}
+                className="tp-shopee-btn tp-shopee-btn--accent"
+              >
+                {t.review}
+              </LinkComponent>
+            )}
           </>
         )}
 

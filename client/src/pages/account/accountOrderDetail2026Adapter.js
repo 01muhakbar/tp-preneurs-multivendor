@@ -238,6 +238,9 @@ const normalizeItem = (value, index, storeInfo = {}) => {
     lineTotal,
     lineTotalDisplay: formatCurrency(lineTotal),
     variantLines: getOrderItemVariantLines(item),
+    isReviewed: Boolean(item.isReviewed),
+    reviewId: asNumber(item.reviewId, null),
+    rating: asNumber(item.rating, null),
   };
 };
 
@@ -957,6 +960,10 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false }) 
     },
     storeBreakdown,
     items,
+    isReviewed: Boolean(
+      source.isReviewed ||
+        (items.length > 0 && items.every((it) => it.isReviewed))
+    ),
     summary: {
       subtotal,
       subtotalDisplay: formatCurrency(subtotal),

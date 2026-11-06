@@ -1708,6 +1708,82 @@ router.get("/my/orders", protect, async (req, res, next) => {
                         slug: item.productSlug || null,
                     });
                 }
+                // Fallback to orderitems for any orders missing items in suborder_items
+                const missingOrderIds = orderIds.filter((id) => !itemsByOrderId.has(id) || itemsByOrderId.get(id).length === 0);
+                if (missingOrderIds.length > 0) {
+                    const missingPlaceholders = missingOrderIds.map(() => "?").join(", ");
+                    const legacyItemRows = (await sequelize.query(`
+                SELECT
+                  oi.id,
+                  oi.order_id AS orderId,
+                  oi.product_id AS productId,
+                  p.name AS name,
+                  oi.imageSnapshot AS image,
+                  oi.variantLabel AS variant,
+                  oi.price,
+                  oi.quantity,
+                  p.slug AS productSlug
+                FROM orderitems oi
+                LEFT JOIN products p ON p.id = oi.product_id
+                WHERE oi.order_id IN (${missingPlaceholders})
+                ORDER BY oi.id ASC
+              `, {
+                        replacements: missingOrderIds,
+                        type: QueryTypes.SELECT,
+                    }));
+                    for (const item of legacyItemRows) {
+                        const orderId = Number(item.orderId);
+                        if (!itemsByOrderId.has(orderId)) {
+                            itemsByOrderId.set(orderId, []);
+                        }
+                        itemsByOrderId.get(orderId).push({
+                            id: item.id,
+                            suborderId: null,
+                            productId: item.productId,
+                            name: item.name || "Product",
+                            image: item.image || null,
+                            variant: item.variant || null,
+                            price: Number(item.price || 0),
+                            quantity: Number(item.quantity || 1),
+                            totalPrice: Number(item.price || 0) * Number(item.quantity || 1),
+                            slug: item.productSlug || null,
+                        });
+                    }
+                }
+                // Check which products have already been reviewed by this user
+                const allProductIds = new Set();
+                for (const [, items] of itemsByOrderId) {
+                    for (const it of items) {
+                        const pid = Number(it.productId);
+                        if (Number.isFinite(pid) && pid > 0) {
+                            allProductIds.add(pid);
+                        }
+                    }
+                }
+                const reviewedMap = new Map();
+                if (allProductIds.size > 0) {
+                    const pidArray = Array.from(allProductIds);
+                    const reviewRows = (await sequelize.query(`SELECT id, product_id AS productId, rating
+               FROM product_reviews
+               WHERE user_id = :userId AND product_id IN (:productIds)`, {
+                        replacements: { userId, productIds: pidArray },
+                        type: QueryTypes.SELECT,
+                    }));
+                    for (const r of reviewRows) {
+                        reviewedMap.set(Number(r.productId), {
+                            id: Number(r.id),
+                            rating: Number(r.rating || 5),
+                        });
+                    }
+                }
+                for (const [, items] of itemsByOrderId) {
+                    for (const it of items) {
+                        const reviewInfo = reviewedMap.get(Number(it.productId));
+                        it.isReviewed = Boolean(reviewInfo);
+                        it.reviewId = reviewInfo?.id ?? null;
+                        it.rating = reviewInfo?.rating ?? null;
+                    }
+                }
             }
             catch {
                 // fallback to empty items if query fails
@@ -1740,6 +1816,7 @@ router.get("/my/orders", protect, async (req, res, next) => {
                 });
                 const orderItems = itemsByOrderId.get(orderId) ?? [];
                 const totalItemsCount = orderItems.reduce((acc, it) => acc + (Number(it.quantity) || 1), 0);
+                const isReviewed = orderItems.length > 0 && orderItems.every((it) => it.isReviewed);
                 return {
                     id: row.id,
                     invoiceNo: row.invoice_no ?? row.invoiceNo ?? null,
@@ -1761,6 +1838,7 @@ router.get("/my/orders", protect, async (req, res, next) => {
                     contract,
                     items: orderItems,
                     itemsCount: totalItemsCount,
+                    isReviewed,
                     storeNames: Array.from(new Set(paymentGroups
                         .map((group) => group.storeName)
                         .filter((name) => typeof name === "string" && name.trim().length > 0))),
@@ -1982,6 +2060,31 @@ router.get("/orders/my/:id", protect, async (req, res, next) => {
         });
         const snapshotItems = mapSuborderSnapshotItemsForBuyerDetail(paymentGroups);
         const items = snapshotItems.length > 0 ? snapshotItems : legacyItems;
+        const detailProductIds = items
+            .map((it) => Number(it.productId))
+            .filter((pid) => Number.isFinite(pid) && pid > 0);
+        let detailReviewedMap = new Map();
+        if (detailProductIds.length > 0) {
+            const reviewRows = (await sequelize.query(`SELECT id, product_id AS productId, rating
+           FROM product_reviews
+           WHERE user_id = :userId AND product_id IN (:productIds)`, {
+                replacements: { userId, productIds: detailProductIds },
+                type: QueryTypes.SELECT,
+            }));
+            for (const r of reviewRows) {
+                detailReviewedMap.set(Number(r.productId), {
+                    id: Number(r.id),
+                    rating: Number(r.rating || 5),
+                });
+            }
+        }
+        for (const item of items) {
+            const reviewInfo = detailReviewedMap.get(Number(item.productId));
+            item.isReviewed = Boolean(reviewInfo);
+            item.reviewId = reviewInfo?.id ?? null;
+            item.rating = reviewInfo?.rating ?? null;
+        }
+        const isOrderReviewed = items.length > 0 && items.every((it) => it.isReviewed);
         const displayStatuses = paymentGroups.map((suborder) => {
             const payment = Array.isArray(suborder?.payments) ? suborder.payments[0] : null;
             return resolveBuyerFacingPaymentStatus({
@@ -2074,6 +2177,7 @@ router.get("/orders/my/:id", protect, async (req, res, next) => {
                 customerPhone: order.customerPhone ?? null,
                 customerAddress: order.customerAddress ?? null,
                 items,
+                isReviewed: isOrderReviewed,
                 storeSplits: paymentGroups.map((sub) => ({
                     id: sub.id,
                     suborderNumber: sub.suborderNumber || null,

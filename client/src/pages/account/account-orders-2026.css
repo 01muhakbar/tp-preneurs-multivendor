@@ -448,6 +448,17 @@
   background: rgba(3, 76, 133, 0.04);
 }
 
+.tp-shopee-btn--outline {
+  border: 1px solid var(--tp-orders-navy);
+  background: var(--tp-orders-card-bg);
+  color: var(--tp-orders-navy);
+}
+
+.tp-shopee-btn--outline:hover {
+  background: var(--tp-orders-navy);
+  color: #ffffff;
+}
+
 .tp-shopee-btn--accent {
   border: 1px solid var(--tp-orders-orange);
   background: var(--tp-orders-card-bg);
@@ -676,6 +687,17 @@
 .dark .tp-shopee-card__item,
 .dark .tp-shopee-card__actions {
   border-color: rgba(148, 163, 184, 0.1);
+}
+
+.dark .tp-shopee-btn--outline {
+  border-color: #38bdf8;
+  background: transparent;
+  color: #38bdf8;
+}
+
+.dark .tp-shopee-btn--outline:hover {
+  background: rgba(56, 189, 248, 0.15);
+  color: #ffffff;
 }
 
 .dark .tp-shopee-btn--secondary {

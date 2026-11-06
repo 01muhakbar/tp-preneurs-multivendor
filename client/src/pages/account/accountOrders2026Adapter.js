@@ -99,6 +99,9 @@ const normalizeItem = (item) => {
     quantity: Math.max(1, asNumber(it.quantity || it.qty, 1)),
     totalPrice: asNumber(it.totalPrice || it.price, 0),
     slug: text(it.slug || it.productSlug, ""),
+    isReviewed: Boolean(it.isReviewed),
+    reviewId: asNumber(it.reviewId, null),
+    rating: asNumber(it.rating, null),
   };
 };
 
@@ -349,6 +352,10 @@ const normalizeOrder = (value, options = {}) => {
     checkoutMode,
     items: effectiveItems,
     totalItemCount,
+    isReviewed: Boolean(
+      order.isReviewed ||
+        (effectiveItems.length > 0 && effectiveItems.every((it) => it.isReviewed))
+    ),
     status: {
       code: statusCode,
       label: statusLabel,
