@@ -28,6 +28,7 @@ import { formatCurrency } from "../../utils/format.js";
 import { buildStoreWhatsAppUrl, isIndonesianLanguage } from "./accountOrderDetail2026Adapter.js";
 import { buildAccountOrderInvoiceModel } from "./invoice/accountOrderInvoiceAdapter.js";
 import AccountOrderInvoicePrint from "./invoice/AccountOrderInvoicePrint.jsx";
+import { useCart } from "../../hooks/useCart.ts";
 import "./account-order-detail-2026.css";
 
 const DETAIL_I18N = {
@@ -70,6 +71,7 @@ const DETAIL_I18N = {
     viewLess: "View Less",
     youMayAlsoLike: "You May Also Like",
     buyAgain: "Buy Again",
+    addingToCart: "Adding...",
     review: "Review",
     viewReview: "View Review",
     payNow: "Pay Now",
@@ -119,6 +121,7 @@ const DETAIL_I18N = {
     viewLess: "Lihat Lebih Sedikit",
     youMayAlsoLike: "Kamu Mungkin Juga Suka",
     buyAgain: "Beli Lagi",
+    addingToCart: "Menambahkan...",
     review: "Nilai",
     viewReview: "Lihat Penilaian",
     payNow: "Bayar Sekarang",
@@ -258,6 +261,8 @@ export default function AccountOrderDetail2026View({
   const [isPriceBreakdownOpen, setIsPriceBreakdownOpen] = useState(false);
   const [isTimestampsOpen, setIsTimestampsOpen] = useState(false);
   const [isAddressExpanded, setIsAddressExpanded] = useState(false);
+  const [isBuyingAgain, setIsBuyingAgain] = useState(false);
+  const { add: addToCart } = useCart();
 
   const shopee = orderDetail?.shopeeDetail || null;
   const storeSlug =
@@ -715,12 +720,51 @@ export default function AccountOrderDetail2026View({
 
         {/* 8. Bottom Sticky Action Bar */}
         <div className="tp-shopee-detail__bottom-bar">
-          <LinkComponent
-            to="/shop"
-            className="tp-shopee-detail__btn-outline"
-          >
-            {t.buyAgain}
-          </LinkComponent>
+          {(() => {
+            const handleBuyAgain = async () => {
+              if (isBuyingAgain) return;
+              setIsBuyingAgain(true);
+              try {
+                const itemsToBuy = Array.isArray(storeProducts?.items) && storeProducts.items.length > 0
+                  ? storeProducts.items
+                  : Array.isArray(orderDetail?.items)
+                    ? orderDetail.items
+                    : [];
+                const validItems = itemsToBuy.filter((it) => Number(it.productId) > 0);
+                if (validItems.length > 0) {
+                  for (const it of validItems) {
+                    await addToCart(Number(it.productId), Math.max(1, Number(it.quantity || it.qty) || 1), {
+                      name: it.name,
+                      price: Number(it.unitPrice || it.price) || 0,
+                      imageUrl: it.image || null,
+                      variantLabel: it.variant || it.variantLabel || null,
+                    });
+                  }
+                  navigate("/cart");
+                } else if (itemsToBuy[0]?.slug) {
+                  navigate(`/products/${itemsToBuy[0].slug}`);
+                } else {
+                  navigate("/cart");
+                }
+              } catch (err) {
+                console.error("Failed to buy again:", err);
+                navigate("/cart");
+              } finally {
+                setIsBuyingAgain(false);
+              }
+            };
+
+            return (
+              <button
+                type="button"
+                onClick={handleBuyAgain}
+                disabled={isBuyingAgain}
+                className="tp-shopee-detail__btn-outline"
+              >
+                {isBuyingAgain ? t.addingToCart : t.buyAgain}
+              </button>
+            );
+          })()}
 
           {banner.isUnpaid && orderDetail.actionability?.payment?.path ? (
             <LinkComponent

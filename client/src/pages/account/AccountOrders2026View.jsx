@@ -15,6 +15,7 @@ import { fetchStoreProducts } from "../../api/storeProducts.ts";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
 import { formatCurrency } from "../../utils/format.js";
 import { isIndonesianLanguage } from "./accountOrders2026Adapter.js";
+import { useCart } from "../../hooks/useCart.ts";
 import "./account-orders-2026.css";
 
 const MY_ORDERS_I18N = {
@@ -32,6 +33,7 @@ const MY_ORDERS_I18N = {
     recommendationsTitle: "You May Also Like",
     totalProduct: "Total {{count}} product(s)",
     buyAgain: "Buy Again",
+    addingToCart: "Adding...",
     review: "Review",
     viewReview: "View Review",
     requestReturn: "Return",
@@ -60,6 +62,7 @@ const MY_ORDERS_I18N = {
     recommendationsTitle: "Kamu Mungkin Juga Suka",
     totalProduct: "Total {{count}} produk",
     buyAgain: "Beli Lagi",
+    addingToCart: "Menambahkan...",
     review: "Nilai",
     viewReview: "Lihat Penilaian",
     requestReturn: "Ajukan Pengembalian",
@@ -205,6 +208,10 @@ function ProductRecommendationGrid({ t }) {
 }
 
 function ShopeeOrderCard({ order, LinkComponent, t }) {
+  const navigate = useNavigate();
+  const { add: addToCart } = useCart();
+  const [isBuyingAgain, setIsBuyingAgain] = useState(false);
+
   const items = Array.isArray(order.items) && order.items.length > 0
     ? order.items
     : [
@@ -217,6 +224,34 @@ function ShopeeOrderCard({ order, LinkComponent, t }) {
           quantity: 1,
         },
       ];
+
+  const handleBuyAgain = async () => {
+    if (isBuyingAgain) return;
+    setIsBuyingAgain(true);
+    try {
+      const validItems = items.filter((it) => Number(it.productId) > 0);
+      if (validItems.length > 0) {
+        for (const it of validItems) {
+          await addToCart(Number(it.productId), Math.max(1, Number(it.quantity) || 1), {
+            name: it.name,
+            price: Number(it.price) || 0,
+            imageUrl: it.image || null,
+            variantLabel: it.variant || null,
+          });
+        }
+        navigate("/cart");
+      } else if (items[0]?.slug) {
+        navigate(`/products/${items[0].slug}`);
+      } else {
+        navigate("/cart");
+      }
+    } catch (err) {
+      console.error("Failed to re-order items:", err);
+      navigate("/cart");
+    } finally {
+      setIsBuyingAgain(false);
+    }
+  };
 
   const totalCount = order.totalItemCount || items.reduce((acc, it) => acc + (it.quantity || 1), 0);
   const storeName = order.primaryStoreName || order.storeNames?.[0] || t.store;
@@ -296,12 +331,14 @@ function ShopeeOrderCard({ order, LinkComponent, t }) {
       <footer className="tp-shopee-card__actions">
         {bucket === "completed" && (
           <>
-            <LinkComponent
-              to={items[0]?.slug ? `/products/${items[0].slug}` : "/shop"}
+            <button
+              type="button"
+              onClick={handleBuyAgain}
+              disabled={isBuyingAgain}
               className="tp-shopee-btn tp-shopee-btn--secondary"
             >
-              {t.buyAgain}
-            </LinkComponent>
+              {isBuyingAgain ? t.addingToCart : t.buyAgain}
+            </button>
             {(() => {
               const targetPid =
                 items.find((it) => !it.isReviewed && Number(it.productId) > 0)?.productId ||

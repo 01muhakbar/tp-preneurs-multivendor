@@ -814,6 +814,13 @@
   background-color: var(--tp-navy-light);
 }
 
+.tp-shopee-detail__btn-outline:disabled,
+.tp-shopee-detail__btn-orange:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .tp-shopee-detail__btn-orange {
   padding: 10px 28px;
   border-radius: 8px;
