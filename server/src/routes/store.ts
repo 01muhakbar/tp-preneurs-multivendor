@@ -2114,7 +2114,7 @@ router.get(
           {
             model: Store,
             as: "store",
-            attributes: ["id", "name", "slug"],
+            attributes: ["id", "name", "slug", "phone", "whatsapp"],
             required: false,
           },
           {
@@ -2333,6 +2333,8 @@ router.get(
             storeId: sub.store?.id || sub.storeId,
             storeName: sub.store?.name || null,
             storeSlug: sub.store?.slug || null,
+            storePhone: sub.store?.phone || null,
+            storeWhatsapp: sub.store?.whatsapp || null,
             fulfillmentStatus: sub.fulfillmentStatus,
             paymentStatus: sub.paymentStatus,
           })),

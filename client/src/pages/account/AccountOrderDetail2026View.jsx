@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ChevronDown,
@@ -21,9 +22,10 @@ import { toast } from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { fetchStoreProducts } from "../../api/storeProducts.ts";
+import { getStorePublicIdentityBySlug } from "../../api/storePublicIdentity.ts";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
 import { formatCurrency } from "../../utils/format.js";
-import { isIndonesianLanguage } from "./accountOrderDetail2026Adapter.js";
+import { buildStoreWhatsAppUrl, isIndonesianLanguage } from "./accountOrderDetail2026Adapter.js";
 import { buildAccountOrderInvoiceModel } from "./invoice/accountOrderInvoiceAdapter.js";
 import AccountOrderInvoicePrint from "./invoice/AccountOrderInvoicePrint.jsx";
 import "./account-order-detail-2026.css";
@@ -351,6 +353,27 @@ export default function AccountOrderDetail2026View({
     },
   };
 
+  const storeSlug = storeProducts.storeSlug || "kreasi-singkong";
+  const { data: storeIdentityData } = useQuery({
+    queryKey: ["public-store-identity", storeSlug],
+    queryFn: () => getStorePublicIdentityBySlug(storeSlug),
+    enabled: Boolean(storeSlug),
+    staleTime: 60_000,
+  });
+
+  const effectiveWhatsapp =
+    storeIdentityData?.data?.whatsapp ||
+    storeIdentityData?.data?.phone ||
+    storeProducts.storeWhatsapp ||
+    "0895800536593";
+
+  const sellerChatUrl =
+    buildStoreWhatsAppUrl({
+      whatsappNumber: effectiveWhatsapp,
+      orderRef: orderMeta.orderNo,
+      storeName: storeProducts.storeName,
+    }) || shopee?.helpActions?.chatUrl || "https://wa.me/62895800536593";
+
   return (
     <>
       <div className="tp-shopee-detail">
@@ -556,16 +579,19 @@ export default function AccountOrderDetail2026View({
               <ChevronRight size={16} className="tp-shopee-detail__chevron" />
             </Link>
 
-            <Link
-              to={`/contact-us?topic=seller&ref=${encodeURIComponent(orderMeta.orderNo)}`}
+            <a
+              href={sellerChatUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               className="tp-shopee-detail__help-item"
+              title={`WhatsApp ${storeProducts.storeName}`}
             >
               <div className="tp-shopee-detail__help-left">
                 <MessageCircle size={17} className="tp-shopee-detail__help-icon" />
                 <span>{t.contactSeller}</span>
               </div>
               <ChevronRight size={16} className="tp-shopee-detail__chevron" />
-            </Link>
+            </a>
 
             <Link
               to={`/contact-us?topic=order&ref=${encodeURIComponent(orderMeta.orderNo)}`}

@@ -48,6 +48,36 @@ export const slugifyStoreName = (value) =>
     .replace(/[\s_-]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
+export const formatWhatsAppDigits = (raw) => {
+  const normalized = String(raw || "").trim();
+  if (!normalized) return "";
+  let digits = normalized.replace(/\D/g, "");
+  if (digits.startsWith("0")) {
+    digits = "62" + digits.slice(1);
+  } else if (digits.startsWith("8")) {
+    digits = "62" + digits;
+  }
+  return digits;
+};
+
+export const buildStoreWhatsAppUrl = ({ whatsappNumber, orderRef = "", storeName = "" }) => {
+  const raw = String(whatsappNumber || "").trim();
+  if (!raw) return "";
+
+  if (/^https?:\/\//i.test(raw)) {
+    return raw;
+  }
+
+  const digits = formatWhatsAppDigits(raw);
+  if (!digits) return "";
+
+  const textMsg = orderRef
+    ? `Halo ${storeName || "Penjual"}, saya ingin menanyakan pesanan saya dengan nomor pesanan ${orderRef}.`
+    : `Halo ${storeName || "Penjual"}, saya ingin menanyakan pesanan saya.`;
+
+  return `https://wa.me/${digits}?text=${encodeURIComponent(textMsg)}`;
+};
+
 const formatDateTime = (value) => {
   if (!value) return "-";
   const date = new Date(value);
@@ -301,6 +331,8 @@ const normalizeStoreGroup = (value, index) => {
     storeName: storeInfo.storeName,
     storeSlug: text(group.storeSlug),
     storeLogoUrl: text(group.storeLogoUrl),
+    storePhone: text(group.storePhone || group.phone),
+    storeWhatsapp: text(group.storeWhatsapp || group.whatsapp),
     suborderNumber: text(group.suborderNumber, "Store split"),
     totalAmount,
     totalAmountDisplay: formatCurrency(totalAmount),
@@ -703,6 +735,18 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false }) 
     slugifyStoreName(primaryStoreName) ||
     "kreasi-singkong";
 
+  const primaryStoreWhatsapp =
+    text(storeBreakdown[0]?.storeWhatsapp) ||
+    text(asArray(source.storeSplits).find((s) => asObject(s).storeWhatsapp)?.storeWhatsapp) ||
+    text(asArray(grouped.groups).find((g) => asObject(g).storeWhatsapp)?.storeWhatsapp) ||
+    text(source.storeWhatsapp) ||
+    text(source.store?.whatsapp) ||
+    text(storeBreakdown[0]?.storePhone) ||
+    text(asArray(source.storeSplits).find((s) => asObject(s).storePhone)?.storePhone) ||
+    text(source.storePhone) ||
+    text(source.store?.phone) ||
+    "0895800536593";
+
   const paymentMethodDisplay = text(
     source.paymentMethodLabel ||
       grouped.paymentMethodLabel ||
@@ -759,6 +803,7 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false }) 
     storeProducts: {
       storeName: primaryStoreName,
       storeSlug: primaryStoreSlug,
+      storeWhatsapp: primaryStoreWhatsapp,
       storeBadge: "Star",
       items,
       summary: {
@@ -776,7 +821,12 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false }) 
     },
     helpActions: {
       returnUrl: `/contact-us?topic=return&ref=${encodeURIComponent(reference)}`,
-      chatUrl: `/contact-us?topic=seller&ref=${encodeURIComponent(reference)}`,
+      chatUrl:
+        buildStoreWhatsAppUrl({
+          whatsappNumber: primaryStoreWhatsapp,
+          orderRef: reference,
+          storeName: primaryStoreName,
+        }) || `/contact-us?topic=seller&ref=${encodeURIComponent(reference)}`,
       supportUrl: `/contact-us?topic=order&ref=${encodeURIComponent(reference)}`,
     },
     orderMeta: {
