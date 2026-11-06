@@ -1,4 +1,4 @@
-/* TP-Preneurs 2026 Order Tracking - Modern Shopee-Inspired Theme */
+/* TP-Preneurs 2026 Order Tracking - Modern Shopee-Inspired Theme with Full Dark Mode Support */
 :root {
   --tp-track-navy: #034c85;
   --tp-track-navy-dark: #023660;
@@ -12,6 +12,40 @@
   --tp-track-text-main: #0f172a;
   --tp-track-text-muted: #64748b;
   --tp-track-text-light: #94a3b8;
+  --tp-track-header-bg: #ffffff;
+  --tp-track-step-inactive-bg: #f1f5f9;
+  --tp-track-step-done-bg: #e0f2fe;
+  --tp-track-line-bg: #e2e8f0;
+  --tp-track-courier-btn-bg: #ffffff;
+  --tp-track-skeleton-from: #f1f5f9;
+  --tp-track-skeleton-mid: #e2e8f0;
+  --tp-track-card-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.dark,
+[data-theme="dark"],
+[data-resolved-theme="dark"],
+html.dark {
+  --tp-track-navy: #38bdf8;
+  --tp-track-navy-dark: #0284c7;
+  --tp-track-orange: #fe6f05;
+  --tp-track-orange-soft: rgba(254, 111, 5, 0.18);
+  --tp-track-teal: #2dd4bf;
+  --tp-track-teal-soft: #042f2e;
+  --tp-track-bg: #071321;
+  --tp-track-card-bg: #0d1e33;
+  --tp-track-border: #1e293b;
+  --tp-track-text-main: #f8fafc;
+  --tp-track-text-muted: #94a3b8;
+  --tp-track-text-light: #64748b;
+  --tp-track-header-bg: #0d1e33;
+  --tp-track-step-inactive-bg: #162740;
+  --tp-track-step-done-bg: #1e3a5f;
+  --tp-track-line-bg: #1e293b;
+  --tp-track-courier-btn-bg: #162740;
+  --tp-track-skeleton-from: #162740;
+  --tp-track-skeleton-mid: #1e3a5f;
+  --tp-track-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
 .tp-track-wrapper {
@@ -21,6 +55,7 @@
   color: var(--tp-track-text-main);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   box-sizing: border-box;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .tp-track-wrapper *,
@@ -38,11 +73,12 @@
   align-items: center;
   justify-content: space-between;
   height: 54px;
-  background-color: #ffffff;
+  background-color: var(--tp-track-header-bg);
   border-bottom: 1px solid var(--tp-track-border);
   padding: 0 16px;
   max-width: 720px;
   margin: 0 auto;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .tp-track-header__back {
@@ -58,7 +94,7 @@
 }
 
 .tp-track-header__back:hover {
-  background-color: #f1f5f9;
+  background-color: var(--tp-track-step-inactive-bg);
 }
 
 .tp-track-header__back svg {
@@ -91,17 +127,51 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
 }
 
 .tp-track-header__icon-btn:hover {
-  opacity: 0.8;
-  background-color: #f8fafc;
+  opacity: 0.85;
+  background-color: var(--tp-track-step-inactive-bg);
 }
 
 .tp-track-header__icon-btn svg {
   width: 22px;
   height: 22px;
+}
+
+/* Desktop Breadcrumbs */
+.tp-track-breadcrumb {
+  max-width: 720px;
+  margin: 14px auto 0;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--tp-track-text-muted);
+}
+
+.tp-track-breadcrumb a {
+  color: var(--tp-track-text-muted);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.tp-track-breadcrumb a:hover {
+  color: var(--tp-track-orange);
+}
+
+.tp-track-breadcrumb__sep {
+  width: 14px;
+  height: 14px;
+  color: var(--tp-track-text-light);
+}
+
+.tp-track-breadcrumb__current {
+  color: var(--tp-track-navy);
+  font-weight: 700;
 }
 
 /* Main Content Area */
@@ -119,7 +189,8 @@
   background-color: var(--tp-track-card-bg);
   border: 1px solid var(--tp-track-border);
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  box-shadow: var(--tp-track-card-shadow);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 /* 1. Status & Stepper Card */
@@ -154,7 +225,7 @@
   width: 38px;
   height: 38px;
   border-radius: 8px;
-  background-color: #f1f5f9;
+  background-color: var(--tp-track-step-inactive-bg);
   color: var(--tp-track-text-light);
   display: flex;
   align-items: center;
@@ -171,7 +242,7 @@
 
 .tp-track-step.is-done .tp-track-step__icon-box,
 .tp-track-step.is-current .tp-track-step__icon-box {
-  background-color: #e0f2fe;
+  background-color: var(--tp-track-step-done-bg);
   color: var(--tp-track-navy);
 }
 
@@ -205,7 +276,7 @@
   left: 50%;
   width: 100%;
   height: 2px;
-  background-color: #e2e8f0;
+  background-color: var(--tp-track-line-bg);
   z-index: 1;
 }
 
@@ -213,41 +284,7 @@
   background-color: var(--tp-track-navy);
 }
 
-/* Desktop Breadcrumbs */
-.tp-track-breadcrumb {
-  max-width: 720px;
-  margin: 12px auto 0;
-  padding: 0 16px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--tp-track-text-muted);
-}
-
-.tp-track-breadcrumb a {
-  color: var(--tp-track-text-muted);
-  text-decoration: none;
-  font-weight: 500;
-  transition: color 0.15s ease;
-}
-
-.tp-track-breadcrumb a:hover {
-  color: var(--tp-track-orange);
-}
-
-.tp-track-breadcrumb__sep {
-  width: 14px;
-  height: 14px;
-  color: var(--tp-track-text-light);
-}
-
-.tp-track-breadcrumb__current {
-  color: var(--tp-track-navy);
-  font-weight: 700;
-}
-
-/* 3. Courier & Shipment Card */
+/* 2. Courier & Shipment Card */
 .tp-track-courier-card {
   padding: 14px 16px;
   display: flex;
@@ -260,7 +297,7 @@
   height: 48px;
   border-radius: 8px;
   overflow: hidden;
-  background-color: #f1f5f9;
+  background-color: var(--tp-track-step-inactive-bg);
   border: 1px solid var(--tp-track-border);
   flex-shrink: 0;
   display: flex;
@@ -313,7 +350,7 @@
 }
 
 .tp-track-copy-btn:hover {
-  background-color: #f1f5f9;
+  background-color: var(--tp-track-step-inactive-bg);
 }
 
 .tp-track-copy-btn svg {
@@ -327,7 +364,7 @@
   justify-content: center;
   padding: 7px 14px;
   border: 1px solid var(--tp-track-border);
-  background-color: #ffffff;
+  background-color: var(--tp-track-courier-btn-bg);
   color: var(--tp-track-text-main);
   font-size: 12px;
   font-weight: 700;
@@ -338,12 +375,11 @@
 }
 
 .tp-track-order-details-btn:hover {
-  border-color: var(--tp-track-navy);
-  color: var(--tp-track-navy);
-  background-color: #f8fafc;
+  border-color: var(--tp-track-orange);
+  color: var(--tp-track-orange);
 }
 
-/* 4. Vertical Tracking Timeline */
+/* 3. Vertical Tracking Timeline */
 .tp-track-timeline-card {
   padding: 20px 16px;
 }
@@ -389,7 +425,7 @@
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background-color: #cbd5e1;
+  background-color: var(--tp-track-border);
   margin-top: 4px;
   z-index: 2;
   transition: all 0.2s ease;
@@ -397,7 +433,7 @@
 
 .tp-track-timeline__item.is-latest .tp-track-timeline__dot {
   background-color: var(--tp-track-orange);
-  box-shadow: 0 0 0 3px rgba(254, 111, 5, 0.2);
+  box-shadow: 0 0 0 3px rgba(254, 111, 5, 0.25);
 }
 
 .tp-track-timeline__line {
@@ -405,7 +441,7 @@
   top: 13px;
   bottom: -6px;
   width: 2px;
-  background-color: #e2e8f0;
+  background-color: var(--tp-track-line-bg);
   z-index: 1;
 }
 
@@ -435,7 +471,7 @@
   line-height: 1.4;
 }
 
-/* 5. Product Recommendation Grid */
+/* 4. Product Recommendation Grid */
 .tp-track-rec {
   margin-top: 14px;
 }
@@ -450,7 +486,7 @@
 
 .tp-track-rec__line {
   height: 1px;
-  background-color: #cbd5e1;
+  background-color: var(--tp-track-border);
   width: 40px;
 }
 
@@ -476,7 +512,7 @@
 }
 
 .tp-track-rec__card {
-  background-color: #ffffff;
+  background-color: var(--tp-track-card-bg);
   border: 1px solid var(--tp-track-border);
   border-radius: 8px;
   overflow: hidden;
@@ -488,14 +524,14 @@
 
 .tp-track-rec__card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
 }
 
 .tp-track-rec__thumb {
   position: relative;
   width: 100%;
   aspect-ratio: 1 / 1;
-  background-color: #f1f5f9;
+  background-color: var(--tp-track-step-inactive-bg);
   overflow: hidden;
 }
 
@@ -610,7 +646,7 @@
 }
 
 .tp-track-rec__instant {
-  background-color: #ccfbf1;
+  background-color: var(--tp-track-teal-soft);
   color: var(--tp-track-teal);
   font-weight: 800;
   padding: 1px 4px;
@@ -619,7 +655,7 @@
 
 /* Skeletons & Error State */
 .tp-track-skeleton {
-  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background: linear-gradient(90deg, var(--tp-track-skeleton-from) 25%, var(--tp-track-skeleton-mid) 50%, var(--tp-track-skeleton-from) 75%);
   background-size: 200% 100%;
   animation: tp-track-shimmer 1.5s infinite;
   border-radius: 10px;
@@ -649,7 +685,7 @@
   margin: 60px auto;
   text-align: center;
   padding: 32px 20px;
-  background-color: #ffffff;
+  background-color: var(--tp-track-card-bg);
   border-radius: 14px;
   border: 1px solid var(--tp-track-border);
 }
@@ -678,7 +714,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background-color: var(--tp-track-navy);
+  background-color: var(--tp-track-navy-dark);
   color: #ffffff;
   padding: 8px 18px;
   border-radius: 8px;
@@ -689,7 +725,7 @@
 }
 
 .tp-track-back-home:hover {
-  background-color: var(--tp-track-navy-dark);
+  background-color: var(--tp-track-orange);
 }
 
 .tp-track-back-home svg {
