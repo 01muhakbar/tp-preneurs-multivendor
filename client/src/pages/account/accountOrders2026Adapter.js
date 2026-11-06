@@ -154,11 +154,37 @@ const resolvePaymentAction = ({ id, contract, paymentEntry }) => {
   };
 };
 
+const STATUS_TRANSLATIONS = {
+  DELIVERED: { en: "Delivered", id: "Terkirim" },
+  IN_DELIVERY: { en: "On delivery", id: "Dalam Pengiriman" },
+  IN_PROGRESS: { en: "In progress", id: "Sedang Diproses" },
+  READY_TO_FULFILL: { en: "Ready to Fulfill", id: "Siap Diproses" },
+  PROCESSING: { en: "Processing", id: "Diproses" },
+  AWAITING_PAYMENT: { en: "Awaiting Payment", id: "Menunggu Pembayaran" },
+  UNDER_REVIEW: { en: "Under Review", id: "Dalam Peninjauan" },
+  CANCELLED: { en: "Cancelled", id: "Dibatalkan" },
+  CANCELED: { en: "Cancelled", id: "Dibatalkan" },
+  FAILED: { en: "Failed", id: "Gagal" },
+  EXPIRED: { en: "Expired", id: "Kedaluwarsa" },
+  PENDING: { en: "Pending", id: "Menunggu" },
+  COMPLETED: { en: "Completed", id: "Selesai" },
+};
+
+const PAYMENT_TRANSLATIONS = {
+  PAID: { en: "Paid", id: "Lunas" },
+  UNPAID: { en: "Unpaid", id: "Belum Bayar" },
+  EXPIRED: { en: "Expired", id: "Kedaluwarsa" },
+  FAILED: { en: "Failed", id: "Gagal" },
+  REFUNDED: { en: "Refunded", id: "Dikembalikan" },
+  ACTION_REQUIRED: { en: "Action Required", id: "Perlu Tindakan" },
+};
+
 const normalizeStoreNames = (order) => {
   const names = [
     order.storeName,
     order.store?.name,
     ...asArray(order.storeNames),
+    ...asArray(order.stores).map((store) => asObject(store).name),
     ...asArray(order.storeSplits).map((split) => asObject(split).storeName),
     ...asArray(order.groups).map((group) => asObject(group).storeName),
   ]
@@ -167,7 +193,8 @@ const normalizeStoreNames = (order) => {
   return [...new Set(names)];
 };
 
-const normalizeOrder = (value) => {
+const normalizeOrder = (value, options = {}) => {
+  const isIndo = Boolean(options.isIndo);
   const order = asObject(value);
   const id = asNumber(order.id, 0);
   const contract = asObject(order.contract);
@@ -177,6 +204,7 @@ const normalizeOrder = (value) => {
   const paymentEntry = asObject(order.paymentEntry);
   const checkoutMode = normalizeCheckoutMode(order.checkoutMode);
   const storeNames = normalizeStoreNames(order);
+  const primaryStoreName = storeNames.length > 0 ? storeNames[0] : "";
   const reference =
     resolvePublicOrderReference(
       order.invoiceNo,
@@ -185,19 +213,32 @@ const normalizeOrder = (value) => {
       order.orderRef
     ) || (id ? `#${id}` : "Order");
   const statusCode = text(contractSummary?.code || truthStatus.code, "UNKNOWN").toUpperCase();
-  const statusLabel = text(contractSummary?.label || truthStatus.label, "Unknown");
+  const rawStatusLabel = text(contractSummary?.label || truthStatus.label, "Unknown");
+  const statusLabel =
+    STATUS_TRANSLATIONS[statusCode]?.[isIndo ? "id" : "en"] ||
+    (isIndo && rawStatusLabel === "In progress"
+      ? "Sedang Diproses"
+      : isIndo && rawStatusLabel === "Delivered"
+        ? "Terkirim"
+        : rawStatusLabel);
   const statusTone = resolveVisualTone(
     statusCode,
     statusLabel,
     contractSummary?.tone || truthStatus.tone
   );
-  const paymentState = resolvePaymentState(order, paymentEntry, paymentMeta, contractSummary);
-  const note = text(
-    paymentEntry.summaryLabel ||
-      paymentMeta.description ||
-      contractSummary?.description ||
-      truthStatus.summary?.description
-  );
+  const rawPayment = resolvePaymentState(order, paymentEntry, paymentMeta, contractSummary);
+  const paymentCode = rawPayment.code || "UNPAID";
+  const paymentLabel =
+    PAYMENT_TRANSLATIONS[paymentCode]?.[isIndo ? "id" : "en"] ||
+    (isIndo && rawPayment.label === "Paid"
+      ? "Lunas"
+      : isIndo && rawPayment.label === "Unpaid"
+        ? "Belum Bayar"
+        : rawPayment.label);
+  const paymentState = {
+    ...rawPayment,
+    label: paymentLabel,
+  };
   const detailPath = id ? `/user/my-orders/${encodeURIComponent(String(id))}` : null;
   const paymentAction = resolvePaymentAction({ id, contract, paymentEntry });
   const createdAt = order.createdAt || order.created_at || order.orderTime || null;
@@ -217,6 +258,7 @@ const normalizeOrder = (value) => {
     date: createdAt,
     createdAt,
     storeNames,
+    primaryStoreName,
     storeMode: checkoutMode.shortLabel,
     checkoutMode,
     status: {
@@ -230,13 +272,13 @@ const normalizeOrder = (value) => {
     statusKey: statusCode,
     statusTone,
     payment: {
-      code: text(order.paymentStatus, "UNPAID").toUpperCase(),
-      label: text(paymentMeta.label, "Unpaid"),
+      code: paymentCode,
+      label: paymentLabel,
       tone: paymentState.tone,
-      description: note,
+      description: "",
     },
     paymentState,
-    note,
+    note: "",
     shipping: shippingAmount,
     shippingAmount,
     total: totalAmount,
@@ -253,7 +295,7 @@ export const normalizeAccountOrdersFor2026 = (response, options = {}) => {
     ? response
     : asArray(source.data ?? source.items ?? source.orders);
   const meta = asObject(source.meta ?? source.pagination ?? source.pageInfo);
-  const orders = rawOrders.map(normalizeOrder);
+  const orders = rawOrders.map((row) => normalizeOrder(row, options));
   const page = Math.max(1, asNumber(meta.page, asNumber(options.page, 1)));
   const pageSize = Math.max(
     1,

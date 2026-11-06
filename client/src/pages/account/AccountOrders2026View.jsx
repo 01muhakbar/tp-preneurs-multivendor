@@ -1,42 +1,110 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
   CalendarDays,
+  Check,
   ChevronDown,
+  Copy,
   CreditCard,
-  Eye,
-  Headphones,
   Package,
   RotateCcw,
   Search,
+  Store,
   Truck,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { formatCurrency } from "../../utils/format.js";
 import "./account-orders-2026.css";
 
-const FILTERS = [
-  { code: "all", label: "All Orders" },
-  { code: "pending", label: "Pending" },
-  { code: "processing", label: "Processing" },
-  { code: "completed", label: "Completed" },
-  { code: "cancelled", label: "Cancelled" },
-];
+const MY_ORDERS_I18N = {
+  en: {
+    title: "My Orders",
+    subtitle: "Track and manage all your orders in one place.",
+    filterAll: "All Orders",
+    filterPending: "Pending",
+    filterProcessing: "Processing",
+    filterCompleted: "Completed",
+    filterCancelled: "Cancelled",
+    searchPlaceholder: "Search order ID or store...",
+    allStatuses: "All statuses",
+    clearBtn: "Clear",
+    copy: "Copy",
+    copied: "Copied!",
+    payment: "Payment",
+    shipping: "Shipping",
+    status: "Status",
+    totalAmount: "Total Amount",
+    viewDetails: "View Details",
+    continuePayment: "Pay Now",
+    store: "Store",
+    unknownStatus: "Unknown",
+    unpaid: "Unpaid",
+    emptyTitle: "No matching orders found",
+    emptyTitleNoFilter: "No orders yet",
+    emptyDesc: "Try adjusting your search, status, or date filters.",
+    emptyDescNoFilter: "Your order history will appear here once you make a purchase.",
+    clearFilters: "Clear filters",
+    startShopping: "Start Shopping",
+    authError: "Please log in again to view your orders.",
+    loadError: "Failed to load orders.",
+    showing: "Showing {{start}} to {{end}} of {{total}} orders",
+    matching: ", {{count}} matching on this page",
+    supportTitle: "Need assistance? Call +62 821-8866-824",
+    supportDesc: "Customer support is ready to help you.",
+  },
+  id: {
+    title: "Pesanan Saya",
+    subtitle: "Lacak dan kelola semua pesanan Anda dalam satu tempat.",
+    filterAll: "Semua Pesanan",
+    filterPending: "Menunggu",
+    filterProcessing: "Diproses",
+    filterCompleted: "Selesai",
+    filterCancelled: "Dibatalkan",
+    searchPlaceholder: "Cari ID pesanan atau toko...",
+    allStatuses: "Semua status",
+    clearBtn: "Reset",
+    copy: "Salin",
+    copied: "Tersalin!",
+    payment: "Pembayaran",
+    shipping: "Pengiriman",
+    status: "Status",
+    totalAmount: "Total Belanja",
+    viewDetails: "Lihat Detail",
+    continuePayment: "Bayar Sekarang",
+    store: "Toko",
+    unknownStatus: "Tidak diketahui",
+    unpaid: "Belum Bayar",
+    emptyTitle: "Tidak ada pesanan yang sesuai",
+    emptyTitleNoFilter: "Belum ada pesanan",
+    emptyDesc: "Coba sesuaikan pencarian, status, atau filter tanggal.",
+    emptyDescNoFilter: "Riwayat pesanan Anda akan muncul di sini setelah berbelanja.",
+    clearFilters: "Hapus filter",
+    startShopping: "Mulai Belanja",
+    authError: "Silakan masuk kembali untuk melihat pesanan Anda.",
+    loadError: "Gagal memuat pesanan.",
+    showing: "Menampilkan {{start}} sampai {{end}} dari {{total}} pesanan",
+    matching: ", {{count}} cocok di halaman ini",
+    supportTitle: "Butuh bantuan? Hubungi +62 821-8866-824",
+    supportDesc: "Layanan bantuan pelanggan siap mendampingi Anda.",
+  },
+};
 
-const formatDateTime = (value) => {
+const formatDateTime = (value, isIndo) => {
   if (!value) return { date: "-", time: "" };
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return { date: "-", time: "" };
+  const locale = isIndo ? "id-ID" : "en-US";
   return {
-    date: new Intl.DateTimeFormat("en-US", {
+    date: new Intl.DateTimeFormat(locale, {
       month: "short",
       day: "numeric",
       year: "numeric",
     }).format(date),
-    time: new Intl.DateTimeFormat("en-US", {
-      hour: "numeric",
+    time: new Intl.DateTimeFormat(locale, {
+      hour: "2-digit",
       minute: "2-digit",
+      hour12: !isIndo,
     }).format(date),
   };
 };
@@ -105,20 +173,30 @@ function PaymentPill({ payment }) {
   );
 }
 
-function OrderCard({ order, LinkComponent, t }) {
-  const placed = formatDateTime(order.date || order.createdAt);
+function OrderCard({ order, LinkComponent, t, isIndo }) {
+  const [copied, setCopied] = useState(false);
+  const placed = formatDateTime(order.date || order.createdAt, isIndo);
   const status = order.status || {
-    label: t("orders.unknownStatus"),
+    label: t.unknownStatus,
     tone: "neutral",
     bucket: "pending",
   };
   const paymentState = order.paymentState || order.payment || {
-    label: t("orders.unpaid"),
+    label: t.unpaid,
     tone: "neutral",
   };
-  const storeSearchLabel = order.storeNames?.length
-    ? order.storeNames.join(", ")
-    : order.checkoutMode?.label || order.storeMode || t("orders.store");
+  const storeDisplay = order.primaryStoreName || (order.storeNames && order.storeNames[0]) || null;
+  const rawId = String(order.displayId || order.reference || "");
+
+  const handleCopy = (e) => {
+    e.stopPropagation();
+    const cleanId = rawId.replace(/^#/, "");
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(cleanId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   return (
     <article className={`tp-order-card tp-order-card--${status.tone || "neutral"}`}>
@@ -127,8 +205,22 @@ function OrderCard({ order, LinkComponent, t }) {
           <Package />
         </span>
         <div className="tp-order-card__main">
-          <h2>{order.displayId || order.reference}</h2>
-          <p>
+          <div className="tp-order-card__ref-row">
+            <h2 className="tp-order-card__ref" title={rawId}>
+              {rawId}
+            </h2>
+            <button
+              type="button"
+              className="tp-order-card__copy-btn"
+              onClick={handleCopy}
+              title={copied ? t.copied : t.copy}
+              aria-label={copied ? t.copied : t.copy}
+            >
+              {copied ? <Check size={13} className="tp-order-card__copy-success" /> : <Copy size={13} />}
+              <span className="tp-order-card__copy-tooltip">{copied ? t.copied : t.copy}</span>
+            </button>
+          </div>
+          <p className="tp-order-card__date">
             {placed.date}
             {placed.time ? (
               <>
@@ -137,10 +229,12 @@ function OrderCard({ order, LinkComponent, t }) {
               </>
             ) : null}
           </p>
-          <span className="tp-order-card__mode">
-            {order.storeMode || order.checkoutMode?.shortLabel || t("orders.singleStore")}
-          </span>
-          <span className="tp-order-card__store">{storeSearchLabel}</span>
+          <div className="tp-order-card__store-row">
+            <span className="tp-order-card__store-pill">
+              <Store size={12} aria-hidden="true" />
+              <span>{storeDisplay || t.store}</span>
+            </span>
+          </div>
         </div>
       </div>
 
@@ -148,40 +242,41 @@ function OrderCard({ order, LinkComponent, t }) {
         <div>
           <CreditCard aria-hidden="true" />
           <span>
-            <small>{t("orders.payment")}</small>
+            <small>{t.payment}</small>
             <strong>{order.paymentMethod}</strong>
           </span>
         </div>
         <div>
           <Truck aria-hidden="true" />
           <span>
-            <small>{t("orders.shipping")}</small>
+            <small>{t.shipping}</small>
             <strong>{formatCurrency(order.shipping ?? order.shippingAmount)}</strong>
           </span>
         </div>
       </div>
 
       <div className="tp-order-card__state">
-        <small>{t("orders.status")}</small>
-        <StatusPill status={status} />
-        <PaymentPill payment={paymentState} />
-        {order.note ? <p>{order.note}</p> : null}
+        <small>{t.status}</small>
+        <div className="tp-order-card__pills">
+          <StatusPill status={status} />
+          <PaymentPill payment={paymentState} />
+        </div>
       </div>
 
       <div className="tp-order-card__total">
-        <small>{t("orders.totalAmount")}</small>
+        <small>{t.totalAmount}</small>
         <strong>{formatCurrency(order.total ?? order.totalAmount)}</strong>
       </div>
 
       <div className="tp-order-card__actions">
         {order.href ? (
           <LinkComponent className="tp-order-card__cta" to={order.href}>
-            {t("orders.viewDetails")}
+            {t.viewDetails}
           </LinkComponent>
         ) : null}
         {order.paymentAction?.path ? (
           <LinkComponent className="tp-order-card__payment-cta" to={order.paymentAction.path}>
-            {order.paymentAction.label || t("orders.payment")}
+            {order.paymentAction.label || t.continuePayment}
           </LinkComponent>
         ) : null}
       </div>
@@ -193,33 +288,16 @@ function EmptyOrders({ hasFilters, onClearFilters, LinkComponent, t }) {
   return (
     <div className="tp-orders-2026__empty">
       <Package aria-hidden="true" />
-      <h2>{hasFilters ? t("orders.emptyTitle") : t("orders.emptyTitleNoFilter")}</h2>
-      <p>
-        {hasFilters
-          ? t("orders.emptyDesc")
-          : t("orders.emptyDescNoFilter")}
-      </p>
+      <h2>{hasFilters ? t.emptyTitle : t.emptyTitleNoFilter}</h2>
+      <p>{hasFilters ? t.emptyDesc : t.emptyDescNoFilter}</p>
       {hasFilters ? (
         <button type="button" onClick={onClearFilters}>
-          {t("orders.clearFilters")}
+          {t.clearFilters}
         </button>
       ) : (
-        <LinkComponent to="/shop">{t("orders.startShopping")}</LinkComponent>
+        <LinkComponent to="/shop">{t.startShopping}</LinkComponent>
       )}
     </div>
-  );
-}
-
-function HelpCard({ t }) {
-  return (
-    <a className="tp-orders-2026__help" href="tel:+6599887766">
-      <span aria-hidden="true">
-        <Headphones />
-      </span>
-      <strong>{t("orders.needHelp")}</strong>
-      <small>{t("orders.available247")}</small>
-      <ArrowRight aria-hidden="true" />
-    </a>
   );
 }
 
@@ -234,17 +312,58 @@ export default function AccountOrders2026View({
   isLoading,
   error,
   onPageChange,
+  isIndo: isIndoProp,
   cartSummary,
 }) {
-  const { t } = useTranslation();
-  
-  const FILTERS = useMemo(() => [
-    { code: "all", label: t("orders.filterAll") },
-    { code: "pending", label: t("orders.filterPending") },
-    { code: "processing", label: t("orders.filterProcessing") },
-    { code: "completed", label: t("orders.filterCompleted") },
-    { code: "cancelled", label: t("orders.filterCancelled") },
-  ], [t]);
+  const { i18n } = useTranslation();
+  const [langCode, setLangCode] = useState(() => {
+    if (typeof isIndoProp === "boolean") return isIndoProp ? "id" : "en";
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("store_language");
+      if (stored === "Indonesia" || stored === "id") return "id";
+    }
+    const current = i18n?.language || "";
+    return current.toLowerCase().startsWith("id") ? "id" : "en";
+  });
+
+  useEffect(() => {
+    if (typeof isIndoProp === "boolean") {
+      setLangCode(isIndoProp ? "id" : "en");
+    }
+  }, [isIndoProp]);
+
+  useEffect(() => {
+    const handleLangChange = () => {
+      let code = "en";
+      if (typeof window !== "undefined") {
+        const stored = localStorage.getItem("store_language");
+        if (stored === "Indonesia" || stored === "id") code = "id";
+        else if (i18n?.language?.toLowerCase().startsWith("id")) code = "id";
+      }
+      setLangCode(code);
+    };
+
+    i18n?.on?.("languageChanged", handleLangChange);
+    window.addEventListener("storage", handleLangChange);
+    return () => {
+      i18n?.off?.("languageChanged", handleLangChange);
+      window.removeEventListener("storage", handleLangChange);
+    };
+  }, [i18n]);
+
+  const isIndo = langCode === "id";
+  const t = isIndo ? MY_ORDERS_I18N.id : MY_ORDERS_I18N.en;
+
+  const FILTERS = useMemo(
+    () => [
+      { code: "all", label: t.filterAll },
+      { code: "pending", label: t.filterPending },
+      { code: "processing", label: t.filterProcessing },
+      { code: "completed", label: t.filterCompleted },
+      { code: "cancelled", label: t.filterCancelled },
+    ],
+    [t]
+  );
 
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchValue, setSearchValue] = useState("");
@@ -263,6 +382,7 @@ export default function AccountOrders2026View({
           const searchable = [
             order.displayId,
             order.reference,
+            order.primaryStoreName,
             order.status?.label,
             order.paymentState?.label,
             order.payment?.label,
@@ -300,8 +420,8 @@ export default function AccountOrders2026View({
   return (
     <section className="tp-orders-2026 tporders2026-root">
       <header className="tp-orders-2026__heading">
-        <h1>{t("orders.title")}</h1>
-        <p>{t("orders.subtitle")}</p>
+        <h1>{t.title}</h1>
+        <p>{t.subtitle}</p>
       </header>
 
       <div className="tp-orders-2026__tabs" aria-label="Order status filters">
@@ -325,7 +445,7 @@ export default function AccountOrders2026View({
             type="search"
             value={searchValue}
             onChange={(event) => setSearchValue(event.target.value)}
-            placeholder={t("orders.searchPlaceholder")}
+            placeholder={t.searchPlaceholder}
           />
           <Search aria-hidden="true" />
         </label>
@@ -339,7 +459,7 @@ export default function AccountOrders2026View({
             }}
             aria-label="Filter by status"
           >
-            <option value="all">{t("orders.allStatuses")}</option>
+            <option value="all">{t.allStatuses}</option>
             {FILTERS.slice(1).map((filter) => (
               <option value={filter.code} key={filter.code}>
                 {filter.label}
@@ -366,15 +486,15 @@ export default function AccountOrders2026View({
           disabled={!hasFilters}
         >
           <RotateCcw aria-hidden="true" />
-          {t("orders.clearBtn")}
+          {t.clearBtn}
         </button>
       </div>
 
       {error ? (
         <div className="tp-orders-2026__alert" role="alert">
           {error?.response?.status === 401
-            ? t("orders.authError")
-            : error?.response?.data?.message || error?.message || t("orders.loadError")}
+            ? t.authError
+            : error?.response?.data?.message || error?.message || t.loadError}
         </div>
       ) : isLoading ? (
         <LoadingCards />
@@ -393,6 +513,7 @@ export default function AccountOrders2026View({
               LinkComponent={LinkComponent}
               key={order.id || order.displayId || order.reference}
               t={t}
+              isIndo={isIndo}
             />
           ))}
         </div>
@@ -401,13 +522,12 @@ export default function AccountOrders2026View({
       {!error && !isLoading && totalOrders > 0 && filteredOrders.length > 0 ? (
         <footer className="tp-orders-2026__pagination">
           <p>
-            {t("orders.showing", {
-              start: hasFilters ? 1 : firstVisible,
-              end: hasFilters ? filteredOrders.length : lastVisible,
-              total: hasFilters ? filteredOrders.length : totalOrders,
-            })}
+            {t.showing
+              .replace("{{start}}", String(hasFilters ? 1 : firstVisible))
+              .replace("{{end}}", String(hasFilters ? filteredOrders.length : lastVisible))
+              .replace("{{total}}", String(hasFilters ? filteredOrders.length : totalOrders))}
             {hasFilters && totalOrders !== filteredOrders.length
-              ? ` (${t("orders.matching", { count: filteredOrders.length })})`
+              ? t.matching.replace("{{count}}", String(filteredOrders.length))
               : ""}
           </p>
           <nav aria-label="Order pagination">
@@ -442,7 +562,6 @@ export default function AccountOrders2026View({
         </footer>
       ) : null}
 
-      <HelpCard t={t} />
       {cartSummary ? <aside className="tp-orders-2026__cart">{cartSummary}</aside> : null}
     </section>
   );

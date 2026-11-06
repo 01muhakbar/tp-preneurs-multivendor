@@ -1823,14 +1823,20 @@ router.get(
             suborderPaymentStatus,
             expiresAt: (row as any)?.paymentExpiresAt ?? null,
           });
+          const rawShipmentStatus = (row as any)?.shipmentStatus;
+          const rawFulfillmentStatus = (row as any)?.fulfillmentStatus
+            ? String((row as any)?.fulfillmentStatus).trim().toUpperCase()
+            : null;
+          const effectiveShipmentStatus = rawShipmentStatus || rawFulfillmentStatus;
+
           const operationalTruth = buildSplitOperationalTruth({
             paymentStatus: suborderPaymentStatus,
             paymentReadModel,
-            shipmentReadModel: (row as any)?.shipmentStatus
+            shipmentReadModel: effectiveShipmentStatus
               ? {
-                  shippingStatus: (row as any)?.shipmentStatus,
-                  hasPersistedShipment: true,
-                  usedLegacyFallback: false,
+                  shippingStatus: effectiveShipmentStatus,
+                  hasPersistedShipment: Boolean(rawShipmentStatus),
+                  usedLegacyFallback: !rawShipmentStatus,
                 }
               : null,
           });
@@ -1928,6 +1934,20 @@ router.get(
             paymentCode,
             paymentEntry,
             contract,
+            storeNames: Array.from(
+              new Set(
+                paymentGroups
+                  .map((group: any) => group.storeName)
+                  .filter((name: any) => typeof name === "string" && name.trim().length > 0)
+              )
+            ),
+            stores: paymentGroups
+              .map((group: any) => ({
+                id: group.storeId,
+                name: group.storeName,
+                fulfillmentStatus: group.fulfillmentStatus,
+              }))
+              .filter((group: any) => Boolean(group.name)),
           };
         }),
         meta: {

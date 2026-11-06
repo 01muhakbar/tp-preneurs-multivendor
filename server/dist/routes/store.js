@@ -1569,14 +1569,19 @@ router.get("/my/orders", protect, async (req, res, next) => {
                     suborderPaymentStatus,
                     expiresAt: row?.paymentExpiresAt ?? null,
                 });
+                const rawShipmentStatus = row?.shipmentStatus;
+                const rawFulfillmentStatus = row?.fulfillmentStatus
+                    ? String(row?.fulfillmentStatus).trim().toUpperCase()
+                    : null;
+                const effectiveShipmentStatus = rawShipmentStatus || rawFulfillmentStatus;
                 const operationalTruth = buildSplitOperationalTruth({
                     paymentStatus: suborderPaymentStatus,
                     paymentReadModel,
-                    shipmentReadModel: row?.shipmentStatus
+                    shipmentReadModel: effectiveShipmentStatus
                         ? {
-                            shippingStatus: row?.shipmentStatus,
-                            hasPersistedShipment: true,
-                            usedLegacyFallback: false,
+                            shippingStatus: effectiveShipmentStatus,
+                            hasPersistedShipment: Boolean(rawShipmentStatus),
+                            usedLegacyFallback: !rawShipmentStatus,
                         }
                         : null,
                 });
@@ -1661,6 +1666,16 @@ router.get("/my/orders", protect, async (req, res, next) => {
                     paymentCode,
                     paymentEntry,
                     contract,
+                    storeNames: Array.from(new Set(paymentGroups
+                        .map((group) => group.storeName)
+                        .filter((name) => typeof name === "string" && name.trim().length > 0))),
+                    stores: paymentGroups
+                        .map((group) => ({
+                        id: group.storeId,
+                        name: group.storeName,
+                        fulfillmentStatus: group.fulfillmentStatus,
+                    }))
+                        .filter((group) => Boolean(group.name)),
                 };
             }),
             meta: {

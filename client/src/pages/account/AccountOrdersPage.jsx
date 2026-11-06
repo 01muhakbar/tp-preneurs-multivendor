@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 import { fetchStoreMyOrders } from "../../api/storeOrders.ts";
 import { isOrderContractFinal } from "../../utils/orderContract.ts";
@@ -13,6 +15,36 @@ const shouldPollAccountOrders = (orders) =>
   });
 
 export default function AccountOrdersPage() {
+  const { i18n } = useTranslation();
+  const [langCode, setLangCode] = useState(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("store_language");
+      if (stored === "Indonesia" || stored === "id") return "id";
+    }
+    const current = i18n.language || "";
+    return current.toLowerCase().startsWith("id") ? "id" : "en";
+  });
+
+  useEffect(() => {
+    const handleLangChange = () => {
+      let code = "en";
+      if (typeof window !== "undefined") {
+        const stored = localStorage.getItem("store_language");
+        if (stored === "Indonesia" || stored === "id") code = "id";
+        else if (i18n.language?.toLowerCase().startsWith("id")) code = "id";
+      }
+      setLangCode(code);
+    };
+
+    i18n.on("languageChanged", handleLangChange);
+    window.addEventListener("storage", handleLangChange);
+    return () => {
+      i18n.off("languageChanged", handleLangChange);
+      window.removeEventListener("storage", handleLangChange);
+    };
+  }, [i18n]);
+
+  const isIndo = langCode === "id";
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedPage = Number(searchParams.get("page") || 1);
   const page = Number.isFinite(requestedPage) ? Math.max(1, requestedPage) : 1;
@@ -31,7 +63,7 @@ export default function AccountOrdersPage() {
       return shouldPollAccountOrders(rows) ? 15000 : false;
     },
   });
-  const normalized = normalizeAccountOrdersFor2026(ordersQuery.data, { page });
+  const normalized = normalizeAccountOrdersFor2026(ordersQuery.data, { page, isIndo });
 
   const handlePageChange = (nextPage) => {
     const targetPage = Math.min(
@@ -56,6 +88,7 @@ export default function AccountOrdersPage() {
       isLoading={ordersQuery.isLoading}
       error={ordersQuery.isError ? ordersQuery.error : null}
       onPageChange={handlePageChange}
+      isIndo={isIndo}
       cartSummary={null}
     />
   );
