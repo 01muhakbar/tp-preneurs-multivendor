@@ -186,11 +186,15 @@ export default function StoreCartPage() {
             const storeId = prod.storeId ?? rawStore?.id ?? rawStore?.storeId ?? null;
             const storeName = prod.store?.name ?? rawStore?.name ?? prod.storeName ?? null;
             const storeSlug = prod.storeSlug ?? prod.store?.slug ?? rawStore?.slug ?? null;
+            const slug = prod.slug ?? prod.routeSlug ?? null;
+            const productHref = prod.productHref ?? null;
             return {
               productId: id,
               storeId,
               storeName,
               storeSlug,
+              slug,
+              productHref,
             };
           })
           .catch(() => null)
@@ -199,7 +203,7 @@ export default function StoreCartPage() {
       if (isCancelled) return;
       const updates = {};
       results.forEach((entry) => {
-        if (entry && (entry.storeName || entry.storeSlug)) {
+        if (entry && (entry.storeName || entry.storeSlug || entry.slug)) {
           updates[entry.productId] = entry;
         }
       });
@@ -226,32 +230,49 @@ export default function StoreCartPage() {
             ? it.storeName
             : extra.storeName || it.storeName,
         storeSlug: it.storeSlug || extra.storeSlug,
+        slug: it.slug || extra.slug,
+        productHref: it.productHref || extra.productHref,
       };
     });
   }, [items, hydratedStores]);
 
-  // Sync selected items with available items
+  // Sync selected items with available items without overriding user unchecking
+  const knownCartLineIdsRef = useRef(null);
+
   useEffect(() => {
-    if (!items || items.length === 0) {
+    const currentLineIds = items.map((it) => it.lineId).filter(Boolean);
+    if (currentLineIds.length === 0) {
+      knownCartLineIdsRef.current = [];
       setSelectedLineIds(new Set());
       return;
     }
+
+    // First time initializing: select all items by default
+    if (knownCartLineIdsRef.current === null) {
+      knownCartLineIdsRef.current = currentLineIds;
+      setSelectedLineIds(new Set(currentLineIds));
+      return;
+    }
+
+    const previousLineIds = knownCartLineIdsRef.current;
+    knownCartLineIdsRef.current = currentLineIds;
+
+    // Detect brand new items added to cart (which should be checked by default)
+    const newlyAdded = currentLineIds.filter((id) => !previousLineIds.includes(id));
+
     setSelectedLineIds((prev) => {
       const next = new Set();
-      let hasOverlap = false;
-      items.forEach((it) => {
-        if (prev.has(it.lineId)) {
-          next.add(it.lineId);
-          hasOverlap = true;
+      // Keep user's existing selections that are still in the cart
+      prev.forEach((id) => {
+        if (currentLineIds.includes(id)) {
+          next.add(id);
         }
       });
-      // If nothing selected or first load, select all
-      if (!hasOverlap) {
-        items.forEach((it) => next.add(it.lineId));
-      }
+      // Add newly added items
+      newlyAdded.forEach((id) => next.add(id));
       return next;
     });
-  }, [items]);
+  }, [items.map((it) => it.lineId).join(",")]);
 
   const hasItems = items.length > 0;
   const isInitialSyncing = hasHydrated && isLoading && !hasItems;

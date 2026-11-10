@@ -198,17 +198,21 @@ export default function StoreCart2026View({
               <section className="sc26-shopee-store-card" key={group.key}>
                 {/* Store Header */}
                 <div className="sc26-shopee-store-header">
-                  <label className="sc26-shopee-checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={isStoreSelected}
-                      onChange={() => onToggleStore(storeLineIds)}
-                      className="sc26-shopee-checkbox"
-                    />
-                    <span className="sc26-shopee-checkbox-custom">
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={isStoreSelected}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleStore(storeLineIds);
+                    }}
+                    className="sc26-shopee-checkbox-btn"
+                    title={isStoreSelected ? (isIndo ? "Batalkan pilihan toko" : "Unselect store") : (isIndo ? "Pilih toko" : "Select store")}
+                  >
+                    <span className={`sc26-shopee-checkbox-custom ${isStoreSelected ? "is-checked" : ""}`}>
                       {isStoreSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                     </span>
-                  </label>
+                  </button>
 
                   <div className="sc26-shopee-store-meta">
                     <span className="sc26-shopee-pill-store">Star</span>
@@ -235,6 +239,13 @@ export default function StoreCart2026View({
                     const isSelected = selectedLineIds.has(item.lineId);
                     const invalidItem = getInvalidItem(item);
                     const variantLines = formatVariant(item);
+                    const itemHref =
+                      item.productHref ||
+                      (item.storeSlug && (item.slug || item.productId)
+                        ? `/store/${encodeURIComponent(item.storeSlug)}/products/${encodeURIComponent(item.slug || item.productId)}`
+                        : item.slug || item.productId
+                          ? `/product/${encodeURIComponent(item.slug || item.productId)}`
+                          : "/shop");
 
                     return (
                       <div
@@ -243,40 +254,48 @@ export default function StoreCart2026View({
                         data-cart-page-invalid-item={invalidItem ? "true" : undefined}
                       >
                         {/* Item Checkbox */}
-                        <label className="sc26-shopee-checkbox-label">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => onToggleSelect(item.lineId)}
-                            className="sc26-shopee-checkbox"
-                          />
-                          <span className="sc26-shopee-checkbox-custom">
+                        <button
+                          type="button"
+                          role="checkbox"
+                          aria-checked={isSelected}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleSelect(item.lineId);
+                          }}
+                          className="sc26-shopee-checkbox-btn"
+                          title={isSelected ? (isIndo ? "Batalkan pilihan produk" : "Unselect item") : (isIndo ? "Pilih produk" : "Select item")}
+                        >
+                          <span className={`sc26-shopee-checkbox-custom ${isSelected ? "is-checked" : ""}`}>
                             {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                           </span>
-                        </label>
+                        </button>
 
-                        {/* Product Thumbnail with Low Stock Tag */}
-                        <div className="sc26-shopee-item-thumb-wrap">
+                        {/* Product Thumbnail with Low Stock Tag - Clickable to Product */}
+                        <Link
+                          to={itemHref}
+                          className="sc26-shopee-item-thumb-wrap block cursor-pointer group/thumb hover:ring-2 hover:ring-[#fe6f05] transition"
+                          title={item.name}
+                        >
                           <img
                             src={item.image}
                             onError={(e) => {
                               e.currentTarget.src = FALLBACK_PRODUCT_IMAGE;
                             }}
                             alt={item.name}
-                            className="sc26-shopee-item-thumb"
+                            className="sc26-shopee-item-thumb transition duration-200 group-hover/thumb:scale-105"
                           />
                           {item.stock !== null && item.stock !== undefined && item.stock <= 10 && item.stock > 0 && (
                             <span className="sc26-shopee-item-stock-tag">
                               {isIndo ? `Tersisa ${item.stock}` : `Only ${item.stock} left`}
                             </span>
                           )}
-                        </div>
+                        </Link>
 
                         {/* Product Info & Stepper */}
                         <div className="sc26-shopee-item-details">
                           <Link
-                            to={`/product/${item.productId}`}
-                            className="sc26-shopee-item-title"
+                            to={itemHref}
+                            className="sc26-shopee-item-title hover:text-[#fe6f05] transition"
                           >
                             {item.name}
                           </Link>
@@ -419,20 +438,21 @@ export default function StoreCart2026View({
 
           {/* Action Row */}
           <div className="sc26-shopee-sticky-action-row">
-            <label className="sc26-shopee-select-all">
-              <input
-                type="checkbox"
-                checked={allSelected}
-                onChange={onToggleAll}
-                className="sc26-shopee-checkbox"
-              />
-              <span className="sc26-shopee-checkbox-custom">
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={allSelected}
+              onClick={onToggleAll}
+              className="sc26-shopee-select-all bg-transparent border-none p-0 cursor-pointer text-left"
+              title={allSelected ? (isIndo ? "Batalkan pilihan semua" : "Unselect all") : (isIndo ? "Pilih semua" : "Select all")}
+            >
+              <span className={`sc26-shopee-checkbox-custom ${allSelected ? "is-checked" : ""}`}>
                 {allSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
               </span>
               <span className="sc26-shopee-select-all-text">
                 {isIndo ? "Semua" : "All"}
               </span>
-            </label>
+            </button>
 
             {!isEditMode ? (
               <>

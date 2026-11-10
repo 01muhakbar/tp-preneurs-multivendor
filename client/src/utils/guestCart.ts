@@ -8,6 +8,8 @@ export type GuestCartItem = {
   storeId?: number | null;
   storeName?: string | null;
   storeSlug?: string | null;
+  slug?: string | null;
+  productHref?: string | null;
   variantKey?: string | null;
   variantLabel?: string | null;
   variantSelections?: Array<{
@@ -75,6 +77,22 @@ const normalizeGuestItem = (item: any): GuestCartItem | null => {
       : typeof item?.store?.slug === "string" && item.store.slug.trim()
         ? item.store.slug.trim()
         : null;
+  const slug =
+    typeof item?.slug === "string" && item.slug.trim()
+      ? item.slug.trim()
+      : typeof item?.productSlug === "string" && item.productSlug.trim()
+        ? item.productSlug.trim()
+        : typeof item?.routeSlug === "string" && item.routeSlug.trim()
+          ? item.routeSlug.trim()
+          : null;
+  const productHref =
+    typeof item?.productHref === "string" && item.productHref.trim()
+      ? item.productHref.trim()
+      : storeSlug && (slug || productId)
+        ? `/store/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(slug || String(productId))}`
+        : slug || productId
+          ? `/product/${encodeURIComponent(slug || String(productId))}`
+          : null;
 
   return {
     productId,
@@ -83,6 +101,8 @@ const normalizeGuestItem = (item: any): GuestCartItem | null => {
     storeId,
     storeName,
     storeSlug,
+    slug,
+    productHref,
     name:
       typeof item?.name === "string"
         ? item.name

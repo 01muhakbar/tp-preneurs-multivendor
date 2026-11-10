@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
@@ -112,7 +112,7 @@ export function StoreCartDrawer2026({
   useEffect(() => {
     if (!rawItems || rawItems.length === 0) return;
     const missing = rawItems.filter(
-      (it) => (!it.storeSlug || it.storeName === "Marketplace Store") && it.productId
+      (it) => (!it.storeSlug || it.storeName === "Marketplace Store" || !it.slug) && it.productId
     );
     if (missing.length === 0) return;
 
@@ -128,6 +128,8 @@ export function StoreCartDrawer2026({
             storeId: store.id || null,
             storeName: store.name || null,
             storeSlug: store.slug || null,
+            slug: prod?.slug || prod?.routeSlug || null,
+            productHref: prod?.productHref || null,
           };
         } catch {
           return null;
@@ -137,7 +139,7 @@ export function StoreCartDrawer2026({
       if (isCancelled) return;
       const updates = {};
       results.forEach((entry) => {
-        if (entry && (entry.storeName || entry.storeSlug)) {
+        if (entry && (entry.storeName || entry.storeSlug || entry.slug)) {
           updates[entry.productId] = entry;
         }
       });
@@ -151,7 +153,7 @@ export function StoreCartDrawer2026({
     };
   }, [rawItems]);
 
-  // Enrich items with hydrated store data
+  // Enrich items with hydrated store and product slug data
   const enrichedItems = useMemo(() => {
     return rawItems.map((it) => {
       const extra = hydratedStores[it.productId];
@@ -164,6 +166,8 @@ export function StoreCartDrawer2026({
             ? it.storeName
             : extra.storeName || it.storeName,
         storeSlug: it.storeSlug || extra.storeSlug,
+        slug: it.slug || extra.slug,
+        productHref: it.productHref || extra.productHref,
       };
     });
   }, [rawItems, hydratedStores]);
@@ -176,28 +180,43 @@ export function StoreCartDrawer2026({
     });
   }, [cart, enrichedItems]);
 
-  // Initialize/sync selected line items
+  // Initialize/sync selected line items without overriding user unchecking
+  const knownLineIdsRef = useRef(null);
+
   useEffect(() => {
-    if (!viewModel.items || viewModel.items.length === 0) {
+    const currentLineIds = enrichedItems.map((it) => it.lineId).filter(Boolean);
+    if (currentLineIds.length === 0) {
+      knownLineIdsRef.current = [];
       setSelectedLineIds(new Set());
       return;
     }
+
+    // First time initializing: select all items by default
+    if (knownLineIdsRef.current === null) {
+      knownLineIdsRef.current = currentLineIds;
+      setSelectedLineIds(new Set(currentLineIds));
+      return;
+    }
+
+    const previousLineIds = knownLineIdsRef.current;
+    knownLineIdsRef.current = currentLineIds;
+
+    // Detect brand new items added to cart (which should be checked by default)
+    const newlyAdded = currentLineIds.filter((id) => !previousLineIds.includes(id));
+
     setSelectedLineIds((prev) => {
       const next = new Set();
-      let hasOverlap = false;
-      viewModel.items.forEach((it) => {
-        if (prev.has(it.lineId)) {
-          next.add(it.lineId);
-          hasOverlap = true;
+      // Keep user's existing selections that are still in the cart
+      prev.forEach((id) => {
+        if (currentLineIds.includes(id)) {
+          next.add(id);
         }
       });
-      // Default: select all if nothing selected
-      if (!hasOverlap) {
-        viewModel.items.forEach((it) => next.add(it.lineId));
-      }
+      // Add newly added items
+      newlyAdded.forEach((id) => next.add(id));
       return next;
     });
-  }, [viewModel.items]);
+  }, [enrichedItems.map((it) => it.lineId).join(",")]);
 
   const allSelected =
     viewModel.items.length > 0 && selectedLineIds.size === viewModel.items.length;
@@ -232,6 +251,40 @@ export function StoreCartDrawer2026({
       return new Set(viewModel.items.map((it) => it.lineId));
     });
   }, [viewModel.items]);
+
+  // Reliable navigation handlers that close drawer and transition smoothly
+  const handleNavigateStore = useCallback(
+    (group) => {
+      const storeSlug = group.storeSlug || group.storeId;
+      const target = storeSlug ? `/store/${encodeURIComponent(storeSlug)}` : "/shop";
+      closeDrawer();
+      if (typeof window !== "undefined" && window.location.pathname === target) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        navigate(target);
+      }
+    },
+    [closeDrawer, navigate]
+  );
+
+  const handleNavigateProduct = useCallback(
+    (item) => {
+      const target =
+        item.productHref ||
+        (item.storeSlug && (item.slug || item.productId)
+          ? `/store/${encodeURIComponent(item.storeSlug)}/products/${encodeURIComponent(item.slug || item.productId)}`
+          : item.slug || item.productId
+            ? `/product/${encodeURIComponent(item.slug || item.productId)}`
+            : "/shop");
+      closeDrawer();
+      if (typeof window !== "undefined" && window.location.pathname === target) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        navigate(target);
+      }
+    },
+    [closeDrawer, navigate]
+  );
 
   // Selected items & pricing calculations
   const selectedItems = useMemo(() => {
@@ -410,17 +463,21 @@ export function StoreCartDrawer2026({
                   <section className="sc26-shopee-store-card" key={group.key}>
                     {/* Store Header */}
                     <div className="sc26-shopee-store-header">
-                      <label className="sc26-shopee-checkbox-label">
-                        <input
-                          type="checkbox"
-                          checked={isStoreSelected}
-                          onChange={() => handleToggleStore(storeLineIds)}
-                          className="sc26-shopee-checkbox"
-                        />
-                        <span className="sc26-shopee-checkbox-custom">
+                      <button
+                        type="button"
+                        role="checkbox"
+                        aria-checked={isStoreSelected}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleStore(storeLineIds);
+                        }}
+                        className="sc26-shopee-checkbox-btn"
+                        title={isStoreSelected ? (isIndo ? "Batalkan pilihan toko" : "Unselect store") : (isIndo ? "Pilih toko" : "Select store")}
+                      >
+                        <span className={`sc26-shopee-checkbox-custom ${isStoreSelected ? "is-checked" : ""}`}>
                           {isStoreSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                         </span>
-                      </label>
+                      </button>
 
                       <div className="sc26-shopee-store-meta">
                         <span className="sc26-shopee-pill-store">Star</span>
@@ -432,7 +489,10 @@ export function StoreCartDrawer2026({
                                 ? `/store/${encodeURIComponent(group.storeId)}`
                                 : "/shop"
                           }
-                          onClick={closeDrawer}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleNavigateStore(group);
+                          }}
                           className="sc26-shopee-store-name"
                           title={isIndo ? `Kunjungi Toko ${group.storeName}` : `Visit ${group.storeName}`}
                         >
@@ -447,31 +507,50 @@ export function StoreCartDrawer2026({
                       {group.items.map((item) => {
                         const isSelected = selectedLineIds.has(item.lineId);
                         const variantLines = formatVariant(item);
+                        const itemHref =
+                          item.productHref ||
+                          (item.storeSlug && (item.slug || item.productId)
+                            ? `/store/${encodeURIComponent(item.storeSlug)}/products/${encodeURIComponent(item.slug || item.productId)}`
+                            : item.slug || item.productId
+                              ? `/product/${encodeURIComponent(item.slug || item.productId)}`
+                              : "/shop");
 
                         return (
                           <div key={item.lineId} className="sc26-shopee-item-row">
                             {/* Checkbox */}
-                            <label className="sc26-shopee-checkbox-label">
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={() => handleToggleSelect(item.lineId)}
-                                className="sc26-shopee-checkbox"
-                              />
-                              <span className="sc26-shopee-checkbox-custom">
+                            <button
+                              type="button"
+                              role="checkbox"
+                              aria-checked={isSelected}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleSelect(item.lineId);
+                              }}
+                              className="sc26-shopee-checkbox-btn"
+                              title={isSelected ? (isIndo ? "Batalkan pilihan produk" : "Unselect item") : (isIndo ? "Pilih produk" : "Select item")}
+                            >
+                              <span className={`sc26-shopee-checkbox-custom ${isSelected ? "is-checked" : ""}`}>
                                 {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                               </span>
-                            </label>
+                            </button>
 
-                            {/* 1:1 Thumbnail with Stock Badge */}
-                            <div className="sc26-shopee-item-thumb-wrap">
+                            {/* 1:1 Thumbnail with Stock Badge - Clickable to Product */}
+                            <Link
+                              to={itemHref}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleNavigateProduct(item);
+                              }}
+                              className="sc26-shopee-item-thumb-wrap block cursor-pointer group/thumb hover:ring-2 hover:ring-[#fe6f05] transition"
+                              title={item.name}
+                            >
                               <img
                                 src={item.image}
                                 onError={(e) => {
                                   e.currentTarget.src = FALLBACK_PRODUCT_IMAGE;
                                 }}
                                 alt={item.name}
-                                className="sc26-shopee-item-thumb"
+                                className="sc26-shopee-item-thumb transition duration-200 group-hover/thumb:scale-105"
                               />
                               {item.stock !== null &&
                                 item.stock !== undefined &&
@@ -481,14 +560,17 @@ export function StoreCartDrawer2026({
                                     {isIndo ? `Tersisa ${item.stock}` : `Only ${item.stock} left`}
                                   </span>
                                 )}
-                            </div>
+                            </Link>
 
                             {/* Product Info & Controls */}
                             <div className="sc26-shopee-item-details">
                               <Link
-                                to={`/product/${item.productId}`}
-                                onClick={closeDrawer}
-                                className="sc26-shopee-item-title"
+                                to={itemHref}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleNavigateProduct(item);
+                                }}
+                                className="sc26-shopee-item-title hover:text-[#fe6f05] transition"
                               >
                                 {item.name}
                               </Link>
@@ -603,20 +685,21 @@ export function StoreCartDrawer2026({
         {!viewModel.isEmpty && (
           <div className="sc26-shopee-drawer-bottom-bar shrink-0">
             <div className="sc26-shopee-sticky-action-row">
-              <label className="sc26-shopee-select-all">
-                <input
-                  type="checkbox"
-                  checked={allSelected}
-                  onChange={handleToggleAll}
-                  className="sc26-shopee-checkbox"
-                />
-                <span className="sc26-shopee-checkbox-custom">
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={allSelected}
+                onClick={handleToggleAll}
+                className="sc26-shopee-select-all bg-transparent border-none p-0 cursor-pointer text-left"
+                title={allSelected ? (isIndo ? "Batalkan pilihan semua" : "Unselect all") : (isIndo ? "Pilih semua" : "Select all")}
+              >
+                <span className={`sc26-shopee-checkbox-custom ${allSelected ? "is-checked" : ""}`}>
                   {allSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                 </span>
                 <span className="sc26-shopee-select-all-text">
                   {isIndo ? "Semua" : "All"}
                 </span>
-              </label>
+              </button>
 
               {!isEditMode ? (
                 <>

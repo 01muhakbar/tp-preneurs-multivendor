@@ -36,6 +36,23 @@ function normalizeItem(item, index) {
       : null) ||
     "Marketplace Store";
 
+  const slug = first(
+    item?.slug,
+    item?.productSlug,
+    item?.routeSlug,
+    product?.slug,
+    product?.routeSlug,
+    null
+  );
+  const rawProductHref = first(item?.productHref, product?.productHref, null);
+  const productHref =
+    rawProductHref ||
+    (storeSlug && (slug || productId)
+      ? `/store/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(slug || productId)}`
+      : slug || productId
+        ? `/product/${encodeURIComponent(slug || productId)}`
+        : "/shop");
+
   return {
     raw: item,
     cartItemId: first(item?.cartItemId, item?.CartItem?.id, null),
@@ -44,6 +61,8 @@ function normalizeItem(item, index) {
     storeId,
     storeName,
     storeSlug,
+    slug,
+    productHref,
     storeCategory: first(item?.storeCategory, store?.categoryName, item?.category?.name, product?.category?.name, "Products"),
     storeVerified: first(item?.storeVerified, store?.verified, store?.isVerified, false) === true,
     name: first(item?.name, item?.productName, product?.name, "Product"),

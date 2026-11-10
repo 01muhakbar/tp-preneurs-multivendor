@@ -87,6 +87,8 @@ type NormalizedCartProduct = {
   storeId?: number | null;
   storeName?: string | null;
   storeSlug?: string | null;
+  slug?: string | null;
+  productHref?: string | null;
   name: string;
   price: number;
   image: string | null;
@@ -197,6 +199,14 @@ export const normalizeCartProducts = (cart: any): NormalizedCartProduct[] => {
         String(product?.storeName ?? rawStore?.name ?? "").trim() || null;
       const storeSlug =
         String(product?.storeSlug ?? rawStore?.slug ?? "").trim() || null;
+      const slug =
+        String(product?.slug || product?.productSlug || product?.routeSlug || "").trim() || null;
+      const productHref =
+        storeSlug && (slug || productId)
+          ? `/store/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(slug || String(productId))}`
+          : slug || productId
+            ? `/product/${encodeURIComponent(slug || String(productId))}`
+            : null;
 
       return {
         lineId: buildLineId(productId, variantKey),
@@ -205,6 +215,8 @@ export const normalizeCartProducts = (cart: any): NormalizedCartProduct[] => {
         storeId,
         storeName,
         storeSlug,
+        slug,
+        productHref,
         name: rawName || `Product #${productId}`,
         price: Number(
           cartItem?.unitSalePriceSnapshot ??
@@ -239,6 +251,8 @@ const toStoreItems = (items: NormalizedCartProduct[]) =>
     storeId: item.storeId ?? null,
     storeName: item.storeName ?? null,
     storeSlug: item.storeSlug ?? null,
+    slug: item.slug ?? null,
+    productHref: item.productHref ?? null,
     name: item.name,
     price: item.price,
     imageUrl: item.image,

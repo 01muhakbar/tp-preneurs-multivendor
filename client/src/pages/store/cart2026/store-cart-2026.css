@@ -241,12 +241,17 @@
 }
 
 /* Checkbox Customization */
-.sc26-shopee-checkbox-label {
+.sc26-shopee-checkbox-label,
+.sc26-shopee-checkbox-btn {
   display: flex;
   align-items: center;
+  justify-content: center;
   cursor: pointer;
   padding: 2px;
   flex-shrink: 0;
+  background: transparent;
+  border: none;
+  outline: none;
 }
 
 .sc26-shopee-checkbox {
@@ -269,6 +274,7 @@
   transition: all 0.15s ease;
 }
 
+.sc26-shopee-checkbox-custom.is-checked,
 .sc26-shopee-checkbox:checked + .sc26-shopee-checkbox-custom {
   background: var(--sc-orange);
   border-color: var(--sc-orange);
