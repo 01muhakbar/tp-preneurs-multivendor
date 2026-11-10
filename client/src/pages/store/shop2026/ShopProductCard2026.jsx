@@ -1,38 +1,28 @@
-import { Eye, Heart, Image, Loader2, ShoppingCart, Star, Zap } from "lucide-react";
+import {
+  Heart,
+  MapPin,
+  Plus,
+  ShoppingCart,
+  Star,
+  Truck,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { formatCurrency } from "../../../utils/format.js";
-
 import { resolveAssetUrl } from "../../../lib/assetUrl.js";
-
-function Rating({ card }) {
-  return (
-    <div className="tp-product-card__rating" aria-label={`${card.rating.toFixed(1)} out of 5 stars`}>
-      <span className="tp-shop-stars" aria-hidden="true">
-        {Array.from({ length: 5 }, (_, index) => (
-          <Star key={index} className={index < Math.round(card.rating) ? "is-filled" : ""} />
-        ))}
-      </span>
-      <strong>{card.rating.toFixed(1)}</strong>
-      <span>({card.reviewCount})</span>
-    </div>
-  );
-}
 
 export default function ShopProductCard2026({
   card,
   isWishlisted,
   onToggleWishlist,
-  onQuickView,
   onAdd,
-  onBuyNow,
 }) {
   const { i18n } = useTranslation();
-  const isIndo = i18n.language === 'id' || i18n.language === 'id-ID';
+  const isIndo = i18n.language === "id" || i18n.language === "id-ID";
   const [imageIndex, setImageIndex] = useState(0);
   const [imageFailed, setImageFailed] = useState(false);
-  const [pending, setPending] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
 
   const imageCandidates = useMemo(() => {
     const list = [
@@ -61,82 +51,161 @@ export default function ShopProductCard2026({
     }
   };
 
-  const run = async (action, callback) => {
-    if (!card.id || !card.isPurchasable || pending) return;
-    setPending(action);
+  const handleQuickAdd = async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!card.id || !card.isPurchasable || isAdding) return;
+    setIsAdding(true);
     try {
-      await callback(card);
+      await onAdd(card);
     } finally {
-      setPending("");
+      setIsAdding(false);
     }
   };
 
+  const handleWishlistClick = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    onToggleWishlist(card);
+  };
+
+  // Format sold count nicely
+  const soldText = useMemo(() => {
+    const count = Number(card.soldCount || 0);
+    if (count >= 1000) {
+      const formatted = (count / 1000).toFixed(1).replace(/\.0$/, "");
+      return isIndo ? `${formatted}RB+ terjual` : `${formatted}k+ sold`;
+    }
+    if (count > 0) {
+      return isIndo ? `${count} terjual` : `${count} sold`;
+    }
+    if (card.reviewCount > 0) {
+      return isIndo ? `${card.reviewCount} ulasan` : `${card.reviewCount} reviews`;
+    }
+    return isIndo ? "Baru" : "New";
+  }, [card.soldCount, card.reviewCount, isIndo]);
+
+  const ratingValue = Number(card.rating || 0).toFixed(1);
+  const storeBadge = card.storeName && card.storeName !== "Local store" ? "Star" : "TP";
+
   return (
-    <article className="tp-product-card">
-      <div className="tp-product-card__media">
-        <Link to={card.href} aria-label={`View ${card.name}`}>
+    <article className="tp-shopee-card">
+      <Link to={card.href} className="tp-shopee-card__link" aria-label={`Detail ${card.name}`}>
+        {/* Media Frame (1:1 aspect ratio) */}
+        <div className="tp-shopee-card__media">
           {activeImage && !imageFailed ? (
-            <img src={activeImage} alt={card.name} onError={handleImageError} loading="lazy" />
+            <img
+              src={activeImage}
+              alt={card.name}
+              onError={handleImageError}
+              loading="lazy"
+              className="tp-shopee-card__img"
+            />
           ) : (
-            <span className="tp-product-card__fallback">
+            <div className="tp-shopee-card__fallback">
               <img
                 src="/demo/placeholder-product.svg"
                 alt={card.name}
-                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                className="w-12 h-12 opacity-40"
               />
+            </div>
+          )}
+
+          {/* Top-left Badges */}
+          <div className="tp-shopee-card__badges-corner">
+            <span className="tp-shopee-badge-star">
+              <Star className="w-2.5 h-2.5 fill-current" />
+              <span>{storeBadge}</span>
+            </span>
+          </div>
+
+          {/* Discount Tag */}
+          {card.discount > 0 && (
+            <span className="tp-shopee-badge-discount">
+              -{card.discount}%
             </span>
           )}
-        </Link>
-        {card.discount > 0 ? <span className="tp-product-card__discount">-{card.discount}%</span> : null}
-        <button
-          type="button"
-          className={`tp-product-card__wishlist ${isWishlisted ? "is-active" : ""}`}
-          onClick={() => onToggleWishlist(card)}
-          aria-label={`${isWishlisted ? "Remove" : "Add"} ${card.name} ${isWishlisted ? "from" : "to"} wishlist`}
-        >
-          <Heart className={isWishlisted ? "is-filled" : ""} />
-        </button>
-        <button
-          type="button"
-          className="tp-product-card__quick"
-          onClick={() => onQuickView(card)}
-          aria-label={`Quick view ${card.name}`}
-        >
-          <Eye />
-        </button>
-      </div>
 
-      <div className="tp-product-card__body">
-        <p className="tp-product-card__category">{card.category}</p>
-        <Link to={card.href} className="tp-product-card__name">{card.name}</Link>
-        <Rating card={card} />
-        <div className="tp-product-card__price">
-          <strong>{formatCurrency(card.price)}</strong>
-          {card.originalPrice > card.price && card.price > 0 ? (
-            <del>{formatCurrency(card.originalPrice)}</del>
-          ) : null}
-        </div>
-        <div className="tp-product-card__actions">
+          {/* Wishlist Floating Button */}
           <button
             type="button"
-            className="tp-shop-btn tp-shop-btn--outline"
-            disabled={!card.id || !card.isPurchasable || Boolean(pending)}
-            onClick={() => run("add", onAdd)}
+            className={`tp-shopee-card__wishlist ${isWishlisted ? "is-active" : ""}`}
+            onClick={handleWishlistClick}
+            aria-label={`${isWishlisted ? "Remove" : "Add"} wishlist`}
           >
-            {pending === "add" ? <Loader2 className="is-spinning" /> : <ShoppingCart />}
-            <span>{card.isPurchasable ? (isIndo ? "Tambah ke Keranjang" : "Add to Cart") : card.purchaseLabel}</span>
-          </button>
-          <button
-            type="button"
-            className="tp-shop-btn tp-shop-btn--primary"
-            disabled={!card.id || !card.isPurchasable || Boolean(pending)}
-            onClick={() => run("buy", onBuyNow)}
-          >
-            {pending === "buy" ? <Loader2 className="is-spinning" /> : <Zap />}
-            <span>{isIndo ? "Beli Sekarang" : "Buy Now"}</span>
+            <Heart className={`w-3.5 h-3.5 ${isWishlisted ? "fill-red-500 text-red-500" : "text-white"}`} />
           </button>
         </div>
-      </div>
+
+        {/* Content Body */}
+        <div className="tp-shopee-card__body">
+          {/* Title with inline store pill */}
+          <h3 className="tp-shopee-card__title">
+            <span className="tp-shopee-inline-pill">{storeBadge}</span>
+            {card.name}
+          </h3>
+
+          {/* Price row */}
+          <div className="tp-shopee-card__price-row">
+            <span className="tp-shopee-card__price">
+              {formatCurrency(card.price)}
+            </span>
+            {card.originalPrice > card.price && card.price > 0 && (
+              <del className="tp-shopee-card__original-price">
+                {formatCurrency(card.originalPrice)}
+              </del>
+            )}
+          </div>
+
+          {/* Promo Tag */}
+          <div className="tp-shopee-card__promo-row">
+            <span className="tp-shopee-promo-pill">
+              {isIndo ? "Gratis Ongkir" : "Free Shipping"}
+            </span>
+          </div>
+
+          {/* Social Proof (Rating & Sold) */}
+          <div className="tp-shopee-card__social-row">
+            <div className="tp-shopee-card__rating">
+              <Star className="w-3 h-3 text-[#fe6f05] fill-[#fe6f05]" />
+              <span>{ratingValue}</span>
+            </div>
+            <span className="tp-shopee-card__dot">•</span>
+            <span className="tp-shopee-card__sold">{soldText}</span>
+          </div>
+
+          {/* Location & Quick Cart Action */}
+          <div className="tp-shopee-card__footer">
+            <div className="tp-shopee-card__meta">
+              <span className="tp-shopee-card__delivery">
+                <Truck className="w-3 h-3 text-[#034c85]" />
+                <small>{isIndo ? "< 2 Hari" : "< 2 Days"}</small>
+              </span>
+              <span className="tp-shopee-card__city">
+                <MapPin className="w-2.5 h-2.5 opacity-60" />
+                <small>{card.storeCity || "Makassar"}</small>
+              </span>
+            </div>
+
+            {/* Quick Add to Cart Button */}
+            {card.isPurchasable && (
+              <button
+                type="button"
+                className="tp-shopee-card__quick-cart"
+                onClick={handleQuickAdd}
+                title={isIndo ? "Tambah ke Keranjang" : "Add to Cart"}
+                aria-label={isIndo ? "Tambah ke Keranjang" : "Add to Cart"}
+              >
+                {isAdding ? (
+                  <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Plus className="w-3.5 h-3.5" />
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+      </Link>
     </article>
   );
 }

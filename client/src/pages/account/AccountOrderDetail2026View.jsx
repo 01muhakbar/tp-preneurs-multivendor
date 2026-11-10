@@ -152,7 +152,7 @@ function ProductRecommendationGrid({ isIndo }) {
               : [];
         setProducts(list.slice(0, 4));
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => {
         if (active) setIsLoading(false);
       });
@@ -262,6 +262,7 @@ export default function AccountOrderDetail2026View({
   const [isTimestampsOpen, setIsTimestampsOpen] = useState(false);
   const [isAddressExpanded, setIsAddressExpanded] = useState(false);
   const [isBuyingAgain, setIsBuyingAgain] = useState(false);
+
   const { add: addToCart } = useCart();
 
   const shopee = orderDetail?.shopeeDetail || null;

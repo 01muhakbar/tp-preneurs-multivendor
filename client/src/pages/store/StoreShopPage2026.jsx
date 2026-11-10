@@ -14,6 +14,7 @@ import ShopFilters2026 from "./shop2026/ShopFilters2026.jsx";
 import ShopHero2026 from "./shop2026/ShopHero2026.jsx";
 import ShopProductCard2026 from "./shop2026/ShopProductCard2026.jsx";
 import ShopProductListItem2026 from "./shop2026/ShopProductListItem2026.jsx";
+import ShopStoreSpotlight2026 from "./shop2026/ShopStoreSpotlight2026.jsx";
 import ShopQuickViewModal2026 from "./shop2026/ShopQuickViewModal2026.jsx";
 import ShopToolbar2026, { SHOP_SORT_OPTIONS } from "./shop2026/ShopToolbar2026.jsx";
 import {
@@ -57,11 +58,15 @@ export const getProductsMeta = (payload, fallbackLength = 0) => {
   };
 };
 
-function ProductSkeleton({ list = false }) {
+function ProductSkeleton() {
   return (
-    <article className={list ? "tp-product-skeleton tp-product-skeleton--list" : "tp-product-skeleton"}>
-      <div className="tp-product-skeleton__media" />
-      <div className="tp-product-skeleton__body"><i /><i /><i /><i /></div>
+    <article className="tp-shopee-skeleton">
+      <div className="tp-shopee-skeleton__media" />
+      <div className="tp-shopee-skeleton__body">
+        <span className="tp-shopee-skeleton__line w-3/4" />
+        <span className="tp-shopee-skeleton__line w-1/2" />
+        <span className="tp-shopee-skeleton__line w-1/3" />
+      </div>
     </article>
   );
 }
@@ -75,23 +80,35 @@ function Pagination({ page, total, limit, onChange }) {
     .filter((item) => item <= totalPages);
 
   return (
-    <nav className="tp-shop-pagination" aria-label="Product pages">
-      <button type="button" onClick={() => onChange(page - 1)} disabled={page <= 1} aria-label="Previous page">
-        <ChevronLeft />
+    <nav className="tp-shopee-pagination" aria-label="Product pages">
+      <button
+        type="button"
+        onClick={() => onChange(page - 1)}
+        disabled={page <= 1}
+        aria-label="Previous page"
+        className="tp-shopee-page-nav"
+      >
+        <ChevronLeft className="w-4 h-4" />
       </button>
       {pages.map((item) => (
         <button
           key={item}
           type="button"
-          className={item === page ? "is-active" : ""}
+          className={`tp-shopee-page-num ${item === page ? "is-active" : ""}`}
           onClick={() => onChange(item)}
           aria-current={item === page ? "page" : undefined}
         >
           {item}
         </button>
       ))}
-      <button type="button" onClick={() => onChange(page + 1)} disabled={page >= totalPages} aria-label="Next page">
-        <ChevronRight />
+      <button
+        type="button"
+        onClick={() => onChange(page + 1)}
+        disabled={page >= totalPages}
+        aria-label="Next page"
+        className="tp-shopee-page-nav"
+      >
+        <ChevronRight className="w-4 h-4" />
       </button>
     </nav>
   );
@@ -100,7 +117,7 @@ function Pagination({ page, total, limit, onChange }) {
 export default function StoreShopPage2026() {
   const navigate = useNavigate();
   const { i18n } = useTranslation();
-  const isIndo = i18n.language === 'id' || i18n.language === 'id-ID';
+  const isIndo = i18n.language === "id" || i18n.language === "id-ID";
   const [searchParams, setSearchParams] = useSearchParams();
   const [viewMode, setViewMode] = useState("grid");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -183,13 +200,33 @@ export default function StoreShopPage2026() {
   const initialLoading = productsQuery.isLoading && !productsQuery.data;
   const activeCategoryName = categories.find((item) => getShopCategoryValue(item) === category)?.name || category;
 
+  // Real store spotlight
+  const spotlightStore = useMemo(() => {
+    const productWithStore = cards.find(
+      (c) => c.storeName && c.storeName !== "Local store" && c.storeSlug
+    );
+    if (!productWithStore) return null;
+    const storeProducts = cards.filter(
+      (c) => c.storeSlug === productWithStore.storeSlug
+    );
+    return {
+      store: {
+        name: productWithStore.storeName,
+        slug: productWithStore.storeSlug,
+        city: productWithStore.storeCity,
+        logoUrl: productWithStore.storeLogo,
+      },
+      products: storeProducts,
+    };
+  }, [cards]);
+
   const activeFilters = [
-    query ? { key: "q", label: isIndo ? `Pencarian: ${query}` : `Search: ${query}` } : null,
+    query ? { key: "q", label: isIndo ? `Cari: ${query}` : `Search: ${query}` } : null,
     category ? { key: "category", label: activeCategoryName } : null,
     minPrice !== null || maxPrice !== null
-      ? { key: "price", label: isIndo ? `Rp ${minPrice ?? 0} - Rp ${maxPrice ?? "Berapapun"}` : `Rp ${minPrice ?? 0} - Rp ${maxPrice ?? "Any"}` }
+      ? { key: "price", label: isIndo ? `Rp ${minPrice ?? 0} - Rp ${maxPrice ?? "Maks"}` : `Rp ${minPrice ?? 0} - Rp ${maxPrice ?? "Max"}` }
       : null,
-    minRating !== null ? { key: "minRating", label: isIndo ? `Bintang ${minRating}+` : `${minRating}+ stars` } : null,
+    minRating !== null ? { key: "minRating", label: isIndo ? `★ ${minRating}+` : `★ ${minRating}+` } : null,
   ].filter(Boolean);
 
   const clearAll = () => {
@@ -208,15 +245,15 @@ export default function StoreShopPage2026() {
 
   const addCardToCart = async (card) => {
     if (productHasVariantSelections(card.raw?.variations)) {
-      toast(isIndo ? "Pilih opsi produk sebelum menambahkannya ke keranjang." : "Choose product options before adding it to your cart.");
+      toast(isIndo ? "Pilih varian produk terlebih dahulu." : "Please select product options first.");
       navigate(card.href);
       return false;
     }
 
     const added = await cart.add(card.id, 1, buildShopCartSnapshot(card));
-    if (added) toast.success(isIndo ? `${card.name} ditambahkan ke keranjang.` : `${card.name} added to cart.`);
+    if (added) toast.success(isIndo ? `${card.name} masuk ke keranjang.` : `${card.name} added to cart.`);
     else if (!productHasVariantSelections(card.raw?.variations)) {
-      toast.error(isIndo ? "Kami tidak dapat menambahkan produk ini. Silakan coba lagi." : "We couldn't add this product. Please try again.");
+      toast.error(isIndo ? "Gagal menambahkan produk." : "Failed to add product.");
     }
 
     return added !== false;
@@ -245,14 +282,13 @@ export default function StoreShopPage2026() {
       minRating={minRating ?? ""}
       onCategoryChange={(value) => {
         commit({ category: value });
-        setFiltersOpen(false);
       }}
       onPriceChange={(minimum, maximum) => commit({ minPrice: minimum, maxPrice: maximum })}
       onRatingChange={(value) => {
         commit({ minRating: value });
-        setFiltersOpen(false);
       }}
       onClear={clearAll}
+      onApply={() => setFiltersOpen(false)}
     />
   );
 
@@ -266,23 +302,32 @@ export default function StoreShopPage2026() {
   });
 
   return (
-    <div className="tp-shop-page">
-      <div className="tp-shop-container">
+    <div className="tp-shopee-page">
+      <div className="tp-shopee-container">
+        {/* Compact Search Header */}
         <ShopHero2026
           query={query}
           onSearch={(value) => commit({ q: value })}
           shopConfig={shopConfig}
         />
+
+        {/* Horizontal Category Rail */}
         <ShopCategoryRail2026
           categories={categories}
           activeCategory={category}
           onChange={(value) => commit({ category: value })}
         />
 
-        <section className="tp-shop-catalog" aria-label="Shop products">
-          <aside className="tp-shop-catalog__sidebar">{filters}</aside>
+        {/* Main Catalog with Desktop Sidebar & Results */}
+        <div className="tp-shopee-layout">
+          {/* Desktop Left Filter Sidebar */}
+          <aside className="tp-shopee-sidebar">
+            {filters}
+          </aside>
 
-          <div className="tp-shop-catalog__results">
+          {/* Catalog Results Column */}
+          <main className="tp-shopee-main">
+            {/* Quick-Sort Toolbar */}
             <ShopToolbar2026
               viewMode={viewMode}
               onViewModeChange={setViewMode}
@@ -298,115 +343,117 @@ export default function StoreShopPage2026() {
               onOpenFilters={() => setFiltersOpen(true)}
             />
 
-            {categoriesQuery.isError ? (
-              <div className="tp-shop-inline-notice">
-                {isIndo ? "Kategori sementara tidak tersedia. Hasil produk tetap aktif." : "Categories are temporarily unavailable. Product results are still active."}
+            {/* Official Store Spotlight (Matching Reference Image) */}
+            {spotlightStore && !initialLoading && !category && (
+              <ShopStoreSpotlight2026
+                store={spotlightStore.store}
+                products={spotlightStore.products}
+              />
+            )}
+
+            {/* Loading skeletons */}
+            {initialLoading && (
+              <div className="tp-shopee-grid">
+                {Array.from({ length: 8 }, (_, index) => (
+                  <ProductSkeleton key={`skel-${index}`} />
+                ))}
               </div>
-            ) : null}
+            )}
 
-            {initialLoading ? (
-              <>
-                <div className={`${viewMode === "grid" ? "hidden sm:block" : "block"}`} aria-label="Loading products">
-                  <div className={viewMode === "grid" ? "tp-shop-product-grid" : "tp-shop-product-list"}>
-                    {Array.from({ length: viewMode === "grid" ? 9 : 5 }, (_, index) => (
-                      <ProductSkeleton key={index} list={viewMode === "list"} />
-                    ))}
-                  </div>
-                </div>
-                {viewMode === "grid" ? (
-                  <div className="sm:hidden grid grid-cols-2 gap-2 items-start mt-4" aria-label="Loading products">
-                    <div className="flex flex-col gap-2">
-                      {Array.from({ length: 4 }, (_, index) => (
-                        <ProductSkeleton key={`skel-left-${index}`} list={false} />
-                      ))}
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      {Array.from({ length: 4 }, (_, index) => (
-                        <ProductSkeleton key={`skel-right-${index}`} list={false} />
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-              </>
-            ) : null}
-
-            {productsQuery.isError && !cards.length ? (
-              <div className="tp-shop-state tp-shop-state--error">
-                <SearchX />
-                <h2>{isIndo ? "Produk tidak dapat dimuat" : "Products could not be loaded"}</h2>
-                <p>{productsQuery.error?.response?.data?.message || productsQuery.error?.message || (isIndo ? "Silakan coba lagi dalam beberapa saat." : "Please try again in a moment.")}</p>
-                <button type="button" className="tp-shop-btn tp-shop-btn--primary" onClick={() => productsQuery.refetch()}>
+            {/* Error state */}
+            {productsQuery.isError && !cards.length && (
+              <div className="tp-shopee-state">
+                <SearchX className="w-10 h-10 text-[#fe6f05]" />
+                <h3>{isIndo ? "Produk tidak dapat dimuat" : "Products could not be loaded"}</h3>
+                <p>{isIndo ? "Silakan coba lagi beberapa saat." : "Please try again in a moment."}</p>
+                <button
+                  type="button"
+                  className="tp-shopee-btn-apply"
+                  onClick={() => productsQuery.refetch()}
+                >
                   {isIndo ? "Coba Lagi" : "Retry"}
                 </button>
               </div>
-            ) : null}
+            )}
 
-            {!initialLoading && !productsQuery.isError && !cards.length ? (
-              <div className="tp-shop-state">
-                <SearchX />
-                <h2>{isIndo ? "Tidak ada produk ditemukan" : "No products found"}</h2>
-                <p>{isIndo ? "Coba kata kunci, kategori, rentang harga, atau filter peringkat lain." : "Try another keyword, category, price range, or rating filter."}</p>
-                <button type="button" className="tp-shop-btn tp-shop-btn--primary" onClick={clearAll}>
+            {/* Empty state */}
+            {!initialLoading && !productsQuery.isError && !cards.length && (
+              <div className="tp-shopee-state">
+                <SearchX className="w-10 h-10 text-slate-400" />
+                <h3>{isIndo ? "Tidak ada produk ditemukan" : "No products found"}</h3>
+                <p>{isIndo ? "Coba kata kunci atau filter lain." : "Try another keyword or filter."}</p>
+                <button
+                  type="button"
+                  className="tp-shopee-btn-apply"
+                  onClick={clearAll}
+                >
                   {isIndo ? "Hapus Filter" : "Clear Filters"}
                 </button>
               </div>
-            ) : null}
+            )}
 
-            {!initialLoading && cards.length ? (
+            {/* Product Grid / List */}
+            {!initialLoading && cards.length > 0 && (
               <>
-                {/* DESKTOP/LIST VIEW */}
-                <div className={`${viewMode === "grid" ? "hidden sm:block" : "block"}`}>
-                  <div className={viewMode === "grid" ? "tp-shop-product-grid" : "tp-shop-product-list"}>
-                    {cards.map((card, index) => (
-                      viewMode === "grid"
-                        ? <ShopProductCard2026 key={card.id || card.slug || index} {...productProps(card)} />
-                        : <ShopProductListItem2026 key={card.id || card.slug || index} {...productProps(card)} />
-                    ))}
-                  </div>
+                <div className={viewMode === "grid" ? "tp-shopee-grid" : "tp-shopee-list"}>
+                  {cards.map((card, index) => (
+                    viewMode === "grid" ? (
+                      <ShopProductCard2026
+                        key={card.id || card.slug || index}
+                        {...productProps(card)}
+                      />
+                    ) : (
+                      <ShopProductListItem2026
+                        key={card.id || card.slug || index}
+                        {...productProps(card)}
+                      />
+                    )
+                  ))}
                 </div>
 
-                {/* MOBILE MASONRY GRID VIEW (Only when viewMode is grid) */}
-                {viewMode === "grid" ? (
-                  <div className="sm:hidden grid grid-cols-2 gap-2 items-start mt-4">
-                    <div className="flex flex-col gap-2">
-                      {cards.filter((_, i) => i % 2 === 0).map((card, index) => (
-                        <ShopProductCard2026 key={card.id || card.slug || index} {...productProps(card)} />
-                      ))}
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      {cards.filter((_, i) => i % 2 !== 0).map((card, index) => (
-                        <ShopProductCard2026 key={card.id || card.slug || index} {...productProps(card)} />
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-                <Pagination page={page} total={total} limit={limit} onChange={(next) => commit({ page: next }, { resetPage: false })} />
+                {/* Pagination */}
+                <Pagination
+                  page={page}
+                  total={total}
+                  limit={limit}
+                  onChange={(next) => commit({ page: next }, { resetPage: false })}
+                />
               </>
-            ) : null}
-          </div>
-        </section>
+            )}
+          </main>
+        </div>
       </div>
 
-      {filtersOpen ? (
-        <div className="tp-shop-filter-drawer">
+      {/* Mobile Preferences Drawer ("Pilih Preferensi") */}
+      {filtersOpen && (
+        <div className="tp-shopee-drawer">
           <button
             type="button"
-            className="tp-shop-filter-drawer__backdrop"
+            className="tp-shopee-drawer__backdrop"
             onClick={() => setFiltersOpen(false)}
             aria-label="Close filters"
           />
-          <div className="tp-shop-filter-drawer__panel">
-            <header>
-              <span><SlidersHorizontal /> {isIndo ? "Filter" : "Filters"}</span>
-              <button type="button" onClick={() => setFiltersOpen(false)} aria-label="Close filters">
-                <X />
+          <div className="tp-shopee-drawer__content">
+            <header className="tp-shopee-drawer__header">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="w-4 h-4 text-[#fe6f05]" />
+                <span>{isIndo ? "Pilih Preferensi" : "Filter Preferences"}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFiltersOpen(false)}
+                className="tp-shopee-drawer__close"
+                aria-label="Close filters"
+              >
+                <X className="w-5 h-5" />
               </button>
             </header>
             {filters}
           </div>
         </div>
-      ) : null}
+      )}
 
+      {/* Quick View Modal */}
       <ShopQuickViewModal2026
         card={quickViewCard}
         onClose={() => setQuickViewCard(null)}

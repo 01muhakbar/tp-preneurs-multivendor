@@ -155,6 +155,10 @@ export function mapProductToShopCard(product) {
     purchaseLabel: purchaseState?.label || (stockValue <= 0 ? "Out of stock" : "Unavailable"),
     storeName: readShopText(product?.store?.name, product?.seller?.name, "Local store"),
     storeSlug: readShopText(product?.storeSlug, product?.store?.slug),
+    storeCity: readShopText(product?.store?.city, product?.seller?.city, product?.raw?.store?.city, "Makassar"),
+    storeLogo: readShopText(product?.store?.logoUrl, product?.store?.logo, product?.seller?.logoUrl),
+    storeBanner: readShopText(product?.store?.bannerUrl, product?.store?.banner),
+    soldCount: Number(product?.soldCount ?? product?.sold_count ?? product?.raw?.soldCount ?? 0),
     description: readShopText(product?.shortDescription, product?.description),
   };
 }
