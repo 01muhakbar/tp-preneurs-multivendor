@@ -1481,6 +1481,7 @@ export default function StoreProductDetailPage2026() {
       stock: getStock(item, variant),
       slug: getProductSlug(item),
       storeId: item?.storeId ?? item?.store?.id ?? null,
+      storeName: text(item?.storeName, item?.store?.name, item?.sellerInfo?.name),
       storeSlug: text(item?.storeSlug, item?.store?.slug),
       category: getCategoryName(item),
       variantKey: variant?.variantKey ?? variant?.combinationKey ?? null,

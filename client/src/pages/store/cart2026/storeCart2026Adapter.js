@@ -25,7 +25,16 @@ function normalizeItem(item, index) {
   const quantity = Math.max(1, numberOr(first(item?.quantity, item?.qty, item?.count), 1));
   const unitPrice = Math.max(0, numberOr(first(item?.price, item?.unitPrice, item?.variantSalePrice, item?.variantPrice), 0));
   const storeId = first(item?.storeId, store?.id, product?.storeId, null);
-  const storeName = first(item?.storeName, store?.name, product?.storeName, "Marketplace Store");
+  const storeSlug = first(item?.storeSlug, store?.slug, product?.storeSlug, null);
+  const rawStoreName = first(item?.storeName, store?.name, product?.storeName, null);
+  const storeName =
+    rawStoreName ||
+    (storeSlug
+      ? storeSlug
+          .replace(/-/g, " ")
+          .replace(/\b\w/g, (l) => l.toUpperCase())
+      : null) ||
+    "Marketplace Store";
 
   return {
     raw: item,
@@ -34,7 +43,7 @@ function normalizeItem(item, index) {
     productId,
     storeId,
     storeName,
-    storeSlug: first(item?.storeSlug, store?.slug, product?.storeSlug, null),
+    storeSlug,
     storeCategory: first(item?.storeCategory, store?.categoryName, item?.category?.name, product?.category?.name, "Products"),
     storeVerified: first(item?.storeVerified, store?.verified, store?.isVerified, false) === true,
     name: first(item?.name, item?.productName, product?.name, "Product"),
@@ -59,7 +68,14 @@ export function createStoreCart2026ViewModel({ cartItems, cart } = {}) {
   const groupsByStore = new Map();
 
   items.forEach((item) => {
-    const key = item.storeId != null ? `id:${item.storeId}` : `name:${String(item.storeName).toLowerCase()}`;
+    const key = item.storeSlug
+      ? `slug:${item.storeSlug}`
+      : item.storeId != null
+        ? `id:${item.storeId}`
+        : item.storeName && item.storeName !== "Marketplace Store"
+          ? `name:${String(item.storeName).toLowerCase()}`
+          : `item:${item.productId || item.lineId}`;
+
     if (!groupsByStore.has(key)) {
       groupsByStore.set(key, {
         key,

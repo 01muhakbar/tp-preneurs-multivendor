@@ -7,6 +7,9 @@ export type CartItem = {
   lineId?: string;
   cartItemId?: number | null;
   productId: number;
+  storeId?: number | null;
+  storeName?: string | null;
+  storeSlug?: string | null;
   name: string;
   price: number;
   imageUrl?: string | null;
@@ -172,6 +175,19 @@ const normalizeCartItem = (item: any): CartItem | null => {
         ? Number(item.cartItemId)
         : null,
     productId,
+    storeId: Number(item?.storeId ?? item?.store?.id) || null,
+    storeName:
+      typeof item?.storeName === "string" && item.storeName.trim()
+        ? item.storeName.trim()
+        : typeof item?.store?.name === "string" && item.store.name.trim()
+          ? item.store.name.trim()
+          : null,
+    storeSlug:
+      typeof item?.storeSlug === "string" && item.storeSlug.trim()
+        ? item.storeSlug.trim()
+        : typeof item?.store?.slug === "string" && item.store.slug.trim()
+          ? item.store.slug.trim()
+          : null,
     name: item?.name || item?.title || "",
     price: Number(item?.price || 0),
     imageUrl: item?.imageUrl ?? item?.image ?? item?.img ?? item?.image_url ?? null,

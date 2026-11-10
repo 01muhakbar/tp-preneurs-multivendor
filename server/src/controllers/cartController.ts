@@ -402,6 +402,14 @@ const loadCartProductsForRead = async (cartId: number, supportedVariantFields: S
           "storeId",
           "stock",
         ],
+        include: [
+          {
+            model: Store,
+            as: "store",
+            attributes: ["id", "name", "slug", "status", "logoUrl"],
+            required: false,
+          },
+        ],
         required: true,
       },
     ],

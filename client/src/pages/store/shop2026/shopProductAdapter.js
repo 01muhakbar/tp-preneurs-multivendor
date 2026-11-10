@@ -170,6 +170,7 @@ export const buildShopCartSnapshot = (card) => ({
   stock: card.stock,
   slug: card.slug,
   storeId: card.raw?.storeId ?? card.raw?.store?.id ?? null,
-  storeSlug: card.storeSlug,
+  storeName: card.storeName || card.raw?.store?.name || null,
+  storeSlug: card.storeSlug || card.raw?.store?.slug || null,
   category: card.category,
 });

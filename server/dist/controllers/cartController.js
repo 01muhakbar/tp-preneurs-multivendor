@@ -338,6 +338,14 @@ const loadCartProductsForRead = async (cartId, supportedVariantFields) => {
                     "storeId",
                     "stock",
                 ],
+                include: [
+                    {
+                        model: Store,
+                        as: "store",
+                        attributes: ["id", "name", "slug", "status", "logoUrl"],
+                        required: false,
+                    },
+                ],
                 required: true,
             },
         ],

@@ -84,6 +84,9 @@ type NormalizedCartProduct = {
   lineId: string;
   cartItemId: number | null;
   productId: number;
+  storeId?: number | null;
+  storeName?: string | null;
+  storeSlug?: string | null;
   name: string;
   price: number;
   image: string | null;
@@ -187,10 +190,21 @@ export const normalizeCartProducts = (cart: any): NormalizedCartProduct[] => {
       const rawName = String(product?.name || product?.title || "").trim();
       const stockValue = Number(product?.stock ?? product?.availableStock);
       const stock = Number.isFinite(stockValue) && stockValue >= 0 ? stockValue : undefined;
+      const rawStore = product?.store ?? product?.Store ?? null;
+      const rawStoreId = Number(product?.storeId ?? rawStore?.id);
+      const storeId = Number.isFinite(rawStoreId) && rawStoreId > 0 ? rawStoreId : null;
+      const storeName =
+        String(product?.storeName ?? rawStore?.name ?? "").trim() || null;
+      const storeSlug =
+        String(product?.storeSlug ?? rawStore?.slug ?? "").trim() || null;
+
       return {
         lineId: buildLineId(productId, variantKey),
         cartItemId: Number.isFinite(cartItemId) ? cartItemId : null,
         productId,
+        storeId,
+        storeName,
+        storeSlug,
         name: rawName || `Product #${productId}`,
         price: Number(
           cartItem?.unitSalePriceSnapshot ??
@@ -222,6 +236,9 @@ const toStoreItems = (items: NormalizedCartProduct[]) =>
     lineId: item.lineId,
     cartItemId: item.cartItemId,
     productId: item.productId,
+    storeId: item.storeId ?? null,
+    storeName: item.storeName ?? null,
+    storeSlug: item.storeSlug ?? null,
     name: item.name,
     price: item.price,
     imageUrl: item.image,
@@ -240,6 +257,14 @@ const buildFallbackCart = (storeItems: any[]) => ({
     name: item.name,
     price: item.price,
     imageUrl: item.imageUrl ?? null,
+    storeId: item.storeId ?? null,
+    storeName: item.storeName ?? null,
+    storeSlug: item.storeSlug ?? null,
+    store: (item.storeId || item.storeName || item.storeSlug) ? {
+      id: item.storeId ?? null,
+      name: item.storeName ?? null,
+      slug: item.storeSlug ?? null,
+    } : null,
     CartItem: {
       id: item.cartItemId ?? null,
       quantity: item.qty,
@@ -257,6 +282,9 @@ const buildGuestCart = (
     lineId?: string;
     productId: number;
     qty: number;
+    storeId?: number | null;
+    storeName?: string | null;
+    storeSlug?: string | null;
     name?: string;
     price?: number;
     imageUrl?: string | null;
@@ -279,6 +307,14 @@ const buildGuestCart = (
     price: Number.isFinite(Number(item.price)) ? Number(item.price) : 0,
     imageUrl: item.imageUrl ?? null,
     stock: item.stock ?? undefined,
+    storeId: item.storeId ?? null,
+    storeName: item.storeName ?? null,
+    storeSlug: item.storeSlug ?? null,
+    store: (item.storeId || item.storeName || item.storeSlug) ? {
+      id: item.storeId ?? null,
+      name: item.storeName ?? null,
+      slug: item.storeSlug ?? null,
+    } : null,
     CartItem: {
       id: null,
       quantity: item.qty,

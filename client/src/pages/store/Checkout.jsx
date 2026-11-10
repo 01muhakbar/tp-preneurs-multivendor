@@ -1344,7 +1344,9 @@ export default function CheckoutPage() {
   const [appliedCouponMeta, setAppliedCouponMeta] = useState(null);
   const [couponBaseline, setCouponBaseline] = useState(null);
   const [discount, setDiscount] = useState(0);
-  const [groupCouponCodes, setGroupCouponCodes] = useState({});
+  const [groupCouponCodes, setGroupCouponCodes] = useState(
+    () => location.state?.groupCouponCodes || {}
+  );
   const [groupCouponStates, setGroupCouponStates] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentRedirectUrl, setPaymentRedirectUrl] = useState("");

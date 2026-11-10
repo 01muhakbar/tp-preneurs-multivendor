@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { getStoreCustomization } from "../../api/public/storeCustomizationPublic.ts";
 import { previewCheckoutByStore } from "../../api/public/storeCheckout.ts";
+import { fetchStoreProductById } from "../../api/public/storeProducts.ts";
 import { useCart } from "../../hooks/useCart.ts";
 import { useStorefrontWishlist } from "../../utils/storefrontWishlist.js";
 import { formatCurrency } from "../../utils/format.js";
@@ -14,6 +15,7 @@ import {
 } from "../../utils/variantCheckoutErrors.js";
 import { GENERIC_ERROR } from "../../constants/uiMessages.js";
 import StoreCart2026View from "./cart2026/StoreCart2026View.jsx";
+import StoreCartVoucherModal from "./cart2026/StoreCartVoucherModal.jsx";
 import { createStoreCart2026ViewModel } from "./cart2026/storeCart2026Adapter.js";
 
 const RECOVERY_RESELECT_CODES = new Set([
@@ -155,6 +157,78 @@ export default function StoreCartPage() {
 
   const [selectedLineIds, setSelectedLineIds] = useState(() => new Set());
   const [isEditMode, setIsEditMode] = useState(false);
+  const [appliedStoreCoupons, setAppliedStoreCoupons] = useState({});
+  const [voucherModalStore, setVoucherModalStore] = useState(null);
+  const [hydratedStores, setHydratedStores] = useState({});
+
+  // Auto-hydrate missing store info for cart items
+  useEffect(() => {
+    const unhydratedIds = items
+      .filter(
+        (it) =>
+          Number(it.productId) > 0 &&
+          (!it.storeSlug || !it.storeName || it.storeName === "Marketplace Store") &&
+          !hydratedStores[it.productId]
+      )
+      .map((it) => Number(it.productId));
+
+    const uniqueIds = Array.from(new Set(unhydratedIds));
+    if (uniqueIds.length === 0) return;
+
+    let isCancelled = false;
+    Promise.all(
+      uniqueIds.map((id) =>
+        fetchStoreProductById(id)
+          .then((res) => {
+            const prod = res?.data ?? res;
+            if (!prod) return null;
+            const rawStore = prod.store ?? prod.sellerInfo ?? null;
+            const storeId = prod.storeId ?? rawStore?.id ?? rawStore?.storeId ?? null;
+            const storeName = prod.store?.name ?? rawStore?.name ?? prod.storeName ?? null;
+            const storeSlug = prod.storeSlug ?? prod.store?.slug ?? rawStore?.slug ?? null;
+            return {
+              productId: id,
+              storeId,
+              storeName,
+              storeSlug,
+            };
+          })
+          .catch(() => null)
+      )
+    ).then((results) => {
+      if (isCancelled) return;
+      const updates = {};
+      results.forEach((entry) => {
+        if (entry && (entry.storeName || entry.storeSlug)) {
+          updates[entry.productId] = entry;
+        }
+      });
+      if (Object.keys(updates).length > 0) {
+        setHydratedStores((prev) => ({ ...prev, ...updates }));
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [items, hydratedStores]);
+
+  // Enriched items with hydrated store info
+  const enrichedItems = useMemo(() => {
+    return items.map((it) => {
+      const extra = hydratedStores[it.productId];
+      if (!extra) return it;
+      return {
+        ...it,
+        storeId: it.storeId || extra.storeId,
+        storeName:
+          it.storeName && it.storeName !== "Marketplace Store"
+            ? it.storeName
+            : extra.storeName || it.storeName,
+        storeSlug: it.storeSlug || extra.storeSlug,
+      };
+    });
+  }, [items, hydratedStores]);
 
   // Sync selected items with available items
   useEffect(() => {
@@ -233,8 +307,8 @@ export default function StoreCartPage() {
 
   // Selected items calculations
   const selectedItems = useMemo(() => {
-    return items.filter((it) => selectedLineIds.has(it.lineId));
-  }, [items, selectedLineIds]);
+    return enrichedItems.filter((it) => selectedLineIds.has(it.lineId));
+  }, [enrichedItems, selectedLineIds]);
 
   const selectedSubtotal = useMemo(() => {
     return selectedItems.reduce(
@@ -249,6 +323,41 @@ export default function StoreCartPage() {
       0
     );
   }, [selectedItems]);
+
+  // Compute subtotal per store for voucher qualification
+  const getStoreSelectedSubtotal = useCallback(
+    (storeKey) => {
+      return selectedItems
+        .filter((it) => {
+          const key = it.storeSlug
+            ? `slug:${it.storeSlug}`
+            : it.storeId != null
+              ? `id:${it.storeId}`
+              : it.storeName && it.storeName !== "Marketplace Store"
+                ? `name:${String(it.storeName).toLowerCase()}`
+                : `item:${it.productId || it.lineId}`;
+          return key === storeKey;
+        })
+        .reduce(
+          (acc, it) => acc + Number(it.price || 0) * Number(it.quantity || it.qty || 1),
+          0
+        );
+    },
+    [selectedItems]
+  );
+
+  // Calculate total discount from applied store coupons for selected items
+  const totalStoreDiscount = useMemo(() => {
+    return Object.entries(appliedStoreCoupons).reduce((sum, [storeKey, coupon]) => {
+      if (!coupon || !coupon.discountAmount) return sum;
+      const subtotal = getStoreSelectedSubtotal(storeKey);
+      if (subtotal <= 0) return sum;
+      if (coupon.minSpend && subtotal < coupon.minSpend) return sum;
+      return sum + Number(coupon.discountAmount || 0);
+    }, 0);
+  }, [appliedStoreCoupons, getStoreSelectedSubtotal]);
+
+  const selectedFinalTotal = Math.max(0, selectedSubtotal - totalStoreDiscount);
 
   const canProceedToCheckout =
     selectedItems.length > 0 &&
@@ -266,8 +375,22 @@ export default function StoreCartPage() {
       }
       return;
     }
-    navigate("/checkout");
-  }, [canProceedToCheckout, hasCheckoutPreflightInvalidItems, isIndo, navigate, selectedItems.length]);
+
+    // Pass applied store coupons to checkout
+    const groupCouponCodes = {};
+    Object.values(appliedStoreCoupons).forEach((c) => {
+      if (c?.storeId && c?.code) {
+        groupCouponCodes[String(c.storeId)] = c.code;
+      }
+    });
+
+    navigate("/checkout", {
+      state: {
+        appliedStoreCoupons,
+        groupCouponCodes,
+      },
+    });
+  }, [appliedStoreCoupons, canProceedToCheckout, hasCheckoutPreflightInvalidItems, isIndo, navigate, selectedItems.length]);
 
   const handleReviewIssues = useCallback(() => {
     scrollToFirstCartInvalidItem('[data-cart-page-invalid-item="true"]');
@@ -275,14 +398,15 @@ export default function StoreCartPage() {
 
   const viewModel = useMemo(() => {
     return createStoreCart2026ViewModel({
-      cartItems: items,
+      cartItems: enrichedItems,
       cart: {
         ...cart,
         subtotal: selectedSubtotal,
-        discount: 0,
+        discount: totalStoreDiscount,
+        estimatedTotal: selectedFinalTotal,
       },
     });
-  }, [cart, items, selectedSubtotal]);
+  }, [cart, enrichedItems, selectedFinalTotal, selectedSubtotal, totalStoreDiscount]);
 
   // Selection handlers
   const handleToggleSelect = useCallback((lineId) => {
@@ -375,7 +499,8 @@ export default function StoreCartPage() {
   };
 
   return (
-    <StoreCart2026View
+    <>
+      <StoreCart2026View
       viewModel={viewModel}
       customization={cartCustomization}
       isIndo={isIndo}
@@ -394,6 +519,17 @@ export default function StoreCartPage() {
       selectedLineIds={selectedLineIds}
       selectedCount={selectedCount}
       selectedSubtotal={selectedSubtotal}
+      totalStoreDiscount={totalStoreDiscount}
+      selectedFinalTotal={selectedFinalTotal}
+      appliedStoreCoupons={appliedStoreCoupons}
+      onOpenStoreVoucher={(store) => setVoucherModalStore(store)}
+      onRemoveStoreVoucher={(storeKey) => {
+        setAppliedStoreCoupons((prev) => {
+          const next = { ...prev };
+          delete next[storeKey];
+          return next;
+        });
+      }}
       isEditMode={isEditMode}
       onToggleEditMode={() => setIsEditMode((prev) => !prev)}
       onToggleSelect={handleToggleSelect}
@@ -418,5 +554,30 @@ export default function StoreCartPage() {
       onCheckout={handleProceedToCheckout}
       onContinueShopping={() => navigate("/shop")}
     />
+    {voucherModalStore && (
+      <StoreCartVoucherModal
+        isOpen={Boolean(voucherModalStore)}
+        onClose={() => setVoucherModalStore(null)}
+        store={voucherModalStore}
+        storeSubtotal={getStoreSelectedSubtotal(voucherModalStore.key)}
+        appliedCoupon={appliedStoreCoupons[voucherModalStore.key] || null}
+        onApplyCoupon={(couponData) => {
+          setAppliedStoreCoupons((prev) => ({
+            ...prev,
+            [voucherModalStore.key]: couponData,
+          }));
+        }}
+        onRemoveCoupon={() => {
+          setAppliedStoreCoupons((prev) => {
+            const next = { ...prev };
+            delete next[voucherModalStore.key];
+            return next;
+          });
+        }}
+        isIndo={isIndo}
+        formatMoney={formatCurrency}
+      />
+    )}
+    </>
   );
 }

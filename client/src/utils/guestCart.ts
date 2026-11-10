@@ -5,6 +5,9 @@ export type GuestCartItem = {
   name?: string;
   price?: number;
   imageUrl?: string | null;
+  storeId?: number | null;
+  storeName?: string | null;
+  storeSlug?: string | null;
   variantKey?: string | null;
   variantLabel?: string | null;
   variantSelections?: Array<{
@@ -58,10 +61,28 @@ const normalizeGuestItem = (item: any): GuestCartItem | null => {
     return null;
   }
   const variantKey = String(item?.variantKey || "").trim() || null;
+  const rawStoreId = Number(item?.storeId ?? item?.store?.id);
+  const storeId = Number.isFinite(rawStoreId) && rawStoreId > 0 ? rawStoreId : null;
+  const storeName =
+    typeof item?.storeName === "string" && item.storeName.trim()
+      ? item.storeName.trim()
+      : typeof item?.store?.name === "string" && item.store.name.trim()
+        ? item.store.name.trim()
+        : null;
+  const storeSlug =
+    typeof item?.storeSlug === "string" && item.storeSlug.trim()
+      ? item.storeSlug.trim()
+      : typeof item?.store?.slug === "string" && item.store.slug.trim()
+        ? item.store.slug.trim()
+        : null;
+
   return {
     productId,
     qty,
     lineId: buildGuestCartLineId(productId, variantKey),
+    storeId,
+    storeName,
+    storeSlug,
     name:
       typeof item?.name === "string"
         ? item.name
