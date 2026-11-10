@@ -415,10 +415,11 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 48px;
+  width: 52px;
+  min-width: 52px;
   height: 48px;
   color: var(--pdp-navy);
-  font-size: 0.65rem;
+  font-size: 0.68rem;
   font-weight: 700;
   border: none;
   background: transparent;
@@ -449,62 +450,73 @@
   line-height: 1.2;
 }
 
-/* Desktop CTA Buttons */
-.pdp26-btn-add-cart {
-  flex: 1;
-  height: 44px;
-  background: var(--pdp-navy);
-  color: #ffffff;
-  border: none;
-  border-radius: 10px;
-  font-size: 0.88rem;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  cursor: pointer;
-  transition: background-color 0.15s ease, transform 0.1s ease;
+/* Desktop CTA Buttons (Strictly isolated to sm: and above >= 640px) */
+@media (min-width: 640px) {
+  .pdp26-btn-add-cart {
+    flex: 1;
+    height: 44px;
+    background: var(--pdp-navy);
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: background-color 0.15s ease, transform 0.1s ease;
+  }
+
+  .pdp26-btn-add-cart:hover:not(:disabled) {
+    background: var(--pdp-navy-hover);
+  }
+
+  .pdp26-btn-add-cart:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .pdp26-btn-buy-now {
+    flex: 1.2;
+    height: 44px;
+    background: var(--pdp-orange);
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: background-color 0.15s ease, transform 0.1s ease;
+  }
+
+  .pdp26-btn-buy-now:hover:not(:disabled) {
+    background: var(--pdp-orange-hover);
+  }
+
+  .pdp26-btn-buy-now:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }
 
-.pdp26-btn-add-cart:hover:not(:disabled) {
-  background: var(--pdp-navy-hover);
-}
-
-.pdp26-btn-add-cart:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.pdp26-btn-buy-now {
-  flex: 1.2;
-  height: 44px;
-  background: var(--pdp-orange);
-  color: #ffffff;
-  border: none;
-  border-radius: 10px;
-  font-size: 0.88rem;
-  font-weight: 900;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  cursor: pointer;
-  transition: background-color 0.15s ease, transform 0.1s ease;
-}
-
-.pdp26-btn-buy-now:hover:not(:disabled) {
-  background: var(--pdp-orange-hover);
-}
-
-.pdp26-btn-buy-now:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+/* Prevent desktop buttons leaking to mobile viewport */
+@media (max-width: 639px) {
+  .pdp26-btn-add-cart,
+  .pdp26-btn-buy-now {
+    display: none !important;
+  }
 }
 
 /* Mobile Shopee Combined CTA Button (Zero truncation on 375px!) */
 .pdp26-mobile-buy-btn {
   flex: 1;
+  min-width: 0;
   height: 46px;
   background: var(--pdp-orange);
   color: #ffffff;
@@ -518,6 +530,12 @@
   transition: background-color 0.15s ease;
   line-height: 1.15;
   padding: 0 8px;
+}
+
+@media (min-width: 640px) {
+  .pdp26-mobile-buy-btn {
+    display: none !important;
+  }
 }
 
 .pdp26-mobile-buy-btn:hover:not(:disabled) {

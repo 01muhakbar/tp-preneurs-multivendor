@@ -35,6 +35,7 @@ import { useProduct, useProducts } from "../../storefront.jsx";
 import { ensureProductImageUrl, resolveProductImageUrl } from "../../utils/productImage.js";
 import { useStorefrontWishlist } from "../../utils/storefrontWishlist.js";
 import { toPreferredWhatsAppLink } from "../../utils/storePublicIdentity.ts";
+import { getStorePublicIdentityBySlug } from "../../api/storePublicIdentity.ts";
 import "./store-product-detail-2026.css";
 
 const DEFAULT_LIMIT = 12;
@@ -515,6 +516,48 @@ export default function StoreProductDetailPage2026() {
   const storeCity = text(product?.store?.city, storeInfo?.city, "Kota Makassar");
   const storeLogo = resolveAssetUrl(storeInfo?.logoUrl || product?.store?.logoUrl);
 
+  const identityQuery = useQuery({
+    queryKey: ["storefront", "identity", storeSlug],
+    queryFn: () => getStorePublicIdentityBySlug(storeSlug),
+    enabled: Boolean(storeSlug),
+    staleTime: 60 * 1000,
+  });
+
+  const storeSummary = identityQuery.data?.data?.summary;
+  const storeRatingAverage =
+    storeSummary?.ratingAverage !== undefined && storeSummary?.ratingAverage !== null
+      ? Number(storeSummary.ratingAverage)
+      : storeInfo?.ratingAverage !== undefined && storeInfo?.ratingAverage !== null
+        ? Number(storeInfo.ratingAverage)
+        : rating;
+  const storeRatingCount =
+    storeSummary?.ratingCount !== undefined && storeSummary?.ratingCount !== null
+      ? Number(storeSummary.ratingCount)
+      : storeInfo?.ratingCount !== undefined && storeInfo?.ratingCount !== null
+        ? Number(storeInfo.ratingCount)
+        : reviewCount;
+  const storeProductCount =
+    storeSummary?.productCount !== undefined && storeSummary?.productCount !== null
+      ? Number(storeSummary.productCount)
+      : storeInfo?.productCount || 1;
+  const storeResponseRate =
+    storeSummary?.responseRate !== undefined && storeSummary?.responseRate !== null
+      ? Number(storeSummary.responseRate)
+      : storeInfo?.responseRate || 100;
+
+  const filteredReviews = useMemo(() => {
+    if (!reviews || reviews.length === 0) return [];
+    if (activeReviewFilter === "photo") {
+      return reviews.filter((r) => Array.isArray(r.images) && r.images.length > 0);
+    }
+    if (activeReviewFilter === "5star") return reviews.filter((r) => r.rating === 5);
+    if (activeReviewFilter === "4star") return reviews.filter((r) => r.rating === 4);
+    if (activeReviewFilter === "3star") return reviews.filter((r) => r.rating === 3);
+    if (activeReviewFilter === "2star") return reviews.filter((r) => r.rating === 2);
+    if (activeReviewFilter === "1star") return reviews.filter((r) => r.rating === 1);
+    return reviews;
+  }, [reviews, activeReviewFilter]);
+
   const rawWhatsApp =
     storeInfo?.chatHref ||
     storeInfo?.whatsapp ||
@@ -827,7 +870,7 @@ export default function StoreProductDetailPage2026() {
               <div className="flex items-center gap-1">
                 <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
                 <span className="text-xs font-black text-slate-900 dark:text-white">
-                  {rating > 0 ? rating.toFixed(1) : "5.0"}
+                  {rating > 0 ? rating.toFixed(1) : "0.0"}
                 </span>
               </div>
               <span className="text-slate-300 dark:text-slate-700">•</span>
@@ -976,12 +1019,12 @@ export default function StoreProductDetailPage2026() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-              5.0
+              {storeRatingCount > 0 && storeRatingAverage ? Number(storeRatingAverage).toFixed(1) : "0.0"}
             </span>
             <div className="flex items-center gap-1 text-sm font-bold text-amber-500">
               <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
               <span className="text-sm font-bold text-slate-900 dark:text-white">
-                {t("productDetail.storeRating")} ({reviewCount || "286"})
+                {t("productDetail.storeRating")} ({storeRatingCount})
               </span>
             </div>
           </div>
@@ -994,16 +1037,16 @@ export default function StoreProductDetailPage2026() {
           </button>
         </div>
 
-        {/* Shopee Review Tag Filter Pills */}
+        {/* Shopee Review Star Filter Pills */}
         <div className="pdp26-hide-scroll flex gap-2 overflow-x-auto pb-1">
           {[
             { key: "all", label: isIndo ? "Semua" : "All" },
             { key: "photo", label: isIndo ? "Dengan Foto" : "With Photos" },
-            { key: "safe_pack", label: isIndo ? "Kemasan aman (8)" : "Safe pack (8)" },
-            { key: "fast_ship", label: isIndo ? "Pengiriman cepat (6)" : "Fast delivery (6)" },
-            { key: "satisfied", label: isIndo ? "Puas (6)" : "Satisfied (6)" },
-            { key: "good_product", label: isIndo ? "Barang bagus (5)" : "Good quality (5)" },
-            { key: "friendly_seller", label: isIndo ? "Penjual ramah (4)" : "Friendly seller (4)" },
+            { key: "5star", label: isIndo ? "5 Bintang" : "5 Stars" },
+            { key: "4star", label: isIndo ? "4 Bintang" : "4 Stars" },
+            { key: "3star", label: isIndo ? "3 Bintang" : "3 Stars" },
+            { key: "2star", label: isIndo ? "2 Bintang" : "2 Stars" },
+            { key: "1star", label: isIndo ? "1 Bintang" : "1 Star" },
           ].map((item) => (
             <button
               key={item.key}
@@ -1019,9 +1062,9 @@ export default function StoreProductDetailPage2026() {
         </div>
 
         {/* Reviews List */}
-        {reviews.length > 0 ? (
+        {filteredReviews.length > 0 ? (
           <div className="space-y-3.5 pt-2 divide-y divide-slate-100 dark:divide-white/5">
-            {reviews.map((rev) => (
+            {filteredReviews.map((rev) => (
               <div key={rev.id} className="pt-3 first:pt-0 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -1059,10 +1102,14 @@ export default function StoreProductDetailPage2026() {
             ))}
           </div>
         ) : (
-          <div className="py-2 text-xs text-slate-400">
-            {isIndo
-              ? "Ulasan bintang 5 dari pembeli terverifikasi akan tampil di sini."
-              : "5-star reviews from verified buyers will appear here."}
+          <div className="py-2.5 text-xs text-slate-500 dark:text-slate-400">
+            {storeRatingCount === 0
+              ? isIndo
+                ? "Belum ada ulasan untuk toko ini."
+                : "No reviews for this store yet."
+              : isIndo
+                ? "Tidak ada ulasan pada filter ini."
+                : "No reviews found for this filter."}
           </div>
         )}
       </div>
@@ -1114,15 +1161,17 @@ export default function StoreProductDetailPage2026() {
         {/* 3 Metrics: Penilaian, Produk, Chat Dibalas */}
         <div className="grid grid-cols-3 divide-x divide-slate-200 rounded-xl border border-slate-200 bg-slate-50/60 dark:divide-white/10 dark:border-white/10 dark:bg-slate-900/40">
           <div className="pdp26-metric-box">
-            <span className="pdp26-metric-val">5.0</span>
+            <span className="pdp26-metric-val">
+              {storeRatingCount > 0 && storeRatingAverage ? Number(storeRatingAverage).toFixed(1) : "0.0"}
+            </span>
             <span className="pdp26-metric-lbl">{t("productDetail.rating")}</span>
           </div>
           <div className="pdp26-metric-box">
-            <span className="pdp26-metric-val">{storeInfo?.productCount || 1}</span>
+            <span className="pdp26-metric-val">{storeProductCount}</span>
             <span className="pdp26-metric-lbl">{t("productDetail.productsCount")}</span>
           </div>
           <div className="pdp26-metric-box">
-            <span className="pdp26-metric-val">100%</span>
+            <span className="pdp26-metric-val">{storeResponseRate ? `${storeResponseRate}%` : "100%"}</span>
             <span className="pdp26-metric-lbl">{t("productDetail.chatResponseRate")}</span>
           </div>
         </div>
@@ -1328,10 +1377,10 @@ export default function StoreProductDetailPage2026() {
         />
       )}
 
-      {/* 9. Shopee Sticky Bottom Action Bar (Zero Truncation on Mobile 375px!) */}
+      {/* 9. Shopee Sticky Bottom Action Bar (Clean 3-CTA Layout on Mobile 375px!) */}
       <div className="pdp26-sticky-bar">
         <div className="pdp26-sticky-inner">
-          {/* Chat Icon Button */}
+          {/* 1. Chat Action Button */}
           {whatsappChatHref ? (
             <a
               href={whatsappChatHref}
@@ -1352,23 +1401,7 @@ export default function StoreProductDetailPage2026() {
 
           <div className="h-7 w-[1px] bg-slate-200 dark:bg-white/10 shrink-0" />
 
-          {/* Cart Icon Button with Badge Counter */}
-          <button
-            type="button"
-            onClick={() => navigate("/cart")}
-            className="pdp26-icon-action"
-            title="Keranjang"
-          >
-            <ShoppingCart className="h-5 w-5" />
-            <span>{isIndo ? "Keranjang" : "Cart"}</span>
-            {cart.totalItems > 0 && (
-              <span className="pdp26-badge-count">{cart.totalItems}</span>
-            )}
-          </button>
-
-          <div className="h-7 w-[1px] bg-slate-200 dark:bg-white/10 shrink-0 sm:hidden" />
-
-          {/* Mobile Shopee Combined CTA Button (Zero truncation on 375px!) */}
+          {/* 2. Mobile + Keranjang Action Button */}
           <button
             type="button"
             onClick={handleAddToCart}
@@ -1380,6 +1413,7 @@ export default function StoreProductDetailPage2026() {
             <span className="text-[10px] leading-tight font-bold mt-0.5">{isIndo ? "+ Keranjang" : "+ Cart"}</span>
           </button>
 
+          {/* 3. Mobile Beli Sekarang Button (Full Flex-1 with Price) */}
           <button
             type="button"
             onClick={handleBuyNow}
@@ -1394,7 +1428,7 @@ export default function StoreProductDetailPage2026() {
             </span>
           </button>
 
-          {/* Desktop Direct CTA Buttons */}
+          {/* Desktop Direct CTA Buttons (Strictly isolated on sm: and above >= 640px) */}
           <button
             type="button"
             onClick={handleAddToCart}
