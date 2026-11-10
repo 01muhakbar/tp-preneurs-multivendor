@@ -4,7 +4,6 @@ import {
   Plus,
   ShoppingCart,
   Star,
-  Truck,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -111,14 +110,6 @@ export default function ShopProductCard2026({
             </div>
           )}
 
-          {/* Top-left Badges */}
-          <div className="tp-shopee-card__badges-corner">
-            <span className="tp-shopee-badge-star">
-              <Star className="w-2.5 h-2.5 fill-current" />
-              <span>{storeBadge}</span>
-            </span>
-          </div>
-
           {/* Discount Tag */}
           {card.discount > 0 && (
             <span className="tp-shopee-badge-discount">
@@ -157,13 +148,6 @@ export default function ShopProductCard2026({
             )}
           </div>
 
-          {/* Promo Tag */}
-          <div className="tp-shopee-card__promo-row">
-            <span className="tp-shopee-promo-pill">
-              {isIndo ? "Gratis Ongkir" : "Free Shipping"}
-            </span>
-          </div>
-
           {/* Social Proof (Rating & Sold) */}
           <div className="tp-shopee-card__social-row">
             <div className="tp-shopee-card__rating">
@@ -177,10 +161,6 @@ export default function ShopProductCard2026({
           {/* Location & Quick Cart Action */}
           <div className="tp-shopee-card__footer">
             <div className="tp-shopee-card__meta">
-              <span className="tp-shopee-card__delivery">
-                <Truck className="w-3 h-3 text-[#034c85]" />
-                <small>{isIndo ? "< 2 Hari" : "< 2 Days"}</small>
-              </span>
               <span className="tp-shopee-card__city">
                 <MapPin className="w-2.5 h-2.5 opacity-60" />
                 <small>{card.storeCity || "Makassar"}</small>

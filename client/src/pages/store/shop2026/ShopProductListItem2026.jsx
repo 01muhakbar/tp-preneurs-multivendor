@@ -3,7 +3,6 @@ import {
   MapPin,
   Plus,
   Star,
-  Truck,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -130,7 +129,6 @@ export default function ShopProductListItem2026({
             {card.originalPrice > card.price && card.price > 0 && (
               <del className="tp-shopee-card__original-price">{formatCurrency(card.originalPrice)}</del>
             )}
-            <span className="tp-shopee-promo-pill">{isIndo ? "Gratis Ongkir" : "Free Shipping"}</span>
           </div>
 
           <div className="tp-shopee-list-item__meta-row">
@@ -141,10 +139,6 @@ export default function ShopProductListItem2026({
             <span className="tp-shopee-card__dot">•</span>
             <span className="tp-shopee-card__sold">{soldText}</span>
             <span className="tp-shopee-card__dot">•</span>
-            <span className="tp-shopee-card__delivery">
-              <Truck className="w-3 h-3 text-[#034c85]" />
-              <small>{isIndo ? "< 2 Hari" : "< 2 Days"}</small>
-            </span>
             <span className="tp-shopee-card__city">
               <MapPin className="w-2.5 h-2.5 opacity-60" />
               <small>{card.storeCity || "Makassar"}</small>
