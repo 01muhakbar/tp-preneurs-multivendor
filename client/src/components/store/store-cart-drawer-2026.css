@@ -1,6 +1,11 @@
+/* ==========================================================================
+   TP PRENEURS - SHOPEE CART DRAWER 2026
+   Brand Colors: Navy #034c85 | Accent Orange #fe6f05
+   ========================================================================== */
+
 .store-cart-drawer-2026-scroll {
   scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+  scrollbar-color: rgba(3, 76, 133, 0.4) transparent;
 }
 
 .store-cart-drawer-2026-scroll::-webkit-scrollbar {
@@ -12,33 +17,23 @@
 }
 
 .store-cart-drawer-2026-scroll::-webkit-scrollbar-thumb {
-  background-color: rgba(148, 163, 184, 0.4);
+  background-color: rgba(3, 76, 133, 0.4);
   border-radius: 10px;
 }
 
-.dark .store-cart-drawer-2026-scroll::-webkit-scrollbar-thumb {
-  background-color: rgba(148, 163, 184, 0.2);
+.sc26-shopee-drawer-bottom-bar {
+  background: #0d1b32;
+  border-top: 1.5px solid rgba(3, 76, 133, 0.45);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45);
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
 }
 
-.store-cart-drawer-2026-sheet {
-  padding-bottom: env(safe-area-inset-bottom);
+.sc26-shopee-drawer-bottom-bar .sc26-shopee-sticky-action-row {
+  max-width: none;
+  padding: 10px 14px;
 }
 
-@media (max-width: 767px) {
-  .store-cart-drawer-2026-mobile-grip::before {
-    content: '';
-    position: absolute;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 36px;
-    height: 4px;
-    background-color: #cbd5e1;
-    border-radius: 4px;
-    z-index: 10;
-  }
-  
-  .dark .store-cart-drawer-2026-mobile-grip::before {
-    background-color: #334155;
-  }
+.sc26-shopee-drawer-bottom-bar .sc26-shopee-sticky-voucher {
+  max-width: none;
+  padding: 7px 14px;
 }

@@ -2,6 +2,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   Check,
+  ChevronDown,
   ChevronRight,
   Heart,
   Minus,
@@ -264,7 +265,7 @@ export default function StoreCart2026View({
                             alt={item.name}
                             className="sc26-shopee-item-thumb"
                           />
-                          {item.stock !== null && item.stock !== undefined && item.stock <= 5 && item.stock > 0 && (
+                          {item.stock !== null && item.stock !== undefined && item.stock <= 10 && item.stock > 0 && (
                             <span className="sc26-shopee-item-stock-tag">
                               {isIndo ? `Tersisa ${item.stock}` : `Only ${item.stock} left`}
                             </span>
@@ -286,6 +287,7 @@ export default function StoreCart2026View({
                               {variantLines.map((line, idx) => (
                                 <span key={idx} className="sc26-shopee-variant-pill">
                                   {line}
+                                  <ChevronDown className="w-3 h-3 ml-1 opacity-70 inline" />
                                 </span>
                               ))}
                             </div>
@@ -302,7 +304,7 @@ export default function StoreCart2026View({
                                 type="button"
                                 className="sc26-shopee-step-btn"
                                 onClick={() => onDecrease(item)}
-                                disabled={item.quantity <= 1 || status.busy}
+                                disabled={status.busy}
                                 aria-label="Decrease quantity"
                               >
                                 <Minus className="w-3 h-3" />
@@ -323,17 +325,6 @@ export default function StoreCart2026View({
                                 <Plus className="w-3 h-3" />
                               </button>
                             </div>
-
-                            <button
-                              type="button"
-                              className="sc26-shopee-item-trash"
-                              onClick={() => onRemove(item)}
-                              disabled={status.busy}
-                              title={isIndo ? "Hapus" : "Remove"}
-                              aria-label={isIndo ? "Hapus" : "Remove"}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
                           </div>
 
                           {/* Invalid Item Alert Banner */}
