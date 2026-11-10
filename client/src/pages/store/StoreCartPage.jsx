@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import toast from "react-hot-toast";
 import { getStoreCustomization } from "../../api/public/storeCustomizationPublic.ts";
 import { previewCheckoutByStore } from "../../api/public/storeCheckout.ts";
 import { useCart } from "../../hooks/useCart.ts";
+import { useStorefrontWishlist } from "../../utils/storefrontWishlist.js";
 import { formatCurrency } from "../../utils/format.js";
 import {
   findInvalidVariantCheckoutItem,
@@ -111,7 +113,6 @@ export default function StoreCartPage() {
   const { i18n } = useTranslation();
   const [, setLangSyncCounter] = useState(0);
 
-  // Reactive language detection that listens to header language changes
   const isIndo =
     i18n.language === "id" ||
     i18n.language === "id-ID" ||
@@ -150,6 +151,34 @@ export default function StoreCartPage() {
     remove,
     refreshCart,
   } = useCart();
+  const wishlist = useStorefrontWishlist();
+
+  const [selectedLineIds, setSelectedLineIds] = useState(() => new Set());
+  const [isEditMode, setIsEditMode] = useState(false);
+
+  // Sync selected items with available items
+  useEffect(() => {
+    if (!items || items.length === 0) {
+      setSelectedLineIds(new Set());
+      return;
+    }
+    setSelectedLineIds((prev) => {
+      const next = new Set();
+      let hasOverlap = false;
+      items.forEach((it) => {
+        if (prev.has(it.lineId)) {
+          next.add(it.lineId);
+          hasOverlap = true;
+        }
+      });
+      // If nothing selected or first load, select all
+      if (!hasOverlap) {
+        items.forEach((it) => next.add(it.lineId));
+      }
+      return next;
+    });
+  }, [items]);
+
   const hasItems = items.length > 0;
   const isInitialSyncing = hasHydrated && isLoading && !hasItems;
   const showSkeleton = !hasHydrated || isInitialSyncing;
@@ -170,10 +199,6 @@ export default function StoreCartPage() {
     items,
     hasHydrated && hasItems && !isLoading && hasCheckoutAuthHint
   );
-  const subtotalValue = Number(subtotal || 0);
-  const discountValue = 0;
-  const canProceedToCheckout =
-    hasItems && !hasCheckoutPreflightInvalidItems && !isCheckoutPreflightLoading;
 
   useEffect(() => {
     const now = Date.now();
@@ -206,7 +231,35 @@ export default function StoreCartPage() {
     [navigate]
   );
 
+  // Selected items calculations
+  const selectedItems = useMemo(() => {
+    return items.filter((it) => selectedLineIds.has(it.lineId));
+  }, [items, selectedLineIds]);
+
+  const selectedSubtotal = useMemo(() => {
+    return selectedItems.reduce(
+      (acc, it) => acc + Number(it.price || 0) * Number(it.quantity || it.qty || 1),
+      0
+    );
+  }, [selectedItems]);
+
+  const selectedCount = useMemo(() => {
+    return selectedItems.reduce(
+      (acc, it) => acc + Number(it.quantity || it.qty || 1),
+      0
+    );
+  }, [selectedItems]);
+
+  const canProceedToCheckout =
+    selectedItems.length > 0 &&
+    !hasCheckoutPreflightInvalidItems &&
+    !isCheckoutPreflightLoading;
+
   const handleProceedToCheckout = useCallback(() => {
+    if (selectedItems.length === 0) {
+      toast(isIndo ? "Pilih produk yang ingin di-checkout terlebih dahulu." : "Please select products to checkout first.");
+      return;
+    }
     if (!canProceedToCheckout) {
       if (hasCheckoutPreflightInvalidItems) {
         scrollToFirstCartInvalidItem('[data-cart-page-invalid-item="true"]');
@@ -214,20 +267,83 @@ export default function StoreCartPage() {
       return;
     }
     navigate("/checkout");
-  }, [canProceedToCheckout, hasCheckoutPreflightInvalidItems, navigate]);
+  }, [canProceedToCheckout, hasCheckoutPreflightInvalidItems, isIndo, navigate, selectedItems.length]);
 
   const handleReviewIssues = useCallback(() => {
     scrollToFirstCartInvalidItem('[data-cart-page-invalid-item="true"]');
   }, []);
 
-  const viewModel = createStoreCart2026ViewModel({
-    cartItems: items,
-    cart: {
-      ...cart,
-      subtotal: subtotalValue,
-      discount: discountValue,
-    },
-  });
+  const viewModel = useMemo(() => {
+    return createStoreCart2026ViewModel({
+      cartItems: items,
+      cart: {
+        ...cart,
+        subtotal: selectedSubtotal,
+        discount: 0,
+      },
+    });
+  }, [cart, items, selectedSubtotal]);
+
+  // Selection handlers
+  const handleToggleSelect = useCallback((lineId) => {
+    setSelectedLineIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(lineId)) next.delete(lineId);
+      else next.add(lineId);
+      return next;
+    });
+  }, []);
+
+  const handleToggleStore = useCallback((storeLineIds) => {
+    setSelectedLineIds((prev) => {
+      const next = new Set(prev);
+      const allSelected = storeLineIds.every((id) => next.has(id));
+      if (allSelected) {
+        storeLineIds.forEach((id) => next.delete(id));
+      } else {
+        storeLineIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  }, []);
+
+  const handleToggleAll = useCallback(() => {
+    setSelectedLineIds((prev) => {
+      if (prev.size === items.length) {
+        return new Set();
+      }
+      return new Set(items.map((it) => it.lineId));
+    });
+  }, [items]);
+
+  const handleBatchRemove = useCallback(async () => {
+    const toRemove = items.filter((it) => selectedLineIds.has(it.lineId));
+    if (toRemove.length === 0) return;
+    for (const item of toRemove) {
+      const target = resolveCartTarget(item);
+      if (target.productId) await remove(target);
+    }
+    toast.success(
+      isIndo
+        ? `${toRemove.length} produk dihapus dari keranjang.`
+        : `${toRemove.length} item(s) removed from cart.`
+    );
+  }, [isIndo, items, remove, selectedLineIds]);
+
+  const handleBatchWishlist = useCallback(async () => {
+    const toWishlist = items.filter((it) => selectedLineIds.has(it.lineId));
+    if (toWishlist.length === 0) return;
+    for (const item of toWishlist) {
+      wishlist.add(item);
+      const target = resolveCartTarget(item);
+      if (target.productId) await remove(target);
+    }
+    toast.success(
+      isIndo
+        ? `${toWishlist.length} produk dipindahkan ke Wishlist.`
+        : `${toWishlist.length} item(s) moved to Wishlist.`
+    );
+  }, [isIndo, items, remove, selectedLineIds, wishlist]);
 
   const handleDecrease = (item, quantity = item.quantity - 1) => {
     const target = resolveCartTarget(item.raw || item);
@@ -275,6 +391,16 @@ export default function StoreCartPage() {
         canCheckout: canProceedToCheckout,
       }}
       formatMoney={formatCurrency}
+      selectedLineIds={selectedLineIds}
+      selectedCount={selectedCount}
+      selectedSubtotal={selectedSubtotal}
+      isEditMode={isEditMode}
+      onToggleEditMode={() => setIsEditMode((prev) => !prev)}
+      onToggleSelect={handleToggleSelect}
+      onToggleStore={handleToggleStore}
+      onToggleAll={handleToggleAll}
+      onBatchRemove={handleBatchRemove}
+      onBatchWishlist={handleBatchWishlist}
       getInvalidItem={(item) =>
         findInvalidVariantCheckoutItem(checkoutPreflightInvalidItems, item.raw || item)
       }
@@ -293,5 +419,4 @@ export default function StoreCartPage() {
       onContinueShopping={() => navigate("/shop")}
     />
   );
-
 }
