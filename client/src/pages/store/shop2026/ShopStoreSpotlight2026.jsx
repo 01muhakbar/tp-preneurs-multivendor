@@ -72,3 +72,4 @@ export default function ShopStoreSpotlight2026({ store, products = [] }) {
     </div>
   );
 }
+

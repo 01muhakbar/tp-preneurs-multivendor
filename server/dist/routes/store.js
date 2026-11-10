@@ -941,12 +941,16 @@ const toProductListItem = (product) => {
             slug: plain.category.code,
         }
         : null;
+    const soldCount = Math.max(0, Math.round(toSafeNumber(plain?.soldCount ?? plain?.sold_count, 0)));
     const store = plain?.store
         ? {
             id: plain.store.id ?? null,
             name: plain.store.name ?? null,
             slug: plain.store.slug ?? null,
             status: plain.store.status ?? null,
+            city: plain.store.city ?? null,
+            logoUrl: plain.store.logoUrl ?? plain.store.logo_url ?? null,
+            bannerUrl: plain.store.bannerUrl ?? plain.store.banner_url ?? null,
         }
         : null;
     const purchaseState = buildPublicPurchaseState(plain, plain?.store ?? null);
@@ -982,6 +986,7 @@ const toProductListItem = (product) => {
         discountPercent,
         ratingAvg,
         reviewCount,
+        soldCount,
         unit,
         imageUrl,
         imagePaths: normalizedImagePaths,
@@ -1192,6 +1197,7 @@ router.get("/products", async (req, res, next) => {
         const hasMinRating = Number.isFinite(minRatingParam) && minRatingParam > 0;
         const effectivePriceExpr = sequelize.literal("(CASE WHEN Product.sale_price IS NOT NULL AND Product.sale_price > 0 AND Product.sale_price < Product.price THEN Product.sale_price ELSE Product.price END)");
         const ratingExpr = sequelize.literal("(SELECT COALESCE(ROUND(AVG(pr.rating), 1), 0) FROM product_reviews pr WHERE pr.product_id = Product.id AND COALESCE(pr.status, 'published') = 'published')");
+        const soldCountExpr = sequelize.literal("(SELECT COALESCE(SUM(oi.quantity), 0) FROM order_items oi WHERE oi.product_id = Product.id)");
         const where = buildPublicProductWhere();
         if (search) {
             where.name = { [Op.like]: `%${search}%` };
@@ -1307,9 +1313,11 @@ router.get("/products", async (req, res, next) => {
                 ? [[effectivePriceExpr, "DESC"], ["createdAt", "DESC"]]
                 : sortParam === "highest_rated"
                     ? [[ratingExpr, "DESC"], ["createdAt", "DESC"]]
-                    : sortParam === "newest"
-                        ? newestOrder
-                        : [["createdAt", "DESC"]];
+                    : sortParam === "top_sales" || sortParam === "terlaris" || sortParam === "popular"
+                        ? [[soldCountExpr, "DESC"], ["createdAt", "DESC"]]
+                        : sortParam === "newest"
+                            ? newestOrder
+                            : [["createdAt", "DESC"]];
         const { rows, count } = await Product.findAndCountAll({
             where,
             attributes: [
@@ -1342,11 +1350,15 @@ router.get("/products", async (req, res, next) => {
                     sequelize.literal("(SELECT COUNT(*) FROM product_reviews pr WHERE pr.product_id = Product.id AND COALESCE(pr.status, 'published') = 'published')"),
                     "reviewCount",
                 ],
+                [
+                    soldCountExpr,
+                    "soldCount",
+                ],
             ],
             include: [
                 { model: Category, as: "category", attributes: ["id", "name", "code"] },
                 buildPublicOperationalStoreInclude({
-                    attributes: ["id", "name", "slug", "status"],
+                    attributes: ["id", "name", "slug", "status", "city", "logoUrl", "bannerUrl"],
                 }),
             ],
             order,
