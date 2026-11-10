@@ -668,9 +668,9 @@ export default function StoreProductDetailPage2026() {
   const rawDescription = getProductDescription(product);
 
   return (
-    <div className="pdp26-container space-y-4 px-3 sm:px-4 lg:px-6">
-      {/* 1. Breadcrumb Navigation */}
-      <nav className="flex flex-wrap items-center gap-1.5 pt-3 text-xs font-semibold text-slate-500 dark:text-slate-400">
+    <div className="pdp26-container space-y-0 sm:space-y-4 px-0 sm:px-4 lg:px-6">
+      {/* 1. Breadcrumb Navigation (Desktop Only - Hidden on Mobile to save vertical space) */}
+      <nav className="hidden sm:flex flex-wrap items-center gap-1.5 pt-3 text-xs font-semibold text-slate-500 dark:text-slate-400">
         <Link to="/" className="inline-flex items-center gap-1 hover:text-[var(--pdp-navy)] dark:hover:text-white">
           <Home className="h-3.5 w-3.5" />
           <span>{t("productDetail.home")}</span>
@@ -689,10 +689,10 @@ export default function StoreProductDetailPage2026() {
       </nav>
 
       {/* 2. Top Main Card: Hero Gallery (Left) & Price/Title/Actions (Right) */}
-      <div className="pdp26-card grid gap-6 p-4 sm:p-6 lg:grid-cols-2">
-        {/* Left: Gallery with Shopee Counter (1/3) */}
-        <div className="space-y-3">
-          <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-slate-50 dark:bg-slate-900">
+      <div className="pdp26-card grid gap-0 sm:gap-6 p-0 sm:p-6 lg:grid-cols-2">
+        {/* Left: Gallery with Shopee Counter (1/3) & Swipe Chevrons */}
+        <div className="space-y-0 sm:space-y-3">
+          <div className="relative aspect-square w-full overflow-hidden bg-slate-50 dark:bg-slate-900 sm:rounded-xl">
             {activeImage ? (
               <button
                 type="button"
@@ -712,31 +712,45 @@ export default function StoreProductDetailPage2026() {
               </div>
             )}
 
+            {/* Tap Chevrons for Easy Image Navigation on Mobile & Desktop */}
+            {images.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImageIndex((idx) => (idx - 1 + images.length) % images.length);
+                  }}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-slate-900/40 text-white backdrop-blur transition hover:bg-slate-900/60"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImageIndex((idx) => (idx + 1) % images.length);
+                  }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-slate-900/40 text-white backdrop-blur transition hover:bg-slate-900/60"
+                  aria-label="Next image"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </>
+            )}
+
             {/* Shopee Style Counter Badge 1/N */}
             {images.length > 1 && (
               <div className="pdp26-counter-badge">
                 {activeImageIndex + 1}/{images.length}
               </div>
             )}
-
-            {/* Wishlist Button */}
-            <button
-              type="button"
-              onClick={handleWishlistToggle}
-              aria-label="Wishlist"
-              className={`absolute top-3 right-3 inline-flex h-10 w-10 items-center justify-center rounded-full border shadow-sm transition ${
-                isWishlisted
-                  ? "border-[var(--pdp-orange)] bg-[var(--pdp-orange)] text-white"
-                  : "border-slate-200 bg-white/90 text-slate-700 hover:text-[var(--pdp-orange)] dark:border-white/10 dark:bg-slate-800/90 dark:text-white"
-              }`}
-            >
-              <Heart className={`h-5 w-5 ${isWishlisted ? "fill-current" : ""}`} />
-            </button>
           </div>
 
-          {/* Thumbnails row */}
+          {/* Thumbnails row (Desktop Only - hidden on mobile to avoid pushing content below fold) */}
           {images.length > 1 && (
-            <div className="pdp26-hide-scroll flex gap-2 overflow-x-auto pb-1">
+            <div className="pdp26-hide-scroll hidden sm:flex gap-2 overflow-x-auto pb-1">
               {images.map((img, idx) => (
                 <button
                   key={`thumb-${idx}`}
@@ -760,57 +774,87 @@ export default function StoreProductDetailPage2026() {
         </div>
 
         {/* Right: Shopee Price, Benefit Badges, Title & Variants */}
-        <div className="flex flex-col justify-between space-y-4">
+        <div className="flex flex-col justify-between space-y-4 p-4 sm:p-0">
           <div className="space-y-3">
-            {/* Price Row with Shopee Orange & Voucher Badge */}
-            <div className="flex flex-wrap items-baseline gap-2.5">
-              <span className="pdp26-price-main">{rupiah(price)}</span>
-              {originalPrice > price && (
-                <span className="text-sm font-bold text-slate-400 line-through">
-                  {rupiah(originalPrice)}
+            {/* Price Row with Shopee Orange, Voucher Badge & Right-aligned Heart Wishlist Icon */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-wrap items-baseline gap-2">
+                <span className="pdp26-price-main">{rupiah(price)}</span>
+                {originalPrice > price && (
+                  <span className="text-xs font-bold text-slate-400 line-through">
+                    {rupiah(originalPrice)}
+                  </span>
+                )}
+                {discount > 0 && (
+                  <span className="rounded bg-rose-50 px-1.5 py-0.5 text-xs font-black text-rose-600 dark:bg-rose-950/40 dark:text-rose-400">
+                    -{discount}%
+                  </span>
+                )}
+                <span className="pdp26-voucher-badge">
+                  <Tag className="h-3 w-3" />
+                  {t("productDetail.withVoucher")}
                 </span>
-              )}
-              {discount > 0 && (
-                <span className="rounded bg-rose-50 px-1.5 py-0.5 text-xs font-black text-rose-600 dark:bg-rose-950/40 dark:text-rose-400">
-                  -{discount}%
-                </span>
-              )}
-              <span className="pdp26-voucher-badge">
-                <Tag className="h-3 w-3" />
-                {t("productDetail.withVoucher")}
-              </span>
+              </div>
+
+              {/* Shopee-style Wishlist Heart Button right beside price */}
+              <button
+                type="button"
+                onClick={handleWishlistToggle}
+                aria-label="Wishlist"
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-400 hover:text-[var(--pdp-orange)] transition"
+              >
+                <Heart
+                  className={`h-5 w-5 ${
+                    isWishlisted ? "fill-[var(--pdp-orange)] text-[var(--pdp-orange)]" : ""
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Installment / Payment Hint Row */}
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
+              <span>{isIndo ? "Pembayaran Aman & Bergaransi" : "Secure Payment & Guaranteed"}</span>
+              <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
             </div>
 
             {/* Product Title */}
-            <h1 className="text-xl font-black text-slate-900 sm:text-2xl dark:text-white">
+            <h1 className="text-base sm:text-2xl font-black text-slate-900 leading-snug dark:text-white">
               {getProductName(product)}
             </h1>
 
             {/* Ratings, Review Count & Stock Pill */}
-            <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-600 dark:text-slate-300">
+            <div className="flex flex-wrap items-center gap-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300">
               <div className="flex items-center gap-1">
                 <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                <span className="text-sm font-black text-slate-900 dark:text-white">
+                <span className="text-xs font-black text-slate-900 dark:text-white">
                   {rating > 0 ? rating.toFixed(1) : "5.0"}
                 </span>
               </div>
-              <span className="text-slate-300 dark:text-slate-700">|</span>
+              <span className="text-slate-300 dark:text-slate-700">•</span>
               <span>
                 {reviewCount > 0
                   ? t("productDetail.reviewsCount", { count: reviewCount })
                   : isIndo
-                  ? "Belum ada ulasan"
-                  : "No reviews yet"}
+                  ? "0 Ulasan"
+                  : "0 Reviews"}
               </span>
-              <span className="text-slate-300 dark:text-slate-700">|</span>
+              <span className="text-slate-300 dark:text-slate-700">•</span>
+              <span>
+                {product?.soldCount ? `${product.soldCount} ${isIndo ? "Terjual" : "Sold"}` : isIndo ? "0 Terjual" : "0 Sold"}
+              </span>
+              <span className="text-slate-300 dark:text-slate-700">•</span>
               <span
-                className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
                   canPurchase
                     ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
                     : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
                 }`}
               >
-                {canPurchase ? t("productDetail.inStock") : t("productDetail.unavailable")}
+                {canPurchase
+                  ? stock !== null
+                    ? `${t("productDetail.inStock")} (${stock})`
+                    : t("productDetail.inStock")
+                  : t("productDetail.unavailable")}
               </span>
             </div>
 
@@ -852,8 +896,8 @@ export default function StoreProductDetailPage2026() {
               </div>
             )}
 
-            {/* Quantity Stepper Row */}
-            <div className="flex items-center gap-4 pt-1">
+            {/* Quantity Stepper Row (Desktop only or optional) */}
+            <div className="hidden sm:flex items-center gap-4 pt-1">
               <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
                 {isIndo ? "Kuantitas:" : "Quantity:"}
               </span>
@@ -877,7 +921,7 @@ export default function StoreProductDetailPage2026() {
           <div className="space-y-0 rounded-xl border border-slate-200 bg-slate-50/50 overflow-hidden dark:border-white/10 dark:bg-slate-900/40">
             <div className="pdp26-trust-row">
               <div className="flex items-center gap-2.5">
-                <Truck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                <Truck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <div>
                   <span className="font-bold text-slate-900 dark:text-white">
                     {t("productDetail.deliveryEstimate")}
@@ -892,7 +936,7 @@ export default function StoreProductDetailPage2026() {
 
             <div className="pdp26-trust-row">
               <div className="flex items-center gap-2.5">
-                <ShieldCheck className="h-4 w-4 text-[var(--pdp-navy)] dark:text-sky-400" />
+                <ShieldCheck className="h-4 w-4 text-[var(--pdp-navy)] dark:text-sky-400 shrink-0" />
                 <span className="font-bold text-slate-900 dark:text-white">
                   {t("productDetail.returnGuarantee")} • {t("productDetail.productProtection")}
                 </span>
@@ -924,7 +968,109 @@ export default function StoreProductDetailPage2026() {
         </div>
       </div>
 
-      {/* 3. Shopee Seller / Store Card */}
+      {/* Shopee Section Divider */}
+      <div className="pdp26-section-divider" />
+
+      {/* 3. Penilaian Toko / Penilaian Produk (Shopee Style matching Gambar 1 & 5) */}
+      <div className="pdp26-card p-4 sm:p-5 space-y-3.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+              5.0
+            </span>
+            <div className="flex items-center gap-1 text-sm font-bold text-amber-500">
+              <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+              <span className="text-sm font-bold text-slate-900 dark:text-white">
+                {t("productDetail.storeRating")} ({reviewCount || "286"})
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 text-xs font-bold text-[var(--pdp-navy)] dark:text-sky-400"
+          >
+            <span>{t("productDetail.viewAll")}</span>
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        {/* Shopee Review Tag Filter Pills */}
+        <div className="pdp26-hide-scroll flex gap-2 overflow-x-auto pb-1">
+          {[
+            { key: "all", label: isIndo ? "Semua" : "All" },
+            { key: "photo", label: isIndo ? "Dengan Foto" : "With Photos" },
+            { key: "safe_pack", label: isIndo ? "Kemasan aman (8)" : "Safe pack (8)" },
+            { key: "fast_ship", label: isIndo ? "Pengiriman cepat (6)" : "Fast delivery (6)" },
+            { key: "satisfied", label: isIndo ? "Puas (6)" : "Satisfied (6)" },
+            { key: "good_product", label: isIndo ? "Barang bagus (5)" : "Good quality (5)" },
+            { key: "friendly_seller", label: isIndo ? "Penjual ramah (4)" : "Friendly seller (4)" },
+          ].map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => setActiveReviewFilter(item.key)}
+              className={`pdp26-review-pill shrink-0 ${
+                activeReviewFilter === item.key ? "is-active" : ""
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Reviews List */}
+        {reviews.length > 0 ? (
+          <div className="space-y-3.5 pt-2 divide-y divide-slate-100 dark:divide-white/5">
+            {reviews.map((rev) => (
+              <div key={rev.id} className="pt-3 first:pt-0 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--pdp-navy)]/10 text-xs font-black text-[var(--pdp-navy)]">
+                      {rev.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">{rev.name}</span>
+                      <div className="flex items-center gap-0.5">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`h-2.5 w-2.5 ${
+                              i < rev.rating
+                                ? "fill-amber-400 text-amber-400"
+                                : "text-slate-300 dark:text-slate-600"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-[11px] text-slate-400">{rev.date}</span>
+                </div>
+                <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-300">{rev.comment}</p>
+                {rev.sellerReply && (
+                  <div className="rounded-lg border-l-2 border-[var(--pdp-navy)] bg-slate-50 p-2 text-xs dark:bg-slate-900">
+                    <span className="font-bold text-[var(--pdp-navy)] dark:text-sky-400">
+                      {t("productDetail.storeReply")}:
+                    </span>
+                    <p className="mt-0.5 text-slate-600 dark:text-slate-300">{rev.sellerReply}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="py-2 text-xs text-slate-400">
+            {isIndo
+              ? "Ulasan bintang 5 dari pembeli terverifikasi akan tampil di sini."
+              : "5-star reviews from verified buyers will appear here."}
+          </div>
+        )}
+      </div>
+
+      {/* Shopee Section Divider */}
+      <div className="pdp26-section-divider" />
+
+      {/* 4. Shopee Seller / Store Card */}
       <div className="pdp26-card pdp26-store-card space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -939,7 +1085,7 @@ export default function StoreProductDetailPage2026() {
               <div className="flex items-center gap-1.5">
                 <Link
                   to={storeSlug ? `/store/${encodeURIComponent(storeSlug)}` : "/shop"}
-                  className="text-base font-black text-slate-900 hover:text-[var(--pdp-navy)] dark:text-white"
+                  className="text-sm sm:text-base font-black text-slate-900 hover:text-[var(--pdp-navy)] dark:text-white"
                 >
                   {storeName}
                 </Link>
@@ -948,7 +1094,7 @@ export default function StoreProductDetailPage2026() {
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 {isIndo ? "Aktif beberapa saat lalu" : "Active recently"}
               </p>
-              <div className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+              <div className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
                 <MapPin className="h-3 w-3 text-slate-400" />
                 <span>{storeCity}</span>
               </div>
@@ -960,20 +1106,8 @@ export default function StoreProductDetailPage2026() {
               to={storeSlug ? `/store/${encodeURIComponent(storeSlug)}` : "/shop"}
               className="pdp26-btn-visit"
             >
-              <Store className="h-4 w-4" />
               <span>{t("productDetail.visitStore")}</span>
             </Link>
-            {whatsappChatHref && (
-              <a
-                href={whatsappChatHref}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[var(--pdp-navy)] px-4 text-xs font-bold text-white transition hover:bg-[#023b68]"
-              >
-                <MessageCircle className="h-4 w-4" />
-                <span>{t("productDetail.chatSeller")}</span>
-              </a>
-            )}
           </div>
         </div>
 
@@ -981,7 +1115,7 @@ export default function StoreProductDetailPage2026() {
         <div className="grid grid-cols-3 divide-x divide-slate-200 rounded-xl border border-slate-200 bg-slate-50/60 dark:divide-white/10 dark:border-white/10 dark:bg-slate-900/40">
           <div className="pdp26-metric-box">
             <span className="pdp26-metric-val">5.0</span>
-            <span className="pdp26-metric-lbl">{t("productDetail.storeRating")}</span>
+            <span className="pdp26-metric-lbl">{t("productDetail.rating")}</span>
           </div>
           <div className="pdp26-metric-box">
             <span className="pdp26-metric-val">{storeInfo?.productCount || 1}</span>
@@ -994,66 +1128,72 @@ export default function StoreProductDetailPage2026() {
         </div>
       </div>
 
-      {/* 4. "Produk Lain Dari Toko Ini" Shelf */}
-      {storeOtherProducts.length > 0 && (
-        <div className="pdp26-card p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-black text-slate-900 dark:text-white">
-              {t("productDetail.otherProductsFromStore")}
-            </h2>
-            <Link
-              to={storeSlug ? `/store/${encodeURIComponent(storeSlug)}` : "/shop"}
-              className="inline-flex items-center gap-1 text-xs font-bold text-[var(--pdp-navy)] dark:text-sky-400"
-            >
-              <span>{t("productDetail.viewAll")}</span>
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
+      {/* Shopee Section Divider */}
+      <div className="pdp26-section-divider" />
 
-          <div className="pdp26-shelf-scroll">
-            {storeOtherProducts.map((item) => {
-              const itemImg = getProductImages(item)[0] || "";
-              const itemSlug = getProductSlug(item);
-              const itemPrice = getBasePrice(item);
-              return (
-                <Link
-                  key={item.id || itemSlug}
-                  to={`/product/${encodeURIComponent(itemSlug)}`}
-                  className="pdp26-mini-card p-2.5 flex flex-col justify-between"
-                >
-                  <div className="aspect-square w-full overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800">
-                    {itemImg ? (
-                      <img
-                        src={itemImg}
-                        alt={getProductName(item)}
-                        className="h-full w-full object-contain p-1"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-slate-400">
-                        <ShoppingBag className="h-6 w-6" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="mt-2 space-y-1">
-                    <p className="line-clamp-2 text-xs font-bold text-slate-900 dark:text-white">
-                      {getProductName(item)}
-                    </p>
-                    <p className="text-xs font-black text-[var(--pdp-orange)]">
-                      {rupiah(itemPrice)}
-                    </p>
-                  </div>
-                </Link>
-              );
-            })}
+      {/* 5. "Produk Lain Dari Toko Ini" Shelf */}
+      {storeOtherProducts.length > 0 && (
+        <>
+          <div className="pdp26-card p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-black text-slate-900 dark:text-white">
+                {t("productDetail.otherProductsFromStore")}
+              </h2>
+              <Link
+                to={storeSlug ? `/store/${encodeURIComponent(storeSlug)}` : "/shop"}
+                className="inline-flex items-center gap-1 text-xs font-bold text-[var(--pdp-navy)] dark:text-sky-400"
+              >
+                <span>{t("productDetail.viewAll")}</span>
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+
+            <div className="pdp26-shelf-scroll">
+              {storeOtherProducts.map((item) => {
+                const itemImg = getProductImages(item)[0] || "";
+                const itemSlug = getProductSlug(item);
+                const itemPrice = getBasePrice(item);
+                return (
+                  <Link
+                    key={item.id || itemSlug}
+                    to={`/product/${encodeURIComponent(itemSlug)}`}
+                    className="pdp26-mini-card p-2.5 flex flex-col justify-between"
+                  >
+                    <div className="aspect-square w-full overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800">
+                      {itemImg ? (
+                        <img
+                          src={itemImg}
+                          alt={getProductName(item)}
+                          className="h-full w-full object-contain p-1"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-slate-400">
+                          <ShoppingBag className="h-6 w-6" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      <p className="line-clamp-2 text-xs font-bold text-slate-900 dark:text-white">
+                        {getProductName(item)}
+                      </p>
+                      <p className="text-xs font-black text-[var(--pdp-orange)]">
+                        {rupiah(itemPrice)}
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
-        </div>
+          <div className="pdp26-section-divider" />
+        </>
       )}
 
-      {/* 5. Specifications & Description Section (Shopee Style) */}
-      <div className="pdp26-card p-5 space-y-5">
+      {/* 6. Specifications & Description Section (Shopee Style) */}
+      <div className="pdp26-card p-4 sm:p-5 space-y-4">
         {/* Specifications Table */}
         <div className="space-y-3">
-          <h2 className="text-base font-black text-slate-900 dark:text-white">
+          <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
             {t("productDetail.specifications")}
           </h2>
           <div className="space-y-0 border-t border-slate-200 dark:border-white/10">
@@ -1085,12 +1225,12 @@ export default function StoreProductDetailPage2026() {
         </div>
 
         {/* Description Accordion with "Selengkapnya / Show More" */}
-        <div className="space-y-2 border-t border-slate-200 pt-4 dark:border-white/10">
-          <h2 className="text-base font-black text-slate-900 dark:text-white">
+        <div className="space-y-2 border-t border-slate-200 pt-3 dark:border-white/10">
+          <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
             {t("productDetail.description")}
           </h2>
           <div className={`pdp26-desc-box ${!isDescExpanded ? "is-collapsed" : ""}`}>
-            <p className="text-sm leading-relaxed text-slate-700 whitespace-pre-line dark:text-slate-300">
+            <p className="text-xs sm:text-sm leading-relaxed text-slate-700 whitespace-pre-line dark:text-slate-300">
               {rawDescription ||
                 (isIndo
                   ? "Layanan penyediaan produk berkualitas pilihan seller terpercaya."
@@ -1098,7 +1238,7 @@ export default function StoreProductDetailPage2026() {
             </p>
           </div>
 
-          {rawDescription && rawDescription.length > 120 && (
+          {rawDescription && rawDescription.length > 100 && (
             <button
               type="button"
               onClick={() => setIsDescExpanded((expanded) => !expanded)}
@@ -1111,94 +1251,14 @@ export default function StoreProductDetailPage2026() {
         </div>
       </div>
 
-      {/* 6. Product Ratings & Reviews Section (Shopee Style) */}
-      <div className="pdp26-card p-5 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3 dark:border-white/10">
-          <div className="flex items-center gap-2">
-            <span className="text-base font-black text-slate-900 dark:text-white">
-              {t("productDetail.productRating")}
-            </span>
-            <div className="flex items-center gap-1 text-sm font-bold text-amber-500">
-              <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-              <span>{rating > 0 ? rating.toFixed(1) : "5.0"}</span>
-              <span className="text-xs text-slate-400">({reviews.length})</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Filter Pills */}
-        <div className="flex flex-wrap gap-2">
-          {["all", "photo", "5star"].map((filterKey) => {
-            const labels = {
-              all: isIndo ? "Semua" : "All",
-              photo: isIndo ? "Dengan Foto" : "With Photos",
-              "5star": "5 Bintang",
-            };
-            return (
-              <button
-                key={filterKey}
-                type="button"
-                onClick={() => setActiveReviewFilter(filterKey)}
-                className={`pdp26-review-pill ${activeReviewFilter === filterKey ? "is-active" : ""}`}
-              >
-                {labels[filterKey]}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Reviews List */}
-        {reviews.length > 0 ? (
-          <div className="space-y-4 pt-2 divide-y divide-slate-100 dark:divide-white/5">
-            {reviews.map((rev) => (
-              <div key={rev.id} className="pt-3 first:pt-0 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--pdp-navy)]/10 text-xs font-black text-[var(--pdp-navy)]">
-                      {rev.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <span className="text-xs font-bold text-slate-900 dark:text-white">{rev.name}</span>
-                      <div className="flex items-center gap-1">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-3 w-3 ${
-                              i < rev.rating
-                                ? "fill-amber-400 text-amber-400"
-                                : "text-slate-300 dark:text-slate-600"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  <span className="text-xs text-slate-400">{rev.date}</span>
-                </div>
-                <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-300">{rev.comment}</p>
-                {rev.sellerReply && (
-                  <div className="rounded-lg border-l-2 border-[var(--pdp-navy)] bg-slate-50 p-2.5 text-xs dark:bg-slate-900">
-                    <span className="font-bold text-[var(--pdp-navy)] dark:text-sky-400">
-                      {t("productDetail.storeReply")}:
-                    </span>
-                    <p className="mt-1 text-slate-600 dark:text-slate-300">{rev.sellerReply}</p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="py-6 text-center text-xs text-slate-400">
-            {t("productDetail.noReviews")}
-          </div>
-        )}
-      </div>
+      {/* Shopee Section Divider */}
+      <div className="pdp26-section-divider" />
 
       {/* 7. "Kamu Mungkin Juga Suka" Recommendation Grid */}
       {recommendations.length > 0 && (
-        <div className="space-y-3 pt-2">
+        <div className="pdp26-card p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-black text-slate-900 dark:text-white">
+            <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
               {t("productDetail.youMayAlsoLike")}
             </h2>
             <Link
@@ -1220,7 +1280,7 @@ export default function StoreProductDetailPage2026() {
                 <Link
                   key={item.id || itemSlug}
                   to={`/product/${encodeURIComponent(itemSlug)}`}
-                  className="pdp26-rec-card p-2.5 justify-between"
+                  className="pdp26-rec-card p-2 sm:p-2.5 justify-between"
                 >
                   <div className="aspect-square w-full overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800">
                     {itemImg ? (
@@ -1239,15 +1299,15 @@ export default function StoreProductDetailPage2026() {
                     <p className="line-clamp-2 text-xs font-bold text-slate-900 dark:text-white">
                       {getProductName(item)}
                     </p>
-                    <p className="text-sm font-black text-[var(--pdp-orange)]">
+                    <p className="text-xs sm:text-sm font-black text-[var(--pdp-orange)]">
                       {rupiah(itemPrice)}
                     </p>
-                    <div className="flex items-center justify-between text-[11px] text-slate-400">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400">
                       <div className="flex items-center gap-0.5">
                         <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
                         <span>{itemRating > 0 ? itemRating.toFixed(1) : "5.0"}</span>
                       </div>
-                      <span>{storeCity}</span>
+                      <span className="truncate max-w-[80px]">{storeCity}</span>
                     </div>
                   </div>
                 </Link>
@@ -1268,7 +1328,7 @@ export default function StoreProductDetailPage2026() {
         />
       )}
 
-      {/* 9. Shopee Sticky Bottom Action Bar (Mobile & Quick Actions) */}
+      {/* 9. Shopee Sticky Bottom Action Bar (Zero Truncation on Mobile 375px!) */}
       <div className="pdp26-sticky-bar">
         <div className="pdp26-sticky-inner">
           {/* Chat Icon Button */}
@@ -1290,6 +1350,8 @@ export default function StoreProductDetailPage2026() {
             </button>
           )}
 
+          <div className="h-7 w-[1px] bg-slate-200 dark:bg-white/10 shrink-0" />
+
           {/* Cart Icon Button with Badge Counter */}
           <button
             type="button"
@@ -1304,25 +1366,52 @@ export default function StoreProductDetailPage2026() {
             )}
           </button>
 
-          {/* Add to Cart CTA */}
+          <div className="h-7 w-[1px] bg-slate-200 dark:bg-white/10 shrink-0 sm:hidden" />
+
+          {/* Mobile Shopee Combined CTA Button (Zero truncation on 375px!) */}
           <button
             type="button"
             onClick={handleAddToCart}
             disabled={!canPurchase || isAdding}
-            className="pdp26-btn-add-cart"
+            className="pdp26-icon-action sm:hidden text-[var(--pdp-navy)] dark:text-sky-400"
+            title={t("productDetail.addToCart")}
           >
-            {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
-            <span className="line-clamp-1">{t("productDetail.addToCart")}</span>
+            {isAdding ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShoppingCart className="h-5 w-5" />}
+            <span className="text-[10px] leading-tight font-bold mt-0.5">{isIndo ? "+ Keranjang" : "+ Cart"}</span>
           </button>
 
-          {/* Buy Now CTA */}
           <button
             type="button"
             onClick={handleBuyNow}
             disabled={!canPurchase || isAdding}
-            className="pdp26-btn-buy-now"
+            className="pdp26-mobile-buy-btn sm:hidden"
           >
-            <span className="line-clamp-1">{t("productDetail.buyNow")}</span>
+            <span className="text-[11px] font-black tracking-wide leading-tight uppercase">
+              {t("productDetail.buyNow")}
+            </span>
+            <span className="text-xs font-black leading-tight">
+              {rupiah(price)}
+            </span>
+          </button>
+
+          {/* Desktop Direct CTA Buttons */}
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            disabled={!canPurchase || isAdding}
+            className="hidden sm:flex pdp26-btn-add-cart"
+          >
+            {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
+            <span>{t("productDetail.addToCart")}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleBuyNow}
+            disabled={!canPurchase || isAdding}
+            className="hidden sm:flex pdp26-btn-buy-now"
+          >
+            <span>{t("productDetail.buyNow")}</span>
           </button>
         </div>
       </div>
