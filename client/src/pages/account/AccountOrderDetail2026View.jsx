@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
+  AlertTriangle,
   ArrowLeft,
   CheckCircle2,
   ChevronDown,
@@ -11,6 +12,7 @@ import {
   FileText,
   Headphones,
   HelpCircle,
+  Loader2,
   MapPin,
   MessageCircle,
   Package,
@@ -20,6 +22,7 @@ import {
   Sparkles,
   Star,
   Truck,
+  X,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
@@ -827,7 +830,14 @@ export default function AccountOrderDetail2026View({
               disabled={isCancelling}
               className="tp-shopee-detail__btn-outline tp-shopee-detail__btn-outline--danger"
             >
-              {isCancelling ? t.cancelling : t.cancelOrder}
+              {isCancelling ? (
+                <>
+                  <Loader2 size={14} className="tp-spin" />
+                  <span>{t.cancelling}</span>
+                </>
+              ) : (
+                <span>{t.cancelOrder}</span>
+              )}
             </button>
           )}
 
@@ -895,48 +905,74 @@ export default function AccountOrderDetail2026View({
 
       {showCancelModal && (
         <div
-          className="tp-shopee-detail__modal-backdrop"
+          className="tp-cancel-modal-backdrop"
           onClick={() => setShowCancelModal(false)}
         >
           <div
-            className="tp-shopee-detail__modal"
+            className="tp-cancel-modal"
             role="dialog"
             aria-modal="true"
             aria-labelledby="cancel-order-modal-title"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="tp-shopee-detail__modal-header">
-              <h3 id="cancel-order-modal-title">{t.cancelModalTitle}</h3>
+            {/* Top row: Warning Icon Badge & Close Button */}
+            <div className="tp-cancel-modal__header">
+              <div className="tp-cancel-modal__icon-badge">
+                <AlertTriangle size={22} className="tp-cancel-modal__alert-svg" />
+              </div>
               <button
                 type="button"
-                className="tp-shopee-detail__modal-close"
+                className="tp-cancel-modal__close-btn"
                 onClick={() => setShowCancelModal(false)}
-                aria-label="Close"
+                aria-label="Tutup"
               >
-                &times;
+                <X size={18} />
               </button>
             </div>
-            <div className="tp-shopee-detail__modal-body">
-              <p>{t.cancelModalBody}</p>
+
+            {/* Content: Title, Order Context, Explanation */}
+            <div className="tp-cancel-modal__content">
+              <h3 id="cancel-order-modal-title" className="tp-cancel-modal__title">
+                {t.cancelModalTitle}
+              </h3>
+
+              {orderMeta?.orderNo && (
+                <div className="tp-cancel-modal__order-badge">
+                  <span className="tp-cancel-modal__order-label">{t.orderNo}:</span>
+                  <strong className="tp-cancel-modal__order-code">{orderMeta.orderNo}</strong>
+                </div>
+              )}
+
+              <p className="tp-cancel-modal__desc">{t.cancelModalBody}</p>
             </div>
-            <div className="tp-shopee-detail__modal-actions">
+
+            {/* Actions: Back (Kembali) & Confirm (Ya, Batalkan Pesanan) */}
+            <div className="tp-cancel-modal__actions">
               <button
                 type="button"
-                className="tp-shopee-detail__btn-outline"
+                className="tp-cancel-modal__btn-back"
                 onClick={() => setShowCancelModal(false)}
+                disabled={isCancelling}
               >
                 {t.cancelModalBack}
               </button>
               <button
                 type="button"
-                className="tp-shopee-detail__btn-danger"
+                className="tp-cancel-modal__btn-confirm"
                 disabled={isCancelling}
                 onClick={async () => {
                   setShowCancelModal(false);
                   if (onCancelOrder) await onCancelOrder();
                 }}
               >
-                {isCancelling ? t.cancelling : t.cancelModalConfirm}
+                {isCancelling ? (
+                  <>
+                    <Loader2 size={16} className="tp-spin" />
+                    <span>{t.cancelling}</span>
+                  </>
+                ) : (
+                  <span>{t.cancelModalConfirm}</span>
+                )}
               </button>
             </div>
           </div>

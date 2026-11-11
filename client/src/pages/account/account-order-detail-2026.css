@@ -911,14 +911,29 @@
 }
 
 .tp-shopee-detail__btn-outline--danger {
-  border-color: #ef4444;
-  color: #dc2626;
+  border-color: #fecdd3;
+  color: #e11d48;
+  background-color: #fff1f2;
 }
 
 .tp-shopee-detail__btn-outline--danger:hover {
-  border-color: #dc2626;
-  color: #b91c1c;
-  background-color: #fef2f2;
+  border-color: #fda4af;
+  color: #be123c;
+  background-color: #ffe4e6;
+}
+
+.dark .tp-shopee-detail__btn-outline--danger,
+[data-theme="dark"] .tp-shopee-detail__btn-outline--danger {
+  border-color: rgba(244, 63, 94, 0.4);
+  color: #fb7185;
+  background-color: rgba(244, 63, 94, 0.1);
+}
+
+.dark .tp-shopee-detail__btn-outline--danger:hover,
+[data-theme="dark"] .tp-shopee-detail__btn-outline--danger:hover {
+  border-color: rgba(244, 63, 94, 0.7);
+  color: #fecdd3;
+  background-color: rgba(244, 63, 94, 0.2);
 }
 
 .tp-shopee-detail__btn-danger {
@@ -945,13 +960,13 @@
   cursor: not-allowed;
 }
 
-/* Modal styles for order cancellation */
-.tp-shopee-detail__modal-backdrop {
+/* Modern Cancel Order Modal */
+.tp-cancel-modal-backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(4px);
-  z-index: 1000;
+  background-color: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(6px);
+  z-index: 1200;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -959,63 +974,217 @@
   animation: tpModalFadeIn 0.2s ease;
 }
 
-.tp-shopee-detail__modal {
+.tp-cancel-modal {
   background-color: #ffffff;
-  border-radius: 16px;
+  border: 1px solid #f1f5f9;
+  border-radius: 20px;
   max-width: 440px;
   width: 100%;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.12), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   overflow: hidden;
+  padding: 24px;
   animation: tpModalScaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
 }
 
-.tp-shopee-detail__modal-header {
+.dark .tp-cancel-modal,
+[data-theme="dark"] .tp-cancel-modal {
+  background-color: #0d1e33;
+  border: 1px solid #1e3552;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65);
+}
+
+.tp-cancel-modal__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 20px;
-  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 16px;
 }
 
-.tp-shopee-detail__modal-header h3 {
-  margin: 0;
-  font-size: 1.1rem;
+.tp-cancel-modal__icon-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background-color: #fff1f2;
+  border: 1px solid #ffe4e6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #e11d48;
+}
+
+.dark .tp-cancel-modal__icon-badge,
+[data-theme="dark"] .tp-cancel-modal__icon-badge {
+  background-color: rgba(225, 29, 72, 0.15);
+  border: 1px solid rgba(225, 29, 72, 0.35);
+  color: #fb7185;
+}
+
+.tp-cancel-modal__close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tp-cancel-modal__close-btn:hover {
+  background-color: #f1f5f9;
+  color: #334155;
+}
+
+.dark .tp-cancel-modal__close-btn:hover,
+[data-theme="dark"] .tp-cancel-modal__close-btn:hover {
+  background-color: #1e293b;
+  color: #f8fafc;
+}
+
+.tp-cancel-modal__content {
+  margin-bottom: 22px;
+}
+
+.tp-cancel-modal__title {
+  margin: 0 0 10px;
+  font-size: 1.25rem;
   font-weight: 700;
   color: #0f172a;
 }
 
-.tp-shopee-detail__modal-close {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  line-height: 1;
+.dark .tp-cancel-modal__title,
+[data-theme="dark"] .tp-cancel-modal__title {
+  color: #f8fafc;
+}
+
+.tp-cancel-modal__order-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  font-size: 0.82rem;
+  margin-bottom: 12px;
+}
+
+.dark .tp-cancel-modal__order-badge,
+[data-theme="dark"] .tp-cancel-modal__order-badge {
+  background-color: #071321;
+  border-color: #1e293b;
+}
+
+.tp-cancel-modal__order-label {
+  color: #64748b;
+}
+
+.dark .tp-cancel-modal__order-label,
+[data-theme="dark"] .tp-cancel-modal__order-label {
   color: #94a3b8;
-  cursor: pointer;
-  padding: 4px;
 }
 
-.tp-shopee-detail__modal-close:hover {
-  color: #334155;
+.tp-cancel-modal__order-code {
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: #034c85;
 }
 
-.tp-shopee-detail__modal-body {
-  padding: 20px;
+.dark .tp-cancel-modal__order-code,
+[data-theme="dark"] .tp-cancel-modal__order-code {
+  color: #38bdf8;
 }
 
-.tp-shopee-detail__modal-body p {
+.tp-cancel-modal__desc {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
+  line-height: 1.55;
   color: #475569;
-  line-height: 1.5;
 }
 
-.tp-shopee-detail__modal-actions {
+.dark .tp-cancel-modal__desc,
+[data-theme="dark"] .tp-cancel-modal__desc {
+  color: #94a3b8;
+}
+
+.tp-cancel-modal__actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: 12px;
-  padding: 16px 20px;
+}
+
+.tp-cancel-modal__btn-back {
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
   background-color: #f8fafc;
-  border-top: 1px solid #f1f5f9;
+  color: #334155 !important;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tp-cancel-modal__btn-back:hover {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a !important;
+}
+
+.dark .tp-cancel-modal__btn-back,
+[data-theme="dark"] .tp-cancel-modal__btn-back {
+  border-color: #243954;
+  background-color: #132742;
+  color: #e2e8f0 !important;
+}
+
+.dark .tp-cancel-modal__btn-back:hover,
+[data-theme="dark"] .tp-cancel-modal__btn-back:hover {
+  background-color: #1a3458;
+  border-color: #334e73;
+  color: #ffffff !important;
+}
+
+.tp-cancel-modal__btn-confirm {
+  padding: 10px 22px;
+  border-radius: 10px;
+  border: 1px solid #e11d48;
+  background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+  color: #ffffff !important;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(225, 29, 72, 0.3);
+  transition: all 0.15s ease;
+}
+
+.tp-cancel-modal__btn-confirm:hover {
+  background: linear-gradient(135deg, #be123c 0%, #9f1239 100%);
+  box-shadow: 0 6px 16px rgba(225, 29, 72, 0.4);
+  transform: translateY(-1px);
+}
+
+.tp-cancel-modal__btn-confirm:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.tp-spin {
+  animation: tpSpin 1s linear infinite;
+}
+
+@keyframes tpSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 @keyframes tpModalFadeIn {
@@ -1310,4 +1479,93 @@
 
 .tp-payment-success-modal__btn-ghost:hover {
   background-color: #fff7ed;
+}
+
+/* Dark mode for Payment Success Modal */
+.dark .tp-payment-success-modal,
+[data-theme="dark"] .tp-payment-success-modal {
+  background-color: #0d1e33;
+  border: 1px solid #1e3552;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65);
+}
+
+.dark .tp-payment-success-modal__title,
+[data-theme="dark"] .tp-payment-success-modal__title {
+  color: #f8fafc;
+}
+
+.dark .tp-payment-success-modal__desc,
+[data-theme="dark"] .tp-payment-success-modal__desc {
+  color: #94a3b8;
+}
+
+.dark .tp-payment-success-modal__receipt,
+[data-theme="dark"] .tp-payment-success-modal__receipt {
+  background-color: #071321;
+  border-color: #1e293b;
+}
+
+.dark .tp-payment-success-modal__receipt-label,
+[data-theme="dark"] .tp-payment-success-modal__receipt-label {
+  color: #94a3b8;
+}
+
+.dark .tp-payment-success-modal__receipt-val,
+[data-theme="dark"] .tp-payment-success-modal__receipt-val {
+  color: #f8fafc;
+}
+
+.dark .tp-payment-success-modal__receipt-val--code,
+[data-theme="dark"] .tp-payment-success-modal__receipt-val--code {
+  color: #38bdf8;
+}
+
+.dark .tp-payment-success-modal__receipt-val--mono,
+[data-theme="dark"] .tp-payment-success-modal__receipt-val--mono {
+  color: #94a3b8;
+}
+
+.dark .tp-payment-success-modal__guide,
+[data-theme="dark"] .tp-payment-success-modal__guide {
+  background-color: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+.dark .tp-payment-success-modal__guide-title,
+[data-theme="dark"] .tp-payment-success-modal__guide-title {
+  color: #34d399;
+}
+
+.dark .tp-payment-success-modal__step-heading,
+[data-theme="dark"] .tp-payment-success-modal__step-heading {
+  color: #6ee7b7;
+}
+
+.dark .tp-payment-success-modal__step-text,
+[data-theme="dark"] .tp-payment-success-modal__step-text {
+  color: #cbd5e1;
+}
+
+.dark .tp-payment-success-modal__btn-secondary,
+[data-theme="dark"] .tp-payment-success-modal__btn-secondary {
+  background-color: #132742;
+  border-color: #243954;
+  color: #e2e8f0;
+}
+
+.dark .tp-payment-success-modal__btn-secondary:hover,
+[data-theme="dark"] .tp-payment-success-modal__btn-secondary:hover {
+  background-color: #1a3458;
+  border-color: #334e73;
+  color: #ffffff;
+}
+
+.dark .tp-payment-success-modal__close-btn,
+[data-theme="dark"] .tp-payment-success-modal__close-btn {
+  color: #64748b;
+}
+
+.dark .tp-payment-success-modal__close-btn:hover,
+[data-theme="dark"] .tp-payment-success-modal__close-btn:hover {
+  color: #f8fafc;
 }
