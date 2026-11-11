@@ -432,7 +432,7 @@ export default function CheckoutAddressModal({
               ) : (
                 <>
                   <div className="space-y-2.5">
-                    {addresses.map((addr) => {
+                    {(Array.isArray(addresses) ? addresses : []).filter(Boolean).map((addr) => {
                       const isSelected =
                         selectedAddressId && Number(selectedAddressId) === Number(addr.id);
 
@@ -445,6 +445,7 @@ export default function CheckoutAddressModal({
                         addr.province,
                         addr.postalCode,
                       ]
+                        .map((p) => (typeof p === "string" ? p.trim() : typeof p === "number" ? String(p) : ""))
                         .filter(Boolean)
                         .join(", ");
 

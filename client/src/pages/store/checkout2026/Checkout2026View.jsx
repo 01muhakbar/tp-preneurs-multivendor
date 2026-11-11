@@ -84,6 +84,16 @@ export default function Checkout2026View({
   const [voucherModalStore, setVoucherModalStore] = useState(null);
   const [isPlatformVoucherModalOpen, setIsPlatformVoucherModalOpen] = useState(false);
 
+  // Safe normalized props
+  const safeAppliedStoreCoupons =
+    appliedStoreCoupons && typeof appliedStoreCoupons === "object"
+      ? appliedStoreCoupons
+      : {};
+  const safeSellerNotes =
+    sellerNotes && typeof sellerNotes === "object" ? sellerNotes : {};
+  const safeGroups = Array.isArray(viewModel?.groups) ? viewModel.groups : [];
+  const safeSavedAddresses = Array.isArray(savedAddresses) ? savedAddresses : [];
+
   // Translations
   const T = isIndo
     ? {
@@ -223,11 +233,13 @@ export default function Checkout2026View({
 
   // Active address resolution
   const activeAddress =
-    savedAddresses.find((a) => selectedAddressId && Number(a.id) === Number(selectedAddressId)) ||
-    (form.shipping?.streetName
+    safeSavedAddresses.find(
+      (a) => a && selectedAddressId && Number(a.id) === Number(selectedAddressId)
+    ) ||
+    (form?.shipping?.streetName
       ? {
-          fullName: `${form.firstName || ""} ${form.lastName || ""}`.trim() || "Penerima",
-          phoneNumber: form.phone || "",
+          fullName: `${form?.firstName || ""} ${form?.lastName || ""}`.trim() || "Penerima",
+          phoneNumber: form?.phone || "",
           streetName: form.shipping.streetName,
           houseNumber: form.shipping.houseNumber,
           district: form.shipping.district,
@@ -247,28 +259,31 @@ export default function Checkout2026View({
         activeAddress.province,
         activeAddress.postalCode,
       ]
+        .map((p) => (typeof p === "string" ? p.trim() : typeof p === "number" ? String(p) : ""))
         .filter(Boolean)
         .join(", ")
     : "";
 
   // Calculations
-  const subtotal = Number(viewModel.amounts?.subtotal || 0);
-  const shipping = Number(viewModel.amounts?.shipping || 0);
+  const subtotal = Number(viewModel?.amounts?.subtotal || 0);
+  const shipping = Number(viewModel?.amounts?.shipping || 0);
 
-  // Dynamic store discount from groups & appliedStoreCoupons
+  // Dynamic store discount from groups & safeAppliedStoreCoupons
   const calculatedStoreDiscount = useMemo(() => {
-    return (viewModel.groups || []).reduce((sum, group) => {
-      const storeKey = String(group.storeId);
+    return safeGroups.reduce((sum, group) => {
+      if (!group) return sum;
+      const storeKey = String(group.storeId || "");
       const appliedVoucher =
-        appliedStoreCoupons[storeKey] ||
-        appliedStoreCoupons[group.key] ||
-        (group.storeSlug && appliedStoreCoupons[`slug:${group.storeSlug}`]) ||
-        (group.storeId && appliedStoreCoupons[`id:${group.storeId}`]) ||
+        safeAppliedStoreCoupons[storeKey] ||
+        (group.key && safeAppliedStoreCoupons[group.key]) ||
+        (group.storeSlug && safeAppliedStoreCoupons[`slug:${group.storeSlug}`]) ||
+        (group.storeId && safeAppliedStoreCoupons[`id:${group.storeId}`]) ||
         null;
       if (!appliedVoucher) return sum;
 
-      const groupSubtotal = (group.items || []).reduce(
-        (acc, it) => acc + (Number(it.unitPrice) || 0) * (Number(it.quantity) || 1),
+      const groupItems = Array.isArray(group.items) ? group.items : [];
+      const groupSubtotal = groupItems.reduce(
+        (acc, it) => acc + (Number(it?.unitPrice) || 0) * (Number(it?.quantity) || 1),
         0
       );
 
@@ -291,7 +306,7 @@ export default function Checkout2026View({
       }
       return sum + Math.min(groupSubtotal, Math.max(0, disc));
     }, 0);
-  }, [viewModel.groups, appliedStoreCoupons]);
+  }, [safeGroups, safeAppliedStoreCoupons]);
 
   // Dynamic platform discount
   const calculatedPlatformDiscount = useMemo(() => {
@@ -402,17 +417,19 @@ export default function Checkout2026View({
 
         {/* 2. Store Group Cards (Shopee Style - Images 1 & 4) */}
         <div className="space-y-3.5 mt-3.5">
-          {viewModel.groups.map((group) => {
-            const storeKey = String(group.storeId);
+          {safeGroups.map((group) => {
+            if (!group) return null;
+            const storeKey = String(group.storeId || "");
             const appliedVoucher =
-              appliedStoreCoupons[storeKey] ||
-              appliedStoreCoupons[group.key] ||
-              (group.storeSlug && appliedStoreCoupons[`slug:${group.storeSlug}`]) ||
-              (group.storeId && appliedStoreCoupons[`id:${group.storeId}`]) ||
+              safeAppliedStoreCoupons[storeKey] ||
+              (group.key && safeAppliedStoreCoupons[group.key]) ||
+              (group.storeSlug && safeAppliedStoreCoupons[`slug:${group.storeSlug}`]) ||
+              (group.storeId && safeAppliedStoreCoupons[`id:${group.storeId}`]) ||
               null;
 
-            const groupSubtotal = group.items.reduce(
-              (acc, it) => acc + (it.unitPrice || 0) * (it.quantity || 1),
+            const groupItems = Array.isArray(group.items) ? group.items : [];
+            const groupSubtotal = groupItems.reduce(
+              (acc, it) => acc + (Number(it?.unitPrice) || 0) * (Number(it?.quantity) || 1),
               0
             );
 
@@ -438,7 +455,7 @@ export default function Checkout2026View({
               storeDiscountAmount = Math.min(groupSubtotal, Math.max(0, storeDiscountAmount));
             }
 
-            const currentSellerNote = sellerNotes[storeKey] || "";
+            const currentSellerNote = safeSellerNotes[storeKey] || "";
 
             return (
               <article key={storeKey} className="co26-shopee-store-card">
@@ -449,20 +466,20 @@ export default function Checkout2026View({
                     to={group.storeSlug ? `/store/${group.storeSlug}` : "#"}
                     className="co26-shopee-store-name hover:text-[#fe6f05] transition"
                   >
-                    <span>{group.storeName}</span>
+                    <span>{group.storeName || "Store"}</span>
                     <ChevronRight size={14} className="text-slate-400 shrink-0" />
                   </Link>
                 </div>
 
                 {/* Products List in this Store */}
                 <div className="co26-shopee-product-list">
-                  {group.items.map((item) => (
-                    <div key={item.lineId} className="co26-shopee-product-item">
+                  {groupItems.map((item) => (
+                    <div key={item?.lineId || item?.cartItemId || item?.productId || Math.random()} className="co26-shopee-product-item">
                       <div className="co26-shopee-product-thumb">
-                        {item.image ? (
+                        {item?.image ? (
                           <img
                             src={item.image}
-                            alt={item.name}
+                            alt={item.name || "Product"}
                             className="w-full h-full object-contain"
                           />
                         ) : (
@@ -471,9 +488,9 @@ export default function Checkout2026View({
                       </div>
 
                       <div className="co26-shopee-product-info">
-                        <h3 className="co26-shopee-product-title">{item.name}</h3>
+                        <h3 className="co26-shopee-product-title">{item?.name || "Product"}</h3>
 
-                        {item.variantSelections && item.variantSelections.length > 0 && (
+                        {item?.variantSelections && item.variantSelections.length > 0 && (
                           <div className="co26-shopee-variant-pill">
                             {item.variantSelections.map((s) => `${s.name}: ${s.value}`).join(", ")}
                           </div>
@@ -481,9 +498,9 @@ export default function Checkout2026View({
 
                         <div className="co26-shopee-product-price-row">
                           <span className="co26-shopee-product-price">
-                            {formatMoney(item.unitPrice)}
+                            {formatMoney(item?.unitPrice || 0)}
                           </span>
-                          <span className="co26-shopee-product-qty">x{item.quantity}</span>
+                          <span className="co26-shopee-product-qty">x{item?.quantity || 1}</span>
                         </div>
                       </div>
                     </div>
@@ -573,10 +590,12 @@ export default function Checkout2026View({
                 {/* Store Subtotal Footer */}
                 <div className="co26-shopee-store-footer">
                   <span className="text-xs text-slate-400">
-                    {T.totalProductCount(group.items.length)}
+                    {typeof T?.totalProductCount === "function"
+                      ? T.totalProductCount(groupItems.length)
+                      : `Total ${groupItems.length} Produk:`}
                   </span>
                   <strong className="text-sm font-bold text-[#fe6f05]">
-                    {formatMoney(Math.max(0, groupSubtotal + (group.shipping || 0) - storeDiscountAmount))}
+                    {formatMoney(Math.max(0, groupSubtotal + (Number(group.shipping) || 0) - storeDiscountAmount))}
                   </strong>
                 </div>
               </article>
@@ -783,7 +802,7 @@ export default function Checkout2026View({
       <CheckoutAddressModal
         isOpen={isAddressModalOpen}
         onClose={() => setIsAddressModalOpen(false)}
-        addresses={savedAddresses}
+        addresses={safeSavedAddresses}
         selectedAddressId={selectedAddressId}
         onSelectAddress={onSelectAddress}
         onSaveNewAddress={onSaveNewAddress}
@@ -797,17 +816,17 @@ export default function Checkout2026View({
           isOpen={Boolean(voucherModalStore)}
           onClose={() => setVoucherModalStore(null)}
           store={voucherModalStore}
-          storeSubtotal={voucherModalStore.items.reduce(
-            (acc, it) => acc + (it.unitPrice || 0) * (it.quantity || 1),
+          storeSubtotal={(Array.isArray(voucherModalStore?.items) ? voucherModalStore.items : []).reduce(
+            (acc, it) => acc + (Number(it?.unitPrice) || 0) * (Number(it?.quantity) || 1),
             0
           )}
           appliedCoupon={
-            appliedStoreCoupons[voucherModalStore.key] ||
-            appliedStoreCoupons[String(voucherModalStore.storeId)] ||
-            (voucherModalStore.storeSlug &&
-              appliedStoreCoupons[`slug:${voucherModalStore.storeSlug}`]) ||
-            (voucherModalStore.storeId &&
-              appliedStoreCoupons[`id:${voucherModalStore.storeId}`]) ||
+            (voucherModalStore?.key && safeAppliedStoreCoupons[voucherModalStore.key]) ||
+            safeAppliedStoreCoupons[String(voucherModalStore?.storeId || "")] ||
+            (voucherModalStore?.storeSlug &&
+              safeAppliedStoreCoupons[`slug:${voucherModalStore.storeSlug}`]) ||
+            (voucherModalStore?.storeId &&
+              safeAppliedStoreCoupons[`id:${voucherModalStore.storeId}`]) ||
             null
           }
           onApplyCoupon={(couponData) => {

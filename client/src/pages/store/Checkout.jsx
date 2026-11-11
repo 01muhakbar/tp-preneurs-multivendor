@@ -2258,15 +2258,6 @@ export default function CheckoutPage() {
   }, [appliedCouponMeta, appliedPlatformCoupon, checkoutMode]);
 
   useEffect(() => {
-    if (checkoutMode === "MULTI_STORE") return;
-    if (Object.keys(groupCouponStates).length === 0 && Object.keys(groupCouponCodes).length === 0) {
-      return;
-    }
-    setGroupCouponStates({});
-    setGroupCouponCodes({});
-  }, [checkoutMode, groupCouponCodes, groupCouponStates]);
-
-  useEffect(() => {
     if (Object.keys(groupCouponStates).length === 0) return;
 
     const groupsByStore = new Map(
@@ -2278,7 +2269,7 @@ export default function CheckoutPage() {
       const next = { ...prev };
 
       Object.entries(prev).forEach(([storeKey, state]) => {
-        if (!state?.appliedMeta) return;
+        if (!state?.appliedMeta || !state?.baseline) return;
         const group = groupsByStore.get(storeKey);
         if (!group) {
           next[storeKey] = {
@@ -2310,7 +2301,7 @@ export default function CheckoutPage() {
 
       return changed ? next : prev;
     });
-  }, [checkoutPreviewGroups, groupCouponStates]);
+  }, [checkoutPreviewGroups]);
 
   const addressesQuery = useQuery({
     queryKey: ["user-addresses"],
@@ -2447,7 +2438,10 @@ export default function CheckoutPage() {
           discount: discountAmount,
           ...enrichedCoupon,
         },
-        baseline: null,
+        baseline: {
+          subtotal: Number(storeSubtotal || 0),
+          shipping: 0,
+        },
       },
     }));
   };
@@ -2580,17 +2574,17 @@ export default function CheckoutPage() {
     });
 
     const requiredShippingFields = {
-      province: shippingForm.province.trim(),
-      city: shippingForm.city.trim(),
-      district: shippingForm.district.trim(),
-      postalCode: shippingForm.postalCode.trim(),
-      streetName: shippingForm.streetName.trim(),
-      houseNumber: shippingForm.houseNumber.trim(),
+      province: String(shippingForm?.province || "").trim(),
+      city: String(shippingForm?.city || "").trim(),
+      district: String(shippingForm?.district || "").trim(),
+      postalCode: String(shippingForm?.postalCode || "").trim(),
+      streetName: String(shippingForm?.streetName || "").trim(),
+      houseNumber: String(shippingForm?.houseNumber || "").trim(),
     };
 
     if (
-      !firstName.trim() ||
-      !lastName.trim() ||
+      !String(firstName || "").trim() ||
+      !String(lastName || "").trim() ||
       !phoneValue ||
       !requiredShippingFields.province ||
       !requiredShippingFields.city ||
