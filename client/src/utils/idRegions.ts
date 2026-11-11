@@ -76,8 +76,9 @@ export const getProvinceOptions = (selectedValue = "") =>
   );
 
 export const getCityOptions = (provinceName = "", selectedValue = "") => {
+  const normProvince = normalizeText(provinceName).toLowerCase();
   const province = REGION_DATA.find(
-    (item) => item.name === normalizeText(provinceName)
+    (item) => item.name.toLowerCase() === normProvince
   );
   const items = Array.isArray(province?.cities)
     ? province.cities.map((item) => item.name).filter(Boolean)
@@ -90,11 +91,13 @@ export const getDistrictOptions = (
   cityName = "",
   selectedValue = ""
 ) => {
+  const normProvince = normalizeText(provinceName).toLowerCase();
+  const normCity = normalizeText(cityName).toLowerCase();
   const province = REGION_DATA.find(
-    (item) => item.name === normalizeText(provinceName)
+    (item) => item.name.toLowerCase() === normProvince
   );
   const city = province?.cities?.find(
-    (item) => item.name === normalizeText(cityName)
+    (item) => item.name.toLowerCase() === normCity
   );
   const items = Array.isArray(city?.districts) ? city.districts : [];
   return withFallbackOption(items, selectedValue);

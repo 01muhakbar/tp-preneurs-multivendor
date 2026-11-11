@@ -2361,3 +2361,231 @@
   color: #fca5a5;
   font-size: 12px;
 }
+
+/* Searchable Region Select Combobox */
+.co26-searchable-container {
+  position: relative;
+}
+
+.co26-searchable-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.co26-searchable-icons {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.co26-searchable-clear-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.co26-searchable-clear-btn:hover {
+  background-color: #ef4444;
+  color: #ffffff;
+}
+
+.co26-searchable-chevron-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.co26-searchable-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  background-color: #0b192e;
+  border: 1px solid rgba(3, 76, 133, 0.6);
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.65);
+  z-index: 100;
+  padding: 4px;
+  margin: 0;
+  list-style: none;
+}
+
+.co26-searchable-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+.co26-searchable-dropdown::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 4px;
+}
+.co26-searchable-dropdown::-webkit-scrollbar-thumb {
+  background: rgba(3, 76, 133, 0.6);
+  border-radius: 4px;
+}
+.co26-searchable-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #034c85;
+}
+
+.co26-searchable-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #f1f5f9;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.co26-searchable-item:hover {
+  background-color: rgba(3, 76, 133, 0.4);
+  color: #38bdf8;
+}
+
+.co26-searchable-item.is-selected {
+  background-color: rgba(254, 111, 5, 0.18);
+  color: #fe6f05;
+  font-weight: 700;
+}
+
+.co26-searchable-empty {
+  padding: 12px 10px;
+  font-size: 12px;
+  color: #94a3b8;
+  text-align: center;
+}
+
+/* Searchable Region Select Combobox */
+.co26-searchable-container {
+  position: relative;
+}
+
+.co26-searchable-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.co26-searchable-icons {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.co26-searchable-clear-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.co26-searchable-clear-btn:hover {
+  background-color: #ef4444;
+  color: #ffffff;
+}
+
+.co26-searchable-chevron-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.co26-searchable-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  background-color: #0b192e;
+  border: 1px solid rgba(3, 76, 133, 0.6);
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.65);
+  z-index: 100;
+  padding: 4px;
+  margin: 0;
+  list-style: none;
+}
+
+.co26-searchable-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+.co26-searchable-dropdown::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 4px;
+}
+.co26-searchable-dropdown::-webkit-scrollbar-thumb {
+  background: rgba(3, 76, 133, 0.6);
+  border-radius: 4px;
+}
+.co26-searchable-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #034c85;
+}
+
+.co26-searchable-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #f1f5f9;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.co26-searchable-item:hover {
+  background-color: rgba(3, 76, 133, 0.4);
+  color: #38bdf8;
+}
+
+.co26-searchable-item.is-selected {
+  background-color: rgba(254, 111, 5, 0.18);
+  color: #fe6f05;
+  font-weight: 700;
+}
+
+.co26-searchable-empty {
+  padding: 12px 10px;
+  font-size: 12px;
+  color: #94a3b8;
+  text-align: center;
+}
