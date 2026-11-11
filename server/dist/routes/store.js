@@ -2446,7 +2446,19 @@ router.post("/orders/my/:id/pay", protect, async (req, res, next) => {
                 message: "Gerbang pembayaran Duitku belum diaktifkan.",
             });
         }
-        const user = await User.findByPk(userId, { attributes: ["id", "name", "email", "phone"] });
+        let user = null;
+        try {
+            user = await User.findByPk(userId, { attributes: ["id", "name", "email", "phoneNumber"] });
+        }
+        catch (userLookupErr) {
+            console.warn("[store/orders/my/:id/pay] failed to fetch user with phoneNumber, falling back to minimal fields", userLookupErr);
+            try {
+                user = await User.findByPk(userId, { attributes: ["id", "name", "email"] });
+            }
+            catch {
+                user = null;
+            }
+        }
         const customerEmail = String(user?.email || "customer@tppreneurs.com").trim();
         const baseInvoiceNo = String(order.invoiceNo || `ORDER-${orderId}`);
         const orderExpiryMinutes = resolveOrderExpiryMinutes();
@@ -2490,7 +2502,10 @@ router.post("/orders/my/:id/pay", protect, async (req, res, next) => {
             productDetails: `Payment for Order ${baseInvoiceNo}`,
             email: customerEmail,
             customerVaName: String(order.customerName || user?.name || "Customer").slice(0, 20),
-            phoneNumber: order.customerPhone || user?.phone || undefined,
+            phoneNumber: String(order.customerPhone ||
+                user?.phoneNumber ||
+                user?.phone_number ||
+                "").trim() || undefined,
             paymentMethod: effectivePaymentCode,
             expiryPeriod: orderExpiryMinutes,
         }, {

@@ -2844,7 +2844,17 @@ router.post(
         });
       }
 
-      const user = await User.findByPk(userId, { attributes: ["id", "name", "email", "phone"] });
+      let user: any = null;
+      try {
+        user = await User.findByPk(userId, { attributes: ["id", "name", "email", "phoneNumber"] });
+      } catch (userLookupErr) {
+        console.warn("[store/orders/my/:id/pay] failed to fetch user with phoneNumber, falling back to minimal fields", userLookupErr);
+        try {
+          user = await User.findByPk(userId, { attributes: ["id", "name", "email"] });
+        } catch {
+          user = null;
+        }
+      }
       const customerEmail = String((user as any)?.email || "customer@tppreneurs.com").trim();
       const baseInvoiceNo = String((order as any).invoiceNo || `ORDER-${orderId}`);
       const orderExpiryMinutes = resolveOrderExpiryMinutes();
@@ -2898,7 +2908,13 @@ router.post(
           productDetails: `Payment for Order ${baseInvoiceNo}`,
           email: customerEmail,
           customerVaName: String((order as any).customerName || (user as any)?.name || "Customer").slice(0, 20),
-          phoneNumber: (order as any).customerPhone || (user as any)?.phone || undefined,
+          phoneNumber:
+            String(
+              (order as any).customerPhone ||
+              (user as any)?.phoneNumber ||
+              (user as any)?.phone_number ||
+              ""
+            ).trim() || undefined,
           paymentMethod: effectivePaymentCode,
           expiryPeriod: orderExpiryMinutes,
         },
