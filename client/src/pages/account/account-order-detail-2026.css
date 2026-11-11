@@ -1213,22 +1213,22 @@
 
 .tp-payment-success-modal {
   background-color: #ffffff;
-  border-radius: 24px;
-  max-width: 520px;
+  border-radius: 20px;
+  max-width: 450px;
   width: 100%;
-  max-height: 92vh;
-  overflow-y: auto;
+  max-height: 90vh;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.28);
   position: relative;
-  padding: 32px 24px 28px;
-  animation: tpModalScaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 24px 22px 20px;
+  animation: tpModalScaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
 }
 
 .tp-payment-success-modal__icon-wrap {
   position: relative;
-  width: 72px;
-  height: 72px;
-  margin: 0 auto 18px;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1236,42 +1236,42 @@
 
 .tp-payment-success-modal__pulse-ring {
   position: absolute;
-  inset: -6px;
+  inset: -5px;
   border-radius: 50%;
-  background: rgba(16, 185, 129, 0.18);
+  background: rgba(16, 185, 129, 0.2);
   animation: tpPulseRing 2s infinite ease-out;
 }
 
 @keyframes tpPulseRing {
-  0% { transform: scale(0.9); opacity: 0.8; }
-  50% { transform: scale(1.15); opacity: 0.3; }
-  100% { transform: scale(0.9); opacity: 0.8; }
+  0% { transform: scale(0.92); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 0.25; }
+  100% { transform: scale(0.92); opacity: 0.8; }
 }
 
 .tp-payment-success-modal__icon-badge {
   position: relative;
-  width: 64px;
-  height: 64px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #ffffff;
-  box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 8px 16px -2px rgba(16, 185, 129, 0.35);
 }
 
 .tp-payment-success-modal__close-btn {
   position: absolute;
-  top: 16px;
-  right: 18px;
+  top: 14px;
+  right: 16px;
   background: none;
   border: none;
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   color: #94a3b8;
   cursor: pointer;
   line-height: 1;
-  padding: 6px;
+  padding: 4px;
   border-radius: 8px;
   transition: color 0.15s ease;
 }
@@ -1281,37 +1281,63 @@
 }
 
 .tp-payment-success-modal__title {
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   font-weight: 800;
   color: #0f172a;
   text-align: center;
-  margin: 0 0 8px;
+  margin: 0 0 4px;
+  letter-spacing: -0.01em;
 }
 
 .tp-payment-success-modal__desc {
-  font-size: 0.92rem;
+  font-size: 0.84rem;
   color: #64748b;
   text-align: center;
-  margin: 0 0 20px;
-  line-height: 1.5;
+  margin: 0 0 16px;
+  line-height: 1.4;
 }
 
 .tp-payment-success-modal__receipt {
   background-color: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 16px 18px;
-  margin-bottom: 20px;
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .tp-payment-success-modal__receipt-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.88rem;
+  font-size: 0.84rem;
+}
+
+.tp-payment-success-modal__receipt-code-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tp-payment-success-modal__copy-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: 6px;
+  color: #034c85;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tp-payment-success-modal__copy-pill:hover {
+  background: #bae6fd;
 }
 
 .tp-payment-success-modal__receipt-label {
@@ -1321,164 +1347,187 @@
 .tp-payment-success-modal__receipt-val {
   color: #1e293b;
   font-weight: 600;
-  text-align: right;
 }
 
 .tp-payment-success-modal__receipt-val--code {
   font-family: monospace;
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   color: #034c85;
+  font-weight: 700;
 }
 
 .tp-payment-success-modal__receipt-val--total {
-  font-size: 1.05rem;
+  font-size: 0.98rem;
   font-weight: 800;
-  color: #fe6f05;
+  color: #10b981;
 }
 
 .tp-payment-success-modal__receipt-val--mono {
   font-family: monospace;
-  font-size: 0.82rem;
-  color: #475569;
+  font-size: 0.78rem;
+  color: #64748b;
 }
 
 .tp-payment-success-modal__guide {
   background: #f0fdf4;
   border: 1px solid #bbf7d0;
-  border-radius: 16px;
-  padding: 16px 18px;
-  margin-bottom: 22px;
+  border-radius: 14px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+}
+
+.tp-payment-success-modal__guide-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
 }
 
 .tp-payment-success-modal__guide-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 14px;
-  font-size: 0.95rem;
+  font-size: 0.78rem;
   font-weight: 700;
   color: #166534;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .tp-payment-success-modal__sparkle {
-  color: #eab308;
+  color: #16a34a;
 }
 
 .tp-payment-success-modal__steps {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 440px) {
+  .tp-payment-success-modal__steps {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
 }
 
 .tp-payment-success-modal__step {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 8px;
 }
 
-.tp-payment-success-modal__step-num {
+.tp-payment-success-modal__step-icon {
   width: 24px;
   height: 24px;
-  border-radius: 50%;
-  background-color: #16a34a;
-  color: #ffffff;
-  font-size: 0.78rem;
-  font-weight: 700;
+  border-radius: 6px;
+  background-color: #dcfce7;
+  color: #16a34a;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .tp-payment-success-modal__step-body {
   flex: 1;
+  min-width: 0;
 }
 
 .tp-payment-success-modal__step-heading {
   display: block;
-  font-size: 0.88rem;
+  font-size: 0.8rem;
+  font-weight: 700;
   color: #14532d;
+  line-height: 1.25;
   margin-bottom: 2px;
 }
 
 .tp-payment-success-modal__step-text {
   margin: 0;
-  font-size: 0.82rem;
-  color: #334155;
-  line-height: 1.4;
+  font-size: 0.74rem;
+  color: #475569;
+  line-height: 1.35;
 }
 
 .tp-payment-success-modal__actions {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+}
+
+.tp-payment-success-modal__btn-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+@media (max-width: 380px) {
+  .tp-payment-success-modal__btn-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 .tp-payment-success-modal__btn-primary {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 13px 20px;
-  border-radius: 12px;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 10px;
   background: linear-gradient(135deg, #034c85 0%, #023660 100%);
   color: #ffffff;
-  font-size: 0.95rem;
+  font-size: 0.86rem;
   font-weight: 700;
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(3, 76, 133, 0.25);
+  box-shadow: 0 4px 10px rgba(3, 76, 133, 0.2);
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .tp-payment-success-modal__btn-primary:hover {
   background: linear-gradient(135deg, #023660 0%, #01223d 100%);
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(3, 76, 133, 0.35);
+  box-shadow: 0 6px 14px rgba(3, 76, 133, 0.28);
 }
 
 .tp-payment-success-modal__btn-secondary {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 12px 20px;
-  border-radius: 12px;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 10px;
   background: #ffffff;
-  color: #334155;
-  font-size: 0.92rem;
+  color: #034c85;
+  font-size: 0.86rem;
   font-weight: 600;
-  border: 1px solid #cbd5e1;
+  border: 1.5px solid #034c85;
   cursor: pointer;
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .tp-payment-success-modal__btn-secondary:hover {
-  background-color: #f8fafc;
-  border-color: #94a3b8;
+  background-color: #f0f7fc;
 }
 
 .tp-payment-success-modal__btn-ghost {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 10px 20px;
-  border-radius: 12px;
+  gap: 6px;
+  padding: 6px 12px;
   background: transparent;
   color: #fe6f05;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-weight: 600;
   text-decoration: none;
-  transition: background-color 0.15s ease;
+  transition: all 0.15s ease;
 }
 
 .tp-payment-success-modal__btn-ghost:hover {
-  background-color: #fff7ed;
+  color: #ea580c;
+  text-decoration: underline;
 }
 
 /* Dark mode for Payment Success Modal */
@@ -1486,7 +1535,7 @@
 [data-theme="dark"] .tp-payment-success-modal {
   background-color: #0d1e33;
   border: 1px solid #1e3552;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
 }
 
 .dark .tp-payment-success-modal__title,
@@ -1520,6 +1569,24 @@
   color: #38bdf8;
 }
 
+.dark .tp-payment-success-modal__copy-pill,
+[data-theme="dark"] .tp-payment-success-modal__copy-pill {
+  background: #0c2b4e;
+  border-color: #1a4f86;
+  color: #38bdf8;
+}
+
+.dark .tp-payment-success-modal__copy-pill:hover,
+[data-theme="dark"] .tp-payment-success-modal__copy-pill:hover {
+  background: #153e6e;
+  color: #7dd3fc;
+}
+
+.dark .tp-payment-success-modal__receipt-val--total,
+[data-theme="dark"] .tp-payment-success-modal__receipt-val--total {
+  color: #34d399;
+}
+
 .dark .tp-payment-success-modal__receipt-val--mono,
 [data-theme="dark"] .tp-payment-success-modal__receipt-val--mono {
   color: #94a3b8;
@@ -1528,11 +1595,17 @@
 .dark .tp-payment-success-modal__guide,
 [data-theme="dark"] .tp-payment-success-modal__guide {
   background-color: rgba(16, 185, 129, 0.08);
-  border-color: rgba(16, 185, 129, 0.25);
+  border-color: rgba(16, 185, 129, 0.22);
 }
 
 .dark .tp-payment-success-modal__guide-title,
 [data-theme="dark"] .tp-payment-success-modal__guide-title {
+  color: #34d399;
+}
+
+.dark .tp-payment-success-modal__step-icon,
+[data-theme="dark"] .tp-payment-success-modal__step-icon {
+  background-color: rgba(16, 185, 129, 0.15);
   color: #34d399;
 }
 
@@ -1549,15 +1622,14 @@
 .dark .tp-payment-success-modal__btn-secondary,
 [data-theme="dark"] .tp-payment-success-modal__btn-secondary {
   background-color: #132742;
-  border-color: #243954;
-  color: #e2e8f0;
+  border-color: #38bdf8;
+  color: #38bdf8;
 }
 
 .dark .tp-payment-success-modal__btn-secondary:hover,
 [data-theme="dark"] .tp-payment-success-modal__btn-secondary:hover {
   background-color: #1a3458;
-  border-color: #334e73;
-  color: #ffffff;
+  color: #7dd3fc;
 }
 
 .dark .tp-payment-success-modal__close-btn,
