@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { Component, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useOutletContext } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -1305,7 +1305,7 @@ const getCheckoutPreviewStatus = ({
   };
 };
 
-class CheckoutErrorBoundary extends React.Component {
+class CheckoutErrorBoundary extends Component {
   state = { hasError: false, error: null };
 
   static getDerivedStateFromError(error) {

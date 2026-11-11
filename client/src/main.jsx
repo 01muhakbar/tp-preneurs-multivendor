@@ -10,9 +10,14 @@ import "./index.css";
 import "./i18n.js";
 
 if (typeof window !== "undefined") {
-  window.addEventListener("vite:preloadError", (event) => {
-    event.preventDefault();
-    window.location.reload();
+  window.addEventListener("vite:preloadError", () => {
+    const key = "vite_preload_error_reload";
+    const lastReload = sessionStorage.getItem(key);
+    const now = Date.now();
+    if (!lastReload || now - Number(lastReload) > 10000) {
+      sessionStorage.setItem(key, String(now));
+      window.location.reload();
+    }
   });
 }
 
