@@ -9,6 +9,7 @@ import { getOrderTruthStatus } from "../../utils/orderTruth.js";
 import { getOrderItemVariantLines } from "../../utils/orderVariantPresentation.js";
 import { resolvePublicOrderReference } from "../../utils/publicOrderReference.js";
 import { normalizeShipmentList } from "../../utils/shipmentReadModel.ts";
+import { normalizeStoreOrderTrackingFor2026 } from "../store/storeOrderTracking2026Adapter.js";
 import {
   getSplitOperationalBuyerAction,
   getSplitOperationalPayment,
@@ -838,27 +839,61 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false, is
               ? isIndo ? "Pesanan ini telah dibatalkan." : "This order has been cancelled."
               : "";
 
-  const primaryCourier =
+  // Synchronize 100% with public tracking page (/order/:ref)
+  let tracking2026 = null;
+  try {
+    tracking2026 = normalizeStoreOrderTrackingFor2026({
+      tracking: source,
+      isIndo,
+      isPaymentSuccessReturn,
+    });
+  } catch (err) {
+    console.warn("[accountOrderDetail2026Adapter] store tracking sync failed", err);
+  }
+
+  // The tracking2026 timeline has the latest operational milestone at index 0 (newest on top)
+  const latestTrackingEvent = tracking2026?.timeline?.[0] || null;
+
+  const courierName =
+    tracking2026?.courierName ||
     text(primaryShipment?.courier) ||
     text(source.courierName) ||
-    (isIndo ? "Pengiriman Standar" : "Standard Delivery");
-  const primaryTrackingNo =
-    text(primaryShipment?.trackingNumber) ||
-    text(source.trackingNumber) ||
-    reference;
-  const latestTimelineEvent = timeline?.[timeline.length - 1] || null;
+    (isIndo ? "Kurir Standar" : "Standard Courier");
+
+  const trackingNumberDisplay =
+    tracking2026?.trackingNumberDisplay ||
+    (tracking2026?.hasRealTrackingNumber
+      ? tracking2026.trackingNumber
+      : primaryShipment?.trackingNumber || (isIndo ? "Menunggu nomor resi dari penjual" : "Awaiting tracking number from seller"));
+
   const shippingStatusText =
-    latestTimelineEvent?.label ||
+    latestTrackingEvent?.label ||
     (isDelivered
-      ? isIndo ? "Pesanan tiba di alamat tujuan." : "Package arrived at destination."
+      ? isIndo ? "Pesanan Tiba di Alamat Tujuan" : "Delivered to Destination"
       : isShipping
-        ? isIndo ? "Paket sedang dalam perjalanan." : "Package is on the way."
+        ? isIndo ? "Paket Diserahkan ke Kurir" : "Handed Over to Courier"
         : isPacking
-          ? isIndo ? "Pesanan sedang dikemas oleh penjual." : "Order is being packed by seller."
-          : isIndo ? "Menunggu konfirmasi pembayaran." : "Waiting for payment confirmation.");
+          ? isIndo ? "Pesanan Dikemas" : "Order Packed"
+          : isPaid
+            ? isIndo ? "Pembayaran Terverifikasi" : "Payment Confirmed"
+            : isIndo ? "Pesanan Dibuat" : "Order Placed");
+
+  const shippingStatusDesc =
+    latestTrackingEvent?.description ||
+    (isDelivered
+      ? isIndo ? "Pesanan telah berhasil diterima di alamat pemesan." : "Package delivered successfully to recipient address."
+      : isShipping
+        ? isIndo ? "Paket sedang dalam perjalanan bersama kurir pengiriman." : "Package is in transit with delivery courier."
+        : isPacking
+          ? isIndo ? "Penjual telah mengemas pesanan dan menyiapkan pengiriman." : "Seller packed order and prepared shipment."
+          : isPaid
+            ? isIndo ? "Pembayaran berhasil diverifikasi dan pesanan diteruskan ke penjual." : "Payment verified and order forwarded to store."
+            : isIndo ? "Pesanan berhasil dibuat oleh pembeli." : "Order placed by customer.");
+
   const shippingTimestamp =
-    latestTimelineEvent?.happenedAtDisplay ||
-    (placedAt ? formatDateTime(placedAt, isIndo) : "-");
+    latestTrackingEvent?.dateLabel ||
+    latestTrackingEvent?.happenedAtDisplay ||
+    (source.updatedAt ? formatDateTime(source.updatedAt, isIndo) : placedAt ? formatDateTime(placedAt, isIndo) : "-");
 
   const recipientName = text(source.customerName || source.customer?.name, isIndo ? "Pelanggan" : "Customer");
   const recipientPhone = text(source.customerPhone || source.customer?.phone, "-");
@@ -959,10 +994,14 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false, is
       isCancelled,
     },
     shippingInfo: {
-      courier: primaryCourier,
-      trackingNumber: primaryTrackingNo,
+      courier: courierName,
+      trackingNumber: trackingNumberDisplay,
       statusText: shippingStatusText,
+      description: shippingStatusDesc,
       timestamp: shippingTimestamp,
+      isDelivered,
+      isPacking,
+      isShipping,
       hasTracking: Boolean(trackingUrl || publicTrackingPath || timeline.length),
       trackingPath: trackingUrl || publicTrackingPath || "",
     },

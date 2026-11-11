@@ -201,16 +201,31 @@
 }
 
 .tp-shopee-detail__shipping-bullet {
-  color: var(--tp-success);
+  color: #fe6f05;
   font-size: 1.1rem;
   line-height: 1;
+}
+
+.tp-shopee-detail__shipping-bullet--delivered {
+  color: var(--tp-success);
 }
 
 .tp-shopee-detail__shipping-status-label {
   font-size: 0.88rem;
   color: var(--tp-success);
-  font-weight: 600;
+  font-weight: 700;
   margin: 0 0 2px 0;
+}
+
+.tp-shopee-detail__shipping-status-desc {
+  font-size: 0.82rem;
+  color: var(--tp-text-muted);
+  margin: 0 0 4px 0;
+  line-height: 1.35;
+}
+
+.dark .tp-shopee-detail__shipping-status-desc {
+  color: #94a3b8;
 }
 
 .tp-shopee-detail__shipping-status-time {

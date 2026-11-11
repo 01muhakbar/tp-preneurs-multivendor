@@ -23,6 +23,17 @@ const shouldPollGroupedOrder = (groupedOrder) => {
   return groups.some((group) => !isSplitOperationallyFinal(group));
 };
 
+const shouldPollOrderDetail = (order) => {
+  if (!order || typeof order !== "object") return false;
+  const status = String(order.status || "").toUpperCase();
+  if (["DELIVERED", "COMPLETED", "CANCELLED", "FAILED", "EXPIRED"].includes(status)) {
+    return false;
+  }
+  // While order is in progress (UNPAID, PENDING, PROCESSING, READY_TO_FULFILL, SHIPPED, IN_TRANSIT, OUT_FOR_DELIVERY),
+  // poll every 10 seconds so that packing, shipping, and courier tracking updates sync in real-time!
+  return 10000;
+};
+
 export default function AccountOrderDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -63,7 +74,7 @@ export default function AccountOrderDetailPage() {
     refetchIntervalInBackground: false,
     refetchInterval: (query) => {
       const order = query.state.data?.data ?? query.state.data?.data?.data ?? null;
-      return !isOrderContractFinal(order?.contract) ? 15000 : false;
+      return shouldPollOrderDetail(order);
     },
   });
   const groupedQuery = useQuery({
@@ -74,7 +85,7 @@ export default function AccountOrderDetailPage() {
     refetchIntervalInBackground: false,
     refetchInterval: (query) => {
       const groupedOrder = query.state.data?.data ?? null;
-      return shouldPollGroupedOrder(groupedOrder) ? 15000 : false;
+      return shouldPollGroupedOrder(groupedOrder) ? 10000 : false;
     },
   });
 

@@ -244,9 +244,9 @@ const normalizeShipments = (tracking, storeSplits, isIndo = false) => {
 export const getStoreTrackingSafeRef2026 = (params = {}) =>
   resolvePublicOrderReference(params.ref, params.reference, params.orderRef);
 
-export const normalizeStoreOrderTrackingFor2026 = ({ tracking, isIndo = false }) => {
+export const normalizeStoreOrderTrackingFor2026 = ({ tracking, isIndo = false, isPaymentSuccessReturn = false }) => {
   const order = object(tracking);
-  if (!text(order.ref || order.invoiceNo)) return null;
+  if (!text(order.ref || order.invoiceNo || order.id)) return null;
 
   const orderId = order.id || order.orderId || 137;
   const contractSummary = object(getOrderContractSummary(order.contract));
@@ -301,8 +301,8 @@ export const normalizeStoreOrderTrackingFor2026 = ({ tracking, isIndo = false })
   const isDelivered = /DELIVERED|COMPLETE/.test(statusCode) || /DELIVERED|COMPLETE/.test(shippingCode);
   const isShipped = isDelivered || /SHIPPED|IN_TRANSIT|SHIPPING/.test(statusCode) || /SHIPPED|IN_TRANSIT/.test(shippingCode);
   const isOutForDelivery = /OUT_FOR_DELIVERY|DELIVERING/.test(statusCode) || /OUT_FOR_DELIVERY|DELIVERING/.test(shippingCode);
-  const isPaid = /PAID|SETTLED/.test(paymentCode) || /PROCESSING|SHIPPED|DELIVERED/.test(statusCode);
-  const isPacked = isShipped || /PROCESSING|READY/.test(statusCode) || /PROCESSING|READY/.test(shippingCode);
+  const isPaid = isPaymentSuccessReturn || /PAID|SETTLED/.test(paymentCode) || /PROCESSING|SHIPPED|DELIVERED/.test(statusCode);
+  const isPacked = (isPaymentSuccessReturn && !isDelivered && !isShipped) || isShipped || /PROCESSING|READY/.test(statusCode) || /PROCESSING|READY/.test(shippingCode);
 
   // Active step calculation for the 3 steps:
   // 0: Sedang Dikirim (In Transit)

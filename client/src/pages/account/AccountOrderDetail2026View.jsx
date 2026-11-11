@@ -508,17 +508,18 @@ export default function AccountOrderDetail2026View({
         </section>
 
         {/* 2. Info Pengiriman */}
-        <section className="tp-shopee-detail__card tp-shopee-detail__card--shipping">
-          <div
-            className="tp-shopee-detail__card-header-link"
-            onClick={() => {
-              if (onTrack && orderDetail.actionability?.track) {
-                onTrack(orderDetail.actionability.track);
-              } else if (onTimeline) {
-                onTimeline();
-              }
-            }}
-          >
+        <section
+          className="tp-shopee-detail__card tp-shopee-detail__card--shipping"
+          onClick={() => {
+            if (onTrack && orderDetail?.actionability?.track) {
+              onTrack(orderDetail.actionability.track);
+            } else if (onTimeline) {
+              onTimeline();
+            }
+          }}
+          style={{ cursor: "pointer" }}
+        >
+          <div className="tp-shopee-detail__card-header-link">
             <div className="tp-shopee-detail__card-heading">
               <Truck size={17} className="tp-shopee-detail__icon-primary" />
               <h3 className="tp-shopee-detail__card-title">{t.shippingInfo}</h3>
@@ -531,9 +532,18 @@ export default function AccountOrderDetail2026View({
           </div>
 
           <div className="tp-shopee-detail__shipping-status-row">
-            <span className="tp-shopee-detail__shipping-bullet">●</span>
+            <span
+              className={`tp-shopee-detail__shipping-bullet ${
+                shippingInfo.isDelivered ? "tp-shopee-detail__shipping-bullet--delivered" : ""
+              }`}
+            >
+              ●
+            </span>
             <div className="tp-shopee-detail__shipping-status-content">
               <p className="tp-shopee-detail__shipping-status-label">{shippingInfo.statusText}</p>
+              {shippingInfo.description && (
+                <p className="tp-shopee-detail__shipping-status-desc">{shippingInfo.description}</p>
+              )}
               <time className="tp-shopee-detail__shipping-status-time">{shippingInfo.timestamp}</time>
             </div>
           </div>
