@@ -149,6 +149,54 @@ export default function AccountOrderDetailPage() {
       `/contact-us?topic=order&ref=${encodeURIComponent(orderDetail2026?.order?.code || id || "")}`;
     navigate(target);
   };
+
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
+
+  const handleCancelOrder = async () => {
+    if (!id || isCancelling) return;
+    setIsCancelling(true);
+    try {
+      await api.post(`/store/orders/my/${id}/cancel`);
+      toast.success(isIndo ? "Pesanan berhasil dibatalkan." : "Order successfully cancelled.");
+      await Promise.all([orderQuery.refetch(), groupedQuery.refetch()]);
+    } catch (err) {
+      console.error("[AccountOrderDetailPage] cancel error", err);
+      const msg = err?.response?.data?.message || (isIndo ? "Gagal membatalkan pesanan." : "Failed to cancel order.");
+      toast.error(msg);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const handlePayNow = async () => {
+    if (!id || isPaying) return;
+    const directUrl =
+      orderDetail2026?.actionability?.payment?.url ||
+      orderDetail?.paymentUrl ||
+      paymentReadModel?.paymentUrl;
+    if (directUrl && /^https?:\/\//i.test(directUrl)) {
+      window.location.href = directUrl;
+      return;
+    }
+
+    setIsPaying(true);
+    try {
+      const { data } = await api.post(`/store/orders/my/${id}/pay`);
+      if (data?.paymentUrl && /^https?:\/\//i.test(data.paymentUrl)) {
+        window.location.href = data.paymentUrl;
+      } else {
+        toast.error(isIndo ? "Sesi pembayaran tidak valid." : "Invalid payment session.");
+      }
+    } catch (err) {
+      console.error("[AccountOrderDetailPage] pay error", err);
+      const msg = err?.response?.data?.message || (isIndo ? "Gagal mengarahkan ke pembayaran Duitku." : "Failed to initiate payment.");
+      toast.error(msg);
+    } finally {
+      setIsPaying(false);
+    }
+  };
+
   const invalidIdError = !id ? new Error("Invalid order id.") : null;
   const missingOrderError =
     !orderQuery.isLoading && !orderQuery.isError && id && !orderDetail
@@ -166,6 +214,10 @@ export default function AccountOrderDetailPage() {
       onTrack={handleTrack}
       onTimeline={scrollToTimeline}
       onContactSupport={handleContactSupport}
+      onCancelOrder={handleCancelOrder}
+      isCancelling={isCancelling}
+      onPayNow={handlePayNow}
+      isPaying={isPaying}
       onCopy={handleCopy}
       onRetry={handleRetry}
       rawOrder={orderDetail}

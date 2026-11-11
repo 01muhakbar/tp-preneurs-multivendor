@@ -64,6 +64,8 @@ import stripeWebhookRouter from "./routes/store.stripeWebhook.js";
 import duitkuCallbackRouter from "./routes/duitku.callback.js";
 import publicRouter from "./routes/public.js";
 import healthRouter from "./routes/health.js";
+import { Order, OrderPaymentAttempt } from "./models/index.js";
+import { sweepExpiredOrders } from "./services/orderCancellation.service.js";
 applyRenderExternalOriginFallbacks();
 const app = express();
 // If behind a reverse proxy (nginx/vercel), allow req.secure via X-Forwarded-Proto
@@ -179,8 +181,54 @@ app.get(["/site.webmanifest", "/manifest.webmanifest"], (_req, res) => {
         ],
     });
 });
-app.get("/payments/return", (req, res) => {
-    const target = new URL("/user/my-orders", normalizeClientBaseUrl());
+app.get("/payments/return", async (req, res) => {
+    let orderId = null;
+    const rawOrderId = req.query.orderId;
+    const firstOrderId = Array.isArray(rawOrderId) ? rawOrderId[0] : rawOrderId;
+    if (typeof firstOrderId === "string" && firstOrderId.trim()) {
+        orderId = firstOrderId.trim();
+    }
+    const rawMerchantOrderId = req.query.merchantOrderId;
+    const merchantOrderId = (Array.isArray(rawMerchantOrderId) ? rawMerchantOrderId[0] : rawMerchantOrderId);
+    const rawReference = req.query.reference;
+    const reference = (Array.isArray(rawReference) ? rawReference[0] : rawReference);
+    // Resolve orderId from database if not explicitly passed in query
+    if (!orderId && (merchantOrderId || reference)) {
+        try {
+            if (merchantOrderId && typeof merchantOrderId === "string" && merchantOrderId.trim()) {
+                const order = await Order.findOne({
+                    where: { invoiceNo: merchantOrderId.trim() },
+                    attributes: ["id"],
+                });
+                if (order) {
+                    orderId = String(order.id);
+                }
+                else {
+                    const attempt = await OrderPaymentAttempt.findOne({
+                        where: { merchantOrderId: merchantOrderId.trim() },
+                        attributes: ["orderId"],
+                    });
+                    if (attempt && attempt.orderId) {
+                        orderId = String(attempt.orderId);
+                    }
+                }
+            }
+            if (!orderId && reference && typeof reference === "string" && reference.trim()) {
+                const attempt = await OrderPaymentAttempt.findOne({
+                    where: { providerReference: reference.trim() },
+                    attributes: ["orderId"],
+                });
+                if (attempt && attempt.orderId) {
+                    orderId = String(attempt.orderId);
+                }
+            }
+        }
+        catch (err) {
+            console.error("[payments/return] failed to lookup orderId", err);
+        }
+    }
+    const targetPath = orderId ? `/user/my-orders/${encodeURIComponent(orderId)}` : "/user/my-orders";
+    const target = new URL(targetPath, normalizeClientBaseUrl());
     const allowedKeys = ["merchantOrderId", "reference", "resultCode", "statusCode"];
     for (const key of allowedKeys) {
         const value = req.query[key];
@@ -424,5 +472,18 @@ app.use((req, res) => {
     }
     res.status(404).json({ success: false, message: "Not found" });
 });
+// Background job: sweep expired unpaid orders every 5 minutes (auto-cancellation between 1h - 24h)
+const ORDER_SWEEP_INTERVAL_MS = 5 * 60 * 1000;
+setInterval(() => {
+    sweepExpiredOrders().catch((err) => {
+        console.error("[app] Error in background sweepExpiredOrders:", err);
+    });
+}, ORDER_SWEEP_INTERVAL_MS);
+// Initial sweep shortly after server boot
+setTimeout(() => {
+    sweepExpiredOrders().catch((err) => {
+        console.error("[app] Error in initial sweepExpiredOrders:", err);
+    });
+}, 10000);
 export default app;
 //restart 

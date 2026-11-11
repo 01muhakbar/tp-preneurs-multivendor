@@ -94,6 +94,7 @@ export const persistDuitkuCreateInvoiceAttempt = async (
       amount: input.request.paymentAmount,
       currency: "IDR",
       expiryPeriodMinutes: input.request.expiryPeriod || 60,
+      expiresAt: new Date(Date.now() + (input.request.expiryPeriod || 60) * 60 * 1000),
       createdAtProvider: input.createdAtProvider || null,
       idempotencyKeyHash,
       requestFingerprint,

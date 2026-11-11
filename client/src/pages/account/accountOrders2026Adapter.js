@@ -167,22 +167,31 @@ const normalizeAvailableActions = (contract) =>
     };
   });
 
-const resolvePaymentAction = ({ id, contract, paymentEntry }) => {
+const resolvePaymentAction = ({ id, contract, paymentEntry, order }) => {
   const continuePaymentAction = getFirstEnabledOrderContractAction(contract, [
     "CONTINUE_PAYMENT",
     "CONTINUE_STRIPE_PAYMENT",
   ]);
-  const path =
-    (paymentEntry.visible && text(paymentEntry.targetPath)) ||
-    text(continuePaymentAction?.targetPath) ||
-    (paymentEntry.visible && id
-      ? `/user/my-orders/${encodeURIComponent(String(id))}/payment`
-      : "");
+  const paymentUrl =
+    text(order?.paymentUrl) ||
+    text(order?.duitkuPaymentUrl) ||
+    text(paymentEntry.paymentUrl) ||
+    (paymentEntry.targetUrl && /^https?:\/\//i.test(paymentEntry.targetUrl) ? text(paymentEntry.targetUrl) : "") ||
+    "";
+
+  const isExternal = Boolean(paymentUrl && /^https?:\/\//i.test(paymentUrl));
+  const path = isExternal
+    ? paymentUrl
+    : (paymentEntry.visible && text(paymentEntry.targetPath)) ||
+      text(continuePaymentAction?.targetPath) ||
+      (id ? `/user/my-orders/${encodeURIComponent(String(id))}` : "");
 
   if (!path) return null;
   return {
-    label: text(paymentEntry.label || continuePaymentAction?.label, "Payment"),
+    label: text(paymentEntry.label || continuePaymentAction?.label, "Bayar Sekarang"),
     path,
+    url: isExternal ? paymentUrl : "",
+    isExternal,
   };
 };
 
@@ -304,7 +313,7 @@ const normalizeOrder = (value, options = {}) => {
     label: paymentLabel,
   };
   const detailPath = id ? `/user/my-orders/${encodeURIComponent(String(id))}` : null;
-  const paymentAction = resolvePaymentAction({ id, contract, paymentEntry });
+  const paymentAction = resolvePaymentAction({ id, contract, paymentEntry, order });
   const createdAt = order.createdAt || order.created_at || order.orderTime || null;
   const shippingAmount = asNumber(
     order.shipping ?? order.shippingAmount ?? order.deliveryFee,

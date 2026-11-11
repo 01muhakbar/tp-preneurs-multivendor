@@ -20,8 +20,24 @@ import {
   TrackingEvent,
   User,
   NewsletterSubscriber,
+  OrderPaymentAttempt,
   sequelize,
 } from "../models/index.js";
+import {
+  cancelOrderAndRestoreStock,
+  expireOrderIfOverdue,
+  resolveOrderExpiryMinutes,
+} from "../services/orderCancellation.service.js";
+import {
+  resolveDuitkuConfig,
+  buildDuitkuCreateInvoiceUrl,
+} from "../services/duitku/duitkuConfig.service.js";
+import {
+  buildDuitkuCreateInvoiceRequest,
+  normalizeDuitkuCreateInvoiceResponse,
+} from "../services/duitku/duitkuClient.service.js";
+import { persistDuitkuCreateInvoiceAttempt } from "../services/duitku/duitkuAttemptPersistence.service.js";
+import { buildDuitkuCreateInvoiceHeaders } from "../services/duitku/duitkuSigner.service.js";
 import { validateCoupon } from "../services/coupon.service.js";
 import {
   buildPublicOperationalStoreInclude,
@@ -357,12 +373,16 @@ const resolveOrderAmountSnapshot = (order: any, computedSubtotal = 0) => {
 
 const buildBuyerPaymentEntryWithTargetPath = (
   orderId: number,
-  displayStatuses: unknown[]
+  displayStatuses: unknown[],
+  paymentUrl?: string | null
 ) => {
   const paymentEntry = buildBuyerOrderPaymentEntry(displayStatuses);
+  const target = paymentUrl || (paymentEntry.visible ? `/user/my-orders/${orderId}/payment` : null);
   return {
     ...paymentEntry,
-    targetPath: paymentEntry.visible ? `/user/my-orders/${orderId}/payment` : null,
+    paymentUrl: paymentUrl || null,
+    targetUrl: target,
+    targetPath: target,
   };
 };
 
@@ -374,6 +394,7 @@ const buildBuyerOrderContractPayload = (input: {
   displayStatuses?: unknown[];
   fulfillmentStatuses?: unknown[];
   statusSummaryOverride?: unknown;
+  paymentUrl?: string | null;
 }) => {
   const contract = buildBuyerOrderContract({
     orderStatus: input.orderStatus,
@@ -395,9 +416,11 @@ const buildBuyerOrderContractPayload = (input: {
         ? {
             ...action,
             targetPath:
-              input.orderId && action.enabled
+              input.paymentUrl ||
+              (input.orderId && action.enabled
                 ? `/user/my-orders/${input.orderId}/payment`
-                : null,
+                : null),
+            targetUrl: input.paymentUrl || null,
           }
         : action
     ),
@@ -1883,6 +1906,7 @@ router.get(
 
       const paymentGroupsByOrderId = new Map<number, any[]>();
       const duitkuPaymentCodeByOrderId = new Map<number, string | null>();
+      const paymentUrlByOrderId = new Map<number, string | null>();
       const itemsByOrderId = new Map<number, any[]>();
       if (orderIds.length > 0) {
         const placeholders = orderIds.map(() => "?").join(", ");
@@ -1989,6 +2013,32 @@ router.get(
             orderId,
             String((row as any)?.paymentCode || "").trim() || null
           );
+        }
+
+        try {
+          const attemptRows = (await sequelize.query(
+            `
+              SELECT order_id AS orderId, payment_url AS paymentUrl
+              FROM order_payment_attempts
+              WHERE order_id IN (${placeholders})
+                AND payment_url IS NOT NULL
+                AND payment_url <> ''
+                AND status IN ('CREATED', 'PENDING')
+              ORDER BY id DESC
+            `,
+            {
+              replacements: orderIds,
+              type: QueryTypes.SELECT,
+            }
+          )) as any[];
+          for (const row of attemptRows) {
+            const orderId = Number(row?.orderId ?? 0);
+            if (orderId > 0 && !paymentUrlByOrderId.has(orderId)) {
+              paymentUrlByOrderId.set(orderId, String(row.paymentUrl).trim());
+            }
+          }
+        } catch {
+          // Graceful if table not present
         }
 
         try {
@@ -2151,7 +2201,8 @@ router.get(
           const paymentGroups = paymentGroupsByOrderId.get(orderId) ?? [];
           const displayStatuses = paymentGroups.map((group: any) => group.displayStatus);
           const aggregateStatusSummary = buildBuyerAggregateStatusSummary(paymentGroups);
-          const paymentEntry = buildBuyerPaymentEntryWithTargetPath(orderId, displayStatuses);
+          const paymentUrl = paymentUrlByOrderId.get(orderId) || null;
+          const paymentEntry = buildBuyerPaymentEntryWithTargetPath(orderId, displayStatuses, paymentUrl);
           const paymentCode = duitkuPaymentCodeByOrderId.get(orderId) ?? null;
           const paymentMethod = row.payment_method ?? row.paymentMethod ?? null;
           const paymentMethodLabel = resolveDuitkuPaymentMethodDisplay({
@@ -2167,6 +2218,7 @@ router.get(
             displayStatuses,
             fulfillmentStatuses: paymentGroups.map((group: any) => group.fulfillmentStatus),
             statusSummaryOverride: aggregateStatusSummary,
+            paymentUrl,
           });
           const orderItems = itemsByOrderId.get(orderId) ?? [];
           const totalItemsCount = orderItems.reduce(
@@ -2178,6 +2230,8 @@ router.get(
           return {
             id: row.id,
             invoiceNo: row.invoice_no ?? row.invoiceNo ?? null,
+            paymentUrl,
+            duitkuPaymentUrl: paymentUrl,
             checkoutMode: String(row.checkout_mode ?? row.checkoutMode ?? "LEGACY")
               .toUpperCase()
               .trim() || "LEGACY",
@@ -2243,6 +2297,9 @@ router.get(
       if (!Number.isFinite(orderId)) {
         return res.status(400).json({ message: "Invalid order id." });
       }
+
+      // Auto-expire order if deadline (1h-24h) has passed and still unpaid
+      await expireOrderIfOverdue(orderId);
 
       const order = await Order.findOne({
         where: { id: orderId, userId },
@@ -2497,7 +2554,21 @@ router.get(
           };
         })
       );
-      const paymentEntryWithPath = buildBuyerPaymentEntryWithTargetPath(orderId, displayStatuses);
+      let paymentUrl: string | null = null;
+      try {
+        const latestAttempt = await OrderPaymentAttempt.findOne({
+          where: { orderId },
+          order: [["id", "DESC"]],
+          attributes: ["id", "status", "paymentUrl", "expiresAt"],
+        });
+        if (latestAttempt && ["CREATED", "PENDING"].includes(String((latestAttempt as any).status || "").toUpperCase())) {
+          paymentUrl = (latestAttempt as any).paymentUrl || null;
+        }
+      } catch (err) {
+        console.warn("[store.orders.my/:id] failed to query OrderPaymentAttempt", err);
+      }
+
+      const paymentEntryWithPath = buildBuyerPaymentEntryWithTargetPath(orderId, displayStatuses, paymentUrl);
       const subtotal = items.reduce(
         (sum: number, item: any) => sum + Number(item.lineTotal || 0),
         0
@@ -2515,6 +2586,7 @@ router.get(
         displayStatuses,
         fulfillmentStatuses: paymentGroups.map((suborder: any) => suborder?.fulfillmentStatus),
         statusSummaryOverride: aggregateStatusSummary,
+        paymentUrl,
       });
 
       return res.json({
@@ -2522,6 +2594,8 @@ router.get(
           id: order.id,
           ref: order.invoiceNo || String(order.id),
           invoiceNo: order.invoiceNo,
+          paymentUrl,
+          duitkuPaymentUrl: paymentUrl,
           checkoutMode:
             String((order as any).checkoutMode || order.get?.("checkoutMode") || "LEGACY")
               .toUpperCase()
@@ -2591,6 +2665,249 @@ router.get(
       });
     } catch (error) {
       next(error);
+    }
+  }
+);
+
+// POST /api/store/orders/my/:id/cancel (auth)
+router.post(
+  "/orders/my/:id/cancel",
+  protect,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = getAuthUserId(req, res);
+      if (!userId) return;
+
+      const orderId = Number(req.params.id);
+      if (!Number.isFinite(orderId)) {
+        return res.status(400).json({ success: false, message: "Invalid order id." });
+      }
+
+      const order = await Order.findOne({
+        where: { id: orderId, userId },
+        attributes: ["id", "invoiceNo", "status", "paymentStatus"],
+      });
+
+      if (!order) {
+        return res.status(404).json({ success: false, message: "Pesanan tidak ditemukan." });
+      }
+
+      const currentStatus = String((order as any).status || "pending").toLowerCase().trim();
+      const currentPaymentStatus = String((order as any).paymentStatus || "UNPAID").toUpperCase().trim();
+
+      if (["complete", "completed", "delivered", "shipping", "shipped"].includes(currentStatus)) {
+        return res.status(409).json({
+          success: false,
+          message: "Pesanan yang sedang dikirim atau telah selesai tidak dapat dibatalkan.",
+        });
+      }
+
+      if (currentPaymentStatus === "PAID") {
+        return res.status(409).json({
+          success: false,
+          message: "Pesanan yang sudah dibayar tidak dapat dibatalkan secara langsung.",
+        });
+      }
+
+      if (currentStatus === "cancelled") {
+        return res.json({
+          success: true,
+          message: "Pesanan sudah dibatalkan sebelumnya.",
+          data: { orderId, status: "cancelled" },
+        });
+      }
+
+      const result = await cancelOrderAndRestoreStock(
+        orderId,
+        { type: "BUYER", id: userId },
+        "Dibatalkan oleh pembeli dari halaman rincian pesanan."
+      );
+
+      return res.json({
+        success: true,
+        message: "Pesanan berhasil dibatalkan.",
+        data: result,
+      });
+    } catch (error: any) {
+      console.error("[store/orders/my/:id/cancel] error", error);
+      return res.status(500).json({
+        success: false,
+        message: error?.message || "Gagal membatalkan pesanan.",
+      });
+    }
+  }
+);
+
+// POST /api/store/orders/my/:id/pay (auth)
+router.post(
+  "/orders/my/:id/pay",
+  protect,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = getAuthUserId(req, res);
+      if (!userId) return;
+
+      const orderId = Number(req.params.id);
+      if (!Number.isFinite(orderId)) {
+        return res.status(400).json({ success: false, message: "Invalid order id." });
+      }
+
+      // Check if order has expired
+      await expireOrderIfOverdue(orderId);
+
+      const order = await Order.findOne({
+        where: { id: orderId, userId },
+        attributes: [
+          "id",
+          "invoiceNo",
+          "status",
+          "paymentStatus",
+          "totalAmount",
+          "paymentMethod",
+          "customerName",
+          "customerPhone",
+        ],
+      });
+
+      if (!order) {
+        return res.status(404).json({ success: false, message: "Pesanan tidak ditemukan." });
+      }
+
+      const currentStatus = String((order as any).status || "pending").toLowerCase().trim();
+      const currentPaymentStatus = String((order as any).paymentStatus || "UNPAID").toUpperCase().trim();
+
+      if (currentStatus === "cancelled" || currentPaymentStatus === "EXPIRED") {
+        return res.status(409).json({
+          success: false,
+          message: "Pesanan ini sudah dibatalkan atau kedaluwarsa.",
+        });
+      }
+
+      if (currentPaymentStatus === "PAID") {
+        return res.status(409).json({
+          success: false,
+          message: "Pesanan ini sudah berhasil dibayar.",
+        });
+      }
+
+      // Find existing active payment attempt
+      let activeAttempt = null;
+      try {
+        activeAttempt = await OrderPaymentAttempt.findOne({
+          where: {
+            orderId,
+            status: { [Op.in]: ["CREATED", "PENDING"] },
+            paymentUrl: { [Op.ne]: null },
+          },
+          order: [["id", "DESC"]],
+        });
+      } catch (e) {
+        // Graceful
+      }
+
+      if (activeAttempt && (activeAttempt as any).paymentUrl) {
+        return res.json({
+          success: true,
+          paymentUrl: (activeAttempt as any).paymentUrl,
+        });
+      }
+
+      // Create new Duitku invoice session
+      const duitkuConfig = resolveDuitkuConfig();
+      if (!duitkuConfig.enabled) {
+        return res.status(400).json({
+          success: false,
+          message: "Gerbang pembayaran Duitku belum diaktifkan.",
+        });
+      }
+
+      const user = await User.findByPk(userId, { attributes: ["id", "name", "email", "phone"] });
+      const customerEmail = String((user as any)?.email || "customer@tppreneurs.com").trim();
+      const invoiceNo = String((order as any).invoiceNo || `ORDER-${orderId}`);
+      const orderExpiryMinutes = resolveOrderExpiryMinutes();
+
+      const returnUrlWithOrderId = (() => {
+        try {
+          const u = new URL(duitkuConfig.returnUrl);
+          u.searchParams.set("orderId", String(orderId));
+          u.searchParams.set("merchantOrderId", invoiceNo);
+          return u.toString();
+        } catch {
+          const sep = duitkuConfig.returnUrl.includes("?") ? "&" : "?";
+          return `${duitkuConfig.returnUrl}${sep}orderId=${orderId}&merchantOrderId=${encodeURIComponent(invoiceNo)}`;
+        }
+      })();
+
+      const requestBody = buildDuitkuCreateInvoiceRequest(
+        {
+          paymentAmount: Math.floor(Number((order as any).totalAmount || 0)),
+          merchantOrderId: invoiceNo,
+          productDetails: `Payment for Order ${invoiceNo}`,
+          email: customerEmail,
+          customerVaName: String((order as any).customerName || (user as any)?.name || "Customer").slice(0, 20),
+          phoneNumber: (order as any).customerPhone || (user as any)?.phone || undefined,
+          paymentMethod:
+            (order as any).paymentMethod && (order as any).paymentMethod !== "COD"
+              ? (order as any).paymentMethod
+              : undefined,
+          expiryPeriod: orderExpiryMinutes,
+        },
+        {
+          callbackUrl: duitkuConfig.callbackUrl,
+          returnUrl: returnUrlWithOrderId,
+        }
+      );
+
+      const url = buildDuitkuCreateInvoiceUrl(duitkuConfig);
+      const headers = buildDuitkuCreateInvoiceHeaders({
+        merchantCode: duitkuConfig.merchantCode,
+        apiKey: duitkuConfig.apiKey,
+        timestamp: Date.now(),
+      });
+
+      const duitkuRes = await fetch(url, {
+        method: "POST",
+        headers: {
+          ...headers,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      const rawResponse = (await duitkuRes.json()) as any;
+      const normalized = normalizeDuitkuCreateInvoiceResponse(rawResponse);
+
+      if (normalized.ok && normalized.paymentUrl) {
+        try {
+          await persistDuitkuCreateInvoiceAttempt({
+            orderId,
+            createdByUserId: userId,
+            merchantOrderId: invoiceNo,
+            idempotencyKey: `pay-retry-${orderId}-${Date.now()}`,
+            request: requestBody,
+            response: normalized,
+            createdAtProvider: new Date(),
+          });
+        } catch (persistErr) {
+          console.warn("[store/orders/my/:id/pay] Failed to persist attempt", persistErr);
+        }
+
+        return res.json({
+          success: true,
+          paymentUrl: normalized.paymentUrl,
+        });
+      }
+
+      return res.status(502).json({
+        success: false,
+        message: normalized.statusMessage || "Gagal membuat sesi pembayaran Duitku.",
+      });
+    } catch (error: any) {
+      console.error("[store/orders/my/:id/pay] error", error);
+      return res.status(500).json({
+        success: false,
+        message: error?.message || "Gagal memproses pembayaran.",
+      });
     }
   }
 );

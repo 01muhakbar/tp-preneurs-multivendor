@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   BadgeCheck,
   CalendarClock,
@@ -344,6 +344,7 @@ function PaymentProofForm({
 
 export default function AccountOrderPaymentPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [proofPaymentId, setProofPaymentId] = useState(null);
   const [cancelTarget, setCancelTarget] = useState(null);
@@ -360,6 +361,21 @@ export default function AccountOrderPaymentPage() {
     refetchInterval: (query) =>
       shouldPollGroupedPaymentGroups(query.state.data?.data?.groups) ? 15000 : false,
   });
+
+  const orderData = paymentQuery.data?.data || null;
+  const directPaymentUrl =
+    orderData?.paymentUrl ||
+    orderData?.collection?.paymentUrl ||
+    null;
+
+  // Streamlined flow: automatically redirect directly to Duitku payment gateway
+  useEffect(() => {
+    if (directPaymentUrl && /^https?:\/\//i.test(directPaymentUrl)) {
+      window.location.replace(directPaymentUrl);
+    } else if (orderData && (orderData.paymentStatus === "PAID" || orderData.orderStatus === "cancelled")) {
+      navigate(`/user/my-orders/${id}`, { replace: true });
+    }
+  }, [directPaymentUrl, orderData, id, navigate]);
 
   const invalidatePaymentQueries = async (paymentId) => {
     await Promise.all([

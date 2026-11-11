@@ -75,6 +75,13 @@ const DETAIL_I18N = {
     review: "Review",
     viewReview: "View Review",
     payNow: "Pay Now",
+    paying: "Opening Payment...",
+    cancelOrder: "Cancel Order",
+    cancelling: "Cancelling...",
+    cancelModalTitle: "Cancel Order?",
+    cancelModalBody: "Are you sure you want to cancel this order? Cancelled orders cannot be resumed and reserved items will be returned to store stock.",
+    cancelModalConfirm: "Yes, Cancel Order",
+    cancelModalBack: "Back",
     track: "Track",
     details: "Details",
     loading: "Loading order details...",
@@ -125,6 +132,13 @@ const DETAIL_I18N = {
     review: "Nilai",
     viewReview: "Lihat Penilaian",
     payNow: "Bayar Sekarang",
+    paying: "Membuka Pembayaran...",
+    cancelOrder: "Batalkan Pesanan",
+    cancelling: "Membatalkan...",
+    cancelModalTitle: "Batalkan Pesanan?",
+    cancelModalBody: "Apakah Anda yakin ingin membatalkan pesanan ini? Pesanan yang dibatalkan tidak dapat diproses lagi dan stok barang akan dikembalikan ke toko.",
+    cancelModalConfirm: "Ya, Batalkan Pesanan",
+    cancelModalBack: "Kembali",
     track: "Lacak",
     details: "Rincian",
     loading: "Memuat rincian pesanan...",
@@ -231,6 +245,10 @@ export default function AccountOrderDetail2026View({
   onTrack,
   onTimeline,
   onContactSupport,
+  onCancelOrder,
+  isCancelling = false,
+  onPayNow,
+  isPaying = false,
   onCopy,
   onRetry,
   rawOrder,
@@ -262,6 +280,7 @@ export default function AccountOrderDetail2026View({
   const [isTimestampsOpen, setIsTimestampsOpen] = useState(false);
   const [isAddressExpanded, setIsAddressExpanded] = useState(false);
   const [isBuyingAgain, setIsBuyingAgain] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   const { add: addToCart } = useCart();
 
@@ -767,13 +786,39 @@ export default function AccountOrderDetail2026View({
             );
           })()}
 
-          {banner.isUnpaid && orderDetail.actionability?.payment?.path ? (
-            <LinkComponent
-              to={orderDetail.actionability.payment.path}
+          {banner.isUnpaid && orderDetail.actionability?.cancelOrder?.enabled && (
+            <button
+              type="button"
+              onClick={() => setShowCancelModal(true)}
+              disabled={isCancelling}
+              className="tp-shopee-detail__btn-outline tp-shopee-detail__btn-outline--danger"
+            >
+              {isCancelling ? t.cancelling : t.cancelOrder}
+            </button>
+          )}
+
+          {banner.isUnpaid && (orderDetail.actionability?.payment?.url || orderDetail.actionability?.payment?.path || onPayNow) ? (
+            <button
+              type="button"
+              onClick={() => {
+                const payUrl = orderDetail.actionability?.payment?.url;
+                if (payUrl && /^https?:\/\//i.test(payUrl)) {
+                  window.location.href = payUrl;
+                } else if (onPayNow) {
+                  onPayNow();
+                } else if (orderDetail.actionability?.payment?.path) {
+                  if (/^https?:\/\//i.test(orderDetail.actionability.payment.path)) {
+                    window.location.href = orderDetail.actionability.payment.path;
+                  } else {
+                    navigate(orderDetail.actionability.payment.path);
+                  }
+                }
+              }}
+              disabled={isPaying}
               className="tp-shopee-detail__btn-orange"
             >
-              {t.payNow}
-            </LinkComponent>
+              {isPaying ? t.paying : t.payNow}
+            </button>
           ) : (() => {
             const targetPid =
               orderDetail.items?.find((it) => !it.isReviewed && Number(it.productId) > 0)?.productId ||
@@ -813,6 +858,56 @@ export default function AccountOrderDetail2026View({
         themeMode="light"
         dashboardSettingCopy={dashboardSettingCopy}
       />
+
+      {showCancelModal && (
+        <div
+          className="tp-shopee-detail__modal-backdrop"
+          onClick={() => setShowCancelModal(false)}
+        >
+          <div
+            className="tp-shopee-detail__modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cancel-order-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="tp-shopee-detail__modal-header">
+              <h3 id="cancel-order-modal-title">{t.cancelModalTitle}</h3>
+              <button
+                type="button"
+                className="tp-shopee-detail__modal-close"
+                onClick={() => setShowCancelModal(false)}
+                aria-label="Close"
+              >
+                &times;
+              </button>
+            </div>
+            <div className="tp-shopee-detail__modal-body">
+              <p>{t.cancelModalBody}</p>
+            </div>
+            <div className="tp-shopee-detail__modal-actions">
+              <button
+                type="button"
+                className="tp-shopee-detail__btn-outline"
+                onClick={() => setShowCancelModal(false)}
+              >
+                {t.cancelModalBack}
+              </button>
+              <button
+                type="button"
+                className="tp-shopee-detail__btn-danger"
+                disabled={isCancelling}
+                onClick={async () => {
+                  setShowCancelModal(false);
+                  if (onCancelOrder) await onCancelOrder();
+                }}
+              >
+                {isCancelling ? t.cancelling : t.cancelModalConfirm}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

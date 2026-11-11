@@ -601,12 +601,23 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false }) 
   const hasEnabledSplitPaymentAction = storeBreakdown.some((store) =>
     store.buyerActions.some((action) => action.enabled)
   );
-  const paymentPath =
-    (paymentEntry.visible && text(paymentEntry.targetPath)) ||
-    text(continuePaymentAction?.targetPath) ||
-    (id && hasEnabledSplitPaymentAction
-      ? `/user/my-orders/${encodeURIComponent(String(id))}/payment`
-      : "");
+  const directPaymentUrl =
+    text(source.paymentUrl) ||
+    text(source.duitkuPaymentUrl) ||
+    text(grouped.paymentUrl) ||
+    text(grouped.collection?.paymentUrl) ||
+    (paymentEntry.paymentUrl && text(paymentEntry.paymentUrl)) ||
+    (paymentEntry.targetUrl && /^https?:\/\//i.test(paymentEntry.targetUrl) ? text(paymentEntry.targetUrl) : "") ||
+    (continuePaymentAction?.targetUrl && /^https?:\/\//i.test(continuePaymentAction.targetUrl) ? text(continuePaymentAction.targetUrl) : "");
+
+  const isExternalPayment = Boolean(directPaymentUrl && /^https?:\/\//i.test(directPaymentUrl));
+  const paymentPath = isExternalPayment
+    ? directPaymentUrl
+    : (paymentEntry.visible && text(paymentEntry.targetPath)) ||
+      text(continuePaymentAction?.targetPath) ||
+      (id && hasEnabledSplitPaymentAction
+        ? `/user/my-orders/${encodeURIComponent(String(id))}/payment`
+        : "");
   const rawInvoiceNo =
     resolvePublicOrderReference(
       source.invoiceNo,
@@ -1008,13 +1019,19 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false }) 
         enabled: Boolean(reference),
         value: reference,
       },
-      payment: paymentPath
+      payment: paymentPath || isExternalPayment
         ? {
             enabled: true,
-            label: text(paymentEntry.label || continuePaymentAction?.label, "Manage Payment"),
+            label: isIndo ? "Bayar Sekarang" : "Pay Now",
             path: paymentPath,
+            url: directPaymentUrl || (/^https?:\/\//i.test(paymentPath) ? paymentPath : ""),
+            isExternal: isExternalPayment || /^https?:\/\//i.test(paymentPath),
           }
         : null,
+      cancelOrder: {
+        enabled: isUnpaid && !isCancelled && !isDelivered && !isShipping,
+        label: isIndo ? "Batalkan Pesanan" : "Cancel Order",
+      },
     },
     availableActions,
     meta: {

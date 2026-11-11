@@ -378,12 +378,21 @@ function ShopeeOrderCard({ order, LinkComponent, t }) {
             >
               {t.viewDetails}
             </LinkComponent>
-            <LinkComponent
-              to={order.paymentAction?.path || `${order.href}/payment`}
-              className="tp-shopee-btn tp-shopee-btn--primary"
-            >
-              {t.payNow}
-            </LinkComponent>
+            {order.paymentAction?.isExternal ? (
+              <a
+                href={order.paymentAction.path}
+                className="tp-shopee-btn tp-shopee-btn--primary"
+              >
+                {t.payNow}
+              </a>
+            ) : (
+              <LinkComponent
+                to={order.paymentAction?.path || order.href || "#"}
+                className="tp-shopee-btn tp-shopee-btn--primary"
+              >
+                {t.payNow}
+              </LinkComponent>
+            )}
           </>
         )}
 

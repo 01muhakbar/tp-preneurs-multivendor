@@ -13,6 +13,7 @@ import { buildDuitkuCreateInvoiceHeaders } from "../services/duitku/duitkuSigner
 import { deriveLegacyPaymentStatus, recalculateParentOrderPaymentStatus, } from "../services/orderPaymentAggregation.service.js";
 import { appendPaymentStatusLog } from "../services/paymentStatusLog.service.js";
 import { quoteCoupon } from "../services/coupon.service.js";
+import { resolveOrderExpiryMinutes } from "../services/orderCancellation.service.js";
 import { buildBuyerOrderPaymentEntry, } from "../services/paymentCheckoutView.service.js";
 import { buildGroupedPaymentReadModel } from "../services/groupedPaymentReadModel.service.js";
 import { buildPaymentCollectionDto } from "../services/payments/paymentCollectionDto.service.js";
@@ -2426,6 +2427,19 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
             let paymentUrl = null;
             if (isDuitkuRequested && duitkuConfig) {
                 try {
+                    const orderExpiryMinutes = resolveOrderExpiryMinutes();
+                    const returnUrlWithOrderId = (() => {
+                        try {
+                            const u = new URL(duitkuConfig.returnUrl);
+                            u.searchParams.set("orderId", String(parentOrder.id));
+                            u.searchParams.set("merchantOrderId", invoiceNo);
+                            return u.toString();
+                        }
+                        catch {
+                            const sep = duitkuConfig.returnUrl.includes("?") ? "&" : "?";
+                            return `${duitkuConfig.returnUrl}${sep}orderId=${parentOrder.id}&merchantOrderId=${encodeURIComponent(invoiceNo)}`;
+                        }
+                    })();
                     const requestBody = buildDuitkuCreateInvoiceRequest({
                         paymentAmount: Math.floor(discountedGrandTotal),
                         merchantOrderId: invoiceNo,
@@ -2434,6 +2448,7 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
                         customerVaName: String(resolvedCustomer.name || "Customer").slice(0, 20),
                         phoneNumber: resolvedCustomer.phone || undefined,
                         paymentMethod: duitkuPaymentMethod || undefined,
+                        expiryPeriod: orderExpiryMinutes,
                         itemDetails: prepared.groups.flatMap((g) => g.items.map((item) => ({
                             name: String(item.productName || item.product?.title || "Item").slice(0, 50),
                             price: Math.floor(item.price),
@@ -2441,7 +2456,7 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
                         })))
                     }, {
                         callbackUrl: duitkuConfig.callbackUrl,
-                        returnUrl: duitkuConfig.returnUrl
+                        returnUrl: returnUrlWithOrderId
                     });
                     const url = buildDuitkuCreateInvoiceUrl(duitkuConfig);
                     const headers = buildDuitkuCreateInvoiceHeaders({
