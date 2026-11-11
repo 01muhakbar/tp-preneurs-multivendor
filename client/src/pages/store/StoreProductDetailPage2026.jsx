@@ -331,7 +331,157 @@ export const isPurchasable = (product, selectedVariant, quantity) => {
   return true;
 };
 
-/* Lightbox Component with 1/N counter */
+/* Reusable Touch & Mouse Swipe Slider Hook for PDP Hero Gallery & Lightbox */
+function useSwipeSlider({
+  itemCount,
+  activeIndex,
+  onChangeIndex,
+  disabled = false,
+  minSwipeDistance = 40,
+}) {
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const startXRef = useRef(0);
+  const startYRef = useRef(0);
+  const currentDxRef = useRef(0);
+  const directionRef = useRef(null); // 'horizontal' | 'vertical' | null
+  const isPointerDownRef = useRef(false);
+  const hasMovedRef = useRef(false);
+  const wasDraggingRef = useRef(false);
+
+  const resetState = () => {
+    isPointerDownRef.current = false;
+    directionRef.current = null;
+    currentDxRef.current = 0;
+    setDragOffset(0);
+    setIsDragging(false);
+  };
+
+  const handleTouchStart = (e) => {
+    if (disabled || itemCount <= 1 || e.touches.length !== 1) return;
+    startXRef.current = e.touches[0].clientX;
+    startYRef.current = e.touches[0].clientY;
+    currentDxRef.current = 0;
+    directionRef.current = null;
+    hasMovedRef.current = false;
+    isPointerDownRef.current = true;
+    setIsDragging(false);
+    setDragOffset(0);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isPointerDownRef.current || disabled || itemCount <= 1) return;
+    const currentX = e.touches[0].clientX;
+    const currentY = e.touches[0].clientY;
+    const dx = currentX - startXRef.current;
+    const dy = currentY - startYRef.current;
+
+    if (!directionRef.current) {
+      if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
+        directionRef.current = "horizontal";
+        setIsDragging(true);
+      } else if (Math.abs(dy) > 8 && Math.abs(dy) >= Math.abs(dx)) {
+        directionRef.current = "vertical";
+        isPointerDownRef.current = false;
+        return;
+      }
+    }
+
+    if (directionRef.current === "horizontal") {
+      if (e.cancelable) e.preventDefault();
+      hasMovedRef.current = true;
+      currentDxRef.current = dx;
+
+      // Elastic resistance at boundaries
+      let effectiveDx = dx;
+      if ((activeIndex === 0 && dx > 0) || (activeIndex === itemCount - 1 && dx < 0)) {
+        effectiveDx = dx * 0.3;
+      }
+      setDragOffset(effectiveDx);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isPointerDownRef.current && !directionRef.current) return;
+    const dx = currentDxRef.current;
+
+    if (directionRef.current === "horizontal") {
+      if (hasMovedRef.current) {
+        wasDraggingRef.current = true;
+        setTimeout(() => {
+          wasDraggingRef.current = false;
+        }, 80);
+      }
+      if (Math.abs(dx) >= minSwipeDistance) {
+        if (dx < 0 && activeIndex < itemCount - 1) {
+          onChangeIndex(activeIndex + 1);
+        } else if (dx > 0 && activeIndex > 0) {
+          onChangeIndex(activeIndex - 1);
+        }
+      }
+    }
+
+    resetState();
+  };
+
+  const handleMouseDown = (e) => {
+    if (disabled || itemCount <= 1 || e.button !== 0) return;
+    startXRef.current = e.clientX;
+    startYRef.current = e.clientY;
+    currentDxRef.current = 0;
+    directionRef.current = null;
+    hasMovedRef.current = false;
+    isPointerDownRef.current = true;
+    setIsDragging(false);
+    setDragOffset(0);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isPointerDownRef.current || disabled || itemCount <= 1) return;
+    const dx = e.clientX - startXRef.current;
+    const dy = e.clientY - startYRef.current;
+
+    if (!directionRef.current) {
+      if (Math.abs(dx) > 6) {
+        directionRef.current = "horizontal";
+        setIsDragging(true);
+      }
+    }
+
+    if (directionRef.current === "horizontal") {
+      hasMovedRef.current = true;
+      currentDxRef.current = dx;
+      let effectiveDx = dx;
+      if ((activeIndex === 0 && dx > 0) || (activeIndex === itemCount - 1 && dx < 0)) {
+        effectiveDx = dx * 0.3;
+      }
+      setDragOffset(effectiveDx);
+    }
+  };
+
+  const handleMouseUp = () => {
+    if (!isPointerDownRef.current) return;
+    handleTouchEnd();
+  };
+
+  return {
+    dragOffset,
+    isDragging,
+    wasDraggingRef,
+    swipeHandlers: {
+      onTouchStart: handleTouchStart,
+      onTouchMove: handleTouchMove,
+      onTouchEnd: handleTouchEnd,
+      onTouchCancel: handleTouchEnd,
+      onMouseDown: handleMouseDown,
+      onMouseMove: handleMouseMove,
+      onMouseUp: handleMouseUp,
+      onMouseLeave: handleMouseUp,
+    },
+  };
+}
+
+/* Lightbox Component with 1/N counter & Touch/Mouse Swipe Slider */
 function ProductImageLightbox({ images, activeIndex, onChangeIndex, onClose, productName }) {
   const [zoom, setZoom] = useState(1);
   const activeImage = images[activeIndex] || "";
@@ -339,6 +489,13 @@ function ProductImageLightbox({ images, activeIndex, onChangeIndex, onClose, pro
   useEffect(() => {
     setZoom(1);
   }, [activeIndex]);
+
+  const { dragOffset, isDragging, wasDraggingRef, swipeHandlers } = useSwipeSlider({
+    itemCount: images.length,
+    activeIndex,
+    onChangeIndex,
+    disabled: zoom > 1,
+  });
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -358,7 +515,7 @@ function ProductImageLightbox({ images, activeIndex, onChangeIndex, onClose, pro
 
   return (
     <div
-      className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-950/95 p-4"
+      className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-950/95 p-4 select-none"
       onClick={onClose}
     >
       <button
@@ -424,22 +581,57 @@ function ProductImageLightbox({ images, activeIndex, onChangeIndex, onClose, pro
         </>
       )}
 
-      <div className="h-full w-full overflow-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex min-h-full min-w-full items-center justify-center">
-          <img
-            src={activeImage}
-            alt={productName || "Product"}
-            className="transition-all duration-200"
-            style={{
-              height: zoom === 1 ? "85vh" : `${85 * zoom}vh`,
-              maxWidth: zoom === 1 ? "100%" : "none",
-              objectFit: "contain",
-              cursor: zoom > 1 ? "zoom-out" : "zoom-in",
-            }}
-            onClick={() => setZoom((z) => (z > 1 ? 1 : 2))}
-          />
+      {zoom > 1 ? (
+        <div className="h-full w-full overflow-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="flex min-h-full min-w-full items-center justify-center">
+            <img
+              src={activeImage}
+              alt={productName || "Product"}
+              className="transition-all duration-200 cursor-zoom-out select-none"
+              style={{
+                height: `${85 * zoom}vh`,
+                maxWidth: "none",
+                objectFit: "contain",
+              }}
+              onClick={() => setZoom(1)}
+            />
+          </div>
         </div>
-      </div>
+      ) : (
+        <div
+          className="h-full w-full overflow-hidden touch-pan-y"
+          onClick={(e) => e.stopPropagation()}
+          {...swipeHandlers}
+        >
+          <div
+            className={`flex h-full w-full items-center ${
+              isDragging ? "" : "transition-transform duration-300 ease-out"
+            }`}
+            style={{
+              transform: `translateX(calc(-${activeIndex * 100}% + ${dragOffset}px))`,
+            }}
+          >
+            {images.map((img, idx) => (
+              <div
+                key={`lightbox-slide-${idx}`}
+                className="flex h-full w-full shrink-0 items-center justify-center p-4 cursor-zoom-in"
+                onClick={() => {
+                  if (!wasDraggingRef.current) {
+                    setZoom(2);
+                  }
+                }}
+              >
+                <img
+                  src={img}
+                  alt={`${productName || "Product"} - ${idx + 1}`}
+                  className="max-h-[85vh] max-w-full object-contain pointer-events-none select-none transition-all duration-200"
+                  draggable={false}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -516,6 +708,17 @@ export default function StoreProductDetailPage2026() {
     const all = Array.from(new Set([...variantImage, ...getProductImages(product)]));
     return all.length > 0 ? all : [""];
   }, [product, selectedVariant]);
+
+  const {
+    dragOffset: heroDragOffset,
+    isDragging: isHeroDragging,
+    wasDraggingRef: wasHeroDraggingRef,
+    swipeHandlers: heroSwipeHandlers,
+  } = useSwipeSlider({
+    itemCount: images.length,
+    activeIndex: activeImageIndex,
+    onChangeIndex: setActiveImageIndex,
+  });
 
   const activeImage = images[activeImageIndex] || images[0] || "";
   const price = getSelectedPrice(product, selectedVariant);
@@ -814,20 +1017,39 @@ export default function StoreProductDetailPage2026() {
       <div className="pdp26-card grid gap-0 sm:gap-6 p-0 sm:p-6 lg:grid-cols-2">
         {/* Left: Gallery with Shopee Counter (1/3) & Swipe Chevrons */}
         <div className="space-y-0 sm:space-y-3">
-          <div className="relative aspect-square w-full overflow-hidden bg-slate-50 dark:bg-slate-900 sm:rounded-xl">
-            {activeImage ? (
-              <button
-                type="button"
-                onClick={() => setIsLightboxOpen(true)}
-                className="h-full w-full cursor-zoom-in outline-none"
-                title={isIndo ? "Klik untuk memperbesar" : "Click to zoom"}
+          <div
+            className="relative aspect-square w-full overflow-hidden bg-slate-50 dark:bg-slate-900 sm:rounded-xl select-none touch-pan-y"
+            {...heroSwipeHandlers}
+          >
+            {images.length > 0 && images[0] ? (
+              <div
+                className={`flex h-full w-full ${
+                  isHeroDragging ? "" : "transition-transform duration-300 ease-out"
+                }`}
+                style={{
+                  transform: `translateX(calc(-${activeImageIndex * 100}% + ${heroDragOffset}px))`,
+                }}
               >
-                <img
-                  src={activeImage}
-                  alt={getProductName(product)}
-                  className="h-full w-full object-contain p-2 transition duration-200 hover:scale-105"
-                />
-              </button>
+                {images.map((img, idx) => (
+                  <div
+                    key={`hero-img-${idx}`}
+                    className="relative h-full w-full shrink-0 flex items-center justify-center p-2 cursor-zoom-in"
+                    onClick={() => {
+                      if (!wasHeroDraggingRef.current) {
+                        setIsLightboxOpen(true);
+                      }
+                    }}
+                    title={isIndo ? "Klik untuk memperbesar" : "Click to zoom"}
+                  >
+                    <img
+                      src={img}
+                      alt={`${getProductName(product)} - ${idx + 1}`}
+                      className="h-full w-full object-contain pointer-events-none select-none transition duration-200 hover:scale-105"
+                      draggable={false}
+                    />
+                  </div>
+                ))}
+              </div>
             ) : (
               <div className="flex h-full w-full items-center justify-center text-slate-400">
                 <ShoppingBag className="h-16 w-16" />
