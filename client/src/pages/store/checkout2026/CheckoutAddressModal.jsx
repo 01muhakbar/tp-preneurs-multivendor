@@ -30,33 +30,37 @@ function SearchableRegionSelect({
 
   // Handle outside click to close dropdown and normalize
   useEffect(() => {
+    if (!isOpen) return;
+
     const handleClickOutside = (event) => {
       if (containerRef.current && !containerRef.current.contains(event.target)) {
         setIsOpen(false);
-        if (!query.trim()) {
-          onChange("");
+        const trimmed = query.trim();
+        if (!trimmed) {
+          if (value) onChange("");
           setQuery("");
         } else {
           // Check if typed query matches an option (case-insensitive)
           const match = options.find((opt) => {
             const str = typeof opt === "string" ? opt : opt?.value || opt?.label || "";
-            return str.toLowerCase() === query.trim().toLowerCase();
+            return str.toLowerCase() === trimmed.toLowerCase();
           });
           if (match) {
             const val = typeof match === "string" ? match : match.value;
-            onChange(val);
+            if (val !== value) onChange(val);
             setQuery(val);
           } else if (value) {
+            // Revert back to selected value
             setQuery(value);
           } else {
-            onChange(query.trim());
+            if (trimmed !== value) onChange(trimmed);
           }
         }
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [query, value, options, onChange]);
+  }, [isOpen, query, value, options, onChange]);
 
   // Filter options based on typed query
   const filteredOptions = useMemo(() => {
@@ -70,14 +74,16 @@ function SearchableRegionSelect({
 
   const handleSelect = (opt) => {
     const val = typeof opt === "string" ? opt : opt.value;
-    onChange(val);
+    if (val !== value) {
+      onChange(val);
+    }
     setQuery(val);
     setIsOpen(false);
   };
 
   const handleClear = (e) => {
     e.stopPropagation();
-    onChange("");
+    if (value) onChange("");
     setQuery("");
     setIsOpen(true);
     if (inputRef.current) {
@@ -91,11 +97,12 @@ function SearchableRegionSelect({
       if (filteredOptions.length > 0) {
         handleSelect(filteredOptions[0]);
       } else if (query.trim()) {
-        onChange(query.trim());
+        if (query.trim() !== value) onChange(query.trim());
         setIsOpen(false);
       }
     } else if (e.key === "Escape") {
       setIsOpen(false);
+      setQuery(value || "");
     }
   };
 
@@ -162,7 +169,11 @@ function SearchableRegionSelect({
       </div>
 
       {isOpen && !disabled && (
-        <ul className="co26-searchable-dropdown" role="listbox">
+        <ul
+          className="co26-searchable-dropdown"
+          role="listbox"
+          onMouseDown={(e) => e.preventDefault()}
+        >
           {filteredOptions.length === 0 ? (
             <li className="co26-searchable-empty">
               {isIndo
@@ -227,9 +238,18 @@ export default function CheckoutAddressModal({
   const [isPrimary, setIsPrimary] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const provinceOptions = getProvinceOptions();
-  const cityOptions = getCityOptions(province);
-  const districtOptions = getDistrictOptions(province, city);
+  const provinceOptions = useMemo(
+    () => getProvinceOptions(province),
+    [province]
+  );
+  const cityOptions = useMemo(
+    () => getCityOptions(province, city),
+    [province, city]
+  );
+  const districtOptions = useMemo(
+    () => getDistrictOptions(province, city, district),
+    [province, city, district]
+  );
 
   if (!isOpen) return null;
 
@@ -544,9 +564,11 @@ export default function CheckoutAddressModal({
                   value={province}
                   options={provinceOptions}
                   onChange={(val) => {
-                    setProvince(val);
-                    setCity("");
-                    setDistrict("");
+                    if (val !== province) {
+                      setProvince(val);
+                      setCity("");
+                      setDistrict("");
+                    }
                   }}
                   required
                   isIndo={isIndo}
@@ -558,8 +580,10 @@ export default function CheckoutAddressModal({
                   value={city}
                   options={cityOptions}
                   onChange={(val) => {
-                    setCity(val);
-                    setDistrict("");
+                    if (val !== city) {
+                      setCity(val);
+                      setDistrict("");
+                    }
                   }}
                   disabled={!province}
                   required
@@ -571,7 +595,11 @@ export default function CheckoutAddressModal({
                   disabledPlaceholder={isIndo ? "Pilih kota dahulu" : "Select city first"}
                   value={district}
                   options={districtOptions}
-                  onChange={(val) => setDistrict(val)}
+                  onChange={(val) => {
+                    if (val !== district) {
+                      setDistrict(val);
+                    }
+                  }}
                   disabled={!city}
                   required
                   isIndo={isIndo}

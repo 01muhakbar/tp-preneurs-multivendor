@@ -75,6 +75,9 @@ export const getProvinceOptions = (selectedValue = "") =>
     selectedValue
   );
 
+const stripPrefix = (name: string) =>
+  normalizeText(name).toLowerCase().replace(/^(kabupaten|kab\.|kota)\s+/i, "").trim();
+
 export const getCityOptions = (provinceName = "", selectedValue = "") => {
   const normProvince = normalizeText(provinceName).toLowerCase();
   const province = REGION_DATA.find(
@@ -93,12 +96,29 @@ export const getDistrictOptions = (
 ) => {
   const normProvince = normalizeText(provinceName).toLowerCase();
   const normCity = normalizeText(cityName).toLowerCase();
+  const strippedCity = stripPrefix(normCity);
+
   const province = REGION_DATA.find(
     (item) => item.name.toLowerCase() === normProvince
   );
-  const city = province?.cities?.find(
-    (item) => item.name.toLowerCase() === normCity
-  );
+  let city = province?.cities?.find((item) => {
+    const itemNorm = item.name.toLowerCase();
+    return itemNorm === normCity || (strippedCity && stripPrefix(itemNorm) === strippedCity);
+  });
+
+  if (!city && strippedCity) {
+    for (const p of REGION_DATA) {
+      const found = p.cities.find((item) => {
+        const itemNorm = item.name.toLowerCase();
+        return itemNorm === normCity || stripPrefix(itemNorm) === strippedCity;
+      });
+      if (found) {
+        city = found;
+        break;
+      }
+    }
+  }
+
   const items = Array.isArray(city?.districts) ? city.districts : [];
   return withFallbackOption(items, selectedValue);
 };
