@@ -940,11 +940,16 @@ const buildVisibleCartCheckoutDisplayGroup = (sourceGroups, summaryItems, summar
       : 0;
   const subtotalAmount = Number.isFinite(sourceSubtotal) ? sourceSubtotal : displaySubtotal;
 
+  const fallbackStoreId = Number(sourceGroup?.storeId || summaryItems[0]?.storeId || 1) || 1;
+
   return [
     {
-      storeId: sourceGroup?.storeId ?? "visible-cart",
-      storeName: sourceGroup?.storeName || "Store summary",
-      storeSlug: sourceGroup?.storeSlug || "",
+      storeId:
+        sourceGroup?.storeId != null && !Number.isNaN(Number(sourceGroup.storeId))
+          ? Number(sourceGroup.storeId)
+          : fallbackStoreId,
+      storeName: sourceGroup?.storeName || summaryItems[0]?.storeName || "Store summary",
+      storeSlug: sourceGroup?.storeSlug || summaryItems[0]?.storeSlug || "",
       subtotalAmount,
       shippingAmount,
       totalAmount: Number.isFinite(sourceTotal) ? sourceTotal : subtotalAmount + shippingAmount,
@@ -1299,6 +1304,50 @@ const getCheckoutPreviewStatus = ({
     reason,
   };
 };
+
+class CheckoutErrorBoundary extends React.Component {
+  state = { hasError: false, error: null };
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("[Checkout caught view error]", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <main className="co26-page min-h-[400px] flex flex-col items-center justify-center p-6 text-center">
+          <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm text-slate-100">
+            <h2 className="text-lg font-bold text-white mb-2">Memuat Checkout</h2>
+            <p className="text-sm text-slate-400 mb-6">
+              Sedang memperbarui status data pesanan Anda. Silakan klik tombol coba lagi untuk menyinkronkan tampilan.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                type="button"
+                onClick={() => this.setState({ hasError: false, error: null })}
+                className="px-4 py-2 rounded-lg bg-[#fe6f05] text-white text-sm font-semibold hover:opacity-90 transition"
+              >
+                Coba Lagi
+              </button>
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 rounded-lg border border-slate-700 text-slate-200 text-sm font-medium hover:bg-slate-800 transition"
+              >
+                Muat Ulang
+              </button>
+            </div>
+          </div>
+        </main>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 export default function CheckoutPage() {
   const location = useLocation();
@@ -2848,129 +2897,131 @@ export default function CheckoutPage() {
   });
 
   return (
-    <Checkout2026View
-      viewModel={checkout2026ViewModel}
-      copy={checkoutCopy}
-      isIndo={isIndo}
-      lang={lang}
-      form={{
-        firstName,
-        lastName,
-        email,
-        phone,
-        shipping: shippingForm,
-        errors: fieldErrors,
-        useSavedAddress: useDefaultShipping,
-        lockAddress: lockAddressFields,
-        paymentOptionId,
-        setPaymentOptionId,
-        paymentOptions,
-        duitkuPaymentMethod,
-        setDuitkuPaymentMethod,
-        duitkuPaymentMethods: DUITKU_PAYMENT_METHOD_OPTIONS,
-      }}
-      options={{
-        provinces: provinceOptions,
-        cities: cityOptions,
-        districts: districtOptions,
-      }}
-      refs={{
-        firstName: firstNameRef,
-        phone: phoneRef,
-        province: provinceRef,
-        streetName: streetNameRef,
-      }}
-      status={{
-        loading: showCheckoutSkeleton,
-        redirectUrl: paymentRedirectUrl,
-        hasItems,
-        submitting: isSubmitting,
-        cartSyncing: isRemoteSyncing,
-        addressLoading: isAddressLoading,
-        addressMessage: addressStatus,
-        authHint: !user,
-        error,
-        previewBlocked: previewBlocksPricingActions,
-        submitDisabled:
-          isRemoteSyncing ||
-          couponStatus === "loading" ||
-          hasGroupCouponLoading ||
-          isPreviewBlockingSubmission ||
-          couponBlocksSubmission ||
-          !hasDuitkuChannelSelection,
-        submitMessage: !hasDuitkuChannelSelection
-          ? "Choose a Duitku payment channel."
-          : isPreviewBlockingSubmission
-          ? (paymentOptionId !== "duitku" && previewHasPaymentBlocker)
-            ? "Payment is unavailable for one or more stores."
-            : checkoutPreviewInvalidItems.length > 0
-              ? "Resolve invalid items before placing this order."
-              : "Waiting for the latest backend checkout preview."
-          : couponBlocksSubmission
-            ? "Apply coupons inside their matching store group."
-            : "",
-      }}
-      coupons={{
-        code: couponCode,
-        status: couponStatus,
-        message: couponMessage,
-        groups: Object.fromEntries(
-          (Array.isArray(checkoutPreviewDisplayGroups) ? checkoutPreviewDisplayGroups : []).map((group) => {
-            const key = String(group?.storeId || "");
-            return [key, {
-              code: groupCouponCodes[key] || "",
-              status: groupCouponStates[key]?.status || "idle",
-              message: groupCouponStates[key]?.message || "",
-            }];
-          })
-        ),
-        onChange: setCouponCode,
-        onApply: handleApplyCoupon,
-        onRemove: handleRemoveCoupon,
-        onGroupChange: (storeId, value) =>
-          setGroupCouponCodes((current) => ({ ...current, [String(storeId)]: value })),
-        onGroupApply: handleApplyGroupCoupon,
-        onGroupRemove: handleRemoveGroupCoupon,
-      }}
-      formatMoney={formatCurrency}
-      savedAddresses={savedAddresses}
-      selectedAddressId={selectedAddressId}
-      onSelectAddress={handleSelectAddress}
-      onSaveNewAddress={handleSaveNewAddress}
-      onUpdateAddress={handleUpdateAddress}
-      sellerNotes={sellerNotes}
-      onSellerNoteChange={handleSellerNoteChange}
-      appliedPlatformCoupon={appliedPlatformCoupon}
-      totalPlatformDiscount={totalPlatformDiscount}
-      onApplyPlatformCoupon={handleApplyPlatformCoupon}
-      onRemovePlatformCoupon={handleRemovePlatformCoupon}
-      appliedStoreCoupons={appliedStoreCoupons}
-      onApplyStoreCoupon={handleApplyStoreCouponModal}
-      onRemoveStoreCoupon={handleRemoveStoreCouponModal}
-      onFieldChange={(field, value) => {
-        if (field === "firstName") setFirstName(value);
-        if (field === "lastName") setLastName(value);
-        if (field === "email") setEmail(value);
-        if (field === "phone") setPhone(value);
-      }}
-      onShippingChange={(field, value) => {
-        setShippingForm((current) => ({
-          ...current,
-          [field]: value,
-          ...(field === "province" ? { city: "", district: "" } : {}),
-          ...(field === "city" ? { district: "" } : {}),
-        }));
-      }}
-      onToggleSavedAddress={handleToggleDefaultShipping}
-      onDecrease={(item) => handleQtyDecrement(item.raw || item)}
-      onIncrease={(item) => handleQtyIncrement(item.raw || item)}
-      onRemove={(item) => removeCartItem(item.raw || item)}
-      onReselectVariant={(item, invalidItem) =>
-        handleReselectVariant(item.raw || item, invalidItem)
-      }
-      onSubmit={handleSubmit}
-      onBackToCart={() => navigate("/cart")}
-    />
+    <CheckoutErrorBoundary>
+      <Checkout2026View
+        viewModel={checkout2026ViewModel}
+        copy={checkoutCopy}
+        isIndo={isIndo}
+        lang={lang}
+        form={{
+          firstName,
+          lastName,
+          email,
+          phone,
+          shipping: shippingForm,
+          errors: fieldErrors,
+          useSavedAddress: useDefaultShipping,
+          lockAddress: lockAddressFields,
+          paymentOptionId,
+          setPaymentOptionId,
+          paymentOptions,
+          duitkuPaymentMethod,
+          setDuitkuPaymentMethod,
+          duitkuPaymentMethods: DUITKU_PAYMENT_METHOD_OPTIONS,
+        }}
+        options={{
+          provinces: provinceOptions,
+          cities: cityOptions,
+          districts: districtOptions,
+        }}
+        refs={{
+          firstName: firstNameRef,
+          phone: phoneRef,
+          province: provinceRef,
+          streetName: streetNameRef,
+        }}
+        status={{
+          loading: showCheckoutSkeleton,
+          redirectUrl: paymentRedirectUrl,
+          hasItems,
+          submitting: isSubmitting,
+          cartSyncing: isRemoteSyncing,
+          addressLoading: isAddressLoading,
+          addressMessage: addressStatus,
+          authHint: !user,
+          error,
+          previewBlocked: previewBlocksPricingActions,
+          submitDisabled:
+            isRemoteSyncing ||
+            couponStatus === "loading" ||
+            hasGroupCouponLoading ||
+            isPreviewBlockingSubmission ||
+            couponBlocksSubmission ||
+            !hasDuitkuChannelSelection,
+          submitMessage: !hasDuitkuChannelSelection
+            ? "Choose a Duitku payment channel."
+            : isPreviewBlockingSubmission
+            ? (paymentOptionId !== "duitku" && previewHasPaymentBlocker)
+              ? "Payment is unavailable for one or more stores."
+              : checkoutPreviewInvalidItems.length > 0
+                ? "Resolve invalid items before placing this order."
+                : "Waiting for the latest backend checkout preview."
+            : couponBlocksSubmission
+              ? "Apply coupons inside their matching store group."
+              : "",
+        }}
+        coupons={{
+          code: couponCode,
+          status: couponStatus,
+          message: couponMessage,
+          groups: Object.fromEntries(
+            (Array.isArray(checkoutPreviewDisplayGroups) ? checkoutPreviewDisplayGroups : []).map((group) => {
+              const key = String(group?.storeId || "");
+              return [key, {
+                code: groupCouponCodes[key] || "",
+                status: groupCouponStates[key]?.status || "idle",
+                message: groupCouponStates[key]?.message || "",
+              }];
+            })
+          ),
+          onChange: setCouponCode,
+          onApply: handleApplyCoupon,
+          onRemove: handleRemoveCoupon,
+          onGroupChange: (storeId, value) =>
+            setGroupCouponCodes((current) => ({ ...current, [String(storeId)]: value })),
+          onGroupApply: handleApplyGroupCoupon,
+          onGroupRemove: handleRemoveGroupCoupon,
+        }}
+        formatMoney={formatCurrency}
+        savedAddresses={savedAddresses}
+        selectedAddressId={selectedAddressId}
+        onSelectAddress={handleSelectAddress}
+        onSaveNewAddress={handleSaveNewAddress}
+        onUpdateAddress={handleUpdateAddress}
+        sellerNotes={sellerNotes}
+        onSellerNoteChange={handleSellerNoteChange}
+        appliedPlatformCoupon={appliedPlatformCoupon}
+        totalPlatformDiscount={totalPlatformDiscount}
+        onApplyPlatformCoupon={handleApplyPlatformCoupon}
+        onRemovePlatformCoupon={handleRemovePlatformCoupon}
+        appliedStoreCoupons={appliedStoreCoupons}
+        onApplyStoreCoupon={handleApplyStoreCouponModal}
+        onRemoveStoreCoupon={handleRemoveStoreCouponModal}
+        onFieldChange={(field, value) => {
+          if (field === "firstName") setFirstName(value);
+          if (field === "lastName") setLastName(value);
+          if (field === "email") setEmail(value);
+          if (field === "phone") setPhone(value);
+        }}
+        onShippingChange={(field, value) => {
+          setShippingForm((current) => ({
+            ...current,
+            [field]: value,
+            ...(field === "province" ? { city: "", district: "" } : {}),
+            ...(field === "city" ? { district: "" } : {}),
+          }));
+        }}
+        onToggleSavedAddress={handleToggleDefaultShipping}
+        onDecrease={(item) => handleQtyDecrement(item.raw || item)}
+        onIncrease={(item) => handleQtyIncrement(item.raw || item)}
+        onRemove={(item) => removeCartItem(item.raw || item)}
+        onReselectVariant={(item, invalidItem) =>
+          handleReselectVariant(item.raw || item, invalidItem)
+        }
+        onSubmit={handleSubmit}
+        onBackToCart={() => navigate("/cart")}
+      />
+    </CheckoutErrorBoundary>
   );
 
 }

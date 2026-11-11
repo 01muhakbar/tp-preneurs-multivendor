@@ -187,50 +187,6 @@ export default function Checkout2026View({
         attention: "Attention",
       };
 
-  if (status?.loading) {
-    return (
-      <main className="co26-page">
-        <div className="co26-skeleton">
-          <i />
-          <i />
-          <i />
-          <i />
-        </div>
-      </main>
-    );
-  }
-
-  if (status?.redirectUrl) {
-    return (
-      <main className="co26-page">
-        <div className="co26-empty">
-          <Loader2 className="animate-spin text-[#fe6f05] mb-2" size={36} />
-          <h1 className="text-xl font-black text-slate-100">{T.orderCreated}</h1>
-          <p className="text-sm text-slate-400 mt-1">{T.openingPayment}</p>
-          <a className="co26-btn-primary mt-4 inline-flex items-center gap-2" href={status.redirectUrl}>
-            <span>{T.continueToPayment}</span>
-          </a>
-        </div>
-      </main>
-    );
-  }
-
-  if (!status?.hasItems) {
-    return (
-      <main className="co26-page">
-        <div className="co26-empty">
-          <ShoppingBag className="text-slate-500 mb-2" size={48} />
-          <h1 className="text-xl font-black text-slate-100">{T.emptyTitle}</h1>
-          <p className="text-sm text-slate-400 mt-1">{T.emptyDesc}</p>
-          <Link to="/cart" className="co26-btn-secondary mt-4 inline-flex items-center gap-2">
-            <ArrowLeft size={16} />
-            <span>{T.backToCart}</span>
-          </Link>
-        </div>
-      </main>
-    );
-  }
-
   // Active address resolution
   const activeAddress =
     safeSavedAddresses.find(
@@ -264,7 +220,7 @@ export default function Checkout2026View({
         .join(", ")
     : "";
 
-  // Calculations
+  // Calculations (must be at top level before early returns for React Hook rules)
   const subtotal = Number(viewModel?.amounts?.subtotal || 0);
   const shipping = Number(viewModel?.amounts?.shipping || 0);
 
@@ -338,11 +294,56 @@ export default function Checkout2026View({
   );
   const totalDiscount = Math.max(
     totalStoreDiscount + platformDiscount,
-    Number(viewModel.amounts?.discount || 0)
+    Number(viewModel?.amounts?.discount || 0)
   );
   const grandTotal = Math.max(0, subtotal + shipping - totalDiscount);
 
   const busy = Boolean(status?.submitting || status?.cartSyncing);
+
+  // Early returns (MUST come AFTER all hooks are called)
+  if (status?.loading) {
+    return (
+      <main className="co26-page">
+        <div className="co26-skeleton">
+          <i />
+          <i />
+          <i />
+          <i />
+        </div>
+      </main>
+    );
+  }
+
+  if (status?.redirectUrl) {
+    return (
+      <main className="co26-page">
+        <div className="co26-empty">
+          <Loader2 className="animate-spin text-[#fe6f05] mb-2" size={36} />
+          <h1 className="text-xl font-black text-slate-100">{T.orderCreated}</h1>
+          <p className="text-sm text-slate-400 mt-1">{T.openingPayment}</p>
+          <a className="co26-btn-primary mt-4 inline-flex items-center gap-2" href={status.redirectUrl}>
+            <span>{T.continueToPayment}</span>
+          </a>
+        </div>
+      </main>
+    );
+  }
+
+  if (!status?.hasItems) {
+    return (
+      <main className="co26-page">
+        <div className="co26-empty">
+          <ShoppingBag className="text-slate-500 mb-2" size={48} />
+          <h1 className="text-xl font-black text-slate-100">{T.emptyTitle}</h1>
+          <p className="text-sm text-slate-400 mt-1">{T.emptyDesc}</p>
+          <Link to="/cart" className="co26-btn-secondary mt-4 inline-flex items-center gap-2">
+            <ArrowLeft size={16} />
+            <span>{T.backToCart}</span>
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="co26-shopee-page">
@@ -490,9 +491,16 @@ export default function Checkout2026View({
                       <div className="co26-shopee-product-info">
                         <h3 className="co26-shopee-product-title">{item?.name || "Product"}</h3>
 
-                        {item?.variantSelections && item.variantSelections.length > 0 && (
+                        {Array.isArray(item?.variantSelections) && item.variantSelections.length > 0 && (
                           <div className="co26-shopee-variant-pill">
-                            {item.variantSelections.map((s) => `${s.name}: ${s.value}`).join(", ")}
+                            {item.variantSelections
+                              .map((s) =>
+                                s && typeof s === "object"
+                                  ? `${s.name || s.attributeName || "Opsi"}: ${s.value ?? s.valueName ?? ""}`
+                                  : String(s || "")
+                              )
+                              .filter(Boolean)
+                              .join(", ")}
                           </div>
                         )}
 
