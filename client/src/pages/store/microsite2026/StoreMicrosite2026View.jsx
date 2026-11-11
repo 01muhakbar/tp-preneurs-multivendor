@@ -261,6 +261,17 @@ function StoreHero({
 
   return (
     <div className="ms-hero-card">
+      {/* Universal Top-Right Share Button */}
+      <button
+        type="button"
+        onClick={onShare}
+        className="ms-btn-share-top"
+        title={T.share}
+        aria-label={T.share}
+      >
+        <Share2 size={16} />
+      </button>
+
       {/* Banner artwork */}
       {hasValidBanner ? (
         <>
@@ -278,11 +289,48 @@ function StoreHero({
       )}
 
       {/* Hero Content */}
-      <div className="ms-hero-content grid gap-6 lg:grid-cols-[1fr_auto] items-center">
+      <div className="ms-hero-content grid gap-4 lg:gap-8 lg:grid-cols-[1fr_auto] items-center">
         {/* Left Column: Logo & Store Info */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 min-w-0">
-          {/* Logo Avatar */}
-          <div className="ms-hero-logo">
+        <div className="ms-hero-info-panel flex flex-col sm:flex-row items-start sm:items-center gap-3.5 sm:gap-6 min-w-0">
+          {/* Mobile Top Row: Avatar + Name / Badges */}
+          <div className="flex items-center gap-3.5 sm:hidden w-full">
+            <div className="ms-hero-logo shrink-0">
+              {hasValidLogo ? (
+                <img
+                  src={logoSrc}
+                  alt={`${store.name} Logo`}
+                  className="w-full h-full object-contain p-1"
+                  onError={() => setLogoLoadError(true)}
+                  loading="eager"
+                />
+              ) : (
+                <Store className="w-7 h-7 text-[#034c85]" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1 pr-10">
+              <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                <span className="ms-badge-store text-[10px] h-5 px-2">
+                  <Store size={10} />
+                  {T.store}
+                </span>
+                <span className="ms-badge-operational text-[10px] h-5 px-2">
+                  <CheckCircle2 size={10} />
+                  {store.isOperational ? T.operational : T.store}
+                </span>
+              </div>
+              <h1 className="text-lg font-black text-white tracking-tight truncate">
+                {store.name}
+              </h1>
+              {store.handle && (
+                <p className="text-[11px] text-slate-300 font-medium truncate">
+                  {store.handle}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Desktop Logo Avatar (hidden on mobile) */}
+          <div className="ms-hero-logo hidden sm:flex shrink-0">
             {hasValidLogo ? (
               <img
                 src={logoSrc}
@@ -296,25 +344,25 @@ function StoreHero({
             )}
           </div>
 
-          {/* Details */}
-          <div className="space-y-2.5 min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="ms-badge-store">
-                <Store size={12} />
-                {T.store}
-              </span>
-              <span className="ms-badge-operational">
-                <CheckCircle2 size={12} />
-                {store.isOperational ? T.operational : T.store}
-              </span>
-            </div>
-
-            <div>
+          {/* Details (Shared) */}
+          <div className="space-y-2 min-w-0 flex-1 w-full">
+            {/* Desktop Only Badges & Name */}
+            <div className="hidden sm:block space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="ms-badge-store">
+                  <Store size={12} />
+                  {T.store}
+                </span>
+                <span className="ms-badge-operational">
+                  <CheckCircle2 size={12} />
+                  {store.isOperational ? T.operational : T.store}
+                </span>
+              </div>
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight break-words">
                 {store.name}
               </h1>
               {store.handle && (
-                <p className="text-xs sm:text-sm text-slate-200/90 font-medium mt-0.5">
+                <p className="text-xs sm:text-sm text-slate-200/90 font-medium">
                   {store.handle}
                 </p>
               )}
@@ -334,7 +382,7 @@ function StoreHero({
             )}
 
             {/* Actions: Chat & Follow */}
-            <div className="flex items-center gap-2.5 pt-1 flex-wrap">
+            <div className="flex items-center gap-2.5 pt-1.5 flex-wrap">
               <button
                 type="button"
                 onClick={onChat}
@@ -354,28 +402,18 @@ function StoreHero({
                 <Heart size={15} className={isFollowed ? "fill-[#fe6f05] text-[#fe6f05]" : ""} />
                 <span>{isFollowed ? T.following : T.follow}</span>
               </button>
-
-              <button
-                type="button"
-                onClick={onShare}
-                className="ms-btn-share"
-                title={T.share}
-                aria-label={T.share}
-              >
-                <Share2 size={16} />
-              </button>
             </div>
           </div>
         </div>
 
-        {/* Right Column: Key Metrics */}
-        <div className="flex sm:flex-col lg:flex-row items-center gap-3">
+        {/* Right Column: Key Metrics (Clean & Compact) */}
+        <div className="ms-hero-stats-grid">
           <div className="ms-stat-box">
             <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between gap-2">
               <span>{T.totalProducts}</span>
               <Package size={13} className="text-[#fe6f05]" />
             </span>
-            <strong className="text-xl sm:text-2xl font-black text-white block mt-1">
+            <strong className="text-lg sm:text-2xl font-black text-white block mt-0.5">
               {store.productCount || 0}
             </strong>
             <span className="text-[11px] text-slate-300 font-medium">
@@ -388,11 +426,11 @@ function StoreHero({
               <span>{T.joinedSince}</span>
               <CalendarDays size={13} className="text-[#fe6f05]" />
             </span>
-            <strong className="text-sm sm:text-base font-black text-white block mt-1">
+            <strong className="text-sm sm:text-base font-black text-white block mt-0.5">
               {joinedText}
             </strong>
-            <span className="text-[11px] text-slate-300 font-medium">
-              {store.operationalLabel || T.operational}
+            <span className="text-[11px] text-[#fe6f05] font-bold">
+              {T.operationalLabel}
             </span>
           </div>
         </div>
@@ -478,6 +516,7 @@ export default function StoreMicrosite2026View({
             joinedSince: "Bergabung",
             itemsSuffix: "produk",
             statusLabel: "Status Toko",
+            operationalLabel: "Toko Aktif",
             trustSecureTitle: "Transaksi Aman",
             trustSecureDesc: "Pembayaran terenkripsi dan terlindungi",
             trustQualityTitle: "Produk Terjamin",
@@ -526,6 +565,7 @@ export default function StoreMicrosite2026View({
             joinedSince: "Joined",
             itemsSuffix: "items",
             statusLabel: "Store Status",
+            operationalLabel: "Active Store",
             trustSecureTitle: "Secure Payments",
             trustSecureDesc: "Encrypted and protected checkout",
             trustQualityTitle: "Quality Assured",
@@ -626,12 +666,12 @@ export default function StoreMicrosite2026View({
           T={T}
         />
 
-        {/* 2. Sticky Tabs Bar */}
+        {/* 2. Sticky Segmented Tabs Bar */}
         <div className="ms-tabs-bar">
           <div className="ms-tabs-scroll">
             {[
               { id: "home", label: T.tabHome },
-              { id: "products", label: T.tabProducts },
+              { id: "products", label: T.tabProducts, count: store.productCount || products.length },
               { id: "about", label: T.tabAbout },
             ].map((tab) => {
               const isActive = activeTab === tab.id;
@@ -642,7 +682,12 @@ export default function StoreMicrosite2026View({
                   onClick={() => onTabChange(tab.id)}
                   className={`ms-tab-btn ${isActive ? "is-active" : ""}`}
                 >
-                  {tab.label}
+                  <span>{tab.label}</span>
+                  {typeof tab.count === "number" && tab.count > 0 && (
+                    <span className={`ms-tab-count ${isActive ? "is-active" : ""}`}>
+                      {tab.count}
+                    </span>
+                  )}
                 </button>
               );
             })}
