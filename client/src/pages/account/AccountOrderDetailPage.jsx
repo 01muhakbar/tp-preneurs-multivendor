@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
-import { Link, useNavigate, useParams, useOutletContext } from "react-router-dom";
+import { Link, useNavigate, useParams, useOutletContext, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { api } from "../../api/axios.ts";
 import { fetchOrderCheckoutPayment } from "../../api/orderPayments.ts";
@@ -26,11 +26,22 @@ const shouldPollGroupedOrder = (groupedOrder) => {
 export default function AccountOrderDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const auth = useAuth();
   const user = auth?.user || null;
   const { dashboardSettingCopy } = useOutletContext() || {};
   const { i18n } = useTranslation();
   const [, setLangSync] = useState(0);
+
+  const isIndo = isIndonesianLanguage(i18n);
+
+  const duitkuReturn = searchParams.get("duitkuReturn") === "1";
+  const resultCode = searchParams.get("resultCode") || searchParams.get("responseCode");
+  const returnReference = searchParams.get("reference") || searchParams.get("merchantOrderId") || "";
+  const isPaymentSuccessReturn = duitkuReturn && (resultCode === "00" || resultCode === "0");
+
+  const [isSuccessModalDismissed, setIsSuccessModalDismissed] = useState(false);
+  const showPaymentSuccessModal = isPaymentSuccessReturn && !isSuccessModalDismissed;
 
   useEffect(() => {
     const handleSync = () => setLangSync((c) => c + 1);
@@ -43,8 +54,6 @@ export default function AccountOrderDetailPage() {
       window.removeEventListener("store_language_changed", handleSync);
     };
   }, [i18n]);
-
-  const isIndo = isIndonesianLanguage(i18n);
 
   const orderQuery = useQuery({
     queryKey: ["account", "orders", id],
@@ -69,6 +78,56 @@ export default function AccountOrderDetailPage() {
     },
   });
 
+  // Fast-polling when returning from Duitku with success to ensure webhook state syncs smoothly
+  useEffect(() => {
+    if (!isPaymentSuccessReturn) return;
+    let pollCount = 0;
+    const interval = setInterval(() => {
+      pollCount += 1;
+      orderQuery.refetch();
+      groupedQuery.refetch();
+      if (pollCount >= 6) {
+        clearInterval(interval);
+      }
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [isPaymentSuccessReturn]);
+
+  // Unsuccessful return notification
+  useEffect(() => {
+    if (duitkuReturn && resultCode && resultCode !== "00" && resultCode !== "0") {
+      toast.error(
+        isIndo
+          ? "Pembayaran belum terselesaikan. Anda dapat mencoba kembali melalui tombol Bayar Sekarang."
+          : "Payment was not completed. You can try again using the Pay Now button."
+      );
+      const clean = new URLSearchParams(searchParams);
+      clean.delete("duitkuReturn");
+      clean.delete("resultCode");
+      clean.delete("responseCode");
+      setSearchParams(clean, { replace: true });
+    }
+  }, [duitkuReturn, resultCode, isIndo, searchParams, setSearchParams]);
+
+  const handleCloseSuccessModal = () => {
+    setIsSuccessModalDismissed(true);
+    const clean = new URLSearchParams(searchParams);
+    clean.delete("duitkuReturn");
+    clean.delete("resultCode");
+    clean.delete("responseCode");
+    clean.delete("reference");
+    clean.delete("merchantOrderId");
+    clean.delete("statusCode");
+    setSearchParams(clean, { replace: true });
+  };
+
+  const handleTrackFromSuccessModal = () => {
+    handleCloseSuccessModal();
+    setTimeout(() => {
+      scrollToTimeline();
+    }, 150);
+  };
+
   const orderDetail = orderQuery.data?.data ?? orderQuery.data?.data?.data ?? null;
   const paymentReadModel = groupedQuery.data?.data ?? null;
   let orderDetail2026 = null;
@@ -80,6 +139,7 @@ export default function AccountOrderDetailPage() {
         order: orderDetail,
         payment: paymentReadModel,
         isIndo,
+        isPaymentSuccessReturn,
       });
     } catch (err) {
       console.error("[AccountOrderDetailPage] adapter error", err);
@@ -225,6 +285,11 @@ export default function AccountOrderDetailPage() {
       user={user}
       dashboardSettingCopy={dashboardSettingCopy}
       isIndo={isIndo}
+      showPaymentSuccessModal={showPaymentSuccessModal}
+      onCloseSuccessModal={handleCloseSuccessModal}
+      onTrackFromSuccessModal={handleTrackFromSuccessModal}
+      returnReference={returnReference}
+      isPaymentSuccessReturn={isPaymentSuccessReturn}
     />
   );
 }

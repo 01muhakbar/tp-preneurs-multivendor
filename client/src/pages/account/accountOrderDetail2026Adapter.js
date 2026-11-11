@@ -546,7 +546,7 @@ export const isIndonesianLanguage = (i18nInstance) => {
   return current.startsWith("id");
 };
 
-export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false }) => {
+export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false, isPaymentSuccessReturn = false }) => {
   const source = asObject(order);
   const grouped = asObject(payment);
   const id = source.id ?? grouped.orderId ?? null;
@@ -673,17 +673,23 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false }) 
     shipmentStatus.code === "SHIPPED" ||
     shipmentStatus.code === "IN_DELIVERY";
 
-  const isPacking =
-    orderStatus.code === "PROCESSING" ||
-    orderStatus.code === "READY_TO_FULFILL" ||
-    orderStatus.code === "TO_PACK" ||
-    shipmentStatus.code === "READY_TO_FULFILL";
+  const isPacking = isPaymentSuccessReturn
+    ? (!isDelivered && !isShipping)
+    : (
+        orderStatus.code === "PROCESSING" ||
+        orderStatus.code === "READY_TO_FULFILL" ||
+        orderStatus.code === "TO_PACK" ||
+        shipmentStatus.code === "READY_TO_FULFILL"
+      );
 
-  const isUnpaid =
-    paymentStatus.code === "UNPAID" ||
-    paymentStatus.code === "PENDING" ||
-    orderStatus.code === "UNPAID" ||
-    orderStatus.code === "PENDING";
+  const isUnpaid = isPaymentSuccessReturn
+    ? false
+    : (
+        paymentStatus.code === "UNPAID" ||
+        paymentStatus.code === "PENDING" ||
+        orderStatus.code === "UNPAID" ||
+        orderStatus.code === "PENDING"
+      );
 
   const isCancelled =
     orderStatus.code === "CANCELLED" ||
@@ -696,11 +702,13 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false }) 
     ? "success"
     : isShipping || isPacking
       ? "blue"
-      : isUnpaid
-        ? "warning"
-        : isCancelled
-          ? "danger"
-          : "neutral";
+      : isPaymentSuccessReturn
+        ? "success"
+        : isUnpaid
+          ? "warning"
+          : isCancelled
+            ? "danger"
+            : "neutral";
 
   const bannerTitle = isDelivered
     ? isIndo ? "Pesanan Selesai" : "Order Completed"
@@ -708,11 +716,13 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false }) 
       ? isIndo ? "Pesanan Sedang Dikirim" : "Order in Transit"
       : isPacking
         ? isIndo ? "Pesanan Sedang Dikemas" : "Order is Being Packed"
-        : isUnpaid
-          ? isIndo ? "Menunggu Pembayaran" : "Awaiting Payment"
-          : isCancelled
-            ? isIndo ? "Pesanan Dibatalkan" : "Order Cancelled"
-            : orderStatus.label;
+        : isPaymentSuccessReturn
+          ? isIndo ? "Pembayaran Terverifikasi" : "Payment Verified"
+          : isUnpaid
+            ? isIndo ? "Menunggu Pembayaran" : "Awaiting Payment"
+            : isCancelled
+              ? isIndo ? "Pesanan Dibatalkan" : "Order Cancelled"
+              : orderStatus.label;
 
   const bannerSubnote = isDelivered
     ? isIndo ? "Pesanan telah diterima dengan baik di alamat tujuan." : "Order has safely arrived at destination address."
@@ -720,11 +730,13 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false }) 
       ? isIndo ? "Paket sedang dalam perjalanan bersama kurir pengiriman." : "Package is in transit with the delivery courier."
       : isPacking
         ? isIndo ? "Penjual sedang menyiapkan barang pesanan Anda." : "Seller is packing and preparing your order."
-        : isUnpaid
-          ? isIndo ? "Silakan selesaikan pembayaran sebelum batas waktu berakhir." : "Please complete payment before timeout."
-          : isCancelled
-            ? isIndo ? "Pesanan ini telah dibatalkan." : "This order has been cancelled."
-            : "";
+        : isPaymentSuccessReturn
+          ? isIndo ? "Pembayaran telah berhasil diterima. Penjual segera mengemas pesanan Anda." : "Payment confirmed. Seller is preparing your order."
+          : isUnpaid
+            ? isIndo ? "Silakan selesaikan pembayaran sebelum batas waktu berakhir." : "Please complete payment before timeout."
+            : isCancelled
+              ? isIndo ? "Pesanan ini telah dibatalkan." : "This order has been cancelled."
+              : "";
 
   const primaryCourier =
     text(primaryShipment?.courier) ||

@@ -110,6 +110,8 @@ export default function CheckoutPaymentRedirectScreen({
         btnConnecting: "Menghubungkan ke Duitku...",
         fallbackHint:
           "Jika Anda tidak dialihkan secara otomatis, silakan klik tombol di atas.",
+        duitkuCloseTip:
+          "💡 Tips: Setelah transaksi sukses di Duitku, tekan tombol \"Tutup\" untuk kembali otomatis ke Rincian Pesanan TP Preneurs.",
         viewOrders: "Lihat Daftar Pesanan",
         sslSecure: "Enkripsi SSL 256-Bit",
         duitkuCertified: "Duitku Payment Gateway",
@@ -129,6 +131,8 @@ export default function CheckoutPaymentRedirectScreen({
         btnConnecting: "Connecting to Duitku...",
         fallbackHint:
           "If you are not redirected automatically, please click the button above.",
+        duitkuCloseTip:
+          "💡 Tip: After completing payment in Duitku, click the \"Tutup\" (Close) button to automatically return to your TP Preneurs Order Details.",
         viewOrders: "View Order List",
         sslSecure: "256-Bit SSL Encryption",
         duitkuCertified: "Duitku Payment Gateway",
@@ -258,6 +262,11 @@ export default function CheckoutPaymentRedirectScreen({
           <p className="text-[11px] sm:text-xs text-slate-500 mt-3 max-w-xs leading-normal">
             {T.fallbackHint}
           </p>
+
+          {/* Duitku Return Guidance Tip */}
+          <div className="mt-3 px-3.5 py-2.5 rounded-xl bg-blue-950/40 border border-blue-800/30 text-[11px] text-blue-300 leading-relaxed text-center max-w-sm">
+            {T.duitkuCloseTip}
+          </div>
 
           {/* Secondary Link */}
           <div className="mt-4 pt-4 border-t border-slate-800/60 w-full flex items-center justify-center">

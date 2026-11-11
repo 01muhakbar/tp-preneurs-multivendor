@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
+  CheckCircle2,
   ChevronDown,
   ChevronRight,
   ChevronUp,
@@ -15,6 +16,8 @@ import {
   Package,
   RotateCcw,
   ShieldCheck,
+  ShoppingBag,
+  Sparkles,
   Star,
   Truck,
 } from "lucide-react";
@@ -88,6 +91,19 @@ const DETAIL_I18N = {
     errorTitle: "Order details unavailable",
     tryAgain: "Try Again",
     backToOrders: "Back to Orders",
+    paymentSuccessTitle: "Payment Successfully Received!",
+    paymentSuccessDesc: "Thank you, your order payment has been successfully verified by TP Preneurs. Your transaction is secure and official.",
+    nextStepsTitle: "What Happens Next?",
+    step1Title: "Seller Prepares & Packs Your Order",
+    step1Desc: "The store has received confirmation and is currently packing your items carefully.",
+    step2Title: "Real-Time Courier Tracking",
+    step2Desc: "Once handed over to the courier, the tracking number will update automatically on this page.",
+    step3Title: "Support & Seller Direct Chat",
+    step3Desc: "Have questions or special instructions? You can contact the store directly via WhatsApp.",
+    btnTrackOrder: "Track Order Status",
+    btnViewDetails: "View Order Details",
+    btnContinueShopping: "Continue Shopping",
+    paymentReference: "Payment Reference",
   },
   id: {
     title: "Rincian Pesanan",
@@ -145,6 +161,19 @@ const DETAIL_I18N = {
     errorTitle: "Rincian pesanan tidak tersedia",
     tryAgain: "Coba Lagi",
     backToOrders: "Kembali ke Pesanan",
+    paymentSuccessTitle: "Pembayaran Berhasil Diterima!",
+    paymentSuccessDesc: "Terima kasih, pembayaran pesanan Anda telah berhasil diverifikasi oleh TP Preneurs. Transaksi Anda resmi dan aman.",
+    nextStepsTitle: "Apa Langkah Selanjutnya?",
+    step1Title: "Penjual Menyiapkan & Mengemas Pesanan",
+    step1Desc: "Toko penjual telah menerima konfirmasi dan sedang menyiapkan produk pesanan Anda dengan aman.",
+    step2Title: "Pelacakan Kurir Real-Time",
+    step2Desc: "Setelah paket diserahkan ke kurir, nomor resi otomatis terlacak di linimasa pengiriman halaman ini.",
+    step3Title: "Layanan Bantuan & Chat Toko",
+    step3Desc: "Butuh bantuan atau catatan khusus? Anda dapat langsung menghubungi penjual via WhatsApp.",
+    btnTrackOrder: "Lacak Status Pesanan",
+    btnViewDetails: "Lihat Rincian Pesanan",
+    btnContinueShopping: "Lanjut Belanja",
+    paymentReference: "Referensi Pembayaran",
   },
 };
 
@@ -256,6 +285,11 @@ export default function AccountOrderDetail2026View({
   user,
   dashboardSettingCopy,
   isIndo: isIndoProp,
+  showPaymentSuccessModal = false,
+  onCloseSuccessModal,
+  onTrackFromSuccessModal,
+  returnReference = "",
+  isPaymentSuccessReturn = false,
 }) {
   const navigate = useNavigate();
   const { i18n } = useTranslation();
@@ -904,6 +938,159 @@ export default function AccountOrderDetail2026View({
               >
                 {isCancelling ? t.cancelling : t.cancelModalConfirm}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPaymentSuccessModal && (
+        <div
+          className="tp-payment-success-modal-backdrop"
+          onClick={() => {
+            if (onCloseSuccessModal) onCloseSuccessModal();
+          }}
+        >
+          <div
+            className="tp-payment-success-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="tp-payment-success-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Success Header Icon with Animated Glowing Ring */}
+            <div className="tp-payment-success-modal__icon-wrap">
+              <div className="tp-payment-success-modal__pulse-ring" />
+              <div className="tp-payment-success-modal__icon-badge">
+                <CheckCircle2 size={36} className="tp-payment-success-modal__check-svg" />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="tp-payment-success-modal__close-btn"
+              onClick={() => {
+                if (onCloseSuccessModal) onCloseSuccessModal();
+              }}
+              aria-label="Tutup"
+            >
+              &times;
+            </button>
+
+            <div className="tp-payment-success-modal__content">
+              <h2 id="tp-payment-success-title" className="tp-payment-success-modal__title">
+                {t.paymentSuccessTitle}
+              </h2>
+              <p className="tp-payment-success-modal__desc">
+                {t.paymentSuccessDesc}
+              </p>
+
+              {/* Receipt / Transaction Overview Card */}
+              <div className="tp-payment-success-modal__receipt">
+                <div className="tp-payment-success-modal__receipt-row">
+                  <span className="tp-payment-success-modal__receipt-label">{t.orderNo}</span>
+                  <strong className="tp-payment-success-modal__receipt-val tp-payment-success-modal__receipt-val--code">
+                    {orderMeta.orderNo}
+                  </strong>
+                </div>
+
+                <div className="tp-payment-success-modal__receipt-row">
+                  <span className="tp-payment-success-modal__receipt-label">{t.totalPayment}</span>
+                  <span className="tp-payment-success-modal__receipt-val tp-payment-success-modal__receipt-val--total">
+                    {storeProducts?.summary?.total || orderDetail.summary?.totalDisplay || "-"}
+                  </span>
+                </div>
+
+                <div className="tp-payment-success-modal__receipt-row">
+                  <span className="tp-payment-success-modal__receipt-label">{t.paymentMethod}</span>
+                  <span className="tp-payment-success-modal__receipt-val">
+                    {orderMeta.paymentMethod || "Duitku Payment Gateway"}
+                  </span>
+                </div>
+
+                {returnReference && (
+                  <div className="tp-payment-success-modal__receipt-row">
+                    <span className="tp-payment-success-modal__receipt-label">{t.paymentReference}</span>
+                    <span className="tp-payment-success-modal__receipt-val tp-payment-success-modal__receipt-val--mono">
+                      {returnReference}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Next Steps Guide (Langkah Selanjutnya) */}
+              <div className="tp-payment-success-modal__guide">
+                <h3 className="tp-payment-success-modal__guide-title">
+                  <Sparkles size={16} className="tp-payment-success-modal__sparkle" />
+                  <span>{t.nextStepsTitle}</span>
+                </h3>
+
+                <div className="tp-payment-success-modal__steps">
+                  <div className="tp-payment-success-modal__step">
+                    <div className="tp-payment-success-modal__step-num">1</div>
+                    <div className="tp-payment-success-modal__step-body">
+                      <strong className="tp-payment-success-modal__step-heading">{t.step1Title}</strong>
+                      <p className="tp-payment-success-modal__step-text">{t.step1Desc}</p>
+                    </div>
+                  </div>
+
+                  <div className="tp-payment-success-modal__step">
+                    <div className="tp-payment-success-modal__step-num">2</div>
+                    <div className="tp-payment-success-modal__step-body">
+                      <strong className="tp-payment-success-modal__step-heading">{t.step2Title}</strong>
+                      <p className="tp-payment-success-modal__step-text">{t.step2Desc}</p>
+                    </div>
+                  </div>
+
+                  <div className="tp-payment-success-modal__step">
+                    <div className="tp-payment-success-modal__step-num">3</div>
+                    <div className="tp-payment-success-modal__step-body">
+                      <strong className="tp-payment-success-modal__step-heading">{t.step3Title}</strong>
+                      <p className="tp-payment-success-modal__step-text">{t.step3Desc}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="tp-payment-success-modal__actions">
+                <button
+                  type="button"
+                  className="tp-payment-success-modal__btn-primary"
+                  onClick={() => {
+                    if (onTrackFromSuccessModal) {
+                      onTrackFromSuccessModal();
+                    } else {
+                      if (onCloseSuccessModal) onCloseSuccessModal();
+                      if (onTimeline) onTimeline();
+                    }
+                  }}
+                >
+                  <Truck size={17} />
+                  <span>{t.btnTrackOrder}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="tp-payment-success-modal__btn-secondary"
+                  onClick={() => {
+                    if (onCloseSuccessModal) onCloseSuccessModal();
+                  }}
+                >
+                  <FileText size={17} />
+                  <span>{t.btnViewDetails}</span>
+                </button>
+
+                <Link
+                  to="/shop"
+                  className="tp-payment-success-modal__btn-ghost"
+                  onClick={() => {
+                    if (onCloseSuccessModal) onCloseSuccessModal();
+                  }}
+                >
+                  <ShoppingBag size={16} />
+                  <span>{t.btnContinueShopping}</span>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
