@@ -1,0 +1,1 @@
+import{x as r,j as s,R as a}from"./index-B1WhDo5w.js";function c(){const{productSlug:o}=r(),t=String(o||"").trim(),e=t?`/product/${encodeURIComponent(t)}`:"/shop";return s.jsx(a,{to:e,replace:!0})}export{c as default};

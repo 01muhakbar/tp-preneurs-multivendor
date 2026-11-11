@@ -1637,6 +1637,9 @@ router.get("/my/orders", protect, async (req, res, next) => {
               s.order_id AS orderId,
               s.store_id AS storeId,
               st.name AS storeName,
+              st.slug AS storeSlug,
+              st.whatsapp AS storeWhatsapp,
+              st.phone AS storePhone,
               s.payment_status AS suborderPaymentStatus,
               s.fulfillment_status AS fulfillmentStatus,
               p.status AS paymentStatus,
@@ -1691,6 +1694,9 @@ router.get("/my/orders", protect, async (req, res, next) => {
                 current.push({
                     storeId: Number(row?.storeId ?? 0) || null,
                     storeName: String(row?.storeName || "").trim() || null,
+                    storeSlug: String(row?.storeSlug || "").trim() || null,
+                    storeWhatsapp: String(row?.storeWhatsapp || "").trim() || null,
+                    storePhone: String(row?.storePhone || "").trim() || null,
                     displayStatus,
                     fulfillmentStatus: String(row?.fulfillmentStatus || "UNFULFILLED").trim().toUpperCase() ||
                         "UNFULFILLED",
@@ -1932,9 +1938,16 @@ router.get("/my/orders", protect, async (req, res, next) => {
                         .map((group) => ({
                         id: group.storeId,
                         name: group.storeName,
+                        slug: group.storeSlug,
+                        whatsapp: group.storeWhatsapp || group.storePhone || null,
+                        phone: group.storePhone || null,
                         fulfillmentStatus: group.fulfillmentStatus,
                     }))
                         .filter((group) => Boolean(group.name)),
+                    storeWhatsapp: paymentGroups.find((g) => g.storeWhatsapp)?.storeWhatsapp ||
+                        paymentGroups.find((g) => g.storePhone)?.storePhone ||
+                        null,
+                    storePhone: paymentGroups.find((g) => g.storePhone)?.storePhone || null,
                 };
             }),
             meta: {

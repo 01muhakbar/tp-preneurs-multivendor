@@ -479,6 +479,11 @@ export default function AccountOrderDetail2026View({
       whatsappNumber: effectiveWhatsapp,
       orderRef: orderMeta?.orderNo || "",
       storeName: storeProducts?.storeName || "",
+      orderDate: orderMeta?.createdAt,
+      paymentMethod: orderMeta?.paymentMethod,
+      totalAmount: orderSummary?.totalAmount || orderSummary?.total,
+      items: storeProducts?.items,
+      isIndo,
     }) || shopee?.helpActions?.chatUrl || "https://wa.me/62895800536593";
 
   const fullShippingAddress = String(shippingAddress?.address || "-");

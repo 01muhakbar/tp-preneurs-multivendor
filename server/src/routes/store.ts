@@ -1920,6 +1920,9 @@ router.get(
               s.order_id AS orderId,
               s.store_id AS storeId,
               st.name AS storeName,
+              st.slug AS storeSlug,
+              st.whatsapp AS storeWhatsapp,
+              st.phone AS storePhone,
               s.payment_status AS suborderPaymentStatus,
               s.fulfillment_status AS fulfillmentStatus,
               p.status AS paymentStatus,
@@ -1977,6 +1980,9 @@ router.get(
           current.push({
             storeId: Number((row as any)?.storeId ?? 0) || null,
             storeName: String((row as any)?.storeName || "").trim() || null,
+            storeSlug: String((row as any)?.storeSlug || "").trim() || null,
+            storeWhatsapp: String((row as any)?.storeWhatsapp || "").trim() || null,
+            storePhone: String((row as any)?.storePhone || "").trim() || null,
             displayStatus,
             fulfillmentStatus:
               String((row as any)?.fulfillmentStatus || "UNFULFILLED").trim().toUpperCase() ||
@@ -2268,9 +2274,17 @@ router.get(
               .map((group: any) => ({
                 id: group.storeId,
                 name: group.storeName,
+                slug: group.storeSlug,
+                whatsapp: group.storeWhatsapp || group.storePhone || null,
+                phone: group.storePhone || null,
                 fulfillmentStatus: group.fulfillmentStatus,
               }))
               .filter((group: any) => Boolean(group.name)),
+            storeWhatsapp:
+              paymentGroups.find((g: any) => g.storeWhatsapp)?.storeWhatsapp ||
+              paymentGroups.find((g: any) => g.storePhone)?.storePhone ||
+              null,
+            storePhone: paymentGroups.find((g: any) => g.storePhone)?.storePhone || null,
           };
         }),
         meta: {

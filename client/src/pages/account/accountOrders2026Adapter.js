@@ -4,6 +4,10 @@ import {
 } from "../../utils/orderContract.ts";
 import { getOrderTruthStatus } from "../../utils/orderTruth.js";
 import { resolvePublicOrderReference } from "../../utils/publicOrderReference.js";
+import {
+  buildStoreWhatsAppUrl,
+  formatCompactOrderNumber,
+} from "./accountOrderDetail2026Adapter.js";
 
 const asObject = (value) =>
   value && typeof value === "object" && !Array.isArray(value) ? value : {};
@@ -345,9 +349,40 @@ const normalizeOrder = (value, options = {}) => {
     effectiveItems.reduce((acc, it) => acc + (it.quantity || 1), 0)
   );
 
+  const rawStoreWhatsapp =
+    text(order.storeWhatsapp) ||
+    text(asArray(order.stores).find((s) => asObject(s).whatsapp)?.whatsapp) ||
+    text(order.storePhone) ||
+    text(asArray(order.stores).find((s) => asObject(s).phone)?.phone) ||
+    "";
+
+  const rawStorePhone =
+    text(order.storePhone) ||
+    text(asArray(order.stores).find((s) => asObject(s).phone)?.phone) ||
+    "";
+
+  const compactOrderNo = formatCompactOrderNumber(
+    order.invoiceNo || reference,
+    id,
+    createdAt
+  );
+
+  const sellerChatUrl = buildStoreWhatsAppUrl({
+    whatsappNumber: rawStoreWhatsapp,
+    storePhone: rawStorePhone,
+    orderRef: compactOrderNo,
+    storeName: primaryStoreName,
+    orderDate: createdAt,
+    paymentMethod,
+    totalAmount,
+    items: effectiveItems,
+    isIndo,
+  });
+
   return {
     id,
     displayId: reference,
+    compactOrderNo,
     reference,
     href: detailPath,
     detailPath,
@@ -357,6 +392,9 @@ const normalizeOrder = (value, options = {}) => {
     primaryStoreName,
     primaryStoreSlug,
     storeSlug: primaryStoreSlug,
+    storeWhatsapp: rawStoreWhatsapp,
+    storePhone: rawStorePhone,
+    sellerChatUrl,
     storeMode: checkoutMode.shortLabel,
     checkoutMode,
     items: effectiveItems,

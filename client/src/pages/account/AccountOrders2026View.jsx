@@ -399,10 +399,11 @@ function ShopeeOrderCard({ order, LinkComponent, t }) {
         {bucket === "to_pack" && (
           <>
             <a
-              href="https://wa.me/628218866824"
+              href={order.sellerChatUrl || "https://wa.me/628218866824"}
               target="_blank"
               rel="noopener noreferrer"
               className="tp-shopee-btn tp-shopee-btn--secondary"
+              title={`WhatsApp ${storeName}`}
             >
               {t.contactSeller}
             </a>

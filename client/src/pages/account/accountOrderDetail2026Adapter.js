@@ -153,30 +153,166 @@ export const formatWhatsAppDigits = (raw) => {
   const normalized = String(raw || "").trim();
   if (!normalized) return "";
   let digits = normalized.replace(/\D/g, "");
+  if (!digits || digits.length < 5) return "";
   if (digits.startsWith("0")) {
     digits = "62" + digits.slice(1);
-  } else if (digits.startsWith("8")) {
+  } else if (digits.startsWith("8") && digits.length >= 9 && digits.length <= 13) {
     digits = "62" + digits;
   }
   return digits;
 };
 
-export const buildStoreWhatsAppUrl = ({ whatsappNumber, orderRef = "", storeName = "" }) => {
-  const raw = String(whatsappNumber || "").trim();
-  if (!raw) return "";
+export const extractWhatsAppDigitsFromUrlOrPhone = (value) => {
+  const str = String(value || "").trim();
+  if (!str) return "";
+  if (/^https?:\/\//i.test(str)) {
+    try {
+      const url = new URL(str);
+      if (url.hostname.includes("wa.me")) {
+        const pathPart = url.pathname.replace(/^\//, "").split("/")[0] || "";
+        return formatWhatsAppDigits(pathPart);
+      }
+      if (url.hostname.includes("whatsapp.com")) {
+        const phone = url.searchParams.get("phone") || "";
+        return formatWhatsAppDigits(phone);
+      }
+    } catch {
+      // fallback
+    }
+  }
+  return formatWhatsAppDigits(str);
+};
 
-  if (/^https?:\/\//i.test(raw)) {
-    return raw;
+export const formatOrderDateForWhatsApp = (rawDate, isIndo = true) => {
+  if (!rawDate) return isIndo ? "Hari ini" : "Today";
+  try {
+    const d = new Date(rawDate);
+    if (Number.isNaN(d.getTime())) return isIndo ? "Hari ini" : "Today";
+    const day = d.getDate();
+    const monthsId = [
+      "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+      "Jul", "Agu", "Sep", "Okt", "Nov", "Des"
+    ];
+    const monthsEn = [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    ];
+    const month = (isIndo ? monthsId : monthsEn)[d.getMonth()];
+    const year = d.getFullYear();
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    return isIndo
+      ? `${day} ${month} ${year}, ${hours}:${minutes} WIB`
+      : `${day} ${month} ${year}, ${hours}:${minutes}`;
+  } catch {
+    return isIndo ? "Hari ini" : "Today";
+  }
+};
+
+export const formatItemsForWhatsApp = (items = [], totalAmount = 0, isIndo = true) => {
+  if (!Array.isArray(items) || items.length === 0) {
+    return `• ${isIndo ? "Produk Pesanan" : "Ordered Product"} - ${formatCurrency(totalAmount)}`;
+  }
+  return items
+    .slice(0, 5)
+    .map((item) => {
+      const name = String(item.name || (isIndo ? "Produk" : "Product")).trim();
+      const variant = item.variant && item.variant !== "Standard item" ? ` (${item.variant})` : "";
+      const qty = item.quantity || 1;
+      const price = formatCurrency(item.totalPrice || item.price || 0);
+      return `• ${name}${variant} x${qty} - ${price}`;
+    })
+    .concat(
+      items.length > 5
+        ? [`• ... ${isIndo ? `dan ${items.length - 5} produk lainnya` : `and ${items.length - 5} more items`}`]
+        : []
+    )
+    .join("\n");
+};
+
+export const buildSellerWhatsAppOrderMessage = ({
+  storeName = "",
+  orderNo = "",
+  orderDate = null,
+  paymentMethod = "",
+  totalAmount = 0,
+  items = [],
+  isIndo = true,
+}) => {
+  const storeDisplay = storeName ? `*${storeName}*` : (isIndo ? "Penjual" : "Seller");
+  const formattedDate = formatOrderDateForWhatsApp(orderDate, isIndo);
+  const formattedItems = formatItemsForWhatsApp(items, totalAmount, isIndo);
+  const formattedTotal = formatCurrency(totalAmount);
+  const methodDisplay =
+    paymentMethod && paymentMethod !== "-" ? paymentMethod : isIndo ? "Transfer / Online" : "Online Payment";
+  const orderRefDisplay = orderNo || "-";
+
+  if (isIndo) {
+    return (
+`Halo Admin ${storeDisplay} 👋,
+
+Saya pembeli di TP Preneurs ingin mengonfirmasi pesanan saya yang telah *BERHASIL DIBAYAR*:
+
+📦 *No. Pesanan:* ${orderRefDisplay}
+📅 *Tanggal Pesanan:* ${formattedDate}
+💳 *Metode Pembayaran:* ${methodDisplay}
+💵 *Total Pembayaran:* ${formattedTotal} *(Lunas)*
+🚚 *Status:* Sudah Terbayar (Siap Dikemas)
+
+🛍️ *Detail Produk:*
+${formattedItems}
+
+Mohon bantuannya untuk memproses dan menyiapkan pengiriman pesanan ini ya Kak. Terima kasih banyak! 🙏`
+    );
   }
 
-  const digits = formatWhatsAppDigits(raw);
-  if (!digits) return "";
+  return (
+`Hello Admin ${storeDisplay} 👋,
 
-  const textMsg = orderRef
-    ? `Halo ${storeName || "Penjual"}, saya ingin menanyakan pesanan saya dengan nomor pesanan ${orderRef}.`
-    : `Halo ${storeName || "Penjual"}, saya ingin menanyakan pesanan saya.`;
+I am a buyer on TP Preneurs and would like to confirm my *PAID ORDER*:
 
-  return `https://wa.me/${digits}?text=${encodeURIComponent(textMsg)}`;
+📦 *Order No:* ${orderRefDisplay}
+📅 *Order Date:* ${formattedDate}
+💳 *Payment Method:* ${methodDisplay}
+💵 *Total Payment:* ${formattedTotal} *(Paid)*
+🚚 *Status:* Payment Received (Ready to Pack)
+
+🛍️ *Product Details:*
+${formattedItems}
+
+Please help to process and prepare the shipment for this order. Thank you very much! 🙏`
+  );
+};
+
+export const buildStoreWhatsAppUrl = ({
+  whatsappNumber,
+  storePhone,
+  orderRef = "",
+  storeName = "",
+  orderDate = null,
+  paymentMethod = "",
+  totalAmount = 0,
+  items = [],
+  isIndo = true,
+  fallbackPhone = "08218866824",
+}) => {
+  const targetPhone =
+    extractWhatsAppDigitsFromUrlOrPhone(whatsappNumber) ||
+    extractWhatsAppDigitsFromUrlOrPhone(storePhone) ||
+    extractWhatsAppDigitsFromUrlOrPhone(fallbackPhone) ||
+    "628218866824";
+
+  const message = buildSellerWhatsAppOrderMessage({
+    storeName,
+    orderNo: orderRef,
+    orderDate,
+    paymentMethod,
+    totalAmount,
+    items,
+    isIndo,
+  });
+
+  return `https://wa.me/${targetPhone}?text=${encodeURIComponent(message)}`;
 };
 
 export const formatCompactOrderNumber = (invoiceNo, orderId, createdAt) => {
@@ -1036,6 +1172,11 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false, is
           whatsappNumber: primaryStoreWhatsapp,
           orderRef: compactOrderNo,
           storeName: primaryStoreName,
+          orderDate: placedAt,
+          paymentMethod: paymentMethodDisplay,
+          totalAmount: total,
+          items: storeProducts.items,
+          isIndo,
         }) || `/contact-us?topic=seller&ref=${encodeURIComponent(compactOrderNo)}`,
       supportUrl: `/contact-us?topic=order&ref=${encodeURIComponent(compactOrderNo)}`,
     },
