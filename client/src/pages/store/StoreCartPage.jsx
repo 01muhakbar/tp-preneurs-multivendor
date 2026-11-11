@@ -200,15 +200,17 @@ export default function StoreCartPage() {
             : `Platform Voucher ${couponToApply.code} applied!`
         );
       } else {
-        const storeKey = couponToApply.storeSlug
-          ? `slug:${couponToApply.storeSlug}`
-          : couponToApply.storeId
-            ? `id:${couponToApply.storeId}`
-            : null;
-        if (storeKey) {
+        const updates = {};
+        if (couponToApply.storeSlug) {
+          updates[`slug:${couponToApply.storeSlug}`] = couponToApply;
+        }
+        if (couponToApply.storeId) {
+          updates[`id:${couponToApply.storeId}`] = couponToApply;
+        }
+        if (Object.keys(updates).length > 0) {
           setAppliedStoreCoupons((prev) => ({
             ...prev,
-            [storeKey]: couponToApply,
+            ...updates,
           }));
           toast.success(
             isIndo
@@ -407,8 +409,16 @@ export default function StoreCartPage() {
   // Compute subtotal per store for voucher qualification
   const getStoreSelectedSubtotal = useCallback(
     (storeKey) => {
+      if (!storeKey) return 0;
+      const isSlugKey = storeKey.startsWith("slug:");
+      const isIdKey = storeKey.startsWith("id:");
+      const rawSlug = isSlugKey ? storeKey.slice(5) : null;
+      const rawId = isIdKey ? Number(storeKey.slice(3)) : null;
+
       return selectedItems
         .filter((it) => {
+          if (isSlugKey && it.storeSlug) return it.storeSlug === rawSlug;
+          if (isIdKey && it.storeId != null) return Number(it.storeId) === rawId;
           const key = it.storeSlug
             ? `slug:${it.storeSlug}`
             : it.storeId != null
@@ -428,12 +438,34 @@ export default function StoreCartPage() {
 
   // Calculate total discount from applied store coupons for selected items
   const totalStoreDiscount = useMemo(() => {
+    const processedCoupons = new Set();
     return Object.entries(appliedStoreCoupons).reduce((sum, [storeKey, coupon]) => {
-      if (!coupon || !coupon.discountAmount) return sum;
+      if (!coupon || !coupon.code) return sum;
+
+      // Unique coupon identifier per store to prevent double-counting across key aliases
+      const uniqueCouponKey = `${coupon.code}:${coupon.storeId || coupon.storeSlug || storeKey}`;
+      if (processedCoupons.has(uniqueCouponKey)) return sum;
+      processedCoupons.add(uniqueCouponKey);
+
       const subtotal = getStoreSelectedSubtotal(storeKey);
       if (subtotal <= 0) return sum;
-      if (coupon.minSpend && subtotal < coupon.minSpend) return sum;
-      return sum + Number(coupon.discountAmount || 0);
+      const minSpend = Number(coupon.minSpend) || 0;
+      if (subtotal < minSpend) return sum;
+
+      const discountType = String(coupon.discountType || "").toLowerCase();
+      const val = Number(coupon.discountValue ?? coupon.amount ?? 0);
+      let saving = 0;
+      if (discountType === "percent" || discountType === "percentage") {
+        saving = Math.round((subtotal * val) / 100);
+        const maxDiscount = Number(coupon.maxDiscount);
+        if (Number.isFinite(maxDiscount) && maxDiscount > 0) {
+          saving = Math.min(saving, maxDiscount);
+        }
+      } else {
+        saving = Number(coupon.discountAmount ?? coupon.discountValue ?? coupon.amount ?? 0);
+      }
+      saving = Math.min(subtotal, Math.max(0, saving));
+      return sum + saving;
     }, 0);
   }, [appliedStoreCoupons, getStoreSelectedSubtotal]);
 
@@ -648,12 +680,16 @@ export default function StoreCartPage() {
       selectedFinalTotal={selectedFinalTotal}
       appliedStoreCoupons={appliedStoreCoupons}
       onOpenStoreVoucher={(store) => setVoucherModalStore(store)}
-      onRemoveStoreVoucher={(storeKey) => {
+      onRemoveStoreVoucher={(storeKeyOrGroup) => {
         setAppliedStoreCoupons((prev) => {
           const next = { ...prev };
-          delete next[storeKey];
+          const storeKey = typeof storeKeyOrGroup === "string" ? storeKeyOrGroup : storeKeyOrGroup?.key;
+          if (storeKey) delete next[storeKey];
+          if (storeKeyOrGroup?.storeSlug) delete next[`slug:${storeKeyOrGroup.storeSlug}`];
+          if (storeKeyOrGroup?.storeId) delete next[`id:${storeKeyOrGroup.storeId}`];
           return next;
         });
+        toast(isIndo ? "Voucher toko dilepas." : "Store voucher removed.");
       }}
       onOpenPlatformVoucher={() => setIsPlatformVoucherModalOpen(true)}
       onRemovePlatformVoucher={() => {
@@ -690,17 +726,28 @@ export default function StoreCartPage() {
         onClose={() => setVoucherModalStore(null)}
         store={voucherModalStore}
         storeSubtotal={getStoreSelectedSubtotal(voucherModalStore.key)}
-        appliedCoupon={appliedStoreCoupons[voucherModalStore.key] || null}
+        appliedCoupon={
+          appliedStoreCoupons[voucherModalStore.key] ||
+          (voucherModalStore.storeSlug && appliedStoreCoupons[`slug:${voucherModalStore.storeSlug}`]) ||
+          (voucherModalStore.storeId && appliedStoreCoupons[`id:${voucherModalStore.storeId}`]) ||
+          null
+        }
         onApplyCoupon={(couponData) => {
+          const updates = {};
+          if (voucherModalStore.key) updates[voucherModalStore.key] = couponData;
+          if (voucherModalStore.storeSlug) updates[`slug:${voucherModalStore.storeSlug}`] = couponData;
+          if (voucherModalStore.storeId) updates[`id:${voucherModalStore.storeId}`] = couponData;
           setAppliedStoreCoupons((prev) => ({
             ...prev,
-            [voucherModalStore.key]: couponData,
+            ...updates,
           }));
         }}
         onRemoveCoupon={() => {
           setAppliedStoreCoupons((prev) => {
             const next = { ...prev };
-            delete next[voucherModalStore.key];
+            if (voucherModalStore.key) delete next[voucherModalStore.key];
+            if (voucherModalStore.storeSlug) delete next[`slug:${voucherModalStore.storeSlug}`];
+            if (voucherModalStore.storeId) delete next[`id:${voucherModalStore.storeId}`];
             return next;
           });
         }}

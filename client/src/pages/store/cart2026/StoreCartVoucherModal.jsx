@@ -22,16 +22,31 @@ export default function StoreCartVoucherModal({
   const storeId = store?.storeId || null;
   const storeSlug = store?.storeSlug || null;
 
-  // Fetch active store coupons
+  // Fetch active store coupons strictly for this store
   const { data: couponResponse, isLoading: isCouponsLoading } = useQuery({
-    queryKey: ["store-coupons", storeId, storeSlug],
-    queryFn: () => fetchStoreCoupons({ storeId: storeId || undefined, storeSlug: storeSlug || undefined }),
+    queryKey: ["store-coupons", storeId, storeSlug, "STORE"],
+    queryFn: () =>
+      fetchStoreCoupons({
+        storeId: storeId || undefined,
+        storeSlug: storeSlug || undefined,
+        scopeType: "STORE",
+      }),
     enabled: isOpen && Boolean(storeId || storeSlug),
     staleTime: 30_000,
   });
 
   const availableCoupons = Array.isArray(couponResponse?.data)
-    ? couponResponse.data.filter((c) => c && c.code && c.published !== false)
+    ? couponResponse.data.filter((c) => {
+        if (!c || !c.code || c.published === false) return false;
+        // MUST be a store voucher for THIS specific store, NOT a platform voucher
+        if (c.scopeType === "PLATFORM" || (!c.storeId && !c.store)) return false;
+        if (c.storeId && storeId && Number(c.storeId) !== Number(storeId)) return false;
+        if (c.store?.slug && storeSlug && c.store.slug !== storeSlug) return false;
+        const now = new Date();
+        if (c.startsAt && new Date(c.startsAt) > now) return false;
+        if (c.expiresAt && new Date(c.expiresAt) < now) return false;
+        return true;
+      })
     : [];
 
   if (!isOpen || !store) return null;
@@ -69,6 +84,25 @@ export default function StoreCartVoucherModal({
         return;
       }
 
+      // Check if validated coupon is a platform coupon or belongs to another store
+      if (result.scopeType === "PLATFORM" || (!result.storeId && result.scopeType !== "STORE")) {
+        setErrorMessage(
+          isIndo
+            ? "Kode ini adalah Voucher Diskon Platform. Silakan masukkan pada menu 'Voucher Diskon Platform' di bagian bawah keranjang."
+            : "This is a Platform Discount Voucher. Please enter it in the 'Platform Discount Voucher' bar at the bottom of the cart."
+        );
+        return;
+      }
+
+      if (storeId && result.storeId && Number(result.storeId) !== Number(storeId)) {
+        setErrorMessage(
+          isIndo
+            ? "Voucher ini hanya berlaku untuk toko lain."
+            : "This voucher is only valid for another store."
+        );
+        return;
+      }
+
       const discountAmount = Math.max(0, Number(result.discount || 0));
       onApplyCoupon?.({
         code: result.code || code,
@@ -76,6 +110,8 @@ export default function StoreCartVoucherModal({
         discountType: result.discountType || "percent",
         discountValue: result.discountValue || 0,
         minSpend: result.minSpend || 0,
+        maxDiscount: result.maxDiscount || 0,
+        scopeType: "STORE",
         storeId: result.storeId || storeId,
         storeSlug: storeSlug || undefined,
       });

@@ -373,47 +373,81 @@ export default function StoreCart2026View({
                 </div>
 
                 {/* Store Voucher Row */}
-                {appliedStoreCoupons?.[group.key] ? (
-                  <div className="sc26-shopee-store-voucher is-applied">
-                    <Ticket className="w-4 h-4 text-[#fe6f05] flex-shrink-0" />
-                    <span className="sc26-shopee-voucher-code-badge">
-                      {appliedStoreCoupons[group.key].code}
-                    </span>
-                    <span className="sc26-shopee-voucher-discount-text">
-                      {isIndo
-                        ? `Hemat ${formatMoney(appliedStoreCoupons[group.key].discountAmount)}`
-                        : `Saved ${formatMoney(appliedStoreCoupons[group.key].discountAmount)}`}
-                    </span>
-                    <div className="sc26-shopee-voucher-actions ml-auto flex items-center gap-2">
-                      <button
-                        type="button"
-                        className="sc26-shopee-voucher-change-btn"
-                        onClick={() => onOpenStoreVoucher?.(group)}
-                      >
-                        {isIndo ? "Ubah" : "Change"}
-                      </button>
-                      <button
-                        type="button"
-                        className="sc26-shopee-voucher-remove-btn"
-                        onClick={() => onRemoveStoreVoucher?.(group.key)}
-                        title={isIndo ? "Hapus voucher" : "Remove voucher"}
-                        aria-label="Remove voucher"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    className="sc26-shopee-store-voucher is-action"
-                    onClick={() => onOpenStoreVoucher?.(group)}
-                  >
-                    <Ticket className="w-4 h-4 text-[#fe6f05]" />
-                    <span>{isIndo ? "Tambahkan kode Voucher Toko" : "Add Store Voucher Code"}</span>
-                    <ChevronRight className="w-4 h-4 ml-auto text-slate-400" />
-                  </button>
-                )}
+                {(() => {
+                  const storeCoupon =
+                    appliedStoreCoupons?.[group.key] ||
+                    (group.storeSlug && appliedStoreCoupons?.[`slug:${group.storeSlug}`]) ||
+                    (group.storeId && appliedStoreCoupons?.[`id:${group.storeId}`]);
+
+                  if (storeCoupon) {
+                    const groupSubtotal = group.items.reduce(
+                      (acc, it) => acc + (it.unitPrice || 0) * (it.quantity || 1),
+                      0
+                    );
+                    const discountType = String(storeCoupon.discountType || "").toLowerCase();
+                    const val = Number(storeCoupon.discountValue ?? storeCoupon.amount ?? 0);
+                    let storeSaving = 0;
+                    if (discountType === "percent" || discountType === "percentage") {
+                      storeSaving = Math.round((groupSubtotal * val) / 100);
+                      const maxDiscount = Number(storeCoupon.maxDiscount);
+                      if (Number.isFinite(maxDiscount) && maxDiscount > 0) {
+                        storeSaving = Math.min(storeSaving, maxDiscount);
+                      }
+                    } else {
+                      storeSaving = Number(
+                        storeCoupon.discountAmount ??
+                          storeCoupon.discountValue ??
+                          storeCoupon.amount ??
+                          0
+                      );
+                    }
+                    storeSaving = Math.min(groupSubtotal, Math.max(0, storeSaving));
+
+                    return (
+                      <div className="sc26-shopee-store-voucher is-applied">
+                        <Ticket className="w-4 h-4 text-[#fe6f05] flex-shrink-0" />
+                        <span className="sc26-shopee-voucher-code-badge">
+                          {storeCoupon.code}
+                        </span>
+                        <span className="sc26-shopee-voucher-discount-text">
+                          {isIndo
+                            ? `Hemat ${formatMoney(storeSaving)}`
+                            : `Saved ${formatMoney(storeSaving)}`}
+                        </span>
+                        <div className="sc26-shopee-voucher-actions ml-auto flex items-center gap-2">
+                          <button
+                            type="button"
+                            className="sc26-shopee-voucher-change-btn"
+                            onClick={() => onOpenStoreVoucher?.(group)}
+                          >
+                            {isIndo ? "Ubah" : "Change"}
+                          </button>
+                          <button
+                            type="button"
+                            className="sc26-shopee-voucher-remove-btn"
+                            onClick={() => onRemoveStoreVoucher?.(group)}
+                            title={isIndo ? "Hapus voucher" : "Remove voucher"}
+                            aria-label="Remove voucher"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <button
+                      type="button"
+                      className="sc26-shopee-store-voucher is-action"
+                      onClick={() => onOpenStoreVoucher?.(group)}
+                    >
+                      <Ticket className="w-4 h-4 text-[#fe6f05]" />
+                      <span>{isIndo ? "Tambahkan kode Voucher Toko" : "Add Store Voucher Code"}</span>
+                      <ChevronRight className="w-4 h-4 ml-auto text-slate-400" />
+                    </button>
+                  );
+                })()}
               </section>
             );
           })}

@@ -18,10 +18,10 @@ export default function StoreCartPlatformVoucherModal({
   const [isValidating, setIsValidating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Fetch active platform coupons (call without storeId to query global/platform vouchers)
+  // Fetch active platform coupons (call with scopeType: "PLATFORM")
   const { data: couponResponse, isLoading: isCouponsLoading } = useQuery({
     queryKey: ["platform-coupons"],
-    queryFn: () => fetchStoreCoupons(),
+    queryFn: () => fetchStoreCoupons({ scopeType: "PLATFORM" }),
     enabled: isOpen,
     staleTime: 30_000,
   });
@@ -73,6 +73,16 @@ export default function StoreCartPlatformVoucherModal({
               ? "Kode voucher tidak valid atau sudah kedaluwarsa."
               : "Voucher code is invalid or expired.");
         setErrorMessage(msg);
+        return;
+      }
+
+      // Check if validated coupon is a store coupon
+      if (result.scopeType === "STORE" || (result.storeId && Number(result.storeId) > 0)) {
+        setErrorMessage(
+          isIndo
+            ? "Kode ini adalah Voucher Khusus Toko. Silakan gunakan pada tombol 'Tambahkan kode Voucher Toko' di kelompok produk toko bersangkutan."
+            : "This is a Store Voucher. Please use it in the Store Voucher section for the respective store."
+        );
         return;
       }
 

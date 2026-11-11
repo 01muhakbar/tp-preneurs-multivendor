@@ -3,10 +3,15 @@ import type { StoreCoupon, StoreCouponQuoteResponse } from "./store.types.ts";
 
 export type { StoreCoupon, StoreCouponQuoteResponse } from "./store.types.ts";
 
-export const fetchStoreCoupons = async (params?: { storeId?: number; storeSlug?: string }) => {
+export const fetchStoreCoupons = async (params?: {
+  storeId?: number;
+  storeSlug?: string;
+  scopeType?: "STORE" | "PLATFORM";
+}) => {
   const query = {
     storeId: params?.storeId,
     storeSlug: params?.storeSlug,
+    scopeType: params?.scopeType,
   };
   const { data } = await api.get<{ data: StoreCoupon[] }>("/store/coupons", { params: query });
   return data;

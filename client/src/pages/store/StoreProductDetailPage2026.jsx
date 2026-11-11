@@ -784,11 +784,16 @@ export default function StoreProductDetailPage2026() {
     return reviews;
   }, [reviews, activeReviewFilter]);
 
-  /* Store & Platform Coupons Query for Real Voucher Pricing */
+  /* Store Coupons Query for Real Store Voucher Pricing */
   const storeId = product?.storeId ?? storeInfo?.storeId ?? product?.store?.id ?? null;
   const couponsQuery = useQuery({
-    queryKey: ["storefront", "coupons", storeId, storeSlug],
-    queryFn: () => fetchStoreCoupons({ storeId: storeId || undefined, storeSlug: storeSlug || undefined }),
+    queryKey: ["storefront", "coupons", storeId, storeSlug, "STORE"],
+    queryFn: () =>
+      fetchStoreCoupons({
+        storeId: storeId || undefined,
+        storeSlug: storeSlug || undefined,
+        scopeType: "STORE",
+      }),
     enabled: Boolean(storeId || storeSlug),
     staleTime: 60 * 1000,
   });
@@ -801,11 +806,15 @@ export default function StoreProductDetailPage2026() {
       if (!c || !c.code || c.published === false) return false;
       if (c.status && c.status.code !== "ACTIVE") return false;
       if (c.isPubliclyRedeemable === false) return false;
+      // MUST be a store voucher for THIS specific store, NOT a platform voucher
+      if (c.scopeType === "PLATFORM" || (!c.storeId && !c.store)) return false;
+      if (c.storeId && storeId && Number(c.storeId) !== Number(storeId)) return false;
+      if (c.store?.slug && storeSlug && c.store.slug !== storeSlug) return false;
       if (c.startsAt && new Date(c.startsAt) > now) return false;
       if (c.expiresAt && new Date(c.expiresAt) < now) return false;
       return true;
     });
-  }, [couponsQuery.data]);
+  }, [couponsQuery.data, storeId, storeSlug]);
 
   const bestVoucher = useMemo(() => {
     if (!availableCoupons.length || !price) return null;
