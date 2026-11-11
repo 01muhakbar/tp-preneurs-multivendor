@@ -232,7 +232,6 @@ export default function StoreMicrositeShell({
     <div className="store-microsite-shell min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <StoreHeaderKacha
         onCartClick={() => setIsCartDrawerOpen(true)}
-        publicIdentityOverride={identity}
         brandingLogoUrl={branding.clientLogoUrl}
       />
       <main className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">

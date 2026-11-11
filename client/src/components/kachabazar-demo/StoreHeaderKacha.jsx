@@ -269,8 +269,8 @@ export default function StoreHeaderKacha({
     }
   }, [headerCustomizationQuery.data, currentLang]);
   const headerCust = headerCustomizationQuery.data?.data || customization?.header || {};
-  const activeIdentity = publicIdentityOverride || identity || null;
-  const rawPhone = activeIdentity?.phone || headerCust.phoneNumber || storeSettings?.contact?.phone || "+62 821-8866-824";
+  // Platform Support Phone: Always use WhatsApp phone number from admin store customization (home-settings)
+  const rawPhone = headerCust.phoneNumber || storeSettings?.contact?.phone || "+62 821-8866-824";
   const displayPhone = String(rawPhone).includes("565555") || !rawPhone ? "+62 821-8866-824" : rawPhone;
   const rawHeaderText = headerCust.headerText;
   const isDummyHeader = !rawHeaderText || rawHeaderText.includes("We are available 24/7") || rawHeaderText.includes("565555");
@@ -279,7 +279,8 @@ export default function StoreHeaderKacha({
     : rawHeaderText;
   const phoneDigits = String(displayPhone).replace(/[^0-9]/g, "");
   const phoneHref = phoneDigits ? `https://wa.me/${phoneDigits}` : "https://wa.me/628218866824";
-  const displayLogoUrl = activeIdentity?.logoUrl || headerCust.headerLogoUrl || brandingLogoUrl;
+  // Platform Logo: Always use Client Logo from admin settings (or header customization logo), never individual store logo
+  const displayLogoUrl = brandingLogoUrl || headerCust.headerLogoUrl || getCachedClientLogoUrl() || CANONICAL_CLIENT_LOGO_URL;
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
