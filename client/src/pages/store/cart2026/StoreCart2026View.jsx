@@ -69,10 +69,14 @@ export default function StoreCart2026View({
   selectedCount = 0,
   selectedSubtotal = 0,
   totalStoreDiscount = 0,
+  appliedPlatformCoupon = null,
+  totalPlatformDiscount = 0,
   selectedFinalTotal = null,
   appliedStoreCoupons = {},
   onOpenStoreVoucher,
   onRemoveStoreVoucher,
+  onOpenPlatformVoucher,
+  onRemovePlatformVoucher,
   isEditMode = false,
   onToggleEditMode,
   onToggleSelect,
@@ -417,21 +421,59 @@ export default function StoreCart2026View({
 
         {/* Shopee Sticky Bottom Bar */}
         <div className="sc26-shopee-sticky-bar">
-          {/* Top row: Voucher code reminder */}
-          <div className="sc26-shopee-sticky-voucher">
-            <div className="flex items-center gap-2">
-              <Ticket className="w-4 h-4 text-[#fe6f05]" />
-              <span>{isIndo ? "Voucher Diskon Toko" : "Store Discount Voucher"}</span>
-            </div>
-            <div className="flex items-center gap-1 text-slate-400 text-xs">
-              {totalStoreDiscount > 0 ? (
-                <span className="text-[#fe6f05] font-semibold">
-                  {isIndo
-                    ? `-Hemat ${formatMoney(totalStoreDiscount)}`
-                    : `-Saved ${formatMoney(totalStoreDiscount)}`}
+          {/* Top row: Platform Voucher Bar (Global Platform / Marketplace Discount) */}
+          <div
+            className={`sc26-shopee-sticky-voucher is-interactive cursor-pointer hover:bg-slate-800/80 transition-colors ${
+              appliedPlatformCoupon ? "is-applied" : ""
+            }`}
+            onClick={onOpenPlatformVoucher}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onOpenPlatformVoucher?.();
+              }
+            }}
+            title={isIndo ? "Pilih atau masukkan Voucher Diskon Platform" : "Select or enter Platform Discount Voucher"}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <Ticket className="w-4 h-4 text-[#fe6f05] shrink-0" />
+              <span className="font-bold text-slate-200 truncate">
+                {isIndo ? "Voucher Diskon Platform" : "Platform Discount Voucher"}
+              </span>
+              {appliedPlatformCoupon && (
+                <span className="sc26-shopee-voucher-code-badge shrink-0">
+                  {appliedPlatformCoupon.code}
                 </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1 text-slate-400 text-xs shrink-0 ml-2">
+              {appliedPlatformCoupon && totalPlatformDiscount > 0 ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-[#fe6f05] font-bold">
+                    {isIndo
+                      ? `-Hemat ${formatMoney(totalPlatformDiscount)}`
+                      : `-Saved ${formatMoney(totalPlatformDiscount)}`}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemovePlatformVoucher?.();
+                    }}
+                    className="sc26-shopee-voucher-remove-btn"
+                    title={isIndo ? "Hapus voucher platform" : "Remove platform voucher"}
+                    aria-label="Remove platform voucher"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               ) : (
-                <span>{isIndo ? "Pilih voucher di toko" : "Select voucher in store"}</span>
+                <div className="flex items-center gap-1 text-slate-400 hover:text-slate-200">
+                  <span>{isIndo ? "Gunakan / masukkan kode" : "Use / enter code"}</span>
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                </div>
               )}
             </div>
           </div>
@@ -463,11 +505,11 @@ export default function StoreCart2026View({
                       {formatMoney(selectedFinalTotal ?? selectedSubtotal)}
                     </strong>
                   </div>
-                  {totalStoreDiscount > 0 && (
+                  {((totalStoreDiscount || 0) + (totalPlatformDiscount || 0)) > 0 && (
                     <span className="sc26-shopee-savings-hint">
                       {isIndo
-                        ? `Hemat ${formatMoney(totalStoreDiscount)}`
-                        : `Saved ${formatMoney(totalStoreDiscount)}`}
+                        ? `Hemat ${formatMoney((totalStoreDiscount || 0) + (totalPlatformDiscount || 0))}`
+                        : `Saved ${formatMoney((totalStoreDiscount || 0) + (totalPlatformDiscount || 0))}`}
                     </span>
                   )}
                 </div>

@@ -947,7 +947,40 @@ export default function StoreProductDetailPage2026() {
     setIsAdding(true);
     try {
       const ok = await cart.add(Number(product.id), quantity, buildSnapshot(product, selectedVariant));
-      if (ok) navigate("/cart");
+      if (ok) {
+        const isPlatform =
+          bestVoucher &&
+          (bestVoucher.scopeType === "PLATFORM" ||
+            !bestVoucher.storeId ||
+            bestVoucher.storeId === null);
+
+        const autoCouponPayload =
+          hasVoucher && bestVoucher
+            ? {
+                code: bestVoucher.code,
+                discountAmount: bestVoucher.saving,
+                discountType: bestVoucher.discountType || "percent",
+                discountValue: bestVoucher.amount || bestVoucher.discountValue || 0,
+                minSpend: Number(bestVoucher.minSpend) || 0,
+                maxDiscount: Number(bestVoucher.maxDiscount) || 0,
+                scopeType: isPlatform ? "PLATFORM" : "STORE",
+                storeId: bestVoucher.storeId || storeId,
+                storeSlug: storeSlug,
+              }
+            : null;
+
+        if (autoCouponPayload) {
+          try {
+            sessionStorage.setItem("tp_auto_coupon", JSON.stringify(autoCouponPayload));
+          } catch (_) {}
+        }
+
+        navigate("/cart", {
+          state: {
+            autoApplyCoupon: autoCouponPayload,
+          },
+        });
+      }
     } finally {
       setTimeout(() => setIsAdding(false), 400);
     }

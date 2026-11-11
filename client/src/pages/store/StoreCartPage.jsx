@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
@@ -16,6 +16,7 @@ import {
 import { GENERIC_ERROR } from "../../constants/uiMessages.js";
 import StoreCart2026View from "./cart2026/StoreCart2026View.jsx";
 import StoreCartVoucherModal from "./cart2026/StoreCartVoucherModal.jsx";
+import StoreCartPlatformVoucherModal from "./cart2026/StoreCartPlatformVoucherModal.jsx";
 import { createStoreCart2026ViewModel } from "./cart2026/storeCart2026Adapter.js";
 
 const RECOVERY_RESELECT_CODES = new Set([
@@ -112,6 +113,7 @@ export { StoreCartDrawer } from "../../components/store/StoreCartDrawer2026.jsx"
 
 export default function StoreCartPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { i18n } = useTranslation();
   const [, setLangSyncCounter] = useState(0);
 
@@ -160,6 +162,63 @@ export default function StoreCartPage() {
   const [appliedStoreCoupons, setAppliedStoreCoupons] = useState({});
   const [voucherModalStore, setVoucherModalStore] = useState(null);
   const [hydratedStores, setHydratedStores] = useState({});
+
+  // Platform Voucher State
+  const [appliedPlatformCoupon, setAppliedPlatformCoupon] = useState(null);
+  const [isPlatformVoucherModalOpen, setIsPlatformVoucherModalOpen] = useState(false);
+  const autoAppliedCouponRef = useRef(false);
+
+  // Auto-apply voucher passed from PDP "Beli dengan Voucher"
+  useEffect(() => {
+    if (autoAppliedCouponRef.current) return;
+    let couponToApply = location.state?.autoApplyCoupon;
+    if (!couponToApply) {
+      try {
+        const raw = sessionStorage.getItem("tp_auto_coupon");
+        if (raw) {
+          couponToApply = JSON.parse(raw);
+        }
+      } catch (_) {}
+    }
+
+    if (couponToApply && couponToApply.code) {
+      autoAppliedCouponRef.current = true;
+      try {
+        sessionStorage.removeItem("tp_auto_coupon");
+      } catch (_) {}
+
+      const isPlatform =
+        couponToApply.scopeType === "PLATFORM" ||
+        !couponToApply.storeId ||
+        couponToApply.storeId === null;
+
+      if (isPlatform) {
+        setAppliedPlatformCoupon(couponToApply);
+        toast.success(
+          isIndo
+            ? `Voucher Diskon Platform ${couponToApply.code} berhasil diterapkan!`
+            : `Platform Voucher ${couponToApply.code} applied!`
+        );
+      } else {
+        const storeKey = couponToApply.storeSlug
+          ? `slug:${couponToApply.storeSlug}`
+          : couponToApply.storeId
+            ? `id:${couponToApply.storeId}`
+            : null;
+        if (storeKey) {
+          setAppliedStoreCoupons((prev) => ({
+            ...prev,
+            [storeKey]: couponToApply,
+          }));
+          toast.success(
+            isIndo
+              ? `Voucher toko ${couponToApply.code} berhasil diterapkan!`
+              : `Store voucher ${couponToApply.code} applied!`
+          );
+        }
+      }
+    }
+  }, [location.state, isIndo]);
 
   // Auto-hydrate missing store info for cart items
   useEffect(() => {
@@ -378,7 +437,38 @@ export default function StoreCartPage() {
     }, 0);
   }, [appliedStoreCoupons, getStoreSelectedSubtotal]);
 
-  const selectedFinalTotal = Math.max(0, selectedSubtotal - totalStoreDiscount);
+  // Calculate total discount from applied platform coupon across all selected items
+  const totalPlatformDiscount = useMemo(() => {
+    if (!appliedPlatformCoupon) return 0;
+    if (selectedSubtotal <= 0) return 0;
+    const minSpend = Number(appliedPlatformCoupon.minSpend) || 0;
+    if (selectedSubtotal < minSpend) return 0;
+
+    const discountType = String(appliedPlatformCoupon.discountType || "").toLowerCase();
+    const val = Number(
+      appliedPlatformCoupon.discountValue ?? appliedPlatformCoupon.amount ?? 0
+    );
+
+    if (discountType === "percent" || discountType === "percentage") {
+      let d = Math.round((selectedSubtotal * val) / 100);
+      const maxDiscount = Number(appliedPlatformCoupon.maxDiscount);
+      if (Number.isFinite(maxDiscount) && maxDiscount > 0) {
+        d = Math.min(d, maxDiscount);
+      }
+      return Math.min(selectedSubtotal, d);
+    }
+
+    const amt = Number(
+      appliedPlatformCoupon.discountAmount ??
+        appliedPlatformCoupon.discountValue ??
+        appliedPlatformCoupon.amount ??
+        0
+    );
+    return Math.min(selectedSubtotal, amt);
+  }, [appliedPlatformCoupon, selectedSubtotal]);
+
+  const combinedTotalDiscount = totalStoreDiscount + totalPlatformDiscount;
+  const selectedFinalTotal = Math.max(0, selectedSubtotal - combinedTotalDiscount);
 
   const canProceedToCheckout =
     selectedItems.length > 0 &&
@@ -397,7 +487,7 @@ export default function StoreCartPage() {
       return;
     }
 
-    // Pass applied store coupons to checkout
+    // Pass applied store & platform coupons to checkout
     const groupCouponCodes = {};
     Object.values(appliedStoreCoupons).forEach((c) => {
       if (c?.storeId && c?.code) {
@@ -409,9 +499,21 @@ export default function StoreCartPage() {
       state: {
         appliedStoreCoupons,
         groupCouponCodes,
+        appliedPlatformCoupon,
+        platformCouponCode: appliedPlatformCoupon?.code || null,
+        totalPlatformDiscount,
       },
     });
-  }, [appliedStoreCoupons, canProceedToCheckout, hasCheckoutPreflightInvalidItems, isIndo, navigate, selectedItems.length]);
+  }, [
+    appliedPlatformCoupon,
+    appliedStoreCoupons,
+    canProceedToCheckout,
+    hasCheckoutPreflightInvalidItems,
+    isIndo,
+    navigate,
+    selectedItems.length,
+    totalPlatformDiscount,
+  ]);
 
   const handleReviewIssues = useCallback(() => {
     scrollToFirstCartInvalidItem('[data-cart-page-invalid-item="true"]');
@@ -423,11 +525,11 @@ export default function StoreCartPage() {
       cart: {
         ...cart,
         subtotal: selectedSubtotal,
-        discount: totalStoreDiscount,
+        discount: combinedTotalDiscount,
         estimatedTotal: selectedFinalTotal,
       },
     });
-  }, [cart, enrichedItems, selectedFinalTotal, selectedSubtotal, totalStoreDiscount]);
+  }, [cart, combinedTotalDiscount, enrichedItems, selectedFinalTotal, selectedSubtotal]);
 
   // Selection handlers
   const handleToggleSelect = useCallback((lineId) => {
@@ -541,6 +643,8 @@ export default function StoreCartPage() {
       selectedCount={selectedCount}
       selectedSubtotal={selectedSubtotal}
       totalStoreDiscount={totalStoreDiscount}
+      appliedPlatformCoupon={appliedPlatformCoupon}
+      totalPlatformDiscount={totalPlatformDiscount}
       selectedFinalTotal={selectedFinalTotal}
       appliedStoreCoupons={appliedStoreCoupons}
       onOpenStoreVoucher={(store) => setVoucherModalStore(store)}
@@ -550,6 +654,11 @@ export default function StoreCartPage() {
           delete next[storeKey];
           return next;
         });
+      }}
+      onOpenPlatformVoucher={() => setIsPlatformVoucherModalOpen(true)}
+      onRemovePlatformVoucher={() => {
+        setAppliedPlatformCoupon(null);
+        toast.success(isIndo ? "Voucher platform dilepas." : "Platform voucher removed.");
       }}
       isEditMode={isEditMode}
       onToggleEditMode={() => setIsEditMode((prev) => !prev)}
@@ -599,6 +708,16 @@ export default function StoreCartPage() {
         formatMoney={formatCurrency}
       />
     )}
+    <StoreCartPlatformVoucherModal
+      isOpen={isPlatformVoucherModalOpen}
+      onClose={() => setIsPlatformVoucherModalOpen(false)}
+      cartSubtotal={selectedSubtotal}
+      appliedCoupon={appliedPlatformCoupon}
+      onApplyCoupon={(couponData) => setAppliedPlatformCoupon(couponData)}
+      onRemoveCoupon={() => setAppliedPlatformCoupon(null)}
+      isIndo={isIndo}
+      formatMoney={formatCurrency}
+    />
     </>
   );
 }
