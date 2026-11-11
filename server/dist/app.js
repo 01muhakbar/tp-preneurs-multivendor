@@ -229,13 +229,22 @@ app.get("/payments/return", async (req, res) => {
     }
     const targetPath = orderId ? `/user/my-orders/${encodeURIComponent(orderId)}` : "/user/my-orders";
     const target = new URL(targetPath, normalizeClientBaseUrl());
-    const allowedKeys = ["merchantOrderId", "reference", "resultCode", "statusCode"];
+    const allowedKeys = [
+        "merchantOrderId",
+        "reference",
+        "resultCode",
+        "responseCode",
+        "statusCode",
+    ];
     for (const key of allowedKeys) {
         const value = req.query[key];
         const first = Array.isArray(value) ? value[0] : value;
         if (typeof first === "string" && first.trim()) {
             target.searchParams.set(key, first.trim().slice(0, 128));
         }
+    }
+    if (!target.searchParams.has("resultCode") && target.searchParams.has("responseCode")) {
+        target.searchParams.set("resultCode", target.searchParams.get("responseCode"));
     }
     target.searchParams.set("duitkuReturn", "1");
     return res.redirect(302, target.toString());

@@ -16,6 +16,106 @@ import {
   getSplitOperationalStatusSummary,
 } from "../../utils/splitOperationalTruth.ts";
 
+export const DUITKU_PAYMENT_METHODS = [
+  // QRIS
+  {
+    code: "SP",
+    label: "QRIS ShopeePay",
+    category: "qris",
+    categoryLabel: "QRIS (Instan Semua Bank & E-Wallet)",
+    badge: "Instan",
+    desc: "Scan via BCA, Mandiri, BRI, BNI, GoPay, OVO, Dana, ShopeePay",
+  },
+  {
+    code: "NQ",
+    label: "QRIS Nobu",
+    category: "qris",
+    categoryLabel: "QRIS (Instan Semua Bank & E-Wallet)",
+    desc: "Scan QRIS via mobile banking atau e-wallet apa saja",
+  },
+  {
+    code: "GQ",
+    label: "QRIS Gudang Voucher",
+    category: "qris",
+    categoryLabel: "QRIS (Instan Semua Bank & E-Wallet)",
+    desc: "Pembayaran instan QRIS multi-channel",
+  },
+  // Virtual Account
+  {
+    code: "BC",
+    label: "BCA Virtual Account",
+    category: "va",
+    categoryLabel: "Virtual Account (Verifikasi Otomatis 24 Jam)",
+    badge: "Otomatis",
+    desc: "BCA Mobile, myBCA, KlikBCA, ATM BCA",
+  },
+  {
+    code: "I1",
+    label: "BNI Virtual Account",
+    category: "va",
+    categoryLabel: "Virtual Account (Verifikasi Otomatis 24 Jam)",
+    desc: "BNI Mobile Banking, Internet Banking, ATM BNI",
+  },
+  {
+    code: "BR",
+    label: "BRI Virtual Account",
+    category: "va",
+    categoryLabel: "Virtual Account (Verifikasi Otomatis 24 Jam)",
+    desc: "BRImo, Internet Banking BRI, ATM BRI",
+  },
+  {
+    code: "M2",
+    label: "Mandiri Virtual Account",
+    category: "va",
+    categoryLabel: "Virtual Account (Verifikasi Otomatis 24 Jam)",
+    desc: "Livin' by Mandiri, ATM Mandiri, Mandiri Internet",
+  },
+  {
+    code: "BT",
+    label: "Permata Virtual Account",
+    category: "va",
+    categoryLabel: "Virtual Account (Verifikasi Otomatis 24 Jam)",
+    desc: "PermataMobile X, ATM Permata, ATM Bersama",
+  },
+  {
+    code: "B1",
+    label: "CIMB Niaga Virtual Account",
+    category: "va",
+    categoryLabel: "Virtual Account (Verifikasi Otomatis 24 Jam)",
+    desc: "OCTO Mobile, OCTO Clicks, ATM CIMB Niaga",
+  },
+  {
+    code: "BV",
+    label: "BSI Virtual Account",
+    category: "va",
+    categoryLabel: "Virtual Account (Verifikasi Otomatis 24 Jam)",
+    desc: "BSI Mobile, BSI Net Banking, ATM BSI",
+  },
+  // E-Wallet
+  {
+    code: "DA",
+    label: "DANA",
+    category: "ewallet",
+    categoryLabel: "E-Wallet",
+    desc: "Pembayaran langsung via aplikasi DANA",
+  },
+  {
+    code: "OV",
+    label: "OVO",
+    category: "ewallet",
+    categoryLabel: "E-Wallet",
+    desc: "Push notification pembayaran ke aplikasi OVO",
+  },
+  // Retail
+  {
+    code: "IR",
+    label: "Indomaret",
+    category: "retail",
+    categoryLabel: "Gerai Retail",
+    desc: "Bayar tunai di kasir gerai Indomaret seluruh Indonesia",
+  },
+];
+
 const asObject = (value) =>
   value && typeof value === "object" && !Array.isArray(value) ? value : {};
 

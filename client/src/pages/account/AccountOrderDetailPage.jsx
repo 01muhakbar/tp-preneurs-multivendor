@@ -229,20 +229,27 @@ export default function AccountOrderDetailPage() {
     }
   };
 
-  const handlePayNow = async () => {
+  const handlePayNow = async (newMethodCode = null) => {
     if (!id || isPaying) return;
-    const directUrl =
-      orderDetail2026?.actionability?.payment?.url ||
-      orderDetail?.paymentUrl ||
-      paymentReadModel?.paymentUrl;
-    if (directUrl && /^https?:\/\//i.test(directUrl)) {
-      window.location.href = directUrl;
-      return;
+
+    // If no new method is specified, use directUrl if already available
+    if (!newMethodCode) {
+      const directUrl =
+        orderDetail2026?.actionability?.payment?.url ||
+        orderDetail?.paymentUrl ||
+        paymentReadModel?.paymentUrl;
+      if (directUrl && /^https?:\/\//i.test(directUrl)) {
+        window.location.href = directUrl;
+        return;
+      }
     }
 
     setIsPaying(true);
     try {
-      const { data } = await api.post(`/store/orders/my/${id}/pay`);
+      const payload = newMethodCode
+        ? { paymentMethod: newMethodCode, forceNew: true }
+        : {};
+      const { data } = await api.post(`/store/orders/my/${id}/pay`, payload);
       if (data?.paymentUrl && /^https?:\/\//i.test(data.paymentUrl)) {
         window.location.href = data.paymentUrl;
       } else {

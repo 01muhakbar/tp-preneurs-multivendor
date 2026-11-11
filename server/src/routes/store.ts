@@ -67,7 +67,11 @@ import {
   resolveBuyerFacingPaymentStatus,
 } from "../services/paymentCheckoutView.service.js";
 import { buildGroupedPaymentReadModel } from "../services/groupedPaymentReadModel.service.js";
-import { resolveDuitkuPaymentMethodDisplay } from "../services/duitku/duitkuPaymentMethodDisplay.service.js";
+import {
+  resolveDuitkuPaymentMethodDisplay,
+  getDuitkuPaymentMethodLabel,
+} from "../services/duitku/duitkuPaymentMethodDisplay.service.js";
+import { normalizeDuitkuPaymentMethodCode } from "../services/duitku/duitkuPaymentMethods.service.js";
 import {
   buildBuyerOrderContract,
   buildFulfillmentStatusMeta,
@@ -2790,26 +2794,34 @@ router.post(
         });
       }
 
-      // Find existing active payment attempt
-      let activeAttempt = null;
-      try {
-        activeAttempt = await OrderPaymentAttempt.findOne({
-          where: {
-            orderId,
-            status: { [Op.in]: ["CREATED", "PENDING"] },
-            paymentUrl: { [Op.ne]: null },
-          },
-          order: [["id", "DESC"]],
-        });
-      } catch (e) {
-        // Graceful
-      }
+      const requestedPaymentMethod = typeof req.body?.paymentMethod === "string" && req.body.paymentMethod.trim()
+        ? normalizeDuitkuPaymentMethodCode(req.body.paymentMethod)
+        : null;
+      const forceNew = Boolean(req.body?.forceNew || requestedPaymentMethod);
 
-      if (activeAttempt && (activeAttempt as any).paymentUrl) {
-        return res.json({
-          success: true,
-          paymentUrl: (activeAttempt as any).paymentUrl,
-        });
+      // Find existing active payment attempt if NOT forcing a new session or changing payment method
+      if (!forceNew) {
+        let activeAttempt = null;
+        try {
+          activeAttempt = await OrderPaymentAttempt.findOne({
+            where: {
+              orderId,
+              status: { [Op.in]: ["CREATED", "PENDING"] },
+              paymentUrl: { [Op.ne]: null },
+            },
+            order: [["id", "DESC"]],
+          });
+        } catch (e) {
+          // Graceful
+        }
+
+        if (activeAttempt && (activeAttempt as any).paymentUrl) {
+          return res.json({
+            success: true,
+            paymentUrl: (activeAttempt as any).paymentUrl,
+            paymentMethod: (order as any).paymentMethod,
+          });
+        }
       }
 
       // Create new Duitku invoice session
@@ -2823,33 +2835,60 @@ router.post(
 
       const user = await User.findByPk(userId, { attributes: ["id", "name", "email", "phone"] });
       const customerEmail = String((user as any)?.email || "customer@tppreneurs.com").trim();
-      const invoiceNo = String((order as any).invoiceNo || `ORDER-${orderId}`);
+      const baseInvoiceNo = String((order as any).invoiceNo || `ORDER-${orderId}`);
       const orderExpiryMinutes = resolveOrderExpiryMinutes();
+
+      // Determine effective payment method code
+      const effectivePaymentCode =
+        requestedPaymentMethod ||
+        normalizeDuitkuPaymentMethodCode((order as any).paymentMethod) ||
+        "SP";
+
+      // If user selected a new method, update Order record with friendly label
+      const friendlyLabel = getDuitkuPaymentMethodLabel(effectivePaymentCode);
+      const updatedOrderPaymentMethod = friendlyLabel
+        ? `Duitku - ${friendlyLabel}`
+        : (requestedPaymentMethod || (order as any).paymentMethod || "DUITKU");
+
+      if (requestedPaymentMethod) {
+        try {
+          await Order.update(
+            { paymentMethod: updatedOrderPaymentMethod },
+            { where: { id: orderId } }
+          );
+        } catch (updateErr) {
+          console.warn("[store/orders/my/:id/pay] Failed to update order.paymentMethod", updateErr);
+        }
+      }
+
+      // Unique merchantOrderId for this payment session attempt (max 50 chars)
+      const attemptSuffix = `-${effectivePaymentCode}-${Date.now().toString().slice(-4)}`;
+      const attemptMerchantOrderId =
+        baseInvoiceNo.length + attemptSuffix.length > 50
+          ? `${baseInvoiceNo.slice(0, 50 - attemptSuffix.length)}${attemptSuffix}`
+          : `${baseInvoiceNo}${attemptSuffix}`;
 
       const returnUrlWithOrderId = (() => {
         try {
           const u = new URL(duitkuConfig.returnUrl);
           u.searchParams.set("orderId", String(orderId));
-          u.searchParams.set("merchantOrderId", invoiceNo);
+          u.searchParams.set("merchantOrderId", attemptMerchantOrderId);
           return u.toString();
         } catch {
           const sep = duitkuConfig.returnUrl.includes("?") ? "&" : "?";
-          return `${duitkuConfig.returnUrl}${sep}orderId=${orderId}&merchantOrderId=${encodeURIComponent(invoiceNo)}`;
+          return `${duitkuConfig.returnUrl}${sep}orderId=${orderId}&merchantOrderId=${encodeURIComponent(attemptMerchantOrderId)}`;
         }
       })();
 
       const requestBody = buildDuitkuCreateInvoiceRequest(
         {
           paymentAmount: Math.floor(Number((order as any).totalAmount || 0)),
-          merchantOrderId: invoiceNo,
-          productDetails: `Payment for Order ${invoiceNo}`,
+          merchantOrderId: attemptMerchantOrderId,
+          productDetails: `Payment for Order ${baseInvoiceNo}`,
           email: customerEmail,
           customerVaName: String((order as any).customerName || (user as any)?.name || "Customer").slice(0, 20),
           phoneNumber: (order as any).customerPhone || (user as any)?.phone || undefined,
-          paymentMethod:
-            (order as any).paymentMethod && (order as any).paymentMethod !== "COD"
-              ? (order as any).paymentMethod
-              : undefined,
+          paymentMethod: effectivePaymentCode,
           expiryPeriod: orderExpiryMinutes,
         },
         {
@@ -2882,7 +2921,7 @@ router.post(
           await persistDuitkuCreateInvoiceAttempt({
             orderId,
             createdByUserId: userId,
-            merchantOrderId: invoiceNo,
+            merchantOrderId: attemptMerchantOrderId,
             idempotencyKey: `pay-retry-${orderId}-${Date.now()}`,
             request: requestBody,
             response: normalized,
@@ -2895,6 +2934,8 @@ router.post(
         return res.json({
           success: true,
           paymentUrl: normalized.paymentUrl,
+          reference: normalized.reference,
+          paymentMethod: updatedOrderPaymentMethod,
         });
       }
 

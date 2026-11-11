@@ -9,6 +9,7 @@ import {
   ChevronUp,
   Clock,
   Copy,
+  CreditCard,
   FileText,
   Headphones,
   HelpCircle,
@@ -16,12 +17,14 @@ import {
   MapPin,
   MessageCircle,
   Package,
+  QrCode,
   RotateCcw,
   ShieldCheck,
   ShoppingBag,
   Sparkles,
   Star,
   Truck,
+  Wallet,
   X,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
@@ -31,7 +34,11 @@ import { fetchStoreProducts } from "../../api/storeProducts.ts";
 import { getStorePublicIdentityBySlug } from "../../api/storePublicIdentity.ts";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
 import { formatCurrency } from "../../utils/format.js";
-import { buildStoreWhatsAppUrl, isIndonesianLanguage } from "./accountOrderDetail2026Adapter.js";
+import {
+  buildStoreWhatsAppUrl,
+  isIndonesianLanguage,
+  DUITKU_PAYMENT_METHODS,
+} from "./accountOrderDetail2026Adapter.js";
 import { buildAccountOrderInvoiceModel } from "./invoice/accountOrderInvoiceAdapter.js";
 import AccountOrderInvoicePrint from "./invoice/AccountOrderInvoicePrint.jsx";
 import { useCart } from "../../hooks/useCart.ts";
@@ -107,6 +114,12 @@ const DETAIL_I18N = {
     btnViewDetails: "View Order Details",
     btnContinueShopping: "Continue Shopping",
     paymentReference: "Payment Reference",
+    changePaymentMethod: "Change Payment Method",
+    changeMethod: "Change Method",
+    selectPaymentMethodTitle: "Select Payment Method",
+    selectPaymentMethodDesc: "Choose one of the official payment channels provided by Duitku to complete your payment.",
+    confirmAndPay: "Confirm & Pay Now",
+    currentPaymentMethod: "Current Method:",
   },
   id: {
     title: "Rincian Pesanan",
@@ -177,6 +190,12 @@ const DETAIL_I18N = {
     btnViewDetails: "Lihat Rincian Pesanan",
     btnContinueShopping: "Lanjut Belanja",
     paymentReference: "Referensi Pembayaran",
+    changePaymentMethod: "Ubah Metode Pembayaran",
+    changeMethod: "Ubah Metode",
+    selectPaymentMethodTitle: "Pilih Metode Pembayaran Duitku",
+    selectPaymentMethodDesc: "Pilih salah satu metode pembayaran resmi yang disediakan oleh Duitku untuk menyelesaikan pesanan Anda.",
+    confirmAndPay: "Konfirmasi & Bayar Sekarang",
+    currentPaymentMethod: "Metode Saat Ini:",
   },
 };
 
@@ -318,6 +337,8 @@ export default function AccountOrderDetail2026View({
   const [isAddressExpanded, setIsAddressExpanded] = useState(false);
   const [isBuyingAgain, setIsBuyingAgain] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showChangePaymentModal, setShowChangePaymentModal] = useState(false);
+  const [selectedPaymentCode, setSelectedPaymentCode] = useState("SP");
 
   const { add: addToCart } = useCart();
 
@@ -702,7 +723,20 @@ export default function AccountOrderDetail2026View({
 
           <div className="tp-shopee-detail__meta-row">
             <span className="tp-shopee-detail__meta-label">{t.paymentMethod}</span>
-            <span className="tp-shopee-detail__meta-val">{orderMeta.paymentMethod}</span>
+            <div className="tp-shopee-detail__meta-val-wrap">
+              <span className="tp-shopee-detail__meta-val">{orderMeta.paymentMethod}</span>
+              {banner.isUnpaid && (
+                <button
+                  type="button"
+                  className="tp-shopee-detail__change-payment-btn"
+                  onClick={() => setShowChangePaymentModal(true)}
+                  title={t.changePaymentMethod}
+                >
+                  <CreditCard size={13} />
+                  <span>{t.changeMethod}</span>
+                </button>
+              )}
+            </div>
           </div>
 
           {orderMeta.sellerNote && (
@@ -838,6 +872,18 @@ export default function AccountOrderDetail2026View({
               ) : (
                 <span>{t.cancelOrder}</span>
               )}
+            </button>
+          )}
+
+          {banner.isUnpaid && (
+            <button
+              type="button"
+              onClick={() => setShowChangePaymentModal(true)}
+              className="tp-shopee-detail__btn-outline tp-shopee-detail__btn-outline--change"
+              title={t.changePaymentMethod}
+            >
+              <CreditCard size={14} />
+              <span>{t.changeMethod}</span>
             </button>
           )}
 
@@ -1127,6 +1173,169 @@ export default function AccountOrderDetail2026View({
                   <span>{t.btnContinueShopping}</span>
                 </Link>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showChangePaymentModal && (
+        <div
+          className="tp-change-payment-modal-backdrop"
+          onClick={() => setShowChangePaymentModal(false)}
+        >
+          <div
+            className="tp-change-payment-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="tp-change-payment-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="tp-change-payment-modal__header">
+              <div className="tp-change-payment-modal__header-left">
+                <div className="tp-change-payment-modal__icon-badge">
+                  <CreditCard size={20} className="tp-change-payment-modal__header-icon" />
+                </div>
+                <div>
+                  <h3 id="tp-change-payment-title" className="tp-change-payment-modal__title">
+                    {t.selectPaymentMethodTitle}
+                  </h3>
+                  <p className="tp-change-payment-modal__subtitle">
+                    {t.selectPaymentMethodDesc}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="tp-change-payment-modal__close-btn"
+                onClick={() => setShowChangePaymentModal(false)}
+                aria-label="Tutup"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Current Method notice */}
+            <div className="tp-change-payment-modal__current-notice">
+              <span className="tp-change-payment-modal__current-label">{t.currentPaymentMethod}</span>
+              <strong className="tp-change-payment-modal__current-val">{orderMeta.paymentMethod}</strong>
+            </div>
+
+            {/* Body: Channels grouped by Category */}
+            <div className="tp-change-payment-modal__body">
+              {(() => {
+                const categories = [
+                  {
+                    id: "qris",
+                    title: isIndo ? "QRIS (Semua E-Wallet & Mobile Banking)" : "QRIS (All E-Wallets & Mobile Banking)",
+                    icon: <QrCode size={16} />,
+                  },
+                  {
+                    id: "va",
+                    title: isIndo ? "Virtual Account (Transfer Otomatis 24 Jam)" : "Virtual Account (Automatic Bank Transfer)",
+                    icon: <CreditCard size={16} />,
+                  },
+                  {
+                    id: "ewallet",
+                    title: isIndo ? "E-Wallet" : "E-Wallet",
+                    icon: <Wallet size={16} />,
+                  },
+                  {
+                    id: "retail",
+                    title: isIndo ? "Gerai Retail" : "Retail Store",
+                    icon: <ShoppingBag size={16} />,
+                  },
+                ];
+
+                return categories.map((cat) => {
+                  const methods = DUITKU_PAYMENT_METHODS.filter((m) => m.category === cat.id);
+                  if (!methods.length) return null;
+
+                  return (
+                    <div key={cat.id} className="tp-change-payment-modal__group">
+                      <div className="tp-change-payment-modal__group-title">
+                        {cat.icon}
+                        <span>{cat.title}</span>
+                      </div>
+                      <div className="tp-change-payment-modal__group-grid">
+                        {methods.map((m) => {
+                          const isSelected = selectedPaymentCode === m.code;
+                          return (
+                            <div
+                              key={m.code}
+                              className={`tp-change-payment-modal__method-card ${
+                                isSelected ? "tp-change-payment-modal__method-card--selected" : ""
+                              }`}
+                              onClick={() => setSelectedPaymentCode(m.code)}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  setSelectedPaymentCode(m.code);
+                                }
+                              }}
+                            >
+                              <div className="tp-change-payment-modal__radio-wrap">
+                                <div
+                                  className={`tp-change-payment-modal__radio ${
+                                    isSelected ? "tp-change-payment-modal__radio--checked" : ""
+                                  }`}
+                                />
+                              </div>
+                              <div className="tp-change-payment-modal__method-info">
+                                <div className="tp-change-payment-modal__method-top">
+                                  <span className="tp-change-payment-modal__method-label">{m.label}</span>
+                                  {m.badge && (
+                                    <span className="tp-change-payment-modal__method-badge">{m.badge}</span>
+                                  )}
+                                </div>
+                                <span className="tp-change-payment-modal__method-desc">{m.desc}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+
+            {/* Footer / Actions */}
+            <div className="tp-change-payment-modal__actions">
+              <button
+                type="button"
+                className="tp-change-payment-modal__btn-cancel"
+                onClick={() => setShowChangePaymentModal(false)}
+                disabled={isPaying}
+              >
+                {t.cancelModalBack}
+              </button>
+              <button
+                type="button"
+                className="tp-change-payment-modal__btn-confirm"
+                disabled={isPaying || !selectedPaymentCode}
+                onClick={async () => {
+                  if (!selectedPaymentCode) return;
+                  setShowChangePaymentModal(false);
+                  if (onPayNow) {
+                    await onPayNow(selectedPaymentCode);
+                  }
+                }}
+              >
+                {isPaying ? (
+                  <>
+                    <Loader2 size={16} className="tp-spin" />
+                    <span>{t.paying}</span>
+                  </>
+                ) : (
+                  <>
+                    <CreditCard size={16} />
+                    <span>{t.confirmAndPay}</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
