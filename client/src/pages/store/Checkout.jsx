@@ -13,7 +13,7 @@ import {
 } from "../../api/public/storeCheckout.ts";
 import { quoteStoreCoupon } from "../../api/public/storeCoupons.ts";
 import { getStoreCustomization } from "../../api/public/storeCustomizationPublic.ts";
-import { getDefaultAddress, listAddresses, createAddress } from "../../api/userAddresses.ts";
+import { getDefaultAddress, listAddresses, createAddress, updateAddress } from "../../api/userAddresses.ts";
 import { formatCurrency } from "../../utils/format.js";
 import {
   findInvalidVariantCheckoutItem,
@@ -2307,6 +2307,15 @@ export default function CheckoutPage() {
     return newAddr;
   };
 
+  const handleUpdateAddress = async (id, payload) => {
+    const updated = await updateAddress(id, payload);
+    await queryClient.invalidateQueries({ queryKey: ["user-addresses"] });
+    if (selectedAddressId && Number(selectedAddressId) === Number(id)) {
+      applyAddressToCheckoutForm(updated || payload);
+    }
+    return updated;
+  };
+
   const handleSellerNoteChange = (storeKey, note) => {
     setSellerNotes((prev) => ({
       ...prev,
@@ -2902,6 +2911,7 @@ export default function CheckoutPage() {
       selectedAddressId={selectedAddressId}
       onSelectAddress={handleSelectAddress}
       onSaveNewAddress={handleSaveNewAddress}
+      onUpdateAddress={handleUpdateAddress}
       sellerNotes={sellerNotes}
       onSellerNoteChange={handleSellerNoteChange}
       appliedPlatformCoupon={appliedPlatformCoupon}

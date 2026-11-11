@@ -53,6 +53,7 @@ export default function Checkout2026View({
   selectedAddressId = null,
   onSelectAddress,
   onSaveNewAddress,
+  onUpdateAddress,
   sellerNotes = {},
   onSellerNoteChange,
   appliedPlatformCoupon = null,
@@ -718,6 +719,7 @@ export default function Checkout2026View({
         selectedAddressId={selectedAddressId}
         onSelectAddress={onSelectAddress}
         onSaveNewAddress={onSaveNewAddress}
+        onUpdateAddress={onUpdateAddress}
         isIndo={isIndo}
       />
 

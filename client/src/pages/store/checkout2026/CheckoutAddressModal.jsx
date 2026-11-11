@@ -205,12 +205,14 @@ export default function CheckoutAddressModal({
   selectedAddressId = null,
   onSelectAddress,
   onSaveNewAddress,
+  onUpdateAddress,
   isIndo = true,
 }) {
   const [isAddingNew, setIsAddingNew] = useState(false);
+  const [editingAddress, setEditingAddress] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // New address form state
+  // Form state
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [province, setProvince] = useState("");
@@ -221,6 +223,8 @@ export default function CheckoutAddressModal({
   const [houseNumber, setHouseNumber] = useState("");
   const [building, setBuilding] = useState("");
   const [otherDetails, setOtherDetails] = useState("");
+  const [markAs, setMarkAs] = useState("HOME");
+  const [isPrimary, setIsPrimary] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   const provinceOptions = getProvinceOptions();
@@ -229,9 +233,60 @@ export default function CheckoutAddressModal({
 
   if (!isOpen) return null;
 
+  const isFormOpen = isAddingNew || Boolean(editingAddress);
+  const formTitle = editingAddress
+    ? isIndo
+      ? "Ubah Alamat"
+      : "Edit Address"
+    : isIndo
+      ? "Tambah Alamat Baru"
+      : "Add New Address";
+
   const handleSelect = (addr) => {
     onSelectAddress?.(addr);
     onClose();
+  };
+
+  const handleStartNew = () => {
+    setEditingAddress(null);
+    setIsAddingNew(true);
+    setFullName("");
+    setPhoneNumber("");
+    setProvince("");
+    setCity("");
+    setDistrict("");
+    setPostalCode("");
+    setStreetName("");
+    setHouseNumber("");
+    setBuilding("");
+    setOtherDetails("");
+    setMarkAs("HOME");
+    setIsPrimary(addresses.length === 0);
+    setErrorMessage("");
+  };
+
+  const handleStartEdit = (addr) => {
+    setIsAddingNew(false);
+    setEditingAddress(addr);
+    setFullName(addr.fullName || "");
+    setPhoneNumber(addr.phoneNumber || "");
+    setProvince(addr.province || "");
+    setCity(addr.city || "");
+    setDistrict(addr.district || "");
+    setPostalCode(addr.postalCode || "");
+    setStreetName(addr.streetName || "");
+    setHouseNumber(addr.houseNumber || "");
+    setBuilding(addr.building || "");
+    setOtherDetails(addr.otherDetails || "");
+    setMarkAs(addr.markAs || "HOME");
+    setIsPrimary(Boolean(addr.isPrimary));
+    setErrorMessage("");
+  };
+
+  const handleCloseForm = () => {
+    setIsAddingNew(false);
+    setEditingAddress(null);
+    setErrorMessage("");
   };
 
   const handleSave = async (e) => {
@@ -258,41 +313,36 @@ export default function CheckoutAddressModal({
     setIsSaving(true);
     setErrorMessage("");
 
-    try {
-      await onSaveNewAddress?.({
-        fullName: fullName.trim(),
-        phoneNumber: phoneNumber.trim(),
-        province,
-        city,
-        district,
-        postalCode: resolvedPostal,
-        streetName: streetName.trim(),
-        houseNumber: houseNumber.trim() || "-",
-        building: building.trim() || null,
-        otherDetails: otherDetails.trim() || null,
-        markAs: "HOME",
-        isPrimary: addresses.length === 0,
-        isStore: false,
-        isReturn: false,
-      });
+    const payload = {
+      fullName: fullName.trim(),
+      phoneNumber: phoneNumber.trim(),
+      province,
+      city,
+      district,
+      postalCode: resolvedPostal,
+      streetName: streetName.trim(),
+      houseNumber: houseNumber.trim() || "-",
+      building: building.trim() || null,
+      otherDetails: otherDetails.trim() || null,
+      markAs,
+      isPrimary: Boolean(isPrimary),
+      isStore: false,
+      isReturn: false,
+    };
 
-      toast.success(isIndo ? "Alamat baru berhasil ditambahkan." : "New address added.");
-      setIsAddingNew(false);
-      // Reset form
-      setFullName("");
-      setPhoneNumber("");
-      setProvince("");
-      setCity("");
-      setDistrict("");
-      setPostalCode("");
-      setStreetName("");
-      setHouseNumber("");
-      setBuilding("");
-      setOtherDetails("");
+    try {
+      if (editingAddress) {
+        await onUpdateAddress?.(editingAddress.id, payload);
+        toast.success(isIndo ? "Alamat berhasil diperbarui." : "Address updated successfully.");
+      } else {
+        await onSaveNewAddress?.(payload);
+        toast.success(isIndo ? "Alamat baru berhasil ditambahkan." : "New address added.");
+      }
+      handleCloseForm();
     } catch (err) {
       setErrorMessage(
         err?.response?.data?.message ||
-          (isIndo ? "Gagal menyimpan alamat baru." : "Failed to save address.")
+          (isIndo ? "Gagal menyimpan alamat." : "Failed to save address.")
       );
     } finally {
       setIsSaving(false);
@@ -310,21 +360,19 @@ export default function CheckoutAddressModal({
         {/* Header */}
         <div className="co26-modal-header">
           <div className="flex items-center gap-2">
-            {isAddingNew && (
+            {isFormOpen && (
               <button
                 type="button"
                 className="co26-modal-back-btn"
-                onClick={() => setIsAddingNew(false)}
+                onClick={handleCloseForm}
                 aria-label="Back"
               >
                 <ChevronLeft size={20} />
               </button>
             )}
             <h3 className="co26-modal-title">
-              {isAddingNew
-                ? isIndo
-                  ? "Tambah Alamat Baru"
-                  : "Add New Address"
+              {isFormOpen
+                ? formTitle
                 : isIndo
                   ? "Pilih Alamat"
                   : "Select Delivery Address"}
@@ -342,7 +390,7 @@ export default function CheckoutAddressModal({
 
         {/* Body */}
         <div className="co26-modal-body">
-          {!isAddingNew ? (
+          {!isFormOpen ? (
             <div className="space-y-3">
               {addresses.length === 0 ? (
                 <div className="co26-modal-empty">
@@ -355,7 +403,7 @@ export default function CheckoutAddressModal({
                   <button
                     type="button"
                     className="co26-btn-add-address mt-3"
-                    onClick={() => setIsAddingNew(true)}
+                    onClick={handleStartNew}
                   >
                     <Plus size={16} />
                     <span>{isIndo ? "Tambah Alamat Baru" : "Add New Address"}</span>
@@ -395,32 +443,45 @@ export default function CheckoutAddressModal({
                           </div>
 
                           <div className="co26-address-info">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <strong className="text-slate-100 font-bold text-sm">
-                                {addr.fullName}
-                              </strong>
-                              <span className="text-slate-400 text-xs">
-                                ({addr.phoneNumber})
-                              </span>
-                              {addr.isPrimary && (
-                                <span className="co26-badge-default">
-                                  {isIndo ? "Utama" : "Default"}
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <strong className="text-slate-100 font-bold text-sm">
+                                  {addr.fullName}
+                                </strong>
+                                <span className="text-slate-400 text-xs">
+                                  ({addr.phoneNumber})
                                 </span>
-                              )}
-                              {addr.markAs && (
-                                <span className="co26-badge-type">
-                                  {addr.markAs === "HOME"
-                                    ? isIndo
-                                      ? "Rumah"
-                                      : "Home"
-                                    : isIndo
-                                      ? "Kantor"
-                                      : "Office"}
-                                </span>
-                              )}
+                                {addr.isPrimary && (
+                                  <span className="co26-badge-default">
+                                    {isIndo ? "Utama" : "Default"}
+                                  </span>
+                                )}
+                                {addr.markAs && (
+                                  <span className="co26-badge-type">
+                                    {addr.markAs === "HOME"
+                                      ? isIndo
+                                        ? "Rumah"
+                                        : "Home"
+                                      : isIndo
+                                        ? "Kantor"
+                                        : "Office"}
+                                  </span>
+                                )}
+                              </div>
+
+                              <button
+                                type="button"
+                                className="co26-address-btn-edit"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStartEdit(addr);
+                                }}
+                              >
+                                {isIndo ? "Ubah" : "Edit"}
+                              </button>
                             </div>
 
-                            <p className="co26-address-text mt-1">
+                            <p className="co26-address-text mt-1.5">
                               {fullAddrString}
                             </p>
                           </div>
@@ -432,7 +493,7 @@ export default function CheckoutAddressModal({
                   <button
                     type="button"
                     className="co26-btn-add-address w-full mt-3"
-                    onClick={() => setIsAddingNew(true)}
+                    onClick={handleStartNew}
                   >
                     <Plus size={16} />
                     <span>{isIndo ? "Tambah Alamat Baru" : "Add New Address"}</span>
@@ -441,7 +502,7 @@ export default function CheckoutAddressModal({
               )}
             </div>
           ) : (
-            /* Add New Address Form */
+            /* Add / Edit Address Form */
             <form onSubmit={handleSave} className="space-y-3.5">
               {errorMessage && (
                 <div className="co26-modal-error">{errorMessage}</div>
@@ -562,11 +623,52 @@ export default function CheckoutAddressModal({
                 </div>
               </div>
 
+              {/* Label Rumah/Kantor & Jadikan Utama */}
+              <div className="flex items-center justify-between gap-3 flex-wrap pt-1 border-t border-slate-700/50">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-300 font-medium">
+                    {isIndo ? "Label Alamat:" : "Address Label:"}
+                  </span>
+                  <button
+                    type="button"
+                    className={`px-3 py-1 text-xs rounded-md border transition ${
+                      markAs === "HOME"
+                        ? "border-[#fe6f05] bg-[#fe6f05]/15 text-[#fe6f05] font-bold"
+                        : "border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-200"
+                    }`}
+                    onClick={() => setMarkAs("HOME")}
+                  >
+                    {isIndo ? "Rumah" : "Home"}
+                  </button>
+                  <button
+                    type="button"
+                    className={`px-3 py-1 text-xs rounded-md border transition ${
+                      markAs === "OFFICE"
+                        ? "border-[#fe6f05] bg-[#fe6f05]/15 text-[#fe6f05] font-bold"
+                        : "border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-200"
+                    }`}
+                    onClick={() => setMarkAs("OFFICE")}
+                  >
+                    {isIndo ? "Kantor" : "Office"}
+                  </button>
+                </div>
+
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300 select-none">
+                  <input
+                    type="checkbox"
+                    checked={isPrimary}
+                    onChange={(e) => setIsPrimary(e.target.checked)}
+                    className="rounded border-slate-700 text-[#fe6f05] focus:ring-[#fe6f05]"
+                  />
+                  <span>{isIndo ? "Atur sebagai Alamat Utama" : "Set as Default Address"}</span>
+                </label>
+              </div>
+
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
                   className="co26-btn-secondary"
-                  onClick={() => setIsAddingNew(false)}
+                  onClick={handleCloseForm}
                   disabled={isSaving}
                 >
                   {isIndo ? "Batal" : "Cancel"}
@@ -578,10 +680,10 @@ export default function CheckoutAddressModal({
                 >
                   {isSaving ? (
                     <Loader2 className="animate-spin" size={16} />
-                  ) : isIndo ? (
-                    "Simpan Alamat"
+                  ) : editingAddress ? (
+                    isIndo ? "Simpan Perubahan" : "Save Changes"
                   ) : (
-                    "Save Address"
+                    isIndo ? "Simpan Alamat" : "Save Address"
                   )}
                 </button>
               </div>

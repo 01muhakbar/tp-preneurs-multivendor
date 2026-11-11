@@ -2254,6 +2254,25 @@
   border-radius: 4px;
 }
 
+.co26-address-btn-edit {
+  background: transparent;
+  border: none;
+  color: #fe6f05;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.co26-address-btn-edit:hover {
+  background-color: rgba(254, 111, 5, 0.15);
+  color: #ff8522;
+  text-decoration: underline;
+}
+
 .co26-btn-add-address {
   display: flex;
   align-items: center;
