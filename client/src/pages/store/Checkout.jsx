@@ -13,7 +13,7 @@ import {
 } from "../../api/public/storeCheckout.ts";
 import { quoteStoreCoupon } from "../../api/public/storeCoupons.ts";
 import { getStoreCustomization } from "../../api/public/storeCustomizationPublic.ts";
-import { getDefaultAddress } from "../../api/userAddresses.ts";
+import { getDefaultAddress, listAddresses, createAddress } from "../../api/userAddresses.ts";
 import { formatCurrency } from "../../utils/format.js";
 import {
   findInvalidVariantCheckoutItem,
@@ -1338,16 +1338,51 @@ export default function CheckoutPage() {
   const [addressStatus, setAddressStatus] = useState("");
   const [paymentOptionId, setPaymentOptionId] = useState(PAYMENT_OPTIONS[0].id);
   const [duitkuPaymentMethod, setDuitkuPaymentMethod] = useState(DEFAULT_DUITKU_PAYMENT_METHOD);
-  const [couponCode, setCouponCode] = useState("");
+  const [couponCode, setCouponCode] = useState(
+    () => location.state?.platformCouponCode || ""
+  );
+  const [appliedPlatformCoupon, setAppliedPlatformCoupon] = useState(
+    () => location.state?.appliedPlatformCoupon || null
+  );
+  const [totalPlatformDiscount, setTotalPlatformDiscount] = useState(
+    () => location.state?.totalPlatformDiscount || 0
+  );
+  const [appliedStoreCoupons, setAppliedStoreCoupons] = useState(
+    () => location.state?.appliedStoreCoupons || {}
+  );
   const [couponMessage, setCouponMessage] = useState("");
   const [couponStatus, setCouponStatus] = useState("idle");
   const [appliedCouponMeta, setAppliedCouponMeta] = useState(null);
   const [couponBaseline, setCouponBaseline] = useState(null);
-  const [discount, setDiscount] = useState(0);
+  const [discount, setDiscount] = useState(
+    () => location.state?.totalPlatformDiscount || 0
+  );
   const [groupCouponCodes, setGroupCouponCodes] = useState(
     () => location.state?.groupCouponCodes || {}
   );
-  const [groupCouponStates, setGroupCouponStates] = useState({});
+  const [groupCouponStates, setGroupCouponStates] = useState(() => {
+    const initial = {};
+    if (location.state?.appliedStoreCoupons) {
+      Object.entries(location.state.appliedStoreCoupons).forEach(([storeKey, c]) => {
+        if (c && c.code) {
+          const idKey = String(c.storeId || storeKey.replace(/^id:/, ""));
+          initial[idKey] = {
+            status: "applied",
+            message: "Voucher toko diterapkan",
+            appliedMeta: {
+              code: c.code,
+              discount: c.discountAmount || 0,
+              ...c,
+            },
+            baseline: null,
+          };
+        }
+      });
+    }
+    return initial;
+  });
+  const [sellerNotes, setSellerNotes] = useState({});
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentRedirectUrl, setPaymentRedirectUrl] = useState("");
   const [error, setError] = useState("");
@@ -1714,7 +1749,9 @@ export default function CheckoutPage() {
     checkoutPreviewGroups
   );
   const couponBlocksSubmission =
-    checkoutMode === "MULTI_STORE" && Boolean(appliedCouponMeta?.code);
+    checkoutMode === "MULTI_STORE" &&
+    Boolean(appliedCouponMeta?.code) &&
+    !appliedPlatformCoupon;
   const hasGroupCouponLoading = checkoutPreviewGroups.some((group) => {
     const storeKey = String(group.storeId);
     return groupCouponStates?.[storeKey]?.status === "loading";
@@ -2173,12 +2210,13 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (!appliedCouponMeta?.code) return;
+    if (appliedPlatformCoupon) return;
     if (checkoutMode !== "MULTI_STORE") return;
     clearAppliedCoupon(
       "Cart now spans multiple stores. Use the coupon field inside each store group.",
       "idle"
     );
-  }, [appliedCouponMeta, checkoutMode]);
+  }, [appliedCouponMeta, appliedPlatformCoupon, checkoutMode]);
 
   useEffect(() => {
     if (checkoutMode === "MULTI_STORE") return;
@@ -2234,6 +2272,156 @@ export default function CheckoutPage() {
       return changed ? next : prev;
     });
   }, [checkoutPreviewGroups, groupCouponStates]);
+
+  const addressesQuery = useQuery({
+    queryKey: ["user-addresses"],
+    queryFn: () => listAddresses(),
+    enabled: Boolean(user?.id || hasCheckoutAuthHint),
+    staleTime: 60_000,
+  });
+  const savedAddresses = Array.isArray(addressesQuery.data) ? addressesQuery.data : [];
+
+  useEffect(() => {
+    if (savedAddresses.length > 0 && !selectedAddressId) {
+      const defaultAddr = savedAddresses.find((a) => a.isPrimary) || savedAddresses[0];
+      if (defaultAddr) {
+        setSelectedAddressId(defaultAddr.id);
+        applyAddressToCheckoutForm(defaultAddr);
+      }
+    }
+  }, [savedAddresses, selectedAddressId]);
+
+  const handleSelectAddress = (addr) => {
+    if (!addr) return;
+    setSelectedAddressId(addr.id);
+    applyAddressToCheckoutForm(addr);
+  };
+
+  const handleSaveNewAddress = async (payload) => {
+    const newAddr = await createAddress(payload);
+    await queryClient.invalidateQueries({ queryKey: ["user-addresses"] });
+    if (newAddr?.id) {
+      setSelectedAddressId(newAddr.id);
+      applyAddressToCheckoutForm(newAddr);
+    }
+    return newAddr;
+  };
+
+  const handleSellerNoteChange = (storeKey, note) => {
+    setSellerNotes((prev) => ({
+      ...prev,
+      [String(storeKey)]: note,
+    }));
+  };
+
+  const handleApplyPlatformCoupon = (couponData) => {
+    if (!couponData) return;
+    const discountType = String(couponData.discountType || "").toLowerCase();
+    const val = Number(couponData.discountValue ?? couponData.amount ?? 0);
+    let calculated = 0;
+    if (discountType === "percent" || discountType === "percentage") {
+      calculated = Math.round((subtotalValue * val) / 100);
+      const maxDiscount = Number(couponData.maxDiscount);
+      if (Number.isFinite(maxDiscount) && maxDiscount > 0) {
+        calculated = Math.min(calculated, maxDiscount);
+      }
+    } else {
+      calculated = Number(couponData.discountAmount ?? couponData.discountValue ?? couponData.amount ?? 0);
+    }
+    calculated = Math.min(subtotalValue, Math.max(0, calculated));
+
+    setAppliedPlatformCoupon(couponData);
+    setTotalPlatformDiscount(calculated);
+    setCouponCode(couponData.code);
+    setDiscount(calculated);
+    setAppliedCouponMeta(couponData);
+    setCouponStatus("applied");
+    setCouponMessage("Voucher diskon platform diterapkan");
+  };
+
+  const handleRemovePlatformCoupon = () => {
+    setAppliedPlatformCoupon(null);
+    setTotalPlatformDiscount(0);
+    setCouponCode("");
+    setDiscount(0);
+    setAppliedCouponMeta(null);
+    setCouponStatus("idle");
+    setCouponMessage("");
+  };
+
+  const handleApplyStoreCouponModal = (store, couponData) => {
+    if (!store || !couponData) return;
+    const storeKey = String(store.storeId || store.key);
+    const storeItems = store.items || [];
+    const storeSubtotal = storeItems.reduce(
+      (acc, it) => acc + (it.unitPrice || it.price || 0) * (it.quantity || it.qty || 1),
+      0
+    );
+
+    const discountType = String(couponData.discountType || "").toLowerCase();
+    const val = Number(couponData.discountValue ?? couponData.amount ?? 0);
+    let discountAmount = 0;
+    if (discountType === "percent" || discountType === "percentage") {
+      discountAmount = Math.round((storeSubtotal * val) / 100);
+      const maxDiscount = Number(couponData.maxDiscount);
+      if (Number.isFinite(maxDiscount) && maxDiscount > 0) {
+        discountAmount = Math.min(discountAmount, maxDiscount);
+      }
+    } else {
+      discountAmount = Number(couponData.discountAmount ?? couponData.discountValue ?? couponData.amount ?? 0);
+    }
+    discountAmount = Math.min(storeSubtotal, Math.max(0, discountAmount));
+
+    const enrichedCoupon = {
+      ...couponData,
+      storeId: store.storeId,
+      discountAmount,
+    };
+
+    setAppliedStoreCoupons((prev) => ({
+      ...prev,
+      [storeKey]: enrichedCoupon,
+      ...(store.key ? { [store.key]: enrichedCoupon } : {}),
+      ...(store.storeSlug ? { [`slug:${store.storeSlug}`]: enrichedCoupon } : {}),
+      ...(store.storeId ? { [`id:${store.storeId}`]: enrichedCoupon } : {}),
+    }));
+    setGroupCouponCodes((prev) => ({
+      ...prev,
+      [storeKey]: couponData.code,
+    }));
+    setGroupCouponStates((prev) => ({
+      ...prev,
+      [storeKey]: {
+        status: "applied",
+        message: "Voucher toko diterapkan",
+        appliedMeta: {
+          code: couponData.code,
+          discount: discountAmount,
+          ...enrichedCoupon,
+        },
+        baseline: null,
+      },
+    }));
+  };
+
+  const handleRemoveStoreCouponModal = (store) => {
+    if (!store) return;
+    const storeKey = String(store.storeId || store.key);
+    setAppliedStoreCoupons((prev) => {
+      const next = { ...prev };
+      delete next[storeKey];
+      if (store.key) delete next[store.key];
+      if (store.storeSlug) delete next[`slug:${store.storeSlug}`];
+      if (store.storeId) delete next[`id:${store.storeId}`];
+      return next;
+    });
+    setGroupCouponCodes((prev) => {
+      const next = { ...prev };
+      delete next[storeKey];
+      return next;
+    });
+    clearGroupCoupon(storeKey, "", "idle", "");
+  };
 
   const handleQtyDecrement = (item) => {
     const currentQty = Math.max(1, Number(item.qty ?? 1));
@@ -2457,15 +2645,30 @@ export default function CheckoutPage() {
     submitLockRef.current = true;
     setIsSubmitting(true);
     try {
+      const customerNotes = Object.entries(sellerNotes)
+        .filter(([_, note]) => note && typeof note === "string" && note.trim())
+        .map(([sId, note]) => `[Toko ${sId}]: ${note.trim()}`)
+        .join("; ");
+
       const submitPayload = {
-        customer: parsedCustomer.data,
-        couponCode: appliedCouponMeta?.code || undefined,
+        customer: {
+          ...parsedCustomer.data,
+          notes: customerNotes || parsedCustomer.data.notes || undefined,
+        },
+        couponCode: appliedPlatformCoupon?.code || appliedCouponMeta?.code || undefined,
         groupCoupons:
           checkoutMode === "MULTI_STORE"
-            ? appliedGroupCoupons.map((entry) => ({
-                storeId: Number(entry.storeId),
-                couponCode: String(entry.couponCode),
-              }))
+            ? (appliedGroupCoupons.length > 0
+                ? appliedGroupCoupons.map((entry) => ({
+                    storeId: Number(entry.storeId),
+                    couponCode: String(entry.couponCode),
+                  }))
+                : Object.values(appliedStoreCoupons)
+                    .filter((c) => c?.storeId && c?.code)
+                    .map((c) => ({
+                      storeId: Number(c.storeId),
+                      couponCode: String(c.code),
+                    })))
             : undefined,
         useDefaultShipping,
         shippingDetails: useDefaultShipping ? undefined : shippingDetailsPayload,
@@ -2695,6 +2898,19 @@ export default function CheckoutPage() {
         onGroupRemove: handleRemoveGroupCoupon,
       }}
       formatMoney={formatCurrency}
+      savedAddresses={savedAddresses}
+      selectedAddressId={selectedAddressId}
+      onSelectAddress={handleSelectAddress}
+      onSaveNewAddress={handleSaveNewAddress}
+      sellerNotes={sellerNotes}
+      onSellerNoteChange={handleSellerNoteChange}
+      appliedPlatformCoupon={appliedPlatformCoupon}
+      totalPlatformDiscount={totalPlatformDiscount}
+      onApplyPlatformCoupon={handleApplyPlatformCoupon}
+      onRemovePlatformCoupon={handleRemovePlatformCoupon}
+      appliedStoreCoupons={appliedStoreCoupons}
+      onApplyStoreCoupon={handleApplyStoreCouponModal}
+      onRemoveStoreCoupon={handleRemoveStoreCouponModal}
       onFieldChange={(field, value) => {
         if (field === "firstName") setFirstName(value);
         if (field === "lastName") setLastName(value);
