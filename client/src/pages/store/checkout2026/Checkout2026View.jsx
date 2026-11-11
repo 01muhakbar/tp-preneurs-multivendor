@@ -23,6 +23,7 @@ import {
 import CheckoutAddressModal from "./CheckoutAddressModal.jsx";
 import StoreCartVoucherModal from "../cart2026/StoreCartVoucherModal.jsx";
 import StoreCartPlatformVoucherModal from "../cart2026/StoreCartPlatformVoucherModal.jsx";
+import CheckoutPaymentRedirectScreen from "./CheckoutPaymentRedirectScreen.jsx";
 import "./checkout2026.css";
 
 const DUITKU_CHANNEL_BRANDS = {
@@ -316,16 +317,15 @@ export default function Checkout2026View({
 
   if (status?.redirectUrl) {
     return (
-      <main className="co26-page">
-        <div className="co26-empty">
-          <Loader2 className="animate-spin text-[#fe6f05] mb-2" size={36} />
-          <h1 className="text-xl font-black text-slate-100">{T.orderCreated}</h1>
-          <p className="text-sm text-slate-400 mt-1">{T.openingPayment}</p>
-          <a className="co26-btn-primary mt-4 inline-flex items-center gap-2" href={status.redirectUrl}>
-            <span>{T.continueToPayment}</span>
-          </a>
-        </div>
-      </main>
+      <CheckoutPaymentRedirectScreen
+        redirectUrl={status.redirectUrl}
+        orderInfo={status.createdOrder}
+        grandTotal={grandTotal}
+        formatMoney={formatMoney}
+        isIndo={isIndo}
+        duitkuMethod={form?.duitkuPaymentMethod}
+        duitkuMethods={form?.duitkuPaymentMethods}
+      />
     );
   }
 

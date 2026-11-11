@@ -1,1 +1,0 @@
-import{x as i,a as o,j as e,R as n}from"./index-BmmnYR8R.js";function r(){const a=i(),t=o(),s={pathname:`/admin/store/applications/${a.applicationId||a.id||""}`,search:t.search,hash:t.hash};return e.jsx(n,{to:s,replace:!0})}export{r as default};

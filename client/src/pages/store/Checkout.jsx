@@ -1434,6 +1434,7 @@ export default function CheckoutPage() {
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentRedirectUrl, setPaymentRedirectUrl] = useState("");
+  const [createdOrderInfo, setCreatedOrderInfo] = useState(null);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({
     firstName: "",
@@ -2810,6 +2811,14 @@ export default function CheckoutPage() {
       }
       const fallbackPaymentUrl = `/user/my-orders/${resolvedOrderId}/payment?${paymentParams.toString()}`;
       const nextPaymentUrl = result?.paymentUrl ? result.paymentUrl : fallbackPaymentUrl;
+      const orderInfo = {
+        orderId: resolvedOrderId,
+        orderRef: resolvedOrderRef || resolvedOrderId,
+        amount: Number(result?.amount || result?.total || total || 0),
+        paymentMethod: duitkuPaymentMethod,
+        paymentUrl: nextPaymentUrl,
+      };
+      setCreatedOrderInfo(orderInfo);
       setPaymentRedirectUrl(nextPaymentUrl);
       clearCheckoutRequestKeyForSignature(checkoutRequestSignature);
       clearCart();
@@ -2819,7 +2828,6 @@ export default function CheckoutPage() {
           queryKey: ["account", "orders", "my"],
         })
         .catch(() => {});
-      window.location.href = nextPaymentUrl;
     } catch (err) {
       const data = err?.response?.data;
       const serverMessage =
@@ -2933,6 +2941,7 @@ export default function CheckoutPage() {
         status={{
           loading: showCheckoutSkeleton,
           redirectUrl: paymentRedirectUrl,
+          createdOrder: createdOrderInfo,
           hasItems,
           submitting: isSubmitting,
           cartSyncing: isRemoteSyncing,
