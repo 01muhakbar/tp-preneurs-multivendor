@@ -298,18 +298,58 @@ export const normalizeStoreOrderTrackingFor2026 = ({ tracking, isIndo = false, i
   const updatedDate = order.updatedAt ? new Date(order.updatedAt) : createdDate;
   const paidDate = order.paidAt ? new Date(order.paidAt) : updatedDate;
 
-  const isDelivered = /DELIVERED|COMPLETE/.test(statusCode) || /DELIVERED|COMPLETE/.test(shippingCode);
-  const isShipped = isDelivered || /SHIPPED|IN_TRANSIT|SHIPPING/.test(statusCode) || /SHIPPED|IN_TRANSIT/.test(shippingCode);
-  const isOutForDelivery = /OUT_FOR_DELIVERY|DELIVERING/.test(statusCode) || /OUT_FOR_DELIVERY|DELIVERING/.test(shippingCode);
-  const isPaid = isPaymentSuccessReturn || /PAID|SETTLED/.test(paymentCode) || /PROCESSING|SHIPPED|DELIVERED/.test(statusCode);
-  const isPacked = (isPaymentSuccessReturn && !isDelivered && !isShipped) || isShipped || /PROCESSING|READY/.test(statusCode) || /PROCESSING|READY/.test(shippingCode);
+  const isCancelled =
+    /CANCELLED|CANCELED|FAILED|EXPIRED/.test(statusCode) ||
+    /CANCELLED|FAILED|EXPIRED/.test(paymentCode);
+
+  const isUnpaid =
+    !isPaymentSuccessReturn &&
+    !isCancelled &&
+    (/UNPAID|PENDING|AWAITING_PAYMENT|ACTION_REQUIRED/.test(paymentCode) ||
+      /AWAITING_PAYMENT|UNPAID|PENDING/.test(statusCode));
+
+  const isPaid =
+    isPaymentSuccessReturn ||
+    (!isUnpaid &&
+      !isCancelled &&
+      (/PAID|SETTLED/.test(paymentCode) ||
+        (/PROCESSING|SHIPPED|DELIVERED/.test(statusCode) &&
+          !/UNPAID|PENDING|AWAITING_PAYMENT/.test(paymentCode))));
+
+  const isDelivered =
+    !isUnpaid &&
+    !isCancelled &&
+    (/DELIVERED|COMPLETE/.test(statusCode) || /DELIVERED|COMPLETE/.test(shippingCode));
+
+  const isShipped =
+    !isUnpaid &&
+    !isCancelled &&
+    (isDelivered ||
+      /SHIPPED|IN_TRANSIT|SHIPPING/.test(statusCode) ||
+      /SHIPPED|IN_TRANSIT/.test(shippingCode));
+
+  const isOutForDelivery =
+    !isUnpaid &&
+    !isCancelled &&
+    (/OUT_FOR_DELIVERY|DELIVERING/.test(statusCode) ||
+      /OUT_FOR_DELIVERY|DELIVERING/.test(shippingCode));
+
+  const isPacked =
+    !isUnpaid &&
+    !isCancelled &&
+    ((isPaymentSuccessReturn && !isDelivered && !isShipped) ||
+      isShipped ||
+      /PROCESSING|READY/.test(statusCode) ||
+      /PROCESSING|READY/.test(shippingCode));
 
   // Active step calculation for the 3 steps:
   // 0: Sedang Dikirim (In Transit)
   // 1: Menuju Alamatmu (Out for delivery)
   // 2: Pesanan Tiba (Delivered)
   let activeStepIndex = 0;
-  if (isDelivered) {
+  if (isUnpaid || isCancelled) {
+    activeStepIndex = -1;
+  } else if (isDelivered) {
     activeStepIndex = 2;
   } else if (isOutForDelivery) {
     activeStepIndex = 1;
@@ -324,7 +364,15 @@ export const normalizeStoreOrderTrackingFor2026 = ({ tracking, isIndo = false, i
 
   const estimatedDeliveryLabel = formatDayMonth(isDelivered ? updatedDate : estDate, isIndo);
 
-  const statusHeadline = isDelivered
+  const statusHeadline = isCancelled
+    ? isIndo
+      ? "Pesanan telah dibatalkan"
+      : "Order has been cancelled"
+    : isUnpaid
+    ? isIndo
+      ? "Menunggu pembayaran dari pembeli"
+      : "Awaiting payment from customer"
+    : isDelivered
     ? isIndo
       ? `Pesanan telah tiba pada ${estimatedDeliveryLabel}`
       : `Order delivered on ${estimatedDeliveryLabel}`
@@ -356,7 +404,43 @@ export const normalizeStoreOrderTrackingFor2026 = ({ tracking, isIndo = false, i
 
   // Build REAL timeline events (synchronized with seller & admin)
   let timeline = [];
-  if (primaryShipment?.timeline && primaryShipment.timeline.length > 0) {
+  if (isCancelled) {
+    timeline = [
+      {
+        id: "milestone-cancelled",
+        dateLabel: formatTimelineDate(updatedDate || createdDate, isIndo),
+        label: isIndo ? "Pesanan Dibatalkan" : "Order Cancelled",
+        description: isIndo ? "Pesanan ini telah dibatalkan." : "This order has been cancelled.",
+        isLatest: true,
+      },
+      {
+        id: "milestone-created",
+        dateLabel: formatTimelineDate(createdDate, isIndo),
+        label: isIndo ? "Pesanan Dibuat" : "Order Placed",
+        description: isIndo ? "Pesanan berhasil dibuat oleh pembeli." : "Order placed by customer.",
+        isLatest: false,
+      },
+    ];
+  } else if (isUnpaid) {
+    timeline = [
+      {
+        id: "milestone-awaiting-payment",
+        dateLabel: formatTimelineDate(updatedDate || createdDate, isIndo),
+        label: isIndo ? "Menunggu Pembayaran" : "Awaiting Payment",
+        description: isIndo
+          ? "Silakan selesaikan pembayaran sebelum batas waktu agar pesanan dapat diproses oleh penjual."
+          : "Please complete payment before timeout so your order can be processed by the seller.",
+        isLatest: true,
+      },
+      {
+        id: "milestone-created",
+        dateLabel: formatTimelineDate(createdDate, isIndo),
+        label: isIndo ? "Pesanan Dibuat" : "Order Placed",
+        description: isIndo ? "Pesanan berhasil dibuat oleh pembeli." : "Order placed by customer.",
+        isLatest: false,
+      },
+    ];
+  } else if (primaryShipment?.timeline && primaryShipment.timeline.length > 0) {
     // If explicit tracking events were entered into the database:
     timeline = primaryShipment.timeline.map((ev, idx) => ({
       id: ev.id || `ev-${idx}`,
@@ -383,7 +467,9 @@ export const normalizeStoreOrderTrackingFor2026 = ({ tracking, isIndo = false, i
         id: "milestone-paid",
         date: paidDate,
         label: isIndo ? "Pembayaran Terverifikasi" : "Payment Confirmed",
-        description: isIndo ? "Pembayaran berhasil diverifikasi dan pesanan diteruskan ke penjual." : "Payment verified and order forwarded to store.",
+        description: isIndo
+          ? "Pembayaran berhasil diverifikasi dan pesanan diteruskan ke penjual."
+          : "Payment verified and order forwarded to store.",
       });
     }
 
@@ -393,7 +479,9 @@ export const normalizeStoreOrderTrackingFor2026 = ({ tracking, isIndo = false, i
         id: "milestone-packed",
         date: updatedDate,
         label: isIndo ? "Pesanan Dikemas" : "Order Packed",
-        description: isIndo ? "Penjual telah mengemas pesanan dan menyiapkan pengiriman." : "Seller packed order and prepared shipment.",
+        description: isIndo
+          ? "Penjual telah mengemas pesanan dan menyiapkan pengiriman."
+          : "Seller packed order and prepared shipment.",
       });
     }
 
@@ -419,7 +507,9 @@ export const normalizeStoreOrderTrackingFor2026 = ({ tracking, isIndo = false, i
         id: "milestone-delivered",
         date: updatedDate,
         label: isIndo ? "Pesanan Tiba di Alamat Tujuan" : "Delivered to Destination",
-        description: isIndo ? "Pesanan telah berhasil diterima di alamat pemesan." : "Package delivered successfully to recipient address.",
+        description: isIndo
+          ? "Pesanan telah berhasil diterima di alamat pemesan."
+          : "Package delivered successfully to recipient address.",
       });
     }
 
@@ -436,6 +526,8 @@ export const normalizeStoreOrderTrackingFor2026 = ({ tracking, isIndo = false, i
   }
 
   const getStatusTitle = () => {
+    if (isCancelled) return isIndo ? "Pesanan Dibatalkan" : "Order Cancelled";
+    if (isUnpaid) return isIndo ? "Menunggu Pembayaran" : "Awaiting Payment";
     if (activeStepIndex === 2) return isIndo ? "Pesanan Tiba" : "Order Arrived";
     if (activeStepIndex === 1) return isIndo ? "Menuju Alamatmu" : "Out for Delivery";
     return isIndo ? "Sedang Dikirim" : "In Transit";

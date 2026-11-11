@@ -26,12 +26,20 @@ const shouldPollGroupedOrder = (groupedOrder) => {
 const shouldPollOrderDetail = (order) => {
   if (!order || typeof order !== "object") return false;
   const status = String(order.status || "").toUpperCase();
+  const paymentStatus = String(order.paymentStatus || "").toUpperCase();
   if (["DELIVERED", "COMPLETED", "CANCELLED", "FAILED", "EXPIRED"].includes(status)) {
     return false;
   }
-  // While order is in progress (UNPAID, PENDING, PROCESSING, READY_TO_FULFILL, SHIPPED, IN_TRANSIT, OUT_FOR_DELIVERY),
-  // poll every 10 seconds so that packing, shipping, and courier tracking updates sync in real-time!
-  return 10000;
+  // While order is awaiting payment (UNPAID, PENDING, AWAITING_PAYMENT),
+  // poll every 6 seconds so that payment and tracking status updates sync in real-time!
+  if (
+    ["UNPAID", "PENDING", "AWAITING_PAYMENT"].includes(paymentStatus) ||
+    ["UNPAID", "PENDING", "AWAITING_PAYMENT"].includes(status)
+  ) {
+    return 6000;
+  }
+  // While in fulfillment (PROCESSING, READY_TO_FULFILL, SHIPPED, IN_TRANSIT, OUT_FOR_DELIVERY), poll every 8 seconds
+  return 8000;
 };
 
 export default function AccountOrderDetailPage() {
@@ -85,7 +93,7 @@ export default function AccountOrderDetailPage() {
     refetchIntervalInBackground: false,
     refetchInterval: (query) => {
       const groupedOrder = query.state.data?.data ?? null;
-      return shouldPollGroupedOrder(groupedOrder) ? 10000 : false;
+      return shouldPollGroupedOrder(groupedOrder) ? 8000 : false;
     },
   });
 

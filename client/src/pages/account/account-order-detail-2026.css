@@ -206,15 +206,50 @@
   line-height: 1;
 }
 
+.tp-shopee-detail__shipping-bullet--unpaid {
+  color: #fe6f05;
+}
+
+.tp-shopee-detail__shipping-bullet--active,
 .tp-shopee-detail__shipping-bullet--delivered {
-  color: var(--tp-success);
+  color: #10b981;
+}
+
+.tp-shopee-detail__shipping-bullet--cancelled {
+  color: #ef4444;
 }
 
 .tp-shopee-detail__shipping-status-label {
   font-size: 0.88rem;
-  color: var(--tp-success);
+  color: #10b981;
   font-weight: 700;
   margin: 0 0 2px 0;
+}
+
+.tp-shopee-detail__shipping-status-label--unpaid {
+  color: #ea580c;
+}
+
+.dark .tp-shopee-detail__shipping-status-label--unpaid {
+  color: #fb923c;
+}
+
+.tp-shopee-detail__shipping-status-label--active,
+.tp-shopee-detail__shipping-status-label--delivered {
+  color: #10b981;
+}
+
+.dark .tp-shopee-detail__shipping-status-label--active,
+.dark .tp-shopee-detail__shipping-status-label--delivered {
+  color: #34d399;
+}
+
+.tp-shopee-detail__shipping-status-label--cancelled {
+  color: #ef4444;
+}
+
+.dark .tp-shopee-detail__shipping-status-label--cancelled {
+  color: #f87171;
 }
 
 .tp-shopee-detail__shipping-status-desc {

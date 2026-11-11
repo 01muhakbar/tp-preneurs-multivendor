@@ -514,22 +514,27 @@ export default function AccountOrderDetail2026View({
 
         {/* 2. Info Pengiriman */}
         <section
-          className="tp-shopee-detail__card tp-shopee-detail__card--shipping"
+          className={`tp-shopee-detail__card tp-shopee-detail__card--shipping ${
+            shippingInfo.isUnpaid ? "tp-shopee-detail__card--shipping-unpaid" : ""
+          }`}
           onClick={() => {
+            if (shippingInfo.isUnpaid || shippingInfo.isCancelled) return;
             if (onTrack && orderDetail?.actionability?.track) {
               onTrack(orderDetail.actionability.track);
             } else if (onTimeline) {
               onTimeline();
             }
           }}
-          style={{ cursor: "pointer" }}
+          style={{ cursor: shippingInfo.isUnpaid || shippingInfo.isCancelled ? "default" : "pointer" }}
         >
           <div className="tp-shopee-detail__card-header-link">
             <div className="tp-shopee-detail__card-heading">
               <Truck size={17} className="tp-shopee-detail__icon-primary" />
               <h3 className="tp-shopee-detail__card-title">{t.shippingInfo}</h3>
             </div>
-            <ChevronRight size={16} className="tp-shopee-detail__chevron" />
+            {!(shippingInfo.isUnpaid || shippingInfo.isCancelled) && (
+              <ChevronRight size={16} className="tp-shopee-detail__chevron" />
+            )}
           </div>
 
           <div className="tp-shopee-detail__shipping-courier">
@@ -539,17 +544,37 @@ export default function AccountOrderDetail2026View({
           <div className="tp-shopee-detail__shipping-status-row">
             <span
               className={`tp-shopee-detail__shipping-bullet ${
-                shippingInfo.isDelivered ? "tp-shopee-detail__shipping-bullet--delivered" : ""
+                shippingInfo.isDelivered
+                  ? "tp-shopee-detail__shipping-bullet--delivered"
+                  : shippingInfo.isUnpaid
+                    ? "tp-shopee-detail__shipping-bullet--unpaid"
+                    : shippingInfo.isCancelled
+                      ? "tp-shopee-detail__shipping-bullet--cancelled"
+                      : "tp-shopee-detail__shipping-bullet--active"
               }`}
             >
               ●
             </span>
             <div className="tp-shopee-detail__shipping-status-content">
-              <p className="tp-shopee-detail__shipping-status-label">{shippingInfo.statusText}</p>
+              <p
+                className={`tp-shopee-detail__shipping-status-label ${
+                  shippingInfo.isUnpaid
+                    ? "tp-shopee-detail__shipping-status-label--unpaid"
+                    : shippingInfo.isCancelled
+                      ? "tp-shopee-detail__shipping-status-label--cancelled"
+                      : shippingInfo.isDelivered
+                        ? "tp-shopee-detail__shipping-status-label--delivered"
+                        : "tp-shopee-detail__shipping-status-label--active"
+                }`}
+              >
+                {shippingInfo.statusText}
+              </p>
               {shippingInfo.description && (
                 <p className="tp-shopee-detail__shipping-status-desc">{shippingInfo.description}</p>
               )}
-              <time className="tp-shopee-detail__shipping-status-time">{shippingInfo.timestamp}</time>
+              {shippingInfo.timestamp && shippingInfo.timestamp !== "-" && (
+                <time className="tp-shopee-detail__shipping-status-time">{shippingInfo.timestamp}</time>
+              )}
             </div>
           </div>
         </section>

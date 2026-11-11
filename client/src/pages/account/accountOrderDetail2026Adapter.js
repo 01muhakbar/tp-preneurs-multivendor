@@ -935,6 +935,19 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false, is
     paymentStatus.code === "FAILED" ||
     paymentStatus.code === "EXPIRED";
 
+  const isPaid =
+    isPaymentSuccessReturn ||
+    (!isUnpaid &&
+      !isCancelled &&
+      (paymentStatus.code === "PAID" ||
+        paymentStatus.code === "SETTLED" ||
+        orderStatus.code === "PAID" ||
+        orderStatus.code === "PROCESSING" ||
+        orderStatus.code === "READY_TO_FULFILL" ||
+        orderStatus.code === "SHIPPED" ||
+        orderStatus.code === "DELIVERED" ||
+        orderStatus.code === "COMPLETED"));
+
   const bannerTone = isDelivered
     ? "success"
     : isShipping || isPacking
@@ -996,35 +1009,47 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false, is
     text(source.courierName) ||
     (isIndo ? "Kurir Standar" : "Standard Courier");
 
-  const trackingNumberDisplay =
-    tracking2026?.trackingNumberDisplay ||
-    (tracking2026?.hasRealTrackingNumber
-      ? tracking2026.trackingNumber
-      : primaryShipment?.trackingNumber || (isIndo ? "Menunggu nomor resi dari penjual" : "Awaiting tracking number from seller"));
+  const trackingNumberDisplay = isUnpaid
+    ? (isIndo ? "Menunggu penyelesaian pembayaran" : "Awaiting payment completion")
+    : isCancelled
+      ? (isIndo ? "Pesanan dibatalkan" : "Order cancelled")
+      : (tracking2026?.trackingNumberDisplay ||
+          (tracking2026?.hasRealTrackingNumber
+            ? tracking2026.trackingNumber
+            : primaryShipment?.trackingNumber ||
+              (isIndo ? "Menunggu nomor resi dari penjual" : "Awaiting tracking number from seller")));
 
-  const shippingStatusText =
-    latestTrackingEvent?.label ||
-    (isDelivered
-      ? isIndo ? "Pesanan Tiba di Alamat Tujuan" : "Delivered to Destination"
-      : isShipping
-        ? isIndo ? "Paket Diserahkan ke Kurir" : "Handed Over to Courier"
-        : isPacking
-          ? isIndo ? "Pesanan Dikemas" : "Order Packed"
-          : isPaid
-            ? isIndo ? "Pembayaran Terverifikasi" : "Payment Confirmed"
-            : isIndo ? "Pesanan Dibuat" : "Order Placed");
+  const shippingStatusText = isUnpaid
+    ? (isIndo ? "Menunggu Pembayaran" : "Awaiting Payment")
+    : isCancelled
+      ? (isIndo ? "Pesanan Dibatalkan" : "Order Cancelled")
+      : (latestTrackingEvent?.label ||
+          (isDelivered
+            ? isIndo ? "Pesanan Tiba di Alamat Tujuan" : "Delivered to Destination"
+            : isShipping
+              ? isIndo ? "Paket Diserahkan ke Kurir" : "Handed Over to Courier"
+              : isPacking
+                ? isIndo ? "Pesanan Dikemas" : "Order Packed"
+                : isPaid
+                  ? isIndo ? "Pembayaran Terverifikasi" : "Payment Confirmed"
+                  : isIndo ? "Pesanan Dibuat" : "Order Placed"));
 
-  const shippingStatusDesc =
-    latestTrackingEvent?.description ||
-    (isDelivered
-      ? isIndo ? "Pesanan telah berhasil diterima di alamat pemesan." : "Package delivered successfully to recipient address."
-      : isShipping
-        ? isIndo ? "Paket sedang dalam perjalanan bersama kurir pengiriman." : "Package is in transit with delivery courier."
-        : isPacking
-          ? isIndo ? "Penjual telah mengemas pesanan dan menyiapkan pengiriman." : "Seller packed order and prepared shipment."
-          : isPaid
-            ? isIndo ? "Pembayaran berhasil diverifikasi dan pesanan diteruskan ke penjual." : "Payment verified and order forwarded to store."
-            : isIndo ? "Pesanan berhasil dibuat oleh pembeli." : "Order placed by customer.");
+  const shippingStatusDesc = isUnpaid
+    ? (isIndo
+        ? "Silakan selesaikan pembayaran sebelum batas waktu agar pesanan dapat diproses oleh penjual."
+        : "Please complete payment before timeout so your order can be processed by the seller.")
+    : isCancelled
+      ? (isIndo ? "Pesanan ini telah dibatalkan." : "This order has been cancelled.")
+      : (latestTrackingEvent?.description ||
+          (isDelivered
+            ? isIndo ? "Pesanan telah berhasil diterima di alamat pemesan." : "Package delivered successfully to recipient address."
+            : isShipping
+              ? isIndo ? "Paket sedang dalam perjalanan bersama kurir pengiriman." : "Package is in transit with delivery courier."
+              : isPacking
+                ? isIndo ? "Penjual telah mengemas pesanan dan menyiapkan pengiriman." : "Seller packed order and prepared shipment."
+                : isPaid
+                  ? isIndo ? "Pembayaran berhasil diverifikasi dan pesanan diteruskan ke penjual." : "Payment verified and order forwarded to store."
+                  : isIndo ? "Pesanan berhasil dibuat oleh pembeli." : "Order placed by customer."));
 
   const shippingTimestamp =
     latestTrackingEvent?.dateLabel ||
@@ -1138,8 +1163,10 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false, is
       isDelivered,
       isPacking,
       isShipping,
-      hasTracking: Boolean(trackingUrl || publicTrackingPath || timeline.length),
-      trackingPath: trackingUrl || publicTrackingPath || "",
+      isUnpaid,
+      isCancelled,
+      hasTracking: Boolean(!isUnpaid && !isCancelled && (trackingUrl || publicTrackingPath || timeline.length)),
+      trackingPath: (!isUnpaid && !isCancelled) ? (trackingUrl || publicTrackingPath || "") : "",
     },
     shippingAddress: {
       name: recipientName,
