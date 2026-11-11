@@ -574,7 +574,9 @@
     "shipsFrom": "Dikirim Dari",
     "condition": "Kondisi",
     "conditionNew": "Baru",
-    "chatSeller": "Chat"
+    "chatSeller": "Chat",
+    "stock": "Stok",
+    "buyWithVoucher": "Beli Dengan Voucher"
   },
   "notifications": {
     "title": "Notifikasi",

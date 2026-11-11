@@ -574,7 +574,9 @@
     "shipsFrom": "Ships From",
     "condition": "Condition",
     "conditionNew": "New",
-    "chatSeller": "Chat"
+    "chatSeller": "Chat",
+    "stock": "Stock",
+    "buyWithVoucher": "Buy with Voucher"
   },
   "notifications": {
     "title": "Notifications",

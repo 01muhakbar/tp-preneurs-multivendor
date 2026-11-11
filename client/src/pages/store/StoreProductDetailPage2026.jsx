@@ -36,6 +36,7 @@ import { ensureProductImageUrl, resolveProductImageUrl } from "../../utils/produ
 import { useStorefrontWishlist } from "../../utils/storefrontWishlist.js";
 import { toPreferredWhatsAppLink } from "../../utils/storePublicIdentity.ts";
 import { getStorePublicIdentityBySlug } from "../../api/storePublicIdentity.ts";
+import { fetchStoreCoupons } from "../../api/storeCoupons.ts";
 import "./store-product-detail-2026.css";
 
 const DEFAULT_LIMIT = 12;
@@ -580,6 +581,62 @@ export default function StoreProductDetailPage2026() {
     return reviews;
   }, [reviews, activeReviewFilter]);
 
+  /* Store & Platform Coupons Query for Real Voucher Pricing */
+  const storeId = product?.storeId ?? storeInfo?.storeId ?? product?.store?.id ?? null;
+  const couponsQuery = useQuery({
+    queryKey: ["storefront", "coupons", storeId, storeSlug],
+    queryFn: () => fetchStoreCoupons({ storeId: storeId || undefined, storeSlug: storeSlug || undefined }),
+    enabled: Boolean(storeId || storeSlug),
+    staleTime: 60 * 1000,
+  });
+
+  const availableCoupons = useMemo(() => {
+    const list = couponsQuery.data?.data;
+    if (!Array.isArray(list)) return [];
+    const now = new Date();
+    return list.filter((c) => {
+      if (!c || !c.code || c.published === false) return false;
+      if (c.status && c.status.code !== "ACTIVE") return false;
+      if (c.isPubliclyRedeemable === false) return false;
+      if (c.startsAt && new Date(c.startsAt) > now) return false;
+      if (c.expiresAt && new Date(c.expiresAt) < now) return false;
+      return true;
+    });
+  }, [couponsQuery.data]);
+
+  const bestVoucher = useMemo(() => {
+    if (!availableCoupons.length || !price) return null;
+    let best = null;
+    let maxSaving = 0;
+    for (const c of availableCoupons) {
+      const minSpend = Number(c.minSpend) || 0;
+      if (price < minSpend) continue;
+
+      const discountType = String(c.discountType || "").toLowerCase();
+      const amount = Number(c.amount || c.discountValue || 0);
+      let saving = 0;
+      if (discountType === "percent" || discountType === "percentage") {
+        saving = Math.round((price * amount) / 100);
+        const maxDiscount = Number(c.maxDiscount);
+        if (Number.isFinite(maxDiscount) && maxDiscount > 0) {
+          saving = Math.min(saving, maxDiscount);
+        }
+      } else {
+        saving = Math.min(price, amount);
+      }
+
+      if (saving > maxSaving) {
+        maxSaving = saving;
+        best = { ...c, saving };
+      }
+    }
+    return best;
+  }, [availableCoupons, price]);
+
+  const hasVoucher = Boolean(bestVoucher && bestVoucher.saving > 0);
+  const voucherDiscount = hasVoucher ? bestVoucher.saving : 0;
+  const priceWithVoucher = hasVoucher ? Math.max(0, price - voucherDiscount) : price;
+
   const rawWhatsApp =
     storeInfo?.chatHref ||
     storeInfo?.whatsapp ||
@@ -844,21 +901,36 @@ export default function StoreProductDetailPage2026() {
             {/* Price Row with Shopee Orange, Voucher Badge & Right-aligned Heart Wishlist Icon */}
             <div className="flex items-center justify-between gap-2">
               <div className="flex flex-wrap items-baseline gap-2">
-                <span className="pdp26-price-main">{rupiah(price)}</span>
-                {originalPrice > price && (
-                  <span className="text-xs font-bold text-slate-400 line-through">
+                <span className="pdp26-price-main">
+                  {rupiah(priceWithVoucher)}
+                </span>
+                {hasVoucher ? (
+                  <span className="text-xs sm:text-sm font-bold text-slate-400 line-through">
+                    {rupiah(price)}
+                  </span>
+                ) : originalPrice > price ? (
+                  <span className="text-xs sm:text-sm font-bold text-slate-400 line-through">
                     {rupiah(originalPrice)}
                   </span>
-                )}
-                {discount > 0 && (
+                ) : null}
+                {!hasVoucher && discount > 0 && (
                   <span className="rounded bg-rose-50 px-1.5 py-0.5 text-xs font-black text-rose-600 dark:bg-rose-950/40 dark:text-rose-400">
                     -{discount}%
                   </span>
                 )}
-                <span className="pdp26-voucher-badge">
-                  <Tag className="h-3 w-3" />
-                  {t("productDetail.withVoucher")}
-                </span>
+                {hasVoucher && (
+                  <span
+                    className="pdp26-voucher-badge"
+                    title={
+                      isIndo
+                        ? `Hemat ${rupiah(voucherDiscount)} dengan voucher ${bestVoucher.code}`
+                        : `Save ${rupiah(voucherDiscount)} with voucher ${bestVoucher.code}`
+                    }
+                  >
+                    <Tag className="h-3 w-3" />
+                    <span>{t("productDetail.withVoucher")}</span>
+                  </span>
+                )}
               </div>
 
               {/* Shopee-style Wishlist Heart Button right beside price */}
@@ -1275,8 +1347,8 @@ export default function StoreProductDetailPage2026() {
               </span>
             </div>
             <div className="pdp26-spec-row">
-              <span className="pdp26-spec-label">{t("productDetail.stock")}</span>
-              <span className="pdp26-spec-value">{stock !== null ? stock : "10"}</span>
+              <span className="pdp26-spec-label">{t("productDetail.stock") || (isIndo ? "Stok" : "Stock")}</span>
+              <span className="pdp26-spec-value">{stock !== null ? stock : "-"}</span>
             </div>
             <div className="pdp26-spec-row">
               <span className="pdp26-spec-label">{t("productDetail.shipsFrom")}</span>
@@ -1443,10 +1515,12 @@ export default function StoreProductDetailPage2026() {
             className="pdp26-mobile-buy-btn sm:hidden"
           >
             <span className="text-[11px] font-black tracking-wide leading-tight uppercase">
-              {t("productDetail.buyNow")}
+              {hasVoucher
+                ? t("productDetail.buyWithVoucher") || (isIndo ? "Beli Dengan Voucher" : "Buy with Voucher")
+                : t("productDetail.buyNow")}
             </span>
             <span className="text-xs font-black leading-tight">
-              {rupiah(price)}
+              {rupiah(priceWithVoucher)}
             </span>
           </button>
 
@@ -1467,7 +1541,11 @@ export default function StoreProductDetailPage2026() {
             disabled={!canPurchase || isAdding}
             className="hidden sm:flex pdp26-btn-buy-now"
           >
-            <span>{t("productDetail.buyNow")}</span>
+            <span>
+              {hasVoucher
+                ? t("productDetail.buyWithVoucher") || (isIndo ? "Beli Dengan Voucher" : "Buy with Voucher")
+                : t("productDetail.buyNow")}
+            </span>
           </button>
         </div>
       </div>
