@@ -270,12 +270,11 @@ export function StoreCartDrawer2026({
   const handleNavigateProduct = useCallback(
     (item) => {
       const target =
-        item.productHref ||
-        (item.storeSlug && (item.slug || item.productId)
-          ? `/store/${encodeURIComponent(item.storeSlug)}/products/${encodeURIComponent(item.slug || item.productId)}`
-          : item.slug || item.productId
-            ? `/product/${encodeURIComponent(item.slug || item.productId)}`
-            : "/shop");
+        item.slug || item.productId
+          ? `/product/${encodeURIComponent(item.slug || item.productId)}`
+          : item.productHref && !item.productHref.includes("/products/")
+            ? item.productHref
+            : "/shop";
       closeDrawer();
       if (typeof window !== "undefined" && window.location.pathname === target) {
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -508,12 +507,11 @@ export function StoreCartDrawer2026({
                         const isSelected = selectedLineIds.has(item.lineId);
                         const variantLines = formatVariant(item);
                         const itemHref =
-                          item.productHref ||
-                          (item.storeSlug && (item.slug || item.productId)
-                            ? `/store/${encodeURIComponent(item.storeSlug)}/products/${encodeURIComponent(item.slug || item.productId)}`
-                            : item.slug || item.productId
-                              ? `/product/${encodeURIComponent(item.slug || item.productId)}`
-                              : "/shop");
+                          item.slug || item.productId
+                            ? `/product/${encodeURIComponent(item.slug || item.productId)}`
+                            : item.productHref && !item.productHref.includes("/products/")
+                              ? item.productHref
+                              : "/shop";
 
                         return (
                           <div key={item.lineId} className="sc26-shopee-item-row">

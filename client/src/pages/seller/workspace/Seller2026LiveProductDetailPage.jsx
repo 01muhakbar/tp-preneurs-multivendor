@@ -56,8 +56,8 @@ export default function Seller2026LiveProductDetailPage() {
 
   const product = data.product;
   const images = product.gallery || [];
-  const publicUrl = product.isPublished && workspaceStoreSlug && product.slug
-    ? `/store/${encodeURIComponent(workspaceStoreSlug)}/products/${encodeURIComponent(product.slug)}`
+  const publicUrl = product.isPublished && product.slug
+    ? `/product/${encodeURIComponent(product.slug)}`
     : null;
   const lifecycle = product.status === "active" ? "Active" : product.status === "submitted" ? "Submitted for Review" : product.status === "needs_revision" ? "Needs Revision" : product.status === "inactive" ? "Archived" : "Draft";
 

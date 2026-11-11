@@ -46,12 +46,11 @@ function normalizeItem(item, index) {
   );
   const rawProductHref = first(item?.productHref, product?.productHref, null);
   const productHref =
-    rawProductHref ||
-    (storeSlug && (slug || productId)
-      ? `/store/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(slug || productId)}`
-      : slug || productId
-        ? `/product/${encodeURIComponent(slug || productId)}`
-        : "/shop");
+    slug || productId
+      ? `/product/${encodeURIComponent(slug || productId)}`
+      : (rawProductHref && !rawProductHref.includes("/products/")
+          ? rawProductHref
+          : "/shop");
 
   return {
     raw: item,

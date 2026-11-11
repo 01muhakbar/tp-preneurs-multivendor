@@ -18,18 +18,17 @@ export default function SearchProductCard({ product, variant = "grid" }) {
 
   const productId = product?.id ?? product?.slug;
   const productSlug = String(product?.routeSlug || product?.slug || product?.id || "").trim();
-  const storeSlug = String(product?.storeSlug || "").trim();
   const productHref = useMemo(() => {
-    const explicitHref = String(product?.productHref || "").trim();
-    if (explicitHref) return explicitHref;
-    if (storeSlug && productSlug) {
-      return `/store/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(productSlug)}`;
+    if (productSlug) {
+      return `/product/${encodeURIComponent(productSlug)}`;
     }
     if (productId) {
       return `/product/${encodeURIComponent(String(productId))}`;
     }
+    const explicitHref = String(product?.productHref || "").trim();
+    if (explicitHref && !explicitHref.includes("/products/")) return explicitHref;
     return "";
-  }, [product?.productHref, productId, productSlug, storeSlug]);
+  }, [product?.productHref, productId, productSlug]);
   const productName = product?.name || product?.title || "Product";
   const ratingValue = Number(product?.rating ?? product?.averageRating ?? 0);
   const safeRating = Number.isFinite(ratingValue) && ratingValue > 0 ? ratingValue : 4.5;

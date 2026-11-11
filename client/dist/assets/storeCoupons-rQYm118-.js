@@ -1,1 +1,0 @@
-import{b as s}from"./index-B4N7gl3V.js";const n=async o=>{const t={storeId:o?.storeId,storeSlug:o?.storeSlug,scopeType:o?.scopeType},{data:e}=await s.get("/store/coupons",{params:t});return e},a=async o=>{const{data:t}=await s.post("/store/coupons/quote",o);return t};export{n as f,a as q};

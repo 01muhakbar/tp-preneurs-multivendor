@@ -279,11 +279,11 @@ export default function StoreMicrositePage() {
        });
     }
     
-    // Apply store-scoped links to product cards
+    // Apply standard product links to product cards
     const applyProductLinks = (productsArray) => {
        return productsArray.map(product => {
          const productSlug = toText(product?.routeSlug || product?.slug || product?.id);
-         const productHref = productSlug ? `/store/${encodeURIComponent(baseVm.slug)}/products/${encodeURIComponent(productSlug)}` : `/product/${productSlug}`;
+         const productHref = productSlug ? `/product/${encodeURIComponent(productSlug)}` : `/product/${product?.id || ""}`;
          return {
            ...product,
            productHref

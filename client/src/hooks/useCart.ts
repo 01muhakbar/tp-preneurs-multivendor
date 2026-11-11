@@ -202,11 +202,9 @@ export const normalizeCartProducts = (cart: any): NormalizedCartProduct[] => {
       const slug =
         String(product?.slug || product?.productSlug || product?.routeSlug || "").trim() || null;
       const productHref =
-        storeSlug && (slug || productId)
-          ? `/store/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(slug || String(productId))}`
-          : slug || productId
-            ? `/product/${encodeURIComponent(slug || String(productId))}`
-            : null;
+        slug || productId
+          ? `/product/${encodeURIComponent(slug || String(productId))}`
+          : null;
 
       return {
         lineId: buildLineId(productId, variantKey),

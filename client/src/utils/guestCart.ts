@@ -86,13 +86,11 @@ const normalizeGuestItem = (item: any): GuestCartItem | null => {
           ? item.routeSlug.trim()
           : null;
   const productHref =
-    typeof item?.productHref === "string" && item.productHref.trim()
-      ? item.productHref.trim()
-      : storeSlug && (slug || productId)
-        ? `/store/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(slug || String(productId))}`
-        : slug || productId
-          ? `/product/${encodeURIComponent(slug || String(productId))}`
-          : null;
+    slug || productId
+      ? `/product/${encodeURIComponent(slug || String(productId))}`
+      : typeof item?.productHref === "string" && !item.productHref.includes("/products/")
+        ? item.productHref.trim()
+        : null;
 
   return {
     productId,

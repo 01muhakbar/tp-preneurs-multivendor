@@ -330,6 +330,14 @@ function LegacyStoreCategoryRedirect() {
   return <Navigate to={target} replace />;
 }
 
+function LegacyStoreMicrositeProductRedirect() {
+  const { productSlug } = useParams();
+  const target = productSlug
+    ? `/product/${encodeURIComponent(productSlug)}`
+    : "/shop";
+  return <Navigate to={target} replace />;
+}
+
 function ScrollToTopOnRouteChange() {
   const location = useLocation();
 
@@ -364,7 +372,7 @@ export default function App() {
           />
           <Route
             path="/store/:slug/products/:productSlug"
-            element={<StoreMicrositeProductDetailPage />}
+            element={<LegacyStoreMicrositeProductRedirect />}
           />
           <Route path="/store/:slug" element={<StoreMicrositePage />} />
           <Route path="/" element={<StoreLayout />}>

@@ -244,12 +244,11 @@ export default function StoreCart2026View({
                     const invalidItem = getInvalidItem(item);
                     const variantLines = formatVariant(item);
                     const itemHref =
-                      item.productHref ||
-                      (item.storeSlug && (item.slug || item.productId)
-                        ? `/store/${encodeURIComponent(item.storeSlug)}/products/${encodeURIComponent(item.slug || item.productId)}`
-                        : item.slug || item.productId
-                          ? `/product/${encodeURIComponent(item.slug || item.productId)}`
-                          : "/shop");
+                      item.slug || item.productId
+                        ? `/product/${encodeURIComponent(item.slug || item.productId)}`
+                        : (item.productHref && !item.productHref.includes("/products/")
+                            ? item.productHref
+                            : "/shop");
 
                     return (
                       <div

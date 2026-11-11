@@ -56,16 +56,16 @@ function MicrositeProductCard({ product, isIndo = true }) {
   const storeSlug = String(product?.storeSlug || "").trim();
 
   const productHref = useMemo(() => {
-    const explicitHref = String(product?.productHref || "").trim();
-    if (explicitHref) return explicitHref;
-    if (storeSlug && productSlug) {
-      return `/store/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(productSlug)}`;
+    if (productSlug) {
+      return `/product/${encodeURIComponent(productSlug)}`;
     }
     if (productId) {
       return `/product/${encodeURIComponent(String(productId))}`;
     }
+    const explicitHref = String(product?.productHref || "").trim();
+    if (explicitHref && !explicitHref.includes("/products/")) return explicitHref;
     return "";
-  }, [product?.productHref, productId, productSlug, storeSlug]);
+  }, [productId, productSlug, product?.productHref]);
 
   const productName = product?.name || product?.title || (isIndo ? "Produk" : "Product");
   const ratingValue = Number(product?.rating ?? product?.averageRating ?? 0);
@@ -94,8 +94,10 @@ function MicrositeProductCard({ product, isIndo = true }) {
   const openProduct = () => {
     if (productHref) {
       navigate(productHref);
+    } else if (productSlug) {
+      navigate(`/product/${encodeURIComponent(productSlug)}`);
     } else if (productId) {
-      navigate(`/product/${productId}`);
+      navigate(`/product/${encodeURIComponent(String(productId))}`);
     }
   };
 
