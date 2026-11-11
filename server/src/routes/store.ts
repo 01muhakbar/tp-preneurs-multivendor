@@ -2825,7 +2825,18 @@ router.post(
       }
 
       // Create new Duitku invoice session
-      const duitkuConfig = resolveDuitkuConfig();
+      const dbSettings = await getPersistedStoreSettings();
+      const protocol = (req.headers["x-forwarded-proto"] as string)?.split(",")[0].trim() || req.protocol;
+      const reqOrigin = req.get("host") ? `${protocol}://${req.get("host")}` : "";
+      let finalBaseUrl = process.env.PUBLIC_BASE_URL || reqOrigin;
+      if (finalBaseUrl && !/^https?:\/\//i.test(finalBaseUrl)) {
+        finalBaseUrl = `https://${finalBaseUrl}`;
+      }
+      const syntheticEnv = {
+        ...process.env,
+        PUBLIC_BASE_URL: finalBaseUrl,
+      };
+      const duitkuConfig = resolveDuitkuConfig(syntheticEnv, dbSettings);
       if (!duitkuConfig.enabled) {
         return res.status(400).json({
           success: false,
