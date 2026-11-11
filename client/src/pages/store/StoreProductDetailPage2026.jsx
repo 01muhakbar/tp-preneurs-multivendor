@@ -1321,7 +1321,11 @@ export default function StoreProductDetailPage2026() {
               disabled={!canPurchase || isAdding}
               className="pdp26-btn-buy-now"
             >
-              <span>{t("productDetail.buyNow")}</span>
+              <span>
+                {hasVoucher
+                  ? t("productDetail.buyWithVoucher") || (isIndo ? "Beli Dengan Voucher" : "Buy with Voucher")
+                  : t("productDetail.buyNow")}
+              </span>
             </button>
           </div>
         </div>
@@ -1717,56 +1721,32 @@ export default function StoreProductDetailPage2026() {
 
           <div className="h-7 w-[1px] bg-slate-200 dark:bg-white/10 shrink-0" />
 
-          {/* 2. Mobile Keranjang Action Button (Cart icon with '+' inside basket) */}
+          {/* 2. Keranjang Action Button (Cart icon with '+' inside basket) */}
           <button
             type="button"
             onClick={handleAddToCart}
             disabled={!canPurchase || isAdding}
-            className="pdp26-icon-action sm:hidden text-[var(--pdp-navy)] dark:text-sky-400"
+            className="pdp26-icon-action text-[var(--pdp-navy)] dark:text-sky-400"
             title={t("productDetail.addToCart")}
           >
             {isAdding ? <Loader2 className="h-5 w-5 animate-spin" /> : <CartPlusIcon className="h-5 w-5" />}
             <span className="text-[10px] leading-tight font-bold mt-0.5 whitespace-nowrap">{isIndo ? "Keranjang" : "Cart"}</span>
           </button>
 
-          {/* 3. Mobile Beli Sekarang Button (Full Flex-1 with Price) */}
+          {/* 3. Beli Sekarang / Beli Dengan Voucher Button (Unified Mobile & Desktop with Price) */}
           <button
             type="button"
             onClick={handleBuyNow}
             disabled={!canPurchase || isAdding}
-            className="pdp26-mobile-buy-btn sm:hidden"
+            className="pdp26-mobile-buy-btn"
           >
-            <span className="text-[11px] font-black tracking-wide leading-tight uppercase">
+            <span className="text-[11px] sm:text-xs font-black tracking-wide leading-tight uppercase">
               {hasVoucher
                 ? t("productDetail.buyWithVoucher") || (isIndo ? "Beli Dengan Voucher" : "Buy with Voucher")
                 : t("productDetail.buyNow")}
             </span>
-            <span className="text-xs font-black leading-tight">
+            <span className="text-xs sm:text-sm font-black leading-tight">
               {rupiah(priceWithVoucher)}
-            </span>
-          </button>
-
-          {/* Desktop Direct CTA Buttons (Strictly isolated on sm: and above >= 640px) */}
-          <button
-            type="button"
-            onClick={handleAddToCart}
-            disabled={!canPurchase || isAdding}
-            className="hidden sm:flex pdp26-btn-add-cart"
-          >
-            {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <CartPlusIcon className="h-4 w-4" />}
-            <span>{t("productDetail.addToCart")}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleBuyNow}
-            disabled={!canPurchase || isAdding}
-            className="hidden sm:flex pdp26-btn-buy-now"
-          >
-            <span>
-              {hasVoucher
-                ? t("productDetail.buyWithVoucher") || (isIndo ? "Beli Dengan Voucher" : "Buy with Voucher")
-                : t("productDetail.buyNow")}
             </span>
           </button>
         </div>

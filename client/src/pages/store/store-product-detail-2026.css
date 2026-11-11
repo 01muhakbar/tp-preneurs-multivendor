@@ -514,7 +514,7 @@
   }
 }
 
-/* Mobile Shopee Combined CTA Button (Zero truncation on 375px!) */
+/* Shopee Bottom Sticky CTA Button (Unified Mobile & Desktop with Price) */
 .pdp26-mobile-buy-btn {
   flex: 1;
   min-width: 0;
@@ -523,20 +523,14 @@
   color: #ffffff;
   border: none;
   border-radius: 8px;
-  display: flex;
+  display: flex !important;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  transition: background-color 0.15s ease, transform 0.1s ease;
   line-height: 1.15;
-  padding: 0 8px;
-}
-
-@media (min-width: 640px) {
-  .pdp26-mobile-buy-btn {
-    display: none !important;
-  }
+  padding: 0 12px;
 }
 
 .pdp26-mobile-buy-btn:hover:not(:disabled) {
