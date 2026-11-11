@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -254,9 +254,77 @@ export default function Checkout2026View({
   // Calculations
   const subtotal = Number(viewModel.amounts?.subtotal || 0);
   const shipping = Number(viewModel.amounts?.shipping || 0);
-  const totalStoreDiscount = Number(viewModel.amounts?.discount || 0);
-  const platformDiscount = Number(totalPlatformDiscount || 0);
-  const totalDiscount = totalStoreDiscount + platformDiscount;
+
+  // Dynamic store discount from groups & appliedStoreCoupons
+  const calculatedStoreDiscount = useMemo(() => {
+    return (viewModel.groups || []).reduce((sum, group) => {
+      const storeKey = String(group.storeId);
+      const appliedVoucher =
+        appliedStoreCoupons[storeKey] ||
+        appliedStoreCoupons[group.key] ||
+        (group.storeSlug && appliedStoreCoupons[`slug:${group.storeSlug}`]) ||
+        (group.storeId && appliedStoreCoupons[`id:${group.storeId}`]) ||
+        null;
+      if (!appliedVoucher) return sum;
+
+      const groupSubtotal = (group.items || []).reduce(
+        (acc, it) => acc + (Number(it.unitPrice) || 0) * (Number(it.quantity) || 1),
+        0
+      );
+
+      const discountType = String(appliedVoucher.discountType || "").toLowerCase();
+      const val = Number(appliedVoucher.discountValue ?? appliedVoucher.amount ?? 0);
+      let disc = 0;
+      if (discountType === "percent" || discountType === "percentage") {
+        disc = Math.round((groupSubtotal * val) / 100);
+        const maxDiscount = Number(appliedVoucher.maxDiscount);
+        if (Number.isFinite(maxDiscount) && maxDiscount > 0) {
+          disc = Math.min(disc, maxDiscount);
+        }
+      } else {
+        disc = Number(
+          appliedVoucher.discountAmount ??
+            appliedVoucher.discountValue ??
+            appliedVoucher.amount ??
+            0
+        );
+      }
+      return sum + Math.min(groupSubtotal, Math.max(0, disc));
+    }, 0);
+  }, [viewModel.groups, appliedStoreCoupons]);
+
+  // Dynamic platform discount
+  const calculatedPlatformDiscount = useMemo(() => {
+    if (!appliedPlatformCoupon) return Number(totalPlatformDiscount || 0);
+    const discountType = String(appliedPlatformCoupon.discountType || "").toLowerCase();
+    const val = Number(appliedPlatformCoupon.discountValue ?? appliedPlatformCoupon.amount ?? 0);
+    let disc = 0;
+    if (discountType === "percent" || discountType === "percentage") {
+      disc = Math.round((subtotal * val) / 100);
+      const maxDiscount = Number(appliedPlatformCoupon.maxDiscount);
+      if (Number.isFinite(maxDiscount) && maxDiscount > 0) {
+        disc = Math.min(disc, maxDiscount);
+      }
+    } else {
+      disc = Number(
+        appliedPlatformCoupon.discountAmount ??
+          appliedPlatformCoupon.discountValue ??
+          appliedPlatformCoupon.amount ??
+          0
+      );
+    }
+    return Math.min(subtotal, Math.max(0, disc));
+  }, [appliedPlatformCoupon, subtotal, totalPlatformDiscount]);
+
+  const totalStoreDiscount = calculatedStoreDiscount;
+  const platformDiscount = Math.max(
+    calculatedPlatformDiscount,
+    Number(totalPlatformDiscount || 0)
+  );
+  const totalDiscount = Math.max(
+    totalStoreDiscount + platformDiscount,
+    Number(viewModel.amounts?.discount || 0)
+  );
   const grandTotal = Math.max(0, subtotal + shipping - totalDiscount);
 
   const busy = status.submitting || status.cartSyncing;
@@ -735,6 +803,7 @@ export default function Checkout2026View({
           )}
           appliedCoupon={
             appliedStoreCoupons[voucherModalStore.key] ||
+            appliedStoreCoupons[String(voucherModalStore.storeId)] ||
             (voucherModalStore.storeSlug &&
               appliedStoreCoupons[`slug:${voucherModalStore.storeSlug}`]) ||
             (voucherModalStore.storeId &&

@@ -1706,22 +1706,42 @@ export default function CheckoutPage() {
     checkoutMode === "SINGLE_STORE" && checkoutPreviewGroups.length === 1
       ? checkoutPreviewGroups[0]
       : null;
-  const appliedGroupCoupons = useMemo(
-    () =>
-      checkoutPreviewGroups
-        .map((group) => {
-          const storeKey = String(group.storeId);
-          const appliedMeta = groupCouponStates?.[storeKey]?.appliedMeta ?? null;
-          if (!appliedMeta?.code) return null;
-          return {
-            storeId: Number(group.storeId),
-            couponCode: String(appliedMeta.code).trim().toUpperCase(),
-            discount: Number(appliedMeta.discount || 0),
-          };
-        })
-        .filter(Boolean),
-    [checkoutPreviewGroups, groupCouponStates]
-  );
+  const allAppliedStoreCoupons = useMemo(() => {
+    const list = [];
+    const seenStoreIds = new Set();
+
+    (checkoutPreviewGroups || []).forEach((group) => {
+      const storeKey = String(group.storeId);
+      const appliedMeta = groupCouponStates?.[storeKey]?.appliedMeta ?? null;
+      if (appliedMeta?.code) {
+        const sId = Number(group.storeId);
+        seenStoreIds.add(sId);
+        list.push({
+          storeId: sId,
+          couponCode: String(appliedMeta.code).trim().toUpperCase(),
+          discount: Number(appliedMeta.discount || appliedMeta.discountAmount || 0),
+        });
+      }
+    });
+
+    Object.values(appliedStoreCoupons || {}).forEach((c) => {
+      if (c && c.code && c.storeId) {
+        const sId = Number(c.storeId);
+        if (!seenStoreIds.has(sId)) {
+          seenStoreIds.add(sId);
+          list.push({
+            storeId: sId,
+            couponCode: String(c.code).trim().toUpperCase(),
+            discount: Number(c.discountAmount || c.discount || 0),
+          });
+        }
+      }
+    });
+
+    return list;
+  }, [checkoutPreviewGroups, groupCouponStates, appliedStoreCoupons]);
+
+  const appliedGroupCoupons = allAppliedStoreCoupons;
   const previewSubtotalValue = Number(checkoutPreviewSummary?.subtotalAmount);
   const previewShippingValue = Number(checkoutPreviewSummary?.shippingAmount);
   const previewGrandTotalValue = Number(checkoutPreviewSummary?.grandTotal);
@@ -1731,17 +1751,36 @@ export default function CheckoutPage() {
   const shippingCost = Number.isFinite(previewShippingValue)
     ? previewShippingValue
     : fallbackShippingCost;
-  const orderLevelDiscountValue = Number(discount || 0);
+
+  const effectivePlatformDiscount = useMemo(() => {
+    if (!appliedPlatformCoupon) return Number(totalPlatformDiscount || discount || 0);
+    const discountType = String(appliedPlatformCoupon.discountType || "").toLowerCase();
+    const val = Number(appliedPlatformCoupon.discountValue ?? appliedPlatformCoupon.amount ?? 0);
+    let calculated = 0;
+    if (discountType === "percent" || discountType === "percentage") {
+      calculated = Math.round((subtotalValue * val) / 100);
+      const maxDiscount = Number(appliedPlatformCoupon.maxDiscount);
+      if (Number.isFinite(maxDiscount) && maxDiscount > 0) {
+        calculated = Math.min(calculated, maxDiscount);
+      }
+    } else {
+      calculated = Number(
+        appliedPlatformCoupon.discountAmount ??
+          appliedPlatformCoupon.discountValue ??
+          appliedPlatformCoupon.amount ??
+          0
+      );
+    }
+    return Math.min(subtotalValue, Math.max(0, calculated));
+  }, [appliedPlatformCoupon, subtotalValue, totalPlatformDiscount, discount]);
+
   const groupDiscountValue = appliedGroupCoupons.reduce(
     (sum, entry) => sum + Number(entry?.discount || 0),
     0
   );
-  const discountValue = orderLevelDiscountValue + groupDiscountValue;
+  const discountValue = effectivePlatformDiscount + groupDiscountValue;
   const taxValue = 0;
-  const baseGrandTotal = Number.isFinite(previewGrandTotalValue)
-    ? previewGrandTotalValue
-    : subtotalValue + shippingCost;
-  const total = Math.max(0, baseGrandTotal - discountValue);
+  const total = Math.max(0, subtotalValue + shippingCost - discountValue);
   const previewHasPaymentBlocker = checkoutPreviewGroups.some(
     (group) => !group.paymentAvailable
   );
@@ -2666,18 +2705,11 @@ export default function CheckoutPage() {
         },
         couponCode: appliedPlatformCoupon?.code || appliedCouponMeta?.code || undefined,
         groupCoupons:
-          checkoutMode === "MULTI_STORE"
-            ? (appliedGroupCoupons.length > 0
-                ? appliedGroupCoupons.map((entry) => ({
-                    storeId: Number(entry.storeId),
-                    couponCode: String(entry.couponCode),
-                  }))
-                : Object.values(appliedStoreCoupons)
-                    .filter((c) => c?.storeId && c?.code)
-                    .map((c) => ({
-                      storeId: Number(c.storeId),
-                      couponCode: String(c.code),
-                    })))
+          allAppliedStoreCoupons.length > 0
+            ? allAppliedStoreCoupons.map((entry) => ({
+                storeId: Number(entry.storeId),
+                couponCode: String(entry.couponCode),
+              }))
             : undefined,
         useDefaultShipping,
         shippingDetails: useDefaultShipping ? undefined : shippingDetailsPayload,
@@ -2798,13 +2830,13 @@ export default function CheckoutPage() {
       ...checkoutPreviewData,
       groups: checkoutPreviewDisplayGroups,
       summary: {
+        ...(checkoutPreviewData?.summary || {}),
+        ...(checkoutPreviewSummary || {}),
         subtotalAmount: subtotalValue,
         shippingAmount: shippingCost,
         discountAmount: discountValue,
         taxAmount: taxValue,
         grandTotal: total,
-        ...(checkoutPreviewData?.summary || {}),
-        ...(checkoutPreviewSummary || {}),
       },
       invalidItems: checkoutPreviewInvalidMessages,
       previewReady: isCheckoutSummaryReady || (hasItems && summaryItems.length > 0),
