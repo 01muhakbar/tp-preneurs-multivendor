@@ -667,16 +667,20 @@
 }
 
 /* Edit Mode Buttons */
-.sc26-shopee-sticky-edit-actions {
+.sc26-shopee-sticky-edit-actions,
+.sc26-shopee-edit-actions {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-left: auto;
+  flex-shrink: 0;
 }
 
 .sc26-shopee-btn-wishlist {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  flex-direction: row;
   gap: 6px;
   background: transparent;
   border: 1px solid rgba(3, 76, 133, 0.6);
@@ -686,6 +690,8 @@
   font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: all 0.15s ease;
 }
 
@@ -699,9 +705,12 @@
   cursor: not-allowed;
 }
 
-.sc26-shopee-btn-delete {
+.sc26-shopee-btn-delete,
+.sc26-shopee-btn-remove {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  flex-direction: row;
   gap: 6px;
   background: #ef4444;
   color: #ffffff;
@@ -711,14 +720,18 @@
   font-size: 12.5px;
   font-weight: 750;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: filter 0.15s ease;
 }
 
-.sc26-shopee-btn-delete:hover:not(:disabled) {
+.sc26-shopee-btn-delete:hover:not(:disabled),
+.sc26-shopee-btn-remove:hover:not(:disabled) {
   filter: brightness(1.1);
 }
 
-.sc26-shopee-btn-delete:disabled {
+.sc26-shopee-btn-delete:disabled,
+.sc26-shopee-btn-remove:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }

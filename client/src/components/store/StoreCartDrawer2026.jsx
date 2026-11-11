@@ -732,21 +732,21 @@ export function StoreCartDrawer2026({
                 <div className="sc26-shopee-edit-actions ml-auto flex items-center gap-2">
                   <button
                     type="button"
-                    className="sc26-shopee-btn-wishlist"
+                    className="sc26-shopee-btn-wishlist inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
                     onClick={handleBatchWishlist}
                     disabled={selectedCount === 0 || cart.isLoading}
                   >
-                    <Heart className="w-3.5 h-3.5" />
-                    <span>{isIndo ? "Favoritkan" : "Wishlist"}</span>
+                    <Heart className="w-3.5 h-3.5 shrink-0" />
+                    <span className="whitespace-nowrap">{isIndo ? "Favoritkan" : "Wishlist"}</span>
                   </button>
                   <button
                     type="button"
-                    className="sc26-shopee-btn-remove"
+                    className="sc26-shopee-btn-delete inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
                     onClick={handleBatchRemove}
                     disabled={selectedCount === 0 || cart.isLoading}
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>{isIndo ? `Hapus (${selectedCount})` : `Delete (${selectedCount})`}</span>
+                    <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                    <span className="whitespace-nowrap">{isIndo ? `Hapus (${selectedCount})` : `Delete (${selectedCount})`}</span>
                   </button>
                 </div>
               )}

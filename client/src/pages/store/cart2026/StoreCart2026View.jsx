@@ -485,22 +485,22 @@ export default function StoreCart2026View({
               <div className="sc26-shopee-sticky-edit-actions">
                 <button
                   type="button"
-                  className="sc26-shopee-btn-wishlist"
+                  className="sc26-shopee-btn-wishlist inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
                   onClick={onBatchWishlist}
                   disabled={selectedCount === 0}
                 >
-                  <Heart className="w-3.5 h-3.5" />
-                  <span>{isIndo ? "Favoritkan" : "Wishlist"}</span>
+                  <Heart className="w-3.5 h-3.5 shrink-0" />
+                  <span className="whitespace-nowrap">{isIndo ? "Favoritkan" : "Wishlist"}</span>
                 </button>
 
                 <button
                   type="button"
-                  className="sc26-shopee-btn-delete"
+                  className="sc26-shopee-btn-delete inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
                   onClick={onBatchRemove}
                   disabled={selectedCount === 0}
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>{isIndo ? `Hapus (${selectedCount})` : `Delete (${selectedCount})`}</span>
+                  <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                  <span className="whitespace-nowrap">{isIndo ? `Hapus (${selectedCount})` : `Delete (${selectedCount})`}</span>
                 </button>
               </div>
             )}
