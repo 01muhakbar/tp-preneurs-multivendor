@@ -1143,6 +1143,26 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false, is
         : null,
   };
 
+  const storeProducts = {
+    storeName: primaryStoreName,
+    storeSlug: primaryStoreSlug,
+    storeWhatsapp: primaryStoreWhatsapp,
+    storeBadge: "Star",
+    items,
+    summary: {
+      subtotal,
+      subtotalDisplay: formatCurrency(subtotal),
+      shipping,
+      shippingDisplay: formatCurrency(shipping),
+      serviceFee,
+      serviceFeeDisplay: formatCurrency(serviceFee),
+      discount,
+      discountDisplay: formatCurrency(discount),
+      total,
+      totalDisplay: formatCurrency(total),
+    },
+  };
+
   const shopeeDetail = {
     banner: {
       title: bannerTitle,
@@ -1173,25 +1193,7 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false, is
       phone: recipientPhone,
       address: recipientAddress,
     },
-    storeProducts: {
-      storeName: primaryStoreName,
-      storeSlug: primaryStoreSlug,
-      storeWhatsapp: primaryStoreWhatsapp,
-      storeBadge: "Star",
-      items,
-      summary: {
-        subtotal,
-        subtotalDisplay: formatCurrency(subtotal),
-        shipping,
-        shippingDisplay: formatCurrency(shipping),
-        serviceFee,
-        serviceFeeDisplay: formatCurrency(serviceFee),
-        discount,
-        discountDisplay: formatCurrency(discount),
-        total,
-        totalDisplay: formatCurrency(total),
-      },
-    },
+    storeProducts,
     helpActions: {
       returnUrl: `/contact-us?topic=return&ref=${encodeURIComponent(compactOrderNo)}`,
       chatUrl:
@@ -1202,7 +1204,7 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false, is
           orderDate: placedAt,
           paymentMethod: paymentMethodDisplay,
           totalAmount: total,
-          items: storeProducts.items,
+          items,
           isIndo,
         }) || `/contact-us?topic=seller&ref=${encodeURIComponent(compactOrderNo)}`,
       supportUrl: `/contact-us?topic=order&ref=${encodeURIComponent(compactOrderNo)}`,
