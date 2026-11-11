@@ -474,15 +474,29 @@ export default function AccountOrderDetail2026View({
     storeProducts?.storeWhatsapp ||
     "0895800536593";
 
+  const totalOrderAmount =
+    orderDetail?.summary?.total ??
+    rawOrder?.totalAmount ??
+    orderDetail?.totalAmount ??
+    orderDetail?.total ??
+    storeProducts?.summary?.total ??
+    0;
+
+  const orderPlacedDate =
+    orderDetail?.order?.placedAt ||
+    rawOrder?.createdAt ||
+    orderDetail?.order?.createdAt ||
+    null;
+
   const sellerChatUrl =
     buildStoreWhatsAppUrl({
       whatsappNumber: effectiveWhatsapp,
-      orderRef: orderMeta?.orderNo || "",
+      orderRef: orderMeta?.orderNo || orderDetail?.order?.code || "",
       storeName: storeProducts?.storeName || "",
-      orderDate: orderMeta?.createdAt,
-      paymentMethod: orderMeta?.paymentMethod,
-      totalAmount: orderSummary?.totalAmount || orderSummary?.total,
-      items: storeProducts?.items,
+      orderDate: orderPlacedDate,
+      paymentMethod: orderMeta?.paymentMethod || orderDetail?.payment?.method || "",
+      totalAmount: totalOrderAmount,
+      items: storeProducts?.items || orderDetail?.items || [],
       isIndo,
     }) || shopee?.helpActions?.chatUrl || "https://wa.me/62895800536593";
 
