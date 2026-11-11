@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { Request, Response, NextFunction } from "express";
-import { sequelize, Product } from "../models/index.js";
+import { sequelize, Product, Store } from "../models/index.js";
 import { getRuntimePublicOrigin } from "../config/deploymentOrigin.js";
 import { isMissingUploadAsset } from "./uploadAsset.js";
 
@@ -133,9 +133,52 @@ export const seoRenderer = (clientDistDir: string) => {
         ? "noindex,nofollow,noarchive"
         : "index,follow";
 
-      const productMatch = req.path.match(/^\/product\/([^/]+)$/);
-      if (productMatch && productMatch[1]) {
-        const slug = productMatch[1];
+      const storeMatch = req.path.match(/^\/store\/([^/?#]+)\/?$/i);
+      const productMatch = req.path.match(/^\/product\/([^/?#]+)\/?$/i);
+
+      if (storeMatch && storeMatch[1]) {
+        const rawSlug = decodeURIComponent(storeMatch[1]).trim().toLowerCase();
+        try {
+          const store = await Store.findOne({
+            where: { slug: rawSlug } as any,
+          });
+
+          if (store && String(store.status).toUpperCase() === "ACTIVE") {
+            const storeName = toText(store.name, "Store");
+            metaTitle = `Toko Online ${storeName} | TP Preneurs`;
+
+            const rawDesc = toText(store.description);
+            if (rawDesc) {
+              const cleanDesc = rawDesc
+                .replace(/<[^>]*>/g, " ")
+                .replace(/\s+/g, " ")
+                .trim();
+              const snippet = cleanDesc.length > 170 ? `${cleanDesc.slice(0, 167)}...` : cleanDesc;
+              metaDescription = `${storeName} adalah toko online resmi di TP Preneurs. ${snippet}`;
+            } else {
+              metaDescription = `Kunjungi toko online resmi ${storeName} di TP Preneurs. Temukan produk berkualitas, penawaran terbaik, dan kemudahan belanja online terpercaya.`;
+            }
+
+            canonicalUrl = resolveCanonicalUrl(req, `/store/${store.slug}`);
+            if (store.logoUrl) {
+              metaImage = resolveSeoAssetAbsoluteUrl(req, store.logoUrl, DEFAULT_IMAGE_PATH);
+            } else if (store.bannerUrl) {
+              metaImage = resolveSeoAssetAbsoluteUrl(req, store.bannerUrl, DEFAULT_IMAGE_PATH);
+            }
+          } else {
+            const seo = await loadPublishedSeoSettings();
+            metaTitle = toText(seo?.metaTitle, metaTitle);
+            metaDescription = toText(seo?.metaDescription, metaDescription);
+            metaKeywords = toText(seo?.metaKeywords);
+            canonicalUrl = resolveCanonicalUrl(req, seo?.metaUrl || req.originalUrl);
+            metaImage = resolveSeoAssetAbsoluteUrl(req, seo?.metaImageDataUrl, DEFAULT_IMAGE_PATH);
+            favicon = resolveSeoAssetAbsoluteUrl(req, seo?.faviconDataUrl, DEFAULT_FAVICON_PATH);
+          }
+        } catch (err) {
+          console.error("[seoRenderer] Store lookup failed:", err);
+        }
+      } else if (productMatch && productMatch[1]) {
+        const slug = decodeURIComponent(productMatch[1]).trim().toLowerCase();
         const product = await Product.findOne({ where: { slug, status: "active", isPublished: true } });
         if (product) {
           metaTitle = `${product.name} - TP PRENEURS`;
@@ -164,18 +207,23 @@ export const seoRenderer = (clientDistDir: string) => {
         <link rel="canonical" href="${escapeHtml(canonicalUrl)}" />
         <link rel="icon" type="image/png" href="${escapeHtml(favicon)}" />
         <link rel="apple-touch-icon" href="${escapeHtml(resolveSeoAssetAbsoluteUrl(req, "/apple-touch-icon.png", DEFAULT_FAVICON_PATH))}" />
+        <meta property="og:site_name" content="TP Preneurs" />
+        <meta property="og:type" content="website" />
+        <meta property="og:locale" content="id_ID" />
         <meta property="og:title" content="${escapeHtml(metaTitle)}" />
         <meta property="og:description" content="${escapeHtml(metaDescription)}" />
+        <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
         <meta property="og:image" content="${escapeHtml(metaImage)}" />
         <meta property="og:image:secure_url" content="${escapeHtml(metaImage)}" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
-        <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
-        <meta property="og:type" content="website" />
+        <meta property="og:image:alt" content="${escapeHtml(metaTitle)}" />
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:site" content="@tppreneurs" />
         <meta name="twitter:title" content="${escapeHtml(metaTitle)}" />
         <meta name="twitter:description" content="${escapeHtml(metaDescription)}" />
         <meta name="twitter:image" content="${escapeHtml(metaImage)}" />
+        <meta name="twitter:image:alt" content="${escapeHtml(metaTitle)}" />
       `;
 
       html = html.replace("</head>", `${ogTags}</head>`);

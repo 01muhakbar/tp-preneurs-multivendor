@@ -115,7 +115,6 @@
 /* Logo container */
 .ms-hero-logo {
   flex-shrink: 0;
-  display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
@@ -128,8 +127,23 @@
   transition: transform 0.25s ease;
 }
 
+/* Mobile-only logo (hidden on screens >= 640px) */
+.ms-hero-logo-mobile {
+  display: flex;
+}
 @media (min-width: 640px) {
-  .ms-hero-logo {
+  .ms-hero-logo-mobile {
+    display: none !important;
+  }
+}
+
+/* Desktop-only logo (hidden on screens < 640px) */
+.ms-hero-logo-desktop {
+  display: none !important;
+}
+@media (min-width: 640px) {
+  .ms-hero-logo-desktop {
+    display: flex !important;
     width: 96px;
     height: 96px;
     border-radius: 22px;

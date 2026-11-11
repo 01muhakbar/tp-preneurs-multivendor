@@ -293,8 +293,8 @@ function StoreHero({
         {/* Left Column: Logo & Store Info */}
         <div className="ms-hero-info-panel flex flex-col sm:flex-row items-start sm:items-center gap-3.5 sm:gap-6 min-w-0">
           {/* Mobile Top Row: Avatar + Name / Badges */}
-          <div className="flex items-center gap-3.5 sm:hidden w-full">
-            <div className="ms-hero-logo shrink-0">
+          <div className="flex items-start gap-3.5 sm:hidden w-full pr-12">
+            <div className="ms-hero-logo ms-hero-logo-mobile shrink-0">
               {hasValidLogo ? (
                 <img
                   src={logoSrc}
@@ -307,7 +307,7 @@ function StoreHero({
                 <Store className="w-7 h-7 text-[#034c85]" />
               )}
             </div>
-            <div className="min-w-0 flex-1 pr-10">
+            <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-1.5 mb-1">
                 <span className="ms-badge-store text-[10px] h-5 px-2">
                   <Store size={10} />
@@ -318,19 +318,19 @@ function StoreHero({
                   {store.isOperational ? T.operational : T.store}
                 </span>
               </div>
-              <h1 className="text-lg font-black text-white tracking-tight truncate">
+              <h1 className="text-base sm:text-lg font-black text-white tracking-tight leading-snug break-words">
                 {store.name}
               </h1>
               {store.handle && (
-                <p className="text-[11px] text-slate-300 font-medium truncate">
+                <p className="text-[11px] text-slate-300 font-medium">
                   {store.handle}
                 </p>
               )}
             </div>
           </div>
 
-          {/* Desktop Logo Avatar (hidden on mobile) */}
-          <div className="ms-hero-logo hidden sm:flex shrink-0">
+          {/* Desktop Logo Avatar (hidden on mobile via ms-hero-logo-desktop) */}
+          <div className="ms-hero-logo ms-hero-logo-desktop shrink-0">
             {hasValidLogo ? (
               <img
                 src={logoSrc}

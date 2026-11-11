@@ -119,14 +119,19 @@ export default function SeoCustomizationBridge() {
       : resolveSeoAbsoluteUrl(resolvedMetaImage || "/og-image.png", currentUrl);
     const nextUrl = resolveSeoAbsoluteUrl(seoSettings.metaUrl, currentUrl);
 
-    document.title = nextTitle;
-    descriptionMeta.setAttribute("content", nextDescription);
-    keywordsMeta.setAttribute("content", nextKeywords);
-    ogTitleMeta.setAttribute("content", nextTitle);
-    ogDescriptionMeta.setAttribute("content", nextDescription);
-    ogImageMeta.setAttribute("content", nextImage);
-    ogUrlMeta.setAttribute("content", nextUrl);
-    canonicalLink.setAttribute("href", nextUrl);
+    const isDynamicDetailRoute =
+      location.pathname.startsWith("/store/") || location.pathname.startsWith("/product/");
+
+    if (!isDynamicDetailRoute) {
+      document.title = nextTitle;
+      descriptionMeta.setAttribute("content", nextDescription);
+      keywordsMeta.setAttribute("content", nextKeywords);
+      ogTitleMeta.setAttribute("content", nextTitle);
+      ogDescriptionMeta.setAttribute("content", nextDescription);
+      ogImageMeta.setAttribute("content", nextImage);
+      ogUrlMeta.setAttribute("content", nextUrl);
+      canonicalLink.setAttribute("href", nextUrl);
+    }
     faviconLink.setAttribute(
       "href",
       resolveAssetUrl(seoSettings.faviconDataUrl) || workspaceFaviconHref || originalFaviconHref

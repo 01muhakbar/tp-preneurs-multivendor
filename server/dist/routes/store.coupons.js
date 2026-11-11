@@ -46,11 +46,29 @@ router.get("/", async (req, res, next) => {
     try {
         const now = new Date();
         const scopedStoreId = await resolveStoreScopeId(req.query.storeId, req.query.storeSlug);
+        const scopeTypeQuery = req.query.scopeType ? String(req.query.scopeType).toUpperCase() : null;
+        let scopeCondition;
+        if (scopeTypeQuery === "STORE") {
+            scopeCondition = {
+                scopeType: "STORE",
+                ...(scopedStoreId && scopedStoreId > 0 ? { storeId: scopedStoreId } : {}),
+            };
+        }
+        else if (scopeTypeQuery === "PLATFORM") {
+            scopeCondition = {
+                [Op.or]: [{ scopeType: "PLATFORM" }, { scopeType: null, storeId: null }],
+            };
+        }
+        else {
+            scopeCondition = {
+                [Op.or]: scopedStoreId && scopedStoreId > 0
+                    ? [{ scopeType: "PLATFORM" }, { scopeType: "STORE", storeId: scopedStoreId }]
+                    : [{ scopeType: "PLATFORM" }, { scopeType: null, storeId: null }],
+            };
+        }
         const where = {
             ...buildActiveWindowWhere(now),
-            [Op.or]: scopedStoreId && scopedStoreId > 0
-                ? [{ scopeType: "PLATFORM" }, { scopeType: "STORE", storeId: scopedStoreId }]
-                : [{ scopeType: "PLATFORM" }, { scopeType: null, storeId: null }],
+            ...scopeCondition,
         };
         const coupons = await Coupon.findAll({
             where,

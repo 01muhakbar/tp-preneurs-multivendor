@@ -104,6 +104,48 @@ export default function StoreMicrositePage() {
     }
   }, [activeTabFromQuery]);
 
+  // Sync client-side document title and OpenGraph metadata
+  useEffect(() => {
+    const storeData = micrositeQuery.data?.data;
+    if (!storeData?.name) return;
+
+    const pageTitle = `Toko Online ${storeData.name} | TP Preneurs`;
+    document.title = pageTitle;
+
+    const rawDesc = toText(storeData.description);
+    const snippet = rawDesc.length > 170 ? `${rawDesc.slice(0, 167)}...` : rawDesc;
+    const metaDescription = snippet
+      ? `${storeData.name} adalah toko online resmi di TP Preneurs. ${snippet}`
+      : `Kunjungi toko online resmi ${storeData.name} di TP Preneurs. Temukan produk berkualitas, penawaran terbaik, dan belanja online aman.`;
+
+    const setMeta = (nameOrProperty, value, isProperty = false) => {
+      const attr = isProperty ? "property" : "name";
+      let el = document.head.querySelector(`meta[${attr}='${nameOrProperty}']`);
+      if (!el) {
+        el = document.createElement("meta");
+        el.setAttribute(attr, nameOrProperty);
+        document.head.appendChild(el);
+      }
+      el.setAttribute("content", value);
+    };
+
+    setMeta("description", metaDescription);
+    setMeta("og:title", pageTitle, true);
+    setMeta("og:description", metaDescription, true);
+    setMeta("og:url", window.location.href, true);
+    setMeta("og:site_name", "TP Preneurs", true);
+    setMeta("og:type", "website", true);
+    setMeta("twitter:card", "summary_large_image");
+    setMeta("twitter:title", pageTitle);
+    setMeta("twitter:description", metaDescription);
+
+    const imageUrl = storeData.logoUrl || storeData.bannerUrl;
+    if (imageUrl) {
+      setMeta("og:image", imageUrl, true);
+      setMeta("twitter:image", imageUrl);
+    }
+  }, [micrositeQuery.data?.data]);
+
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
     const next = new URLSearchParams(searchParams);
