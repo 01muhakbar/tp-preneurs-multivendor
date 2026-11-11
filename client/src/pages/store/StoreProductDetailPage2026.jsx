@@ -65,6 +65,28 @@ export const rupiah = (value) =>
     maximumFractionDigits: 0,
   }).format(toNumber(value, 0));
 
+export function CartPlusIcon({ className = "h-5 w-5", ...props }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...props}
+    >
+      <circle cx="8" cy="21" r="1" />
+      <circle cx="19" cy="21" r="1" />
+      <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
+      <line x1="10.5" y1="11.5" x2="16.5" y2="11.5" />
+      <line x1="13.5" y1="8.5" x2="13.5" y2="14.5" />
+    </svg>
+  );
+}
+
 export const normalizePayload = (payload) =>
   payload?.data?.data ?? payload?.data ?? payload?.product ?? payload ?? null;
 
@@ -1401,7 +1423,7 @@ export default function StoreProductDetailPage2026() {
 
           <div className="h-7 w-[1px] bg-slate-200 dark:bg-white/10 shrink-0" />
 
-          {/* 2. Mobile + Keranjang Action Button */}
+          {/* 2. Mobile Keranjang Action Button (Cart icon with '+' inside basket) */}
           <button
             type="button"
             onClick={handleAddToCart}
@@ -1409,8 +1431,8 @@ export default function StoreProductDetailPage2026() {
             className="pdp26-icon-action sm:hidden text-[var(--pdp-navy)] dark:text-sky-400"
             title={t("productDetail.addToCart")}
           >
-            {isAdding ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShoppingCart className="h-5 w-5" />}
-            <span className="text-[10px] leading-tight font-bold mt-0.5">{isIndo ? "+ Keranjang" : "+ Cart"}</span>
+            {isAdding ? <Loader2 className="h-5 w-5 animate-spin" /> : <CartPlusIcon className="h-5 w-5" />}
+            <span className="text-[10px] leading-tight font-bold mt-0.5 whitespace-nowrap">{isIndo ? "Keranjang" : "Cart"}</span>
           </button>
 
           {/* 3. Mobile Beli Sekarang Button (Full Flex-1 with Price) */}
@@ -1435,7 +1457,7 @@ export default function StoreProductDetailPage2026() {
             disabled={!canPurchase || isAdding}
             className="hidden sm:flex pdp26-btn-add-cart"
           >
-            {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
+            {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <CartPlusIcon className="h-4 w-4" />}
             <span>{t("productDetail.addToCart")}</span>
           </button>
 
