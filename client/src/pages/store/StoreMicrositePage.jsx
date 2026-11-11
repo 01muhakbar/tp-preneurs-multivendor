@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import toast from "react-hot-toast";
 import { fetchStoreProducts } from "../../api/public/storeProducts.ts";
 import { getStoreMicrositeRichAboutBySlug } from "../../api/public/storeCustomizationPublic.ts";
 import { getStorePublicIdentityBySlug } from "../../api/public/storePublicIdentity.ts";
@@ -48,6 +50,15 @@ export default function StoreMicrositePage() {
   const safeSlug = useMemo(() => toText(slug).toLowerCase(), [slug]);
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
+  const { i18n } = useTranslation();
+  const currentLang = String(i18n.language || "").toLowerCase();
+  const isIndo =
+    currentLang === "id" ||
+    currentLang === "id-id" ||
+    currentLang.startsWith("id") ||
+    (typeof window !== "undefined" &&
+      (localStorage.getItem("store_language") === "Indonesia" ||
+        localStorage.getItem("store_language") === "id"));
 
   const activeTabFromQuery = toText(searchParams.get("view"), "home").toLowerCase();
   const activeSearchQuery = toText(searchParams.get("q") || searchParams.get("query") || searchParams.get("search"));
@@ -170,12 +181,12 @@ export default function StoreMicrositePage() {
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
-        title: micrositeQuery.data?.data?.name || "Store",
+        title: micrositeQuery.data?.data?.name || (isIndo ? "Toko" : "Store"),
         url: window.location.href,
-      }).catch(console.error);
+      }).catch(() => {});
     } else {
-      navigator.clipboard.writeText(window.location.href).then(() => {
-        alert("Link copied to clipboard!");
+      navigator.clipboard?.writeText(window.location.href).then(() => {
+        toast.success(isIndo ? "Tautan toko berhasil disalin!" : "Store link copied to clipboard!");
       });
     }
   };
@@ -193,11 +204,11 @@ export default function StoreMicrositePage() {
     return (
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
         <UiEmptyState
-          title="Store slug is missing."
-          description="Use a valid /store/:slug route."
+          title={isIndo ? "Slug toko tidak valid." : "Store slug is missing."}
+          description={isIndo ? "Gunakan rute /store/:slug yang valid." : "Use a valid /store/:slug route."}
           actions={
-            <Link to="/" className="inline-flex h-11 items-center justify-center rounded-full border border-slate-200 px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-              Back to Marketplace
+            <Link to="/" className="inline-flex h-11 items-center justify-center rounded-full border border-slate-200 px-5 text-sm font-semibold text-[#034c85] hover:bg-slate-50">
+              {isIndo ? "Kembali ke Beranda" : "Back to Marketplace"}
             </Link>
           }
         />
@@ -209,11 +220,11 @@ export default function StoreMicrositePage() {
     return (
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
         <UiEmptyState
-          title="Store not found."
-          description={`We could not find an eligible public store for "${safeSlug}".`}
+          title={isIndo ? "Toko tidak ditemukan." : "Store not found."}
+          description={isIndo ? `Tidak dapat menemukan toko publik yang sesuai untuk "${safeSlug}".` : `We could not find an eligible public store for "${safeSlug}".`}
           actions={
-            <Link to="/" className="inline-flex h-11 items-center justify-center rounded-full border border-slate-200 px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-              Back to Marketplace
+            <Link to="/" className="inline-flex h-11 items-center justify-center rounded-full border border-slate-200 px-5 text-sm font-semibold text-[#034c85] hover:bg-slate-50">
+              {isIndo ? "Kembali ke Beranda" : "Back to Marketplace"}
             </Link>
           }
         />
@@ -226,11 +237,11 @@ export default function StoreMicrositePage() {
     return (
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
         <UiEmptyState
-          title={readiness.label || "Store Currently Unavailable"}
-          description={readiness.description || `The store "${safeSlug}" is not operational yet and cannot be accessed on public storefront routes.`}
+          title={readiness.label || (isIndo ? "Toko Sedang Tidak Tersedia" : "Store Currently Unavailable")}
+          description={readiness.description || (isIndo ? `Toko "${safeSlug}" belum beroperasi penuh untuk publik.` : `The store "${safeSlug}" is not operational yet and cannot be accessed on public storefront routes.`)}
           actions={
-            <Link to="/" className="inline-flex h-11 items-center justify-center rounded-full border border-slate-200 px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-              Back to Marketplace
+            <Link to="/" className="inline-flex h-11 items-center justify-center rounded-full border border-slate-200 px-5 text-sm font-semibold text-[#034c85] hover:bg-slate-50">
+              {isIndo ? "Kembali ke Beranda" : "Back to Marketplace"}
             </Link>
           }
         />

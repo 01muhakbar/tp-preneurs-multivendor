@@ -38,6 +38,12 @@ export function normalizePublicStoreIdentity(raw, fallbackSlug) {
       data.province,
       data.country,
     ].filter(Boolean).join(", "),
+    addressLine1: data.addressLine1 || "",
+    city: data.city || "",
+    province: data.province || "",
+    country: data.country || "",
+    postalCode: data.postalCode || "",
+    createdAt: createdAt || null,
     joinedLabel: formatMonthYear(createdAt),
     isOperational,
     rawSummary: data.summary, // preserve for original shell
