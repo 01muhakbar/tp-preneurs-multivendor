@@ -187,7 +187,7 @@ export default function Checkout2026View({
         attention: "Attention",
       };
 
-  if (status.loading) {
+  if (status?.loading) {
     return (
       <main className="co26-page">
         <div className="co26-skeleton">
@@ -200,7 +200,7 @@ export default function Checkout2026View({
     );
   }
 
-  if (status.redirectUrl) {
+  if (status?.redirectUrl) {
     return (
       <main className="co26-page">
         <div className="co26-empty">
@@ -215,7 +215,7 @@ export default function Checkout2026View({
     );
   }
 
-  if (!status.hasItems) {
+  if (!status?.hasItems) {
     return (
       <main className="co26-page">
         <div className="co26-empty">
@@ -342,7 +342,7 @@ export default function Checkout2026View({
   );
   const grandTotal = Math.max(0, subtotal + shipping - totalDiscount);
 
-  const busy = status.submitting || status.cartSyncing;
+  const busy = Boolean(status?.submitting || status?.cartSyncing);
 
   return (
     <main className="co26-shopee-page">
@@ -362,12 +362,12 @@ export default function Checkout2026View({
 
       <div className="co26-shopee-shell">
         {/* Error / Warning Alert */}
-        {(status.error || viewModel.previewError) && (
+        {(status?.error || viewModel?.previewError) && (
           <div className="co26-shopee-alert" role="alert">
             <AlertTriangle className="text-[#fe6f05] shrink-0" size={18} />
             <div className="text-xs sm:text-sm">
               <strong className="block font-bold">{T.attention}</strong>
-              <p>{status.error || viewModel.previewError}</p>
+              <p>{status?.error || viewModel?.previewError}</p>
             </div>
           </div>
         )}
@@ -659,13 +659,13 @@ export default function Checkout2026View({
           </div>
 
           <div className="space-y-2 mt-3">
-            {form.paymentOptions?.map((opt) => {
-              const isSelected = form.paymentOptionId === opt.id;
+            {form?.paymentOptions?.map((opt) => {
+              const isSelected = form?.paymentOptionId === opt.id;
               return (
                 <div
                   key={opt.id}
                   className={`co26-shopee-payment-option ${isSelected ? "is-selected" : ""}`}
-                  onClick={() => form.setPaymentOptionId(opt.id)}
+                  onClick={() => form?.setPaymentOptionId?.(opt.id)}
                   role="button"
                   tabIndex={0}
                 >
@@ -684,14 +684,14 @@ export default function Checkout2026View({
             })}
 
             {/* If Duitku selected, display channel options */}
-            {form.paymentOptionId === "duitku" && Array.isArray(form.duitkuPaymentMethods) && (
+            {form?.paymentOptionId === "duitku" && Array.isArray(form?.duitkuPaymentMethods) && (
               <div className="co26-shopee-channel-box mt-3 p-3 rounded-xl bg-slate-900/60 border border-slate-700/60">
                 <p className="text-xs font-bold text-slate-300 mb-2.5">
                   {T.chooseChannel}:
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {form.duitkuPaymentMethods.map((method) => {
-                    const isMethodSelected = form.duitkuPaymentMethod === method.code;
+                    const isMethodSelected = form?.duitkuPaymentMethod === method.code;
                     const brand = DUITKU_CHANNEL_BRANDS[method.code] || {
                       mark: method.code,
                       tone: "default",
@@ -701,7 +701,7 @@ export default function Checkout2026View({
                       <button
                         key={method.code}
                         type="button"
-                        onClick={() => form.setDuitkuPaymentMethod(method.code)}
+                        onClick={() => form?.setDuitkuPaymentMethod?.(method.code)}
                         className={`co26-shopee-channel-btn ${isMethodSelected ? "is-selected" : ""}`}
                       >
                         <span className={`co26-duitku-tag tone-${brand.tone}`}>
@@ -784,7 +784,7 @@ export default function Checkout2026View({
             type="button"
             className="co26-shopee-btn-submit"
             onClick={onSubmit}
-            disabled={busy || status.submitDisabled}
+            disabled={busy || status?.submitDisabled}
           >
             {busy ? (
               <div className="flex items-center gap-2">

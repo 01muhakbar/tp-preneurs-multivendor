@@ -1348,7 +1348,7 @@ export default function CheckoutPage() {
     () => location.state?.totalPlatformDiscount || 0
   );
   const [appliedStoreCoupons, setAppliedStoreCoupons] = useState(
-    () => location.state?.appliedStoreCoupons || {}
+    () => (location.state?.appliedStoreCoupons && typeof location.state.appliedStoreCoupons === "object" ? location.state.appliedStoreCoupons : {})
   );
   const [couponMessage, setCouponMessage] = useState("");
   const [couponStatus, setCouponStatus] = useState("idle");
@@ -1358,11 +1358,11 @@ export default function CheckoutPage() {
     () => location.state?.totalPlatformDiscount || 0
   );
   const [groupCouponCodes, setGroupCouponCodes] = useState(
-    () => location.state?.groupCouponCodes || {}
+    () => (location.state?.groupCouponCodes && typeof location.state.groupCouponCodes === "object" ? location.state.groupCouponCodes : {})
   );
   const [groupCouponStates, setGroupCouponStates] = useState(() => {
     const initial = {};
-    if (location.state?.appliedStoreCoupons) {
+    if (location.state?.appliedStoreCoupons && typeof location.state.appliedStoreCoupons === "object") {
       Object.entries(location.state.appliedStoreCoupons).forEach(([storeKey, c]) => {
         if (c && c.code) {
           const idKey = String(c.storeId || storeKey.replace(/^id:/, ""));
@@ -1371,7 +1371,7 @@ export default function CheckoutPage() {
             message: "Voucher toko diterapkan",
             appliedMeta: {
               code: c.code,
-              discount: c.discountAmount || 0,
+              discount: Number(c.discountAmount || 0),
               ...c,
             },
             baseline: null,
@@ -2915,8 +2915,8 @@ export default function CheckoutPage() {
         status: couponStatus,
         message: couponMessage,
         groups: Object.fromEntries(
-          checkoutPreviewDisplayGroups.map((group) => {
-            const key = String(group.storeId);
+          (Array.isArray(checkoutPreviewDisplayGroups) ? checkoutPreviewDisplayGroups : []).map((group) => {
+            const key = String(group?.storeId || "");
             return [key, {
               code: groupCouponCodes[key] || "",
               status: groupCouponStates[key]?.status || "idle",
