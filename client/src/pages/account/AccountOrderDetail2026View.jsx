@@ -711,7 +711,12 @@ export default function AccountOrderDetail2026View({
                       <span className="tp-shopee-detail__item-qty">x{item.quantity || item.qty || 1}</span>
                     </div>
                     <div className="tp-shopee-detail__item-price">
-                      {formatCurrency(item.price || 0)}
+                      {formatCurrency(
+                        item.price ||
+                        item.unitPrice ||
+                        (item.lineTotal && item.quantity ? Math.round(item.lineTotal / item.quantity) : 0) ||
+                        (storeProducts?.items?.length === 1 && storeProducts?.summary?.subtotal ? storeProducts.summary.subtotal : 0)
+                      )}
                     </div>
 
                     {/* Digital Asset Access Box */}

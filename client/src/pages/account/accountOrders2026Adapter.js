@@ -99,7 +99,13 @@ const normalizeItem = (item) => {
     name: text(it.name || it.productName || it.title || it.product?.name, "Produk"),
     image: text(it.image || it.imageSnapshot || it.imageUrl || it.product?.image, ""),
     variant: text(it.variant || it.variantLabel || it.variantKey, ""),
-    price: asNumber(it.price || it.priceSnapshot, 0),
+    price: asNumber(
+      it.price ||
+      it.priceSnapshot ||
+      it.unitPrice ||
+      (it.totalPrice && it.quantity ? Math.round(it.totalPrice / it.quantity) : 0),
+      0
+    ),
     quantity: Math.max(1, asNumber(it.quantity || it.qty, 1)),
     totalPrice: asNumber(it.totalPrice || it.price, 0),
     slug: text(it.slug || it.productSlug || it.product?.slug, ""),

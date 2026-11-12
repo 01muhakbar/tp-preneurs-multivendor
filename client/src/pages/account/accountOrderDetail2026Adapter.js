@@ -459,9 +459,29 @@ const normalizeMoney = (value) => {
 
 const normalizeItem = (value, index, storeInfo = {}) => {
   const item = asObject(value);
-  const quantity = asNumber(item.quantity ?? item.qty, 0);
-  const unitPrice = asNumber(item.price ?? item.unitPrice ?? item.priceSnapshot, 0);
-  const lineTotal = asNumber(item.lineTotal ?? item.totalPrice, unitPrice * quantity);
+  const quantity = asNumber(item.quantity ?? item.qty, 1);
+  const unitPrice = asNumber(
+    item.price ??
+    item.unitPrice ??
+    item.unit_price ??
+    item.priceSnapshot ??
+    item.price_snapshot ??
+    (item.totalPrice && quantity ? item.totalPrice / quantity : 0) ??
+    (item.lineTotal && quantity ? item.lineTotal / quantity : 0),
+    0
+  );
+  const lineTotal = asNumber(
+    item.lineTotal ?? item.totalPrice ?? item.line_total,
+    unitPrice * quantity
+  );
+  const variant = text(
+    item.variantLabel ||
+    item.variant ||
+    item.variantKey ||
+    item.variant_label ||
+    (Array.isArray(item.variantLines) ? item.variantLines.join(", ") : "") ||
+    "Standard"
+  );
   const productType = String(
     item.productType ||
     item.product_type ||
@@ -486,10 +506,14 @@ const normalizeItem = (value, index, storeInfo = {}) => {
     name: text(item.name || item.productName || item.product?.name, "Product"),
     image: text(item.imageUrl || item.image),
     quantity,
+    price: unitPrice,
     unitPrice,
     unitPriceDisplay: formatCurrency(unitPrice),
+    totalPrice: lineTotal,
     lineTotal,
     lineTotalDisplay: formatCurrency(lineTotal),
+    variant,
+    variantLabel: variant,
     variantLines: getOrderItemVariantLines(item),
     isReviewed: Boolean(item.isReviewed),
     reviewId: asNumber(item.reviewId, null),

@@ -167,7 +167,13 @@ const normalizeItems = (items, isIndo = false) =>
   array(items).map((item, index) => {
     const row = object(item);
     const quantity = number(row.quantity ?? row.qty, 0);
-    const price = number(row.price, 0);
+    const price = number(
+      row.price ??
+      row.unitPrice ??
+      row.priceSnapshot ??
+      (row.lineTotal && quantity ? row.lineTotal / quantity : 0),
+      0
+    );
     const subtotal = number(row.lineTotal ?? row.total, price * quantity);
     const productType = String(
       row.productType ||
