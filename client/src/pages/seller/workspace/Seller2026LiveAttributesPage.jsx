@@ -1,5 +1,6 @@
-import React, { useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
 import {
   CheckCircle2,
@@ -16,7 +17,10 @@ import {
   Upload,
 } from "lucide-react";
 import { exportSellerAttributes, importSellerAttributes } from "../../../api/sellerAttributes.ts";
-import { seller2026AttributeLabels } from "../../../api/seller2026/attributes.adapter.ts";
+import {
+  formatSeller2026AttributeDate,
+  getSeller2026AttributeLabels,
+} from "../../../api/seller2026/attributes.adapter.ts";
 import { useSeller2026Attributes } from "../../../hooks/seller2026/useSeller2026Attributes.ts";
 import { Seller2026Shell } from "../../../features/sellerWorkspace2026/components/Seller2026Shell.jsx";
 import Seller2026AttributeDrawer from "../../../features/sellerWorkspace2026/components/Seller2026AttributeDrawer.jsx";
@@ -34,7 +38,11 @@ const statusClass = (status) => (status === "published" || status === "active" ?
 export default function Seller2026LiveAttributesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const importInputRef = useRef(null);
-  const { sellerContext, workspaceStoreId: storeId, workspaceRoutes } = useSellerWorkspaceRoute();
+  const { sellerContext, workspaceStoreId: storeId, workspaceRoutes, isId: outletIsId = false } = useSellerWorkspaceRoute();
+  const { i18n } = useTranslation();
+  const isId = Boolean(outletIsId || String(i18n.language || "").toLowerCase().startsWith("id"));
+  const labels = useMemo(() => getSeller2026AttributeLabels(isId), [isId]);
+
   const { can } = getSeller2026PagePermissions(sellerContext);
   const canView = can("CATALOG_ATTRIBUTE_READ");
   const canCreate = can("CATALOG_ATTRIBUTE_CREATE");
@@ -99,14 +107,14 @@ export default function Seller2026LiveAttributesPage() {
     try {
       if (activeAttribute) {
         await updateAttribute({ attributeId: activeAttribute.id, payload: form });
-        toast.success("Attribute updated", { id: "seller2026-attribute-updated" });
+        toast.success(isId ? "Atribut berhasil diperbarui" : "Attribute updated", { id: "seller2026-attribute-updated" });
       } else {
         await createAttribute(form);
-        toast.success("Attribute created", { id: "seller2026-attribute-created" });
+        toast.success(isId ? "Atribut berhasil dibuat" : "Attribute created", { id: "seller2026-attribute-created" });
       }
       setDrawerOpen(false);
     } catch {
-      toast.error(activeAttribute ? "Unable to update attribute" : "Unable to create attribute");
+      toast.error(activeAttribute ? (isId ? "Gagal memperbarui atribut" : "Unable to update attribute") : (isId ? "Gagal membuat atribut" : "Unable to create attribute"));
     }
   };
 
@@ -140,9 +148,9 @@ export default function Seller2026LiveAttributesPage() {
       link.download = "seller-attributes.csv";
       link.click();
       window.URL.revokeObjectURL(url);
-      toast.success("Attributes exported");
+      toast.success(isId ? "Atribut berhasil diekspor" : "Attributes exported");
     } catch {
-      toast.error("Unable to export attributes");
+      toast.error(isId ? "Gagal mengekspor atribut" : "Unable to export attributes");
     } finally {
       setIsExporting(false);
     }
@@ -156,9 +164,9 @@ export default function Seller2026LiveAttributesPage() {
     try {
       await importSellerAttributes(storeId, file);
       await refetch();
-      toast.success("Attributes imported");
+      toast.success(isId ? "Atribut berhasil diimpor" : "Attributes imported");
     } catch {
-      toast.error("Unable to import attributes");
+      toast.error(isId ? "Gagal mengimpor atribut" : "Unable to import attributes");
     } finally {
       setIsImporting(false);
     }
@@ -168,35 +176,39 @@ export default function Seller2026LiveAttributesPage() {
     return (
       <Seller2026Shell section="taxonomy" mode="embedded" storeContext={sellerContext}>
         <div className="seller2026-state seller2026-state--danger">
-          <h1>Access Denied</h1>
-          <p>Requires permission to view attributes.</p>
+          <h1>{isId ? "Akses Ditolak" : "Access Denied"}</h1>
+          <p>{isId ? "Membutuhkan izin untuk melihat atribut." : "Requires permission to view attributes."}</p>
         </div>
       </Seller2026Shell>
     );
   }
+
+  const bulkButtonLabel = selectedIds.length > 0
+    ? (isId ? `Aksi Massal (${selectedIds.length})` : `Bulk Actions (${selectedIds.length})`)
+    : (isId ? "Aksi Massal" : "Bulk Actions");
 
   return (
     <Seller2026Shell section="taxonomy" mode="embedded" storeContext={sellerContext} activeNavOverride="attributes">
       <section className="seller2026-attributes" data-seller2026-live-attributes="true">
         <header className="seller2026-attributes-header">
           <div className="seller2026-header-titles">
-            <h1>Attributes</h1>
-            <p>Manage product attributes.</p>
+            <h1>{isId ? "Atribut" : "Attributes"}</h1>
+            <p>{isId ? "Kelola atribut dan opsi varian produk Anda." : "Manage product attributes."}</p>
           </div>
           <div className="seller2026-header-actions">
             <button className="seller2026-btn-outline" type="button" onClick={exportAttributes} disabled={isExporting}>
-              <Download size={16} /> Export
+              <Download size={16} /> {isId ? "Ekspor" : "Export"}
             </button>
             <button className="seller2026-btn-outline" type="button" onClick={() => importInputRef.current?.click()} disabled={isImporting}>
-              <Upload size={16} /> Import
+              <Upload size={16} /> {isId ? "Impor" : "Import"}
             </button>
             <input ref={importInputRef} type="file" accept=".json,.csv" hidden onChange={importAttributes} />
-            <button className="seller2026-btn-outline" type="button" disabled={selectedIds.length === 0} title={selectedIds.length === 0 ? "Select attributes first" : "Bulk actions"}>
-              <Layers size={16} /> Bulk Actions
+            <button className="seller2026-btn-outline" type="button" disabled={selectedIds.length === 0} title={selectedIds.length === 0 ? (isId ? "Pilih atribut terlebih dahulu" : "Select attributes first") : (isId ? "Aksi massal" : "Bulk actions")}>
+              <Layers size={16} /> {bulkButtonLabel}
             </button>
             {canCreate ? (
               <button className="seller2026-btn-primary" type="button" onClick={() => { setActiveAttribute(null); setDrawerOpen(true); }}>
-                <Plus size={16} /> Add Attribute
+                <Plus size={16} /> {isId ? "Tambah Atribut" : "Add Attribute"}
               </button>
             ) : null}
           </div>
@@ -205,28 +217,28 @@ export default function Seller2026LiveAttributesPage() {
         <div className="seller2026-attributes-summary">
           <article className="seller2026-kpi-card">
             <div>
-              <p className="seller2026-kpi-label">Total Attributes</p>
+              <p className="seller2026-kpi-label">{isId ? "Total Atribut" : "Total Attributes"}</p>
               <p className="seller2026-kpi-value">{summary.total}</p>
             </div>
             <span className="seller2026-kpi-icon icon-gray"><Tags size={24} /></span>
           </article>
           <article className="seller2026-kpi-card">
             <div>
-              <p className="seller2026-kpi-label">Published</p>
+              <p className="seller2026-kpi-label">{isId ? "Dipublikasikan" : "Published"}</p>
               <p className="seller2026-kpi-value">{summary.published}</p>
             </div>
             <span className="seller2026-kpi-icon icon-green"><CheckCircle2 size={24} /></span>
           </article>
           <article className="seller2026-kpi-card">
             <div>
-              <p className="seller2026-kpi-label">Unused</p>
+              <p className="seller2026-kpi-label">{isId ? "Belum Digunakan" : "Unused"}</p>
               <p className="seller2026-kpi-value">{summary.unused}</p>
             </div>
             <span className="seller2026-kpi-icon icon-amber"><Circle size={24} /></span>
           </article>
           <article className="seller2026-kpi-card">
             <div>
-              <p className="seller2026-kpi-label">With Values</p>
+              <p className="seller2026-kpi-label">{isId ? "Memiliki Nilai" : "With Values"}</p>
               <p className="seller2026-kpi-value">{summary.withValues}</p>
             </div>
             <span className="seller2026-kpi-icon icon-blue"><Layers size={24} /></span>
@@ -237,39 +249,39 @@ export default function Seller2026LiveAttributesPage() {
           <label className="seller2026-search-wrapper">
             <Search className="seller2026-search-icon" size={16} />
             <input
-              aria-label="Search attributes"
+              aria-label={isId ? "Cari atribut" : "Search attributes"}
               className="seller2026-search-input"
-              placeholder="Search attributes..."
+              placeholder={isId ? "Cari atribut..." : "Search attributes..."}
               value={filters.search}
               onChange={(event) => updateQuery("search", event.target.value)}
             />
           </label>
           <div className="seller2026-filters-right">
-            <select className="seller2026-select-outline" aria-label="Option Type" value={filters.type} onChange={(event) => updateQuery("type", event.target.value)}>
-              <option value="all">All Types</option>
+            <select className="seller2026-select-outline" aria-label={isId ? "Tipe Opsi" : "Option Type"} value={filters.type} onChange={(event) => updateQuery("type", event.target.value)}>
+              <option value="all">{isId ? "Semua Tipe" : "All Types"}</option>
               <option value="dropdown">Dropdown</option>
               <option value="radio">Radio</option>
-              <option value="checkbox">Checkbox</option>
+              <option value="checkbox">{isId ? "Kotak Centang" : "Checkbox"}</option>
             </select>
-            <select className="seller2026-select-outline" aria-label="Status" value={filters.status} onChange={(event) => updateQuery("status", event.target.value)}>
-              <option value="all">All Statuses</option>
-              <option value="published">Published</option>
-              <option value="draft">Draft</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+            <select className="seller2026-select-outline" aria-label={isId ? "Status" : "Status"} value={filters.status} onChange={(event) => updateQuery("status", event.target.value)}>
+              <option value="all">{isId ? "Semua Status" : "All Statuses"}</option>
+              <option value="published">{isId ? "Dipublikasikan" : "Published"}</option>
+              <option value="draft">{isId ? "Draf" : "Draft"}</option>
+              <option value="active">{isId ? "Aktif" : "Active"}</option>
+              <option value="inactive">{isId ? "Nonaktif" : "Inactive"}</option>
             </select>
-            <select className="seller2026-select-outline" aria-label="Usage" value={filters.usage} onChange={(event) => updateQuery("usage", event.target.value)}>
-              <option value="all">All Usage</option>
-              <option value="in_use">In Use</option>
-              <option value="unused">Unused</option>
-              <option value="with_values">With Values</option>
-              <option value="no_values">No Values</option>
+            <select className="seller2026-select-outline" aria-label={isId ? "Penggunaan" : "Usage"} value={filters.usage} onChange={(event) => updateQuery("usage", event.target.value)}>
+              <option value="all">{isId ? "Semua Penggunaan" : "All Usage"}</option>
+              <option value="in_use">{isId ? "Digunakan" : "In Use"}</option>
+              <option value="unused">{isId ? "Belum Digunakan" : "Unused"}</option>
+              <option value="with_values">{isId ? "Memiliki Nilai" : "With Values"}</option>
+              <option value="no_values">{isId ? "Tanpa Nilai" : "No Values"}</option>
             </select>
-            <button className="seller2026-btn-accent" type="button">
-              <Filter size={16} /> Apply
+            <button className="seller2026-btn-accent" type="button" title={isId ? "Terapkan filter" : "Apply filters"}>
+              <Filter size={16} /> {isId ? "Terapkan" : "Apply"}
             </button>
-            <button className="seller2026-btn-cancel" type="button" onClick={() => setSearchParams(new URLSearchParams())}>
-              <RotateCcw size={16} /> Reset
+            <button className="seller2026-btn-cancel" type="button" onClick={() => setSearchParams(new URLSearchParams())} title={isId ? "Reset semua filter" : "Reset all filters"}>
+              <RotateCcw size={16} /> {isId ? "Atur Ulang" : "Reset"}
             </button>
           </div>
         </div>
@@ -280,76 +292,108 @@ export default function Seller2026LiveAttributesPage() {
               <tr>
                 <th>
                   <input
-                    aria-label="Select visible attributes"
+                    aria-label={isId ? "Pilih semua atribut" : "Select visible attributes"}
                     type="checkbox"
                     checked={attributes.length > 0 && attributes.every((attribute) => selectedIds.includes(attribute.id))}
                     onChange={toggleAllVisible}
                   />
                 </th>
-                <th>Name</th>
-                <th>Display Name</th>
-                <th>Option Type</th>
-                <th>Values</th>
-                <th>Usage</th>
-                <th>Status</th>
-                <th>Updated</th>
-                <th>Actions</th>
+                <th>{isId ? "Nama" : "Name"}</th>
+                <th>{isId ? "Nama Tampilan" : "Display Name"}</th>
+                <th>{isId ? "Tipe Opsi" : "Option Type"}</th>
+                <th>{isId ? "Nilai" : "Values"}</th>
+                <th>{isId ? "Penggunaan" : "Usage"}</th>
+                <th>{isId ? "Status" : "Status"}</th>
+                <th>{isId ? "Diperbarui" : "Updated"}</th>
+                <th>{isId ? "Aksi" : "Actions"}</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={9} className="seller2026-table-loading">Loading attributes...</td></tr>
+                <tr><td colSpan={9} className="seller2026-table-loading">{isId ? "Memuat data atribut..." : "Loading attributes..."}</td></tr>
               ) : isError ? (
-                <tr><td colSpan={9} className="seller2026-table-error">Unable to load attributes</td></tr>
+                <tr><td colSpan={9} className="seller2026-table-error">{isId ? "Gagal memuat atribut" : "Unable to load attributes"}</td></tr>
               ) : attributes.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="seller2026-table-empty">
-                    <h2>No attributes yet</h2>
-                    <p>Create your first attribute for product options.</p>
-                    {canCreate ? <button className="seller2026-btn-primary" type="button" onClick={() => { setActiveAttribute(null); setDrawerOpen(true); }}>Add Attribute</button> : null}
+                    <h2>{isId ? "Belum ada atribut" : "No attributes yet"}</h2>
+                    <p>{isId ? "Buat atribut pertama Anda untuk mengatur opsi produk." : "Create your first attribute for product options."}</p>
+                    {canCreate ? <button className="seller2026-btn-primary" type="button" onClick={() => { setActiveAttribute(null); setDrawerOpen(true); }}>{isId ? "Tambah Atribut" : "Add Attribute"}</button> : null}
                   </td>
                 </tr>
               ) : (
-                attributes.map((attribute) => (
-                  <tr key={attribute.id} className="seller2026-table-row">
-                    <td data-label="Select">
-                      <input
-                        aria-label={`Select ${attribute.name}`}
-                        type="checkbox"
-                        checked={selectedIds.includes(attribute.id)}
-                        onChange={() => toggleSelection(attribute.id)}
-                      />
-                    </td>
-                    <td data-label="Name" className="seller2026-fw-500" title={attribute.name}>{attribute.name}</td>
-                    <td data-label="Display Name" title={attribute.displayName}>{attribute.displayName}</td>
-                    <td data-label="Option Type">
-                      <span className="seller2026-pill-type">{seller2026AttributeLabels.optionType[attribute.optionType] || "Unknown"}</span>
-                    </td>
-                    <td data-label="Values">{attribute.valuesCount > 0 ? attribute.valuesCount : "-"}</td>
-                    <td data-label="Usage">
-                      <span className={`seller2026-pill-usage ${attribute.usageStatus === "in_use" ? "in-use" : "unused"}`}>
-                        {seller2026AttributeLabels.usage[attribute.usageStatus]}
-                      </span>
-                    </td>
-                    <td data-label="Status">
-                      <span className={`seller2026-pill-status ${statusClass(attribute.status)}`}>
-                        <span className="seller2026-status-dot" />
-                        {seller2026AttributeLabels.status[attribute.status]}
-                      </span>
-                    </td>
-                    <td data-label="Updated" className="seller2026-muted">{attribute.updatedAt}</td>
-                    <td data-label="Actions">
-                      <div className="seller2026-row-actions">
-                        <button className="seller2026-btn-action" type="button" aria-label="Edit Attribute" title="Edit Attribute" onClick={() => { setActiveAttribute(attribute); setDrawerOpen(true); }} disabled={!attribute.permissions.canEdit}>
-                          <Pencil size={15} />
-                        </button>
-                        <Link className="seller2026-btn-action" aria-label="Manage Values" title="Manage Values" to={workspaceRoutes.attributeValues(attribute.id)}>
-                          <MoreVertical size={15} />
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                attributes.map((attribute) => {
+                  const formattedDate = formatSeller2026AttributeDate(
+                    attribute.rawUpdatedAt || attribute.updatedAt,
+                    isId
+                  );
+                  const optionTypeLabel = labels.optionType[attribute.optionType] || attribute.optionType;
+                  const usageLabel = labels.usage[attribute.usageStatus] || attribute.usageStatus;
+                  const statusLabel = labels.status[attribute.status] || attribute.status;
+
+                  return (
+                    <tr key={attribute.id} className="seller2026-table-row">
+                      <td data-label={isId ? "Pilih" : "Select"}>
+                        <input
+                          aria-label={`Select ${attribute.name}`}
+                          type="checkbox"
+                          checked={selectedIds.includes(attribute.id)}
+                          onChange={() => toggleSelection(attribute.id)}
+                        />
+                      </td>
+                      <td data-label={isId ? "Nama" : "Name"} className="seller2026-fw-500" title={attribute.name}>
+                        <strong
+                          className={attribute.permissions.canEdit ? "is-clickable" : ""}
+                          title={attribute.permissions.canEdit ? (isId ? "Klik untuk mengedit atribut" : "Click to edit attribute") : undefined}
+                          onClick={attribute.permissions.canEdit ? () => { setActiveAttribute(attribute); setDrawerOpen(true); } : undefined}
+                        >
+                          {attribute.name}
+                        </strong>
+                      </td>
+                      <td data-label={isId ? "Nama Tampilan" : "Display Name"} title={attribute.displayName}>{attribute.displayName}</td>
+                      <td data-label={isId ? "Tipe Opsi" : "Option Type"}>
+                        <span className="seller2026-pill-type">{optionTypeLabel}</span>
+                      </td>
+                      <td data-label={isId ? "Nilai" : "Values"} style={{ fontWeight: 700 }}>
+                        {attribute.valuesCount > 0 ? attribute.valuesCount : "-"}
+                      </td>
+                      <td data-label={isId ? "Penggunaan" : "Usage"}>
+                        <span className={`seller2026-pill-usage ${attribute.usageStatus === "in_use" ? "in-use" : "unused"}`}>
+                          {usageLabel}
+                        </span>
+                      </td>
+                      <td data-label={isId ? "Status" : "Status"}>
+                        <span className={`seller2026-pill-status ${statusClass(attribute.status)}`}>
+                          <span className="seller2026-status-dot" />
+                          {statusLabel}
+                        </span>
+                      </td>
+                      <td data-label={isId ? "Diperbarui" : "Updated"} className="seller2026-muted">{formattedDate}</td>
+                      <td data-label={isId ? "Aksi" : "Actions"}>
+                        <div className="seller2026-row-actions">
+                          <button
+                            className="seller2026-btn-action"
+                            type="button"
+                            aria-label={isId ? "Edit Atribut" : "Edit Attribute"}
+                            title={isId ? "Edit Atribut" : "Edit Attribute"}
+                            onClick={() => { setActiveAttribute(attribute); setDrawerOpen(true); }}
+                            disabled={!attribute.permissions.canEdit}
+                          >
+                            <Pencil size={15} />
+                          </button>
+                          <Link
+                            className="seller2026-btn-action"
+                            aria-label={isId ? "Kelola Nilai" : "Manage Values"}
+                            title={isId ? "Kelola Nilai Atribut" : "Manage Values"}
+                            to={workspaceRoutes.attributeValues(attribute.id)}
+                          >
+                            <MoreVertical size={15} />
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -357,22 +401,24 @@ export default function Seller2026LiveAttributesPage() {
 
         <footer className="seller2026-pagination">
           <p className="seller2026-muted">
-            Showing {pagination.start} to {pagination.end} of {pagination.total} attributes
+            {isId
+              ? `Menampilkan ${pagination.start} hingga ${pagination.end} dari ${pagination.total} atribut`
+              : `Showing ${pagination.start} to ${pagination.end} of ${pagination.total} attributes`}
           </p>
           <div className="seller2026-pagination-controls">
-            <span>Rows per page</span>
+            <span>{isId ? "Baris per halaman" : "Rows per page"}</span>
             <select className="seller2026-select-outline" value={pagination.limit} onChange={(event) => updateQuery("limit", event.target.value)}>
               <option value="10">10</option>
               <option value="20">20</option>
               <option value="50">50</option>
             </select>
-            <button type="button" disabled={pagination.page <= 1} onClick={() => updateQuery("page", pagination.page - 1)}>{"<"}</button>
+            <button type="button" disabled={pagination.page <= 1} onClick={() => updateQuery("page", pagination.page - 1)} title={isId ? "Sebelumnya" : "Previous"}>{"<"}</button>
             {Array.from({ length: Math.min(3, pagination.totalPages) }, (_, index) => index + 1).map((page) => (
               <button key={page} type="button" className={pagination.page === page ? "active" : ""} onClick={() => updateQuery("page", page)}>
                 {page}
               </button>
             ))}
-            <button type="button" disabled={pagination.page >= pagination.totalPages} onClick={() => updateQuery("page", pagination.page + 1)}>{">"}</button>
+            <button type="button" disabled={pagination.page >= pagination.totalPages} onClick={() => updateQuery("page", pagination.page + 1)} title={isId ? "Berikutnya" : "Next"}>{">"}</button>
           </div>
         </footer>
       </section>
@@ -383,6 +429,7 @@ export default function Seller2026LiveAttributesPage() {
         attribute={activeAttribute}
         onSave={saveAttribute}
         isSaving={isCreating || isUpdating}
+        isId={isId}
       />
     </Seller2026Shell>
   );

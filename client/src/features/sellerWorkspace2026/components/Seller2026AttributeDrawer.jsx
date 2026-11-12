@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import {
   createSeller2026AttributeForm,
-  seller2026AttributeLabels,
+  getSeller2026AttributeLabels,
   validateSeller2026AttributeForm,
 } from "../../../api/seller2026/attributes.adapter.ts";
 
@@ -14,8 +14,10 @@ export default function Seller2026AttributeDrawer({
   attribute,
   onSave,
   isSaving = false,
+  isId = false,
 }) {
   const isEdit = Boolean(attribute);
+  const labels = useMemo(() => getSeller2026AttributeLabels(isId), [isId]);
   const [form, setForm] = useState(() => createSeller2026AttributeForm(attribute));
   const [valueDraft, setValueDraft] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -28,8 +30,8 @@ export default function Seller2026AttributeDrawer({
   }, [attribute, isOpen]);
 
   const errors = useMemo(
-    () => (submitted ? validateSeller2026AttributeForm(form) : {}),
-    [form, submitted]
+    () => (submitted ? validateSeller2026AttributeForm(form, isId) : {}),
+    [form, submitted, isId]
   );
 
   const updateForm = (patch) => setForm((current) => ({ ...current, ...patch }));
@@ -44,7 +46,7 @@ export default function Seller2026AttributeDrawer({
 
   const submit = () => {
     setSubmitted(true);
-    const nextErrors = validateSeller2026AttributeForm(form);
+    const nextErrors = validateSeller2026AttributeForm(form, isId);
     if (Object.keys(nextErrors).length > 0) return;
     onSave(form);
   };
@@ -56,7 +58,7 @@ export default function Seller2026AttributeDrawer({
       <button
         className="seller2026-drawer-overlay"
         type="button"
-        aria-label="Close attribute drawer"
+        aria-label={isId ? "Tutup panel atribut" : "Close attribute drawer"}
         onClick={onClose}
       />
       <aside
@@ -68,22 +70,22 @@ export default function Seller2026AttributeDrawer({
         <header className="seller2026-drawer-header">
           <div>
             <h2 id="seller2026-attribute-drawer-title">
-              {isEdit ? "Update Attribute" : "Add Attribute"}
+              {isEdit ? (isId ? "Perbarui Atribut" : "Update Attribute") : (isId ? "Tambah Atribut" : "Add Attribute")}
             </h2>
-            <p>{isEdit ? "Edit attribute details and values." : "Create an attribute for product options."}</p>
+            <p>{isEdit ? (isId ? "Edit rincian dan nilai atribut." : "Edit attribute details and values.") : (isId ? "Buat atribut baru untuk opsi produk." : "Create an attribute for product options.")}</p>
           </div>
-          <button className="seller2026-drawer-close" type="button" onClick={onClose} aria-label="Close">
+          <button className="seller2026-drawer-close" type="button" onClick={onClose} aria-label={isId ? "Tutup" : "Close"}>
             <X size={20} />
           </button>
         </header>
 
         <div className="seller2026-drawer-body">
           <label className={`seller2026-form-group ${errors.name ? "has-error" : ""}`}>
-            <span>Attribute Name *</span>
+            <span>{isId ? "Nama Atribut *" : "Attribute Name *"}</span>
             <input
-              aria-label="Attribute Name"
+              aria-label={isId ? "Nama Atribut" : "Attribute Name"}
               type="text"
-              placeholder="e.g. Size Dress"
+              placeholder={isId ? "cth. Ukuran Baju" : "e.g. Size Dress"}
               value={form.name}
               onChange={(event) => {
                 const name = event.target.value;
@@ -95,11 +97,11 @@ export default function Seller2026AttributeDrawer({
           </label>
 
           <label className={`seller2026-form-group ${errors.displayName ? "has-error" : ""}`}>
-            <span>Display Name *</span>
+            <span>{isId ? "Nama Tampilan *" : "Display Name *"}</span>
             <input
-              aria-label="Display Name"
+              aria-label={isId ? "Nama Tampilan" : "Display Name"}
               type="text"
-              placeholder="e.g. Size Dress"
+              placeholder={isId ? "cth. Ukuran Baju" : "e.g. Size Dress"}
               value={form.displayName}
               onChange={(event) => updateForm({ displayName: event.target.value })}
               disabled={isSaving}
@@ -108,23 +110,23 @@ export default function Seller2026AttributeDrawer({
           </label>
 
           <label className={`seller2026-form-group ${errors.optionType ? "has-error" : ""}`}>
-            <span>Option Type *</span>
+            <span>{isId ? "Tipe Opsi *" : "Option Type *"}</span>
             <select
-              aria-label="Option Type"
+              aria-label={isId ? "Tipe Opsi" : "Option Type"}
               value={form.optionType}
               onChange={(event) => updateForm({ optionType: event.target.value })}
               disabled={isSaving}
             >
               {supportedOptionTypes.map((type) => (
                 <option key={type} value={type}>
-                  {seller2026AttributeLabels.optionType[type]}
+                  {labels.optionType[type]}
                 </option>
               ))}
             </select>
           </label>
 
           <div className={`seller2026-form-group ${errors.values ? "has-error" : ""}`}>
-            <label htmlFor="seller2026-attribute-values">Values *</label>
+            <label htmlFor="seller2026-attribute-values">{isId ? "Nilai Opsi *" : "Values *"}</label>
             <div className="seller2026-values-container">
               <div className="seller2026-values-chips">
                 {form.values.map((value) => (
@@ -132,19 +134,19 @@ export default function Seller2026AttributeDrawer({
                     {value}
                     <button
                       type="button"
-                      aria-label={`Remove ${value}`}
+                      aria-label={`${isId ? "Hapus" : "Remove"} ${value}`}
                       onClick={() => updateForm({ values: form.values.filter((item) => item !== value) })}
                     >
-                      x
+                      ×
                     </button>
                   </span>
                 ))}
               </div>
               <input
                 id="seller2026-attribute-values"
-                aria-label="Values"
+                aria-label={isId ? "Nilai Opsi" : "Values"}
                 type="text"
-                placeholder="Add value and press Enter"
+                placeholder={isId ? "Tambah nilai lalu tekan Enter" : "Add value and press Enter"}
                 value={valueDraft}
                 onChange={(event) => setValueDraft(event.target.value)}
                 onKeyDown={(event) => {
@@ -157,18 +159,18 @@ export default function Seller2026AttributeDrawer({
                 disabled={isSaving}
               />
             </div>
-            <small>Tip: Press Enter to add more values.</small>
+            <small>{isId ? "Tips: Tekan Enter untuk menambahkan beberapa nilai opsi." : "Tip: Press Enter to add more values."}</small>
             {errors.values ? <small>{errors.values}</small> : null}
           </div>
 
           <div className="seller2026-form-group seller2026-toggle-group">
             <div>
-              <span className="seller2026-form-label">Storefront Visibility</span>
-              <p className="seller2026-helper-text">Show this attribute on the storefront.</p>
+              <span className="seller2026-form-label">{isId ? "Visibilitas di Etalase" : "Storefront Visibility"}</span>
+              <p className="seller2026-helper-text">{isId ? "Tampilkan atribut ini di etalase pembeli." : "Show this attribute on the storefront."}</p>
             </div>
             <label className="seller2026-toggle">
               <input
-                aria-label="Storefront Visibility"
+                aria-label={isId ? "Visibilitas di Etalase" : "Storefront Visibility"}
                 type="checkbox"
                 checked={form.visible}
                 onChange={(event) => updateForm({ visible: event.target.checked })}
@@ -179,8 +181,8 @@ export default function Seller2026AttributeDrawer({
           </div>
 
           <div className="seller2026-form-group seller2026-status-section">
-            <span className="seller2026-form-label">Status</span>
-            <p className="seller2026-helper-text">Set initial status for this attribute.</p>
+            <span className="seller2026-form-label">{isId ? "Status Publikasi" : "Status"}</span>
+            <p className="seller2026-helper-text">{isId ? "Tentukan status awal atribut produk ini." : "Set initial status for this attribute."}</p>
             <div className="seller2026-segmented-control">
               <button
                 type="button"
@@ -188,7 +190,7 @@ export default function Seller2026AttributeDrawer({
                 onClick={() => updateForm({ published: false })}
                 disabled={isSaving}
               >
-                Draft
+                {isId ? "Draf" : "Draft"}
               </button>
               <button
                 type="button"
@@ -196,7 +198,7 @@ export default function Seller2026AttributeDrawer({
                 onClick={() => updateForm({ published: true, visible: true })}
                 disabled={isSaving}
               >
-                Published
+                {isId ? "Dipublikasikan" : "Published"}
               </button>
             </div>
           </div>
@@ -204,10 +206,10 @@ export default function Seller2026AttributeDrawer({
 
         <footer className="seller2026-drawer-footer">
           <button className="seller2026-btn-cancel" type="button" onClick={onClose} disabled={isSaving}>
-            Cancel
+            {isId ? "Batal" : "Cancel"}
           </button>
           <button className="seller2026-btn-primary" type="button" onClick={submit} disabled={isSaving}>
-            {isSaving ? "Saving..." : isEdit ? "Update Attribute" : "Create Attribute"}
+            {isSaving ? (isId ? "Menyimpan..." : "Saving...") : isEdit ? (isId ? "Perbarui Atribut" : "Update Attribute") : (isId ? "Buat Atribut" : "Create Attribute")}
           </button>
         </footer>
       </aside>

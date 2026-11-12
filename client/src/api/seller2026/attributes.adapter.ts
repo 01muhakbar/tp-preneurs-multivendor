@@ -77,6 +77,29 @@ export const seller2026AttributeLabels = {
   },
 } as const;
 
+export const getSeller2026AttributeLabels = (isId = false) => ({
+  optionType: {
+    dropdown: "Dropdown",
+    radio: "Radio",
+    checkbox: isId ? "Kotak Centang" : "Checkbox",
+    text: isId ? "Teks" : "Text",
+    number: isId ? "Angka" : "Number",
+    color: isId ? "Warna" : "Color",
+    boolean: "Boolean",
+    unknown: isId ? "Tidak Diketahui" : "Unknown",
+  },
+  status: {
+    published: isId ? "Dipublikasikan" : "Published",
+    draft: isId ? "Draf" : "Draft",
+    active: isId ? "Aktif" : "Active",
+    inactive: isId ? "Nonaktif" : "Inactive",
+  },
+  usage: {
+    in_use: isId ? "Digunakan" : "In Use",
+    unused: isId ? "Belum Digunakan" : "Unused",
+  },
+});
+
 const toText = (value: unknown, fallback = "") => String(value ?? fallback).trim();
 
 const toNumber = (value: unknown, fallback = 0) => {
@@ -110,12 +133,17 @@ export const normalizeSeller2026AttributeOptionType = (
   return "unknown";
 };
 
-export const formatSeller2026AttributeDate = (value: unknown, withTime = false) => {
+export const formatSeller2026AttributeDate = (
+  value: unknown,
+  isIdOrWithTime: boolean | unknown = false,
+  withTime = false
+) => {
   const normalized = toText(value);
-  if (!normalized) return "Not available";
+  const isId = typeof isIdOrWithTime === "boolean" ? isIdOrWithTime : false;
+  if (!normalized) return isId ? "Tidak tersedia" : "Not available";
   const date = new Date(normalized);
-  if (Number.isNaN(date.getTime())) return "Not available";
-  return new Intl.DateTimeFormat("en-US", {
+  if (Number.isNaN(date.getTime())) return isId ? "Tidak tersedia" : "Not available";
+  return new Intl.DateTimeFormat(isId ? "id-ID" : "en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -200,14 +228,14 @@ export const createSeller2026AttributeForm = (
   published: Boolean(attribute?.isPublished ?? true),
 });
 
-export const validateSeller2026AttributeForm = (form: Seller2026AttributeForm) => {
+export const validateSeller2026AttributeForm = (form: Seller2026AttributeForm, isId = false) => {
   const errors: Partial<Record<keyof Seller2026AttributeForm, string>> = {};
-  if (!toText(form.name)) errors.name = "Attribute name is required.";
-  if (!toText(form.displayName)) errors.displayName = "Display name is required.";
+  if (!toText(form.name)) errors.name = isId ? "Nama atribut wajib diisi." : "Attribute name is required.";
+  if (!toText(form.displayName)) errors.displayName = isId ? "Nama tampilan wajib diisi." : "Display name is required.";
   if (!["dropdown", "radio", "checkbox"].includes(form.optionType)) {
-    errors.optionType = "Choose a supported option type.";
+    errors.optionType = isId ? "Pilih tipe opsi yang didukung." : "Choose a supported option type.";
   }
-  if (form.values.length === 0) errors.values = "Add at least one value.";
+  if (form.values.length === 0) errors.values = isId ? "Tambahkan minimal satu nilai opsi." : "Add at least one value.";
   return errors;
 };
 
