@@ -5,6 +5,7 @@ import {
   ChevronRight,
   CircleHelp,
   Copy,
+  ExternalLink,
   Headphones,
   Package,
   Star,
@@ -294,18 +295,44 @@ export default function StoreOrderTracking2026View({
           <div className="tp-track-courier__info">
             <div className="tp-track-courier__name">{tracking.courierName}</div>
             <div className="tp-track-courier__resi">
-              <span>{tracking.trackingNumberDisplay}</span>
-              {tracking.hasRealTrackingNumber ? (
-                <button
-                  type="button"
-                  className="tp-track-copy-btn"
-                  onClick={() => handleCopy(tracking.trackingNumber)}
-                  aria-label="Salin nomor resi"
-                  title="Salin nomor resi"
+              {/^https?:\/\//i.test(String(tracking.trackingNumber || "").trim()) ? (
+                <a
+                  href={tracking.trackingNumber}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="tp-track-live-btn"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    padding: "4px 10px",
+                    borderRadius: "14px",
+                    background: "#034c85",
+                    color: "#ffffff",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    textDecoration: "none",
+                  }}
                 >
-                  <Copy aria-hidden="true" />
-                </button>
-              ) : null}
+                  <ExternalLink size={12} />
+                  <span>{isIndo ? "Lacak Live Driver (Peta)" : "Live Driver Map"}</span>
+                </a>
+              ) : (
+                <>
+                  <span>{tracking.trackingNumberDisplay}</span>
+                  {tracking.hasRealTrackingNumber ? (
+                    <button
+                      type="button"
+                      className="tp-track-copy-btn"
+                      onClick={() => handleCopy(tracking.trackingNumber)}
+                      aria-label="Salin nomor resi"
+                      title="Salin nomor resi"
+                    >
+                      <Copy aria-hidden="true" />
+                    </button>
+                  ) : null}
+                </>
+              )}
             </div>
           </div>
 

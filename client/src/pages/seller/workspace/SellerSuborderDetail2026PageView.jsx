@@ -337,8 +337,17 @@ const I18N = {
     resetWeightHint: "Kembalikan ke hitungan berat produk katalog",
     weightPlaceholder: "0",
     itemWeight: "Berat",
-    trackingNo: "Nomor Resi",
-    trackingPlaceholder: "Masukkan nomor resi...",
+    trackingNo: "Nomor Resi / Pelacakan",
+    trackingNoInstant: "Link Live Tracking / No. Booking GoSend / Grab",
+    trackingNoInternal: "Info Kurir Toko / Keterangan Serah Terima",
+    trackingPlaceholder: "Masukkan nomor resi ekspedisi (cth: JP12345678)...",
+    trackingPlaceholderInstant: "Tempel link live tracking GoSend/Grab atau No. Booking (cth: https://gsend.io/... atau GK-123456)...",
+    trackingPlaceholderInternal: "cth: Kurir Toko (Pak Budi - 0812xxx) atau Diambil di Toko...",
+    trackingHint: "Masukkan nomor resi ekspedisi untuk pelacakan otomatis pembeli",
+    trackingHintInstant: "💡 Tips GoSend/Grab: Di aplikasi Gojek/Grab di HP, pilih 'Bagikan Pelacakan' (Share Live Tracking) atau salin No. Booking lalu tempel di sini agar pembeli bisa melacak posisi kurir di peta secara langsung.",
+    trackingHintInternal: "Masukkan nama/kontak kurir internal toko atau keterangan pengambilan pesanan",
+    testLiveTrackingLink: "Tes Buka Link Pelacakan Driver",
+    openLiveTracking: "Buka Live Tracking Driver",
     courierPlaceholder: "Ketik / cari kurir (cth: JNE, J&T)...",
     servicePlaceholder: "Ketik / cari layanan (cth: REG, YES)...",
     noCourierFound: "Kurir tidak ditemukan dalam daftar.",
@@ -371,7 +380,6 @@ const I18N = {
     btnReviewPayment: "Tinjau Bukti Bayar",
     tipMarkPacked: "Tekan jika selesai mengemas & menunggu kurir",
     tipShipOrder: "Tekan setelah paket diserahkan & nomor resi terisi",
-    trackingHint: "Masukkan nomor resi ekspedisi untuk pelacakan pembeli",
     viewPublicTracking: "Lihat Live Tracking Pembeli",
     viewPublicTrackingSub: "Buka halaman pelacakan publik pelanggan",
     shippingRequired: "Harap masukkan Nomor Resi sebelum mengirim pesanan.",
@@ -417,8 +425,17 @@ const I18N = {
     resetWeightHint: "Reset to automatic catalog weight calculation",
     weightPlaceholder: "0",
     itemWeight: "Weight",
-    trackingNo: "Tracking Number",
-    trackingPlaceholder: "Input tracking number...",
+    trackingNo: "Tracking / Airway Bill No.",
+    trackingNoInstant: "Live Tracking Link / GoSend / Grab Booking ID",
+    trackingNoInternal: "Store Courier Info / Delivery Note",
+    trackingPlaceholder: "Input tracking number (e.g. JP12345678)...",
+    trackingPlaceholderInstant: "Paste live tracking link or Booking ID (e.g. https://gsend.io/... or GK-123456)...",
+    trackingPlaceholderInternal: "e.g. Store Courier (John - 0812xxx) or Self Pickup...",
+    trackingHint: "Enter tracking number for customer tracking",
+    trackingHintInstant: "💡 GoSend/Grab Tips: In the Gojek/Grab app, tap 'Share Live Tracking' or copy the Booking ID and paste here so the customer can track the driver on live map.",
+    trackingHintInternal: "Enter internal delivery staff details or pickup note",
+    testLiveTrackingLink: "Test Live Tracking Link",
+    openLiveTracking: "Open Live Tracking Map",
     courierPlaceholder: "Type / search courier (e.g. JNE, J&T)...",
     servicePlaceholder: "Type / search service (e.g. REG, YES)...",
     noCourierFound: "Courier not found in list.",
@@ -451,7 +468,6 @@ const I18N = {
     btnReviewPayment: "Review Payment Proof",
     tipMarkPacked: "Click when package is packed & awaiting courier pickup",
     tipShipOrder: "Click when dispatched & tracking number is entered",
-    trackingHint: "Enter tracking number for customer tracking",
     viewPublicTracking: "View Buyer Live Tracking",
     viewPublicTrackingSub: "Open public buyer tracking page",
     shippingRequired: "Please enter tracking number before marking shipped.",
@@ -686,6 +702,26 @@ export default function SellerSuborderDetail2026PageView({
     onFulfillmentDraftChange?.("packageWeight", val);
     onFulfillmentDraftChange?.("totalWeight", val);
   };
+
+  const selectedProviderLower = String(fulfillmentDraft.shippingProvider || order.shipping?.courier || "").toLowerCase();
+  const isInstantCourier =
+    selectedProviderLower.includes("gosend") ||
+    selectedProviderLower.includes("grab") ||
+    selectedProviderLower.includes("lalamove") ||
+    selectedProviderLower.includes("maxim") ||
+    selectedProviderLower.includes("instant") ||
+    selectedProviderLower.includes("same day");
+
+  const isInternalStoreCourier =
+    selectedProviderLower.includes("toko") ||
+    selectedProviderLower.includes("internal") ||
+    selectedProviderLower.includes("ambil") ||
+    selectedProviderLower.includes("pickup") ||
+    selectedProviderLower.includes("sendiri");
+
+  const currentTrackingVal = String(fulfillmentDraft.trackingNumber || "").trim();
+  const isTrackingUrl = (val) => /^https?:\/\//i.test(String(val || "").trim());
+  const isCurrentDraftUrl = isTrackingUrl(currentTrackingVal);
 
   const handleActionClick = (action) => {
     setValidationError("");
@@ -1077,9 +1113,30 @@ export default function SellerSuborderDetail2026PageView({
                 </span>
               </div>
 
-              {/* Tracking Number (Resi) */}
+              {/* Tracking / Live Tracking / Booking Number */}
               <div className="tpsodp2026-field tpsodp2026-field--full">
-                <label className="tpsodp2026-field__label">{t.trackingNo}</label>
+                <div className="tpsodp2026-field__label-row">
+                  <label className="tpsodp2026-field__label">
+                    {isInstantCourier
+                      ? t.trackingNoInstant
+                      : isInternalStoreCourier
+                      ? t.trackingNoInternal
+                      : t.trackingNo}
+                  </label>
+                  {isCurrentDraftUrl && (
+                    <a
+                      href={currentTrackingVal}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="tpsodp2026-link-preview"
+                      title={t.testLiveTrackingLink}
+                    >
+                      <ExternalLink size={12} />
+                      <span>{t.testLiveTrackingLink}</span>
+                    </a>
+                  )}
+                </div>
+
                 {canEditShipping ? (
                   <input
                     type="text"
@@ -1089,12 +1146,35 @@ export default function SellerSuborderDetail2026PageView({
                       setValidationError("");
                       onFulfillmentDraftChange?.("trackingNumber", e.target.value);
                     }}
-                    placeholder={t.trackingPlaceholder}
+                    placeholder={
+                      isInstantCourier
+                        ? t.trackingPlaceholderInstant
+                        : isInternalStoreCourier
+                        ? t.trackingPlaceholderInternal
+                        : t.trackingPlaceholder
+                    }
                     disabled={isUpdating}
                   />
                 ) : (
                   <div className="tpsodp2026-tracking-display">
-                    <strong>{order.shipping?.trackingNo || t.noTracking}</strong>
+                    {isTrackingUrl(order.shipping?.trackingNo) ? (
+                      <div className="tpsodp2026-tracking-url-wrap">
+                        <span className="tpsodp2026-tracking-url-label">
+                          {isIndo ? "Link Pelacakan:" : "Tracking Link:"}
+                        </span>
+                        <a
+                          href={order.shipping.trackingNo}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="tpsodp2026-btn-open-live-map"
+                        >
+                          <ExternalLink size={13} />
+                          <span>{t.openLiveTracking}</span>
+                        </a>
+                      </div>
+                    ) : (
+                      <strong>{order.shipping?.trackingNo || t.noTracking}</strong>
+                    )}
                     {order.shipping?.trackingNo && (
                       <button
                         type="button"
@@ -1107,7 +1187,13 @@ export default function SellerSuborderDetail2026PageView({
                     )}
                   </div>
                 )}
-                <span className="tpsodp2026-field__hint">{t.trackingHint}</span>
+                <span className={`tpsodp2026-field__hint ${isInstantCourier ? "tpsodp2026-field__hint--instant" : ""}`}>
+                  {isInstantCourier
+                    ? t.trackingHintInstant
+                    : isInternalStoreCourier
+                    ? t.trackingHintInternal
+                    : t.trackingHint}
+                </span>
               </div>
             </div>
 

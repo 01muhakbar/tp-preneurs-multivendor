@@ -10,6 +10,7 @@ import {
   Clock,
   Copy,
   CreditCard,
+  ExternalLink,
   FileText,
   Headphones,
   HelpCircle,
@@ -552,7 +553,35 @@ export default function AccountOrderDetail2026View({
           </div>
 
           <div className="tp-shopee-detail__shipping-courier">
-            <span>{shippingInfo.courier}</span>: <strong className="tp-shopee-detail__tracking-code">{shippingInfo.trackingNumber}</strong>
+            <span>{shippingInfo.courier}</span>:{" "}
+            {/^https?:\/\//i.test(String(shippingInfo.trackingNumber || "").trim()) ? (
+              <a
+                href={shippingInfo.trackingNumber}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="tp-shopee-detail__live-tracking-link"
+                onClick={(e) => e.stopPropagation()}
+                title="Buka Peta Pelacakan Langsung Driver"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  padding: "3px 8px",
+                  borderRadius: "12px",
+                  background: "#034c85",
+                  color: "#ffffff",
+                  fontSize: "11.5px",
+                  fontWeight: 600,
+                  textDecoration: "none",
+                  marginLeft: "4px",
+                }}
+              >
+                <ExternalLink size={12} />
+                <span>{isIndo ? "Lacak Live Driver (Peta)" : "Live Driver Map"}</span>
+              </a>
+            ) : (
+              <strong className="tp-shopee-detail__tracking-code">{shippingInfo.trackingNumber}</strong>
+            )}
           </div>
 
           <div className="tp-shopee-detail__shipping-status-row">
