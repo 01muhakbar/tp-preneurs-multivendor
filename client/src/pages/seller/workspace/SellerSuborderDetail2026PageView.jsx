@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   ArrowLeft,
   Box,
   CalendarDays,
   Check,
   CheckCircle2,
+  ChevronDown,
   Clock3,
   Copy,
   ExternalLink,
@@ -21,10 +22,282 @@ import {
   AlertTriangle,
   RotateCcw,
   Sparkles,
+  X,
 } from "lucide-react";
 import { resolveAssetUrl } from "../../../lib/assetUrl.js";
 import { INDONESIA_COURIERS } from "./sellerSuborderDetail2026Adapter.js";
 import "./seller-suborder-detail-2026.css";
+
+function SearchableCombobox({
+  value = "",
+  onChange,
+  options = [],
+  placeholder = "",
+  disabled = false,
+  isIndo = false,
+  emptyPrompt = "",
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const containerRef = useRef(null);
+  const inputRef = useRef(null);
+
+  const selectedOption = useMemo(() => {
+    if (!value) return null;
+    const lower = String(value).trim().toLowerCase();
+    return (
+      options.find(
+        (opt) =>
+          String(opt.value || "").toLowerCase() === lower ||
+          String(opt.code || "").toLowerCase() === lower ||
+          String(opt.label || "").toLowerCase() === lower
+      ) || null
+    );
+  }, [options, value]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setQuery(selectedOption ? selectedOption.label : value || "");
+    }
+  }, [value, selectedOption, isOpen]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setIsOpen(false);
+        setHighlightedIndex(-1);
+        const trimmed = query.trim();
+        if (trimmed && trimmed !== (selectedOption ? selectedOption.label : value)) {
+          const match = options.find(
+            (o) =>
+              String(o.label || "").toLowerCase() === trimmed.toLowerCase() ||
+              String(o.code || "").toLowerCase() === trimmed.toLowerCase() ||
+              String(o.value || "").toLowerCase() === trimmed.toLowerCase()
+          );
+          if (match) {
+            onChange?.(match.value, match);
+            setQuery(match.label);
+          } else {
+            onChange?.(trimmed, { value: trimmed, label: trimmed });
+          }
+        } else if (!trimmed && value) {
+          onChange?.("");
+          setQuery("");
+        }
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen, query, value, selectedOption, options, onChange]);
+
+  const filteredOptions = useMemo(() => {
+    const q = String(query || "").trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((opt) => {
+      const label = String(opt.label || opt.name || opt.value || "").toLowerCase();
+      const code = String(opt.code || "").toLowerCase();
+      const sub = String(opt.subtitle || "").toLowerCase();
+      return label.includes(q) || code.includes(q) || sub.includes(q);
+    });
+  }, [options, query]);
+
+  const handleSelect = (opt) => {
+    const val = opt.value ?? opt.label;
+    onChange?.(val, opt);
+    setQuery(opt.label || val);
+    setIsOpen(false);
+    setHighlightedIndex(-1);
+  };
+
+  const handleClear = (e) => {
+    e.stopPropagation();
+    setQuery("");
+    onChange?.("");
+    setIsOpen(true);
+    setHighlightedIndex(-1);
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (disabled) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (!isOpen) {
+        setIsOpen(true);
+      } else {
+        setHighlightedIndex((prev) =>
+          prev < filteredOptions.length - 1 ? prev + 1 : 0
+        );
+      }
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (!isOpen) {
+        setIsOpen(true);
+      } else {
+        setHighlightedIndex((prev) =>
+          prev > 0 ? prev - 1 : filteredOptions.length - 1
+        );
+      }
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (isOpen) {
+        if (highlightedIndex >= 0 && highlightedIndex < filteredOptions.length) {
+          handleSelect(filteredOptions[highlightedIndex]);
+        } else if (filteredOptions.length === 1) {
+          handleSelect(filteredOptions[0]);
+        } else if (query.trim()) {
+          const match = options.find(
+            (o) =>
+              String(o.label || "").toLowerCase() === query.trim().toLowerCase() ||
+              String(o.code || "").toLowerCase() === query.trim().toLowerCase()
+          );
+          if (match) {
+            handleSelect(match);
+          } else {
+            onChange?.(query.trim(), { value: query.trim(), label: query.trim() });
+            setIsOpen(false);
+          }
+        }
+      } else {
+        setIsOpen(true);
+      }
+    } else if (e.key === "Escape") {
+      setIsOpen(false);
+      setQuery(selectedOption ? selectedOption.label : value || "");
+      setHighlightedIndex(-1);
+    }
+  };
+
+  const hasExactMatch = options.some(
+    (opt) =>
+      String(opt.label || opt.value || "").trim().toLowerCase() ===
+      String(query || "").trim().toLowerCase()
+  );
+
+  return (
+    <div ref={containerRef} className={`tpsodp2026-combobox ${isOpen ? "is-open" : ""}`}>
+      <div className="tpsodp2026-combobox__input-wrap">
+        <input
+          ref={inputRef}
+          type="text"
+          className="tpsodp2026-input tpsodp2026-combobox__input"
+          value={query}
+          onChange={(e) => {
+            const next = e.target.value;
+            setQuery(next);
+            setIsOpen(true);
+            setHighlightedIndex(-1);
+            if (!next.trim()) {
+              onChange?.("");
+            }
+          }}
+          onFocus={() => {
+            if (!disabled) setIsOpen(true);
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          disabled={disabled}
+          autoComplete="off"
+        />
+        <div className="tpsodp2026-combobox__actions">
+          {!disabled && query && (
+            <button
+              type="button"
+              className="tpsodp2026-combobox__btn-clear"
+              onClick={handleClear}
+              title={isIndo ? "Hapus" : "Clear"}
+              tabIndex={-1}
+            >
+              <X size={13} />
+            </button>
+          )}
+          <button
+            type="button"
+            className="tpsodp2026-combobox__btn-toggle"
+            onClick={() => {
+              if (!disabled) {
+                setIsOpen((prev) => !prev);
+                if (!isOpen && inputRef.current) {
+                  inputRef.current.focus();
+                }
+              }
+            }}
+            tabIndex={-1}
+            title={isIndo ? "Pilihan" : "Options"}
+          >
+            <ChevronDown
+              size={15}
+              className={`tpsodp2026-combobox__chevron ${isOpen ? "is-open" : ""}`}
+            />
+          </button>
+        </div>
+      </div>
+
+      {isOpen && !disabled && (
+        <div className="tpsodp2026-combobox__dropdown" role="listbox">
+          {filteredOptions.length > 0 ? (
+            <ul className="tpsodp2026-combobox__list">
+              {filteredOptions.map((opt, idx) => {
+                const isSelected =
+                  String(opt.value || opt.label) === String(value) ||
+                  String(opt.code) === String(value);
+                const isHighlighted = idx === highlightedIndex;
+                return (
+                  <li
+                    key={opt.code || opt.value || idx}
+                    className={`tpsodp2026-combobox__item ${isSelected ? "is-selected" : ""} ${
+                      isHighlighted ? "is-highlighted" : ""
+                    }`}
+                    onClick={() => handleSelect(opt)}
+                    onMouseEnter={() => setHighlightedIndex(idx)}
+                    role="option"
+                    aria-selected={isSelected}
+                  >
+                    <div className="tpsodp2026-combobox__item-body">
+                      <span className="tpsodp2026-combobox__item-label">
+                        {opt.label || opt.name || opt.value}
+                      </span>
+                      {opt.subtitle && (
+                        <span className="tpsodp2026-combobox__item-sub">
+                          {opt.subtitle}
+                        </span>
+                      )}
+                    </div>
+                    {isSelected && (
+                      <Check size={14} className="tpsodp2026-combobox__item-check" />
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <div className="tpsodp2026-combobox__empty">
+              <span>{emptyPrompt || (isIndo ? "Tidak ada opsi cocok." : "No matching options.")}</span>
+            </div>
+          )}
+
+          {query.trim() && !hasExactMatch && (
+            <div
+              className="tpsodp2026-combobox__custom-action"
+              onClick={() => {
+                onChange?.(query.trim(), { value: query.trim(), label: query.trim() });
+                setIsOpen(false);
+              }}
+            >
+              <span className="tpsodp2026-combobox__custom-plus">+</span>
+              <span className="tpsodp2026-combobox__custom-text">
+                {isIndo ? `Gunakan manual: "${query.trim()}"` : `Use custom: "${query.trim()}"`}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const I18N = {
   id: {
@@ -61,8 +334,12 @@ const I18N = {
     itemWeight: "Berat",
     trackingNo: "Nomor Resi",
     trackingPlaceholder: "Masukkan nomor resi...",
-    courierPlaceholder: "contoh: JNE",
-    servicePlaceholder: "contoh: REG",
+    courierPlaceholder: "Ketik / cari kurir (cth: JNE, J&T)...",
+    servicePlaceholder: "Ketik / cari layanan (cth: REG, YES)...",
+    noCourierFound: "Kurir tidak ditemukan dalam daftar.",
+    noServiceFound: "Layanan tidak ditemukan dalam daftar.",
+    courierHint: "Ketik nama ekspedisi atau pilih dari daftar",
+    serviceHint: "Ketik jenis layanan atau pilih dari daftar",
     noTracking: "Belum ada resi",
     paymentSummary: "Ringkasan Pembayaran",
     method: "Metode",
@@ -89,8 +366,6 @@ const I18N = {
     btnReviewPayment: "Tinjau Bukti Bayar",
     tipMarkPacked: "Tekan jika selesai mengemas & menunggu kurir",
     tipShipOrder: "Tekan setelah paket diserahkan & nomor resi terisi",
-    courierHint: "Ekspedisi pengiriman pesanan",
-    serviceHint: "Jenis paket layanan kurir",
     trackingHint: "Masukkan nomor resi ekspedisi untuk pelacakan pembeli",
     viewPublicTracking: "Lihat Live Tracking Pembeli",
     viewPublicTrackingSub: "Buka halaman pelacakan publik pelanggan",
@@ -134,8 +409,12 @@ const I18N = {
     itemWeight: "Weight",
     trackingNo: "Tracking Number",
     trackingPlaceholder: "Input tracking number...",
-    courierPlaceholder: "e.g. JNE",
-    servicePlaceholder: "e.g. REG",
+    courierPlaceholder: "Type / search courier (e.g. JNE, J&T)...",
+    servicePlaceholder: "Type / search service (e.g. REG, YES)...",
+    noCourierFound: "Courier not found in list.",
+    noServiceFound: "Service not found in list.",
+    courierHint: "Type courier name or select from list",
+    serviceHint: "Type service level or select from list",
     noTracking: "No tracking yet",
     paymentSummary: "Payment Summary",
     method: "Method",
@@ -162,8 +441,6 @@ const I18N = {
     btnReviewPayment: "Review Payment Proof",
     tipMarkPacked: "Click when package is packed & awaiting courier pickup",
     tipShipOrder: "Click when dispatched & tracking number is entered",
-    courierHint: "Courier provider for shipment",
-    serviceHint: "Courier service level",
     trackingHint: "Enter tracking number for customer tracking",
     viewPublicTracking: "View Buyer Live Tracking",
     viewPublicTrackingSub: "Open public buyer tracking page",
@@ -264,8 +541,77 @@ export default function SellerSuborderDetail2026PageView({
   const Link = LinkComponent;
   const [validationError, setValidationError] = useState("");
   const couriersList = order?.shipping?.couriersList || INDONESIA_COURIERS;
-  const [isCustomCourier, setIsCustomCourier] = useState(false);
-  const [isCustomService, setIsCustomService] = useState(false);
+
+  // Courier combobox options
+  const courierOptions = useMemo(() => {
+    return couriersList.map((c) => ({
+      value: c.name,
+      code: c.code,
+      label: c.name,
+      subtitle: isIndo
+        ? `${c.services?.length || 0} layanan (${c.services.map((s) => s.code).slice(0, 3).join(", ")})`
+        : `${c.services?.length || 0} services (${c.services.map((s) => s.code).slice(0, 3).join(", ")})`,
+      services: c.services || [],
+    }));
+  }, [couriersList, isIndo]);
+
+  // Current matched courier object (to filter available services)
+  const currentCourierStr = String(fulfillmentDraft.shippingProvider || "").trim().toLowerCase();
+  const matchedCourierObj = couriersList.find((c) => {
+    if (!currentCourierStr) return false;
+    const code = c.code.toLowerCase();
+    const name = c.name.toLowerCase();
+    return (
+      code === currentCourierStr ||
+      name === currentCourierStr ||
+      name.includes(currentCourierStr) ||
+      currentCourierStr.includes(code)
+    );
+  }) || null;
+
+  // Service combobox options
+  const serviceOptions = useMemo(() => {
+    if (matchedCourierObj?.services?.length) {
+      return matchedCourierObj.services.map((s) => ({
+        value: s.code,
+        code: s.code,
+        label: s.name,
+        subtitle: s.code,
+      }));
+    }
+    const list = [];
+    couriersList.forEach((c) => {
+      (c.services || []).forEach((s) => {
+        if (!list.some((existing) => existing.code === s.code)) {
+          list.push({
+            value: s.code,
+            code: s.code,
+            label: `${s.name} (${c.name})`,
+            subtitle: c.name,
+          });
+        }
+      });
+    });
+    return list;
+  }, [matchedCourierObj, couriersList]);
+
+  const handleCourierSelect = (val, opt) => {
+    onFulfillmentDraftChange?.("shippingProvider", val);
+    if (opt?.services?.length) {
+      const currentService = String(fulfillmentDraft.courierService || "").trim().toLowerCase();
+      const isAlreadyValid = opt.services.some(
+        (s) => s.code.toLowerCase() === currentService || s.name.toLowerCase() === currentService
+      );
+      if (!isAlreadyValid) {
+        onFulfillmentDraftChange?.("courierService", opt.services[0].code);
+      }
+    }
+  };
+
+  const handleServiceSelect = (val, opt) => {
+    const codeOrVal = opt?.code || val;
+    onFulfillmentDraftChange?.("courierService", codeOrVal);
+  };
 
   if (isLoading) {
     return (
@@ -304,85 +650,6 @@ export default function SellerSuborderDetail2026PageView({
 
   // Editable shipping details whenever order is ready to fulfill / to pack
   const canEditShipping = isToPack || (!isShipped && !isDelivered && isPaid);
-
-  const currentCourierStr = String(fulfillmentDraft.shippingProvider || "").trim();
-  const matchedCourier = couriersList.find((c) => {
-    if (!currentCourierStr) return false;
-    const lower = currentCourierStr.toLowerCase();
-    return (
-      c.code.toLowerCase() === lower ||
-      c.name.toLowerCase() === lower ||
-      c.name.toLowerCase().includes(lower) ||
-      lower.includes(c.code.toLowerCase())
-    );
-  }) || null;
-
-  const courierSelectValue = isCustomCourier
-    ? "CUSTOM"
-    : matchedCourier
-    ? matchedCourier.code
-    : currentCourierStr
-    ? "CUSTOM"
-    : "";
-
-  const availableServices = matchedCourier ? matchedCourier.services : [];
-
-  const currentServiceStr = String(fulfillmentDraft.courierService || "").trim();
-  const matchedService = availableServices.find((s) => {
-    if (!currentServiceStr) return false;
-    const lower = currentServiceStr.toLowerCase();
-    return (
-      s.code.toLowerCase() === lower ||
-      s.name.toLowerCase() === lower ||
-      s.code.toLowerCase().startsWith(lower) ||
-      lower.startsWith(s.code.toLowerCase())
-    );
-  }) || null;
-
-  const serviceSelectValue = isCustomService
-    ? "CUSTOM"
-    : matchedService
-    ? matchedService.code
-    : currentServiceStr
-    ? "CUSTOM"
-    : "";
-
-  const handleCourierSelectChange = (e) => {
-    const val = e.target.value;
-    if (val === "CUSTOM") {
-      setIsCustomCourier(true);
-      setIsCustomService(true);
-    } else if (val === "") {
-      setIsCustomCourier(false);
-      onFulfillmentDraftChange?.("shippingProvider", "");
-      onFulfillmentDraftChange?.("courierService", "");
-    } else {
-      setIsCustomCourier(false);
-      const c = couriersList.find((item) => item.code === val);
-      if (c) {
-        onFulfillmentDraftChange?.("shippingProvider", c.name);
-        if (c.services && c.services.length > 0) {
-          onFulfillmentDraftChange?.("courierService", c.services[0].code);
-          setIsCustomService(false);
-        } else {
-          onFulfillmentDraftChange?.("courierService", "");
-        }
-      }
-    }
-  };
-
-  const handleServiceSelectChange = (e) => {
-    const val = e.target.value;
-    if (val === "CUSTOM") {
-      setIsCustomService(true);
-    } else if (val === "") {
-      setIsCustomService(false);
-      onFulfillmentDraftChange?.("courierService", "");
-    } else {
-      setIsCustomService(false);
-      onFulfillmentDraftChange?.("courierService", val);
-    }
-  };
 
   const handleActionClick = (action) => {
     setValidationError("");
@@ -647,32 +914,15 @@ export default function SellerSuborderDetail2026PageView({
               <div className="tpsodp2026-field">
                 <label className="tpsodp2026-field__label">{t.courier}</label>
                 {canEditShipping ? (
-                  <div className="tpsodp2026-select-stack">
-                    <select
-                      className="tpsodp2026-select"
-                      value={courierSelectValue}
-                      onChange={handleCourierSelectChange}
-                      disabled={isUpdating}
-                    >
-                      <option value="">{t.selectCourier}</option>
-                      {couriersList.map((c) => (
-                        <option key={c.code} value={c.code}>
-                          {c.name}
-                        </option>
-                      ))}
-                      <option value="CUSTOM">{t.customCourier}</option>
-                    </select>
-                    {(courierSelectValue === "CUSTOM" || isCustomCourier) && (
-                      <input
-                        type="text"
-                        className="tpsodp2026-input tpsodp2026-input--mt"
-                        value={fulfillmentDraft.shippingProvider || ""}
-                        onChange={(e) => onFulfillmentDraftChange?.("shippingProvider", e.target.value)}
-                        placeholder={t.courierInputPlaceholder}
-                        disabled={isUpdating}
-                      />
-                    )}
-                  </div>
+                  <SearchableCombobox
+                    value={fulfillmentDraft.shippingProvider || ""}
+                    onChange={handleCourierSelect}
+                    options={courierOptions}
+                    placeholder={t.courierPlaceholder}
+                    disabled={isUpdating}
+                    isIndo={isIndo}
+                    emptyPrompt={t.noCourierFound}
+                  />
                 ) : (
                   <div className="tpsodp2026-field__value">
                     <strong>{order.shipping?.courier || "-"}</strong>
@@ -685,32 +935,15 @@ export default function SellerSuborderDetail2026PageView({
               <div className="tpsodp2026-field">
                 <label className="tpsodp2026-field__label">{t.service}</label>
                 {canEditShipping ? (
-                  <div className="tpsodp2026-select-stack">
-                    <select
-                      className="tpsodp2026-select"
-                      value={serviceSelectValue}
-                      onChange={handleServiceSelectChange}
-                      disabled={isUpdating}
-                    >
-                      <option value="">{t.selectService}</option>
-                      {availableServices.map((s) => (
-                        <option key={s.code} value={s.code}>
-                          {s.name}
-                        </option>
-                      ))}
-                      <option value="CUSTOM">{t.customService}</option>
-                    </select>
-                    {(serviceSelectValue === "CUSTOM" || isCustomService) && (
-                      <input
-                        type="text"
-                        className="tpsodp2026-input tpsodp2026-input--mt"
-                        value={fulfillmentDraft.courierService || ""}
-                        onChange={(e) => onFulfillmentDraftChange?.("courierService", e.target.value)}
-                        placeholder={t.serviceInputPlaceholder}
-                        disabled={isUpdating}
-                      />
-                    )}
-                  </div>
+                  <SearchableCombobox
+                    value={fulfillmentDraft.courierService || ""}
+                    onChange={handleServiceSelect}
+                    options={serviceOptions}
+                    placeholder={t.servicePlaceholder}
+                    disabled={isUpdating}
+                    isIndo={isIndo}
+                    emptyPrompt={t.noServiceFound}
+                  />
                 ) : (
                   <div className="tpsodp2026-field__value">
                     <span>{order.shipping?.method || "-"}</span>
