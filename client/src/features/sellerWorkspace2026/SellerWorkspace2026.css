@@ -1,13 +1,13 @@
 .seller2026-dashboard {
-  --seller2026-bg: var(--tp-bg);
-  --seller2026-surface: var(--tp-surface);
-  --seller2026-surface-soft: var(--tp-surface-soft);
-  --seller2026-border: var(--tp-border);
-  --seller2026-text: var(--tp-text);
-  --seller2026-muted: var(--tp-muted);
-  --seller2026-primary: var(--tp-primary);
-  --seller2026-accent: var(--tp-accent);
-  --seller2026-success: var(--tp-success);
+  --seller2026-bg: var(--tp-bg, #f8fafc);
+  --seller2026-surface: var(--tp-surface, #ffffff);
+  --seller2026-surface-soft: var(--tp-surface-soft, #f1f5f9);
+  --seller2026-border: var(--tp-border, #dfe6ef);
+  --seller2026-text: var(--tp-text, #0e1d38);
+  --seller2026-muted: var(--tp-muted, #64748b);
+  --seller2026-primary: var(--tp-primary, #034c85);
+  --seller2026-accent: var(--tp-accent, #fe6f05);
+  --seller2026-success: var(--tp-success, #059669);
   --seller2026-warning: #f59e0b;
   color: var(--seller2026-text);
   display: grid;
@@ -15,15 +15,20 @@
   min-width: 0;
 }
 
+[data-seller-theme="dark"] .seller2026-dashboard,
 .admin-theme-dark .seller2026-dashboard,
 [data-theme="dark"] .seller2026-dashboard,
+body.dark .seller2026-dashboard,
+.dark .seller2026-dashboard,
 .seller2026-dashboard[data-theme="dark"] {
-  --seller2026-bg: var(--tp-bg);
-  --seller2026-surface: var(--tp-surface);
-  --seller2026-surface-soft: var(--tp-surface-soft);
-  --seller2026-border: var(--tp-border);
-  --seller2026-text: var(--tp-text);
-  --seller2026-muted: var(--tp-muted);
+  --seller2026-bg: var(--tp-bg, #030916);
+  --seller2026-surface: var(--tp-surface, #0d1626);
+  --seller2026-surface-soft: var(--tp-surface-soft, #142033);
+  --seller2026-border: var(--tp-border, #1f314c);
+  --seller2026-text: var(--tp-text, #f1f5fb);
+  --seller2026-muted: var(--tp-muted, #8fa2bd);
+  --seller2026-primary: var(--tp-primary, #034c85);
+  --seller2026-accent: var(--tp-accent, #fe6f05);
 }
 
 .seller2026-dashboard *,

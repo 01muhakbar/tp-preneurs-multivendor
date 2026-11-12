@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  deleteSellerProduct,
   getSellerProductAuthoringMeta,
   getSellerProducts,
   setSellerProductPublished,
@@ -107,6 +108,17 @@ export function useSeller2026Products(
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (productId: string | number) =>
+      deleteSellerProduct(storeId as number | string, productId),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["seller2026", "products", storeId] }),
+        queryClient.invalidateQueries({ queryKey: ["storefront", "products"] }),
+      ]);
+    },
+  });
+
   const data = useMemo(() => {
     if (!enabled && !productsQuery.data) {
       return {
@@ -141,5 +153,8 @@ export function useSeller2026Products(
     setProductPublished: publishMutation.mutateAsync,
     isPublishing: publishMutation.isPending,
     publishingProductId: publishMutation.variables?.productId ?? null,
+    deleteProduct: deleteMutation.mutateAsync,
+    isDeleting: deleteMutation.isPending,
+    deletingProductId: deleteMutation.variables ?? null,
   };
 }

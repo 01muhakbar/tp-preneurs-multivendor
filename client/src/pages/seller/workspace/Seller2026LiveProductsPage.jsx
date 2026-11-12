@@ -30,6 +30,164 @@ import { useSeller2026Products } from "../../../hooks/seller2026/useSeller2026Pr
 import { useSellerWorkspaceRoute } from "../../../utils/sellerWorkspaceRoute.js";
 import { getSeller2026PagePermissions } from "./seller2026PagePermissions.js";
 import "../../../features/sellerWorkspace2026/SellerWorkspace2026.css";
+import "../../../features/sellerWorkspace2026/Seller2026Products.css";
+
+const SELLER_PRODUCTS_I18N = {
+  id: {
+    title: "Produk",
+    subtitle: "Kelola katalog dan ketersediaan produk toko Anda.",
+    export: "Ekspor",
+    exporting: "Mengekspor...",
+    import: "Impor",
+    importDisabled: "Impor belum diaktifkan di ruang kerja ini",
+    bulkActions: "Aksi Massal",
+    bulkDisabled: "Pilih produk terlebih dahulu",
+    delete: "Hapus",
+    addProduct: "Tambah Produk",
+    kpiTotal: "Total Produk",
+    kpiTotalNote: "Semua produk",
+    kpiLive: "Aktif",
+    kpiLiveNote: "Tampil di etalase",
+    kpiDrafts: "Draf",
+    kpiDraftsNote: "Belum diterbitkan",
+    kpiReview: "Antrean Tinjauan",
+    kpiReviewNote: "Menunggu tinjauan",
+    searchPlaceholder: "Cari nama produk, SKU, atau slug...",
+    allCategories: "Semua Kategori",
+    allStatus: "Semua Status",
+    allStock: "Semua Stok",
+    inStock: "Tersedia",
+    lowStock: "Stok Rendah",
+    outOfStock: "Stok Habis",
+    reset: "Reset",
+    listView: "Tampilan Daftar",
+    gridView: "Tampilan Kisi",
+    thProduct: "Produk",
+    thCategory: "Kategori",
+    thPrice: "Harga",
+    thStock: "Stok",
+    thVisibility: "Visibilitas",
+    thReviewStatus: "Status Tinjauan",
+    thPublish: "Publikasi",
+    thActions: "Aksi",
+    visible: "Tampil",
+    blocked: "Ditahan",
+    hidden: "Tersembunyi",
+    approved: "Disetujui",
+    pendingReview: "Menunggu Tinjauan",
+    needsRevision: "Perlu Revisi",
+    notSubmitted: "Belum Diajukan",
+    active: "Aktif",
+    draft: "Draf",
+    submitted: "Diajukan",
+    inactive: "Nonaktif",
+    previewProduct: "Pratinjau Produk",
+    editProduct: "Edit Produk",
+    viewDetails: "Lihat Detail",
+    deleteProduct: "Hapus Produk",
+    confirmDeleteTitle: "Konfirmasi Hapus Produk",
+    confirmDeleteMsg: "Apakah Anda yakin ingin menghapus produk ini? Tindakan ini tidak dapat dibatalkan.",
+    confirmDeleteBulkMsg: "Apakah Anda yakin ingin menghapus {count} produk terpilih? Tindakan ini tidak dapat dibatalkan.",
+    cancel: "Batal",
+    confirmDeleteBtn: "Ya, Hapus",
+    deleting: "Menghapus...",
+    deleteSuccess: "Produk berhasil dihapus.",
+    deleteBulkSuccess: "{count} produk berhasil dihapus.",
+    deleteFailed: "Gagal menghapus produk.",
+    visibilitySuccessHidden: "{name} sekarang disembunyikan dari etalase.",
+    visibilitySuccessVisible: "{name} sekarang dipublikasikan ke etalase.",
+    visibilityFailed: "Gagal memperbarui visibilitas produk.",
+    noProductsTitle: "Belum Ada Produk",
+    noProductsDesc: "Mulai tambahkan produk pertama Anda untuk mulai berjualan.",
+    paginationShowing: "Menampilkan {{start}} - {{end}} dari {{total}} produk",
+    pageOf: "dari {{total}}",
+    perPage: "{{count}} / halaman",
+    storeInactiveNotice: "Toko Anda berstatus Inactive. Produk yang diterbitkan otomatis tampil setelah aktivasi toko disetujui Admin.",
+    curationNotice: "Produk yang diterbitkan sedang menunggu tinjauan kurasi Admin atau revisi.",
+    viewStoreProfile: "Profil Toko",
+    catalogStatus: "Status Katalog",
+    selectAll: "Pilih semua produk",
+    unpublishTitle: "Sembunyikan produk dari etalase",
+    publishTitle: "Publikasikan produk ke etalase",
+  },
+  en: {
+    title: "Products",
+    subtitle: "Manage your product catalog and availability.",
+    export: "Export",
+    exporting: "Exporting...",
+    import: "Import",
+    importDisabled: "Import is not enabled in this workspace",
+    bulkActions: "Bulk Actions",
+    bulkDisabled: "Select products first",
+    delete: "Delete",
+    addProduct: "Add Product",
+    kpiTotal: "Total Products",
+    kpiTotalNote: "All products",
+    kpiLive: "Live",
+    kpiLiveNote: "Storefront visible",
+    kpiDrafts: "Drafts",
+    kpiDraftsNote: "Unpublished",
+    kpiReview: "Review Queue",
+    kpiReviewNote: "Awaiting review",
+    searchPlaceholder: "Search by name, SKU, or slug...",
+    allCategories: "All Categories",
+    allStatus: "All Status",
+    allStock: "All Stock",
+    inStock: "In Stock",
+    lowStock: "Low Stock",
+    outOfStock: "Out of Stock",
+    reset: "Reset",
+    listView: "List View",
+    gridView: "Grid View",
+    thProduct: "Product",
+    thCategory: "Category",
+    thPrice: "Price",
+    thStock: "Stock",
+    thVisibility: "Visibility",
+    thReviewStatus: "Review Status",
+    thPublish: "Publish",
+    thActions: "Actions",
+    visible: "Visible",
+    blocked: "Blocked",
+    hidden: "Hidden",
+    approved: "Approved",
+    pendingReview: "Pending Review",
+    needsRevision: "Needs Revision",
+    notSubmitted: "Not Submitted",
+    active: "Active",
+    draft: "Draft",
+    submitted: "Submitted",
+    inactive: "Inactive",
+    previewProduct: "Preview Product",
+    editProduct: "Edit Product",
+    viewDetails: "View Details",
+    deleteProduct: "Delete Product",
+    confirmDeleteTitle: "Confirm Product Deletion",
+    confirmDeleteMsg: "Are you sure you want to delete this product? This action cannot be undone.",
+    confirmDeleteBulkMsg: "Are you sure you want to delete {count} selected products? This action cannot be undone.",
+    cancel: "Cancel",
+    confirmDeleteBtn: "Yes, Delete",
+    deleting: "Deleting...",
+    deleteSuccess: "Product deleted successfully.",
+    deleteBulkSuccess: "{count} products deleted successfully.",
+    deleteFailed: "Failed to delete product.",
+    visibilitySuccessHidden: "{name} is now hidden from the storefront.",
+    visibilitySuccessVisible: "{name} is now published to the storefront.",
+    visibilityFailed: "Unable to update product visibility.",
+    noProductsTitle: "No Products Found",
+    noProductsDesc: "Start adding your first product to begin selling.",
+    paginationShowing: "Showing {{start}} - {{end}} of {{total}} products",
+    pageOf: "of {{total}}",
+    perPage: "{{count}} / page",
+    storeInactiveNotice: "Your store is currently inactive. Published products will appear once store is activated by Admin.",
+    curationNotice: "Published products are hidden pending Admin curation or revision.",
+    viewStoreProfile: "Store Profile",
+    catalogStatus: "Catalog Status",
+    selectAll: "Select all products",
+    unpublishTitle: "Unpublish product from storefront",
+    publishTitle: "Publish product to storefront",
+  },
+};
 
 const readNumber = (value, fallback) => {
   const number = Number(value);
@@ -63,14 +221,14 @@ const lifecycleLabel = (status, isId = false) => {
 };
 
 const reviewStatusLabel = (product, isId = false) => {
-  const submissionStatus = String(product.submissionStatus || "none").toLowerCase();
+  const submissionStatus = String(product?.submissionStatus || "none").toLowerCase();
   if (submissionStatus === "submitted" || submissionStatus === "review_queue") {
     return isId ? "Menunggu Tinjauan" : "Pending Review";
   }
   if (submissionStatus === "needs_revision") {
     return isId ? "Perlu Revisi" : "Needs Revision";
   }
-  if (product.status === "active") {
+  if (product?.status === "active") {
     return isId ? "Disetujui" : "Approved";
   }
   return isId ? "Belum Diajukan" : "Not Submitted";
@@ -113,24 +271,15 @@ const translateFilterLabel = (label, isId = false) => {
     }
   }
   switch (label) {
-    case "All Categories":
-      return "Semua Kategori";
-    case "All Status":
-      return "Semua Status";
-    case "Draft":
-      return "Draf";
-    case "Review Queue":
-      return "Antrean Tinjauan";
-    case "Submitted for Review":
-      return "Diajukan untuk Tinjauan";
-    case "Active":
-      return "Aktif";
-    case "Needs Revision":
-      return "Perlu Revisi";
-    case "Inactive":
-      return "Nonaktif";
-    default:
-      return label;
+    case "All Categories": return "Semua Kategori";
+    case "All Status": return "Semua Status";
+    case "Draft": return "Draf";
+    case "Review Queue": return "Antrean Tinjauan";
+    case "Submitted for Review": return "Diajukan untuk Tinjauan";
+    case "Active": return "Aktif";
+    case "Needs Revision": return "Perlu Revisi";
+    case "Inactive": return "Nonaktif";
+    default: return label;
   }
 };
 
@@ -179,9 +328,9 @@ function SellerProductThumbnail({ product }) {
           justifyContent: "center",
           width: "100%",
           height: "100%",
-          background: "linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9))",
-          color: "#94a3b8",
-          borderRadius: "6px",
+          background: "linear-gradient(135deg, rgba(3, 76, 133, 0.1), rgba(3, 76, 133, 0.2))",
+          color: "#034c85",
+          borderRadius: "8px",
         }}
         title={product?.name || "Product"}
       >
@@ -195,7 +344,7 @@ function SellerProductThumbnail({ product }) {
       src={candidates[index]}
       alt={product?.name || ""}
       onError={() => setIndex((prev) => prev + 1)}
-      style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "6px" }}
+      style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px" }}
     />
   );
 }
@@ -205,6 +354,19 @@ export default function Seller2026LiveProductsPage() {
   const { sellerContext, workspaceStoreId: storeId, workspaceRoutes, isId: outletIsId = false } = useSellerWorkspaceRoute();
   const { i18n } = useTranslation();
   const isId = Boolean(outletIsId || String(i18n.language || "").toLowerCase().startsWith("id"));
+  const t = isId ? SELLER_PRODUCTS_I18N.id : SELLER_PRODUCTS_I18N.en;
+
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const onLanguageChange = () => setTick((v) => v + 1);
+    i18n.on("languageChanged", onLanguageChange);
+    window.addEventListener("languagechange", onLanguageChange);
+    return () => {
+      i18n.off("languageChanged", onLanguageChange);
+      window.removeEventListener("languagechange", onLanguageChange);
+    };
+  }, [i18n]);
+
   const { can } = getSeller2026PagePermissions(sellerContext);
   const canView = can("CATALOG_PRODUCT_READ");
   const isStoreInactive = String(sellerContext?.store?.status || "").toUpperCase() === "INACTIVE";
@@ -234,6 +396,8 @@ export default function Seller2026LiveProductsPage() {
   const [exporting, setExporting] = useState(false);
   const [notice, setNotice] = useState(null);
   const [activeMenuId, setActiveMenuId] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const data = productsQuery.data;
 
@@ -293,18 +457,47 @@ export default function Seller2026LiveProductsPage() {
       setNotice({
         type: "success",
         text: product.isPublished
-          ? (isId
-              ? `${product.name} sekarang disembunyikan dari etalase.`
-              : `${product.name} is now hidden from the storefront.`)
-          : (isId
-              ? `${product.name} sekarang dipublikasikan ke etalase.`
-              : `${product.name} is now published to the storefront.`),
+          ? t.visibilitySuccessHidden.replace("{name}", product.name)
+          : t.visibilitySuccessVisible.replace("{name}", product.name),
       });
     } catch (error) {
       setNotice({
         type: "error",
-        text: toErrorMessage(error, isId ? "Gagal memperbarui visibilitas produk." : "Unable to update product visibility."),
+        text: toErrorMessage(error, t.visibilityFailed),
       });
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    setNotice(null);
+    try {
+      if (deleteTarget.ids) {
+        for (const id of deleteTarget.ids) {
+          await productsQuery.deleteProduct(id);
+        }
+        setSelected([]);
+        setNotice({
+          type: "success",
+          text: t.deleteBulkSuccess.replace("{count}", String(deleteTarget.ids.length)),
+        });
+      } else if (deleteTarget.id) {
+        await productsQuery.deleteProduct(deleteTarget.id);
+        setSelected((prev) => prev.filter((id) => id !== deleteTarget.id));
+        setNotice({
+          type: "success",
+          text: t.deleteSuccess,
+        });
+      }
+      setDeleteTarget(null);
+    } catch (err) {
+      setNotice({
+        type: "error",
+        text: toErrorMessage(err, t.deleteFailed),
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -339,33 +532,42 @@ export default function Seller2026LiveProductsPage() {
     <div className="seller2026-dashboard seller2026-products">
       <header className="seller2026-products__header">
         <div>
-          <h1>{isId ? "Produk" : "Products"}</h1>
-          <p>{isId ? "Kelola katalog dan ketersediaan produk toko Anda." : "Manage your product catalog and availability."}</p>
+          <h1>{t.title}</h1>
+          <p>{t.subtitle}</p>
         </div>
         <div className="seller2026-products__actions">
           <button onClick={handleExport} disabled={exporting}>
             <Download size={16} />
-            {exporting ? (isId ? "Mengekspor..." : "Exporting...") : (isId ? "Ekspor" : "Export")}
+            {exporting ? t.exporting : t.export}
           </button>
-          <button disabled title={isId ? "Impor belum diaktifkan di ruang kerja ini" : "Import is not enabled in this workspace"}>
+          <button disabled title={t.importDisabled}>
             <Upload size={16} />
-            {isId ? "Impor" : "Import"}
+            {t.import}
           </button>
           <button
             disabled={!selected.length}
-            title={selected.length ? (isId ? "Pengajuan massal tersedia di aksi tinjauan" : "Bulk submission is available from review actions") : (isId ? "Pilih produk terlebih dahulu" : "Select products first")}
+            title={selected.length ? (isId ? "Aksi massal tersedia" : "Bulk actions available") : t.bulkDisabled}
           >
             <Archive size={16} />
-            {isId ? "Aksi Massal" : "Bulk Actions"}
+            {t.bulkActions}
           </button>
-          <button className="is-danger" disabled>
+          <button
+            className="is-danger"
+            disabled={!selected.length || !data.permissions.canDelete || isDeleting}
+            onClick={() => {
+              if (selected.length > 0) {
+                setDeleteTarget({ ids: selected, count: selected.length });
+              }
+            }}
+            title={selected.length ? (isId ? "Hapus produk terpilih" : "Delete selected products") : t.bulkDisabled}
+          >
             <Trash2 size={16} />
-            {isId ? "Hapus" : "Delete"}
+            {isDeleting ? t.deleting : t.delete}
           </button>
           {data.permissions.canCreate ? (
             <Link className="is-primary" to={workspaceRoutes.productCreate()}>
               <Plus size={16} />
-              {isId ? "Tambah Produk" : "Add Product"}
+              {t.addProduct}
             </Link>
           ) : null}
         </div>
@@ -373,10 +575,10 @@ export default function Seller2026LiveProductsPage() {
 
       <section className="seller2026-product-kpis">
         {[
-          [isId ? "Total Produk" : "Total Products", data.summary.total, isId ? "Semua produk" : "All products", Box, "blue"],
-          [isId ? "Aktif" : "Live", data.summary.storefrontVisible, isId ? "Tampil di etalase" : "Storefront visible", CheckCircle2, "green"],
-          [isId ? "Draf" : "Drafts", data.summary.draft, isId ? "Belum diterbitkan" : "Unpublished", FileClock, "amber"],
-          [isId ? "Antrean Tinjauan" : "Review Queue", data.summary.pendingReview, isId ? "Menunggu tinjauan" : "Awaiting review", ShieldCheck, "navy"],
+          [t.kpiTotal, data.summary.total, t.kpiTotalNote, Box, "blue"],
+          [t.kpiLive, data.summary.storefrontVisible, t.kpiLiveNote, CheckCircle2, "green"],
+          [t.kpiDrafts, data.summary.draft, t.kpiDraftsNote, FileClock, "amber"],
+          [t.kpiReview, data.summary.pendingReview, t.kpiReviewNote, ShieldCheck, "navy"],
         ].map(([label, value, note, Icon, color]) => (
           <div className="seller2026-product-kpi" key={label}>
             <span className={`is-${color}`}>
@@ -408,52 +610,45 @@ export default function Seller2026LiveProductsPage() {
             justifyContent: "space-between",
             flexWrap: "wrap",
             gap: "12px",
-            borderLeft: "4px solid #fe6f05",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <AlertTriangle size={18} style={{ color: "#fe6f05", flexShrink: 0 }} />
             <span>
-              {isStoreInactive
-                ? (isId
-                    ? "Toko Anda saat ini berstatus Inactive (Menunggu persetujuan aktivasi Admin). Produk yang sudah Anda terbitkan akan otomatis tampil di etalase publik setelah status toko diaktifkan oleh Admin."
-                    : "Your store is currently inactive (awaiting Admin activation). Published products will automatically appear in the public storefront once your store is activated by Admin.")
-                : (isId
-                    ? "Produk yang sudah Anda terbitkan belum tampil di etalase publik karena sedang menunggu tinjauan kurasi Admin atau memerlukan revisi."
-                    : "Your published products are currently hidden from the public storefront because they are awaiting Admin review or require revisions.")}
+              {isStoreInactive ? t.storeInactiveNotice : t.curationNotice}
             </span>
           </div>
           {isStoreInactive ? (
             <Link
               to={workspaceRoutes.storeProfile ? workspaceRoutes.storeProfile() : `/seller/stores/${sellerContext?.storeSlug || "sweet-flower"}/store-profile`}
               style={{
-                background: "#fe6f05",
+                background: "#034c85",
                 color: "#ffffff",
                 padding: "6px 14px",
-                borderRadius: "6px",
-                fontWeight: 600,
+                borderRadius: "8px",
+                fontWeight: 650,
                 textDecoration: "none",
-                fontSize: "13px",
+                fontSize: "12.5px",
                 whiteSpace: "nowrap",
               }}
             >
-              {isId ? "Lihat Profil Toko" : "View Store Profile"}
+              {t.viewStoreProfile}
             </Link>
           ) : (
             <Link
               to={workspaceRoutes.catalog ? workspaceRoutes.catalog() : `/seller/stores/${sellerContext?.storeSlug || "sweet-flower"}/catalog/products`}
               style={{
-                background: "#fe6f05",
+                background: "#034c85",
                 color: "#ffffff",
                 padding: "6px 14px",
-                borderRadius: "6px",
-                fontWeight: 600,
+                borderRadius: "8px",
+                fontWeight: 650,
                 textDecoration: "none",
-                fontSize: "13px",
+                fontSize: "12.5px",
                 whiteSpace: "nowrap",
               }}
             >
-              {isId ? "Status Katalog" : "Catalog Status"}
+              {t.catalogStatus}
             </Link>
           )}
         </div>
@@ -466,7 +661,7 @@ export default function Seller2026LiveProductsPage() {
             <input
               value={query.search}
               onChange={(event) => updateQuery({ search: event.target.value, page: 1 })}
-              placeholder={isId ? "Cari nama produk, SKU, atau slug..." : "Search by name, SKU, or slug..."}
+              placeholder={t.searchPlaceholder}
             />
           </label>
           <select value={query.category} onChange={(event) => updateQuery({ category: event.target.value, page: 1 })}>
@@ -484,22 +679,22 @@ export default function Seller2026LiveProductsPage() {
             ))}
           </select>
           <select value={query.stock} onChange={(event) => updateQuery({ stock: event.target.value, page: 1 })}>
-            <option value="all">{isId ? "Semua Stok" : "All Stock"}</option>
-            <option value="in_stock">{isId ? "Tersedia" : "In Stock"}</option>
-            <option value="low_stock">{isId ? "Stok Rendah" : "Low Stock"}</option>
-            <option value="out_of_stock">{isId ? "Stok Habis" : "Out of Stock"}</option>
+            <option value="all">{t.allStock}</option>
+            <option value="in_stock">{t.inStock}</option>
+            <option value="low_stock">{t.lowStock}</option>
+            <option value="out_of_stock">{t.outOfStock}</option>
           </select>
           <button type="button" onClick={() => setSearchParams({})}>
             <RefreshCw size={16} />
-            {isId ? "Reset" : "Reset"}
+            {t.reset}
           </button>
           <div className="seller2026-products__view">
             <button
               type="button"
               className={view === "list" ? "is-active" : ""}
               onClick={() => setView("list")}
-              aria-label={isId ? "Tampilan Daftar" : "List view"}
-              title={isId ? "Tampilan Daftar" : "List view"}
+              aria-label={t.listView}
+              title={t.listView}
             >
               <List size={17} />
             </button>
@@ -507,8 +702,8 @@ export default function Seller2026LiveProductsPage() {
               type="button"
               className={view === "grid" ? "is-active" : ""}
               onClick={() => setView("grid")}
-              aria-label={isId ? "Tampilan Kisi" : "Grid view"}
-              title={isId ? "Tampilan Kisi" : "Grid view"}
+              aria-label={t.gridView}
+              title={t.gridView}
             >
               <Grid2X2 size={17} />
             </button>
@@ -524,14 +719,14 @@ export default function Seller2026LiveProductsPage() {
                 const reviewLocked = product.submissionStatus === "submitted" || product.submissionStatus === "needs_revision";
                 const publishDisabled = !data.permissions.canPublish || product.status !== "active" || reviewLocked || productsQuery.isPublishing;
                 const publishTitle = !data.permissions.canPublish
-                  ? (isId ? "Anda tidak memiliki izin untuk mempublikasikan produk" : "You do not have permission to publish products")
+                  ? (isId ? "Anda tidak memiliki izin publikasi" : "You do not have publish permission")
                   : reviewLocked
-                    ? (isId ? "Selesaikan proses tinjauan admin sebelum mengubah visibilitas" : "Complete the admin review flow before changing visibility")
+                    ? (isId ? "Menunggu proses kurasi Admin" : "Awaiting Admin review")
                     : product.status !== "active"
-                      ? (isId ? "Persetujuan admin diperlukan sebelum mempublikasikan" : "Admin approval is required before publishing")
+                      ? (isId ? "Perlu persetujuan Admin sebelum publikasi" : "Admin approval required")
                       : product.isPublished
-                        ? (isId ? "Sembunyikan produk" : "Unpublish product")
-                        : (isId ? "Publikasikan produk" : "Publish product");
+                        ? t.unpublishTitle
+                        : t.publishTitle;
 
                 return (
                   <article className="seller2026-product-card" key={product.id}>
@@ -552,7 +747,7 @@ export default function Seller2026LiveProductsPage() {
                       >
                         {product.name}
                       </Link>
-                      <small style={{ color: "var(--seller2026-muted)", fontSize: "11.5px" }}>{product.sku || product.slug}</small>
+                      <small style={{ color: "var(--prod-muted)", fontSize: "11.5px" }}>{product.sku || product.slug}</small>
 
                       <div className="seller2026-product-card__price-row">
                         {product.salePrice && Number(product.salePrice) > 0 && Number(product.salePrice) < Number(product.price) ? (
@@ -560,19 +755,19 @@ export default function Seller2026LiveProductsPage() {
                             <strong style={{ color: "#fe6f05", fontSize: "15px", fontWeight: 750 }}>
                               {currency(product.salePrice)}
                             </strong>
-                            <span style={{ textDecoration: "line-through", color: "var(--seller2026-muted)", fontSize: "12px" }}>
+                            <span style={{ textDecoration: "line-through", color: "var(--prod-muted)", fontSize: "12px" }}>
                               {currency(product.price)}
                             </span>
                           </>
                         ) : (
-                          <strong style={{ fontSize: "15px", fontWeight: 700, color: "var(--seller2026-text)" }}>
+                          <strong style={{ fontSize: "15px", fontWeight: 700, color: "var(--prod-text)" }}>
                             {currency(product.price)}
                           </strong>
                         )}
                       </div>
 
                       <div className="seller2026-product-card__stock-row">
-                        <span style={{ fontSize: "12.5px", color: "var(--seller2026-muted)" }}>{isId ? "Stok:" : "Stock:"}</span>
+                        <span style={{ fontSize: "12.5px", color: "var(--prod-muted)" }}>{isId ? "Stok:" : "Stock:"}</span>
                         <strong style={{ fontSize: "13px" }}>{product.stock ?? 0}</strong>
                         <Pill>{inventory}</Pill>
                       </div>
@@ -595,7 +790,7 @@ export default function Seller2026LiveProductsPage() {
                         >
                           <i />
                         </button>
-                        <small style={{ fontSize: "12px", color: "var(--seller2026-muted)", fontWeight: 500 }}>
+                        <small style={{ fontSize: "12px", color: "var(--prod-muted)", fontWeight: 500 }}>
                           {product.isPublished ? (isId ? "Etalase" : "Live") : (isId ? "Nonaktif" : "Off")}
                         </small>
                       </div>
@@ -604,7 +799,7 @@ export default function Seller2026LiveProductsPage() {
                         <Link
                           className="seller2026-icon-button"
                           to={workspaceRoutes.productDetail(product.id)}
-                          title={isId ? "Pratinjau Produk" : "Preview Product"}
+                          title={t.previewProduct}
                           aria-label={isId ? `Pratinjau ${product.name}` : `Preview ${product.name}`}
                         >
                           <Eye size={15} />
@@ -613,7 +808,7 @@ export default function Seller2026LiveProductsPage() {
                           <Link
                             className="seller2026-icon-button"
                             to={workspaceRoutes.productEdit(product.id)}
-                            title={isId ? "Edit Produk" : "Edit Product"}
+                            title={t.editProduct}
                             aria-label={isId ? `Edit ${product.name}` : `Edit ${product.name}`}
                           >
                             <Pencil size={14} />
@@ -633,36 +828,36 @@ export default function Seller2026LiveProductsPage() {
                     type="checkbox"
                     checked={allSelected}
                     onChange={(event) => toggleAll(event.target.checked)}
-                    aria-label={isId ? "Pilih semua produk" : "Select all products"}
+                    aria-label={t.selectAll}
                   />
-                  <span>{isId ? "Produk" : "Product"}</span>
-                  <span>{isId ? "Kategori" : "Category"}</span>
-                  <span>{isId ? "Harga" : "Price"}</span>
-                  <span>{isId ? "Stok" : "Stock"}</span>
-                  <span>{isId ? "Visibilitas" : "Visibility"}</span>
-                  <span>{isId ? "Status Tinjauan" : "Review Status"}</span>
-                  <span style={{ textAlign: "center" }}>{isId ? "Publikasi" : "Publish"}</span>
-                  <span style={{ textAlign: "right" }}>{isId ? "Aksi" : "Actions"}</span>
+                  <span>{t.thProduct}</span>
+                  <span>{t.thCategory}</span>
+                  <span>{t.thPrice}</span>
+                  <span>{t.thStock}</span>
+                  <span>{t.thVisibility}</span>
+                  <span>{t.thReviewStatus}</span>
+                  <span style={{ textAlign: "center" }}>{t.thPublish}</span>
+                  <span style={{ textAlign: "right" }}>{t.thActions}</span>
                 </div>
                 {visibleProducts.map((product) => {
                   const inventory = inventoryLabel(product.stock, isId);
                   const visibility = product.visibility === "storefront_visible"
-                    ? (isId ? "Tampil" : "Visible")
+                    ? t.visible
                     : product.visibility === "published_blocked"
-                      ? (isId ? "Diblokir" : "Blocked")
-                      : (isId ? "Tersembunyi" : "Hidden");
+                      ? t.blocked
+                      : t.hidden;
                   const review = reviewStatusLabel(product, isId);
                   const reviewLocked = product.submissionStatus === "submitted" || product.submissionStatus === "needs_revision";
                   const publishDisabled = !data.permissions.canPublish || product.status !== "active" || reviewLocked || productsQuery.isPublishing;
                   const publishTitle = !data.permissions.canPublish
-                    ? (isId ? "Anda tidak memiliki izin untuk mempublikasikan produk" : "You do not have permission to publish products")
+                    ? (isId ? "Anda tidak memiliki izin publikasi" : "You do not have publish permission")
                     : reviewLocked
-                      ? (isId ? "Selesaikan proses tinjauan admin sebelum mengubah visibilitas" : "Complete the admin review flow before changing visibility")
+                      ? (isId ? "Menunggu proses kurasi Admin" : "Awaiting Admin review")
                       : product.status !== "active"
-                        ? (isId ? "Persetujuan admin diperlukan sebelum mempublikasikan" : "Admin approval is required before publishing")
+                        ? (isId ? "Perlu persetujuan Admin sebelum publikasi" : "Admin approval required")
                         : product.isPublished
-                          ? (isId ? "Sembunyikan produk" : "Unpublish product")
-                          : (isId ? "Publikasikan produk" : "Publish product");
+                          ? t.unpublishTitle
+                          : t.publishTitle;
 
                   return (
                     <article className="seller2026-product-row" key={product.id}>
@@ -695,11 +890,11 @@ export default function Seller2026LiveProductsPage() {
                         </div>
                       </div>
 
-                      <div className="seller2026-product-row__cell" data-label={isId ? "Kategori" : "Category"}>
+                      <div className="seller2026-product-row__cell" data-label={t.thCategory}>
                         <span className="seller2026-product-row__val">{product.category || "-"}</span>
                       </div>
 
-                      <div className="seller2026-product-row__cell" data-label={isId ? "Harga" : "Price"}>
+                      <div className="seller2026-product-row__cell" data-label={t.thPrice}>
                         {product.salePrice && Number(product.salePrice) > 0 && Number(product.salePrice) < Number(product.price) ? (
                           <div className="seller2026-price-group">
                             <span className="seller2026-price-group__sale">
@@ -716,7 +911,7 @@ export default function Seller2026LiveProductsPage() {
                         )}
                       </div>
 
-                      <div className="seller2026-product-row__cell" data-label={isId ? "Stok" : "Stock"}>
+                      <div className="seller2026-product-row__cell" data-label={t.thStock}>
                         <div className="seller2026-stock-group">
                           <strong className="seller2026-stock-qty">{product.stock ?? 0}</strong>
                           <Pill>{inventory}</Pill>
@@ -725,27 +920,23 @@ export default function Seller2026LiveProductsPage() {
 
                       <div
                         className="seller2026-product-row__cell"
-                        data-label={isId ? "Visibilitas" : "Visibility"}
+                        data-label={t.thVisibility}
                         title={
                           product.visibility === "published_blocked"
                             ? isStoreInactive
-                              ? isId
-                                ? "Produk diterbitkan namun etalase publik ditahan karena status toko belum diaktifkan oleh Admin"
-                                : "Published but hidden from public storefront because store is not yet active"
-                              : isId
-                                ? "Produk diterbitkan namun etalase publik ditahan menunggu tinjauan Admin"
-                                : "Published but hidden from public storefront pending Admin review"
+                              ? t.storeInactiveNotice
+                              : t.curationNotice
                             : undefined
                         }
                       >
                         <Pill>{visibility}</Pill>
                       </div>
 
-                      <div className="seller2026-product-row__cell" data-label={isId ? "Status Tinjauan" : "Review Status"}>
+                      <div className="seller2026-product-row__cell" data-label={t.thReviewStatus}>
                         <Pill>{review}</Pill>
                       </div>
 
-                      <div className="seller2026-product-row__cell seller2026-product-row__cell--center" data-label={isId ? "Publikasi" : "Publish"}>
+                      <div className="seller2026-product-row__cell seller2026-product-row__cell--center" data-label={t.thPublish}>
                         <button
                           type="button"
                           className={`seller2026-switch${product.isPublished ? " is-on" : ""}`}
@@ -767,7 +958,7 @@ export default function Seller2026LiveProductsPage() {
                         <Link
                           className="seller2026-icon-button"
                           to={workspaceRoutes.productDetail(product.id)}
-                          title={isId ? "Pratinjau Produk" : "Preview Product"}
+                          title={t.previewProduct}
                           aria-label={isId ? `Pratinjau ${product.name}` : `Preview ${product.name}`}
                         >
                           <Eye size={16} />
@@ -776,7 +967,7 @@ export default function Seller2026LiveProductsPage() {
                           <Link
                             className="seller2026-icon-button"
                             to={workspaceRoutes.productEdit(product.id)}
-                            title={isId ? "Edit Produk" : "Edit Product"}
+                            title={t.editProduct}
                             aria-label={isId ? `Edit ${product.name}` : `Edit ${product.name}`}
                           >
                             <Pencil size={15} />
@@ -800,7 +991,7 @@ export default function Seller2026LiveProductsPage() {
                                 onClick={() => setActiveMenuId(null)}
                               >
                                 <Eye size={14} />
-                                {isId ? "Lihat Detail" : "View Details"}
+                                {t.viewDetails}
                               </Link>
                               {data.permissions.canUpdate ? (
                                 <Link
@@ -808,8 +999,21 @@ export default function Seller2026LiveProductsPage() {
                                   onClick={() => setActiveMenuId(null)}
                                 >
                                   <Pencil size={14} />
-                                  {isId ? "Edit Produk" : "Edit Product"}
+                                  {t.editProduct}
                                 </Link>
+                              ) : null}
+                              {data.permissions.canDelete ? (
+                                <button
+                                  type="button"
+                                  className="is-delete"
+                                  onClick={() => {
+                                    setActiveMenuId(null);
+                                    setDeleteTarget({ id: product.id, name: product.name });
+                                  }}
+                                >
+                                  <Trash2 size={14} />
+                                  {t.deleteProduct}
+                                </button>
                               ) : null}
                             </div>
                           ) : null}
@@ -823,11 +1027,11 @@ export default function Seller2026LiveProductsPage() {
           )
         ) : (
           <div className="seller2026-products__empty">
-            <PackagePlus size={38} />
-            <h2>{isId ? "Belum ada produk" : "No products yet"}</h2>
-            <p>{isId ? "Buat produk pertama Anda untuk mulai berjualan." : "Create your first product to start selling."}</p>
+            <PackagePlus size={44} />
+            <h2>{t.noProductsTitle}</h2>
+            <p>{t.noProductsDesc}</p>
             {data.permissions.canCreate ? (
-              <Link to={workspaceRoutes.productCreate()}>{isId ? "Tambah Produk" : "Add Product"}</Link>
+              <Link to={workspaceRoutes.productCreate()}>{t.addProduct}</Link>
             ) : null}
           </div>
         )}
@@ -835,9 +1039,10 @@ export default function Seller2026LiveProductsPage() {
         {data.pagination.total ? (
           <footer className="seller2026-products__pagination">
             <span>
-              {isId
-                ? `Menampilkan ${start} hingga ${end} dari ${data.pagination.total} produk`
-                : `Showing ${start} to ${end} of ${data.pagination.total} products`}
+              {t.paginationShowing
+                .replace("{{start}}", String(start))
+                .replace("{{end}}", String(end))
+                .replace("{{total}}", String(data.pagination.total))}
             </span>
             <div>
               <button
@@ -849,7 +1054,7 @@ export default function Seller2026LiveProductsPage() {
                 <ChevronLeft size={16} />
               </button>
               <strong>{data.pagination.page}</strong>
-              <span>{isId ? `dari ${data.pagination.totalPages}` : `of ${data.pagination.totalPages}`}</span>
+              <span>{t.pageOf.replace("{{total}}", String(data.pagination.totalPages))}</span>
               <button
                 type="button"
                 disabled={data.pagination.page >= data.pagination.totalPages}
@@ -864,13 +1069,49 @@ export default function Seller2026LiveProductsPage() {
               onChange={(event) => updateQuery({ limit: event.target.value, page: 1 })}
               aria-label={isId ? "Jumlah produk per halaman" : "Products per page"}
             >
-              <option value="10">{isId ? "10 / halaman" : "10 / page"}</option>
-              <option value="20">{isId ? "20 / halaman" : "20 / page"}</option>
-              <option value="50">{isId ? "50 / halaman" : "50 / page"}</option>
+              <option value="10">{t.perPage.replace("{{count}}", "10")}</option>
+              <option value="20">{t.perPage.replace("{{count}}", "20")}</option>
+              <option value="50">{t.perPage.replace("{{count}}", "50")}</option>
             </select>
           </footer>
         ) : null}
       </section>
+
+      {/* Delete Confirmation Modal */}
+      {deleteTarget ? (
+        <div className="seller2026-confirm-overlay" onClick={() => !isDeleting && setDeleteTarget(null)}>
+          <div className="seller2026-confirm-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="seller2026-confirm-dialog__header">
+              <AlertTriangle size={22} />
+              <h3>{t.confirmDeleteTitle}</h3>
+            </div>
+            <div className="seller2026-confirm-dialog__body">
+              <p>
+                {deleteTarget.ids
+                  ? t.confirmDeleteBulkMsg.replace("{count}", String(deleteTarget.ids.length))
+                  : t.confirmDeleteMsg}
+              </p>
+            </div>
+            <div className="seller2026-confirm-dialog__footer">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setDeleteTarget(null)}
+              >
+                {t.cancel}
+              </button>
+              <button
+                type="button"
+                className="is-delete"
+                disabled={isDeleting}
+                onClick={confirmDelete}
+              >
+                {isDeleting ? t.deleting : t.confirmDeleteBtn}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
