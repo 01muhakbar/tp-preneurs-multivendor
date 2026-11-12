@@ -892,8 +892,8 @@ function SellerSidebar({
                           "group relative flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] transition",
                           item.children.some((child) => isPathActive(child.to))
                             ? isDark
-                              ? "bg-[#052e25] text-white shadow-[inset_0_0_0_1px_rgba(16,185,129,0.14)]"
-                              : "bg-emerald-50 text-teal-700 shadow-[inset_0_0_0_1px_rgba(16,185,129,0.09)]"
+                              ? "bg-[#034c85]/25 text-white shadow-[inset_0_0_0_1px_rgba(3,76,133,0.35)]"
+                              : "bg-[#034c85]/10 text-[#034c85] shadow-[inset_0_0_0_1px_rgba(3,76,133,0.15)]"
                             : isDark
                               ? "text-slate-100"
                               : "text-slate-600"
@@ -903,7 +903,7 @@ function SellerSidebar({
                           className={joinClassNames(
                             "absolute inset-y-1.5 left-0 w-[2px] rounded-full",
                             item.children.some((child) => isPathActive(child.to))
-                              ? "bg-emerald-500"
+                              ? "bg-[#fe6f05]"
                               : "bg-transparent"
                           )}
                           aria-hidden="true"
@@ -913,8 +913,8 @@ function SellerSidebar({
                             "flex h-7 w-7 items-center justify-center rounded-lg transition",
                             item.children.some((child) => isPathActive(child.to))
                               ? isDark
-                                ? "bg-emerald-950 text-emerald-200"
-                                : "bg-emerald-100 text-emerald-700"
+                                ? "bg-[#034c85] text-white shadow-sm shadow-[#034c85]/40"
+                                : "bg-[#034c85] text-white shadow-sm shadow-[#034c85]/20"
                               : isDark
                                 ? "bg-slate-800 text-slate-200"
                                 : "bg-slate-100 text-slate-500"
@@ -969,8 +969,8 @@ function SellerSidebar({
                                 "group flex items-center gap-2 rounded-md px-2.5 py-1.5 text-[12.5px] transition",
                                 isActive
                                   ? isDark
-                                    ? "bg-[#052e25] font-semibold text-white"
-                                    : "bg-emerald-50 font-semibold text-teal-700"
+                                    ? "bg-[#034c85]/25 font-semibold text-white"
+                                    : "bg-[#034c85]/10 font-semibold text-[#034c85]"
                                   : isDark
                                     ? "text-slate-200 hover:bg-slate-800 hover:text-white"
                                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
@@ -983,7 +983,7 @@ function SellerSidebar({
                                   className={joinClassNames(
                                     "h-1 w-1 rounded-full",
                                     isActive
-                                      ? "bg-emerald-300"
+                                      ? "bg-[#fe6f05]"
                                       : isDark
                                         ? "bg-slate-400"
                                         : "bg-slate-300"
@@ -996,7 +996,7 @@ function SellerSidebar({
                                     isActive
                                       ? isDark
                                         ? "!text-white"
-                                        : "text-teal-700"
+                                        : "text-[#034c85]"
                                       : isDark
                                         ? "!text-slate-200"
                                         : "text-slate-700"
@@ -1023,8 +1023,8 @@ function SellerSidebar({
                             collapsed ? "justify-center px-1.5" : "gap-2.5 px-2.5",
                             isActive
                               ? isDark
-                              ? "bg-[#052e25] text-white shadow-[inset_0_0_0_1px_rgba(16,185,129,0.14)]"
-                              : "bg-emerald-50 text-teal-700 shadow-[inset_0_0_0_1px_rgba(16,185,129,0.09)]"
+                              ? "bg-[#034c85]/25 text-white shadow-[inset_0_0_0_1px_rgba(3,76,133,0.35)]"
+                              : "bg-[#034c85]/10 text-[#034c85] shadow-[inset_0_0_0_1px_rgba(3,76,133,0.15)]"
                             : isDark
                               ? "text-slate-100 hover:bg-slate-800 hover:text-white"
                               : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
@@ -1036,7 +1036,7 @@ function SellerSidebar({
                           <span
                             className={joinClassNames(
                               "absolute inset-y-1.5 left-0 w-[2px] rounded-full",
-                              isActive ? "bg-emerald-500" : "bg-transparent"
+                              isActive ? "bg-[#fe6f05]" : "bg-transparent"
                             )}
                             aria-hidden="true"
                           />
@@ -1045,8 +1045,8 @@ function SellerSidebar({
                               "flex h-7 w-7 items-center justify-center rounded-lg transition",
                               isActive
                                 ? isDark
-                                  ? "bg-emerald-950 text-emerald-200"
-                                  : "bg-emerald-100 text-emerald-700"
+                                  ? "bg-[#034c85] text-white shadow-sm shadow-[#034c85]/40"
+                                  : "bg-[#034c85] text-white shadow-sm shadow-[#034c85]/20"
                                 : isDark
                                   ? "bg-slate-800 text-slate-200 group-hover:bg-slate-700 group-hover:text-white"
                                   : "bg-slate-100 text-slate-500 group-hover:bg-white group-hover:text-slate-700"

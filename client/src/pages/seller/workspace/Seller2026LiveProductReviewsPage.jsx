@@ -35,11 +35,11 @@ import "../../../features/sellerWorkspace2026/Seller2026Reviews.css";
 const isIndonesianLanguage = (i18nInstance) => {
   const current = String(
     i18nInstance?.language ||
-      localStorage.getItem("app_lang") ||
-      localStorage.getItem("seller_language") ||
       localStorage.getItem("store_language") ||
+      localStorage.getItem("seller_language") ||
+      localStorage.getItem("app_lang") ||
       localStorage.getItem("i18nextLng") ||
-      "id"
+      "en"
   ).toLowerCase();
   return current.startsWith("id");
 };
@@ -94,6 +94,9 @@ const SELLER_REVIEWS_I18N = {
     of: "dari",
     reviews: "ulasan",
     drawerTitle: "Detail Ulasan",
+    drawerBreadcrumb: "Katalog / Ulasan",
+    loadingReview: "Memuat detail ulasan...",
+    unableLoadDetail: "Gagal memuat detail ulasan.",
     sku: "SKU",
     viewProduct: "Lihat Produk",
     storeReplyTitle: "Balasan Toko",
@@ -126,6 +129,14 @@ const SELLER_REVIEWS_I18N = {
     retry: "Coba Lagi",
     filterByProduct: "Filter berdasarkan produk ini",
     perPage: "/ halaman",
+    close: "Tutup",
+    prevPage: "Halaman sebelumnya",
+    nextPage: "Halaman berikutnya",
+    reviewsPerPage: "Ulasan per halaman",
+    moreActions: "Aksi ulasan lainnya",
+    viewReviewAria: "Lihat ulasan",
+    starsOutOf: "dari 5 bintang",
+    starUnit: "Bintang",
   },
   en: {
     pageTitle: "Product Reviews",
@@ -176,6 +187,9 @@ const SELLER_REVIEWS_I18N = {
     of: "of",
     reviews: "reviews",
     drawerTitle: "Review Detail",
+    drawerBreadcrumb: "Catalog / Reviews",
+    loadingReview: "Loading review detail...",
+    unableLoadDetail: "Unable to load review detail.",
     sku: "SKU",
     viewProduct: "View Product",
     storeReplyTitle: "Store reply",
@@ -208,6 +222,14 @@ const SELLER_REVIEWS_I18N = {
     retry: "Retry",
     filterByProduct: "Filter by this product",
     perPage: "/ page",
+    close: "Close",
+    prevPage: "Previous page",
+    nextPage: "Next page",
+    reviewsPerPage: "Reviews per page",
+    moreActions: "More review actions",
+    viewReviewAria: "View review",
+    starsOutOf: "out of 5 stars",
+    starUnit: "Stars",
   },
 };
 
@@ -224,9 +246,10 @@ const rupiah = (value) =>
     maximumFractionDigits: 0,
   }).format(Number(value) || 0);
 
-function Stars({ rating, compact = false }) {
+function Stars({ rating, compact = false, t }) {
+  const starsLabel = `${rating} ${t?.starsOutOf || "out of 5 stars"}`;
   return (
-    <span className="s26-reviews-stars" aria-label={`${rating} out of 5 stars`}>
+    <span className="s26-reviews-stars" aria-label={starsLabel}>
       {[0, 1, 2, 3, 4].map((index) => (
         <Star
           key={index}
@@ -242,7 +265,7 @@ function Stars({ rating, compact = false }) {
 function StatCard({ icon: Icon, label, value, helper, tone, children }) {
   return (
     <article className={`s26-reviews-stat is-${tone}`}>
-      <span className="s26-reviews-stat__icon"><Icon size={23} /></span>
+      <span className="s26-reviews-stat__icon"><Icon size={22} /></span>
       <div>
         <span>{label}</span>
         <strong>{value}{children}</strong>
@@ -357,20 +380,20 @@ function ReviewDrawer({ storeId, reviewId, canMutate, onClose, t }) {
 
   return (
     <div className="s26-review-drawer-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <aside className="s26-review-drawer" role="dialog" aria-modal="true" aria-label="Review detail">
+      <aside className="s26-review-drawer" role="dialog" aria-modal="true" aria-label={t.drawerTitle}>
         <header className="s26-review-drawer__header">
           <div>
-            <span>Catalog / Reviews</span>
+            <span>{t.drawerBreadcrumb}</span>
             <h2>{t.drawerTitle}</h2>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close"><X size={20} /></button>
+          <button type="button" onClick={onClose} aria-label={t.close}><X size={20} /></button>
         </header>
 
         {detailQuery.isLoading ? (
-          <div className="s26-review-drawer__loading"><Loader2 className="animate-spin" /> Loading review...</div>
+          <div className="s26-review-drawer__loading"><Loader2 className="animate-spin" /> {t.loadingReview}</div>
         ) : detailQuery.isError || !review ? (
           <div className="s26-review-drawer__error">
-            <p>{message(detailQuery.error, "Unable to load review detail.")}</p>
+            <p>{message(detailQuery.error, t.unableLoadDetail)}</p>
             <button type="button" onClick={() => detailQuery.refetch()}><RefreshCw size={16} /> {t.retry}</button>
           </div>
         ) : (
@@ -393,13 +416,13 @@ function ReviewDrawer({ storeId, reviewId, canMutate, onClose, t }) {
                 <div><strong>{review.reviewerName}</strong><span>{t.verifiedBuyer}</span></div>
                 <time>{review.createdAtLabel}</time>
               </div>
-              <Stars rating={review.rating} />
+              <Stars rating={review.rating} t={t} />
               <p className="s26-review-detail-comment">{review.comment || t.noComment}</p>
               {review.images.length ? (
                 <div className="s26-review-detail-images">
                   {review.images.map((image, index) => (
                     <a href={image} target="_blank" rel="noopener noreferrer" key={`${review.id}-${index}`}>
-                      <img src={image} alt={`Review photo ${index + 1}`} onError={(event) => { event.currentTarget.style.display = "none"; }} />
+                      <img src={image} alt={`${t.drawerTitle} ${index + 1}`} onError={(event) => { event.currentTarget.style.display = "none"; }} />
                     </a>
                   ))}
                 </div>
@@ -610,10 +633,10 @@ export default function Seller2026LiveProductReviewsPage() {
       <section className="s26-reviews-stats">
         <StatCard icon={MessageSquareText} label={t.totalReviews} value={stats.totalReviews || 0} helper={t.totalReviewsHelper} tone="primary" />
         <StatCard icon={Star} label={t.averageRating} value={(stats.averageRating || 0).toFixed(1)} helper={t.averageRatingHelper} tone="accent">
-          <Stars rating={Math.round(stats.averageRating || 0)} compact />
+          <Stars rating={Math.round(stats.averageRating || 0)} compact t={t} />
         </StatCard>
         <StatCard icon={MessageCircle} label={t.pendingReplies} value={stats.pendingReplies || 0} helper={t.pendingRepliesHelper} tone="orange" />
-        <StatCard icon={TrendingUp} label={t.responseRate} value={`${stats.responseRate || 0}%`} helper={t.responseRateHelper} tone="success" />
+        <StatCard icon={TrendingUp} label={t.responseRate} value={`${stats.responseRate || 0}%`} helper={t.responseRateHelper} tone="rate" />
       </section>
 
       <section className="s26-reviews-toolbar">
@@ -672,7 +695,7 @@ export default function Seller2026LiveProductReviewsPage() {
             <select value={rating || ""} onChange={(event) => updateQuery({ rating: event.target.value, page: 1 })}>
               <option value="">{t.allRatings}</option>
               {[5, 4, 3, 2, 1].map((value) => (
-                <option value={value} key={value}>{value} {isIndo ? "Bintang" : `Star${value > 1 ? "s" : ""}`}</option>
+                <option value={value} key={value}>{value} {isIndo ? t.starUnit : (value > 1 ? "Stars" : "Star")}</option>
               ))}
             </select>
           </label>
@@ -696,7 +719,7 @@ export default function Seller2026LiveProductReviewsPage() {
           ) : null}
           {rating ? (
             <span className="s26-review-status is-published" style={{ display: "inline-flex", alignItems: "center", gap: "4px", cursor: "pointer" }} onClick={() => updateQuery({ rating: "" })}>
-              {rating} {isIndo ? "Bintang" : `Star${rating > 1 ? "s" : ""}`} <X size={13} />
+              {rating} {isIndo ? t.starUnit : (rating > 1 ? "Stars" : "Star")} <X size={13} />
             </span>
           ) : null}
           <button type="button" style={{ border: "none", background: "none", color: "var(--review-primary, #034c85)", fontSize: "13px", cursor: "pointer", textDecoration: "underline" }} onClick={() => { setSearchDraft(""); setSearchParams({}); }}>
@@ -762,8 +785,13 @@ export default function Seller2026LiveProductReviewsPage() {
                       </div>
                     </div>
                   </td>
-                  <td data-label={t.tableRating}><Stars rating={review.rating} compact /></td>
-                  <td data-label={t.tableComment}>
+                  <td data-label={t.tableRating}><Stars rating={review.rating} compact t={t} /></td>
+                  <td
+                    data-label={t.tableComment}
+                    className="s26-review-comment-cell"
+                    onClick={() => setSelectedReviewId(review.id)}
+                    style={{ cursor: "pointer" }}
+                  >
                     <p className="s26-review-comment">{review.comment || t.noComment}</p>
                     {review.reply ? <small className="s26-review-replied">{t.storeReplied}</small> : null}
                   </td>
@@ -774,10 +802,10 @@ export default function Seller2026LiveProductReviewsPage() {
                       <button type="button" onClick={() => setSelectedReviewId(review.id)}>
                         <MessageCircle size={16} /> {review.reply ? t.viewBtn : t.replyBtn}
                       </button>
-                      <button type="button" aria-label={`View ${review.productName} review`} onClick={() => setSelectedReviewId(review.id)}>
+                      <button type="button" aria-label={t.viewReviewAria} onClick={() => setSelectedReviewId(review.id)}>
                         <Eye size={17} />
                       </button>
-                      <button type="button" aria-label="More review actions" onClick={() => setSelectedReviewId(review.id)}>
+                      <button type="button" aria-label={t.moreActions} onClick={() => setSelectedReviewId(review.id)}>
                         <MoreHorizontal size={17} />
                       </button>
                     </div>
@@ -795,7 +823,7 @@ export default function Seller2026LiveProductReviewsPage() {
             {t.showing} {pagination.from} {t.to} {pagination.to} {t.of} {pagination.total} {t.reviews}
           </span>
           <div>
-            <button type="button" disabled={pagination.page <= 1} onClick={() => updateQuery({ page: pagination.page - 1 })} aria-label="Previous page">
+            <button type="button" disabled={pagination.page <= 1} onClick={() => updateQuery({ page: pagination.page - 1 })} aria-label={t.prevPage}>
               <ChevronLeft size={17} />
             </button>
             {pages.map((number) => (
@@ -803,10 +831,10 @@ export default function Seller2026LiveProductReviewsPage() {
                 {number}
               </button>
             ))}
-            <button type="button" disabled={pagination.page >= pagination.totalPages} onClick={() => updateQuery({ page: pagination.page + 1 })} aria-label="Next page">
+            <button type="button" disabled={pagination.page >= pagination.totalPages} onClick={() => updateQuery({ page: pagination.page + 1 })} aria-label={t.nextPage}>
               <ChevronRight size={17} />
             </button>
-            <select value={limit} onChange={(event) => updateQuery({ limit: Number(event.target.value), page: 1 })} aria-label="Reviews per page">
+            <select value={limit} onChange={(event) => updateQuery({ limit: Number(event.target.value), page: 1 })} aria-label={t.reviewsPerPage}>
               {[10, 20, 50].map((value) => <option value={value} key={value}>{value} {t.perPage}</option>)}
             </select>
           </div>
