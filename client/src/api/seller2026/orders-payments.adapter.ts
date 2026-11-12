@@ -437,16 +437,20 @@ const readPaymentMethodLabel = (
   source: Record<string, unknown>,
   paymentSummary: Record<string, unknown>,
   fallback = "Payment"
-) =>
-  text(
+) => {
+  const order = object(source.order);
+  return text(
     paymentSummary.paymentMethodLabel ??
       source.paymentMethodLabel ??
+      order.paymentMethodLabel ??
       paymentSummary.paymentMethod ??
       source.paymentMethod ??
+      order.paymentMethod ??
       paymentSummary.paymentChannel ??
       paymentSummary.paymentType,
     fallback
-);
+  );
+};
 
 const readWithdrawalEligibility = (value: unknown) => {
   const meta = object(value);

@@ -1,398 +1,187 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   ArrowLeft,
   Box,
   CalendarDays,
   Check,
   CheckCircle2,
-  ClipboardList,
+  Clock3,
   Copy,
+  ExternalLink,
   FileText,
+  MapPin,
+  MessageCircle,
   Package,
   Printer,
+  ShieldCheck,
   Truck,
   UserRound,
   WalletCards,
+  AlertTriangle,
+  RotateCcw,
 } from "lucide-react";
 import { resolveAssetUrl } from "../../../lib/assetUrl.js";
 import "./seller-suborder-detail-2026.css";
 
-const ORDER_DETAIL_I18N = {
-  en: {
-    orderTitle: "Order Details",
-    singleStore: "Single Store",
-    copy: "Copy",
-    backToOrders: "Back to Orders",
-    orders: "Orders",
-    tabOverview: "Overview",
-    tabItems: "Items",
-    tabFulfillment: "Fulfillment",
-    tabTimeline: "Timeline",
-    tabNotes: "Internal Notes",
-    customer: "Customer",
-    shipping: "Shipping",
-    payment: "Payment",
-    costSummary: "Cost Summary",
-    status: "Status",
-    courier: "Courier",
-    tracking: "Tracking",
-    method: "Method",
-    proof: "Proof",
-    subtotal: "Subtotal",
-    shippingFee: "Shipping",
-    serviceFee: "Service Fee",
-    discount: "Discount",
-    total: "Total",
-    colProduct: "Product",
-    colVariant: "Variant",
-    colQty: "Qty",
-    colPrice: "Price",
-    colSubtotal: "Subtotal",
-    noItems: "No items snapshot available.",
-    fulfillmentTitle: "Fulfillment & Shipment",
-    fieldTracking: "Tracking Number",
-    fieldProvider: "Shipping Provider",
-    fieldService: "Courier Service",
-    placeholderTracking: "Input tracking number...",
-    placeholderProvider: "e.g. JNE, J&T, SiCepat...",
-    placeholderService: "e.g. Regular, Next Day...",
-    btnMarkPacked: "Mark as Packed",
-    btnPrintReceipt: "Print Receipt",
-    btnMarkShipped: "Mark as Shipped",
-    btnMarkDelivered: "Mark as Delivered",
-    timelineTitle: "Shipment Timeline",
-    notesTitle: "Internal Notes",
-    notesPlaceholder: "Add private note for this order...",
-    btnSaveNote: "Save Note",
-    loading: "Loading order details...",
-    errorTitle: "Unable to load suborder detail",
-    errorFallback: "This seller suborder is not available for the active store.",
-    backBtn: "Back to Orders",
-    buyerNote: "Note",
-  },
+const I18N = {
   id: {
-    orderTitle: "Rincian Pesanan",
-    singleStore: "Toko Tunggal",
+    back: "Kembali ke Pesanan",
+    title: "Rincian Pesanan",
+    orderNo: "No. Pesanan",
     copy: "Salin",
-    backToOrders: "Kembali ke Pesanan",
-    orders: "Pesanan",
-    tabOverview: "Ringkasan",
-    tabItems: "Produk",
-    tabFulfillment: "Pengiriman",
-    tabTimeline: "Riwayat",
-    tabNotes: "Catatan Internal",
+    copied: "Berhasil disalin",
     customer: "Pelanggan",
-    shipping: "Pengiriman",
-    payment: "Pembayaran",
-    costSummary: "Ringkasan Biaya",
-    status: "Status",
-    courier: "Kurir",
-    tracking: "Nomor Resi",
-    method: "Metode",
-    proof: "Bukti Bayar",
+    address: "Alamat Pengiriman",
+    whatsapp: "WhatsApp",
+    items: "Produk Pesanan",
+    product: "Produk",
+    variant: "Varian",
+    qty: "Jumlah",
+    price: "Harga",
     subtotal: "Subtotal",
-    shippingFee: "Ongkir",
+    shipping: "Pengiriman & Ekspedisi",
+    courier: "Kurir",
+    service: "Layanan",
+    trackingNo: "Nomor Resi",
+    trackingPlaceholder: "Masukkan nomor resi...",
+    courierPlaceholder: "contoh: JNE",
+    servicePlaceholder: "contoh: REG",
+    noTracking: "Belum ada resi",
+    paymentSummary: "Ringkasan Pembayaran",
+    method: "Metode",
+    paymentStatus: "Status Bayar",
+    paidAt: "Waktu Bayar",
+    shippingFee: "Total Ongkir",
     serviceFee: "Biaya Layanan",
     discount: "Diskon",
-    total: "Total",
-    colProduct: "Produk",
-    colVariant: "Varian",
-    colQty: "Jumlah",
-    colPrice: "Harga",
-    colSubtotal: "Subtotal",
-    noItems: "Tidak ada data produk.",
-    fulfillmentTitle: "Proses & Pengiriman",
-    fieldTracking: "Nomor Resi",
-    fieldProvider: "Ekspedisi Pengiriman",
-    fieldService: "Layanan Kurir",
-    placeholderTracking: "Masukkan nomor resi...",
-    placeholderProvider: "contoh: JNE, J&T, SiCepat...",
-    placeholderService: "contoh: Reguler, Next Day...",
+    totalPayment: "Total Pembayaran",
+    notes: "Catatan Pesanan",
+    buyerNote: "Catatan Pembeli",
+    internalNote: "Catatan Internal Toko",
+    internalNotePlaceholder: "Tulis catatan rahasia internal toko...",
+    saveNote: "Simpan Catatan",
+    saving: "Menyimpan...",
+    quickActions: "Aksi Pesanan",
+    printLabel: "Cetak Label Pengiriman",
+    printingLabel: "Memuat Label...",
+    messageBuyer: "Hubungi Pembeli",
+    copyOrderNo: "Salin No. Pesanan",
     btnMarkPacked: "Siap Dikemas",
-    btnPrintReceipt: "Cetak Resi",
-    btnMarkShipped: "Tandai Dikirim",
+    btnMarkShipped: "Kirim Pesanan",
     btnMarkDelivered: "Tandai Selesai",
-    timelineTitle: "Riwayat Pengiriman",
-    notesTitle: "Catatan Internal",
-    notesPlaceholder: "Tambah catatan internal untuk pesanan ini...",
-    btnSaveNote: "Simpan Catatan",
+    btnReviewPayment: "Tinjau Bukti Bayar",
+    shippingRequired: "Harap isi Nomor Resi sebelum menandai pesanan dikirim.",
     loading: "Memuat rincian pesanan...",
     errorTitle: "Gagal memuat rincian pesanan",
     errorFallback: "Pesanan ini tidak tersedia untuk toko aktif Anda.",
-    backBtn: "Kembali ke Pesanan",
-    buyerNote: "Catatan",
+    retry: "Coba Lagi",
+  },
+  en: {
+    back: "Back to Orders",
+    title: "Order Details",
+    orderNo: "Order No.",
+    copy: "Copy",
+    copied: "Copied",
+    customer: "Customer",
+    address: "Shipping Address",
+    whatsapp: "WhatsApp",
+    items: "Order Items",
+    product: "Product",
+    variant: "Variant",
+    qty: "Qty",
+    price: "Price",
+    subtotal: "Subtotal",
+    shipping: "Shipping & Courier",
+    courier: "Courier",
+    service: "Service",
+    trackingNo: "Tracking Number",
+    trackingPlaceholder: "Input tracking number...",
+    courierPlaceholder: "e.g. JNE",
+    servicePlaceholder: "e.g. REG",
+    noTracking: "No tracking yet",
+    paymentSummary: "Payment Summary",
+    method: "Method",
+    paymentStatus: "Payment Status",
+    paidAt: "Paid At",
+    shippingFee: "Shipping Fee",
+    serviceFee: "Service Fee",
+    discount: "Discount",
+    totalPayment: "Total Payment",
+    notes: "Order Notes",
+    buyerNote: "Buyer Note",
+    internalNote: "Internal Store Note",
+    internalNotePlaceholder: "Add private store note...",
+    saveNote: "Save Note",
+    saving: "Saving...",
+    quickActions: "Order Actions",
+    printLabel: "Print Shipping Label",
+    printingLabel: "Loading Label...",
+    messageBuyer: "Message Buyer",
+    copyOrderNo: "Copy Order No.",
+    btnMarkPacked: "Mark as Packed",
+    btnMarkShipped: "Ship Order",
+    btnMarkDelivered: "Mark as Delivered",
+    btnReviewPayment: "Review Payment Proof",
+    shippingRequired: "Please enter tracking number before marking shipped.",
+    loading: "Loading order details...",
+    errorTitle: "Unable to load order details",
+    errorFallback: "This order is not available for your active store.",
+    retry: "Try Again",
   },
 };
 
 function StatusPill({ status }) {
+  if (!status) return null;
+  const tone = status.tone || "slate";
   return (
-    <span className={`tpsodp2026-pill tpsodp2026-pill--${status?.tone || "slate"}`}>
-      <i aria-hidden="true" />
-      {status?.label || "-"}
+    <span className={`tpsodp2026-pill tpsodp2026-pill--${tone}`}>
+      <span className="tpsodp2026-pill__dot" />
+      {status.label || "-"}
     </span>
   );
 }
 
-function LoadingState({ t }) {
+function ProgressRail({ steps, isIndo }) {
+  if (!Array.isArray(steps) || !steps.length) return null;
   return (
-    <div className="tpsodp2026-page">
-      <div className="tpsodp2026-skeleton tpsodp2026-skeleton--hero" />
-      <div className="tpsodp2026-summary-grid">
-        {[1, 2, 3, 4].map((item) => (
-          <div className="tpsodp2026-skeleton" key={item} />
-        ))}
-      </div>
-      <div className="tpsodp2026-skeleton tpsodp2026-skeleton--wide" />
-    </div>
-  );
-}
-
-function ErrorState({ error, onBack, t }) {
-  return (
-    <section className="tpsodp2026-state">
-      <ClipboardList aria-hidden="true" />
-      <h2>{t.errorTitle}</h2>
-      <p>
-        {error?.response?.data?.message ||
-          error?.message ||
-          t.errorFallback}
-      </p>
-      <button type="button" onClick={onBack}>
-        <ArrowLeft aria-hidden="true" />
-        {t.backBtn}
-      </button>
-    </section>
-  );
-}
-
-function ProgressRail({ steps }) {
-  return (
-    <section className="tpsodp2026-progress" aria-label="Fulfillment progress">
-      {steps.map((step) => {
-        const Icon =
-          step.code === "SHIPPED"
-            ? Truck
-            : step.code === "PACKED"
+    <section className="tpsodp2026-stepper" aria-label="Progress Stepper">
+      <div className="tpsodp2026-stepper__track">
+        {steps.map((step, idx) => {
+          const Icon =
+            step.code === "SHIPPED"
+              ? Truck
+              : step.code === "PACKED"
               ? Package
+              : step.code === "PAID"
+              ? ShieldCheck
               : step.complete
-                ? Check
-                : Box;
-        return (
-          <article
-            key={step.code}
-            className={step.complete ? "is-complete" : step.active ? "is-active" : ""}
-          >
-            <span aria-hidden="true"><Icon size={18} /></span>
-            <strong>{step.label}</strong>
-            <small>{step.dateLabel || "Pending"}</small>
-          </article>
-        );
-      })}
-    </section>
-  );
-}
+              ? Check
+              : Box;
 
-function InfoCard({ icon: Icon, title, children }) {
-  return (
-    <section className="tpsodp2026-card">
-      <header>
-        <span aria-hidden="true"><Icon size={16} /></span>
-        <h2>{title}</h2>
-      </header>
-      {children}
-    </section>
-  );
-}
+          const isLast = idx === steps.length - 1;
+          const statusClass = step.complete
+            ? "is-complete"
+            : step.active
+            ? "is-active"
+            : "is-pending";
 
-function ItemsTable({ items, t }) {
-  return (
-    <section className="tpsodp2026-card tpsodp2026-items">
-      <header>
-        <span aria-hidden="true"><Package size={16} /></span>
-        <h2>{t.tabItems}</h2>
-      </header>
-      <div className="tpsodp2026-table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>{t.colProduct}</th>
-              <th>{t.colVariant}</th>
-              <th>{t.colQty}</th>
-              <th>{t.colPrice}</th>
-              <th>{t.colSubtotal}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length ? (
-              items.map((item) => (
-                <tr key={item.id}>
-                  <td>
-                    <span className="tpsodp2026-product">
-                      <span aria-hidden="true">
-                        {item.imageUrl ? (
-                          <img src={resolveAssetUrl(item.imageUrl)} alt="" />
-                        ) : (
-                          <Box size={20} />
-                        )}
-                      </span>
-                      <strong>{item.name}</strong>
-                    </span>
-                  </td>
-                  <td>{item.variantLabel}</td>
-                  <td>{item.quantity}</td>
-                  <td>{item.priceLabel}</td>
-                  <td><strong>{item.subtotalLabel}</strong></td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={5}>{t.noItems}</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
-}
-
-function Timeline({ items, t }) {
-  return (
-    <InfoCard icon={CalendarDays} title={t.timelineTitle}>
-      <ol className="tpsodp2026-timeline">
-        {items.map((item) => (
-          <li className={item.complete ? "is-complete" : ""} key={item.id}>
-            <i aria-hidden="true" />
-            <div>
-              <strong>{item.label}</strong>
-              <span>{item.createdAtLabel}</span>
-              {item.description ? <p>{item.description}</p> : null}
+          return (
+            <div key={step.code} className={`tpsodp2026-step ${statusClass}`}>
+              <div className="tpsodp2026-step__node">
+                <span className="tpsodp2026-step__icon">
+                  <Icon size={16} />
+                </span>
+                {!isLast && <div className="tpsodp2026-step__line" />}
+              </div>
+              <div className="tpsodp2026-step__content">
+                <strong className="tpsodp2026-step__label">{step.label}</strong>
+                <span className="tpsodp2026-step__date">
+                  {step.dateLabel || (isIndo ? "Menunggu" : "Pending")}
+                </span>
+              </div>
             </div>
-          </li>
-        ))}
-      </ol>
-    </InfoCard>
-  );
-}
-
-function FulfillmentSection({
-  order,
-  draft,
-  isUpdating,
-  t,
-  onDraftChange,
-  onMarkPacked,
-  onMarkShipped,
-  onMarkDelivered,
-  onPrintReceipt,
-}) {
-  const changeField = (field) => (event) => onDraftChange?.(field, event.target.value);
-  return (
-    <section className="tpsodp2026-card tpsodp2026-fulfillment">
-      <header>
-        <span aria-hidden="true"><Truck size={16} /></span>
-        <h2>{t.fulfillmentTitle}</h2>
-      </header>
-      <div className="tpsodp2026-fields">
-        <label>
-          <span>{t.fieldTracking}</span>
-          <input
-            value={draft?.trackingNumber || ""}
-            onChange={changeField("trackingNumber")}
-            placeholder={t.placeholderTracking}
-          />
-        </label>
-        <label>
-          <span>{t.fieldProvider}</span>
-          <input
-            value={draft?.shippingProvider || ""}
-            onChange={changeField("shippingProvider")}
-            placeholder={t.placeholderProvider}
-          />
-        </label>
-        <label>
-          <span>{t.fieldService}</span>
-          <input
-            value={draft?.courierService || ""}
-            onChange={changeField("courierService")}
-            placeholder={t.placeholderService}
-          />
-        </label>
-      </div>
-
-      <ProgressRail steps={order.progress} />
-
-      <div className="tpsodp2026-actions">
-        <button
-          type="button"
-          className="tpsodp2026-primary"
-          onClick={onMarkPacked}
-          disabled={!onMarkPacked || isUpdating}
-          title={onMarkPacked ? t.btnMarkPacked : order.actions.markPackedReason}
-        >
-          <CheckCircle2 size={16} aria-hidden="true" />
-          {t.btnMarkPacked}
-        </button>
-        <button type="button" onClick={onPrintReceipt} disabled={isUpdating}>
-          <Printer size={16} aria-hidden="true" />
-          {t.btnPrintReceipt}
-        </button>
-        <button
-          type="button"
-          onClick={onMarkShipped}
-          disabled={!onMarkShipped || isUpdating}
-          title={onMarkShipped ? t.btnMarkShipped : order.actions.markShippedReason}
-        >
-          <Truck size={16} aria-hidden="true" />
-          {t.btnMarkShipped}
-        </button>
-        <button
-          type="button"
-          onClick={onMarkDelivered}
-          disabled={!onMarkDelivered || isUpdating}
-          title={onMarkDelivered ? t.btnMarkDelivered : order.actions.markDeliveredReason}
-        >
-          <CheckCircle2 size={16} aria-hidden="true" />
-          {t.btnMarkDelivered}
-        </button>
-      </div>
-    </section>
-  );
-}
-
-function InternalNotes({
-  internalNoteDraft,
-  onInternalNoteChange,
-  onSaveInternalNote,
-  isUpdating,
-  t,
-}) {
-  return (
-    <section className="tpsodp2026-card tpsodp2026-notes">
-      <header>
-        <span aria-hidden="true"><ClipboardList size={16} /></span>
-        <h2>{t.notesTitle}</h2>
-      </header>
-      <div className="tpsodp2026-notes-inner">
-        <label>
-          <span className="tpsodp2026-sr-only">{t.notesTitle}</span>
-          <textarea
-            value={internalNoteDraft || ""}
-            onChange={(e) => onInternalNoteChange?.(e.target.value)}
-            placeholder={t.notesPlaceholder}
-            rows={4}
-          />
-        </label>
-        <div className="tpsodp2026-notes-actions">
-          <button
-            type="button"
-            className="tpsodp2026-primary s26-btn-small"
-            onClick={onSaveInternalNote}
-            disabled={isUpdating}
-          >
-            {t.btnSaveNote}
-          </button>
-        </div>
+          );
+        })}
       </div>
     </section>
   );
@@ -405,15 +194,16 @@ export default function SellerSuborderDetail2026PageView({
   error = null,
   isUpdating = false,
   LinkComponent = "a",
-  searchQuery = "",
   fulfillmentDraft = {},
   notice = null,
   isIndo = false,
-  onSearchChange,
-  onCopyReference,
+  onCopyText,
   onBack,
-  onPrintReceipt,
+  onPrintLabel,
+  isPrintingLabel = false,
+  onMessageBuyer,
   onFulfillmentDraftChange,
+  onFulfillmentAction,
   onMarkPacked,
   onMarkShipped,
   onMarkDelivered,
@@ -421,189 +211,533 @@ export default function SellerSuborderDetail2026PageView({
   onInternalNoteChange,
   onSaveInternalNote,
 }) {
-  const [activeTab, setActiveTab] = React.useState("overview");
+  const t = isIndo ? I18N.id : I18N.en;
   const Link = LinkComponent;
-  const t = isIndo ? ORDER_DETAIL_I18N.id : ORDER_DETAIL_I18N.en;
+  const [validationError, setValidationError] = useState("");
 
-  const TABS = [
-    { id: "overview", label: t.tabOverview },
-    { id: "items", label: t.tabItems },
-    { id: "fulfillment", label: t.tabFulfillment },
-    { id: "timeline", label: t.tabTimeline },
-    { id: "notes", label: t.tabNotes },
-  ];
+  if (isLoading) {
+    return (
+      <div className="tpsodp2026-page" data-seller2026-live-order-detail="true">
+        <div className="tpsodp2026-loading">
+          <div className="tpsodp2026-spinner" />
+          <p>{t.loading}</p>
+        </div>
+      </div>
+    );
+  }
 
-  if (isLoading) return <LoadingState t={t} />;
-  if (error) return <ErrorState error={error} onBack={onBack} t={t} />;
-  if (!order) return <ErrorState error={null} onBack={onBack} t={t} />;
+  if (error || !order) {
+    return (
+      <div className="tpsodp2026-page" data-seller2026-live-order-detail="true">
+        <div className="tpsodp2026-error-card">
+          <AlertTriangle size={48} className="tpsodp2026-error-icon" />
+          <h2>{t.errorTitle}</h2>
+          <p>{error?.message || t.errorFallback}</p>
+          <button type="button" className="tpsodp2026-btn-primary" onClick={onBack}>
+            <ArrowLeft size={16} />
+            <span>{t.back}</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const fulfillmentCode = order.fulfillmentStatus?.code || "UNFULFILLED";
+  const paymentCode = order.paymentStatus?.code || "UNPAID";
+  const isPaid = paymentCode === "PAID";
+  const isShipped = fulfillmentCode === "SHIPPED";
+  const isDelivered = fulfillmentCode === "DELIVERED";
+  const isPackingOrReady = fulfillmentCode === "PROCESSING" || fulfillmentCode === "PACKED";
+
+  // When order is processing/packed, user can enter resi to mark shipped
+  const canEditShipping = isPackingOrReady || (!isShipped && !isDelivered && isPaid);
+
+  const handleActionClick = (action) => {
+    setValidationError("");
+    if (action === "MARK_SHIPPED") {
+      const tracking = String(fulfillmentDraft.trackingNumber || "").trim();
+      if (!tracking) {
+        setValidationError(t.shippingRequired);
+        return;
+      }
+    }
+    if (onFulfillmentAction) {
+      onFulfillmentAction(action, fulfillmentDraft);
+    }
+  };
 
   return (
     <div className="tpsodp2026-page" data-seller2026-live-order-detail="true">
-      {notice ? (
-        <p className={`tpsodp2026-notice tpsodp2026-notice--${notice.type || "info"}`}>
-          {notice.text}
-        </p>
-      ) : null}
+      {/* Notice Banner */}
+      {notice && (
+        <div className={`tpsodp2026-notice tpsodp2026-notice--${notice.type || "info"}`}>
+          <span>{notice.text}</span>
+        </div>
+      )}
 
-      {/* Streamlined Hero Header: No redundant order box below! */}
-      <header className="tpsodp2026-hero">
-        <div className="tpsodp2026-hero-main">
-          <div className="tpsodp2026-hero-eyebrow">{t.orderTitle}</div>
-          <div className="tpsodp2026-hero-title-row">
+      {/* Top Header / Breadcrumb */}
+      <div className="tpsodp2026-topbar">
+        <button type="button" className="tpsodp2026-btn-back" onClick={onBack}>
+          <ArrowLeft size={16} />
+          <span>{t.back}</span>
+        </button>
+
+        <div className="tpsodp2026-topbar__actions">
+          <button
+            type="button"
+            className="tpsodp2026-btn-outline"
+            onClick={onPrintLabel}
+            disabled={isUpdating || isPrintingLabel}
+            title={t.printLabel}
+          >
+            <Printer size={15} />
+            <span>{isPrintingLabel ? t.printingLabel : t.printLabel}</span>
+          </button>
+          <button
+            type="button"
+            className="tpsodp2026-btn-outline"
+            onClick={() => onMessageBuyer?.(order.customer)}
+            disabled={isUpdating || !order.canMessageBuyer}
+            title={t.messageBuyer}
+          >
+            <MessageCircle size={15} />
+            <span>{t.messageBuyer}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Hero Header Card */}
+      <header className="tpsodp2026-hero-card">
+        <div className="tpsodp2026-hero-card__main">
+          <div className="tpsodp2026-hero-card__meta-row">
+            <span className="tpsodp2026-eyebrow">{t.title}</span>
+            {order.orderId ? (
+              <span
+                className="tpsodp2026-order-id-badge"
+                title={`Order #${order.orderId}`}
+                onClick={() => onCopyText?.(String(order.orderId), `#${order.orderId}`)}
+              >
+                #{order.orderId}
+              </span>
+            ) : null}
+            <div className="tpsodp2026-hero-card__chips">
+              <StatusPill status={order.paymentStatus} />
+              <StatusPill status={order.readinessStatus} />
+            </div>
+          </div>
+
+          <div className="tpsodp2026-hero-card__title-row">
             <h1>{order.reference}</h1>
             <button
               type="button"
-              onClick={onCopyReference}
-              className="tpsodp2026-btn-copy"
+              className="tpsodp2026-btn-icon-copy"
+              onClick={() => onCopyText?.(order.reference, t.orderNo)}
               title={t.copy}
               aria-label={t.copy}
             >
-              <Copy size={15} />
-              <span>{t.copy}</span>
+              <Copy size={16} />
             </button>
           </div>
-          <small>
-            <CalendarDays size={14} aria-hidden="true" />
-            {order.createdAtLabel}
-            <span aria-hidden="true">•</span>
-            {order.scopeLabel}
-          </small>
-        </div>
 
-        <div className="tpsodp2026-hero-side">
-          <div className="tpsodp2026-hero__chips">
-            <StatusPill status={order.paymentStatus} />
-            <StatusPill status={order.readinessStatus} />
+          <div className="tpsodp2026-hero-card__sub-row">
+            <span className="tpsodp2026-time-stamp">
+              <CalendarDays size={14} />
+              {order.createdAtLabel}
+            </span>
+            <span className="tpsodp2026-divider">•</span>
+            <span className="tpsodp2026-suborder-no">
+              {order.suborderNo}
+              <button
+                type="button"
+                className="tpsodp2026-btn-mini-copy"
+                onClick={() => onCopyText?.(order.rawSuborderNo || order.suborderNo, "Suborder ID")}
+                title={t.copy}
+              >
+                <Copy size={12} />
+              </button>
+            </span>
           </div>
-          <Link to={order.ordersPath} className="tpsodp2026-btn-back">
-            <ArrowLeft size={15} />
-            <span>{t.backToOrders}</span>
-          </Link>
         </div>
       </header>
 
-      {/* Tab Navigation */}
-      <div className="tpsodp2026-tabs" role="tablist">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab.id}
-            className={`tpsodp2026-tab ${activeTab === tab.id ? "is-active" : ""}`}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {/* 5-Step Visual Progress Rail */}
+      <ProgressRail steps={order.progress} isIndo={isIndo} />
 
-      {/* Tab Content */}
-      <div className="tpsodp2026-tab-content">
-        {activeTab === "overview" && (
-          <div className="tpsodp2026-summary-grid">
-            <InfoCard icon={UserRound} title={t.customer}>
-              <div className="tpsodp2026-stack">
-                <strong>{order.customer.name}</strong>
-                <span>{order.customer.phone || order.customer.email || "-"}</span>
-                <p>{order.customer.address}</p>
-                {order.customer.note ? (
-                  <p className="tpsodp2026-buyer-note">
-                    <em>{t.buyerNote}: {order.customer.note}</em>
-                  </p>
+      {/* 2-Column Responsive Dashboard Layout */}
+      <main className="tpsodp2026-grid">
+        {/* Left Column: Products, Shipping & Fulfillment, Notes */}
+        <div className="tpsodp2026-col-main">
+          {/* Products Card */}
+          <section className="tpsodp2026-card">
+            <header className="tpsodp2026-card__header">
+              <div className="tpsodp2026-card__header-title">
+                <Package size={18} className="tpsodp2026-icon-primary" />
+                <h2>{t.items}</h2>
+              </div>
+              <span className="tpsodp2026-badge-count">{order.items?.length || 0}</span>
+            </header>
+
+            <div className="tpsodp2026-items-list">
+              {order.items?.length ? (
+                order.items.map((item) => (
+                  <article key={item.id} className="tpsodp2026-item-row">
+                    <div className="tpsodp2026-item-row__media">
+                      {item.imageUrl ? (
+                        <img
+                          src={resolveAssetUrl(item.imageUrl)}
+                          alt={item.name}
+                          loading="lazy"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        <Box size={24} className="tpsodp2026-item-row__fallback" />
+                      )}
+                    </div>
+                    <div className="tpsodp2026-item-row__info">
+                      <strong className="tpsodp2026-item-row__name">{item.name}</strong>
+                      {item.variantLabel && (
+                        <span className="tpsodp2026-item-row__variant">{item.variantLabel}</span>
+                      )}
+                      <div className="tpsodp2026-item-row__pricing">
+                        <span>{item.priceLabel}</span>
+                        <span className="tpsodp2026-item-row__qty">× {item.quantity}</span>
+                      </div>
+                    </div>
+                    <div className="tpsodp2026-item-row__total">
+                      <strong>{item.subtotalLabel}</strong>
+                    </div>
+                  </article>
+                ))
+              ) : (
+                <div className="tpsodp2026-empty-state">
+                  <Box size={24} />
+                  <p>{isIndo ? "Tidak ada produk." : "No items."}</p>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Shipping & Fulfillment Card */}
+          <section className="tpsodp2026-card">
+            <header className="tpsodp2026-card__header">
+              <div className="tpsodp2026-card__header-title">
+                <Truck size={18} className="tpsodp2026-icon-primary" />
+                <h2>{t.shipping}</h2>
+              </div>
+              <StatusPill status={{ label: order.shipping?.status, tone: order.shipping?.statusTone }} />
+            </header>
+
+            <div className="tpsodp2026-shipping-grid">
+              <div className="tpsodp2026-field">
+                <label className="tpsodp2026-field__label">{t.courier}</label>
+                {canEditShipping ? (
+                  <input
+                    type="text"
+                    className="tpsodp2026-input"
+                    value={fulfillmentDraft.shippingProvider || ""}
+                    onChange={(e) => onFulfillmentDraftChange?.("shippingProvider", e.target.value)}
+                    placeholder={t.courierPlaceholder}
+                    disabled={isUpdating}
+                  />
+                ) : (
+                  <div className="tpsodp2026-field__value">
+                    <strong>{order.shipping?.courier || "-"}</strong>
+                  </div>
+                )}
+              </div>
+
+              <div className="tpsodp2026-field">
+                <label className="tpsodp2026-field__label">{t.service}</label>
+                {canEditShipping ? (
+                  <input
+                    type="text"
+                    className="tpsodp2026-input"
+                    value={fulfillmentDraft.courierService || ""}
+                    onChange={(e) => onFulfillmentDraftChange?.("courierService", e.target.value)}
+                    placeholder={t.servicePlaceholder}
+                    disabled={isUpdating}
+                  />
+                ) : (
+                  <div className="tpsodp2026-field__value">
+                    <span>{order.shipping?.method || "-"}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="tpsodp2026-field tpsodp2026-field--full">
+                <label className="tpsodp2026-field__label">{t.trackingNo}</label>
+                {canEditShipping ? (
+                  <input
+                    type="text"
+                    className="tpsodp2026-input tpsodp2026-input--highlight"
+                    value={fulfillmentDraft.trackingNumber || ""}
+                    onChange={(e) => {
+                      setValidationError("");
+                      onFulfillmentDraftChange?.("trackingNumber", e.target.value);
+                    }}
+                    placeholder={t.trackingPlaceholder}
+                    disabled={isUpdating}
+                  />
+                ) : (
+                  <div className="tpsodp2026-tracking-display">
+                    <strong>{order.shipping?.trackingNo || t.noTracking}</strong>
+                    {order.shipping?.trackingNo && (
+                      <button
+                        type="button"
+                        className="tpsodp2026-btn-mini-copy"
+                        onClick={() => onCopyText?.(order.shipping.trackingNo, t.trackingNo)}
+                        title={t.copy}
+                      >
+                        <Copy size={13} />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {validationError && (
+              <div className="tpsodp2026-field-error">
+                <AlertTriangle size={14} />
+                <span>{validationError}</span>
+              </div>
+            )}
+
+            {/* Action Buttons for Fulfillment */}
+            <div className="tpsodp2026-fulfillment-actions">
+              {paymentCode === "PENDING_CONFIRMATION" && (
+                <button
+                  type="button"
+                  className="tpsodp2026-btn-primary"
+                  onClick={() => handleActionClick("REVIEW_PAYMENT")}
+                  disabled={isUpdating}
+                >
+                  <ShieldCheck size={16} />
+                  <span>{t.btnReviewPayment}</span>
+                </button>
+              )}
+
+              {isPaid && (fulfillmentCode === "UNFULFILLED" || fulfillmentCode === "READY_TO_FULFILL" || fulfillmentCode === "UNKNOWN") && (
+                <button
+                  type="button"
+                  className="tpsodp2026-btn-primary"
+                  onClick={() => handleActionClick("MARK_PROCESSING")}
+                  disabled={isUpdating}
+                >
+                  <CheckCircle2 size={16} />
+                  <span>{t.btnMarkPacked}</span>
+                </button>
+              )}
+
+              {isPackingOrReady && (
+                <button
+                  type="button"
+                  className="tpsodp2026-btn-accent"
+                  onClick={() => handleActionClick("MARK_SHIPPED")}
+                  disabled={isUpdating}
+                >
+                  <Truck size={16} />
+                  <span>{t.btnMarkShipped}</span>
+                </button>
+              )}
+
+              {isShipped && (
+                <button
+                  type="button"
+                  className="tpsodp2026-btn-primary"
+                  onClick={() => handleActionClick("MARK_DELIVERED")}
+                  disabled={isUpdating || !order.actions?.canMarkDelivered}
+                  title={order.actions?.markDeliveredReason}
+                >
+                  <CheckCircle2 size={16} />
+                  <span>{t.btnMarkDelivered}</span>
+                </button>
+              )}
+            </div>
+          </section>
+
+          {/* Notes Card */}
+          <section className="tpsodp2026-card">
+            <header className="tpsodp2026-card__header">
+              <div className="tpsodp2026-card__header-title">
+                <FileText size={18} className="tpsodp2026-icon-primary" />
+                <h2>{t.notes}</h2>
+              </div>
+            </header>
+
+            <div className="tpsodp2026-notes-stack">
+              {order.customer?.note ? (
+                <div className="tpsodp2026-buyer-note-box">
+                  <span className="tpsodp2026-note-tag">{t.buyerNote}</span>
+                  <p>{order.customer.note}</p>
+                </div>
+              ) : null}
+
+              <div className="tpsodp2026-internal-note-box">
+                <label className="tpsodp2026-field__label">{t.internalNote}</label>
+                <textarea
+                  className="tpsodp2026-textarea"
+                  value={internalNoteDraft}
+                  onChange={(e) => onInternalNoteChange?.(e.target.value)}
+                  placeholder={t.internalNotePlaceholder}
+                  rows={3}
+                  disabled={isUpdating}
+                />
+                <div className="tpsodp2026-note-footer">
+                  <button
+                    type="button"
+                    className="tpsodp2026-btn-primary tpsodp2026-btn--sm"
+                    onClick={onSaveInternalNote}
+                    disabled={isUpdating}
+                  >
+                    {isUpdating ? t.saving : t.saveNote}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        {/* Right Column: Customer Info, Payment Summary, Quick Actions */}
+        <div className="tpsodp2026-col-side">
+          {/* Customer Card */}
+          <section className="tpsodp2026-card">
+            <header className="tpsodp2026-card__header">
+              <div className="tpsodp2026-card__header-title">
+                <UserRound size={18} className="tpsodp2026-icon-primary" />
+                <h2>{t.customer}</h2>
+              </div>
+            </header>
+
+            <div className="tpsodp2026-customer-profile">
+              <div className="tpsodp2026-avatar">
+                {(order.customer?.name || "C").slice(0, 2).toUpperCase()}
+              </div>
+              <div className="tpsodp2026-customer-profile__details">
+                <strong className="tpsodp2026-customer-profile__name">{order.customer?.name}</strong>
+                {order.customer?.phone ? (
+                  <div className="tpsodp2026-customer-profile__phone-row">
+                    <span>{order.customer.phone}</span>
+                    <button
+                      type="button"
+                      className="tpsodp2026-btn-wa"
+                      onClick={() => onMessageBuyer?.(order.customer)}
+                      title={t.whatsapp}
+                    >
+                      <MessageCircle size={12} />
+                      <span>{t.whatsapp}</span>
+                    </button>
+                  </div>
                 ) : null}
               </div>
-            </InfoCard>
+            </div>
 
-            <InfoCard icon={Truck} title={t.shipping}>
-              <div className="tpsodp2026-stack">
-                <StatusPill status={{ label: order.shipping.status, tone: order.shipping.statusTone }} />
-                <span>
-                  {t.courier}: <strong>{order.shipping.courier}</strong>
-                </span>
-                <span>
-                  {t.tracking}: <strong>{order.shipping.trackingLabel}</strong>
-                </span>
-                {order.shipping.method && order.shipping.method !== "-" ? (
-                  <span>
-                    {t.method}: {order.shipping.method}
-                  </span>
-                ) : null}
+            <div className="tpsodp2026-address-box">
+              <MapPin size={16} className="tpsodp2026-icon-pin" />
+              <p>{order.customer?.address}</p>
+            </div>
+          </section>
+
+          {/* Payment Summary Card */}
+          <section className="tpsodp2026-card">
+            <header className="tpsodp2026-card__header">
+              <div className="tpsodp2026-card__header-title">
+                <WalletCards size={18} className="tpsodp2026-icon-primary" />
+                <h2>{t.paymentSummary}</h2>
               </div>
-            </InfoCard>
+              <StatusPill status={order.paymentStatus} />
+            </header>
 
-            <InfoCard icon={WalletCards} title={t.payment}>
-              <div className="tpsodp2026-stack">
-                <span>
-                  {t.status}: <StatusPill status={order.paymentStatus} />
-                </span>
-                <span>
-                  {t.method}: <strong>{order.payment.method}</strong>
-                </span>
-                <span>
-                  {t.proof}: {order.payment.proof}
-                </span>
-                {order.paidAtLabel && order.paymentStatus?.code === "PAID" ? (
-                  <small>{order.paidAtLabel}</small>
-                ) : null}
+            <div className="tpsodp2026-payment-meta">
+              <div className="tpsodp2026-meta-row">
+                <span className="tpsodp2026-meta-label">{t.method}</span>
+                <strong className="tpsodp2026-meta-value">{order.payment?.method}</strong>
               </div>
-            </InfoCard>
-
-            <InfoCard icon={FileText} title={t.costSummary}>
-              <dl className="tpsodp2026-costs">
-                <div>
-                  <dt>{t.subtotal}</dt>
-                  <dd>{order.totals.subtotalLabel}</dd>
+              {order.paidAtLabel && isPaid ? (
+                <div className="tpsodp2026-meta-row">
+                  <span className="tpsodp2026-meta-label">{t.paidAt}</span>
+                  <span className="tpsodp2026-meta-value">{order.paidAtLabel}</span>
                 </div>
-                <div>
-                  <dt>{t.shippingFee}</dt>
-                  <dd>{order.totals.shippingFeeLabel}</dd>
-                </div>
-                <div>
-                  <dt>{t.serviceFee}</dt>
-                  <dd>{order.totals.serviceFeeLabel}</dd>
-                </div>
-                <div>
-                  <dt>{t.discount}</dt>
-                  <dd>{order.totals.discountLabel}</dd>
-                </div>
-                <div className="tpsodp2026-cost-total">
-                  <dt>{t.total}</dt>
-                  <dd>{order.totals.totalLabel}</dd>
-                </div>
-              </dl>
-            </InfoCard>
-          </div>
-        )}
+              ) : null}
+            </div>
 
-        {activeTab === "items" && <ItemsTable items={order.items} t={t} />}
+            <div className="tpsodp2026-breakdown">
+              <div className="tpsodp2026-breakdown__row">
+                <span>{isIndo ? `Subtotal (${order.items?.length || 0} Produk)` : `Subtotal (${order.items?.length || 0} Items)`}</span>
+                <span>{order.totals?.subtotalLabel}</span>
+              </div>
+              <div className="tpsodp2026-breakdown__row">
+                <span>{t.shippingFee}</span>
+                <span>{order.totals?.shippingFeeLabel}</span>
+              </div>
+              <div className="tpsodp2026-breakdown__row">
+                <span>{t.serviceFee}</span>
+                <span>{order.totals?.serviceFeeLabel}</span>
+              </div>
+              <div className="tpsodp2026-breakdown__row tpsodp2026-breakdown__row--discount">
+                <span>{t.discount}</span>
+                <span>-{order.totals?.discountLabel}</span>
+              </div>
+              <div className="tpsodp2026-breakdown__total">
+                <span className="tpsodp2026-breakdown__total-label">{t.totalPayment}</span>
+                <span className="tpsodp2026-breakdown__total-amount">{order.totals?.totalLabel}</span>
+              </div>
+            </div>
+          </section>
 
-        {activeTab === "fulfillment" && (
-          <FulfillmentSection
-            order={order}
-            draft={fulfillmentDraft}
-            isUpdating={isUpdating}
-            t={t}
-            onDraftChange={onFulfillmentDraftChange}
-            onMarkPacked={onMarkPacked}
-            onMarkShipped={onMarkShipped}
-            onMarkDelivered={onMarkDelivered}
-            onPrintReceipt={onPrintReceipt}
-          />
-        )}
+          {/* Quick Actions Card */}
+          <section className="tpsodp2026-card">
+            <header className="tpsodp2026-card__header">
+              <div className="tpsodp2026-card__header-title">
+                <CheckCircle2 size={18} className="tpsodp2026-icon-primary" />
+                <h2>{t.quickActions}</h2>
+              </div>
+            </header>
 
-        {activeTab === "timeline" && <Timeline items={order.timeline} t={t} />}
+            <div className="tpsodp2026-actions-stack">
+              <button
+                type="button"
+                className="tpsodp2026-btn-action-tile"
+                onClick={onPrintLabel}
+                disabled={isUpdating || isPrintingLabel}
+              >
+                <Printer size={18} />
+                <div className="tpsodp2026-btn-action-tile__text">
+                  <strong>{t.printLabel}</strong>
+                  <small>{isIndo ? "Format standar label kurir" : "Standard courier label"}</small>
+                </div>
+              </button>
 
-        {activeTab === "notes" && (
-          <InternalNotes
-            internalNoteDraft={internalNoteDraft}
-            onInternalNoteChange={onInternalNoteChange}
-            onSaveInternalNote={onSaveInternalNote}
-            isUpdating={isUpdating}
-            t={t}
-          />
-        )}
-      </div>
+              <button
+                type="button"
+                className="tpsodp2026-btn-action-tile"
+                onClick={() => onMessageBuyer?.(order.customer)}
+                disabled={isUpdating || !order.canMessageBuyer}
+              >
+                <MessageCircle size={18} />
+                <div className="tpsodp2026-btn-action-tile__text">
+                  <strong>{t.messageBuyer}</strong>
+                  <small>{isIndo ? "Hubungi via WhatsApp" : "Contact via WhatsApp"}</small>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className="tpsodp2026-btn-action-tile"
+                onClick={() => onCopyText?.(order.reference, t.orderNo)}
+              >
+                <Copy size={18} />
+                <div className="tpsodp2026-btn-action-tile__text">
+                  <strong>{t.copyOrderNo}</strong>
+                  <small>{order.reference}</small>
+                </div>
+              </button>
+            </div>
+          </section>
+        </div>
+      </main>
     </div>
   );
 }

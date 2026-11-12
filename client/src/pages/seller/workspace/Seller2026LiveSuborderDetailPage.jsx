@@ -3,6 +3,9 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import SellerSuborderDetail2026PageView from "./SellerSuborderDetail2026PageView.jsx";
+import SellerShippingLabelPrint from "../../../features/sellerWorkspace2026/orders/print/SellerShippingLabelPrint.jsx";
+import { getSellerSuborderShippingLabel } from "../../../api/sellerOrders.ts";
+import { toPreferredWhatsAppLink } from "../../../utils/storePublicIdentity.ts";
 import {
   buildSellerSuborderFulfillmentPayload2026,
   normalizeSellerSuborderDetailFor2026,
@@ -78,8 +81,10 @@ export default function Seller2026LiveSuborderDetailPage() {
   const { can } = getSeller2026PagePermissions(sellerContext);
   const canView = can("ORDER_READ");
   const canFulfill = can("ORDER_FULFILLMENT_UPDATE");
-  const [searchQuery, setSearchQuery] = useState("");
   const [notice, setNotice] = useState(null);
+  const [shippingLabel, setShippingLabel] = useState(null);
+  const [shippingLabelPrintToken, setShippingLabelPrintToken] = useState(null);
+  const [printingLabelId, setPrintingLabelId] = useState(null);
   const [fulfillmentDraft, setFulfillmentDraft] = useState({
     trackingNumber: "",
     shippingProvider: "",
@@ -94,7 +99,7 @@ export default function Seller2026LiveSuborderDetailPage() {
   });
 
   const orderDetail2026 =
-    detailQuery.data && detailQuery.data.suborder?.id
+    detailQuery.data && (detailQuery.data.suborder?.id || detailQuery.data.suborder?.suborderId)
       ? normalizeSellerSuborderDetailFor2026({
           suborder: detailQuery.data,
           routes: {
@@ -120,21 +125,31 @@ export default function Seller2026LiveSuborderDetailPage() {
     }
   }, [orderDetail2026?.internalNotes]);
 
+  useEffect(() => {
+    if (!shippingLabel) return undefined;
+    const clearPrintedLabel = () => {
+      setShippingLabel(null);
+      setShippingLabelPrintToken(null);
+    };
+    window.addEventListener("afterprint", clearPrintedLabel);
+    return () => window.removeEventListener("afterprint", clearPrintedLabel);
+  }, [shippingLabel]);
+
   const handleBack = () => {
     navigate(workspaceRoutes.orders());
   };
 
-  const handleCopyReference = async () => {
-    const copied = await copyText(orderDetail2026?.reference);
+  const handleCopyText = async (textToCopy, label = "Nomor pesanan") => {
+    const copied = await copyText(textToCopy);
     setNotice({
       type: copied ? "success" : "error",
       text: copied
         ? isIndo
-          ? `${orderDetail2026?.reference} berhasil disalin.`
-          : "Order reference copied."
+          ? `${textToCopy} berhasil disalin.`
+          : `${label} copied.`
         : isIndo
-        ? "Gagal menyalin nomor pesanan."
-        : "Unable to copy order reference.",
+        ? "Gagal menyalin."
+        : "Failed to copy.",
     });
   };
 
@@ -142,16 +157,55 @@ export default function Seller2026LiveSuborderDetailPage() {
     setFulfillmentDraft((current) => ({ ...current, [name]: value }));
   };
 
-  const handlePrintReceipt = () => {
-    if (typeof window !== "undefined") {
-      window.print();
+  const handlePrintLabel = async () => {
+    if (!workspaceStoreId || !suborderId || printingLabelId) return;
+    try {
+      setPrintingLabelId(suborderId);
+      const label = await getSellerSuborderShippingLabel(workspaceStoreId, suborderId);
+      if (!label?.canPrint) {
+        setNotice({
+          type: "error",
+          text: label?.reason || (isIndo ? "Label pengiriman belum dapat dicetak untuk pesanan ini." : "Shipping label not available."),
+        });
+        return;
+      }
+      setNotice(null);
+      setShippingLabel(label);
+      setShippingLabelPrintToken(`${suborderId}-${Date.now()}`);
+    } catch (err) {
+      setNotice({
+        type: "error",
+        text: getErrorMessage(err, isIndo ? "Gagal memuat label pengiriman." : "Unable to load shipping label."),
+      });
+    } finally {
+      setPrintingLabelId(null);
     }
   };
 
-  const handleFulfillmentAction = async (action) => {
+  const handleMessageBuyer = (customer) => {
+    const waUrl = toPreferredWhatsAppLink(customer?.phone, "");
+    if (waUrl) {
+      window.open(waUrl, "_blank");
+    } else if (customer?.email) {
+      window.open(`mailto:${customer.email}`, "_blank");
+    } else {
+      setNotice({
+        type: "error",
+        text: isIndo ? "Kontak pembeli tidak tersedia." : "Buyer contact info is unavailable.",
+      });
+    }
+  };
+
+  const handleFulfillmentAction = async (action, overrideDraft = null) => {
+    if (action === "REVIEW_PAYMENT") {
+      navigate(workspaceRoutes.paymentReview());
+      return;
+    }
+
     if (!orderDetail2026?.id || !canFulfill || detailQuery.updatingStatusId) return;
     try {
-      const payload = buildSellerSuborderFulfillmentPayload2026(action, fulfillmentDraft);
+      const activeDraft = overrideDraft || fulfillmentDraft;
+      const payload = buildSellerSuborderFulfillmentPayload2026(action, activeDraft);
       await detailQuery.updateFulfillmentStatus({ payload });
       await Promise.all([
         detailQuery.refetch(),
@@ -195,40 +249,50 @@ export default function Seller2026LiveSuborderDetailPage() {
   };
 
   return (
-    <SellerSuborderDetail2026PageView
-      order={orderDetail2026}
-      store={sellerContext?.store}
-      isLoading={detailQuery.isLoading}
-      error={detailQuery.isError ? detailQuery.error : null}
-      isUpdating={Boolean(detailQuery.updatingStatusId)}
-      LinkComponent={Link}
-      searchQuery={searchQuery}
-      fulfillmentDraft={fulfillmentDraft}
-      notice={notice}
-      isIndo={isIndo}
-      onSearchChange={setSearchQuery}
-      onCopyReference={handleCopyReference}
-      onBack={handleBack}
-      onPrintReceipt={handlePrintReceipt}
-      onFulfillmentDraftChange={handleFulfillmentDraftChange}
-      onMarkPacked={
-        orderDetail2026?.actions?.canMarkPacked && canFulfill
-          ? () => handleFulfillmentAction("MARK_PROCESSING")
-          : undefined
-      }
-      onMarkShipped={
-        orderDetail2026?.actions?.canMarkShipped && canFulfill
-          ? () => handleFulfillmentAction("MARK_SHIPPED")
-          : undefined
-      }
-      onMarkDelivered={
-        orderDetail2026?.actions?.canMarkDelivered && canFulfill
-          ? () => handleFulfillmentAction("MARK_DELIVERED")
-          : undefined
-      }
-      internalNoteDraft={internalNoteDraft}
-      onInternalNoteChange={setInternalNoteDraft}
-      onSaveInternalNote={handleSaveInternalNote}
-    />
+    <>
+      <SellerSuborderDetail2026PageView
+        order={orderDetail2026}
+        store={sellerContext?.store}
+        isLoading={detailQuery.isLoading}
+        error={detailQuery.isError ? detailQuery.error : null}
+        isUpdating={Boolean(detailQuery.updatingStatusId || printingLabelId)}
+        LinkComponent={Link}
+        fulfillmentDraft={fulfillmentDraft}
+        notice={notice}
+        isIndo={isIndo}
+        onCopyText={handleCopyText}
+        onBack={handleBack}
+        onPrintLabel={handlePrintLabel}
+        isPrintingLabel={Boolean(printingLabelId)}
+        onMessageBuyer={handleMessageBuyer}
+        onFulfillmentDraftChange={handleFulfillmentDraftChange}
+        onFulfillmentAction={handleFulfillmentAction}
+        onMarkPacked={
+          orderDetail2026?.actions?.canMarkPacked && canFulfill
+            ? () => handleFulfillmentAction("MARK_PROCESSING")
+            : undefined
+        }
+        onMarkShipped={
+          orderDetail2026?.actions?.canMarkShipped && canFulfill
+            ? () => handleFulfillmentAction("MARK_SHIPPED")
+            : undefined
+        }
+        onMarkDelivered={
+          orderDetail2026?.actions?.canMarkDelivered && canFulfill
+            ? () => handleFulfillmentAction("MARK_DELIVERED")
+            : undefined
+        }
+        internalNoteDraft={internalNoteDraft}
+        onInternalNoteChange={setInternalNoteDraft}
+        onSaveInternalNote={handleSaveInternalNote}
+      />
+      <SellerShippingLabelPrint
+        label={shippingLabel}
+        printToken={shippingLabelPrintToken}
+        onReady={() => {
+          window.setTimeout(() => window.print(), 50);
+        }}
+      />
+    </>
   );
 }

@@ -365,8 +365,22 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
     ? order.suborderNo.replace(/^STORE-IDEMP-[A-Fa-f0-9]+/, compactReference)
     : `${compactReference}-S01`;
 
+  const rawPaymentMethod =
+    payment.method && !payment.method.toLowerCase().includes("no payment") && !payment.method.toLowerCase().includes("tidak")
+      ? payment.method
+      : text(
+          detail.paymentMethodLabel ||
+          detail.paymentMethod ||
+          order.paymentMethodLabel ||
+          order.paymentMethod,
+          isIndo ? "Metode Pembayaran Online" : "Online Payment"
+        );
+
+  const printLabel = asObject(order.printLabel ?? detail.printLabel);
+
   return {
     id: order.suborderId ?? order.id ?? null,
+    orderId: parentOrderId,
     reference: compactReference,
     rawReference: rawParentOrderNo,
     suborderNo: compactSuborderNo,
@@ -415,10 +429,16 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
     },
 
     payment: {
-      method: text(payment.method, isIndo ? "Metode tidak tercatat" : "No payment method recorded"),
+      method: rawPaymentMethod,
       proof: text(payment.proof, isIndo ? "Bukti tidak tersedia" : "No payment proof available"),
       paidAt,
     },
+    canPrintLabel: Boolean(printLabel.canPrint),
+    printLabelReason: text(
+      printLabel.reason,
+      printLabel.canPrint ? "Cetak Label Pengiriman" : "Label pengiriman belum tersedia."
+    ),
+    canMessageBuyer: Boolean(text(customer.phone || customer.email)),
 
     items: normalizeItems(detail.items, isIndo),
 

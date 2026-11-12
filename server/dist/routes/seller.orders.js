@@ -1222,6 +1222,27 @@ const serializeListItem = (suborder, sellerAccess = null) => {
             : null,
     };
 };
+const buildSuborderLookupWhere = (storeId, suborderParam) => {
+    const raw = String(suborderParam || "").trim();
+    const num = Number(raw);
+    const isNum = Number.isInteger(num) && num > 0;
+    if (isNum) {
+        return {
+            storeId,
+            [Op.or]: [
+                { id: num },
+                { orderId: num },
+            ],
+        };
+    }
+    if (raw) {
+        return {
+            storeId,
+            suborderNumber: raw,
+        };
+    }
+    return null;
+};
 const serializeDetail = (suborder, sellerAccess = null) => {
     const order = suborder?.order ?? suborder?.get?.("order") ?? null;
     const buyer = order?.customer ?? order?.get?.("customer") ?? null;
@@ -1399,7 +1420,21 @@ const serializeDetail = (suborder, sellerAccess = null) => {
                 paidAt: getAttr(latestPayment, "paidAt") || null,
                 proof: normalizeProofSummary(latestPayment?.proofs ?? []),
             }
-            : null,
+            : {
+                id: null,
+                internalReference: "",
+                paymentMethod: paymentMethodSummary.paymentMethod,
+                paymentMethodLabel: paymentMethodSummary.paymentMethodLabel,
+                paymentCode: paymentMethodSummary.paymentCode,
+                paymentChannel: paymentMethodSummary.paymentChannel,
+                paymentType: paymentMethodSummary.paymentType,
+                status: paymentStatus === "PAID" ? "PAID" : "CREATED",
+                statusMeta: serializePaymentRecordStatusMeta(paymentStatus === "PAID" ? "PAID" : "CREATED"),
+                amount: toNumber(getAttr(suborder, "totalAmount")),
+                expiresAt: null,
+                paidAt: getAttr(suborder, "paidAt") || null,
+                proof: null,
+            },
         paymentProfileSummary: paymentProfile
             ? {
                 id: toNumber(getAttr(paymentProfile, "id")),
@@ -1535,15 +1570,15 @@ router.get("/stores/:storeId/suborders", requireSellerStoreAccess(["ORDER_VIEW"]
 router.get("/stores/:storeId/suborders/:suborderId/shipping-label", requireSellerStoreAccess(["ORDER_VIEW"]), async (req, res) => {
     try {
         const storeId = Number(req.params.storeId);
-        const suborderId = Number(req.params.suborderId);
-        if (!Number.isInteger(suborderId) || suborderId <= 0) {
+        const whereCondition = buildSuborderLookupWhere(storeId, req.params.suborderId);
+        if (!whereCondition) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid suborder id.",
             });
         }
         const suborder = await Suborder.findOne({
-            where: { id: suborderId, storeId },
+            where: whereCondition,
             attributes: [
                 "id",
                 "orderId",
@@ -1586,15 +1621,15 @@ router.get("/stores/:storeId/suborders/:suborderId/shipping-label", requireSelle
 router.get("/stores/:storeId/suborders/:suborderId", requireSellerStoreAccess(["ORDER_VIEW"]), async (req, res) => {
     try {
         const storeId = Number(req.params.storeId);
-        const suborderId = Number(req.params.suborderId);
-        if (!Number.isInteger(suborderId) || suborderId <= 0) {
+        const whereCondition = buildSuborderLookupWhere(storeId, req.params.suborderId);
+        if (!whereCondition) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid suborder id.",
             });
         }
         const loadSuborder = async () => Suborder.findOne({
-            where: { id: suborderId, storeId },
+            where: whereCondition,
             attributes: [
                 "id",
                 "orderId",
@@ -1715,7 +1750,7 @@ router.patch("/stores/:storeId/suborders/:suborderId/fulfillment", requireSeller
     let tx = null;
     try {
         const storeId = Number(req.params.storeId);
-        const suborderId = Number(req.params.suborderId);
+        const whereCondition = buildSuborderLookupWhere(storeId, req.params.suborderId);
         const actorUserId = Number(req.user?.id || 0) || null;
         const actionCode = toUpper(req.body?.action);
         const courierCode = String(req.body?.courierCode || "").trim() || null;
@@ -1724,7 +1759,7 @@ router.patch("/stores/:storeId/suborders/:suborderId/fulfillment", requireSeller
         const rawShippingFee = req.body?.shippingFee;
         const actionDefinition = FULFILLMENT_ACTIONS[actionCode] ?? null;
         const shippingFee = actionCode === "MARK_SHIPPED" ? parseOptionalNonNegativeAmount(rawShippingFee) : null;
-        if (!Number.isInteger(suborderId) || suborderId <= 0) {
+        if (!whereCondition) {
             return res.status(400).json({
                 success: false,
                 code: "INVALID_SUBORDER_ID",
@@ -1751,7 +1786,7 @@ router.patch("/stores/:storeId/suborders/:suborderId/fulfillment", requireSeller
         }
         tx = await sequelize.transaction();
         const lockedSuborder = await Suborder.findOne({
-            where: { id: suborderId, storeId },
+            where: whereCondition,
             attributes: ["id", "orderId", "fulfillmentStatus"],
             transaction: tx,
             lock: tx.LOCK.UPDATE,
@@ -1765,6 +1800,7 @@ router.patch("/stores/:storeId/suborders/:suborderId/fulfillment", requireSeller
                 message: "Suborder not found.",
             });
         }
+        const suborderId = lockedSuborder.id;
         const suborder = await Suborder.findOne({
             where: { id: suborderId, storeId },
             attributes: [
@@ -2043,7 +2079,8 @@ router.patch("/stores/:storeId/suborders/:suborderId/fulfillment", requireSeller
 });
 const handleUpdateInternalNote = async (req, res) => {
     try {
-        const { storeId, suborderId } = req.params;
+        const storeId = Number(req.params.storeId);
+        const whereCondition = buildSuborderLookupWhere(storeId, req.params.suborderId);
         const { note } = req.body;
         if (!sellerHasPermission(req.sellerAccess, ORDER_FULFILLMENT_PERMISSION)) {
             return res.status(403).json({
@@ -2051,8 +2088,11 @@ const handleUpdateInternalNote = async (req, res) => {
                 message: "You don't have permission to manage order fulfillment and notes.",
             });
         }
+        if (!whereCondition) {
+            return res.status(400).json({ success: false, message: "Invalid suborder id." });
+        }
         const suborder = await Suborder.findOne({
-            where: { id: suborderId, storeId },
+            where: whereCondition,
         });
         if (!suborder) {
             return res.status(404).json({ success: false, message: "Suborder not found." });

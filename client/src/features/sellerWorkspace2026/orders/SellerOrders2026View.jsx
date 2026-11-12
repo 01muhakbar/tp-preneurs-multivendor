@@ -553,7 +553,12 @@ export default function SellerOrders2026View({
                       <td>
                         <div className="tpsow2026-cell-order">
                           <div className="tpsow2026-order-ref-row">
-                            <strong className="tpsow2026-order-code" title={row.invoiceNo}>
+                            <strong
+                              className="tpsow2026-order-code"
+                              title={row.invoiceNo}
+                              onClick={() => handleViewInvoice(row.id)}
+                              style={{ cursor: "pointer" }}
+                            >
                               {row.reference}
                             </strong>
                             {row.orderId ? (
