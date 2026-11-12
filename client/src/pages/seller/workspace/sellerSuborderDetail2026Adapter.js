@@ -142,24 +142,47 @@ export const getSynchronizedOrderStatus = ({ fulfillmentStatus, paymentStatus, o
   if (f === "DELIVERED" || o === "DELIVERED" || o === "COMPLETED") {
     return {
       bucket: "completed",
-      code: "COMPLETED",
-      label: isIndo ? "Selesai" : "Completed",
+      substage: "order_arrived",
+      code: "DELIVERED",
+      label: isIndo ? "Pesanan Tiba" : "Order Arrived",
       tone: "green",
     };
   }
 
-  if (f === "SHIPPED" || f === "IN_TRANSIT" || f === "OUT_FOR_DELIVERY") {
+  if (f === "OUT_FOR_DELIVERY" || o === "OUT_FOR_DELIVERY") {
     return {
       bucket: "shipping",
-      code: "SHIPPING",
-      label: isIndo ? "Sedang Dikirim" : "Shipping",
+      substage: "out_for_delivery",
+      code: "OUT_FOR_DELIVERY",
+      label: isIndo ? "Menuju Alamat" : "Out for Delivery",
       tone: "blue",
+    };
+  }
+
+  if (f === "SHIPPED" || f === "IN_TRANSIT" || o === "SHIPPED") {
+    return {
+      bucket: "shipping",
+      substage: "in_transit",
+      code: "IN_TRANSIT",
+      label: isIndo ? "Sedang Dikirim" : "In Transit",
+      tone: "blue",
+    };
+  }
+
+  if (f === "PACKED") {
+    return {
+      bucket: "to_pack",
+      substage: "packed",
+      code: "PACKED",
+      label: isIndo ? "Siap Dikirim" : "Packed",
+      tone: "orange",
     };
   }
 
   // Payment is settled, fulfillment not yet dispatched -> To Pack
   return {
     bucket: "to_pack",
+    substage: "to_pack",
     code: "TO_PACK",
     label: isIndo ? "Perlu Dikemas" : "To Pack",
     tone: "orange",
@@ -318,10 +341,12 @@ const normalizeTimeline = ({ timeline, createdAt, paidAt, paymentStatus, fulfill
   return list;
 };
 
-const buildProgressSteps = ({ syncBucket, isPaid, createdAt, paidAt, isIndo = false }) => {
-  const isPacked = ["to_pack", "shipping", "completed"].includes(syncBucket);
+const buildProgressSteps = ({ syncStatus, isPaid, createdAt, paidAt, isIndo = false }) => {
+  const syncBucket = syncStatus?.bucket || "to_pack";
+  const substage = syncStatus?.substage || "";
   const isShipped = ["shipping", "completed"].includes(syncBucket);
   const isDelivered = syncBucket === "completed";
+  const isOutForDelivery = substage === "out_for_delivery" || isDelivered;
 
   return [
     {
@@ -341,23 +366,30 @@ const buildProgressSteps = ({ syncBucket, isPaid, createdAt, paidAt, isIndo = fa
     {
       code: "PACKED",
       label: isIndo ? "Dikemas" : "Packed",
-      complete: isShipped || (isPacked && syncBucket !== "to_pack"),
+      complete: isShipped || substage === "packed",
       active: syncBucket === "to_pack",
-      dateLabel: isPacked ? (isIndo ? "Siap" : "Ready") : (isIndo ? "Menunggu" : "Pending"),
+      dateLabel: isShipped || substage === "packed" ? (isIndo ? "Siap" : "Ready") : (isIndo ? "Menunggu" : "Pending"),
     },
     {
-      code: "SHIPPED",
-      label: isIndo ? "Dikirim" : "Shipped",
-      complete: isDelivered,
-      active: syncBucket === "shipping",
+      code: "IN_TRANSIT",
+      label: isIndo ? "Sedang Dikirim" : "In Transit",
+      complete: isDelivered || isOutForDelivery,
+      active: syncBucket === "shipping" && !isOutForDelivery,
       dateLabel: isShipped ? (isIndo ? "Perjalanan" : "In transit") : (isIndo ? "Menunggu" : "Pending"),
     },
     {
+      code: "OUT_FOR_DELIVERY",
+      label: isIndo ? "Menuju Alamat" : "Out for Delivery",
+      complete: isDelivered,
+      active: substage === "out_for_delivery",
+      dateLabel: isDelivered ? (isIndo ? "Selesai" : "Done") : isOutForDelivery ? (isIndo ? "Pengantaran" : "Delivering") : (isIndo ? "Menunggu" : "Pending"),
+    },
+    {
       code: "DELIVERED",
-      label: isIndo ? "Selesai" : "Delivered",
+      label: isIndo ? "Pesanan Tiba" : "Order Arrived",
       complete: isDelivered,
       active: isDelivered,
-      dateLabel: isDelivered ? (isIndo ? "Selesai" : "Done") : (isIndo ? "Menunggu" : "Pending"),
+      dateLabel: isDelivered ? (isIndo ? "Tiba" : "Delivered") : (isIndo ? "Menunggu" : "Pending"),
     },
   ];
 };
@@ -559,7 +591,7 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
     },
 
     progress: buildProgressSteps({
-      syncBucket: syncStatus.bucket,
+      syncStatus,
       isPaid,
       createdAt,
       paidAt,
@@ -582,6 +614,7 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
       trackingNo: safeTracking,
       trackingLabel: safeTracking || (isIndo ? "Belum ada resi" : "No tracking yet"),
       estimate: text(shipping.estimate),
+      trackingUrl: `/order/${rawParentOrderNo || compactReference || parentOrderId}`,
     },
 
     payment: {

@@ -66,24 +66,47 @@ export const getSynchronizedOrderStatus = ({ fulfillmentStatus, paymentStatus, o
   if (f === "DELIVERED" || o === "DELIVERED" || o === "COMPLETED") {
     return {
       bucket: "completed",
-      code: "COMPLETED",
-      label: isIndo ? "Selesai" : "Completed",
+      substage: "order_arrived",
+      code: "DELIVERED",
+      label: isIndo ? "Pesanan Tiba" : "Order Arrived",
       tone: "green",
     };
   }
 
-  if (f === "SHIPPED" || f === "IN_TRANSIT" || f === "OUT_FOR_DELIVERY") {
+  if (f === "OUT_FOR_DELIVERY" || o === "OUT_FOR_DELIVERY") {
     return {
       bucket: "shipping",
-      code: "SHIPPING",
-      label: isIndo ? "Sedang Dikirim" : "Shipping",
+      substage: "out_for_delivery",
+      code: "OUT_FOR_DELIVERY",
+      label: isIndo ? "Menuju Alamat" : "Out for Delivery",
       tone: "blue",
+    };
+  }
+
+  if (f === "SHIPPED" || f === "IN_TRANSIT" || o === "SHIPPED") {
+    return {
+      bucket: "shipping",
+      substage: "in_transit",
+      code: "IN_TRANSIT",
+      label: isIndo ? "Sedang Dikirim" : "In Transit",
+      tone: "blue",
+    };
+  }
+
+  if (f === "PACKED") {
+    return {
+      bucket: "to_pack",
+      substage: "packed",
+      code: "PACKED",
+      label: isIndo ? "Siap Dikirim" : "Packed",
+      tone: "orange",
     };
   }
 
   // Payment is settled, fulfillment is UNFULFILLED, PROCESSING, or PACKED -> To Pack
   return {
     bucket: "to_pack",
+    substage: "to_pack",
     code: "TO_PACK",
     label: isIndo ? "Perlu Dikemas" : "To Pack",
     tone: "orange",

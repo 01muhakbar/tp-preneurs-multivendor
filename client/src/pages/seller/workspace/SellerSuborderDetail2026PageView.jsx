@@ -71,6 +71,13 @@ const I18N = {
     btnMarkShipped: "Kirim Pesanan",
     btnMarkDelivered: "Tandai Selesai",
     btnReviewPayment: "Tinjau Bukti Bayar",
+    tipMarkPacked: "Tekan jika selesai mengemas & menunggu kurir",
+    tipShipOrder: "Tekan setelah paket diserahkan & nomor resi terisi",
+    courierHint: "Ekspedisi pilihan pembeli saat checkout",
+    serviceHint: "Jenis paket layanan kurir",
+    trackingHint: "Masukkan nomor resi ekspedisi untuk pelacakan pembeli",
+    viewPublicTracking: "Lihat Live Tracking Pembeli",
+    viewPublicTrackingSub: "Buka halaman pelacakan publik pelanggan",
     shippingRequired: "Harap masukkan Nomor Resi sebelum mengirim pesanan.",
     loading: "Memuat rincian pesanan...",
     errorTitle: "Gagal memuat rincian pesanan",
@@ -123,6 +130,13 @@ const I18N = {
     btnMarkShipped: "Ship Order",
     btnMarkDelivered: "Mark as Delivered",
     btnReviewPayment: "Review Payment Proof",
+    tipMarkPacked: "Click when package is packed & awaiting courier pickup",
+    tipShipOrder: "Click when dispatched & tracking number is entered",
+    courierHint: "Buyer's selected courier from checkout",
+    serviceHint: "Courier service level",
+    trackingHint: "Enter tracking number for customer tracking",
+    viewPublicTracking: "View Buyer Live Tracking",
+    viewPublicTrackingSub: "Open public buyer tracking page",
     shippingRequired: "Please enter tracking number before marking shipped.",
     loading: "Loading order details...",
     errorTitle: "Unable to load order details",
@@ -149,7 +163,11 @@ function ProgressRail({ steps, isIndo }) {
       <div className="tpsodp2026-stepper__track">
         {steps.map((step, idx) => {
           const Icon =
-            step.code === "SHIPPED"
+            step.code === "DELIVERED"
+              ? CheckCircle2
+              : step.code === "OUT_FOR_DELIVERY"
+              ? MapPin
+              : step.code === "IN_TRANSIT" || step.code === "SHIPPED"
               ? Truck
               : step.code === "PACKED"
               ? Package
@@ -400,6 +418,7 @@ export default function SellerSuborderDetail2026PageView({
                 className="tpsodp2026-btn-accent"
                 onClick={() => handleActionClick("MARK_SHIPPED")}
                 disabled={isUpdating}
+                title={t.tipShipOrder}
               >
                 <Truck size={15} />
                 <span>{nextStep.primaryLabel}</span>
@@ -409,6 +428,7 @@ export default function SellerSuborderDetail2026PageView({
                 className="tpsodp2026-btn-primary"
                 onClick={() => handleActionClick("MARK_PROCESSING")}
                 disabled={isUpdating}
+                title={t.tipMarkPacked}
               >
                 <CheckCircle2 size={15} />
                 <span>{nextStep.secondaryLabel}</span>
@@ -514,6 +534,7 @@ export default function SellerSuborderDetail2026PageView({
                     <strong>{order.shipping?.courier || "-"}</strong>
                   </div>
                 )}
+                <span className="tpsodp2026-field__hint">{t.courierHint}</span>
               </div>
 
               <div className="tpsodp2026-field">
@@ -532,6 +553,7 @@ export default function SellerSuborderDetail2026PageView({
                     <span>{order.shipping?.method || "-"}</span>
                   </div>
                 )}
+                <span className="tpsodp2026-field__hint">{t.serviceHint}</span>
               </div>
 
               <div className="tpsodp2026-field tpsodp2026-field--full">
@@ -563,6 +585,7 @@ export default function SellerSuborderDetail2026PageView({
                     )}
                   </div>
                 )}
+                <span className="tpsodp2026-field__hint">{t.trackingHint}</span>
               </div>
             </div>
 
@@ -763,6 +786,24 @@ export default function SellerSuborderDetail2026PageView({
             </header>
 
             <div className="tpsodp2026-actions-list">
+              {order.shipping?.trackingUrl && (
+                <a
+                  href={order.shipping.trackingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="tpsodp2026-action-tile"
+                  title={t.viewPublicTracking}
+                >
+                  <div className="tpsodp2026-action-tile__icon">
+                    <ExternalLink size={16} />
+                  </div>
+                  <div className="tpsodp2026-action-tile__text">
+                    <strong>{t.viewPublicTracking}</strong>
+                    <span>{t.viewPublicTrackingSub}</span>
+                  </div>
+                </a>
+              )}
+
               <button
                 type="button"
                 className="tpsodp2026-action-tile"
