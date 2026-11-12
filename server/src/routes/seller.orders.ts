@@ -1665,13 +1665,20 @@ router.get(
       }
 
       if (keyword) {
+        const cleanDigits = keyword.replace(/^#/, "").trim();
+        const numericId = /^\d+$/.test(cleanDigits) ? Number(cleanDigits) : null;
         const likeKeyword = `%${keyword}%`;
-        where[Op.or] = [
+        const orConditions: any[] = [
           { suborderNumber: { [Op.like]: likeKeyword } },
           sqlWhere(col("order.invoice_no"), { [Op.like]: likeKeyword }),
           sqlWhere(col("order.customer_name"), { [Op.like]: likeKeyword }),
           sqlWhere(col("order.customer_phone"), { [Op.like]: likeKeyword }),
         ];
+        if (numericId && Number.isFinite(numericId) && numericId > 0) {
+          orConditions.push({ id: numericId });
+          orConditions.push({ orderId: numericId });
+        }
+        where[Op.or] = orConditions;
       }
 
       const loadResult = async () =>

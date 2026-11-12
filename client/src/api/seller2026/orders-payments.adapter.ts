@@ -5,6 +5,7 @@ export type Seller2026SuborderStatus =
   | "SHIPPED"
   | "DELIVERED"
   | "CANCELLED"
+  | "EXPIRED"
   | "UNKNOWN";
 
 export type Seller2026FulfillmentActionViewModel = {
@@ -344,15 +345,58 @@ const readAllowedActionCodes = (value: unknown) =>
 
 const hasEnabledFulfillmentAction = (value: unknown) => readAllowedActionCodes(value).length > 0;
 
-export function normalizeSuborderStatus(status: unknown): Seller2026SuborderStatus {
-  const value = text(status).toUpperCase();
+export const formatCompactOrderNumber = (
+  invoiceNo: unknown,
+  orderId?: string | number | null,
+  createdAt?: unknown
+): string => {
+  const raw = String(invoiceNo || "").trim();
+  if (!raw && !orderId) return "-";
 
-  if (value.includes("UNPAID")) return "UNPAID";
-  if (value.includes("PENDING")) return "PENDING_CONFIRMATION";
-  if (value.includes("PROCESS")) return "PROCESSING";
-  if (value.includes("SHIP")) return "SHIPPED";
-  if (value.includes("DELIVER") || value.includes("COMPLETED")) return "DELIVERED";
-  if (value.includes("CANCEL")) return "CANCELLED";
+  if (/^TP-\d{6}-\w+/i.test(raw)) return raw;
+
+  const d = createdAt ? new Date(String(createdAt)) : null;
+  const dateStr =
+    d && !Number.isNaN(d.getTime())
+      ? `${String(d.getFullYear()).slice(-2)}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`
+      : "261111";
+
+  const numPart = orderId
+    ? String(orderId).padStart(4, "0")
+    : raw.replace(/[^A-Za-z0-9]/g, "").slice(-4) || "0001";
+
+  return `TP-${dateStr}-${numPart}`;
+};
+
+export function normalizeSuborderStatus(status: unknown, paymentStatus?: unknown): Seller2026SuborderStatus {
+  const fulfillmentVal = text(status).toUpperCase();
+  const paymentVal = text(paymentStatus).toUpperCase();
+
+  if (fulfillmentVal.includes("CANCEL") || paymentVal.includes("CANCEL")) return "CANCELLED";
+  if (fulfillmentVal.includes("DELIVER") || fulfillmentVal.includes("COMPLETED")) return "DELIVERED";
+  if (fulfillmentVal.includes("SHIP") || fulfillmentVal.includes("TRANSIT")) return "SHIPPED";
+
+  // If paid and ready to fulfill or processing
+  if (
+    paymentVal.includes("PAID") ||
+    paymentVal.includes("SETTLED") ||
+    fulfillmentVal.includes("PROCESS") ||
+    fulfillmentVal.includes("PACK") ||
+    fulfillmentVal.includes("READY_TO_FULFILL")
+  ) {
+    return "PROCESSING";
+  }
+
+  if (paymentVal.includes("EXPIRE") || fulfillmentVal.includes("EXPIRE")) return "EXPIRED";
+  if (paymentVal.includes("CONFIRM") || fulfillmentVal.includes("CONFIRM")) return "PENDING_CONFIRMATION";
+  if (
+    paymentVal.includes("UNPAID") ||
+    paymentVal.includes("PENDING") ||
+    fulfillmentVal.includes("WAITING_PAYMENT") ||
+    fulfillmentVal.includes("UNFULFILLED")
+  ) {
+    return "UNPAID";
+  }
 
   return "UNKNOWN";
 }
@@ -431,19 +475,20 @@ const adaptOrderRow = (value: unknown) => {
   const paymentMeta = object(row.paymentStatusMeta);
   const withdrawalEligibility = readWithdrawalEligibility(row.withdrawalEligibility);
   const shippingMeta = object(row.shippingStatusMeta);
-  const status = normalizeSuborderStatus(
-    primaryStatus.code ??
-      primaryStatus.label ??
-      row.fulfillmentStatus ??
-      fulfillmentMeta.code ??
-      paymentState.code ??
-      paymentMeta.code ??
-      row.paymentStatus
-  );
   const paymentStatus = text(paymentMeta.code ?? paymentState.code ?? row.paymentStatus, "UNPAID").toUpperCase();
+  const rawFulfillment =
+    row.fulfillmentStatus ??
+    fulfillmentMeta.code ??
+    primaryStatus.code ??
+    primaryStatus.label;
+  const status = normalizeSuborderStatus(rawFulfillment, paymentStatus);
   const fulfillmentActions = readFulfillmentActions(row);
   const id = idValue(row.suborderId ?? row.id);
-  const orderNumber = text(row.orderNumber ?? order.orderNumber ?? row.invoiceNo, "Order");
+  const orderId = idValue(row.orderId ?? order.id, "") || null;
+  const rawInvoice = text(row.orderNumber ?? order.orderNumber ?? row.invoiceNo, "Order");
+  const createdAt = text(row.createdAt ?? order.createdAt) || null;
+  const compactOrderNumber = formatCompactOrderNumber(rawInvoice, orderId, createdAt);
+  const orderNumber = compactOrderNumber;
   const itemCount = number(row.itemCount ?? sellerScope.itemCount, 0);
   const customerName = text(buyer.name, "Customer");
   const rawItems = array(row.items).map((item, index) => {
@@ -460,15 +505,26 @@ const adaptOrderRow = (value: unknown) => {
     status === "PROCESSING" ? "Ready to Pack" : status
   );
   const updatedAt = text(row.updatedAt ?? row.createdAt ?? order.createdAt) || null;
+
+  const isInternalEnum = (val: string) =>
+    !val ||
+    /^(WAITING_PAYMENT|READY_TO_FULFILL|UNFULFILLED|PROCESSING|SHIPPED|DELIVERED|CANCELLED|UNKNOWN|PENDING|PAID|EXPIRED|UNPAID|FAILED)$/i.test(
+      val.trim()
+    );
+  const rawShippingMethod = text(row.shippingMethod ?? row.deliveryMethod ?? shipments[0]?.courierCode);
+  const shippingMethod = isInternalEnum(rawShippingMethod) ? undefined : rawShippingMethod;
+
   return {
     id,
     suborderId: id,
-    orderId: idValue(row.orderId ?? order.id, "") || null,
-    invoiceNo: orderNumber,
+    orderId,
+    invoiceNo: rawInvoice,
     orderNumber,
+    rawOrderNumber: rawInvoice,
+    compactOrderNumber,
     suborderNo: text(row.suborderNumber ?? row.suborderNo, "Order"),
-    orderDate: text(row.createdAt ?? order.createdAt) || "Recently",
-    createdAt: text(row.createdAt ?? order.createdAt) || "Recently",
+    orderDate: createdAt || "Recently",
+    createdAt: createdAt || "Recently",
     updatedAt,
     paidAt: text(row.paidAt ?? paymentSummary.paidAt) || null,
     customerName,
@@ -478,8 +534,8 @@ const adaptOrderRow = (value: unknown) => {
     itemsCount: itemCount,
     items: rawItems,
     channel: text(order.checkoutMode ?? row.checkoutMode ?? row.channel) || undefined,
-    shippingMethod: text(row.shippingStatus ?? row.shippingMethod ?? primaryStatus.label) || undefined,
-    deliveryMethod: text(row.shippingStatus ?? row.deliveryMethod ?? row.shippingMethod) || "Needs review",
+    shippingMethod,
+    deliveryMethod: shippingMethod || "Standard",
     trackingNumber: text(row.trackingNumber ?? shipments[0]?.trackingNumber ?? latestTracking.trackingNumber) || undefined,
     currency: text(row.currency, "IDR"),
     total: number(row.totalAmount ?? sellerScope.totalAmount ?? paymentSummary.amount, 0),
@@ -495,7 +551,7 @@ const adaptOrderRow = (value: unknown) => {
     fulfillmentLabel,
     fulfillmentTone: statusTone(status),
     fulfillmentProgress: fulfillmentProgress(status),
-    createdLabel: formatDateTime(row.createdAt ?? order.createdAt),
+    createdLabel: formatDateTime(createdAt),
     updatedLabel: formatDateTime(updatedAt),
     allowedActions: fulfillmentActions.filter((action) => action.enabled !== false).map((action) => action.code),
     canFulfill: fulfillmentActions.some((action) => action.enabled !== false),
@@ -508,16 +564,16 @@ export function adaptSeller2026Orders(value: unknown): Seller2026OrdersViewModel
   const suborders = readItems(value).map(adaptOrderRow);
   const summary = {
     total: suborders.length,
-    pending: suborders.filter((item) => item.fulfillmentStatus === "UNPAID" || item.fulfillmentStatus === "UNKNOWN").length,
+    pending: suborders.filter((item) => item.status === "UNPAID" || item.paymentStatus === "UNPAID").length,
     unpaid: suborders.filter((item) => item.paymentStatus === "UNPAID").length,
     paymentPending: suborders.filter((item) => ["UNPAID", "PARTIALLY_PAID", "PENDING_CONFIRMATION"].includes(item.paymentStatus)).length,
     pendingConfirmation: suborders.filter((item) => item.paymentStatus === "PENDING_CONFIRMATION").length,
-    processing: suborders.filter((item) => item.fulfillmentStatus === "PROCESSING").length,
-    packed: suborders.filter((item) => item.fulfillmentStatus === "PROCESSING").length,
-    shipped: suborders.filter((item) => item.fulfillmentStatus === "SHIPPED").length,
-    delivered: suborders.filter((item) => item.fulfillmentStatus === "DELIVERED").length,
-    cancelled: suborders.filter((item) => item.fulfillmentStatus === "CANCELLED").length,
-    needsAttention: suborders.filter((item) => item.canFulfill || item.paymentStatus === "PENDING_CONFIRMATION").length,
+    processing: suborders.filter((item) => item.status === "PROCESSING" || (item.paymentStatus === "PAID" && item.fulfillmentStatus !== "SHIPPED" && item.fulfillmentStatus !== "DELIVERED" && item.fulfillmentStatus !== "CANCELLED")).length,
+    packed: suborders.filter((item) => item.status === "PROCESSING").length,
+    shipped: suborders.filter((item) => item.fulfillmentStatus === "SHIPPED" || item.status === "SHIPPED").length,
+    delivered: suborders.filter((item) => item.fulfillmentStatus === "DELIVERED" || item.status === "DELIVERED").length,
+    cancelled: suborders.filter((item) => item.status === "CANCELLED" || item.paymentStatus === "CANCELLED").length,
+    needsAttention: suborders.filter((item) => item.canFulfill || item.paymentStatus === "PENDING_CONFIRMATION" || item.status === "PROCESSING").length,
   };
 
   return {

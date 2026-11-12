@@ -157,11 +157,27 @@ export default function SellerOrderDetailDrawer2026({
           {!isLoading && !error && order ? (
             <div className="tpsodd2026-titlebar">
               <div>
-                <p>Order Detail</p>
-                <h2 id="tpsodd2026-title">{order.reference}</h2>
+                <p>{isIndo ? "Rincian Pesanan" : "Order Detail"}</p>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                  <h2 id="tpsodd2026-title">{order.reference}</h2>
+                  {order.orderId ? (
+                    <span className="tpsow2026-order-id-badge" title={`Order ID: ${order.orderId}`}>
+                      #{order.orderId}
+                    </span>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => onCopyReference(order.reference)}
+                    title={isIndo ? "Salin No. Pesanan" : "Copy Order No."}
+                    aria-label="Copy order no"
+                    style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--tpsow-text-muted, #64748b)", display: "flex", alignItems: "center", padding: "2px" }}
+                  >
+                    <Copy size={13} />
+                  </button>
+                </div>
                 <p>
                   {order.createdAtLabel} <span>&middot;</span> {order.suborderNo}
-                  <button type="button" onClick={() => onCopyReference(order.suborderNo)} aria-label="Copy suborder ref">
+                  <button type="button" onClick={() => onCopyReference(order.suborderNo)} aria-label="Copy suborder ref" title={isIndo ? "Salin Suborder ID" : "Copy Suborder ID"}>
                     <Copy size={12} />
                   </button>
                 </p>

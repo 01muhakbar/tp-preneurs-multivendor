@@ -52,12 +52,46 @@ export const normalizeOrderRow = (row, isIndo = false) => {
   if (!row) return null;
 
   const rawPaymentStatus = String(row.paymentStatus || "").toUpperCase();
-  const rawFulfillmentStatus = String(row.fulfillmentStatus || "").toUpperCase();
-  const rawOrderStatus = String(row.status || "").toUpperCase();
+  let rawFulfillmentStatus = String(row.fulfillmentStatus || "").toUpperCase();
+
+  // If paid and not yet shipped/delivered/cancelled, fulfillment is READY TO PACK (PROCESSING)
+  if (
+    rawPaymentStatus === "PAID" &&
+    !["SHIPPED", "DELIVERED", "CANCELLED"].includes(rawFulfillmentStatus)
+  ) {
+    rawFulfillmentStatus = "PROCESSING";
+  } else if (
+    (rawPaymentStatus === "UNPAID" || rawPaymentStatus === "PENDING_CONFIRMATION") &&
+    rawFulfillmentStatus === "UNFULFILLED"
+  ) {
+    rawFulfillmentStatus = "UNPAID";
+  }
+
+  const rawOrderStatus = String(row.status || rawFulfillmentStatus || "").toUpperCase();
+  const rawInvoice = row.rawOrderNumber || row.invoiceNo || row.orderNumber || "Order";
+  const orderId = row.orderId || null;
+  const compactReference = row.compactOrderNumber || row.orderNumber || rawInvoice;
+
+  // Real courier name cleanup: never show internal enums like WAITING_PAYMENT
+  const cleanCourier = (() => {
+    const rawCourier = String(row.shippingMethod || row.deliveryMethod || "").trim();
+    if (
+      !rawCourier ||
+      /^(WAITING_PAYMENT|READY_TO_FULFILL|UNFULFILLED|PROCESSING|SHIPPED|DELIVERED|CANCELLED|UNKNOWN|PENDING|PAID|EXPIRED|UNPAID|FAILED)$/i.test(
+        rawCourier
+      )
+    ) {
+      return "";
+    }
+    return rawCourier;
+  })();
 
   return {
     id: row.suborderId || row.id || null,
-    reference: row.orderNumber || row.invoiceNo || "N/A",
+    orderId,
+    reference: compactReference,
+    invoiceNo: rawInvoice,
+    suborderNo: row.suborderNo || "",
     createdAt: row.createdAt || row.orderDate || null,
     createdLabel: row.createdLabel || "",
     updatedLabel: row.updatedLabel || row.createdLabel || "",
@@ -95,19 +129,23 @@ export const normalizeOrderRow = (row, isIndo = false) => {
 
     fulfillment: {
       status: rawFulfillmentStatus || "UNKNOWN",
-      label: fulfillmentStatusLabel(rawFulfillmentStatus, isIndo),
+      label:
+        rawFulfillmentStatus === "UNPAID"
+          ? (isIndo ? "Menunggu Bayar" : "Awaiting Pay")
+          : fulfillmentStatusLabel(rawFulfillmentStatus, isIndo),
       tone:
-        row.fulfillmentTone ||
-        (rawFulfillmentStatus === "DELIVERED"
+        rawFulfillmentStatus === "DELIVERED"
           ? "green"
           : rawFulfillmentStatus === "SHIPPED"
           ? "blue"
           : rawFulfillmentStatus === "PROCESSING"
           ? "amber"
-          : "slate"),
+          : rawFulfillmentStatus === "CANCELLED"
+          ? "red"
+          : "slate",
       progress: Number(row.fulfillmentProgress || 0),
       trackingNumber: row.trackingNumber || "",
-      shippingMethod: row.shippingMethod || row.deliveryMethod || "",
+      shippingMethod: cleanCourier,
     },
 
     status: rawOrderStatus || "UNKNOWN",

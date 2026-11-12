@@ -4,41 +4,39 @@ import {
   AlertTriangle,
   Box,
   Check,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Copy,
   Download,
   Grid2X2,
   List,
-  MoreVertical,
   PackageCheck,
   RotateCcw,
   Search,
   Truck,
   WalletCards,
   FolderOpen,
+  FileText,
+  X,
 } from "lucide-react";
 import "./SellerOrders2026View.css";
 import {
   normalizeOrderRow,
-  statusLabel,
-  statusTone,
   formatMoney,
 } from "./sellerOrders2026Utils.js";
 
 const SELLER_ORDERS_I18N = {
   en: {
     pageTitle: "Orders",
-    pageSubtitle: "Manage, fulfill, and track seller orders.",
-    storeReady: "Store Ready",
+    pageSubtitle: "Manage and process customer orders.",
+    storeReady: "Store Active",
     actions: "Actions",
-    export: "Export",
+    export: "Export CSV",
     metricPendingPayment: "Pending Payment",
     metricReadyToPack: "Ready to Pack",
     metricInTransit: "In Transit",
     metricDelivered: "Delivered",
-    searchPlaceholder: "Search order, buyer, invoice...",
+    searchPlaceholder: "Search order, buyer, invoice, ID...",
     filterStatus: "Status",
     filterPayment: "Payment",
     filterFulfillment: "Fulfillment",
@@ -48,6 +46,7 @@ const SELLER_ORDERS_I18N = {
     statusReadyToPack: "Ready to Pack",
     statusInTransit: "In Transit",
     statusDelivered: "Delivered",
+    statusCancelled: "Cancelled",
     payUnpaid: "Unpaid",
     payPaid: "Paid",
     payFailed: "Failed",
@@ -60,38 +59,37 @@ const SELLER_ORDERS_I18N = {
     fulCancelled: "Cancelled",
     viewTable: "Table",
     viewGrid: "Grid",
-    noOrdersTitle: "No orders",
-    noOrdersFiltered: "Try different filters.",
-    noOrdersEmpty: "You don't have any orders yet.",
+    noOrdersTitle: "No orders found",
+    noOrdersFiltered: "Try adjusting your search or filters.",
+    noOrdersEmpty: "No orders have been placed for this store yet.",
     resetFilters: "Reset Filters",
-    colOrder: "Order",
+    colOrder: "Order No.",
     colBuyer: "Buyer",
     colItems: "Items",
     colPayment: "Payment",
-    colFulfillment: "Fulfillment",
+    colFulfillment: "Order Status",
     colTotal: "Total",
-    colUpdated: "Updated",
-    colStatus: "Status",
-    colActions: "Actions",
+    colUpdated: "Date",
+    colActions: "Action",
     copyOrderNumber: "Copy order number",
-    viewOrder: "View order",
-    viewDetail: "View",
+    copied: "Copied!",
+    viewDetail: "Detail",
     itemCount: (count) => `${count} ${count === 1 ? "item" : "items"}`,
-    paginationText: (from, to, total) => `Showing ${from} to ${to} of ${total} orders`,
+    paginationText: (from, to, total) => `Showing ${from}-${to} of ${total} orders`,
     unableToLoad: "Unable to load orders",
     retry: "Retry",
   },
   id: {
     pageTitle: "Pesanan Toko",
-    pageSubtitle: "Kelola, proses, dan lacak pesanan toko Anda.",
+    pageSubtitle: "Kelola dan proses pesanan pelanggan toko Anda.",
     storeReady: "Toko Aktif",
     actions: "Aksi",
-    export: "Ekspor",
+    export: "Ekspor CSV",
     metricPendingPayment: "Menunggu Pembayaran",
     metricReadyToPack: "Siap Dikemas",
     metricInTransit: "Dalam Pengiriman",
     metricDelivered: "Selesai",
-    searchPlaceholder: "Cari pesanan, pembeli, invoice...",
+    searchPlaceholder: "Cari pesanan, pembeli, invoice, ID...",
     filterStatus: "Status",
     filterPayment: "Pembayaran",
     filterFulfillment: "Pengiriman",
@@ -100,7 +98,8 @@ const SELLER_ORDERS_I18N = {
     statusAwaitingPayment: "Menunggu Pembayaran",
     statusReadyToPack: "Siap Dikemas",
     statusInTransit: "Dalam Pengiriman",
-    statusDelivered: "Terkirim",
+    statusDelivered: "Selesai",
+    statusCancelled: "Dibatalkan",
     payUnpaid: "Belum Bayar",
     payPaid: "Lunas",
     payFailed: "Gagal",
@@ -109,28 +108,27 @@ const SELLER_ORDERS_I18N = {
     fulUnfulfilled: "Belum Diproses",
     fulReadyToPack: "Siap Dikemas",
     fulInTransit: "Dalam Pengiriman",
-    fulDelivered: "Terkirim",
+    fulDelivered: "Selesai",
     fulCancelled: "Dibatalkan",
     viewTable: "Tabel",
     viewGrid: "Grid",
     noOrdersTitle: "Tidak ada pesanan",
-    noOrdersFiltered: "Coba gunakan filter lain.",
+    noOrdersFiltered: "Coba ubah kata kunci atau filter.",
     noOrdersEmpty: "Belum ada pesanan masuk untuk toko ini.",
     resetFilters: "Reset Filter",
-    colOrder: "Pesanan",
+    colOrder: "No. Pesanan",
     colBuyer: "Pembeli",
     colItems: "Produk",
     colPayment: "Pembayaran",
-    colFulfillment: "Pengiriman",
+    colFulfillment: "Status Pesanan",
     colTotal: "Total",
-    colUpdated: "Diperbarui",
-    colStatus: "Status",
+    colUpdated: "Tanggal",
     colActions: "Aksi",
     copyOrderNumber: "Salin nomor pesanan",
-    viewOrder: "Lihat pesanan",
-    viewDetail: "Lihat",
+    copied: "Tersalin!",
+    viewDetail: "Detail",
     itemCount: (count) => `${count} produk`,
-    paginationText: (from, to, total) => `Menampilkan ${from} sampai ${to} dari ${total} pesanan`,
+    paginationText: (from, to, total) => `Menampilkan ${from}-${to} dari ${total} pesanan`,
     unableToLoad: "Gagal memuat pesanan",
     retry: "Coba Lagi",
   },
@@ -172,6 +170,7 @@ export default function SellerOrders2026View({
 }) {
   const { i18n } = useTranslation();
   const [, setLangSyncCounter] = useState(0);
+  const [copiedId, setCopiedId] = useState(null);
 
   useEffect(() => {
     const handleSync = () => setLangSyncCounter((c) => c + 1);
@@ -209,6 +208,14 @@ export default function SellerOrders2026View({
 
   const t = isIndo ? SELLER_ORDERS_I18N.id : SELLER_ORDERS_I18N.en;
 
+  const onCopy = (ref, id) => {
+    copyOrderNumber(ref);
+    setCopiedId(id);
+    setTimeout(() => {
+      setCopiedId(null);
+    }, 2000);
+  };
+
   if (isLoading) {
     return (
       <div className="tpsow2026-orders">
@@ -238,7 +245,12 @@ export default function SellerOrders2026View({
             }}
           />
           <h2>{t.unableToLoad}</h2>
-          <p>{error?.message || (isIndo ? "Gagal memuat daftar pesanan dari server." : "Failed to load orders from the server.")}</p>
+          <p>
+            {error?.message ||
+              (isIndo
+                ? "Gagal memuat daftar pesanan dari server."
+                : "Failed to load orders from the server.")}
+          </p>
           <button type="button" className="tpsow2026-btn-outline" onClick={refetch}>
             <RotateCcw size={16} /> {t.retry}
           </button>
@@ -264,13 +276,15 @@ export default function SellerOrders2026View({
       amount: summaryAmounts.pending,
       icon: WalletCards,
       tone: "amber",
+      filterStatus: "unpaid",
     },
     {
       label: t.metricReadyToPack,
       value: summary.processing || 0,
       amount: summaryAmounts.packing,
       icon: Box,
-      tone: "green",
+      tone: "accent",
+      filterStatus: "processing",
     },
     {
       label: t.metricInTransit,
@@ -278,25 +292,27 @@ export default function SellerOrders2026View({
       amount: summaryAmounts.transit,
       icon: Truck,
       tone: "blue",
+      filterStatus: "shipped",
     },
     {
       label: t.metricDelivered,
       value: summary.delivered || 0,
       amount: summaryAmounts.delivered,
       icon: PackageCheck,
-      tone: "violet",
+      tone: "green",
+      filterStatus: "delivered",
     },
   ];
 
   const isEmpty = rows.length === 0;
   const isFiltered =
-    query.search ||
+    Boolean(query.search) ||
     query.status !== "all" ||
     query.paymentStatus !== "all" ||
     query.fulfillmentStatus !== "all" ||
     query.shippingMethod !== "all" ||
-    query.dateFrom ||
-    query.dateTo;
+    Boolean(query.dateFrom) ||
+    Boolean(query.dateTo);
 
   const firstVisible =
     pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1;
@@ -308,24 +324,22 @@ export default function SellerOrders2026View({
   return (
     <div className="tpsow2026-orders">
       <header className="tpsow2026-orders-header">
-        <div>
+        <div className="tpsow2026-header-text">
           <h1>{t.pageTitle}</h1>
           <p>{t.pageSubtitle}</p>
         </div>
         <div className="tpsow2026-orders-actions">
-          <button type="button" className="tpsow2026-btn-accent">
-            <Check size={16} /> {t.storeReady}
-          </button>
-          <button type="button" className="tpsow2026-btn-outline" disabled>
-            <MoreVertical size={16} /> {t.actions} <ChevronDown size={14} />
-          </button>
+          <span className="tpsow2026-status-pill">
+            <Check size={14} /> {t.storeReady}
+          </span>
           <button
             type="button"
             className="tpsow2026-btn-primary"
             onClick={exportOrders}
             disabled={isEmpty}
+            title={t.export}
           >
-            <Download size={16} /> {t.export}
+            <Download size={15} /> <span>{t.export}</span>
           </button>
         </div>
       </header>
@@ -337,30 +351,48 @@ export default function SellerOrders2026View({
         </div>
       ) : null}
 
+      {/* Modern Summary Metric Cards */}
       <section className="tpsow2026-summary-grid">
         {summaryCards.map((card, i) => {
           const Icon = card.icon;
+          const isActiveFilter = query.status === card.filterStatus;
           return (
-            <div key={i} className="tpsow2026-summary-card">
+            <div
+              key={i}
+              className={`tpsow2026-summary-card is-${card.tone} ${isActiveFilter ? "is-active-filter" : ""}`}
+              onClick={() => {
+                if (isActiveFilter) {
+                  changeQuery({ status: "all" });
+                } else {
+                  changeQuery({ status: card.filterStatus });
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              title={`Filter: ${card.label}`}
+            >
               <div className={`tpsow2026-summary-icon is-${card.tone}`}>
-                <Icon size={24} />
+                <Icon size={22} />
               </div>
               <div className="tpsow2026-summary-content">
                 <header>
                   <small>{card.label}</small>
                   <i className={`is-${card.tone}`} />
                 </header>
-                <strong>{card.value}</strong>
-                <b>{formatMoney(card.amount)}</b>
+                <div className="tpsow2026-summary-numbers">
+                  <strong>{card.value}</strong>
+                  <b>{formatMoney(card.amount)}</b>
+                </div>
               </div>
             </div>
           );
         })}
       </section>
 
+      {/* Filter Toolbar */}
       <section className="tpsow2026-filter-bar">
         <div className="tpsow2026-filter-search">
-          <Search size={16} color="var(--tpsow-text-muted)" />
+          <Search size={16} className="tpsow2026-search-icon" />
           <input
             type="text"
             placeholder={t.searchPlaceholder}
@@ -368,115 +400,134 @@ export default function SellerOrders2026View({
             value={query.search}
             onChange={(e) => changeQuery({ search: e.target.value })}
           />
+          {query.search ? (
+            <button
+              type="button"
+              className="tpsow2026-search-clear"
+              onClick={() => changeQuery({ search: "" })}
+            >
+              <X size={14} />
+            </button>
+          ) : null}
         </div>
-        <div className="tpsow2026-filter-select">
-          <span>{t.filterStatus}</span>
-          <select
-            value={query.status}
-            onChange={(e) =>
-              changeQuery({
-                status: e.target.value,
-                paymentStatus: "all",
-                fulfillmentStatus: "all",
-              })
-            }
-          >
-            <option value="all">{t.all}</option>
-            <option value="unpaid">{t.statusAwaitingPayment}</option>
-            <option value="processing">{t.statusReadyToPack}</option>
-            <option value="shipped">{t.statusInTransit}</option>
-            <option value="delivered">{t.statusDelivered}</option>
-          </select>
-        </div>
-        <div className="tpsow2026-filter-select">
-          <span>{t.filterPayment}</span>
-          <select
-            value={query.paymentStatus}
-            onChange={(e) =>
-              changeQuery({ paymentStatus: e.target.value, status: "all" })
-            }
-          >
-            <option value="all">{t.all}</option>
-            <option value="UNPAID">{t.payUnpaid}</option>
-            <option value="PAID">{t.payPaid}</option>
-            <option value="FAILED">{t.payFailed}</option>
-            <option value="CANCELLED">{t.payCancelled}</option>
-            <option value="EXPIRED">{t.payExpired}</option>
-          </select>
-        </div>
-        <div className="tpsow2026-filter-select">
-          <span>{t.filterFulfillment}</span>
-          <select
-            value={query.fulfillmentStatus}
-            onChange={(e) =>
-              changeQuery({ fulfillmentStatus: e.target.value, status: "all" })
-            }
-          >
-            <option value="all">{t.all}</option>
-            <option value="UNFULFILLED">{t.fulUnfulfilled}</option>
-            <option value="PROCESSING">{t.fulReadyToPack}</option>
-            <option value="SHIPPED">{t.fulInTransit}</option>
-            <option value="DELIVERED">{t.fulDelivered}</option>
-            <option value="CANCELLED">{t.fulCancelled}</option>
-          </select>
-        </div>
-        <div className="tpsow2026-filter-select">
-          <span>{t.filterCourier}</span>
-          <select
-            value={query.shippingMethod}
-            onChange={(e) => changeQuery({ shippingMethod: e.target.value })}
-          >
-            <option value="all">{t.all}</option>
-            <option value="jne">JNE</option>
-            <option value="jnt">J&T</option>
-            <option value="sicepat">SiCepat</option>
-          </select>
-        </div>
-        <div className="tpsow2026-filter-date">
-          <input
-            type="date"
-            value={query.dateFrom}
-            onChange={(e) => changeQuery({ dateFrom: e.target.value })}
-          />
-          <span>-</span>
-          <input
-            type="date"
-            value={query.dateTo}
-            onChange={(e) => changeQuery({ dateTo: e.target.value })}
-          />
-        </div>
-        <div className="tpsow2026-view-toggle">
-          <button
-            type="button"
-            className={view === "table" ? "is-active" : ""}
-            onClick={() => setView("table")}
-          >
-            <List size={14} /> {t.viewTable}
-          </button>
-          <button
-            type="button"
-            className={view === "grid" ? "is-active" : ""}
-            onClick={() => setView("grid")}
-          >
-            <Grid2X2 size={14} /> {t.viewGrid}
-          </button>
+
+        <div className="tpsow2026-filters-group">
+          <div className="tpsow2026-filter-select">
+            <span>{t.filterStatus}</span>
+            <select
+              value={query.status}
+              onChange={(e) =>
+                changeQuery({
+                  status: e.target.value,
+                  paymentStatus: "all",
+                  fulfillmentStatus: "all",
+                })
+              }
+            >
+              <option value="all">{t.all}</option>
+              <option value="unpaid">{t.statusAwaitingPayment}</option>
+              <option value="processing">{t.statusReadyToPack}</option>
+              <option value="shipped">{t.statusInTransit}</option>
+              <option value="delivered">{t.statusDelivered}</option>
+            </select>
+          </div>
+
+          <div className="tpsow2026-filter-select">
+            <span>{t.filterPayment}</span>
+            <select
+              value={query.paymentStatus}
+              onChange={(e) =>
+                changeQuery({ paymentStatus: e.target.value, status: "all" })
+              }
+            >
+              <option value="all">{t.all}</option>
+              <option value="UNPAID">{t.payUnpaid}</option>
+              <option value="PAID">{t.payPaid}</option>
+              <option value="EXPIRED">{t.payExpired}</option>
+              <option value="CANCELLED">{t.payCancelled}</option>
+              <option value="FAILED">{t.payFailed}</option>
+            </select>
+          </div>
+
+          <div className="tpsow2026-filter-select">
+            <span>{t.filterCourier}</span>
+            <select
+              value={query.shippingMethod}
+              onChange={(e) => changeQuery({ shippingMethod: e.target.value })}
+            >
+              <option value="all">{t.all}</option>
+              <option value="jne">JNE</option>
+              <option value="jnt">J&T</option>
+              <option value="sicepat">SiCepat</option>
+            </select>
+          </div>
+
+          <div className="tpsow2026-filter-date">
+            <input
+              type="date"
+              aria-label="Dari Tanggal"
+              value={query.dateFrom}
+              onChange={(e) => changeQuery({ dateFrom: e.target.value })}
+            />
+            <span>-</span>
+            <input
+              type="date"
+              aria-label="Sampai Tanggal"
+              value={query.dateTo}
+              onChange={(e) => changeQuery({ dateTo: e.target.value })}
+            />
+          </div>
+
+          {isFiltered && (
+            <button
+              type="button"
+              className="tpsow2026-btn-reset"
+              onClick={resetFilters}
+              title={t.resetFilters}
+            >
+              <RotateCcw size={13} /> <span>{t.resetFilters}</span>
+            </button>
+          )}
+
+          <div className="tpsow2026-view-toggle">
+            <button
+              type="button"
+              className={view === "table" ? "is-active" : ""}
+              onClick={() => setView("table")}
+              title={t.viewTable}
+              aria-label={t.viewTable}
+            >
+              <List size={15} />
+            </button>
+            <button
+              type="button"
+              className={view === "grid" ? "is-active" : ""}
+              onClick={() => setView("grid")}
+              title={t.viewGrid}
+              aria-label={t.viewGrid}
+            >
+              <Grid2X2 size={15} />
+            </button>
+          </div>
         </div>
       </section>
 
       {isEmpty ? (
         <div className="tpsow2026-empty">
           <div className="tpsow2026-empty-icon">
-            <FolderOpen size={48} />
+            <FolderOpen size={44} />
           </div>
           <h2>{t.noOrdersTitle}</h2>
           <p>{isFiltered ? t.noOrdersFiltered : t.noOrdersEmpty}</p>
-          <button
-            type="button"
-            className="tpsow2026-btn-outline"
-            onClick={resetFilters}
-          >
-            {t.resetFilters}
-          </button>
+          {isFiltered && (
+            <button
+              type="button"
+              className="tpsow2026-btn-outline"
+              onClick={resetFilters}
+            >
+              {t.resetFilters}
+            </button>
+          )}
         </div>
       ) : (
         <>
@@ -492,32 +543,48 @@ export default function SellerOrders2026View({
                     <th>{t.colFulfillment}</th>
                     <th>{t.colTotal}</th>
                     <th>{t.colUpdated}</th>
-                    <th>{t.colStatus}</th>
                     <th style={{ textAlign: "right" }}>{t.colActions}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((row) => (
                     <tr key={row.id}>
+                      {/* ORDER CODE & DATE */}
                       <td>
                         <div className="tpsow2026-cell-order">
-                          <div>
-                            <strong title={row.reference}>{row.reference}</strong>
+                          <div className="tpsow2026-order-ref-row">
+                            <strong className="tpsow2026-order-code" title={row.invoiceNo}>
+                              {row.reference}
+                            </strong>
+                            {row.orderId ? (
+                              <span
+                                className="tpsow2026-order-id-badge"
+                                title={`Order ID: ${row.orderId}`}
+                              >
+                                #{row.orderId}
+                              </span>
+                            ) : null}
                             <button
                               type="button"
-                              onClick={() => copyOrderNumber(row.reference)}
+                              className={`tpsow2026-copy-btn ${copiedId === row.id ? "is-copied" : ""}`}
+                              onClick={() => onCopy(row.reference, row.id)}
+                              title={t.copyOrderNumber}
                               aria-label={t.copyOrderNumber}
                             >
-                              <Copy size={12} />
+                              {copiedId === row.id ? <Check size={12} /> : <Copy size={12} />}
                             </button>
                           </div>
-                          <small>{row.createdLabel}</small>
+                          <small className="tpsow2026-order-date">{row.createdLabel}</small>
                         </div>
                       </td>
+
+                      {/* BUYER */}
                       <td>
                         <div className="tpsow2026-cell-buyer">
-                          <span>{row.customer.initials}</span>
-                          <div>
+                          <div className="tpsow2026-buyer-avatar">
+                            {row.customer.initials}
+                          </div>
+                          <div className="tpsow2026-buyer-info">
                             <strong>{row.customer.name}</strong>
                             <small title={row.customer.email}>
                               {row.customer.email}
@@ -525,63 +592,63 @@ export default function SellerOrders2026View({
                           </div>
                         </div>
                       </td>
+
+                      {/* ITEMS */}
                       <td>
                         <div className="tpsow2026-cell-items">
-                          <Box size={14} /> {row.itemsCount}
+                          <Box size={14} className="tpsow2026-items-icon" />
+                          <span>{t.itemCount(row.itemsCount)}</span>
                         </div>
                       </td>
+
+                      {/* PAYMENT */}
                       <td>
                         <div className="tpsow2026-cell-status">
-                          <span
-                            className={`tpsow2026-pill is-${row.payment.tone}`}
-                          >
+                          <span className={`tpsow2026-pill is-${row.payment.tone}`}>
                             {row.payment.label}
                           </span>
-                          <small>{row.payment.method}</small>
+                          <small className="tpsow2026-payment-method">
+                            {row.payment.method}
+                          </small>
                         </div>
                       </td>
+
+                      {/* ORDER / FULFILLMENT STATUS */}
                       <td>
                         <div className="tpsow2026-cell-status">
-                          <span
-                            className={`tpsow2026-pill is-${row.fulfillment.tone}`}
-                          >
+                          <span className={`tpsow2026-pill is-${row.fulfillment.tone}`}>
                             {row.fulfillment.label}
                           </span>
-                          {row.fulfillment.shippingMethod ||
-                          row.fulfillment.trackingNumber ? (
-                            <small>
-                              {[
-                                row.fulfillment.shippingMethod,
-                                row.fulfillment.trackingNumber,
-                              ]
+                          {row.fulfillment.shippingMethod || row.fulfillment.trackingNumber ? (
+                            <small className="tpsow2026-courier-tag">
+                              {[row.fulfillment.shippingMethod, row.fulfillment.trackingNumber]
                                 .filter(Boolean)
                                 .join(" - ")}
                             </small>
                           ) : null}
                         </div>
                       </td>
+
+                      {/* TOTAL */}
                       <td className="tpsow2026-cell-total">
                         {formatMoney(row.totalAmount)}
                       </td>
+
+                      {/* UPDATED DATE */}
                       <td className="tpsow2026-cell-updated">
                         {row.updatedLabel}
                       </td>
-                      <td>
-                        <span
-                          className={`tpsow2026-pill is-${statusTone(
-                            row.status
-                          )}`}
-                        >
-                          {row.statusLabel}
-                        </span>
-                      </td>
+
+                      {/* ACTIONS */}
                       <td className="tpsow2026-cell-actions">
                         <button
                           type="button"
+                          className="tpsow2026-btn-detail"
                           onClick={() => handleViewInvoice(row.id)}
-                          aria-label={t.viewOrder}
+                          title={t.viewDetail}
                         >
-                          <MoreVertical size={16} />
+                          <FileText size={14} />
+                          <span>{t.viewDetail}</span>
                         </button>
                       </td>
                     </tr>
@@ -595,36 +662,30 @@ export default function SellerOrders2026View({
                 <article key={row.id} className="tpsow2026-grid-card">
                   <header className="tpsow2026-grid-header">
                     <div>
-                      <div>
-                        <strong>{row.reference}</strong>
+                      <div className="tpsow2026-order-ref-row">
+                        <strong title={row.invoiceNo}>{row.reference}</strong>
+                        {row.orderId ? (
+                          <span className="tpsow2026-order-id-badge">#{row.orderId}</span>
+                        ) : null}
                         <button
                           type="button"
-                          onClick={() => copyOrderNumber(row.reference)}
+                          className={`tpsow2026-copy-btn ${copiedId === row.id ? "is-copied" : ""}`}
+                          onClick={() => onCopy(row.reference, row.id)}
                           aria-label={t.copyOrderNumber}
                         >
-                          <Copy size={12} />
+                          {copiedId === row.id ? <Check size={12} /> : <Copy size={12} />}
                         </button>
                       </div>
-                      <span
-                        className={`tpsow2026-pill is-${statusTone(row.status)}`}
-                      >
-                        {row.statusLabel}
-                      </span>
+                      <small className="tpsow2026-order-date">{row.createdLabel}</small>
                     </div>
-                    <span>
-                      <button
-                        type="button"
-                        onClick={() => handleViewInvoice(row.id)}
-                        aria-label={t.viewOrder}
-                      >
-                        <MoreVertical size={16} />
-                      </button>
+                    <span className={`tpsow2026-pill is-${row.fulfillment.tone}`}>
+                      {row.fulfillment.label}
                     </span>
                   </header>
 
                   <div className="tpsow2026-grid-middle">
                     <div className="tpsow2026-grid-buyer">
-                      <span>{row.customer.initials}</span>
+                      <div className="tpsow2026-buyer-avatar">{row.customer.initials}</div>
                       <div>
                         <strong>{row.customer.name}</strong>
                         <small>{t.itemCount(row.itemsCount)}</small>
@@ -639,27 +700,26 @@ export default function SellerOrders2026View({
                     <div className="tpsow2026-grid-statuses">
                       <div>
                         <small>{t.filterPayment}</small>
-                        <span
-                          className={`tpsow2026-pill is-${row.payment.tone}`}
-                        >
+                        <span className={`tpsow2026-pill is-${row.payment.tone}`}>
                           {row.payment.label}
                         </span>
                       </div>
-                      <div>
-                        <small>{t.filterFulfillment}</small>
-                        <span
-                          className={`tpsow2026-pill is-${row.fulfillment.tone}`}
-                        >
-                          {row.fulfillment.label}
-                        </span>
-                      </div>
+                      {row.fulfillment.shippingMethod ? (
+                        <div>
+                          <small>{t.filterCourier}</small>
+                          <span className="tpsow2026-courier-pill">
+                            {row.fulfillment.shippingMethod}
+                          </span>
+                        </div>
+                      ) : null}
                     </div>
                     <button
                       type="button"
-                      className="tpsow2026-btn-outline"
+                      className="tpsow2026-btn-detail"
                       onClick={() => handleViewInvoice(row.id)}
                     >
-                      {t.viewDetail}
+                      <FileText size={14} />
+                      <span>{t.viewDetail}</span>
                     </button>
                   </footer>
                 </article>
@@ -668,14 +728,17 @@ export default function SellerOrders2026View({
           )}
 
           <footer className="tpsow2026-pagination">
-            <span>{t.paginationText(firstVisible, lastVisible, pagination.total)}</span>
+            <span className="tpsow2026-pagination-info">
+              {t.paginationText(firstVisible, lastVisible, pagination.total)}
+            </span>
             <div className="tpsow2026-pagination-controls">
               <button
                 type="button"
                 disabled={pagination.page <= 1}
                 onClick={() => changeQuery({ page: pagination.page - 1 })}
+                aria-label="Previous page"
               >
-                <ChevronLeft size={14} />
+                <ChevronLeft size={15} />
               </button>
               {generatePaginationArray(
                 pagination.page,
@@ -695,8 +758,9 @@ export default function SellerOrders2026View({
                 type="button"
                 disabled={pagination.page >= pagination.totalPages}
                 onClick={() => changeQuery({ page: pagination.page + 1 })}
+                aria-label="Next page"
               >
-                <ChevronRight size={14} />
+                <ChevronRight size={15} />
               </button>
             </div>
           </footer>

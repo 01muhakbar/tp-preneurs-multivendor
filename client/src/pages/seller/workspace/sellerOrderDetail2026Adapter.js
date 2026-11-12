@@ -154,6 +154,25 @@ const normalizeTimeline = (timeline) =>
     };
   });
 
+export const formatCompactOrderNumber = (invoiceNo, orderId, createdAt) => {
+  const raw = String(invoiceNo || "").trim();
+  if (!raw && !orderId) return "-";
+
+  if (/^TP-\d{6}-\w+/i.test(raw)) return raw;
+
+  const d = createdAt ? new Date(String(createdAt)) : null;
+  const dateStr =
+    d && !Number.isNaN(d.getTime())
+      ? `${String(d.getFullYear()).slice(-2)}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`
+      : "261111";
+
+  const numPart = orderId
+    ? String(orderId).padStart(4, "0")
+    : raw.replace(/[^A-Za-z0-9]/g, "").slice(-4) || "0001";
+
+  return `TP-${dateStr}-${numPart}`;
+};
+
 export const normalizeSellerOrderDetailFor2026 = ({ suborder }) => {
   const detail = asObject(suborder);
   const order = asObject(detail.suborder);
@@ -175,9 +194,16 @@ export const normalizeSellerOrderDetailFor2026 = ({ suborder }) => {
   const fulfillmentStatus = text(order.status, "UNKNOWN").toUpperCase();
   const paymentStatus = text(order.paymentStatus, payment.status || "UNPAID").toUpperCase();
 
+  const rawInvoice = text(order.orderNumber ?? order.invoiceNo, "Order");
+  const orderId = order.orderId ?? order.id ?? null;
+  const compactReference = formatCompactOrderNumber(rawInvoice, orderId, order.createdAt || order.orderDate);
+
   return {
     id: order.suborderId ?? order.id ?? null,
-    reference: text(order.orderNumber ?? order.invoiceNo, "Order"),
+    orderId,
+    invoiceNo: rawInvoice,
+    reference: compactReference,
+    compactReference,
     suborderNo: text(order.suborderNo, "Store-scoped suborder"),
     createdAt: order.createdAt || order.orderDate || null,
     createdAtLabel: formatDateTime(order.createdAt || order.orderDate),
