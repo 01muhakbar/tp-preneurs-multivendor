@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   AlertTriangle,
   CalendarDays,
@@ -28,14 +29,14 @@ import { useSellerWorkspaceRoute } from "../../../utils/sellerWorkspaceRoute.js"
 import { getSeller2026PagePermissions } from "./seller2026PagePermissions.js";
 import "../../../features/sellerWorkspace2026/Seller2026Coupons.css";
 
-const EXPORT_COLUMNS = [
-  { key: "campaign", label: "Campaign" },
-  { key: "code", label: "Code" },
-  { key: "discount", label: "Discount" },
-  { key: "scope", label: "Audience / Scope" },
-  { key: "validity", label: "Validity" },
-  { key: "usage", label: "Usage" },
-  { key: "status", label: "Status" },
+const getExportColumns = (isId) => [
+  { key: "campaign", label: isId ? "Kampanye" : "Campaign" },
+  { key: "code", label: isId ? "Kode" : "Code" },
+  { key: "discount", label: isId ? "Diskon" : "Discount" },
+  { key: "scope", label: isId ? "Target" : "Audience / Scope" },
+  { key: "validity", label: isId ? "Periode" : "Validity" },
+  { key: "usage", label: isId ? "Penggunaan" : "Usage" },
+  { key: "status", label: isId ? "Status" : "Status" },
 ];
 
 const readPositiveNumber = (value, fallback) => {
@@ -50,22 +51,22 @@ const formatMoney = (value) =>
     maximumFractionDigits: 0,
   }).format(Number(value || 0));
 
-const formatDate = (value) => {
-  if (!value) return "Not set";
+const formatDate = (value, isId) => {
+  if (!value) return isId ? "Tidak diatur" : "Not set";
   const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return "Not set";
-  return new Intl.DateTimeFormat("en-GB", {
+  if (Number.isNaN(parsed.getTime())) return isId ? "Tidak diatur" : "Not set";
+  return new Intl.DateTimeFormat(isId ? "id-ID" : "en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
   }).format(parsed);
 };
 
-const statusLabel = (status) => {
-  if (status === "active") return "Active";
-  if (status === "scheduled") return "Scheduled";
-  if (status === "expired") return "Expired";
-  return "Draft";
+const statusLabel = (status, isId) => {
+  if (status === "active") return isId ? "Aktif" : "Active";
+  if (status === "scheduled") return isId ? "Terjadwal" : "Scheduled";
+  if (status === "expired") return isId ? "Kedaluwarsa" : "Expired";
+  return isId ? "Draf" : "Draft";
 };
 
 const statusTone = (status) => {
@@ -93,11 +94,11 @@ function CouponVisual({ coupon }) {
   );
 }
 
-function StatusBadge({ status }) {
+function StatusBadge({ status, isId }) {
   return (
     <span className={`s26-coupon-status is-${statusTone(status)}`}>
       <i />
-      {statusLabel(status)}
+      {statusLabel(status, isId)}
     </span>
   );
 }
@@ -106,6 +107,7 @@ function CouponActions({
   coupon,
   open,
   busy,
+  isId,
   canUpdate,
   canManageStatus,
   canArchive,
@@ -119,7 +121,7 @@ function CouponActions({
       <button
         type="button"
         className={`s26-coupon-switch${coupon.active ? " is-on" : ""}`}
-        aria-label={coupon.active ? "Deactivate coupon" : "Activate coupon"}
+        aria-label={coupon.active ? (isId ? "Nonaktifkan kupon" : "Deactivate coupon") : (isId ? "Aktifkan kupon" : "Activate coupon")}
         aria-pressed={coupon.active}
         disabled={!canManageStatus || !coupon.canManageStatus || busy}
         onClick={() => onToggle(coupon)}
@@ -129,7 +131,7 @@ function CouponActions({
       <button
         type="button"
         className="s26-coupon-kebab"
-        aria-label={`Actions for ${coupon.title}`}
+        aria-label={isId ? `Tindakan untuk ${coupon.title}` : `Actions for ${coupon.title}`}
         onClick={() => onOpen(coupon.id)}
       >
         <MoreVertical size={17} />
@@ -141,14 +143,14 @@ function CouponActions({
             disabled={!canUpdate || !coupon.canEdit || busy}
             onClick={() => onEdit(coupon)}
           >
-            Edit Coupon
+            {isId ? "Edit Kupon" : "Edit Coupon"}
           </button>
           <button
             type="button"
             disabled={!canManageStatus || !coupon.canManageStatus || busy}
             onClick={() => onToggle(coupon)}
           >
-            {coupon.active ? "Deactivate" : "Activate"}
+            {coupon.active ? (isId ? "Nonaktifkan" : "Deactivate") : (isId ? "Aktifkan" : "Activate")}
           </button>
           <button
             type="button"
@@ -156,7 +158,7 @@ function CouponActions({
             disabled={!canArchive || !coupon.canArchive || busy}
             onClick={() => onArchive(coupon)}
           >
-            Archive Coupon
+            {isId ? "Arsipkan Kupon" : "Archive Coupon"}
           </button>
         </div>
       ) : null}
@@ -165,6 +167,8 @@ function CouponActions({
 }
 
 export default function Seller2026LiveCouponsPage() {
+  const { i18n } = useTranslation();
+  const isId = Boolean(String(i18n?.language || "").toLowerCase().startsWith("id"));
   const [searchParams, setSearchParams] = useSearchParams();
   const actionMenuRef = useRef(null);
   const { sellerContext, workspaceStoreId: storeId } = useSellerWorkspaceRoute();
@@ -257,9 +261,9 @@ export default function Seller2026LiveCouponsPage() {
       .map((value) => new Date(value))
       .filter((value) => !Number.isNaN(value.getTime()))
       .sort((a, b) => a.getTime() - b.getTime());
-    if (!dates.length) return "All campaign dates";
-    return `${formatDate(dates[0])} - ${formatDate(dates[dates.length - 1])}`;
-  }, [filteredCoupons]);
+    if (!dates.length) return isId ? "Semua periode kampanye" : "All campaign dates";
+    return `${formatDate(dates[0], isId)} - ${formatDate(dates[dates.length - 1], isId)}`;
+  }, [filteredCoupons, isId]);
 
   const redemptionRate = useMemo(() => {
     const usage = filteredCoupons.reduce((sum, coupon) => sum + coupon.usageCount, 0);
@@ -285,15 +289,15 @@ export default function Seller2026LiveCouponsPage() {
     try {
       if (editingCoupon?.id) {
         await couponsQuery.updateCoupon({ couponId: editingCoupon.id, payload });
-        setNotice({ type: "success", text: "Coupon updated." });
+        setNotice({ type: "success", text: isId ? "Kupon berhasil diperbarui." : "Coupon updated." });
       } else {
         await couponsQuery.createCoupon(payload);
-        setNotice({ type: "success", text: "Coupon created." });
+        setNotice({ type: "success", text: isId ? "Kupon baru berhasil dibuat." : "Coupon created." });
       }
       setDrawerOpen(false);
       setEditingCoupon(null);
     } catch (error) {
-      throw new Error(getErrorMessage(error, "Unable to save coupon."));
+      throw new Error(getErrorMessage(error, isId ? "Gagal menyimpan kupon." : "Unable to save coupon."));
     }
   };
 
@@ -306,21 +310,26 @@ export default function Seller2026LiveCouponsPage() {
       });
       setNotice({
         type: "success",
-        text: coupon.active ? "Coupon deactivated." : "Coupon activated.",
+        text: coupon.active
+          ? (isId ? "Kupon dinonaktifkan." : "Coupon deactivated.")
+          : (isId ? "Kupon diaktifkan." : "Coupon activated."),
       });
     } catch (error) {
-      setNotice({ type: "error", text: getErrorMessage(error, "Unable to update coupon status.") });
+      setNotice({ type: "error", text: getErrorMessage(error, isId ? "Gagal mengubah status kupon." : "Unable to update coupon status.") });
     }
   };
 
   const archiveCoupon = async (coupon) => {
     setMenuCouponId(null);
-    if (!window.confirm(`Archive ${coupon.code}? This deactivates the coupon.`)) return;
+    const confirmText = isId
+      ? `Arsipkan kupon ${coupon.code}? Kupon ini akan dinonaktifkan.`
+      : `Archive ${coupon.code}? This deactivates the coupon.`;
+    if (!window.confirm(confirmText)) return;
     try {
       await couponsQuery.deleteOrArchiveCoupon(coupon.id);
-      setNotice({ type: "success", text: "Coupon archived." });
+      setNotice({ type: "success", text: isId ? "Kupon berhasil diarsipkan." : "Coupon archived." });
     } catch (error) {
-      setNotice({ type: "error", text: getErrorMessage(error, "Unable to archive coupon.") });
+      setNotice({ type: "error", text: getErrorMessage(error, isId ? "Gagal mengarsipkan kupon." : "Unable to archive coupon.") });
     }
   };
 
@@ -329,21 +338,21 @@ export default function Seller2026LiveCouponsPage() {
       campaign: coupon.title,
       code: coupon.code,
       discount: coupon.discountLabel,
-      scope: coupon.scopeLabel,
-      validity: coupon.validityLabel,
-      usage: coupon.usageLabel,
-      status: statusLabel(coupon.status),
+      scope: isId ? (coupon.isStoreScoped ? "Kupon Toko" : "Kupon Platform") : coupon.scopeLabel,
+      validity: `${formatDate(coupon.startsAt, isId)} - ${formatDate(coupon.expiresAt, isId)}`,
+      usage: coupon.usageLimit ? `${coupon.usageCount}/${coupon.usageLimit}` : `${coupon.usageCount} ${isId ? "terpakai" : "used"}`,
+      status: statusLabel(coupon.status, isId),
     }));
-    downloadCsvFile(EXPORT_COLUMNS, rows, `seller-coupons-${new Date().toISOString().slice(0, 10)}.csv`);
-    setNotice({ type: "success", text: `${rows.length} coupon(s) exported.` });
+    downloadCsvFile(getExportColumns(isId), rows, `seller-coupons-${new Date().toISOString().slice(0, 10)}.csv`);
+    setNotice({ type: "success", text: isId ? `${rows.length} kupon berhasil diekspor.` : `${rows.length} coupon(s) exported.` });
   };
 
   const copyCode = async (code) => {
     try {
       await navigator.clipboard.writeText(code);
-      setNotice({ type: "success", text: `${code} copied.` });
+      setNotice({ type: "success", text: isId ? `${code} berhasil disalin.` : `${code} copied.` });
     } catch {
-      setNotice({ type: "error", text: "Unable to copy coupon code." });
+      setNotice({ type: "error", text: isId ? "Gagal menyalin kode kupon." : "Unable to copy coupon code." });
     }
   };
 
@@ -376,45 +385,72 @@ export default function Seller2026LiveCouponsPage() {
       <div className="s26-coupons">
         <div className="s26-coupon-error">
           <AlertTriangle size={20} />
-          <div><strong>Unable to load coupons</strong><span>{getErrorMessage(couponsQuery.error, "Try again.")}</span></div>
-          <button type="button" onClick={() => couponsQuery.refetch()}>Retry</button>
+          <div>
+            <strong>{isId ? "Gagal memuat kupon" : "Unable to load coupons"}</strong>
+            <span>{getErrorMessage(couponsQuery.error, isId ? "Coba lagi nanti." : "Try again.")}</span>
+          </div>
+          <button type="button" onClick={() => couponsQuery.refetch()}>{isId ? "Coba Lagi" : "Retry"}</button>
         </div>
       </div>
     );
   }
 
   const summaryCards = [
-    { label: "Active Coupons", value: couponsQuery.data.summary.active, icon: Tag, tone: "mint", hint: `${couponsQuery.data.summary.total} total campaigns` },
-    { label: "Scheduled", value: couponsQuery.data.summary.scheduled, icon: CalendarDays, tone: "blue", hint: "Based on campaign validity" },
-    { label: "Redemption Rate", value: redemptionRate, icon: Percent, tone: "violet", hint: `${couponsQuery.data.summary.redemptions} recorded uses` },
-    { label: "Revenue Lift", value: formatMoney(couponsQuery.data.summary.discountGiven), icon: TrendingUp, tone: "amber", hint: "Available attributed value" },
+    {
+      label: isId ? "Kupon Aktif" : "Active Coupons",
+      value: couponsQuery.data.summary.active,
+      icon: Tag,
+      tone: "mint",
+      hint: isId ? `${couponsQuery.data.summary.total} total kampanye` : `${couponsQuery.data.summary.total} total campaigns`,
+    },
+    {
+      label: isId ? "Terjadwal" : "Scheduled",
+      value: couponsQuery.data.summary.scheduled,
+      icon: CalendarDays,
+      tone: "blue",
+      hint: isId ? "Sesuai jadwal berlaku" : "Based on campaign validity",
+    },
+    {
+      label: isId ? "Tingkat Penggunaan" : "Redemption Rate",
+      value: redemptionRate,
+      icon: Percent,
+      tone: "violet",
+      hint: isId ? `${couponsQuery.data.summary.redemptions} kali digunakan` : `${couponsQuery.data.summary.redemptions} recorded uses`,
+    },
+    {
+      label: isId ? "Total Nilai Diskon" : "Revenue Lift",
+      value: formatMoney(couponsQuery.data.summary.discountGiven),
+      icon: TrendingUp,
+      tone: "amber",
+      hint: isId ? "Akumulasi diskon terpakai" : "Available attributed value",
+    },
   ];
 
   return (
     <div className="s26-coupons">
       <nav className="s26-coupons-breadcrumb" aria-label="Breadcrumb">
-        <span>Stores</span><i>/</i>
-        <span>{sellerContext?.store?.name || "Active Store"}</span><i>/</i>
-        <span>Catalog</span><i>/</i>
-        <strong>Coupons</strong>
+        <span>{isId ? "Toko" : "Stores"}</span><i>/</i>
+        <span>{sellerContext?.store?.name || (isId ? "Toko Aktif" : "Active Store")}</span><i>/</i>
+        <span>{isId ? "Katalog" : "Catalog"}</span><i>/</i>
+        <strong>{isId ? "Kupon" : "Coupons"}</strong>
       </nav>
 
       <header className="s26-coupons-header">
         <div>
-          <h1>Coupons</h1>
-          <p>Create, manage, and monitor store discount campaigns.</p>
+          <h1>{isId ? "Kupon Toko" : "Coupons"}</h1>
+          <p>{isId ? "Kelola promosi dan kupon diskon untuk pelanggan toko Anda." : "Create, manage, and monitor store discount campaigns."}</p>
         </div>
         <div className="s26-coupons-header__actions">
-          <button type="button" onClick={exportCoupons}><Download size={17} />Export</button>
-          <button type="button" disabled title="Coupon import is not enabled for this workspace."><Upload size={17} />Import</button>
+          <button type="button" onClick={exportCoupons}><Download size={17} />{isId ? "Ekspor" : "Export"}</button>
+          <button type="button" disabled title={isId ? "Fitur impor belum tersedia untuk toko ini." : "Coupon import is not enabled for this workspace."}><Upload size={17} />{isId ? "Impor" : "Import"}</button>
           <button
             type="button"
             className="is-primary"
             disabled={!couponsQuery.canCreate}
-            title={couponsQuery.canCreate ? "Create a coupon" : "Requires coupon create permission"}
+            title={couponsQuery.canCreate ? (isId ? "Buat kupon baru" : "Create a coupon") : (isId ? "Membutuhkan izin buat kupon" : "Requires coupon create permission")}
             onClick={openCreate}
           >
-            <Plus size={18} />New Coupon
+            <Plus size={18} />{isId ? "Tambah Kupon" : "New Coupon"}
           </button>
         </div>
       </header>
@@ -441,44 +477,50 @@ export default function Seller2026LiveCouponsPage() {
             <Search size={18} />
             <input
               value={query.search}
-              placeholder="Search by campaign name or code..."
+              placeholder={isId ? "Cari nama atau kode kupon..." : "Search by campaign name or code..."}
               onChange={(event) => handleQueryChange({ search: event.target.value })}
             />
           </label>
-          <select value={query.status} onChange={(event) => handleQueryChange({ status: event.target.value })} aria-label="Filter by status">
-            <option value="all">All statuses</option>
-            <option value="active">Active</option>
-            <option value="scheduled">Scheduled</option>
-            <option value="expired">Expired</option>
-            <option value="inactive">Draft</option>
+          <select value={query.status} onChange={(event) => handleQueryChange({ status: event.target.value })} aria-label={isId ? "Filter status" : "Filter by status"}>
+            <option value="all">{isId ? "Semua status" : "All statuses"}</option>
+            <option value="active">{isId ? "Aktif" : "Active"}</option>
+            <option value="scheduled">{isId ? "Terjadwal" : "Scheduled"}</option>
+            <option value="expired">{isId ? "Kedaluwarsa" : "Expired"}</option>
+            <option value="inactive">{isId ? "Draf" : "Draft"}</option>
           </select>
-          <select value={query.type} onChange={(event) => handleQueryChange({ type: event.target.value })} aria-label="Filter by discount type">
-            <option value="all">All discount types</option>
-            <option value="fixed">Fixed</option>
-            <option value="percentage">Percentage</option>
+          <select value={query.type} onChange={(event) => handleQueryChange({ type: event.target.value })} aria-label={isId ? "Filter tipe diskon" : "Filter by discount type"}>
+            <option value="all">{isId ? "Semua tipe diskon" : "All discount types"}</option>
+            <option value="fixed">{isId ? "Nominal Tetap" : "Fixed"}</option>
+            <option value="percentage">{isId ? "Persentase" : "Percentage"}</option>
           </select>
           <span className="s26-coupons-date"><CalendarDays size={17} />{dateRangeLabel}</span>
-          <div className="s26-coupons-view" aria-label="Coupon view">
-            <button type="button" className={view === "list" ? "is-active" : ""} onClick={() => setView("list")} aria-label="List view"><List size={17} /></button>
-            <button type="button" className={view === "grid" ? "is-active" : ""} onClick={() => setView("grid")} aria-label="Grid view"><Grid2X2 size={16} /></button>
+          <div className="s26-coupons-view" aria-label={isId ? "Tampilan kupon" : "Coupon view"}>
+            <button type="button" className={view === "list" ? "is-active" : ""} onClick={() => setView("list")} aria-label={isId ? "Tampilan tabel" : "List view"}><List size={17} /></button>
+            <button type="button" className={view === "grid" ? "is-active" : ""} onClick={() => setView("grid")} aria-label={isId ? "Tampilan kartu" : "Grid view"}><Grid2X2 size={16} /></button>
           </div>
         </div>
 
         {visibleCoupons.length === 0 ? (
           <div className="s26-coupons-empty">
             <Ticket size={30} />
-            <h2>No coupons found</h2>
-            <p>Adjust the filters or create a new store coupon.</p>
-            <button type="button" disabled={!couponsQuery.canCreate} onClick={openCreate}>New Coupon</button>
+            <h2>{isId ? "Tidak ada kupon ditemukan" : "No coupons found"}</h2>
+            <p>{isId ? "Sesuaikan kata kunci filter atau buat kupon diskon baru." : "Adjust the filters or create a new store coupon."}</p>
+            <button type="button" disabled={!couponsQuery.canCreate} onClick={openCreate}>{isId ? "Tambah Kupon" : "New Coupon"}</button>
           </div>
         ) : view === "list" ? (
           <div className="s26-coupons-table-wrap" ref={actionMenuRef}>
             <table className="s26-coupons-table">
               <thead>
                 <tr>
-                  <th><input type="checkbox" checked={allVisibleSelected} onChange={toggleVisibleSelection} aria-label="Select visible coupons" /></th>
-                  <th>Campaign</th><th>Code</th><th>Discount</th><th>Audience / Scope</th>
-                  <th>Validity</th><th>Usage</th><th>Status</th><th>Actions</th>
+                  <th><input type="checkbox" checked={allVisibleSelected} onChange={toggleVisibleSelection} aria-label={isId ? "Pilih semua kupon yang tampil" : "Select visible coupons"} /></th>
+                  <th>{isId ? "Kampanye" : "Campaign"}</th>
+                  <th>{isId ? "Kode" : "Code"}</th>
+                  <th>{isId ? "Diskon" : "Discount"}</th>
+                  <th>{isId ? "Target" : "Audience / Scope"}</th>
+                  <th>{isId ? "Periode" : "Validity"}</th>
+                  <th>{isId ? "Penggunaan" : "Usage"}</th>
+                  <th>{isId ? "Status" : "Status"}</th>
+                  <th>{isId ? "Aksi" : "Actions"}</th>
                 </tr>
               </thead>
               <tbody>
@@ -486,6 +528,7 @@ export default function Seller2026LiveCouponsPage() {
                   const usagePercent = coupon.usageLimit
                     ? Math.min(100, Math.round((coupon.usageCount / coupon.usageLimit) * 100))
                     : 0;
+                  const hasCustomDesc = coupon.description && coupon.description !== "No description available.";
                   return (
                     <tr key={coupon.id}>
                       <td><input type="checkbox" checked={selectedIds.has(String(coupon.id))} onChange={() => setSelectedIds((current) => {
@@ -497,23 +540,54 @@ export default function Seller2026LiveCouponsPage() {
                       <td>
                         <div className="s26-coupon-campaign">
                           <CouponVisual coupon={coupon} />
-                          <div><strong>{coupon.title}</strong><span>{coupon.description}</span><em>{coupon.scopeLabel}</em></div>
+                          <div>
+                            <strong
+                              className="s26-coupon-title-clickable"
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => openEdit(coupon)}
+                              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") openEdit(coupon); }}
+                            >
+                              {coupon.title}
+                            </strong>
+                            {hasCustomDesc ? <span>{coupon.description}</span> : null}
+                            <em>{isId ? (coupon.isStoreScoped ? "Kupon Toko" : "Kupon Platform") : coupon.scopeLabel}</em>
+                          </div>
                         </div>
                       </td>
-                      <td><button type="button" className="s26-coupon-code" onClick={() => copyCode(coupon.code)}>{coupon.code}<Copy size={14} /></button></td>
-                      <td><strong>{coupon.discountLabel}</strong><span className={`s26-coupon-type is-${coupon.discountType}`}>{coupon.discountType === "percent" ? "Percentage" : "Fixed"}</span><small>Min. spend {formatMoney(coupon.minSpend)}</small></td>
-                      <td><span>All Products</span><small>All Customers</small></td>
-                      <td><span>{formatDate(coupon.startsAt)}</span><small>to {formatDate(coupon.expiresAt)}</small></td>
                       <td>
-                        <span>{coupon.usageLabel}</span><small>{coupon.usageLimit ? `${usagePercent}% used` : "Unlimited usage"}</small>
+                        <button type="button" className="s26-coupon-code" onClick={() => copyCode(coupon.code)} title={isId ? "Klik untuk salin kode" : "Click to copy code"}>
+                          {coupon.code}
+                          <Copy size={13} />
+                        </button>
+                      </td>
+                      <td>
+                        <strong>{coupon.discountLabel}</strong>
+                        <span className={`s26-coupon-type is-${coupon.discountType}`}>
+                          {coupon.discountType === "percent" ? (isId ? "Persentase" : "Percentage") : (isId ? "Nominal" : "Fixed")}
+                        </span>
+                        <small>{isId ? "Min. belanja" : "Min. spend"} {formatMoney(coupon.minSpend)}</small>
+                      </td>
+                      <td>
+                        <span>{isId ? "Semua Produk" : "All Products"}</span>
+                        <small>{isId ? "Semua Pelanggan" : "All Customers"}</small>
+                      </td>
+                      <td>
+                        <span>{formatDate(coupon.startsAt, isId)}</span>
+                        <small>{isId ? "s/d" : "to"} {formatDate(coupon.expiresAt, isId)}</small>
+                      </td>
+                      <td>
+                        <span>{coupon.usageLimit ? `${coupon.usageCount}/${coupon.usageLimit}` : `${coupon.usageCount} ${isId ? "terpakai" : "used"}`}</span>
+                        <small>{coupon.usageLimit ? `${usagePercent}% ${isId ? "terpakai" : "used"}` : (isId ? "Tanpa batas" : "Unlimited usage")}</small>
                         <i className="s26-coupon-usage"><b style={{ width: `${usagePercent}%` }} /></i>
                       </td>
-                      <td><StatusBadge status={coupon.status} /></td>
+                      <td><StatusBadge status={coupon.status} isId={isId} /></td>
                       <td>
                         <CouponActions
                           coupon={coupon}
                           open={String(menuCouponId) === String(coupon.id)}
                           busy={busy}
+                          isId={isId}
                           canUpdate={couponsQuery.canUpdate}
                           canManageStatus={couponsQuery.canManageStatus}
                           canArchive={couponsQuery.canDelete}
@@ -533,21 +607,48 @@ export default function Seller2026LiveCouponsPage() {
           <div className="s26-coupons-grid" ref={actionMenuRef}>
             {visibleCoupons.map((coupon) => (
               <article key={coupon.id}>
-                <header><CouponVisual coupon={coupon} /><StatusBadge status={coupon.status} /></header>
-                <h2>{coupon.title}</h2>
-                <button type="button" className="s26-coupon-code" onClick={() => copyCode(coupon.code)}>{coupon.code}<Copy size={14} /></button>
+                <header>
+                  <CouponVisual coupon={coupon} />
+                  <StatusBadge status={coupon.status} isId={isId} />
+                </header>
+                <h2
+                  className="s26-coupon-title-clickable"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openEdit(coupon)}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") openEdit(coupon); }}
+                >
+                  {coupon.title}
+                </h2>
+                <button type="button" className="s26-coupon-code" onClick={() => copyCode(coupon.code)}>
+                  {coupon.code}
+                  <Copy size={13} />
+                </button>
                 <dl>
-                  <div><dt>Discount</dt><dd>{coupon.discountLabel}</dd></div>
-                  <div><dt>Minimum spend</dt><dd>{formatMoney(coupon.minSpend)}</dd></div>
-                  <div><dt>Validity</dt><dd>{coupon.validityLabel}</dd></div>
-                  <div><dt>Usage</dt><dd>{coupon.usageLabel}</dd></div>
+                  <div>
+                    <dt>{isId ? "Diskon" : "Discount"}</dt>
+                    <dd>{coupon.discountLabel}</dd>
+                  </div>
+                  <div>
+                    <dt>{isId ? "Minimal Belanja" : "Minimum spend"}</dt>
+                    <dd>{formatMoney(coupon.minSpend)}</dd>
+                  </div>
+                  <div>
+                    <dt>{isId ? "Periode" : "Validity"}</dt>
+                    <dd>{`${formatDate(coupon.startsAt, isId)} - ${formatDate(coupon.expiresAt, isId)}`}</dd>
+                  </div>
+                  <div>
+                    <dt>{isId ? "Penggunaan" : "Usage"}</dt>
+                    <dd>{coupon.usageLimit ? `${coupon.usageCount} / ${coupon.usageLimit}` : `${coupon.usageCount} ${isId ? "terpakai" : "used"}`}</dd>
+                  </div>
                 </dl>
                 <footer>
-                  <span>All Products · All Customers</span>
+                  <span>{isId ? "Semua Produk · Semua Pelanggan" : "All Products · All Customers"}</span>
                   <CouponActions
                     coupon={coupon}
                     open={String(menuCouponId) === String(coupon.id)}
                     busy={busy}
+                    isId={isId}
                     canUpdate={couponsQuery.canUpdate}
                     canManageStatus={couponsQuery.canManageStatus}
                     canArchive={couponsQuery.canDelete}
@@ -564,19 +665,21 @@ export default function Seller2026LiveCouponsPage() {
 
         <footer className="s26-coupons-pagination">
           <span>
-            Showing {filteredCoupons.length ? (currentPage - 1) * query.limit + 1 : 0} to {Math.min(currentPage * query.limit, filteredCoupons.length)} of {filteredCoupons.length} coupons
+            {isId
+              ? `Menampilkan ${filteredCoupons.length ? (currentPage - 1) * query.limit + 1 : 0} hingga ${Math.min(currentPage * query.limit, filteredCoupons.length)} dari ${filteredCoupons.length} kupon`
+              : `Showing ${filteredCoupons.length ? (currentPage - 1) * query.limit + 1 : 0} to ${Math.min(currentPage * query.limit, filteredCoupons.length)} of ${filteredCoupons.length} coupons`}
           </span>
           <div>
-            <select value={query.limit} onChange={(event) => handleQueryChange({ limit: Number(event.target.value) })} aria-label="Coupons per page">
-              <option value="5">5 per page</option>
-              <option value="10">10 per page</option>
-              <option value="20">20 per page</option>
+            <select value={query.limit} onChange={(event) => handleQueryChange({ limit: Number(event.target.value) })} aria-label={isId ? "Kupon per halaman" : "Coupons per page"}>
+              <option value="5">{isId ? "5 per halaman" : "5 per page"}</option>
+              <option value="10">{isId ? "10 per halaman" : "10 per page"}</option>
+              <option value="20">{isId ? "20 per halaman" : "20 per page"}</option>
             </select>
-            <button type="button" disabled={currentPage <= 1} onClick={() => handleQueryChange({ page: 1 })} aria-label="First page"><ChevronsLeft size={16} /></button>
-            <button type="button" disabled={currentPage <= 1} onClick={() => handleQueryChange({ page: currentPage - 1 })} aria-label="Previous page"><ChevronLeft size={16} /></button>
+            <button type="button" disabled={currentPage <= 1} onClick={() => handleQueryChange({ page: 1 })} aria-label={isId ? "Halaman pertama" : "First page"}><ChevronsLeft size={16} /></button>
+            <button type="button" disabled={currentPage <= 1} onClick={() => handleQueryChange({ page: currentPage - 1 })} aria-label={isId ? "Halaman sebelumnya" : "Previous page"}><ChevronLeft size={16} /></button>
             <strong>{currentPage}</strong>
-            <button type="button" disabled={currentPage >= pageCount} onClick={() => handleQueryChange({ page: currentPage + 1 })} aria-label="Next page"><ChevronRight size={16} /></button>
-            <button type="button" disabled={currentPage >= pageCount} onClick={() => handleQueryChange({ page: pageCount })} aria-label="Last page"><ChevronsRight size={16} /></button>
+            <button type="button" disabled={currentPage >= pageCount} onClick={() => handleQueryChange({ page: currentPage + 1 })} aria-label={isId ? "Halaman berikutnya" : "Next page"}><ChevronRight size={16} /></button>
+            <button type="button" disabled={currentPage >= pageCount} onClick={() => handleQueryChange({ page: pageCount })} aria-label={isId ? "Halaman terakhir" : "Last page"}><ChevronsRight size={16} /></button>
           </div>
         </footer>
       </section>
@@ -586,6 +689,7 @@ export default function Seller2026LiveCouponsPage() {
         coupon={editingCoupon}
         canManageStatus={couponsQuery.canManageStatus}
         isSubmitting={couponsQuery.creating || Boolean(couponsQuery.updatingId)}
+        isId={isId}
         onClose={() => {
           if (busy) return;
           setDrawerOpen(false);
