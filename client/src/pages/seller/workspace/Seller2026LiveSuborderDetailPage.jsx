@@ -89,6 +89,7 @@ export default function Seller2026LiveSuborderDetailPage() {
     trackingNumber: "",
     shippingProvider: "",
     courierService: "",
+    shippingFee: 0,
     note: "",
   });
   const [internalNoteDraft, setInternalNoteDraft] = useState("");
@@ -117,6 +118,7 @@ export default function Seller2026LiveSuborderDetailPage() {
     orderDetail2026?.fulfillmentDraft?.trackingNumber,
     orderDetail2026?.fulfillmentDraft?.shippingProvider,
     orderDetail2026?.fulfillmentDraft?.courierService,
+    orderDetail2026?.fulfillmentDraft?.shippingFee,
   ]);
 
   useEffect(() => {

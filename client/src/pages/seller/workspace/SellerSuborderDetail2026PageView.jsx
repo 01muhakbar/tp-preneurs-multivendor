@@ -13,6 +13,7 @@ import {
   MessageCircle,
   Package,
   Printer,
+  Scale,
   ShieldCheck,
   Truck,
   UserRound,
@@ -22,6 +23,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { resolveAssetUrl } from "../../../lib/assetUrl.js";
+import { INDONESIA_COURIERS } from "./sellerSuborderDetail2026Adapter.js";
 import "./seller-suborder-detail-2026.css";
 
 const I18N = {
@@ -43,6 +45,20 @@ const I18N = {
     shipping: "Pengiriman & Ekspedisi",
     courier: "Kurir",
     service: "Layanan",
+    selectCourier: "-- Pilih Ekspedisi / Kurir --",
+    selectService: "-- Pilih Layanan Pengiriman --",
+    customCourier: "Lainnya / Ekspedisi Lain (Manual)",
+    customService: "Lainnya / Layanan Lain (Manual)",
+    courierInputPlaceholder: "Ketik nama ekspedisi...",
+    serviceInputPlaceholder: "Ketik jenis layanan...",
+    actualShippingFee: "Biaya Pengiriman (Ongkir)",
+    shippingFeePlaceholder: "0",
+    shippingFeeHint: "Biaya ongkir aktual untuk pesanan ini",
+    totalPackageWeight: "Berat Total Paket",
+    syncedCatalog: "Tersinkron Katalog",
+    catalogWeightHint: "Dihitung otomatis dari berat produk katalog",
+    catalogWeightUnset: "Berat produk belum diatur di katalog",
+    itemWeight: "Berat",
     trackingNo: "Nomor Resi",
     trackingPlaceholder: "Masukkan nomor resi...",
     courierPlaceholder: "contoh: JNE",
@@ -73,7 +89,7 @@ const I18N = {
     btnReviewPayment: "Tinjau Bukti Bayar",
     tipMarkPacked: "Tekan jika selesai mengemas & menunggu kurir",
     tipShipOrder: "Tekan setelah paket diserahkan & nomor resi terisi",
-    courierHint: "Ekspedisi pilihan pembeli saat checkout",
+    courierHint: "Ekspedisi pengiriman pesanan",
     serviceHint: "Jenis paket layanan kurir",
     trackingHint: "Masukkan nomor resi ekspedisi untuk pelacakan pembeli",
     viewPublicTracking: "Lihat Live Tracking Pembeli",
@@ -102,6 +118,20 @@ const I18N = {
     shipping: "Shipping & Courier",
     courier: "Courier",
     service: "Service",
+    selectCourier: "-- Select Courier / Carrier --",
+    selectService: "-- Select Shipping Service --",
+    customCourier: "Other / Custom Courier",
+    customService: "Other / Custom Service",
+    courierInputPlaceholder: "Type courier name...",
+    serviceInputPlaceholder: "Type service name...",
+    actualShippingFee: "Shipping Fee",
+    shippingFeePlaceholder: "0",
+    shippingFeeHint: "Actual shipping fee for this suborder",
+    totalPackageWeight: "Total Package Weight",
+    syncedCatalog: "Synced with Catalog",
+    catalogWeightHint: "Calculated from catalog product weights",
+    catalogWeightUnset: "Product weight unset in catalog",
+    itemWeight: "Weight",
     trackingNo: "Tracking Number",
     trackingPlaceholder: "Input tracking number...",
     courierPlaceholder: "e.g. JNE",
@@ -132,7 +162,7 @@ const I18N = {
     btnReviewPayment: "Review Payment Proof",
     tipMarkPacked: "Click when package is packed & awaiting courier pickup",
     tipShipOrder: "Click when dispatched & tracking number is entered",
-    courierHint: "Buyer's selected courier from checkout",
+    courierHint: "Courier provider for shipment",
     serviceHint: "Courier service level",
     trackingHint: "Enter tracking number for customer tracking",
     viewPublicTracking: "View Buyer Live Tracking",
@@ -233,6 +263,9 @@ export default function SellerSuborderDetail2026PageView({
   const t = isIndo ? I18N.id : I18N.en;
   const Link = LinkComponent;
   const [validationError, setValidationError] = useState("");
+  const couriersList = order?.shipping?.couriersList || INDONESIA_COURIERS;
+  const [isCustomCourier, setIsCustomCourier] = useState(false);
+  const [isCustomService, setIsCustomService] = useState(false);
 
   if (isLoading) {
     return (
@@ -271,6 +304,85 @@ export default function SellerSuborderDetail2026PageView({
 
   // Editable shipping details whenever order is ready to fulfill / to pack
   const canEditShipping = isToPack || (!isShipped && !isDelivered && isPaid);
+
+  const currentCourierStr = String(fulfillmentDraft.shippingProvider || "").trim();
+  const matchedCourier = couriersList.find((c) => {
+    if (!currentCourierStr) return false;
+    const lower = currentCourierStr.toLowerCase();
+    return (
+      c.code.toLowerCase() === lower ||
+      c.name.toLowerCase() === lower ||
+      c.name.toLowerCase().includes(lower) ||
+      lower.includes(c.code.toLowerCase())
+    );
+  }) || null;
+
+  const courierSelectValue = isCustomCourier
+    ? "CUSTOM"
+    : matchedCourier
+    ? matchedCourier.code
+    : currentCourierStr
+    ? "CUSTOM"
+    : "";
+
+  const availableServices = matchedCourier ? matchedCourier.services : [];
+
+  const currentServiceStr = String(fulfillmentDraft.courierService || "").trim();
+  const matchedService = availableServices.find((s) => {
+    if (!currentServiceStr) return false;
+    const lower = currentServiceStr.toLowerCase();
+    return (
+      s.code.toLowerCase() === lower ||
+      s.name.toLowerCase() === lower ||
+      s.code.toLowerCase().startsWith(lower) ||
+      lower.startsWith(s.code.toLowerCase())
+    );
+  }) || null;
+
+  const serviceSelectValue = isCustomService
+    ? "CUSTOM"
+    : matchedService
+    ? matchedService.code
+    : currentServiceStr
+    ? "CUSTOM"
+    : "";
+
+  const handleCourierSelectChange = (e) => {
+    const val = e.target.value;
+    if (val === "CUSTOM") {
+      setIsCustomCourier(true);
+      setIsCustomService(true);
+    } else if (val === "") {
+      setIsCustomCourier(false);
+      onFulfillmentDraftChange?.("shippingProvider", "");
+      onFulfillmentDraftChange?.("courierService", "");
+    } else {
+      setIsCustomCourier(false);
+      const c = couriersList.find((item) => item.code === val);
+      if (c) {
+        onFulfillmentDraftChange?.("shippingProvider", c.name);
+        if (c.services && c.services.length > 0) {
+          onFulfillmentDraftChange?.("courierService", c.services[0].code);
+          setIsCustomService(false);
+        } else {
+          onFulfillmentDraftChange?.("courierService", "");
+        }
+      }
+    }
+  };
+
+  const handleServiceSelectChange = (e) => {
+    const val = e.target.value;
+    if (val === "CUSTOM") {
+      setIsCustomService(true);
+    } else if (val === "") {
+      setIsCustomService(false);
+      onFulfillmentDraftChange?.("courierService", "");
+    } else {
+      setIsCustomService(false);
+      onFulfillmentDraftChange?.("courierService", val);
+    }
+  };
 
   const handleActionClick = (action) => {
     setValidationError("");
@@ -485,12 +597,25 @@ export default function SellerSuborderDetail2026PageView({
                     </div>
                     <div className="tpsodp2026-item-row__info">
                       <strong className="tpsodp2026-item-row__name">{item.name}</strong>
-                      {item.variantLabel && (
-                        <span className="tpsodp2026-item-row__variant">{item.variantLabel}</span>
-                      )}
+                      <div className="tpsodp2026-item-row__submeta">
+                        {item.variantLabel && (
+                          <span className="tpsodp2026-item-row__variant">{item.variantLabel}</span>
+                        )}
+                        {item.weightLabel && (
+                          <span className="tpsodp2026-item-row__weight" title={t.catalogWeightHint}>
+                            <Scale size={11} />
+                            <span>{item.weightLabel} / unit</span>
+                          </span>
+                        )}
+                      </div>
                       <div className="tpsodp2026-item-row__pricing">
                         <span>{item.priceLabel}</span>
                         <span className="tpsodp2026-item-row__qty">× {item.quantity}</span>
+                        {item.lineWeightLabel && item.quantity > 1 && (
+                          <span className="tpsodp2026-item-row__line-weight">
+                            ({item.lineWeightLabel})
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="tpsodp2026-item-row__total">
@@ -518,17 +643,36 @@ export default function SellerSuborderDetail2026PageView({
             </header>
 
             <div className="tpsodp2026-shipping-grid">
+              {/* Courier Selection */}
               <div className="tpsodp2026-field">
                 <label className="tpsodp2026-field__label">{t.courier}</label>
                 {canEditShipping ? (
-                  <input
-                    type="text"
-                    className="tpsodp2026-input"
-                    value={fulfillmentDraft.shippingProvider || ""}
-                    onChange={(e) => onFulfillmentDraftChange?.("shippingProvider", e.target.value)}
-                    placeholder={t.courierPlaceholder}
-                    disabled={isUpdating}
-                  />
+                  <div className="tpsodp2026-select-stack">
+                    <select
+                      className="tpsodp2026-select"
+                      value={courierSelectValue}
+                      onChange={handleCourierSelectChange}
+                      disabled={isUpdating}
+                    >
+                      <option value="">{t.selectCourier}</option>
+                      {couriersList.map((c) => (
+                        <option key={c.code} value={c.code}>
+                          {c.name}
+                        </option>
+                      ))}
+                      <option value="CUSTOM">{t.customCourier}</option>
+                    </select>
+                    {(courierSelectValue === "CUSTOM" || isCustomCourier) && (
+                      <input
+                        type="text"
+                        className="tpsodp2026-input tpsodp2026-input--mt"
+                        value={fulfillmentDraft.shippingProvider || ""}
+                        onChange={(e) => onFulfillmentDraftChange?.("shippingProvider", e.target.value)}
+                        placeholder={t.courierInputPlaceholder}
+                        disabled={isUpdating}
+                      />
+                    )}
+                  </div>
                 ) : (
                   <div className="tpsodp2026-field__value">
                     <strong>{order.shipping?.courier || "-"}</strong>
@@ -537,17 +681,36 @@ export default function SellerSuborderDetail2026PageView({
                 <span className="tpsodp2026-field__hint">{t.courierHint}</span>
               </div>
 
+              {/* Service Selection */}
               <div className="tpsodp2026-field">
                 <label className="tpsodp2026-field__label">{t.service}</label>
                 {canEditShipping ? (
-                  <input
-                    type="text"
-                    className="tpsodp2026-input"
-                    value={fulfillmentDraft.courierService || ""}
-                    onChange={(e) => onFulfillmentDraftChange?.("courierService", e.target.value)}
-                    placeholder={t.servicePlaceholder}
-                    disabled={isUpdating}
-                  />
+                  <div className="tpsodp2026-select-stack">
+                    <select
+                      className="tpsodp2026-select"
+                      value={serviceSelectValue}
+                      onChange={handleServiceSelectChange}
+                      disabled={isUpdating}
+                    >
+                      <option value="">{t.selectService}</option>
+                      {availableServices.map((s) => (
+                        <option key={s.code} value={s.code}>
+                          {s.name}
+                        </option>
+                      ))}
+                      <option value="CUSTOM">{t.customService}</option>
+                    </select>
+                    {(serviceSelectValue === "CUSTOM" || isCustomService) && (
+                      <input
+                        type="text"
+                        className="tpsodp2026-input tpsodp2026-input--mt"
+                        value={fulfillmentDraft.courierService || ""}
+                        onChange={(e) => onFulfillmentDraftChange?.("courierService", e.target.value)}
+                        placeholder={t.serviceInputPlaceholder}
+                        disabled={isUpdating}
+                      />
+                    )}
+                  </div>
                 ) : (
                   <div className="tpsodp2026-field__value">
                     <span>{order.shipping?.method || "-"}</span>
@@ -556,6 +719,54 @@ export default function SellerSuborderDetail2026PageView({
                 <span className="tpsodp2026-field__hint">{t.serviceHint}</span>
               </div>
 
+              {/* Actual Shipping Fee (Biaya Pengiriman) */}
+              <div className="tpsodp2026-field">
+                <label className="tpsodp2026-field__label">{t.actualShippingFee}</label>
+                {canEditShipping ? (
+                  <div className="tpsodp2026-input-prefix-wrap">
+                    <span className="tpsodp2026-input-prefix">Rp</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="500"
+                      className="tpsodp2026-input tpsodp2026-input--prefixed"
+                      value={fulfillmentDraft.shippingFee ?? ""}
+                      onChange={(e) => onFulfillmentDraftChange?.("shippingFee", e.target.value)}
+                      placeholder={t.shippingFeePlaceholder}
+                      disabled={isUpdating}
+                    />
+                  </div>
+                ) : (
+                  <div className="tpsodp2026-field__value">
+                    <strong>{order.totals?.shippingFeeLabel || "Rp 0"}</strong>
+                  </div>
+                )}
+                <span className="tpsodp2026-field__hint">{t.shippingFeeHint}</span>
+              </div>
+
+              {/* Total Package Weight (Berat Total Barang) */}
+              <div className="tpsodp2026-field">
+                <div className="tpsodp2026-field__label-row">
+                  <label className="tpsodp2026-field__label">{t.totalPackageWeight}</label>
+                  {order.package?.isSynced && (
+                    <span className="tpsodp2026-badge-synced" title={t.catalogWeightHint}>
+                      <Sparkles size={11} />
+                      <span>{t.syncedCatalog}</span>
+                    </span>
+                  )}
+                </div>
+                <div className="tpsodp2026-weight-display">
+                  <Scale size={18} className="tpsodp2026-icon-weight" />
+                  <span className="tpsodp2026-weight-val">
+                    {order.package?.weightLabel || (order.package?.weight ? `${order.package.weight} gr` : "-")}
+                  </span>
+                </div>
+                <span className="tpsodp2026-field__hint">
+                  {order.package?.isSynced ? t.catalogWeightHint : t.catalogWeightUnset}
+                </span>
+              </div>
+
+              {/* Tracking Number (Resi) */}
               <div className="tpsodp2026-field tpsodp2026-field--full">
                 <label className="tpsodp2026-field__label">{t.trackingNo}</label>
                 {canEditShipping ? (

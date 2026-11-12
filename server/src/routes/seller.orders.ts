@@ -1613,23 +1613,41 @@ const serializeDetail = (suborder: any, sellerAccess: any = null) => {
     paidAt: getAttr(suborder, "paidAt") || null,
     createdAt: getAttr(suborder, "createdAt") || null,
     internalNotes: getAttr(suborder, "internalNotes") || null,
-    items: (Array.isArray(suborder?.items) ? suborder.items : []).map((item: any) => ({
-      id: toNumber(getAttr(item, "id")),
-      productId: toNumber(getAttr(item, "productId")),
-      productName: String(
-        getAttr(item, "productNameSnapshot") || `Product #${getAttr(item, "productId")}`
+    items: (Array.isArray(suborder?.items) ? suborder.items : []).map((item: any) => {
+      const product = item?.product ?? item?.get?.("product") ?? null;
+      const weight = Math.max(0, toNumber(getAttr(product, "weight"), 0));
+      const qty = toNumber(getAttr(item, "qty"), 0);
+      return {
+        id: toNumber(getAttr(item, "id")),
+        productId: toNumber(getAttr(item, "productId")),
+        productName: String(
+          getAttr(item, "productNameSnapshot") || `Product #${getAttr(item, "productId")}`
+        ),
+        qty,
+        price: toNumber(getAttr(item, "priceSnapshot")),
+        totalPrice: toNumber(getAttr(item, "totalPrice")),
+        variantKey: String(getAttr(item, "variantKey") || "").trim() || null,
+        variantLabel: String(getAttr(item, "variantLabel") || "").trim() || null,
+        variantSelections: normalizeVariantSelectionsSnapshot(getAttr(item, "variantSelections")),
+        sku: String(getAttr(item, "skuSnapshot") || "").trim() || null,
+        barcode: String(getAttr(item, "barcodeSnapshot") || "").trim() || null,
+        image: String(getAttr(item, "imageSnapshot") || "").trim() || null,
+        productType: resolveLabelProductType(item),
+        weight,
+        lineWeight: weight * qty,
+      };
+    }),
+    package: {
+      weight: (Array.isArray(suborder?.items) ? suborder.items : []).reduce((sum: number, it: any) => {
+        const prod = it?.product ?? it?.get?.("product") ?? null;
+        const w = Math.max(0, toNumber(getAttr(prod, "weight"), 0));
+        return sum + (w * toNumber(getAttr(it, "qty"), 0));
+      }, 0),
+      totalPhysicalItems: (Array.isArray(suborder?.items) ? suborder.items : []).reduce(
+        (sum: number, it: any) => sum + toNumber(getAttr(it, "qty"), 0),
+        0
       ),
-      qty: toNumber(getAttr(item, "qty")),
-      price: toNumber(getAttr(item, "priceSnapshot")),
-      totalPrice: toNumber(getAttr(item, "totalPrice")),
-      variantKey: String(getAttr(item, "variantKey") || "").trim() || null,
-      variantLabel: String(getAttr(item, "variantLabel") || "").trim() || null,
-      variantSelections: normalizeVariantSelectionsSnapshot(getAttr(item, "variantSelections")),
-      sku: String(getAttr(item, "skuSnapshot") || "").trim() || null,
-      barcode: String(getAttr(item, "barcodeSnapshot") || "").trim() || null,
-      image: String(getAttr(item, "imageSnapshot") || "").trim() || null,
-      productType: resolveLabelProductType(item),
-    })),
+    },
     paymentSummary: latestPayment
       ? {
           id: toNumber(getAttr(latestPayment, "id")),
@@ -2044,7 +2062,9 @@ router.patch(
       const actionDefinition =
         FULFILLMENT_ACTIONS[actionCode as keyof typeof FULFILLMENT_ACTIONS] ?? null;
       const shippingFee =
-        actionCode === "MARK_SHIPPED" ? parseOptionalNonNegativeAmount(rawShippingFee) : null;
+        actionCode === "MARK_SHIPPED" || actionCode === "MARK_PROCESSING"
+          ? parseOptionalNonNegativeAmount(rawShippingFee)
+          : null;
 
       if (!whereCondition) {
         return res.status(400).json({
@@ -2063,7 +2083,7 @@ router.patch(
       }
 
       if (
-        actionCode === "MARK_SHIPPED" &&
+        (actionCode === "MARK_SHIPPED" || actionCode === "MARK_PROCESSING") &&
         rawShippingFee !== undefined &&
         rawShippingFee !== null &&
         String(rawShippingFee).trim() !== "" &&
@@ -2236,7 +2256,7 @@ router.patch(
       });
 
       if (
-        actionDefinition.code === "MARK_SHIPPED" &&
+        (actionDefinition.code === "MARK_SHIPPED" || actionDefinition.code === "MARK_PROCESSING") &&
         shippingFee !== null &&
         shipmentSync.shipment
       ) {

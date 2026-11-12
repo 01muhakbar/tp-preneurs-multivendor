@@ -129,6 +129,13 @@ export type Seller2026SuborderDetailViewModel = {
     trackingNo?: string;
     courier?: string;
     estimate?: string;
+    shippingFee?: number;
+    totalWeight?: number;
+  } | null;
+  package?: {
+    weight?: number | null;
+    totalWeight?: number | null;
+    totalPhysicalItems?: number;
   } | null;
   payment: {
     status: string;
@@ -138,6 +145,7 @@ export type Seller2026SuborderDetailViewModel = {
   };
   items: Array<{
     id: string | number;
+    productId?: string | number;
     productName: string;
     variantLabel?: string;
     quantity: number;
@@ -145,6 +153,8 @@ export type Seller2026SuborderDetailViewModel = {
     subtotal: number;
     imageUrl?: string | null;
     productType?: string | null;
+    weight?: number;
+    lineWeight?: number;
   }>;
   totals: {
     subtotal: number;
@@ -610,8 +620,18 @@ export function adaptSeller2026SuborderDetail(value: unknown): Seller2026Suborde
     const row = object(item);
     const quantity = number(row.qty ?? row.quantity, 0);
     const price = number(row.price, 0);
+    const weight = number(
+      row.weight ??
+      object(row.product).weight ??
+      object(row.Product).weight,
+      0
+    );
+    const lineWeight = weight * quantity;
+    const rawPid = row.productId ?? object(row.product).id ?? object(row.Product).id;
+    const productId = typeof rawPid === "string" || typeof rawPid === "number" ? rawPid : undefined;
     return {
       id: idValue(row.id, index),
+      productId,
       productName: text(row.productName ?? row.name, `Product ${index + 1}`),
       variantLabel: text(row.variantLabel ?? row.variant) || undefined,
       quantity,
@@ -619,8 +639,13 @@ export function adaptSeller2026SuborderDetail(value: unknown): Seller2026Suborde
       subtotal: number(row.totalPrice ?? row.subtotal, price * quantity),
       imageUrl: text(row.imageUrl ?? row.thumbnailUrl ?? row.image ?? object(row.product).imageUrl ?? object(row.product).image ?? object(row.Product).imageUrl ?? object(row.Product).image) || null,
       productType: text(row.productType) || null,
+      weight,
+      lineWeight,
     };
   });
+  const calculatedTotalWeight = items.reduce((sum, item) => sum + (item.lineWeight || 0), 0);
+  const pkg = object(detail.package);
+  const totalWeight = number(pkg.weight ?? pkg.totalWeight, calculatedTotalWeight);
   const shipments = array(detail.shipments).map(object);
   const trackingEvents = shipments.flatMap((shipment) => array(shipment.trackingEvents ?? shipment.events));
   const printLabel = object(detail.printLabel);
@@ -679,6 +704,13 @@ export function adaptSeller2026SuborderDetail(value: unknown): Seller2026Suborde
       trackingNo: text(shipments[0]?.trackingNumber, "No tracking number yet."),
       courier: isShippingStatusEnum(rawCourier) ? undefined : (rawCourier || undefined),
       estimate: text(shipments[0]?.estimate) || undefined,
+      shippingFee: number(totals.shippingAmount ?? sellerScope.shippingAmount ?? shipments[0]?.shippingFee, 0),
+      totalWeight,
+    },
+    package: {
+      weight: totalWeight,
+      totalWeight,
+      totalPhysicalItems: number(pkg.totalPhysicalItems, items.reduce((sum, item) => sum + item.quantity, 0)),
     },
     payment: {
       status: text(detailPaymentMeta.label ?? paymentState.label ?? detail.paymentStatus, "Needs review"),

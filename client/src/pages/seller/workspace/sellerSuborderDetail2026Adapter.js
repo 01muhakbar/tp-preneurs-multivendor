@@ -1,3 +1,128 @@
+export const INDONESIA_COURIERS = [
+  {
+    code: "JNE",
+    name: "JNE Express",
+    services: [
+      { code: "REG", name: "REG - Layanan Reguler (1-3 hari)" },
+      { code: "YES", name: "YES - Yakin Esok Sampai (1 hari)" },
+      { code: "OKE", name: "OKE - Ongkos Kirim Ekonomis (2-5 hari)" },
+      { code: "JTR", name: "JTR - JNE Trucking / Kargo (min. 10 kg)" },
+    ],
+  },
+  {
+    code: "JNT",
+    name: "J&T Express",
+    services: [
+      { code: "EZ", name: "EZ - Layanan Reguler (1-3 hari)" },
+      { code: "SUPER", name: "SUPER - Layanan Cepat (1 hari)" },
+      { code: "J&T CARGO", name: "J&T Cargo - Layanan Kargo" },
+      { code: "ECO", name: "ECO - Layanan Ekonomis" },
+    ],
+  },
+  {
+    code: "SICEPAT",
+    name: "SiCepat Express",
+    services: [
+      { code: "SIUNTUNG", name: "SIUNTUNG - Reguler (1-3 hari)" },
+      { code: "BEST", name: "BEST - Besok Sampai Tujuan (1 hari)" },
+      { code: "GOKIL", name: "GOKIL - Cargo Kilat (min. 10 kg)" },
+      { code: "HALU", name: "HALU - Hemat Luar Biasa" },
+    ],
+  },
+  {
+    code: "POS",
+    name: "Pos Indonesia",
+    services: [
+      { code: "Pos Reguler", name: "Pos Reguler (2-4 hari)" },
+      { code: "Pos Kilat Khusus", name: "Pos Kilat Khusus (1-2 hari)" },
+      { code: "Pos Nextday", name: "Pos Nextday (1 hari)" },
+      { code: "Pos Jumbo", name: "Pos Jumbo / Kargo" },
+    ],
+  },
+  {
+    code: "ANTERAJA",
+    name: "Anteraja",
+    services: [
+      { code: "Regular", name: "Regular (1-3 hari)" },
+      { code: "Next Day", name: "Next Day (1 hari)" },
+      { code: "Cargo", name: "Cargo - Layanan Kargo" },
+      { code: "Same Day", name: "Same Day (Hari yang sama)" },
+    ],
+  },
+  {
+    code: "TIKI",
+    name: "TIKI",
+    services: [
+      { code: "REG", name: "REG - Reguler Service (1-3 hari)" },
+      { code: "ONS", name: "ONS - Over Night Service (1 hari)" },
+      { code: "ECO", name: "ECO - Economy Service" },
+      { code: "TRC", name: "TRC - Trucking Service (Kargo)" },
+    ],
+  },
+  {
+    code: "LION",
+    name: "Lion Parcel",
+    services: [
+      { code: "REGPACK", name: "REGPACK - Reguler (2-3 hari)" },
+      { code: "ONEPACK", name: "ONEPACK - Overnight (1 hari)" },
+      { code: "JAGOPACK", name: "JAGOPACK - Paket Hemat" },
+      { code: "BIGPACK", name: "BIGPACK - Kargo Besar" },
+    ],
+  },
+  {
+    code: "WAHANA",
+    name: "Wahana Express",
+    services: [
+      { code: "Express", name: "Express - Reguler (2-4 hari)" },
+      { code: "Kargo", name: "Kargo - Layanan Kargo" },
+    ],
+  },
+  {
+    code: "NINJA",
+    name: "Ninja Xpress",
+    services: [
+      { code: "Standard", name: "Standard (1-3 hari)" },
+      { code: "Ninja Fast", name: "Ninja Fast (1 hari)" },
+    ],
+  },
+  {
+    code: "SPX",
+    name: "SPX Express",
+    services: [
+      { code: "Standard", name: "Standard (1-3 hari)" },
+      { code: "Hemat", name: "Hemat (Ekonomis)" },
+      { code: "Instant", name: "Instant (1-2 jam)" },
+    ],
+  },
+  {
+    code: "GOSEND",
+    name: "GoSend / GrabExpress",
+    services: [
+      { code: "Instant", name: "Instant Delivery (1-2 jam)" },
+      { code: "Same Day", name: "Same Day Delivery (6-8 jam)" },
+    ],
+  },
+  {
+    code: "KURIR_TOKO",
+    name: "Kurir Toko / Ambil Sendiri",
+    services: [
+      { code: "Kurir Internal", name: "Kurir Internal Toko" },
+      { code: "Ambil di Tempat", name: "Ambil di Toko (Self-Pickup)" },
+      { code: "Lainnya", name: "Lainnya / Manual" },
+    ],
+  },
+];
+
+export const formatWeight = (grams = 0) => {
+  const g = Number(grams) || 0;
+  if (g <= 0) return "-";
+  if (g >= 1000) {
+    const kg = (g / 1000).toFixed(2).replace(/\.?0+$/, "");
+    return `${kg} kg (${g.toLocaleString("id-ID")} gr)`;
+  }
+  return `${g.toLocaleString("id-ID")} gr`;
+};
+
 const asObject = (value) =>
   value && typeof value === "object" && !Array.isArray(value) ? value : {};
 
@@ -230,12 +355,21 @@ const normalizeItems = (items, isIndo = false) =>
     const quantity = number(row.quantity ?? row.qty, 0);
     const price = number(row.price ?? row.priceSnapshot, 0);
     const subtotal = number(row.subtotal ?? row.totalPrice, price * quantity);
+    const weight = number(
+      row.weight ??
+      row.product?.weight ??
+      row.Product?.weight ??
+      row.attributes?.weight,
+      0
+    );
+    const lineWeight = weight * quantity;
     const name = text(
       row.productName ?? row.productNameSnapshot ?? row.name ?? row.product?.name,
       `${isIndo ? "Produk" : "Product"} ${index + 1}`
     );
     return {
       id: row.id ?? index,
+      productId: row.productId ?? row.product?.id,
       name,
       variantLabel: text(row.variantLabel ?? row.variant, isIndo ? "Standar" : "Standard item"),
       quantity,
@@ -244,6 +378,10 @@ const normalizeItems = (items, isIndo = false) =>
       subtotal,
       subtotalLabel: formatMoney(subtotal),
       imageUrl: text(row.imageUrl ?? row.image ?? row.imageSnapshot ?? row.product?.image),
+      weight,
+      lineWeight,
+      weightLabel: weight > 0 ? (weight >= 1000 ? `${(weight / 1000).toFixed(2).replace(/\.?0+$/, "")} kg` : `${weight} gr`) : null,
+      lineWeightLabel: lineWeight > 0 ? (lineWeight >= 1000 ? `${(lineWeight / 1000).toFixed(2).replace(/\.?0+$/, "")} kg` : `${lineWeight} gr`) : null,
     };
   });
 
@@ -398,13 +536,19 @@ export const buildSellerSuborderFulfillmentPayload2026 = (action, draft = {}) =>
   const actionCode = text(action).toUpperCase();
   const payload = { action: actionCode };
 
-  if (actionCode === "MARK_SHIPPED") {
+  if (actionCode === "MARK_SHIPPED" || actionCode === "MARK_PROCESSING") {
     const trackingNumber = text(draft.trackingNumber);
     const courierCode = text(draft.shippingProvider ?? draft.courierCode);
     const courierService = text(draft.courierService);
     if (trackingNumber) payload.trackingNumber = trackingNumber;
     if (courierCode && !isStatusEnum(courierCode)) payload.courierCode = courierCode;
     if (courierService && !isStatusEnum(courierService)) payload.courierService = courierService;
+    if (draft.shippingFee !== undefined && draft.shippingFee !== null && String(draft.shippingFee).trim() !== "") {
+      const parsedFee = Number(draft.shippingFee);
+      if (Number.isFinite(parsedFee) && parsedFee >= 0) {
+        payload.shippingFee = parsedFee;
+      }
+    }
   }
 
   return payload;
@@ -543,6 +687,16 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
     ? order.suborderNo.replace(/^STORE-IDEMP-[A-Fa-f0-9]+/, compactReference)
     : `${compactReference}-S01`;
 
+  const normItems = normalizeItems(detail.items, isIndo);
+  const calculatedTotalWeight = normItems.reduce((sum, it) => sum + (it.lineWeight || 0), 0);
+  const pkg = asObject(detail.package);
+  const totalWeight = number(
+    pkg.weight ?? pkg.totalWeight ?? shipping.totalWeight ?? detail.totalWeight,
+    calculatedTotalWeight
+  );
+  const isWeightSynced = totalWeight > 0 || normItems.some((it) => it.weight > 0);
+  const totalWeightLabel = formatWeight(totalWeight);
+
   const rawPaymentMethod =
     payment.method && !payment.method.toLowerCase().includes("no payment") && !payment.method.toLowerCase().includes("tidak")
       ? payment.method
@@ -611,10 +765,28 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
       statusTone: syncStatus.tone,
       method: sanitizeMethod(rawMethod),
       courier: sanitizeCourier(rawCourier, isIndo),
+      courierRaw: rawCourier,
+      methodRaw: rawMethod,
       trackingNo: safeTracking,
       trackingLabel: safeTracking || (isIndo ? "Belum ada resi" : "No tracking yet"),
       estimate: text(shipping.estimate),
       trackingUrl: `/order/${rawParentOrderNo || compactReference || parentOrderId}`,
+      shippingFee: number(totals.shippingFee ?? detail.totals?.shippingAmount, 0),
+      shippingFeeLabel: formatMoney(totals.shippingFee ?? detail.totals?.shippingAmount),
+      totalWeight,
+      totalWeightLabel,
+      isWeightSynced,
+      couriersList: INDONESIA_COURIERS,
+    },
+
+    package: {
+      weight: totalWeight,
+      weightLabel: totalWeightLabel,
+      isSynced: isWeightSynced,
+      totalPhysicalItems: number(
+        pkg.totalPhysicalItems,
+        normItems.reduce((s, it) => s + it.quantity, 0)
+      ),
     },
 
     payment: {
@@ -629,13 +801,13 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
     ),
     canMessageBuyer: Boolean(text(customer.phone || customer.email)),
 
-    items: normalizeItems(detail.items, isIndo),
+    items: normItems,
 
     totals: {
       subtotal: number(totals.subtotal, 0),
       subtotalLabel: formatMoney(totals.subtotal),
-      shippingFee: number(totals.shippingFee, 0),
-      shippingFeeLabel: formatMoney(totals.shippingFee),
+      shippingFee: number(totals.shippingFee ?? detail.totals?.shippingAmount, 0),
+      shippingFeeLabel: formatMoney(totals.shippingFee ?? detail.totals?.shippingAmount),
       serviceFee: number(totals.serviceFee, 0),
       serviceFeeLabel: formatMoney(totals.serviceFee),
       discount: number(totals.discount, 0),
@@ -657,6 +829,8 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
       trackingNumber: safeTracking,
       shippingProvider: isStatusEnum(rawCourier) ? "" : text(rawCourier),
       courierService: isStatusEnum(rawMethod) ? "" : text(rawMethod),
+      shippingFee: number(totals.shippingFee ?? detail.totals?.shippingAmount, 0),
+      totalWeight,
       note: "",
     },
 
