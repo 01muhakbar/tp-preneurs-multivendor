@@ -1,6 +1,6 @@
 export const paymentStatusLabel = (status, isIndo = false) => {
   const norm = String(status || "").toUpperCase();
-  if (norm === "PAID") return isIndo ? "Lunas" : "Paid";
+  if (norm === "PAID" || norm === "SETTLED") return isIndo ? "Lunas" : "Paid";
   if (norm === "UNPAID") return isIndo ? "Belum Bayar" : "Unpaid";
   if (norm === "EXPIRED") return isIndo ? "Kedaluwarsa" : "Expired";
   if (norm === "FAILED") return isIndo ? "Gagal" : "Failed";
@@ -11,34 +11,96 @@ export const paymentStatusLabel = (status, isIndo = false) => {
 
 export const fulfillmentStatusLabel = (status, isIndo = false) => {
   const norm = String(status || "").toUpperCase();
-  if (norm === "DELIVERED") return isIndo ? "Terkirim" : "Delivered";
-  if (norm === "SHIPPED") return isIndo ? "Dalam Pengiriman" : "In Transit";
-  if (norm === "PROCESSING") return isIndo ? "Siap Dikemas" : "Ready to Pack";
+  if (norm === "DELIVERED" || norm === "COMPLETED") return isIndo ? "Selesai" : "Delivered";
+  if (norm === "SHIPPED" || norm === "IN_TRANSIT") return isIndo ? "Sedang Dikirim" : "In Transit";
+  if (norm === "PROCESSING" || norm === "PACKED" || norm === "TO_PACK" || norm === "READY_TO_FULFILL") {
+    return isIndo ? "Perlu Dikemas" : "To Pack";
+  }
   if (norm === "CANCELLED") return isIndo ? "Dibatalkan" : "Cancelled";
+  if (norm === "RETURNED" || norm === "FAILED_DELIVERY") return isIndo ? "Pengembalian" : "Returns";
   return isIndo ? "Belum Diproses" : "Unfulfilled";
 };
 
 export const statusTone = (status) => {
   const norm = String(status || "").toUpperCase();
-  if (norm === "DELIVERED") return "violet";
-  if (norm === "SHIPPED") return "blue";
-  if (norm === "PROCESSING") return "green";
-  if (norm === "CANCELLED" || norm === "FAILED" || norm === "EXPIRED") return "red";
+  if (norm === "DELIVERED" || norm === "COMPLETED" || norm === "PAID") return "green";
+  if (norm === "SHIPPED" || norm === "IN_TRANSIT") return "blue";
+  if (norm === "TO_PACK" || norm === "PROCESSING" || norm === "PACKED") return "orange";
+  if (norm === "CANCELLED" || norm === "FAILED" || norm === "EXPIRED" || norm === "RETURNED") return "red";
   if (norm === "UNPAID" || norm === "PENDING_CONFIRMATION") return "amber";
   return "slate";
 };
 
+export const getSynchronizedOrderStatus = ({ fulfillmentStatus, paymentStatus, orderStatus }, isIndo = false) => {
+  const f = String(fulfillmentStatus || "").toUpperCase();
+  const p = String(paymentStatus || "").toUpperCase();
+  const o = String(orderStatus || "").toUpperCase();
+
+  if (/CANCELLED|CANCELED|EXPIRED|FAILED|VOID/.test(o) || /CANCELLED|EXPIRED|FAILED/.test(p)) {
+    return {
+      bucket: "cancelled",
+      code: "CANCELLED",
+      label: isIndo ? "Dibatalkan" : "Cancelled",
+      tone: "red",
+    };
+  }
+
+  if (/REFUNDED|RETURNED|RETURN/.test(o) || /REFUNDED|RETURNED|FAILED_DELIVERY/.test(f)) {
+    return {
+      bucket: "returns",
+      code: "RETURNS",
+      label: isIndo ? "Pengembalian" : "Returns",
+      tone: "red",
+    };
+  }
+
+  if (p !== "PAID" && p !== "SETTLED") {
+    return {
+      bucket: "unpaid",
+      code: "UNPAID",
+      label: isIndo ? "Belum Bayar" : "Unpaid",
+      tone: "amber",
+    };
+  }
+
+  if (f === "DELIVERED" || o === "DELIVERED" || o === "COMPLETED") {
+    return {
+      bucket: "completed",
+      code: "COMPLETED",
+      label: isIndo ? "Selesai" : "Completed",
+      tone: "green",
+    };
+  }
+
+  if (f === "SHIPPED" || f === "IN_TRANSIT" || f === "OUT_FOR_DELIVERY") {
+    return {
+      bucket: "shipping",
+      code: "SHIPPING",
+      label: isIndo ? "Sedang Dikirim" : "Shipping",
+      tone: "blue",
+    };
+  }
+
+  // Payment is settled, fulfillment is UNFULFILLED, PROCESSING, or PACKED -> To Pack
+  return {
+    bucket: "to_pack",
+    code: "TO_PACK",
+    label: isIndo ? "Perlu Dikemas" : "To Pack",
+    tone: "orange",
+  };
+};
+
 export const statusLabel = (status, isIndo = false) => {
   const norm = String(status || "").toUpperCase();
-  if (norm === "UNPAID") return isIndo ? "Menunggu Pembayaran" : "Awaiting Payment";
+  if (norm === "UNPAID") return isIndo ? "Belum Bayar" : "Unpaid";
   if (norm === "PENDING_CONFIRMATION") return isIndo ? "Menunggu Konfirmasi" : "Awaiting Review";
-  if (norm === "PROCESSING") return isIndo ? "Siap Dikemas" : "Ready to Pack";
-  if (norm === "SHIPPED") return isIndo ? "Dalam Pengiriman" : "In Transit";
-  if (norm === "DELIVERED") return isIndo ? "Terkirim" : "Delivered";
+  if (norm === "TO_PACK" || norm === "PROCESSING" || norm === "PACKED") return isIndo ? "Perlu Dikemas" : "To Pack";
+  if (norm === "SHIPPED" || norm === "IN_TRANSIT") return isIndo ? "Sedang Dikirim" : "In Transit";
+  if (norm === "DELIVERED" || norm === "COMPLETED") return isIndo ? "Selesai" : "Completed";
   if (norm === "CANCELLED") return isIndo ? "Dibatalkan" : "Cancelled";
   if (norm === "FAILED") return isIndo ? "Gagal" : "Failed";
   if (norm === "EXPIRED") return isIndo ? "Kedaluwarsa" : "Expired";
-  return isIndo ? "Baru" : "New";
+  return isIndo ? "Perlu Dikemas" : "To Pack";
 };
 
 export const formatMoney = (value) =>
@@ -67,7 +129,7 @@ export const normalizeOrderRow = (row, isIndo = false) => {
     rawFulfillmentStatus = "UNPAID";
   }
 
-  const rawOrderStatus = String(row.status || rawFulfillmentStatus || "").toUpperCase();
+  const rawOrderStatus = String(row.status || "").toUpperCase();
   const rawInvoice = row.rawOrderNumber || row.invoiceNo || row.orderNumber || "Order";
   const orderId = row.orderId || null;
   const compactReference = row.compactOrderNumber || row.orderNumber || rawInvoice;
@@ -85,6 +147,15 @@ export const normalizeOrderRow = (row, isIndo = false) => {
     }
     return rawCourier;
   })();
+
+  const syncStatus = getSynchronizedOrderStatus(
+    {
+      fulfillmentStatus: rawFulfillmentStatus,
+      paymentStatus: rawPaymentStatus,
+      orderStatus: rawOrderStatus,
+    },
+    isIndo
+  );
 
   return {
     id: row.suborderId || row.id || null,
@@ -131,7 +202,7 @@ export const normalizeOrderRow = (row, isIndo = false) => {
       status: rawFulfillmentStatus || "UNKNOWN",
       label:
         rawFulfillmentStatus === "UNPAID"
-          ? (isIndo ? "Menunggu Bayar" : "Awaiting Pay")
+          ? (isIndo ? "Belum Bayar" : "Unpaid")
           : fulfillmentStatusLabel(rawFulfillmentStatus, isIndo),
       tone:
         rawFulfillmentStatus === "DELIVERED"
@@ -139,7 +210,7 @@ export const normalizeOrderRow = (row, isIndo = false) => {
           : rawFulfillmentStatus === "SHIPPED"
           ? "blue"
           : rawFulfillmentStatus === "PROCESSING"
-          ? "amber"
+          ? "orange"
           : rawFulfillmentStatus === "CANCELLED"
           ? "red"
           : "slate",
@@ -148,8 +219,10 @@ export const normalizeOrderRow = (row, isIndo = false) => {
       shippingMethod: cleanCourier,
     },
 
-    status: rawOrderStatus || "UNKNOWN",
-    statusLabel: statusLabel(rawOrderStatus, isIndo),
+    status: syncStatus.code,
+    statusLabel: syncStatus.label,
+    statusTone: syncStatus.tone,
+    statusBucket: syncStatus.bucket,
     totalAmount: Number(row.totalAmount || row.total || 0),
 
     canFulfill: Boolean(row.canFulfill),

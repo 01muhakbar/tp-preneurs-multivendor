@@ -66,7 +66,7 @@ const FULFILLMENT_ACTIONS = {
         label: "Mark shipped",
         nextStatus: "SHIPPED",
         shipmentStatus: "SHIPPED",
-        allowedFrom: ["PROCESSING"],
+        allowedFrom: ["UNFULFILLED", "PROCESSING"],
         description: "Confirm the suborder has been dispatched from the store.",
         successMessage: "Suborder marked as shipped.",
         auditAction: SELLER_FULFILLMENT_AUDIT_ACTIONS.MARK_SHIPPED,

@@ -101,6 +101,7 @@ export type Seller2026SuborderDetailViewModel = {
     orderNumber: string;
     suborderNo: string;
     status: string;
+    fulfillmentStatus?: string;
     paymentStatus: string;
     shippingStatus: string;
     orderDate: string | null;
@@ -632,6 +633,15 @@ export function adaptSeller2026SuborderDetail(value: unknown): Seller2026Suborde
   const rawMethod = text(shipments[0]?.courierService ?? detail.shippingMethod ?? detail.deliveryMethod);
   const rawCourier = text(shipments[0]?.courierCode ?? shipments[0]?.courierService ?? detail.courierCode);
 
+  const rawPaymentStatus = text(
+    detailPaymentMeta.code ?? paymentState.code ?? detail.paymentStatus ?? paymentSummary.status,
+    "UNPAID"
+  ).toUpperCase();
+  const rawFulfillmentStatus = text(
+    detail.fulfillmentStatus ?? primaryStatus.code,
+    "UNFULFILLED"
+  ).toUpperCase();
+
   return {
     suborder: {
       id: suborderId,
@@ -640,10 +650,9 @@ export function adaptSeller2026SuborderDetail(value: unknown): Seller2026Suborde
       invoiceNo: text(order.orderNumber ?? detail.orderNumber ?? detail.invoiceNo, "Order"),
       orderNumber: text(order.orderNumber ?? detail.orderNumber ?? detail.invoiceNo, "Order"),
       suborderNo: text(detail.suborderNumber ?? detail.suborderNo, "Order"),
-      status: normalizeSuborderStatus(
-        primaryStatus.code ?? primaryStatus.label ?? detail.fulfillmentStatus ?? paymentState.code ?? detail.paymentStatus
-      ),
-      paymentStatus: text(detailPaymentMeta.code ?? paymentState.code ?? detail.paymentStatus, "UNPAID").toUpperCase(),
+      status: normalizeSuborderStatus(rawFulfillmentStatus, rawPaymentStatus),
+      fulfillmentStatus: rawFulfillmentStatus,
+      paymentStatus: rawPaymentStatus,
       shippingStatus: text(detailShippingMeta.label ?? detail.shippingStatus, "Needs review"),
       orderDate: text(detail.createdAt ?? order.createdAt) || "Recently",
       channel: text(order.checkoutMode ?? detail.checkoutMode) || undefined,

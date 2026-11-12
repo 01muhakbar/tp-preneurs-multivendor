@@ -125,16 +125,16 @@ export default function Seller2026LiveOrdersPage() {
   
   const summaryAmounts = useMemo(() => ({
     pending: rows
-      .filter((order) => ["UNPAID", "PENDING_CONFIRMATION", "PARTIALLY_PAID"].includes(order.paymentStatus))
+      .filter((order) => order.statusBucket === "unpaid" || ["UNPAID", "PENDING_CONFIRMATION", "PARTIALLY_PAID"].includes(order.paymentStatus))
       .reduce((sum, order) => sum + (Number(order.totalAmount || order.total || 0)), 0),
     packing: rows
-      .filter((order) => order.status === "PROCESSING" || (order.paymentStatus === "PAID" && !["SHIPPED", "DELIVERED", "CANCELLED"].includes(order.fulfillmentStatus)))
+      .filter((order) => order.statusBucket === "to_pack" || order.status === "PROCESSING" || (order.paymentStatus === "PAID" && !["SHIPPED", "DELIVERED", "CANCELLED"].includes(order.fulfillmentStatus)))
       .reduce((sum, order) => sum + (Number(order.totalAmount || order.total || 0)), 0),
     transit: rows
-      .filter((order) => order.fulfillmentStatus === "SHIPPED" || order.status === "SHIPPED")
+      .filter((order) => order.statusBucket === "shipping" || order.fulfillmentStatus === "SHIPPED" || order.status === "SHIPPED")
       .reduce((sum, order) => sum + (Number(order.totalAmount || order.total || 0)), 0),
     delivered: rows
-      .filter((order) => order.fulfillmentStatus === "DELIVERED" || order.status === "DELIVERED")
+      .filter((order) => order.statusBucket === "completed" || order.fulfillmentStatus === "DELIVERED" || order.status === "DELIVERED")
       .reduce((sum, order) => sum + (Number(order.totalAmount || order.total || 0)), 0),
   }), [rows]);
 

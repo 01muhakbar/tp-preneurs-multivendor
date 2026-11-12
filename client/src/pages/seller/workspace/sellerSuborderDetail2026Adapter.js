@@ -56,7 +56,7 @@ export const formatCompactOrderNumber = (invoiceNo, orderId, createdAt) => {
   const dateStr =
     d && !Number.isNaN(d.getTime())
       ? `${String(d.getFullYear()).slice(-2)}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`
-      : "261104";
+      : "261111";
 
   const numPart = orderId
     ? String(orderId).padStart(4, "0")
@@ -67,7 +67,7 @@ export const formatCompactOrderNumber = (invoiceNo, orderId, createdAt) => {
 
 export const paymentStatusLabel = (status, isIndo = false) => {
   const norm = String(status || "").toUpperCase();
-  if (norm === "PAID") return isIndo ? "Lunas" : "Paid";
+  if (norm === "PAID" || norm === "SETTLED") return isIndo ? "Lunas" : "Paid";
   if (norm === "UNPAID") return isIndo ? "Belum Bayar" : "Unpaid";
   if (norm === "EXPIRED") return isIndo ? "Kedaluwarsa" : "Expired";
   if (norm === "FAILED") return isIndo ? "Gagal" : "Failed";
@@ -78,22 +78,25 @@ export const paymentStatusLabel = (status, isIndo = false) => {
 
 export const fulfillmentStatusLabel = (status, isIndo = false) => {
   const norm = String(status || "").toUpperCase();
-  if (norm === "DELIVERED") return isIndo ? "Terkirim" : "Delivered";
-  if (norm === "SHIPPED") return isIndo ? "Dalam Pengiriman" : "In Transit";
-  if (norm === "PROCESSING") return isIndo ? "Siap Dikemas" : "Ready to Pack";
+  if (norm === "DELIVERED" || norm === "COMPLETED") return isIndo ? "Selesai" : "Delivered";
+  if (norm === "SHIPPED" || norm === "IN_TRANSIT") return isIndo ? "Sedang Dikirim" : "In Transit";
+  if (norm === "PROCESSING" || norm === "PACKED" || norm === "TO_PACK" || norm === "READY_TO_FULFILL") {
+    return isIndo ? "Perlu Dikemas" : "To Pack";
+  }
   if (norm === "CANCELLED") return isIndo ? "Dibatalkan" : "Cancelled";
+  if (norm === "RETURNED" || norm === "FAILED_DELIVERY") return isIndo ? "Pengembalian" : "Returns";
   return isIndo ? "Belum Diproses" : "Unfulfilled";
 };
 
 export const statusTone = (value) => {
   const normalized = text(value).toUpperCase();
-  if (normalized.includes("PAID") || normalized.includes("DELIVER")) return "green";
+  if (normalized.includes("PAID") || normalized.includes("DELIVER") || normalized.includes("COMPLETE")) return "green";
   if (normalized.includes("SHIP") || normalized.includes("TRANSIT")) return "blue";
-  if (normalized.includes("PROCESS") || normalized.includes("PACK")) return "violet";
+  if (normalized.includes("TO_PACK") || normalized.includes("PROCESS") || normalized.includes("PACK")) return "orange";
   if (normalized.includes("PENDING") || normalized.includes("UNPAID") || normalized.includes("WAIT")) {
     return "amber";
   }
-  if (normalized.includes("CANCEL") || normalized.includes("FAIL") || normalized.includes("EXPIRE")) {
+  if (normalized.includes("CANCEL") || normalized.includes("FAIL") || normalized.includes("EXPIRE") || normalized.includes("RETURN")) {
     return "red";
   }
   return "slate";
@@ -101,10 +104,67 @@ export const statusTone = (value) => {
 
 export const isPaymentSettled = (value) => {
   const normalized = text(value).toUpperCase();
-  return normalized === "PAID" || normalized.includes("PAID");
+  return normalized === "PAID" || normalized === "SETTLED" || normalized.includes("PAID");
 };
 
-const hasStatus = (current, statuses) => statuses.includes(text(current).toUpperCase());
+export const getSynchronizedOrderStatus = ({ fulfillmentStatus, paymentStatus, orderStatus }, isIndo = false) => {
+  const f = String(fulfillmentStatus || "").toUpperCase();
+  const p = String(paymentStatus || "").toUpperCase();
+  const o = String(orderStatus || "").toUpperCase();
+
+  if (/CANCELLED|CANCELED|EXPIRED|FAILED|VOID/.test(o) || /CANCELLED|EXPIRED|FAILED/.test(p)) {
+    return {
+      bucket: "cancelled",
+      code: "CANCELLED",
+      label: isIndo ? "Dibatalkan" : "Cancelled",
+      tone: "red",
+    };
+  }
+
+  if (/REFUNDED|RETURNED|RETURN/.test(o) || /REFUNDED|RETURNED|FAILED_DELIVERY/.test(f)) {
+    return {
+      bucket: "returns",
+      code: "RETURNS",
+      label: isIndo ? "Pengembalian" : "Returns",
+      tone: "red",
+    };
+  }
+
+  if (p !== "PAID" && p !== "SETTLED") {
+    return {
+      bucket: "unpaid",
+      code: "UNPAID",
+      label: isIndo ? "Belum Bayar" : "Unpaid",
+      tone: "amber",
+    };
+  }
+
+  if (f === "DELIVERED" || o === "DELIVERED" || o === "COMPLETED") {
+    return {
+      bucket: "completed",
+      code: "COMPLETED",
+      label: isIndo ? "Selesai" : "Completed",
+      tone: "green",
+    };
+  }
+
+  if (f === "SHIPPED" || f === "IN_TRANSIT" || f === "OUT_FOR_DELIVERY") {
+    return {
+      bucket: "shipping",
+      code: "SHIPPING",
+      label: isIndo ? "Sedang Dikirim" : "Shipping",
+      tone: "blue",
+    };
+  }
+
+  // Payment is settled, fulfillment not yet dispatched -> To Pack
+  return {
+    bucket: "to_pack",
+    code: "TO_PACK",
+    label: isIndo ? "Perlu Dikemas" : "To Pack",
+    tone: "orange",
+  };
+};
 
 const isStatusEnum = (val) =>
   [
@@ -145,18 +205,22 @@ const normalizeItems = (items, isIndo = false) =>
   asArray(items).map((item, index) => {
     const row = asObject(item);
     const quantity = number(row.quantity ?? row.qty, 0);
-    const price = number(row.price, 0);
+    const price = number(row.price ?? row.priceSnapshot, 0);
     const subtotal = number(row.subtotal ?? row.totalPrice, price * quantity);
+    const name = text(
+      row.productName ?? row.productNameSnapshot ?? row.name ?? row.product?.name,
+      `${isIndo ? "Produk" : "Product"} ${index + 1}`
+    );
     return {
       id: row.id ?? index,
-      name: text(row.productName ?? row.name, `${isIndo ? "Item" : "Product"} ${index + 1}`),
+      name,
       variantLabel: text(row.variantLabel ?? row.variant, isIndo ? "Standar" : "Standard item"),
       quantity,
       price,
       priceLabel: formatMoney(price),
       subtotal,
       subtotalLabel: formatMoney(subtotal),
-      imageUrl: text(row.imageUrl ?? row.image),
+      imageUrl: text(row.imageUrl ?? row.image ?? row.imageSnapshot ?? row.product?.image),
     };
   });
 
@@ -177,7 +241,7 @@ const normalizeTimeline = ({ timeline, createdAt, paidAt, paymentStatus, fulfill
   const paid = isPaymentSettled(paymentStatus);
   const isDelivered = fulfillmentStatus === "DELIVERED";
   const isShipped = isDelivered || fulfillmentStatus === "SHIPPED";
-  const isPacked = isShipped || fulfillmentStatus === "PROCESSING";
+  const isPacked = isShipped || fulfillmentStatus === "PROCESSING" || fulfillmentStatus === "PACKED";
 
   const list = [
     {
@@ -222,7 +286,7 @@ const normalizeTimeline = ({ timeline, createdAt, paidAt, paymentStatus, fulfill
         : isIndo
         ? "Pesanan menunggu pengemasan oleh penjual."
         : "Awaiting store packaging.",
-      createdAtLabel: isPacked ? (isIndo ? "Selesai" : "Ready") : (isIndo ? "Menunggu" : "Pending"),
+      createdAtLabel: isPacked ? (isIndo ? "Siap" : "Ready") : (isIndo ? "Menunggu" : "Pending"),
       complete: isPacked,
     },
   ];
@@ -254,11 +318,10 @@ const normalizeTimeline = ({ timeline, createdAt, paidAt, paymentStatus, fulfill
   return list;
 };
 
-const buildProgressSteps = ({ fulfillmentStatus, paymentStatus, createdAt, paidAt, isIndo = false }) => {
-  const paid = isPaymentSettled(paymentStatus);
-  const packed = hasStatus(fulfillmentStatus, ["PROCESSING", "SHIPPED", "DELIVERED"]);
-  const shipped = hasStatus(fulfillmentStatus, ["SHIPPED", "DELIVERED"]);
-  const delivered = fulfillmentStatus === "DELIVERED";
+const buildProgressSteps = ({ syncBucket, isPaid, createdAt, paidAt, isIndo = false }) => {
+  const isPacked = ["to_pack", "shipping", "completed"].includes(syncBucket);
+  const isShipped = ["shipping", "completed"].includes(syncBucket);
+  const isDelivered = syncBucket === "completed";
 
   return [
     {
@@ -271,30 +334,30 @@ const buildProgressSteps = ({ fulfillmentStatus, paymentStatus, createdAt, paidA
     {
       code: "PAID",
       label: isIndo ? "Lunas" : "Paid",
-      complete: paid,
-      active: paid,
-      dateLabel: paid ? formatDateShort(paidAt, isIndo) : (isIndo ? "Menunggu" : "Pending"),
+      complete: isPaid,
+      active: isPaid,
+      dateLabel: isPaid ? formatDateShort(paidAt, isIndo) : (isIndo ? "Menunggu" : "Pending"),
     },
     {
       code: "PACKED",
       label: isIndo ? "Dikemas" : "Packed",
-      complete: packed,
-      active: packed,
-      dateLabel: packed ? (isIndo ? "Siap" : "Ready") : (isIndo ? "Menunggu" : "Pending"),
+      complete: isShipped || (isPacked && syncBucket !== "to_pack"),
+      active: syncBucket === "to_pack",
+      dateLabel: isPacked ? (isIndo ? "Siap" : "Ready") : (isIndo ? "Menunggu" : "Pending"),
     },
     {
       code: "SHIPPED",
       label: isIndo ? "Dikirim" : "Shipped",
-      complete: shipped,
-      active: shipped,
-      dateLabel: shipped ? (isIndo ? "Perjalanan" : "In transit") : (isIndo ? "Menunggu" : "Pending"),
+      complete: isDelivered,
+      active: syncBucket === "shipping",
+      dateLabel: isShipped ? (isIndo ? "Perjalanan" : "In transit") : (isIndo ? "Menunggu" : "Pending"),
     },
     {
       code: "DELIVERED",
       label: isIndo ? "Selesai" : "Delivered",
-      complete: delivered,
-      active: delivered,
-      dateLabel: delivered ? (isIndo ? "Selesai" : "Done") : (isIndo ? "Menunggu" : "Pending"),
+      complete: isDelivered,
+      active: isDelivered,
+      dateLabel: isDelivered ? (isIndo ? "Selesai" : "Done") : (isIndo ? "Menunggu" : "Pending"),
     },
   ];
 };
@@ -326,37 +389,120 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
   const markPackedAction = findAction(actions, "MARK_PROCESSING");
   const markShippedAction = findAction(actions, "MARK_SHIPPED");
   const markDeliveredAction = findAction(actions, "MARK_DELIVERED");
-  const fulfillmentStatus = text(order.status, "UNFULFILLED").toUpperCase();
-  const paymentStatus = text(order.paymentStatus, payment.status || "UNPAID").toUpperCase();
+
+  // Robustly extract payment and fulfillment statuses
+  const rawPaymentStatus = text(
+    order.paymentStatus ?? detail.paymentStatus ?? payment.status,
+    "UNPAID"
+  ).toUpperCase();
+  const rawFulfillmentStatus = text(
+    order.fulfillmentStatus ?? detail.fulfillmentStatus ?? (order.status !== "UNPAID" ? order.status : null),
+    "UNFULFILLED"
+  ).toUpperCase();
+  const rawParentOrderStatus = text(detail.orderStatus ?? order.orderStatus ?? detail.order?.status, "").toUpperCase();
+
+  const isPaid = isPaymentSettled(rawPaymentStatus);
+
+  // Synchronized 6-phase status bucket
+  const syncStatus = getSynchronizedOrderStatus(
+    {
+      fulfillmentStatus: rawFulfillmentStatus,
+      paymentStatus: rawPaymentStatus,
+      orderStatus: rawParentOrderStatus,
+    },
+    isIndo
+  );
+
   const createdAt = order.createdAt || order.orderDate || null;
   const paidAt = payment.paidAt || null;
-
-  // Resolve readiness dynamically
-  let readinessLabel = isIndo ? "Menunggu Pembayaran" : "Awaiting Payment";
-  let readinessTone = "amber";
-
-  if (fulfillmentStatus === "DELIVERED") {
-    readinessLabel = isIndo ? "Pesanan Selesai" : "Delivered";
-    readinessTone = "green";
-  } else if (fulfillmentStatus === "SHIPPED") {
-    readinessLabel = isIndo ? "Dalam Pengiriman" : "In Transit";
-    readinessTone = "blue";
-  } else if (fulfillmentStatus === "PROCESSING") {
-    readinessLabel = isIndo ? "Siap Dikemas" : "Ready to Pack";
-    readinessTone = "violet";
-  } else if (isPaymentSettled(paymentStatus)) {
-    readinessLabel = isIndo ? "Siap Diproses" : "Ready to Fulfill";
-    readinessTone = "blue";
-  } else if (fulfillmentStatus === "CANCELLED" || paymentStatus === "CANCELLED") {
-    readinessLabel = isIndo ? "Dibatalkan" : "Cancelled";
-    readinessTone = "red";
-  }
 
   const rawCourier = shipping.courier || "";
   const rawMethod = shipping.method || "";
   const rawTracking = text(shipping.trackingNo);
   const safeTracking =
     rawTracking && !rawTracking.toLowerCase().includes("no tracking") ? rawTracking : "";
+
+  // Next step guidance for the seller
+  const nextStep = (() => {
+    switch (syncStatus.bucket) {
+      case "to_pack":
+        return {
+          bucket: "to_pack",
+          title: isIndo ? "Langkah Selanjutnya: Kemas & Kirim Pesanan" : "Next Step: Pack & Ship Order",
+          description: isIndo
+            ? "Pembayaran telah terverifikasi. Masukkan nomor resi pengiriman di bawah untuk mengirim pesanan."
+            : "Payment verified. Enter courier tracking number below to dispatch the order.",
+          icon: "package",
+          primaryAction: "MARK_SHIPPED",
+          primaryLabel: isIndo ? "Kirim Pesanan" : "Ship Order",
+          secondaryAction: "MARK_PROCESSING",
+          secondaryLabel: isIndo ? "Tandai Siap Dikemas" : "Mark as Packed",
+          canShip: true,
+          canPack: true,
+          badge: isIndo ? "Perlu Dikemas" : "To Pack",
+          badgeTone: "orange",
+        };
+      case "shipping":
+        return {
+          bucket: "shipping",
+          title: isIndo ? "Langkah Selanjutnya: Pantau Pengiriman" : "Next Step: Track Shipment",
+          description: isIndo
+            ? `Paket dalam perjalanan ekspedisi ${rawCourier ? `(${rawCourier})` : ""}. Konfirmasi selesai jika pembeli telah menerima pesanan.`
+            : `Package in transit ${rawCourier ? `(${rawCourier})` : ""}. Confirm delivery once customer receives it.`,
+          icon: "truck",
+          primaryAction: "MARK_DELIVERED",
+          primaryLabel: isIndo ? "Tandai Selesai" : "Mark as Delivered",
+          canDeliver: true,
+          badge: isIndo ? "Sedang Dikirim" : "Shipping",
+          badgeTone: "blue",
+        };
+      case "completed":
+        return {
+          bucket: "completed",
+          title: isIndo ? "Pesanan Selesai" : "Order Completed",
+          description: isIndo
+            ? "Pesanan telah diterima oleh pembeli. Dana penjualan telah masuk ke Saldo Toko Anda."
+            : "Order delivered. Sale earnings credited to your store balance.",
+          icon: "check",
+          badge: isIndo ? "Selesai" : "Completed",
+          badgeTone: "green",
+        };
+      case "unpaid":
+        return {
+          bucket: "unpaid",
+          title: isIndo ? "Menunggu Pembayaran Pembeli" : "Awaiting Customer Payment",
+          description: isIndo
+            ? "Pesanan belum dibayar. Jangan kirim barang sebelum pembayaran berhasil diverifikasi."
+            : "Order is unpaid. Do not ship until payment is confirmed.",
+          icon: "clock",
+          badge: isIndo ? "Belum Bayar" : "Unpaid",
+          badgeTone: "amber",
+        };
+      case "returns":
+        return {
+          bucket: "returns",
+          title: isIndo ? "Pengembalian / Kendala Pengiriman" : "Return / Delivery Issue",
+          description: isIndo
+            ? "Pesanan mengalami kendala pengiriman atau retur barang. Hubungi kurir atau pembeli."
+            : "Shipment issue or return recorded. Please contact courier or buyer.",
+          icon: "alert",
+          badge: isIndo ? "Pengembalian" : "Returns",
+          badgeTone: "red",
+        };
+      case "cancelled":
+      default:
+        return {
+          bucket: "cancelled",
+          title: isIndo ? "Pesanan Dibatalkan" : "Order Cancelled",
+          description: isIndo
+            ? "Pesanan telah dibatalkan atau masa pembayaran telah berakhir."
+            : "Order was cancelled or payment expired.",
+          icon: "x",
+          badge: isIndo ? "Dibatalkan" : "Cancelled",
+          badgeTone: "red",
+        };
+    }
+  })();
 
   const rawParentOrderNo = text(order.orderNumber ?? order.invoiceNo, "Order");
   const parentOrderId = order.orderId || order.order?.id || null;
@@ -391,24 +537,34 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
     createdAtLabel: formatDateTime(createdAt, isIndo),
     paidAtLabel: formatDateTime(paidAt, isIndo),
 
+    statusBucket: syncStatus.bucket,
+    syncStatus,
+    nextStep,
+
     fulfillmentStatus: {
-      code: fulfillmentStatus,
-      label: fulfillmentStatusLabel(fulfillmentStatus, isIndo),
-      tone: statusTone(fulfillmentStatus),
+      code: rawFulfillmentStatus,
+      label: syncStatus.label,
+      tone: syncStatus.tone,
     },
 
     paymentStatus: {
-      code: paymentStatus,
-      label: paymentStatusLabel(paymentStatus, isIndo),
-      tone: statusTone(paymentStatus),
+      code: rawPaymentStatus,
+      label: paymentStatusLabel(rawPaymentStatus, isIndo),
+      tone: isPaid ? "green" : statusTone(rawPaymentStatus),
     },
 
     readinessStatus: {
-      label: readinessLabel,
-      tone: readinessTone,
+      label: syncStatus.label,
+      tone: syncStatus.tone,
     },
 
-    progress: buildProgressSteps({ fulfillmentStatus, paymentStatus, createdAt, paidAt, isIndo }),
+    progress: buildProgressSteps({
+      syncBucket: syncStatus.bucket,
+      isPaid,
+      createdAt,
+      paidAt,
+      isIndo,
+    }),
 
     customer: {
       name: text(customer.name, isIndo ? "Pelanggan" : "Customer"),
@@ -419,8 +575,8 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
     },
 
     shipping: {
-      status: fulfillmentStatusLabel(fulfillmentStatus, isIndo),
-      statusTone: statusTone(fulfillmentStatus),
+      status: syncStatus.label,
+      statusTone: syncStatus.tone,
       method: sanitizeMethod(rawMethod),
       courier: sanitizeCourier(rawCourier, isIndo),
       trackingNo: safeTracking,
@@ -459,8 +615,8 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
       timeline: detail.timeline,
       createdAt,
       paidAt,
-      paymentStatus,
-      fulfillmentStatus,
+      paymentStatus: rawPaymentStatus,
+      fulfillmentStatus: rawFulfillmentStatus,
       isIndo,
     }),
 
@@ -474,9 +630,9 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
     internalNotes: text(detail.internalNotes),
 
     actions: {
-      canMarkPacked: isActionEnabled(markPackedAction),
-      canMarkShipped: isActionEnabled(markShippedAction),
-      canMarkDelivered: isActionEnabled(markDeliveredAction),
+      canMarkPacked: syncStatus.bucket === "to_pack" || isActionEnabled(markPackedAction),
+      canMarkShipped: syncStatus.bucket === "to_pack" || isActionEnabled(markShippedAction),
+      canMarkDelivered: syncStatus.bucket === "shipping" || isActionEnabled(markDeliveredAction),
       markPackedReason: text(
         markPackedAction?.reason,
         isIndo ? "Aksi kemas belum tersedia untuk status ini." : "Mark packed is not available for this status."

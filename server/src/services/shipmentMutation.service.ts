@@ -114,7 +114,7 @@ const SELLER_ACTION_SHIPMENT_STATUS: Record<
   MARK_SHIPPED: {
     shipmentStatus: "SHIPPED",
     compatibilityFulfillmentStatus: "SHIPPED",
-    allowedFrom: ["PACKED"],
+    allowedFrom: ["READY_TO_FULFILL", "PACKED"],
     eventType: "SHIPPED",
     eventLabel: "Shipped",
     eventDescription: "Seller dispatched the shipment and provided tracking details.",

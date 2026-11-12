@@ -90,7 +90,7 @@ const buildShipmentActionability = (input) => {
     const baseReason = resolveBaseReason();
     const canOperate = !baseReason;
     const canMarkPacked = canOperate && input.shipmentStatus === "READY_TO_FULFILL";
-    const canMarkShipped = canOperate && input.shipmentStatus === "PACKED";
+    const canMarkShipped = canOperate && (input.shipmentStatus === "READY_TO_FULFILL" || input.shipmentStatus === "PACKED" || input.shipmentStatus === "PROCESSING");
     const canUploadTracking = canMarkShipped;
     const canConfirmDelivery = canOperate &&
         (input.shipmentStatus === "SHIPPED" ||

@@ -19,6 +19,7 @@ import {
   WalletCards,
   AlertTriangle,
   RotateCcw,
+  Sparkles,
 } from "lucide-react";
 import { resolveAssetUrl } from "../../../lib/assetUrl.js";
 import "./seller-suborder-detail-2026.css";
@@ -58,7 +59,7 @@ const I18N = {
     notes: "Catatan Pesanan",
     buyerNote: "Catatan Pembeli",
     internalNote: "Catatan Internal Toko",
-    internalNotePlaceholder: "Tulis catatan rahasia internal toko...",
+    internalNotePlaceholder: "Tulis catatan internal toko...",
     saveNote: "Simpan Catatan",
     saving: "Menyimpan...",
     quickActions: "Aksi Pesanan",
@@ -70,7 +71,7 @@ const I18N = {
     btnMarkShipped: "Kirim Pesanan",
     btnMarkDelivered: "Tandai Selesai",
     btnReviewPayment: "Tinjau Bukti Bayar",
-    shippingRequired: "Harap isi Nomor Resi sebelum menandai pesanan dikirim.",
+    shippingRequired: "Harap masukkan Nomor Resi sebelum mengirim pesanan.",
     loading: "Memuat rincian pesanan...",
     errorTitle: "Gagal memuat rincian pesanan",
     errorFallback: "Pesanan ini tidak tersedia untuk toko aktif Anda.",
@@ -244,13 +245,14 @@ export default function SellerSuborderDetail2026PageView({
 
   const fulfillmentCode = order.fulfillmentStatus?.code || "UNFULFILLED";
   const paymentCode = order.paymentStatus?.code || "UNPAID";
-  const isPaid = paymentCode === "PAID";
-  const isShipped = fulfillmentCode === "SHIPPED";
-  const isDelivered = fulfillmentCode === "DELIVERED";
-  const isPackingOrReady = fulfillmentCode === "PROCESSING" || fulfillmentCode === "PACKED";
+  const isPaid = paymentCode === "PAID" || paymentCode === "SETTLED";
+  const bucket = order.statusBucket || "to_pack";
+  const isToPack = bucket === "to_pack";
+  const isShipped = bucket === "shipping" || fulfillmentCode === "SHIPPED";
+  const isDelivered = bucket === "completed" || fulfillmentCode === "DELIVERED";
 
-  // When order is processing/packed, user can enter resi to mark shipped
-  const canEditShipping = isPackingOrReady || (!isShipped && !isDelivered && isPaid);
+  // Editable shipping details whenever order is ready to fulfill / to pack
+  const canEditShipping = isToPack || (!isShipped && !isDelivered && isPaid);
 
   const handleActionClick = (action) => {
     setValidationError("");
@@ -265,6 +267,8 @@ export default function SellerSuborderDetail2026PageView({
       onFulfillmentAction(action, fulfillmentDraft);
     }
   };
+
+  const nextStep = order.nextStep;
 
   return (
     <div className="tpsodp2026-page" data-seller2026-live-order-detail="true">
@@ -363,9 +367,73 @@ export default function SellerSuborderDetail2026PageView({
       {/* 5-Step Visual Progress Rail */}
       <ProgressRail steps={order.progress} isIndo={isIndo} />
 
+      {/* Prominent Next Step Guidance Card */}
+      {nextStep && (
+        <section className={`tpsodp2026-next-step-card tpsodp2026-next-step-card--${nextStep.bucket}`}>
+          <div className="tpsodp2026-next-step-card__icon-wrap">
+            {nextStep.icon === "package" ? (
+              <Package size={22} className="tpsodp2026-icon-accent" />
+            ) : nextStep.icon === "truck" ? (
+              <Truck size={22} className="tpsodp2026-icon-primary" />
+            ) : nextStep.icon === "check" ? (
+              <CheckCircle2 size={22} className="tpsodp2026-icon-success" />
+            ) : (
+              <Clock3 size={22} className="tpsodp2026-icon-muted" />
+            )}
+          </div>
+          <div className="tpsodp2026-next-step-card__content">
+            <div className="tpsodp2026-next-step-card__title-row">
+              <h3>{nextStep.title}</h3>
+              {nextStep.badge && (
+                <span className={`tpsodp2026-pill tpsodp2026-pill--${nextStep.badgeTone || "orange"}`}>
+                  <span className="tpsodp2026-pill__dot" />
+                  {nextStep.badge}
+                </span>
+              )}
+            </div>
+            <p className="tpsodp2026-next-step-card__desc">{nextStep.description}</p>
+          </div>
+          {isToPack && (
+            <div className="tpsodp2026-next-step-card__actions">
+              <button
+                type="button"
+                className="tpsodp2026-btn-accent"
+                onClick={() => handleActionClick("MARK_SHIPPED")}
+                disabled={isUpdating}
+              >
+                <Truck size={15} />
+                <span>{nextStep.primaryLabel}</span>
+              </button>
+              <button
+                type="button"
+                className="tpsodp2026-btn-primary"
+                onClick={() => handleActionClick("MARK_PROCESSING")}
+                disabled={isUpdating}
+              >
+                <CheckCircle2 size={15} />
+                <span>{nextStep.secondaryLabel}</span>
+              </button>
+            </div>
+          )}
+          {isShipped && (
+            <div className="tpsodp2026-next-step-card__actions">
+              <button
+                type="button"
+                className="tpsodp2026-btn-primary"
+                onClick={() => handleActionClick("MARK_DELIVERED")}
+                disabled={isUpdating}
+              >
+                <CheckCircle2 size={15} />
+                <span>{nextStep.primaryLabel}</span>
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+
       {/* 2-Column Responsive Dashboard Layout */}
       <main className="tpsodp2026-grid">
-        {/* Left Column: Products, Shipping & Fulfillment, Notes */}
+        {/* Left Column: Products, Shipping & Courier, Notes */}
         <div className="tpsodp2026-col-main">
           {/* Products Card */}
           <section className="tpsodp2026-card">
@@ -419,7 +487,7 @@ export default function SellerSuborderDetail2026PageView({
             </div>
           </section>
 
-          {/* Shipping & Fulfillment Card */}
+          {/* Shipping & Courier Card */}
           <section className="tpsodp2026-card">
             <header className="tpsodp2026-card__header">
               <div className="tpsodp2026-card__header-title">
@@ -519,28 +587,30 @@ export default function SellerSuborderDetail2026PageView({
                 </button>
               )}
 
-              {isPaid && (fulfillmentCode === "UNFULFILLED" || fulfillmentCode === "READY_TO_FULFILL" || fulfillmentCode === "UNKNOWN") && (
-                <button
-                  type="button"
-                  className="tpsodp2026-btn-primary"
-                  onClick={() => handleActionClick("MARK_PROCESSING")}
-                  disabled={isUpdating}
-                >
-                  <CheckCircle2 size={16} />
-                  <span>{t.btnMarkPacked}</span>
-                </button>
-              )}
+              {isToPack && (
+                <>
+                  <button
+                    type="button"
+                    className="tpsodp2026-btn-accent"
+                    onClick={() => handleActionClick("MARK_SHIPPED")}
+                    disabled={isUpdating}
+                    title={t.btnMarkShipped}
+                  >
+                    <Truck size={16} />
+                    <span>{t.btnMarkShipped}</span>
+                  </button>
 
-              {isPackingOrReady && (
-                <button
-                  type="button"
-                  className="tpsodp2026-btn-accent"
-                  onClick={() => handleActionClick("MARK_SHIPPED")}
-                  disabled={isUpdating}
-                >
-                  <Truck size={16} />
-                  <span>{t.btnMarkShipped}</span>
-                </button>
+                  <button
+                    type="button"
+                    className="tpsodp2026-btn-primary"
+                    onClick={() => handleActionClick("MARK_PROCESSING")}
+                    disabled={isUpdating}
+                    title={t.btnMarkPacked}
+                  >
+                    <CheckCircle2 size={16} />
+                    <span>{t.btnMarkPacked}</span>
+                  </button>
+                </>
               )}
 
               {isShipped && (
@@ -548,8 +618,8 @@ export default function SellerSuborderDetail2026PageView({
                   type="button"
                   className="tpsodp2026-btn-primary"
                   onClick={() => handleActionClick("MARK_DELIVERED")}
-                  disabled={isUpdating || !order.actions?.canMarkDelivered}
-                  title={order.actions?.markDeliveredReason}
+                  disabled={isUpdating}
+                  title={t.btnMarkDelivered}
                 >
                   <CheckCircle2 size={16} />
                   <span>{t.btnMarkDelivered}</span>
@@ -558,7 +628,7 @@ export default function SellerSuborderDetail2026PageView({
             </div>
           </section>
 
-          {/* Notes Card */}
+          {/* Internal Notes Card */}
           <section className="tpsodp2026-card">
             <header className="tpsodp2026-card__header">
               <div className="tpsodp2026-card__header-title">
@@ -567,40 +637,31 @@ export default function SellerSuborderDetail2026PageView({
               </div>
             </header>
 
-            <div className="tpsodp2026-notes-stack">
-              {order.customer?.note ? (
-                <div className="tpsodp2026-buyer-note-box">
-                  <span className="tpsodp2026-note-tag">{t.buyerNote}</span>
-                  <p>{order.customer.note}</p>
-                </div>
-              ) : null}
-
-              <div className="tpsodp2026-internal-note-box">
-                <label className="tpsodp2026-field__label">{t.internalNote}</label>
-                <textarea
-                  className="tpsodp2026-textarea"
-                  value={internalNoteDraft}
-                  onChange={(e) => onInternalNoteChange?.(e.target.value)}
-                  placeholder={t.internalNotePlaceholder}
-                  rows={3}
+            <div className="tpsodp2026-notes-form">
+              <label className="tpsodp2026-field__label">{t.internalNote}</label>
+              <textarea
+                className="tpsodp2026-textarea"
+                rows={3}
+                value={internalNoteDraft}
+                onChange={(e) => onInternalNoteChange?.(e.target.value)}
+                placeholder={t.internalNotePlaceholder}
+                disabled={isUpdating}
+              />
+              <div className="tpsodp2026-notes-form__footer">
+                <button
+                  type="button"
+                  className="tpsodp2026-btn-primary"
+                  onClick={onSaveInternalNote}
                   disabled={isUpdating}
-                />
-                <div className="tpsodp2026-note-footer">
-                  <button
-                    type="button"
-                    className="tpsodp2026-btn-primary tpsodp2026-btn--sm"
-                    onClick={onSaveInternalNote}
-                    disabled={isUpdating}
-                  >
-                    {isUpdating ? t.saving : t.saveNote}
-                  </button>
-                </div>
+                >
+                  <span>{isUpdating ? t.saving : t.saveNote}</span>
+                </button>
               </div>
             </div>
           </section>
         </div>
 
-        {/* Right Column: Customer Info, Payment Summary, Quick Actions */}
+        {/* Right Column: Customer Info, Payment Summary, Actions */}
         <div className="tpsodp2026-col-side">
           {/* Customer Card */}
           <section className="tpsodp2026-card">
@@ -611,32 +672,34 @@ export default function SellerSuborderDetail2026PageView({
               </div>
             </header>
 
-            <div className="tpsodp2026-customer-profile">
-              <div className="tpsodp2026-avatar">
-                {(order.customer?.name || "C").slice(0, 2).toUpperCase()}
+            <div className="tpsodp2026-customer-box">
+              <div className="tpsodp2026-customer-box__avatar">
+                <span>{order.customer?.name ? order.customer.name.slice(0, 2).toUpperCase() : "SU"}</span>
               </div>
-              <div className="tpsodp2026-customer-profile__details">
-                <strong className="tpsodp2026-customer-profile__name">{order.customer?.name}</strong>
-                {order.customer?.phone ? (
-                  <div className="tpsodp2026-customer-profile__phone-row">
+              <div className="tpsodp2026-customer-box__details">
+                <strong className="tpsodp2026-customer-box__name">{order.customer?.name}</strong>
+                {order.customer?.phone && (
+                  <div className="tpsodp2026-customer-box__contact-row">
                     <span>{order.customer.phone}</span>
-                    <button
-                      type="button"
-                      className="tpsodp2026-btn-wa"
-                      onClick={() => onMessageBuyer?.(order.customer)}
-                      title={t.whatsapp}
-                    >
-                      <MessageCircle size={12} />
-                      <span>{t.whatsapp}</span>
-                    </button>
+                    {order.canMessageBuyer && (
+                      <button
+                        type="button"
+                        className="tpsodp2026-badge-wa"
+                        onClick={() => onMessageBuyer?.(order.customer)}
+                        title={t.whatsapp}
+                      >
+                        <MessageCircle size={12} />
+                        <span>{t.whatsapp}</span>
+                      </button>
+                    )}
                   </div>
-                ) : null}
+                )}
               </div>
             </div>
 
             <div className="tpsodp2026-address-box">
-              <MapPin size={16} className="tpsodp2026-icon-pin" />
-              <p>{order.customer?.address}</p>
+              <MapPin size={15} className="tpsodp2026-address-box__icon" />
+              <p className="tpsodp2026-address-box__text">{order.customer?.address}</p>
             </div>
           </section>
 
@@ -650,39 +713,42 @@ export default function SellerSuborderDetail2026PageView({
               <StatusPill status={order.paymentStatus} />
             </header>
 
-            <div className="tpsodp2026-payment-meta">
-              <div className="tpsodp2026-meta-row">
-                <span className="tpsodp2026-meta-label">{t.method}</span>
-                <strong className="tpsodp2026-meta-value">{order.payment?.method}</strong>
+            <div className="tpsodp2026-payment-info">
+              <div className="tpsodp2026-info-row">
+                <span className="tpsodp2026-info-row__label">{t.method}</span>
+                <strong className="tpsodp2026-info-row__value">{order.payment?.method}</strong>
               </div>
-              {order.paidAtLabel && isPaid ? (
-                <div className="tpsodp2026-meta-row">
-                  <span className="tpsodp2026-meta-label">{t.paidAt}</span>
-                  <span className="tpsodp2026-meta-value">{order.paidAtLabel}</span>
+
+              {order.payment?.paidAt && (
+                <div className="tpsodp2026-info-row">
+                  <span className="tpsodp2026-info-row__label">{t.paidAt}</span>
+                  <span className="tpsodp2026-info-row__value">{order.paidAtLabel}</span>
                 </div>
-              ) : null}
+              )}
             </div>
 
-            <div className="tpsodp2026-breakdown">
-              <div className="tpsodp2026-breakdown__row">
-                <span>{isIndo ? `Subtotal (${order.items?.length || 0} Produk)` : `Subtotal (${order.items?.length || 0} Items)`}</span>
+            <div className="tpsodp2026-totals-list">
+              <div className="tpsodp2026-total-line">
+                <span>{isIndo ? `Subtotal (${order.items?.length || 1} Produk)` : `Subtotal (${order.items?.length || 1} Items)`}</span>
                 <span>{order.totals?.subtotalLabel}</span>
               </div>
-              <div className="tpsodp2026-breakdown__row">
+              <div className="tpsodp2026-total-line">
                 <span>{t.shippingFee}</span>
                 <span>{order.totals?.shippingFeeLabel}</span>
               </div>
-              <div className="tpsodp2026-breakdown__row">
+              <div className="tpsodp2026-total-line">
                 <span>{t.serviceFee}</span>
                 <span>{order.totals?.serviceFeeLabel}</span>
               </div>
-              <div className="tpsodp2026-breakdown__row tpsodp2026-breakdown__row--discount">
-                <span>{t.discount}</span>
-                <span>-{order.totals?.discountLabel}</span>
-              </div>
-              <div className="tpsodp2026-breakdown__total">
-                <span className="tpsodp2026-breakdown__total-label">{t.totalPayment}</span>
-                <span className="tpsodp2026-breakdown__total-amount">{order.totals?.totalLabel}</span>
+              {order.totals?.discount > 0 && (
+                <div className="tpsodp2026-total-line tpsodp2026-total-line--discount">
+                  <span>{t.discount}</span>
+                  <span>-{order.totals?.discountLabel}</span>
+                </div>
+              )}
+              <div className="tpsodp2026-total-line tpsodp2026-total-line--grand">
+                <strong>{t.totalPayment}</strong>
+                <strong className="tpsodp2026-grand-amount">{order.totals?.totalLabel}</strong>
               </div>
             </div>
           </section>
@@ -696,42 +762,48 @@ export default function SellerSuborderDetail2026PageView({
               </div>
             </header>
 
-            <div className="tpsodp2026-actions-stack">
+            <div className="tpsodp2026-actions-list">
               <button
                 type="button"
-                className="tpsodp2026-btn-action-tile"
+                className="tpsodp2026-action-tile"
                 onClick={onPrintLabel}
                 disabled={isUpdating || isPrintingLabel}
               >
-                <Printer size={18} />
-                <div className="tpsodp2026-btn-action-tile__text">
+                <div className="tpsodp2026-action-tile__icon">
+                  <Printer size={16} />
+                </div>
+                <div className="tpsodp2026-action-tile__text">
                   <strong>{t.printLabel}</strong>
-                  <small>{isIndo ? "Format standar label kurir" : "Standard courier label"}</small>
+                  <span>{isIndo ? "Label resi pengiriman" : "Standard courier label"}</span>
                 </div>
               </button>
 
               <button
                 type="button"
-                className="tpsodp2026-btn-action-tile"
+                className="tpsodp2026-action-tile"
                 onClick={() => onMessageBuyer?.(order.customer)}
                 disabled={isUpdating || !order.canMessageBuyer}
               >
-                <MessageCircle size={18} />
-                <div className="tpsodp2026-btn-action-tile__text">
+                <div className="tpsodp2026-action-tile__icon">
+                  <MessageCircle size={16} />
+                </div>
+                <div className="tpsodp2026-action-tile__text">
                   <strong>{t.messageBuyer}</strong>
-                  <small>{isIndo ? "Hubungi via WhatsApp" : "Contact via WhatsApp"}</small>
+                  <span>{isIndo ? "Hubungi via WhatsApp" : "Contact via WhatsApp"}</span>
                 </div>
               </button>
 
               <button
                 type="button"
-                className="tpsodp2026-btn-action-tile"
+                className="tpsodp2026-action-tile"
                 onClick={() => onCopyText?.(order.reference, t.orderNo)}
               >
-                <Copy size={18} />
-                <div className="tpsodp2026-btn-action-tile__text">
+                <div className="tpsodp2026-action-tile__icon">
+                  <Copy size={16} />
+                </div>
+                <div className="tpsodp2026-action-tile__text">
                   <strong>{t.copyOrderNo}</strong>
-                  <small>{order.reference}</small>
+                  <span>{order.reference}</span>
                 </div>
               </button>
             </div>

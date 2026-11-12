@@ -660,6 +660,7 @@
   border: 1px solid var(--tpsow-warning-border);
 }
 
+.tpsow2026-pill.is-orange,
 .tpsow2026-pill.is-accent {
   background: var(--tpsow-accent-subtle);
   color: var(--tpsow-accent);
