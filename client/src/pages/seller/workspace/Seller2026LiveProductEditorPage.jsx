@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { AlertTriangle, Check, Package } from "lucide-react";
@@ -295,6 +296,7 @@ const clearStoredProductDraft = (key) => {
 };
 
 export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
+  const { t } = useTranslation(["admin", "seller"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { productId } = useParams();
@@ -1374,24 +1376,26 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
   const usesUpdateFlow = isEdit && !isDraftProduct;
   const isSubmittedDraft = isEdit && isDraftProduct && productSubmissionStatus === "submitted";
   const finalEditLabel = usesUpdateFlow
-    ? "Save Changes"
+    ? t("productForm.Save Changes")
     : productSubmissionStatus === "needs_revision"
-      ? "Resubmit for Review"
-      : "Submit for Review";
-  const finalEditBusyLabel = usesUpdateFlow ? "Saving..." : "Submitting...";
+      ? t("productForm.Resubmit for Review")
+      : t("productForm.Submit for Review");
+  const finalEditBusyLabel = usesUpdateFlow
+    ? t("productForm.Saving Changes...")
+    : t("productForm.Submitting...");
   const finalActionDisabled =
     isSubmittedDraft || (!usesUpdateFlow && !canSubmit);
   const finalActionDisabledReason = isSubmittedDraft
-    ? "This draft is already waiting for admin review."
+    ? t("productForm.This draft is already waiting for admin review.")
     : !usesUpdateFlow && !canSubmit
-      ? "Your account does not have permission to submit products for review."
+      ? t("productForm.Your account does not have permission to submit products for review.")
       : "";
   const handleFinalAction = usesUpdateFlow
-    ? () => saveDraftProduct({ successMessage: "Product changes saved." })
+    ? () => saveDraftProduct({ successMessage: t("productForm.Product changes saved.") })
     : submitForReview;
 
   if (metaQuery.isLoading || (isEdit && detailQuery.isLoading)) {
-    return <ProductEditorState type="loading" message="Fetching product authoring data." />;
+    return <ProductEditorState type="loading" message={t("productForm.Fetching product authoring data.")} />;
   }
 
   if (metaQuery.isError || detailQuery.isError) {
@@ -1401,7 +1405,7 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
         message={
           metaQuery.error?.response?.data?.message ||
           detailQuery.error?.response?.data?.message ||
-          "Product authoring is temporarily unavailable."
+          t("productForm.Product authoring is temporarily unavailable.")
         }
         onRetry={() => {
           metaQuery.refetch();
@@ -1416,7 +1420,7 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
       <div className="seller2026-dashboard">
         <div className="seller2026-error">
           <AlertTriangle size={18} />
-          Product authoring is not available for your current role.
+          {t("productForm.Product authoring is not available for your current role.")}
         </div>
       </div>
     );
@@ -1456,20 +1460,20 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
       fileInputRef={fileInputRef}
       allowGlobalStoreOption={false}
       storeOwnershipLocked
-      saveDraftLabel="Save Draft"
-      saveDraftBusyLabel="Saving..."
-      finalCreateLabel="Submit for Review"
-      finalCreateBusyLabel="Submitting..."
+      saveDraftLabel={t("productForm.Save Draft")}
+      saveDraftBusyLabel={t("productForm.Saving...")}
+      finalCreateLabel={t("productForm.Submit for Review")}
+      finalCreateBusyLabel={t("productForm.Submitting...")}
       finalEditLabel={finalEditLabel}
       finalEditBusyLabel={finalEditBusyLabel}
       finalActionDisabled={finalActionDisabled}
       finalActionDisabledReason={finalActionDisabledReason}
       reviewMode={usesUpdateFlow ? "update" : "publish"}
-      successTitle="Product Submitted for Review"
-      successDescription="Your product is waiting for admin approval before it can be published."
-      successPrimaryLabel="View Product"
-      successSecondaryLabel="Add Another Product"
-      successBackLabel="Back to Products"
+      successTitle={t("productForm.Product Submitted for Review")}
+      successDescription={t("productForm.Your product is waiting for admin approval before it can be published.")}
+      successPrimaryLabel={t("productForm.View Product")}
+      successSecondaryLabel={t("productForm.Add Another Product")}
+      successBackLabel={t("productForm.Back to Products")}
       onClose={() => navigate(workspaceRoutes.catalog())}
       onRetry={() => {
         metaQuery.refetch();

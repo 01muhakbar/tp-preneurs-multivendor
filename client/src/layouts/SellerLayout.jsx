@@ -61,6 +61,7 @@ import {
   markSellerNotificationRead,
 } from "../api/sellerNotifications.ts";
 import { fetchPublicLanguages } from "../api/storeCustomizationPublic.ts";
+import i18n from "../i18n.js";
 import "../components/Layout/MainLayout.css";
 import "../components/Layout/Navbar.css";
 
@@ -1237,6 +1238,13 @@ export default function SellerLayout() {
     ) {
       setSelectedLanguage(nextValue);
       persistSellerLanguage(nextValue);
+      const code = String(nextValue.isoCode || "").toLowerCase().startsWith("id") ? "id" : "en";
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("store_language", code);
+      }
+      if (i18n.language !== code) {
+        i18n.changeLanguage(code);
+      }
     }
   }, [publishedLanguages, selectedLanguage]);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -1359,7 +1367,15 @@ export default function SellerLayout() {
   }, [theme]);
 
   useEffect(() => {
+    if (!selectedLanguage) return;
     persistSellerLanguage(selectedLanguage);
+    const code = String(selectedLanguage.isoCode || "").toLowerCase().startsWith("id") ? "id" : "en";
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("store_language", code);
+    }
+    if (i18n.language !== code) {
+      i18n.changeLanguage(code);
+    }
   }, [selectedLanguage]);
 
   useEffect(() => {
@@ -1573,6 +1589,11 @@ export default function SellerLayout() {
   const handleLanguageSelect = (language) => {
     setSelectedLanguage(language);
     persistSellerLanguage(language);
+    const code = String(language?.isoCode || "").toLowerCase().startsWith("id") ? "id" : "en";
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("store_language", code);
+    }
+    i18n.changeLanguage(code);
     setLangOpen(false);
   };
 

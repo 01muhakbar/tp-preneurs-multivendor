@@ -468,7 +468,22 @@
     "Digital Asset": "Digital Asset",
     "Provide a download link or access instruction for the digital product.": "Provide a download link or access instruction for the digital product.",
     "Download Link / Instructions": "Download Link / Instructions",
-    "Enter download link (e.g. Google Drive, Dropbox) or access instructions...": "Enter download link (e.g. Google Drive, Dropbox) or access instructions..."
+    "Enter download link (e.g. Google Drive, Dropbox) or access instructions...": "Enter download link (e.g. Google Drive, Dropbox) or access instructions...",
+    "Submit for Review": "Submit for Review",
+    "Submitting...": "Submitting...",
+    "Resubmit for Review": "Resubmit for Review",
+    "Product Submitted for Review": "Product Submitted for Review",
+    "Your product is waiting for admin approval before it can be published.": "Your product is waiting for admin approval before it can be published.",
+    "Back to Products": "Back to Products",
+    "Ready to save": "Ready to save",
+    "Needs attention": "Needs attention",
+    "This draft is already waiting for admin review.": "This draft is already waiting for admin review.",
+    "Your account does not have permission to submit products for review.": "Your account does not have permission to submit products for review.",
+    "Product changes saved.": "Product changes saved.",
+    "Product authoring is temporarily unavailable.": "Product authoring is temporarily unavailable.",
+    "Product authoring is not available for your current role.": "Product authoring is not available for your current role.",
+    "Fetching product authoring data.": "Fetching product authoring data.",
+    "Accepted formats: JPG, PNG, WEBP (1:1 Square recommended, max 5 MB) • Image 1 is the main Cover.": "Accepted formats: JPG, PNG, WEBP (1:1 Square recommended, max 5 MB) • Image 1 is the main Cover."
   },
   "categories": {
     "Active": "Active",

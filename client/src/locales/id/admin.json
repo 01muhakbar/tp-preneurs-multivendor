@@ -468,7 +468,22 @@
     "Digital Asset": "Aset Digital",
     "Provide a download link or access instruction for the digital product.": "Sediakan tautan unduhan atau instruksi akses untuk produk digital.",
     "Download Link / Instructions": "Tautan Unduhan / Instruksi",
-    "Enter download link (e.g. Google Drive, Dropbox) or access instructions...": "Masukkan tautan unduhan (mis. Google Drive, Dropbox) atau instruksi akses..."
+    "Enter download link (e.g. Google Drive, Dropbox) or access instructions...": "Masukkan tautan unduhan (mis. Google Drive, Dropbox) atau instruksi akses...",
+    "Submit for Review": "Ajukan untuk Ditinjau",
+    "Submitting...": "Mengajukan...",
+    "Resubmit for Review": "Ajukan Ulang untuk Ditinjau",
+    "Product Submitted for Review": "Produk Diajukan untuk Ditinjau",
+    "Your product is waiting for admin approval before it can be published.": "Produk Anda menunggu persetujuan admin sebelum dapat diterbitkan.",
+    "Back to Products": "Kembali ke Produk",
+    "Ready to save": "Siap disimpan",
+    "Needs attention": "Perlu perhatian",
+    "This draft is already waiting for admin review.": "Draf ini sudah menunggu tinjauan admin.",
+    "Your account does not have permission to submit products for review.": "Akun Anda tidak memiliki izin untuk mengajukan produk untuk ditinjau.",
+    "Product changes saved.": "Perubahan produk berhasil disimpan.",
+    "Product authoring is temporarily unavailable.": "Penyuntingan produk sementara tidak tersedia.",
+    "Product authoring is not available for your current role.": "Penyuntingan produk tidak tersedia untuk peran Anda saat ini.",
+    "Fetching product authoring data.": "Mengambil data penyuntingan produk.",
+    "Accepted formats: JPG, PNG, WEBP (1:1 Square recommended, max 5 MB) • Image 1 is the main Cover.": "Format yang didukung: JPG, PNG, WEBP (1:1 Disarankan, maks. 5 MB) • Gambar 1 menjadi Sampul utama."
   },
   "categories": {
     "Active": "Aktif",

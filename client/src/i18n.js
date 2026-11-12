@@ -29,6 +29,11 @@ const getStoredLanguage = () => {
   if (window.location.pathname === "/admin" || window.location.pathname.startsWith("/admin/")) {
     return normalizeLanguageCode(readJsonStorage("adminLanguage")?.isoCode);
   }
+  if (window.location.pathname === "/seller" || window.location.pathname.startsWith("/seller/")) {
+    const sellerLang = readJsonStorage("seller_language")?.isoCode;
+    if (sellerLang) return normalizeLanguageCode(sellerLang);
+    return normalizeLanguageCode(localStorage.getItem('store_language'));
+  }
   return normalizeLanguageCode(localStorage.getItem('store_language'));
 };
 

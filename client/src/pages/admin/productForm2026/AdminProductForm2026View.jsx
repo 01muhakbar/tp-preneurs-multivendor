@@ -136,7 +136,7 @@ function FormState({ type, message, onRetry }) {
       <p>{message}</p>
       {type === "error" ? (
         <button type="button" className="apf26-button apf26-button--primary" onClick={onRetry}>
-          Try Again
+          {t("productForm.Try Again")}
         </button>
       ) : null}
     </main>
@@ -176,14 +176,14 @@ function BasicStep({
           className={activeBasicTab === "basic" ? "is-active" : ""}
           onClick={() => setActiveBasicTab("basic")}
         >
-          Basic Info
+          {t("productForm.Basic Info")}
         </button>
         <button
           type="button"
           className={activeBasicTab === "seo" ? "is-active" : ""}
           onClick={() => setActiveBasicTab("seo")}
         >
-          SEO
+          {t("productForm.SEO")}
         </button>
       </div>
       <div className="apf26-grid">
@@ -356,7 +356,6 @@ function MediaStep({
   const [draggedImageId, setDraggedImageId] = useState(null);
   const [dragOverImageId, setDragOverImageId] = useState(null);
   const [selectedImageId, setSelectedImageId] = useState(null);
-  const [showGuideDetails, setShowGuideDetails] = useState(false);
   const [dimensionsMap, setDimensionsMap] = useState({});
 
   const coverImage = useMemo(
@@ -465,156 +464,12 @@ function MediaStep({
           <span className="apf26-chip">{localImages.length} / 5 {t("productForm.image(s)")}</span>
         </div>
 
-        {/* Responsive Image Guidelines Banner */}
-        <div className="apf26-media-guidelines">
-          <div className="apf26-guidelines-header">
-            <div className="apf26-guidelines-header__info">
-              <div className="apf26-guidelines-header__badge">
-                <Sparkles size={14} />
-                <span>E-Commerce 2026 Ready</span>
-              </div>
-              <h4>{t("productForm.Responsive Visual Recommendations")}</h4>
-              <p>
-                {t(
-                  "productForm.Format and dimension guidelines to ensure your product visuals look sharp on Mobile, Tablet, Desktop, and Lightbox Zoom without slowing down page load times."
-                )}
-              </p>
-            </div>
-            <button
-              type="button"
-              className="apf26-guidelines-toggle"
-              onClick={() => setShowGuideDetails((prev) => !prev)}
-              aria-expanded={showGuideDetails}
-            >
-              <span>
-                {showGuideDetails
-                  ? t("productForm.Hide Detailed Matrix")
-                  : t("productForm.Show Screen Breakdown & Tips")}
-              </span>
-              <ChevronDown size={15} className={showGuideDetails ? "is-rotated" : ""} />
-            </button>
-          </div>
-
-          <div className="apf26-guidelines-grid">
-            <div className="apf26-guideline-card">
-              <div className="apf26-guideline-card__top">
-                <Maximize2 size={16} className="text-primary" />
-                <span className="apf26-guideline-card__label">{t("productForm.Aspect Ratio")}</span>
-              </div>
-              <strong className="apf26-guideline-card__value">{t("productForm.1:1 Square")}</strong>
-              <p className="apf26-guideline-card__desc">
-                {t("productForm.Ensures consistent alignment in catalog grids, search cards, and carts.")}
-              </p>
-            </div>
-
-            <div className="apf26-guideline-card is-highlighted">
-              <div className="apf26-guideline-card__top">
-                <Sparkles size={16} className="text-accent" />
-                <span className="apf26-guideline-card__label">{t("productForm.Optimal Dimensions")}</span>
-              </div>
-              <strong className="apf26-guideline-card__value">{t("productForm.1000 × 1000 px")}</strong>
-              <p className="apf26-guideline-card__desc">
-                {t("productForm.Min. 800 × 800 px, up to 1200 × 1200 px for crisp 4x Lightbox Zoom.")}
-              </p>
-            </div>
-
-            <div className="apf26-guideline-card">
-              <div className="apf26-guideline-card__top">
-                <HardDrive size={16} />
-                <span className="apf26-guideline-card__label">{t("productForm.File Format & Size")}</span>
-              </div>
-              <strong className="apf26-guideline-card__value">{t("productForm.WEBP / JPG / PNG")}</strong>
-              <p className="apf26-guideline-card__desc">
-                {t("productForm.Max 5 MB (ideal < 1 MB). WEBP delivers the fastest load speed.")}
-              </p>
-            </div>
-
-            <div className="apf26-guideline-card">
-              <div className="apf26-guideline-card__top">
-                <Info size={16} />
-                <span className="apf26-guideline-card__label">{t("productForm.Gallery Limit")}</span>
-              </div>
-              <strong className="apf26-guideline-card__value">{t("productForm.Up to 5 Images")}</strong>
-              <p className="apf26-guideline-card__desc">
-                {t("productForm.Image 1 is the primary Cover; images 2–5 show details & angles.")}
-              </p>
-            </div>
-          </div>
-
-          {showGuideDetails ? (
-            <div className="apf26-guidelines-drawer">
-              <div className="apf26-guidelines-drawer__section">
-                <h5>{t("productForm.Responsive Screen Breakdown")}</h5>
-                <div className="apf26-screen-matrix">
-                  <div className="apf26-screen-item">
-                    <div className="apf26-screen-item__header">
-                      <Smartphone size={15} />
-                      <strong>{t("productForm.Mobile (Smartphone)")}</strong>
-                      <span className="apf26-spec-pill">~240 × 240 px</span>
-                    </div>
-                    <p>
-                      {t(
-                        "productForm.Rendered at ~240px. High-DPI Retina screens require at least 720px input for razor-sharp clarity."
-                      )}
-                    </p>
-                  </div>
-                  <div className="apf26-screen-item">
-                    <div className="apf26-screen-item__header">
-                      <Monitor size={15} />
-                      <strong>{t("productForm.Desktop / Laptop")}</strong>
-                      <span className="apf26-spec-pill">340px - 480px</span>
-                    </div>
-                    <p>
-                      {t(
-                        "productForm.Rendered at 340px to 480px on product detail pages and 205-235px on catalog grids."
-                      )}
-                    </p>
-                  </div>
-                  <div className="apf26-screen-item">
-                    <div className="apf26-screen-item__header">
-                      <ZoomIn size={15} />
-                      <strong>{t("productForm.Lightbox Zoom (4x)")}</strong>
-                      <span className="apf26-spec-pill">Up to 85vh / 4x</span>
-                    </div>
-                    <p>
-                      {t(
-                        "productForm.Supports up to 4x interactive zoom (85vh height). 1000px+ input prevents pixelation."
-                      )}
-                    </p>
-                  </div>
-                  <div className="apf26-screen-item">
-                    <div className="apf26-screen-item__header">
-                      <Box size={15} />
-                      <strong>{t("productForm.Storefront Grid")}</strong>
-                      <span className="apf26-spec-pill">205px - 235px</span>
-                    </div>
-                    <p>
-                      {t(
-                        "productForm.Uniform 1:1 square display prevents irregular white margins and cropped edges."
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="apf26-guidelines-drawer__section">
-                <h5>{t("productForm.Photography Best Practices")}</h5>
-                <ul className="apf26-tips-list">
-                  <li>{t("productForm.Center the product occupying 75%–85% of the frame with even lighting.")}</li>
-                  <li>
-                    {t(
-                      "productForm.Use a clean neutral background (pure white or subtle light gray) to keep focus on the item."
-                    )}
-                  </li>
-                  <li>
-                    {t(
-                      "productForm.Use sRGB color space for accurate color reproduction across phones and laptops."
-                    )}
-                  </li>
-                </ul>
-              </div>
-            </div>
-          ) : null}
+        {/* Concise Media Guidelines Banner */}
+        <div className="apf26-media-banner">
+          <Sparkles size={16} className="apf26-media-banner__icon" />
+          <span>
+            {t("productForm.Accepted formats: JPG, PNG, WEBP (1:1 Square recommended, max 5 MB) • Image 1 is the main Cover.")}
+          </span>
         </div>
 
         {/* Enhanced Uploader */}
@@ -863,30 +718,6 @@ function MediaStep({
               }
             />
           </TextField>
-          <TextField
-            label={t("productForm.Product Slug")}
-            value={form.slug}
-            onChange={(event) => onFormChange({ slug: event.target.value })}
-          />
-          <TextField label={t("productForm.Product Tags")}>
-            <input
-              className="apf26-input"
-              value={tagInput}
-              onChange={(event) => onTagInputChange(event.target.value)}
-              onKeyDown={onTagKeyDown}
-              placeholder={t("productForm.Add tags and press Enter")}
-            />
-            <div className="apf26-chip-row">
-              {form.tags.map((tag) => (
-                <span key={tag} className="apf26-chip">
-                  {tag}
-                  <button type="button" onClick={() => onRemoveTag(tag)} aria-label={`Remove ${tag}`}>
-                    <X size={13} />
-                  </button>
-                </span>
-              ))}
-            </div>
-          </TextField>
         </div>
       </aside>
     </div>
@@ -936,13 +767,13 @@ function PricingStep({ form, meta, onFormChange, onMetaChange }) {
             </div>
           </TextField>
         </div>
-        <label className="mt-4 flex items-center gap-3 text-sm font-bold text-slate-700">
+        <label className="mt-4 flex items-center gap-3 text-sm font-bold text-slate-700 dark:text-slate-200">
           <input
             type="checkbox"
             checked={meta.enablePromoPrice}
             onChange={(event) => onMetaChange({ enablePromoPrice: event.target.checked })}
           />
-          Enable Promo Price
+          {t("productForm.Enable Promo Price")}
         </label>
       </section>
       <section className="apf26-card">
@@ -972,19 +803,6 @@ function PricingStep({ form, meta, onFormChange, onMetaChange }) {
             value={meta.lowStockThreshold}
             helper={t("productForm.You'll be notified when stock reaches this level.")}
             onChange={(event) => onMetaChange({ lowStockThreshold: event.target.value })}
-          />
-          <TextField
-            label={t("productForm.SKU (Stock Keeping Unit)")}
-            required
-            value={form.sku}
-            helper={t("productForm.Unique identifier for this product.")}
-            onChange={(event) => onFormChange({ sku: event.target.value })}
-          />
-          <TextField
-            label={t("productForm.Product Slug")}
-            value={form.slug}
-            helper={t("productForm.URL-friendly product slug.")}
-            onChange={(event) => onFormChange({ slug: event.target.value })}
           />
         </div>
         <div className="mt-5">
@@ -1580,9 +1398,9 @@ function ReviewStep({
   const hasBlockingChecklistItem = reviewChecklist.some((item) => item.done === false);
   const checklistBadgeLabel =
     workflow === "seller" && normalizedReviewMode === "update"
-      ? "Ready to save"
+      ? t("productForm.Ready to save")
       : hasBlockingChecklistItem
-        ? "Needs attention"
+        ? t("productForm.Needs attention")
         : t("productForm.All good");
 
   return (
@@ -1702,16 +1520,16 @@ function SuccessState({
           onClick={onViewProduct}
         >
           <Eye size={18} />
-          {primaryLabel || "View Product"}
+          {primaryLabel || t("productForm.View Product")}
         </button>
         <button type="button" className="apf26-button" onClick={onAddAnother}>
           <Plus size={18} />
-          {secondaryLabel || "Add Another Product"}
+          {secondaryLabel || t("productForm.Add Another Product")}
         </button>
       </div>
       <button type="button" className="apf26-button apf26-success__back" onClick={onBackToList}>
         <ArrowLeft size={18} />
-        {backLabel || "Back to Products List"}
+        {backLabel || t("productForm.Back to Products List")}
       </button>
     </div>
   );
@@ -1970,7 +1788,7 @@ export default function AdminProductForm2026View({
           <footer className="apf26-actions">
             {activeStep > 1 ? (
               <button type="button" className="apf26-button" onClick={onPrevious} disabled={isSubmitting}>
-                Previous
+                {t("productForm.Previous")}
               </button>
             ) : null}
             {activeStep < 6 ? (
@@ -1980,7 +1798,7 @@ export default function AdminProductForm2026View({
                 onClick={onNext}
                 disabled={isSubmitting}
               >
-                Save & Continue
+                {t("productForm.Save & Continue")}
                 <ChevronRight size={18} />
               </button>
             ) : isEdit ? (
