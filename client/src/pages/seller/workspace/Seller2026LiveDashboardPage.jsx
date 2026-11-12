@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   AlertTriangle,
   BadgeCheck,
@@ -29,12 +30,69 @@ import "../../../features/sellerWorkspace2026/SellerWorkspace2026.css";
 
 const toneForStatus = (status) => {
   const value = String(status || "").toLowerCase();
-  if (value.includes("ready") || value.includes("active")) return "success";
-  if (value.includes("no product") || value.includes("update") || value.includes("high")) {
+  if (
+    value.includes("ready") ||
+    value.includes("active") ||
+    value.includes("siap") ||
+    value.includes("aktif") ||
+    value.includes("selesai") ||
+    value.includes("complete")
+  ) {
+    return "success";
+  }
+  if (
+    value.includes("no product") ||
+    value.includes("update") ||
+    value.includes("high") ||
+    value.includes("tinggi") ||
+    value.includes("perbarui") ||
+    value.includes("belum ada")
+  ) {
     return "warning";
   }
-  if (value.includes("low")) return "info";
+  if (
+    value.includes("low") ||
+    value.includes("rendah") ||
+    value.includes("monitor") ||
+    value.includes("pantau") ||
+    value.includes("info")
+  ) {
+    return "info";
+  }
   return "neutral";
+};
+
+const getReadinessRoute = (key, routes) => {
+  switch (key) {
+    case "profile":
+      return routes.storeProfile();
+    case "shipping":
+      return routes.shippingSetup();
+    case "payment":
+      return routes.paymentProfile();
+    case "products":
+      return routes.catalog();
+    default:
+      return routes.home();
+  }
+};
+
+const formatRole = (role, isId = false) => {
+  const norm = String(role || "").toUpperCase();
+  if (norm === "STORE_OWNER" || norm === "OWNER") return isId ? "Pemilik Toko" : "Store Owner";
+  if (norm === "SELLER") return isId ? "Penjual" : "Seller";
+  if (norm === "ADMIN" || norm === "SUPER_ADMIN") return "Admin";
+  return role || "-";
+};
+
+const formatCouponStatus = (status, isId = false) => {
+  if (!status) return "-";
+  if (!isId) return status;
+  const norm = String(status).toLowerCase();
+  if (norm.includes("suborder-attributed") || norm.includes("attributed")) return "Teratribusi Suborder";
+  if (norm.includes("monitor")) return "Pantau";
+  if (norm.includes("no activity")) return "Belum ada aktivitas";
+  return status;
 };
 
 function StatusPill({ children, tone }) {
@@ -98,9 +156,17 @@ function MiniChart({ labels, values, isId = false }) {
   const translateDateLabel = (label) => {
     if (!isId || !label) return label;
     return String(label)
+      .replace(/\bJan\b/g, "Jan")
+      .replace(/\bFeb\b/g, "Feb")
+      .replace(/\bMar\b/g, "Mar")
+      .replace(/\bApr\b/g, "Apr")
       .replace(/\bMay\b/g, "Mei")
+      .replace(/\bJun\b/g, "Jun")
+      .replace(/\bJul\b/g, "Jul")
       .replace(/\bAug\b/g, "Ags")
+      .replace(/\bSep\b/g, "Sep")
       .replace(/\bOct\b/g, "Okt")
+      .replace(/\bNov\b/g, "Nov")
       .replace(/\bDec\b/g, "Des");
   };
 
@@ -109,8 +175,8 @@ function MiniChart({ labels, values, isId = false }) {
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img">
         <defs>
           <linearGradient id="seller2026-chart-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#2563eb" stopOpacity=".18" />
-            <stop offset="100%" stopColor="#2563eb" stopOpacity="0" />
+            <stop offset="0%" stopColor="#034c85" stopOpacity=".28" />
+            <stop offset="100%" stopColor="#034c85" stopOpacity="0" />
           </linearGradient>
         </defs>
         <g className="seller2026-chart__grid">
@@ -120,7 +186,7 @@ function MiniChart({ labels, values, isId = false }) {
         <polyline className="seller2026-chart__line" points={points} />
         {values.map((value, index) => {
           const [x, y] = points.split(" ")[index].split(",");
-          return <circle key={`${index}-${value}`} cx={x} cy={y} r="1.25" />;
+          return <circle key={`${index}-${value}`} cx={x} cy={y} r="1.35" />;
         })}
       </svg>
       <div className="seller2026-chart__labels">
@@ -147,35 +213,27 @@ function DashboardSkeleton({ isId = false }) {
   );
 }
 
-function translateDashboardItem(label, isId) {
+function translateDashboardItem(label, isId = false) {
+  if (!label) return "";
   if (!isId) return label;
-  switch (label) {
-    case "Store Profile":
-      return "Profil Toko";
-    case "Shipping Setup":
-      return "Pengaturan Pengiriman";
-    case "Payment Setup":
-      return "Pengaturan Pembayaran";
-    case "Products":
-      return "Produk";
-    default:
-      return label;
-  }
+  const norm = String(label).trim().toLowerCase();
+  if (norm === "store profile") return "Profil Toko";
+  if (norm === "shipping setup") return "Pengaturan Pengiriman";
+  if (norm === "payment setup") return "Pengaturan Pembayaran";
+  if (norm === "products") return "Katalog Produk";
+  return label;
 }
 
-function translateStatusLabel(status, isId) {
+function translateStatusLabel(status, isId = false) {
+  if (!status) return "";
   if (!isId) return status;
-  switch (status) {
-    case "Ready":
-      return "Siap";
-    case "Needs update":
-      return "Perlu diperbarui";
-    case "No products":
-    case "No products yet":
-      return "Belum ada produk";
-    default:
-      return status;
-  }
+  const norm = String(status).trim().toLowerCase();
+  if (norm === "ready" || norm === "complete" || norm === "completed") return "Siap";
+  if (norm === "needs update") return "Perlu diperbarui";
+  if (norm === "no products" || norm === "no products yet") return "Belum ada produk";
+  if (norm === "active") return "Aktif";
+  if (norm === "inactive") return "Nonaktif";
+  return status;
 }
 
 export default function Seller2026LiveDashboardPage() {
@@ -184,8 +242,10 @@ export default function Seller2026LiveDashboardPage() {
     workspaceStoreId: storeId,
     workspaceStoreSlug: storeSlug,
     workspaceRoutes,
-    isId = false,
+    isId: outletIsId = false,
   } = useSellerWorkspaceRoute();
+  const { i18n } = useTranslation();
+  const isId = Boolean(outletIsId || String(i18n.language || "").toLowerCase().startsWith("id"));
   const { can } = getSeller2026PagePermissions(sellerContext);
   const canViewStore = can("STORE_DASHBOARD_VIEW");
   const canViewOrders = can("ORDER_READ");
@@ -265,7 +325,7 @@ export default function Seller2026LiveDashboardPage() {
               <p>{isId ? "Pusat Kendali" : "Command Center"}</p>
             </div>
             {publicStoreUrl ? (
-              <Link className="seller2026-view-store" to={publicStoreUrl} target="_blank">
+              <Link className="seller2026-view-store" to={publicStoreUrl} target="_blank" rel="noreferrer">
                 {isId ? "Lihat Toko" : "View Store"} <ExternalLink size={15} />
               </Link>
             ) : (
@@ -325,12 +385,15 @@ export default function Seller2026LiveDashboardPage() {
         >
           <div className="seller2026-readiness">
             {data.readiness.items.map((item) => (
-              <div className="seller2026-readiness__item" key={item.key}>
-                <strong>{translateDashboardItem(item.label, isId)}</strong>
+              <Link to={getReadinessRoute(item.key, workspaceRoutes)} className="seller2026-readiness__item" key={item.key}>
+                <strong>
+                  <span>{translateDashboardItem(item.label, isId)}</span>
+                  <ChevronRight size={14} />
+                </strong>
                 <span>{translateStatusLabel(item.status, isId)}</span>
                 <div className="seller2026-progress"><i style={{ width: `${item.percent}%` }} /></div>
-                <small>{item.completed}/{item.total}</small>
-              </div>
+                <small>{item.completed}/{item.total} ({item.percent}%)</small>
+              </Link>
             ))}
           </div>
         </SectionCard>
@@ -347,6 +410,9 @@ export default function Seller2026LiveDashboardPage() {
                 <StatusPill>{translateStatusLabel(item.key === "products" && item.status === "No products" ? "No products yet" : item.status, isId)}</StatusPill>
                 <span>{item.completed} / {item.total}</span>
                 <div className="seller2026-progress"><i style={{ width: `${item.percent}%` }} /></div>
+                <Link to={getReadinessRoute(item.key, workspaceRoutes)} className="seller2026-checklist__btn">
+                  {item.percent === 100 ? (isId ? "Lihat" : "View") : (isId ? "Atur" : "Setup")} <ChevronRight size={13} />
+                </Link>
               </div>
             ))}
           </div>
@@ -387,12 +453,15 @@ export default function Seller2026LiveDashboardPage() {
                 <div><dt>{isId ? "Penyedia" : "Provider"}</dt><dd>{data.paymentSetup.provider === "Not configured" && isId ? "Belum dikonfigurasi" : data.paymentSetup.provider}</dd></div>
                 <div><dt>{isId ? "Tipe" : "Type"}</dt><dd>{data.paymentSetup.type === "Not configured" && isId ? "Belum dikonfigurasi" : data.paymentSetup.type}</dd></div>
               </dl>
+              <Link to={workspaceRoutes.paymentProfile()} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 700, color: '#fe6f05', marginTop: 10 }}>
+                {isId ? "Konfigurasi Pembayaran" : "Configure Payment"} <ChevronRight size={13} />
+              </Link>
             </SectionCard>
           </div>
           <div className="seller2026-dashboard__side-row">
             <SectionCard title={isId ? "Konteks Toko" : "Store Context"} icon={Store}>
               <dl className="seller2026-definition">
-                <div><dt>{isId ? "Peran" : "Role"}</dt><dd>{store.role === "SELLER" && isId ? "PENJUAL" : store.role}</dd></div>
+                <div><dt>{isId ? "Peran" : "Role"}</dt><dd>{formatRole(store.role, isId)}</dd></div>
                 <div><dt>{isId ? "Cakupan" : "Scope"}</dt><dd>{store.slug}</dd></div>
               </dl>
             </SectionCard>
@@ -419,7 +488,7 @@ export default function Seller2026LiveDashboardPage() {
               [isId ? "Menunggu" : "Waiting", data.operational.waiting],
               [isId ? "Kendala" : "Exceptions", data.operational.exceptions],
               [isId ? "Pendapatan Selesai" : "Completed Rev.", formatSeller2026Currency(data.operational.completedRevenue)],
-              [isId ? "Pendapatan Dalam Proses" : "In-Flight Rev.", formatSeller2026Currency(data.operational.inFlightRevenue)],
+              [isId ? "Pendapatan Proses" : "In-Flight Rev.", formatSeller2026Currency(data.operational.inFlightRevenue)],
               ["AOV", formatSeller2026Currency(data.operational.aov)],
             ].map(([label, value]) => <div key={label}><span>{label}</span><strong>{value}</strong></div>)}
           </div>
@@ -429,7 +498,7 @@ export default function Seller2026LiveDashboardPage() {
             <div><span>{isId ? "Pesanan Teratribusi" : "Attributed Orders"}</span><strong>{data.couponAttribution.attributedOrders}</strong></div>
             <div><span>{isId ? "Diskon Teratribusi" : "Attributed Discount"}</span><strong>{formatSeller2026Currency(data.couponAttribution.attributedDiscount)}</strong></div>
             <div><span>{isId ? "Cakupan" : "Coverage"}</span><strong>{data.couponAttribution.coverage}%</strong></div>
-            <div><span>Status</span><strong>{data.couponAttribution.status === "Monitor" && isId ? "Pantau" : data.couponAttribution.status === "No activity" && isId ? "Belum ada aktivitas" : data.couponAttribution.status}</strong></div>
+            <div><span>Status</span><strong>{formatCouponStatus(data.couponAttribution.status, isId)}</strong></div>
           </div>
         </SectionCard>
       </div>
