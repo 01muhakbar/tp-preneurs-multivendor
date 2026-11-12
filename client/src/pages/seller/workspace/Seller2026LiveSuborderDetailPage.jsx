@@ -119,6 +119,7 @@ export default function Seller2026LiveSuborderDetailPage() {
     orderDetail2026?.fulfillmentDraft?.shippingProvider,
     orderDetail2026?.fulfillmentDraft?.courierService,
     orderDetail2026?.fulfillmentDraft?.shippingFee,
+    orderDetail2026?.fulfillmentDraft?.packageWeight,
   ]);
 
   useEffect(() => {

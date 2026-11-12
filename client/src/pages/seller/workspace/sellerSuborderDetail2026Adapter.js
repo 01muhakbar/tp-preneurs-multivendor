@@ -113,14 +113,11 @@ export const INDONESIA_COURIERS = [
   },
 ];
 
-export const formatWeight = (grams = 0) => {
-  const g = Number(grams) || 0;
-  if (g <= 0) return "-";
-  if (g >= 1000) {
-    const kg = (g / 1000).toFixed(2).replace(/\.?0+$/, "");
-    return `${kg} kg (${g.toLocaleString("id-ID")} gr)`;
-  }
-  return `${g.toLocaleString("id-ID")} gr`;
+export const formatWeight = (kg = 0) => {
+  const w = Number(kg);
+  if (!Number.isFinite(w) || w <= 0) return "-";
+  const formatted = w % 1 === 0 ? String(w) : w.toFixed(2).replace(/\.?0+$/, "");
+  return `${formatted} kg`;
 };
 
 const asObject = (value) =>
@@ -380,8 +377,8 @@ const normalizeItems = (items, isIndo = false) =>
       imageUrl: text(row.imageUrl ?? row.image ?? row.imageSnapshot ?? row.product?.image),
       weight,
       lineWeight,
-      weightLabel: weight > 0 ? (weight >= 1000 ? `${(weight / 1000).toFixed(2).replace(/\.?0+$/, "")} kg` : `${weight} gr`) : null,
-      lineWeightLabel: lineWeight > 0 ? (lineWeight >= 1000 ? `${(lineWeight / 1000).toFixed(2).replace(/\.?0+$/, "")} kg` : `${lineWeight} gr`) : null,
+      weightLabel: weight > 0 ? formatWeight(weight) : null,
+      lineWeightLabel: lineWeight > 0 ? formatWeight(lineWeight) : null,
     };
   });
 
@@ -549,6 +546,14 @@ export const buildSellerSuborderFulfillmentPayload2026 = (action, draft = {}) =>
         payload.shippingFee = parsedFee;
       }
     }
+    const rawWeight = draft.packageWeight ?? draft.totalWeight;
+    if (rawWeight !== undefined && rawWeight !== null && String(rawWeight).trim() !== "") {
+      const parsedWeight = Number(rawWeight);
+      if (Number.isFinite(parsedWeight) && parsedWeight >= 0) {
+        payload.totalWeight = parsedWeight;
+        payload.packageWeight = parsedWeight;
+      }
+    }
   }
 
   return payload;
@@ -690,11 +695,13 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
   const normItems = normalizeItems(detail.items, isIndo);
   const calculatedTotalWeight = normItems.reduce((sum, it) => sum + (it.lineWeight || 0), 0);
   const pkg = asObject(detail.package);
-  const totalWeight = number(
-    pkg.weight ?? pkg.totalWeight ?? shipping.totalWeight ?? detail.totalWeight,
+  const rawShipmentSnapshotWeight = detail.shipment?.shippingRateSnapshot?.totalWeight ?? detail.shipment?.shippingRateSnapshot?.weight;
+  const storedTotalWeight = number(
+    rawShipmentSnapshotWeight ?? pkg.weight ?? pkg.totalWeight ?? shipping.totalWeight ?? detail.totalWeight,
     calculatedTotalWeight
   );
-  const isWeightSynced = totalWeight > 0 || normItems.some((it) => it.weight > 0);
+  const totalWeight = storedTotalWeight > 0 ? storedTotalWeight : calculatedTotalWeight;
+  const isWeightSynced = calculatedTotalWeight > 0 && Math.abs(totalWeight - calculatedTotalWeight) < 0.001;
   const totalWeightLabel = formatWeight(totalWeight);
 
   const rawPaymentMethod =
@@ -782,6 +789,7 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
     package: {
       weight: totalWeight,
       weightLabel: totalWeightLabel,
+      calculatedWeight: calculatedTotalWeight,
       isSynced: isWeightSynced,
       totalPhysicalItems: number(
         pkg.totalPhysicalItems,
@@ -831,6 +839,7 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
       courierService: isStatusEnum(rawMethod) ? "" : text(rawMethod),
       shippingFee: number(totals.shippingFee ?? detail.totals?.shippingAmount, 0),
       totalWeight,
+      packageWeight: totalWeight > 0 ? (totalWeight % 1 === 0 ? String(totalWeight) : totalWeight.toFixed(2).replace(/\.?0+$/, "")) : "",
       note: "",
     },
 

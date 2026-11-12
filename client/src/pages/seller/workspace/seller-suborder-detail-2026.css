@@ -980,6 +980,68 @@
   border-bottom-left-radius: 0;
 }
 
+.tpsodp2026-input--prefixed-suffixed {
+  border-radius: 0 !important;
+}
+
+.tpsodp2026-input-suffix {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--s26-text-muted);
+  background: var(--s26-surface-subtle);
+  border: 1px solid var(--s26-border);
+  border-left: none;
+  border-top-right-radius: var(--s26-radius-md);
+  border-bottom-right-radius: var(--s26-radius-md);
+  user-select: none;
+}
+
+.tpsodp2026-badge-manual-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tpsodp2026-badge-manual {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: var(--s26-radius-full);
+  background: rgba(254, 111, 5, 0.12);
+  color: #fe6f05;
+  border: 1px solid rgba(254, 111, 5, 0.3);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.tpsodp2026-btn-mini-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: var(--s26-radius-full);
+  background: rgba(3, 76, 133, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(3, 76, 133, 0.35);
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1.2;
+}
+
+.tpsodp2026-btn-mini-reset:hover {
+  background: var(--s26-primary);
+  color: #ffffff;
+  border-color: var(--s26-primary);
+}
+
 /* Weight Display & Badge */
 .tpsodp2026-weight-display {
   display: flex;

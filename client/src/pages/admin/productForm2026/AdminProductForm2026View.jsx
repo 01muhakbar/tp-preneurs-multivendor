@@ -1452,11 +1452,10 @@ function DetailsStep({
               <TextField label={t("productForm.Unit")}>
                 <select
                   className="apf26-select"
-                  value={meta.weightUnit}
-                  onChange={(event) => onMetaChange({ weightUnit: event.target.value })}
+                  value={meta.weightUnit || "kg"}
+                  onChange={(event) => onMetaChange({ weightUnit: "kg" })}
                 >
                   <option value="kg">kg</option>
-                  <option value="g">g</option>
                 </select>
               </TextField>
             </div>

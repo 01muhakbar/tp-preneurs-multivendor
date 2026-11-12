@@ -676,6 +676,7 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
       brand: product.productInfo?.brand || product.brand || "",
       lowStockThreshold: lowStockVal == null ? "" : String(lowStockVal),
       weight: weightVal == null ? "" : String(weightVal),
+      weightUnit: "kg",
       length: lengthVal == null ? "" : String(lengthVal),
       width: widthVal == null ? "" : String(widthVal),
       height: heightVal == null ? "" : String(heightVal),

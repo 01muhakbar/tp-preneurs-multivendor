@@ -337,6 +337,7 @@ const syncSellerShipmentFinancials = async (input: {
   suborder: any;
   shipment: any;
   shippingFee: number;
+  totalWeight?: number | null;
   transaction?: any;
 }) => {
   const currentSuborderShippingAmount = toNumber(getAttr(input.suborder, "shippingAmount"), 0);
@@ -347,15 +348,21 @@ const syncSellerShipmentFinancials = async (input: {
   const currentRateSnapshot = normalizeSnapshotObject(
     getAttr(input.shipment, "shippingRateSnapshot")
   );
+  const weightPatch =
+    input.totalWeight !== undefined && input.totalWeight !== null && input.totalWeight > 0
+      ? { totalWeight: input.totalWeight, weight: input.totalWeight, weightUnit: "kg" }
+      : {};
   const nextRateSnapshot =
     currentRateSnapshot && typeof currentRateSnapshot === "object"
       ? {
           ...currentRateSnapshot,
           amount: nextShippingFee,
+          ...weightPatch,
         }
       : {
           source: "SELLER_SHIPMENT_UPDATE",
           amount: nextShippingFee,
+          ...weightPatch,
         };
 
   await input.shipment.update(
@@ -789,7 +796,7 @@ const buildSellerShippingLabel = (suborder: any) => {
     },
     package: {
       weight: totalWeight || null,
-      weightLabel: totalWeight > 0 ? `${totalWeight} gr` : "-",
+      weightLabel: totalWeight > 0 ? `${totalWeight} kg` : "-",
       totalPhysicalItems: physicalItems.reduce(
         (sum: number, item: any) => sum + item.qty,
         0
@@ -1637,17 +1644,27 @@ const serializeDetail = (suborder: any, sellerAccess: any = null) => {
         lineWeight: weight * qty,
       };
     }),
-    package: {
-      weight: (Array.isArray(suborder?.items) ? suborder.items : []).reduce((sum: number, it: any) => {
+    package: (() => {
+      const activeShipment = (shippingReadModel.shipments || [])[0] || null;
+      const rawShipmentSnapshotWeight = (activeShipment as any)?.shippingRateSnapshot?.totalWeight ?? (activeShipment as any)?.shippingRateSnapshot?.weight;
+      const calculatedWeight = (Array.isArray(suborder?.items) ? suborder.items : []).reduce((sum: number, it: any) => {
         const prod = it?.product ?? it?.get?.("product") ?? null;
         const w = Math.max(0, toNumber(getAttr(prod, "weight"), 0));
         return sum + (w * toNumber(getAttr(it, "qty"), 0));
-      }, 0),
-      totalPhysicalItems: (Array.isArray(suborder?.items) ? suborder.items : []).reduce(
-        (sum: number, it: any) => sum + toNumber(getAttr(it, "qty"), 0),
-        0
-      ),
-    },
+      }, 0);
+      const resolvedWeight = rawShipmentSnapshotWeight !== undefined && rawShipmentSnapshotWeight !== null && Number(rawShipmentSnapshotWeight) > 0
+        ? Number(rawShipmentSnapshotWeight)
+        : calculatedWeight;
+      return {
+        weight: resolvedWeight,
+        weightLabel: resolvedWeight > 0 ? `${resolvedWeight} kg` : "-",
+        calculatedWeight,
+        totalPhysicalItems: (Array.isArray(suborder?.items) ? suborder.items : []).reduce(
+          (sum: number, it: any) => sum + toNumber(getAttr(it, "qty"), 0),
+          0
+        ),
+      };
+    })(),
     paymentSummary: latestPayment
       ? {
           id: toNumber(getAttr(latestPayment, "id")),
@@ -2059,11 +2076,16 @@ router.patch(
       const courierService = String(req.body?.courierService || "").trim() || null;
       const trackingNumber = String(req.body?.trackingNumber || "").trim() || null;
       const rawShippingFee = req.body?.shippingFee;
+      const rawPackageWeight = req.body?.packageWeight ?? req.body?.totalWeight;
       const actionDefinition =
         FULFILLMENT_ACTIONS[actionCode as keyof typeof FULFILLMENT_ACTIONS] ?? null;
       const shippingFee =
         actionCode === "MARK_SHIPPED" || actionCode === "MARK_PROCESSING"
           ? parseOptionalNonNegativeAmount(rawShippingFee)
+          : null;
+      const packageWeight =
+        actionCode === "MARK_SHIPPED" || actionCode === "MARK_PROCESSING"
+          ? parseOptionalNonNegativeAmount(rawPackageWeight)
           : null;
 
       if (!whereCondition) {
@@ -2257,14 +2279,15 @@ router.patch(
 
       if (
         (actionDefinition.code === "MARK_SHIPPED" || actionDefinition.code === "MARK_PROCESSING") &&
-        shippingFee !== null &&
+        (shippingFee !== null || packageWeight !== null) &&
         shipmentSync.shipment
       ) {
         await syncSellerShipmentFinancials({
           orderId: toNumber(getAttr(suborder, "orderId"), 0),
           suborder,
           shipment: shipmentSync.shipment,
-          shippingFee,
+          shippingFee: shippingFee !== null ? shippingFee : toNumber(getAttr(shipmentSync.shipment, "shippingFee"), 0),
+          totalWeight: packageWeight,
           transaction: tx,
         });
       }

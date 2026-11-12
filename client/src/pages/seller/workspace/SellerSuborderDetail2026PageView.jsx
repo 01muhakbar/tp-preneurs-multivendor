@@ -328,9 +328,14 @@ const I18N = {
     shippingFeePlaceholder: "0",
     shippingFeeHint: "Biaya ongkir aktual untuk pesanan ini",
     totalPackageWeight: "Berat Total Paket",
-    syncedCatalog: "Tersinkron Katalog",
-    catalogWeightHint: "Dihitung otomatis dari berat produk katalog",
+    syncedCatalog: "Hitungan Otomatis",
+    manualWeightBadge: "Disesuaikan Manual",
+    catalogWeightHint: "Dihitung otomatis: berat produk × jumlah pesanan",
+    manualWeightHint: "Berat paket disesuaikan manual oleh seller",
     catalogWeightUnset: "Berat produk belum diatur di katalog",
+    resetWeight: "Hitung Otomatis",
+    resetWeightHint: "Kembalikan ke hitungan berat produk katalog",
+    weightPlaceholder: "0",
     itemWeight: "Berat",
     trackingNo: "Nomor Resi",
     trackingPlaceholder: "Masukkan nomor resi...",
@@ -403,9 +408,14 @@ const I18N = {
     shippingFeePlaceholder: "0",
     shippingFeeHint: "Actual shipping fee for this suborder",
     totalPackageWeight: "Total Package Weight",
-    syncedCatalog: "Synced with Catalog",
-    catalogWeightHint: "Calculated from catalog product weights",
+    syncedCatalog: "Auto Calculated",
+    manualWeightBadge: "Manual Input",
+    catalogWeightHint: "Calculated automatically: product weight × quantity ordered",
+    manualWeightHint: "Package weight manually adjusted by seller",
     catalogWeightUnset: "Product weight unset in catalog",
+    resetWeight: "Auto Calculate",
+    resetWeightHint: "Reset to automatic catalog weight calculation",
+    weightPlaceholder: "0",
     itemWeight: "Weight",
     trackingNo: "Tracking Number",
     trackingPlaceholder: "Input tracking number...",
@@ -650,6 +660,32 @@ export default function SellerSuborderDetail2026PageView({
 
   // Editable shipping details whenever order is ready to fulfill / to pack
   const canEditShipping = isToPack || (!isShipped && !isDelivered && isPaid);
+
+  const catalogCalculatedWeight = Number(order.package?.calculatedWeight ?? order.package?.weight ?? 0);
+  const draftWeightRaw = fulfillmentDraft.packageWeight ?? fulfillmentDraft.totalWeight;
+  const currentWeightValue = draftWeightRaw !== undefined && draftWeightRaw !== null
+    ? draftWeightRaw
+    : (order.package?.weight ? (order.package.weight % 1 === 0 ? String(order.package.weight) : order.package.weight.toFixed(2).replace(/\.?0+$/, "")) : "");
+
+  const numericDraftWeight = Number(currentWeightValue);
+  const isWeightManuallyOverridden =
+    currentWeightValue !== "" &&
+    catalogCalculatedWeight > 0 &&
+    Number.isFinite(numericDraftWeight) &&
+    Math.abs(numericDraftWeight - catalogCalculatedWeight) > 0.001;
+
+  const handleWeightChange = (newVal) => {
+    onFulfillmentDraftChange?.("packageWeight", newVal);
+    onFulfillmentDraftChange?.("totalWeight", newVal);
+  };
+
+  const handleResetWeight = () => {
+    const val = catalogCalculatedWeight > 0
+      ? (catalogCalculatedWeight % 1 === 0 ? String(catalogCalculatedWeight) : catalogCalculatedWeight.toFixed(2).replace(/\.?0+$/, ""))
+      : "";
+    onFulfillmentDraftChange?.("packageWeight", val);
+    onFulfillmentDraftChange?.("totalWeight", val);
+  };
 
   const handleActionClick = (action) => {
     setValidationError("");
@@ -977,25 +1013,67 @@ export default function SellerSuborderDetail2026PageView({
                 <span className="tpsodp2026-field__hint">{t.shippingFeeHint}</span>
               </div>
 
-              {/* Total Package Weight (Berat Total Barang) */}
+              {/* Total Package Weight (Berat Total Paket) */}
               <div className="tpsodp2026-field">
                 <div className="tpsodp2026-field__label-row">
                   <label className="tpsodp2026-field__label">{t.totalPackageWeight}</label>
-                  {order.package?.isSynced && (
+                  {isWeightManuallyOverridden ? (
+                    <div className="tpsodp2026-badge-manual-wrap">
+                      <span className="tpsodp2026-badge-manual" title={t.manualWeightHint}>
+                        <span>{t.manualWeightBadge}</span>
+                      </span>
+                      {canEditShipping && (
+                        <button
+                          type="button"
+                          className="tpsodp2026-btn-mini-reset"
+                          onClick={handleResetWeight}
+                          title={t.resetWeightHint}
+                        >
+                          <RotateCcw size={10} />
+                          <span>{t.resetWeight}</span>
+                        </button>
+                      )}
+                    </div>
+                  ) : order.package?.isSynced ? (
                     <span className="tpsodp2026-badge-synced" title={t.catalogWeightHint}>
                       <Sparkles size={11} />
                       <span>{t.syncedCatalog}</span>
                     </span>
-                  )}
+                  ) : null}
                 </div>
-                <div className="tpsodp2026-weight-display">
-                  <Scale size={18} className="tpsodp2026-icon-weight" />
-                  <span className="tpsodp2026-weight-val">
-                    {order.package?.weightLabel || (order.package?.weight ? `${order.package.weight} gr` : "-")}
-                  </span>
-                </div>
+
+                {canEditShipping ? (
+                  <div className="tpsodp2026-input-prefix-wrap">
+                    <span className="tpsodp2026-input-prefix">
+                      <Scale size={15} />
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      className="tpsodp2026-input tpsodp2026-input--prefixed-suffixed"
+                      value={currentWeightValue}
+                      onChange={(e) => handleWeightChange(e.target.value)}
+                      placeholder={t.weightPlaceholder}
+                      disabled={isUpdating}
+                    />
+                    <span className="tpsodp2026-input-suffix">kg</span>
+                  </div>
+                ) : (
+                  <div className="tpsodp2026-weight-display">
+                    <Scale size={16} className="tpsodp2026-icon-weight" />
+                    <span className="tpsodp2026-weight-val">
+                      {order.package?.weightLabel || (order.package?.weight ? `${order.package.weight} kg` : "-")}
+                    </span>
+                  </div>
+                )}
+
                 <span className="tpsodp2026-field__hint">
-                  {order.package?.isSynced ? t.catalogWeightHint : t.catalogWeightUnset}
+                  {isWeightManuallyOverridden
+                    ? t.manualWeightHint
+                    : order.package?.isSynced
+                    ? t.catalogWeightHint
+                    : t.catalogWeightUnset}
                 </span>
               </div>
 

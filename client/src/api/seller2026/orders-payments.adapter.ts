@@ -135,6 +135,7 @@ export type Seller2026SuborderDetailViewModel = {
   package?: {
     weight?: number | null;
     totalWeight?: number | null;
+    calculatedWeight?: number | null;
     totalPhysicalItems?: number;
   } | null;
   payment: {
@@ -710,6 +711,7 @@ export function adaptSeller2026SuborderDetail(value: unknown): Seller2026Suborde
     package: {
       weight: totalWeight,
       totalWeight,
+      calculatedWeight: calculatedTotalWeight,
       totalPhysicalItems: number(pkg.totalPhysicalItems, items.reduce((sum, item) => sum + item.quantity, 0)),
     },
     payment: {
