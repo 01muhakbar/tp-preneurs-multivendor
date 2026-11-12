@@ -169,6 +169,20 @@ const normalizeItems = (items, isIndo = false) =>
     const quantity = number(row.quantity ?? row.qty, 0);
     const price = number(row.price, 0);
     const subtotal = number(row.lineTotal ?? row.total, price * quantity);
+    const productType = String(
+      row.productType ||
+      row.productTypeSnapshot ||
+      row.product?.productType ||
+      row.product?.seo?.productType ||
+      "physical"
+    ).toLowerCase();
+    const isDigital = productType === "digital" || Boolean(row.isDigital);
+    const digitalAssetUrl = text(
+      row.digitalAssetUrl ||
+      row.product?.digitalAssetUrl ||
+      row.product?.seo?.digitalAssetUrl
+    );
+
     return {
       id: row.id ?? index,
       name: text(row.name ?? row.productName ?? row.product?.name, `${isIndo ? "Produk" : "Item"} ${index + 1}`),
@@ -179,6 +193,9 @@ const normalizeItems = (items, isIndo = false) =>
       subtotal,
       subtotalLabel: formatCurrency(subtotal),
       imageUrl: text(row.imageUrl ?? row.image),
+      productType,
+      isDigital,
+      digitalAssetUrl,
     };
   });
 
@@ -287,11 +304,20 @@ export const normalizeStoreOrderTrackingFor2026 = ({ tracking, isIndo = false, i
     rawTrackingNumber !== "Belum ada nomor resi"
   );
   const trackingNumber = hasRealTrackingNumber ? rawTrackingNumber : "";
-  const trackingNumberDisplay = hasRealTrackingNumber
+  const isDigitalOrder = items.length > 0 && items.every((it) => it.isDigital);
+  const hasDigitalItems = items.some((it) => it.isDigital);
+
+  const trackingNumberDisplay = isDigitalOrder
+    ? (isIndo ? "Akses Digital Aktif di Akun Anda" : "Digital Access Active in Account")
+    : hasRealTrackingNumber
     ? rawTrackingNumber
     : isIndo
     ? "Menunggu nomor resi dari penjual"
     : "Awaiting tracking number from seller";
+
+  const resolvedCourierName = isDigitalOrder
+    ? (isIndo ? "Pengiriman Digital (Cloud Download)" : "Digital Delivery (Cloud Download)")
+    : courierName;
 
   // Dates & Estimations
   const createdDate = order.createdAt ? new Date(order.createdAt) : new Date();
@@ -349,6 +375,8 @@ export const normalizeStoreOrderTrackingFor2026 = ({ tracking, isIndo = false, i
   let activeStepIndex = 0;
   if (isUnpaid || isCancelled) {
     activeStepIndex = -1;
+  } else if (isDigitalOrder) {
+    activeStepIndex = isPaid ? 2 : 0;
   } else if (isDelivered) {
     activeStepIndex = 2;
   } else if (isOutForDelivery) {
@@ -372,6 +400,10 @@ export const normalizeStoreOrderTrackingFor2026 = ({ tracking, isIndo = false, i
     ? isIndo
       ? "Menunggu pembayaran dari pembeli"
       : "Awaiting payment from customer"
+    : isDigitalOrder
+    ? isIndo
+      ? "Produk digital siap diunduh"
+      : "Digital product ready for download"
     : isDelivered
     ? isIndo
       ? `Pesanan telah tiba pada ${estimatedDeliveryLabel}`
@@ -381,26 +413,47 @@ export const normalizeStoreOrderTrackingFor2026 = ({ tracking, isIndo = false, i
     : `Order arriving by ${estimatedDeliveryLabel}`;
 
   // Build the 3-step shipping tracker
-  const steps = [
-    {
-      code: "IN_TRANSIT",
-      label: isIndo ? "Sedang Dikirim" : "In Transit",
-      completed: activeStepIndex >= 0,
-      active: activeStepIndex === 0,
-    },
-    {
-      code: "OUT_FOR_DELIVERY",
-      label: isIndo ? "Menuju Alamatmu" : "Out for Delivery",
-      completed: activeStepIndex >= 1,
-      active: activeStepIndex === 1,
-    },
-    {
-      code: "DELIVERED",
-      label: isIndo ? "Pesanan Tiba" : "Order Arrived",
-      completed: activeStepIndex >= 2,
-      active: activeStepIndex === 2,
-    },
-  ];
+  const steps = isDigitalOrder
+    ? [
+        {
+          code: "ORDER_PLACED",
+          label: isIndo ? "Pesanan Dibuat" : "Order Placed",
+          completed: true,
+          active: isUnpaid,
+        },
+        {
+          code: "PAYMENT_CONFIRMED",
+          label: isIndo ? "Pembayaran Terkonfirmasi" : "Payment Confirmed",
+          completed: isPaid,
+          active: isPaid && !isDelivered,
+        },
+        {
+          code: "DIGITAL_READY",
+          label: isIndo ? "Akses File Siap" : "File Ready",
+          completed: isPaid,
+          active: isPaid,
+        },
+      ]
+    : [
+        {
+          code: "IN_TRANSIT",
+          label: isIndo ? "Sedang Dikirim" : "In Transit",
+          completed: activeStepIndex >= 0,
+          active: activeStepIndex === 0,
+        },
+        {
+          code: "OUT_FOR_DELIVERY",
+          label: isIndo ? "Menuju Alamatmu" : "Out for Delivery",
+          completed: activeStepIndex >= 1,
+          active: activeStepIndex === 1,
+        },
+        {
+          code: "DELIVERED",
+          label: isIndo ? "Pesanan Tiba" : "Order Arrived",
+          completed: activeStepIndex >= 2,
+          active: activeStepIndex === 2,
+        },
+      ];
 
   // Build REAL timeline events (synchronized with seller & admin)
   let timeline = [];
@@ -440,6 +493,39 @@ export const normalizeStoreOrderTrackingFor2026 = ({ tracking, isIndo = false, i
         isLatest: false,
       },
     ];
+  } else if (isDigitalOrder) {
+    const digitalMilestones = [
+      {
+        id: "milestone-created",
+        date: createdDate,
+        label: isIndo ? "Pesanan Dibuat" : "Order Placed",
+        description: isIndo ? "Pesanan produk digital berhasil dibuat oleh pembeli." : "Digital product order placed by customer.",
+      },
+    ];
+    if (isPaid) {
+      digitalMilestones.push({
+        id: "milestone-paid",
+        date: paidDate,
+        label: isIndo ? "Pembayaran Terverifikasi" : "Payment Confirmed",
+        description: isIndo ? "Pembayaran lunas terverifikasi oleh sistem." : "Payment verified by system.",
+      });
+      digitalMilestones.push({
+        id: "milestone-delivered",
+        date: paidDate,
+        label: isIndo ? "Akses Produk Digital Aktif" : "Digital Access Activated",
+        description: isIndo
+          ? "File produk digital telah tersedia untuk diunduh di halaman Rincian Pesanan akun Anda."
+          : "Digital asset is ready for download in your Order Details page.",
+      });
+    }
+    digitalMilestones.reverse();
+    timeline = digitalMilestones.map((ev, idx) => ({
+      id: ev.id,
+      dateLabel: formatTimelineDate(ev.date, isIndo),
+      label: ev.label,
+      description: ev.description,
+      isLatest: idx === 0,
+    }));
   } else if (primaryShipment?.timeline && primaryShipment.timeline.length > 0) {
     // If explicit tracking events were entered into the database:
     timeline = primaryShipment.timeline.map((ev, idx) => ({
@@ -528,6 +614,7 @@ export const normalizeStoreOrderTrackingFor2026 = ({ tracking, isIndo = false, i
   const getStatusTitle = () => {
     if (isCancelled) return isIndo ? "Pesanan Dibatalkan" : "Order Cancelled";
     if (isUnpaid) return isIndo ? "Menunggu Pembayaran" : "Awaiting Payment";
+    if (isDigitalOrder) return isIndo ? "File Siap Diunduh" : "Ready for Download";
     if (activeStepIndex === 2) return isIndo ? "Pesanan Tiba" : "Order Arrived";
     if (activeStepIndex === 1) return isIndo ? "Menuju Alamatmu" : "Out for Delivery";
     return isIndo ? "Sedang Dikirim" : "In Transit";
@@ -544,10 +631,12 @@ export const normalizeStoreOrderTrackingFor2026 = ({ tracking, isIndo = false, i
     statusHeadline,
     estimatedDeliveryLabel,
     primaryThumbnail,
-    courierName,
+    courierName: resolvedCourierName,
     trackingNumber,
     trackingNumberDisplay,
     hasRealTrackingNumber,
+    isDigitalOrder,
+    hasDigitalItems,
     activeStepIndex,
     steps,
     timeline,

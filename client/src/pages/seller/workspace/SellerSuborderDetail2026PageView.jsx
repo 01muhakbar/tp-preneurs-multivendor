@@ -8,6 +8,7 @@ import {
   ChevronDown,
   Clock3,
   Copy,
+  Download,
   ExternalLink,
   FileText,
   MapPin,
@@ -383,6 +384,16 @@ const I18N = {
     viewPublicTracking: "Lihat Live Tracking Pembeli",
     viewPublicTrackingSub: "Buka halaman pelacakan publik pelanggan",
     shippingRequired: "Harap masukkan Nomor Resi sebelum mengirim pesanan.",
+    digitalDeliveryTitle: "Pengiriman Digital & Akses File",
+    digitalBadge: "Produk Digital",
+    digitalAccessActive: "Akses Unduhan Aktif",
+    digitalAccessPending: "Menunggu Pembayaran",
+    digitalDownloadLink: "Tautan File / Petunjuk Akses",
+    testOpenDigitalLink: "Buka Tautan File",
+    copyLink: "Salin Tautan",
+    noDigitalAssetConfigured: "Tautan file belum diatur pada katalog produk.",
+    digitalDeliverySyncNotePaid: "Akses unduhan telah otomatis aktif di akun pembeli (halaman Pesanan Saya).",
+    digitalDeliverySyncNoteUnpaid: "Tautan unduhan akan otomatis terbuka di akun pembeli begitu pembayaran diverifikasi.",
     loading: "Memuat rincian pesanan...",
     errorTitle: "Gagal memuat rincian pesanan",
     errorFallback: "Pesanan ini tidak tersedia untuk toko aktif Anda.",
@@ -471,6 +482,16 @@ const I18N = {
     viewPublicTracking: "View Buyer Live Tracking",
     viewPublicTrackingSub: "Open public buyer tracking page",
     shippingRequired: "Please enter tracking number before marking shipped.",
+    digitalDeliveryTitle: "Digital Delivery & File Access",
+    digitalBadge: "Digital Product",
+    digitalAccessActive: "Download Access Active",
+    digitalAccessPending: "Awaiting Payment",
+    digitalDownloadLink: "File Link / Access Instructions",
+    testOpenDigitalLink: "Open File Link",
+    copyLink: "Copy Link",
+    noDigitalAssetConfigured: "File link has not been configured in the product catalog.",
+    digitalDeliverySyncNotePaid: "Download access has been automatically delivered and is active in the buyer's account (My Orders page).",
+    digitalDeliverySyncNoteUnpaid: "Download link will automatically unlock in the buyer's account once payment is verified.",
     loading: "Loading order details...",
     errorTitle: "Unable to load order details",
     errorFallback: "This order is not available for your active store.",
@@ -723,9 +744,14 @@ export default function SellerSuborderDetail2026PageView({
   const isTrackingUrl = (val) => /^https?:\/\//i.test(String(val || "").trim());
   const isCurrentDraftUrl = isTrackingUrl(currentTrackingVal);
 
+  const isDigitalOrder = Boolean(order.isDigitalOrder);
+  const digitalAssetUrl =
+    order.digitalAssetUrl ||
+    (Array.isArray(order.items) ? order.items.find((it) => it.digitalAssetUrl)?.digitalAssetUrl : null);
+
   const handleActionClick = (action) => {
     setValidationError("");
-    if (action === "MARK_SHIPPED") {
+    if (action === "MARK_SHIPPED" && !isDigitalOrder) {
       const tracking = String(fulfillmentDraft.trackingNumber || "").trim();
       if (!tracking) {
         setValidationError(t.shippingRequired);
@@ -756,16 +782,18 @@ export default function SellerSuborderDetail2026PageView({
         </button>
 
         <div className="tpsodp2026-topbar__actions">
-          <button
-            type="button"
-            className="tpsodp2026-btn-outline"
-            onClick={onPrintLabel}
-            disabled={isUpdating || isPrintingLabel}
-            title={t.printLabel}
-          >
-            <Printer size={15} />
-            <span>{isPrintingLabel ? t.printingLabel : t.printLabel}</span>
-          </button>
+          {!isDigitalOrder && (
+            <button
+              type="button"
+              className="tpsodp2026-btn-outline"
+              onClick={onPrintLabel}
+              disabled={isUpdating || isPrintingLabel}
+              title={t.printLabel}
+            >
+              <Printer size={15} />
+              <span>{isPrintingLabel ? t.printingLabel : t.printLabel}</span>
+            </button>
+          )}
           <button
             type="button"
             className="tpsodp2026-btn-outline"
@@ -940,12 +968,17 @@ export default function SellerSuborderDetail2026PageView({
                         {item.variantLabel && (
                           <span className="tpsodp2026-item-row__variant">{item.variantLabel}</span>
                         )}
-                        {item.weightLabel && (
+                        {item.isDigital ? (
+                          <span className="tpsodp2026-item-row__digital-badge">
+                            <Download size={11} />
+                            <span>{t.digitalBadge}</span>
+                          </span>
+                        ) : item.weightLabel ? (
                           <span className="tpsodp2026-item-row__weight" title={t.catalogWeightHint}>
                             <Scale size={11} />
                             <span>{item.weightLabel} / unit</span>
                           </span>
-                        )}
+                        ) : null}
                       </div>
                       <div className="tpsodp2026-item-row__pricing">
                         <span>{item.priceLabel}</span>
@@ -971,17 +1004,84 @@ export default function SellerSuborderDetail2026PageView({
             </div>
           </section>
 
-          {/* Shipping & Courier Card */}
+          {/* Shipping & Courier Card / Digital Delivery */}
           <section className="tpsodp2026-card">
             <header className="tpsodp2026-card__header">
               <div className="tpsodp2026-card__header-title">
-                <Truck size={18} className="tpsodp2026-icon-primary" />
-                <h2>{t.shipping}</h2>
+                {isDigitalOrder ? (
+                  <Download size={18} className="tpsodp2026-icon-accent" />
+                ) : (
+                  <Truck size={18} className="tpsodp2026-icon-primary" />
+                )}
+                <h2>{isDigitalOrder ? t.digitalDeliveryTitle : t.shipping}</h2>
               </div>
               <StatusPill status={{ label: order.shipping?.status, tone: order.shipping?.statusTone }} />
             </header>
 
-            <div className="tpsodp2026-shipping-grid">
+            {isDigitalOrder ? (
+              <div className="tpsodp2026-digital-delivery-content">
+                <div className="tpsodp2026-digital-asset-card">
+                  <div className="tpsodp2026-digital-asset-header">
+                    <div className="tpsodp2026-digital-badge-wrap">
+                      <span className="tpsodp2026-pill tpsodp2026-pill--blue">
+                        <span className="tpsodp2026-pill__dot" />
+                        {t.digitalBadge}
+                      </span>
+                      <span className={`tpsodp2026-pill tpsodp2026-pill--${isPaid ? "green" : "amber"}`}>
+                        <span className="tpsodp2026-pill__dot" />
+                        {isPaid ? t.digitalAccessActive : t.digitalAccessPending}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="tpsodp2026-digital-asset-body">
+                    <label className="tpsodp2026-field__label">{t.digitalDownloadLink}</label>
+                    {digitalAssetUrl ? (
+                      <div className="tpsodp2026-digital-asset-url-box">
+                        <span className="tpsodp2026-digital-asset-url-text" title={digitalAssetUrl}>
+                          {digitalAssetUrl}
+                        </span>
+                        <div className="tpsodp2026-digital-asset-actions">
+                          {isTrackingUrl(digitalAssetUrl) && (
+                            <a
+                              href={digitalAssetUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="tpsodp2026-btn-open-live-map"
+                              title={t.testOpenDigitalLink}
+                            >
+                              <ExternalLink size={12} />
+                              <span>{t.testOpenDigitalLink}</span>
+                            </a>
+                          )}
+                          <button
+                            type="button"
+                            className="tpsodp2026-btn-mini-copy"
+                            onClick={() => onCopyText?.(digitalAssetUrl, t.digitalDownloadLink)}
+                            title={t.copyLink}
+                          >
+                            <Copy size={12} />
+                            <span>{t.copyLink}</span>
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="tpsodp2026-digital-empty-box">
+                        <FileText size={16} />
+                        <span>{t.noDigitalAssetConfigured}</span>
+                      </div>
+                    )}
+
+                    <div className="tpsodp2026-digital-hint-banner">
+                      <Sparkles size={15} className="tpsodp2026-icon-accent" />
+                      <p>{isPaid ? t.digitalDeliverySyncNotePaid : t.digitalDeliverySyncNoteUnpaid}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="tpsodp2026-shipping-grid">
               {/* Courier Selection */}
               <div className="tpsodp2026-field">
                 <label className="tpsodp2026-field__label">{t.courier}</label>
@@ -1257,7 +1357,9 @@ export default function SellerSuborderDetail2026PageView({
                 </button>
               )}
             </div>
-          </section>
+          </>
+        )}
+      </section>
 
           {/* Internal Notes Card */}
           <section className="tpsodp2026-card">

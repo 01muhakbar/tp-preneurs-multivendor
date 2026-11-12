@@ -1805,3 +1805,104 @@
     justify-content: center;
   }
 }
+
+/* Digital Delivery & Download Asset Styles */
+.tpsodp2026-digital-delivery-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tpsodp2026-digital-asset-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--s26-surface-subtle);
+  border: 1px solid var(--s26-border);
+  border-radius: var(--s26-radius-md);
+  padding: 16px;
+}
+
+.tpsodp2026-digital-badge-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tpsodp2026-digital-asset-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tpsodp2026-digital-asset-url-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--s26-surface);
+  border: 1px solid var(--s26-border);
+  border-radius: var(--s26-radius-md);
+  flex-wrap: wrap;
+}
+
+.tpsodp2026-digital-asset-url-text {
+  font-family: monospace;
+  font-size: 13px;
+  color: var(--s26-text);
+  word-break: break-all;
+  flex: 1;
+  min-width: 200px;
+}
+
+.tpsodp2026-digital-asset-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.tpsodp2026-digital-empty-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--s26-surface);
+  border: 1px dashed var(--s26-border);
+  border-radius: var(--s26-radius-md);
+  color: var(--s26-text-muted);
+  font-size: 12.5px;
+}
+
+.tpsodp2026-digital-hint-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(3, 76, 133, 0.08);
+  border-left: 3px solid #fe6f05;
+  border-radius: var(--s26-radius-sm);
+  color: #38bdf8;
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 6px;
+}
+
+.tpsodp2026-digital-hint-banner p {
+  margin: 0;
+}
+
+.tpsodp2026-item-row__digital-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: var(--s26-radius-full);
+  background: rgba(3, 76, 133, 0.18);
+  color: #38bdf8;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}

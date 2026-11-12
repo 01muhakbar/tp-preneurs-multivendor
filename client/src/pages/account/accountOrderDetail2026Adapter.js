@@ -462,6 +462,22 @@ const normalizeItem = (value, index, storeInfo = {}) => {
   const quantity = asNumber(item.quantity ?? item.qty, 0);
   const unitPrice = asNumber(item.price ?? item.unitPrice ?? item.priceSnapshot, 0);
   const lineTotal = asNumber(item.lineTotal ?? item.totalPrice, unitPrice * quantity);
+  const productType = String(
+    item.productType ||
+    item.product_type ||
+    item.productTypeSnapshot ||
+    item.product?.productType ||
+    item.product?.seo?.productType ||
+    "physical"
+  ).toLowerCase();
+  const isDigital = productType === "digital" || Boolean(item.isDigital);
+  const digitalAssetUrl = text(
+    item.digitalAssetUrl ||
+    item.digital_asset_url ||
+    item.product?.digitalAssetUrl ||
+    item.product?.seo?.digitalAssetUrl
+  );
+
   return {
     id: text(item.id ?? item.productId ?? `${storeInfo.storeId || "item"}-${index}`),
     productId: item.productId ?? item.product_id ?? item.product?.id ?? null,
@@ -478,6 +494,9 @@ const normalizeItem = (value, index, storeInfo = {}) => {
     isReviewed: Boolean(item.isReviewed),
     reviewId: asNumber(item.reviewId, null),
     rating: asNumber(item.rating, null),
+    productType,
+    isDigital,
+    digitalAssetUrl,
   };
 };
 
@@ -1163,30 +1182,61 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false, is
     },
   };
 
+  const isDigitalOrder = items.length > 0 && items.every((it) => it.isDigital);
+  const hasDigitalItems = items.some((it) => it.isDigital);
+
+  const resolvedBannerTitle = isDigitalOrder && isPaid
+    ? (isIndo ? "Pesanan Selesai • File Siap Diunduh" : "Order Completed • Digital Files Ready")
+    : bannerTitle;
+
+  const resolvedBannerSubnote = isDigitalOrder && isPaid
+    ? (isIndo ? "Akses produk digital telah aktif. Anda dapat langsung mengunduh file pada rincian produk di bawah." : "Digital product access is active. You can download your files below.")
+    : bannerSubnote;
+
+  const resolvedCourier = isDigitalOrder
+    ? (isIndo ? "Pengiriman Digital (Cloud Download)" : "Digital Delivery (Cloud Download)")
+    : courierName;
+
+  const resolvedTrackingNumber = isDigitalOrder
+    ? (isPaid ? (isIndo ? "Akses File Aktif" : "Access Active") : (isIndo ? "Menunggu Pembayaran" : "Awaiting Payment"))
+    : trackingNumberDisplay;
+
+  const resolvedShippingStatusText = isDigitalOrder
+    ? (isPaid ? (isIndo ? "File Siap Diunduh" : "Files Ready for Download") : (isIndo ? "Menunggu Pembayaran" : "Awaiting Payment"))
+    : shippingStatusText;
+
+  const resolvedShippingStatusDesc = isDigitalOrder
+    ? (isPaid ? (isIndo ? "Tautan unduhan dan instruksi akses telah tersedia di akun Anda." : "Download link and access instructions are available in your account.") : (isIndo ? "Selesaikan pembayaran untuk membuka akses unduhan file digital Anda." : "Complete payment to unlock your digital files."))
+    : shippingStatusDesc;
+
   const shopeeDetail = {
+    isDigitalOrder,
+    hasDigitalItems,
     banner: {
-      title: bannerTitle,
-      tone: bannerTone,
-      subnote: bannerSubnote,
-      isDelivered,
-      isShipping,
-      isPacking,
+      title: resolvedBannerTitle,
+      tone: isDigitalOrder && isPaid ? "green" : bannerTone,
+      subnote: resolvedBannerSubnote,
+      isDelivered: isDigitalOrder ? isPaid : isDelivered,
+      isShipping: isDigitalOrder ? false : isShipping,
+      isPacking: isDigitalOrder ? false : isPacking,
       isUnpaid,
       isCancelled,
     },
     shippingInfo: {
-      courier: courierName,
-      trackingNumber: trackingNumberDisplay,
-      statusText: shippingStatusText,
-      description: shippingStatusDesc,
+      courier: resolvedCourier,
+      trackingNumber: resolvedTrackingNumber,
+      statusText: resolvedShippingStatusText,
+      description: resolvedShippingStatusDesc,
       timestamp: shippingTimestamp,
-      isDelivered,
-      isPacking,
-      isShipping,
+      isDelivered: isDigitalOrder ? isPaid : isDelivered,
+      isPacking: isDigitalOrder ? false : isPacking,
+      isShipping: isDigitalOrder ? false : isShipping,
       isUnpaid,
       isCancelled,
-      hasTracking: Boolean(!isUnpaid && !isCancelled && (trackingUrl || publicTrackingPath || timeline.length)),
-      trackingPath: (!isUnpaid && !isCancelled) ? (trackingUrl || publicTrackingPath || "") : "",
+      isDigital: isDigitalOrder,
+      isDigitalOrder,
+      hasTracking: Boolean(!isDigitalOrder && !isUnpaid && !isCancelled && (trackingUrl || publicTrackingPath || timeline.length)),
+      trackingPath: (!isDigitalOrder && !isUnpaid && !isCancelled) ? (trackingUrl || publicTrackingPath || "") : "",
     },
     shippingAddress: {
       name: recipientName,

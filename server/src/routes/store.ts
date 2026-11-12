@@ -303,6 +303,13 @@ const mapSuborderSnapshotItemsForBuyerDetail = (suborders: any[]) =>
       );
       const imageUrl = normalizeUploadsUrl(getAttr(item, "imageSnapshot") || null);
       const slug = String(getAttr(product, "slug") || "").trim() || null;
+      const productTypeMetadata = getProductTypeMetadata({
+        productType: getAttr(item, "productTypeSnapshot"),
+        product_type: getAttr(item, "product_type_snapshot"),
+        seo: getAttr(product, "seo"),
+      });
+      const suborderPaymentStatus = String(getAttr(suborder, "paymentStatus") || "").toUpperCase();
+      const isSuborderPaid = suborderPaymentStatus === "PAID" || suborderPaymentStatus === "SETTLED";
 
       return {
         id: Number(getAttr(item, "id") || 0) || null,
@@ -333,6 +340,9 @@ const mapSuborderSnapshotItemsForBuyerDetail = (suborders: any[]) =>
         ),
         sku: String(getAttr(item, "skuSnapshot") || "").trim() || null,
         barcode: String(getAttr(item, "barcodeSnapshot") || "").trim() || null,
+        productType: productTypeMetadata.productType,
+        isDigital: productTypeMetadata.isDigital,
+        digitalAssetUrl: isSuborderPaid ? productTypeMetadata.digitalAssetUrl : null,
       };
     });
   });
@@ -2428,7 +2438,7 @@ router.get(
               {
                 model: Product,
                 as: "product",
-                attributes: ["id", "name", "slug"],
+                attributes: ["id", "name", "slug", "seo"],
                 required: false,
               },
             ],
@@ -3199,7 +3209,7 @@ router.get(
                   {
                     model: Product,
                     as: "product",
-                    attributes: ["id", "name", "slug"],
+                    attributes: ["id", "name", "slug", "seo"],
                     required: false,
                   },
                 ],

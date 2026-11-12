@@ -10,6 +10,7 @@ import {
   Clock,
   Copy,
   CreditCard,
+  Download,
   ExternalLink,
   FileText,
   Headphones,
@@ -437,6 +438,9 @@ export default function AccountOrderDetail2026View({
     timestamp: orderDetail.order?.placedAtDisplay || "-",
   };
 
+  const isDigitalOrder = Boolean(shopee?.isDigitalOrder || shippingInfo?.isDigital);
+  const isOrderPaid = !banner.isUnpaid && !banner.isCancelled;
+
   const shippingAddress = shopee?.shippingAddress || {
     name: orderDetail.account?.customerName || "Pelanggan",
     phone: orderDetail.account?.customerPhone || "-",
@@ -544,10 +548,18 @@ export default function AccountOrderDetail2026View({
         >
           <div className="tp-shopee-detail__card-header-link">
             <div className="tp-shopee-detail__card-heading">
-              <Truck size={17} className="tp-shopee-detail__icon-primary" />
-              <h3 className="tp-shopee-detail__card-title">{t.shippingInfo}</h3>
+              {isDigitalOrder ? (
+                <Download size={17} className="tp-shopee-detail__icon-primary" />
+              ) : (
+                <Truck size={17} className="tp-shopee-detail__icon-primary" />
+              )}
+              <h3 className="tp-shopee-detail__card-title">
+                {isDigitalOrder
+                  ? (isIndo ? "Informasi Pengiriman Digital" : "Digital Delivery Info")
+                  : t.shippingInfo}
+              </h3>
             </div>
-            {!(shippingInfo.isUnpaid || shippingInfo.isCancelled) && (
+            {!(shippingInfo.isUnpaid || shippingInfo.isCancelled || isDigitalOrder) && (
               <ChevronRight size={16} className="tp-shopee-detail__chevron" />
             )}
           </div>
@@ -686,14 +698,66 @@ export default function AccountOrderDetail2026View({
                       {item.name}
                     </h4>
                     <div className="tp-shopee-detail__item-variant-row">
-                      <span className="tp-shopee-detail__item-variant">
-                        {item.variant || item.variantLabel || "Standard"}
-                      </span>
+                      {item.isDigital ? (
+                        <span className="tp-shopee-detail__item-digital-badge">
+                          <Download size={11} />
+                          <span>{isIndo ? "Produk Digital" : "Digital Product"}</span>
+                        </span>
+                      ) : (
+                        <span className="tp-shopee-detail__item-variant">
+                          {item.variant || item.variantLabel || "Standard"}
+                        </span>
+                      )}
                       <span className="tp-shopee-detail__item-qty">x{item.quantity || item.qty || 1}</span>
                     </div>
                     <div className="tp-shopee-detail__item-price">
                       {formatCurrency(item.price || 0)}
                     </div>
+
+                    {/* Digital Asset Access Box */}
+                    {item.isDigital && (
+                      <div className="tp-shopee-detail__item-digital-box">
+                        {item.digitalAssetUrl ? (
+                          <div className="tp-shopee-detail__item-digital-actions">
+                            <a
+                              href={item.digitalAssetUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="tp-shopee-detail__btn-download-asset"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Download size={13} />
+                              <span>{isIndo ? "Unduh File Sekarang" : "Download File Now"}</span>
+                            </a>
+                            <button
+                              type="button"
+                              className="tp-shopee-detail__btn-copy-asset"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopy(item.digitalAssetUrl);
+                              }}
+                              title={isIndo ? "Salin Link Unduhan" : "Copy Download Link"}
+                            >
+                              <Copy size={12} />
+                              <span>{isIndo ? "Salin Link" : "Copy"}</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="tp-shopee-detail__item-digital-locked">
+                            <Clock size={12} />
+                            <span>
+                              {isOrderPaid
+                                ? isIndo
+                                  ? "Tautan file unduhan sedang disiapkan oleh penjual."
+                                  : "Download file link is being prepared by the seller."
+                                : isIndo
+                                  ? "Selesaikan pembayaran untuk membuka akses unduhan file digital."
+                                  : "Complete payment to unlock digital file download."}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -729,7 +793,11 @@ export default function AccountOrderDetail2026View({
                 </div>
                 <div className="tp-shopee-detail__breakdown-line">
                   <span>{t.shippingFee}</span>
-                  <span>{storeProducts.summary?.shipping || orderDetail.summary?.shippingDisplay}</span>
+                  <span>
+                    {isDigitalOrder
+                      ? (isIndo ? "Rp 0 (Bebas Ongkir / Digital)" : "Rp 0 (Free / Digital)")
+                      : (storeProducts.summary?.shipping || orderDetail.summary?.shippingDisplay)}
+                  </span>
                 </div>
                 {Number(orderDetail.summary?.serviceFee || 0) > 0 && (
                   <div className="tp-shopee-detail__breakdown-line">
@@ -760,16 +828,18 @@ export default function AccountOrderDetail2026View({
             {t.needHelp}
           </h3>
           <div className="tp-shopee-detail__help-list">
-            <Link
-              to={`/contact-us?topic=return&ref=${encodeURIComponent(orderMeta.orderNo)}`}
-              className="tp-shopee-detail__help-item"
-            >
-              <div className="tp-shopee-detail__help-left">
-                <RotateCcw size={17} className="tp-shopee-detail__help-icon" />
-                <span>{t.requestReturn}</span>
-              </div>
-              <ChevronRight size={16} className="tp-shopee-detail__chevron" />
-            </Link>
+            {!isDigitalOrder && (
+              <Link
+                to={`/contact-us?topic=return&ref=${encodeURIComponent(orderMeta.orderNo)}`}
+                className="tp-shopee-detail__help-item"
+              >
+                <div className="tp-shopee-detail__help-left">
+                  <RotateCcw size={17} className="tp-shopee-detail__help-icon" />
+                  <span>{t.requestReturn}</span>
+                </div>
+                <ChevronRight size={16} className="tp-shopee-detail__chevron" />
+              </Link>
+            )}
 
             <a
               href={sellerChatUrl}

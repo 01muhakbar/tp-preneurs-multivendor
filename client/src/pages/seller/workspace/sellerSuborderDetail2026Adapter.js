@@ -229,7 +229,7 @@ export const isPaymentSettled = (value) => {
   return normalized === "PAID" || normalized === "SETTLED" || normalized.includes("PAID");
 };
 
-export const getSynchronizedOrderStatus = ({ fulfillmentStatus, paymentStatus, orderStatus }, isIndo = false) => {
+export const getSynchronizedOrderStatus = ({ fulfillmentStatus, paymentStatus, orderStatus, isDigital = false }, isIndo = false) => {
   const f = String(fulfillmentStatus || "").toUpperCase();
   const p = String(paymentStatus || "").toUpperCase();
   const o = String(orderStatus || "").toUpperCase();
@@ -258,6 +258,16 @@ export const getSynchronizedOrderStatus = ({ fulfillmentStatus, paymentStatus, o
       code: "UNPAID",
       label: isIndo ? "Belum Bayar" : "Unpaid",
       tone: "amber",
+    };
+  }
+
+  if (isDigital) {
+    return {
+      bucket: "completed",
+      substage: "delivered",
+      code: "DELIVERED",
+      label: isIndo ? "Akses Terkirim" : "Access Delivered",
+      tone: "green",
     };
   }
 
@@ -364,6 +374,20 @@ const normalizeItems = (items, isIndo = false) =>
       row.productName ?? row.productNameSnapshot ?? row.name ?? row.product?.name,
       `${isIndo ? "Produk" : "Product"} ${index + 1}`
     );
+    const productType = String(
+      row.productType ||
+      row.productTypeSnapshot ||
+      row.product?.productType ||
+      row.product?.seo?.productType ||
+      "physical"
+    ).toLowerCase();
+    const isDigital = productType === "digital" || Boolean(row.isDigital);
+    const digitalAssetUrl = text(
+      row.digitalAssetUrl ||
+      row.product?.digitalAssetUrl ||
+      row.product?.seo?.digitalAssetUrl
+    );
+
     return {
       id: row.id ?? index,
       productId: row.productId ?? row.product?.id,
@@ -379,6 +403,9 @@ const normalizeItems = (items, isIndo = false) =>
       lineWeight,
       weightLabel: weight > 0 ? formatWeight(weight) : null,
       lineWeightLabel: lineWeight > 0 ? formatWeight(lineWeight) : null,
+      productType,
+      isDigital,
+      digitalAssetUrl,
     };
   });
 
@@ -476,7 +503,33 @@ const normalizeTimeline = ({ timeline, createdAt, paidAt, paymentStatus, fulfill
   return list;
 };
 
-const buildProgressSteps = ({ syncStatus, isPaid, createdAt, paidAt, isIndo = false }) => {
+const buildProgressSteps = ({ syncStatus, isPaid, createdAt, paidAt, isIndo = false, isDigital = false }) => {
+  if (isDigital) {
+    return [
+      {
+        code: "NEW",
+        label: isIndo ? "Baru" : "New",
+        complete: true,
+        active: true,
+        dateLabel: formatDateShort(createdAt, isIndo),
+      },
+      {
+        code: "PAID",
+        label: isIndo ? "Lunas" : "Paid",
+        complete: isPaid,
+        active: isPaid,
+        dateLabel: isPaid ? formatDateShort(paidAt, isIndo) : (isIndo ? "Menunggu" : "Pending"),
+      },
+      {
+        code: "DELIVERED",
+        label: isIndo ? "Akses Terkirim" : "Access Delivered",
+        complete: isPaid,
+        active: isPaid,
+        dateLabel: isPaid ? (isIndo ? "Siap Diunduh" : "Ready to download") : (isIndo ? "Menunggu" : "Pending"),
+      },
+    ];
+  }
+
   const syncBucket = syncStatus?.bucket || "to_pack";
   const substage = syncStatus?.substage || "";
   const isShipped = ["shipping", "completed"].includes(syncBucket);
@@ -584,12 +637,25 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
 
   const isPaid = isPaymentSettled(rawPaymentStatus);
 
+  const normItems = normalizeItems(detail.items, isIndo);
+  const isDigitalOrder =
+    Boolean(order.isDigital || detail.isDigital) ||
+    (normItems.length > 0 && normItems.every((it) => it.isDigital));
+  const hasDigitalItems =
+    Boolean(order.hasDigitalItems || detail.hasDigitalItems) ||
+    normItems.some((it) => it.isDigital);
+
+  const primaryDigitalAssetUrl =
+    normItems.find((it) => it.digitalAssetUrl)?.digitalAssetUrl ||
+    text(order.digitalAssetUrl || detail.digitalAssetUrl || "");
+
   // Synchronized 6-phase status bucket
   const syncStatus = getSynchronizedOrderStatus(
     {
       fulfillmentStatus: rawFulfillmentStatus,
       paymentStatus: rawPaymentStatus,
       orderStatus: rawParentOrderStatus,
+      isDigital: isDigitalOrder,
     },
     isIndo
   );
@@ -605,6 +671,31 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
 
   // Next step guidance for the seller
   const nextStep = (() => {
+    if (isDigitalOrder) {
+      if (isPaid) {
+        return {
+          bucket: "completed",
+          title: isIndo ? "Pesanan Digital Selesai" : "Digital Order Completed",
+          description: isIndo
+            ? "Akses produk digital (link file & petunjuk unduhan) telah otomatis aktif di akun pembeli."
+            : "Digital product access has been automatically delivered to the buyer.",
+          icon: "check",
+          badge: isIndo ? "Akses Terkirim" : "Delivered",
+          badgeTone: "green",
+        };
+      }
+      return {
+        bucket: "unpaid",
+        title: isIndo ? "Menunggu Pembayaran Pembeli" : "Awaiting Customer Payment",
+        description: isIndo
+          ? "Pesanan digital belum dibayar. Akses unduhan akan otomatis aktif begitu pembeli menyelesaikan pembayaran."
+          : "Digital order is unpaid. Download access will automatically unlock once payment is verified.",
+        icon: "clock",
+        badge: isIndo ? "Belum Bayar" : "Unpaid",
+        badgeTone: "amber",
+      };
+    }
+
     switch (syncStatus.bucket) {
       case "to_pack":
         return {
@@ -692,7 +783,6 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
     ? order.suborderNo.replace(/^STORE-IDEMP-[A-Fa-f0-9]+/, compactReference)
     : `${compactReference}-S01`;
 
-  const normItems = normalizeItems(detail.items, isIndo);
   const calculatedTotalWeight = normItems.reduce((sum, it) => sum + (it.lineWeight || 0), 0);
   const pkg = asObject(detail.package);
   const rawShipmentSnapshotWeight = detail.shipment?.shippingRateSnapshot?.totalWeight ?? detail.shipment?.shippingRateSnapshot?.weight;
@@ -757,6 +847,7 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
       createdAt,
       paidAt,
       isIndo,
+      isDigital: isDigitalOrder,
     }),
 
     customer: {
@@ -862,5 +953,9 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
         isIndo ? "Aksi terkirim belum tersedia untuk status ini." : "Mark delivered is not available for this status."
       ),
     },
+
+    isDigitalOrder,
+    hasDigitalItems,
+    digitalAssetUrl: primaryDigitalAssetUrl,
   };
 };

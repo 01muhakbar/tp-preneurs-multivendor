@@ -5,6 +5,7 @@ import {
   ChevronRight,
   CircleHelp,
   Copy,
+  Download,
   ExternalLink,
   Headphones,
   Package,
@@ -260,9 +261,19 @@ export default function StoreOrderTracking2026View({
                   className={`tp-track-step ${isDone ? "is-done" : ""} ${isCurrent ? "is-current" : ""}`}
                 >
                   <div className="tp-track-step__icon-box">
-                    {idx === 0 && <Package aria-hidden="true" />}
-                    {idx === 1 && <Truck aria-hidden="true" />}
-                    {idx === 2 && <CheckCircle2 aria-hidden="true" />}
+                    {tracking.isDigitalOrder ? (
+                      <>
+                        {idx === 0 && <Package aria-hidden="true" />}
+                        {idx === 1 && <CheckCircle2 aria-hidden="true" />}
+                        {idx === 2 && <Download aria-hidden="true" />}
+                      </>
+                    ) : (
+                      <>
+                        {idx === 0 && <Package aria-hidden="true" />}
+                        {idx === 1 && <Truck aria-hidden="true" />}
+                        {idx === 2 && <CheckCircle2 aria-hidden="true" />}
+                      </>
+                    )}
                   </div>
                   <div className="tp-track-step__label">{step.label}</div>
                   {idx < tracking.steps.length - 1 && (
