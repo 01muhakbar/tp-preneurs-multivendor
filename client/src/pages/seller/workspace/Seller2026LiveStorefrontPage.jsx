@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   AlertTriangle,
   Building2,
@@ -36,116 +37,130 @@ const emptyToNull = (value) => String(value || "").trim() || null;
 const display = (value, fallback, isId = false) =>
   String(value || "").trim() || (fallback || (isId ? "Belum diisi" : "Not provided"));
 
+const CATEGORY_OPTIONS = [
+  { value: "Fashion & Apparel", en: "Fashion & Apparel", id: "Pakaian & Mode" },
+  { value: "Handmade & Crafts", en: "Handmade & Crafts", id: "Kerajinan & Seni" },
+  { value: "Food & Beverage", en: "Food & Beverage", id: "Makanan & Minuman" },
+  { value: "Beauty & Personal Care", en: "Beauty & Personal Care", id: "Kecantikan & Perawatan Diri" },
+  { value: "Beauty & Care", en: "Beauty & Care", id: "Kecantikan & Perawatan" },
+  { value: "Home & Living", en: "Home & Living", id: "Perlengkapan Rumah Tangga" },
+  { value: "Electronics & Gadgets", en: "Electronics & Gadgets", id: "Elektronik & Gadget" },
+  { value: "Electronics", en: "Electronics", id: "Elektronik" },
+  { value: "Services", en: "Services", id: "Jasa & Layanan" },
+  { value: "Other", en: "Other", id: "Lainnya" },
+];
+
 const translateProfileStatus = (status, isId = false) => {
-  if (!isId) return status;
-  switch (String(status).trim()) {
-    case "Active":
-      return "Aktif";
-    case "Inactive":
-      return "Nonaktif";
-    case "Ready":
-      return "Siap";
-    case "Editable":
-      return "Dapat Diedit";
-    case "Read only":
-      return "Hanya Baca";
-    case "Public Ready":
-      return "Publik Siap";
-    default:
-      return status;
+  if (!status) return "";
+  const norm = String(status).trim().toLowerCase();
+  if (!isId) {
+    if (norm === "active") return "Active";
+    if (norm === "inactive") return "Inactive";
+    if (norm === "ready") return "Ready";
+    if (norm === "editable") return "Editable";
+    if (norm === "read only") return "Read only";
+    if (norm === "public ready") return "Public Ready";
+    return status;
   }
+  if (norm === "active") return "Aktif";
+  if (norm === "inactive") return "Nonaktif";
+  if (norm === "ready") return "Siap";
+  if (norm === "editable") return "Dapat Diedit";
+  if (norm === "read only") return "Hanya Baca";
+  if (norm === "public ready") return "Publik Siap";
+  return status;
 };
 
 const translateTileLabel = (label, isId = false) => {
-  if (!isId) return label;
-  switch (String(label).trim()) {
-    case "Public Profile":
-      return "Profil Publik";
-    case "Payment Setup":
-      return "Pengaturan Pembayaran";
-    case "Shipping Origin":
-      return "Asal Pengiriman";
-    case "Storefront Visibility":
-      return "Visibilitas Etalase";
-    default:
-      return label;
+  if (!label) return "";
+  const norm = String(label).trim().toLowerCase();
+  if (!isId) {
+    if (norm === "public profile") return "Public Profile";
+    if (norm === "payment setup") return "Payment Setup";
+    if (norm === "shipping origin") return "Shipping Origin";
+    if (norm === "storefront visibility") return "Storefront Visibility";
+    return label;
   }
+  if (norm === "public profile") return "Profil Publik";
+  if (norm === "payment setup") return "Pengaturan Pembayaran";
+  if (norm === "shipping origin") return "Asal Pengiriman";
+  if (norm === "storefront visibility") return "Visibilitas Etalase";
+  return label;
 };
 
 const translateTileStatus = (status, isId = false) => {
-  if (!isId) return status;
-  switch (String(status).trim()) {
-    case "Ready":
-      return "Siap";
-    case "Needs info":
-      return "Perlu info";
-    case "Needs review":
-      return "Perlu tinjauan";
-    case "Unlocked":
-      return "Terbuka";
-    case "Locked":
-      return "Terkunci";
-    default:
-      return status;
+  if (!status) return "";
+  const norm = String(status).trim().toLowerCase();
+  if (!isId) {
+    if (norm === "ready") return "Ready";
+    if (norm === "needs info") return "Needs info";
+    if (norm === "needs review") return "Needs review";
+    if (norm === "unlocked") return "Unlocked";
+    if (norm === "locked") return "Locked";
+    return status;
   }
+  if (norm === "ready") return "Siap";
+  if (norm === "needs info") return "Perlu info";
+  if (norm === "needs review") return "Perlu tinjauan";
+  if (norm === "unlocked") return "Terbuka";
+  if (norm === "locked") return "Terkunci";
+  return status;
 };
 
 const translateTileNote = (note, isId = false) => {
-  if (!isId || !note) return note;
+  if (!note) return "";
+  if (!isId) return note;
   const str = String(note).trim();
-  switch (str) {
-    case "Public information complete":
-      return "Informasi publik lengkap";
-    case "Ready for checkout":
-      return "Siap untuk checkout";
-    case "Pickup origin ready":
-      return "Asal penjemputan siap";
-    case "Visible to buyers":
-      return "Tampil untuk pembeli";
-    case "Activation required":
-      return "Aktivasi diperlukan";
-    case "Setup incomplete":
-      return "Pengaturan belum lengkap";
-    default:
-      if (/^\d+\s+items?\s+missing$/i.test(str)) {
-        return str.replace(/^(\d+)\s+items?\s+missing$/i, "$1 item belum lengkap");
-      }
-      return str;
+  const norm = str.toLowerCase();
+  if (norm === "public information complete") return "Informasi publik lengkap";
+  if (norm === "ready for checkout") return "Siap untuk checkout";
+  if (norm === "pickup origin ready") return "Asal penjemputan siap";
+  if (norm === "visible to buyers") return "Tampil untuk pembeli";
+  if (norm === "activation required") return "Aktivasi diperlukan";
+  if (norm === "setup incomplete") return "Pengaturan belum lengkap";
+  if (/^\d+\s+items?\s+missing$/i.test(str)) {
+    return str.replace(/^(\d+)\s+items?\s+missing$/i, "$1 item belum lengkap");
   }
+  return str;
 };
 
 const translateMissingFieldLabel = (label, isId = false) => {
-  if (!isId || !label) return label;
-  switch (String(label).trim()) {
-    case "Address":
+  if (!label) return "";
+  const norm = String(label).trim().toLowerCase();
+  if (!isId) return label;
+  switch (norm) {
+    case "address":
       return "Alamat";
-    case "Address line 2":
+    case "address line 1":
+      return "Baris alamat 1";
+    case "address line 2":
       return "Baris alamat 2";
-    case "Banner image":
+    case "banner image":
       return "Gambar banner";
-    case "City":
-      return "Kota";
-    case "Country":
+    case "city":
+      return "Kota/Kabupaten";
+    case "country":
       return "Negara";
-    case "Description":
+    case "description":
       return "Deskripsi";
-    case "Store email":
+    case "store email":
+    case "email":
       return "Email toko";
-    case "Instagram":
+    case "instagram":
       return "Instagram";
-    case "Logo image":
+    case "logo image":
       return "Gambar logo";
-    case "Phone":
+    case "phone":
       return "Telepon";
-    case "Postal code":
+    case "postal code":
       return "Kode pos";
-    case "Province":
+    case "province":
       return "Provinsi";
-    case "TikTok":
+    case "tiktok":
       return "TikTok";
-    case "Website":
-      return "Situs Web";
-    case "WhatsApp":
+    case "website":
+      return "Situs web";
+    case "whatsapp":
       return "WhatsApp";
     default:
       return label;
@@ -165,7 +180,7 @@ function Field({ label, hint, multiline = false, required = false, children, ...
       </span>
       {children ||
         (multiline ? <textarea {...props} /> : <input {...props} />)}
-      {hint ? <small style={{ fontSize: "11px", color: "var(--text-muted, #94a3b8)", marginTop: "4px", display: "block" }}>{hint}</small> : null}
+      {hint ? <small style={{ fontSize: "11.5px", color: "var(--seller2026-muted, #94a3b8)", marginTop: "4px", display: "block", lineHeight: "1.4" }}>{hint}</small> : null}
     </label>
   );
 }
@@ -193,8 +208,10 @@ export default function Seller2026LiveStorefrontPage() {
     workspaceStoreSlug,
     workspaceRoutes,
     refetchSellerContext,
-    isId = false,
+    isId: outletIsId = false,
   } = useSellerWorkspaceRoute();
+  const { i18n } = useTranslation();
+  const isId = Boolean(outletIsId || String(i18n.language || "").toLowerCase().startsWith("id"));
   const { can, permissions, sourceAvailable } = getSeller2026PagePermissions(sellerContext);
   const canView = can("STORE_PROFILE_READ");
   const canUpdate =
@@ -470,8 +487,8 @@ export default function Seller2026LiveStorefrontPage() {
                 formats: isId ? "PNG, JPG, WEBP (Transparan disarankan)" : "PNG, JPG, WEBP (Transparent recommended)",
                 maxSize: isId ? "Maks. 2 MB" : "Max 2 MB",
                 safeZoneHint: isId
-                  ? "Posisikan ikon/logo tepat di tengah dengan margin ruang tepi 10-15%. Logo otomatis responsif di avatar bulat maupun kartu etalase pada perangkat mobile dan desktop."
-                  : "Keep logo icon centered with 10-15% margin padding. It automatically adapts across circular avatars and store cards on mobile and desktop viewports.",
+                  ? "Tips: Posisikan logo di tengah dengan margin proporsional agar optimal di berbagai perangkat."
+                  : "Tip: Keep logo centered with balanced padding for optimal display across devices.",
               },
               {
                 kind: "banner",
@@ -482,11 +499,11 @@ export default function Seller2026LiveStorefrontPage() {
                 aspectBadge: isId ? "3:1 Panorama" : "3:1 Panorama",
                 recommended: "1920 × 640 px",
                 minSize: "1200 × 400 px",
-                formats: isId ? "JPG, PNG, WEBP (Kualitas tinggi)" : "JPG, PNG, WEBP (High quality)",
+                formats: isId ? "JPG, PNG, WEBP" : "JPG, PNG, WEBP",
                 maxSize: isId ? "Maks. 5 MB" : "Max 5 MB",
                 safeZoneHint: isId
-                  ? "Area Aman Konten (Safe Zone): Letakkan teks penting, tipografi brand, dan visual utama di 60% area tengah agar tidak terpotong saat dibuka di smartphone atau tertutup tombol profil."
-                  : "Content Safe Zone: Place essential text, branding slogans, and primary visuals in the middle 60% area so it won't be cropped on mobile screens or covered by profile controls.",
+                  ? "Tips: Tempatkan teks dan fokus visual di area tengah agar tidak terpotong di layar ponsel."
+                  : "Tip: Keep text and focal visuals centered to prevent cropping across mobile screens.",
               },
             ].map((mediaItem) => (
               <div className="seller2026-card seller2026-profile__media-card" key={mediaItem.kind}>
@@ -575,18 +592,11 @@ export default function Seller2026LiveStorefrontPage() {
               <Field required label={isId ? "Kategori Bisnis" : "Business Category"}>
                 <select value={form.category} onChange={setValue("category")}>
                   <option value="">{isId ? "Pilih kategori" : "Select category"}</option>
-                  {[
-                    "Fashion & Apparel",
-                    "Handmade & Crafts",
-                    "Food & Beverage",
-                    "Beauty & Personal Care",
-                    "Beauty & Care",
-                    "Home & Living",
-                    "Electronics & Gadgets",
-                    "Electronics",
-                    "Services",
-                    "Other"
-                  ].map(item => <option key={item} value={item}>{item}</option>)}
+                  {CATEGORY_OPTIONS.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {isId ? item.id : item.en}
+                    </option>
+                  ))}
                 </select>
               </Field>
               <Field required label={isId ? "Deskripsi Singkat" : "Short Description"} multiline rows={4} maxLength={200} value={form.description} onChange={setValue("description")} placeholder={isId ? "Jelaskan toko, produk, dan apa yang membuat brand Anda istimewa." : "Describe your store, products, and what makes your brand special."} />
@@ -656,7 +666,7 @@ export default function Seller2026LiveStorefrontPage() {
                   <select value={form.identityType} onChange={setValue("identityType")}>
                     <option value="KTP">KTP</option>
                     <option value="Passport">{isId ? "Paspor" : "Passport"}</option>
-                    <option value="Driver License">SIM</option>
+                    <option value="Driver License">{isId ? "SIM" : "Driver License"}</option>
                   </select>
                 </Field>
                 <Field label={isId ? "Nomor Identitas (NIK/Paspor)" : "Identity Number"} value={form.identityNumber} onChange={setValue("identityNumber")} />
