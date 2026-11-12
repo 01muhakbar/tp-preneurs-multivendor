@@ -226,6 +226,13 @@ const mapSuborderSnapshotItemsForBuyerDetail = (suborders) => suborders.flatMap(
             `Product #${productId || "-"}`);
         const imageUrl = normalizeUploadsUrl(getAttr(item, "imageSnapshot") || null);
         const slug = String(getAttr(product, "slug") || "").trim() || null;
+        const productTypeMetadata = getProductTypeMetadata({
+            productType: getAttr(item, "productTypeSnapshot"),
+            product_type: getAttr(item, "product_type_snapshot"),
+            seo: getAttr(product, "seo"),
+        });
+        const suborderPaymentStatus = String(getAttr(suborder, "paymentStatus") || "").toUpperCase();
+        const isSuborderPaid = suborderPaymentStatus === "PAID" || suborderPaymentStatus === "SETTLED";
         return {
             id: Number(getAttr(item, "id") || 0) || null,
             productId,
@@ -252,6 +259,9 @@ const mapSuborderSnapshotItemsForBuyerDetail = (suborders) => suborders.flatMap(
             variantSelections: normalizeOrderVariantSelectionsOutput(getAttr(item, "variantSelections")),
             sku: String(getAttr(item, "skuSnapshot") || "").trim() || null,
             barcode: String(getAttr(item, "barcodeSnapshot") || "").trim() || null,
+            productType: productTypeMetadata.productType,
+            isDigital: productTypeMetadata.isDigital,
+            digitalAssetUrl: isSuborderPaid ? productTypeMetadata.digitalAssetUrl : null,
         };
     });
 });
@@ -2083,7 +2093,7 @@ router.get("/orders/my/:id", protect, async (req, res, next) => {
                         {
                             model: Product,
                             as: "product",
-                            attributes: ["id", "name", "slug"],
+                            attributes: ["id", "name", "slug", "seo"],
                             required: false,
                         },
                     ],
@@ -2760,7 +2770,7 @@ router.get("/orders/:ref", publicTrackingRateLimit, async (req, res, next) => {
                                 {
                                     model: Product,
                                     as: "product",
-                                    attributes: ["id", "name", "slug"],
+                                    attributes: ["id", "name", "slug", "seo"],
                                     required: false,
                                 },
                             ],

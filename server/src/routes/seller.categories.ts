@@ -2,7 +2,7 @@ import { Router } from "express";
 import { Op } from "sequelize";
 import { z } from "zod";
 import requireSellerStoreAccess from "../middleware/requireSellerStoreAccess.js";
-import { Category } from "../models/index.js";
+import { Category, Product, ProductCategory } from "../models/index.js";
 
 const router = Router();
 
@@ -66,11 +66,87 @@ const wouldCauseCycle = async (id: number, parentId: number | null) => {
   return false;
 };
 
-const serializeCategory = (category: any) => {
+async function getCategoryProductCountMap(categoryIds: number[], storeId?: number | null) {
+  const ids = Array.from(
+    new Set(
+      categoryIds
+        .map((id) => Number(id))
+        .filter((id) => Number.isFinite(id) && id > 0)
+    )
+  );
+  const counts = new Map<number, Set<number>>();
+  ids.forEach((id) => counts.set(id, new Set<number>()));
+  if (ids.length === 0) return new Map<number, number>();
+
+  const storeProductIds =
+    storeId && storeId > 0
+      ? new Set(
+          (
+            await Product.findAll({
+              attributes: ["id"],
+              where: { storeId },
+              raw: true,
+            })
+          ).map((p: any) => Number(p.id))
+        )
+      : null;
+
+  const directProductWhere: Record<string, any> = {
+    [Op.or]: [
+      { categoryId: { [Op.in]: ids } },
+      { defaultCategoryId: { [Op.in]: ids } },
+    ],
+  };
+  if (storeId && storeId > 0) {
+    directProductWhere.storeId = storeId;
+  }
+
+  const directProducts = await Product.findAll({
+    attributes: ["id", "categoryId", "defaultCategoryId"],
+    where: directProductWhere as any,
+    raw: true,
+  });
+
+  directProducts.forEach((product: any) => {
+    const productId = Number(product.id);
+    [product.categoryId, product.defaultCategoryId].forEach((categoryId) => {
+      const normalizedCategoryId = Number(categoryId);
+      if (counts.has(normalizedCategoryId) && Number.isFinite(productId)) {
+        counts.get(normalizedCategoryId)!.add(productId);
+      }
+    });
+  });
+
+  const joinRows = await ProductCategory.findAll({
+    attributes: ["productId", "categoryId"],
+    where: { categoryId: { [Op.in]: ids } } as any,
+    raw: true,
+  });
+
+  joinRows.forEach((row: any) => {
+    const productId = Number(row.productId);
+    const categoryId = Number(row.categoryId);
+    if (
+      counts.has(categoryId) &&
+      Number.isFinite(productId) &&
+      (!storeProductIds || storeProductIds.has(productId))
+    ) {
+      counts.get(categoryId)!.add(productId);
+    }
+  });
+
+  return new Map(ids.map((id) => [id, counts.get(id)?.size ?? 0]));
+}
+
+const serializeCategory = (category: any, productCountMap?: Map<number, number>) => {
   const parent = category?.parent ?? category?.get?.("parent") ?? null;
   const image = toText(category?.icon || category?.image || "");
+  const id = Number(category?.id || 0);
+  const resolvedCount = productCountMap
+    ? (productCountMap.get(id) ?? 0)
+    : Number(category?.productsCount ?? category?.productCount ?? 0);
   return {
-    id: Number(category?.id || 0),
+    id,
     code: toText(category?.code) || null,
     name: toText(category?.name) || "-",
     description: toText(category?.description) || null,
@@ -87,6 +163,8 @@ const serializeCategory = (category: any) => {
         : null,
     isPublished: Boolean(category?.published ?? category?.isPublished),
     published: Boolean(category?.published ?? category?.isPublished),
+    productCount: resolvedCount,
+    productsCount: resolvedCount,
     createdAt: category?.createdAt ?? null,
     updatedAt: category?.updatedAt ?? null,
   };
@@ -108,6 +186,7 @@ router.get(
   requireSellerStoreAccess(["CATEGORY_VIEW"]),
   async (req, res, next) => {
     try {
+      const storeId = Number(req.params.storeId || 0);
       const q = toText(req.query.q);
       const published = parsePublishedFilter(req.query.published);
       const page = Math.max(1, Number(req.query.page || 1) || 1);
@@ -126,10 +205,15 @@ router.get(
         offset,
       });
 
+      const productCountMap = await getCategoryProductCountMap(
+        rows.map((row: any) => Number(row.id)),
+        storeId
+      );
+
       return res.json({
         success: true,
         data: {
-          items: rows.map(serializeCategory),
+          items: rows.map((row: any) => serializeCategory(row, productCountMap)),
           meta: {
             page,
             limit,

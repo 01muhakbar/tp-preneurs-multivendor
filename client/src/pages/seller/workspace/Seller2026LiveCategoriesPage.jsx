@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   AlertTriangle,
   Archive,
@@ -26,6 +27,7 @@ import {
 import { uploadSellerCategoryImage } from "../../../api/sellerCategories.ts";
 import {
   createSeller2026CategoryForm,
+  formatSeller2026CategoryDate,
   seller2026CategoryLabels,
   slugifySeller2026Category,
   validateSeller2026CategoryForm,
@@ -182,7 +184,10 @@ function CategoryModal({
 }
 
 export default function Seller2026LiveCategoriesPage() {
-  const { sellerContext, workspaceStoreId: storeId, workspaceRoutes, isId = false } = useSellerWorkspaceRoute();
+  const { sellerContext, workspaceStoreId: storeId, workspaceRoutes, isId: outletIsId = false } = useSellerWorkspaceRoute();
+  const { i18n } = useTranslation();
+  const isId = Boolean(outletIsId || String(i18n.language || "").toLowerCase().startsWith("id"));
+
   const { can, permissions, sourceAvailable } = getSeller2026PagePermissions(sellerContext);
   const canView = can("CATALOG_CATEGORY_READ");
   const canCreate = !sourceAvailable || hasSeller2026Permission(permissions, "CATALOG_CATEGORY_CREATE");
@@ -239,10 +244,10 @@ export default function Seller2026LiveCategoriesPage() {
     try {
       if (modalMode === "edit" && form.id) {
         await categories.updateCategory({ id: form.id, form });
-        setNotice({ type: "success", text: isId ? "Kategori berhasil diperbarui" : "Category updated" });
+        setNotice({ type: "success", text: isId ? "Kategori berhasil diperbarui" : "Category updated successfully" });
       } else {
         await categories.createCategory(form);
-        setNotice({ type: "success", text: isId ? "Kategori berhasil dibuat" : "Category created" });
+        setNotice({ type: "success", text: isId ? "Kategori berhasil dibuat" : "Category created successfully" });
       }
       closeModal();
       categories.clearSelection();
@@ -277,7 +282,12 @@ export default function Seller2026LiveCategoriesPage() {
     if (!category.permissions.canPublish && !category.permissions.canUnpublish) return;
     try {
       await categories.updateCategoryVisibility({ id: category.id, isPublished: !category.isPublished });
-      setNotice({ type: "success", text: category.isPublished ? (isId ? "Kategori disembunyikan" : "Category hidden") : (isId ? "Kategori ditampilkan" : "Category visible") });
+      setNotice({
+        type: "success",
+        text: category.isPublished
+          ? (isId ? "Kategori berhasil disembunyikan" : "Category hidden successfully")
+          : (isId ? "Kategori berhasil ditampilkan" : "Category is now visible"),
+      });
     } catch (error) {
       setNotice({ type: "error", text: toErrorMessage(error, isId ? "Gagal memperbarui visibilitas kategori" : "Unable to update category visibility") });
     }
@@ -288,7 +298,7 @@ export default function Seller2026LiveCategoriesPage() {
       <div className="seller2026-dashboard seller2026-categories">
         <div className="seller2026-skeleton seller2026-skeleton--hero" />
         <div className="seller2026-skeleton seller2026-skeleton--hero" />
-        <p className="seller2026-categories__muted">{isId ? "Memuat kategori..." : "Loading categories..."}</p>
+        <p className="seller2026-categories__muted">{isId ? "Memuat data kategori..." : "Loading categories..."}</p>
       </div>
     );
   }
@@ -302,11 +312,15 @@ export default function Seller2026LiveCategoriesPage() {
   }
 
   const summaryCards = [
-    [isId ? "Total Kategori" : "Total Categories", categories.summary.total, Layers, "mint"],
+    [isId ? "Total Kategori" : "Total Categories", categories.summary.total, Layers, "blue"],
     [isId ? "Dipublikasikan" : "Published", categories.summary.published, Check, "green"],
-    [isId ? "Disembunyikan" : "Hidden", categories.summary.hidden, EyeOff, "slate"],
+    [isId ? "Disembunyikan" : "Hidden", categories.summary.hidden, EyeOff, "orange"],
     [isId ? "Kategori Utama" : "Root Categories", categories.summary.rootCategories, FolderTree, "mint"],
   ];
+
+  const bulkButtonLabel = categories.selectedIds.length
+    ? (isId ? `Aksi Massal (${categories.selectedIds.length})` : `Bulk Actions (${categories.selectedIds.length})`)
+    : (isId ? "Aksi Massal" : "Bulk Actions");
 
   return (
     <div className="seller2026-dashboard seller2026-categories">
@@ -318,8 +332,14 @@ export default function Seller2026LiveCategoriesPage() {
         <div className="seller2026-categories-actions">
           <button disabled title={isId ? "Belum tersedia" : "Not available yet"}><Upload size={16} />{isId ? "Ekspor" : "Export"}</button>
           <button disabled title={isId ? "Belum tersedia" : "Not available yet"}><Upload size={16} />{isId ? "Impor" : "Import"}</button>
-          <button disabled={!categories.selectedIds.length} title={categories.selectedIds.length ? (isId ? "Aksi massal membutuhkan konfirmasi." : "Bulk actions are confirmation-gated.") : (isId ? "Pilih kategori terlebih dahulu" : "Select categories first")}><SlidersHorizontal size={16} />{isId ? "Aksi Massal" : "Bulk Actions"}</button>
-          <button className="is-primary" disabled={!canCreate} title={canCreate ? (isId ? "Tambah Kategori" : "Add Category") : (isId ? "Membutuhkan izin" : "Requires permission")} onClick={openCreate}><Plus size={17} />{isId ? "Tambah Kategori" : "Add Category"}</button>
+          <button disabled={!categories.selectedIds.length} title={categories.selectedIds.length ? (isId ? "Aksi massal membutuhkan konfirmasi." : "Bulk actions are confirmation-gated.") : (isId ? "Pilih kategori terlebih dahulu" : "Select categories first")}>
+            <SlidersHorizontal size={16} />
+            {bulkButtonLabel}
+          </button>
+          <button className="is-primary" disabled={!canCreate} title={canCreate ? (isId ? "Tambah Kategori" : "Add Category") : (isId ? "Membutuhkan izin" : "Requires permission")} onClick={openCreate}>
+            <Plus size={17} />
+            {isId ? "Tambah Kategori" : "Add Category"}
+          </button>
         </div>
       </header>
 
@@ -340,7 +360,10 @@ export default function Seller2026LiveCategoriesPage() {
 
       <section className="seller2026-categories-table">
         <div className="seller2026-categories-toolbar">
-          <label><Search size={17} /><input placeholder={isId ? "Cari kategori..." : "Search categories..."} value={categories.filters.search} onChange={(event) => categories.setFilters({ search: event.target.value })} /></label>
+          <label>
+            <Search size={17} />
+            <input placeholder={isId ? "Cari kategori..." : "Search categories..."} value={categories.filters.search} onChange={(event) => categories.setFilters({ search: event.target.value })} />
+          </label>
           <span>{isId ? "Status" : "Status"}</span>
           <select value={categories.filters.status} onChange={(event) => categories.setFilters({ status: event.target.value })}>
             <option value="all">{isId ? "Semua Status" : "All Statuses"}</option>
@@ -353,7 +376,10 @@ export default function Seller2026LiveCategoriesPage() {
             <option value="visible">{isId ? "Ditampilkan" : "Visible"}</option>
             <option value="hidden">{isId ? "Disembunyikan" : "Hidden"}</option>
           </select>
-          <button type="button" onClick={categories.resetFilters}><RotateCcw size={16} />{isId ? "Atur Ulang" : "Reset"}</button>
+          <button type="button" onClick={categories.resetFilters} title={isId ? "Reset filter pencarian" : "Reset search filters"}>
+            <RotateCcw size={16} />
+            {isId ? "Atur Ulang" : "Reset"}
+          </button>
         </div>
 
         {categories.filteredCategories.length === 0 ? (
@@ -366,7 +392,10 @@ export default function Seller2026LiveCategoriesPage() {
         ) : (
           <>
             <div className="seller2026-categories-grid seller2026-categories-grid--head">
-              <label><input type="checkbox" checked={allPageSelected} onChange={(event) => categories.togglePageSelection(event.target.checked)} />{isId ? "Pilih" : "Select"}</label>
+              <label>
+                <input type="checkbox" checked={allPageSelected} onChange={(event) => categories.togglePageSelection(event.target.checked)} />
+                {isId ? "Pilih" : "Select"}
+              </label>
               <span>{isId ? "Kategori" : "Category"}</span>
               <span>{isId ? "Induk" : "Parent"}</span>
               <span>{isId ? "Produk" : "Products"}</span>
@@ -380,33 +409,67 @@ export default function Seller2026LiveCategoriesPage() {
                 const visibleLabel = seller2026CategoryLabels.visibility(category.visibilityStatus, isId);
                 const lifecycleLabel = seller2026CategoryLabels.lifecycle(category.lifecycleStatus, isId);
                 const isVisibilityBusy = categories.visibilityCategoryId === category.id;
-                const descriptionDisplay = category.description === "No description" ? (isId ? "Tidak ada deskripsi" : "No description") : category.description;
+                const hasDescription = category.description && category.description !== "No description" && category.description !== "Tidak ada deskripsi";
                 const updatedByDisplay = category.updatedBy === "by Seller" ? (isId ? "oleh Penjual" : "by Seller") : category.updatedBy;
+                const formattedDate = category.rawUpdatedAt
+                  ? formatSeller2026CategoryDate(category.rawUpdatedAt, isId)
+                  : category.updatedAt;
+
                 return (
                   <article className="seller2026-category-row" key={category.id}>
                     <label className="seller2026-category-row__select" data-label={isId ? "Pilih" : "Select"}>
-                      <input type="checkbox" checked={categories.selectedIds.includes(category.id)} onChange={(event) => categories.toggleSelected(category.id, event.target.checked)} />
+                      <input
+                        type="checkbox"
+                        checked={categories.selectedIds.includes(category.id)}
+                        onChange={(event) => categories.toggleSelected(category.id, event.target.checked)}
+                      />
                     </label>
                     <div className="seller2026-category-row__identity" data-label={isId ? "Kategori" : "Category"}>
                       <CategoryIcon category={category} />
-                      <div><strong>{category.name}</strong><small>{descriptionDisplay}</small></div>
+                      <div>
+                        <strong
+                          className={category.permissions.canEdit ? "is-clickable" : ""}
+                          title={category.permissions.canEdit ? (isId ? "Klik untuk mengedit kategori" : "Click to edit category") : undefined}
+                          onClick={category.permissions.canEdit ? () => openEdit(category) : undefined}
+                        >
+                          {category.name}
+                        </strong>
+                        {hasDescription ? <small>{category.description}</small> : null}
+                      </div>
                     </div>
-                    <div data-label={isId ? "Induk" : "Parent"}><Pill tone={category.isRoot ? "green" : "blue"}>{parentLabel}</Pill></div>
-                    <span data-label={isId ? "Produk" : "Products"}>{category.productsCount}</span>
+                    <div data-label={isId ? "Induk" : "Parent"}>
+                      <Pill tone={category.isRoot ? "blue" : "mint"}>{parentLabel}</Pill>
+                    </div>
+                    <span data-label={isId ? "Produk" : "Products"} style={{ fontWeight: 700, color: "var(--seller2026-text)" }}>
+                      {category.productsCount}
+                    </span>
                     <div data-label={isId ? "Visibilitas" : "Visibility"} className="seller2026-category-row__status">
-                      <Pill tone={category.isPublished ? "green" : "slate"}>{visibleLabel}</Pill>
+                      <Pill tone={category.isPublished ? "green" : "orange"}>{visibleLabel}</Pill>
                       <small>{lifecycleLabel}</small>
                     </div>
-                    <div data-label={isId ? "Diperbarui" : "Updated"} className="seller2026-category-row__updated"><span>{category.updatedAt}</span><small>{updatedByDisplay}</small></div>
+                    <div data-label={isId ? "Diperbarui" : "Updated"} className="seller2026-category-row__updated">
+                      <span>{formattedDate}</span>
+                      <small>{updatedByDisplay}</small>
+                    </div>
                     <div className="seller2026-category-row__menu" data-label={isId ? "Aksi" : "Actions"}>
                       <button type="button" aria-label={`Actions for ${category.name}`}><MoreVertical size={18} /></button>
                       <div>
-                        <button type="button" disabled={!category.permissions.canEdit} onClick={() => openEdit(category)}><Pencil size={14} />{isId ? "Edit Kategori" : "Edit Category"}</button>
-                        <Link to={`${workspaceRoutes.catalog()}?category=${encodeURIComponent(category.id)}`}><Package size={14} />{isId ? "Lihat Produk" : "View Products"}</Link>
-                        <button type="button" disabled={!canManageStatus || isVisibilityBusy} onClick={() => updateVisibility(category)}>
-                          {category.isPublished ? <EyeOff size={14} /> : <Eye size={14} />}{category.isPublished ? (isId ? "Sembunyikan Kategori" : "Hide Category") : (isId ? "Tampilkan Kategori" : "Show Category")}
+                        <button type="button" disabled={!category.permissions.canEdit} onClick={() => openEdit(category)}>
+                          <Pencil size={14} />
+                          {isId ? "Edit Kategori" : "Edit Category"}
                         </button>
-                        <button type="button" disabled title={isId ? "Belum tersedia" : "Not available yet"}><Archive size={14} />{isId ? "Arsip" : "Archive"}</button>
+                        <Link to={`${workspaceRoutes.catalog()}?category=${encodeURIComponent(category.id)}`}>
+                          <Package size={14} />
+                          {isId ? "Lihat Produk" : "View Products"}
+                        </Link>
+                        <button type="button" disabled={!canManageStatus || isVisibilityBusy} onClick={() => updateVisibility(category)}>
+                          {category.isPublished ? <EyeOff size={14} /> : <Eye size={14} />}
+                          {category.isPublished ? (isId ? "Sembunyikan Kategori" : "Hide Category") : (isId ? "Tampilkan Kategori" : "Show Category")}
+                        </button>
+                        <button type="button" disabled title={isId ? "Fitur arsip belum aktif" : "Archive not available yet"}>
+                          <Archive size={14} />
+                          {isId ? "Arsip" : "Archive"}
+                        </button>
                       </div>
                     </div>
                   </article>
@@ -429,13 +492,13 @@ export default function Seller2026LiveCategoriesPage() {
                 <option value={20}>{isId ? "20 per halaman" : "20 per page"}</option>
                 <option value={50}>{isId ? "50 per halaman" : "50 per page"}</option>
               </select>
-              <button disabled={categories.pagination.page <= 1} onClick={() => categories.pagination.setPage(1)}><ChevronsLeft size={15} /></button>
-              <button disabled={categories.pagination.page <= 1} onClick={() => categories.pagination.setPage(categories.pagination.page - 1)}><ChevronLeft size={15} /></button>
+              <button disabled={categories.pagination.page <= 1} onClick={() => categories.pagination.setPage(1)} title={isId ? "Halaman pertama" : "First page"}><ChevronsLeft size={15} /></button>
+              <button disabled={categories.pagination.page <= 1} onClick={() => categories.pagination.setPage(categories.pagination.page - 1)} title={isId ? "Sebelumnya" : "Previous"}><ChevronLeft size={15} /></button>
               {Array.from({ length: Math.min(3, categories.pagination.totalPages) }, (_, index) => index + 1).map((pageNumber) => (
                 <button className={pageNumber === categories.pagination.page ? "is-active" : ""} key={pageNumber} onClick={() => categories.pagination.setPage(pageNumber)}>{pageNumber}</button>
               ))}
-              <button disabled={categories.pagination.page >= categories.pagination.totalPages} onClick={() => categories.pagination.setPage(categories.pagination.page + 1)}><ChevronRight size={15} /></button>
-              <button disabled={categories.pagination.page >= categories.pagination.totalPages} onClick={() => categories.pagination.setPage(categories.pagination.totalPages)}><ChevronsRight size={15} /></button>
+              <button disabled={categories.pagination.page >= categories.pagination.totalPages} onClick={() => categories.pagination.setPage(categories.pagination.page + 1)} title={isId ? "Berikutnya" : "Next"}><ChevronRight size={15} /></button>
+              <button disabled={categories.pagination.page >= categories.pagination.totalPages} onClick={() => categories.pagination.setPage(categories.pagination.totalPages)} title={isId ? "Halaman terakhir" : "Last page"}><ChevronsRight size={15} /></button>
             </div>
           </footer>
         ) : null}

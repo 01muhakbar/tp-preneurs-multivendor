@@ -1398,6 +1398,11 @@ const serializeDetail = (suborder, sellerAccess = null) => {
             const product = item?.product ?? item?.get?.("product") ?? null;
             const weight = Math.max(0, toNumber(getAttr(product, "weight"), 0));
             const qty = toNumber(getAttr(item, "qty"), 0);
+            const productTypeMetadata = getProductTypeMetadata({
+                productType: getAttr(item, "productTypeSnapshot"),
+                product_type: getAttr(item, "product_type_snapshot"),
+                seo: getAttr(product, "seo"),
+            });
             return {
                 id: toNumber(getAttr(item, "id")),
                 productId: toNumber(getAttr(item, "productId")),
@@ -1411,7 +1416,9 @@ const serializeDetail = (suborder, sellerAccess = null) => {
                 sku: String(getAttr(item, "skuSnapshot") || "").trim() || null,
                 barcode: String(getAttr(item, "barcodeSnapshot") || "").trim() || null,
                 image: String(getAttr(item, "imageSnapshot") || "").trim() || null,
-                productType: resolveLabelProductType(item),
+                productType: productTypeMetadata.productType,
+                isDigital: productTypeMetadata.isDigital,
+                digitalAssetUrl: productTypeMetadata.digitalAssetUrl,
                 weight,
                 lineWeight: weight * qty,
             };
@@ -1474,6 +1481,25 @@ const serializeDetail = (suborder, sellerAccess = null) => {
                 isActive: Boolean(getAttr(paymentProfile, "isActive")),
             }
             : null,
+        isDigital: Array.isArray(suborder?.items) &&
+            suborder.items.length > 0 &&
+            suborder.items.every((it) => {
+                const prod = it?.product ?? it?.get?.("product") ?? null;
+                return getProductTypeMetadata({
+                    productType: getAttr(it, "productTypeSnapshot"),
+                    product_type: getAttr(it, "product_type_snapshot"),
+                    seo: getAttr(prod, "seo"),
+                }).isDigital;
+            }),
+        hasDigitalItems: Array.isArray(suborder?.items) &&
+            suborder.items.some((it) => {
+                const prod = it?.product ?? it?.get?.("product") ?? null;
+                return getProductTypeMetadata({
+                    productType: getAttr(it, "productTypeSnapshot"),
+                    product_type: getAttr(it, "product_type_snapshot"),
+                    seo: getAttr(prod, "seo"),
+                }).isDigital;
+            }),
     };
 };
 router.get("/stores/:storeId/suborders", requireSellerStoreAccess(["ORDER_VIEW"]), async (req, res) => {

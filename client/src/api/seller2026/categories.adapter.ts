@@ -81,12 +81,12 @@ export const slugifySeller2026Category = (value: unknown) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)+/g, "");
 
-export const formatSeller2026CategoryDate = (value: unknown) => {
+export const formatSeller2026CategoryDate = (value: unknown, isId = false) => {
   const raw = text(value);
-  if (!raw) return "Not available";
+  if (!raw) return isId ? "Tidak tersedia" : "Not available";
   const date = new Date(raw);
-  if (Number.isNaN(date.getTime())) return "Not available";
-  return date.toLocaleDateString("en-US", {
+  if (Number.isNaN(date.getTime())) return isId ? "Tidak tersedia" : "Not available";
+  return date.toLocaleDateString(isId ? "id-ID" : "en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
