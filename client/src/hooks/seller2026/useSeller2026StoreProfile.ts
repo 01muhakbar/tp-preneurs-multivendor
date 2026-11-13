@@ -68,6 +68,8 @@ export function useSeller2026StoreProfile(
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["seller2026", "store-profile"] }),
         queryClient.invalidateQueries({ queryKey: ["seller2026", "dashboard"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-store-profiles"] }),
+        queryClient.invalidateQueries({ queryKey: ["storefront"], exact: false }),
       ]);
     },
   });

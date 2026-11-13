@@ -1,0 +1,1 @@
+import{a as e,j as o,R as s}from"./index-Bp03Rd2j.js";function i(){const t=e(),a={pathname:"/admin/store/customization",search:t.search,hash:t.hash};return o.jsx(s,{to:a,replace:!0})}export{i as default};

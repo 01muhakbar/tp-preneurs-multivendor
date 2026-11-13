@@ -4,10 +4,13 @@ import {
   ADMIN_OWNED_STORE_PROFILE_FIELDS,
   STORE_PROFILE_ATTRIBUTES,
   adminStoreProfilePatchSchema,
+  getStoreProfileAttr,
+  mergeStoredProfileObjectPatch,
   serializeStoreProfileSnapshot,
 } from "../services/sharedContracts/storeProfileGovernance.js";
 import { serializePublicStoreIdentityPayload } from "../services/sharedContracts/publicStoreIdentity.js";
 import { STORE_PAYMENT_PROFILE_BASE_ATTRIBUTES } from "../services/sharedContracts/storePaymentProfileCompat.js";
+import { mergeSellerShippingSetupPatch } from "../services/sellerShippingSetup.service.js";
 
 const router = Router();
 
@@ -90,11 +93,25 @@ router.patch("/store/profiles/:storeId", async (req, res) => {
       });
     }
 
-    const updatePayload = Object.fromEntries(
-      Object.entries(parsed.data).filter(([, value]) => value !== undefined)
-    );
+    const rawData = parsed.data as Record<string, any>;
+    const updatePayload: Record<string, any> = {};
+    for (const [key, value] of Object.entries(rawData)) {
+      if (
+        value !== undefined &&
+        key !== "shippingSetup" &&
+        key !== "ownerIdentity" &&
+        key !== "businessDetails"
+      ) {
+        updatePayload[key] = value;
+      }
+    }
 
-    if (Object.keys(updatePayload).length === 0) {
+    if (
+      Object.keys(updatePayload).length === 0 &&
+      rawData.shippingSetup === undefined &&
+      rawData.ownerIdentity === undefined &&
+      rawData.businessDetails === undefined
+    ) {
       return res.status(400).json({
         success: false,
         message: "No admin-owned store profile fields were provided.",
@@ -123,6 +140,27 @@ router.patch("/store/profiles/:storeId", async (req, res) => {
         success: false,
         message: "Store not found.",
       });
+    }
+
+    if (rawData.shippingSetup !== undefined) {
+      updatePayload.shippingSetup = mergeSellerShippingSetupPatch(
+        getStoreProfileAttr(store, "shippingSetup"),
+        rawData.shippingSetup
+      );
+    }
+
+    if (rawData.ownerIdentity !== undefined) {
+      updatePayload.ownerIdentity = mergeStoredProfileObjectPatch(
+        getStoreProfileAttr(store, "ownerIdentity"),
+        rawData.ownerIdentity
+      );
+    }
+
+    if (rawData.businessDetails !== undefined) {
+      updatePayload.businessDetails = mergeStoredProfileObjectPatch(
+        getStoreProfileAttr(store, "businessDetails"),
+        rawData.businessDetails
+      );
     }
 
     await store.update(updatePayload as any);

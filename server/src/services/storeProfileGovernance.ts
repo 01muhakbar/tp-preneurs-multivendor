@@ -414,6 +414,22 @@ export const adminStoreProfilePatchSchema = z
     logoUrl: nullableAssetUrlField(),
     bannerUrl: nullableAssetUrlField(),
     description: nullableStringField(4000),
+    email: nullableEmailField(),
+    phone: nullablePhoneField("Phone"),
+    whatsapp: nullablePhoneField("WhatsApp"),
+    websiteUrl: nullableUrlField(),
+    instagramUrl: nullableSocialUrlField(["instagram.com"], "Instagram"),
+    tiktokUrl: nullableSocialUrlField(["tiktok.com"], "TikTok"),
+    addressLine1: nullableStringField(255),
+    addressLine2: nullableStringField(255),
+    city: nullableStringField(120),
+    district: nullableStringField(120),
+    province: nullableStringField(120),
+    postalCode: nullablePostalCodeField(),
+    country: nullableStringField(120),
+    shippingSetup: sellerShippingSetupPatchSchema.optional(),
+    ownerIdentity: ownerIdentityProfileSchema.nullable().optional(),
+    businessDetails: businessDetailsProfileSchema.nullable().optional(),
   })
   .strict();
 

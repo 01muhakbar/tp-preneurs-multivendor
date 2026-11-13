@@ -1,25 +1,32 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import {
   AlertCircle,
-  Bot,
-  CheckCircle2,
-  ChevronDown,
+  Building2,
+  Check,
+  ChevronLeft,
+  ChevronRight,
   ExternalLink,
-  Grid2X2,
-  LayoutList,
-  PackageCheck,
+  Globe,
+  Image as ImageIcon,
+  Mail,
+  MapPin,
+  Phone,
   Plus,
   RefreshCw,
   Save,
   Search,
+  Settings,
+  ShieldCheck,
   Store,
+  Trash2,
   Truck,
   Upload,
   UserRound,
+  X,
 } from "lucide-react";
 import {
   fetchAdminStoreProfiles,
@@ -31,9 +38,15 @@ import {
   AdminOpsErrorState,
   AdminOpsLoadingState,
 } from "../../components/admin/AdminOpsPrimitives.jsx";
+import {
+  getCityOptions,
+  getDistrictOptions,
+  getProvinceOptions,
+} from "../../utils/idRegions.ts";
 import "./AdminStoreProfilePage.css";
 
 const STORE_PROFILES_QUERY_KEY = ["admin-store-profiles"];
+const ITEMS_PER_SLIDE = 10;
 
 const PROFILE_FIELDS = [
   "name",
@@ -71,15 +84,6 @@ const ISSUE_KEY_MAP = {
   originPostalCode: "originPostalCode",
 };
 
-const FILTERS = [
-  { id: "all", key: "all", defaultLabel: "Semua" },
-  { id: "review", key: "review", defaultLabel: "Perlu Tinjau" },
-  { id: "profile", key: "profile", defaultLabel: "Profil" },
-  { id: "shipping", key: "shipping", defaultLabel: "Pengiriman" },
-  { id: "public", key: "public", defaultLabel: "Publik" },
-  { id: "live", key: "live", defaultLabel: "Aktif" },
-];
-
 const getErrorMessage = (error) =>
   error?.response?.data?.message ||
   error?.message ||
@@ -95,18 +99,32 @@ const normalizeKey = (key) =>
     .replace(/[_-\s]+(.)?/g, (_, letter) => (letter ? letter.toUpperCase() : ""))
     .replace(/^(.)/, (letter) => letter.toLowerCase());
 
-const formatFieldLabel = (value, t) => {
+const formatFieldLabel = (value, isId = false) => {
   const source = String(value || "").trim();
   const normalized = normalizeKey(source);
-  const issueKey = ISSUE_KEY_MAP[source] || ISSUE_KEY_MAP[normalized];
-  if (t && issueKey) {
-    const translated = t(`storeProfile.issues.${issueKey}`, "");
-    if (translated) return translated;
-  }
-  return source
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .replace(/[_-]/g, " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  const map = {
+    logoUrl: isId ? "Logo Toko" : "Store Logo",
+    bannerUrl: isId ? "Banner Toko" : "Store Banner",
+    phone: isId ? "Nomor Telepon" : "Phone Number",
+    email: isId ? "Email Toko" : "Store Email",
+    addressLine1: isId ? "Alamat Toko" : "Store Address",
+    postalCode: isId ? "Kode Pos" : "Postal Code",
+    description: isId ? "Deskripsi" : "Description",
+    originContactName: isId ? "Nama Pengirim" : "Sender Contact",
+    originPhone: isId ? "No. HP Pengirim" : "Sender Phone",
+    originAddressLine: isId ? "Alamat Pengiriman" : "Origin Address",
+    originCity: isId ? "Kota Pengiriman" : "Origin City",
+    originProvince: isId ? "Provinsi Pengiriman" : "Origin Province",
+    originPostalCode: isId ? "Kode Pos Pengiriman" : "Origin Postal Code",
+  };
+  return (
+    map[source] ||
+    map[normalized] ||
+    source
+      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+      .replace(/[_-]/g, " ")
+      .replace(/\b\w/g, (letter) => letter.toUpperCase())
+  );
 };
 
 const isPresent = (value) => {
@@ -180,7 +198,7 @@ export const readValue = (entry, key) => {
   return undefined;
 };
 
-export const getMissing = (entry, fields, t) => {
+export const getMissing = (entry, fields, isId = false) => {
   const store = entry?.store || entry || {};
   const explicit =
     fields === PROFILE_FIELDS
@@ -192,14 +210,14 @@ export const getMissing = (entry, fields, t) => {
   if (Array.isArray(explicit) && explicit.length > 0) {
     return explicit
       .map((field) =>
-        formatFieldLabel(field?.label || field?.field || field?.key || field, t)
+        formatFieldLabel(field?.label || field?.field || field?.key || field, isId)
       )
       .filter(Boolean);
   }
 
   return fields
     .filter((field) => !isPresent(readValue(entry, field)))
-    .map((field) => formatFieldLabel(field, t));
+    .map((field) => formatFieldLabel(field, isId));
 };
 
 export const getProfileScore = (entry) => {
@@ -255,11 +273,6 @@ export const filterStore = (entry, activeFilter) => {
   }
 };
 
-const getStatusLabel = (entry) => {
-  const status = String(readValue(entry, "status") || "ACTIVE").toUpperCase();
-  return status === "ACTIVE" ? "Live" : "Inactive";
-};
-
 const getInitials = (name) => {
   const words = textValue(name, "S").split(/\s+/).filter(Boolean);
   return words
@@ -268,546 +281,531 @@ const getInitials = (name) => {
     .join("");
 };
 
-const getIssueList = (entry, t) => {
-  const issues = [
-    ...getMissing(entry, PROFILE_FIELDS, t),
-    ...getMissing(entry, SHIPPING_FIELDS, t),
-  ];
-  return Array.from(new Set(issues)).slice(0, 6);
-};
+/* ==========================================================================
+   MANAGEMENT MODAL / DRAWER COMPONENT
+   ========================================================================== */
+function AdminStoreManageModal({ entry, isOpen, onClose, onSave, isSaving, isId }) {
+  const [activeTab, setActiveTab] = useState("identity");
+  const [form, setForm] = useState(null);
+  const [uploading, setUploading] = useState("");
+  const logoFileRef = useRef(null);
+  const bannerFileRef = useRef(null);
 
-const getPreviewRows = (entry, t) => {
-  const hasLogo = isPresent(readValue(entry, "logoUrl"));
-  const hasBanner = isPresent(readValue(entry, "bannerUrl"));
-  const hasDescription = isPresent(readValue(entry, "description"));
-  const hasContact =
-    isPresent(readValue(entry, "email")) ||
-    isPresent(readValue(entry, "phone")) ||
-    isPresent(readValue(entry, "whatsapp"));
-  const hasAddress =
-    isPresent(readValue(entry, "addressLine1")) ||
-    isPresent(readValue(entry, "originAddressLine"));
-  return [
-    { label: t("storeProfile.checklist.logo", "Logo"), ready: hasLogo },
-    { label: t("storeProfile.checklist.banner", "Banner"), ready: hasBanner },
-    { label: t("storeProfile.checklist.description", "Deskripsi"), ready: hasDescription },
-    { label: t("storeProfile.checklist.contact", "Kontak"), ready: hasContact },
-    { label: t("storeProfile.checklist.address", "Alamat"), ready: hasAddress },
-  ];
-};
+  useEffect(() => {
+    if (entry && isOpen) {
+      const store = entry?.store || entry || {};
+      const owner = getOwner(entry);
+      setForm({
+        name: getStoreName(entry),
+        slug: getStoreSlug(entry),
+        status: String(readValue(entry, "status") || "ACTIVE").toUpperCase(),
+        description: textValue(readValue(entry, "description")),
+        logoUrl: textValue(readValue(entry, "logoUrl")),
+        bannerUrl: textValue(readValue(entry, "bannerUrl")),
+        email: textValue(readValue(entry, "email") || owner?.email),
+        phone: textValue(readValue(entry, "phone")),
+        whatsapp: textValue(readValue(entry, "whatsapp")),
+        websiteUrl: textValue(readValue(entry, "websiteUrl")),
+        instagramUrl: textValue(readValue(entry, "instagramUrl")),
+        tiktokUrl: textValue(readValue(entry, "tiktokUrl")),
+        addressLine1: textValue(readValue(entry, "addressLine1")),
+        addressLine2: textValue(readValue(entry, "addressLine2")),
+        province: textValue(readValue(entry, "province") || readValue(entry, "originProvince")),
+        city: textValue(readValue(entry, "city") || readValue(entry, "originCity")),
+        district: textValue(readValue(entry, "district") || readValue(entry, "originDistrict")),
+        postalCode: textValue(readValue(entry, "postalCode") || readValue(entry, "originPostalCode")),
+        country: textValue(readValue(entry, "country"), "Indonesia"),
+      });
+      setActiveTab("identity");
+    }
+  }, [entry, isOpen]);
 
-const getPriorityRank = (entry) => {
-  const priority = getPriority(entry);
-  if (priority === "High") return 0;
-  if (priority === "Medium") return 1;
-  return 2;
-};
+  if (!isOpen || !entry || !form) return null;
 
-function MetricCard({ icon: Icon, label, value, tone = "navy" }) {
+  const storeId = getStoreId(entry);
+  const storeName = getStoreName(entry);
+
+  const provinces = getProvinceOptions(form.province);
+  const cities = getCityOptions(form.province, form.city);
+  const districts = getDistrictOptions(form.province, form.city, form.district);
+
+  const handleFieldChange = (field) => (e) => {
+    const val = e.target.value;
+    setForm((curr) => {
+      const next = { ...curr, [field]: val };
+      if (field === "province") {
+        next.city = "";
+        next.district = "";
+      } else if (field === "city") {
+        next.district = "";
+      }
+      return next;
+    });
+  };
+
+  const handleFileUpload = async (field, file) => {
+    if (!file) return;
+    setUploading(field);
+    try {
+      const url = await uploadAdminStoreProfileImage(file);
+      if (url) {
+        setForm((curr) => ({ ...curr, [field]: url }));
+        toast.success(
+          isId
+            ? `${field === "logoUrl" ? "Logo" : "Banner"} berhasil diunggah`
+            : `${field === "logoUrl" ? "Logo" : "Banner"} uploaded successfully`
+        );
+      }
+    } catch (err) {
+      toast.error(
+        getErrorMessage(err) || (isId ? "Gagal mengunggah berkas" : "Failed to upload file")
+      );
+    } finally {
+      setUploading("");
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave(storeId, form);
+  };
+
   return (
-    <div className={`asp2026-metric asp2026-metric--${tone}`}>
-      <div className="asp2026-metric__icon" aria-hidden="true">
-        <Icon size={20} />
-      </div>
-      <div className="asp2026-metric__body">
-        <p>{label}</p>
-        <strong>{value}</strong>
+    <div className="asp2026-modal-overlay" onClick={onClose}>
+      <div className="asp2026-modal" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="asp2026-modal-header">
+          <div className="asp2026-modal-header-left">
+            <div className="asp2026-avatar">
+              {form.logoUrl ? (
+                <img src={form.logoUrl} alt="" className="asp2026-avatar__img" />
+              ) : (
+                getInitials(storeName)
+              )}
+            </div>
+            <div>
+              <h2>{storeName}</h2>
+              <p>ID #{storeId} &bull; /@{form.slug}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="asp2026-modal-close-btn"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="asp2026-modal-tabs">
+          <button
+            type="button"
+            className={`asp2026-modal-tab ${activeTab === "identity" ? "is-active" : ""}`}
+            onClick={() => setActiveTab("identity")}
+          >
+            <Store size={14} />
+            {isId ? "Identitas & Media" : "Identity & Media"}
+          </button>
+          <button
+            type="button"
+            className={`asp2026-modal-tab ${activeTab === "contact" ? "is-active" : ""}`}
+            onClick={() => setActiveTab("contact")}
+          >
+            <Phone size={14} />
+            {isId ? "Kontak & Sosmed" : "Contact & Social"}
+          </button>
+          <button
+            type="button"
+            className={`asp2026-modal-tab ${activeTab === "address" ? "is-active" : ""}`}
+            onClick={() => setActiveTab("address")}
+          >
+            <MapPin size={14} />
+            {isId ? "Alamat & Wilayah" : "Address & Region"}
+          </button>
+          <button
+            type="button"
+            className={`asp2026-modal-tab ${activeTab === "readiness" ? "is-active" : ""}`}
+            onClick={() => setActiveTab("readiness")}
+          >
+            <ShieldCheck size={14} />
+            {isId ? "Kesiapan Operasional" : "Readiness Status"}
+          </button>
+        </div>
+
+        {/* Form Body */}
+        <form id="asp2026-manage-form" onSubmit={handleSubmit} className="asp2026-modal-body">
+          {activeTab === "identity" && (
+            <div className="asp2026-form-grid">
+              <div className="asp2026-field">
+                <label>{isId ? "Nama Toko" : "Store Name"}</label>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={handleFieldChange("name")}
+                  required
+                />
+              </div>
+
+              <div className="asp2026-field">
+                <label>{isId ? "Slug Toko (URL)" : "Store Slug (URL)"}</label>
+                <input
+                  type="text"
+                  value={form.slug}
+                  onChange={handleFieldChange("slug")}
+                  required
+                />
+              </div>
+
+              <div className="asp2026-field">
+                <label>{isId ? "Status Toko" : "Store Status"}</label>
+                <select value={form.status} onChange={handleFieldChange("status")}>
+                  <option value="ACTIVE">{isId ? "Aktif (Live)" : "Active (Live)"}</option>
+                  <option value="INACTIVE">{isId ? "Nonaktif (Inactive)" : "Inactive"}</option>
+                </select>
+              </div>
+
+              <div className="asp2026-field">
+                <label>{isId ? "Tautan Etalase" : "Storefront Preview"}</label>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, height: 38 }}>
+                  <span className="asp2026-store-slug">/@{form.slug}</span>
+                  <a
+                    href={`/store/${encodeURIComponent(form.slug)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="asp2026-preview-btn"
+                    title={isId ? "Lihat di tab baru" : "View storefront in new tab"}
+                  >
+                    <ExternalLink size={14} />
+                  </a>
+                </div>
+              </div>
+
+              <div className="asp2026-field asp2026-form-col-full">
+                <label>{isId ? "Deskripsi Toko" : "Store Description"}</label>
+                <textarea
+                  rows={3}
+                  value={form.description}
+                  onChange={handleFieldChange("description")}
+                  placeholder={isId ? "Deskripsi singkat profil toko..." : "Short store description..."}
+                />
+              </div>
+
+              {/* Logo Box */}
+              <div className="asp2026-field">
+                <label>{isId ? "Logo Toko" : "Store Logo"}</label>
+                <div className="asp2026-media-box">
+                  {form.logoUrl ? (
+                    <img src={form.logoUrl} alt="Logo" className="asp2026-media-thumb" />
+                  ) : (
+                    <div className="asp2026-media-thumb" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <ImageIcon size={22} color="#94a3b8" />
+                    </div>
+                  )}
+                  <div className="asp2026-media-actions">
+                    <input
+                      type="file"
+                      ref={logoFileRef}
+                      style={{ display: "none" }}
+                      accept="image/*"
+                      onChange={(e) => handleFileUpload("logoUrl", e.target.files?.[0])}
+                    />
+                    <button
+                      type="button"
+                      className="asp2026-media-btn"
+                      onClick={() => logoFileRef.current?.click()}
+                      disabled={uploading === "logoUrl"}
+                    >
+                      <Upload size={12} />
+                      {uploading === "logoUrl"
+                        ? (isId ? "Mengunggah..." : "Uploading...")
+                        : (isId ? "Unggah Logo" : "Upload Logo")}
+                    </button>
+                    {form.logoUrl && (
+                      <button
+                        type="button"
+                        className="asp2026-media-btn asp2026-media-btn--danger"
+                        onClick={() => setForm((curr) => ({ ...curr, logoUrl: "" }))}
+                      >
+                        <Trash2 size={12} />
+                        {isId ? "Hapus" : "Remove"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Banner Box */}
+              <div className="asp2026-field">
+                <label>{isId ? "Banner Toko" : "Store Banner"}</label>
+                <div className="asp2026-media-box">
+                  {form.bannerUrl ? (
+                    <img src={form.bannerUrl} alt="Banner" className="asp2026-media-thumb" style={{ width: 80 }} />
+                  ) : (
+                    <div className="asp2026-media-thumb" style={{ width: 80, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <ImageIcon size={22} color="#94a3b8" />
+                    </div>
+                  )}
+                  <div className="asp2026-media-actions">
+                    <input
+                      type="file"
+                      ref={bannerFileRef}
+                      style={{ display: "none" }}
+                      accept="image/*"
+                      onChange={(e) => handleFileUpload("bannerUrl", e.target.files?.[0])}
+                    />
+                    <button
+                      type="button"
+                      className="asp2026-media-btn"
+                      onClick={() => bannerFileRef.current?.click()}
+                      disabled={uploading === "bannerUrl"}
+                    >
+                      <Upload size={12} />
+                      {uploading === "bannerUrl"
+                        ? (isId ? "Mengunggah..." : "Uploading...")
+                        : (isId ? "Unggah Banner" : "Upload Banner")}
+                    </button>
+                    {form.bannerUrl && (
+                      <button
+                        type="button"
+                        className="asp2026-media-btn asp2026-media-btn--danger"
+                        onClick={() => setForm((curr) => ({ ...curr, bannerUrl: "" }))}
+                      >
+                        <Trash2 size={12} />
+                        {isId ? "Hapus" : "Remove"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "contact" && (
+            <div className="asp2026-form-grid">
+              <div className="asp2026-field">
+                <label>{isId ? "Email Toko" : "Store Email"}</label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={handleFieldChange("email")}
+                  placeholder="store@example.com"
+                />
+              </div>
+
+              <div className="asp2026-field">
+                <label>{isId ? "Nomor Telepon" : "Phone Number"}</label>
+                <input
+                  type="text"
+                  value={form.phone}
+                  onChange={handleFieldChange("phone")}
+                  placeholder="+62 8..."
+                />
+              </div>
+
+              <div className="asp2026-field">
+                <label>WhatsApp</label>
+                <input
+                  type="text"
+                  value={form.whatsapp}
+                  onChange={handleFieldChange("whatsapp")}
+                  placeholder="+62 8..."
+                />
+              </div>
+
+              <div className="asp2026-field">
+                <label>{isId ? "Website Resmi" : "Website URL"}</label>
+                <input
+                  type="url"
+                  value={form.websiteUrl}
+                  onChange={handleFieldChange("websiteUrl")}
+                  placeholder="https://..."
+                />
+              </div>
+
+              <div className="asp2026-field">
+                <label>Instagram URL</label>
+                <input
+                  type="url"
+                  value={form.instagramUrl}
+                  onChange={handleFieldChange("instagramUrl")}
+                  placeholder="https://instagram.com/..."
+                />
+              </div>
+
+              <div className="asp2026-field">
+                <label>TikTok URL</label>
+                <input
+                  type="url"
+                  value={form.tiktokUrl}
+                  onChange={handleFieldChange("tiktokUrl")}
+                  placeholder="https://tiktok.com/@..."
+                />
+              </div>
+            </div>
+          )}
+
+          {activeTab === "address" && (
+            <div className="asp2026-form-grid">
+              <div className="asp2026-field asp2026-form-col-full">
+                <label>{isId ? "Alamat Lengkap (Baris 1)" : "Address Line 1"}</label>
+                <input
+                  type="text"
+                  value={form.addressLine1}
+                  onChange={handleFieldChange("addressLine1")}
+                  placeholder={isId ? "Nama jalan, nomor rumah/gedung..." : "Street name, building number..."}
+                />
+              </div>
+
+              <div className="asp2026-field asp2026-form-col-full">
+                <label>{isId ? "Detail Tambahan (Baris 2)" : "Address Line 2 (Optional)"}</label>
+                <input
+                  type="text"
+                  value={form.addressLine2}
+                  onChange={handleFieldChange("addressLine2")}
+                  placeholder={isId ? "Lantai, blok, patokan (opsional)..." : "Floor, block, landmark (optional)..."}
+                />
+              </div>
+
+              <div className="asp2026-field">
+                <label>{isId ? "Provinsi" : "Province"}</label>
+                <select value={form.province} onChange={handleFieldChange("province")}>
+                  <option value="">{isId ? "-- Pilih Provinsi --" : "-- Select Province --"}</option>
+                  {provinces.map((prov) => (
+                    <option key={prov} value={prov}>{prov}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="asp2026-field">
+                <label>{isId ? "Kota / Kabupaten" : "City / Regency"}</label>
+                <select
+                  value={form.city}
+                  onChange={handleFieldChange("city")}
+                  disabled={!form.province}
+                >
+                  <option value="">{isId ? "-- Pilih Kota --" : "-- Select City --"}</option>
+                  {cities.map((city) => (
+                    <option key={city} value={city}>{city}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="asp2026-field">
+                <label>{isId ? "Kecamatan" : "District / Subdistrict"}</label>
+                <select
+                  value={form.district}
+                  onChange={handleFieldChange("district")}
+                  disabled={!form.city}
+                >
+                  <option value="">{isId ? "-- Pilih Kecamatan --" : "-- Select District --"}</option>
+                  {districts.map((dist) => (
+                    <option key={dist} value={dist}>{dist}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="asp2026-field">
+                <label>{isId ? "Kode Pos" : "Postal Code"}</label>
+                <input
+                  type="text"
+                  value={form.postalCode}
+                  onChange={handleFieldChange("postalCode")}
+                  placeholder="90222"
+                />
+              </div>
+            </div>
+          )}
+
+          {activeTab === "readiness" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div style={{ padding: 14, background: "var(--asp-bg-subpanel)", borderRadius: 8, border: "1px solid var(--asp-border)" }}>
+                  <small style={{ color: "var(--asp-text-muted)", textTransform: "uppercase", fontWeight: 700 }}>
+                    {isId ? "Kelengkapan Profil" : "Profile Completeness"}
+                  </small>
+                  <div style={{ fontSize: 18, fontWeight: 750, marginTop: 4, color: "var(--asp-text-title)" }}>
+                    {getProfileScore(entry).complete} / {getProfileScore(entry).total}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--asp-text-muted)", marginTop: 2 }}>
+                    {getProfileScore(entry).missing === 0
+                      ? (isId ? "Semua field profil lengkap" : "All profile fields filled")
+                      : (isId ? `${getProfileScore(entry).missing} field belum lengkap` : `${getProfileScore(entry).missing} fields missing`)}
+                  </div>
+                </div>
+
+                <div style={{ padding: 14, background: "var(--asp-bg-subpanel)", borderRadius: 8, border: "1px solid var(--asp-border)" }}>
+                  <small style={{ color: "var(--asp-text-muted)", textTransform: "uppercase", fontWeight: 700 }}>
+                    {isId ? "Status Pengiriman" : "Shipping Setup"}
+                  </small>
+                  <div style={{ fontSize: 18, fontWeight: 750, marginTop: 4, color: "var(--asp-text-title)" }}>
+                    {getShippingScore(entry).missing === 0
+                      ? (isId ? "Siap Kirim" : "Shipping Ready")
+                      : `${getShippingScore(entry).missing} ${isId ? "Field Kurang" : "Missing"}`}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--asp-text-muted)", marginTop: 2 }}>
+                    {getShippingScore(entry).missing === 0
+                      ? (isId ? "Asal ekspedisi terkonfigurasi" : "Origin logistics configured")
+                      : (isId ? "Perlu melengkapi alamat asal" : "Needs origin address")}
+                  </div>
+                </div>
+              </div>
+
+              {/* Missing Fields list if any */}
+              {getMissing(entry, PROFILE_FIELDS, isId).length > 0 && (
+                <div style={{ padding: 12, borderRadius: 8, background: "rgba(254, 111, 5, 0.08)", border: "1px solid rgba(254, 111, 5, 0.25)" }}>
+                  <strong style={{ fontSize: 12, color: "#e05e00", display: "block", marginBottom: 6 }}>
+                    {isId ? "Field Profil yang Belum Diisi:" : "Missing Profile Fields:"}
+                  </strong>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {getMissing(entry, PROFILE_FIELDS, isId).map((f) => (
+                      <span key={f} style={{ fontSize: 11, background: "white", padding: "2px 8px", borderRadius: 4, border: "1px solid #fed7aa", color: "#c2410c" }}>
+                        {f}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </form>
+
+        {/* Modal Footer */}
+        <div className="asp2026-modal-footer">
+          <button type="button" className="asp2026-btn-secondary" onClick={onClose} disabled={isSaving}>
+            {isId ? "Batal" : "Cancel"}
+          </button>
+          <button
+            type="submit"
+            form="asp2026-manage-form"
+            className="asp2026-btn-primary"
+            disabled={isSaving || Boolean(uploading)}
+          >
+            <Save size={14} />
+            {isSaving
+              ? (isId ? "Menyimpan..." : "Saving...")
+              : (isId ? "Simpan Perubahan" : "Save Changes")}
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
-function Chip({ children, tone = "neutral" }) {
-  return <span className={`asp2026-chip asp2026-chip--${tone}`}>{children}</span>;
-}
-
-function StoreReviewCard({
-  entry,
-  draft,
-  expanded,
-  saving,
-  mutationError,
-  onToggle,
-  onDraftChange,
-  onSave,
-}) {
-  const { t } = useTranslation("admin");
-  const storeId = getStoreId(entry);
-  const fallbackStoreName = t("storeProfile.card.untitled", "Toko Tanpa Nama");
-  const name = getStoreName(entry, fallbackStoreName);
-  const slug = getStoreSlug(entry);
-  const profileScore = getProfileScore(entry);
-  const shippingScore = getShippingScore(entry);
-  const priority = getPriority(entry);
-  const issues = useMemo(() => getIssueList(entry, t), [entry, t]);
-  const owner = getOwner(entry);
-  const storefrontHref = slug ? `/store/${encodeURIComponent(slug)}` : null;
-  const publicReady = hasPublicReadiness(entry);
-  const statusLabel = getStatusLabel(entry);
-  const summaryId = `asp2026-store-summary-${storeId}`;
-  const detailId = `asp2026-store-detail-${storeId}`;
-  const previewRows = useMemo(() => getPreviewRows(entry, t), [entry, t]);
-
-  const logoUrl = textValue(readValue(entry, "logoUrl"));
-  const [uploadingField, setUploadingField] = useState(null);
-
-  const handleUpload = async (event, fieldName) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    setUploadingField(fieldName);
-    const fieldLabel =
-      fieldName === "logoUrl"
-        ? t("storeProfile.checklist.logo", "Logo")
-        : t("storeProfile.checklist.banner", "Banner");
-    try {
-      const url = await uploadAdminStoreProfileImage(file);
-      if (url) {
-        onDraftChange({ [fieldName]: url });
-        toast.success(
-          t("storeProfile.messages.uploadSuccess", "{{field}} berhasil diunggah", {
-            field: fieldLabel,
-          })
-        );
-      }
-    } catch (error) {
-      toast.error(
-        getErrorMessage(error) ||
-          t("storeProfile.messages.uploadError", "Gagal mengunggah gambar")
-      );
-    } finally {
-      setUploadingField(null);
-      event.target.value = "";
-    }
-  };
-
-  const priorityTone =
-    priority === "High" ? "danger" : priority === "Medium" ? "warning" : "success";
-
-  const priorityLabel =
-    priority === "High"
-      ? t("storeProfile.card.priorityHigh", "Tinggi")
-      : priority === "Medium"
-        ? t("storeProfile.card.priorityMedium", "Sedang")
-        : t("storeProfile.card.priorityNormal", "Normal");
-
-  const statusText =
-    statusLabel === "Live"
-      ? t("storeProfile.card.statusLive", "Aktif")
-      : t("storeProfile.card.statusInactive", "Nonaktif");
-
-  return (
-    <article className={`asp2026-store-card ${expanded ? "is-expanded" : ""}`}>
-      {/* SUMMARY HEADER ROW */}
-      <div
-        id={summaryId}
-        className="asp2026-store-summary"
-        role="button"
-        tabIndex={0}
-        aria-expanded={expanded}
-        aria-controls={detailId}
-        onClick={onToggle}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onToggle();
-          }
-        }}
-      >
-        <div className="asp2026-avatar">
-          {logoUrl ? (
-            <img
-              src={logoUrl}
-              alt={name}
-              className="asp2026-avatar__img"
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-              }}
-            />
-          ) : null}
-          <span>{getInitials(name)}</span>
-        </div>
-
-        <div className="asp2026-store-title">
-          <div className="asp2026-title-row">
-            <strong>{name}</strong>
-            {owner?.name ? (
-              <span
-                className="asp2026-owner-badge"
-                title={`${t("storeProfile.card.owner", "Pemilik")}: ${owner.name}`}
-              >
-                <UserRound size={12} aria-hidden="true" />
-                {owner.name}
-              </span>
-            ) : null}
-          </div>
-          <span className="asp2026-slug-text">
-            /{slug || t("storeProfile.card.noSlug", "tanpa-slug")}
-          </span>
-        </div>
-
-        <div className="asp2026-summary-meta">
-          <div className="asp2026-summary-item">
-            <small>{t("storeProfile.card.status", "Status")}</small>
-            <Chip tone={statusLabel === "Live" ? "success" : "neutral"}>
-              {statusText}
-            </Chip>
-          </div>
-          <div className="asp2026-summary-item">
-            <small>{t("storeProfile.card.profile", "Profil")}</small>
-            <strong className="asp2026-score-text">
-              {profileScore.complete}/{profileScore.total}
-            </strong>
-          </div>
-          <div className="asp2026-summary-item">
-            <small>{t("storeProfile.card.shipping", "Pengiriman")}</small>
-            <Chip tone={shippingScore.missing ? "warning" : "success"}>
-              {shippingScore.missing
-                ? t("storeProfile.card.missingCount", "{{count}} Kurang", {
-                    count: shippingScore.missing,
-                  })
-                : t("storeProfile.card.ready", "Siap")}
-            </Chip>
-          </div>
-          <div className="asp2026-summary-item">
-            <small>{t("storeProfile.card.priority", "Prioritas")}</small>
-            <Chip tone={priorityTone}>{priorityLabel}</Chip>
-          </div>
-        </div>
-
-        <div className="asp2026-chevron" aria-hidden="true">
-          <ChevronDown size={18} />
-        </div>
-      </div>
-
-      {/* EXPANDED CONTENT: 2-COLUMN MODERN LAYOUT */}
-      {expanded ? (
-        <div
-          id={detailId}
-          className="asp2026-card-detail"
-          role="region"
-          aria-labelledby={summaryId}
-        >
-          {/* KOLOM KIRI: KESIAPAN & AUDIT */}
-          <section className="asp2026-panel asp2026-panel--readiness">
-            <div className="asp2026-panel__head">
-              <div className="asp2026-head-title">
-                <h2>{t("storeProfile.readiness.title", "Kesiapan Toko")}</h2>
-                <Chip tone={publicReady ? "success" : "warning"}>
-                  {publicReady
-                    ? t("storeProfile.readiness.operational", "Siap Tayang")
-                    : t("storeProfile.readiness.gated", "Belum Siap")}
-                </Chip>
-              </div>
-              <button
-                type="button"
-                className="asp2026-ai-pill-btn"
-                title={t("storeProfile.readiness.aiAudit", "Audit AI")}
-                onClick={() =>
-                  toast.success(
-                    issues.length
-                      ? t(
-                          "storeProfile.readiness.aiIssuesTip",
-                          "Perlu dilengkapi: {{items}}.",
-                          { items: issues.slice(0, 3).join(", ") }
-                        )
-                      : t(
-                          "storeProfile.readiness.aiReadyTip",
-                          "Profil toko lengkap dan siap digunakan!"
-                        ),
-                    { id: "ai-audit-toast" }
-                  )
-                }
-              >
-                <Bot size={13} aria-hidden="true" />
-                <span>{t("storeProfile.readiness.aiAudit", "Audit AI")}</span>
-              </button>
-            </div>
-
-            {/* CHECKLIST KESIAPAN */}
-            <div className="asp2026-checklist-grid">
-              {previewRows.map((row) => (
-                <div
-                  key={row.label}
-                  className={`asp2026-check-item ${row.ready ? "is-ready" : "is-missing"}`}
-                >
-                  <span className="asp2026-check-icon" aria-hidden="true">
-                    {row.ready ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
-                  </span>
-                  <span className="asp2026-check-name">{row.label}</span>
-                  <span className="asp2026-check-status">
-                    {row.ready
-                      ? t("storeProfile.checklist.ready", "Siap")
-                      : t("storeProfile.checklist.missing", "Kurang")}
-                  </span>
-                </div>
-              ))}
-              <div
-                className={`asp2026-check-item ${
-                  shippingScore.missing === 0 ? "is-ready" : "is-missing"
-                }`}
-              >
-                <span className="asp2026-check-icon" aria-hidden="true">
-                  {shippingScore.missing === 0 ? (
-                    <CheckCircle2 size={14} />
-                  ) : (
-                    <AlertCircle size={14} />
-                  )}
-                </span>
-                <span className="asp2026-check-name">
-                  {t("storeProfile.readiness.courier", "Kurir")}
-                </span>
-                <span className="asp2026-check-status">
-                  {shippingScore.missing === 0
-                    ? t("storeProfile.checklist.ready", "Siap")
-                    : t("storeProfile.card.missingCount", "{{count}} Kurang", {
-                        count: shippingScore.missing,
-                      })}
-                </span>
-              </div>
-            </div>
-
-            {/* MISSING TAGS */}
-            {issues.length > 0 ? (
-              <div className="asp2026-missing-section">
-                <span className="asp2026-missing-title">
-                  {t("storeProfile.readiness.needsCompletion", "Perlu Dilengkapi:")}
-                </span>
-                <div className="asp2026-missing-tags">
-                  {issues.map((issue) => (
-                    <span key={`${storeId}-${issue}`} className="asp2026-tag-missing">
-                      {issue}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            {/* ACTION STOREFRONT */}
-            <div className="asp2026-readiness-footer">
-              {storefrontHref ? (
-                <Link
-                  className="asp2026-action-btn asp2026-action-btn--secondary"
-                  to={storefrontHref}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <span>{t("storeProfile.readiness.openStorefront", "Buka Storefront")}</span>
-                  <ExternalLink size={14} aria-hidden="true" />
-                </Link>
-              ) : (
-                <button
-                  type="button"
-                  className="asp2026-action-btn asp2026-action-btn--secondary"
-                  disabled
-                >
-                  <span>
-                    {t(
-                      "storeProfile.readiness.storefrontNotReady",
-                      "Storefront Belum Siap"
-                    )}
-                  </span>
-                </button>
-              )}
-            </div>
-          </section>
-
-          {/* KOLOM KANAN: FORM DATA UTAMA */}
-          <section className="asp2026-panel asp2026-panel--form">
-            <div className="asp2026-panel__head">
-              <h2>{t("storeProfile.form.title", "Data Utama")}</h2>
-              {owner?.email ? (
-                <span
-                  className="asp2026-owner-email"
-                  title={t("storeProfile.card.owner", "Pemilik")}
-                >
-                  {owner.email}
-                </span>
-              ) : null}
-            </div>
-
-            <form className="asp2026-core-form" onSubmit={onSave}>
-              <div className="asp2026-form-row-grid">
-                <label className="asp2026-form-field">
-                  <span className="asp2026-label-text">
-                    {t("storeProfile.form.storeName", "Nama Toko")}
-                  </span>
-                  <input
-                    type="text"
-                    value={draft.name || ""}
-                    onChange={(e) => onDraftChange({ name: e.target.value })}
-                    disabled={saving}
-                    placeholder={t("storeProfile.form.storeName", "Nama Toko")}
-                  />
-                </label>
-
-                <label className="asp2026-form-field">
-                  <span className="asp2026-label-text">
-                    {t("storeProfile.form.slug", "Slug")}
-                  </span>
-                  <input
-                    type="text"
-                    value={draft.slug || ""}
-                    onChange={(e) => onDraftChange({ slug: e.target.value })}
-                    disabled={saving}
-                    placeholder="slug-toko"
-                  />
-                </label>
-
-                <label className="asp2026-form-field">
-                  <span className="asp2026-label-text">
-                    {t("storeProfile.form.status", "Status")}
-                  </span>
-                  <select
-                    value={draft.status || "ACTIVE"}
-                    onChange={(e) => onDraftChange({ status: e.target.value })}
-                    disabled={saving}
-                  >
-                    <option value="ACTIVE">
-                      {t("storeProfile.form.statusLive", "Aktif (Live)")}
-                    </option>
-                    <option value="INACTIVE">
-                      {t("storeProfile.form.statusInactive", "Nonaktif")}
-                    </option>
-                  </select>
-                </label>
-              </div>
-
-              {/* MEDIA LOGO */}
-              <div className="asp2026-media-field">
-                <span className="asp2026-label-text">
-                  {t("storeProfile.form.logo", "Logo Toko")}
-                </span>
-                <div className="asp2026-media-input-group">
-                  <input
-                    type="text"
-                    value={draft.logoUrl || ""}
-                    onChange={(e) => onDraftChange({ logoUrl: e.target.value })}
-                    placeholder={t(
-                      "storeProfile.form.urlPlaceholder",
-                      "/uploads/... atau https://..."
-                    )}
-                    disabled={saving}
-                  />
-                  <label
-                    className={`asp2026-upload-btn ${
-                      uploadingField === "logoUrl" ? "is-uploading" : ""
-                    }`}
-                  >
-                    <Upload size={13} aria-hidden="true" />
-                    <span>
-                      {uploadingField === "logoUrl"
-                        ? t("storeProfile.form.uploading", "...")
-                        : t("storeProfile.form.upload", "Upload")}
-                    </span>
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      style={{ display: "none" }}
-                      disabled={saving || Boolean(uploadingField)}
-                      onChange={(e) => handleUpload(e, "logoUrl")}
-                    />
-                  </label>
-                  {draft.logoUrl ? (
-                    <div className="asp2026-thumb-preview">
-                      <img
-                        src={draft.logoUrl}
-                        alt="Logo"
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none";
-                        }}
-                      />
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-
-              {/* MEDIA BANNER */}
-              <div className="asp2026-media-field">
-                <span className="asp2026-label-text">
-                  {t("storeProfile.form.banner", "Banner Toko")}
-                </span>
-                <div className="asp2026-media-input-group">
-                  <input
-                    type="text"
-                    value={draft.bannerUrl || ""}
-                    onChange={(e) => onDraftChange({ bannerUrl: e.target.value })}
-                    placeholder={t(
-                      "storeProfile.form.urlPlaceholder",
-                      "/uploads/... atau https://..."
-                    )}
-                    disabled={saving}
-                  />
-                  <label
-                    className={`asp2026-upload-btn ${
-                      uploadingField === "bannerUrl" ? "is-uploading" : ""
-                    }`}
-                  >
-                    <Upload size={13} aria-hidden="true" />
-                    <span>
-                      {uploadingField === "bannerUrl"
-                        ? t("storeProfile.form.uploading", "...")
-                        : t("storeProfile.form.upload", "Upload")}
-                    </span>
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      style={{ display: "none" }}
-                      disabled={saving || Boolean(uploadingField)}
-                      onChange={(e) => handleUpload(e, "bannerUrl")}
-                    />
-                  </label>
-                  {draft.bannerUrl ? (
-                    <div className="asp2026-thumb-preview asp2026-thumb-preview--banner">
-                      <img
-                        src={draft.bannerUrl}
-                        alt="Banner"
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none";
-                        }}
-                      />
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-
-              {/* FORM FOOTER */}
-              <div className="asp2026-form-footer">
-                <button
-                  type="submit"
-                  className="asp2026-action-btn asp2026-action-btn--primary"
-                  disabled={saving}
-                >
-                  <Save size={15} aria-hidden="true" />
-                  <span>
-                    {saving
-                      ? t("storeProfile.form.saving", "Menyimpan...")
-                      : t("storeProfile.form.save", "Simpan Profil")}
-                  </span>
-                </button>
-              </div>
-
-              {mutationError ? (
-                <p className="asp2026-form-error">{getErrorMessage(mutationError)}</p>
-              ) : null}
-            </form>
-          </section>
-        </div>
-      ) : null}
-    </article>
-  );
-}
-
+/* ==========================================================================
+   MAIN ADMIN STORE PROFILE PAGE
+   ========================================================================== */
 export default function AdminStoreProfilePage() {
-  const { t, i18n } = useTranslation("admin");
+  const { t, i18n } = useTranslation(["admin", "common"]);
   const queryClient = useQueryClient();
+  const isId = Boolean(i18n.language?.toLowerCase().startsWith("id"));
+
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [sortMode, setSortMode] = useState("priority");
-  const [viewMode, setViewMode] = useState("list");
-  const [expandedStoreId, setExpandedStoreId] = useState(null);
-  const [drafts, setDrafts] = useState({});
-  const [pendingStoreId, setPendingStoreId] = useState(null);
-  const [failedStoreId, setFailedStoreId] = useState(null);
+  const [currentSlide, setCurrentSlide] = useState(1);
+  const [managingStore, setManagingStore] = useState(null);
 
   const profilesQuery = useQuery({
     queryKey: STORE_PROFILES_QUERY_KEY,
@@ -816,55 +814,30 @@ export default function AdminStoreProfilePage() {
 
   const stores = useMemo(() => normalizeStores(profilesQuery.data), [profilesQuery.data]);
 
+  // Reset to slide 1 on search or filter change
   useEffect(() => {
-    setDrafts((current) => {
-      const next = { ...current };
-      stores.forEach((entry) => {
-        const id = getStoreId(entry);
-        if (id === undefined || id === null || next[id]) return;
-        next[id] = {
-          name: getStoreName(entry),
-          slug: getStoreSlug(entry),
-          status: String(readValue(entry, "status") || "ACTIVE").toUpperCase(),
-          logoUrl: textValue(readValue(entry, "logoUrl")),
-          bannerUrl: textValue(readValue(entry, "bannerUrl")),
-        };
-      });
-      return next;
-    });
-  }, [stores]);
-
-  useEffect(() => {
-    if (expandedStoreId !== null) return;
-    if (stores.length > 0) setExpandedStoreId(getStoreId(stores[0]));
-  }, [expandedStoreId, stores]);
+    setCurrentSlide(1);
+  }, [activeFilter, searchTerm, sortMode]);
 
   const mutation = useMutation({
     mutationFn: ({ storeId, payload }) => updateAdminStoreProfile(storeId, payload),
     meta: { suppressGlobalToast: true },
-    onMutate: ({ storeId }) => {
-      setPendingStoreId(storeId);
-      setFailedStoreId(null);
-    },
     onSuccess: async () => {
-      setFailedStoreId(null);
       toast.success(
-        t("storeProfile.messages.saveSuccess", "Profil toko berhasil disimpan"),
+        isId ? "Profil toko berhasil disimpan" : "Store profile saved successfully",
         { id: "admin-store-profile-saved" }
       );
+      setManagingStore(null);
       await queryClient.invalidateQueries({ queryKey: STORE_PROFILES_QUERY_KEY });
       await queryClient.invalidateQueries({ queryKey: ["storefront"], exact: false });
+      await queryClient.invalidateQueries({ queryKey: ["seller2026"], exact: false });
     },
-    onError: (error, variables) => {
-      setFailedStoreId(variables?.storeId ?? null);
+    onError: (error) => {
       toast.error(
         getErrorMessage(error) ||
-          t("storeProfile.messages.saveError", "Gagal memperbarui profil toko."),
+          (isId ? "Gagal memperbarui profil toko." : "Failed to update store profile."),
         { id: "admin-store-profile-error" }
       );
-    },
-    onSettled: () => {
-      setPendingStoreId(null);
     },
   });
 
@@ -875,6 +848,18 @@ export default function AdminStoreProfilePage() {
     return { stores: stores.length, review, profile, shipping };
   }, [stores]);
 
+  const FILTERS = useMemo(
+    () => [
+      { id: "all", label: isId ? "Semua" : "All" },
+      { id: "review", label: isId ? "Perlu Tinjau" : "Needs Review" },
+      { id: "profile", label: isId ? "Profil Belum Lengkap" : "Profile Missing" },
+      { id: "shipping", label: isId ? "Pengiriman" : "Shipping Missing" },
+      { id: "public", label: isId ? "Publik Siap" : "Public Ready" },
+      { id: "live", label: isId ? "Aktif" : "Active" },
+    ],
+    [isId]
+  );
+
   const chipCounts = useMemo(
     () =>
       FILTERS.reduce((acc, filter) => {
@@ -884,7 +869,7 @@ export default function AdminStoreProfilePage() {
             : stores.filter((entry) => filterStore(entry, filter.id)).length;
         return acc;
       }, {}),
-    [stores]
+    [FILTERS, stores]
   );
 
   const visibleStores = useMemo(() => {
@@ -902,175 +887,164 @@ export default function AdminStoreProfilePage() {
         if (sortMode === "name") {
           return getStoreName(a).localeCompare(getStoreName(b));
         }
-        return (
-          getPriorityRank(a) - getPriorityRank(b) ||
-          getStoreName(a).localeCompare(getStoreName(b))
-        );
+        const pRankA = getPriority(a) === "High" ? 0 : getPriority(a) === "Medium" ? 1 : 2;
+        const pRankB = getPriority(b) === "High" ? 0 : getPriority(b) === "Medium" ? 1 : 2;
+        return pRankA - pRankB || getStoreName(a).localeCompare(getStoreName(b));
       });
   }, [activeFilter, searchTerm, sortMode, stores]);
 
-  const updateDraft = (storeId, patch) => {
-    setDrafts((current) => ({
-      ...current,
-      [storeId]: {
-        ...(current[storeId] || {}),
-        ...patch,
-      },
-    }));
+  // Slide Pagination (10 Items per slide)
+  const totalSlides = Math.max(1, Math.ceil(visibleStores.length / ITEMS_PER_SLIDE));
+  const currentSlideStores = useMemo(() => {
+    const start = (currentSlide - 1) * ITEMS_PER_SLIDE;
+    return visibleStores.slice(start, start + ITEMS_PER_SLIDE);
+  }, [currentSlide, visibleStores]);
+
+  const slideFrom = visibleStores.length === 0 ? 0 : (currentSlide - 1) * ITEMS_PER_SLIDE + 1;
+  const slideTo = Math.min(currentSlide * ITEMS_PER_SLIDE, visibleStores.length);
+
+  const handleQuickToggle = (entry) => {
+    const storeId = getStoreId(entry);
+    const currStatus = String(readValue(entry, "status") || "ACTIVE").toUpperCase();
+    const nextStatus = currStatus === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+    mutation.mutate({
+      storeId,
+      payload: { status: nextStatus },
+    });
   };
 
-  const saveCore = (event, entry) => {
-    event.preventDefault();
-    const storeId = getStoreId(entry);
-    const draft = drafts[storeId] || {};
+  const handleSaveModal = (storeId, formValues) => {
     mutation.mutate({
       storeId,
       payload: {
-        name: textValue(draft.name),
-        slug: textValue(draft.slug),
-        status: textValue(draft.status, "ACTIVE"),
-        logoUrl: textValue(draft.logoUrl) || null,
-        bannerUrl: textValue(draft.bannerUrl) || null,
+        name: formValues.name,
+        slug: formValues.slug,
+        status: formValues.status,
+        description: formValues.description,
+        logoUrl: formValues.logoUrl,
+        bannerUrl: formValues.bannerUrl,
+        email: formValues.email,
+        phone: formValues.phone,
+        whatsapp: formValues.whatsapp,
+        websiteUrl: formValues.websiteUrl,
+        instagramUrl: formValues.instagramUrl,
+        tiktokUrl: formValues.tiktokUrl,
+        addressLine1: formValues.addressLine1,
+        addressLine2: formValues.addressLine2,
+        province: formValues.province,
+        city: formValues.city,
+        district: formValues.district,
+        postalCode: formValues.postalCode,
+        country: formValues.country,
       },
     });
   };
 
-  if (profilesQuery.isLoading) {
-    return (
-      <AdminOpsLoadingState
-        title={t("storeProfile.messages.loading", "Memuat profil toko...")}
-      />
-    );
-  }
-
-  if (profilesQuery.isError) {
-    return (
-      <AdminOpsErrorState
-        message={
-          getErrorMessage(profilesQuery.error) ||
-          t("storeProfile.messages.loadError", "Gagal memuat profil toko.")
-        }
-        onRetry={() => profilesQuery.refetch()}
-      />
-    );
-  }
-
   return (
-    <div className={`asp2026 asp2026--${viewMode}`}>
-      {/* HEADER SECTION */}
+    <div className="asp2026">
+      {/* Header */}
       <header className="asp2026-header">
         <div>
           <div className="asp2026-title-with-count">
-            <h1>{t("storeProfile.title", "Profil Toko")}</h1>
+            <h1>{isId ? "Profil Toko" : "Store Profile"}</h1>
             <span className="asp2026-count-pill">{stores.length}</span>
           </div>
           <p>
-            {t(
-              "storeProfile.subtitle",
-              "Kesiapan operasional dan kelengkapan profil toko."
-            )}
+            {isId
+              ? "Tinjau kesiapan, kelengkapan profil, dan kelola sinkronisasi toko."
+              : "Review store readiness, completeness, and manage store synchronization."}
           </p>
         </div>
         <div className="asp2026-header__actions">
           <button
             type="button"
             className="asp2026-refresh-btn"
-            title={t("storeProfile.refresh", "Segarkan")}
             onClick={() => profilesQuery.refetch()}
+            disabled={profilesQuery.isFetching}
           >
-            <RefreshCw size={15} aria-hidden="true" />
-            <span>{t("storeProfile.refresh", "Segarkan")}</span>
+            <RefreshCw size={14} className={profilesQuery.isFetching ? "spin" : ""} />
+            {isId ? "Muat Ulang" : "Refresh"}
           </button>
-          <Link className="asp2026-primary-btn" to="/admin/store/applications">
-            <Plus size={16} aria-hidden="true" />
-            <span>{t("storeProfile.addStore", "Tambah Toko")}</span>
+          <Link to="/admin/store/applications" className="asp2026-primary-btn">
+            <Plus size={15} />
+            {isId ? "Aplikasi Toko" : "Store Applications"}
           </Link>
         </div>
       </header>
 
-      {/* 4 SLEEK METRIC CARDS */}
-      <section className="asp2026-metrics" aria-label="Metrik profil toko">
-        <MetricCard
-          icon={Store}
-          label={t("storeProfile.metrics.totalStores", "Total Toko")}
-          value={summary.stores}
-          tone="navy"
-        />
-        <MetricCard
-          icon={AlertCircle}
-          label={t("storeProfile.metrics.needsReview", "Perlu Tinjau")}
-          value={summary.review}
-          tone="orange"
-        />
-        <MetricCard
-          icon={PackageCheck}
-          label={t("storeProfile.metrics.missingProfile", "Profil Kurang")}
-          value={summary.profile}
-          tone="navy-soft"
-        />
-        <MetricCard
-          icon={Truck}
-          label={t("storeProfile.metrics.missingShipping", "Kurir Kurang")}
-          value={summary.shipping}
-          tone="orange-soft"
-        />
-      </section>
+      {/* Metrics Section */}
+      <section className="asp2026-metrics" aria-label="Store Metrics">
+        <div className="asp2026-metric asp2026-metric--navy">
+          <div className="asp2026-metric__icon">
+            <Store size={20} />
+          </div>
+          <div className="asp2026-metric__body">
+            <p>{isId ? "Total Toko" : "Total Stores"}</p>
+            <strong>{summary.stores}</strong>
+          </div>
+        </div>
 
-      {/* TOOLBAR */}
-      <section className="asp2026-toolbar" aria-label="Pencarian dan kontrol toko">
-        <label className="asp2026-search">
-          <Search size={16} aria-hidden="true" />
-          <span className="sr-only">
-            {t("storeProfile.toolbar.searchPlaceholder", "Cari toko")}
-          </span>
-          <input
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder={t(
-              "storeProfile.toolbar.searchPlaceholder",
-              "Cari nama toko, slug, atau pemilik..."
-            )}
-          />
-        </label>
+        <div className="asp2026-metric asp2026-metric--orange">
+          <div className="asp2026-metric__icon">
+            <AlertCircle size={20} />
+          </div>
+          <div className="asp2026-metric__body">
+            <p>{isId ? "Perlu Tinjau" : "Needs Review"}</p>
+            <strong>{summary.review}</strong>
+          </div>
+        </div>
 
-        <select
-          className="asp2026-select"
-          value={sortMode}
-          onChange={(event) => setSortMode(event.target.value)}
-          aria-label={t("storeProfile.toolbar.sortBy", "Urutkan toko")}
-        >
-          <option value="priority">
-            {t("storeProfile.toolbar.priorityHigh", "Prioritas: Tertinggi")}
-          </option>
-          <option value="name">
-            {t("storeProfile.toolbar.nameAsc", "Nama: A-Z")}
-          </option>
-        </select>
+        <div className="asp2026-metric asp2026-metric--teal">
+          <div className="asp2026-metric__icon">
+            <UserRound size={20} />
+          </div>
+          <div className="asp2026-metric__body">
+            <p>{isId ? "Profil Belum Lengkap" : "Missing Profile"}</p>
+            <strong>{summary.profile}</strong>
+          </div>
+        </div>
 
-        <div className="asp2026-view-toggle" aria-label="Mode tampilan">
-          <button
-            type="button"
-            className={viewMode === "list" ? "is-active" : ""}
-            onClick={() => setViewMode("list")}
-            title={t("storeProfile.toolbar.listView", "Tampilan List")}
-            aria-pressed={viewMode === "list"}
-          >
-            <LayoutList size={16} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className={viewMode === "grid" ? "is-active" : ""}
-            onClick={() => setViewMode("grid")}
-            title={t("storeProfile.toolbar.gridView", "Tampilan Grid")}
-            aria-pressed={viewMode === "grid"}
-          >
-            <Grid2X2 size={16} aria-hidden="true" />
-          </button>
+        <div className="asp2026-metric asp2026-metric--amber">
+          <div className="asp2026-metric__icon">
+            <Truck size={20} />
+          </div>
+          <div className="asp2026-metric__body">
+            <p>{isId ? "Asal Pengiriman Belum Ada" : "Missing Shipping"}</p>
+            <strong>{summary.shipping}</strong>
+          </div>
         </div>
       </section>
 
-      {/* FILTER TABS */}
-      <nav className="asp2026-filters" aria-label="Filter status toko">
+      {/* Toolbar & Filter Bar */}
+      <section className="asp2026-toolbar">
+        <div className="asp2026-search">
+          <Search size={15} />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder={
+              isId
+                ? "Cari nama toko, slug, atau nama penjual..."
+                : "Search store name, slug, or seller..."
+            }
+          />
+        </div>
+
+        <div className="asp2026-toolbar-right">
+          <select
+            className="asp2026-select"
+            value={sortMode}
+            onChange={(e) => setSortMode(e.target.value)}
+          >
+            <option value="priority">{isId ? "Prioritas: Tertinggi" : "Priority: Highest"}</option>
+            <option value="name">{isId ? "Nama Toko (A-Z)" : "Store Name (A-Z)"}</option>
+          </select>
+        </div>
+      </section>
+
+      {/* Filter Tabs */}
+      <nav className="asp2026-filters" aria-label="Filter stores">
         {FILTERS.map((filter) => (
           <button
             key={filter.id}
@@ -1078,78 +1052,334 @@ export default function AdminStoreProfilePage() {
             className={activeFilter === filter.id ? "is-active" : ""}
             onClick={() => setActiveFilter(filter.id)}
           >
-            {t(`storeProfile.filters.${filter.key}`, filter.defaultLabel)}
-            <span className="asp2026-filter-count">{chipCounts[filter.id] || 0}</span>
+            <span>{filter.label}</span>
+            <span className="asp2026-filter-count">{chipCounts[filter.id] ?? 0}</span>
           </button>
         ))}
       </nav>
 
-      {/* STORE LIST */}
-      {stores.length === 0 ? (
-        <AdminOpsEmptyState
-          title={t("storeProfile.messages.emptyTitle", "Belum ada profil toko")}
-          description={t(
-            "storeProfile.messages.emptyDesc",
-            "Profil toko akan tampil di sini setelah toko dibuat."
-          )}
-          actions={
-            <Link className="asp2026-primary-btn" to="/admin/store/applications">
-              <Plus size={16} aria-hidden="true" />
-              <span>{t("storeProfile.addStore", "Tambah Toko")}</span>
-            </Link>
-          }
+      {/* Content Rendering */}
+      {profilesQuery.isLoading ? (
+        <AdminOpsLoadingState
+          title={isId ? "Memuat profil toko..." : "Loading store profiles..."}
+          message={isId ? "Menghubungkan data toko dan kesiapan operasional." : "Fetching store data and operational readiness."}
+        />
+      ) : profilesQuery.isError ? (
+        <AdminOpsErrorState
+          title={isId ? "Gagal memuat profil toko" : "Failed to load store profiles"}
+          message={getErrorMessage(profilesQuery.error) || (isId ? "Terjadi kesalahan saat memuat data toko." : "An error occurred while loading store data.")}
+          retryAction={profilesQuery.refetch}
         />
       ) : visibleStores.length === 0 ? (
         <AdminOpsEmptyState
-          title={t("storeProfile.messages.noResultsTitle", "Toko tidak ditemukan")}
-          description={t(
-            "storeProfile.messages.noResultsDesc",
-            "Coba ubah kata kunci pencarian atau ganti filter."
-          )}
-          actions={
-            <button
-              type="button"
-              className="asp2026-action-btn asp2026-action-btn--secondary"
-              onClick={() => {
-                setSearchTerm("");
-                setActiveFilter("all");
-              }}
-            >
-              {t("storeProfile.messages.resetFilter", "Reset Filter")}
-            </button>
+          title={isId ? "Tidak ada toko ditemukan" : "No stores found"}
+          message={
+            searchTerm
+              ? (isId ? `Tidak ada toko yang cocok dengan pencarian "${searchTerm}".` : `No stores matched "${searchTerm}".`)
+              : (isId ? "Belum ada profil toko pada filter ini." : "No store profiles for this filter.")
           }
+          resetAction={searchTerm ? () => setSearchTerm("") : null}
+          resetLabel={isId ? "Reset Pencarian" : "Reset Search"}
         />
       ) : (
-        <section className="asp2026-store-list" aria-label="Daftar tinjauan toko">
-          {visibleStores.map((entry) => {
-            const storeId = getStoreId(entry);
-            const draft = drafts[storeId] || {
-              name: getStoreName(entry),
-              slug: getStoreSlug(entry),
-              status: String(readValue(entry, "status") || "ACTIVE").toUpperCase(),
-            };
-            const isSaving = mutation.isPending && pendingStoreId === storeId;
-            const mutationError =
-              mutation.isError && failedStoreId === storeId ? mutation.error : null;
+        <>
+          {/* ZERO-SCROLL DESKTOP TABLE */}
+          <div className="asp2026-table-wrap">
+            <table className="asp2026-table">
+              <thead>
+                <tr>
+                  <th style={{ width: "28%" }}>{isId ? "Toko & Brand" : "Store & Brand"}</th>
+                  <th style={{ width: "22%" }}>{isId ? "Penjual / Pemilik" : "Seller / Owner"}</th>
+                  <th style={{ width: "16%" }}>{isId ? "Status & Visibilitas" : "Status & Visibility"}</th>
+                  <th style={{ width: "18%" }}>{isId ? "Kelengkapan" : "Completeness"}</th>
+                  <th className="asp2026-th--actions" style={{ width: "16%" }}>
+                    {isId ? "Aksi" : "Actions"}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentSlideStores.map((entry) => {
+                  const storeId = getStoreId(entry);
+                  const name = getStoreName(entry);
+                  const slug = getStoreSlug(entry);
+                  const owner = getOwner(entry);
+                  const logoUrl = textValue(readValue(entry, "logoUrl"));
+                  const status = String(readValue(entry, "status") || "ACTIVE").toUpperCase();
+                  const isLive = status === "ACTIVE";
+                  const profileScore = getProfileScore(entry);
+                  const shippingScore = getShippingScore(entry);
+                  const publicReady = hasPublicReadiness(entry);
 
-            return (
-              <StoreReviewCard
-                key={storeId}
-                entry={entry}
-                draft={draft}
-                expanded={expandedStoreId === storeId}
-                saving={isSaving}
-                mutationError={mutationError}
-                onToggle={() =>
-                  setExpandedStoreId((current) => (current === storeId ? null : storeId))
-                }
-                onDraftChange={(patch) => updateDraft(storeId, patch)}
-                onSave={(event) => saveCore(event, entry)}
-              />
-            );
-          })}
-        </section>
+                  return (
+                    <tr key={storeId}>
+                      {/* 1. Store & Brand */}
+                      <td>
+                        <div className="asp2026-store-cell">
+                          <div className="asp2026-avatar">
+                            {logoUrl ? (
+                              <img src={logoUrl} alt="" className="asp2026-avatar__img" />
+                            ) : (
+                              getInitials(name)
+                            )}
+                          </div>
+                          <div className="asp2026-store-info">
+                            <span className="asp2026-store-name" title={name}>
+                              {name}
+                            </span>
+                            <a
+                              href={`/store/${encodeURIComponent(slug)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="asp2026-store-slug"
+                            >
+                              /@{slug}
+                            </a>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* 2. Seller / Owner */}
+                      <td>
+                        <div className="asp2026-owner-cell">
+                          <span className="asp2026-owner-name">
+                            {owner?.name || (isId ? "Belum tertaut" : "Unassigned")}
+                          </span>
+                          <span className="asp2026-owner-email" title={owner?.email || ""}>
+                            {owner?.email || (isId ? "Email belum diatur" : "No email")}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* 3. Status & Visibility */}
+                      <td>
+                        <div className="asp2026-status-cell">
+                          <span
+                            className={`asp2026-status-pill ${
+                              isLive ? "asp2026-status-pill--live" : "asp2026-status-pill--inactive"
+                            }`}
+                          >
+                            <span className="asp2026-status-dot" />
+                            {isLive ? (isId ? "Aktif" : "Live") : (isId ? "Nonaktif" : "Inactive")}
+                          </span>
+                          <span className="asp2026-vis-badge">
+                            {publicReady
+                              ? (isId ? "Publik Siap" : "Public Ready")
+                              : (isId ? "Perlu Konfigurasi" : "Needs Setup")}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* 4. Readiness & Completeness */}
+                      <td>
+                        <div className="asp2026-readiness-cell">
+                          <span
+                            className={`asp2026-score-badge ${
+                              profileScore.missing === 0
+                                ? "asp2026-score-badge--ready"
+                                : "asp2026-score-badge--warn"
+                            }`}
+                          >
+                            {isId ? "Profil: " : "Profile: "}
+                            {profileScore.complete}/{profileScore.total}
+                          </span>
+                          <span className="asp2026-shipping-chip">
+                            <Truck size={12} />
+                            {shippingScore.missing === 0
+                              ? (isId ? "Siap Kirim" : "Shipping Ready")
+                              : `${shippingScore.missing} ${isId ? "Kurang" : "Missing"}`}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* 5. Actions */}
+                      <td>
+                        <div className="asp2026-actions-cell">
+                          <label
+                            className="asp2026-switch"
+                            title={isLive ? (isId ? "Klik untuk nonaktifkan" : "Click to deactivate") : (isId ? "Klik untuk aktifkan" : "Click to activate")}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isLive}
+                              onChange={() => handleQuickToggle(entry)}
+                            />
+                            <span className="asp2026-slider" />
+                          </label>
+
+                          <button
+                            type="button"
+                            className="asp2026-manage-btn"
+                            onClick={() => setManagingStore(entry)}
+                          >
+                            <Settings size={13} />
+                            {isId ? "Kelola" : "Manage"}
+                          </button>
+
+                          <a
+                            href={`/store/${encodeURIComponent(slug)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="asp2026-preview-btn"
+                            title={isId ? "Buka etalase toko" : "Open storefront"}
+                          >
+                            <ExternalLink size={14} />
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* MOBILE CARD FEED (SCREENS <= 768px) */}
+          <div className="asp2026-mobile-card-list">
+            {currentSlideStores.map((entry) => {
+              const storeId = getStoreId(entry);
+              const name = getStoreName(entry);
+              const slug = getStoreSlug(entry);
+              const owner = getOwner(entry);
+              const logoUrl = textValue(readValue(entry, "logoUrl"));
+              const status = String(readValue(entry, "status") || "ACTIVE").toUpperCase();
+              const isLive = status === "ACTIVE";
+              const profileScore = getProfileScore(entry);
+              const shippingScore = getShippingScore(entry);
+
+              return (
+                <div key={storeId} className="asp2026-mobile-card">
+                  <div className="asp2026-mobile-card-top">
+                    <div className="asp2026-store-cell">
+                      <div className="asp2026-avatar">
+                        {logoUrl ? (
+                          <img src={logoUrl} alt="" className="asp2026-avatar__img" />
+                        ) : (
+                          getInitials(name)
+                        )}
+                      </div>
+                      <div className="asp2026-store-info">
+                        <span className="asp2026-store-name">{name}</span>
+                        <span className="asp2026-store-slug">/@{slug}</span>
+                      </div>
+                    </div>
+                    <span
+                      className={`asp2026-status-pill ${
+                        isLive ? "asp2026-status-pill--live" : "asp2026-status-pill--inactive"
+                      }`}
+                    >
+                      <span className="asp2026-status-dot" />
+                      {isLive ? (isId ? "Aktif" : "Live") : (isId ? "Nonaktif" : "Inactive")}
+                    </span>
+                  </div>
+
+                  <div className="asp2026-mobile-card-meta">
+                    <div className="asp2026-mobile-meta-item">
+                      <small>{isId ? "Penjual" : "Seller"}</small>
+                      <strong>{owner?.name || "-"}</strong>
+                    </div>
+                    <div className="asp2026-mobile-meta-item">
+                      <small>{isId ? "Kesiapan" : "Readiness"}</small>
+                      <strong>
+                        {profileScore.complete}/{profileScore.total} {isId ? "Profil" : "Profile"}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div className="asp2026-mobile-card-actions">
+                    <label className="asp2026-switch">
+                      <input
+                        type="checkbox"
+                        checked={isLive}
+                        onChange={() => handleQuickToggle(entry)}
+                      />
+                      <span className="asp2026-slider" />
+                    </label>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <button
+                        type="button"
+                        className="asp2026-manage-btn"
+                        onClick={() => setManagingStore(entry)}
+                      >
+                        <Settings size={13} />
+                        {isId ? "Kelola" : "Manage"}
+                      </button>
+                      <a
+                        href={`/store/${encodeURIComponent(slug)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="asp2026-preview-btn"
+                      >
+                        <ExternalLink size={14} />
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* SLIDE PAGINATION (EXACTLY 10 PER SLIDE) */}
+          <div className="asp2026-slide-pagination">
+            <div className="asp2026-pagination-info">
+              {isId ? (
+                <>
+                  Slide <strong>{currentSlide}</strong> dari <strong>{totalSlides}</strong> (Menampilkan{" "}
+                  <strong>{slideFrom}–{slideTo}</strong> dari <strong>{visibleStores.length}</strong> toko)
+                </>
+              ) : (
+                <>
+                  Slide <strong>{currentSlide}</strong> of <strong>{totalSlides}</strong> (Showing{" "}
+                  <strong>{slideFrom}–{slideTo}</strong> of <strong>{visibleStores.length}</strong> stores)
+                </>
+              )}
+            </div>
+
+            <div className="asp2026-pagination-controls">
+              <button
+                type="button"
+                className="asp2026-slide-btn"
+                onClick={() => setCurrentSlide((s) => Math.max(1, s - 1))}
+                disabled={currentSlide <= 1}
+              >
+                <ChevronLeft size={14} />
+                {isId ? "Slide Sebelumnya" : "Previous Slide"}
+              </button>
+
+              {Array.from({ length: totalSlides }, (_, i) => i + 1).map((slideNum) => (
+                <button
+                  key={slideNum}
+                  type="button"
+                  className={`asp2026-slide-num ${currentSlide === slideNum ? "is-active" : ""}`}
+                  onClick={() => setCurrentSlide(slideNum)}
+                >
+                  {isId ? `Slide ${slideNum}` : `Slide ${slideNum}`}
+                </button>
+              ))}
+
+              <button
+                type="button"
+                className="asp2026-slide-btn"
+                onClick={() => setCurrentSlide((s) => Math.min(totalSlides, s + 1))}
+                disabled={currentSlide >= totalSlides}
+              >
+                {isId ? "Slide Berikutnya" : "Next Slide"}
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        </>
       )}
+
+      {/* Store Profile Management Modal / Drawer */}
+      <AdminStoreManageModal
+        entry={managingStore}
+        isOpen={Boolean(managingStore)}
+        onClose={() => setManagingStore(null)}
+        onSave={handleSaveModal}
+        isSaving={mutation.isPending}
+        isId={isId}
+      />
     </div>
   );
 }
