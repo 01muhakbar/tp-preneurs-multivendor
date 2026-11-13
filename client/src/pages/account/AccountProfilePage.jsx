@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useOutletContext } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { api } from "../../api/axios.ts";
 import { getDefaultAddress } from "../../api/userAddresses.ts";
 import { uploadUserProfileImage } from "../../api/userMe.ts";
@@ -9,7 +10,9 @@ import AccountUpdateProfile2026View from "./AccountUpdateProfile2026View";
 import {
   buildUpdateProfilePayloadFrom2026Form,
   normalizeUpdateProfileFor2026,
+  readUserProfileMeta,
   validateUpdateProfile2026Form,
+  writeUserProfileMeta,
 } from "./accountUpdateProfile2026Adapter";
 
 const emptyForm = {
@@ -35,10 +38,11 @@ const updateProfile = async (payload) => {
 const unwrapProfile = (payload) =>
   payload?.data?.user ?? payload?.user ?? payload?.data ?? (payload?.id ? payload : null);
 
-const getProfileForm = (profile, fallbackUser) => {
+const getProfileForm = (profile, fallbackUser, extraMeta = {}) => {
   const source = {
     ...(fallbackUser || {}),
     ...(profile || {}),
+    ...(extraMeta || {}),
   };
 
   return {
@@ -65,7 +69,57 @@ const getErrorMessage = (error, fallback) =>
 export default function AccountProfilePage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { i18n } = useTranslation();
+  const outletCtx = useOutletContext() || {};
   const { user: accountUser, refreshSession } = useAccountAuth();
+
+  const [currentLang, setCurrentLang] = useState(() => {
+    const raw =
+      localStorage.getItem("store_language") ||
+      localStorage.getItem("i18nextLng") ||
+      i18n.language ||
+      "en";
+    return String(raw).toLowerCase().startsWith("id") || String(raw).toLowerCase() === "indonesia"
+      ? "id"
+      : "en";
+  });
+
+  useEffect(() => {
+    const syncLang = () => {
+      const raw =
+        localStorage.getItem("store_language") ||
+        localStorage.getItem("i18nextLng") ||
+        i18n.language ||
+        "en";
+      const next =
+        String(raw).toLowerCase().startsWith("id") || String(raw).toLowerCase() === "indonesia"
+          ? "id"
+          : "en";
+      setCurrentLang(next);
+    };
+
+    const handleCustomLang = (e) => {
+      if (e?.detail?.isoCode) {
+        const next = String(e.detail.isoCode).toLowerCase().startsWith("id") ? "id" : "en";
+        setCurrentLang(next);
+      } else {
+        syncLang();
+      }
+    };
+
+    i18n.on("languageChanged", syncLang);
+    window.addEventListener("store_language_changed", handleCustomLang);
+    window.addEventListener("storage", syncLang);
+
+    return () => {
+      i18n.off("languageChanged", syncLang);
+      window.removeEventListener("store_language_changed", handleCustomLang);
+      window.removeEventListener("storage", syncLang);
+    };
+  }, [i18n]);
+
+  const isIndo = Boolean(outletCtx.isId || currentLang === "id");
+
   const [form, setForm] = useState(emptyForm);
   const [fieldErrors, setFieldErrors] = useState({});
   const [status, setStatus] = useState(null);
@@ -82,34 +136,71 @@ export default function AccountProfilePage() {
 
   const profileData = unwrapProfile(profileQuery.data) || accountUser;
   const defaultAddress = defaultAddressQuery.data || null;
+  const activeUserId = profileData?.id || accountUser?.id || null;
 
   useEffect(() => {
     if (!profileData && !accountUser) return;
+    const extraMeta = readUserProfileMeta(activeUserId);
     setForm((current) => ({
       ...current,
-      ...getProfileForm(profileData, accountUser),
+      ...getProfileForm(profileData, accountUser, extraMeta),
     }));
-  }, [accountUser, profileData]);
+  }, [accountUser, profileData, activeUserId]);
 
   const updateProfileMutation = useMutation({
     mutationFn: updateProfile,
     onSuccess: async (response) => {
       const nextProfile = unwrapProfile(response);
+      const extraMeta = {
+        dateOfBirth: form.dateOfBirth,
+        gender: form.gender,
+        language: form.language,
+      };
+      if (activeUserId) {
+        writeUserProfileMeta(activeUserId, extraMeta);
+      }
+
+      if (form.language) {
+        const targetIso = form.language.toLowerCase() === "id" ? "id" : "en";
+        const targetStorageName = targetIso === "id" ? "Indonesia" : "English";
+        const currentStored = localStorage.getItem("store_language");
+        if (
+          currentStored !== targetStorageName &&
+          currentStored !== targetIso
+        ) {
+          localStorage.setItem("store_language", targetStorageName);
+          localStorage.setItem("i18nextLng", targetIso);
+          await i18n.changeLanguage(targetIso);
+          window.dispatchEvent(
+            new CustomEvent("store_language_changed", { detail: { isoCode: targetIso } })
+          );
+        }
+      }
+
       if (nextProfile) {
         setForm((current) => ({
           ...current,
-          ...getProfileForm(nextProfile, current),
+          ...getProfileForm(nextProfile, current, extraMeta),
         }));
       }
-      setStatus({ type: "success", message: "Profile updated." });
+
+      setStatus({
+        type: "success",
+        message: isIndo ? "Profil berhasil diperbarui." : "Profile updated successfully.",
+      });
       setFieldErrors({});
       await qc.invalidateQueries({ queryKey: ["account", "me"] });
+      await qc.invalidateQueries({ queryKey: ["auth", "me"] });
+      await qc.invalidateQueries({ queryKey: ["account"] });
       await refreshSession?.();
     },
     onError: (error) => {
       setStatus({
         type: "error",
-        message: getErrorMessage(error, "Failed to update profile."),
+        message: getErrorMessage(
+          error,
+          isIndo ? "Gagal memperbarui profil." : "Failed to update profile."
+        ),
       });
     },
   });
@@ -120,13 +211,18 @@ export default function AccountProfilePage() {
       setForm((current) => ({ ...current, avatarUrl: nextUrl }));
       setStatus({
         type: "success",
-        message: "Profile image uploaded. Save to persist the change.",
+        message: isIndo
+          ? "Foto profil berhasil diunggah. Klik Simpan untuk menerapkan."
+          : "Profile image uploaded. Save to persist the change.",
       });
     },
     onError: (error) => {
       setStatus({
         type: "error",
-        message: getErrorMessage(error, "Failed to upload profile image."),
+        message: getErrorMessage(
+          error,
+          isIndo ? "Gagal mengunggah foto profil." : "Failed to upload profile image."
+        ),
       });
     },
   });
@@ -146,7 +242,7 @@ export default function AccountProfilePage() {
     event.preventDefault();
     setStatus(null);
 
-    const validation = validateUpdateProfile2026Form(form);
+    const validation = validateUpdateProfile2026Form(form, isIndo);
     if (!validation.isValid) {
       setFieldErrors(validation.errors);
       return;
@@ -178,7 +274,9 @@ export default function AccountProfilePage() {
     setForm((current) => ({ ...current, avatarUrl: "" }));
     setStatus({
       type: "success",
-      message: "Profile image removed. Save to persist the change.",
+      message: isIndo
+        ? "Foto profil dihapus. Klik Simpan untuk menerapkan."
+        : "Profile image removed. Save to persist the change.",
     });
   };
 
@@ -187,10 +285,14 @@ export default function AccountProfilePage() {
     profile: profileData,
     defaultAddress,
     form,
+    isIndo,
   });
   const isLoading = profileQuery.isLoading;
   const error = profileQuery.isError
-    ? getErrorMessage(profileQuery.error, "Failed to load profile.")
+    ? getErrorMessage(
+        profileQuery.error,
+        isIndo ? "Gagal memuat profil akun." : "Failed to load profile."
+      )
     : "";
 
   return (
@@ -203,6 +305,7 @@ export default function AccountProfilePage() {
       languageOptions={normalized.languageOptions}
       isLoading={isLoading}
       isSaving={updateProfileMutation.isPending || uploadMutation.isPending}
+      isIndo={isIndo}
       error={error}
       status={status}
       LinkComponent={Link}

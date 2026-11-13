@@ -1,24 +1,25 @@
 import {
   ArrowLeft,
   CalendarDays,
+  Camera,
   CheckCircle2,
   ChevronDown,
   ImageUp,
   Mail,
   MapPin,
   Phone,
-  Save,
   Trash2,
   User,
+  X,
 } from "lucide-react";
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import "./account-update-profile-2026.css";
 
-function LoadingBlock() {
+function LoadingBlock({ isIndo }) {
   return (
-    <div className="tpup2026-loading" aria-label="Loading profile">
-      {Array.from({ length: 7 }).map((_, index) => (
+    <div className="tpup2026-loading" aria-label={isIndo ? "Memuat profil..." : "Loading profile..."}>
+      {Array.from({ length: 6 }).map((_, index) => (
         <span key={index} />
       ))}
     </div>
@@ -55,7 +56,7 @@ function Field({
   );
 }
 
-function SelectField({ label, name, value, options, disabled, onFormChange }) {
+function SelectField({ label, name, value, options = [], disabled, onFormChange }) {
   return (
     <label className="tpup2026-field">
       <span>{label}</span>
@@ -82,15 +83,17 @@ function ProfilePicture({
   profile,
   hasAvatar,
   isSaving,
+  isIndo,
   onUploadImage,
   onRemoveImage,
-  t,
 }) {
   const inputRef = useRef(null);
 
   return (
     <article className="tpup2026-panel tpup2026-picture-card">
-      <h2>{t("updateProfile.profilePicture")}</h2>
+      <div className="tpup2026-panel-header">
+        <h2>{isIndo ? "Foto Profil" : "Profile Picture"}</h2>
+      </div>
       <input
         ref={inputRef}
         type="file"
@@ -98,13 +101,32 @@ function ProfilePicture({
         className="tpup2026-file-input"
         onChange={onUploadImage}
       />
-      <div className="tpup2026-avatar" aria-hidden="true">
-        {profile.avatarUrl ? <img src={profile.avatarUrl} alt="" /> : <span>{profile.initials}</span>}
-        <i>
-          <ImageUp aria-hidden="true" />
+      <div
+        className="tpup2026-avatar"
+        role="button"
+        tabIndex={0}
+        onClick={() => inputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            inputRef.current?.click();
+          }
+        }}
+        aria-label={isIndo ? "Ganti foto profil" : "Change profile picture"}
+        title={isIndo ? "Klik untuk mengubah foto" : "Click to change photo"}
+      >
+        {profile.avatarUrl ? (
+          <img src={profile.avatarUrl} alt={profile.name || "User Avatar"} />
+        ) : (
+          <span>{profile.initials}</span>
+        )}
+        <i aria-hidden="true">
+          <Camera />
         </i>
       </div>
-      <p>{t("updateProfile.pictureHint")}</p>
+      <p className="tpup2026-picture-hint">
+        {isIndo ? "Format JPG, PNG, atau WEBP. Maks 2MB." : "JPG, PNG or WEBP. Max size 2MB."}
+      </p>
       <div className="tpup2026-picture-actions">
         <button
           type="button"
@@ -113,17 +135,19 @@ function ProfilePicture({
           onClick={() => inputRef.current?.click()}
         >
           <ImageUp aria-hidden="true" />
-          <span>{hasAvatar ? t("updateProfile.uploadNew") : t("updateProfile.uploadNew")}</span>
+          <span>{hasAvatar ? (isIndo ? "Ganti Foto" : "Upload New") : (isIndo ? "Unggah Baru" : "Upload New")}</span>
         </button>
-        <button
-          type="button"
-          className="tpup2026-btn tpup2026-btn-danger"
-          disabled={isSaving || !hasAvatar}
-          onClick={onRemoveImage}
-        >
-          <Trash2 aria-hidden="true" />
-          <span>{t("updateProfile.remove")}</span>
-        </button>
+        {hasAvatar ? (
+          <button
+            type="button"
+            className="tpup2026-btn tpup2026-btn-danger"
+            disabled={isSaving}
+            onClick={onRemoveImage}
+          >
+            <Trash2 aria-hidden="true" />
+            <span>{isIndo ? "Hapus" : "Remove"}</span>
+          </button>
+        ) : null}
       </div>
     </article>
   );
@@ -138,6 +162,7 @@ export default function AccountUpdateProfile2026View({
   languageOptions = [],
   isLoading,
   isSaving,
+  isIndo = false,
   error,
   status,
   LinkComponent,
@@ -150,16 +175,22 @@ export default function AccountUpdateProfile2026View({
   const { t } = useTranslation();
   const hasAvatar = Boolean(form?.avatarUrl || profile?.avatarUrl);
 
+  const titleText = isIndo ? "Ubah Profil" : "Update Profile";
+  const subtitleText = isIndo
+    ? "Perbarui rincian informasi dan preferensi akun Anda."
+    : "Keep your profile details and preferences up to date.";
+  const backText = isIndo ? "Kembali ke Akun Saya" : "Back to My Account";
+
   return (
     <section className="tpup2026-root">
       <header className="tpup2026-heading">
-        <div>
-          <h1>{t("updateProfile.title")}</h1>
-          <p>{t("updateProfile.subtitle")}</p>
+        <div className="tpup2026-heading-copy">
+          <h1>{titleText}</h1>
+          <p>{subtitleText}</p>
         </div>
         <LinkComponent className="tpup2026-back-link" to="/user/my-account">
           <ArrowLeft aria-hidden="true" />
-          <span>{t("updateProfile.backToAccount")}</span>
+          <span>{backText}</span>
         </LinkComponent>
       </header>
 
@@ -183,7 +214,7 @@ export default function AccountUpdateProfile2026View({
       ) : null}
 
       {isLoading ? (
-        <LoadingBlock />
+        <LoadingBlock isIndo={isIndo} />
       ) : (
         <form className="tpup2026-form" onSubmit={onSubmit}>
           <div className="tpup2026-top-grid">
@@ -191,56 +222,58 @@ export default function AccountUpdateProfile2026View({
               profile={profile}
               hasAvatar={hasAvatar}
               isSaving={isSaving}
+              isIndo={isIndo}
               onUploadImage={onUploadImage}
               onRemoveImage={onRemoveImage}
-              t={t}
             />
 
             <article className="tpup2026-panel tpup2026-info-card">
-              <h2>{t("updateProfile.personalInfo")}</h2>
+              <div className="tpup2026-panel-header">
+                <h2>{isIndo ? "Informasi Pribadi" : "Personal Information"}</h2>
+              </div>
               <div className="tpup2026-field-grid">
                 <Field
                   icon={User}
-                  label={t("updateProfile.fullName")}
+                  label={isIndo ? "Nama Lengkap *" : "Full Name *"}
                   name="name"
                   value={form.name}
-                  placeholder={t("updateProfile.fullNamePlaceholder")}
+                  placeholder={isIndo ? "Masukkan nama lengkap" : "Enter full name"}
                   error={fieldErrors.name}
                   disabled={isSaving}
                   onFormChange={onFormChange}
                 />
                 <Field
                   icon={Mail}
-                  label={t("updateProfile.emailAddress")}
+                  label={isIndo ? "Alamat Email *" : "Email Address *"}
                   name="email"
                   type="email"
                   value={form.email}
-                  placeholder={t("updateProfile.emailPlaceholder")}
+                  placeholder={isIndo ? "nama@contoh.com" : "name@example.com"}
                   error={fieldErrors.email}
                   disabled={isSaving}
                   onFormChange={onFormChange}
                 />
                 <Field
                   icon={Phone}
-                  label={t("updateProfile.phone")}
+                  label={isIndo ? "Telepon / No. HP" : "Phone / Mobile"}
                   name="phone"
                   value={form.phone}
-                  placeholder={t("updateProfile.notSet")}
+                  placeholder={isIndo ? "Belum diatur" : "Not set"}
+                  error={fieldErrors.phone}
                   disabled={isSaving}
                   onFormChange={onFormChange}
                 />
                 <Field
                   icon={CalendarDays}
-                  label={t("updateProfile.dateOfBirth")}
+                  label={isIndo ? "Tanggal Lahir" : "Date of Birth"}
                   name="dateOfBirth"
                   type="date"
                   value={form.dateOfBirth}
-                  placeholder={t("updateProfile.selectDate")}
                   disabled={isSaving}
                   onFormChange={onFormChange}
                 />
                 <SelectField
-                  label={t("updateProfile.gender")}
+                  label={isIndo ? "Jenis Kelamin" : "Gender"}
                   name="gender"
                   value={form.gender}
                   options={genderOptions}
@@ -248,7 +281,7 @@ export default function AccountUpdateProfile2026View({
                   onFormChange={onFormChange}
                 />
                 <SelectField
-                  label={t("updateProfile.preferredLanguage")}
+                  label={isIndo ? "Bahasa Pilihan" : "Preferred Language"}
                   name="language"
                   value={form.language}
                   options={languageOptions}
@@ -260,13 +293,17 @@ export default function AccountUpdateProfile2026View({
           </div>
 
           <article className="tpup2026-panel tpup2026-address-card">
-            <div className="tpup2026-panel-copy">
-              <h2>{t("updateProfile.shippingAddress")}</h2>
-              <p>{t("updateProfile.shippingAddressDesc")}</p>
+            <div className="tpup2026-panel-header">
+              <h2>{isIndo ? "Alamat Pengiriman Utama" : "Shipping Address"}</h2>
+              <p>
+                {isIndo
+                  ? "Alamat pengiriman default untuk mempercepat pesanan Anda."
+                  : "This is your default shipping address for deliveries."}
+              </p>
             </div>
             <div
               className={
-                defaultAddress.hasAddress
+                defaultAddress?.hasAddress
                   ? "tpup2026-address-preview"
                   : "tpup2026-address-preview tpup2026-empty"
               }
@@ -275,12 +312,19 @@ export default function AccountUpdateProfile2026View({
                 <MapPin aria-hidden="true" />
               </span>
               <div className="tpup2026-address-body">
-                <strong>{defaultAddress.title}</strong>
-                <p>{defaultAddress.subtitle}</p>
-                {defaultAddress.hasAddress ? <small>{defaultAddress.phone}</small> : null}
+                <div className="tpup2026-address-title-row">
+                  <strong>{defaultAddress?.title}</strong>
+                  {defaultAddress?.label ? (
+                    <span className="tpup2026-address-badge">{defaultAddress.label}</span>
+                  ) : null}
+                </div>
+                <p>{defaultAddress?.subtitle}</p>
+                {defaultAddress?.hasAddress && defaultAddress?.phone ? (
+                  <small>{defaultAddress.phone}</small>
+                ) : null}
               </div>
               <LinkComponent className="tpup2026-manage-link" to="/user/shipping-address">
-                {t("updateProfile.manageAddresses")}
+                {isIndo ? "Kelola Alamat" : "Manage Addresses"}
               </LinkComponent>
             </div>
           </article>
@@ -288,7 +332,15 @@ export default function AccountUpdateProfile2026View({
           <div className="tpup2026-actions">
             <button type="submit" className="tpup2026-btn tpup2026-btn-primary" disabled={isSaving}>
               <CheckCircle2 aria-hidden="true" />
-              <span>{isSaving ? t("updateProfile.saving") : t("updateProfile.saveChanges")}</span>
+              <span>
+                {isSaving
+                  ? isIndo
+                    ? "Menyimpan..."
+                    : "Saving..."
+                  : isIndo
+                    ? "Simpan Perubahan"
+                    : "Save Changes"}
+              </span>
             </button>
             <button
               type="button"
@@ -296,8 +348,8 @@ export default function AccountUpdateProfile2026View({
               disabled={isSaving}
               onClick={onCancel}
             >
-              <Save aria-hidden="true" />
-              <span>{t("updateProfile.cancel")}</span>
+              <X aria-hidden="true" />
+              <span>{isIndo ? "Batal" : "Cancel"}</span>
             </button>
           </div>
         </form>
