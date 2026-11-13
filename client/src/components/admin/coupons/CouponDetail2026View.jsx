@@ -26,6 +26,12 @@ export const buildAdminCouponDetailPath = (coupon) => {
   return `/admin/catalog/coupons/${encodeURIComponent(String(id))}/${encodeURIComponent(getCouponDetailScopeKey(coupon))}`;
 };
 
+export const buildAdminCouponEditPath = (coupon) => {
+  const id = Number(coupon?.id);
+  if (!id) return "/admin/catalog/coupons";
+  return `/admin/catalog/coupons/${encodeURIComponent(String(id))}/${encodeURIComponent(getCouponDetailScopeKey(coupon))}/edit`;
+};
+
 function PublishToggle({ checked, disabled, busy, onChange, label }) {
   return (
     <button

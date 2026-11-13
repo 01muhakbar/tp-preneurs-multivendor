@@ -9,9 +9,9 @@ import {
 } from "../../lib/adminApi.js";
 import CouponDetail2026View, {
   buildAdminCouponDetailPath,
+  buildAdminCouponEditPath,
   getCouponDetailScopeKey,
 } from "../../components/admin/coupons/CouponDetail2026View.jsx";
-import EditCouponDrawer from "../../components/admin/coupons/EditCouponDrawer.jsx";
 import { GENERIC_ERROR } from "../../constants/uiMessages.js";
 import { invalidateAdminCouponSurfaces } from "./AdminCouponsPage.jsx";
 
@@ -27,7 +27,6 @@ export default function AdminCouponDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { t } = useTranslation("admin");
-  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
   const [notice, setNotice] = useState({ type: "success", message: "" });
 
   const detailKey = useMemo(
@@ -73,21 +72,6 @@ export default function AdminCouponDetailPage() {
     ]);
   };
 
-  const updateMutation = useMutation({
-    mutationFn: ({ id, payload }) => updateAdminCoupon(id, payload),
-    onSuccess: async () => {
-      await invalidateDetail();
-      setIsEditDrawerOpen(false);
-      setNotice({ type: "success", message: t("coupons.Coupon updated.", "Coupon updated.") });
-    },
-    onError: (error) => {
-      setNotice({
-        type: "error",
-        message: errorMessage(error, t("coupons.Failed to update coupon.", "Failed to update coupon.")),
-      });
-    },
-  });
-
   const toggleMutation = useMutation({
     mutationFn: ({ id, active }) => updateAdminCoupon(id, { active }),
     onSuccess: async (_payload, variables) => {
@@ -107,7 +91,7 @@ export default function AdminCouponDetailPage() {
     },
   });
 
-  const isUpdating = updateMutation.isPending || toggleMutation.isPending;
+  const isUpdating = toggleMutation.isPending;
   const isActive =
     typeof coupon?.active === "boolean"
       ? coupon.active
@@ -141,35 +125,17 @@ export default function AdminCouponDetailPage() {
           busy: isUpdating,
           label: toggleMutation.isPending
             ? t("coupons.Updating coupon status...", "Updating coupon status...")
-            : updateMutation.isPending
-              ? t("coupons.Saving coupon...", "Saving coupon...")
-              : "",
+            : "",
         }}
         actions={{
           onBack: () => navigate(listPath),
           onRetry: () => detailQuery.refetch(),
-          onEdit: () => setIsEditDrawerOpen(true),
+          onEdit: () => navigate(buildAdminCouponEditPath(coupon)),
           onToggleActive: () => {
             if (!coupon?.id || toggleMutation.isPending) return;
             toggleMutation.mutate({ id: coupon.id, active: !isActive });
           },
         }}
-      />
-
-      <EditCouponDrawer
-        open={isEditDrawerOpen}
-        onClose={() => !updateMutation.isPending && setIsEditDrawerOpen(false)}
-        coupon={coupon}
-        onSubmit={(payload) => {
-          if (!coupon?.id || updateMutation.isPending) return;
-          updateMutation.mutate({ id: coupon.id, payload });
-        }}
-        isSubmitting={updateMutation.isPending}
-        storeOptions={storeOptions}
-        error={
-          updateMutation.error?.response?.data?.message ||
-          (updateMutation.isError ? GENERIC_ERROR : "")
-        }
       />
     </>
   );

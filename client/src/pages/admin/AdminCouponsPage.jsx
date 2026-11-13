@@ -28,10 +28,12 @@ import { formatCurrency } from "../../utils/format.js";
 import AddCouponDrawer from "../../components/admin/coupons/AddCouponDrawer.jsx";
 import DeleteCouponModal from "../../components/admin/coupons/DeleteCouponModal.jsx";
 import CouponFilterMenu from "../../components/coupons/CouponFilterMenu.jsx";
-import EditCouponDrawer from "../../components/admin/coupons/EditCouponDrawer.jsx";
 import CouponImportModal from "../../components/coupons/CouponImportModal.jsx";
 import AdminCoupons2026View from "../../components/admin/coupons/AdminCoupons2026View.jsx";
-import { buildAdminCouponDetailPath } from "../../components/admin/coupons/CouponDetail2026View.jsx";
+import {
+  buildAdminCouponDetailPath,
+  buildAdminCouponEditPath,
+} from "../../components/admin/coupons/CouponDetail2026View.jsx";
 import {
   UiErrorState,
   UiSkeleton,
@@ -294,8 +296,6 @@ export default function AdminCouponsPage() {
   const [togglingIds, setTogglingIds] = useState(() => new Set());
 
   const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false);
-  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
-  const [editingCoupon, setEditingCoupon] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteMode, setDeleteMode] = useState(null);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
@@ -332,23 +332,6 @@ export default function AdminCouponsPage() {
       showNotice(
         error?.response?.data?.message ||
           (isId ? "Gagal membuat kupon." : t("coupons.Failed to create coupon.", "Failed to create coupon.")),
-        "error"
-      );
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, payload }) => updateAdminCoupon(id, payload),
-    onSuccess: () => {
-      invalidateAdminCouponSurfaces(qc);
-      showNotice(isId ? "Kupon berhasil diperbarui." : t("coupons.Coupon updated.", "Coupon updated."));
-      setIsEditDrawerOpen(false);
-      setEditingCoupon(null);
-    },
-    onError: (error) => {
-      showNotice(
-        error?.response?.data?.message ||
-          (isId ? "Gagal memperbarui kupon." : t("coupons.Failed to update coupon.", "Failed to update coupon.")),
         "error"
       );
     },
@@ -477,7 +460,6 @@ export default function AdminCouponsPage() {
   const isDeletePending = deleteMutation.isPending || bulkDeleteMutation.isPending;
   const isBulkPending = bulkMutation.isPending;
   const isCreateBusy = Boolean(createMutation.isPending || createMutation.isLoading);
-  const isUpdateBusy = Boolean(updateMutation.isPending || updateMutation.isLoading);
   const visibleColumnCount = Object.values(columnVisibility).filter(Boolean).length;
 
   const showNotice = (message, type = "success") => {
@@ -572,27 +554,11 @@ export default function AdminCouponsPage() {
   };
 
   const openEdit = (coupon) => {
-    updateMutation.reset();
-    setEditingCoupon(coupon ?? null);
-    setIsEditDrawerOpen(true);
+    navigate(buildAdminCouponEditPath(coupon));
   };
 
   const openDetail = (coupon) => {
     navigate(buildAdminCouponDetailPath(coupon));
-  };
-
-  const closeEditDrawer = () => {
-    if (isUpdateBusy) return;
-    updateMutation.reset();
-    setIsEditDrawerOpen(false);
-    setEditingCoupon(null);
-  };
-
-  const handleUpdateSubmit = (payload) => {
-    if (isUpdateBusy) return;
-    const id = Number(editingCoupon?.id);
-    if (!id) return;
-    updateMutation.mutate({ id, payload });
   };
 
   const handleCreateSubmit = (payload) => {
@@ -984,18 +950,6 @@ export default function AdminCouponsPage() {
         error={
           createMutation.error?.response?.data?.message ||
           (createMutation.isError ? GENERIC_ERROR : "")
-        }
-      />
-      <EditCouponDrawer
-        open={isEditDrawerOpen}
-        onClose={closeEditDrawer}
-        coupon={editingCoupon}
-        onSubmit={handleUpdateSubmit}
-        isSubmitting={updateMutation.isPending}
-        storeOptions={storeOptions}
-        error={
-          updateMutation.error?.response?.data?.message ||
-          (updateMutation.isError ? GENERIC_ERROR : "")
         }
       />
     </>
