@@ -411,15 +411,15 @@ body.dark .seller2026-products .seller2026-profile__notice--success,
 
 .seller2026-products-table {
   width: 100%;
-  min-width: 980px;
+  min-width: 0;
 }
 
 .seller2026-products-table__head {
   display: grid;
-  grid-template-columns: 32px minmax(240px, 2.3fr) minmax(110px, 1fr) minmax(115px, 1fr) minmax(125px, 1.1fr) minmax(95px, 0.8fr) minmax(110px, 0.95fr) 70px 96px;
-  gap: 12px;
+  grid-template-columns: 24px minmax(170px, 2.2fr) minmax(95px, 1.1fr) minmax(85px, 1fr) minmax(75px, 0.9fr) minmax(70px, 0.8fr) minmax(80px, 0.85fr) 52px 76px;
+  gap: 8px;
   align-items: center;
-  padding: 12px 18px;
+  padding: 10px 14px;
   background: rgba(3, 76, 133, 0.04);
   border-bottom: 1px solid var(--prod-border);
   color: var(--prod-muted);
@@ -432,10 +432,10 @@ body.dark .seller2026-products .seller2026-profile__notice--success,
 /* Product Row */
 .seller2026-product-row {
   display: grid;
-  grid-template-columns: 32px minmax(240px, 2.3fr) minmax(110px, 1fr) minmax(115px, 1fr) minmax(125px, 1.1fr) minmax(95px, 0.8fr) minmax(110px, 0.95fr) 70px 96px;
-  gap: 12px;
+  grid-template-columns: 24px minmax(170px, 2.2fr) minmax(95px, 1.1fr) minmax(85px, 1fr) minmax(75px, 0.9fr) minmax(70px, 0.8fr) minmax(80px, 0.85fr) 52px 76px;
+  gap: 8px;
   align-items: center;
-  padding: 12px 18px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--prod-border);
   transition: background-color 0.15s ease;
   font-size: 13px;
@@ -488,12 +488,16 @@ body.dark .seller2026-product-row:hover,
   flex-direction: column;
   min-width: 0;
   gap: 2px;
+  flex: 1 1 auto;
+  width: auto;
+  height: auto;
+  overflow: visible;
 }
 
 .seller2026-product-row__title {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 750;
-  color: var(--prod-text) !important;
+  color: var(--seller2026-text, var(--prod-text)) !important;
   text-decoration: none;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -507,7 +511,7 @@ body.dark .seller2026-product-row:hover,
 
 .seller2026-product-row__slug {
   font-size: 11.5px;
-  color: var(--prod-muted) !important;
+  color: var(--seller2026-muted, var(--prod-muted)) !important;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
