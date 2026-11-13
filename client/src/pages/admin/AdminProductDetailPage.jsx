@@ -53,6 +53,12 @@ export default function AdminProductDetailPage() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["admin", "products"] }),
       queryClient.invalidateQueries({ queryKey: ["admin-products"] }),
+      queryClient.invalidateQueries({ queryKey: ["seller2026", "products"] }),
+      queryClient.invalidateQueries({ queryKey: ["seller", "products"] }),
+      queryClient.invalidateQueries({ queryKey: ["sellerProducts"] }),
+      queryClient.invalidateQueries({ queryKey: ["storefront", "products"] }),
+      queryClient.invalidateQueries({ queryKey: ["public-products"] }),
+      queryClient.invalidateQueries({ queryKey: ["products"] }),
       queryClient.invalidateQueries({ queryKey: detailKey }),
     ]);
   };
@@ -95,8 +101,7 @@ export default function AdminProductDetailPage() {
     mutationFn: deleteAdminProduct,
     onSuccess: async () => {
       toast.success("Product deleted.");
-      await queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
-      await queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      await invalidateProductQueries();
       navigate(productListPath, { replace: true });
     },
     onError: (error) => toast.error(errorMessage(error, "Failed to delete product.")),

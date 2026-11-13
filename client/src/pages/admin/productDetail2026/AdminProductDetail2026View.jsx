@@ -376,7 +376,7 @@ function TimelineCard({ product }) {
             </li>
           ))}
         </ol>
-      ) : <p className="apd26-empty-note">{t("productDetail.No product activity has been recorded yet.")}</p>}
+      ) : <p className="apd26-empty-note">{t("productDetail.No activity recorded", "No activity recorded.")}</p>}
       <div className="apd26-card-footer"><span>{t("productDetail.Audit summary")}</span><span>{t("productDetail.Latest count events", { count: product.timeline.length })}</span></div>
     </section>
   );
@@ -404,9 +404,24 @@ function InsightsCard({ product }) {
     <section className="apd26-card apd26-insights">
       <CardTitle icon={FileText}>{t("productDetail.Publication Insights & Notes")}</CardTitle>
       <div className="apd26-insights__grid">
-        <div><span>{t("productDetail.Short Description (Internal)")}</span><p>{product.shortDescription || t("productDetail.No internal summary has been added.")}</p><span>{t("productDetail.Target Audience")}</span><p>{product.categories.length ? t("productDetail.Customers browsing categories.", { categories: product.categories.map((item) => item.name).join(", ") }) : t("productDetail.General marketplace customers.")}</p></div>
-        <div><span>{t("productDetail.Key Themes")}</span><div className="apd26-tag-list">{(product.tags.length ? product.tags : [t("productDetail.Product catalog")]).map((tag) => <em key={tag}>{tag}</em>)}</div><span>{t("productDetail.SEO Description")}</span><p>{product.seo.description || t("productDetail.No SEO description has been added.")}</p></div>
-        <div><span>{t("productDetail.Publication Notes")}</span><p>{product.publicationNotes || product.revisionNote || t("productDetail.No publication notes have been recorded.")}</p><span>{t("productDetail.SEO Keywords")}</span><div className="apd26-tag-list">{(product.seo.keywords.length ? product.seo.keywords : [t("productDetail.No keywords")]).map((tag) => <em key={tag}>{tag}</em>)}</div></div>
+        <div>
+          <span>{t("productDetail.Short Description (Internal)")}</span>
+          <p>{product.shortDescription || "—"}</p>
+          <span>{t("productDetail.Target Audience")}</span>
+          <p>{product.categories.length ? product.categories.map((item) => item.name).join(", ") : t("productDetail.All categories", "All categories")}</p>
+        </div>
+        <div>
+          <span>{t("productDetail.Key Themes")}</span>
+          <div className="apd26-tag-list">{(product.tags.length ? product.tags : [t("productDetail.General", "General")]).map((tag) => <em key={tag}>{tag}</em>)}</div>
+          <span>{t("productDetail.SEO Description")}</span>
+          <p>{product.seo.description || "—"}</p>
+        </div>
+        <div>
+          <span>{t("productDetail.Publication Notes")}</span>
+          <p>{product.publicationNotes || product.revisionNote || "—"}</p>
+          <span>{t("productDetail.SEO Keywords")}</span>
+          <div className="apd26-tag-list">{(product.seo.keywords.length ? product.seo.keywords : ["—"]).map((tag) => <em key={tag}>{tag}</em>)}</div>
+        </div>
       </div>
     </section>
   );
