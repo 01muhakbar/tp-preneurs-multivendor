@@ -1,7 +1,7 @@
 export const INVITATION_TABS = [
-  { key: "pending", label: "Pending" },
-  { key: "accepted", label: "Accepted" },
-  { key: "declined", label: "Declined" },
+  { key: "pending", label: "Pending", idLabel: "Menunggu" },
+  { key: "accepted", label: "Accepted", idLabel: "Diterima" },
+  { key: "declined", label: "Declined", idLabel: "Ditolak" },
 ];
 
 const normalizeText = (value) => String(value ?? "").trim();
@@ -66,17 +66,25 @@ const resolveInvitationState = (item, status) => {
   return "PENDING";
 };
 
-const defaultStateMessage = (status, invitationState) => {
+const defaultStateMessage = (status, invitationState, isIndo = false) => {
   if (invitationState === "EXPIRED") {
-    return "This invitation has expired. Ask the store owner or admin to send it again.";
+    return isIndo
+      ? "Undangan ini telah kedaluwarsa. Minta pemilik toko untuk mengirimkan ulang."
+      : "This invitation has expired. Ask the store owner or admin to send it again.";
   }
   if (status === "accepted") {
-    return "This store invitation has been accepted and access is active.";
+    return isIndo
+      ? "Undangan toko ini telah diterima dan akses Anda aktif."
+      : "This store invitation has been accepted and access is active.";
   }
   if (status === "declined") {
-    return "This store invitation was declined and is no longer active.";
+    return isIndo
+      ? "Undangan toko ini telah ditolak dan tidak lagi aktif."
+      : "This store invitation was declined and is no longer active.";
   }
-  return "This store invitation is waiting for your response.";
+  return isIndo
+    ? "Undangan toko ini menunggu tanggapan Anda."
+    : "This store invitation is waiting for your response.";
 };
 
 export function unwrapInvitationCollection(value) {
@@ -94,12 +102,12 @@ export function unwrapInvitationCollection(value) {
   return [];
 }
 
-export function formatInvitationDate(value) {
-  if (!value) return "Not available";
+export function formatInvitationDate(value, isIndo = false) {
+  if (!value) return isIndo ? "Tidak tersedia" : "Not available";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Not available";
+  if (Number.isNaN(date.getTime())) return isIndo ? "Tidak tersedia" : "Not available";
 
-  return new Intl.DateTimeFormat("en-GB", {
+  return new Intl.DateTimeFormat(isIndo ? "id-ID" : "en-GB", {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -108,12 +116,11 @@ export function formatInvitationDate(value) {
   }).format(date);
 }
 
-export function normalizeInvitation(item) {
+export function normalizeInvitation(item, isIndo = false) {
   if (!item || typeof item !== "object") return null;
 
-  const membership = item.membership && typeof item.membership === "object"
-    ? item.membership
-    : null;
+  const membership =
+    item.membership && typeof item.membership === "object" ? item.membership : null;
   const store =
     item.store && typeof item.store === "object"
       ? item.store
@@ -136,7 +143,7 @@ export function normalizeInvitation(item) {
     item.expiresAt ?? item.invitation?.expiresAt ?? membership?.expiresAt ?? null;
   const storeName = firstText(store.name, item.storeName, item.shopName, "Store");
   const storeSlug = firstText(store.slug, item.storeSlug, item.shopSlug);
-  const roleName = firstText(
+  const rawRoleName = firstText(
     item.roleName,
     item.role?.name,
     membership?.roleName,
@@ -144,44 +151,55 @@ export function normalizeInvitation(item) {
     item.role?.code,
     "Store member"
   );
+  const roleName = isIndo && rawRoleName.toLowerCase() === "store member" ? "Anggota toko" : rawRoleName;
+
   const inviterEmail = firstText(
     inviter.email,
     item.inviterEmail,
     item.invitedByEmail,
     inviter.name,
-    "Store administrator"
+    isIndo ? "Administrator toko" : "Store administrator"
   );
   const message = firstText(
     item.message,
     item.stateMeta?.description,
     item.invitation?.description,
-    defaultStateMessage(status, invitationState)
+    defaultStateMessage(status, invitationState, isIndo)
   );
   const fallbackId = [storeSlug || storeName, invitedAt || invitationState]
     .filter(Boolean)
     .join(":");
+
+  const statusLabel = isIndo
+    ? invitationState === "EXPIRED"
+      ? "Undangan Kedaluwarsa"
+      : status === "accepted"
+        ? "Diterima"
+        : status === "declined"
+          ? "Ditolak"
+          : "Menunggu"
+    : invitationState === "EXPIRED"
+      ? "Expired invitation"
+      : status === "accepted"
+        ? "Accepted"
+        : status === "declined"
+          ? "Declined"
+          : "Pending invitation";
 
   return {
     id: firstText(item.id, memberId, fallbackId),
     memberId,
     status,
     invitationState,
-    statusLabel:
-      invitationState === "EXPIRED"
-        ? "Expired invitation"
-        : status === "accepted"
-          ? "Accepted"
-          : status === "declined"
-            ? "Declined"
-            : "Pending invitation",
+    statusLabel,
     storeName,
     storeSlug,
     roleName,
     inviterEmail,
     invitedAt,
-    invitedAtLabel: formatInvitationDate(invitedAt),
+    invitedAtLabel: formatInvitationDate(invitedAt, isIndo),
     expiresAt,
-    expiresAtLabel: formatInvitationDate(expiresAt),
+    expiresAtLabel: formatInvitationDate(expiresAt, isIndo),
     message,
     isActionable:
       status === "pending" &&
