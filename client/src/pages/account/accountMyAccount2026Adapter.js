@@ -1,7 +1,5 @@
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
 
-const NOT_SET = "Not set";
-
 const asObject = (value) =>
   value && typeof value === "object" && !Array.isArray(value) ? value : {};
 
@@ -28,11 +26,15 @@ const getInitials = (value) => {
   return `${parts[0]?.[0] || ""}${parts[1]?.[0] || ""}`.toUpperCase() || "U";
 };
 
-const formatDate = (value) => {
+const formatDate = (value, isIndo = false) => {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date);
+  return new Intl.DateTimeFormat(isIndo ? "id-ID" : "en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
 };
 
 const formatAddressSummary = (address) =>
@@ -64,6 +66,7 @@ export const normalizeMyAccountFor2026 = ({
   address,
   addresses,
   notificationCount,
+  isIndo = false,
 } = {}) => {
   const accountUser = asObject(user);
   const profileData = asObject(profile);
@@ -71,6 +74,9 @@ export const normalizeMyAccountFor2026 = ({
     ...accountUser,
     ...profileData,
   };
+
+  const notSet = isIndo ? "Belum diatur" : "Not set";
+
   const name = pickText(
     mergedProfile.name,
     mergedProfile.fullName,
@@ -100,45 +106,59 @@ export const normalizeMyAccountFor2026 = ({
     mergedProfile.joinedAt,
     mergedProfile.memberSince
   );
-  const memberSince = formatDate(createdAt);
+  const memberSinceFormatted = formatDate(createdAt, isIndo);
+  const memberSince = memberSinceFormatted
+    ? isIndo
+      ? `Anggota sejak ${memberSinceFormatted}`
+      : `Member since ${memberSinceFormatted}`
+    : "";
+
   const defaultAddress = resolveDefaultAddress(address, addresses);
   const addressSummary = defaultAddress ? formatAddressSummary(defaultAddress) : "";
   const addressPhone = defaultAddress ? pickText(defaultAddress.phoneNumber, defaultAddress.phone) : "";
   const addressName = defaultAddress
     ? pickText(defaultAddress.fullName, defaultAddress.name, name)
     : "";
-  const addressLabel = defaultAddress
+  const addressRawLabel = defaultAddress
     ? pickText(defaultAddress.markAs, defaultAddress.label, "Home")
     : "";
+
+  const isOffice =
+    text(addressRawLabel).toLowerCase() === "office" ||
+    text(addressRawLabel).toLowerCase() === "kantor";
+  const addressLabel = isIndo ? (isOffice ? "Kantor" : "Rumah") : (isOffice ? "Office" : "Home");
+
   const count = Number(notificationCount);
 
   return {
     profile: {
-      name: name || NOT_SET,
-      email: email || NOT_SET,
-      phone: phone || NOT_SET,
-      address: profileAddress || addressSummary || NOT_SET,
+      name: name || notSet,
+      email: email || notSet,
+      phone: phone || notSet,
+      address: profileAddress || addressSummary || notSet,
       avatarUrl,
       initials: getInitials(name || email),
-      memberSince: memberSince ? `Member since ${memberSince}` : "",
-      statusLabel: "Active",
+      memberSince,
+      statusLabel: isIndo ? "Aktif" : "Active",
     },
     defaultAddress: defaultAddress
       ? {
           id: defaultAddress.id || null,
-          name: addressName || NOT_SET,
-          phone: addressPhone || NOT_SET,
-          summary: addressSummary || NOT_SET,
-          label: text(addressLabel).toLowerCase() === "office" ? "Office" : "Home",
+          name: addressName || notSet,
+          phone: addressPhone || notSet,
+          summary: addressSummary || notSet,
+          label: addressLabel,
           isPrimary: Boolean(defaultAddress.isPrimary),
           hasAddress: Boolean(addressSummary),
         }
       : {
           id: null,
-          name: "No default address",
-          phone: NOT_SET,
-          summary: "Add a default shipping address for faster checkout.",
-          label: "Home",
+          name: isIndo ? "Belum ada alamat utama" : "No default address",
+          phone: notSet,
+          summary: isIndo
+            ? "Tambahkan alamat pengiriman utama untuk mempermudah checkout."
+            : "Add a default shipping address for faster checkout.",
+          label: isIndo ? "Rumah" : "Home",
           isPrimary: false,
           hasAddress: false,
         },

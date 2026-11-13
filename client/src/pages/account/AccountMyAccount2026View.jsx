@@ -9,7 +9,6 @@ import {
   ShieldCheck,
   User,
 } from "lucide-react";
-import { useTranslation } from "react-i18next";
 import "./account-my-account-2026.css";
 
 function LoadingBlock() {
@@ -36,9 +35,18 @@ function IconButton({ children, onClick, label }) {
   );
 }
 
-function Avatar({ profile }) {
+function Avatar({ profile, onEdit }) {
   return (
-    <div className="tpacct2026-avatar-wrap">
+    <div
+      className="tpacct2026-avatar-wrap"
+      onClick={onEdit}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onEdit?.();
+      }}
+      aria-label="Edit avatar"
+    >
       <div className="tpacct2026-avatar" aria-hidden="true">
         {profile.avatarUrl ? (
           <img src={profile.avatarUrl} alt="" />
@@ -46,20 +54,22 @@ function Avatar({ profile }) {
           <span>{profile.initials}</span>
         )}
       </div>
-      <span className="tpacct2026-avatar-camera">
-        <Camera aria-hidden="true" />
+      <span className="tpacct2026-avatar-camera" title="Edit avatar">
+        <Camera size={15} aria-hidden="true" />
       </span>
     </div>
   );
 }
 
-function Field({ icon: Icon, label, value, t }) {
+function Field({ icon: Icon, label, value }) {
   return (
     <div className="tpacct2026-field">
-      <Icon aria-hidden="true" />
+      <div className="tpacct2026-field-icon" aria-hidden="true">
+        <Icon size={18} />
+      </div>
       <div>
         <span>{label}</span>
-        <strong>{value || t("myAccount.notSet")}</strong>
+        <strong>{value}</strong>
       </div>
     </div>
   );
@@ -69,13 +79,13 @@ function QuickLink({ LinkComponent, to, icon: Icon, title, text, count }) {
   return (
     <LinkComponent className="tpacct2026-quick-card" to={to}>
       <span className="tpacct2026-quick-icon">
-        <Icon aria-hidden="true" />
+        <Icon size={22} aria-hidden="true" />
         {count > 0 ? <i>{count > 99 ? "99+" : count}</i> : null}
       </span>
       <strong>{title}</strong>
       <small>{text}</small>
       <em>
-        <ArrowRight aria-hidden="true" />
+        <ArrowRight size={17} aria-hidden="true" />
       </em>
     </LinkComponent>
   );
@@ -87,53 +97,73 @@ export default function AccountMyAccount2026View({
   notificationCount,
   isLoading,
   error,
+  isIndo = false,
   LinkComponent,
   onEditProfile,
   onEditAddress,
 }) {
-  const { t } = useTranslation();
+  const t = {
+    title: isIndo ? "Akun Saya" : "My Account",
+    subtitle: isIndo ? "Kelola profil dan preferensi Anda" : "Manage your profile and preferences",
+    editProfile: isIndo ? "Edit Profil" : "Edit Profile",
+    profileOverview: isIndo ? "Ringkasan Profil" : "Profile Overview",
+    phone: isIndo ? "Telepon / HP" : "Phone / Mobile",
+    address: isIndo ? "Alamat" : "Address",
+    defaultShippingAddress: isIndo ? "Alamat Pengiriman Utama" : "Default Shipping Address",
+    editAddress: isIndo ? "Edit Alamat" : "Edit Address",
+    primary: isIndo ? "Utama" : "Primary",
+    default: isIndo ? "Bawaan" : "Default",
+    updateProfile: isIndo ? "Ubah Profil" : "Update Profile",
+    updateProfileDesc: isIndo ? "Edit informasi pribadi Anda" : "Edit your personal information",
+    changePassword: isIndo ? "Ganti Kata Sandi" : "Change Password",
+    changePasswordDesc: isIndo ? "Perbarui kata sandi akun Anda" : "Update your account password",
+    notifications: isIndo ? "Notifikasi" : "Notifications",
+    notificationsDesc: isIndo ? "Kelola preferensi notifikasi Anda" : "Manage your notification preferences",
+    privacySecurity: isIndo ? "Privasi & Keamanan" : "Privacy & Security",
+    privacySecurityDesc: isIndo ? "Kelola pengaturan privasi Anda" : "Manage your privacy settings",
+  };
 
   const quickLinks = [
     {
       to: "/user/update-profile",
       icon: User,
-      title: t("myAccount.updateProfile"),
-      text: t("myAccount.updateProfileDesc"),
+      title: t.updateProfile,
+      text: t.updateProfileDesc,
       count: 0,
     },
     {
       to: "/user/change-password",
       icon: KeyRound,
-      title: t("myAccount.changePassword"),
-      text: t("myAccount.changePasswordDesc"),
+      title: t.changePassword,
+      text: t.changePasswordDesc,
       count: 0,
     },
     {
       to: "/user/notifications",
       icon: Bell,
-      title: t("myAccount.notifications"),
-      text: t("myAccount.notificationsDesc"),
+      title: t.notifications,
+      text: t.notificationsDesc,
       count: notificationCount,
     },
     {
       to: "/user/change-password",
       icon: ShieldCheck,
-      title: t("myAccount.privacySecurity"),
-      text: t("myAccount.privacySecurityDesc"),
+      title: t.privacySecurity,
+      text: t.privacySecurityDesc,
       count: 0,
     },
   ];
 
   return (
-    <section className="tpacct2026-root">
+    <section className="tpacct2026-root" aria-labelledby="tpacct2026-heading-title">
       <header className="tpacct2026-heading">
         <div>
-          <h1>{t("myAccount.title")}</h1>
-          <p>{t("myAccount.subtitle")}</p>
+          <h1 id="tpacct2026-heading-title">{t.title}</h1>
+          <p>{t.subtitle}</p>
         </div>
-        <IconButton onClick={onEditProfile} label={t("myAccount.editProfile")}>
-          <Pencil aria-hidden="true" />
-          <span>{t("myAccount.editProfile")}</span>
+        <IconButton onClick={onEditProfile} label={t.editProfile}>
+          <Pencil size={15} aria-hidden="true" />
+          <span>{t.editProfile}</span>
         </IconButton>
       </header>
 
@@ -149,15 +179,15 @@ export default function AccountMyAccount2026View({
         <>
           <article className="tpacct2026-panel tpacct2026-profile">
             <div className="tpacct2026-panel-title">
-              <h2>{t("myAccount.profileOverview")}</h2>
+              <h2>{t.profileOverview}</h2>
             </div>
 
             <div className="tpacct2026-profile-main">
-              <Avatar profile={profile} />
+              <Avatar profile={profile} onEdit={onEditProfile} />
               <div className="tpacct2026-profile-id">
-                <div>
+                <div className="tpacct2026-id-badge-row">
                   <h3>{profile.name}</h3>
-                  <span>{profile.statusLabel}</span>
+                  <span className="tpacct2026-status-badge">{profile.statusLabel}</span>
                 </div>
                 <p>{profile.email}</p>
                 {profile.memberSince ? <small>{profile.memberSince}</small> : null}
@@ -165,37 +195,41 @@ export default function AccountMyAccount2026View({
             </div>
 
             <div className="tpacct2026-fields">
-              <Field icon={Phone} label={t("myAccount.phone")} value={profile.phone} t={t} />
-              <Field icon={MapPin} label={t("myAccount.address")} value={profile.address} t={t} />
+              <Field icon={Phone} label={t.phone} value={profile.phone} />
+              <Field icon={MapPin} label={t.address} value={profile.address} />
             </div>
           </article>
 
           <article className="tpacct2026-panel tpacct2026-address">
             <div className="tpacct2026-panel-title">
-              <h2>{t("myAccount.defaultShippingAddress")}</h2>
-              <IconButton onClick={onEditAddress} label={t("myAccount.editAddress")}>
-                <Pencil aria-hidden="true" />
-                <span>{t("myAccount.editAddress")}</span>
+              <h2>{t.defaultShippingAddress}</h2>
+              <IconButton onClick={onEditAddress} label={t.editAddress}>
+                <Pencil size={15} aria-hidden="true" />
+                <span>{t.editAddress}</span>
               </IconButton>
             </div>
 
             <div className="tpacct2026-address-box">
               <span className="tpacct2026-address-icon">
-                <MapPin aria-hidden="true" />
+                <MapPin size={22} aria-hidden="true" />
               </span>
               <div className="tpacct2026-address-body">
                 <strong>{defaultAddress.name}</strong>
                 {defaultAddress.hasAddress ? (
                   <>
                     <p>{defaultAddress.summary}</p>
-                    <small>{defaultAddress.phone}</small>
+                    {defaultAddress.phone && defaultAddress.phone !== "Not set" && defaultAddress.phone !== "Belum diatur" ? (
+                      <small>{defaultAddress.phone}</small>
+                    ) : null}
                   </>
                 ) : (
                   <p>{defaultAddress.summary}</p>
                 )}
                 <div className="tpacct2026-tags">
-                  <span>{defaultAddress.isPrimary ? t("myAccount.primary") : t("myAccount.default")}</span>
-                  <span>{defaultAddress.label}</span>
+                  <span className="tpacct2026-tag-primary">
+                    {defaultAddress.isPrimary ? t.primary : t.default}
+                  </span>
+                  <span className="tpacct2026-tag-label">{defaultAddress.label}</span>
                 </div>
               </div>
             </div>
