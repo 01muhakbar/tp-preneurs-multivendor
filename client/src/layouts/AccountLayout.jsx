@@ -6,7 +6,8 @@ import {
   useNavigate,
   useOutletContext,
 } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import {
   Bell,
@@ -38,7 +39,7 @@ const getInitials = (value) => {
   return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
 };
 
-function AccountSidebar({ user, onLogout, isLoggingOut, dashboardSettingCopy }) {
+function AccountSidebar({ user, onLogout, isLoggingOut, dashboardSettingCopy, isId }) {
   const displayName = user?.name || user?.fullName || "Guest User";
   const email = user?.email || "No email provided";
   const initials = getInitials(user?.name || user?.email || "User");
@@ -47,39 +48,47 @@ function AccountSidebar({ user, onLogout, isLoggingOut, dashboardSettingCopy }) 
   const navItems = [
     {
       to: "/user/dashboard",
-      label: copy.dashboard.dashboardLabel,
+      label: isId ? "Dashboard" : (copy.dashboard.dashboardLabel || "Dashboard"),
       Icon: LayoutDashboard,
     },
     {
       to: "/user/my-orders",
-      label: copy.dashboard.myOrderValue,
+      label: isId ? "Pesanan Saya" : (copy.dashboard.myOrderValue || "My Orders"),
       Icon: ClipboardList,
     },
-    { to: "/user/notifications", label: "Notifications", Icon: Bell },
+    {
+      to: "/user/notifications",
+      label: isId ? "Notifikasi" : "Notifications",
+      Icon: Bell,
+    },
     {
       to: "/user/store-invitations",
-      label: "Store Invitations",
+      label: isId ? "Undangan Toko" : "Store Invitations",
       Icon: BriefcaseBusiness,
     },
-    { to: "/user/my-reviews", label: "My Review", Icon: Star },
+    {
+      to: "/user/my-reviews",
+      label: isId ? "Ulasan Saya" : "My Reviews",
+      Icon: Star,
+    },
     {
       to: "/user/my-account",
-      label: "My Account",
+      label: isId ? "Akun Saya" : "My Account",
       Icon: User,
     },
     {
       to: "/user/update-profile",
-      label: copy.updateProfile.sectionTitleValue,
+      label: isId ? "Perbarui Profil" : (copy.updateProfile.sectionTitleValue || "Update Profile"),
       Icon: User,
     },
     {
       to: "/user/shipping-address",
-      label: "Shipping Addresses",
+      label: isId ? "Alamat Pengiriman" : "Shipping Addresses",
       Icon: MapPin,
     },
     {
       to: "/user/change-password",
-      label: copy.updateProfile.changePasswordLabel,
+      label: isId ? "Ubah Kata Sandi" : (copy.updateProfile.changePasswordLabel || "Change Password"),
       Icon: KeyRound,
     },
   ];
@@ -134,9 +143,11 @@ function AccountSidebar({ user, onLogout, isLoggingOut, dashboardSettingCopy }) 
               <Headphones className="h-5 w-5" />
             </span>
             <div>
-              <p className="text-sm font-black text-slate-900 dark:text-white">Need help?</p>
+              <p className="text-sm font-black text-slate-900 dark:text-white">
+                {isId ? "Butuh bantuan?" : "Need help?"}
+              </p>
               <p className="mt-0.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                We're here 24/7
+                {isId ? "Kami siap 24/7" : "We're here 24/7"}
               </p>
             </div>
           </div>
@@ -144,13 +155,13 @@ function AccountSidebar({ user, onLogout, isLoggingOut, dashboardSettingCopy }) 
             to="/contact-us?topic=account"
             className="mt-4 inline-flex w-full items-center justify-center rounded-lg border border-[var(--tp-primary)] px-4 py-2.5 text-sm font-black text-[var(--tp-primary)] transition hover:bg-[var(--tp-primary)] hover:text-white dark:border-sky-700 dark:text-sky-200 dark:hover:bg-sky-900/40"
           >
-            Contact Support
+            {isId ? "Hubungi Bantuan" : "Contact Support"}
           </Link>
         </div>
 
         <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-800">
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
-            Appearance
+            {isId ? "TAMPILAN" : "APPEARANCE"}
           </p>
           <ThemeToggle variant="segmented" />
         </div>
@@ -162,7 +173,7 @@ function AccountSidebar({ user, onLogout, isLoggingOut, dashboardSettingCopy }) 
           className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg border border-rose-200 px-4 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-900/70 dark:text-rose-300 dark:hover:bg-rose-950/40"
         >
           <LogOut className="h-4 w-4" />
-          <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
+          <span>{isId ? (isLoggingOut ? "Sedang keluar..." : "Keluar") : (isLoggingOut ? "Logging out..." : "Logout")}</span>
         </button>
       </div>
     </aside>
@@ -174,10 +185,42 @@ export default function AccountLayout() {
   const location = useLocation();
   const { user } = useOutletContext() || {};
   const { logout } = useAccountAuth();
+  const { i18n } = useTranslation();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [activeLang, setActiveLang] = useState(() => i18n.language || "en");
+
+  useEffect(() => {
+    const handleLanguageChanged = (lng) => setActiveLang(lng);
+    const handleCustomLang = (e) => {
+      if (e?.detail?.isoCode) setActiveLang(e.detail.isoCode);
+    };
+    const handleStorage = () => {
+      const stored = localStorage.getItem("store_language");
+      if (stored === "Indonesia") setActiveLang("id");
+      else if (stored === "English") setActiveLang("en");
+      else setActiveLang(i18n.language || "en");
+    };
+
+    i18n.on("languageChanged", handleLanguageChanged);
+    window.addEventListener("store_language_changed", handleCustomLang);
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      i18n.off("languageChanged", handleLanguageChanged);
+      window.removeEventListener("store_language_changed", handleCustomLang);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [i18n]);
+
+  const isId =
+    activeLang?.startsWith("id") ||
+    (typeof window !== "undefined" &&
+      (localStorage.getItem("store_language") === "Indonesia" ||
+        localStorage.getItem("i18nextLng")?.startsWith("id")));
+
   const dashboardSettingQuery = useQuery({
-    queryKey: ["store-customization", "dashboard-setting", "en"],
-    queryFn: () => getStoreCustomization({ lang: "en", include: "dashboardSetting" }),
+    queryKey: ["store-customization", "dashboard-setting", isId ? "id" : "en"],
+    queryFn: () => getStoreCustomization({ lang: isId ? "id" : "en", include: "dashboardSetting" }),
     staleTime: 60_000,
   });
   const dashboardSettingCopy = normalizeDashboardSettingCopy(
@@ -221,6 +264,7 @@ export default function AccountLayout() {
         onLogout={handleLogout}
         isLoggingOut={isLoggingOut}
         dashboardSettingCopy={dashboardSettingCopy}
+        isId={isId}
       />
       <main
         className={
@@ -229,7 +273,7 @@ export default function AccountLayout() {
             : "order-1 min-w-0 rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/80 lg:order-2"
         }
       >
-        <Outlet context={{ user, dashboardSettingCopy }} />
+        <Outlet context={{ user, dashboardSettingCopy, isId }} />
       </main>
     </section>
   );
