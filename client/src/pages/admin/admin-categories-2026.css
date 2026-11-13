@@ -112,15 +112,18 @@
 }
 
 .ac26-btn--primary {
-  border-color: var(--ac26-primary);
-  background: var(--ac26-primary);
+  border-color: var(--ac26-accent, #fe6f05);
+  background: var(--ac26-accent, #fe6f05);
   color: #fff;
+  box-shadow: 0 4px 14px rgba(254, 111, 5, 0.28);
 }
 
 .ac26-btn--primary:hover {
-  border-color: var(--ac26-primary-strong);
-  background: var(--ac26-primary-strong);
+  border-color: #e05f00;
+  background: #e05f00;
   color: #fff;
+  box-shadow: 0 6px 18px rgba(254, 111, 5, 0.38);
+  transform: translateY(-1px);
 }
 
 .ac26-btn--danger {

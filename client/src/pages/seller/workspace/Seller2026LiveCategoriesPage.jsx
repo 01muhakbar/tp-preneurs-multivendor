@@ -73,13 +73,13 @@ function CategoryModal({
 }) {
   if (!open) return null;
   const isEdit = mode === "edit";
-  const title = isEdit ? (isId ? "Perbarui Kategori" : "Update Category") : (isId ? "Tambah Kategori" : "Add Category");
+  const title = isEdit ? (isId ? "Edit Kategori" : "Edit Category") : (isId ? "Tambah Kategori" : "Add Category");
   const subtitle = isEdit
-    ? (isId ? "Edit detail dan visibilitas kategori." : "Edit category details and visibility.")
-    : (isId ? "Buat dan susun katalog Anda." : "Create and organize your catalog.");
+    ? (isId ? "Perbarui detail kategori." : "Update category details.")
+    : (isId ? "Buat kategori katalog baru." : "Create new catalog category.");
   const actionLabel = isEdit
-    ? (isId ? "Perbarui Kategori" : "Update Category")
-    : (isId ? "Buat Kategori" : "Create Category");
+    ? (isId ? "Simpan Perubahan" : "Save Changes")
+    : (isId ? "Tambah Kategori" : "Add Category");
   const imageUrl = resolveAssetUrl(form.imageUrl);
 
   return (
@@ -99,7 +99,7 @@ function CategoryModal({
             <span>{isId ? "Nama Kategori *" : "Category Name *"}</span>
             <input
               value={form.name}
-              placeholder={isId ? "Masukkan nama kategori" : "Enter category name"}
+              placeholder={isId ? "Nama kategori..." : "Category name..."}
               onChange={(event) => {
                 const name = event.target.value;
                 onChange({ name, slug: slugifySeller2026Category(name) });
@@ -121,7 +121,7 @@ function CategoryModal({
               rows={5}
               value={form.description}
               maxLength={160}
-              placeholder={isId ? "Masukkan deskripsi singkat" : "Enter a short description"}
+              placeholder={isId ? "Deskripsi singkat..." : "Short description..."}
               onChange={(event) => onChange({ description: event.target.value })}
             />
             <em>{form.description.length}/160</em>
@@ -133,7 +133,7 @@ function CategoryModal({
             <button type="button" disabled={!canUpload || isUploading} onClick={onImageUpload}>
               {imageUrl ? <img src={imageUrl} alt="" /> : <ImageIcon size={24} />}
               <strong>{isUploading ? (isId ? "Mengunggah gambar..." : "Uploading image...") : (isId ? "Unggah gambar" : "Upload an image")}</strong>
-              <small>{canUpload ? "PNG, JPG or WEBP. Max 2MB" : (isId ? "Belum tersedia" : "Not available yet")}</small>
+              <small>{canUpload ? "PNG, JPG, WEBP (Maks 2MB)" : (isId ? "Belum tersedia" : "Not available")}</small>
             </button>
             {form.imageUrl ? (
               <button
@@ -156,13 +156,13 @@ function CategoryModal({
                 onChange={(event) => onChange({ slug: slugifySeller2026Category(event.target.value) })}
               />
             </div>
-            <small>{isId ? "Gunakan huruf kecil, angka, dan tanda hubung." : "Use lowercase letters, numbers, and hyphens."}</small>
+            <small>{isId ? "Huruf kecil & tanda hubung." : "Lowercase letters and hyphens."}</small>
           </label>
 
           <div className="seller2026-category-form__visibility">
             <div>
               <strong>{isId ? "Tampilkan di etalase" : "Visible in storefront"}</strong>
-              <span>{isId ? "Kategori akan dapat dilihat oleh pembeli." : "Category will be visible to customers."}</span>
+              <span>{isId ? "Tampil di katalog pembeli." : "Visible in customer catalog."}</span>
             </div>
             <button
               type="button"
@@ -327,7 +327,7 @@ export default function Seller2026LiveCategoriesPage() {
       <header className="seller2026-categories-header">
         <div>
           <h1>{isId ? "Kategori" : "Categories"}</h1>
-          <p>{isId ? "Kelola dan susun kategori produk Anda." : "Organize your product catalog."}</p>
+          <p>{isId ? "Kelola kategori produk." : "Manage product categories."}</p>
         </div>
         <div className="seller2026-categories-actions">
           <button disabled title={isId ? "Belum tersedia" : "Not available yet"}><Upload size={16} />{isId ? "Ekspor" : "Export"}</button>
@@ -386,7 +386,7 @@ export default function Seller2026LiveCategoriesPage() {
           <div className="seller2026-categories-empty">
             <Layers size={30} />
             <h2>{isId ? "Belum ada kategori" : "No categories yet"}</h2>
-            <p>{isId ? "Buat kategori pertama Anda untuk mengatur produk." : "Create your first category to organize products."}</p>
+            <p>{isId ? "Mulai dengan membuat kategori baru." : "Start by creating a category."}</p>
             <button type="button" disabled={!canCreate} onClick={openCreate}>{isId ? "Tambah Kategori" : "Add Category"}</button>
           </div>
         ) : (

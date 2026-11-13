@@ -24,6 +24,7 @@ import {
   uploadAdminImage,
   updateAdminCategory,
 } from "../../lib/adminApi.js";
+import { invalidateAdminCategorySurfaces } from "./AdminCategoriesPage.jsx";
 
 const toStringSafe = (value) => String(value ?? "").trim();
 const normalizeCode = (value) => toStringSafe(value).toLowerCase();
@@ -142,9 +143,7 @@ export default function AdminSubCategoriesPage({ resolveMode = "code" }) {
   const createMutation = useMutation({
     mutationFn: createAdminCategory,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin-categories"] });
-      qc.invalidateQueries({ queryKey: ["storeCategories"] });
-      qc.invalidateQueries({ queryKey: ["storefront", "categories"] });
+      invalidateAdminCategorySurfaces(qc);
       setNotice("Sub category created.");
       setIsFormOpen(false);
       setEditing(null);
@@ -154,9 +153,7 @@ export default function AdminSubCategoriesPage({ resolveMode = "code" }) {
   const updateMutation = useMutation({
     mutationFn: ({ id, payload }) => updateAdminCategory(id, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin-categories"] });
-      qc.invalidateQueries({ queryKey: ["storeCategories"] });
-      qc.invalidateQueries({ queryKey: ["storefront", "categories"] });
+      invalidateAdminCategorySurfaces(qc);
       setNotice("Sub category updated.");
       setIsFormOpen(false);
       setEditing(null);
@@ -166,11 +163,7 @@ export default function AdminSubCategoriesPage({ resolveMode = "code" }) {
   const deleteMutation = useMutation({
     mutationFn: deleteAdminCategory,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin-categories"] });
-      qc.invalidateQueries({ queryKey: ["storeCategories"] });
-      qc.invalidateQueries({ queryKey: ["storefront", "categories"] });
-      qc.invalidateQueries({ queryKey: ["seller-categories"] });
-      qc.invalidateQueries({ queryKey: ["categories"] });
+      invalidateAdminCategorySurfaces(qc);
       setNotice("Sub category deleted.");
     },
   });
@@ -178,11 +171,7 @@ export default function AdminSubCategoriesPage({ resolveMode = "code" }) {
   const bulkMutation = useMutation({
     mutationFn: ({ action, ids }) => bulkAdminCategories(action, ids),
     onSuccess: (_response, variables) => {
-      qc.invalidateQueries({ queryKey: ["admin-categories"] });
-      qc.invalidateQueries({ queryKey: ["storeCategories"] });
-      qc.invalidateQueries({ queryKey: ["storefront", "categories"] });
-      qc.invalidateQueries({ queryKey: ["seller-categories"] });
-      qc.invalidateQueries({ queryKey: ["categories"] });
+      invalidateAdminCategorySurfaces(qc);
       setSelectedIds([]);
       setNotice(`${variables.ids.length} categories processed successfully.`);
     },
@@ -811,7 +800,7 @@ export default function AdminSubCategoriesPage({ resolveMode = "code" }) {
                 <button
                   type="button"
                   onClick={closeForm}
-                  className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700"
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
                 >
                   Cancel
                 </button>
@@ -823,7 +812,7 @@ export default function AdminSubCategoriesPage({ resolveMode = "code" }) {
                     uploadMutation.isPending ||
                     uploadMutation.isLoading
                   }
-                  className="rounded-xl bg-[var(--admin-primary)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#fe6f05] px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#e05f00] disabled:opacity-60 transition-colors"
                 >
                   {editing ? "Update Category" : "Add Category"}
                 </button>

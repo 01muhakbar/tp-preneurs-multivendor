@@ -84,9 +84,12 @@ export const buildAdminCategoryPayload = (form, { includeEmptyParent = false } =
 
 export const invalidateAdminCategorySurfaces = (queryClient) => {
   queryClient.invalidateQueries({ queryKey: ["admin-categories"] });
+  queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
+  queryClient.invalidateQueries({ queryKey: ["seller2026", "categories"] });
+  queryClient.invalidateQueries({ queryKey: ["seller-categories"] });
   queryClient.invalidateQueries({ queryKey: ["storeCategories"] });
   queryClient.invalidateQueries({ queryKey: ["storefront", "categories"] });
-  queryClient.invalidateQueries({ queryKey: ["seller-categories"] });
+  queryClient.invalidateQueries({ queryKey: ["store-customization", "categories"] });
   queryClient.invalidateQueries({ queryKey: ["categories"] });
 };
 
@@ -378,10 +381,10 @@ export function CategoryFormPanel({
 
       <div className={footerClassName}>
         <div className={footerInnerClassName}>
-          <button type="button" onClick={onCancel} disabled={isSubmitting} className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+          <button type="button" onClick={onCancel} disabled={isSubmitting} className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#034c85]/20 disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 transition-colors">
             {t("categories.Cancel", "Cancel")}
           </button>
-          <button type="submit" form={formId} disabled={isSubmitting} className="inline-flex h-10 items-center justify-center rounded-lg bg-[#034c85] px-4 text-sm font-semibold text-white hover:bg-[#013d70] disabled:opacity-60">
+          <button type="submit" form={formId} disabled={isSubmitting} className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#fe6f05] px-5 text-sm font-semibold text-white shadow-sm hover:bg-[#e05f00] focus:outline-none focus:ring-2 focus:ring-[#fe6f05]/30 disabled:opacity-60 transition-colors">
             {isSubmitting ? t("categories.Saving...", "Saving...") : editing ? t("categories.Update Category", "Update Category") : t("categories.Add Category", "Add Category")}
           </button>
         </div>
@@ -440,15 +443,15 @@ function CategoryDetails({ category, onClose, onEdit, onDelete, onViewSubcategor
       </dl>
 
       <div className="mt-5 grid gap-2">
-        <button type="button" onClick={() => onEdit(category)} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#034c85] px-4 text-sm font-semibold text-white hover:bg-[#013d70]">
+        <button type="button" onClick={() => onEdit(category)} className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-[#034c85] px-4 text-sm font-semibold text-white hover:bg-[#013d70] focus:outline-none focus:ring-2 focus:ring-[#034c85]/20 transition-colors">
           <Pencil className="h-4 w-4" />
           {t("categories.Edit", "Edit")}
         </button>
-        <button type="button" onClick={() => onViewSubcategories(category)} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+        <button type="button" onClick={() => onViewSubcategories(category)} className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#034c85]/20 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 transition-colors">
           <FolderTree className="h-4 w-4" />
           {t("categories.View Subcategories", "View Subcategories")}
         </button>
-        <button type="button" onClick={() => onDelete(category)} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-rose-200 px-4 text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-900/70 dark:hover:bg-rose-950/30">
+        <button type="button" onClick={() => onDelete(category)} className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-rose-200 px-4 text-sm font-semibold text-rose-600 hover:bg-rose-50 focus:outline-none focus:ring-2 focus:ring-rose-500/20 dark:border-rose-900/70 dark:hover:bg-rose-950/30 transition-colors">
           <Trash2 className="h-4 w-4" />
           {t("categories.Delete", "Delete")}
         </button>

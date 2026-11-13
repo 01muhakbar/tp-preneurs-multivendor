@@ -91,7 +91,16 @@ export function useSeller2026Categories(
   const pagedCategories = filteredCategories.slice((safePage - 1) * perPage, safePage * perPage);
 
   const invalidate = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["seller2026", "categories", storeId] });
+    await Promise.allSettled([
+      queryClient.invalidateQueries({ queryKey: ["seller2026", "categories"] }),
+      queryClient.invalidateQueries({ queryKey: ["seller-categories"] }),
+      queryClient.invalidateQueries({ queryKey: ["admin-categories"] }),
+      queryClient.invalidateQueries({ queryKey: ["admin", "categories"] }),
+      queryClient.invalidateQueries({ queryKey: ["storeCategories"] }),
+      queryClient.invalidateQueries({ queryKey: ["storefront", "categories"] }),
+      queryClient.invalidateQueries({ queryKey: ["store-customization", "categories"] }),
+      queryClient.invalidateQueries({ queryKey: ["categories"] }),
+    ]);
   };
 
   const createMutation = useMutation({
