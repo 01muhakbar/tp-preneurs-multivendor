@@ -42,6 +42,7 @@ import {
 import StoreCustomizationHomeSettings2026 from "../../components/admin/store-customization/StoreCustomizationHomeSettings2026.jsx";
 import StoreCustomizationSingleSetting2026 from "../../components/admin/store-customization/StoreCustomizationSingleSetting2026.jsx";
 import StoreCustomizationShopSettings2026 from "../../components/admin/store-customization/StoreCustomizationShopSettings2026.jsx";
+import StoreCustomizationAboutUsSettings2026 from "../../components/admin/store-customization/StoreCustomizationAboutUsSettings2026.jsx";
 import StoreCustomizationSaveActions2026 from "../../components/admin/store-customization/StoreCustomizationSaveActions2026.jsx";
 import StoreCustomizationTabNav2026 from "../../components/admin/store-customization/StoreCustomizationTabNav2026.jsx";
 
@@ -4958,6 +4959,12 @@ export default function StoreCustomizationPage() {
           status: "published",
           publishStatus: "published",
         };
+      } else if (activeTab === "aboutUs") {
+        nextPayload.aboutUs = {
+          ...nextPayload.aboutUs,
+          status: "published",
+          publishStatus: "published",
+        };
       } else {
         nextPayload.home = {
           ...nextPayload.home,
@@ -4992,6 +4999,19 @@ export default function StoreCustomizationPage() {
     setNotice({
       type: "success",
       message: "Single setting draft reset.",
+    });
+  };
+
+  const onResetAboutUsSetting = () => {
+    const current = queryClient.getQueryData(["admin-store-customization", lang]);
+    const currentCustomization = normalizeCustomizationPayload(
+      unwrapCustomizationEnvelope(current || customizationQuery.data),
+      lang
+    );
+    setAboutUsState(currentCustomization.aboutUs);
+    setNotice({
+      type: "success",
+      message: "About Us draft reset.",
     });
   };
 
@@ -7337,7 +7357,7 @@ export default function StoreCustomizationPage() {
 
   return (
     <div className="mx-auto w-full max-w-[1280px] space-y-5 px-1 sm:px-2">
-      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" ? null : (
+      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" || activeTab === "aboutUs" ? null : (
         <AdminOpsPageHeader
           title="Store Customizations"
           description="Customize storefront sections, labels, and SEO."
@@ -7375,7 +7395,7 @@ export default function StoreCustomizationPage() {
         </div>
       ) : null}
 
-      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" ? null : (
+      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" || activeTab === "aboutUs" ? null : (
         <StoreCustomizationTabNav2026 activeTab={activeTab} onTabChange={onSelectTab} />
       )}
 
@@ -7454,446 +7474,25 @@ export default function StoreCustomizationPage() {
             isLoading={isLoadingHeader}
           />
         ) : activeTab === "aboutUs" ? (
-        <div className="flex flex-col gap-5">
-          <section className={sectionCard}>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-                <Settings className="h-4 w-4" />
-              </span>
-              <h2 className="text-base font-semibold text-slate-900">About Us</h2>
-            </div>
-            <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Page Header
-            </p>
-            <div className="mt-4 h-px w-full bg-slate-200" />
-
-            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[320px_1fr]">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Enable This Block
-                </p>
-                <SegmentedToggle
-                  value={Boolean(aboutUs.pageHeader.enabled)}
-                  onChange={(value) => onChangeAboutUsBlockEnabled("pageHeader", value)}
-                />
-              </div>
-              <ImageUploadField
-                id="about-us-page-header-background-image-input"
-                label="Page Header Background"
-                error={aboutUsImageErrors[ABOUT_US_IMAGE_FIELD_KEYS.pageHeaderBackground]}
-                dropActive={Boolean(
-                  aboutUsDropActive[ABOUT_US_IMAGE_FIELD_KEYS.pageHeaderBackground]
-                )}
-                onDropActiveChange={(value) =>
-                  setAboutUsDropActiveField(
-                    ABOUT_US_IMAGE_FIELD_KEYS.pageHeaderBackground,
-                    value
-                  )
-                }
-                onInputChange={(event) =>
-                  onAboutUsImageInputChange(
-                    ABOUT_US_IMAGE_FIELD_KEYS.pageHeaderBackground,
-                    event
-                  )
-                }
-                onDrop={(event) =>
-                  onDropAboutUsImage(
-                    ABOUT_US_IMAGE_FIELD_KEYS.pageHeaderBackground,
-                    event
-                  )
-                }
-                previewDataUrl={aboutUs.pageHeader.backgroundImageDataUrl}
-                onRemove={() =>
-                  onRemoveAboutUsImage(ABOUT_US_IMAGE_FIELD_KEYS.pageHeaderBackground)
-                }
-                previewAlt="About Us page header background"
-              />
-              <label className="block xl:col-span-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Page Title
-                </span>
-                <input
-                  type="text"
-                  value={aboutUs.pageHeader.pageTitle}
-                  onChange={(event) =>
-                    onChangeAboutUsPageHeaderField("pageTitle", event.target.value)
-                  }
-                  className={`${inputBase} mt-2`}
-                />
-              </label>
-            </div>
-          </section>
-
-          <section className={sectionCard}>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-                <Settings className="h-4 w-4" />
-              </span>
-              <h2 className="text-base font-semibold text-slate-900">
-                About Page Hero Content
-              </h2>
-            </div>
-            <div className="mt-4 h-px w-full bg-slate-200" />
-
-            <div className="mt-4 grid grid-cols-1 gap-4">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Enable This Block
-                </p>
-                <SegmentedToggle
-                  value={Boolean(aboutUs.topContentLeft.enabled)}
-                  onChange={(value) => onChangeAboutUsBlockEnabled("topContentLeft", value)}
-                />
-              </div>
-
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Top Title
-                </span>
-                <input
-                  type="text"
-                  value={aboutUs.topContentLeft.topTitle}
-                  onChange={(event) =>
-                    onChangeAboutUsTopContentLeftField("topTitle", event.target.value)
-                  }
-                  className={`${inputBase} mt-2`}
-                />
-              </label>
-
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Top Description
-                </span>
-                <textarea
-                  value={aboutUs.topContentLeft.topDescription}
-                  onChange={(event) =>
-                    onChangeAboutUsTopContentLeftField("topDescription", event.target.value)
-                  }
-                  className={textAreaBase}
-                />
-              </label>
-
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                {[
-                  { key: "boxOne", label: "Box One" },
-                  { key: "boxTwo", label: "Box Two" },
-                  { key: "boxThree", label: "Box Three" },
-                ].map((box) => {
-                  const boxValue = aboutUs.topContentLeft?.[box.key] || {};
-                  return (
-                    <div
-                      key={box.key}
-                      className="rounded-xl border border-slate-200 bg-slate-50/60 p-4"
-                    >
-                      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                        {box.label}
-                      </p>
-                      <div className="space-y-3">
-                        <label className="block">
-                          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Title
-                          </span>
-                          <input
-                            type="text"
-                            value={boxValue.title || ""}
-                            onChange={(event) =>
-                              onChangeAboutUsTopContentLeftBoxField(
-                                box.key,
-                                "title",
-                                event.target.value
-                              )
-                            }
-                            className={`${inputBase} mt-2`}
-                          />
-                        </label>
-                        <label className="block">
-                          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Sub Title
-                          </span>
-                          <input
-                            type="text"
-                            value={boxValue.subtitle || ""}
-                            onChange={(event) =>
-                              onChangeAboutUsTopContentLeftBoxField(
-                                box.key,
-                                "subtitle",
-                                event.target.value
-                              )
-                            }
-                            className={`${inputBase} mt-2`}
-                          />
-                        </label>
-                        <label className="block">
-                          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Description
-                          </span>
-                          <textarea
-                            value={boxValue.description || ""}
-                            onChange={(event) =>
-                              onChangeAboutUsTopContentLeftBoxField(
-                                box.key,
-                                "description",
-                                event.target.value
-                              )
-                            }
-                            className={textAreaBase}
-                          />
-                        </label>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </section>
-
-          <section className={sectionCard}>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-                <Settings className="h-4 w-4" />
-              </span>
-              <h2 className="text-base font-semibold text-slate-900">
-                Hero Visual
-              </h2>
-            </div>
-            <div className="mt-4 h-px w-full bg-slate-200" />
-
-            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[320px_1fr]">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Enable This Block
-                </p>
-                <SegmentedToggle
-                  value={Boolean(aboutUs.topContentRight.enabled)}
-                  onChange={(value) => onChangeAboutUsBlockEnabled("topContentRight", value)}
-                />
-              </div>
-              <ImageUploadField
-                id="about-us-top-content-right-image-input"
-                label="Hero Visual Image"
-                error={aboutUsImageErrors[ABOUT_US_IMAGE_FIELD_KEYS.topContentRightImage]}
-                dropActive={Boolean(
-                  aboutUsDropActive[ABOUT_US_IMAGE_FIELD_KEYS.topContentRightImage]
-                )}
-                onDropActiveChange={(value) =>
-                  setAboutUsDropActiveField(
-                    ABOUT_US_IMAGE_FIELD_KEYS.topContentRightImage,
-                    value
-                  )
-                }
-                onInputChange={(event) =>
-                  onAboutUsImageInputChange(ABOUT_US_IMAGE_FIELD_KEYS.topContentRightImage, event)
-                }
-                onDrop={(event) =>
-                  onDropAboutUsImage(ABOUT_US_IMAGE_FIELD_KEYS.topContentRightImage, event)
-                }
-                previewDataUrl={aboutUs.topContentRight.imageDataUrl}
-                onRemove={() =>
-                  onRemoveAboutUsImage(ABOUT_US_IMAGE_FIELD_KEYS.topContentRightImage)
-                }
-                previewAlt="About Us top content right"
-              />
-            </div>
-          </section>
-
-          <section className={sectionCard}>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-                <Settings className="h-4 w-4" />
-              </span>
-              <h2 className="text-base font-semibold text-slate-900">Vision & Mission</h2>
-            </div>
-            <div className="mt-4 h-px w-full bg-slate-200" />
-
-            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[320px_1fr]">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Enable This Block
-                </p>
-                <SegmentedToggle
-                  value={Boolean(aboutUs.contentSection.enabled)}
-                  onChange={(value) => onChangeAboutUsBlockEnabled("contentSection", value)}
-                />
-              </div>
-              <ImageUploadField
-                id="about-us-content-image-input"
-                label="Content Image"
-                error={aboutUsImageErrors[ABOUT_US_IMAGE_FIELD_KEYS.contentSectionImage]}
-                dropActive={Boolean(
-                  aboutUsDropActive[ABOUT_US_IMAGE_FIELD_KEYS.contentSectionImage]
-                )}
-                onDropActiveChange={(value) =>
-                  setAboutUsDropActiveField(
-                    ABOUT_US_IMAGE_FIELD_KEYS.contentSectionImage,
-                    value
-                  )
-                }
-                onInputChange={(event) =>
-                  onAboutUsImageInputChange(ABOUT_US_IMAGE_FIELD_KEYS.contentSectionImage, event)
-                }
-                onDrop={(event) =>
-                  onDropAboutUsImage(ABOUT_US_IMAGE_FIELD_KEYS.contentSectionImage, event)
-                }
-                previewDataUrl={aboutUs.contentSection.contentImageDataUrl}
-                onRemove={() =>
-                  onRemoveAboutUsImage(ABOUT_US_IMAGE_FIELD_KEYS.contentSectionImage)
-                }
-                previewAlt="About Us content section image"
-              />
-              <label className="block xl:col-span-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  First Paragraph
-                </span>
-                <textarea
-                  value={aboutUs.contentSection.firstParagraph}
-                  onChange={(event) =>
-                    onChangeAboutUsContentSectionField("firstParagraph", event.target.value)
-                  }
-                  className={textAreaBase}
-                />
-              </label>
-              <label className="block xl:col-span-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Second Paragraph
-                </span>
-                <textarea
-                  value={aboutUs.contentSection.secondParagraph}
-                  onChange={(event) =>
-                    onChangeAboutUsContentSectionField("secondParagraph", event.target.value)
-                  }
-                  className={textAreaBase}
-                />
-              </label>
-            </div>
-          </section>
-
-          <section className={sectionCard}>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-                <Settings className="h-4 w-4" />
-              </span>
-              <h2 className="text-base font-semibold text-slate-900">Team Members</h2>
-            </div>
-            <div className="mt-4 h-px w-full bg-slate-200" />
-
-            <div className="mt-4 grid grid-cols-1 gap-4">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Enable This Block
-                </p>
-                <SegmentedToggle
-                  value={Boolean(aboutUs.ourTeam.enabled)}
-                  onChange={(value) => onChangeAboutUsBlockEnabled("ourTeam", value)}
-                />
-              </div>
-
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Team Section Title
-                </span>
-                <input
-                  type="text"
-                  value={aboutUs.ourTeam.title}
-                  onChange={(event) =>
-                    onChangeAboutUsOurTeamField("title", event.target.value)
-                  }
-                  className={`${inputBase} mt-2`}
-                />
-              </label>
-
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Team Section Description
-                </span>
-                <textarea
-                  value={aboutUs.ourTeam.description}
-                  onChange={(event) =>
-                    onChangeAboutUsOurTeamField("description", event.target.value)
-                  }
-                  className={textAreaBase}
-                />
-              </label>
-
-              <div className="overflow-hidden rounded-xl border border-slate-200">
-                <div className="flex flex-wrap gap-1 border-b border-slate-200 bg-slate-50 px-2 py-2">
-                  {ABOUT_US_MEMBER_TABS.map((memberTab) => (
-                    <button
-                      key={memberTab.key}
-                      type="button"
-                      onClick={() => setActiveAboutUsMemberTab(memberTab.key)}
-                      className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
-                        activeAboutUsMemberTab === memberTab.key
-                          ? "border border-slate-200 bg-white text-[var(--admin-primary)] shadow-sm"
-                          : "text-slate-600 hover:bg-white"
-                      }`}
-                    >
-                      {memberTab.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="bg-white p-4 sm:p-5">
-                  <div className="grid grid-cols-1 gap-4 xl:grid-cols-[320px_1fr]">
-                    <ImageUploadField
-                      id={`about-us-team-member-image-input-${activeAboutUsMemberIndex}`}
-                      label={`Member ${activeAboutUsMemberIndex + 1} Image`}
-                      error={aboutUsImageErrors[activeAboutUsMemberImageField]}
-                      dropActive={Boolean(aboutUsDropActive[activeAboutUsMemberImageField])}
-                      onDropActiveChange={(value) =>
-                        setAboutUsDropActiveField(activeAboutUsMemberImageField, value)
-                      }
-                      onInputChange={(event) =>
-                        onAboutUsImageInputChange(activeAboutUsMemberImageField, event)
-                      }
-                      onDrop={(event) =>
-                        onDropAboutUsImage(activeAboutUsMemberImageField, event)
-                      }
-                      previewDataUrl={activeAboutUsMember.imageDataUrl}
-                      onRemove={() => onRemoveAboutUsImage(activeAboutUsMemberImageField)}
-                      previewAlt={`About Us team member ${activeAboutUsMemberIndex + 1}`}
-                    />
-
-                    <div className="grid grid-cols-1 gap-4">
-                      <label className="block">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          Member {activeAboutUsMemberIndex + 1} Name
-                        </span>
-                        <input
-                          type="text"
-                          value={activeAboutUsMember.title || ""}
-                          onChange={(event) =>
-                            onChangeAboutUsMemberField(
-                              activeAboutUsMemberIndex,
-                              "title",
-                              event.target.value
-                            )
-                          }
-                          className={`${inputBase} mt-2`}
-                        />
-                      </label>
-                      <label className="block">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          Member {activeAboutUsMemberIndex + 1} Description
-                        </span>
-                        <textarea
-                          value={activeAboutUsMember.subTitle || ""}
-                          onChange={(event) =>
-                            onChangeAboutUsMemberField(
-                              activeAboutUsMemberIndex,
-                              "subTitle",
-                              event.target.value
-                            )
-                          }
-                          className={textAreaBase}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
+          <StoreCustomizationAboutUsSettings2026
+            value={aboutUsState}
+            activeTab={activeTab}
+            onTabChange={onSelectTab}
+            onChange={setAboutUsState}
+            onSave={onSave}
+            onPublish={onPublish}
+            onReset={onResetAboutUsSetting}
+            onPreview={onPreviewStorefront}
+            isSaving={isSaving && !isPublishing}
+            isPublishing={isPublishing}
+            meta={customizationMeta}
+            language={lang}
+            languages={publishedLanguages}
+            onLanguageChange={(nextLanguage) =>
+              setLang(String(nextLanguage || "en").toLowerCase())
+            }
+            isLoading={isLoadingHeader}
+          />
       ) : activeTab === "privacyPolicyTerms" ? (
         <div className="flex flex-col gap-5">
           <section className={sectionCard}>

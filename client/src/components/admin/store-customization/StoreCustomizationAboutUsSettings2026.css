@@ -1,0 +1,224 @@
+/* Scoped stylesheet for About Us Settings 2026 */
+:root {
+  --au-navy: #034c85;
+  --au-navy-hover: #023864;
+  --au-navy-soft: rgba(3, 76, 133, 0.08);
+  --au-navy-border: rgba(3, 76, 133, 0.2);
+  --au-orange: #fe6f05;
+  --au-orange-hover: #e56200;
+  --au-orange-soft: rgba(254, 111, 5, 0.1);
+  --au-orange-border: rgba(254, 111, 5, 0.25);
+}
+
+.au26-container {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.au26-card {
+  border-radius: 1.25rem;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dark .au26-card {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #0b1329;
+  box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.4);
+}
+
+.au26-toggle-btn {
+  position: relative;
+  display: inline-flex;
+  height: 28px;
+  width: 50px;
+  flex-shrink: 0;
+  align-items: center;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.au26-toggle-btn:focus-visible {
+  outline: 2px solid var(--au-navy);
+  outline-offset: 2px;
+}
+
+.au26-toggle-btn.is-active {
+  background-color: var(--au-navy);
+}
+
+.au26-toggle-btn.is-inactive {
+  background-color: #cbd5e1;
+}
+
+.dark .au26-toggle-btn.is-inactive {
+  background-color: #334155;
+}
+
+.au26-toggle-knob {
+  display: inline-block;
+  height: 22px;
+  width: 22px;
+  border-radius: 9999px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.au26-toggle-btn.is-active .au26-toggle-knob {
+  transform: translateX(24px);
+}
+
+.au26-toggle-btn.is-inactive .au26-toggle-knob {
+  transform: translateX(2px);
+}
+
+.au26-badge-orange {
+  background: var(--au-orange-soft);
+  color: var(--au-orange);
+  border: 1px solid var(--au-orange-border);
+}
+
+.au26-badge-navy {
+  background: var(--au-navy-soft);
+  color: var(--au-navy);
+  border: 1px solid var(--au-navy-border);
+}
+
+.dark .au26-badge-navy {
+  background: rgba(3, 76, 133, 0.25);
+  color: #60a5fa;
+  border-color: rgba(96, 165, 250, 0.3);
+}
+
+.au26-input {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.au26-input:focus {
+  border-color: var(--au-navy);
+  box-shadow: 0 0 0 3px var(--au-navy-soft);
+}
+
+.dark .au26-input {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: #1e293b;
+  color: #f8fafc;
+}
+
+.dark .au26-input:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+}
+
+.au26-textarea {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: #0f172a;
+  outline: none;
+  min-height: 80px;
+  resize: vertical;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.au26-textarea:focus {
+  border-color: var(--au-navy);
+  box-shadow: 0 0 0 3px var(--au-navy-soft);
+}
+
+.dark .au26-textarea {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: #1e293b;
+  color: #f8fafc;
+}
+
+.dark .au26-textarea:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+}
+
+/* Upload dropzone */
+.au26-upload-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  border: 2px dashed #cbd5e1;
+  background: #f8fafc;
+  padding: 1.25rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.au26-upload-box:hover {
+  border-color: var(--au-navy);
+  background: var(--au-navy-soft);
+}
+
+.dark .au26-upload-box {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.dark .au26-upload-box:hover {
+  border-color: #38bdf8;
+  background: rgba(56, 189, 248, 0.08);
+}
+
+/* Mockup preview frame */
+.au26-preview-frame {
+  border-radius: 1.25rem;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  padding: 1rem;
+}
+
+.dark .au26-preview-frame {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #070d1e;
+}
+
+/* Sticky bottom action bar */
+.au26-sticky-bar {
+  position: sticky;
+  bottom: 1rem;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 1rem;
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+}
+
+.dark .au26-sticky-bar {
+  background: rgba(11, 19, 41, 0.94);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
+}
+
