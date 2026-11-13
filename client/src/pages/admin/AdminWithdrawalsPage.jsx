@@ -1,39 +1,95 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import toast from "react-hot-toast";
+import {
+  Building2,
+  CheckCircle2,
+  Clock3,
+  Copy,
+  CreditCard,
+  ExternalLink,
+  Eye,
+  FileCheck2,
+  PackageCheck,
+  RefreshCw,
+  RotateCcw,
+  Search,
+  Upload,
+  Wallet,
+  X,
+} from "lucide-react";
 
-import { listAdminWithdrawals, updateWithdrawalStatus, uploadWithdrawalProof } from "../../api/adminWithdrawals";
+import {
+  listAdminWithdrawals,
+  updateWithdrawalStatus,
+  uploadWithdrawalProof,
+} from "../../api/adminWithdrawals";
 import WithdrawalStatusTimeline from "../../components/withdrawals/WithdrawalStatusTimeline.jsx";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
-import { getWithdrawalFinancials, getWithdrawalStatusMeta, WITHDRAWAL_STATUS_CODES } from "../../lib/withdrawalStatus.js";
+import {
+  getWithdrawalFinancials,
+  getWithdrawalStatusMeta,
+  WITHDRAWAL_STATUS_CODES,
+} from "../../lib/withdrawalStatus.js";
+import "./AdminWithdrawalsPage.css";
+
+const formatCurrency = (value) => `Rp ${Number(value || 0).toLocaleString("id-ID")}`;
+
+const formatDateTime = (value, isId = false) => {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return new Intl.DateTimeFormat(isId ? "id-ID" : "en-US", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: !isId,
+  }).format(date);
+};
+
+const maskAccountNumber = (value) => {
+  const normalized = String(value || "").replace(/\s+/g, "");
+  if (!normalized) return "-";
+  if (normalized.length <= 4) return normalized;
+  return `${"*".repeat(Math.max(0, normalized.length - 4))}${normalized.slice(-4)}`;
+};
+
+const getInitials = (text) => {
+  const clean = String(text || "").trim();
+  if (!clean || clean === "-") return "W";
+  const parts = clean.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0][0] || ""}${parts[1][0] || ""}`.toUpperCase();
+  }
+  return clean.slice(0, 2).toUpperCase();
+};
 
 export function AdminWithdrawalsPage() {
-  const { t, i18n } = useTranslation("admin");
+  const { i18n } = useTranslation("admin");
+  const isId = String(i18n.language || "").toLowerCase().startsWith("id");
+
   const [withdrawals, setWithdrawals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedWithdrawal, setSelectedWithdrawal] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [adminNote, setAdminNote] = useState("");
   const [proofFile, setProofFile] = useState(null);
+  const [proofPreviewUrl, setProofPreviewUrl] = useState(null);
   const [error, setError] = useState(null);
-  const [successMsg, setSuccessMsg] = useState(null);
 
-  const dateLocale = i18n.language?.toLowerCase().startsWith("id") ? "id-ID" : "en-US";
-  const isId = i18n.language?.toLowerCase().startsWith("id");
-  const formatCurrency = (value) => `Rp ${Number(value || 0).toLocaleString("id-ID")}`;
-  const formatDate = (value) => {
-    if (!value) return "-";
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? "-" : date.toLocaleString(dateLocale);
-  };
-  const maskAccountNumber = (value) => {
-    const normalized = String(value || "").replace(/\s+/g, "");
-    if (!normalized) return "-";
-    if (normalized.length <= 4) return normalized;
-    return `${"*".repeat(Math.max(0, normalized.length - 4))}${normalized.slice(-4)}`;
-  };
-  const statusMeta = (status) => getWithdrawalStatusMeta(status, { isId });
-  const statusLabel = (status) => statusMeta(status).label;
+  useEffect(() => {
+    if (!proofFile) {
+      setProofPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(proofFile);
+    setProofPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [proofFile]);
 
   const fetchWithdrawals = async () => {
     setLoading(true);
@@ -43,7 +99,11 @@ export function AdminWithdrawalsPage() {
       setWithdrawals(res.data || []);
     } catch (err) {
       console.error(err);
-      setError(t("withdrawals.Failed to load withdrawals", "Failed to load withdrawals"));
+      setError(
+        isId
+          ? "Gagal memuat daftar penarikan dana."
+          : "Failed to load withdrawals."
+      );
     } finally {
       setLoading(false);
     }
@@ -54,10 +114,56 @@ export function AdminWithdrawalsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, i18n.language]);
 
+  const summary = useMemo(() => {
+    const total = withdrawals.length;
+    const pending = withdrawals.filter((w) => w.status === "PENDING").length;
+    const processing = withdrawals.filter((w) => w.status === "PROCESSING").length;
+    const completed = withdrawals.filter((w) => w.status === "COMPLETED").length;
+    const totalDisbursed = withdrawals
+      .filter((w) => w.status === "COMPLETED")
+      .reduce(
+        (sum, w) => sum + Number(getWithdrawalFinancials(w).netTransferAmount || 0),
+        0
+      );
+
+    return { total, pending, processing, completed, totalDisbursed };
+  }, [withdrawals]);
+
+  const filteredWithdrawals = useMemo(() => {
+    if (!searchQuery.trim()) return withdrawals;
+    const q = searchQuery.toLowerCase().trim();
+    return withdrawals.filter((w) => {
+      const idStr = String(w.id || "");
+      const storeName = String(w.store?.name || "").toLowerCase();
+      const storeSlug = String(w.store?.slug || "").toLowerCase();
+      const bankName = String(w.bankName || "").toLowerCase();
+      const accNum = String(w.accountNumber || "").toLowerCase();
+      const accName = String(w.accountName || "").toLowerCase();
+
+      return (
+        idStr.includes(q) ||
+        storeName.includes(q) ||
+        storeSlug.includes(q) ||
+        bankName.includes(q) ||
+        accNum.includes(q) ||
+        accName.includes(q)
+      );
+    });
+  }, [withdrawals, searchQuery]);
+
+  const handleCopy = (text, label) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      toast.success(
+        isId ? `${label} berhasil disalin.` : `${label} copied to clipboard.`
+      );
+    });
+  };
+
   const handleAction = async (status) => {
+    if (!selectedWithdrawal) return;
     setActionLoading(true);
     setError(null);
-    setSuccessMsg(null);
 
     try {
       let proofUrl = undefined;
@@ -68,272 +174,800 @@ export function AdminWithdrawalsPage() {
       }
 
       await updateWithdrawalStatus(selectedWithdrawal.id, status, adminNote, proofUrl);
-      setSuccessMsg(`${t("withdrawals.Withdrawal marked as", "Withdrawal marked as")} ${statusLabel(status)}`);
+      const statusMeta = getWithdrawalStatusMeta(status, { isId });
+      toast.success(
+        isId
+          ? `Status penarikan diubah menjadi ${statusMeta.label}.`
+          : `Withdrawal marked as ${statusMeta.label}.`
+      );
       setSelectedWithdrawal(null);
       setAdminNote("");
       setProofFile(null);
       fetchWithdrawals();
     } catch (err) {
-      setError(err.response?.data?.message || t("withdrawals.Action failed", "Action failed"));
+      const msg =
+        err.response?.data?.message ||
+        (isId ? "Gagal memperbarui status penarikan." : "Action failed.");
+      toast.error(msg);
+      setError(msg);
     } finally {
       setActionLoading(false);
-      setTimeout(() => setSuccessMsg(null), 3000);
     }
   };
 
+  const getStatusBadge = (status) => {
+    const meta = getWithdrawalStatusMeta(status, { isId });
+    const code = String(status || "").toUpperCase();
+    const styleMap = {
+      PENDING: "withdrawals-badge--pending",
+      PROCESSING: "withdrawals-badge--processing",
+      COMPLETED: "withdrawals-badge--completed",
+      REJECTED: "withdrawals-badge--rejected",
+    };
+    return (
+      <span className={`withdrawals-badge ${styleMap[code] || "withdrawals-badge--pending"}`}>
+        <span className="withdrawals-badge-dot" />
+        {meta.label}
+      </span>
+    );
+  };
+
   return (
-    <div style={{ padding: "24px", maxWidth: "1200px", margin: "0 auto" }}>
-      <div style={{ padding: "24px", maxWidth: "1200px", margin: "0 auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "24px" }}>
-          <div>
-            <h1 style={{ margin: 0, fontSize: "24px", fontWeight: 700 }}>
-              {t("withdrawals.Withdrawals", "Withdrawals")}
-            </h1>
-            <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: "14px" }}>
-              {t("withdrawals.Manage seller withdrawal requests and transfer proof.", "Manage seller withdrawal requests and transfer proof.")}
+    <div className="admin-withdrawals-2026">
+      {/* HEADER SECTION */}
+      <header className="withdrawals-hero">
+        <div className="withdrawals-title">
+          <div className="withdrawals-title__icon">
+            <Wallet size={22} />
+          </div>
+          <div className="withdrawals-title-text">
+            <div className="withdrawals-title-row">
+              <h1>{isId ? "Penarikan Dana" : "Withdrawals"}</h1>
+              <span className="withdrawals-badge-count">{withdrawals.length}</span>
+            </div>
+            <p>
+              {isId
+                ? "Kelola permintaan penarikan saldo penjual dan bukti transfer"
+                : "Manage seller withdrawal requests and transfer proof."}
             </p>
           </div>
+        </div>
+
+        <div className="withdrawals-actions">
+          <button
+            type="button"
+            className="withdrawals-btn"
+            onClick={fetchWithdrawals}
+            disabled={loading}
+            title={isId ? "Segarkan data" : "Refresh list"}
+          >
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+            {isId ? "Segarkan" : "Refresh"}
+          </button>
+        </div>
+      </header>
+
+      {/* METRICS SUMMARY KPI CARDS */}
+      <section className="withdrawals-metrics" aria-label="Withdrawal metrics summary">
+        <div className="withdrawals-metric-card is-blue">
+          <div className="withdrawals-metric-top">
+            <span className="withdrawals-metric-title">
+              {isId ? "Total Pengajuan" : "Total Requests"}
+            </span>
+            <div className="withdrawals-metric-icon">
+              <CreditCard size={17} />
+            </div>
+          </div>
+          <div className="withdrawals-metric-val-row">
+            <span className="withdrawals-metric-val">{summary.total}</span>
+            <span className="withdrawals-metric-sub">
+              {isId ? "Pengajuan" : "Requests"}
+            </span>
+          </div>
+        </div>
+
+        <div className="withdrawals-metric-card is-orange">
+          <div className="withdrawals-metric-top">
+            <span className="withdrawals-metric-title">
+              {isId ? "Menunggu Ditinjau" : "Pending Review"}
+            </span>
+            <div className="withdrawals-metric-icon">
+              <Clock3 size={17} />
+            </div>
+          </div>
+          <div className="withdrawals-metric-val-row">
+            <span className="withdrawals-metric-val">{summary.pending}</span>
+            <span className="withdrawals-metric-sub">
+              {isId ? "Perlu Tindakan" : "Needs Action"}
+            </span>
+          </div>
+        </div>
+
+        <div className="withdrawals-metric-card is-blue">
+          <div className="withdrawals-metric-top">
+            <span className="withdrawals-metric-title">
+              {isId ? "Sedang Diproses" : "Processing"}
+            </span>
+            <div className="withdrawals-metric-icon">
+              <Building2 size={17} />
+            </div>
+          </div>
+          <div className="withdrawals-metric-val-row">
+            <span className="withdrawals-metric-val">{summary.processing}</span>
+            <span className="withdrawals-metric-sub">
+              {isId ? "Dalam Transfer" : "In Progress"}
+            </span>
+          </div>
+        </div>
+
+        <div className="withdrawals-metric-card is-green">
+          <div className="withdrawals-metric-top">
+            <span className="withdrawals-metric-title">
+              {isId ? "Selesai Ditransfer" : "Completed"}
+            </span>
+            <div className="withdrawals-metric-icon">
+              <CheckCircle2 size={17} />
+            </div>
+          </div>
+          <div className="withdrawals-metric-val-row">
+            <span className="withdrawals-metric-val">{summary.completed}</span>
+            <span className="withdrawals-metric-sub">
+              {formatCurrency(summary.totalDisbursed)}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* FILTER & SEARCH TOOLBAR */}
+      <section className="withdrawals-filter-card">
+        {/* Quick Filter Chips */}
+        <div className="withdrawals-quick-chips">
+          <button
+            type="button"
+            onClick={() => setStatusFilter("")}
+            className={`withdrawals-quick-chip ${!statusFilter ? "is-active" : ""}`}
+          >
+            {isId ? "Semua" : "All"}
+            <span className="withdrawals-quick-count">{summary.total}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter("PENDING")}
+            className={`withdrawals-quick-chip ${statusFilter === "PENDING" ? "is-active is-orange" : ""}`}
+          >
+            {isId ? "Menunggu" : "Pending"}
+            <span className="withdrawals-quick-count">{summary.pending}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter("PROCESSING")}
+            className={`withdrawals-quick-chip ${statusFilter === "PROCESSING" ? "is-active" : ""}`}
+          >
+            {isId ? "Diproses" : "Processing"}
+            <span className="withdrawals-quick-count">{summary.processing}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter("COMPLETED")}
+            className={`withdrawals-quick-chip ${statusFilter === "COMPLETED" ? "is-active is-green" : ""}`}
+          >
+            {isId ? "Selesai" : "Completed"}
+            <span className="withdrawals-quick-count">{summary.completed}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter("REJECTED")}
+            className={`withdrawals-quick-chip ${statusFilter === "REJECTED" ? "is-active" : ""}`}
+          >
+            {isId ? "Ditolak" : "Rejected"}
+          </button>
+        </div>
+
+        {/* Search & Select Grid */}
+        <div className="withdrawals-filter-grid">
+          <div className="withdrawals-input-wrap">
+            <Search size={14} style={{ color: "var(--withdrawals-dim)" }} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={isId ? "Cari toko, bank, atau no. rekening..." : "Search store, bank, or account..."}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--withdrawals-dim)" }}
+                title={isId ? "Hapus pencarian" : "Clear search"}
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #d1d5db" }}
+            className="withdrawals-select"
+            aria-label={isId ? "Filter status penarikan" : "Filter withdrawal status"}
           >
-            <option value="">{t("withdrawals.All Statuses", "All Statuses")}</option>
+            <option value="">{isId ? "Semua Status" : "All Statuses"}</option>
             {WITHDRAWAL_STATUS_CODES.map((status) => (
-              <option value={status} key={status}>{statusLabel(status)}</option>
+              <option value={status} key={status}>
+                {getWithdrawalStatusMeta(status, { isId }).label}
+              </option>
             ))}
           </select>
+
+          {(statusFilter || searchQuery) && (
+            <button
+              type="button"
+              onClick={() => {
+                setStatusFilter("");
+                setSearchQuery("");
+              }}
+              className="withdrawals-btn"
+              title={isId ? "Atur ulang filter" : "Reset filters"}
+            >
+              <RotateCcw size={13} />
+              {isId ? "Atur Ulang" : "Reset"}
+            </button>
+          )}
+        </div>
+      </section>
+
+      {/* TABLE / CARDS CONTENT */}
+      <section className="withdrawals-table-card">
+        <div className="withdrawals-table-toolbar">
+          <div className="withdrawals-toolbar-count">
+            {isId ? "Menampilkan " : "Showing "}
+            <strong>{filteredWithdrawals.length}</strong>
+            {isId ? " dari " : " of "}
+            <strong>{withdrawals.length}</strong>
+            {isId ? " pengajuan penarikan" : " withdrawal requests"}
+          </div>
         </div>
 
-        {error && <div style={{ background: "#fef2f2", color: "#b91c1c", padding: "12px", borderRadius: "8px", marginBottom: "16px" }}>{error}</div>}
-        {successMsg && <div style={{ background: "#ecfdf5", color: "#047857", padding: "12px", borderRadius: "8px", marginBottom: "16px" }}>{successMsg}</div>}
+        {loading ? (
+          <div className="withdrawals-empty">
+            <RefreshCw size={24} className="animate-spin" style={{ color: "var(--withdrawals-primary)" }} />
+            <p className="withdrawals-empty-desc">
+              {isId ? "Memuat data penarikan..." : "Loading withdrawals..."}
+            </p>
+          </div>
+        ) : filteredWithdrawals.length === 0 ? (
+          <div className="withdrawals-empty">
+            <div className="withdrawals-empty-icon">
+              <PackageCheck size={24} />
+            </div>
+            <h3 className="withdrawals-empty-title">
+              {isId ? "Tidak ada pengajuan ditemukan" : "No withdrawals found"}
+            </h3>
+            <p className="withdrawals-empty-desc">
+              {isId
+                ? "Sesuaikan filter atau kriteria pencarian Anda."
+                : "Adjust filters or search criteria."}
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* DESKTOP ZERO-SCROLL TABLE (>= 768px) */}
+            <div className="withdrawals-table-scroll">
+              <table className="withdrawals-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: "8%" }}>ID</th>
+                    <th style={{ width: "23%" }}>{isId ? "Toko" : "Store"}</th>
+                    <th style={{ width: "23%" }}>{isId ? "Rekening Tujuan" : "Destination"}</th>
+                    <th style={{ width: "17%" }}>{isId ? "Jumlah Bersih" : "Net Amount"}</th>
+                    <th style={{ width: "15%" }}>{isId ? "Waktu Pengajuan" : "Requested At"}</th>
+                    <th style={{ width: "14%" }}>{isId ? "Status" : "Status"}</th>
+                    <th style={{ width: "8%", textAlign: "right" }}>{isId ? "Aksi" : "Action"}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredWithdrawals.map((withdrawal) => {
+                    const financials = getWithdrawalFinancials(withdrawal);
+                    const storeName = withdrawal.store?.name || "-";
+                    const initials = getInitials(storeName);
 
-        <div style={{ background: "#fff", borderRadius: "12px", border: "1px solid #e5e7eb", overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
-              <tr>
-                <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "12px", color: "#6b7280" }}>ID</th>
-                <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "12px", color: "#6b7280" }}>{t("withdrawals.Store", "Store")}</th>
-                <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "12px", color: "#6b7280" }}>{t("withdrawals.Destination", "Destination")}</th>
-                <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "12px", color: "#6b7280" }}>{t("withdrawals.Amount", "Amount")}</th>
-                <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "12px", color: "#6b7280" }}>{t("withdrawals.Requested At", "Requested At")}</th>
-                <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "12px", color: "#6b7280" }}>{t("withdrawals.Status", "Status")}</th>
-                <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "12px", color: "#6b7280" }}>{t("withdrawals.Action", "Action")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan="7" style={{ padding: "24px", textAlign: "center" }}>{t("withdrawals.Loading...", "Loading...")}</td></tr>
-              ) : withdrawals.length === 0 ? (
-                <tr><td colSpan="7" style={{ padding: "24px", textAlign: "center", color: "#6b7280" }}>{t("withdrawals.No withdrawals found", "No withdrawals found")}</td></tr>
-              ) : (
-                withdrawals.map((withdrawal) => (
-                  <tr key={withdrawal.id} style={{ borderBottom: "1px solid #e5e7eb" }}>
-                    <td style={{ padding: "16px", fontSize: "14px" }}>#{withdrawal.id}</td>
-                    <td style={{ padding: "16px", fontSize: "14px" }}>
-                      <div style={{ fontWeight: 500 }}>{withdrawal.store?.name || "-"}</div>
-                      <div style={{ color: "#6b7280", fontSize: "12px" }}>@{withdrawal.store?.slug || "-"}</div>
-                    </td>
-                    <td style={{ padding: "16px", fontSize: "14px" }}>
-                      <div style={{ fontWeight: 600 }}>{withdrawal.bankName || "-"}</div>
-                      <div style={{ color: "#6b7280", fontSize: "12px" }}>
+                    return (
+                      <tr key={withdrawal.id}>
+                        <td>
+                          <span className="withdrawals-id-badge">#{withdrawal.id}</span>
+                        </td>
+                        <td>
+                          <div className="withdrawals-store-cell">
+                            <div className="withdrawals-store-avatar" aria-hidden="true">
+                              {initials}
+                            </div>
+                            <div className="withdrawals-store-info">
+                              <span className="withdrawals-store-name" title={storeName}>
+                                {storeName}
+                              </span>
+                              <span className="withdrawals-store-slug">
+                                @{withdrawal.store?.slug || "-"}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="withdrawals-dest-cell">
+                            <div className="withdrawals-dest-top">
+                              <span className="withdrawals-bank-badge">
+                                {withdrawal.bankName || "-"}
+                              </span>
+                              <span className="withdrawals-acc-num">
+                                {maskAccountNumber(withdrawal.accountNumber)}
+                              </span>
+                              {withdrawal.accountNumber && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleCopy(
+                                      withdrawal.accountNumber,
+                                      isId ? "No. rekening" : "Account number"
+                                    )
+                                  }
+                                  className="withdrawals-copy-btn"
+                                  title={isId ? "Salin no. rekening" : "Copy account number"}
+                                >
+                                  <Copy size={12} />
+                                </button>
+                              )}
+                            </div>
+                            <span className="withdrawals-acc-name">
+                              {withdrawal.accountName || "-"}
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="withdrawals-amount-cell">
+                            <span className="withdrawals-net-amount">
+                              {formatCurrency(financials.netTransferAmount)}
+                            </span>
+                            <span className="withdrawals-req-amount">
+                              {isId ? "Ajuan: " : "Req: "}
+                              {formatCurrency(financials.amount)}
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="withdrawals-date-cell">
+                            {formatDateTime(withdrawal.requestedAt, isId)}
+                          </span>
+                        </td>
+                        <td>{getStatusBadge(withdrawal.status)}</td>
+                        <td style={{ textAlign: "right" }}>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedWithdrawal(withdrawal)}
+                            className="withdrawals-action-btn"
+                            title={isId ? "Tinjau pengajuan" : "Review withdrawal"}
+                          >
+                            <Eye size={13} />
+                            {isId ? "Tinjau" : "Review"}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* MOBILE ORDER CARDS (< 768px) */}
+            <div className="withdrawals-mobile-feed">
+              {filteredWithdrawals.map((withdrawal) => {
+                const financials = getWithdrawalFinancials(withdrawal);
+                const storeName = withdrawal.store?.name || "-";
+                const initials = getInitials(storeName);
+
+                return (
+                  <div key={withdrawal.id} className="withdrawals-mobile-card">
+                    <div className="withdrawals-mobile-top">
+                      <span className="withdrawals-id-badge">#{withdrawal.id}</span>
+                      {getStatusBadge(withdrawal.status)}
+                    </div>
+
+                    <div className="withdrawals-store-cell">
+                      <div className="withdrawals-store-avatar" aria-hidden="true">
+                        {initials}
+                      </div>
+                      <div className="withdrawals-store-info">
+                        <span className="withdrawals-store-name">{storeName}</span>
+                        <span className="withdrawals-store-slug">
+                          @{withdrawal.store?.slug || "-"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="withdrawals-mobile-dest">
+                      <span className="withdrawals-bank-badge">{withdrawal.bankName || "-"}</span>
+                      <span className="withdrawals-acc-num">
                         {maskAccountNumber(withdrawal.accountNumber)}
-                      </div>
-                      <div style={{ color: "#6b7280", fontSize: "12px" }}>
-                        {withdrawal.accountName || "-"}
-                      </div>
-                    </td>
-                    <td style={{ padding: "16px", fontSize: "14px", fontWeight: 600 }}>
-                      <div>{formatCurrency(getWithdrawalFinancials(withdrawal).netTransferAmount)}</div>
-                      <div style={{ color: "#6b7280", fontSize: "12px", fontWeight: 500 }}>
-                        {t("withdrawals.Request", "Request")} {formatCurrency(getWithdrawalFinancials(withdrawal).amount)}
-                      </div>
-                    </td>
-                    <td style={{ padding: "16px", fontSize: "14px" }}>{formatDate(withdrawal.requestedAt)}</td>
-                    <td style={{ padding: "16px", fontSize: "14px" }}>
-                      <span style={{
-                        padding: "4px 8px",
-                        borderRadius: "12px",
-                        fontSize: "12px",
-                        fontWeight: 500,
-                        background: statusMeta(withdrawal.status).badge.background,
-                        color: statusMeta(withdrawal.status).badge.color,
-                      }}>
-                        {statusLabel(withdrawal.status)}
                       </span>
-                    </td>
-                    <td style={{ padding: "16px", fontSize: "14px" }}>
+                      {withdrawal.accountNumber && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleCopy(
+                              withdrawal.accountNumber,
+                              isId ? "No. rekening" : "Account number"
+                            )
+                          }
+                          className="withdrawals-copy-btn"
+                          title={isId ? "Salin no. rekening" : "Copy account number"}
+                        >
+                          <Copy size={12} />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="withdrawals-mobile-mid">
+                      <div className="withdrawals-amount-cell">
+                        <span className="withdrawals-net-amount">
+                          {formatCurrency(financials.netTransferAmount)}
+                        </span>
+                        <span className="withdrawals-req-amount">
+                          {isId ? "Ajuan: " : "Req: "}
+                          {formatCurrency(financials.amount)}
+                        </span>
+                      </div>
+                      <span className="withdrawals-date-cell">
+                        {formatDateTime(withdrawal.requestedAt, isId)}
+                      </span>
+                    </div>
+
+                    <div className="withdrawals-mobile-actions">
+                      <span className="withdrawals-acc-name">
+                        {withdrawal.accountName || "-"}
+                      </span>
                       <button
                         type="button"
                         onClick={() => setSelectedWithdrawal(withdrawal)}
-                        style={{ padding: "6px 12px", background: "#f3f4f6", border: "1px solid #d1d5db", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: 500 }}
+                        className="withdrawals-btn withdrawals-btn--primary withdrawals-btn--sm"
                       >
-                        {t("withdrawals.Review", "Review")}
+                        <Eye size={13} />
+                        {isId ? "Tinjau" : "Review"}
                       </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </section>
 
+      {/* REVIEW & TRANSFER PROOF MODAL */}
       {selectedWithdrawal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
-          <div style={{ background: "#fff", padding: "24px", borderRadius: "12px", width: "500px", maxWidth: "90%", maxHeight: "90vh", overflowY: "auto" }}>
+        <div
+          className="withdrawals-modal-overlay"
+          onClick={() => setSelectedWithdrawal(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="withdrawals-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
             {(() => {
               const selectedFinancials = getWithdrawalFinancials(selectedWithdrawal);
+              const storeName = selectedWithdrawal.store?.name || "-";
+
               return (
                 <>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-              <h2 style={{ margin: 0, fontSize: "18px", fontWeight: 600 }}>
-                {t("withdrawals.Review Withdrawal", "Review Withdrawal")} #{selectedWithdrawal.id}
-              </h2>
-              <button type="button" onClick={() => setSelectedWithdrawal(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "20px" }}>x</button>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "24px" }}>
-              <div>
-                <div style={{ fontSize: "12px", color: "#6b7280" }}>{t("withdrawals.Store", "Store")}</div>
-                <div style={{ fontWeight: 500 }}>{selectedWithdrawal.store?.name || "-"}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: "12px", color: "#6b7280" }}>{t("withdrawals.Amount", "Amount")}</div>
-                <div style={{ fontWeight: 700, fontSize: "18px", color: "#2563eb" }}>{formatCurrency(selectedFinancials.netTransferAmount)}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: "12px", color: "#6b7280" }}>{t("withdrawals.Bank Name", "Bank Name")}</div>
-                <div style={{ fontWeight: 500 }}>{selectedWithdrawal.bankName || "-"}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: "12px", color: "#6b7280" }}>{t("withdrawals.Account Number", "Account Number")}</div>
-                <div style={{ fontWeight: 500 }}>{selectedWithdrawal.accountNumber || "-"}</div>
-              </div>
-              <div style={{ gridColumn: "span 2" }}>
-                <div style={{ fontSize: "12px", color: "#6b7280" }}>{t("withdrawals.Account Holder", "Account Holder")}</div>
-                <div style={{ fontWeight: 500 }}>{selectedWithdrawal.accountName || "-"}</div>
-              </div>
-              <div style={{ gridColumn: "span 2" }}>
-                <div style={{ fontSize: "12px", color: "#6b7280" }}>{t("withdrawals.Status", "Status")}</div>
-                <div style={{ marginTop: "6px" }}>
-                  <span style={{
-                    padding: "4px 8px",
-                    borderRadius: "12px",
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    background: statusMeta(selectedWithdrawal.status).badge.background,
-                    color: statusMeta(selectedWithdrawal.status).badge.color,
-                  }}>
-                    {statusLabel(selectedWithdrawal.status)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: "24px", padding: "14px", background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: "10px", display: "grid", gap: "8px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", fontSize: "13px" }}>
-                <span style={{ color: "#64748b" }}>{t("withdrawals.Requested Amount", "Requested Amount")}</span>
-                <strong>{formatCurrency(selectedFinancials.amount)}</strong>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", fontSize: "13px" }}>
-                <span style={{ color: "#64748b" }}>{t("withdrawals.Admin Fee", "Admin Fee")}</span>
-                <strong>{formatCurrency(selectedFinancials.adminFeeAmount)}</strong>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", paddingTop: "8px", borderTop: "1px solid #e5e7eb", fontSize: "14px" }}>
-                <span style={{ color: "#0f172a", fontWeight: 700 }}>{t("withdrawals.Net Transfer Amount", "Net Transfer Amount")}</span>
-                <strong style={{ color: "#2563eb" }}>{formatCurrency(selectedFinancials.netTransferAmount)}</strong>
-              </div>
-              <p style={{ margin: "2px 0 0", color: "#64748b", fontSize: "12px" }}>
-                {t("withdrawals.Transfer proof should match the net transfer amount.", "Transfer proof should match the net transfer amount.")}
-              </p>
-            </div>
-
-            <div style={{ marginBottom: "24px", padding: "14px", background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: "10px" }}>
-              <div style={{ fontSize: "12px", color: "#6b7280", fontWeight: 700, textTransform: "uppercase" }}>
-                {t("withdrawals.Timeline", "Timeline")}
-              </div>
-              <WithdrawalStatusTimeline withdrawal={selectedWithdrawal} isId={isId} />
-            </div>
-
-            {selectedWithdrawal.status !== "COMPLETED" && selectedWithdrawal.status !== "REJECTED" && (
-              <>
-                <div style={{ marginBottom: "16px", padding: "12px", background: "#eff6ff", borderRadius: "8px", border: "1px solid #bfdbfe", color: "#1e40af", fontSize: "13px" }}>
-                  {selectedWithdrawal.status === "PENDING"
-                    ? t("withdrawals.Pending next actions", "Next allowed actions: set this request to Processing, or Reject it with a note.")
-                    : t("withdrawals.Processing next actions", "Next allowed actions: Complete this request with transfer proof, or Reject it with a note.")}
-                </div>
-                <div style={{ marginBottom: "16px" }}>
-                  <label style={{ display: "block", fontSize: "13px", color: "#374151", marginBottom: "8px", fontWeight: 500 }}>{t("withdrawals.Admin Note Optional", "Admin Note (Optional)")}</label>
-                  <textarea
-                    value={adminNote}
-                    onChange={(e) => setAdminNote(e.target.value)}
-                    placeholder={t("withdrawals.Reason for rejection or transfer note...", "Reason for rejection or transfer note...")}
-                    style={{ width: "100%", boxSizing: "border-box", padding: "10px", borderRadius: "8px", border: "1px solid #d1d5db", minHeight: "80px", fontFamily: "inherit" }}
-                  />
-                  <div style={{ color: "#6b7280", fontSize: "12px", marginTop: "6px" }}>{t("withdrawals.Required when rejecting a withdrawal.", "Required when rejecting a withdrawal.")}</div>
-                </div>
-
-                <div style={{ marginBottom: "24px", padding: "16px", background: "#f9fafb", borderRadius: "8px", border: "1px dashed #d1d5db" }}>
-                  <label style={{ display: "block", fontSize: "13px", color: "#374151", marginBottom: "8px", fontWeight: 500 }}>{t("withdrawals.Transfer Receipt If Completing", "Transfer Receipt (If Completing)")}</label>
-                  <input
-                    type="file"
-                    onChange={(e) => setProofFile(e.target.files[0])}
-                    accept="image/*"
-                    style={{ fontSize: "13px" }}
-                  />
-                  <div style={{ color: "#6b7280", fontSize: "12px", marginTop: "8px" }}>{t("withdrawals.Required before marking a withdrawal as completed.", "Required before marking a withdrawal as completed.")}</div>
-                </div>
-
-                <div style={{ display: "flex", gap: "12px" }}>
-                  <button
-                    type="button"
-                    disabled={actionLoading || !adminNote.trim()}
-                    onClick={() => handleAction("REJECTED")}
-                    style={{ flex: 1, padding: "10px", borderRadius: "8px", background: "#fff", border: "1px solid #ef4444", color: "#ef4444", fontWeight: 600, cursor: (actionLoading || !adminNote.trim()) ? "not-allowed" : "pointer", opacity: !adminNote.trim() ? 0.6 : 1 }}
-                  >
-                    {t("withdrawals.Reject", "Reject")}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={actionLoading || selectedWithdrawal.status === "PROCESSING"}
-                    onClick={() => handleAction("PROCESSING")}
-                    style={{ flex: 1, padding: "10px", borderRadius: "8px", background: "#f59e0b", border: "none", color: "#fff", fontWeight: 600, cursor: (actionLoading || selectedWithdrawal.status === "PROCESSING") ? "not-allowed" : "pointer" }}
-                  >
-                    {t("withdrawals.Set Processing", "Set Processing")}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={actionLoading || selectedWithdrawal.status !== "PROCESSING" || !proofFile}
-                    onClick={() => handleAction("COMPLETED")}
-                    style={{ flex: 1, padding: "10px", borderRadius: "8px", background: "#10b981", border: "none", color: "#fff", fontWeight: 600, cursor: (actionLoading || selectedWithdrawal.status !== "PROCESSING" || !proofFile) ? "not-allowed" : "pointer", opacity: (selectedWithdrawal.status !== "PROCESSING" || !proofFile) ? 0.6 : 1 }}
-                  >
-                    {t("withdrawals.Complete", "Complete")}
-                  </button>
-                </div>
-              </>
-            )}
-
-            {(selectedWithdrawal.status === "COMPLETED" || selectedWithdrawal.status === "REJECTED") && (
-              <div style={{ padding: "16px", background: "#f9fafb", borderRadius: "8px", border: "1px solid #e5e7eb" }}>
-                <div style={{ marginBottom: "12px" }}>
-                  <div style={{ fontSize: "12px", color: "#6b7280" }}>{t("withdrawals.Processed At", "Processed At")}</div>
-                  <div style={{ fontWeight: 500 }}>{formatDate(selectedWithdrawal.processedAt)}</div>
-                </div>
-                {selectedWithdrawal.adminNote && (
-                  <div style={{ marginBottom: "12px" }}>
-                    <div style={{ fontSize: "12px", color: "#6b7280" }}>{t("withdrawals.Admin Note", "Admin Note")}</div>
-                    <div style={{ fontWeight: 500 }}>{selectedWithdrawal.adminNote}</div>
+                  <div className="withdrawals-modal-header">
+                    <h2 className="withdrawals-modal-title">
+                      <FileCheck2 size={18} style={{ color: "var(--withdrawals-primary)" }} />
+                      {isId ? "Tinjau Penarikan Dana" : "Review Withdrawal"} #{selectedWithdrawal.id}
+                    </h2>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedWithdrawal(null)}
+                      className="withdrawals-modal-close"
+                      title={isId ? "Tutup" : "Close"}
+                    >
+                      <X size={18} />
+                    </button>
                   </div>
-                )}
-                {selectedWithdrawal.proofImageUrl && (
-                  <div>
-                    <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "8px" }}>{t("withdrawals.Transfer Receipt", "Transfer Receipt")}</div>
-                    <img src={resolveAssetUrl(selectedWithdrawal.proofImageUrl)} alt={t("withdrawals.Transfer Receipt", "Transfer Receipt")} style={{ width: "100%", borderRadius: "8px", border: "1px solid #e5e7eb" }} />
+
+                  <div className="withdrawals-modal-body">
+                    {/* Destination Grid */}
+                    <div className="withdrawals-modal-grid">
+                      <div className="withdrawals-modal-field">
+                        <span className="withdrawals-field-label">
+                          {isId ? "Nama Toko" : "Store Name"}
+                        </span>
+                        <span className="withdrawals-field-value">{storeName}</span>
+                      </div>
+
+                      <div className="withdrawals-modal-field">
+                        <span className="withdrawals-field-label">
+                          {isId ? "Bank Tujuan" : "Bank Destination"}
+                        </span>
+                        <span className="withdrawals-field-value">
+                          {selectedWithdrawal.bankName || "-"}
+                        </span>
+                      </div>
+
+                      <div className="withdrawals-modal-field">
+                        <span className="withdrawals-field-label">
+                          {isId ? "Nomor Rekening" : "Account Number"}
+                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span
+                            className="withdrawals-field-value"
+                            style={{
+                              fontFamily:
+                                "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                            }}
+                          >
+                            {selectedWithdrawal.accountNumber || "-"}
+                          </span>
+                          {selectedWithdrawal.accountNumber && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleCopy(
+                                  selectedWithdrawal.accountNumber,
+                                  isId ? "No. rekening" : "Account number"
+                                )
+                              }
+                              className="withdrawals-copy-btn"
+                              title={isId ? "Salin no. rekening" : "Copy account number"}
+                            >
+                              <Copy size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="withdrawals-modal-field">
+                        <span className="withdrawals-field-label">
+                          {isId ? "Atas Nama" : "Account Holder"}
+                        </span>
+                        <span className="withdrawals-field-value">
+                          {selectedWithdrawal.accountName || "-"}
+                        </span>
+                      </div>
+
+                      <div className="withdrawals-modal-field span-2">
+                        <span className="withdrawals-field-label">
+                          {isId ? "Status Saat Ini" : "Current Status"}
+                        </span>
+                        <div style={{ marginTop: 4 }}>
+                          {getStatusBadge(selectedWithdrawal.status)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Financial Breakdown */}
+                    <div className="withdrawals-breakdown-card">
+                      <div className="withdrawals-breakdown-row">
+                        <span>{isId ? "Nominal Pengajuan" : "Requested Amount"}</span>
+                        <strong>{formatCurrency(selectedFinancials.amount)}</strong>
+                      </div>
+                      <div className="withdrawals-breakdown-row">
+                        <span>{isId ? "Biaya Administrasi" : "Admin Fee"}</span>
+                        <strong>{formatCurrency(selectedFinancials.adminFeeAmount)}</strong>
+                      </div>
+                      <div className="withdrawals-breakdown-row is-total">
+                        <span>{isId ? "Nominal Transfer Bersih" : "Net Transfer Amount"}</span>
+                        <span className="withdrawals-breakdown-total">
+                          {formatCurrency(selectedFinancials.netTransferAmount)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Status Timeline */}
+                    <div
+                      style={{
+                        padding: "14px",
+                        borderRadius: "var(--withdrawals-radius-md)",
+                        background: "var(--withdrawals-surface-soft)",
+                        border: "1px solid var(--withdrawals-border-subtle)",
+                      }}
+                    >
+                      <span className="withdrawals-field-label">
+                        {isId ? "Linimasa Proses" : "Status Timeline"}
+                      </span>
+                      <WithdrawalStatusTimeline withdrawal={selectedWithdrawal} isId={isId} />
+                    </div>
+
+                    {/* Operational Action Form (If PENDING or PROCESSING) */}
+                    {selectedWithdrawal.status !== "COMPLETED" &&
+                      selectedWithdrawal.status !== "REJECTED" && (
+                        <>
+                          <div className="withdrawals-modal-field">
+                            <label
+                              htmlFor="admin-note-input"
+                              className="withdrawals-field-label"
+                              style={{ marginBottom: 4 }}
+                            >
+                              {isId ? "Catatan Admin (Wajib jika ditolak)" : "Admin Note (Required if rejected)"}
+                            </label>
+                            <textarea
+                              id="admin-note-input"
+                              value={adminNote}
+                              onChange={(e) => setAdminNote(e.target.value)}
+                              placeholder={
+                                isId
+                                  ? "Alasan penolakan atau catatan transfer..."
+                                  : "Reason for rejection or transfer note..."
+                              }
+                              style={{
+                                width: "100%",
+                                padding: "10px",
+                                borderRadius: "var(--withdrawals-radius-sm)",
+                                border: "1px solid var(--withdrawals-border)",
+                                background: "var(--withdrawals-surface)",
+                                color: "var(--withdrawals-text)",
+                                minHeight: "72px",
+                                fontSize: "0.813rem",
+                                outline: "none",
+                              }}
+                            />
+                          </div>
+
+                          <div className="withdrawals-upload-zone">
+                            <label>
+                              {isId
+                                ? "Unggah Bukti Transfer (Wajib untuk menyelesaikan)"
+                                : "Upload Transfer Receipt (Required to complete)"}
+                            </label>
+                            <input
+                              type="file"
+                              onChange={(e) => setProofFile(e.target.files[0])}
+                              accept="image/jpeg,image/png,image/webp"
+                              style={{ fontSize: "0.8rem", color: "var(--withdrawals-body)" }}
+                            />
+                            {proofPreviewUrl && (
+                              <div className="withdrawals-upload-preview">
+                                <img src={proofPreviewUrl} alt="Transfer Proof Preview" />
+                                <span style={{ fontSize: "0.75rem", color: "var(--withdrawals-muted)" }}>
+                                  {proofFile?.name}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+
+                    {/* Completed / Rejected Read-Only Info */}
+                    {(selectedWithdrawal.status === "COMPLETED" ||
+                      selectedWithdrawal.status === "REJECTED") && (
+                      <div
+                        style={{
+                          padding: "14px",
+                          borderRadius: "var(--withdrawals-radius-md)",
+                          background: "var(--withdrawals-surface-soft)",
+                          border: "1px solid var(--withdrawals-border-subtle)",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 10,
+                        }}
+                      >
+                        <div className="withdrawals-modal-field">
+                          <span className="withdrawals-field-label">
+                            {isId ? "Waktu Diproses" : "Processed At"}
+                          </span>
+                          <span className="withdrawals-field-value">
+                            {formatDateTime(selectedWithdrawal.processedAt, isId)}
+                          </span>
+                        </div>
+
+                        {selectedWithdrawal.adminNote && (
+                          <div className="withdrawals-modal-field">
+                            <span className="withdrawals-field-label">
+                              {isId ? "Catatan Admin" : "Admin Note"}
+                            </span>
+                            <span className="withdrawals-field-value">
+                              {selectedWithdrawal.adminNote}
+                            </span>
+                          </div>
+                        )}
+
+                        {selectedWithdrawal.proofImageUrl && (
+                          <div className="withdrawals-modal-field">
+                            <span className="withdrawals-field-label">
+                              {isId ? "Bukti Struk Transfer" : "Transfer Receipt Proof"}
+                            </span>
+                            <div style={{ marginTop: 6, position: "relative" }}>
+                              <img
+                                src={resolveAssetUrl(selectedWithdrawal.proofImageUrl)}
+                                alt={isId ? "Bukti Transfer" : "Transfer Receipt"}
+                                style={{
+                                  width: "100%",
+                                  maxHeight: "260px",
+                                  objectFit: "contain",
+                                  borderRadius: "var(--withdrawals-radius-sm)",
+                                  border: "1px solid var(--withdrawals-border)",
+                                  background: "#000",
+                                }}
+                              />
+                              <a
+                                href={resolveAssetUrl(selectedWithdrawal.proofImageUrl)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="withdrawals-btn withdrawals-btn--sm"
+                                style={{
+                                  marginTop: 8,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 6,
+                                }}
+                              >
+                                <ExternalLink size={13} />
+                                {isId ? "Buka Gambar Penuh" : "Open Full Image"}
+                              </a>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            )}
+
+                  {/* Modal Footer Actions */}
+                  {selectedWithdrawal.status !== "COMPLETED" &&
+                    selectedWithdrawal.status !== "REJECTED" && (
+                      <div className="withdrawals-modal-actions">
+                        <button
+                          type="button"
+                          disabled={actionLoading || !adminNote.trim()}
+                          onClick={() => handleAction("REJECTED")}
+                          className="withdrawals-btn withdrawals-btn--danger"
+                          style={{ flex: 1 }}
+                          title={
+                            !adminNote.trim()
+                              ? isId
+                                ? "Isi catatan admin untuk menolak"
+                                : "Admin note required to reject"
+                              : ""
+                          }
+                        >
+                          {isId ? "Tolak" : "Reject"}
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={
+                            actionLoading || selectedWithdrawal.status === "PROCESSING"
+                          }
+                          onClick={() => handleAction("PROCESSING")}
+                          className="withdrawals-btn withdrawals-btn--amber"
+                          style={{ flex: 1 }}
+                        >
+                          {isId ? "Set Diproses" : "Set Processing"}
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={
+                            actionLoading ||
+                            selectedWithdrawal.status !== "PROCESSING" ||
+                            !proofFile
+                          }
+                          onClick={() => handleAction("COMPLETED")}
+                          className="withdrawals-btn withdrawals-btn--emerald"
+                          style={{ flex: 1 }}
+                          title={
+                            selectedWithdrawal.status !== "PROCESSING"
+                              ? isId
+                                ? "Ubah status ke Diproses terlebih dahulu"
+                                : "Must be in Processing status first"
+                              : !proofFile
+                              ? isId
+                                ? "Unggah bukti transfer terlebih dahulu"
+                                : "Upload transfer proof first"
+                              : ""
+                          }
+                        >
+                          {isId ? "Selesaikan" : "Complete"}
+                        </button>
+                      </div>
+                    )}
                 </>
               );
             })()}

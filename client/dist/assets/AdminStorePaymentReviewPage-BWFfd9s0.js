@@ -1,1 +1,0 @@
-import{a as t,j as s,R as o}from"./index-Bnj47Q_D.js";function n(){const a=t(),e={pathname:"/admin/store/payment-profiles",search:a.search,hash:a.hash};return s.jsx(o,{to:e,replace:!0})}export{n as default};
