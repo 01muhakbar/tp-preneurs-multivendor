@@ -24,14 +24,16 @@ const getInitials = (value) => {
   return `${parts[0]?.[0] || ""}${parts[1]?.[0] || ""}`.toUpperCase() || "U";
 };
 
-const evaluateStrength = (password) => {
+const evaluateStrength = (password, isIndo = false) => {
   const value = String(password || "");
   if (!value) {
     return {
       level: "idle",
-      label: "Not set",
+      label: isIndo ? "Belum diatur" : "Not set",
       activeBars: 0,
-      helper: "Use at least 8 characters, including at least 1 letter and 1 number.",
+      helper: isIndo
+        ? "Gunakan minimal 8 karakter dengan kombinasi huruf dan angka."
+        : "Use at least 8 characters, including at least 1 letter and 1 number.",
     };
   }
 
@@ -44,32 +46,36 @@ const evaluateStrength = (password) => {
   if (score <= 1) {
     return {
       level: "weak",
-      label: "Weak",
+      label: isIndo ? "Lemah" : "Weak",
       activeBars: 1,
-      helper: "Add more length and mix letters with numbers.",
+      helper: isIndo
+        ? "Tambahkan panjang karakter dan variasikan huruf serta angka."
+        : "Add more length and mix letters with numbers.",
     };
   }
   if (score === 2) {
     return {
       level: "fair",
-      label: "Fair",
+      label: isIndo ? "Cukup" : "Fair",
       activeBars: 2,
-      helper: "Good start. Add uppercase letters, symbols, or more length.",
+      helper: isIndo
+        ? "Awal yang baik. Tambahkan huruf besar atau simbol."
+        : "Good start. Add uppercase letters, symbols, or more length.",
     };
   }
   if (score === 3) {
     return {
       level: "good",
-      label: "Good",
+      label: isIndo ? "Baik" : "Good",
       activeBars: 3,
-      helper: "Strong enough for most cases.",
+      helper: isIndo ? "Sandi cukup aman." : "Strong enough for most cases.",
     };
   }
   return {
     level: "strong",
-    label: "Strong",
+    label: isIndo ? "Kuat" : "Strong",
     activeBars: 4,
-    helper: "Strong password.",
+    helper: isIndo ? "Sandi sangat kuat dan aman." : "Strong password.",
   };
 };
 
@@ -79,7 +85,7 @@ export const getEmptyChangePassword2026Form = () => ({
   confirmPassword: "",
 });
 
-export const normalizeChangePasswordFor2026 = ({ user, form } = {}) => {
+export const normalizeChangePasswordFor2026 = ({ user, form, isIndo = false } = {}) => {
   const accountUser = asObject(user);
   const currentForm = {
     ...getEmptyChangePassword2026Form(),
@@ -89,9 +95,13 @@ export const normalizeChangePasswordFor2026 = ({ user, form } = {}) => {
     accountUser.name,
     accountUser.fullName,
     accountUser.displayName,
-    "Account member"
+    isIndo ? "Anggota Akun" : "Account member"
   );
-  const email = pickText(accountUser.email, accountUser.emailAddress, "No email provided");
+  const email = pickText(
+    accountUser.email,
+    accountUser.emailAddress,
+    isIndo ? "Email belum diatur" : "No email provided"
+  );
   const avatarUrl = resolveAssetUrl(
     pickText(
       accountUser.avatarUrl,
@@ -117,57 +127,73 @@ export const normalizeChangePasswordFor2026 = ({ user, form } = {}) => {
       email,
       avatarUrl,
       initials: getInitials(name || email),
-      badgeLabel: "Member",
+      badgeLabel: isIndo ? "Member" : "Member",
     },
     form: currentForm,
     rules: [
       {
         id: "length",
-        label: "At least 8 characters",
+        label: isIndo ? "Minimal 8 karakter" : "At least 8 characters",
         isMet: hasMinLength,
       },
       {
         id: "letter-number",
-        label: "Include at least 1 letter and 1 number",
+        label: isIndo ? "Kombinasi huruf dan angka" : "Include at least 1 letter and 1 number",
         isMet: hasLetterAndNumber,
       },
       {
         id: "confirm",
-        label: "New password must match confirmation",
+        label: isIndo ? "Konfirmasi sandi cocok" : "New password must match confirmation",
         isMet: confirmMatches,
       },
       {
         id: "different",
-        label: "New password differs from current password",
+        label: isIndo ? "Berbeda dari kata sandi saat ini" : "New password differs from current password",
         isMet: differsFromCurrent,
       },
     ],
-    strength: evaluateStrength(currentForm.newPassword),
+    strength: evaluateStrength(currentForm.newPassword, isIndo),
   };
 };
 
-export const validateChangePassword2026Form = (form = {}) => {
+export const validateChangePassword2026Form = (form = {}, isIndo = false) => {
   const data = asObject(form);
   const currentPassword = String(data.currentPassword || "");
   const newPassword = String(data.newPassword || "");
   const confirmPassword = String(data.confirmPassword || "");
   const errors = {};
 
-  if (!currentPassword) errors.currentPassword = "Current password is required.";
+  if (!currentPassword) {
+    errors.currentPassword = isIndo
+      ? "Kata sandi saat ini wajib diisi."
+      : "Current password is required.";
+  }
   if (!newPassword) {
-    errors.newPassword = "New password is required.";
+    errors.newPassword = isIndo
+      ? "Kata sandi baru wajib diisi."
+      : "New password is required.";
   } else if (newPassword.length < 8) {
-    errors.newPassword = "New password must be at least 8 characters.";
+    errors.newPassword = isIndo
+      ? "Kata sandi baru minimal 8 karakter."
+      : "New password must be at least 8 characters.";
   } else if (!/[A-Za-z]/.test(newPassword) || !/\d/.test(newPassword)) {
-    errors.newPassword = "New password must include at least 1 letter and 1 number.";
+    errors.newPassword = isIndo
+      ? "Kata sandi baru harus menyertakan huruf dan angka."
+      : "New password must include at least 1 letter and 1 number.";
   } else if (currentPassword && newPassword === currentPassword) {
-    errors.newPassword = "New password must be different from current password.";
+    errors.newPassword = isIndo
+      ? "Kata sandi baru harus berbeda dari kata sandi saat ini."
+      : "New password must be different from current password.";
   }
 
   if (!confirmPassword) {
-    errors.confirmPassword = "Confirm your new password.";
+    errors.confirmPassword = isIndo
+      ? "Konfirmasi kata sandi baru Anda."
+      : "Confirm your new password.";
   } else if (newPassword !== confirmPassword) {
-    errors.confirmPassword = "New password and confirmation must match.";
+    errors.confirmPassword = isIndo
+      ? "Kata sandi baru dan konfirmasi tidak cocok."
+      : "New password and confirmation must match.";
   }
 
   return {

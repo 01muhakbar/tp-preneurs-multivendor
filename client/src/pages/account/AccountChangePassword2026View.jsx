@@ -6,18 +6,19 @@ import {
   HelpCircle,
   KeyRound,
   LockKeyhole,
-  Mail,
   ShieldCheck,
   X,
 } from "lucide-react";
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
 import "./account-change-password-2026.css";
 
-function LoadingBlock() {
+function LoadingBlock({ isIndo }) {
   return (
-    <div className="tppwd2026-loading" aria-label="Loading change password">
-      {Array.from({ length: 5 }).map((_, index) => (
+    <div
+      className="tppwd2026-loading"
+      aria-label={isIndo ? "Memuat formulir sandi..." : "Loading change password..."}
+    >
+      {Array.from({ length: 4 }).map((_, index) => (
         <span key={index} />
       ))}
     </div>
@@ -30,11 +31,10 @@ function PasswordField({
   value,
   placeholder,
   autoComplete,
-  helper,
   error,
   disabled,
   onFormChange,
-  t,
+  isIndo,
 }) {
   const [visible, setVisible] = useState(false);
   const inputType = visible ? "text" : "password";
@@ -59,26 +59,41 @@ function PasswordField({
           className="tppwd2026-eye-btn"
           onClick={() => setVisible((current) => !current)}
           disabled={disabled}
-          aria-label={visible ? `${t("changePassword.hide")} ${label}` : `${t("changePassword.show")} ${label}`}
-          title={visible ? `${t("changePassword.hide")} ${label}` : `${t("changePassword.show")} ${label}`}
+          aria-label={
+            visible
+              ? isIndo
+                ? "Sembunyikan kata sandi"
+                : "Hide password"
+              : isIndo
+                ? "Tampilkan kata sandi"
+                : "Show password"
+          }
+          title={
+            visible
+              ? isIndo
+                ? "Sembunyikan kata sandi"
+                : "Hide password"
+              : isIndo
+                ? "Tampilkan kata sandi"
+                : "Show password"
+          }
         >
           {visible ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
         </button>
       </div>
       {error ? <small className="tppwd2026-error-text">{error}</small> : null}
-      {helper && !error ? <small>{helper}</small> : null}
     </label>
   );
 }
 
-function RulesPanel({ rules, t }) {
+function RulesPanel({ rules = [], isIndo }) {
   return (
     <article className="tppwd2026-rules">
       <span className="tppwd2026-rules-icon">
         <ShieldCheck aria-hidden="true" />
       </span>
-      <div>
-        <h2>{t("changePassword.passwordRequirements")}</h2>
+      <div className="tppwd2026-rules-body">
+        <h2>{isIndo ? "Syarat Kata Sandi" : "Password Requirements"}</h2>
         <ul>
           {rules.map((rule) => (
             <li key={rule.id} className={rule.isMet ? "tppwd2026-rule-met" : ""}>
@@ -92,11 +107,11 @@ function RulesPanel({ rules, t }) {
   );
 }
 
-function StrengthMeter({ strength, t }) {
+function StrengthMeter({ strength, isIndo }) {
   return (
     <div className={`tppwd2026-strength tppwd2026-strength-${strength.level}`} role="status">
       <div className="tppwd2026-strength-head">
-        <span>{t("changePassword.passwordStrength")}</span>
+        <span>{isIndo ? "Kekuatan Sandi:" : "Password Strength:"}</span>
         <strong>{strength.label}</strong>
       </div>
       <div className="tppwd2026-strength-bars" aria-hidden="true">
@@ -113,13 +128,13 @@ function StrengthMeter({ strength, t }) {
 }
 
 export default function AccountChangePassword2026View({
-  account,
   form,
   rules,
   strength,
   fieldErrors = {},
   isLoading,
   isSaving,
+  isIndo = false,
   error,
   status,
   LinkComponent,
@@ -129,23 +144,25 @@ export default function AccountChangePassword2026View({
   onForgotPassword,
   onContactSupport,
 }) {
-  const { t } = useTranslation();
-
   return (
     <section className="tppwd2026-root">
       <header className="tppwd2026-heading">
-        <div>
+        <div className="tppwd2026-heading-copy">
           <LinkComponent className="tppwd2026-back-link" to="/user/my-account">
             <ArrowLeft aria-hidden="true" />
-            <span>{t("changePassword.backToAccount")}</span>
+            <span>{isIndo ? "Kembali ke Akun Saya" : "Back to My Account"}</span>
           </LinkComponent>
           <div className="tppwd2026-title-row">
-            <h1>{t("changePassword.title")}</h1>
-            <span>
-              <ShieldCheck aria-hidden="true" />
+            <h1>{isIndo ? "Ganti Kata Sandi" : "Change Password"}</h1>
+            <span className="tppwd2026-title-shield" aria-hidden="true">
+              <ShieldCheck />
             </span>
           </div>
-          <p>{t("changePassword.subtitle")}</p>
+          <p>
+            {isIndo
+              ? "Perbarui kata sandi untuk menjaga keamanan akun Anda."
+              : "Update your password to keep your account secure."}
+          </p>
         </div>
         <div className="tppwd2026-hero" aria-hidden="true">
           <span>
@@ -174,80 +191,73 @@ export default function AccountChangePassword2026View({
       ) : null}
 
       {isLoading ? (
-        <LoadingBlock />
+        <LoadingBlock isIndo={isIndo} />
       ) : (
         <>
-          <RulesPanel rules={rules} t={t} />
+          <RulesPanel rules={rules} isIndo={isIndo} />
 
           <form className="tppwd2026-form-panel" onSubmit={onSubmit}>
-            <div className="tppwd2026-account-strip">
-              <div className="tppwd2026-avatar" aria-hidden="true">
-                {account.avatarUrl ? <img src={account.avatarUrl} alt="" /> : <span>{account.initials}</span>}
-              </div>
-              <div>
-                <strong>{account.name}</strong>
-                <span>
-                  <Mail aria-hidden="true" />
-                  {account.email}
-                </span>
-              </div>
-              <em>{account.badgeLabel}</em>
-            </div>
-
             <PasswordField
-              label={t("changePassword.currentPassword")}
+              label={isIndo ? "Kata Sandi Saat Ini *" : "Current Password *"}
               name="currentPassword"
               value={form.currentPassword}
-              placeholder={t("changePassword.currentPasswordPlaceholder")}
+              placeholder={isIndo ? "Masukkan kata sandi saat ini" : "Enter current password"}
               autoComplete="current-password"
-              helper={t("changePassword.currentPasswordHelper")}
               error={fieldErrors.currentPassword}
               disabled={isSaving}
               onFormChange={onFormChange}
-              t={t}
+              isIndo={isIndo}
             />
 
             <PasswordField
-              label={t("changePassword.newPassword")}
+              label={isIndo ? "Kata Sandi Baru *" : "New Password *"}
               name="newPassword"
               value={form.newPassword}
-              placeholder={t("changePassword.newPasswordPlaceholder")}
+              placeholder={isIndo ? "Masukkan kata sandi baru" : "Enter new password"}
               autoComplete="new-password"
               error={fieldErrors.newPassword}
               disabled={isSaving}
               onFormChange={onFormChange}
-              t={t}
+              isIndo={isIndo}
             />
-            <StrengthMeter strength={strength} t={t} />
+
+            <StrengthMeter strength={strength} isIndo={isIndo} />
 
             <PasswordField
-              label={t("changePassword.confirmPassword")}
+              label={isIndo ? "Konfirmasi Kata Sandi Baru *" : "Confirm New Password *"}
               name="confirmPassword"
               value={form.confirmPassword}
-              placeholder={t("changePassword.confirmPasswordPlaceholder")}
+              placeholder={isIndo ? "Ulangi kata sandi baru" : "Confirm new password"}
               autoComplete="new-password"
-              helper={t("changePassword.confirmPasswordHelper")}
               error={fieldErrors.confirmPassword}
               disabled={isSaving}
               onFormChange={onFormChange}
-              t={t}
+              isIndo={isIndo}
             />
 
             <div className="tppwd2026-secondary-actions">
               <button type="button" onClick={onForgotPassword} disabled={isSaving}>
                 <KeyRound aria-hidden="true" />
-                <span>{t("changePassword.forgotPassword")}</span>
+                <span>{isIndo ? "Lupa Kata Sandi?" : "Forgot Password?"}</span>
               </button>
               <button type="button" onClick={onContactSupport} disabled={isSaving}>
                 <HelpCircle aria-hidden="true" />
-                <span>{t("changePassword.contactSupport")}</span>
+                <span>{isIndo ? "Bantuan Dukungan" : "Contact Support"}</span>
               </button>
             </div>
 
             <div className="tppwd2026-actions">
               <button type="submit" className="tppwd2026-btn tppwd2026-btn-primary" disabled={isSaving}>
                 <LockKeyhole aria-hidden="true" />
-                <span>{isSaving ? t("changePassword.changing") : t("changePassword.changeBtn")}</span>
+                <span>
+                  {isSaving
+                    ? isIndo
+                      ? "Menyimpan..."
+                      : "Changing..."
+                    : isIndo
+                      ? "Ganti Kata Sandi"
+                      : "Change Password"}
+                </span>
               </button>
               <button
                 type="button"
@@ -255,7 +265,7 @@ export default function AccountChangePassword2026View({
                 disabled={isSaving}
                 onClick={onCancel}
               >
-                <span>{t("changePassword.cancel")}</span>
+                <span>{isIndo ? "Batal" : "Cancel"}</span>
               </button>
             </div>
           </form>
