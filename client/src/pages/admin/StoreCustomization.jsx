@@ -3893,6 +3893,26 @@ export default function StoreCustomizationPage() {
   });
 
   useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const currentIso = String(i18n.language || "").toLowerCase();
+    if (currentIso) {
+      const normalizedIso = currentIso.startsWith("id") ? "id" : "en";
+      setLang((prev) => (prev !== normalizedIso ? normalizedIso : prev));
+    }
+
+    const handleAdminLanguageChange = (event) => {
+      const nextIso = String(event.detail?.isoCode || "en").toLowerCase();
+      const safeIso = nextIso.startsWith("id") ? "id" : "en";
+      setLang(safeIso);
+    };
+
+    window.addEventListener("adminLanguageChange", handleAdminLanguageChange);
+    return () => {
+      window.removeEventListener("adminLanguageChange", handleAdminLanguageChange);
+    };
+  }, [i18n.language]);
+
+  useEffect(() => {
     const params = new URLSearchParams(location.search);
     const storeTabFromUrl = params.get("storeTab");
     const canonicalStoreTab = getCanonicalStoreTab(storeTabFromUrl, location.pathname);

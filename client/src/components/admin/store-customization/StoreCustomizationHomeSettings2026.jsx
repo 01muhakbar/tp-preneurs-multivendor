@@ -1,28 +1,36 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
-  ArrowRight,
   Boxes,
+  Check,
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   Edit3,
+  ExternalLink,
   Eye,
   EyeOff,
+  Grid2X2,
   Grid3X3,
   Home,
   Image,
   Layers3,
-  Link,
+  Link as LinkIcon,
   Mail,
   Megaphone,
   Monitor,
+  Package,
+  Phone,
+  Plus,
+  Rocket,
   Search,
   ShieldCheck,
   ShoppingBag,
   Smartphone,
   Sparkles,
   Store,
+  Tag,
   Trash2,
   Truck,
   UploadCloud,
@@ -31,14 +39,17 @@ import {
 import { uploadAdminImage } from "../../../lib/adminApi.js";
 import StoreCustomizationTabNav2026 from "./StoreCustomizationTabNav2026.jsx";
 import StoreCustomizationSaveActions2026 from "./StoreCustomizationSaveActions2026.jsx";
+import "./StoreCustomizationHomeSettings2026.css";
 
 const MAIN_SLIDER_LENGTH = 5;
 
 const DEFAULT_CONFIG = {
   header: {
     headerText: "We're here to help you shop better!",
-    phoneNumber: "+1 (888) 123-4567",
-    whatsAppLink: "https://wa.me/18881234567",
+    phoneNumber: "+62821-8866-824",
+    whatsAppLink: "https://wa.me/628218866824",
+    headerLogoUrl: "",
+    logoDataUrl: "",
   },
   menuEditor: {
     labels: {
@@ -74,7 +85,7 @@ const DEFAULT_CONFIG = {
           ? "Up to 50% off on selected fashion, accessories & more."
           : "",
       buttonName: index === 0 ? "Shop Now" : "",
-      buttonLink: index === 0 ? "/collections/summer-sale" : "",
+      buttonLink: index === 0 ? "/shop" : "",
       imageFocus: "right",
     })),
     options: {
@@ -109,7 +120,7 @@ const DEFAULT_CONFIG = {
     source: "Manually Selected",
     productsLimit: 6,
     buttonName: "View All Categories",
-    buttonLink: "/collections",
+    buttonLink: "/shop",
     displayStyle: "Grid",
     status: "ready",
     selectedCategories: ["Electronics", "Fashion", "Home & Kitchen", "Beauty", "Sports"],
@@ -124,7 +135,7 @@ const DEFAULT_CONFIG = {
     filterBy: "All Categories",
     sortBy: "Best Selling",
     buttonName: "Shop All",
-    buttonLink: "/products",
+    buttonLink: "/shop",
     status: "ready",
   },
   quickDelivery: {
@@ -174,7 +185,7 @@ const DEFAULT_CONFIG = {
       enabled: true,
       footerLogoDataUrl: "",
       address: "Fakultas Ilmu Pendidikan Kampus UNM Tidung Jl. Tamalate 1 Makassar",
-      phone: "0411-0884457",
+      phone: "+62821-8866-824",
       email: "tp.fip@unm.ac.id",
     },
     socialLinks: {
@@ -191,7 +202,7 @@ const DEFAULT_CONFIG = {
     },
     bottomContact: {
       enabled: true,
-      contactNumber: "+65 9988 7766",
+      contactNumber: "+62821-8866-824",
     },
     newsletter: {
       enabled: true,
@@ -206,50 +217,43 @@ const DEFAULT_CONFIG = {
 };
 
 const MENU_LABEL_FIELDS = [
-  ["categories", "Categories"],
-  ["aboutUs", "About Us"],
-  ["contactUs", "Contact"],
-  ["offers", "Offers"],
-  ["faq", "FAQ"],
-  ["privacyPolicy", "Privacy Policy"],
-  ["termsAndConditions", "Terms"],
-  ["pages", "Pages"],
-  ["myAccount", "My Account"],
-  ["login", "Login"],
-  ["logout", "Logout"],
-  ["checkout", "Checkout"],
+  { key: "categories", labelEn: "Categories", labelId: "Kategori" },
+  { key: "aboutUs", labelEn: "About Us", labelId: "Tentang Kami" },
+  { key: "contactUs", labelEn: "Contact", labelId: "Kontak" },
+  { key: "offers", labelEn: "Offers", labelId: "Penawaran" },
+  { key: "faq", labelEn: "FAQ", labelId: "Tanya Jawab" },
+  { key: "privacyPolicy", labelEn: "Privacy Policy", labelId: "Kebijakan Privasi" },
+  { key: "termsAndConditions", labelEn: "Terms & Conditions", labelId: "Syarat & Ketentuan" },
+  { key: "pages", labelEn: "Pages", labelId: "Halaman" },
+  { key: "myAccount", labelEn: "My Account", labelId: "Akun Saya" },
+  { key: "login", labelEn: "Login", labelId: "Masuk" },
+  { key: "logout", labelEn: "Logout", labelId: "Keluar" },
+  { key: "checkout", labelEn: "Checkout", labelId: "Checkout" },
 ];
 
 const VISIBILITY_FIELDS = [
-  ["showCategories", "Show Categories"],
-  ["showAboutUs", "Show About Us"],
-  ["showContactUs", "Show Contact"],
-  ["showOffers", "Show Offers"],
-  ["showFaq", "Show FAQ"],
-  ["showPrivacyPolicy", "Show Privacy Policy"],
-  ["showTermsAndConditions", "Show Terms & Conditions"],
+  { key: "showCategories", labelEn: "Show Categories", labelId: "Tampilkan Kategori" },
+  { key: "showAboutUs", labelEn: "Show About Us", labelId: "Tampilkan Tentang Kami" },
+  { key: "showContactUs", labelEn: "Show Contact", labelId: "Tampilkan Kontak" },
+  { key: "showOffers", labelEn: "Show Offers", labelId: "Tampilkan Penawaran" },
+  { key: "showFaq", labelEn: "Show FAQ", labelId: "Tampilkan FAQ" },
+  { key: "showPrivacyPolicy", labelEn: "Show Privacy Policy", labelId: "Tampilkan Privasi" },
+  { key: "showTermsAndConditions", labelEn: "Show Terms & Conditions", labelId: "Tampilkan Syarat Ketentuan" },
 ];
 
 const FOOTER_LINK_BLOCKS = [
-  ["block1", "Company"],
-  ["block2", "Categories"],
-  ["block3", "My Account"],
+  { key: "block1", titleEn: "Company", titleId: "Perusahaan" },
+  { key: "block2", titleEn: "Categories", titleId: "Kategori Belanja" },
+  { key: "block3", titleEn: "My Account", titleId: "Akun Pengguna" },
 ];
 
 const FOOTER_SOCIAL_FIELDS = [
-  ["facebook", "Facebook"],
-  ["twitter", "Twitter"],
-  ["pinterest", "Pinterest"],
-  ["linkedin", "LinkedIn"],
-  ["whatsapp", "WhatsApp"],
+  { key: "facebook", label: "Facebook" },
+  { key: "twitter", label: "Twitter / X" },
+  { key: "pinterest", label: "Pinterest" },
+  { key: "linkedin", label: "LinkedIn" },
+  { key: "whatsapp", label: "WhatsApp" },
 ];
-
-const cardClass =
-  "rounded-3xl border border-slate-200/80 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-950 dark:shadow-none";
-const inputClass =
-  "h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-500/15";
-const textareaClass =
-  "min-h-[86px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-500/15";
 
 const isPlainObject = (value) =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -302,359 +306,7 @@ const normalizeLink = (value, fallback = "/shop") => {
 
 const normalizeStatus = (value, fallback = "ready") => {
   const normalized = toText(value, fallback).toLowerCase();
-  if (["ready", "needsreview", "needs review", "draft", "off"].includes(normalized)) {
-    return normalized.replace(/\s+/g, "");
-  }
-  return fallback;
-};
-
-const PROMO_BILINGUAL_MAP = {
-  subtitle: {
-    id: "Koleksi Eksklusif TP Preneurs",
-    en: "TP Preneurs Exclusive Collection",
-  },
-  title: {
-    id: "Karya Inovatif Mahasiswa & Edupreneur",
-    en: "Innovative Student & Edupreneur Creations",
-  },
-  description: {
-    id: "Dukung karya technopreneur muda dengan produk kreatif dan solusi terbaik.",
-    en: "Empower young technopreneurs with curated creative and learning products.",
-  },
-  buttonName: {
-    id: "Jelajahi Produk",
-    en: "Explore Products",
-  },
-};
-
-const resolveBilingualPromo = (field, rawValue, isIndo) => {
-  const text = toText(rawValue);
-  const targetLang = isIndo ? "id" : "en";
-  const oppositeLang = isIndo ? "en" : "id";
-  const mapping = PROMO_BILINGUAL_MAP[field];
-
-  if (!text || text.toLowerCase() === "100% natural quality organic product" || text.toLowerCase().includes("see our latest discounted products from here") || text.toLowerCase() === "buy now") {
-    return mapping ? mapping[targetLang] : text;
-  }
-
-  if (mapping) {
-    const canonicalOpposite = mapping[oppositeLang].toLowerCase();
-    const canonicalTarget = mapping[targetLang].toLowerCase();
-    const current = text.trim().toLowerCase();
-
-    if (current === canonicalOpposite || current === canonicalTarget) {
-      return mapping[targetLang];
-    }
-  }
-
-  return text;
-};
-
-const QUICK_DELIVERY_BILINGUAL_MAP = {
-  subTitle: {
-    id: "PRODUK DIGITAL & INOVASI",
-    en: "DIGITAL & INNOVATION PRODUCTS",
-    aliases: [
-      "produk digital & inovasi",
-      "digital & innovation products",
-      "karya digital & inovasi",
-      "organic products and food",
-      "fast and reliable delivery to your doorstep."
-    ]
-  },
-  title: {
-    id: "Belanja Online dengan Mudah",
-    en: "Shop Online with Ease",
-    aliases: [
-      "belanja online dengan mudah",
-      "shop online with ease",
-      "belanja produk inovasi tp preneurs",
-      "quick delivery to your home",
-      "quick delivery",
-      "100% natural quality organic product"
-    ]
-  },
-  description: {
-    id: "Akses langsung produk digital, media belajar interaktif, dan karya riset mahasiswa.",
-    en: "Instant access to curated student digital creations, learning media, and research tools.",
-    aliases: [
-      "akses langsung produk digital, media belajar interaktif, dan karya riset mahasiswa.",
-      "instant access to curated student digital creations, learning media, and research tools.",
-      "instant access to curated student digital creations, interactive media, and research tools.",
-      "same-day delivery in select cities with real-time tracking.",
-      "choose your daily necessary product from our kachabazar shop and get some special offers. see our latest discounted products from here and get a special discount."
-    ]
-  },
-  buttonName: {
-    id: "Mulai Belanja",
-    en: "Start Shopping",
-    aliases: [
-      "mulai belanja",
-      "start shopping",
-      "download app",
-      "buy now",
-      "learn more",
-      "jelajahi produk"
-    ]
-  },
-};
-
-const resolveBilingualQuickDelivery = (field, rawValue, isIndo) => {
-  const text = toText(rawValue);
-  const targetLang = isIndo ? "id" : "en";
-  const oppositeLang = isIndo ? "en" : "id";
-  const mapping = QUICK_DELIVERY_BILINGUAL_MAP[field];
-
-  if (!text) {
-    return mapping ? mapping[targetLang] : text;
-  }
-
-  const current = text.trim().toLowerCase();
-
-  if (
-    current.includes("quick delivery to your home") ||
-    current.includes("organic products and food") ||
-    current.includes("choose your daily necessary product") ||
-    current.includes("download app") ||
-    current.includes("fast and reliable delivery")
-  ) {
-    return mapping ? mapping[targetLang] : text;
-  }
-
-  if (field === "description") {
-    if (
-      current.includes("instant access") ||
-      current.includes("student digital creations") ||
-      current.includes("curated student") ||
-      current.includes("learning media") ||
-      current.includes("interactive media") ||
-      current.includes("akses langsung") ||
-      current.includes("media belajar") ||
-      current.includes("karya riset")
-    ) {
-      return mapping ? mapping[targetLang] : text;
-    }
-  }
-
-  if (field === "title") {
-    if (
-      current.includes("shop online") ||
-      current.includes("belanja online") ||
-      current.includes("belanja produk inovasi") ||
-      current.includes("quick delivery")
-    ) {
-      return mapping ? mapping[targetLang] : text;
-    }
-  }
-
-  if (field === "subTitle") {
-    if (
-      current.includes("digital & innovation") ||
-      current.includes("produk digital") ||
-      current.includes("karya digital") ||
-      current.includes("organic products")
-    ) {
-      return mapping ? mapping[targetLang] : text;
-    }
-  }
-
-  if (field === "buttonName") {
-    if (
-      current.includes("start shopping") ||
-      current.includes("mulai belanja") ||
-      current.includes("download app") ||
-      current.includes("buy now") ||
-      current.includes("learn more") ||
-      current.includes("jelajahi produk") ||
-      current.includes("shop now")
-    ) {
-      return mapping ? mapping[targetLang] : text;
-    }
-  }
-
-  if (mapping) {
-    const canonicalOpposite = mapping[oppositeLang].toLowerCase();
-    const canonicalTarget = mapping[targetLang].toLowerCase();
-    const isAlias = Array.isArray(mapping.aliases) && mapping.aliases.some((alias) => alias.toLowerCase() === current);
-
-    if (current === canonicalOpposite || current === canonicalTarget || isAlias) {
-      return mapping[targetLang];
-    }
-  }
-
-  return text;
-};
-
-const NEWSLETTER_BILINGUAL_MAP = {
-  productStatTitle: {
-    id: "Karya Inovatif Mahasiswa & Edupreneur",
-    en: "Innovative Student & Edupreneur Creations",
-    aliases: [
-      "karya inovatif mahasiswa & edupreneur",
-      "innovative student & edupreneur creations",
-      "trusted by thousands of happy customers",
-      "dipercaya oleh ribuan pelanggan yang puas",
-      "karya inovatif mahasiswa",
-      "innovative student creations"
-    ]
-  },
-  productStatSubtitle: {
-    id: "Katalog Produk Asli & Terverifikasi",
-    en: "Authentic & Verified Product Catalog",
-    aliases: [
-      "katalog produk asli & terverifikasi",
-      "authentic & verified product catalog",
-      "katalog produk terverifikasi",
-      "verified product catalog",
-      "120k+ reviews",
-      "120rb+ ulasan"
-    ]
-  },
-  title: {
-    id: "Berlangganan Newsletter & Info Inovasi",
-    en: "Subscribe to Newsletter & Innovation Updates",
-    aliases: [
-      "berlangganan newsletter & info inovasi",
-      "subscribe to newsletter & innovation updates",
-      "berlangganan newsletter kami",
-      "subscribe to our newsletter",
-      "berlangganan newsletter",
-      "subscribe to newsletter"
-    ]
-  },
-  subtitle: {
-    id: "Dapatkan update katalog karya inovatif mahasiswa dan penawaran spesial.",
-    en: "Get updates on student innovative creations catalog and special offers.",
-    aliases: [
-      "dapatkan update katalog karya inovatif mahasiswa dan penawaran spesial.",
-      "get updates on student innovative creations catalog and special offers.",
-      "dapatkan update katalog inovasi terbaru langsung ke email anda.",
-      "get the latest innovation catalog updates delivered to your inbox.",
-      "dapatkan update katalog inovasi terbaru.",
-      "get the latest innovation catalog updates.",
-      "dapatkan update katalog produk kreatif mahasiswa dan penawaran spesial.",
-      "dapatkan penawaran, tips & pembaruan terbaru.",
-      "get the latest offers, tips & updates."
-    ]
-  },
-  buttonText: {
-    id: "Berlangganan",
-    en: "Subscribe",
-    aliases: [
-      "berlangganan",
-      "subscribe",
-      "berlangganan newsletter",
-      "subscribe now"
-    ]
-  }
-};
-
-const resolveBilingualNewsletter = (field, rawValue, isIndoParam) => {
-  const targetLang = isIndoParam ? "id" : "en";
-  const oppositeLang = isIndoParam ? "en" : "id";
-  const mapping = NEWSLETTER_BILINGUAL_MAP[field];
-
-  if (!mapping) return rawValue || "";
-
-  const text = (rawValue || "").toString().trim();
-  if (!text) return mapping[targetLang];
-
-  const current = text.toLowerCase();
-  const canonicalTarget = mapping[targetLang].toLowerCase();
-  const canonicalOpposite = mapping[oppositeLang].toLowerCase();
-
-  if (
-    current === canonicalTarget ||
-    current === canonicalOpposite ||
-    mapping.aliases?.some((alias) => current.includes(alias.toLowerCase()))
-  ) {
-    return mapping[targetLang];
-  }
-
-  return text || mapping[targetLang];
-};
-
-const normalizeHomeValue = (value, language = "en") => {
-  const isIndo = String(language || "").toLowerCase().startsWith("id");
-  const source = isPlainObject(value) ? value : {};
-  const merged = mergeDeep(DEFAULT_CONFIG, source);
-  const sliders = Array.isArray(merged.mainSlider?.sliders)
-    ? merged.mainSlider.sliders
-    : [];
-
-  return {
-    ...merged,
-    promotionBanner: {
-      ...DEFAULT_CONFIG.promotionBanner,
-      ...(isPlainObject(merged.promotionBanner) ? merged.promotionBanner : {}),
-      title: resolveBilingualPromo("title", merged.promotionBanner?.title, isIndo),
-      subtitle: resolveBilingualPromo("subtitle", merged.promotionBanner?.subtitle, isIndo),
-      description: resolveBilingualPromo("description", merged.promotionBanner?.description, isIndo),
-      buttonName: resolveBilingualPromo("buttonName", merged.promotionBanner?.buttonName, isIndo),
-    },
-    mainSlider: {
-      ...merged.mainSlider,
-      sliders: Array.from({ length: MAIN_SLIDER_LENGTH }, (_, index) => ({
-        ...DEFAULT_CONFIG.mainSlider.sliders[index],
-        ...(isPlainObject(sliders[index]) ? sliders[index] : {}),
-      })),
-      options: {
-        ...DEFAULT_CONFIG.mainSlider.options,
-        ...(isPlainObject(merged.mainSlider?.options) ? merged.mainSlider.options : {}),
-      },
-    },
-    discountCouponBox: {
-      ...DEFAULT_CONFIG.discountCouponBox,
-      ...(isPlainObject(merged.discountCouponBox) ? merged.discountCouponBox : {}),
-      activeCouponCodes: Array.isArray(merged.discountCouponBox?.activeCouponCodes)
-        ? [...new Set(merged.discountCouponBox.activeCouponCodes.map((item) => toText(item).toUpperCase()).filter(Boolean))]
-        : DEFAULT_CONFIG.discountCouponBox.activeCouponCodes,
-    },
-    quickDelivery: {
-      ...DEFAULT_CONFIG.quickDelivery,
-      ...(isPlainObject(merged.quickDelivery) ? merged.quickDelivery : {}),
-      title: resolveBilingualQuickDelivery("title", merged.quickDelivery?.title, isIndo),
-      subTitle: resolveBilingualQuickDelivery("subTitle", merged.quickDelivery?.subTitle || merged.quickDelivery?.subtitle, isIndo),
-      description: resolveBilingualQuickDelivery("description", merged.quickDelivery?.description, isIndo),
-      buttonName: resolveBilingualQuickDelivery("buttonName", merged.quickDelivery?.buttonName, isIndo),
-      buttonLink: normalizeLink(merged.quickDelivery?.buttonLink, "/shop"),
-      imageDataUrl: toText(merged.quickDelivery?.imageDataUrl),
-      displayOn: toText(merged.quickDelivery?.displayOn, "Desktop & Mobile"),
-      status: toText(merged.quickDelivery?.status, "ready"),
-    },
-    footer: {
-      ...DEFAULT_CONFIG.footer,
-      ...(isPlainObject(merged.footer) ? merged.footer : {}),
-      block1: normalizeFooterBlock(merged.footer?.block1, DEFAULT_CONFIG.footer.block1),
-      block2: normalizeFooterBlock(merged.footer?.block2, DEFAULT_CONFIG.footer.block2),
-      block3: normalizeFooterBlock(merged.footer?.block3, DEFAULT_CONFIG.footer.block3),
-      block4: {
-        ...DEFAULT_CONFIG.footer.block4,
-        ...(isPlainObject(merged.footer?.block4) ? merged.footer.block4 : {}),
-      },
-      socialLinks: {
-        ...DEFAULT_CONFIG.footer.socialLinks,
-        ...(isPlainObject(merged.footer?.socialLinks) ? merged.footer.socialLinks : {}),
-      },
-      paymentMethod: {
-        ...DEFAULT_CONFIG.footer.paymentMethod,
-        ...(isPlainObject(merged.footer?.paymentMethod) ? merged.footer.paymentMethod : {}),
-      },
-      bottomContact: {
-        ...DEFAULT_CONFIG.footer.bottomContact,
-        ...(isPlainObject(merged.footer?.bottomContact) ? merged.footer.bottomContact : {}),
-      },
-      newsletter: {
-        ...DEFAULT_CONFIG.footer.newsletter,
-        ...(isPlainObject(merged.footer?.newsletter) ? merged.footer.newsletter : {}),
-        title: resolveBilingualNewsletter("title", merged.footer?.newsletter?.title, isIndo),
-        subtitle: resolveBilingualNewsletter("subtitle", merged.footer?.newsletter?.subtitle, isIndo),
-        productStatTitle: resolveBilingualNewsletter("productStatTitle", merged.footer?.newsletter?.productStatTitle, isIndo),
-        productStatSubtitle: resolveBilingualNewsletter("productStatSubtitle", merged.footer?.newsletter?.productStatSubtitle, isIndo),
-        buttonText: resolveBilingualNewsletter("buttonText", merged.footer?.newsletter?.buttonText, isIndo),
-      },
-    },
-  };
+  return normalized.replace(/\s+/g, "");
 };
 
 const cloneWithPath = (source, path, nextValue) => {
@@ -675,170 +327,149 @@ const cloneWithPath = (source, path, nextValue) => {
   return root;
 };
 
-const statusMeta = (status) => {
-  const normalized = normalizeStatus(status);
-  if (normalized === "needsreview") {
-    return {
-      label: "Needs Review",
-      className:
-        "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200",
-    };
-  }
-  if (normalized === "draft") {
-    return {
-      label: "Draft",
-      className:
-        "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200",
-    };
-  }
-  if (normalized === "off") {
-    return {
-      label: "Off",
-      className:
-        "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
-    };
-  }
-  return {
-    label: "Ready",
-    className:
-      "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200",
-  };
-};
-
-function Field({ label, value, onChange, max = 100, type = "text", placeholder = "" }) {
-  const count = String(value || "").length;
+// Reusable Form Field
+function ScField({
+  label,
+  value,
+  onChange,
+  max = 100,
+  type = "text",
+  placeholder = "",
+  hint = "",
+}) {
   return (
     <label className="block min-w-0">
-      <span className="mb-1.5 block text-xs font-semibold text-slate-600 dark:text-slate-300">
-        {label}
-      </span>
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <span className="sc-input-label">{label}</span>
+        {hint ? <span className="text-[10px] text-slate-400">{hint}</span> : null}
+      </div>
       <input
         type={type}
         value={value || ""}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className={inputClass}
+        className="sc-input"
       />
-      <span className="mt-1 block text-[11px] font-medium text-slate-400 dark:text-slate-500">
-        {count} / {max}
-      </span>
     </label>
   );
 }
 
-function TextAreaField({ label, value, onChange, max = 200, placeholder = "" }) {
-  const count = String(value || "").length;
+// Reusable Textarea Field
+function ScTextAreaField({ label, value, onChange, max = 200, placeholder = "" }) {
   return (
     <label className="block min-w-0">
-      <span className="mb-1.5 block text-xs font-semibold text-slate-600 dark:text-slate-300">
-        {label}
-      </span>
+      <span className="sc-input-label">{label}</span>
       <textarea
         value={value || ""}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className={textareaClass}
+        className="sc-textarea"
       />
-      <span className="mt-1 block text-[11px] font-medium text-slate-400 dark:text-slate-500">
-        {count} / {max}
-      </span>
     </label>
   );
 }
 
-function SelectField({ label, value, onChange, options }) {
+// Reusable Select Field
+function ScSelectField({ label, value, onChange, options = [] }) {
   return (
     <label className="block min-w-0">
-      <span className="mb-1.5 block text-xs font-semibold text-slate-600 dark:text-slate-300">
-        {label}
-      </span>
-      <select value={value || ""} onChange={(event) => onChange(event.target.value)} className={inputClass}>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
+      <span className="sc-input-label">{label}</span>
+      <select
+        value={value || ""}
+        onChange={(event) => onChange(event.target.value)}
+        className="sc-select"
+      >
+        {options.map((option) => {
+          const val = typeof option === "object" ? option.value : option;
+          const lab = typeof option === "object" ? option.label : option;
+          return (
+            <option key={val} value={val}>
+              {lab}
+            </option>
+          );
+        })}
       </select>
     </label>
   );
 }
 
-function StatusChip({ value }) {
-  const meta = statusMeta(value);
-  return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold ${meta.className}`}>
-      {meta.label}
-    </span>
-  );
-}
-
-const getPreviewImageFocusClass = (value) => {
-  const normalized = toText(value, "right").toLowerCase();
-  if (normalized === "left") return "object-left";
-  if (normalized === "center") return "object-center";
-  return "object-right";
-};
-
-function Toggle({ checked, onChange, ariaLabel }) {
+// Brand Switch Toggle (#034c85 & #fe6f05)
+function ScToggle({ checked, onChange, ariaLabel }) {
   return (
     <button
       type="button"
       aria-label={ariaLabel}
       aria-pressed={Boolean(checked)}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-7 w-12 items-center rounded-full border transition ${
-        checked
-          ? "border-emerald-500 bg-emerald-600"
-          : "border-slate-300 bg-slate-200 dark:border-slate-700 dark:bg-slate-800"
-      }`}
+      className={`sc-toggle-btn ${checked ? "is-active" : ""}`}
     >
-      <span
-        className={`h-5 w-5 rounded-full bg-white shadow-sm transition ${
-          checked ? "translate-x-5" : "translate-x-1"
-        }`}
-      />
+      <span className="sc-toggle-thumb" />
     </button>
   );
 }
 
-function YesNoToggle({ checked, onChange }) {
+// Yes / No Segmented Toggle
+function ScYesNoToggle({ checked, onChange, yesLabel = "Yes", noLabel = "No" }) {
   return (
-    <div className="grid h-8 grid-cols-2 overflow-hidden rounded-lg border border-slate-200 bg-slate-100 p-0.5 dark:border-slate-800 dark:bg-slate-900">
-      {[
-        ["yes", true],
-        ["no", false],
-      ].map(([label, value]) => (
-        <button
-          key={label}
-          type="button"
-          onClick={() => onChange(value)}
-          className={`rounded-md text-xs font-bold transition ${
-            checked === value
-              ? "bg-emerald-600 text-white shadow-sm"
-              : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-          }`}
-        >
-          {value ? "Yes" : "No"}
-        </button>
-      ))}
+    <div className="sc-yesno-toggle">
+      <button
+        type="button"
+        onClick={() => onChange(true)}
+        className={`sc-yesno-btn ${checked ? "is-selected" : ""}`}
+      >
+        {yesLabel}
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange(false)}
+        className={`sc-yesno-btn ${!checked ? "is-selected" : ""}`}
+      >
+        {noLabel}
+      </button>
     </div>
   );
 }
 
-function SectionTitle({ icon: Icon, title, description, action }) {
+// Section Header Primitive
+function ScSectionTitle({ icon: Icon, title, description, action }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div className="flex min-w-0 items-start gap-3">
-        <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+    <div className="sc-section-header">
+      <div className="sc-section-title-wrap">
+        <span className="sc-section-icon">
           <Icon className="h-5 w-5" />
         </span>
-        <div className="min-w-0">
-          <h2 className="break-words text-lg font-bold text-slate-950 dark:text-white">{title}</h2>
-          <p className="mt-1 break-words text-sm text-slate-500 dark:text-slate-400">{description}</p>
+        <div>
+          <h2 className="sc-section-title">{title}</h2>
+          {description ? <p className="sc-section-desc">{description}</p> : null}
         </div>
       </div>
-      {action ? <div className="basis-full shrink-0 min-[560px]:basis-auto">{action}</div> : null}
+      {action ? <div className="shrink-0">{action}</div> : null}
     </div>
+  );
+}
+
+// Status Chip
+function ScStatusChip({ value, isId = false }) {
+  const norm = normalizeStatus(value);
+  if (norm === "needsreview") {
+    return (
+      <span className="sc-status-badge sc-status-review">
+        {isId ? "Perlu Ditinjau" : "Needs Review"}
+      </span>
+    );
+  }
+  if (norm === "draft" || norm === "off") {
+    return (
+      <span className="sc-status-badge sc-status-draft">
+        {isId ? "Draf" : "Draft"}
+      </span>
+    );
+  }
+  return (
+    <span className="sc-status-badge sc-status-ready">
+      <CheckCircle2 className="h-3 w-3 text-[#fe6f05]" />
+      <span>{isId ? "Aktif" : "Active"}</span>
+    </span>
   );
 }
 
@@ -855,10 +486,13 @@ export default function StoreCustomizationHomeSettings2026({
   isLoading,
   meta = {},
   language = "en",
-  languages = [],
-  onLanguageChange,
 }) {
-  const isIndo = String(language || "").toLowerCase().startsWith("id");
+  const { i18n } = useTranslation();
+  const isId = Boolean(
+    i18n.language?.toLowerCase().startsWith("id") ||
+    String(language || "").toLowerCase().startsWith("id")
+  );
+
   const [selectedSliderIndex, setSelectedSliderIndex] = useState(0);
   const [activeSliderTab, setActiveSliderTab] = useState("slider-0");
   const [couponInput, setCouponInput] = useState("");
@@ -866,14 +500,19 @@ export default function StoreCustomizationHomeSettings2026({
   const [isUploadingSliderImage, setIsUploadingSliderImage] = useState(false);
   const [imageUploadErrors, setImageUploadErrors] = useState({});
   const [uploadingImageKey, setUploadingImageKey] = useState("");
+  const [activeSectionId, setActiveSectionId] = useState("mainSlider");
+
   const fileInputRef = useRef(null);
   const sectionRefs = useRef({});
 
-  const draft = useMemo(() => normalizeHomeValue(value, language), [value, language]);
-  const currentSlider = draft.mainSlider.sliders[selectedSliderIndex] || draft.mainSlider.sliders[0];
-  const activeSlides = draft.mainSlider.sliders.filter(
-    (slide) => toText(slide.title) || toText(slide.imageDataUrl)
-  ).length;
+  const draft = useMemo(() => {
+    const source = isPlainObject(value) ? value : {};
+    return mergeDeep(DEFAULT_CONFIG, source);
+  }, [value]);
+
+  const currentSlider =
+    draft.mainSlider?.sliders?.[selectedSliderIndex] ||
+    DEFAULT_CONFIG.mainSlider.sliders[0];
 
   const updateDraft = (path, nextValue) => {
     onChange?.(cloneWithPath(draft, path, nextValue));
@@ -883,37 +522,25 @@ export default function StoreCustomizationHomeSettings2026({
     updateDraft(["mainSlider", "sliders", selectedSliderIndex, field], nextValue);
   };
 
-  const setSectionRef = (key) => (node) => {
-    if (node) {
-      sectionRefs.current[key] = node;
-    }
+  const registerSectionRef = (key) => (node) => {
+    if (node) sectionRefs.current[key] = node;
   };
 
-  const focusSection = (key) => {
-    if (key === "mainSlider") {
-      setSelectedSliderIndex(0);
-      setActiveSliderTab("slider-0");
-    }
-
+  const scrollToSection = (key) => {
+    setActiveSectionId(key);
     const target = sectionRefs.current[key];
     if (!target) return;
-
     target.scrollIntoView({ behavior: "smooth", block: "start" });
-    window.setTimeout(() => {
-      target
-        .querySelector("input, textarea, select, button")
-        ?.focus?.({ preventScroll: true });
-    }, 350);
   };
 
   const uploadSliderImage = async (file) => {
     if (!file) return;
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      setUploadError("Use JPG, PNG, or WEBP.");
+      setUploadError(isId ? "Gunakan format JPG, PNG, atau WEBP." : "Use JPG, PNG, or WEBP.");
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      setUploadError("Max file size is 2MB.");
+      setUploadError(isId ? "Ukuran file maksimal 2MB." : "Max file size is 2MB.");
       return;
     }
     setIsUploadingSliderImage(true);
@@ -921,12 +548,12 @@ export default function StoreCustomizationHomeSettings2026({
       const result = await uploadAdminImage(file);
       const uploadedUrl = String(result?.url || result?.data?.url || "").trim();
       if (!uploadedUrl) {
-        throw new Error("Upload succeeded without an image URL.");
+        throw new Error("Upload succeeded without image URL.");
       }
       setUploadError("");
       updateSlider("imageDataUrl", uploadedUrl);
     } catch (error) {
-      setUploadError(error?.response?.data?.message || error?.message || "Failed to upload image.");
+      setUploadError(error?.response?.data?.message || error?.message || "Failed to upload.");
     } finally {
       setIsUploadingSliderImage(false);
     }
@@ -935,11 +562,17 @@ export default function StoreCustomizationHomeSettings2026({
   const uploadImageForPath = async (imageKey, path, file) => {
     if (!file) return;
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      setImageUploadErrors((prev) => ({ ...prev, [imageKey]: "Use JPG, PNG, or WEBP." }));
+      setImageUploadErrors((prev) => ({
+        ...prev,
+        [imageKey]: isId ? "Gunakan JPG, PNG, atau WEBP." : "Use JPG, PNG, or WEBP.",
+      }));
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      setImageUploadErrors((prev) => ({ ...prev, [imageKey]: "Max file size is 2MB." }));
+      setImageUploadErrors((prev) => ({
+        ...prev,
+        [imageKey]: isId ? "Ukuran file maksimal 2MB." : "Max file size is 2MB.",
+      }));
       return;
     }
 
@@ -947,23 +580,17 @@ export default function StoreCustomizationHomeSettings2026({
     try {
       const result = await uploadAdminImage(file);
       const uploadedUrl = String(result?.url || result?.data?.url || "").trim();
-      if (!uploadedUrl) {
-        throw new Error("Upload succeeded without an image URL.");
-      }
+      if (!uploadedUrl) throw new Error("Upload succeeded without image URL.");
       setImageUploadErrors((prev) => ({ ...prev, [imageKey]: "" }));
       updateDraft(path, uploadedUrl);
     } catch (error) {
       setImageUploadErrors((prev) => ({
         ...prev,
-        [imageKey]: error?.response?.data?.message || error?.message || "Failed to upload image.",
+        [imageKey]: error?.response?.data?.message || error?.message || "Failed to upload.",
       }));
     } finally {
       setUploadingImageKey("");
     }
-  };
-
-  const removeImageForPath = (path) => {
-    updateDraft(path, "");
   };
 
   const removeHeaderLogo = () => {
@@ -982,15 +609,17 @@ export default function StoreCustomizationHomeSettings2026({
       .map((item) => item.trim().toUpperCase())
       .filter(Boolean);
     if (!parsed.length) return;
-    const next = [...new Set([...(draft.discountCouponBox.activeCouponCodes || []), ...parsed])];
+    const currentList = draft.discountCouponBox?.activeCouponCodes || [];
+    const next = [...new Set([...currentList, ...parsed])];
     updateDraft(["discountCouponBox", "activeCouponCodes"], next);
     setCouponInput("");
   };
 
   const removeCoupon = (code) => {
+    const currentList = draft.discountCouponBox?.activeCouponCodes || [];
     updateDraft(
       ["discountCouponBox", "activeCouponCodes"],
-      (draft.discountCouponBox.activeCouponCodes || []).filter((item) => item !== code)
+      currentList.filter((item) => item !== code)
     );
   };
 
@@ -1004,87 +633,62 @@ export default function StoreCustomizationHomeSettings2026({
   };
 
   const addFooterLink = (blockKey) => {
-    updateDraft(
-      ["footer", blockKey, "links"],
-      [...(draft.footer?.[blockKey]?.links || []), { label: "New Link", href: "#" }]
-    );
+    const current = draft.footer?.[blockKey]?.links || [];
+    updateDraft(["footer", blockKey, "links"], [
+      ...current,
+      { label: isId ? "Tautan Baru" : "New Link", href: "#" },
+    ]);
   };
 
   const removeFooterLink = (blockKey, index) => {
+    const current = draft.footer?.[blockKey]?.links || [];
     updateDraft(
       ["footer", blockKey, "links"],
-      (draft.footer?.[blockKey]?.links || []).filter((_, itemIndex) => itemIndex !== index)
+      current.filter((_, itemIndex) => itemIndex !== index)
     );
   };
 
   const generateWaLink = () => {
-    const digits = toText(draft.header.phoneNumber).replace(/\D/g, "");
-    if (!digits) return;
-    updateDraft(["header", "whatsAppLink"], `https://wa.me/${digits.startsWith("0") ? `62${digits.slice(1)}` : digits}`);
+    const phone = toText(draft.header?.phoneNumber || "");
+    const cleaned = phone.replace(/[^\d]/g, "");
+    const supportText = toText(draft.header?.headerText || "Halo TP Preneurs");
+    const link = `https://wa.me/${cleaned}?text=${encodeURIComponent(supportText)}`;
+    updateDraft(["header", "whatsAppLink"], link);
   };
 
-  const blocks = [
-    {
-      key: "mainSlider",
-      title: "Main Slider",
-      detail: "Hero banners and promotional sliders",
-      icon: Image,
-      status: activeSlides > 0 ? "ready" : "needsReview",
-    },
-    {
-      key: "header",
-      title: "Header",
-      detail: "Logo, contacts and header information",
-      icon: Store,
-      status: draft.header.headerText ? "ready" : "needsReview",
-    },
-    {
-      key: "featuredCategories",
-      title: "Featured Categories",
-      detail: "Showcase top categories",
-      icon: Grid3X3,
-      status: draft.featuredCategories.enabled ? "ready" : "draft",
-    },
-    {
-      key: "popularProducts",
-      title: "Popular Products",
-      detail: "Highlight popular products",
-      icon: ShoppingBag,
-      status: draft.popularProducts.enabled ? "ready" : "draft",
-    },
-    {
-      key: "promotionBanner",
-      title: isIndo ? "Banner Promosi" : "Promotion Banner",
-      detail: isIndo ? "Teks dan banner promosi" : "Promotional text and banners",
-      icon: Megaphone,
-      status: draft.promotionBanner.status || "ready",
-    },
-    {
-      key: "newsletter",
-      title: isIndo ? "Newsletter & Katalog Produk" : "Newsletter & Product Catalog",
-      detail: isIndo ? "Kelola informasi newsletter dan etalase produk asli" : "Manage newsletter and real product showcase stats",
-      icon: Mail,
-      status: draft.footer?.newsletter?.enabled !== false ? "ready" : "draft",
-    },
-    {
-      key: "footer",
-      title: "Footer Links",
-      detail: "Footer menus and important links",
-      icon: Link,
-      status: draft.footer?.block4?.enabled ? "ready" : "needsReview",
-    },
+  // Section items for Quick Jump Nav
+  const sectionsList = [
+    { key: "mainSlider", labelEn: "Hero Slider", labelId: "Slider Banner", icon: Image },
+    { key: "couponBox", labelEn: "Coupons", labelId: "Kupon Diskon", icon: Tag },
+    { key: "headerSection", labelEn: "Header & Menu", labelId: "Header & Menu", icon: Store },
+    { key: "promotionBanner", labelEn: "Promo Banner", labelId: "Banner Promosi", icon: Megaphone },
+    { key: "featuredCategories", labelEn: "Categories", labelId: "Kategori Unggulan", icon: Layers3 },
+    { key: "popularProducts", labelEn: "Products", labelId: "Produk Populer", icon: ShoppingBag },
+    { key: "quickDelivery", labelEn: "Innovation Showcase", labelId: "Showcase Inovasi", icon: Sparkles },
+    { key: "newsletter", labelEn: "Newsletter", labelId: "Newsletter", icon: Mail },
+    { key: "footerLinks", labelEn: "Footer & Contact", labelId: "Footer & Kontak", icon: LinkIcon },
   ];
+
   return (
-    <div className="min-w-0 max-w-full space-y-5 overflow-x-clip pb-8 text-slate-900 dark:text-slate-100">
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-3xl font-extrabold tracking-normal text-slate-950 dark:text-white">
-            Store Customization
-          </h1>
-          <p className="mt-2 text-sm font-medium text-slate-500 dark:text-slate-400">
-            Manage homepage sections, labels, and storefront content.
+    <div className="sc-container text-slate-900 dark:text-slate-100">
+      {/* Page Header */}
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-950 dark:text-white">
+              {isId ? "Kustomisasi Toko" : "Store Customization"}
+            </h1>
+            <span className="sc-status-badge sc-status-ready">
+              {isId ? "Halaman Utama" : "Home Page"}
+            </span>
+          </div>
+          <p className="mt-1 text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">
+            {isId
+              ? "Kelola seksi homepage, banner promosi, label navigasi, dan etalase storefront."
+              : "Manage homepage sections, promotional banners, menu labels, and storefront content."}
           </p>
         </div>
+
         <StoreCustomizationSaveActions2026
           onSave={onSave}
           onPublish={onPublish}
@@ -1092,181 +696,70 @@ export default function StoreCustomizationHomeSettings2026({
           isPublishing={isPublishing}
           isLoading={isLoading}
           meta={meta}
-          className="w-full justify-end sm:w-auto"
         />
       </header>
 
+      {/* Tab Navigation */}
       <StoreCustomizationTabNav2026 activeTab={activeTab} onTabChange={onTabChange} />
 
-      <section className="grid grid-cols-1 gap-5">
-        <div className={`${cardClass} p-5`}>
-          <SectionTitle
-            icon={Boxes}
-            title="Homepage Blocks"
-            description="Review and customize each section of your homepage."
-            action={
-              <button type="button" aria-label="Collapse all homepage blocks" className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-bold text-slate-600 dark:border-slate-800 dark:text-slate-300">
-                <ChevronDown className="h-4 w-4 rotate-180" />
-                <span className="hidden min-[420px]:inline">Collapse All</span>
-              </button>
-            }
-          />
-          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
-            {blocks.map((block) => {
-              const Icon = block.icon;
-              return (
-                <article key={block.key} className="rounded-2xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg hover:shadow-slate-200/60 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-emerald-500/40 dark:hover:shadow-none">
-                  <div className="flex items-start gap-3">
-                    <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="break-words text-base font-extrabold leading-snug text-slate-950 dark:text-white">{block.title}</h3>
-                      <p className="mt-1 min-h-10 text-sm text-slate-500 dark:text-slate-400">{block.detail}</p>
-                    </div>
-                  </div>
-                  <div className="mt-4 flex flex-col items-stretch gap-2 min-[520px]:flex-row min-[520px]:items-center min-[520px]:justify-between">
-                    <StatusChip value={block.status} />
-                    <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
-                      <button type="button" onClick={() => focusSection(block.key)} className="inline-flex h-9 min-w-0 items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-600 dark:border-slate-800 dark:text-slate-300">
-                        <Eye className="h-3.5 w-3.5" />
-                        Review
-                      </button>
-                      <button type="button" onClick={() => focusSection(block.key)} className="inline-flex h-9 min-w-0 items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-600 dark:border-slate-800 dark:text-slate-300">
-                        <Edit3 className="h-3.5 w-3.5" />
-                        Edit
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-          <button type="button" className="mx-auto mt-5 flex items-center gap-2 text-sm font-extrabold text-emerald-700 dark:text-emerald-300">
-            View All Sections
-            <ChevronDown className="h-4 w-4" />
-          </button>
-        </div>
-
-      </section>
-
-      <section className="grid grid-cols-1 gap-5">
-        <div className={`${cardClass} p-5`}>
-          <SectionTitle icon={Layers3} title="Advanced Section Editor" description="Fine-tune texts, labels, and visibility settings for your homepage." action={<button type="button" aria-label="Collapse all advanced sections" className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-bold text-slate-600 dark:border-slate-800 dark:text-slate-300"><ChevronDown className="h-4 w-4 rotate-180" /><span className="hidden min-[420px]:inline">Collapse All</span></button>} />
-
-          <div className="mt-5 space-y-4">
-            <div ref={setSectionRef("header")} className="rounded-2xl border border-slate-200 p-4 scroll-mt-24 dark:border-slate-800">
-              <SectionTitle icon={Store} title="Header" description="Update top bar information displayed on your store." />
-              <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_190px]">
-                <Field label="Support Text" value={draft.header.headerText} onChange={(next) => updateDraft(["header", "headerText"], next)} />
-                <Field label="Phone Number" value={draft.header.phoneNumber} onChange={(next) => updateDraft(["header", "phoneNumber"], next)} max={20} />
-                <Field label="WhatsApp Link" value={draft.header.whatsAppLink} onChange={(next) => updateDraft(["header", "whatsAppLink"], next)} max={120} type="url" />
-                <button type="button" onClick={generateWaLink} className="mt-6 inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 px-3 text-sm font-extrabold text-slate-700 dark:border-slate-800 dark:text-slate-200">
-                  <Link className="h-4 w-4 text-emerald-600" />
-                  Generate WA Link
-                </button>
-              </div>
-              <div className="mt-5 rounded-2xl border border-dashed border-slate-200 p-4 dark:border-slate-800">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-extrabold text-slate-950 dark:text-white">Header Logo</h3>
-                    <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
-                      Shown in the storefront header when this customization logo is set.
-                    </p>
-                  </div>
-                  <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-extrabold text-slate-700 dark:border-slate-800 dark:text-slate-200">
-                    <UploadCloud className="h-4 w-4 text-emerald-600" />
-                    {uploadingImageKey === "headerLogo" ? "Uploading..." : "Upload Logo"}
-                    <input
-                      type="file"
-                      accept=".png,.jpeg,.jpg,.webp"
-                      className="hidden"
-                      disabled={uploadingImageKey === "headerLogo"}
-                      onChange={async (event) => {
-                        await uploadImageForPath("headerLogo", ["header", "headerLogoUrl"], event.target.files?.[0]);
-                        event.target.value = "";
-                      }}
-                    />
-                  </label>
-                </div>
-                {imageUploadErrors.headerLogo ? (
-                  <p className="mt-3 text-sm font-semibold text-rose-600">{imageUploadErrors.headerLogo}</p>
-                ) : null}
-                {toText(draft.header.headerLogoUrl || draft.header.logoDataUrl) ? (
-                  <div className="mt-4 flex items-center gap-4 rounded-xl bg-slate-50 p-3 dark:bg-slate-900">
-                    <img
-                      src={draft.header.headerLogoUrl || draft.header.logoDataUrl}
-                      alt="Header logo preview"
-                      className="h-12 w-36 rounded-lg bg-white object-contain p-2 dark:bg-slate-950"
-                    />
-                    <button
-                      type="button"
-                      onClick={removeHeaderLogo}
-                      className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 px-3 text-xs font-bold text-rose-600 dark:border-slate-800"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
-              <SectionTitle icon={Grid3X3} title="Menu Labels" description="Customize the text labels used in your main navigation." />
-              <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-                {MENU_LABEL_FIELDS.map(([key, label]) => (
-                  <Field
-                    key={key}
-                    label={label}
-                    value={draft.menuEditor.labels?.[key] || ""}
-                    max={20}
-                    onChange={(next) => updateDraft(["menuEditor", "labels", key], next)}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
-              <SectionTitle icon={draft.menuEditor.enabled?.showCategories ? Eye : EyeOff} title="Visibility Controls" description="Show or hide sections and links on your homepage." />
-              <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                {VISIBILITY_FIELDS.map(([key, label]) => (
-                  <div key={key}>
-                    <span className="mb-1.5 block text-xs font-semibold text-slate-600 dark:text-slate-300">{label}</span>
-                    <YesNoToggle checked={Boolean(draft.menuEditor.enabled?.[key])} onChange={(next) => updateDraft(["menuEditor", "enabled", key], next)} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </section>
-
-      <section ref={setSectionRef("mainSlider")} className={`${cardClass} p-5 scroll-mt-24`}>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-extrabold text-slate-950 dark:text-white">Main Slider</h2>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Configure the hero slider that appears at the top of your homepage.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 gap-2 min-[520px]:flex">
-            <button type="button" onClick={onPreview} className="inline-flex h-10 min-w-0 items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-bold text-slate-600 dark:border-slate-800 dark:text-slate-300">
-              <Eye className="h-4 w-4" />
-              Preview on Store
+      {/* Modern Quick Section Navigator (Pill Jump Bar) */}
+      <nav aria-label="Quick section navigation" className="sc-quick-nav">
+        {sectionsList.map((sec) => {
+          const SecIcon = sec.icon;
+          const isActive = activeSectionId === sec.key;
+          return (
+            <button
+              key={sec.key}
+              type="button"
+              onClick={() => scrollToSection(sec.key)}
+              className={`sc-quick-pill ${isActive ? "is-active" : ""}`}
+            >
+              <SecIcon className="h-3.5 w-3.5" />
+              <span>{isId ? sec.labelId : sec.labelEn}</span>
             </button>
-            <button type="button" className="inline-flex h-10 w-full items-center justify-center rounded-xl border border-slate-200 text-slate-500 dark:border-slate-800 min-[520px]:w-10">
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button type="button" className="inline-flex h-10 w-full items-center justify-center rounded-xl border border-slate-200 text-slate-500 dark:border-slate-800 min-[520px]:w-10">
-              <ChevronRight className="h-4 w-4" />
+          );
+        })}
+      </nav>
+
+      {/* SECTION 1: MAIN SLIDER */}
+      <section ref={registerSectionRef("mainSlider")} className="sc-card scroll-mt-36">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-3">
+            <span className="sc-section-icon">
+              <Image className="h-5 w-5" />
+            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="sc-section-title">
+                  {isId ? "Slider Banner Utama" : "Main Hero Slider"}
+                </h2>
+                <ScStatusChip value="ready" isId={isId} />
+              </div>
+              <p className="sc-section-desc">
+                {isId
+                  ? "Atur banner slider hero yang tampil di baris teratas halaman beranda."
+                  : "Configure the top hero banner carousel displayed on your homepage."}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onPreview}
+              className="sc-btn-secondary h-9 text-xs"
+            >
+              <Eye className="h-3.5 w-3.5" />
+              <span>{isId ? "Pratinjau Toko" : "Storefront Preview"}</span>
             </button>
           </div>
         </div>
 
-        <div className="mt-5 flex flex-wrap gap-5 border-b border-slate-200 dark:border-slate-800">
-          {[...Array(MAIN_SLIDER_LENGTH)].map((_, index) => {
+        {/* Slider Index Tabs */}
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-200 dark:border-slate-800 pb-2">
+          {Array.from({ length: MAIN_SLIDER_LENGTH }, (_, index) => {
             const key = `slider-${index}`;
+            const isSelected = activeSliderTab === key;
             return (
               <button
                 key={key}
@@ -1275,55 +768,90 @@ export default function StoreCustomizationHomeSettings2026({
                   setSelectedSliderIndex(index);
                   setActiveSliderTab(key);
                 }}
-                className={`border-b-2 px-4 py-3 text-sm font-extrabold transition ${
-                  activeSliderTab === key
-                    ? "border-emerald-600 text-emerald-700 dark:text-emerald-300"
-                    : "border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                  isSelected
+                    ? "bg-[#034c85] text-white shadow-sm"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800"
                 }`}
               >
-                Slider {index + 1}
+                {isId ? `Slide ${index + 1}` : `Slider ${index + 1}`}
               </button>
             );
           })}
           <button
             type="button"
             onClick={() => setActiveSliderTab("options")}
-            className={`border-b-2 px-4 py-3 text-sm font-extrabold transition ${
+            className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
               activeSliderTab === "options"
-                ? "border-emerald-600 text-emerald-700 dark:text-emerald-300"
-                : "border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+                ? "bg-[#fe6f05] text-white shadow-sm"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800"
             }`}
           >
-            Options
+            {isId ? "Opsi Carousel" : "Carousel Options"}
           </button>
         </div>
 
         {activeSliderTab === "options" ? (
-          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
-            {[
-              ["showArrows", "Show Arrows"],
-              ["showDots", "Show Dots"],
-              ["showBoth", "Show Both"],
-              ["autoplayEnabled", "Auto Slide"],
-            ].map(([key, label]) => (
-              <div key={key} className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
-                <span className="mb-3 block text-sm font-bold text-slate-700 dark:text-slate-200">{label}</span>
-                <YesNoToggle checked={Boolean(draft.mainSlider.options?.[key])} onChange={(next) => updateDraft(["mainSlider", "options", key], next)} />
-              </div>
-            ))}
-            <SelectField
-              label="Slide Duration"
-              value={String(draft.mainSlider.options?.autoplayDelaySeconds || 5)}
+          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-xl border border-slate-200 p-3.5 dark:border-slate-800">
+              <span className="sc-input-label mb-2">
+                {isId ? "Tampilkan Panah Navigasi" : "Show Arrows"}
+              </span>
+              <ScYesNoToggle
+                checked={Boolean(draft.mainSlider?.options?.showArrows)}
+                onChange={(next) => updateDraft(["mainSlider", "options", "showArrows"], next)}
+                yesLabel={isId ? "Ya" : "Yes"}
+                noLabel={isId ? "Tidak" : "No"}
+              />
+            </div>
+
+            <div className="rounded-xl border border-slate-200 p-3.5 dark:border-slate-800">
+              <span className="sc-input-label mb-2">
+                {isId ? "Tampilkan Titik Navigasi" : "Show Dots"}
+              </span>
+              <ScYesNoToggle
+                checked={Boolean(draft.mainSlider?.options?.showDots)}
+                onChange={(next) => updateDraft(["mainSlider", "options", "showDots"], next)}
+                yesLabel={isId ? "Ya" : "Yes"}
+                noLabel={isId ? "Tidak" : "No"}
+              />
+            </div>
+
+            <div className="rounded-xl border border-slate-200 p-3.5 dark:border-slate-800">
+              <span className="sc-input-label mb-2">
+                {isId ? "Putar Otomatis (Auto Slide)" : "Auto Slide"}
+              </span>
+              <ScYesNoToggle
+                checked={Boolean(draft.mainSlider?.options?.autoplayEnabled)}
+                onChange={(next) => updateDraft(["mainSlider", "options", "autoplayEnabled"], next)}
+                yesLabel={isId ? "Ya" : "Yes"}
+                noLabel={isId ? "Tidak" : "No"}
+              />
+            </div>
+
+            <ScSelectField
+              label={isId ? "Durasi Putar (Detik)" : "Slide Duration (Seconds)"}
+              value={String(draft.mainSlider?.options?.autoplayDelaySeconds || 5)}
               onChange={(next) => updateDraft(["mainSlider", "options", "autoplayDelaySeconds"], Number(next))}
-              options={["5", "10", "15"]}
+              options={[
+                { value: "3", label: "3 Seconds" },
+                { value: "5", label: "5 Seconds (Default)" },
+                { value: "8", label: "8 Seconds" },
+                { value: "10", label: "10 Seconds" },
+              ]}
             />
           </div>
         ) : (
-          <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[410px_minmax(0,1fr)_320px]">
-            <div>
-              <span className="mb-2 block text-sm font-extrabold text-slate-900 dark:text-white">
-                Slider Image <span className="text-rose-500">*</span>
-              </span>
+          <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-12 items-start">
+            {/* Upload Zone */}
+            <div className="lg:col-span-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="sc-input-label">
+                  {isId ? "Gambar Banner Slider" : "Slider Image"}
+                </span>
+                <span className="sc-spec-chip">1200×400 px • 3:1</span>
+              </div>
+
               <input
                 ref={fileInputRef}
                 type="file"
@@ -1335,898 +863,1221 @@ export default function StoreCustomizationHomeSettings2026({
                 }}
                 disabled={isUploadingSliderImage}
               />
-              <button
-                type="button"
+
+              <div
                 onClick={() => fileInputRef.current?.click()}
-                onDragOver={(event) => event.preventDefault()}
-                onDrop={(event) => {
-                  event.preventDefault();
-                  uploadSliderImage(event.dataTransfer?.files?.[0]);
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  uploadSliderImage(e.dataTransfer?.files?.[0]);
                 }}
-                disabled={isUploadingSliderImage}
-                className="flex min-h-[250px] w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 text-center transition hover:border-emerald-300 hover:bg-emerald-50/50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-emerald-500/50"
+                className="sc-upload-zone"
               >
-                <UploadCloud className="h-10 w-10 text-emerald-600" />
-                <span className="mt-4 text-sm font-extrabold text-slate-800 dark:text-slate-100">
-                  {isUploadingSliderImage ? "Uploading image..." : "Drag & drop your image here"}
+                <UploadCloud className="h-9 w-9 text-[#034c85] dark:text-blue-400" />
+                <span className="mt-2 text-xs font-bold text-slate-800 dark:text-slate-200">
+                  {isUploadingSliderImage
+                    ? (isId ? "Sedang mengunggah..." : "Uploading image...")
+                    : (isId ? "Tarik & lepas gambar atau klik untuk unggah" : "Drag & drop image or click to upload")}
                 </span>
-                <span className="mt-2 text-xs text-slate-500 dark:text-slate-400">or</span>
-                <span className="mt-3 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200">
-                  {isUploadingSliderImage ? "Please wait..." : "Upload Image"}
-                </span>
-              </button>
-              <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-                Recommended size: 1200 x 400px (3:1 aspect ratio). Keep the main subject near the center safe area since edges may be cropped on smaller screens. Max file size: 2MB
-              </p>
-              {uploadError ? <p className="mt-2 text-sm font-semibold text-rose-600">{uploadError}</p> : null}
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <Field label="Slider Title" value={currentSlider.title} onChange={(next) => updateSlider("title", next)} max={60} />
-              <Field label="Button Label" value={currentSlider.buttonName} onChange={(next) => updateSlider("buttonName", next)} max={20} />
-              <SelectField label="Image Focus" value={currentSlider.imageFocus || "right"} onChange={(next) => updateSlider("imageFocus", next)} options={["right", "center", "left"]} />
-              <Field label="Button Link" value={currentSlider.buttonLink} onChange={(next) => updateSlider("buttonLink", next)} max={120} />
-              <div className="lg:col-span-2">
-                <TextAreaField label="Description" value={currentSlider.description} onChange={(next) => updateSlider("description", next)} max={160} />
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-extrabold text-slate-950 dark:text-white">Live Preview (Storefront)</h3>
-                <div className="hidden shrink-0 gap-2 min-[520px]:flex">
-                  <Monitor className="h-5 w-5 text-emerald-600" />
-                  <Smartphone className="h-5 w-5 text-slate-400" />
+                <div className="mt-2 flex flex-wrap gap-1.5 justify-center">
+                  <span className="sc-spec-chip">Maks 2MB</span>
+                  <span className="sc-spec-chip">JPG / PNG / WEBP</span>
                 </div>
               </div>
-              <div className="relative min-h-[210px] overflow-hidden rounded-2xl bg-[#eef6ff] p-4 dark:bg-slate-900">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_58%_45%,rgba(3,76,133,0.12),transparent_35%)]" />
-                <div className="relative grid min-h-[178px] grid-cols-[minmax(0,1fr)_92px] items-stretch gap-3">
-                  <div className={`relative flex flex-col justify-center overflow-hidden rounded-xl ${currentSlider.imageDataUrl ? "w-full h-full" : ""}`}>
-                    {currentSlider.imageDataUrl ? (
+
+              {uploadError ? (
+                <p className="text-xs font-semibold text-rose-600">{uploadError}</p>
+              ) : null}
+
+              {currentSlider.imageDataUrl ? (
+                <div className="flex items-center justify-between rounded-xl border border-slate-200 p-2.5 dark:border-slate-800">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <img
+                      src={currentSlider.imageDataUrl}
+                      alt="Slider thumb"
+                      className="h-10 w-24 rounded-lg object-cover"
+                    />
+                    <span className="text-xs font-semibold truncate text-slate-600 dark:text-slate-300">
+                      {isId ? "Gambar Terunggah" : "Uploaded Image"}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => updateSlider("imageDataUrl", "")}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                    title={isId ? "Hapus Gambar" : "Remove Image"}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : null}
+            </div>
+
+            {/* Inputs & Live Mini Preview */}
+            <div className="lg:col-span-7 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <ScField
+                  label={isId ? "Judul Slider" : "Slider Title"}
+                  value={currentSlider.title}
+                  onChange={(next) => updateSlider("title", next)}
+                  placeholder={isId ? "Contoh: Promo Spesial Dies Natalis" : "Summer Sale is Live!"}
+                />
+                <ScField
+                  label={isId ? "Teks Tombol" : "Button Label"}
+                  value={currentSlider.buttonName}
+                  onChange={(next) => updateSlider("buttonName", next)}
+                  placeholder={isId ? "Beli Sekarang" : "Shop Now"}
+                />
+                <ScField
+                  label={isId ? "Tautan Tombol" : "Button Link"}
+                  value={currentSlider.buttonLink}
+                  onChange={(next) => updateSlider("buttonLink", next)}
+                  placeholder="/shop"
+                />
+                <ScSelectField
+                  label={isId ? "Fokus Posisi Gambar" : "Image Focus"}
+                  value={currentSlider.imageFocus || "right"}
+                  onChange={(next) => updateSlider("imageFocus", next)}
+                  options={[
+                    { value: "right", label: isId ? "Kanan (Right)" : "Right" },
+                    { value: "center", label: isId ? "Tengah (Center)" : "Center" },
+                    { value: "left", label: isId ? "Kiri (Left)" : "Left" },
+                  ]}
+                />
+              </div>
+
+              <ScTextAreaField
+                label={isId ? "Deskripsi Ringkas" : "Short Description"}
+                value={currentSlider.description}
+                onChange={(next) => updateSlider("description", next)}
+                placeholder={isId ? "Dapatkan diskon eksklusif karya inovatif mahasiswa." : "Up to 50% off on selected items."}
+              />
+
+              {/* Storefront Mini Preview */}
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-gradient-to-r from-[#034c85] via-[#023b67] to-[#012543] p-4 text-white shadow-sm dark:border-slate-800">
+                <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-orange-200">
+                    {isId ? "Pratinjau Banner Storefront" : "Storefront Slider Preview"}
+                  </span>
+                  <span className="text-[10px] text-blue-200">TP PRENEURS</span>
+                </div>
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="space-y-1.5 flex-1 min-w-0">
+                    <h3 className="text-base sm:text-lg font-black truncate text-white">
+                      {currentSlider.title || (isId ? "Judul Banner Promosi" : "Promotion Banner Title")}
+                    </h3>
+                    <p className="text-xs text-blue-100 line-clamp-2">
+                      {currentSlider.description || (isId ? "Deskripsi produk dan penawaran karya inovatif." : "Description of featured products and offers.")}
+                    </p>
+                    <div className="pt-1">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#fe6f05] px-3 py-1 text-xs font-bold text-white shadow-sm">
+                        {currentSlider.buttonName || (isId ? "Jelajahi" : "Explore")} →
+                      </span>
+                    </div>
+                  </div>
+                  {currentSlider.imageDataUrl ? (
+                    <div className="h-20 w-32 shrink-0 overflow-hidden rounded-lg border border-white/20">
                       <img
                         src={currentSlider.imageDataUrl}
-                        alt=""
-                        className={`absolute inset-0 h-full w-full object-contain ${getPreviewImageFocusClass(currentSlider.imageFocus)}`}
+                        alt="Slider preview"
+                        className="h-full w-full object-cover"
                       />
-                    ) : null}
-                    <div className={`relative z-10 ${currentSlider.imageDataUrl ? "p-3 sm:p-4" : ""} min-w-0`}>
-
-                    {toText(currentSlider.title) ? (
-                      <p className="mt-3 text-2xl font-black leading-none text-[#071a3f] dark:text-white">
-                        {currentSlider.title}
-                      </p>
-                    ) : null}
-                    {toText(currentSlider.description) ? (
-                      <p className="mt-2 line-clamp-2 text-xs font-semibold leading-5 text-[#4e6387] dark:text-slate-300">
-                        {currentSlider.description}
-                      </p>
-                    ) : null}
-                    {toText(currentSlider.buttonName) ? (
-                      <span className="mt-3 inline-flex h-9 items-center rounded-full bg-[var(--tp-primary)] px-4 text-xs font-black text-white">
-                        {currentSlider.buttonName}
-                      </span>
-                    ) : null}
-                  </div>
-                  </div>
-                  {draft.discountCouponBox.enabled ? (
-                    <div className="rounded-2xl border border-[#cdebdc] bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-slate-950">
-                      <p className="text-[7px] font-black uppercase tracking-[0.16em] text-[var(--tp-accent)]">
-                        Coupon Box
-                      </p>
-                      <p className="mt-1 line-clamp-2 text-[10px] font-black leading-3 text-[#071a3f] dark:text-white">
-                        {draft.discountCouponBox.title}
-                      </p>
-                      <div className="mt-2 rounded-xl border border-dashed border-[#00b876]/50 bg-[#f2fff8] px-1.5 py-2 text-center dark:bg-slate-900">
-                        <p className="text-[7px] font-black uppercase tracking-[0.12em] text-[#00a46c]">
-                          Coupon
-                        </p>
-                        <p className="mt-1 truncate text-[11px] font-black tracking-[0.12em] text-[var(--tp-primary)] dark:text-sky-300">
-                          {draft.discountCouponBox.activeCouponCodes?.[0] || "CODE"}
-                        </p>
-                      </div>
                     </div>
                   ) : null}
                 </div>
-              </div>
-              <div className="mt-3 flex justify-center gap-1.5">
-                {[0, 1, 2].map((item) => (
-                  <span key={item} className={`h-1.5 rounded-full ${item === 0 ? "w-6 bg-emerald-600" : "w-4 bg-slate-300 dark:bg-slate-700"}`} />
-                ))}
               </div>
             </div>
           </div>
         )}
       </section>
 
-      <section className={`${cardClass} p-5`}>
-        <div className="flex flex-wrap items-start justify-between gap-4">
+      {/* SECTION 2: DISCOUNT COUPON BOX */}
+      <section ref={registerSectionRef("couponBox")} className="sc-card scroll-mt-36">
+        <ScSectionTitle
+          icon={Tag}
+          title={isId ? "Kotak Kupon Diskon" : "Discount Coupon Box"}
+          description={
+            isId
+              ? "Kelola kode kupon aktif yang tampil di sebelah kanan slider utama beranda."
+              : "Enable and manage active coupon codes shown on the right side of the hero slider."
+          }
+          action={
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                {isId ? "Aktifkan Kupon" : "Enable Box"}
+              </span>
+              <ScToggle
+                checked={Boolean(draft.discountCouponBox?.enabled)}
+                onChange={(next) => updateDraft(["discountCouponBox", "enabled"], next)}
+                ariaLabel="Toggle discount coupon box"
+              />
+            </div>
+          }
+        />
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+          <ScField
+            label={isId ? "Judul Kotak Kupon" : "Coupon Box Title"}
+            value={draft.discountCouponBox?.title}
+            onChange={(next) => updateDraft(["discountCouponBox", "title"], next)}
+            placeholder={isId ? "Gunakan kupon spesial untuk potongan harga!" : "Grab extra savings with our exclusive coupons!"}
+          />
+
           <div>
-            <h2 className="text-xl font-extrabold text-slate-950 dark:text-white">Discount Coupon Code Box</h2>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Enable and manage the coupon code box displayed on the right side of the main slider.</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-bold text-slate-600 dark:text-slate-300">Enable Coupon Box</span>
-            <YesNoToggle checked={Boolean(draft.discountCouponBox.enabled)} onChange={(next) => updateDraft(["discountCouponBox", "enabled"], next)} />
-          </div>
-        </div>
-        <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-          <Field label="Box Title" value={draft.discountCouponBox.title} onChange={(next) => updateDraft(["discountCouponBox", "title"], next)} max={80} />
-          <div>
-            <span className="mb-1.5 block text-xs font-semibold text-slate-600 dark:text-slate-300">Coupon Codes</span>
-            <div className="flex flex-wrap gap-2">
-              {(draft.discountCouponBox.activeCouponCodes || []).map((code) => (
-                <span key={code} className="inline-flex h-9 max-w-full items-center gap-2 rounded-xl bg-emerald-100 px-3 text-sm font-extrabold text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200">
-                  <span className="min-w-0 truncate">{code}</span>
-                  <button type="button" className="shrink-0" onClick={() => removeCoupon(code)} aria-label={`Remove ${code}`}>
-                    <X className="h-3.5 w-3.5" />
+            <span className="sc-input-label mb-1.5 block">
+              {isId ? "Daftar Kode Kupon Aktif" : "Active Coupon Codes"}
+            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              {(draft.discountCouponBox?.activeCouponCodes || []).map((code) => (
+                <span
+                  key={code}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#034c85]/20 bg-[#034c85]/10 px-2.5 py-1 text-xs font-black text-[#034c85] dark:bg-[#034c85]/25 dark:text-blue-300 dark:border-blue-400/30"
+                >
+                  <span>{code}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeCoupon(code)}
+                    className="hover:text-rose-600 transition"
+                    title={isId ? `Hapus ${code}` : `Remove ${code}`}
+                  >
+                    <X className="h-3 w-3" />
                   </button>
                 </span>
               ))}
+
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="text"
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === ",") {
+                      e.preventDefault();
+                      addCoupon();
+                    }
+                  }}
+                  placeholder="KODEKUPON"
+                  className="h-8 w-28 rounded-lg border border-slate-300 bg-white px-2 text-xs font-bold uppercase text-slate-800 outline-none focus:border-[#034c85] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                />
+                <button
+                  type="button"
+                  onClick={addCoupon}
+                  className="inline-flex h-8 items-center gap-1 rounded-lg bg-[#034c85] px-2.5 text-xs font-bold text-white hover:bg-[#023a66] transition shadow-sm"
+                >
+                  <Plus className="h-3 w-3" />
+                  <span>{isId ? "Tambah" : "Add"}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 3: HEADER & TOP BAR */}
+      <section ref={registerSectionRef("headerSection")} className="sc-card scroll-mt-36">
+        <ScSectionTitle
+          icon={Store}
+          title={isId ? "Header & Menu Navigasi" : "Header & Navigation Bar"}
+          description={
+            isId
+              ? "Kelola informasi kontak layanan bantuan, WhatsApp, logo header, dan label menu utama."
+              : "Update customer support contacts, WhatsApp link, header logo, and navigation labels."
+          }
+        />
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 mt-4">
+          <ScField
+            label={isId ? "Teks Bantuan Customer" : "Customer Support Text"}
+            value={draft.header?.headerText}
+            onChange={(next) => updateDraft(["header", "headerText"], next)}
+            placeholder="+62821-8866-824"
+          />
+          <ScField
+            label={isId ? "Nomor Telepon Toko" : "Store Phone Number"}
+            value={draft.header?.phoneNumber}
+            onChange={(next) => updateDraft(["header", "phoneNumber"], next)}
+            placeholder="+62821-8866-824"
+          />
+          <div className="flex flex-col justify-end">
+            <span className="sc-input-label mb-1">
+              {isId ? "Tautan WhatsApp Resmi" : "Official WhatsApp Link"}
+            </span>
+            <div className="flex gap-2">
               <input
-                value={couponInput}
-                onChange={(event) => setCouponInput(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === ",") {
-                    event.preventDefault();
-                    addCoupon();
-                  }
-                }}
-                placeholder="ADDCODE"
-                className="h-9 w-32 rounded-xl border border-dashed border-emerald-300 bg-white px-3 text-sm font-bold text-emerald-700 outline-none dark:bg-slate-950"
+                type="url"
+                value={draft.header?.whatsAppLink || ""}
+                onChange={(e) => updateDraft(["header", "whatsAppLink"], e.target.value)}
+                className="sc-input flex-1"
+                placeholder="https://wa.me/628218866824"
               />
-              <button type="button" onClick={addCoupon} className="h-9 rounded-xl border border-dashed border-emerald-300 px-3 text-sm font-extrabold text-emerald-700 dark:text-emerald-300">
-                + Add Coupon
+              <button
+                type="button"
+                onClick={generateWaLink}
+                className="sc-btn-secondary h-10 shrink-0 px-3 text-xs"
+                title={isId ? "Buat Tautan WA Otomatis" : "Generate WhatsApp Link"}
+              >
+                <Phone className="h-3.5 w-3.5 text-[#fe6f05]" />
+                <span className="hidden sm:inline">{isId ? "Buat Link" : "Generate"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Header Logo Upload */}
+        <div className="mt-4 rounded-xl border border-slate-200 p-3.5 dark:border-slate-800">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  {isId ? "Logo Khusus Header" : "Header Logo"}
+                </span>
+                <span className="sc-spec-chip">PNG / SVG / WEBP • Maks 2MB</span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                {isId
+                  ? "Tampil di navbar teratas storefront. Jika kosong, logo default workspace digunakan."
+                  : "Displayed in the storefront header. If empty, default workspace logo is used."}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="sc-btn-secondary h-9 cursor-pointer text-xs">
+                <UploadCloud className="h-3.5 w-3.5 text-[#fe6f05]" />
+                <span>
+                  {uploadingImageKey === "headerLogo"
+                    ? (isId ? "Mengunggah..." : "Uploading...")
+                    : (isId ? "Unggah Logo" : "Upload Logo")}
+                </span>
+                <input
+                  type="file"
+                  accept=".png,.jpeg,.jpg,.webp,.svg"
+                  className="hidden"
+                  disabled={uploadingImageKey === "headerLogo"}
+                  onChange={async (e) => {
+                    await uploadImageForPath("headerLogo", ["header", "headerLogoUrl"], e.target.files?.[0]);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+
+              {toText(draft.header?.headerLogoUrl || draft.header?.logoDataUrl) ? (
+                <button
+                  type="button"
+                  onClick={removeHeaderLogo}
+                  className="inline-flex h-9 items-center justify-center gap-1 rounded-xl border border-rose-200 px-3 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:border-rose-900/40 dark:hover:bg-rose-950/30"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span>{isId ? "Hapus" : "Remove"}</span>
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          {toText(draft.header?.headerLogoUrl || draft.header?.logoDataUrl) ? (
+            <div className="mt-3 flex items-center gap-3 rounded-lg bg-slate-50 p-2 dark:bg-slate-900">
+              <img
+                src={draft.header?.headerLogoUrl || draft.header?.logoDataUrl}
+                alt="Header Logo"
+                className="h-10 max-w-[160px] object-contain bg-white dark:bg-slate-950 p-1 rounded"
+              />
+              <span className="text-xs font-semibold text-slate-500">
+                {isId ? "Logo header aktif" : "Active header logo"}
+              </span>
+            </div>
+          ) : null}
+        </div>
+
+        {/* Menu Labels */}
+        <div className="mt-5 border-t border-slate-200 dark:border-slate-800 pt-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Grid3X3 className="h-4 w-4 text-[#034c85] dark:text-blue-400" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              {isId ? "Label Teks Menu Navigasi" : "Main Navigation Menu Labels"}
+            </h3>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+            {MENU_LABEL_FIELDS.map((item) => (
+              <label key={item.key} className="block min-w-0">
+                <span className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1 truncate">
+                  {isId ? item.labelId : item.labelEn}
+                </span>
+                <input
+                  type="text"
+                  value={draft.menuEditor?.labels?.[item.key] || ""}
+                  onChange={(e) => updateDraft(["menuEditor", "labels", item.key], e.target.value)}
+                  className="sc-input h-8 text-xs px-2"
+                />
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Visibility Controls */}
+        <div className="mt-4 border-t border-slate-200 dark:border-slate-800 pt-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Eye className="h-4 w-4 text-[#fe6f05]" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              {isId ? "Kontrol Visibilitas Menu" : "Menu Visibility Controls"}
+            </h3>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {VISIBILITY_FIELDS.map((item) => (
+              <div key={item.key} className="rounded-xl border border-slate-200 p-2.5 dark:border-slate-800">
+                <span className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5 truncate">
+                  {isId ? item.labelId : item.labelEn}
+                </span>
+                <ScYesNoToggle
+                  checked={Boolean(draft.menuEditor?.enabled?.[item.key])}
+                  onChange={(next) => updateDraft(["menuEditor", "enabled", item.key], next)}
+                  yesLabel={isId ? "Tampil" : "Show"}
+                  noLabel={isId ? "Sembunyi" : "Hide"}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 4: PROMOTION BANNER */}
+      <section ref={registerSectionRef("promotionBanner")} className="sc-card scroll-mt-36">
+        <ScSectionTitle
+          icon={Megaphone}
+          title={isId ? "Banner Promosi" : "Promotion Banner"}
+          description={
+            isId
+              ? "Tampilkan banner promosi untuk menonjolkan penawaran karya inovatif."
+              : "Highlight special student innovation campaigns and promotional offers."
+          }
+          action={
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                {isId ? "Aktifkan Banner" : "Enable Block"}
+              </span>
+              <ScToggle
+                checked={Boolean(draft.promotionBanner?.enabled)}
+                onChange={(next) => updateDraft(["promotionBanner", "enabled"], next)}
+                ariaLabel="Toggle promotion banner"
+              />
+            </div>
+          }
+        />
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 mt-4">
+          <ScField
+            label={isId ? "Judul Utama" : "Title"}
+            value={draft.promotionBanner?.title}
+            onChange={(next) => updateDraft(["promotionBanner", "title"], next)}
+            placeholder={isId ? "Karya Inovatif Mahasiswa & Edupreneur" : "Innovative Student & Edupreneur Creation"}
+          />
+          <ScField
+            label={isId ? "Subjudul / Eyebrow" : "Subtitle"}
+            value={draft.promotionBanner?.subtitle}
+            onChange={(next) => updateDraft(["promotionBanner", "subtitle"], next)}
+            placeholder={isId ? "Koleksi Eksklusif TP Preneurs" : "TP Preneurs Exclusive Collection"}
+          />
+          <ScField
+            label={isId ? "Label Tombol" : "Button Name"}
+            value={draft.promotionBanner?.buttonName}
+            onChange={(next) => updateDraft(["promotionBanner", "buttonName"], next)}
+            placeholder={isId ? "Jelajahi Produk" : "Explore Products"}
+          />
+          <ScField
+            label={isId ? "Tautan Tombol" : "Button Link"}
+            value={draft.promotionBanner?.buttonLink}
+            onChange={(next) => updateDraft(["promotionBanner", "buttonLink"], next)}
+            placeholder="/shop"
+          />
+          <ScSelectField
+            label={isId ? "Tampilkan Pada" : "Display On"}
+            value={draft.promotionBanner?.displayOn || "Desktop & Mobile"}
+            onChange={(next) => updateDraft(["promotionBanner", "displayOn"], next)}
+            options={[
+              { value: "Desktop & Mobile", label: "Desktop & Mobile" },
+              { value: "Desktop Only", label: "Desktop Only" },
+              { value: "Mobile Only", label: "Mobile Only" },
+            ]}
+          />
+          <ScSelectField
+            label={isId ? "Status Banner" : "Status"}
+            value={normalizeStatus(draft.promotionBanner?.status, "ready")}
+            onChange={(next) => updateDraft(["promotionBanner", "status"], next)}
+            options={[
+              { value: "ready", label: isId ? "Siap / Aktif" : "Ready / Active" },
+              { value: "needsreview", label: isId ? "Perlu Ditinjau" : "Needs Review" },
+              { value: "draft", label: isId ? "Draf" : "Draft" },
+            ]}
+          />
+        </div>
+
+        <div className="mt-3.5">
+          <ScTextAreaField
+            label={isId ? "Deskripsi Promosi" : "Description"}
+            value={draft.promotionBanner?.description}
+            onChange={(next) => updateDraft(["promotionBanner", "description"], next)}
+            placeholder={isId ? "Dukung karya technopreneur muda dengan produk kreatif..." : "Support young technopreneurs with creative solutions..."}
+          />
+        </div>
+
+        {/* Upload & Live Preview */}
+        <div className="mt-4 rounded-xl border border-slate-200 p-3.5 dark:border-slate-800">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  {isId ? "Gambar Latar Banner Promosi" : "Promotion Banner Image"}
+                </span>
+                <span className="sc-spec-chip">16:9 • Maks 2MB</span>
+              </div>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                {isId ? "Format JPG, PNG, atau WEBP." : "JPG, PNG, or WEBP format."}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="sc-btn-secondary h-9 cursor-pointer text-xs">
+                <UploadCloud className="h-3.5 w-3.5 text-[#fe6f05]" />
+                <span>
+                  {uploadingImageKey === "promotionBanner"
+                    ? (isId ? "Mengunggah..." : "Uploading...")
+                    : (isId ? "Unggah Gambar" : "Upload Image")}
+                </span>
+                <input
+                  type="file"
+                  accept=".png,.jpeg,.jpg,.webp"
+                  className="hidden"
+                  disabled={uploadingImageKey === "promotionBanner"}
+                  onChange={async (e) => {
+                    await uploadImageForPath("promotionBanner", ["promotionBanner", "imageDataUrl"], e.target.files?.[0]);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+
+              {draft.promotionBanner?.imageDataUrl ? (
+                <button
+                  type="button"
+                  onClick={() => updateDraft(["promotionBanner", "imageDataUrl"], "")}
+                  className="inline-flex h-9 items-center justify-center gap-1 rounded-xl border border-rose-200 px-3 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:border-rose-900/40"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span>{isId ? "Hapus" : "Remove"}</span>
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          {/* Mini Live Preview */}
+          <div className="mt-3 overflow-hidden rounded-xl bg-gradient-to-r from-[#034c85] via-[#023b67] to-[#012543] p-4 text-white shadow-sm">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="space-y-1 flex-1 min-w-0">
+                {draft.promotionBanner?.subtitle ? (
+                  <span className="inline-block rounded-full bg-white/15 px-2.5 py-0.5 text-[10px] font-bold text-orange-200">
+                    {draft.promotionBanner.subtitle}
+                  </span>
+                ) : null}
+                <h4 className="text-base font-black truncate text-white">
+                  {draft.promotionBanner?.title || (isId ? "Karya Inovatif Mahasiswa" : "Innovative Student Creations")}
+                </h4>
+                <p className="text-xs text-blue-100 line-clamp-1">
+                  {draft.promotionBanner?.description || (isId ? "Deskripsi banner promosi." : "Promotional banner description.")}
+                </p>
+                <div className="pt-1">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#fe6f05] px-3 py-1 text-xs font-bold text-white shadow-sm">
+                    {draft.promotionBanner?.buttonName || (isId ? "Jelajahi" : "Explore")} →
+                  </span>
+                </div>
+              </div>
+              {draft.promotionBanner?.imageDataUrl ? (
+                <img
+                  src={draft.promotionBanner.imageDataUrl}
+                  alt="Promo preview"
+                  className="h-20 w-32 rounded-lg object-cover border border-white/20"
+                />
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 5: FEATURED CATEGORIES & POPULAR PRODUCTS */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Featured Categories */}
+        <section ref={registerSectionRef("featuredCategories")} className="sc-card scroll-mt-36">
+          <ScSectionTitle
+            icon={Layers3}
+            title={isId ? "Kategori Unggulan" : "Featured Categories"}
+            description={
+              isId
+                ? "Sorot kategori terpopuler untuk membantu pembeli menjelajah katalog."
+                : "Showcase top categories to help customers explore quickly."
+            }
+            action={
+              <ScToggle
+                checked={Boolean(draft.featuredCategories?.enabled)}
+                onChange={(next) => updateDraft(["featuredCategories", "enabled"], next)}
+                ariaLabel="Toggle featured categories"
+              />
+            }
+          />
+
+          <div className="space-y-3.5 mt-4">
+            <ScField
+              label={isId ? "Judul Seksi" : "Section Title"}
+              value={draft.featuredCategories?.title}
+              onChange={(next) => updateDraft(["featuredCategories", "title"], next)}
+              placeholder="Featured Categories"
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <ScSelectField
+                label={isId ? "Sumber Kategori" : "Category Source"}
+                value={draft.featuredCategories?.source || "Manually Selected"}
+                onChange={(next) => updateDraft(["featuredCategories", "source"], next)}
+                options={[
+                  { value: "Manually Selected", label: isId ? "Pilihan Manual" : "Manually Selected" },
+                  { value: "Newest", label: isId ? "Terbaru" : "Newest" },
+                  { value: "Most Popular", label: isId ? "Terpopuler" : "Most Popular" },
+                ]}
+              />
+              <ScSelectField
+                label={isId ? "Batas Jumlah" : "Category Limit"}
+                value={String(draft.featuredCategories?.productsLimit || 6)}
+                onChange={(next) => updateDraft(["featuredCategories", "productsLimit"], Number(next))}
+                options={["4", "6", "8", "12"]}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <ScField
+                label={isId ? "Subjudul" : "Subtitle"}
+                value={draft.featuredCategories?.subtitle}
+                onChange={(next) => updateDraft(["featuredCategories", "subtitle"], next)}
+                placeholder={isId ? "Jelajahi kategori terpopuler" : "Explore our top categories"}
+              />
+              <ScField
+                label={isId ? "Teks Tombol" : "Button Label"}
+                value={draft.featuredCategories?.buttonName}
+                onChange={(next) => updateDraft(["featuredCategories", "buttonName"], next)}
+                placeholder={isId ? "Lihat Semua" : "View All"}
+              />
+            </div>
+            <ScTextAreaField
+              label={isId ? "Deskripsi" : "Description"}
+              value={draft.featuredCategories?.description}
+              onChange={(next) => updateDraft(["featuredCategories", "description"], next)}
+              placeholder={isId ? "Pilih produk kebutuhan Anda dari kategori ini." : "Choose your products from these categories."}
+            />
+          </div>
+        </section>
+
+        {/* Popular Products */}
+        <section ref={registerSectionRef("popularProducts")} className="sc-card scroll-mt-36">
+          <ScSectionTitle
+            icon={ShoppingBag}
+            title={isId ? "Produk Populer" : "Popular Products"}
+            description={
+              isId
+                ? "Sorot produk terlaris dan paling banyak dilihat oleh pengunjung."
+                : "Highlight best-selling and most-viewed products."
+            }
+            action={
+              <ScToggle
+                checked={Boolean(draft.popularProducts?.enabled)}
+                onChange={(next) => updateDraft(["popularProducts", "enabled"], next)}
+                ariaLabel="Toggle popular products"
+              />
+            }
+          />
+
+          <div className="space-y-3.5 mt-4">
+            <ScField
+              label={isId ? "Judul Seksi" : "Section Title"}
+              value={draft.popularProducts?.title}
+              onChange={(next) => updateDraft(["popularProducts", "title"], next)}
+              placeholder={isId ? "Produk Terpopuler" : "Popular Products"}
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <ScSelectField
+                label={isId ? "Sumber Produk" : "Product Source"}
+                value={draft.popularProducts?.source || "Best Selling"}
+                onChange={(next) => updateDraft(["popularProducts", "source"], next)}
+                options={[
+                  { value: "Best Selling", label: isId ? "Terlaris (Best Selling)" : "Best Selling" },
+                  { value: "Most Viewed", label: isId ? "Paling Dilihat" : "Most Viewed" },
+                  { value: "Newest", label: isId ? "Terbaru" : "Newest" },
+                ]}
+              />
+              <ScSelectField
+                label={isId ? "Batas Jumlah" : "Product Limit"}
+                value={String(draft.popularProducts?.productsLimit || 8)}
+                onChange={(next) => updateDraft(["popularProducts", "productsLimit"], Number(next))}
+                options={["4", "8", "12", "16"]}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <ScSelectField
+                label={isId ? "Filter Kategori" : "Filter By"}
+                value={draft.popularProducts?.filterBy || "All Categories"}
+                onChange={(next) => updateDraft(["popularProducts", "filterBy"], next)}
+                options={[
+                  { value: "All Categories", label: isId ? "Semua Kategori" : "All Categories" },
+                  { value: "Featured", label: isId ? "Unggulan" : "Featured" },
+                  { value: "Discounted", label: isId ? "Diskon" : "Discounted" },
+                ]}
+              />
+              <ScSelectField
+                label={isId ? "Urutkan Berdasarkan" : "Sort By"}
+                value={draft.popularProducts?.sortBy || "Best Selling"}
+                onChange={(next) => updateDraft(["popularProducts", "sortBy"], next)}
+                options={[
+                  { value: "Best Selling", label: isId ? "Terlaris" : "Best Selling" },
+                  { value: "Newest", label: isId ? "Terbaru" : "Newest" },
+                  { value: "Highest Rated", label: isId ? "Rating Tertinggi" : "Highest Rated" },
+                ]}
+              />
+            </div>
+            <ScTextAreaField
+              label={isId ? "Deskripsi" : "Description"}
+              value={draft.popularProducts?.description}
+              onChange={(next) => updateDraft(["popularProducts", "description"], next)}
+              placeholder={isId ? "Temukan aneka produk terbaik minggu ini." : "See our popular products this week."}
+            />
+          </div>
+        </section>
+      </div>
+
+      {/* SECTION 6: SHOP ONLINE WITH EASE (DIGITAL & INNOVATION SHOWCASE) */}
+      <section ref={registerSectionRef("quickDelivery")} className="sc-card scroll-mt-36">
+        <ScSectionTitle
+          icon={Sparkles}
+          title={isId ? "Showcase Produk Digital & Inovasi" : "Digital & Innovation Showcase"}
+          description={
+            isId
+              ? "Kelola konten etalase karya inovasi TP Preneurs di halaman utama storefront."
+              : "Manage the digital and innovation showcase banner on the storefront homepage."
+          }
+          action={
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                {isId ? "Aktifkan Showcase" : "Enable Block"}
+              </span>
+              <ScToggle
+                checked={Boolean(draft.quickDelivery?.enabled)}
+                onChange={(next) => updateDraft(["quickDelivery", "enabled"], next)}
+                ariaLabel="Toggle digital showcase"
+              />
+            </div>
+          }
+        />
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 mt-4">
+          <ScField
+            label={isId ? "Judul Utama" : "Title"}
+            value={draft.quickDelivery?.title}
+            onChange={(next) => updateDraft(["quickDelivery", "title"], next)}
+            placeholder={isId ? "Belanja Online dengan Mudah" : "Shop Online with Ease"}
+          />
+          <ScField
+            label={isId ? "Subjudul / Eyebrow" : "Eyebrow / Subtitle"}
+            value={draft.quickDelivery?.subTitle || draft.quickDelivery?.subtitle}
+            onChange={(next) => updateDraft(["quickDelivery", "subTitle"], next)}
+            placeholder={isId ? "PRODUK DIGITAL & INOVASI" : "DIGITAL & INNOVATION PRODUCTS"}
+          />
+          <ScField
+            label={isId ? "Nama Tombol" : "Button Name"}
+            value={draft.quickDelivery?.buttonName}
+            onChange={(next) => updateDraft(["quickDelivery", "buttonName"], next)}
+            placeholder={isId ? "Mulai Belanja" : "Start Shopping"}
+          />
+          <ScField
+            label={isId ? "Tautan Tombol" : "Button Link"}
+            value={draft.quickDelivery?.buttonLink}
+            onChange={(next) => updateDraft(["quickDelivery", "buttonLink"], next)}
+            placeholder="/shop"
+          />
+          <ScSelectField
+            label={isId ? "Tampilkan Pada" : "Display On"}
+            value={draft.quickDelivery?.displayOn || "Desktop & Mobile"}
+            onChange={(next) => updateDraft(["quickDelivery", "displayOn"], next)}
+            options={["Desktop & Mobile", "Desktop Only", "Mobile Only"]}
+          />
+          <ScSelectField
+            label={isId ? "Status" : "Status"}
+            value={normalizeStatus(draft.quickDelivery?.status, "ready")}
+            onChange={(next) => updateDraft(["quickDelivery", "status"], next)}
+            options={[
+              { value: "ready", label: isId ? "Siap / Aktif" : "Ready / Active" },
+              { value: "needsreview", label: isId ? "Perlu Ditinjau" : "Needs Review" },
+              { value: "draft", label: isId ? "Draf" : "Draft" },
+            ]}
+          />
+        </div>
+
+        <div className="mt-3.5">
+          <ScTextAreaField
+            label={isId ? "Deskripsi" : "Description"}
+            value={draft.quickDelivery?.description}
+            onChange={(next) => updateDraft(["quickDelivery", "description"], next)}
+            placeholder={isId ? "Akses langsung produk digital, media belajar interaktif..." : "Instant access to curated student digital creations..."}
+          />
+        </div>
+
+        {/* Visual Showcase Image & Live Preview */}
+        <div className="mt-4 rounded-xl border border-slate-200 p-3.5 dark:border-slate-800">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  {isId ? "Gambar Visual Showcase (Opsional)" : "Showcase Visual Image (Optional)"}
+                </span>
+                <span className="sc-spec-chip">16:9 Landscape • Maks 2MB</span>
+              </div>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                {isId
+                  ? "Jika kosong, grid pilar inovasi otomatis ditampilkan."
+                  : "If empty, the interactive digital innovation grid is displayed."}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="sc-btn-secondary h-9 cursor-pointer text-xs">
+                <UploadCloud className="h-3.5 w-3.5 text-[#fe6f05]" />
+                <span>
+                  {uploadingImageKey === "quickDelivery"
+                    ? (isId ? "Mengunggah..." : "Uploading...")
+                    : (isId ? "Unggah Gambar" : "Upload Image")}
+                </span>
+                <input
+                  type="file"
+                  accept=".png,.jpeg,.jpg,.webp"
+                  className="hidden"
+                  disabled={uploadingImageKey === "quickDelivery"}
+                  onChange={async (e) => {
+                    await uploadImageForPath("quickDelivery", ["quickDelivery", "imageDataUrl"], e.target.files?.[0]);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+
+              {draft.quickDelivery?.imageDataUrl ? (
+                <button
+                  type="button"
+                  onClick={() => updateDraft(["quickDelivery", "imageDataUrl"], "")}
+                  className="inline-flex h-9 items-center justify-center gap-1 rounded-xl border border-rose-200 px-3 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:border-rose-900/40"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span>{isId ? "Hapus" : "Remove"}</span>
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          {/* Mini Live Preview */}
+          <div className="mt-3 overflow-hidden rounded-xl bg-gradient-to-r from-[#022f53] via-[#034c85] to-[#045a9a] p-4 text-white shadow-sm">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="space-y-1 flex-1 min-w-0">
+                {draft.quickDelivery?.subTitle ? (
+                  <span className="inline-block rounded-full bg-[#fe6f05]/20 border border-[#fe6f05]/30 px-2.5 py-0.5 text-[10px] font-bold text-orange-200">
+                    {draft.quickDelivery.subTitle}
+                  </span>
+                ) : null}
+                <h4 className="text-base font-black truncate text-white">
+                  {draft.quickDelivery?.title || (isId ? "Belanja Online dengan Mudah" : "Shop Online with Ease")}
+                </h4>
+                <p className="text-xs text-blue-100 line-clamp-1">
+                  {draft.quickDelivery?.description || (isId ? "Akses produk digital dan riset mahasiswa." : "Curated student digital creations.")}
+                </p>
+                <div className="pt-1">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#fe6f05] px-3 py-1 text-xs font-bold text-white shadow-sm">
+                    {draft.quickDelivery?.buttonName || (isId ? "Mulai Belanja" : "Start Shopping")} →
+                  </span>
+                </div>
+              </div>
+              {draft.quickDelivery?.imageDataUrl ? (
+                <img
+                  src={draft.quickDelivery.imageDataUrl}
+                  alt="Showcase preview"
+                  className="h-20 w-32 rounded-lg object-cover border border-white/20"
+                />
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 7: NEWSLETTER & STATS */}
+      <section ref={registerSectionRef("newsletter")} className="sc-card scroll-mt-36">
+        <ScSectionTitle
+          icon={Mail}
+          title={isId ? "Newsletter & Statistik Produk Terunggah" : "Newsletter & Uploaded Products Stat"}
+          description={
+            isId
+              ? "Kelola teks informasi langganan newsletter dan etalase jumlah produk terverifikasi."
+              : "Manage newsletter subscription texts and verified uploaded product statistics."
+          }
+          action={
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                {isId ? "Aktifkan Newsletter" : "Enable Newsletter"}
+              </span>
+              <ScToggle
+                checked={Boolean(draft.footer?.newsletter?.enabled !== false)}
+                onChange={(next) => updateDraft(["footer", "newsletter", "enabled"], next)}
+                ariaLabel="Toggle newsletter section"
+              />
+            </div>
+          }
+        />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mt-4">
+          <ScField
+            label={isId ? "Judul Statistik Produk" : "Product Stat Title"}
+            value={draft.footer?.newsletter?.productStatTitle}
+            onChange={(next) => updateDraft(["footer", "newsletter", "productStatTitle"], next)}
+            placeholder={isId ? "Karya Inovatif Mahasiswa & Edupreneur" : "Innovative Student & Edupreneur Creations"}
+          />
+          <ScField
+            label={isId ? "Subjudul Statistik Produk" : "Product Stat Subtitle"}
+            value={draft.footer?.newsletter?.productStatSubtitle}
+            onChange={(next) => updateDraft(["footer", "newsletter", "productStatSubtitle"], next)}
+            placeholder={isId ? "Katalog Produk Asli & Terverifikasi" : "Authentic & Verified Product Catalog"}
+          />
+          <ScField
+            label={isId ? "Judul Form Newsletter" : "Newsletter Title"}
+            value={draft.footer?.newsletter?.title}
+            onChange={(next) => updateDraft(["footer", "newsletter", "title"], next)}
+            placeholder={isId ? "Berlangganan Newsletter & Info Inovasi" : "Subscribe to Newsletter & Innovation Updates"}
+          />
+          <ScField
+            label={isId ? "Subjudul Form Newsletter" : "Newsletter Subtitle"}
+            value={draft.footer?.newsletter?.subtitle}
+            onChange={(next) => updateDraft(["footer", "newsletter", "subtitle"], next)}
+            placeholder={isId ? "Dapatkan update katalog produk dan penawaran spesial." : "Get updates on student innovative creations and special offers."}
+          />
+          <div className="md:col-span-2">
+            <ScField
+              label={isId ? "Teks Tombol Berlangganan" : "Subscribe Button Text"}
+              value={draft.footer?.newsletter?.buttonText}
+              onChange={(next) => updateDraft(["footer", "newsletter", "buttonText"], next)}
+              placeholder={isId ? "Berlangganan" : "Subscribe"}
+            />
+          </div>
+        </div>
+
+        {/* Live Preview */}
+        <div className="mt-4 rounded-xl border border-[#034c85]/20 bg-gradient-to-br from-white via-[#f0f6fc] to-[#e6f0fa] p-4 text-slate-800 shadow-sm dark:from-slate-900 dark:via-slate-900/90 dark:to-slate-950 dark:text-slate-100 dark:border-slate-800">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#034c85] text-[#fe6f05] shadow-sm">
+                <ShoppingBag className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase text-[#fe6f05] tracking-wider">
+                  {isId ? "Katalog Terverifikasi" : "Verified Catalog"}
+                </span>
+                <h4 className="text-sm font-extrabold text-[#034c85] dark:text-white">
+                  {draft.footer?.newsletter?.productStatTitle || (isId ? "Karya Inovatif Mahasiswa" : "Innovative Student Creations")}
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {draft.footer?.newsletter?.productStatSubtitle || (isId ? "Katalog Produk Asli" : "Authentic Catalog")}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 w-full lg:w-auto">
+              <input
+                type="email"
+                disabled
+                placeholder={isId ? "email@domain.com" : "email@domain.com"}
+                className="sc-input h-9 text-xs w-full lg:w-56"
+              />
+              <button
+                type="button"
+                disabled
+                className="sc-btn-primary h-9 px-3.5 text-xs shrink-0"
+              >
+                {draft.footer?.newsletter?.buttonText || (isId ? "Berlangganan" : "Subscribe")}
               </button>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-5">
-        <div className="space-y-4">
-          <div ref={setSectionRef("promotionBanner")} className="scroll-mt-24">
-          <MerchandisingCard
-            icon={Megaphone}
-            title={isIndo ? "Banner Promosi" : "Promotion Banner"}
-            description={
-              isIndo
-                ? "Tampilkan banner promosi untuk menonjolkan penawaran dan kampanye."
-                : "Display promotional banners to highlight offers and campaigns."
-            }
-            status={draft.promotionBanner.status || "ready"}
-            enabled={draft.promotionBanner.enabled}
-            onEnabledChange={(next) => updateDraft(["promotionBanner", "enabled"], next)}
-            enabledLabel={isIndo ? "Aktifkan Blok Ini" : "Enable This Block"}
-          >
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-              <Field
-                label={isIndo ? "Judul" : "Title"}
-                value={draft.promotionBanner.title}
-                onChange={(next) => updateDraft(["promotionBanner", "title"], next)}
-                max={60}
-              />
-              <Field
-                label={isIndo ? "Nama Tombol" : "Button Name"}
-                value={draft.promotionBanner.buttonName}
-                onChange={(next) => updateDraft(["promotionBanner", "buttonName"], next)}
-                max={30}
-              />
-              <Field
-                label={isIndo ? "Tautan Tombol" : "Button Link"}
-                value={draft.promotionBanner.buttonLink}
-                onChange={(next) => updateDraft(["promotionBanner", "buttonLink"], next)}
-                max={120}
-              />
-              <Field
-                label={isIndo ? "Subjudul" : "Subtitle"}
-                value={draft.promotionBanner.subtitle}
-                onChange={(next) => updateDraft(["promotionBanner", "subtitle"], next)}
-                max={100}
-              />
-              <SelectField
-                label={isIndo ? "Tampilkan Di" : "Display On"}
-                value={draft.promotionBanner.displayOn || "Desktop & Mobile"}
-                onChange={(next) => updateDraft(["promotionBanner", "displayOn"], next)}
-                options={["Desktop & Mobile", "Desktop Only", "Mobile Only"]}
-              />
-              <SelectField
-                label="Status"
-                value={normalizeStatus(draft.promotionBanner.status, "ready")}
-                onChange={(next) => updateDraft(["promotionBanner", "status"], next)}
-                options={["ready", "needsReview", "draft"]}
-              />
-              <div className="lg:col-span-3">
-                <TextAreaField
-                  label={isIndo ? "Deskripsi" : "Description"}
-                  value={draft.promotionBanner.description}
-                  onChange={(next) => updateDraft(["promotionBanner", "description"], next)}
-                  max={200}
-                />
-              </div>
-              <div className="lg:col-span-3">
-                <div className="rounded-2xl border border-dashed border-slate-200 p-4 dark:border-slate-800">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0">
-                      <h3 className="text-sm font-extrabold text-slate-950 dark:text-white">
-                        {isIndo ? "Gambar Banner" : "Banner Image"}
-                      </h3>
-                      <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
-                        {isIndo
-                          ? "Rekomendasi rasio 16:9 atau landscape. Digunakan pada visual banner promosi di halaman utama storefront."
-                          : "Recommended ratio 16:9 or landscape. Used for the promotional banner visual on the storefront homepage."}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-extrabold text-slate-700 hover:border-[#034c85] transition dark:border-slate-800 dark:text-slate-200">
-                        <UploadCloud className="h-4 w-4 text-[#fe6f05]" />
-                        {uploadingImageKey === "promotionBanner"
-                          ? (isIndo ? "Mengunggah..." : "Uploading...")
-                          : (isIndo ? "Unggah Gambar" : "Upload Image")}
-                        <input
-                          type="file"
-                          accept=".png,.jpeg,.jpg,.webp"
-                          className="hidden"
-                          disabled={uploadingImageKey === "promotionBanner"}
-                          onChange={async (event) => {
-                            await uploadImageForPath("promotionBanner", ["promotionBanner", "imageDataUrl"], event.target.files?.[0]);
-                            event.target.value = "";
-                          }}
-                        />
-                      </label>
-                      {draft.promotionBanner.imageDataUrl ? (
-                        <button
-                          type="button"
-                          onClick={() => removeImageForPath(["promotionBanner", "imageDataUrl"])}
-                          className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-3 text-sm font-extrabold text-rose-600 dark:border-slate-800"
-                        >
-                          {isIndo ? "Hapus" : "Remove"}
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                  {imageUploadErrors.promotionBanner ? (
-                    <p className="mt-3 text-sm font-semibold text-rose-600">{imageUploadErrors.promotionBanner}</p>
-                  ) : null}
-                  {draft.promotionBanner.imageDataUrl ? (
-                    <img
-                      src={draft.promotionBanner.imageDataUrl}
-                      alt="Promotion banner preview"
-                      className="mt-4 h-44 w-full rounded-xl bg-slate-50 object-cover dark:bg-slate-900"
-                    />
-                  ) : null}
-
-                  {/* Live Mini Preview of Storefront Banner */}
-                  <div className="mt-4 overflow-hidden rounded-2xl border border-[#034c85]/30 bg-gradient-to-r from-[#034c85] via-[#023e6f] to-[#012d52] p-4 text-white shadow-md">
-                    <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-3">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-orange-200">
-                        {isIndo ? "Preview Tampilan Banner Storefront" : "Storefront Banner Preview"}
-                      </span>
-                    </div>
-                    <div className="flex flex-col md:flex-row items-center gap-4 justify-between">
-                      <div className="space-y-1.5 flex-1 min-w-0">
-                        {resolveBilingualPromo("subtitle", draft.promotionBanner.subtitle, isIndo) ? (
-                          <span className="inline-block rounded-full bg-white/15 px-2.5 py-0.5 text-[10px] font-bold uppercase text-orange-200">
-                            {resolveBilingualPromo("subtitle", draft.promotionBanner.subtitle, isIndo)}
-                          </span>
-                        ) : null}
-                        <h4 className="text-base sm:text-lg font-black truncate text-white">
-                          {resolveBilingualPromo("title", draft.promotionBanner.title, isIndo)}
-                        </h4>
-                        {resolveBilingualPromo("description", draft.promotionBanner.description, isIndo) ? (
-                          <p className="text-xs text-blue-100/90 line-clamp-1">
-                            {resolveBilingualPromo("description", draft.promotionBanner.description, isIndo)}
-                          </p>
-                        ) : null}
-                        <div className="pt-1">
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#fe6f05] px-3.5 py-1 text-xs font-bold text-white shadow-sm">
-                            {resolveBilingualPromo("buttonName", draft.promotionBanner.buttonName, isIndo)}
-                            <span className="text-[10px]">→</span>
-                          </span>
-                        </div>
-                      </div>
-                      {draft.promotionBanner.imageDataUrl ? (
-                        <div className="h-20 w-32 shrink-0 overflow-hidden rounded-xl border border-white/20">
-                          <img
-                            src={draft.promotionBanner.imageDataUrl}
-                            alt="Preview"
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
-                      ) : (
-                        <div className="h-20 w-32 shrink-0 rounded-xl border border-white/10 bg-white/10 p-2 flex flex-col justify-center items-center text-center">
-                          <span className="text-[10px] font-bold text-orange-200">TP Preneurs</span>
-                          <span className="text-[9px] text-blue-100">
-                            {isIndo ? "Grafis Inovasi" : "Innovation Showcase"}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </MerchandisingCard>
-          </div>
-
-          <div ref={setSectionRef("featuredCategories")} className="scroll-mt-24">
-          <MerchandisingCard icon={Layers3} title="Featured Categories" description="Showcase top categories to help customers explore quickly." status={draft.featuredCategories.status || "ready"} enabled={draft.featuredCategories.enabled} onEnabledChange={(next) => updateDraft(["featuredCategories", "enabled"], next)}>
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-              <Field label="Title" value={draft.featuredCategories.title} onChange={(next) => updateDraft(["featuredCategories", "title"], next)} max={60} />
-              <SelectField label="Category Source" value={draft.featuredCategories.source || "Manually Selected"} onChange={(next) => updateDraft(["featuredCategories", "source"], next)} options={["Manually Selected", "Newest", "Most Popular"]} />
-              <SelectField label="Category Limit" value={String(draft.featuredCategories.productsLimit || 6)} onChange={(next) => updateDraft(["featuredCategories", "productsLimit"], Number(next))} options={["4", "6", "8", "12"]} />
-              <Field label="Subtitle" value={draft.featuredCategories.subtitle} onChange={(next) => updateDraft(["featuredCategories", "subtitle"], next)} max={100} />
-              <Field label="Button Name" value={draft.featuredCategories.buttonName} onChange={(next) => updateDraft(["featuredCategories", "buttonName"], next)} max={30} />
-              <Field label="Button Link" value={draft.featuredCategories.buttonLink} onChange={(next) => updateDraft(["featuredCategories", "buttonLink"], next)} max={120} />
-              <div className="lg:col-span-3">
-                <TextAreaField label="Description" value={draft.featuredCategories.description} onChange={(next) => updateDraft(["featuredCategories", "description"], next)} max={200} />
-              </div>
-            </div>
-          </MerchandisingCard>
-          </div>
-
-          <div ref={setSectionRef("popularProducts")} className="scroll-mt-24">
-          <MerchandisingCard icon={ShoppingBag} title="Popular Products" description="Highlight best-selling and most-viewed products." status={draft.popularProducts.status || "ready"} enabled={draft.popularProducts.enabled} onEnabledChange={(next) => updateDraft(["popularProducts", "enabled"], next)}>
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-              <Field label="Title" value={draft.popularProducts.title} onChange={(next) => updateDraft(["popularProducts", "title"], next)} max={60} />
-              <SelectField label="Product Source" value={draft.popularProducts.source || "Best Selling"} onChange={(next) => updateDraft(["popularProducts", "source"], next)} options={["Best Selling", "Most Viewed", "Newest"]} />
-              <SelectField label="Product Limit" value={String(draft.popularProducts.productsLimit || 8)} onChange={(next) => updateDraft(["popularProducts", "productsLimit"], Number(next))} options={["4", "8", "12", "16"]} />
-              <Field label="Subtitle" value={draft.popularProducts.subtitle} onChange={(next) => updateDraft(["popularProducts", "subtitle"], next)} max={100} />
-              <SelectField label="Filter By" value={draft.popularProducts.filterBy || "All Categories"} onChange={(next) => updateDraft(["popularProducts", "filterBy"], next)} options={["All Categories", "Featured", "Discounted"]} />
-              <SelectField label="Sort By" value={draft.popularProducts.sortBy || "Best Selling"} onChange={(next) => updateDraft(["popularProducts", "sortBy"], next)} options={["Best Selling", "Newest", "Highest Rated"]} />
-              <div className="lg:col-span-3">
-                <TextAreaField label="Description" value={draft.popularProducts.description} onChange={(next) => updateDraft(["popularProducts", "description"], next)} max={200} />
-              </div>
-            </div>
-          </MerchandisingCard>
-          </div>
-
-          {(() => {
-            const qd = draft?.quickDelivery || DEFAULT_CONFIG.quickDelivery;
-            return (
-              <MerchandisingCard
-                icon={Sparkles}
-                title={isIndo ? "Shop Online with Ease (Koleksi Digital & Inovasi)" : "Shop Online with Ease (Digital & Innovation Showcase)"}
-                description={
-                  isIndo
-                    ? "Kelola tampilan dan konten showcase produk digital & karya inovasi TP Preneurs di halaman utama storefront."
-                    : "Manage the digital and innovation showcase banner on the storefront homepage."
-                }
-                status={qd.status || "ready"}
-                enabled={Boolean(qd.enabled)}
-                onEnabledChange={(next) => updateDraft(["quickDelivery", "enabled"], next)}
-              >
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    <Field
-                      label={isIndo ? "Judul Utama (Title)" : "Title"}
-                      value={qd.title}
-                      onChange={(next) => updateDraft(["quickDelivery", "title"], next)}
-                      max={60}
-                    />
-                    <Field
-                      label={isIndo ? "Subjudul / Badge (Eyebrow)" : "Eyebrow / Subtitle"}
-                      value={qd.subTitle}
-                      onChange={(next) => updateDraft(["quickDelivery", "subTitle"], next)}
-                      max={60}
-                    />
-                    <Field
-                      label={isIndo ? "Teks Tombol (Button Name)" : "Button Name"}
-                      value={qd.buttonName}
-                      onChange={(next) => updateDraft(["quickDelivery", "buttonName"], next)}
-                      max={30}
-                    />
-                    <Field
-                      label={isIndo ? "Link Tombol (Button Link)" : "Button Link"}
-                      value={qd.buttonLink}
-                      onChange={(next) => updateDraft(["quickDelivery", "buttonLink"], next)}
-                      max={120}
-                    />
-                    <SelectField
-                      label={isIndo ? "Tampilkan Pada (Display On)" : "Display On"}
-                      value={qd.displayOn || "Desktop & Mobile"}
-                      onChange={(next) => updateDraft(["quickDelivery", "displayOn"], next)}
-                      options={["Desktop & Mobile", "Desktop Only", "Mobile Only"]}
-                    />
-                    <SelectField
-                      label={isIndo ? "Status Publikasi" : "Status"}
-                      value={qd.status || "ready"}
-                      onChange={(next) => updateDraft(["quickDelivery", "status"], next)}
-                      options={["ready", "needs review", "draft"]}
-                    />
-                  </div>
-
-                  <TextAreaField
-                    label={isIndo ? "Deskripsi Ringkas" : "Description"}
-                    value={qd.description}
-                    onChange={(next) => updateDraft(["quickDelivery", "description"], next)}
-                    max={200}
-                  />
-
-                  {/* Banner Image Uploader & Live Preview */}
-                  <div className="rounded-2xl border border-slate-200/80 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-900/40">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                      <div>
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                          {isIndo ? "Gambar Visual Showcase (Opsional)" : "Showcase Visual Image (Optional)"}
-                        </h4>
-                        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                          {isIndo
-                            ? "Rasio landscape/16:9 disarankan. Jika dikosongkan, grid pilar inovasi interaktif akan ditampilkan otomatis."
-                            : "Recommended 16:9 landscape. If empty, the interactive digital innovation grid is displayed."}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
-                          <UploadCloud className="h-4 w-4 text-[var(--admin-primary,#034c85)]" />
-                          <span>{isIndo ? "Unggah Gambar" : "Upload Image"}</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                const reader = new FileReader();
-                                reader.onload = () => updateDraft(["quickDelivery", "imageDataUrl"], reader.result);
-                                reader.readAsDataURL(file);
-                              }
-                            }}
-                          />
-                        </label>
-                        {qd.imageDataUrl ? (
-                          <button
-                            type="button"
-                            onClick={() => updateDraft(["quickDelivery", "imageDataUrl"], "")}
-                            className="inline-flex items-center gap-1 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-400"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            <span>{isIndo ? "Hapus" : "Remove"}</span>
-                          </button>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    {/* Live Mini Preview */}
-                    <div className="mt-4 overflow-hidden rounded-xl border border-white/10 bg-gradient-to-r from-[#022f53] via-[#034c85] to-[#045a9a] p-4 text-white shadow-md">
-                      <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-2 mb-3">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-blue-200">
-                          {isIndo ? "Preview Tampilan Storefront" : "Storefront Preview"}
-                        </span>
-                        <span className="text-[10px] font-semibold text-orange-300">
-                          TP Preneurs
-                        </span>
-                      </div>
-
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div className="space-y-1.5 flex-1 min-w-0">
-                          {qd.subTitle ? (
-                            <span className="inline-block rounded-full bg-[#fe6f05]/20 border border-[#fe6f05]/30 px-2.5 py-0.5 text-[10px] font-bold text-orange-200">
-                              {qd.subTitle}
-                            </span>
-                          ) : null}
-                          <h4 className="text-sm sm:text-base font-black truncate text-white">
-                            {qd.title || (isIndo ? "Belanja Online dengan Mudah" : "Shop Online with Ease")}
-                          </h4>
-                          {qd.description ? (
-                            <p className="text-xs text-blue-100/90 line-clamp-1">
-                              {qd.description}
-                            </p>
-                          ) : null}
-                          <div className="pt-1">
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[#fe6f05] px-3 py-1 text-[11px] font-bold text-white shadow-sm">
-                              {qd.buttonName || (isIndo ? "Mulai Belanja" : "Start Shopping")}
-                              <span className="text-[9px]">→</span>
-                            </span>
-                          </div>
-                        </div>
-
-                        {qd.imageDataUrl ? (
-                          <div className="h-20 w-32 shrink-0 overflow-hidden rounded-xl border border-white/20">
-                            <img
-                              src={qd.imageDataUrl}
-                              alt="Preview"
-                              className="h-full w-full object-cover"
-                            />
-                          </div>
-                        ) : (
-                          <div className="h-20 w-32 shrink-0 rounded-xl border border-white/10 bg-white/10 p-2 flex flex-col justify-center items-center text-center">
-                            <span className="text-[10px] font-bold text-orange-200">TP Preneurs</span>
-                            <span className="text-[9px] text-blue-100">
-                              {isIndo ? "Grid Inovasi Digital" : "Digital Innovation Grid"}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </MerchandisingCard>
-            );
-          })()}
-        </div>
-
-      </section>
-
-      <section ref={setSectionRef("newsletter")} className={`${cardClass} p-5 scroll-mt-24`}>
-        <SectionTitle
-          icon={Mail}
-          title={isIndo ? "Newsletter & Statistik Produk Terunggah" : "Newsletter & Uploaded Products Stat"}
+      {/* SECTION 8: FOOTER LINKS & CONTACT */}
+      <section ref={registerSectionRef("footerLinks")} className="sc-card scroll-mt-36">
+        <ScSectionTitle
+          icon={LinkIcon}
+          title={isId ? "Tautan Footer & Kontak Resmi" : "Footer Links & Store Contacts"}
           description={
-            isIndo
-              ? "Kelola teks informasi langganan newsletter dan etalase jumlah produk asli terverifikasi TP Preneurs."
-              : "Manage newsletter subscription texts and verified TP Preneurs uploaded product statistics."
-          }
-          action={
-            <Toggle
-              checked={Boolean(draft.footer?.newsletter?.enabled !== false)}
-              onChange={(next) => updateDraft(["footer", "newsletter", "enabled"], next)}
-              ariaLabel="Toggle newsletter section"
-            />
+            isId
+              ? "Kelola susunan tautan menu footer, alamat resmi, media sosial, dan metode pembayaran."
+              : "Update footer navigation columns, official address, social media links, and payment badges."
           }
         />
 
-        <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <Field
-            label={isIndo ? "Judul Statistik Produk" : "Product Stat Title"}
-            value={draft.footer?.newsletter?.productStatTitle}
-            onChange={(next) => updateDraft(["footer", "newsletter", "productStatTitle"], next)}
-            max={80}
-          />
-          <Field
-            label={isIndo ? "Subjudul Statistik Produk" : "Product Stat Subtitle"}
-            value={draft.footer?.newsletter?.productStatSubtitle}
-            onChange={(next) => updateDraft(["footer", "newsletter", "productStatSubtitle"], next)}
-            max={100}
-          />
-          <Field
-            label={isIndo ? "Judul Newsletter" : "Newsletter Title"}
-            value={draft.footer?.newsletter?.title}
-            onChange={(next) => updateDraft(["footer", "newsletter", "title"], next)}
-            max={80}
-          />
-          <Field
-            label={isIndo ? "Subjudul Newsletter" : "Newsletter Subtitle"}
-            value={draft.footer?.newsletter?.subtitle}
-            onChange={(next) => updateDraft(["footer", "newsletter", "subtitle"], next)}
-            max={120}
-          />
-          <div className="lg:col-span-2">
-            <Field
-              label={isIndo ? "Teks Tombol Berlangganan" : "Subscribe Button Text"}
-              value={draft.footer?.newsletter?.buttonText}
-              onChange={(next) => updateDraft(["footer", "newsletter", "buttonText"], next)}
-              max={40}
-            />
-          </div>
-        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mt-4">
+          {/* Navigation Blocks */}
+          <div className="lg:col-span-8 space-y-4">
+            {FOOTER_LINK_BLOCKS.map((col) => {
+              const blockData = draft.footer?.[col.key] || {};
+              const blockTitle = isId ? col.titleId : col.titleEn;
 
-        {/* Live Preview of the section */}
-        <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              {isIndo ? "PREVIEW TAMPILAN STOREFRONT" : "STOREFRONT LIVE PREVIEW"}
-            </span>
-            <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-              {draft.footer?.newsletter?.enabled !== false ? (isIndo ? "Aktif" : "Active") : (isIndo ? "Nonaktif" : "Disabled")}
-            </span>
-          </div>
-
-          <div className="overflow-hidden rounded-2xl border border-[#034c85]/20 bg-gradient-to-br from-white via-[#f0f6fc] to-[#e6f0fa] p-5 dark:border-[#034c85]/40 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-950">
-            <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-12">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 lg:col-span-7 lg:border-r lg:border-[#034c85]/15 lg:pr-6 dark:lg:border-slate-800">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#034c85] text-[#fe6f05] shadow-md shadow-[#034c85]/20">
-                  <ShoppingBag className="h-6 w-6" />
-                </div>
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#fe6f05]/15 px-2.5 py-0.5 text-xs font-black text-[#fe6f05]">
-                      <Sparkles className="h-3 w-3" />
-                      {isIndo ? "Katalog Produk Asli" : "Authentic Product Catalog"}
-                    </span>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#034c85]/10 px-2 py-0.5 text-xs font-bold text-[#034c85] dark:bg-white/10 dark:text-blue-200">
-                      <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-                      {isIndo ? "Terverifikasi" : "Verified"}
-                    </span>
-                  </div>
-                  <h4 className="mt-1 text-base font-extrabold text-[#034c85] dark:text-white">
-                    {resolveBilingualNewsletter("productStatTitle", draft.footer?.newsletter?.productStatTitle, isIndo)}
-                  </h4>
-                  <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                    {resolveBilingualNewsletter("productStatSubtitle", draft.footer?.newsletter?.productStatSubtitle, isIndo)}
-                  </p>
-                </div>
-              </div>
-
-              <div className="lg:col-span-5">
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-[#fe6f05]" />
-                  <h4 className="text-sm font-extrabold text-[#034c85] dark:text-white">
-                    {resolveBilingualNewsletter("title", draft.footer?.newsletter?.title, isIndo)}
-                  </h4>
-                </div>
-                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                  {resolveBilingualNewsletter("subtitle", draft.footer?.newsletter?.subtitle, isIndo)}
-                </p>
-                <div className="mt-3 flex gap-2">
-                  <input
-                    type="email"
-                    disabled
-                    placeholder={isIndo ? "Masukkan alamat email Anda" : "Enter your email address"}
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-900"
-                  />
-                  <button
-                    type="button"
-                    disabled
-                    className="whitespace-nowrap rounded-xl bg-[#fe6f05] px-4 py-2 text-xs font-black text-white"
-                  >
-                    {resolveBilingualNewsletter("buttonText", draft.footer?.newsletter?.buttonText, isIndo)}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section ref={setSectionRef("footer")} className={`${cardClass} p-5 scroll-mt-24`}>
-        <SectionTitle
-          icon={Link}
-          title="Footer Links"
-          description="Update footer navigation, contact details, social links, and help contact shown on the storefront."
-        />
-        <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
-          <div className="space-y-4">
-            {FOOTER_LINK_BLOCKS.map(([blockKey, fallbackTitle]) => {
-              const block = draft.footer?.[blockKey] || {};
               return (
-                <div key={blockKey} className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="break-words text-base font-extrabold text-slate-950 dark:text-white">
-                        {block.title || fallbackTitle}
+                <div key={col.key} className="rounded-xl border border-slate-200 p-3.5 dark:border-slate-800">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <div>
+                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                        {blockData.title || blockTitle}
                       </h3>
-                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                        Footer navigation block
+                      <p className="text-[11px] text-slate-500">
+                        {isId ? "Kolom navigasi footer" : "Footer navigation block"}
                       </p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-bold text-slate-600 dark:text-slate-300">Enable</span>
-                      <Toggle
-                        checked={Boolean(block.enabled)}
-                        onChange={(next) => updateDraft(["footer", blockKey, "enabled"], next)}
-                        ariaLabel={`Toggle ${block.title || fallbackTitle}`}
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                        {isId ? "Aktifkan" : "Enable"}
+                      </span>
+                      <ScToggle
+                        checked={Boolean(blockData.enabled)}
+                        onChange={(next) => updateDraft(["footer", col.key, "enabled"], next)}
+                        ariaLabel={`Toggle ${blockTitle}`}
                       />
                     </div>
                   </div>
-                  <div className="mt-4">
-                    <Field
-                      label="Block Title"
-                      value={block.title}
-                      onChange={(next) => updateDraft(["footer", blockKey, "title"], next)}
-                      max={40}
+
+                  <div className="mb-3">
+                    <ScField
+                      label={isId ? "Judul Kolom" : "Block Title"}
+                      value={blockData.title}
+                      onChange={(next) => updateDraft(["footer", col.key, "title"], next)}
+                      placeholder={blockTitle}
                     />
                   </div>
-                  <div className="mt-4 space-y-3">
-                    {(block.links || []).map((linkItem, index) => (
-                      <div key={`${blockKey}-${index}`} className="grid grid-cols-1 gap-3 rounded-xl border border-slate-100 p-3 dark:border-slate-800 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_40px]">
-                        <Field
-                          label="Label"
-                          value={linkItem.label}
-                          onChange={(next) => updateFooterLink(blockKey, index, "label", next)}
-                          max={40}
+
+                  <div className="space-y-2">
+                    {(blockData.links || []).map((linkItem, idx) => (
+                      <div
+                        key={`${col.key}-${idx}`}
+                        className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_36px] items-center gap-2 rounded-lg bg-slate-50 p-2 dark:bg-slate-900"
+                      >
+                        <input
+                          type="text"
+                          value={linkItem.label || ""}
+                          onChange={(e) => updateFooterLink(col.key, idx, "label", e.target.value)}
+                          placeholder={isId ? "Label Teks" : "Link Label"}
+                          className="sc-input h-8 text-xs px-2"
                         />
-                        <Field
-                          label="Link"
-                          value={linkItem.href}
-                          onChange={(next) => updateFooterLink(blockKey, index, "href", next)}
-                          max={120}
+                        <input
+                          type="text"
+                          value={linkItem.href || ""}
+                          onChange={(e) => updateFooterLink(col.key, idx, "href", e.target.value)}
+                          placeholder="/shop"
+                          className="sc-input h-8 text-xs px-2"
                         />
                         <button
                           type="button"
-                          onClick={() => removeFooterLink(blockKey, index)}
-                          className="mt-6 inline-flex h-10 w-full items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:border-rose-200 hover:text-rose-600 dark:border-slate-800 lg:w-10"
-                          aria-label={`Remove footer link ${index + 1}`}
+                          onClick={() => removeFooterLink(col.key, idx)}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-rose-600 hover:bg-rose-100 transition dark:hover:bg-rose-950/40"
+                          title={isId ? "Hapus Tautan" : "Remove Link"}
                         >
-                          <X className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     ))}
                   </div>
+
                   <button
                     type="button"
-                    onClick={() => addFooterLink(blockKey)}
-                    className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-dashed border-emerald-300 px-3 text-sm font-extrabold text-emerald-700 dark:text-emerald-300"
+                    onClick={() => addFooterLink(col.key)}
+                    className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-lg border border-dashed border-[#034c85] px-3 text-xs font-bold text-[#034c85] hover:bg-[#034c85]/5 transition dark:text-blue-300 dark:border-blue-400"
                   >
-                    <Link className="h-4 w-4" />
-                    Add Link
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>{isId ? "Tambah Tautan Baru" : "Add Link"}</span>
                   </button>
                 </div>
               );
             })}
           </div>
 
-          <aside className="space-y-4">
-            <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-base font-extrabold text-slate-950 dark:text-white">Store Contact</h3>
-                <Toggle
+          {/* Store Contact & Socials Side Column */}
+          <div className="lg:col-span-4 space-y-4">
+            {/* Store Contact */}
+            <div className="rounded-xl border border-slate-200 p-3.5 dark:border-slate-800">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  {isId ? "Kontak Resmi Toko" : "Store Contact Details"}
+                </h3>
+                <ScToggle
                   checked={Boolean(draft.footer?.block4?.enabled)}
                   onChange={(next) => updateDraft(["footer", "block4", "enabled"], next)}
-                  ariaLabel="Toggle footer store contact"
+                  ariaLabel="Toggle store contact"
                 />
               </div>
-              <div className="mt-4 space-y-4">
-                <Field label="Address" value={draft.footer?.block4?.address} onChange={(next) => updateDraft(["footer", "block4", "address"], next)} max={160} />
-                <Field label="Phone" value={draft.footer?.block4?.phone} onChange={(next) => updateDraft(["footer", "block4", "phone"], next)} max={30} />
-                <Field label="Email" value={draft.footer?.block4?.email} onChange={(next) => updateDraft(["footer", "block4", "email"], next)} max={80} type="email" />
+
+              <div className="space-y-3">
+                <ScField
+                  label={isId ? "Alamat Kantor / Kampus" : "Address"}
+                  value={draft.footer?.block4?.address}
+                  onChange={(next) => updateDraft(["footer", "block4", "address"], next)}
+                  placeholder="Jl. Tamalate 1 Makassar"
+                />
+                <ScField
+                  label={isId ? "Telepon Kantor" : "Phone"}
+                  value={draft.footer?.block4?.phone}
+                  onChange={(next) => updateDraft(["footer", "block4", "phone"], next)}
+                  placeholder="+62821-8866-824"
+                />
+                <ScField
+                  label="Email"
+                  value={draft.footer?.block4?.email}
+                  onChange={(next) => updateDraft(["footer", "block4", "email"], next)}
+                  placeholder="tp.fip@unm.ac.id"
+                  type="email"
+                />
               </div>
-              <div className="mt-4 rounded-xl border border-dashed border-slate-200 p-3 dark:border-slate-800">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <span className="text-sm font-extrabold text-slate-950 dark:text-white">Footer Logo</span>
-                  <div className="flex flex-wrap gap-2">
-                    <label className="inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-700 dark:border-slate-800 dark:text-slate-200">
-                      <UploadCloud className="h-3.5 w-3.5 text-emerald-600" />
-                      {uploadingImageKey === "footerLogo" ? "Uploading..." : "Upload"}
-                      <input
-                        type="file"
-                        accept=".png,.jpeg,.jpg,.webp"
-                        className="hidden"
-                        disabled={uploadingImageKey === "footerLogo"}
-                        onChange={async (event) => {
-                          await uploadImageForPath("footerLogo", ["footer", "block4", "footerLogoDataUrl"], event.target.files?.[0]);
-                          event.target.value = "";
-                        }}
-                      />
-                    </label>
-                    {draft.footer?.block4?.footerLogoDataUrl ? (
-                      <button
-                        type="button"
-                        onClick={() => removeImageForPath(["footer", "block4", "footerLogoDataUrl"])}
-                        className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 px-3 text-xs font-bold text-rose-600 dark:border-slate-800"
-                      >
-                        Remove
-                      </button>
-                    ) : null}
-                  </div>
+
+              {/* Footer Logo */}
+              <div className="mt-3 border-t border-slate-200 dark:border-slate-800 pt-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                    {isId ? "Logo Footer" : "Footer Logo"}
+                  </span>
+                  <label className="sc-btn-secondary h-7 px-2.5 text-[11px] cursor-pointer">
+                    <UploadCloud className="h-3 w-3 text-[#fe6f05]" />
+                    <span>{isId ? "Unggah" : "Upload"}</span>
+                    <input
+                      type="file"
+                      accept=".png,.jpeg,.jpg,.webp,.svg"
+                      className="hidden"
+                      onChange={async (e) => {
+                        await uploadImageForPath("footerLogo", ["footer", "block4", "footerLogoDataUrl"], e.target.files?.[0]);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
                 </div>
-                {imageUploadErrors.footerLogo ? (
-                  <p className="mt-2 text-sm font-semibold text-rose-600">{imageUploadErrors.footerLogo}</p>
-                ) : null}
                 {draft.footer?.block4?.footerLogoDataUrl ? (
-                  <img
-                    src={draft.footer.block4.footerLogoDataUrl}
-                    alt="Footer logo preview"
-                    className="mt-3 h-12 w-40 rounded-lg bg-slate-50 object-contain p-2 dark:bg-slate-900"
-                  />
+                  <div className="mt-2 flex items-center justify-between rounded-lg bg-slate-50 p-2 dark:bg-slate-900">
+                    <img
+                      src={draft.footer.block4.footerLogoDataUrl}
+                      alt="Footer Logo"
+                      className="h-8 max-w-[120px] object-contain"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => updateDraft(["footer", "block4", "footerLogoDataUrl"], "")}
+                      className="text-rose-600 hover:text-rose-700"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 ) : null}
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-base font-extrabold text-slate-950 dark:text-white">Social Links</h3>
-                <Toggle
+            {/* Social Media Links */}
+            <div className="rounded-xl border border-slate-200 p-3.5 dark:border-slate-800">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  {isId ? "Media Sosial" : "Social Links"}
+                </h3>
+                <ScToggle
                   checked={Boolean(draft.footer?.socialLinks?.enabled)}
                   onChange={(next) => updateDraft(["footer", "socialLinks", "enabled"], next)}
-                  ariaLabel="Toggle footer social links"
+                  ariaLabel="Toggle social links"
                 />
               </div>
-              <div className="mt-4 space-y-4">
-                {FOOTER_SOCIAL_FIELDS.map(([key, label]) => (
-                  <Field
-                    key={key}
-                    label={label}
-                    value={draft.footer?.socialLinks?.[key]}
-                    onChange={(next) => updateDraft(["footer", "socialLinks", key], next)}
-                    max={140}
-                    type="url"
-                  />
+
+              <div className="space-y-2">
+                {FOOTER_SOCIAL_FIELDS.map((soc) => (
+                  <label key={soc.key} className="block min-w-0">
+                    <span className="block text-[11px] font-semibold text-slate-500 mb-0.5">
+                      {soc.label}
+                    </span>
+                    <input
+                      type="url"
+                      value={draft.footer?.socialLinks?.[soc.key] || ""}
+                      onChange={(e) => updateDraft(["footer", "socialLinks", soc.key], e.target.value)}
+                      placeholder="https://..."
+                      className="sc-input h-8 text-xs px-2"
+                    />
+                  </label>
                 ))}
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-base font-extrabold text-slate-950 dark:text-white">Help Contact</h3>
-                <Toggle
-                  checked={Boolean(draft.footer?.bottomContact?.enabled)}
-                  onChange={(next) => updateDraft(["footer", "bottomContact", "enabled"], next)}
-                  ariaLabel="Toggle footer help contact"
-                />
-              </div>
-              <div className="mt-4">
-                <Field
-                  label="Contact Number"
-                  value={draft.footer?.bottomContact?.contactNumber}
-                  onChange={(next) => updateDraft(["footer", "bottomContact", "contactNumber"], next)}
-                  max={30}
-                />
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-base font-extrabold text-slate-950 dark:text-white">Payment Methods</h3>
-                <Toggle
+            {/* Payment Method Badges */}
+            <div className="rounded-xl border border-slate-200 p-3.5 dark:border-slate-800">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  {isId ? "Badge Metode Pembayaran" : "Payment Methods Badge"}
+                </h3>
+                <ScToggle
                   checked={Boolean(draft.footer?.paymentMethod?.enabled)}
                   onChange={(next) => updateDraft(["footer", "paymentMethod", "enabled"], next)}
-                  ariaLabel="Toggle footer payment methods"
+                  ariaLabel="Toggle payment methods"
                 />
               </div>
-              <div className="mt-4 rounded-xl border border-dashed border-slate-200 p-3 dark:border-slate-800">
-                <div className="flex flex-wrap gap-2">
-                  <label className="inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-700 dark:border-slate-800 dark:text-slate-200">
-                    <UploadCloud className="h-3.5 w-3.5 text-emerald-600" />
-                    {uploadingImageKey === "paymentMethod" ? "Uploading..." : "Upload Image"}
-                    <input
-                      type="file"
-                      accept=".png,.jpeg,.jpg,.webp"
-                      className="hidden"
-                      disabled={uploadingImageKey === "paymentMethod"}
-                      onChange={async (event) => {
-                        await uploadImageForPath("paymentMethod", ["footer", "paymentMethod", "imageDataUrl"], event.target.files?.[0]);
-                        event.target.value = "";
-                      }}
-                    />
-                  </label>
-                  {draft.footer?.paymentMethod?.imageDataUrl ? (
-                    <button
-                      type="button"
-                      onClick={() => removeImageForPath(["footer", "paymentMethod", "imageDataUrl"])}
-                      className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 px-3 text-xs font-bold text-rose-600 dark:border-slate-800"
-                    >
-                      Remove
-                    </button>
-                  ) : null}
-                </div>
-                {imageUploadErrors.paymentMethod ? (
-                  <p className="mt-2 text-sm font-semibold text-rose-600">{imageUploadErrors.paymentMethod}</p>
-                ) : null}
-                {draft.footer?.paymentMethod?.imageDataUrl ? (
+
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-[11px] text-slate-500">
+                  {isId ? "Gambar banner logo bank/e-wallet" : "Bank/e-wallet logo banner image"}
+                </span>
+                <label className="sc-btn-secondary h-7 px-2.5 text-[11px] cursor-pointer">
+                  <UploadCloud className="h-3 w-3 text-[#fe6f05]" />
+                  <span>{isId ? "Unggah" : "Upload"}</span>
+                  <input
+                    type="file"
+                    accept=".png,.jpeg,.jpg,.webp"
+                    className="hidden"
+                    onChange={async (e) => {
+                      await uploadImageForPath("paymentMethod", ["footer", "paymentMethod", "imageDataUrl"], e.target.files?.[0]);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              </div>
+
+              {draft.footer?.paymentMethod?.imageDataUrl ? (
+                <div className="mt-2 flex items-center justify-between rounded-lg bg-slate-50 p-2 dark:bg-slate-900">
                   <img
                     src={draft.footer.paymentMethod.imageDataUrl}
-                    alt="Payment methods preview"
-                    className="mt-3 h-12 max-w-full rounded-lg bg-slate-50 object-contain p-2 dark:bg-slate-900"
+                    alt="Payment Methods"
+                    className="h-7 max-w-[140px] object-contain"
                   />
-                ) : null}
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => updateDraft(["footer", "paymentMethod", "imageDataUrl"], "")}
+                    className="text-rose-600 hover:text-rose-700"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : null}
             </div>
-          </aside>
+          </div>
         </div>
       </section>
 
-      <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-slate-500 dark:text-slate-400">
-        <ShieldCheck className="h-4 w-4 text-emerald-600" />
-        <span>Draft Mode: Changes are saved as draft and not visible to customers until published.</span>
-        <span className="text-emerald-700 dark:text-emerald-300">Learn more about store customization</span>
-      </div>
-    </div>
-  );
-}
-
-function MerchandisingCard({ icon: Icon, title, description, status, enabled, onEnabledChange, enabledLabel = "Enable This Block", children }) {
-  return (
-    <article className={`${cardClass} p-5`}>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex min-w-0 items-start gap-3">
-          <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
-            <Icon className="h-5 w-5" />
+      {/* Sticky Bottom Save Action Bar */}
+      <footer className="sticky bottom-4 z-30 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white/95 p-3.5 shadow-xl shadow-slate-900/10 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95">
+        <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
+          <ShieldCheck className="h-4 w-4 text-[#034c85] dark:text-blue-400" />
+          <span>
+            {isId
+              ? "Perubahan disimpan sebagai draf sampai Anda mengklik Terbitkan Draf."
+              : "Changes are saved as draft until you click Publish Draft."}
           </span>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-3">
-              <h2 className="min-w-0 break-words text-lg font-extrabold text-slate-950 dark:text-white">{title}</h2>
-              <StatusChip value={status} />
-            </div>
-            <p className="mt-1 break-words text-sm text-slate-500 dark:text-slate-400">{description}</p>
-          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-bold text-slate-600 dark:text-slate-300">{enabledLabel}</span>
-          <Toggle checked={enabled} onChange={onEnabledChange} ariaLabel={`Toggle ${title}`} />
-        </div>
-      </div>
-      <div className="mt-5">{children}</div>
-    </article>
+
+        <StoreCustomizationSaveActions2026
+          onSave={onSave}
+          onPublish={onPublish}
+          isSaving={isSaving}
+          isPublishing={isPublishing}
+          isLoading={isLoading}
+          meta={meta}
+        />
+      </footer>
+    </div>
   );
 }

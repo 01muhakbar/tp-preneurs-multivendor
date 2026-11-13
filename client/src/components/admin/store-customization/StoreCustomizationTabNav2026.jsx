@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import {
   BadgeCheck,
   CircleHelp,
@@ -15,19 +16,19 @@ import {
 } from "lucide-react";
 
 export const STORE_CUSTOMIZATION_TAB_ITEMS = [
-  { key: "home", label: "Home Page", icon: Home },
-  { key: "shop", label: "Shop Page", icon: Store },
-  { key: "productSlugPage", label: "Product Slug Page", icon: Package },
-  { key: "aboutUs", label: "About Us", icon: BadgeCheck },
-  { key: "privacyPolicyTerms", label: "Privacy & T&C", icon: ShieldCheck },
-  { key: "faqs", label: "FAQs", icon: CircleHelp },
-  { key: "offers", label: "Offers", icon: Gift },
-  { key: "contactUs", label: "Contact", icon: ShoppingBag },
-  { key: "shoppingCart", label: "Shopping Cart", icon: ShoppingCart },
-  { key: "checkout", label: "Checkout", icon: CreditCard },
-  { key: "categories", label: "Categories", icon: Grid2X2 },
-  { key: "dashboardSetting", label: "Dashboard", icon: Grid3X3 },
-  { key: "seoSettings", label: "SEO", icon: Search },
+  { key: "home", label: "Home Page", labelId: "Halaman Utama", icon: Home },
+  { key: "shop", label: "Shop Page", labelId: "Halaman Toko", icon: Store },
+  { key: "productSlugPage", label: "Product Slug Page", labelId: "Halaman Detail Produk", icon: Package },
+  { key: "aboutUs", label: "About Us", labelId: "Tentang Kami", icon: BadgeCheck },
+  { key: "privacyPolicyTerms", label: "Privacy & T&C", labelId: "Privasi & Syarat Ketentuan", icon: ShieldCheck },
+  { key: "faqs", label: "FAQs", labelId: "Tanya Jawab (FAQ)", icon: CircleHelp },
+  { key: "offers", label: "Offers", labelId: "Penawaran Khusus", icon: Gift },
+  { key: "contactUs", label: "Contact", labelId: "Kontak Bantuan", icon: ShoppingBag },
+  { key: "shoppingCart", label: "Shopping Cart", labelId: "Keranjang Belanja", icon: ShoppingCart },
+  { key: "checkout", label: "Checkout", labelId: "Halaman Checkout", icon: CreditCard },
+  { key: "categories", label: "Categories", labelId: "Kategori Produk", icon: Grid2X2 },
+  { key: "dashboardSetting", label: "Dashboard", labelId: "Pengaturan Dasbor", icon: Grid3X3 },
+  { key: "seoSettings", label: "SEO", labelId: "Metadata & SEO", icon: Search },
 ];
 
 export default function StoreCustomizationTabNav2026({
@@ -35,30 +36,35 @@ export default function StoreCustomizationTabNav2026({
   onTabChange,
   className = "",
 }) {
+  const { i18n } = useTranslation();
+  const isId = Boolean(i18n.language?.toLowerCase().startsWith("id"));
+
   return (
     <nav
       aria-label="Store customization tabs"
-      className={`rounded-3xl border border-slate-200/80 bg-white p-2 shadow-[0_18px_48px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-950 dark:shadow-none ${className}`}
+      className={`rounded-2xl border border-slate-200/90 bg-white p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-900 ${className}`}
     >
-      <div className="grid min-w-0 grid-cols-2 gap-1 min-[560px]:flex min-[560px]:flex-wrap min-[560px]:items-center">
+      <div className="flex items-center gap-1 overflow-x-auto pb-1 min-[560px]:pb-0 scrollbar-thin">
         {STORE_CUSTOMIZATION_TAB_ITEMS.map((tab) => {
           const Icon = tab.icon;
           const selected = (activeTab || "home") === tab.key;
+          const displayLabel = isId ? tab.labelId : tab.label;
+
           return (
             <button
               key={tab.key}
               type="button"
               onClick={() => onTabChange?.(tab.key)}
-              className={`relative inline-flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-2xl px-2 text-xs font-bold transition min-[560px]:h-12 min-[560px]:gap-2 min-[560px]:px-4 min-[560px]:text-sm ${
+              className={`relative inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl px-3.5 text-xs font-bold transition ${
                 selected
-                  ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-slate-100"
+                  ? "bg-[#034c85] text-white shadow-sm shadow-[#034c85]/30 dark:bg-[#034c85] dark:text-white"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
               }`}
             >
-              <Icon className="h-4 w-4 shrink-0" />
-              <span className="min-w-0 truncate">{tab.label}</span>
+              <Icon className={`h-4 w-4 shrink-0 ${selected ? "text-[#fe6f05]" : "text-slate-400"}`} />
+              <span className="whitespace-nowrap">{displayLabel}</span>
               {selected ? (
-                <span className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-emerald-600" />
+                <span className="absolute -bottom-1 left-3 right-3 h-0.5 rounded-full bg-[#fe6f05]" />
               ) : null}
             </button>
           );
