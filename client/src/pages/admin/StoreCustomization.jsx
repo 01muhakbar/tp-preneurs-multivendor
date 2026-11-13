@@ -45,6 +45,7 @@ import StoreCustomizationShopSettings2026 from "../../components/admin/store-cus
 import StoreCustomizationAboutUsSettings2026 from "../../components/admin/store-customization/StoreCustomizationAboutUsSettings2026.jsx";
 import StoreCustomizationPrivacyTermsSettings2026 from "../../components/admin/store-customization/StoreCustomizationPrivacyTermsSettings2026.jsx";
 import StoreCustomizationFaqsSettings2026 from "../../components/admin/store-customization/StoreCustomizationFaqsSettings2026.jsx";
+import StoreCustomizationContactSettings2026 from "../../components/admin/store-customization/StoreCustomizationContactSettings2026.jsx";
 import StoreCustomizationSaveActions2026 from "../../components/admin/store-customization/StoreCustomizationSaveActions2026.jsx";
 import StoreCustomizationTabNav2026 from "../../components/admin/store-customization/StoreCustomizationTabNav2026.jsx";
 
@@ -5044,6 +5045,21 @@ export default function StoreCustomizationPage() {
     });
   };
 
+  const onResetContactUsSetting = () => {
+    const current = queryClient.getQueryData(["admin-store-customization", lang]);
+    const currentCustomization = normalizeCustomizationPayload(
+      unwrapCustomizationEnvelope(current || customizationQuery.data),
+      lang
+    );
+    setContactUsState(currentCustomization.contactUs);
+    setContactUsImageErrors({});
+    setContactUsDropActive({});
+    setNotice({
+      type: "success",
+      message: isIndo ? "Draf Kontak Kami berhasil diatur ulang." : "Contact Us draft reset.",
+    });
+  };
+
   const onChangeHeaderField = (field, value) => {
     if (field === "whatsAppLink") {
       setWhatsAppLinkServerError("");
@@ -7386,7 +7402,7 @@ export default function StoreCustomizationPage() {
 
   return (
     <div className="mx-auto w-full max-w-[1280px] space-y-5 px-1 sm:px-2">
-      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" || activeTab === "aboutUs" || activeTab === "privacyPolicyTerms" || activeTab === "faqs" ? null : (
+      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" || activeTab === "aboutUs" || activeTab === "privacyPolicyTerms" || activeTab === "faqs" || activeTab === "contactUs" ? null : (
         <AdminOpsPageHeader
           title="Store Customizations"
           description="Customize storefront sections, labels, and SEO."
@@ -7424,7 +7440,7 @@ export default function StoreCustomizationPage() {
         </div>
       ) : null}
 
-      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" || activeTab === "aboutUs" || activeTab === "privacyPolicyTerms" || activeTab === "faqs" ? null : (
+      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" || activeTab === "aboutUs" || activeTab === "privacyPolicyTerms" || activeTab === "faqs" || activeTab === "contactUs" ? null : (
         <StoreCustomizationTabNav2026 activeTab={activeTab} onTabChange={onSelectTab} />
       )}
 
@@ -7808,356 +7824,25 @@ export default function StoreCustomizationPage() {
           </section>
         </div>
       ) : activeTab === "contactUs" ? (
-        <div className="flex flex-col gap-5">
-          <section className={sectionCard}>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-                <Settings className="h-4 w-4" />
-              </span>
-              <h2 className="text-base font-semibold text-slate-900">Page Header</h2>
-            </div>
-            <div className="mt-4 h-px w-full bg-slate-200" />
-
-            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[320px_1fr]">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Enable This Block
-                </p>
-                <SegmentedToggle
-                  value={Boolean(contactUs.pageHeader.enabled)}
-                  onChange={(value) =>
-                    onChangeContactUsSectionEnabled("pageHeader", value)
-                  }
-                />
-              </div>
-              <ImageUploadField
-                id="contact-us-page-header-background-image-input"
-                label="Page Header Background"
-                error={contactUsImageErrors[CONTACT_US_IMAGE_FIELD_KEYS.pageHeaderBackground]}
-                dropActive={Boolean(
-                  contactUsDropActive[CONTACT_US_IMAGE_FIELD_KEYS.pageHeaderBackground]
-                )}
-                onDropActiveChange={(value) =>
-                  setContactUsDropActiveField(
-                    CONTACT_US_IMAGE_FIELD_KEYS.pageHeaderBackground,
-                    value
-                  )
-                }
-                onInputChange={(event) =>
-                  onContactUsImageInputChange(
-                    CONTACT_US_IMAGE_FIELD_KEYS.pageHeaderBackground,
-                    event
-                  )
-                }
-                onDrop={(event) =>
-                  onDropContactUsImage(
-                    CONTACT_US_IMAGE_FIELD_KEYS.pageHeaderBackground,
-                    event
-                  )
-                }
-                previewDataUrl={contactUs.pageHeader.backgroundImageDataUrl}
-                onRemove={() =>
-                  onRemoveContactUsImage(CONTACT_US_IMAGE_FIELD_KEYS.pageHeaderBackground)
-                }
-                previewAlt="Contact Us page header background"
-              />
-              <label className="block xl:col-span-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Page Title
-                </span>
-                <input
-                  type="text"
-                  value={contactUs.pageHeader.pageTitle}
-                  onChange={(event) =>
-                    onChangeContactUsSectionField(
-                      "pageHeader",
-                      "pageTitle",
-                      event.target.value
-                    )
-                  }
-                  className={`${inputBase} mt-2`}
-                />
-              </label>
-            </div>
-          </section>
-
-          <section className={sectionCard}>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-                <Settings className="h-4 w-4" />
-              </span>
-              <h2 className="text-base font-semibold text-slate-900">Email Us Box</h2>
-            </div>
-            <div className="mt-4 h-px w-full bg-slate-200" />
-
-            <div className="mt-4 grid grid-cols-1 gap-4">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Enable This Block
-                </p>
-                <SegmentedToggle
-                  value={Boolean(contactUs.emailBox.enabled)}
-                  onChange={(value) => onChangeContactUsSectionEnabled("emailBox", value)}
-                />
-              </div>
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Title
-                </span>
-                <input
-                  type="text"
-                  value={contactUs.emailBox.title}
-                  onChange={(event) =>
-                    onChangeContactUsSectionField("emailBox", "title", event.target.value)
-                  }
-                  className={`${inputBase} mt-2`}
-                />
-              </label>
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Email
-                </span>
-                <input
-                  type="text"
-                  value={contactUs.emailBox.email}
-                  onChange={(event) =>
-                    onChangeContactUsSectionField("emailBox", "email", event.target.value)
-                  }
-                  className={`${inputBase} mt-2`}
-                />
-              </label>
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Text
-                </span>
-                <textarea
-                  value={contactUs.emailBox.text}
-                  onChange={(event) =>
-                    onChangeContactUsSectionField("emailBox", "text", event.target.value)
-                  }
-                  className={textAreaBase}
-                />
-              </label>
-            </div>
-          </section>
-
-          <section className={sectionCard}>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-                <Settings className="h-4 w-4" />
-              </span>
-              <h2 className="text-base font-semibold text-slate-900">Call Us Box</h2>
-            </div>
-            <div className="mt-4 h-px w-full bg-slate-200" />
-
-            <div className="mt-4 grid grid-cols-1 gap-4">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Enable This Block
-                </p>
-                <SegmentedToggle
-                  value={Boolean(contactUs.callBox.enabled)}
-                  onChange={(value) => onChangeContactUsSectionEnabled("callBox", value)}
-                />
-              </div>
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Title
-                </span>
-                <input
-                  type="text"
-                  value={contactUs.callBox.title}
-                  onChange={(event) =>
-                    onChangeContactUsSectionField("callBox", "title", event.target.value)
-                  }
-                  className={`${inputBase} mt-2`}
-                />
-              </label>
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Phone
-                </span>
-                <input
-                  type="text"
-                  value={contactUs.callBox.phone}
-                  onChange={(event) =>
-                    onChangeContactUsSectionField("callBox", "phone", event.target.value)
-                  }
-                  className={`${inputBase} mt-2`}
-                />
-              </label>
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Text
-                </span>
-                <textarea
-                  value={contactUs.callBox.text}
-                  onChange={(event) =>
-                    onChangeContactUsSectionField("callBox", "text", event.target.value)
-                  }
-                  className={textAreaBase}
-                />
-              </label>
-            </div>
-          </section>
-
-          <section className={sectionCard}>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-                <Settings className="h-4 w-4" />
-              </span>
-              <h2 className="text-base font-semibold text-slate-900">Address Box</h2>
-            </div>
-            <div className="mt-4 h-px w-full bg-slate-200" />
-
-            <div className="mt-4 grid grid-cols-1 gap-4">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Enable This Block
-                </p>
-                <SegmentedToggle
-                  value={Boolean(contactUs.addressBox.enabled)}
-                  onChange={(value) => onChangeContactUsSectionEnabled("addressBox", value)}
-                />
-              </div>
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Title
-                </span>
-                <input
-                  type="text"
-                  value={contactUs.addressBox.title}
-                  onChange={(event) =>
-                    onChangeContactUsSectionField("addressBox", "title", event.target.value)
-                  }
-                  className={`${inputBase} mt-2`}
-                />
-              </label>
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Address
-                </span>
-                <textarea
-                  value={contactUs.addressBox.address}
-                  onChange={(event) =>
-                    onChangeContactUsSectionField(
-                      "addressBox",
-                      "address",
-                      event.target.value
-                    )
-                  }
-                  className={textAreaBase}
-                />
-              </label>
-            </div>
-          </section>
-
-          <section className={sectionCard}>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-                <Settings className="h-4 w-4" />
-              </span>
-              <h2 className="text-base font-semibold text-slate-900">Middle Left Column</h2>
-            </div>
-            <div className="mt-4 h-px w-full bg-slate-200" />
-
-            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[320px_1fr]">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Enable This Block
-                </p>
-                <SegmentedToggle
-                  value={Boolean(contactUs.middleLeftColumn.enabled)}
-                  onChange={(value) =>
-                    onChangeContactUsSectionEnabled("middleLeftColumn", value)
-                  }
-                />
-              </div>
-              <ImageUploadField
-                id="contact-us-middle-left-image-input"
-                label="Middle Left Image"
-                error={contactUsImageErrors[CONTACT_US_IMAGE_FIELD_KEYS.middleLeftColumnImage]}
-                dropActive={Boolean(
-                  contactUsDropActive[CONTACT_US_IMAGE_FIELD_KEYS.middleLeftColumnImage]
-                )}
-                onDropActiveChange={(value) =>
-                  setContactUsDropActiveField(
-                    CONTACT_US_IMAGE_FIELD_KEYS.middleLeftColumnImage,
-                    value
-                  )
-                }
-                onInputChange={(event) =>
-                  onContactUsImageInputChange(
-                    CONTACT_US_IMAGE_FIELD_KEYS.middleLeftColumnImage,
-                    event
-                  )
-                }
-                onDrop={(event) =>
-                  onDropContactUsImage(
-                    CONTACT_US_IMAGE_FIELD_KEYS.middleLeftColumnImage,
-                    event
-                  )
-                }
-                previewDataUrl={contactUs.middleLeftColumn.imageDataUrl}
-                onRemove={() =>
-                  onRemoveContactUsImage(CONTACT_US_IMAGE_FIELD_KEYS.middleLeftColumnImage)
-                }
-                previewAlt="Contact Us middle left image"
-              />
-            </div>
-          </section>
-
-          <section className={sectionCard}>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-                <Settings className="h-4 w-4" />
-              </span>
-              <h2 className="text-base font-semibold text-slate-900">Contact Form</h2>
-            </div>
-            <div className="mt-4 h-px w-full bg-slate-200" />
-
-            <div className="mt-4 grid grid-cols-1 gap-4">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Enable This Block
-                </p>
-                <SegmentedToggle
-                  value={Boolean(contactUs.contactForm.enabled)}
-                  onChange={(value) => onChangeContactUsSectionEnabled("contactForm", value)}
-                />
-              </div>
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Contact Form Title
-                </span>
-                <input
-                  type="text"
-                  value={contactUs.contactForm.title}
-                  onChange={(event) =>
-                    onChangeContactUsSectionField("contactForm", "title", event.target.value)
-                  }
-                  className={`${inputBase} mt-2`}
-                />
-              </label>
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Contact Form Description
-                </span>
-                <textarea
-                  value={contactUs.contactForm.description}
-                  onChange={(event) =>
-                    onChangeContactUsSectionField(
-                      "contactForm",
-                      "description",
-                      event.target.value
-                    )
-                  }
-                  className={textAreaBase}
-                />
-              </label>
-            </div>
-          </section>
-        </div>
+        <StoreCustomizationContactSettings2026
+          value={contactUs}
+          onChange={setContactUsState}
+          activeTab={activeTab}
+          onTabChange={onSelectTab}
+          onSave={onSave}
+          onPublish={onPublish}
+          onReset={onResetContactUsSetting}
+          onPreview={onPreviewStorefront}
+          isSaving={isSaving && !isPublishing}
+          isPublishing={isPublishing}
+          meta={customizationMeta}
+          language={lang}
+          languages={publishedLanguages}
+          onLanguageChange={(nextLanguage) =>
+            setLang(String(nextLanguage || "en").toLowerCase())
+          }
+          isLoading={isLoadingHeader}
+        />
       ) : activeTab === "shoppingCart" ? (
         <div className="flex flex-col gap-5">
           <div className="flex items-center justify-between rounded-xl border border-sky-200 bg-sky-50/80 p-3.5 text-xs text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-200">
