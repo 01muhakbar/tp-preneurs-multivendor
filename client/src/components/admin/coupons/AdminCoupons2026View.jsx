@@ -1,18 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Boxes,
+  Calendar,
+  Check,
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Copy,
   Download,
   Eye,
+  Globe,
   Grid2X2,
   List,
   MoreVertical,
   Pencil,
   Plus,
+  RefreshCw,
   Search,
   SlidersHorizontal,
   Store,
@@ -20,6 +24,7 @@ import {
   Trash2,
   Upload,
   X,
+  XCircle,
 } from "lucide-react";
 import { formatCurrency } from "../../../utils/format.js";
 import "./admin-coupons-2026.css";
@@ -58,7 +63,7 @@ function FieldSelect({ label, value, onChange, options }) {
           </option>
         ))}
       </select>
-      <ChevronDown size={16} aria-hidden="true" />
+      <ChevronDown size={15} aria-hidden="true" style={{ pointerEvents: "none" }} />
     </label>
   );
 }
@@ -78,11 +83,7 @@ function KpiCard({ label, value, helper, icon: Icon, tone }) {
   );
 }
 
-function PublishToggle({ checked, disabled, busy, onChange, t }) {
-  const label = checked
-    ? t("coupons.Active coupon in public checkout", "Active coupon in public checkout")
-    : t("coupons.Inactive coupon in public checkout", "Inactive coupon in public checkout");
-
+function PublishToggle({ checked, disabled, busy, onChange, label }) {
   return (
     <button
       type="button"
@@ -92,7 +93,7 @@ function PublishToggle({ checked, disabled, busy, onChange, t }) {
       role="switch"
       aria-checked={checked}
       aria-label={label}
-      title={checked ? t("coupons.Active", "Active") : t("coupons.Inactive", "Inactive")}
+      title={label}
     >
       <span />
     </button>
@@ -108,12 +109,28 @@ function RowMoreMenu({
   onEdit,
   onToggleActive,
   onDelete,
+  isId,
   t,
 }) {
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const handleClick = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        onToggle();
+      }
+    };
+    document.addEventListener("pointerdown", handleClick);
+    return () => document.removeEventListener("pointerdown", handleClick);
+  }, [open, onToggle]);
+
+  const isActive = resolveCouponActive(coupon);
+
   return (
-    <div className="ac26-more-actions">
+    <div className="ac26-more-actions" ref={menuRef}>
       <IconButton
-        label={`${t("coupons.More actions for", "More actions for")} ${coupon.code}`}
+        label={`${isId ? "Aksi lainnya untuk" : "More actions for"} ${coupon.code}`}
         aria-haspopup="menu"
         aria-expanded={open}
         className={open ? "is-active" : ""}
@@ -122,7 +139,11 @@ function RowMoreMenu({
         <MoreVertical size={16} />
       </IconButton>
       {open ? (
-        <div className="ac26-more-menu" role="menu" aria-label={`${t("coupons.More actions for", "More actions for")} ${coupon.code}`}>
+        <div
+          className="ac26-more-menu"
+          role="menu"
+          aria-label={`${isId ? "Aksi kupon" : "Coupon actions"} ${coupon.code}`}
+        >
           <button
             type="button"
             role="menuitem"
@@ -133,7 +154,7 @@ function RowMoreMenu({
             }}
           >
             <Eye size={15} />
-            <span>{t("coupons.View Coupon", "View Coupon")}</span>
+            <span>{isId ? "Lihat Kupon" : t("coupons.View Coupon", "View Coupon")}</span>
           </button>
           <button
             type="button"
@@ -141,11 +162,11 @@ function RowMoreMenu({
             disabled={disabled}
             onClick={() => {
               onToggle();
-              onEdit(coupon);
+              onEdit?.(coupon);
             }}
           >
             <Pencil size={15} />
-            <span>{t("coupons.Edit Coupon", "Edit Coupon")}</span>
+            <span>{isId ? "Edit Kupon" : t("coupons.Edit Coupon", "Edit Coupon")}</span>
           </button>
           <button
             type="button"
@@ -153,16 +174,21 @@ function RowMoreMenu({
             disabled={disabled}
             onClick={() => {
               onToggle();
-              onToggleActive(coupon);
+              onToggleActive?.(coupon);
             }}
           >
-            <CheckCircle2 size={15} />
+            {isActive ? <XCircle size={15} /> : <CheckCircle2 size={15} />}
             <span>
-              {resolveCouponActive(coupon)
-                ? t("coupons.Deactivate Coupon", "Deactivate Coupon")
-                : t("coupons.Activate Coupon", "Activate Coupon")}
+              {isActive
+                ? isId
+                  ? "Nonaktifkan Kupon"
+                  : t("coupons.Deactivate Coupon", "Deactivate Coupon")
+                : isId
+                  ? "Aktifkan Kupon"
+                  : t("coupons.Activate Coupon", "Activate Coupon")}
             </span>
           </button>
+          <span className="ac26-more-menu__divider" aria-hidden="true" />
           <button
             type="button"
             role="menuitem"
@@ -170,11 +196,11 @@ function RowMoreMenu({
             disabled={disabled}
             onClick={() => {
               onToggle();
-              onDelete(coupon);
+              onDelete?.(coupon);
             }}
           >
             <Trash2 size={15} />
-            <span>{t("coupons.Delete Coupon", "Delete Coupon")}</span>
+            <span>{isId ? "Hapus Kupon" : t("coupons.Delete Coupon", "Delete Coupon")}</span>
           </button>
         </div>
       ) : null}
@@ -182,12 +208,11 @@ function RowMoreMenu({
   );
 }
 
-function BulkActionsMenu({ open, onToggle, onClose, disabled, onBulkAction, t }) {
+function BulkActionsMenu({ open, onToggle, onClose, disabled, onBulkAction, isId, t }) {
   const menuRef = useRef(null);
 
   useEffect(() => {
     if (!open) return undefined;
-
     const handlePointerDown = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         onClose();
@@ -219,48 +244,44 @@ function BulkActionsMenu({ open, onToggle, onClose, disabled, onBulkAction, t })
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        {t("coupons.Bulk Action", "Bulk Action")}
+        {isId ? "Aksi Massal" : t("coupons.Bulk Action", "Bulk Action")}
       </ActionButton>
       {open ? (
         <div
           className="ac26-more-menu"
           role="menu"
-          style={{ left: 0, right: "auto", top: "calc(100% + 4px)", bottom: "auto", minWidth: 170, zIndex: 100 }}
+          style={{
+            left: 0,
+            right: "auto",
+            top: "calc(100% + 4px)",
+            bottom: "auto",
+            minWidth: 185,
+            zIndex: 100,
+          }}
         >
           <button type="button" role="menuitem" disabled={disabled} onClick={() => runAction("activate")}>
-            <Upload size={15} />
-            <span>{t("coupons.Bulk Activate", "Bulk Activate")}</span>
+            <CheckCircle2 size={15} />
+            <span>{isId ? "Aktifkan Massal" : t("coupons.Bulk Activate", "Bulk Activate")}</span>
           </button>
           <button type="button" role="menuitem" disabled={disabled} onClick={() => runAction("deactivate")}>
-            <Download size={15} />
-            <span>{t("coupons.Bulk Deactivate", "Bulk Deactivate")}</span>
+            <XCircle size={15} />
+            <span>{isId ? "Nonaktifkan Massal" : t("coupons.Bulk Deactivate", "Bulk Deactivate")}</span>
           </button>
           <span className="ac26-more-menu__divider" aria-hidden="true" />
-          <button type="button" role="menuitem" className="is-danger" disabled={disabled} onClick={() => runAction("delete")}>
+          <button
+            type="button"
+            role="menuitem"
+            className="is-danger"
+            disabled={disabled}
+            onClick={() => runAction("delete")}
+          >
             <Trash2 size={15} />
-            <span>{t("coupons.Bulk Delete", "Bulk Delete")}</span>
+            <span>{isId ? "Hapus Massal" : t("coupons.Bulk Delete", "Bulk Delete")}</span>
           </button>
         </div>
       ) : null}
     </div>
   );
-}
-
-function resolveCouponStatus(coupon, t = (k, d) => d) {
-  if (!resolveCouponActive(coupon)) {
-    return { label: t("coupons.Inactive", "Inactive"), tone: "inactive" };
-  }
-
-  const now = new Date();
-  const startsAt = coupon.startsAt || coupon.startDate;
-  const expiresAt = coupon.expiresAt || coupon.endDate || coupon.endsAt;
-  if (startsAt && new Date(startsAt) > now) {
-    return { label: t("coupons.Scheduled", "Scheduled"), tone: "scheduled" };
-  }
-  if (expiresAt && new Date(expiresAt) < now) {
-    return { label: t("coupons.Expired", "Expired"), tone: "expired" };
-  }
-  return { label: t("coupons.Active", "Active"), tone: "active" };
 }
 
 function resolveCouponActive(coupon) {
@@ -269,41 +290,29 @@ function resolveCouponActive(coupon) {
   return true;
 }
 
-function formatPeriod(startsAt, expiresAt, t = (k, d) => d) {
-  const startShort = formatDateShort(startsAt);
-  const endShort = formatDateShort(expiresAt);
-  if (startShort !== "-" && endShort !== "-") return `${startShort} - ${endShort}`;
-  if (startShort !== "-") return `${t("coupons.Starts", "Starts")} ${startShort}`;
-  if (endShort !== "-") return `${t("coupons.Expires", "Expires")} ${endShort}`;
-  return t("coupons.No expiry", "No expiry");
+function resolveCouponStatus(coupon, isId) {
+  if (!resolveCouponActive(coupon)) {
+    return { label: isId ? "Nonaktif" : "Inactive", tone: "inactive" };
+  }
 
-  if (!startsAt && !expiresAt) return "No expiry";
-  const formatDate = (dateStr) => {
-    if (!dateStr) return null;
-    try {
-      return new Date(dateStr).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
-    } catch {
-      return null;
-    }
-  };
-  const start = formatDate(startsAt);
-  const end = formatDate(expiresAt);
-  if (start && end) return `${start} — ${end}`;
-  if (start) return `Starts ${start}`;
-  if (end) return `Expires ${end}`;
-  return "No expiry";
+  const now = new Date();
+  const startsAt = coupon.startsAt || coupon.startDate;
+  const expiresAt = coupon.expiresAt || coupon.endDate || coupon.endsAt;
+  if (startsAt && new Date(startsAt) > now) {
+    return { label: isId ? "Terjadwal" : "Scheduled", tone: "scheduled" };
+  }
+  if (expiresAt && new Date(expiresAt) < now) {
+    return { label: isId ? "Kedaluwarsa" : "Expired", tone: "expired" };
+  }
+  return { label: isId ? "Aktif" : "Active", tone: "active" };
 }
 
-function formatDateShort(dateValue) {
+function formatDateDisplay(dateValue, isId) {
   if (!dateValue) return "-";
   try {
     const d = new Date(dateValue);
     if (isNaN(d.getTime())) return String(dateValue);
-    return d.toLocaleDateString("id-ID", {
+    return d.toLocaleDateString(isId ? "id-ID" : "en-US", {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -337,40 +346,53 @@ export default function AdminCoupons2026View({
   onBulkAction,
   onPageChange,
 }) {
-  const { t } = useTranslation("admin");
-  const openMenuRef = useRef(null);
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const { t, i18n } = useTranslation("admin");
+  const isId = String(i18n.language || "").toLowerCase().startsWith("id");
+
   const [openActionMenuId, setOpenActionMenuId] = useState(null);
   const [bulkMenuOpen, setBulkMenuOpen] = useState(false);
   const [viewMode, setViewMode] = useState("table");
+  const [copiedCode, setCopiedCode] = useState(null);
+
+  const handleCopyCode = async (code) => {
+    if (!code) return;
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopiedCode(code);
+      setTimeout(() => setCopiedCode(null), 2000);
+    } catch {
+      // Fallback
+      setCopiedCode(null);
+    }
+  };
 
   const discountTypeOptions = useMemo(
     () => [
-      { value: "all", label: t("coupons.All", "All") },
-      { value: "percent", label: t("coupons.Percent (%)", "Percent (%)") },
-      { value: "fixed", label: t("coupons.Fixed Amount (Rp)", "Fixed Amount (Rp)") },
+      { value: "all", label: isId ? "Semua Tipe" : "All Types" },
+      { value: "percent", label: isId ? "Persentase (%)" : "Percent (%)" },
+      { value: "fixed", label: isId ? "Nominal Tetap (Rp)" : "Fixed Amount (Rp)" },
     ],
-    [t]
+    [isId]
   );
 
   const scopeOptions = useMemo(
     () => [
-      { value: "all", label: t("coupons.All", "All") },
-      { value: "PLATFORM", label: t("coupons.Platform Scope", "Platform Scope") },
-      { value: "STORE", label: t("coupons.Store Scope", "Store Scope") },
+      { value: "all", label: isId ? "Semua Cakupan" : "All Scopes" },
+      { value: "PLATFORM", label: isId ? "Cakupan Platform" : "Platform Scope" },
+      { value: "STORE", label: isId ? "Cakupan Toko" : "Store Scope" },
     ],
-    [t]
+    [isId]
   );
 
   const statusOptions = useMemo(
     () => [
-      { value: "all", label: t("coupons.All", "All") },
-      { value: "active", label: t("coupons.Active", "Active") },
-      { value: "scheduled", label: t("coupons.Scheduled", "Scheduled") },
-      { value: "expired", label: t("coupons.Expired", "Expired") },
-      { value: "inactive", label: t("coupons.Inactive", "Inactive") },
+      { value: "all", label: isId ? "Semua Status" : "All Status" },
+      { value: "active", label: isId ? "Aktif" : "Active" },
+      { value: "scheduled", label: isId ? "Terjadwal" : "Scheduled" },
+      { value: "expired", label: isId ? "Kedaluwarsa" : "Expired" },
+      { value: "inactive", label: isId ? "Tidak Aktif" : "Inactive" },
     ],
-    [t]
+    [isId]
   );
 
   const safeCoupons = Array.isArray(coupons) ? coupons : [];
@@ -390,54 +412,37 @@ export default function AdminCoupons2026View({
 
   const selectedSet = useMemo(() => new Set(selectedIds || []), [selectedIds]);
   const anySelected = selectedSet.size > 0;
+  const allSelected =
+    safeCoupons.length > 0 && safeCoupons.every((item) => selectedSet.has(Number(item.id)));
 
-  useEffect(() => {
-    if (!openActionMenuId) return undefined;
-    const handlePointerDown = (event) => {
-      if (openMenuRef.current?.contains(event.target)) return;
-      setOpenActionMenuId(null);
-    };
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") setOpenActionMenuId(null);
-    };
-    document.addEventListener("pointerdown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [openActionMenuId]);
-
-  useEffect(() => {
-    setOpenActionMenuId(null);
-    setBulkMenuOpen(false);
-  }, [coupons, filters]);
-
-  const openCouponDetail = (coupon) => {
-    setOpenActionMenuId(null);
-    onViewCoupon?.(coupon);
-  };
+  const hasActiveFilters = Boolean(
+    safeFilters.q ||
+      (safeFilters.discountType && safeFilters.discountType !== "all") ||
+      (safeFilters.scopeType && safeFilters.scopeType !== "all") ||
+      (safeFilters.status && safeFilters.status !== "all")
+  );
 
   const startIdx = safeMeta.total === 0 ? 0 : (safeMeta.page - 1) * safeMeta.limit + 1;
   const endIdx = Math.min(safeMeta.total, safeMeta.page * safeMeta.limit);
 
   return (
     <div className="ac26-page ac26-page--coupons">
+      {/* Header Section */}
       <section className="ac26-header">
         <div>
-          <h1>{t("coupons.Coupons", "Coupons")}</h1>
+          <h1>{isId ? "Kupon" : t("coupons.Coupons", "Coupons")}</h1>
           <nav aria-label="Breadcrumb">
-            <span>{t("coupons.Catalog", "Catalog")}</span>
+            <span>{isId ? "Katalog" : t("coupons.Catalog", "Catalog")}</span>
             <ChevronRight size={14} />
-            <span>{t("coupons.Coupons", "Coupons")}</span>
+            <span>{isId ? "Kupon" : t("coupons.Coupons", "Coupons")}</span>
           </nav>
         </div>
         <div className="ac26-header__actions">
           <ActionButton icon={Download} onClick={() => onExport("csv")}>
-            {t("coupons.Export", "Export")}
+            {isId ? "Ekspor" : t("coupons.Export", "Export")}
           </ActionButton>
           <ActionButton icon={Upload} onClick={onImport}>
-            {t("coupons.Import", "Import")}
+            {isId ? "Impor" : t("coupons.Import", "Import")}
           </ActionButton>
           <BulkActionsMenu
             open={bulkMenuOpen}
@@ -445,6 +450,7 @@ export default function AdminCoupons2026View({
             onClose={() => setBulkMenuOpen(false)}
             disabled={!anySelected}
             onBulkAction={onBulkAction}
+            isId={isId}
             t={t}
           />
           <ActionButton
@@ -453,85 +459,112 @@ export default function AdminCoupons2026View({
             disabled={!anySelected}
             onClick={() => onBulkAction("delete")}
           >
-            {t("coupons.Delete", "Delete")}
+            {isId ? "Hapus" : t("coupons.Delete", "Delete")}
           </ActionButton>
           <ActionButton icon={Plus} tone="primary" onClick={onAddCoupon}>
-            {t("coupons.Add Coupon", "Add Coupon")}
+            {isId ? "Tambah Kupon" : t("coupons.Add Coupon", "Add Coupon")}
           </ActionButton>
         </div>
       </section>
 
-      <section className="ac26-kpis" aria-label={t("coupons.Coupon summary", "Coupon summary")}>
+      {/* KPI Summary Cards */}
+      <section
+        className="ac26-kpis"
+        aria-label={isId ? "Ringkasan metrik kupon" : "Coupon summary metrics"}
+      >
         <KpiCard
-          label={t("coupons.Total Coupons", "Total Coupons")}
+          label={isId ? "Total Kupon" : t("coupons.Total Coupons", "Total Coupons")}
           value={safeStats.total}
-          helper={t("coupons.All discount promotions", "All discount promotions")}
+          helper={isId ? "Semua promosi diskon" : t("coupons.All discount promotions", "All discount promotions")}
           icon={Ticket}
           tone="blue"
         />
         <KpiCard
-          label={t("coupons.Published", "Published")}
+          label={isId ? "Diterbitkan" : t("coupons.Published", "Published")}
           value={safeStats.published}
-          helper={t("coupons.Loaded active coupons", "Loaded active coupons")}
+          helper={isId ? "Kupon aktif di checkout" : t("coupons.Loaded active coupons", "Loaded active coupons")}
           icon={CheckCircle2}
           tone="green"
         />
         <KpiCard
-          label={t("coupons.Platform Scope", "Platform Scope")}
+          label={isId ? "Cakupan Platform" : t("coupons.Platform Scope", "Platform Scope")}
           value={safeStats.platform}
-          helper={t("coupons.System-wide coupons", "System-wide coupons")}
+          helper={isId ? "Kupon seluruh sistem" : t("coupons.System-wide coupons", "System-wide coupons")}
           icon={SlidersHorizontal}
           tone="orange"
         />
         <KpiCard
-          label={t("coupons.Store Scope", "Store Scope")}
+          label={isId ? "Cakupan Toko" : t("coupons.Store Scope", "Store Scope")}
           value={safeStats.store}
-          helper={t("coupons.Seller store coupons", "Seller store coupons")}
+          helper={isId ? "Kupon toko penjual" : t("coupons.Seller store coupons", "Seller store coupons")}
           icon={Store}
           tone="red"
         />
       </section>
 
+      {/* Toolbar: Search, Filters & View Toggles */}
       <section className="ac26-toolbar">
         <label className="ac26-search">
-          <Search size={20} />
+          <Search size={18} />
           <input
             value={safeFilters.q || ""}
             onChange={(event) => onFilterChange({ q: event.target.value })}
-            placeholder={t("coupons.Search by coupon name, code, or store...", "Search by coupon name, code, or store...")}
+            placeholder={
+              isId
+                ? "Cari nama kupon, kode, atau toko..."
+                : t("coupons.Search by coupon name, code, or store...", "Search by coupon name, code, or store...")
+            }
           />
+          {safeFilters.q ? (
+            <button
+              type="button"
+              className="ac26-icon-button"
+              style={{ width: 26, height: 26, border: "none" }}
+              onClick={() => onFilterChange({ q: "" })}
+              aria-label={isId ? "Hapus pencarian" : "Clear search"}
+            >
+              <X size={15} />
+            </button>
+          ) : null}
         </label>
+
         <FieldSelect
-          label={t("coupons.Discount Type", "Discount Type")}
+          label={isId ? "Tipe Diskon" : t("coupons.Discount Type", "Discount Type")}
           value={safeFilters.discountType || "all"}
           onChange={(value) => onFilterChange({ discountType: value === "all" ? "" : value })}
           options={discountTypeOptions}
         />
+
         <FieldSelect
-          label={t("coupons.Scope", "Scope")}
+          label={isId ? "Cakupan" : t("coupons.Scope", "Scope")}
           value={safeFilters.scopeType || "all"}
           onChange={(value) => onFilterChange({ scopeType: value === "all" ? "" : value })}
           options={scopeOptions}
         />
+
         <FieldSelect
-          label={t("coupons.Status", "Status")}
+          label={isId ? "Status" : t("coupons.Status", "Status")}
           value={safeFilters.status || "all"}
           onChange={(value) => onFilterChange({ status: value === "all" ? "" : value })}
           options={statusOptions}
         />
+
         <div className="ac26-toolbar__actions">
-          <button
-            type="button"
-            className="ac26-filter-button"
-            onClick={() => setFiltersOpen((open) => !open)}
-            aria-expanded={filtersOpen}
-          >
-            <SlidersHorizontal size={17} />
-            <span>{t("coupons.More", "More")}</span>
-          </button>
+          {hasActiveFilters ? (
+            <button
+              type="button"
+              className="ac26-action"
+              onClick={onResetFilters}
+              style={{ height: 44, padding: "0 12px", fontSize: 12.5 }}
+            >
+              <X size={14} />
+              <span>{isId ? "Atur Ulang" : t("coupons.Reset filters", "Reset filters")}</span>
+            </button>
+          ) : null}
+
           <div className="ac26-view-toggles">
             <IconButton
-              label={t("coupons.Table View", "Table View")}
+              label={isId ? "Tampilan Tabel" : t("coupons.Table View", "Table View")}
               className={viewMode === "table" ? "is-active" : ""}
               onClick={() => setViewMode("table")}
               aria-pressed={viewMode === "table"}
@@ -539,7 +572,7 @@ export default function AdminCoupons2026View({
               <List size={18} />
             </IconButton>
             <IconButton
-              label={t("coupons.Grid View", "Grid View")}
+              label={isId ? "Tampilan Grid" : t("coupons.Grid View", "Grid View")}
               className={viewMode === "grid" ? "is-active" : ""}
               onClick={() => setViewMode("grid")}
               aria-pressed={viewMode === "grid"}
@@ -548,112 +581,185 @@ export default function AdminCoupons2026View({
             </IconButton>
           </div>
         </div>
-        {filtersOpen ? (
-          <div className="ac26-filter-drawer">
-            <button type="button" className="ac26-action" onClick={onResetFilters}>
-              <X size={16} />
-              {t("coupons.Reset filters", "Reset filters")}
-            </button>
-          </div>
-        ) : null}
       </section>
 
+      {/* Main Content Area */}
       {isError ? (
-        <section className="ac26-table-card p-8 text-center">
-          <strong className="block text-base font-semibold text-slate-900">{t("coupons.Coupons could not be loaded.", "Coupons could not be loaded.")}</strong>
-          <p className="mt-1 text-sm text-slate-500">{errorMessage || t("coupons.Please retry to fetch the latest coupons.", "Please retry to fetch the latest coupons.")}</p>
+        <section className="ac26-table-card p-8 text-center" style={{ padding: "48px 24px" }}>
+          <strong className="block text-base font-semibold" style={{ color: "var(--ac26-text-main)" }}>
+            {isId ? "Kupon tidak dapat dimuat." : t("coupons.Coupons could not be loaded.", "Coupons could not be loaded.")}
+          </strong>
+          <p className="mt-1 text-sm" style={{ color: "var(--ac26-text-sub)" }}>
+            {errorMessage || (isId ? "Silakan coba lagi untuk memuat data kupon terbaru." : "Please retry to fetch the latest coupons.")}
+          </p>
           <div className="mt-4">
-            <button type="button" className="ac26-action ac26-action--primary" onClick={onRetry}>
-              {t("coupons.Retry", "Retry")}
-            </button>
+            <ActionButton icon={RefreshCw} tone="primary" onClick={onRetry}>
+              {isId ? "Coba Lagi" : t("coupons.Retry", "Retry")}
+            </ActionButton>
           </div>
         </section>
       ) : isLoading ? (
-        <div className="ac26-table-card p-6">
-          <div className="h-10 w-full animate-pulse rounded bg-slate-100" />
+        <div className="ac26-table-card" style={{ padding: 24 }}>
+          <div
+            className="animate-pulse"
+            style={{
+              height: 40,
+              width: "100%",
+              borderRadius: 8,
+              background: "var(--ac26-surface-soft)",
+            }}
+          />
           {Array.from({ length: 5 }).map((_, index) => (
-            <div key={index} className="mt-3 h-14 w-full animate-pulse rounded bg-slate-50" />
+            <div
+              key={index}
+              className="mt-3 animate-pulse"
+              style={{
+                height: 56,
+                width: "100%",
+                borderRadius: 8,
+                background: "var(--ac26-surface-soft)",
+              }}
+            />
           ))}
         </div>
-      ) : coupons.length === 0 ? (
-        <section className="ac26-table-card p-12 text-center">
-          <strong className="block text-base font-semibold text-slate-900">{t("coupons.No coupons found", "No coupons found")}</strong>
-          <p className="mt-1 text-sm text-slate-500">
-            {t("coupons.Create your first coupon to enable checkout discounts.", "Create your first coupon to enable checkout discounts.")}
+      ) : safeCoupons.length === 0 ? (
+        <section className="ac26-table-card" style={{ padding: "64px 24px", textAlign: "center" }}>
+          <strong className="block text-lg font-bold" style={{ color: "var(--ac26-text-main)" }}>
+            {isId ? "Tidak ada kupon ditemukan" : t("coupons.No coupons found", "No coupons found")}
+          </strong>
+          <p className="mt-1 text-sm" style={{ color: "var(--ac26-text-sub)" }}>
+            {isId
+              ? "Buat kupon pertama Anda untuk mengaktifkan potongan diskon saat checkout."
+              : t("coupons.Create your first coupon to enable checkout discounts.", "Create your first coupon to enable checkout discounts.")}
           </p>
           <div className="mt-5">
-            <button type="button" className="ac26-action ac26-action--primary" onClick={onAddCoupon}>
-              + {t("coupons.Add Coupon", "Add Coupon")}
-            </button>
+            <ActionButton icon={Plus} tone="primary" onClick={onAddCoupon}>
+              {isId ? "Tambah Kupon" : t("coupons.Add Coupon", "Add Coupon")}
+            </ActionButton>
           </div>
         </section>
       ) : viewMode === "grid" ? (
+        /* Grid Cards View */
         <section className="ac26-table-card ac26-grid-card">
           <div className="ac26-grid-view">
             {safeCoupons.map((coupon) => {
               const id = Number(coupon.id);
-              const statusObj = resolveCouponStatus(coupon, t);
+              const statusObj = resolveCouponStatus(coupon, isId);
               const isStore = String(coupon.scopeType || "PLATFORM").toUpperCase() === "STORE";
               const storeName = coupon.store?.name || (coupon.storeId ? `Store #${coupon.storeId}` : null);
               const isActive = resolveCouponActive(coupon);
               const discountDisplay =
                 coupon.discountType === "fixed"
                   ? formatCurrency(coupon.amount || 0)
-                  : `${Number(coupon.amount || 0)}% ${t("coupons.OFF", "OFF")}`;
+                  : `${Number(coupon.amount || 0)}% ${isId ? "DISKON" : "OFF"}`;
+              const couponCode = coupon.code || "";
 
               return (
-                <article key={coupon.id} className={`ac26-grid-item ${selectedSet.has(id) ? "is-selected" : ""}`}>
+                <article
+                  key={coupon.id}
+                  className={`ac26-grid-item ${selectedSet.has(id) ? "is-selected" : ""}`}
+                >
                   <div className="ac26-grid-item__header">
                     <input
                       type="checkbox"
                       checked={selectedSet.has(id)}
                       onChange={() => onSelectOne(id)}
-                      aria-label={`${t("coupons.Select coupon", "Select coupon")} ${coupon.code}`}
+                      aria-label={`${isId ? "Pilih kupon" : "Select coupon"} ${couponCode}`}
                     />
-                    <div ref={openActionMenuId === coupon.id ? openMenuRef : null}>
-                      <RowMoreMenu
-                        coupon={coupon}
-                        disabled={false}
-                        open={openActionMenuId === coupon.id}
-                        onToggle={() =>
-                          setOpenActionMenuId((current) => (current === coupon.id ? null : coupon.id))
-                        }
-                        onView={openCouponDetail}
-                        onEdit={onEditCoupon}
-                        onToggleActive={onToggleActive}
-                        onDelete={onDeleteCoupon}
-                        t={t}
-                      />
-                    </div>
+                    <RowMoreMenu
+                      coupon={coupon}
+                      disabled={false}
+                      open={openActionMenuId === coupon.id}
+                      onToggle={() =>
+                        setOpenActionMenuId((current) => (current === coupon.id ? null : coupon.id))
+                      }
+                      onView={onViewCoupon}
+                      onEdit={onEditCoupon}
+                      onToggleActive={onToggleActive}
+                      onDelete={onDeleteCoupon}
+                      isId={isId}
+                      t={t}
+                    />
                   </div>
+
                   <div className="ac26-grid-item__body">
-                    <strong>{coupon.campaignName || coupon.code}</strong>
-                    <span className="ac26-coupon-code">{coupon.code}</span>
+                    <strong>{coupon.campaignName || coupon.name || couponCode}</strong>
+                    <div className="ac26-coupon-code-wrap">
+                      <span className="ac26-coupon-code">{couponCode}</span>
+                      <button
+                        type="button"
+                        className="ac26-code-copy-btn"
+                        onClick={() => handleCopyCode(couponCode)}
+                        title={copiedCode === couponCode ? (isId ? "Kode tersalin!" : "Code copied!") : (isId ? "Salin kode kupon" : "Copy coupon code")}
+                        aria-label={isId ? "Salin kode kupon" : "Copy coupon code"}
+                      >
+                        {copiedCode === couponCode ? <Check size={13} style={{ color: "#10b981" }} /> : <Copy size={13} />}
+                      </button>
+                    </div>
+
                     <div className="ac26-grid-item__badges">
-                      <span className={`ac26-badge ac26-badge--${coupon.discountType === "fixed" ? "fixed" : "percent"}`}>
+                      <span
+                        className={`ac26-badge ac26-badge--${coupon.discountType === "fixed" ? "fixed" : "percent"}`}
+                      >
                         {discountDisplay}
                       </span>
                       <span className={`ac26-badge ac26-badge--${isStore ? "store" : "platform"}`}>
-                        {isStore ? storeName || t("coupons.Store", "Store") : t("coupons.Platform", "Platform")}
+                        {isStore ? <Store size={12} /> : <Globe size={12} />}
+                        <span>{isStore ? storeName || (isId ? "Toko" : "Store") : "Platform"}</span>
                       </span>
-                      <span className={`ac26-status ac26-status--${statusObj.tone}`}>{statusObj.label}</span>
+                      <span className={`ac26-status ac26-status--${statusObj.tone}`}>
+                        <span className="ac26-status__dot" />
+                        <span>{statusObj.label}</span>
+                      </span>
                     </div>
                   </div>
+
                   <div className="ac26-grid-item__meta">
-                    <span>{t("coupons.Min spend", "Min spend")}: {formatCurrency(Number(coupon.minSpend || coupon.minimumAmount || 0))}</span>
-                    <span>{formatPeriod(coupon.startDate || coupon.startsAt, coupon.endDate || coupon.expiresAt, t)}</span>
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium" style={{ color: "var(--ac26-text-sub)" }}>
+                        {isId ? "Min. belanja" : "Min spend"}:
+                      </span>
+                      <span className="ac26-min-spend">
+                        {formatCurrency(Number(coupon.minSpend || coupon.minimumAmount || 0))}
+                      </span>
+                    </div>
+                    <div className="ac26-dates">
+                      <div className="ac26-dates-row">
+                        <span className="ac26-dates-label">{isId ? "Mulai" : "Start"}:</span>
+                        <span className="ac26-dates-val">
+                          {formatDateDisplay(coupon.startDate || coupon.startsAt, isId)}
+                        </span>
+                      </div>
+                      <div className="ac26-dates-row">
+                        <span className="ac26-dates-label">{isId ? "Selesai" : "End"}:</span>
+                        <span className="ac26-dates-val">
+                          {formatDateDisplay(coupon.endDate || coupon.expiresAt, isId)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
+
                   <div className="ac26-grid-item__footer">
                     <span className="ac26-usage">
                       <strong>{Number(coupon.usedCount || 0)}</strong>
-                      <span>/ {coupon.usageLimit ? Number(coupon.usageLimit) : t("coupons.Unlimited", "Unlimited")}</span>
+                      <span>
+                        / {coupon.usageLimit ? Number(coupon.usageLimit) : (isId ? "Tanpa batas" : "Unlimited")}
+                      </span>
                     </span>
                     <PublishToggle
                       checked={isActive}
                       disabled={false}
                       busy={false}
                       onChange={() => onToggleActive(coupon)}
-                      t={t}
+                      label={
+                        isActive
+                          ? isId
+                            ? "Kupon aktif di checkout"
+                            : "Active coupon in public checkout"
+                          : isId
+                            ? "Kupon tidak aktif di checkout"
+                            : "Inactive coupon in public checkout"
+                      }
                     />
                   </div>
                 </article>
@@ -662,111 +768,164 @@ export default function AdminCoupons2026View({
           </div>
         </section>
       ) : (
+        /* High Contrast Table View */
         <div className="ac26-table-card">
           <div className="ac26-table-wrap">
             <table className="ac26-table">
               <colgroup>
-                <col className="ac26-col-select ac26-coupon-col-select" />
-                <col className="ac26-col-coupon ac26-coupon-col-coupon" />
-                <col className="ac26-col-discount ac26-coupon-col-discount" />
-                <col className="ac26-col-min ac26-coupon-col-min" />
-                <col className="ac26-col-scope ac26-coupon-col-scope" />
-                <col className="ac26-col-period ac26-coupon-col-period" />
-                <col className="ac26-col-usage ac26-coupon-col-usage" />
-                <col className="ac26-col-state ac26-coupon-col-state" />
-                <col className="ac26-col-published ac26-coupon-col-published" />
-                <col className="ac26-col-actions ac26-coupon-col-actions" style={{ width: "15.5%" }} />
+                <col className="ac26-col-select" />
+                <col className="ac26-col-coupon" />
+                <col className="ac26-col-discount" />
+                <col className="ac26-col-min" />
+                <col className="ac26-col-scope" />
+                <col className="ac26-col-period" />
+                <col className="ac26-col-usage" />
+                <col className="ac26-col-state" />
+                <col className="ac26-col-published" />
+                <col className="ac26-col-actions" />
               </colgroup>
               <thead>
                 <tr>
                   <th>
                     <input
                       type="checkbox"
-                      aria-label={t("coupons.Select all coupons", "Select all coupons")}
-                      checked={
-                        coupons.length > 0 &&
-                        coupons.every((item) => selectedSet.has(Number(item.id)))
-                      }
+                      aria-label={isId ? "Pilih semua kupon" : "Select all coupons"}
+                      checked={allSelected}
                       onChange={onSelectAll}
                     />
                   </th>
-                  <th>{t("coupons.COUPON", "COUPON")}</th>
-                  <th>{t("coupons.DISCOUNT", "DISCOUNT")}</th>
-                  <th>{t("coupons.MIN SPEND", "MIN SPEND")}</th>
-                  <th>{t("coupons.SCOPE", "SCOPE")}</th>
-                  <th>{t("coupons.PERIOD", "PERIOD")}</th>
-                  <th>{t("coupons.USAGE", "USAGE")}</th>
-                  <th>{t("coupons.STATUS", "STATUS")}</th>
-                  <th>{t("coupons.PUBLISHED", "PUBLISHED")}</th>
-                  <th className="ac26-coupon-actions-heading">{t("coupons.ACTIONS", "ACTIONS")}</th>
+                  <th>{isId ? "KUPON" : t("coupons.COUPON", "COUPON")}</th>
+                  <th>{isId ? "DISKON" : t("coupons.DISCOUNT", "DISCOUNT")}</th>
+                  <th>{isId ? "MIN. BELANJA" : t("coupons.MIN SPEND", "MIN SPEND")}</th>
+                  <th>{isId ? "CAKUPAN" : t("coupons.SCOPE", "SCOPE")}</th>
+                  <th>{isId ? "PERIODE" : t("coupons.PERIOD", "PERIOD")}</th>
+                  <th>{isId ? "PAKAI" : t("coupons.USAGE", "USAGE")}</th>
+                  <th>{isId ? "STATUS" : t("coupons.STATUS", "STATUS")}</th>
+                  <th style={{ textAlign: "center" }}>
+                    {isId ? "TERBIT" : t("coupons.PUBLISHED", "PUBLISHED")}
+                  </th>
+                  <th style={{ textAlign: "center" }}>
+                    {isId ? "AKSI" : t("coupons.ACTIONS", "ACTIONS")}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {safeCoupons.map((coupon) => {
                   const id = Number(coupon.id);
-                  const statusObj = resolveCouponStatus(coupon, t);
+                  const statusObj = resolveCouponStatus(coupon, isId);
                   const isStore = String(coupon.scopeType || "PLATFORM").toUpperCase() === "STORE";
                   const storeName = coupon.store?.name || (coupon.storeId ? `Store #${coupon.storeId}` : null);
                   const isActive = resolveCouponActive(coupon);
                   const discountDisplay =
                     coupon.discountType === "fixed"
                       ? formatCurrency(coupon.amount || 0)
-                      : `${Number(coupon.amount || 0)}% ${t("coupons.OFF", "OFF")}`;
+                      : `${Number(coupon.amount || 0)}% ${isId ? "DISKON" : "OFF"}`;
+                  const couponCode = coupon.code || "";
 
                   return (
-                    <tr key={coupon.id}>
+                    <tr key={coupon.id} className={selectedSet.has(id) ? "is-selected" : ""}>
                       <td>
                         <input
                           type="checkbox"
                           checked={selectedSet.has(id)}
                           onChange={() => onSelectOne(id)}
-                          aria-label={`${t("coupons.Select coupon", "Select coupon")} ${coupon.code}`}
+                          aria-label={`${isId ? "Pilih kupon" : "Select coupon"} ${couponCode}`}
                         />
                       </td>
+
+                      {/* Coupon Name & Code */}
                       <td>
                         <div className="ac26-coupon-cell">
-                          <strong>{coupon.campaignName || coupon.code}</strong>
-                          <div>
-                            <span className="ac26-coupon-code">{coupon.code}</span>
+                          <strong>{coupon.campaignName || coupon.name || couponCode}</strong>
+                          <div className="ac26-coupon-code-wrap">
+                            <span className="ac26-coupon-code">{couponCode}</span>
+                            <button
+                              type="button"
+                              className="ac26-code-copy-btn"
+                              onClick={() => handleCopyCode(couponCode)}
+                              title={
+                                copiedCode === couponCode
+                                  ? isId
+                                    ? "Kode tersalin!"
+                                    : "Code copied!"
+                                  : isId
+                                    ? "Salin kode kupon"
+                                    : "Copy coupon code"
+                              }
+                              aria-label={isId ? "Salin kode kupon" : "Copy coupon code"}
+                            >
+                              {copiedCode === couponCode ? (
+                                <Check size={13} style={{ color: "#10b981" }} />
+                              ) : (
+                                <Copy size={13} />
+                              )}
+                            </button>
                           </div>
                         </div>
                       </td>
+
+                      {/* Discount Badge */}
                       <td>
-                        <div>
-                          <span className={`ac26-badge ac26-badge--${coupon.discountType === "fixed" ? "fixed" : "percent"}`}>
-                            {discountDisplay}
-                          </span>
-                        </div>
+                        <span
+                          className={`ac26-badge ac26-badge--${coupon.discountType === "fixed" ? "fixed" : "percent"}`}
+                        >
+                          {discountDisplay}
+                        </span>
                       </td>
+
+                      {/* Minimum Spend (High Contrast) */}
                       <td>
-                        {formatCurrency(Number(coupon.minSpend || coupon.minimumAmount || 0))}
+                        <span className="ac26-min-spend">
+                          {formatCurrency(Number(coupon.minSpend || coupon.minimumAmount || 0))}
+                        </span>
                       </td>
+
+                      {/* Scope Badge */}
                       <td>
                         <span className={`ac26-badge ac26-badge--${isStore ? "store" : "platform"}`}>
-                          {isStore ? storeName || t("coupons.Store", "Store") : t("coupons.Platform", "Platform")}
+                          {isStore ? <Store size={12} /> : <Globe size={12} />}
+                          <span>{isStore ? storeName || (isId ? "Toko" : "Store") : "Platform"}</span>
                         </span>
                       </td>
+
+                      {/* Period (Start & End with high contrast) */}
                       <td>
-                        <span className="ac26-dates">
-                          <span>{t("coupons.Start", "Start")}: {formatDateShort(coupon.startDate || coupon.startsAt)}</span>
-                          <span>{t("coupons.End", "End")}: {formatDateShort(coupon.endDate || coupon.expiresAt)}</span>
-                        </span>
+                        <div className="ac26-dates">
+                          <div className="ac26-dates-row">
+                            <Calendar size={13} style={{ color: "var(--ac26-text-sub)", flexShrink: 0 }} />
+                            <span className="ac26-dates-label">{isId ? "Mulai" : "Start"}:</span>
+                            <span className="ac26-dates-val">
+                              {formatDateDisplay(coupon.startDate || coupon.startsAt, isId)}
+                            </span>
+                          </div>
+                          <div className="ac26-dates-row" style={{ paddingLeft: 18 }}>
+                            <span className="ac26-dates-label">{isId ? "Selesai" : "End"}:</span>
+                            <span className="ac26-dates-val">
+                              {formatDateDisplay(coupon.endDate || coupon.expiresAt, isId)}
+                            </span>
+                          </div>
+                        </div>
                       </td>
+
+                      {/* Usage */}
                       <td>
                         <span className="ac26-usage">
                           <strong>{Number(coupon.usedCount || 0)}</strong>
-                          <span title={coupon.usageLimit ? undefined : t("coupons.No limit", "No limit")}>
+                          <span>
                             / {coupon.usageLimit ? Number(coupon.usageLimit) : "-"}
                           </span>
                         </span>
                       </td>
+
+                      {/* Status Pill */}
                       <td>
-                        <div className="ac26-state-cell">
-                          <span className={`ac26-status ac26-status--${statusObj.tone}`}>
-                            {statusObj.label}
-                          </span>
-                        </div>
+                        <span className={`ac26-status ac26-status--${statusObj.tone}`}>
+                          <span className="ac26-status__dot" />
+                          <span>{statusObj.label}</span>
+                        </span>
                       </td>
+
+                      {/* Published Toggle */}
                       <td>
                         <div className="ac26-published-cell">
                           <PublishToggle
@@ -774,21 +933,31 @@ export default function AdminCoupons2026View({
                             disabled={false}
                             busy={false}
                             onChange={() => onToggleActive(coupon)}
-                            t={t}
+                            label={
+                              isActive
+                                ? isId
+                                  ? "Kupon aktif di checkout"
+                                  : "Active coupon in public checkout"
+                                : isId
+                                  ? "Kupon tidak aktif di checkout"
+                                  : "Inactive coupon in public checkout"
+                            }
                           />
                         </div>
                       </td>
-                      <td className="ac26-coupon-actions-td">
-                        <div className="ac26-actions-cell ac26-coupon-actions">
+
+                      {/* Actions */}
+                      <td>
+                        <div className="ac26-actions-cell">
                           <IconButton
-                            label={`${t("coupons.View Coupon", "View Coupon")} ${coupon.code}`}
-                            onClick={() => openCouponDetail(coupon)}
+                            label={`${isId ? "Lihat kupon" : "View coupon"} ${couponCode}`}
+                            onClick={() => onViewCoupon?.(coupon)}
                           >
                             <Eye size={16} />
                           </IconButton>
                           <IconButton
-                            label={`${t("coupons.Edit Coupon", "Edit Coupon")} ${coupon.code}`}
-                            onClick={() => onEditCoupon(coupon)}
+                            label={`${isId ? "Edit kupon" : "Edit coupon"} ${couponCode}`}
+                            onClick={() => onEditCoupon?.(coupon)}
                           >
                             <Pencil size={16} />
                           </IconButton>
@@ -797,12 +966,15 @@ export default function AdminCoupons2026View({
                             disabled={false}
                             open={openActionMenuId === coupon.id}
                             onToggle={() =>
-                              setOpenActionMenuId((current) => (current === coupon.id ? null : coupon.id))
+                              setOpenActionMenuId((current) =>
+                                current === coupon.id ? null : coupon.id
+                              )
                             }
-                            onView={openCouponDetail}
+                            onView={onViewCoupon}
                             onEdit={onEditCoupon}
                             onToggleActive={onToggleActive}
                             onDelete={onDeleteCoupon}
+                            isId={isId}
                             t={t}
                           />
                         </div>
@@ -816,14 +988,18 @@ export default function AdminCoupons2026View({
         </div>
       )}
 
+      {/* Pagination Bar */}
       {safeCoupons.length > 0 ? (
         <div className="ac26-pagination">
           <p>
-            {t("coupons.Showing", "Showing")} {startIdx} {t("coupons.to", "to")} {endIdx} {t("coupons.of", "of")} {safeMeta.total} {t("coupons.coupons", "coupons")}
+            {isId ? "Menampilkan" : t("coupons.Showing", "Showing")} {startIdx}{" "}
+            {isId ? "sampai" : t("coupons.to", "to")} {endIdx}{" "}
+            {isId ? "dari" : t("coupons.of", "of")} {safeMeta.total}{" "}
+            {isId ? "kupon" : t("coupons.coupons", "coupons")}
           </p>
           <div>
             <IconButton
-              label={t("coupons.Previous page", "Previous page")}
+              label={isId ? "Halaman sebelumnya" : t("coupons.Previous page", "Previous page")}
               disabled={safeMeta.page <= 1}
               onClick={() => onPageChange(safeMeta.page - 1)}
             >
@@ -835,7 +1011,7 @@ export default function AdminCoupons2026View({
               </button>
             </span>
             <IconButton
-              label={t("coupons.Next page", "Next page")}
+              label={isId ? "Halaman berikutnya" : t("coupons.Next page", "Next page")}
               disabled={safeMeta.page >= (safeMeta.totalPages || 1)}
               onClick={() => onPageChange(safeMeta.page + 1)}
             >

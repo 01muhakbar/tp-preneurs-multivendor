@@ -235,17 +235,11 @@ export function AddCouponFormPanel({
 
   const bannerPreviewSrc = bannerPreview || resolveAssetUrl(form.bannerImageUrl);
   const cardClass = compact ? "acf26-section" : sectionCardClass;
-  const inputFocusClass = compact ? " focus:border-[#034c85] focus:ring-2 focus:ring-[#034c85]/10" : " focus:border-emerald-500";
-  const activeSegmentClass = compact
-    ? "bg-[#034c85] text-white shadow-sm"
-    : "bg-white text-emerald-700 shadow-sm";
-  const inactiveSegmentClass = compact
-    ? "text-slate-600 hover:text-[#034c85]"
-    : "text-slate-600 hover:text-slate-800";
-  const toggleActiveClass = compact ? "bg-[#034c85]" : "bg-emerald-500";
-  const uploadAccentClass = compact
-    ? "bg-[#034c85]/10 text-[#034c85]"
-    : "bg-emerald-100 text-emerald-700";
+  const inputFocusClass = " focus:border-[#034c85] focus:ring-2 focus:ring-[#034c85]/10";
+  const activeSegmentClass = "bg-[#034c85] text-white shadow-sm";
+  const inactiveSegmentClass = "text-slate-600 hover:text-[#034c85]";
+  const toggleActiveClass = "bg-[#034c85]";
+  const uploadAccentClass = "bg-[#034c85]/10 text-[#034c85]";
 
   return (
     <>
@@ -263,7 +257,7 @@ export function AddCouponFormPanel({
                 {t("coupons.Create campaign codes, discount setup, and validity period.", "Create campaign codes, discount setup, and validity period.")}
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
+                <span className="inline-flex items-center rounded-full border border-[#034c85]/20 bg-[#034c85]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#034c85]">
                   {t("coupons.Create Mode", "Create Mode")}
                 </span>
                 <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold text-slate-600">
@@ -671,7 +665,7 @@ export function AddCouponFormPanel({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 ${compact ? "bg-[#034c85] hover:bg-[#023863]" : "bg-emerald-600 hover:bg-emerald-700"}`}
+                  className="inline-flex h-11 items-center justify-center rounded-xl bg-[#034c85] hover:bg-[#023863] px-4 text-sm font-semibold text-white transition shadow-md disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSubmitting ? t("coupons.Adding...", "Adding...") : t("coupons.Add Coupon", "Add Coupon")}
                 </button>

@@ -50,29 +50,29 @@ export default function CouponImportModal({
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
       <button
         type="button"
-        className="absolute inset-0 bg-slate-900/55"
+        className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
         onClick={() => !isSubmitting && onClose?.()}
         disabled={isSubmitting}
         aria-label="Close import modal"
       />
 
-      <div className="relative w-full max-w-lg rounded-[28px] bg-white p-6 shadow-2xl">
+      <div className="relative w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl">
         <button
           type="button"
           onClick={() => !isSubmitting && onClose?.()}
           disabled={isSubmitting}
-          className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+          className="absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition"
           aria-label="Close"
         >
           <X className="h-4 w-4" />
         </button>
 
-        <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+        <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[#034c85]/10 dark:bg-[#034c85]/30 text-[#034c85] dark:text-[#60a5fa] border border-[#034c85]/20">
           <Upload className="h-6 w-6" />
         </div>
 
-        <h3 className="text-xl font-semibold text-slate-900">{title}</h3>
-        <p className="mt-1 text-sm text-slate-500">{description}</p>
+        <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">{title}</h3>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{description}</p>
 
         {canImport ? (
           <div className="mt-5 space-y-4">
@@ -88,22 +88,24 @@ export default function CouponImportModal({
               type="button"
               onClick={handlePickFile}
               disabled={isSubmitting}
-              className="flex w-full items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-sm font-medium text-slate-600 hover:border-emerald-300 hover:bg-emerald-50/40 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-3 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-5 py-8 text-sm font-medium text-slate-600 dark:text-slate-300 hover:border-[#034c85] hover:bg-[#034c85]/5 dark:hover:bg-[#034c85]/15 transition disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <FileJson className="h-5 w-5 text-slate-400" />
-              <span>{selectedFile?.name || selectPrompt}</span>
+              <FileJson className="h-5 w-5 text-slate-400 dark:text-slate-500" />
+              <span className="font-semibold text-slate-800 dark:text-slate-200">
+                {selectedFile?.name || selectPrompt}
+              </span>
             </button>
 
-            <p className="text-xs text-slate-500">{helperText}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{helperText}</p>
           </div>
         ) : (
-          <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+          <div className="mt-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 px-4 py-4 text-sm text-slate-600 dark:text-slate-400">
             {unavailableMessage || "Import is currently unavailable."}
           </div>
         )}
 
         {errorMessage ? (
-          <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          <div className="mt-4 rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 px-3 py-2 text-sm text-rose-700 dark:text-rose-300">
             {errorMessage}
           </div>
         ) : null}
@@ -113,7 +115,7 @@ export default function CouponImportModal({
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-medium text-slate-700 hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 px-4 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition disabled:cursor-not-allowed disabled:opacity-60"
           >
             {closeLabel}
           </button>
@@ -122,7 +124,7 @@ export default function CouponImportModal({
               type="button"
               onClick={handleConfirm}
               disabled={!selectedFile || isSubmitting}
-              className="inline-flex h-10 items-center justify-center rounded-xl bg-emerald-700 px-4 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-10 items-center justify-center rounded-xl bg-[#034c85] hover:bg-[#023863] px-5 text-sm font-semibold text-white transition shadow-md disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? importingLabel : confirmLabel}
             </button>

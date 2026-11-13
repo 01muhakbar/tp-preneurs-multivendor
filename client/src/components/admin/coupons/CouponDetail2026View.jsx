@@ -26,11 +26,7 @@ export const buildAdminCouponDetailPath = (coupon) => {
   return `/admin/catalog/coupons/${encodeURIComponent(String(id))}/${encodeURIComponent(getCouponDetailScopeKey(coupon))}`;
 };
 
-function PublishToggle({ checked, disabled, busy, onChange, t }) {
-  const label = checked
-    ? t("coupons.Active coupon in public checkout", "Active coupon in public checkout")
-    : t("coupons.Inactive coupon in public checkout", "Inactive coupon in public checkout");
-
+function PublishToggle({ checked, disabled, busy, onChange, label }) {
   return (
     <button
       type="button"
@@ -40,7 +36,7 @@ function PublishToggle({ checked, disabled, busy, onChange, t }) {
       role="switch"
       aria-checked={checked}
       aria-label={label}
-      title={checked ? t("coupons.Active", "Active") : t("coupons.Inactive", "Inactive")}
+      title={label}
     >
       <span />
     </button>
@@ -62,29 +58,29 @@ function resolveCouponActive(coupon) {
   return true;
 }
 
-function resolveCouponStatus(coupon, t = (key, fallback) => fallback) {
+function resolveCouponStatus(coupon, isId) {
   if (!resolveCouponActive(coupon)) {
-    return { label: t("coupons.Inactive", "Inactive"), tone: "inactive" };
+    return { label: isId ? "Nonaktif" : "Inactive", tone: "inactive" };
   }
 
   const now = new Date();
   const startsAt = coupon?.startsAt || coupon?.startDate;
   const expiresAt = coupon?.expiresAt || coupon?.endDate || coupon?.endsAt;
   if (startsAt && new Date(startsAt) > now) {
-    return { label: t("coupons.Scheduled", "Scheduled"), tone: "scheduled" };
+    return { label: isId ? "Terjadwal" : "Scheduled", tone: "scheduled" };
   }
   if (expiresAt && new Date(expiresAt) < now) {
-    return { label: t("coupons.Expired", "Expired"), tone: "expired" };
+    return { label: isId ? "Kedaluwarsa" : "Expired", tone: "expired" };
   }
-  return { label: t("coupons.Active", "Active"), tone: "active" };
+  return { label: isId ? "Aktif" : "Active", tone: "active" };
 }
 
-function formatDateShort(dateValue) {
+function formatDateDisplay(dateValue, isId) {
   if (!dateValue) return "-";
   try {
     const date = new Date(dateValue);
     if (Number.isNaN(date.getTime())) return String(dateValue);
-    return date.toLocaleDateString("id-ID", {
+    return date.toLocaleDateString(isId ? "id-ID" : "en-US", {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -94,13 +90,13 @@ function formatDateShort(dateValue) {
   }
 }
 
-function formatPeriod(startsAt, expiresAt, t = (key, fallback) => fallback) {
-  const startShort = formatDateShort(startsAt);
-  const endShort = formatDateShort(expiresAt);
+function formatPeriod(startsAt, expiresAt, isId) {
+  const startShort = formatDateDisplay(startsAt, isId);
+  const endShort = formatDateDisplay(expiresAt, isId);
   if (startShort !== "-" && endShort !== "-") return `${startShort} - ${endShort}`;
-  if (startShort !== "-") return `${t("coupons.Starts", "Starts")} ${startShort}`;
-  if (endShort !== "-") return `${t("coupons.Expires", "Expires")} ${endShort}`;
-  return t("coupons.No expiry", "No expiry");
+  if (startShort !== "-") return `${isId ? "Mulai" : "Starts"} ${startShort}`;
+  if (endShort !== "-") return `${isId ? "Selesai" : "Expires"} ${endShort}`;
+  return isId ? "Tanpa batas waktu" : "No expiry";
 }
 
 export default function CouponDetail2026View({
@@ -110,23 +106,25 @@ export default function CouponDetail2026View({
   operation,
   actions,
 }) {
-  const { t } = useTranslation("admin");
-  const statusObj = coupon ? resolveCouponStatus(coupon, t) : null;
+  const { t, i18n } = useTranslation("admin");
+  const isId = String(i18n.language || "").toLowerCase().startsWith("id");
+
+  const statusObj = coupon ? resolveCouponStatus(coupon, isId) : null;
   const isActive = coupon ? resolveCouponActive(coupon) : false;
   const isStore = String(coupon?.scopeType || "PLATFORM").toUpperCase() === "STORE";
   const storeName = coupon?.store?.name || (coupon?.storeId ? `Store #${coupon.storeId}` : "");
-  const title = coupon?.campaignName || coupon?.name || coupon?.code || t("coupons.Coupon", "Coupon");
+  const title = coupon?.campaignName || coupon?.name || coupon?.code || (isId ? "Kupon" : "Coupon");
   const discountDisplay = coupon
     ? coupon.discountType === "fixed"
       ? formatCurrency(coupon.amount || 0)
-      : `${Number(coupon.amount || 0)}% ${t("coupons.OFF", "OFF")}`
+      : `${Number(coupon.amount || 0)}% ${isId ? "DISKON" : "OFF"}`
     : "-";
-  const limitLabel = coupon?.usageLimit ? Number(coupon.usageLimit) : t("coupons.Unlimited", "Unlimited");
+  const limitLabel = coupon?.usageLimit ? Number(coupon.usageLimit) : (isId ? "Tanpa batas" : "Unlimited");
   const usedLabel = `${Number(coupon?.usedCount || 0)} / ${limitLabel}`;
   const scopeLabel = isStore
-    ? storeName || t("coupons.Store", "Store")
-    : t("coupons.Platform", "Platform");
-  const periodLabel = formatPeriod(coupon?.startDate || coupon?.startsAt, coupon?.endDate || coupon?.expiresAt, t);
+    ? storeName || (isId ? "Toko" : "Store")
+    : "Platform";
+  const periodLabel = formatPeriod(coupon?.startDate || coupon?.startsAt, coupon?.endDate || coupon?.expiresAt, isId);
   const minSpendLabel = formatCurrency(Number(coupon?.minSpend || coupon?.minimumAmount || 0));
 
   if (loading) {
@@ -149,16 +147,16 @@ export default function CouponDetail2026View({
     return (
       <div className="ac26-page ac26-page--coupons ac26-page--coupon-detail">
         <section className="ac26-detail-empty">
-          <strong>{t("coupons.Coupon details could not be loaded.", "Coupon details could not be loaded.")}</strong>
-          <p>{error || t("coupons.Please retry the request.", "Please retry the request.")}</p>
-          <div>
+          <strong>{isId ? "Detail kupon tidak dapat dimuat." : t("coupons.Coupon details could not be loaded.", "Coupon details could not be loaded.")}</strong>
+          <p>{error || (isId ? "Silakan coba lagi." : t("coupons.Please retry the request.", "Please retry the request."))}</p>
+          <div className="mt-4 flex items-center justify-center gap-3">
             <button type="button" className="ac26-action" onClick={actions?.onBack}>
               <RotateCcw size={16} />
-              <span>{t("coupons.Back to Coupons", "Back to Coupons")}</span>
+              <span>{isId ? "Kembali ke Kupon" : t("coupons.Back to Coupons", "Back to Coupons")}</span>
             </button>
             <button type="button" className="ac26-action ac26-action--primary" onClick={actions?.onRetry}>
               <RefreshCw size={16} />
-              <span>{t("coupons.Retry", "Retry")}</span>
+              <span>{isId ? "Coba Lagi" : t("coupons.Retry", "Retry")}</span>
             </button>
           </div>
         </section>
@@ -173,20 +171,20 @@ export default function CouponDetail2026View({
           <h1>{title}</h1>
           <nav aria-label="Breadcrumb">
             <button type="button" className="ac26-breadcrumb-button" onClick={actions?.onBack}>
-              {t("coupons.Coupons", "Coupons")}
+              {isId ? "Kupon" : t("coupons.Coupons", "Coupons")}
             </button>
             <ChevronRight size={14} />
-            <span>{t("coupons.Coupon Details", "Coupon Details")}</span>
+            <span>{isId ? "Detail Kupon" : t("coupons.Coupon Details", "Coupon Details")}</span>
           </nav>
         </div>
         <div className="ac26-header__actions">
           <button type="button" className="ac26-action" onClick={actions?.onBack}>
             <RotateCcw size={16} />
-            <span>{t("coupons.Back to Coupons", "Back to Coupons")}</span>
+            <span>{isId ? "Kembali ke Kupon" : t("coupons.Back to Coupons", "Back to Coupons")}</span>
           </button>
           <button type="button" className="ac26-action ac26-action--primary" onClick={actions?.onEdit}>
             <Pencil size={16} />
-            <span>{t("coupons.Edit Coupon", "Edit Coupon")}</span>
+            <span>{isId ? "Edit Kupon" : t("coupons.Edit Coupon", "Edit Coupon")}</span>
           </button>
         </div>
       </section>
@@ -200,39 +198,46 @@ export default function CouponDetail2026View({
       <section className="ac26-detail-page-card">
         <header className="ac26-detail-header">
           <div>
-            <span className="ac26-detail-kicker">{t("coupons.Coupon Details", "Coupon Details")}</span>
+            <span className="ac26-detail-kicker">{isId ? "Detail Kupon" : t("coupons.Coupon Details", "Coupon Details")}</span>
             <h2 id="ac26-detail-title">{title}</h2>
             <p>{coupon.code || "-"}</p>
           </div>
         </header>
 
-        <section className="ac26-detail-summary" aria-label={t("coupons.Coupon overview", "Coupon overview")}>
+        <section className="ac26-detail-summary" aria-label={isId ? "Ringkasan kupon" : "Coupon overview"}>
           <div>
-            <span className={`ac26-status ac26-status--${statusObj.tone}`}>{statusObj.label}</span>
+            <span className={`ac26-status ac26-status--${statusObj.tone}`}>
+              <span className="ac26-status__dot" />
+              <span>{statusObj.label}</span>
+            </span>
             <span className={`ac26-detail-publish ${isActive ? "is-on" : ""}`}>
-              {isActive ? t("coupons.Published", "Published") : t("coupons.Unpublished", "Unpublished")}
+              {isActive ? (isId ? "Diterbitkan" : "Published") : (isId ? "Tidak Diterbitkan" : "Unpublished")}
             </span>
           </div>
           <strong>{discountDisplay}</strong>
-          <span>{t("coupons.Discount value", "Discount value")}</span>
+          <span>{isId ? "Nilai Diskon" : t("coupons.Discount value", "Discount value")}</span>
         </section>
 
         <section className="ac26-detail-grid">
-          <DetailItem label={t("coupons.Scope", "Scope")} value={scopeLabel} />
-          <DetailItem label={t("coupons.Minimum spend", "Minimum spend")} value={minSpendLabel} />
-          <DetailItem label={t("coupons.Usage", "Usage")} value={usedLabel} />
-          <DetailItem label={t("coupons.Valid period", "Valid period")} value={periodLabel} />
+          <DetailItem label={isId ? "Cakupan" : t("coupons.Scope", "Scope")} value={scopeLabel} />
+          <DetailItem label={isId ? "Min. Belanja" : t("coupons.Minimum spend", "Minimum spend")} value={minSpendLabel} />
+          <DetailItem label={isId ? "Penggunaan" : t("coupons.Usage", "Usage")} value={usedLabel} />
+          <DetailItem label={isId ? "Periode Berlaku" : t("coupons.Valid period", "Valid period")} value={periodLabel} />
         </section>
 
         <section className="ac26-detail-section">
-          <h3>{t("coupons.Public checkout", "Public checkout")}</h3>
+          <h3>{isId ? "Checkout Publik" : t("coupons.Public checkout", "Public checkout")}</h3>
           <div className="ac26-detail-toggle-row">
             <div>
-              <strong>{isActive ? t("coupons.Active", "Active") : t("coupons.Inactive", "Inactive")}</strong>
+              <strong>{isActive ? (isId ? "Aktif" : "Active") : (isId ? "Tidak Aktif" : "Inactive")}</strong>
               <span>
                 {isActive
-                  ? t("coupons.This coupon can be used in public checkout.", "This coupon can be used in public checkout.")
-                  : t("coupons.This coupon is hidden from public checkout.", "This coupon is hidden from public checkout.")}
+                  ? isId
+                    ? "Kupon ini dapat digunakan pembeli saat checkout publik."
+                    : "This coupon can be used in public checkout."
+                  : isId
+                    ? "Kupon ini disembunyikan dan tidak dapat digunakan saat checkout publik."
+                    : "This coupon is hidden from public checkout."}
               </span>
             </div>
             <PublishToggle
@@ -240,7 +245,15 @@ export default function CouponDetail2026View({
               disabled={operation?.busy}
               busy={operation?.busy}
               onChange={actions?.onToggleActive}
-              t={t}
+              label={
+                isActive
+                  ? isId
+                    ? "Kupon aktif di checkout"
+                    : "Active coupon in public checkout"
+                  : isId
+                    ? "Kupon tidak aktif di checkout"
+                    : "Inactive coupon in public checkout"
+              }
             />
           </div>
         </section>

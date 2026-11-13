@@ -266,7 +266,7 @@ export default function EditCouponDrawer({
                 {t("coupons.Update campaign details, discount setup, and validity period.", "Update coupon validity window and discount settings.")}
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
+                <span className="inline-flex items-center rounded-full border border-[#034c85]/20 bg-[#034c85]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#034c85]">
                   {t("coupons.Edit Mode", "Edit Mode")}
                 </span>
                 <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold text-slate-600">
@@ -306,7 +306,7 @@ export default function EditCouponDrawer({
                   <select
                     value={language}
                     onChange={(event) => setLanguage(event.target.value)}
-                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-[#034c85] focus:outline-none"
                     disabled={isSubmitting}
                   >
                     <option value="en">English</option>
@@ -325,7 +325,7 @@ export default function EditCouponDrawer({
                       setScopeType(nextScopeType);
                       if (nextScopeType !== "STORE") setStoreId("");
                     }}
-                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-[#034c85] focus:outline-none"
                     disabled={isSubmitting}
                   >
                     <option value="PLATFORM">Platform / Global</option>
@@ -342,7 +342,7 @@ export default function EditCouponDrawer({
                       setValidationError("");
                       setCampaignName(event.target.value);
                     }}
-                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-[#034c85] focus:outline-none"
                   />
                 </div>
                 <div>
@@ -355,7 +355,7 @@ export default function EditCouponDrawer({
                       setValidationError("");
                       setCode(event.target.value.toUpperCase().replace(/\s+/g, ""));
                     }}
-                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm uppercase text-slate-700 focus:border-emerald-500 focus:outline-none"
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm uppercase text-slate-700 focus:border-[#034c85] focus:outline-none"
                   />
                 </div>
                 {scopeType === "STORE" ? (
@@ -369,7 +369,7 @@ export default function EditCouponDrawer({
                         setValidationError("");
                         setStoreId(event.target.value);
                       }}
-                      className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
+                      className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-[#034c85] focus:outline-none"
                       disabled={isSubmitting}
                       required
                     >
@@ -402,7 +402,7 @@ export default function EditCouponDrawer({
                     type="date"
                     value={startDate}
                     onChange={(event) => setStartDate(event.target.value)}
-                    className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
+                    className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm text-slate-700 focus:border-[#034c85] focus:outline-none"
                     disabled={isSubmitting}
                   />
                 </div>
@@ -414,7 +414,7 @@ export default function EditCouponDrawer({
                     type="date"
                     value={endDate}
                     onChange={(event) => setEndDate(event.target.value)}
-                    className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
+                    className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm text-slate-700 focus:border-[#034c85] focus:outline-none"
                     disabled={isSubmitting}
                   />
                 </div>
@@ -433,7 +433,7 @@ export default function EditCouponDrawer({
                     }}
                     disabled={isSubmitting}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
-                      active ? "bg-emerald-500" : "bg-slate-300"
+                      active ? "bg-[#034c85]" : "bg-slate-300"
                     } disabled:cursor-not-allowed disabled:opacity-60`}
                     aria-label="Toggle published"
                   >
@@ -482,7 +482,7 @@ export default function EditCouponDrawer({
                       }}
                       className={`h-10 rounded-lg text-sm font-semibold transition ${
                         discountType === "percent"
-                          ? "bg-white text-emerald-700 shadow-sm"
+                          ? "bg-[#034c85] text-white shadow-sm"
                           : "text-slate-600 hover:text-slate-800"
                       }`}
                       disabled={isSubmitting}
@@ -497,7 +497,7 @@ export default function EditCouponDrawer({
                       }}
                       className={`h-10 rounded-lg text-sm font-semibold transition ${
                         discountType === "fixed"
-                          ? "bg-white text-emerald-700 shadow-sm"
+                          ? "bg-[#034c85] text-white shadow-sm"
                           : "text-slate-600 hover:text-slate-800"
                       }`}
                       disabled={isSubmitting}
@@ -528,7 +528,7 @@ export default function EditCouponDrawer({
                           setValidationError("");
                           setAmount(event.target.value);
                         }}
-                        className={`h-11 w-full rounded-xl border border-slate-200 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none ${
+                        className={`h-11 w-full rounded-xl border border-slate-200 text-sm text-slate-700 focus:border-[#034c85] focus:outline-none ${
                           discountInputAffix.prefix ? "pl-10 pr-3" : "pl-3 pr-10"
                         }`}
                         disabled={isSubmitting}
@@ -559,7 +559,7 @@ export default function EditCouponDrawer({
                           setValidationError("");
                           setMinSpend(event.target.value);
                         }}
-                        className="h-11 w-full rounded-xl border border-slate-200 pl-10 pr-3 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
+                        className="h-11 w-full rounded-xl border border-slate-200 pl-10 pr-3 text-sm text-slate-700 focus:border-[#034c85] focus:outline-none"
                         disabled={isSubmitting}
                       />
                     </div>
@@ -581,7 +581,7 @@ export default function EditCouponDrawer({
                 meta={bannerImageUrl ? "Banner linked" : "Banner optional"}
               />
               <div className="mt-4">
-                <label className="block cursor-pointer rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 transition hover:border-emerald-400 hover:bg-emerald-50/40">
+                <label className="block cursor-pointer rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 transition hover:border-[#fe6f05] hover:bg-[#fe6f05]/5">
                   <input
                     type="file"
                     accept="image/png,image/jpeg,image/webp"
@@ -627,7 +627,7 @@ export default function EditCouponDrawer({
                     </div>
                   ) : (
                     <div className="flex items-center gap-3 text-sm text-slate-600">
-                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#034c85]/10 text-[#034c85]">
                         <ImagePlus className="h-5 w-5" />
                       </span>
                       <div>
@@ -681,7 +681,7 @@ export default function EditCouponDrawer({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="inline-flex h-11 items-center justify-center rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-11 items-center justify-center rounded-xl bg-[#034c85] px-4 text-sm font-semibold text-white hover:bg-[#023863] transition shadow-md disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSubmitting ? UPDATING : t("coupons.Update Coupon", "Update Coupon")}
                 </button>

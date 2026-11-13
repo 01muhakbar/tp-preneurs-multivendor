@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Download,
@@ -266,6 +267,8 @@ function CouponDiscountTypeBadge({ coupon }) {
 }
 
 export default function AdminCouponsPage() {
+  const { t, i18n } = useTranslation("admin");
+  const isId = String(i18n.language || "").toLowerCase().startsWith("id");
   const qc = useQueryClient();
   const navigate = useNavigate();
   const bulkMenuRef = useRef(null);
@@ -322,11 +325,15 @@ export default function AdminCouponsPage() {
     mutationFn: createAdminCoupon,
     onSuccess: () => {
       invalidateAdminCouponSurfaces(qc);
-      showNotice("Coupon created.");
+      showNotice(isId ? "Kupon berhasil dibuat." : t("coupons.Coupon created.", "Coupon created."));
       setIsAddDrawerOpen(false);
     },
     onError: (error) => {
-      showNotice(error?.response?.data?.message || "Failed to create coupon.", "error");
+      showNotice(
+        error?.response?.data?.message ||
+          (isId ? "Gagal membuat kupon." : t("coupons.Failed to create coupon.", "Failed to create coupon.")),
+        "error"
+      );
     },
   });
 
@@ -334,12 +341,16 @@ export default function AdminCouponsPage() {
     mutationFn: ({ id, payload }) => updateAdminCoupon(id, payload),
     onSuccess: () => {
       invalidateAdminCouponSurfaces(qc);
-      showNotice("Coupon updated.");
+      showNotice(isId ? "Kupon berhasil diperbarui." : t("coupons.Coupon updated.", "Coupon updated."));
       setIsEditDrawerOpen(false);
       setEditingCoupon(null);
     },
     onError: (error) => {
-      showNotice(error?.response?.data?.message || "Failed to update coupon.", "error");
+      showNotice(
+        error?.response?.data?.message ||
+          (isId ? "Gagal memperbarui kupon." : t("coupons.Failed to update coupon.", "Failed to update coupon.")),
+        "error"
+      );
     },
   });
 
@@ -364,12 +375,18 @@ export default function AdminCouponsPage() {
       const updated = Number(summary.updated || 0);
       const failed = Number(summary.failed || 0);
       showNotice(
-        `Coupon import complete. ${created} created, ${updated} updated, ${failed} failed.`,
+        isId
+          ? `Impor kupon selesai. ${created} dibuat, ${updated} diperbarui, ${failed} gagal.`
+          : `Coupon import complete. ${created} created, ${updated} updated, ${failed} failed.`,
         failed > 0 ? "error" : "success"
       );
     },
     onError: (error) => {
-      showNotice(error?.response?.data?.message || "Failed to import coupons.", "error");
+      showNotice(
+        error?.response?.data?.message ||
+          (isId ? "Gagal mengimpor kupon." : "Failed to import coupons."),
+        "error"
+      );
     },
   });
 
@@ -380,14 +397,18 @@ export default function AdminCouponsPage() {
       setSelectedIds(new Set());
       const actionLabel =
         variables.action === "activate"
-          ? "activated"
+          ? (isId ? "kupon berhasil diaktifkan" : "coupon(s) activated")
           : variables.action === "deactivate"
-            ? "deactivated"
-            : "updated";
-      showNotice(`${variables.ids.length} coupon(s) ${actionLabel}.`);
+            ? (isId ? "kupon berhasil dinonaktifkan" : "coupon(s) deactivated")
+            : (isId ? "kupon berhasil diperbarui" : "coupon(s) updated");
+      showNotice(`${variables.ids.length} ${actionLabel}.`);
     },
     onError: (error) => {
-      showNotice(error?.response?.data?.message || "Failed to run bulk coupon action.", "error");
+      showNotice(
+        error?.response?.data?.message ||
+          (isId ? "Gagal menjalankan aksi massal kupon." : "Failed to run bulk coupon action."),
+        "error"
+      );
     },
   });
 
@@ -629,7 +650,10 @@ export default function AdminCouponsPage() {
         Array.isArray(payload?.items) ? payload.items : EMPTY_COUPONS
       );
       if (!exportItems.length) {
-        showNotice("No coupons available to export.", "error");
+        showNotice(
+          isId ? "Tidak ada kupon untuk diekspor." : t("coupons.No coupons available to export.", "No coupons available to export."),
+          "error"
+        );
         return;
       }
       const serializedItems = exportItems.map(serializeCouponForExport);
@@ -653,9 +677,13 @@ export default function AdminCouponsPage() {
         );
       }
       setExportMenuOpen(false);
-      showNotice(`Coupon export ${format.toUpperCase()} ready.`);
+      showNotice(
+        isId
+          ? `Ekspor kupon ${format.toUpperCase()} telah siap.`
+          : `Coupon export ${format.toUpperCase()} ready.`
+      );
     } catch (error) {
-      showNotice(error?.message || "Failed to export coupons.", "error");
+      showNotice(error?.message || (isId ? "Gagal mengekspor kupon." : "Failed to export coupons."), "error");
     }
   };
 
@@ -695,7 +723,12 @@ export default function AdminCouponsPage() {
   const openDeleteModalForBulk = () => {
     const ids = Array.from(selectedIds);
     if (!ids.length) {
-      showNotice("Select at least one coupon before opening bulk delete.", "error");
+      showNotice(
+        isId
+          ? "Pilih setidaknya satu kupon sebelum menghapus."
+          : t("coupons.Select at least one coupon before opening bulk delete.", "Select at least one coupon before opening bulk delete."),
+        "error"
+      );
       return;
     }
     setBulkMenuOpen(false);
@@ -703,7 +736,9 @@ export default function AdminCouponsPage() {
     setDeleteTargetId(null);
     setDeleteTargetIds(ids);
     setDeleteTargetSummary(
-      `${ids.length} selected coupon(s) will be removed from the current promotion list. This cannot be undone.`
+      isId
+        ? `${ids.length} kupon yang dipilih akan dihapus dari daftar promosi. Tindakan ini tidak dapat dibatalkan.`
+        : `${ids.length} selected coupon(s) will be removed from the current promotion list. This cannot be undone.`
     );
     setDeleteModalError("");
     setIsDeleteModalOpen(true);
@@ -714,7 +749,7 @@ export default function AdminCouponsPage() {
     try {
       if (deleteMode === "single" && deleteTargetId) {
         await deleteMutation.mutateAsync(deleteTargetId);
-        showNotice("Coupon deleted.");
+        showNotice(isId ? "Kupon berhasil dihapus." : t("coupons.Coupon deleted.", "Coupon deleted."));
         setSelectedIds((prev) => {
           const next = new Set(prev);
           next.delete(Number(deleteTargetId));
@@ -723,7 +758,7 @@ export default function AdminCouponsPage() {
       } else if (deleteMode === "bulk" && deleteTargetIds.length > 0) {
         const total = deleteTargetIds.length;
         await bulkDeleteMutation.mutateAsync(deleteTargetIds);
-        showNotice(`${total} coupon(s) deleted.`);
+        showNotice(isId ? `${total} kupon berhasil dihapus.` : `${total} coupon(s) deleted.`);
         setSelectedIds(new Set());
       } else {
         return;
@@ -768,7 +803,12 @@ export default function AdminCouponsPage() {
 
   const handleBulkAction = (action) => {
     if (!selectedIds.size) {
-      showNotice("Select at least one coupon before using bulk actions.", "error");
+      showNotice(
+        isId
+          ? "Pilih setidaknya satu kupon sebelum menggunakan aksi massal."
+          : t("coupons.Select at least one coupon before using bulk actions.", "Select at least one coupon before using bulk actions."),
+        "error"
+      );
       return;
     }
     setBulkMenuOpen(false);
@@ -800,7 +840,9 @@ export default function AdminCouponsPage() {
       {
         onSuccess: () => {
           showNotice(
-            `${resolveCampaignName(coupon)} ${nextValue ? "enabled for checkout" : "hidden from checkout"}.`
+            isId
+              ? `${resolveCampaignName(coupon)} ${nextValue ? "diaktifkan untuk checkout" : "disembunyikan dari checkout"}.`
+              : `${resolveCampaignName(coupon)} ${nextValue ? "enabled for checkout" : "hidden from checkout"}.`
           );
         },
         onError: (error) => {
@@ -822,14 +864,18 @@ export default function AdminCouponsPage() {
     couponsQuery.error?.response?.data?.message || GENERIC_ERROR;
   const deleteTitle =
     deleteMode === "bulk"
-      ? `Delete ${deleteTargetIds.length} coupon(s)?`
-      : "Delete this coupon?";
+      ? (isId ? `Hapus ${deleteTargetIds.length} kupon?` : `Delete ${deleteTargetIds.length} coupon(s)?`)
+      : (isId ? "Hapus kupon ini?" : t("coupons.Delete this coupon?", "Delete this coupon?"));
   const deleteDescription =
     deleteMode === "bulk"
       ? deleteTargetSummary ||
-        "These selected coupons will be removed from the promotion list and cannot be restored from this screen."
+        (isId
+          ? "Kupon yang dipilih akan dihapus dari daftar promosi dan tidak dapat dipulihkan dari layar ini."
+          : "These selected coupons will be removed from the promotion list and cannot be restored from this screen.")
       : deleteTargetSummary ||
-        "This coupon will be removed from the promotion list and can no longer be used at checkout.";
+        (isId
+          ? "Kupon ini akan dihapus dari daftar promosi dan tidak dapat digunakan lagi saat checkout."
+          : "This coupon will be removed from the promotion list and can no longer be used at checkout.");
 
   return (
     <>
@@ -912,9 +958,21 @@ export default function AdminCouponsPage() {
         onImport={handleImportSubmit}
         isSubmitting={importMutation.isPending}
         errorMessage={importMutation.error?.response?.data?.message || ""}
-        title="Import coupons"
-        description="Upload a JSON file to import coupon campaigns into Admin Workspace."
-        helperText="Accepted format: JSON coupon export from Admin Workspace."
+        title={isId ? "Impor kupon" : t("coupons.Import coupons", "Import coupons")}
+        description={
+          isId
+            ? "Unggah berkas JSON untuk mengimpor kupon kampanye ke Ruang Kerja Admin."
+            : t("coupons.Upload a JSON file to import coupon campaigns into Admin Workspace.", "Upload a JSON file to import coupon campaigns into Admin Workspace.")
+        }
+        helperText={
+          isId
+            ? "Format yang diterima: Berkas ekspor kupon JSON dari Ruang Kerja Admin."
+            : t("coupons.Accepted format: JSON coupon export from Admin Workspace.", "Accepted format: JSON coupon export from Admin Workspace.")
+        }
+        confirmLabel={isId ? "Impor Sekarang" : t("coupons.Import Now", "Import Now")}
+        closeLabel={isId ? "Batal" : t("coupons.Cancel", "Cancel")}
+        selectPrompt={isId ? "Pilih berkas JSON kupon" : t("coupons.Choose JSON coupon file", "Choose JSON coupon file")}
+        importingLabel={isId ? "Mengimpor..." : t("coupons.Importing...", "Importing...")}
       />
 
       <AddCouponDrawer
