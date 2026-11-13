@@ -1,5 +1,6 @@
 import useStoreBranding from "../../hooks/useStoreBranding.js";
 import { getWorkspaceLogoUrl } from "../../lib/branding.js";
+import { useTheme } from "../../theme/ThemeProvider.jsx";
 import "./WorkspaceSidebarBrand.css";
 
 export default function WorkspaceSidebarBrand({
@@ -8,8 +9,19 @@ export default function WorkspaceSidebarBrand({
   workspaceKey = "admin",
   collapsed = false,
   className = "",
+  isDark: isDarkProp,
 }) {
   const { branding } = useStoreBranding();
+  const themeContext = useTheme();
+
+  const isDark =
+    typeof isDarkProp === "boolean"
+      ? isDarkProp
+      : themeContext?.resolvedTheme === "dark" ||
+        (typeof document !== "undefined" &&
+          (document.documentElement.classList.contains("dark") ||
+            document.body?.classList.contains("dark")));
+
   const logoUrl =
     workspaceKey === "seller" ? branding.sellerLogoUrl : branding.adminLogoUrl;
   const logoSrc = getWorkspaceLogoUrl(workspaceKey, logoUrl);
@@ -17,7 +29,8 @@ export default function WorkspaceSidebarBrand({
 
   return (
     <div
-      className={`workspace-sidebar-brand ${collapsed ? "is-collapsed" : ""} ${className}`.trim()}
+      className={`workspace-sidebar-brand ${isDark ? "is-dark" : "is-light"} ${collapsed ? "is-collapsed" : ""} ${className}`.trim()}
+      data-theme={isDark ? "dark" : "light"}
     >
       <span className="workspace-sidebar-brand__mark">
         <img

@@ -801,6 +801,7 @@ function SellerSidebar({
             workspaceLabel={isId ? "Ruang Kerja Penjual" : "Seller Workspace"}
             workspaceKey="seller"
             collapsed={collapsed}
+            isDark={isDark}
           />
           {mobileOpen ? (
             <button
@@ -901,7 +902,7 @@ function SellerSidebar({
               <p
                 className={joinClassNames(
                   "mb-1.5 px-2 text-[9px] font-semibold uppercase tracking-[0.18em]",
-                  isDark ? "text-slate-400" : "text-slate-400"
+                  isDark ? "text-slate-400" : "text-slate-500"
                 )}
               >
                 {section.title}

@@ -345,11 +345,11 @@
 }
 
 .admin-theme-dark .workspace-sidebar-brand__title {
-  color: var(--admin-text);
+  color: #ffffff;
 }
 
 .admin-theme-dark .workspace-sidebar-brand__subtitle {
-  color: var(--admin-muted);
+  color: #fe6f05;
 }
 
 .admin-theme-dark .workspace-sidebar-brand__mark {
