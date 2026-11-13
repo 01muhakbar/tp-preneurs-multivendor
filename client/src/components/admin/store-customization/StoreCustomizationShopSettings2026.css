@@ -1,0 +1,195 @@
+/* StoreCustomizationShopSettings2026.css
+ * Enterprise Multi-Vendor Store Customization - Shop Page (2026 Design System)
+ * Palette: #034c85 (Deep Navy) & #fe6f05 (Vibrant Orange)
+ */
+
+:root {
+  --shop-navy: #034c85;
+  --shop-navy-hover: #023863;
+  --shop-navy-subtle: #f0f6fc;
+  --shop-navy-border: rgba(3, 76, 133, 0.18);
+  --shop-orange: #fe6f05;
+  --shop-orange-hover: #e05e00;
+  --shop-orange-subtle: #fff5ee;
+  --shop-orange-border: rgba(254, 111, 5, 0.22);
+}
+
+.sc-shop-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-bottom: 3.5rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Card Container */
+.sc-shop-card {
+  border-radius: 1.25rem;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  background-color: #ffffff;
+  padding: 1.5rem;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.03);
+  transition: all 0.2s ease;
+}
+
+:is(.dark) .sc-shop-card {
+  border-color: rgba(30, 41, 59, 0.85);
+  background-color: #0d1526;
+  box-shadow: none;
+}
+
+/* Form inputs */
+.sc-shop-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 0.35rem;
+}
+
+:is(.dark) .sc-shop-label {
+  color: #cbd5e1;
+}
+
+.sc-shop-input,
+.sc-shop-textarea {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  padding: 0 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #0f172a;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.sc-shop-input {
+  height: 2.65rem;
+}
+
+.sc-shop-textarea {
+  min-height: 5rem;
+  padding: 0.65rem 0.85rem;
+  resize: vertical;
+}
+
+:is(.dark) .sc-shop-input,
+:is(.dark) .sc-shop-textarea {
+  border-color: #334155;
+  background-color: #111c33;
+  color: #f1f5f9;
+}
+
+.sc-shop-input:focus,
+.sc-shop-textarea:focus {
+  border-color: var(--shop-navy);
+  box-shadow: 0 0 0 3px rgba(3, 76, 133, 0.15);
+}
+
+:is(.dark) .sc-shop-input:focus,
+:is(.dark) .sc-shop-textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* Upload zone */
+.sc-shop-upload {
+  display: flex;
+  min-height: 10rem;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  border: 2px dashed #cbd5e1;
+  background-color: #f8fafc;
+  padding: 1.25rem;
+  text-align: center;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+:is(.dark) .sc-shop-upload {
+  border-color: #334155;
+  background-color: #0b1220;
+}
+
+.sc-shop-upload:hover {
+  border-color: var(--shop-navy);
+  background-color: var(--shop-navy-subtle);
+}
+
+:is(.dark) .sc-shop-upload:hover {
+  border-color: #3b82f6;
+  background-color: rgba(3, 76, 133, 0.15);
+}
+
+/* Live Storefront Mock Preview Card */
+.sc-shop-preview-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(3, 76, 133, 0.25);
+  background: linear-gradient(135deg, #034c85 0%, #023863 45%, #011e38 100%);
+  padding: 1.5rem;
+  color: #ffffff;
+  box-shadow: 0 8px 24px rgba(3, 76, 133, 0.2);
+}
+
+:is(.dark) .sc-shop-preview-card {
+  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+/* Popular search tag chips */
+.sc-shop-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background-color: rgba(3, 76, 133, 0.08);
+  color: var(--shop-navy);
+  border: 1px solid rgba(3, 76, 133, 0.2);
+  transition: all 0.15s ease;
+}
+
+:is(.dark) .sc-shop-tag {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: #93c5fd;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.sc-shop-tag:hover {
+  border-color: var(--shop-navy);
+}
+
+/* Spec Chips */
+.sc-shop-spec {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 0.5rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+:is(.dark) .sc-shop-spec {
+  background-color: #1e293b;
+  color: #94a3b8;
+  border-color: #334155;
+}
+

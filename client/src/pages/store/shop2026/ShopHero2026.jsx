@@ -85,6 +85,41 @@ export default function ShopHero2026({ query, onSearch, shopConfig }) {
 
   return (
     <div className="tp-shop-search-header">
+      {/* Optional Banner Hero Header when title or eyebrow or image is configured */}
+      {shopConfig && (shopConfig.title || shopConfig.eyebrow || shopConfig.imageDataUrl) ? (
+        <div className="tp-shop-hero-banner-inner mb-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="space-y-1">
+            {shopConfig.eyebrow ? (
+              <span className="inline-block rounded-full bg-[#fe6f05]/15 border border-[#fe6f05]/30 px-2.5 py-0.5 text-[10px] font-bold text-orange-400 uppercase tracking-wider">
+                {shopConfig.eyebrow}
+              </span>
+            ) : null}
+            {shopConfig.title ? (
+              <h1 className="text-base sm:text-xl font-black text-white tracking-tight">
+                {shopConfig.title}{" "}
+                {shopConfig.titleAccent ? (
+                  <span className="text-[#fe6f05]">{shopConfig.titleAccent}</span>
+                ) : null}
+              </h1>
+            ) : null}
+            {shopConfig.description ? (
+              <p className="text-xs text-slate-300 max-w-xl line-clamp-2">
+                {shopConfig.description}
+              </p>
+            ) : null}
+          </div>
+          {shopConfig.imageDataUrl ? (
+            <div className="h-16 w-28 shrink-0 overflow-hidden rounded-xl border border-white/10 hidden sm:block">
+              <img
+                src={shopConfig.imageDataUrl}
+                alt={shopConfig.title || "Shop header banner"}
+                className="h-full w-full object-cover"
+              />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       <form className="tp-shop-search-box" onSubmit={submit} role="search">
         <Search className="tp-shop-search-box__icon" aria-hidden="true" />
         <label className="sr-only" htmlFor="tp-shop-search-input">
