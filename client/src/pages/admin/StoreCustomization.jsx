@@ -44,6 +44,7 @@ import StoreCustomizationSingleSetting2026 from "../../components/admin/store-cu
 import StoreCustomizationShopSettings2026 from "../../components/admin/store-customization/StoreCustomizationShopSettings2026.jsx";
 import StoreCustomizationAboutUsSettings2026 from "../../components/admin/store-customization/StoreCustomizationAboutUsSettings2026.jsx";
 import StoreCustomizationPrivacyTermsSettings2026 from "../../components/admin/store-customization/StoreCustomizationPrivacyTermsSettings2026.jsx";
+import StoreCustomizationFaqsSettings2026 from "../../components/admin/store-customization/StoreCustomizationFaqsSettings2026.jsx";
 import StoreCustomizationSaveActions2026 from "../../components/admin/store-customization/StoreCustomizationSaveActions2026.jsx";
 import StoreCustomizationTabNav2026 from "../../components/admin/store-customization/StoreCustomizationTabNav2026.jsx";
 
@@ -5030,6 +5031,19 @@ export default function StoreCustomizationPage() {
     });
   };
 
+  const onResetFaqsSetting = () => {
+    const current = queryClient.getQueryData(["admin-store-customization", lang]);
+    const currentCustomization = normalizeCustomizationPayload(
+      unwrapCustomizationEnvelope(current || customizationQuery.data),
+      lang
+    );
+    setFaqsState(currentCustomization.faqs);
+    setNotice({
+      type: "success",
+      message: isIndo ? "Draf FAQs berhasil diatur ulang." : "FAQs draft reset.",
+    });
+  };
+
   const onChangeHeaderField = (field, value) => {
     if (field === "whatsAppLink") {
       setWhatsAppLinkServerError("");
@@ -7372,7 +7386,7 @@ export default function StoreCustomizationPage() {
 
   return (
     <div className="mx-auto w-full max-w-[1280px] space-y-5 px-1 sm:px-2">
-      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" || activeTab === "aboutUs" || activeTab === "privacyPolicyTerms" ? null : (
+      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" || activeTab === "aboutUs" || activeTab === "privacyPolicyTerms" || activeTab === "faqs" ? null : (
         <AdminOpsPageHeader
           title="Store Customizations"
           description="Customize storefront sections, labels, and SEO."
@@ -7410,7 +7424,7 @@ export default function StoreCustomizationPage() {
         </div>
       ) : null}
 
-      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" || activeTab === "aboutUs" || activeTab === "privacyPolicyTerms" ? null : (
+      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" || activeTab === "aboutUs" || activeTab === "privacyPolicyTerms" || activeTab === "faqs" ? null : (
         <StoreCustomizationTabNav2026 activeTab={activeTab} onTabChange={onSelectTab} />
       )}
 
@@ -7530,159 +7544,25 @@ export default function StoreCustomizationPage() {
           isLoading={isLoadingHeader}
         />
       ) : activeTab === "faqs" ? (
-        <div className="flex flex-col gap-5">
-          <section className={sectionCard}>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                <Settings className="h-4 w-4" />
-              </span>
-              <h2 className="text-base font-semibold text-slate-900 dark:text-white">FAQs Page Header</h2>
-            </div>
-            <div className="mt-4 h-px w-full bg-slate-200 dark:bg-slate-700/50" />
-
-            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[320px_1fr]">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3 dark:border-slate-800 dark:bg-slate-900/60">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">
-                  Enable This Block
-                </p>
-                <SegmentedToggle
-                  value={Boolean(faqs.pageHeader.enabled)}
-                  onChange={(value) => onChangeFaqsBlockEnabled("pageHeader", value)}
-                />
-              </div>
-              <ImageUploadField
-                id="faqs-page-header-background-image-input"
-                label="Page Header Background"
-                error={faqsImageErrors[FAQS_IMAGE_FIELD_KEYS.pageHeaderBackground]}
-                dropActive={Boolean(
-                  faqsDropActive[FAQS_IMAGE_FIELD_KEYS.pageHeaderBackground]
-                )}
-                onDropActiveChange={(value) =>
-                  setFaqsDropActiveField(FAQS_IMAGE_FIELD_KEYS.pageHeaderBackground, value)
-                }
-                onInputChange={(event) =>
-                  onFaqsImageInputChange(FAQS_IMAGE_FIELD_KEYS.pageHeaderBackground, event)
-                }
-                onDrop={(event) =>
-                  onDropFaqsImage(FAQS_IMAGE_FIELD_KEYS.pageHeaderBackground, event)
-                }
-                previewDataUrl={faqs.pageHeader.backgroundImageDataUrl}
-                onRemove={() =>
-                  onRemoveFaqsImage(FAQS_IMAGE_FIELD_KEYS.pageHeaderBackground)
-                }
-                previewAlt="FAQs page header background"
-              />
-              <label className="block xl:col-span-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Page Title
-                </span>
-                <input
-                  type="text"
-                  value={faqs.pageHeader.pageTitle}
-                  onChange={(event) =>
-                    onChangeFaqsPageHeaderField("pageTitle", event.target.value)
-                  }
-                  className={`${inputBase} mt-2`}
-                />
-              </label>
-            </div>
-          </section>
-
-          <section className={sectionCard}>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                <Settings className="h-4 w-4" />
-              </span>
-              <h2 className="text-base font-semibold text-slate-900 dark:text-white">FAQs Left Column</h2>
-            </div>
-            <div className="mt-4 h-px w-full bg-slate-200 dark:bg-slate-700/50" />
-
-            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[320px_1fr]">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3 dark:border-slate-800 dark:bg-slate-900/60">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">
-                  Enable This Block
-                </p>
-                <SegmentedToggle
-                  value={Boolean(faqs.leftColumn.enabled)}
-                  onChange={(value) => onChangeFaqsBlockEnabled("leftColumn", value)}
-                />
-              </div>
-              <ImageUploadField
-                id="faqs-left-column-image-input"
-                label="Left Image"
-                error={faqsImageErrors[FAQS_IMAGE_FIELD_KEYS.leftColumnImage]}
-                dropActive={Boolean(faqsDropActive[FAQS_IMAGE_FIELD_KEYS.leftColumnImage])}
-                onDropActiveChange={(value) =>
-                  setFaqsDropActiveField(FAQS_IMAGE_FIELD_KEYS.leftColumnImage, value)
-                }
-                onInputChange={(event) =>
-                  onFaqsImageInputChange(FAQS_IMAGE_FIELD_KEYS.leftColumnImage, event)
-                }
-                onDrop={(event) =>
-                  onDropFaqsImage(FAQS_IMAGE_FIELD_KEYS.leftColumnImage, event)
-                }
-                previewDataUrl={faqs.leftColumn.leftImageDataUrl}
-                onRemove={() => onRemoveFaqsImage(FAQS_IMAGE_FIELD_KEYS.leftColumnImage)}
-                previewAlt="FAQs left column image"
-              />
-            </div>
-          </section>
-
-          <section className={sectionCard}>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                <Settings className="h-4 w-4" />
-              </span>
-              <h2 className="text-base font-semibold text-slate-900 dark:text-white">FAQs</h2>
-            </div>
-            <div className="mt-4 h-px w-full bg-slate-200 dark:bg-slate-700/50" />
-
-            <div className="mt-4 grid grid-cols-1 gap-4">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3 dark:border-slate-800 dark:bg-slate-900/60">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">
-                  Enable This Block
-                </p>
-                <SegmentedToggle
-                  value={Boolean(faqs.content.enabled)}
-                  onChange={(value) => onChangeFaqsBlockEnabled("content", value)}
-                />
-              </div>
-
-              {faqs.content.items.map((item, index) => (
-                <div
-                  key={`faqs-item-${index}`}
-                  className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-800 dark:bg-slate-900/60"
-                >
-                  <label className="block">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                      Faq Title {FAQ_ITEM_ORDINALS[index] || index + 1}
-                    </span>
-                    <input
-                      type="text"
-                      value={item.title}
-                      onChange={(event) =>
-                        onChangeFaqsItemField(index, "title", event.target.value)
-                      }
-                      className={`${inputBase} mt-2`}
-                    />
-                  </label>
-                  <label className="mt-4 block">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                      Faq Description {FAQ_ITEM_ORDINALS[index] || index + 1}
-                    </span>
-                    <textarea
-                      value={item.description}
-                      onChange={(event) =>
-                        onChangeFaqsItemField(index, "description", event.target.value)
-                      }
-                      className={textAreaBase}
-                    />
-                  </label>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
+        <StoreCustomizationFaqsSettings2026
+          value={faqsState}
+          onChange={setFaqsState}
+          activeTab={activeTab}
+          onTabChange={onSelectTab}
+          onSave={onSave}
+          onPublish={onPublish}
+          onReset={onResetFaqsSetting}
+          onPreview={onPreviewStorefront}
+          isSaving={isSaving && !isPublishing}
+          isPublishing={isPublishing}
+          meta={customizationMeta}
+          language={lang}
+          languages={publishedLanguages}
+          onLanguageChange={(nextLanguage) =>
+            setLang(String(nextLanguage || "en").toLowerCase())
+          }
+          isLoading={isLoadingHeader}
+        />
       ) : activeTab === "offers" ? (
         <div className="flex flex-col gap-5">
           <div className="flex items-center justify-between rounded-xl border border-sky-200 bg-sky-50/80 p-3.5 text-xs text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-200">
