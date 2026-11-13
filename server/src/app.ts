@@ -194,6 +194,19 @@ app.get("/sitemap.xml", (req, res) => {
 });
 
 app.get(["/favicon.ico", "/favicon.svg"], (_req, res) => {
+  const clientDistDir = resolveClientDistDir();
+  const candidates = [
+    clientDistDir ? path.join(clientDistDir, "favicon.ico") : "",
+    clientDistDir ? path.join(clientDistDir, "favicon.png") : "",
+    path.resolve(process.cwd(), "client/public/favicon.ico"),
+    path.resolve(process.cwd(), "client/public/favicon.png"),
+  ].filter(Boolean);
+
+  const matched = candidates.find((filePath) => fs.existsSync(filePath));
+  if (matched) {
+    res.type(matched.endsWith(".ico") ? "image/x-icon" : "image/png").sendFile(matched);
+    return;
+  }
   res.redirect(302, "/favicon.png");
 });
 

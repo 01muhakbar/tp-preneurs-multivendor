@@ -132,13 +132,20 @@ export default function SeoCustomizationBridge() {
       ogUrlMeta.setAttribute("content", nextUrl);
       canonicalLink.setAttribute("href", nextUrl);
     }
-    faviconLink.setAttribute(
-      "href",
-      resolveAssetUrl(seoSettings.faviconDataUrl) || workspaceFaviconHref || originalFaviconHref
-    );
+    const resolvedFaviconUrl =
+      resolveAssetUrl(seoSettings.faviconDataUrl) || workspaceFaviconHref || originalFaviconHref;
+
+    faviconLink.setAttribute("href", resolvedFaviconUrl);
+    const shortcutIcon = document.head.querySelector("link[rel='shortcut icon']");
+    if (shortcutIcon) {
+      shortcutIcon.setAttribute("href", resolvedFaviconUrl);
+    }
 
     return () => {
       faviconLink.setAttribute("href", originalFaviconHref);
+      if (shortcutIcon) {
+        shortcutIcon.setAttribute("href", originalFaviconHref);
+      }
     };
   }, [
     currentUrl,

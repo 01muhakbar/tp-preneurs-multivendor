@@ -47,6 +47,7 @@ import StoreCustomizationPrivacyTermsSettings2026 from "../../components/admin/s
 import StoreCustomizationFaqsSettings2026 from "../../components/admin/store-customization/StoreCustomizationFaqsSettings2026.jsx";
 import StoreCustomizationContactSettings2026 from "../../components/admin/store-customization/StoreCustomizationContactSettings2026.jsx";
 import StoreCustomizationOffersSettings2026 from "../../components/admin/store-customization/StoreCustomizationOffersSettings2026.jsx";
+import StoreCustomizationSeoSettings2026 from "../../components/admin/store-customization/StoreCustomizationSeoSettings2026.jsx";
 import StoreCustomizationSaveActions2026 from "../../components/admin/store-customization/StoreCustomizationSaveActions2026.jsx";
 import StoreCustomizationTabNav2026 from "../../components/admin/store-customization/StoreCustomizationTabNav2026.jsx";
 
@@ -5077,6 +5078,21 @@ export default function StoreCustomizationPage() {
     });
   };
 
+  const onResetSeoSetting = () => {
+    const current = queryClient.getQueryData(["admin-store-customization", lang]);
+    const currentCustomization = normalizeCustomizationPayload(
+      unwrapCustomizationEnvelope(current || customizationQuery.data),
+      lang
+    );
+    setSeoSettingsState(currentCustomization.seoSettings);
+    setSeoImageErrors({});
+    setSeoDropActive({});
+    setNotice({
+      type: "success",
+      message: isIndo ? "Draf Pengaturan SEO berhasil diatur ulang." : "SEO draft reset.",
+    });
+  };
+
   const onChangeHeaderField = (field, value) => {
     if (field === "whatsAppLink") {
       setWhatsAppLinkServerError("");
@@ -7419,7 +7435,7 @@ export default function StoreCustomizationPage() {
 
   return (
     <div className="mx-auto w-full max-w-[1280px] space-y-5 px-1 sm:px-2">
-      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" || activeTab === "aboutUs" || activeTab === "privacyPolicyTerms" || activeTab === "faqs" || activeTab === "offers" || activeTab === "contactUs" ? null : (
+      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" || activeTab === "aboutUs" || activeTab === "privacyPolicyTerms" || activeTab === "faqs" || activeTab === "offers" || activeTab === "contactUs" || activeTab === "seoSettings" ? null : (
         <AdminOpsPageHeader
           title="Store Customizations"
           description="Customize storefront sections, labels, and SEO."
@@ -7457,7 +7473,7 @@ export default function StoreCustomizationPage() {
         </div>
       ) : null}
 
-      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" || activeTab === "aboutUs" || activeTab === "privacyPolicyTerms" || activeTab === "faqs" || activeTab === "offers" || activeTab === "contactUs" ? null : (
+      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" || activeTab === "aboutUs" || activeTab === "privacyPolicyTerms" || activeTab === "faqs" || activeTab === "offers" || activeTab === "contactUs" || activeTab === "seoSettings" ? null : (
         <StoreCustomizationTabNav2026 activeTab={activeTab} onTabChange={onSelectTab} />
       )}
 
@@ -9385,186 +9401,26 @@ export default function StoreCustomizationPage() {
           </section>
         </div>
       ) : activeTab === "seoSettings" ? (
-        <div className="flex flex-col gap-5">
-          <section className={sectionCard}>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-                <Settings className="h-4 w-4" />
-              </span>
-              <h2 className="text-base font-semibold text-slate-900">Seo Settings</h2>
-            </div>
-            <div className="mt-4 h-px w-full bg-slate-200" />
-
-            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[320px_1fr]">
-              <div className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Favicon
-                </span>
-                <input
-                  id="seo-favicon-image-input"
-                  type="file"
-                  accept=".png,.jpeg,.jpg,.webp"
-                  onChange={(event) => onSeoImageInputChange("faviconDataUrl", event)}
-                  className="hidden"
-                />
-                <label
-                  htmlFor="seo-favicon-image-input"
-                  onDragOver={(event) => {
-                    event.preventDefault();
-                    setSeoDropActiveField("faviconDataUrl", true);
-                  }}
-                  onDragLeave={() => setSeoDropActiveField("faviconDataUrl", false)}
-                  onDrop={(event) => onDropSeoImage("faviconDataUrl", event)}
-                  className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${
-                    seoDropActive.faviconDataUrl
-                      ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)]"
-                      : "border-slate-300 bg-white hover:border-slate-400"
-                  }`}
-                >
-                  <Upload className="h-5 w-5 text-slate-500" />
-                  <p className="mt-2 text-sm font-medium text-slate-700">
-                    Drag your images here
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    (Only *.jpeg, *.webp and *.png images will be accepted)
-                  </p>
-                </label>
-                {seoImageErrors.faviconDataUrl ? (
-                  <p className="text-xs text-rose-600">{seoImageErrors.faviconDataUrl}</p>
-                ) : null}
-                <div className="relative inline-flex rounded-xl border border-slate-200 bg-white p-2">
-                  <img
-                    src={seoFaviconPreviewSrc}
-                    alt="Favicon preview"
-                    className="h-16 w-16 rounded-md object-contain"
-                    onError={(event) => {
-                      event.currentTarget.onerror = null;
-                      event.currentTarget.src = "/favicon.png";
-                    }}
-                  />
-                  {seoSettings.faviconDataUrl ? (
-                    <button
-                      type="button"
-                      onClick={() => onRemoveSeoImage("faviconDataUrl")}
-                      className="absolute -right-2 -top-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 hover:bg-slate-100"
-                      aria-label="Remove favicon image"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4">
-                <label className="block">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Meta Title
-                  </span>
-                  <input
-                    type="text"
-                    value={seoSettings.metaTitle}
-                    onChange={(event) => onChangeSeoField("metaTitle", event.target.value)}
-                    className={`${inputBase} mt-2`}
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Meta Description
-                  </span>
-                  <textarea
-                    value={seoSettings.metaDescription}
-                    onChange={(event) =>
-                      onChangeSeoField("metaDescription", event.target.value)
-                    }
-                    className="mt-2 min-h-[92px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-[var(--admin-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary-soft)]"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Meta Url
-                  </span>
-                  <input
-                    type="text"
-                    value={seoSettings.metaUrl}
-                    onChange={(event) => onChangeSeoField("metaUrl", event.target.value)}
-                    className={`${inputBase} mt-2`}
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Meta Keywords
-                  </span>
-                  <textarea
-                    value={seoSettings.metaKeywords}
-                    onChange={(event) =>
-                      onChangeSeoField("metaKeywords", event.target.value)
-                    }
-                    className="mt-2 min-h-[120px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-[var(--admin-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary-soft)]"
-                  />
-                </label>
-              </div>
-
-              <div className="space-y-2 xl:col-span-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Meta Image
-                </span>
-                <input
-                  id="seo-meta-image-input"
-                  type="file"
-                  accept=".png,.jpeg,.jpg,.webp"
-                  onChange={(event) => onSeoImageInputChange("metaImageDataUrl", event)}
-                  className="hidden"
-                />
-                <label
-                  htmlFor="seo-meta-image-input"
-                  onDragOver={(event) => {
-                    event.preventDefault();
-                    setSeoDropActiveField("metaImageDataUrl", true);
-                  }}
-                  onDragLeave={() => setSeoDropActiveField("metaImageDataUrl", false)}
-                  onDrop={(event) => onDropSeoImage("metaImageDataUrl", event)}
-                  className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${
-                    seoDropActive.metaImageDataUrl
-                      ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)]"
-                      : "border-slate-300 bg-white hover:border-slate-400"
-                  }`}
-                >
-                  <Upload className="h-5 w-5 text-slate-500" />
-                  <p className="mt-2 text-sm font-medium text-slate-700">
-                    Drag your images here
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    (Only *.jpeg, *.webp and *.png images will be accepted. Meta image will be prepared at 1200 x 630px)
-                  </p>
-                </label>
-                {seoImageErrors.metaImageDataUrl ? (
-                  <p className="text-xs text-rose-600">{seoImageErrors.metaImageDataUrl}</p>
-                ) : null}
-                <div className="relative w-full max-w-lg rounded-xl border border-slate-200 bg-white p-2">
-                  <img
-                    src={seoMetaImagePreviewSrc}
-                    alt="Meta image preview"
-                    className="aspect-[1200/630] w-full rounded-md bg-white object-contain"
-                    onError={(event) => {
-                      event.currentTarget.onerror = null;
-                      event.currentTarget.src = "/og-image.png";
-                    }}
-                  />
-                  {seoSettings.metaImageDataUrl ? (
-                    <button
-                      type="button"
-                      onClick={() => onRemoveSeoImage("metaImageDataUrl")}
-                      className="absolute -right-2 -top-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 hover:bg-slate-100"
-                      aria-label="Remove meta image"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
+        <StoreCustomizationSeoSettings2026
+          activeTab={activeTab}
+          onTabChange={onSelectTab}
+          seoSettings={seoSettings}
+          onChangeSeoField={onChangeSeoField}
+          onSeoImageInputChange={onSeoImageInputChange}
+          onDropSeoImage={onDropSeoImage}
+          onRemoveSeoImage={onRemoveSeoImage}
+          seoDropActive={seoDropActive}
+          seoImageErrors={seoImageErrors}
+          seoFaviconPreviewSrc={seoFaviconPreviewSrc}
+          seoMetaImagePreviewSrc={seoMetaImagePreviewSrc}
+          onSave={onSave}
+          onPublish={onPublish}
+          onReset={onResetSeoSetting}
+          isSaving={isSaving && !isPublishing}
+          isPublishing={isPublishing}
+          isLoading={isLoadingHeader}
+          meta={customizationMeta}
+        />
       ) : activeTab !== "home" ? (
         <div className={sectionCard}>
           <h2 className="text-base font-semibold text-slate-900">
