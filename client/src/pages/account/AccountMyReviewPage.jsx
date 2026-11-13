@@ -44,15 +44,16 @@ const ACCEPTED_IMAGE_TYPES = new Set(["image/jpeg", "image/png"]);
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
 const isIndonesianLanguage = (i18nInstance) => {
-  const current = String(
-    i18nInstance?.language ||
-      localStorage.getItem("app_lang") ||
-      localStorage.getItem("store_language") ||
-      localStorage.getItem("seller_language") ||
-      localStorage.getItem("i18nextLng") ||
-      "id"
-  ).toLowerCase();
-  return current.startsWith("id");
+  if (i18nInstance?.language?.toLowerCase().startsWith("id")) return true;
+  if (typeof window !== "undefined") {
+    const storeLang = (localStorage.getItem("store_language") || "").toLowerCase();
+    if (storeLang === "indonesia" || storeLang.startsWith("id")) return true;
+    const i18nLng = (localStorage.getItem("i18nextLng") || "").toLowerCase();
+    if (i18nLng.startsWith("id")) return true;
+    const appLang = (localStorage.getItem("app_lang") || "").toLowerCase();
+    if (appLang === "indonesia" || appLang.startsWith("id")) return true;
+  }
+  return false;
 };
 
 const TRANSLATIONS = {
@@ -103,6 +104,7 @@ const TRANSLATIONS = {
     submitting: "Mengirim...",
     updateReviewBtn: "Simpan Perubahan",
     submitReviewBtn: "Kirim Ulasan",
+    cancel: "Batal",
     storeLabel: "Toko",
     visitStore: "Kunjungi Toko",
   },
@@ -153,6 +155,7 @@ const TRANSLATIONS = {
     submitting: "Submitting...",
     updateReviewBtn: "Update Review",
     submitReviewBtn: "Submit Review",
+    cancel: "Cancel",
     storeLabel: "Store",
     visitStore: "Visit Store",
   },
@@ -567,21 +570,37 @@ export default function AccountMyReviewPage() {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const { i18n } = useTranslation();
-  const [, setLangSync] = useState(0);
+  const [activeLang, setActiveLang] = useState(() => i18n?.language || "en");
 
   useEffect(() => {
-    const handleSync = () => setLangSync((c) => c + 1);
+    const handleSync = (lng) => {
+      if (typeof lng === "string") setActiveLang(lng);
+      else setActiveLang(i18n?.language || "en");
+    };
+    const handleCustomLang = (e) => {
+      if (e?.detail?.isoCode) setActiveLang(e.detail.isoCode);
+    };
+    const handleStorage = () => {
+      const stored = localStorage.getItem("store_language");
+      if (stored === "Indonesia") setActiveLang("id");
+      else if (stored === "English") setActiveLang("en");
+      else setActiveLang(i18n?.language || "en");
+    };
+
     i18n?.on?.("languageChanged", handleSync);
-    window.addEventListener("storage", handleSync);
-    window.addEventListener("store_language_changed", handleSync);
+    window.addEventListener("store_language_changed", handleCustomLang);
+    window.addEventListener("storage", handleStorage);
     return () => {
       i18n?.off?.("languageChanged", handleSync);
-      window.removeEventListener("storage", handleSync);
-      window.removeEventListener("store_language_changed", handleSync);
+      window.removeEventListener("store_language_changed", handleCustomLang);
+      window.removeEventListener("storage", handleStorage);
     };
   }, [i18n]);
 
-  const isIndo = isIndonesianLanguage(i18n);
+  const isIndo = useMemo(
+    () => isIndonesianLanguage({ language: activeLang }),
+    [activeLang]
+  );
   const t = isIndo ? TRANSLATIONS.id : TRANSLATIONS.en;
 
   const activeTab = searchParams.get("tab") === "reviewed" ? "reviewed" : "need";
@@ -837,7 +856,8 @@ export default function AccountMyReviewPage() {
             className={activeTab === tab.id ? "is-active" : ""}
             onClick={() => handleTabChange(tab.id)}
           >
-            {tab.label}
+            <span>{tab.label}</span>
+            <span className="reviews-2026-tab-badge">{tab.count}</span>
           </button>
         ))}
       </div>

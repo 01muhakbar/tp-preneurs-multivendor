@@ -234,6 +234,7 @@ export default function AccountLayout() {
     location.pathname === "/user/my-orders" ||
     location.pathname === "/user/notifications" ||
     location.pathname === "/user/store-invitations" ||
+    location.pathname === "/user/my-reviews" ||
     isOrderDetailRoute;
 
   const handleLogout = async () => {
