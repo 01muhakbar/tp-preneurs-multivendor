@@ -169,21 +169,25 @@
 
 .tp-dashboard-icon--navy {
   background: var(--tp-dashboard-primary-soft);
+  border: 1px solid rgba(3, 76, 133, 0.15);
   color: var(--tp-dashboard-primary);
 }
 
 .tp-dashboard-icon--orange {
   background: var(--tp-dashboard-accent-soft);
+  border: 1px solid rgba(254, 111, 5, 0.2);
   color: var(--tp-dashboard-accent);
 }
 
 .tp-dashboard-icon--navy-soft {
   background: #f0f7ff;
+  border: 1px solid rgba(2, 132, 199, 0.18);
   color: #0284c7;
 }
 
 .tp-dashboard-icon--emerald {
   background: #ecfdf5;
+  border: 1px solid rgba(5, 150, 105, 0.18);
   color: #059669;
 }
 
@@ -475,7 +479,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 7.5rem;
+  min-height: 7.75rem;
   min-width: 0;
   border: 1px solid var(--tp-dashboard-border);
   border-radius: 1rem;
@@ -491,52 +495,107 @@
 
 .tp-quick-action:hover {
   transform: translateY(-2px);
-  border-color: #cbd5e1;
+  border-color: rgba(3, 76, 133, 0.35);
   box-shadow: var(--tp-dashboard-card-shadow-hover);
 }
 
-.tp-quick-action strong {
-  display: block;
-  margin-top: 0.65rem;
-  color: var(--tp-dashboard-text);
-  font-size: 0.82rem;
-  font-weight: 750;
-  letter-spacing: -0.01em;
+/* Quick Action Dedicated Icon Box - Flawless Centering & Proportions */
+.tp-quick-action__icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 2.65rem !important;
+  height: 2.65rem !important;
+  border-radius: 0.75rem;
+  flex: 0 0 auto;
+  margin: 0 !important;
+  padding: 0 !important;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
 }
 
-.tp-quick-action span {
+.tp-quick-action:hover .tp-quick-action__icon {
+  transform: scale(1.08);
+}
+
+.tp-quick-action__icon svg {
+  width: 1.35rem;
+  height: 1.35rem;
   display: block;
-  margin-top: 0.2rem;
+  margin: auto;
+  stroke-width: 2.2;
+}
+
+.tp-quick-action__icon--navy {
+  background: var(--tp-dashboard-primary-soft);
+  border: 1px solid rgba(3, 76, 133, 0.15);
+  color: var(--tp-dashboard-primary);
+}
+
+.tp-quick-action__icon--orange {
+  background: var(--tp-dashboard-accent-soft);
+  border: 1px solid rgba(254, 111, 5, 0.2);
+  color: var(--tp-dashboard-accent);
+}
+
+.tp-quick-action__icon--navy-soft {
+  background: #f0f7ff;
+  border: 1px solid rgba(2, 132, 199, 0.18);
+  color: #0284c7;
+}
+
+.tp-quick-action__body {
+  margin-top: 0.65rem;
+  min-width: 0;
+}
+
+.tp-quick-action__title,
+.tp-quick-action strong {
+  display: block;
+  color: var(--tp-dashboard-text);
+  font-size: 0.86rem;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.tp-quick-action__subtitle,
+.tp-quick-action .tp-quick-action__body span {
+  display: block;
+  margin-top: 0.25rem;
   color: var(--tp-dashboard-muted);
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   line-height: 1.4;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+.tp-quick-action__link,
 .tp-quick-action em {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
   margin-top: 0.75rem;
   color: var(--tp-dashboard-primary);
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   font-style: normal;
   font-weight: 750;
   transition: color 0.15s ease;
 }
 
+.tp-quick-action:hover .tp-quick-action__link,
 .tp-quick-action:hover em {
   color: var(--tp-dashboard-accent);
 }
 
+.tp-quick-action__link svg,
 .tp-quick-action em svg {
   width: 0.85rem;
   height: 0.85rem;
   transition: transform 0.15s ease;
 }
 
+.tp-quick-action:hover .tp-quick-action__link svg,
 .tp-quick-action:hover em svg {
   transform: translateX(3px);
 }
@@ -990,11 +1049,41 @@
 
 .dark .tp-dashboard-stat:hover,
 .dark .tp-store-card:hover,
-.dark .tp-quick-action:hover,
 [data-theme="dark"] .tp-dashboard-stat:hover,
-[data-theme="dark"] .tp-store-card:hover,
-[data-theme="dark"] .tp-quick-action:hover {
+[data-theme="dark"] .tp-store-card:hover {
   border-color: rgba(255, 255, 255, 0.18);
+}
+
+.dark .tp-quick-action:hover,
+[data-theme="dark"] .tp-quick-action:hover {
+  border-color: rgba(254, 111, 5, 0.42);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+
+.dark .tp-quick-action__title,
+.dark .tp-quick-action strong,
+[data-theme="dark"] .tp-quick-action__title,
+[data-theme="dark"] .tp-quick-action strong {
+  color: #f8fbff;
+}
+
+.dark .tp-quick-action__subtitle,
+[data-theme="dark"] .tp-quick-action__subtitle {
+  color: #94a3b8;
+}
+
+.dark .tp-quick-action__link,
+.dark .tp-quick-action em,
+[data-theme="dark"] .tp-quick-action__link,
+[data-theme="dark"] .tp-quick-action em {
+  color: #38bdf8;
+}
+
+.dark .tp-quick-action:hover .tp-quick-action__link,
+.dark .tp-quick-action:hover em,
+[data-theme="dark"] .tp-quick-action:hover .tp-quick-action__link,
+[data-theme="dark"] .tp-quick-action:hover em {
+  color: var(--tp-dashboard-accent);
 }
 
 .dark .tp-store-card h2,
@@ -1005,26 +1094,36 @@
 }
 
 .dark .tp-dashboard-icon--navy,
-[data-theme="dark"] .tp-dashboard-icon--navy {
-  background: rgba(3, 76, 133, 0.3);
+.dark .tp-quick-action__icon--navy,
+[data-theme="dark"] .tp-dashboard-icon--navy,
+[data-theme="dark"] .tp-quick-action__icon--navy {
+  background: rgba(3, 76, 133, 0.28);
+  border: 1px solid rgba(56, 189, 248, 0.28);
   color: #38bdf8;
 }
 
 .dark .tp-dashboard-icon--orange,
-[data-theme="dark"] .tp-dashboard-icon--orange {
-  background: rgba(254, 111, 5, 0.25);
-  color: #fb923c;
+.dark .tp-quick-action__icon--orange,
+[data-theme="dark"] .tp-dashboard-icon--orange,
+[data-theme="dark"] .tp-quick-action__icon--orange {
+  background: rgba(254, 111, 5, 0.22);
+  border: 1px solid rgba(254, 111, 5, 0.38);
+  color: #fe6f05;
 }
 
 .dark .tp-dashboard-icon--navy-soft,
-[data-theme="dark"] .tp-dashboard-icon--navy-soft {
-  background: rgba(2, 132, 199, 0.2);
+.dark .tp-quick-action__icon--navy-soft,
+[data-theme="dark"] .tp-dashboard-icon--navy-soft,
+[data-theme="dark"] .tp-quick-action__icon--navy-soft {
+  background: rgba(2, 132, 199, 0.22);
+  border: 1px solid rgba(125, 211, 252, 0.28);
   color: #7dd3fc;
 }
 
 .dark .tp-dashboard-icon--emerald,
 [data-theme="dark"] .tp-dashboard-icon--emerald {
   background: rgba(5, 150, 105, 0.25);
+  border: 1px solid rgba(52, 211, 153, 0.28);
   color: #34d399;
 }
 

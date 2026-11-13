@@ -409,12 +409,16 @@ function QuickAction({ label, value, href, Icon, tone, isId }) {
   const dict = isId ? DASHBOARD_I18N.id : DASHBOARD_I18N.en;
   return (
     <Link className="tp-quick-action" to={href} aria-label={`${label}: ${value}`}>
-      <span className={`tp-dashboard-icon tp-dashboard-icon--${tone}`}><Icon aria-hidden="true" /></span>
-      <div>
-        <strong>{label}</strong>
-        <span>{value}</span>
+      <div className={`tp-quick-action__icon tp-quick-action__icon--${tone} tp-dashboard-icon tp-dashboard-icon--${tone}`}>
+        <Icon aria-hidden="true" />
       </div>
-      <em>{dict.view} <ArrowRight aria-hidden="true" /></em>
+      <div className="tp-quick-action__body">
+        <strong className="tp-quick-action__title">{label}</strong>
+        <span className="tp-quick-action__subtitle">{value}</span>
+      </div>
+      <em className="tp-quick-action__link">
+        {dict.view} <ArrowRight aria-hidden="true" />
+      </em>
     </Link>
   );
 }
