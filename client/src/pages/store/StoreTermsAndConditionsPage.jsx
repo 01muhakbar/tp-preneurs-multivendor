@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { getStoreCustomization } from "../../api/public/storeCustomizationPublic.ts";
 import { UiEmptyState, UiErrorState } from "../../components/primitives/state/index.js";
 import { sanitizeRichTextHtml } from "../../utils/sanitizeRichTextHtml.js";
@@ -56,7 +57,8 @@ function TermsPageSkeleton() {
 }
 
 export default function StoreTermsAndConditionsPage() {
-  const lang = DEFAULT_LANG;
+  const { i18n } = useTranslation();
+  const lang = String(i18n?.language || DEFAULT_LANG).toLowerCase().startsWith("id") ? "id" : "en";
   const termsQuery = useQuery({
     queryKey: ["store-customization", "terms-and-conditions", lang],
     queryFn: () => getStoreCustomization({ lang, include: "policy" }),
@@ -138,7 +140,7 @@ export default function StoreTermsAndConditionsPage() {
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
         <div
-          className="prose prose-slate max-w-none prose-headings:font-semibold prose-a:text-emerald-700"
+          className="prose prose-slate max-w-none prose-headings:font-bold prose-a:font-semibold prose-a:text-[#034c85] hover:prose-a:text-[#fe6f05] dark:prose-invert"
           dangerouslySetInnerHTML={{ __html: safeHtml }}
         />
       </section>

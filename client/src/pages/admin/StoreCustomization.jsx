@@ -482,46 +482,73 @@ const DEFAULT_FAQS_ITEMS = [
       "Fleet management focuses on maintaining and scheduling infrastructure capacity, while dynamic scaling adjusts resources automatically based on load.",
   },
 ];
-const DEFAULT_PRIVACY_POLICY_HTML = [
-  "<h3>Consent</h3>",
-  "<p>By using KachaBazar, you consent to this privacy policy and agree to the way we collect and use data for shopping, delivery, and support services.</p>",
-  "<h3>Information we collect</h3>",
-  "<p>We may collect account details, order information, payment metadata, and customer support communications when you use our platform.</p>",
-  "<h3>How we use your information</h3>",
+const DEFAULT_PRIVACY_POLICY_HTML_EN = [
+  "<h2>TP Preneurs Privacy Policy</h2>",
+  "<p>Welcome to TP Preneurs (<strong>tppreneurs.com</strong>). We are committed to protecting the privacy of our academic community, student edupreneurs, and buyers in compliance with Law of the Republic of Indonesia No. 27 of 2022 on Personal Data Protection (UU PDP).</p>",
+  "<h3>1. Information We Collect</h3>",
+  "<p>We collect account credentials, vendor verification data (KYC), transaction records, shipping addresses, and device interaction logs necessary to facilitate secure multi-vendor orders.</p>",
+  "<h3>2. How We Use Your Data</h3>",
   "<ol>",
-  "<li>To process and deliver your orders accurately.</li>",
-  "<li>To verify payments and prevent fraud.</li>",
-  "<li>To provide account access and order tracking updates.</li>",
-  "<li>To improve product recommendations and store experience.</li>",
-  "<li>To respond to support requests and complaints.</li>",
-  "<li>To send service notices and policy updates.</li>",
-  "<li>To comply with legal and regulatory obligations.</li>",
+  "<li>To process, fulfill, and deliver multi-vendor orders.</li>",
+  "<li>To verify buyer and vendor identity and maintain platform security.</li>",
+  "<li>To provide order tracking, customer support, and invoice generation.</li>",
+  "<li>To prevent fraudulent payments and unauthorized activities.</li>",
+  "<li>To comply with Indonesian e-commerce legal obligations.</li>",
   "</ol>",
-  "<h3>Data protection</h3>",
-  "<p>We apply reasonable technical and organizational safeguards to protect your personal data from unauthorized access, misuse, or disclosure.</p>",
-  "<h3>Your rights</h3>",
-  "<p>You may request access, correction, or deletion of personal data by contacting the KachaBazar support team.</p>",
+  "<h3>3. Data Protection & Your Rights</h3>",
+  "<p>We implement technical and organizational security measures to protect your data. You may review, correct, or request deletion of your data by contacting <a href=\"mailto:support@tppreneurs.com\">support@tppreneurs.com</a>.</p>",
 ].join("");
-const DEFAULT_TERMS_AND_CONDITIONS_HTML = [
-  "<h2>Welcome to KachaBazar!</h2>",
-  "<p>These terms and conditions govern your use of KachaBazar services, including browsing products, placing orders, and managing your account.</p>",
-  "<h3>Cookies</h3>",
-  "<p>We use cookies to keep your session active, remember preferences, and improve site performance. By continuing to use the site, you agree to our cookie usage.</p>",
-  "<h3>License</h3>",
-  "<p>Unless otherwise stated, KachaBazar and its licensors own the intellectual property rights for all material on this site.</p>",
+
+const DEFAULT_PRIVACY_POLICY_HTML_ID = [
+  "<h2>Kebijakan Privasi TP Preneurs</h2>",
+  "<p>Selamat datang di TP Preneurs (<strong>tppreneurs.com</strong>). Kami berkomitmen penuh melindungi data pribadi seluruh civitas akademika, wirausaha mahasiswa (edupreneur), serta pembeli sesuai Undang-Undang Republik Indonesia Nomor 27 Tahun 2022 tentang Perlindungan Data Pribadi (UU PDP).</p>",
+  "<h3>1. Informasi yang Kami Kumpulkan</h3>",
+  "<p>Kami mengumpulkan data akun, identitas verifikasi penjual (KYC), rincian transaksi, alamat pengiriman, dan log perangkat yang diperlukan untuk memproses pesanan multi-vendor secara aman.</p>",
+  "<h3>2. Penggunaan Informasi Pribadi</h3>",
   "<ol>",
-  "<li>You must not republish material from KachaBazar.</li>",
-  "<li>You must not sell, rent, or sub-license material from KachaBazar.</li>",
-  "<li>You must not reproduce, duplicate, or copy material from KachaBazar.</li>",
-  "<li>You must not redistribute content from KachaBazar without permission.</li>",
+  "<li>Memproses, mengonfirmasi, dan mengirimkan pesanan produk fisik maupun digital.</li>",
+  "<li>Memverifikasi identitas pengguna dan menjaga keamanan ekosistem perdagangan kampus.</li>",
+  "<li>Menyediakan pembaruan status pesanan, faktur pembayaran, dan layanan bantuan pelanggan.</li>",
+  "<li>Mencegah kecurangan transaksi dan penyalahgunaan akun.</li>",
+  "<li>Memenuhi ketentuan hukum dan regulasi perdagangan elektronik di Indonesia.</li>",
   "</ol>",
-  "<h3>Content Liability</h3>",
-  "<p>We are not responsible for content appearing on third-party websites that link to or reference KachaBazar.</p>",
-  "<h3>Reservation of Rights</h3>",
-  "<p>We reserve the right to request removal of links or restrict access if usage violates these terms.</p>",
-  "<h3>Disclaimer</h3>",
-  "<p>To the fullest extent permitted by law, we exclude all representations and warranties relating to this website and its use.</p>",
+  "<h3>3. Perlindungan & Hak Pemilik Data</h3>",
+  "<p>Kami menerapkan enkripsi dan kontrol akses ketat untuk menjaga keamanan data. Anda berhak meninjau, memperbaiki, atau meminta penghapusan data pribadi Anda dengan menghubungi <a href=\"mailto:support@tppreneurs.com\">support@tppreneurs.com</a>.</p>",
 ].join("");
+
+const DEFAULT_PRIVACY_POLICY_HTML = DEFAULT_PRIVACY_POLICY_HTML_EN;
+
+const DEFAULT_TERMS_AND_CONDITIONS_HTML_EN = [
+  "<h2>TP Preneurs Terms & Conditions of Service</h2>",
+  "<p>Welcome to <strong>TP Preneurs</strong> (<strong>tppreneurs.com</strong>). These terms govern your access to our campus multi-vendor marketplace, catalog, checkout, and store interactions.</p>",
+  "<h3>1. Account & Membership</h3>",
+  "<p>Users must provide accurate registration details and maintain password confidentiality. You are responsible for all activities under your account.</p>",
+  "<h3>2. Orders & Payments</h3>",
+  "<p>All transactions are subject to product availability and payment verification through official TP Preneurs payment channels. Pricing and delivery charges are confirmed prior to checkout.</p>",
+  "<h3>3. Intellectual Property</h3>",
+  "<p>Vendors warrant that all items and learning materials listed are original works or licensed appropriately. Unauthorized duplication of intellectual property is strictly prohibited.</p>",
+  "<h3>4. Shipping, Returns & Refunds</h3>",
+  "<p>Physical products are dispatched by vendors with valid tracking. Return claims require an uninterrupted unboxing video submitted within 48 hours of delivery.</p>",
+  "<h3>5. Governing Law</h3>",
+  "<p>These Terms are governed by and construed under the laws of the Republic of Indonesia.</p>",
+].join("");
+
+const DEFAULT_TERMS_AND_CONDITIONS_HTML_ID = [
+  "<h2>Syarat & Ketentuan Layanan TP Preneurs</h2>",
+  "<p>Selamat datang di <strong>TP Preneurs</strong> (<strong>tppreneurs.com</strong>). Ketentuan ini mengatur akses Anda ke marketplace multi-vendor kampus, katalog produk, proses checkout, dan interaksi transaksi.</p>",
+  "<h3>1. Akun & Keanggotaan</h3>",
+  "<p>Pengguna wajib memberikan data yang sah dan menjaga kerahasiaan kredensial akun masing-masing. Anda bertanggung jawab penuh atas segala aktivitas di bawah akun Anda.</p>",
+  "<h3>2. Pemesanan & Pembayaran</h3>",
+  "<p>Setiap transaksi diproses setelah verifikasi pembayaran melalui kanal resmi TP Preneurs. Biaya pengiriman dan rincian produk tertera transparan sebelum checkout.</p>",
+  "<h3>3. Hak Kekayaan Intelektual</h3>",
+  "<p>Penjual menjamin seluruh karya inovasi dan materi adalah orisinal atau berlisensi sah. Dilarang keras memperjualbelikan produk bajakan atau melanggar hak cipta.</p>",
+  "<h3>4. Pengiriman & Pengembalian Barang</h3>",
+  "<p>Produk fisik dikirim oleh penjual dengan nomor resi resmi. Klaim kerusakan atau ketidaksesuaian barang wajib menyertakan video unboxing utuh maksimal 2x24 jam sejak barang diterima.</p>",
+  "<h3>5. Hukum yang Berlaku</h3>",
+  "<p>Syarat dan Ketentuan ini tunduk pada dan ditafsirkan sesuai hukum Negara Republik Indonesia.</p>",
+].join("");
+
+const DEFAULT_TERMS_AND_CONDITIONS_HTML = DEFAULT_TERMS_AND_CONDITIONS_HTML_EN;
 
 const PROMO_BILINGUAL_MAP = {
   subtitle: {
@@ -1127,14 +1154,14 @@ const getDefaultCustomization = (targetLang = "en") => {
   privacyPolicy: {
     enabled: true,
     pageHeaderBackgroundDataUrl: "",
-    pageTitle: "Privacy Policy",
-    pageTextHtml: DEFAULT_PRIVACY_POLICY_HTML,
+    pageTitle: isIndo ? "Kebijakan Privasi" : "Privacy Policy",
+    pageTextHtml: isIndo ? DEFAULT_PRIVACY_POLICY_HTML_ID : DEFAULT_PRIVACY_POLICY_HTML_EN,
   },
   termsAndConditions: {
     enabled: true,
     pageHeaderBackgroundDataUrl: "",
-    pageTitle: "Terms & Conditions",
-    pageTextHtml: DEFAULT_TERMS_AND_CONDITIONS_HTML,
+    pageTitle: isIndo ? "Syarat & Ketentuan" : "Terms & Conditions",
+    pageTextHtml: isIndo ? DEFAULT_TERMS_AND_CONDITIONS_HTML_ID : DEFAULT_TERMS_AND_CONDITIONS_HTML_EN,
   },
   faqs: {
     pageHeader: {
