@@ -115,7 +115,7 @@ export default function CouponImportModal({
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 px-4 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-[44px] h-11 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 px-4 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition disabled:cursor-not-allowed disabled:opacity-60"
           >
             {closeLabel}
           </button>
@@ -124,7 +124,7 @@ export default function CouponImportModal({
               type="button"
               onClick={handleConfirm}
               disabled={!selectedFile || isSubmitting}
-              className="inline-flex h-10 items-center justify-center rounded-xl bg-[#034c85] hover:bg-[#023863] px-5 text-sm font-semibold text-white transition shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex min-h-[44px] h-11 items-center justify-center rounded-xl bg-[#fe6f05] hover:bg-[#e05f00] px-5 text-sm font-semibold text-white transition shadow-md shadow-[#fe6f05]/25 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? importingLabel : confirmLabel}
             </button>

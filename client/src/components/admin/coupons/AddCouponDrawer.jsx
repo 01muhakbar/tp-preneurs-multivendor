@@ -326,10 +326,12 @@ export function AddCouponFormPanel({
                   </div>
                 ) : null}
                 <div className={showLanguageField ? "" : "sm:col-span-2"}>
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  <label htmlFor="admin-coupon-scope" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     {t("coupons.Scope", "Scope")}
                   </label>
                   <select
+                    id="admin-coupon-scope"
+                    name="scopeType"
                     value={form.scopeType}
                     onChange={(event) =>
                       setField({
@@ -345,10 +347,12 @@ export function AddCouponFormPanel({
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  <label htmlFor="admin-coupon-code" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     {t("coupons.Campaign Code", "Campaign Code")}
                   </label>
                   <input
+                    id="admin-coupon-code"
+                    name="code"
                     value={form.code}
                     onChange={(event) =>
                       setField({ code: event.target.value.toUpperCase().replace(/\s+/g, "") })
@@ -361,10 +365,12 @@ export function AddCouponFormPanel({
                 </div>
                 {form.scopeType === "STORE" ? (
                   <div className="sm:col-span-2">
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    <label htmlFor="admin-coupon-store-id" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                       {t("coupons.Linked Store", "Linked Store")}
                     </label>
                     <select
+                      id="admin-coupon-store-id"
+                      name="storeId"
                       value={form.storeId}
                       onChange={(event) => setField({ storeId: event.target.value })}
                       className={`h-11 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200 focus:outline-none${inputFocusClass}`}
@@ -382,10 +388,12 @@ export function AddCouponFormPanel({
                   </div>
                 ) : null}
                 <div className="sm:col-span-2">
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  <label htmlFor="admin-coupon-campaign-name" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     {t("coupons.Campaign Name", "Campaign Name")}
                   </label>
                   <input
+                    id="admin-coupon-campaign-name"
+                    name="campaignName"
                     value={form.campaignName}
                     onChange={(event) => setField({ campaignName: event.target.value })}
                     placeholder="Weekend Grocery Sale"
@@ -440,7 +448,7 @@ export function AddCouponFormPanel({
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    <label htmlFor="admin-coupon-amount" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                       {t("coupons.Discount", "Discount")}
                     </label>
                     <div className="relative">
@@ -450,6 +458,8 @@ export function AddCouponFormPanel({
                         </span>
                       ) : null}
                       <input
+                        id="admin-coupon-amount"
+                        name="amount"
                         type="number"
                         min={0}
                         max={form.discountType === "percent" ? 100 : undefined}
@@ -471,7 +481,7 @@ export function AddCouponFormPanel({
                   </div>
 
                   <div>
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    <label htmlFor="admin-coupon-min-spend" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                       {t("coupons.Minimum Amount", "Minimum Amount")}
                     </label>
                     <div className="relative">
@@ -479,6 +489,8 @@ export function AddCouponFormPanel({
                         Rp
                       </span>
                       <input
+                        id="admin-coupon-min-spend"
+                        name="minSpend"
                         type="number"
                         min="0"
                         step="1"
@@ -506,10 +518,12 @@ export function AddCouponFormPanel({
               />
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  <label htmlFor="admin-coupon-start-date" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     {t("coupons.Start Date", "Start Date")}
                   </label>
                   <input
+                    id="admin-coupon-start-date"
+                    name="startDate"
                     type="date"
                     value={form.startDate}
                     onChange={(event) => setField({ startDate: event.target.value })}
@@ -518,10 +532,12 @@ export function AddCouponFormPanel({
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  <label htmlFor="admin-coupon-end-date" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     {t("coupons.End Date", "End Date")}
                   </label>
                   <input
+                    id="admin-coupon-end-date"
+                    name="endDate"
                     type="date"
                     value={form.endDate}
                     onChange={(event) => setField({ endDate: event.target.value })}
@@ -707,14 +723,14 @@ export function AddCouponFormPanel({
                     type="button"
                     onClick={onCancel}
                     disabled={isSubmitting}
-                    className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-slate-300 px-4 text-sm font-semibold"
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-slate-300 px-4 text-sm font-semibold transition"
                   >
                     {t("coupons.Cancel", "Cancel")}
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="inline-flex h-11 items-center justify-center rounded-xl bg-[#034c85] hover:bg-[#023863] px-4 text-sm font-semibold text-white transition shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#fe6f05] hover:bg-[#e05f00] px-4 text-sm font-semibold text-white transition shadow-sm shadow-[#fe6f05]/25 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isSubmitting ? t("coupons.Adding...", "Adding...") : t("coupons.Add Coupon", "Add Coupon")}
                   </button>

@@ -425,7 +425,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 42px;
+  min-height: 44px;
+  height: 44px;
   padding: 0 20px;
   font-size: 13.5px;
   font-weight: 600;
@@ -447,22 +448,24 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 42px;
+  min-height: 44px;
+  height: 44px;
   padding: 0 24px;
   font-size: 13.5px;
   font-weight: 650;
   color: #ffffff;
-  background: var(--acf26-primary);
-  border: 1px solid var(--acf26-primary-hover);
+  background: var(--acf26-accent, #fe6f05);
+  border: 1px solid var(--acf26-accent-hover, #e05f00);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(3, 76, 133, 0.25);
+  box-shadow: 0 4px 14px rgba(254, 111, 5, 0.28);
 }
 
 .acf26-btn-submit:hover:not(:disabled) {
-  background: var(--acf26-primary-hover);
-  box-shadow: 0 4px 14px rgba(3, 76, 133, 0.35);
+  background: var(--acf26-accent-hover, #e05f00);
+  border-color: var(--acf26-accent-hover, #e05f00);
+  box-shadow: 0 6px 18px rgba(254, 111, 5, 0.38);
   transform: translateY(-1px);
 }
 

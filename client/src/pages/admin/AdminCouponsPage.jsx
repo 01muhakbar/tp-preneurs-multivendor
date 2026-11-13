@@ -113,6 +113,7 @@ export const invalidateAdminCouponSurfaces = (queryClient) =>
     queryClient.invalidateQueries({ queryKey: ["admin-coupon-meta"] }),
     queryClient.invalidateQueries({ queryKey: ["admin-coupons", "offers-select"] }),
     queryClient.invalidateQueries({ queryKey: ["storefront", "home-page-coupons"] }),
+    queryClient.invalidateQueries({ queryKey: ["storefront", "coupons"] }),
     queryClient.invalidateQueries({ queryKey: ["store-coupons"] }),
     queryClient.invalidateQueries({ queryKey: ["seller2026", "coupons"] }),
     queryClient.invalidateQueries({ queryKey: ["seller", "coupons"] }),
@@ -836,12 +837,12 @@ export default function AdminCouponsPage() {
     deleteMode === "bulk"
       ? deleteTargetSummary ||
         (isId
-          ? "Kupon yang dipilih akan dihapus dari daftar promosi dan tidak dapat dipulihkan dari layar ini."
-          : "These selected coupons will be removed from the promotion list and cannot be restored from this screen.")
+          ? "Kupon yang dipilih akan dihapus secara permanen."
+          : "Selected coupons will be permanently removed.")
       : deleteTargetSummary ||
         (isId
-          ? "Kupon ini akan dihapus dari daftar promosi dan tidak dapat digunakan lagi saat checkout."
-          : "This coupon will be removed from the promotion list and can no longer be used at checkout.");
+          ? "Kupon ini akan dihapus secara permanen."
+          : "This coupon will be permanently removed.");
 
   return (
     <>

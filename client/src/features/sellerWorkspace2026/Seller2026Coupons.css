@@ -103,7 +103,8 @@ body.dark .s26-coupons,
   font-size: 12px;
   font-weight: 700;
   gap: 8px;
-  height: 42px;
+  height: 44px;
+  min-height: 44px;
   justify-content: center;
   padding: 0 16px;
   transition: all 160ms ease;
@@ -117,16 +118,18 @@ body.dark .s26-coupons,
 }
 
 .s26-coupons-header__actions button.is-primary {
-  background: #034c85;
-  border-color: #034c85;
+  background: #fe6f05;
+  border-color: #fe6f05;
   color: #fff;
   min-width: 140px;
-  box-shadow: 0 6px 16px rgba(3, 76, 133, 0.28);
+  min-height: 44px;
+  height: 44px;
+  box-shadow: 0 4px 14px rgba(254, 111, 5, 0.28);
 }
 
 .s26-coupons-header__actions button.is-primary:hover:not(:disabled) {
-  background: #023863;
-  border-color: #023863;
+  background: #e05f00;
+  border-color: #e05f00;
 }
 
 .s26-coupons button:disabled {
@@ -248,7 +251,8 @@ body.dark .s26-coupons,
   display: flex;
   font-size: 12px;
   gap: 9px;
-  height: 41px;
+  height: 44px;
+  min-height: 44px;
   min-width: 0;
   padding: 0 12px;
 }
@@ -731,7 +735,7 @@ body.dark .s26-coupon-switch.is-on { background: #034c85; }
 }
 
 .s26-coupons-empty button {
-  background: #034c85;
+  background: #fe6f05;
   border: 0;
   border-radius: 8px;
   color: #fff;
@@ -739,12 +743,15 @@ body.dark .s26-coupon-switch.is-on { background: #034c85; }
   font-weight: 700;
   margin-top: 14px;
   padding: 10px 16px;
+  min-height: 44px;
+  height: 44px;
   cursor: pointer;
+  box-shadow: 0 4px 14px rgba(254, 111, 5, 0.28);
   transition: all 0.15s ease;
 }
 
 .s26-coupons-empty button:hover:not(:disabled) {
-  background: #023863;
+  background: #e05f00;
   transform: translateY(-1px);
 }
 
@@ -1163,21 +1170,22 @@ body.dark .s26-coupon-form-error {
   color: var(--s26-drawer-text);
   font-size: 12px;
   font-weight: 700;
-  height: 42px;
+  height: 44px;
+  min-height: 44px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .s26-coupon-drawer__panel > footer button.is-primary {
-  background: #034c85;
-  border-color: #034c85;
+  background: #fe6f05;
+  border-color: #fe6f05;
   color: #fff;
-  box-shadow: 0 4px 14px rgba(3, 76, 133, 0.25);
+  box-shadow: 0 4px 14px rgba(254, 111, 5, 0.28);
 }
 
 .s26-coupon-drawer__panel > footer button.is-primary:hover:not(:disabled) {
-  background: #023863;
-  border-color: #023863;
+  background: #e05f00;
+  border-color: #e05f00;
 }
 
 .s26-coupon-drawer button:disabled {

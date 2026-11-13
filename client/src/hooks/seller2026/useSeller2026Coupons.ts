@@ -44,8 +44,13 @@ export function useSeller2026Coupons(
   const permissionCanManageStatus = Boolean(options.permissions?.canManageStatus);
   const invalidateCoupons = () => {
     void Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["seller2026", "coupons", storeId] }),
-      queryClient.invalidateQueries({ queryKey: ["seller", "coupons", storeId] }),
+      queryClient.invalidateQueries({ queryKey: ["seller2026", "coupons"] }),
+      queryClient.invalidateQueries({ queryKey: ["seller", "coupons"] }),
+      queryClient.invalidateQueries({ queryKey: ["admin-coupons"] }),
+      queryClient.invalidateQueries({ queryKey: ["admin-coupon-meta"] }),
+      queryClient.invalidateQueries({ queryKey: ["store-coupons"] }),
+      queryClient.invalidateQueries({ queryKey: ["storefront", "coupons"] }),
+      queryClient.invalidateQueries({ queryKey: ["storefront", "home-page-coupons"] }),
     ]);
   };
   const couponsQuery = useQuery({

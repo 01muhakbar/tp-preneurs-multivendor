@@ -24,8 +24,8 @@ export default function DeleteCouponModal({
   const displayDesc = description
     ? t(`coupons.${description}`, description)
     : (isId
-        ? "Apakah Anda yakin ingin menghapus kupon ini? Data yang dihapus tidak dapat digunakan lagi."
-        : t("coupons.Do you really want to delete these records? You can't view this in your list anymore if you delete!", "Do you really want to delete these records? You can't view this in your list anymore if you delete!"));
+        ? "Kupon yang dihapus tidak dapat dipulihkan."
+        : t("coupons.Deleted coupons cannot be recovered.", "Deleted coupons cannot be recovered."));
 
   const displayConfirm = confirmLabel
     ? t(`coupons.${confirmLabel}`, confirmLabel)
@@ -74,7 +74,7 @@ export default function DeleteCouponModal({
             type="button"
             onClick={onClose}
             disabled={isLoading}
-            className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 px-4 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-[44px] h-11 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 px-4 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition disabled:cursor-not-allowed disabled:opacity-60"
           >
             {displayCancel}
           </button>
@@ -82,7 +82,7 @@ export default function DeleteCouponModal({
             type="button"
             onClick={onConfirm}
             disabled={isLoading}
-            className="inline-flex h-10 items-center justify-center rounded-xl bg-rose-600 px-5 text-sm font-semibold text-white hover:bg-rose-700 transition shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-[44px] h-11 items-center justify-center rounded-xl bg-rose-600 px-5 text-sm font-semibold text-white hover:bg-rose-700 transition shadow-md disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isLoading ? (isId ? "Menghapus..." : t("coupons.Deleting...", "Deleting...")) : displayConfirm}
           </button>

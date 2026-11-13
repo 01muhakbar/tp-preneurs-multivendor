@@ -104,8 +104,8 @@
   align-items: center;
   justify-content: center;
   gap: 7px;
-  height: 42px;
-  min-height: 42px;
+  min-height: 44px;
+  height: 44px;
   padding: 0 16px;
   border-radius: var(--ac26-radius-sm);
   font-size: 13px;
@@ -137,16 +137,18 @@
 
 /* Primary Action CTA */
 .ac26-action--primary {
-  border-color: var(--ac26-primary);
-  background: var(--ac26-primary);
+  border-color: var(--ac26-accent, #fe6f05);
+  background: var(--ac26-accent, #fe6f05);
   color: #ffffff !important;
-  box-shadow: 0 2px 8px rgba(3, 76, 133, 0.28);
+  box-shadow: 0 4px 14px rgba(254, 111, 5, 0.28);
 }
 
 .ac26-action--primary:hover:not(:disabled) {
-  background: var(--ac26-primary-hover);
-  border-color: var(--ac26-primary-hover);
+  background: var(--ac26-accent-hover, #e05f00);
+  border-color: var(--ac26-accent-hover, #e05f00);
   color: #ffffff !important;
+  box-shadow: 0 6px 18px rgba(254, 111, 5, 0.38);
+  transform: translateY(-1px);
 }
 
 .ac26-action--primary svg,

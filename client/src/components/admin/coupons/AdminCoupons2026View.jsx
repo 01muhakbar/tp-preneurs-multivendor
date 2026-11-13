@@ -507,12 +507,14 @@ export default function AdminCoupons2026View({
         <label className="ac26-search">
           <Search size={18} />
           <input
+            id="admin-coupons-search"
+            name="search"
             value={safeFilters.q || ""}
             onChange={(event) => onFilterChange({ q: event.target.value })}
             placeholder={
               isId
-                ? "Cari nama kupon, kode, atau toko..."
-                : t("coupons.Search by coupon name, code, or store...", "Search by coupon name, code, or store...")
+                ? "Cari kupon..."
+                : t("coupons.Search coupons...", "Search coupons...")
             }
           />
           {safeFilters.q ? (
@@ -629,8 +631,8 @@ export default function AdminCoupons2026View({
           </strong>
           <p className="mt-1 text-sm" style={{ color: "var(--ac26-text-sub)" }}>
             {isId
-              ? "Buat kupon pertama Anda untuk mengaktifkan potongan diskon saat checkout."
-              : t("coupons.Create your first coupon to enable checkout discounts.", "Create your first coupon to enable checkout discounts.")}
+              ? "Mulai dengan membuat kupon baru."
+              : t("coupons.Start by creating a coupon.", "Start by creating a coupon.")}
           </p>
           <div className="mt-5">
             <ActionButton icon={Plus} tone="primary" onClick={onAddCoupon}>

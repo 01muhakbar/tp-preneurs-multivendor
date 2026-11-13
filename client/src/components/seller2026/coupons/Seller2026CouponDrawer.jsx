@@ -183,7 +183,7 @@ export default function Seller2026CouponDrawer({
         <header>
           <div>
             <h2 id="s26-coupon-drawer-title">{isEdit ? (isId ? "Edit Kupon" : "Edit Coupon") : (isId ? "Tambah Kupon" : "Add Coupon")}</h2>
-            <p>{isEdit ? (isId ? "Perbarui informasi kupon diskon toko." : "Update this store discount campaign.") : (isId ? "Buat kupon diskon baru untuk toko Anda." : "Create a new discount coupon for your store.")}</p>
+            <p>{isEdit ? (isId ? "Perbarui kupon toko." : "Update store coupon.") : (isId ? "Buat kupon diskon toko." : "Create store coupon.")}</p>
           </div>
           <button type="button" aria-label={isId ? "Tutup drawer" : "Close drawer"} disabled={blocked} onClick={onClose}><X size={20} /></button>
         </header>
@@ -192,9 +192,9 @@ export default function Seller2026CouponDrawer({
           <section className="s26-coupon-banner">
             <div>
               <strong>{isId ? "Banner Kupon" : "Coupon Banner"} <span>({isId ? "opsional" : "optional"})</span></strong>
-              <small>{isId ? "Mendukung file PNG / JPG (Maks 2MB)." : "PNG/JPG files are supported (Max 2MB)."}</small>
+              <small>{isId ? "PNG/JPG, maks 2MB." : "PNG/JPG, max 2MB."}</small>
             </div>
-            <input ref={fileInputRef} type="file" accept="image/png,image/jpeg" hidden onChange={(event) => uploadBanner(event.target.files?.[0])} />
+            <input ref={fileInputRef} id="seller-coupon-file" name="bannerImage" type="file" accept="image/png,image/jpeg" hidden onChange={(event) => uploadBanner(event.target.files?.[0])} />
             <button
               type="button"
               className={errors.bannerImageUrl ? "has-error" : ""}
@@ -207,9 +207,9 @@ export default function Seller2026CouponDrawer({
               }}
             >
               {bannerUrl ? <img src={bannerUrl} alt="Coupon banner preview" /> : <ImagePlus size={38} />}
-              <strong>{uploading ? (isId ? "Mengunggah gambar..." : "Uploading image...") : bannerUrl ? (isId ? "Ganti gambar banner" : "Replace banner image") : (isId ? "Tarik & lepas gambar banner di sini" : "Drag and drop an image here")}</strong>
-              <span>{bannerUrl ? (isId ? "Klik untuk mengganti gambar" : "Click to browse for a replacement") : (isId ? "atau klik untuk memilih file" : "or click to browse")}</span>
-              <small>{isId ? "Rekomendasi rasio 16:9 (1200 x 628px)" : "Recommended 1200 x 628px (16:9)"}</small>
+              <strong>{uploading ? (isId ? "Mengunggah..." : "Uploading...") : bannerUrl ? (isId ? "Ganti banner" : "Replace banner") : (isId ? "Pilih banner kupon" : "Select coupon banner")}</strong>
+              <span>{bannerUrl ? (isId ? "Klik ganti" : "Click to replace") : (isId ? "Klik untuk memilih file" : "Click to browse")}</span>
+              <small>{isId ? "Rasio 16:9 (1200x628px)" : "16:9 ratio (1200x628px)"}</small>
             </button>
             {bannerUrl ? <button type="button" className="s26-coupon-banner__remove" disabled={blocked} onClick={() => updateField("bannerImageUrl", "")}>{isId ? "Hapus banner" : "Remove banner"}</button> : null}
             {errors.bannerImageUrl ? <em>{errors.bannerImageUrl}</em> : null}
@@ -218,19 +218,19 @@ export default function Seller2026CouponDrawer({
           <div className="s26-coupon-form-grid">
             <label className={errors.campaignName ? "has-error" : ""}>
               <span>{isId ? "Nama Kampanye *" : "Campaign Name *"}</span>
-              <input value={form.campaignName} disabled={blocked} placeholder={isId ? "Masukkan nama kampanye" : "Enter campaign name"} onChange={(event) => updateField("campaignName", event.target.value)} />
+              <input id="seller-coupon-campaign-name" name="campaignName" value={form.campaignName} disabled={blocked} placeholder={isId ? "Nama kupon / kampanye" : "Coupon / campaign name"} onChange={(event) => updateField("campaignName", event.target.value)} />
               {errors.campaignName ? <em>{errors.campaignName}</em> : null}
             </label>
             <label className={errors.code ? "has-error" : ""}>
               <span>{isId ? "Kode Kupon *" : "Campaign Code *"}</span>
-              <input value={form.code} disabled={blocked} placeholder={isId ? "KODE KUPON" : "CAMPAIGN CODE"} onChange={(event) => updateField("code", event.target.value.toUpperCase().replace(/\s+/g, ""))} />
+              <input id="seller-coupon-code" name="code" value={form.code} disabled={blocked} placeholder={isId ? "KODE KUPON" : "CAMPAIGN CODE"} onChange={(event) => updateField("code", event.target.value.toUpperCase().replace(/\s+/g, ""))} />
               {errors.code ? <em>{errors.code}</em> : null}
             </label>
 
             <fieldset className="s26-coupon-validity">
               <legend>{isId ? "Periode Kupon" : "Coupon Validity"}</legend>
-              <label><span>{isId ? "Tanggal Mulai" : "Start Date"}</span><input type="date" value={form.startsAt} disabled={blocked} onChange={(event) => updateField("startsAt", event.target.value)} /></label>
-              <label className={errors.expiresAt ? "has-error" : ""}><span>{isId ? "Tanggal Berakhir" : "End Date"}</span><input type="date" value={form.expiresAt} disabled={blocked} onChange={(event) => updateField("expiresAt", event.target.value)} />{errors.expiresAt ? <em>{errors.expiresAt}</em> : null}</label>
+              <label><span>{isId ? "Tanggal Mulai" : "Start Date"}</span><input id="seller-coupon-starts-at" name="startsAt" type="date" value={form.startsAt} disabled={blocked} onChange={(event) => updateField("startsAt", event.target.value)} /></label>
+              <label className={errors.expiresAt ? "has-error" : ""}><span>{isId ? "Tanggal Berakhir" : "End Date"}</span><input id="seller-coupon-expires-at" name="expiresAt" type="date" value={form.expiresAt} disabled={blocked} onChange={(event) => updateField("expiresAt", event.target.value)} />{errors.expiresAt ? <em>{errors.expiresAt}</em> : null}</label>
             </fieldset>
 
             <div className="s26-coupon-form-field">
@@ -242,24 +242,24 @@ export default function Seller2026CouponDrawer({
             </div>
             <label className={errors.amount ? "has-error" : ""}>
               <span>{isId ? "Nilai Diskon *" : "Discount *"}</span>
-              <div className="s26-coupon-affix"><b>{form.discountType === "fixed" ? "Rp" : "%"}</b><input type="number" min="0" max={form.discountType === "percent" ? 100 : undefined} value={form.amount} disabled={blocked} placeholder="0" onChange={(event) => updateField("amount", event.target.value)} /></div>
-              <small>{form.discountType === "fixed" ? (isId ? "Nominal potongan harga" : "Fixed discount amount") : (isId ? "Persentase diskon 1-100%" : "Value from 1 to 100%")}</small>
+              <div className="s26-coupon-affix"><b>{form.discountType === "fixed" ? "Rp" : "%"}</b><input id="seller-coupon-amount" name="amount" type="number" min="0" max={form.discountType === "percent" ? 100 : undefined} value={form.amount} disabled={blocked} placeholder="0" onChange={(event) => updateField("amount", event.target.value)} /></div>
+              <small>{form.discountType === "fixed" ? (isId ? "Nominal potongan harga" : "Fixed discount amount") : (isId ? "Persentase 1-100%" : "Value 1-100%")}</small>
               {errors.amount ? <em>{errors.amount}</em> : null}
             </label>
             <label className={errors.minSpend ? "has-error" : ""}>
               <span>{isId ? "Minimal Belanja" : "Minimum Spend"}</span>
-              <div className="s26-coupon-affix"><b>Rp</b><input type="number" min="0" value={form.minSpend} disabled={blocked} placeholder="0" onChange={(event) => updateField("minSpend", event.target.value)} /></div>
+              <div className="s26-coupon-affix"><b>Rp</b><input id="seller-coupon-min-spend" name="minSpend" type="number" min="0" value={form.minSpend} disabled={blocked} placeholder="0" onChange={(event) => updateField("minSpend", event.target.value)} /></div>
               {errors.minSpend ? <em>{errors.minSpend}</em> : null}
             </label>
             <label>
               <span>{isId ? "Target Pelanggan" : "Audience / Scope"}</span>
-              <select value={form.audience} disabled={blocked} onChange={(event) => updateField("audience", event.target.value)}>
+              <select id="seller-coupon-audience" name="audience" value={form.audience} disabled={blocked} onChange={(event) => updateField("audience", event.target.value)}>
                 <option value="all">{isId ? "Semua Produk · Semua Pelanggan" : "All Products · All Customers"}</option>
               </select>
             </label>
             <label>
               <span>{isId ? "Batas Penggunaan" : "Usage Limit"}</span>
-              <input type="number" min="0" value={form.usageLimit} disabled={blocked} placeholder={isId ? "Kosongkan jika tanpa batas" : "Leave empty for unlimited"} onChange={(event) => updateField("usageLimit", event.target.value)} />
+              <input id="seller-coupon-usage-limit" name="usageLimit" type="number" min="0" value={form.usageLimit} disabled={blocked} placeholder={isId ? "Tanpa batas (opsional)" : "Unlimited (optional)"} onChange={(event) => updateField("usageLimit", event.target.value)} />
             </label>
             <div className="s26-coupon-form-field">
               <span>{isId ? "Status Kupon" : "Status"}</span>
@@ -270,7 +270,7 @@ export default function Seller2026CouponDrawer({
             </div>
             <label className="is-full">
               <span>{isId ? "Catatan Internal (opsional)" : "Notes (optional)"}</span>
-              <textarea rows={3} value={form.notes} disabled={blocked} placeholder={isId ? "Tambahkan catatan internal bila perlu..." : "Add notes for internal reference..."} onChange={(event) => updateField("notes", event.target.value)} />
+              <textarea id="seller-coupon-notes" name="notes" rows={3} value={form.notes} disabled={blocked} placeholder={isId ? "Catatan internal..." : "Internal notes..."} onChange={(event) => updateField("notes", event.target.value)} />
             </label>
           </div>
 

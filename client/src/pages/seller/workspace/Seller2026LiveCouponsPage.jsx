@@ -438,7 +438,7 @@ export default function Seller2026LiveCouponsPage() {
       <header className="s26-coupons-header">
         <div>
           <h1>{isId ? "Kupon Toko" : "Coupons"}</h1>
-          <p>{isId ? "Kelola promosi dan kupon diskon untuk pelanggan toko Anda." : "Create, manage, and monitor store discount campaigns."}</p>
+          <p>{isId ? "Kelola kupon diskon toko." : "Manage store coupons."}</p>
         </div>
         <div className="s26-coupons-header__actions">
           <button type="button" onClick={exportCoupons}><Download size={17} />{isId ? "Ekspor" : "Export"}</button>
@@ -476,8 +476,10 @@ export default function Seller2026LiveCouponsPage() {
           <label className="s26-coupons-search">
             <Search size={18} />
             <input
+              id="seller-coupons-search"
+              name="search"
               value={query.search}
-              placeholder={isId ? "Cari nama atau kode kupon..." : "Search by campaign name or code..."}
+              placeholder={isId ? "Cari kupon..." : "Search coupons..."}
               onChange={(event) => handleQueryChange({ search: event.target.value })}
             />
           </label>
@@ -504,7 +506,7 @@ export default function Seller2026LiveCouponsPage() {
           <div className="s26-coupons-empty">
             <Ticket size={30} />
             <h2>{isId ? "Tidak ada kupon ditemukan" : "No coupons found"}</h2>
-            <p>{isId ? "Sesuaikan kata kunci filter atau buat kupon diskon baru." : "Adjust the filters or create a new store coupon."}</p>
+            <p>{isId ? "Mulai dengan membuat kupon baru." : "Start by creating a coupon."}</p>
             <button type="button" disabled={!couponsQuery.canCreate} onClick={openCreate}>{isId ? "Tambah Kupon" : "New Coupon"}</button>
           </div>
         ) : view === "list" ? (
