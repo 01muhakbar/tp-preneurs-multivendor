@@ -20,6 +20,7 @@ import {
   HelpCircle,
   Building,
   Headphones,
+  Image as ImageIcon,
 } from "lucide-react";
 import StoreCustomizationTabNav2026 from "./StoreCustomizationTabNav2026.jsx";
 import "./StoreCustomizationContactSettings2026.css";
@@ -233,6 +234,7 @@ export default function StoreCustomizationContactSettings2026({
   const isId =
     String(language || "").toLowerCase().startsWith("id") ||
     String(i18n?.language || "").toLowerCase().startsWith("id");
+  const isIndo = isId;
 
   // Active channel subtab: "email" | "phone" | "address"
   const [activeChannelTab, setActiveChannelTab] = useState("email");
@@ -363,7 +365,7 @@ export default function StoreCustomizationContactSettings2026({
               </h1>
               <p className="cu26-subtitle">
                 {isId
-                  ? "Kelola saluran kontak resmi, banner header, dan formulir pertanyaan TP Preneurs."
+                  ? "Kelola saluran kontak resmi, banner header, dan formulir pertanyaan."
                   : "Manage official contact channels, header banner, and inquiry form."}
               </p>
             </div>
@@ -373,11 +375,11 @@ export default function StoreCustomizationContactSettings2026({
             <button
               type="button"
               onClick={handleApplyOfficialPreset}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50/80 px-3 py-1.5 text-xs font-bold text-amber-800 transition hover:bg-amber-100 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-300"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[#fe6f05]/30 bg-[#fe6f05]/10 px-3 py-1.5 text-xs font-bold text-[#fe6f05] transition hover:bg-[#fe6f05]/20 dark:border-[#fe6f05]/40 dark:bg-[#fe6f05]/20 dark:text-orange-300"
               title={isId ? "Muat template kontak standar resmi" : "Load official contact preset"}
             >
-              <Sparkles className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-              <span>{isId ? "Muat Preset Kontak TP Preneurs" : "Load Official Preset"}</span>
+              <Sparkles className="h-3.5 w-3.5 text-[#fe6f05]" />
+              <span>{isId ? "Muat Preset Kontak" : "Load Official Preset"}</span>
             </button>
 
             <a
@@ -479,8 +481,8 @@ export default function StoreCustomizationContactSettings2026({
                   </h2>
                   <p className="cu26-card-subheading">
                     {isId
-                      ? "3 kanal komunikasi utama (Email, Telepon/WA, Alamat) dalam satu panel ringkas."
-                      : "3 official communication channels (Email, Phone/WA, Address) in one clean panel."}
+                      ? "3 kanal komunikasi (Email, Telepon/WA, Alamat) dalam panel ringkas."
+                      : "3 communication channels (Email, Phone/WA, Address) in one panel."}
                   </p>
                 </div>
               </div>
