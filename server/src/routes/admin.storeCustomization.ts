@@ -2695,7 +2695,7 @@ const saveCustomizationDraft = async (req: any, res: any, next: any) => {
       mergeDeep(existingPayload, rawPayload),
       rawPayload
     );
-    const payload = sanitizeCustomization(applySeoMissingUploadFallbacks(mergedPayload));
+    const payload = sanitizeCustomization(applySeoMissingUploadFallbacks(mergedPayload), lang);
     await upsertDraftCustomization(lang, payload, getActorUserId(req));
     const updatedRow = await getCustomizationRow(lang);
 
@@ -2739,7 +2739,7 @@ const publishCustomizationDraft = async (req: any, res: any, next: any) => {
     const existing = await getCustomizationRow(lang);
     const basePayload = existing
       ? getCustomizationDraftPayload(existing)
-      : sanitizeCustomization({});
+      : sanitizeCustomization({}, lang);
     const nextDraftPayload = hasBodyPayload
       ? mergeDeep(basePayload, rawPayload)
       : basePayload;
@@ -2748,7 +2748,8 @@ const publishCustomizationDraft = async (req: any, res: any, next: any) => {
         hasBodyPayload
           ? applySeoImageClearIntent(nextDraftPayload, rawPayload)
           : nextDraftPayload
-      )
+      ),
+      lang
     );
 
     await upsertPublishedCustomization(lang, payload, getActorUserId(req));

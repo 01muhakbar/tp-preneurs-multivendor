@@ -1,16 +1,76 @@
 import { useMemo } from "react";
+import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { ShieldCheck, ChevronRight, Clock, HelpCircle, Mail, MessageCircle } from "lucide-react";
 import { getStoreCustomization } from "../../api/public/storeCustomizationPublic.ts";
 import { UiEmptyState, UiErrorState } from "../../components/primitives/state/index.js";
 import { sanitizeRichTextHtml } from "../../utils/sanitizeRichTextHtml.js";
 
 const DEFAULT_LANG = "en";
-const DEFAULT_POLICY = {
-  enabled: true,
-  pageHeaderBackgroundDataUrl: "",
-  pageTitle: "Privacy Policy",
-  pageTextHtml: "",
+
+// Official TP Preneurs Legal Templates
+const TP_TEMPLATES_PRIVACY = {
+  en: [
+    "<h2>TP Preneurs Privacy Policy</h2>",
+    "<p>Welcome to TP Preneurs (<strong>tppreneurs.com</strong>). We are fully committed to respecting, protecting, and lawfully processing the personal data of our campus innovators, student edupreneurs, merchants, and buyers in compliance with Law of the Republic of Indonesia No. 27 of 2022 on Personal Data Protection (UU PDP) and relevant e-commerce standards.</p>",
+    "<h3>1. Information We Collect</h3>",
+    "<p>To enable multi-vendor campus marketplace transactions, educational tools, and support services, we collect:</p>",
+    "<ul>",
+    "<li><strong>Account Credentials:</strong> Full name, active email address, phone/WhatsApp number, profile avatar, and securely hashed passwords.</li>",
+    "<li><strong>Vendor Verification Data (Seller KYC):</strong> National identity (KTP/Student Card), academic institution affiliation, payout bank account details, and merchant store profile.</li>",
+    "<li><strong>Transaction & Logistics Data:</strong> Delivery destination address, purchased items, order receipts, shipping preferences, and payment confirmation metadata.</li>",
+    "<li><strong>Device & Interaction Logs:</strong> IP address, browser type, operating system, unique device identifiers, and site interaction cookies.</li>",
+    "</ul>",
+    "<h3>2. Purpose & Lawful Processing</h3>",
+    "<p>Your personal information is processed exclusively for legitimate purposes, including:</p>",
+    "<ol>",
+    "<li>Processing, fulfilling, and tracking multi-vendor orders for physical goods and verified digital products.</li>",
+    "<li>Verifying buyer authenticity and validating academic innovation showcases submitted by student merchants.</li>",
+    "<li>Delivering order notifications, invoices, shipping tracking status, and account security notices.</li>",
+    "<li>Providing customer care, dispute mediation, and resolving order inquiries.</li>",
+    "<li>Preventing fraudulent checkouts, payment abuse, and unauthorized workspace access.</li>",
+    "<li>Complying with applicable Indonesian consumer protection, tax, and electronic commerce laws.</li>",
+    "</ol>",
+    "<h3>3. Data Disclosure & Third Parties</h3>",
+    "<p>TP Preneurs <strong>never sells, rents, or trades your personal data</strong> to third parties for independent marketing. Information is shared strictly on a need-to-know operational basis with designated vendors for order packaging, integrated logistics carriers for package dispatch, and licensed payment gateways for transaction clearance.</p>",
+    "<h3>4. Data Security & Retention</h3>",
+    "<p>We deploy modern SSL/TLS encryption, granular role-based access controls, and robust infrastructure monitoring to prevent unauthorized access, alteration, or disclosure. Personal data is maintained as long as your account remains active or as required by regulatory audit requirements.</p>",
+    "<h3>5. Your Rights as a Data Subject</h3>",
+    "<p>Under Indonesian Personal Data Protection legislation, you hold the right to access, verify, request corrections to your records, or request complete account erasure and data deletion by contacting our official support desk at support@tppreneurs.com.</p>",
+    "<h3>6. Contact & Support</h3>",
+    "<p>For privacy inquiries or rights enforcement, contact our support team at <a href=\"mailto:support@tppreneurs.com\">support@tppreneurs.com</a> or via WhatsApp at <a href=\"https://wa.me/628218866824\" target=\"_blank\" rel=\"noreferrer\">+62 821-8866-824</a>.</p>",
+  ].join(""),
+  id: [
+    "<h2>Kebijakan Privasi TP Preneurs</h2>",
+    "<p>Selamat datang di TP Preneurs (<strong>tppreneurs.com</strong>). Kami berkomitmen penuh untuk menghormati, melindungi, dan memperlakukan data pribadi seluruh civitas akademika, mitra wirausaha kampus (edupreneur), penjual (seller), serta pembeli (buyer) dengan standar keamanan tertinggi sesuai Undang-Undang Republik Indonesia Nomor 27 Tahun 2022 tentang Perlindungan Data Pribadi (UU PDP).</p>",
+    "<h3>1. Informasi yang Kami Kumpulkan</h3>",
+    "<p>Untuk mendukung kelancaran ekosistem perdagangan elektronik multi-vendor dan media pembelajaran, kami mengumpulkan data yang mencakup:</p>",
+    "<ul>",
+    "<li><strong>Identitas Akun:</strong> Nama lengkap, alamat email aktif, nomor telepon/WhatsApp, foto profil, dan kata sandi yang terenkripsi.</li>",
+    "<li><strong>Data Verifikasi Mitra Penjual (KYC Seller):</strong> Kartu Identitas (KTP/Kartu Mahasiswa/NIM), bukti afiliasi institusi kampus, rekening bank pencairan dana, dan profil toko.</li>",
+    "<li><strong>Informasi Transaksi & Pengiriman:</strong> Alamat pengiriman, rincian produk yang dipesan, riwayat checkout, preferensi ekspedisi, dan metadata pembayaran.</li>",
+    "<li><strong>Data Perangkat & Log Akses:</strong> Alamat IP, jenis peramban (browser), sistem operasi, pengidentifikasi perangkat unik, dan data cookie.</li>",
+    "</ul>",
+    "<h3>2. Tujuan Penggunaan Data Pribadi</h3>",
+    "<p>Data pribadi yang dikumpulkan digunakan semata-mata untuk tujuan yang sah, antara lain:</p>",
+    "<ol>",
+    "<li>Memproses, mengonfirmasi, dan memfasilitasi pesanan produk fisik maupun akses modul digital antar-multi-vendor.</li>",
+    "<li>Memverifikasi keabsahan identitas pembeli serta kelaikan etalase karya inovasi yang dijual oleh merchant kampus.</li>",
+    "<li>Mengirimkan notifikasi pembaruan status transaksi, tanda terima pembayaran (invoice), dan informasi pengiriman pesanan.</li>",
+    "<li>Menyediakan layanan bantuan pelanggan (customer service) dan penyelesaian kendala pesanan.</li>",
+    "<li>Mendeteksi, mencegah kecurangan transaksi (fraud), dan melindungi keamanan akun dari akses tanpa hak.</li>",
+    "<li>Memenuhi seluruh kewajiban hukum dan regulasi perdagangan elektronik yang berlaku di Indonesia.</li>",
+    "</ol>",
+    "<h3>3. Pengungkapan Informasi kepada Pihak Ketiga</h3>",
+    "<p>TP Preneurs <strong>tidak pernah menjual, menyewakan, atau memperdagangkan data pribadi pengguna</strong> kepada pihak mana pun. Pengungkapan data hanya dilakukan secara terbatas untuk kebutuhan operasional: kepada Penjual terkait untuk pemenuhan pesanan, mitra logistik resmi untuk pengantaran paket, dan payment gateway resmi untuk verifikasi pembayaran.</p>",
+    "<h3>4. Keamanan & Retensi Data</h3>",
+    "<p>Kami menerapkan standar enkripsi Secure Sockets Layer (SSL/TLS), sistem autentikasi aman, serta protokol proteksi server untuk melindungi data dari kebocoran, kehilangan, atau manipulasi. Data disimpan selama akun aktif atau sesuai ketentuan regulasi transaksi komersial.</p>",
+    "<h3>5. Hak-Hak Pemilik Data Pribadi</h3>",
+    "<p>Sesuai UU PDP No. 27/2022, Anda memiliki hak penuh untuk mengakses, memperbaiki data yang tidak akurat, menarik persetujuan, atau mengajukan permohonan penutupan akun dan penghapusan data pribadi (right to erasure) dengan menghubungi tim bantuan resmi kami.</p>",
+    "<h3>6. Kontak Pengendali Data & Bantuan</h3>",
+    "<p>Untuk pertanyaan, konsultasi, atau permohonan terkait data pribadi, hubungi tim kami melalui email <a href=\"mailto:support@tppreneurs.com\">support@tppreneurs.com</a> atau WhatsApp resmi <a href=\"https://wa.me/628218866824\" target=\"_blank\" rel=\"noreferrer\">+62 821-8866-824</a>.</p>",
+  ].join(""),
 };
 
 const toText = (value, fallback = "") => {
@@ -29,28 +89,36 @@ const toBool = (value, fallback = false) => {
   return fallback;
 };
 
-const normalizePolicy = (raw) => {
+const normalizePolicy = (raw, lang = DEFAULT_LANG) => {
+  const isId = String(lang || "").toLowerCase().startsWith("id");
   const source = raw && typeof raw === "object" ? raw : {};
+  const defaultTitle = isId ? "Kebijakan Privasi" : "Privacy Policy";
+  const defaultHtml = isId ? TP_TEMPLATES_PRIVACY.id : TP_TEMPLATES_PRIVACY.en;
+
   return {
-    enabled: toBool(source.enabled, DEFAULT_POLICY.enabled),
+    enabled: toBool(source.enabled, true),
     pageHeaderBackgroundDataUrl: toText(
       source.pageHeaderBackgroundDataUrl ?? source.backgroundImageDataUrl ?? source.backgroundImage,
-      DEFAULT_POLICY.pageHeaderBackgroundDataUrl
+      ""
     ),
-    pageTitle: toText(source.pageTitle, DEFAULT_POLICY.pageTitle),
-    pageTextHtml: toText(source.pageTextHtml, DEFAULT_POLICY.pageTextHtml),
+    pageTitle: toText(source.pageTitle, defaultTitle),
+    pageTextHtml: toText(
+      source.pageTextHtml ?? source.pageText ?? source.contentHtml ?? source.content ?? "",
+      defaultHtml
+    ),
   };
 };
 
 function PolicyPageSkeleton() {
   return (
-    <div className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:px-4 sm:py-8 lg:px-6">
-      <div className="h-48 animate-pulse rounded-3xl bg-slate-200 sm:h-56" />
-      <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="h-5 w-40 animate-pulse rounded bg-slate-200" />
-        <div className="h-4 w-4/5 animate-pulse rounded bg-slate-100" />
-        <div className="h-4 w-3/5 animate-pulse rounded bg-slate-100" />
-        <div className="h-40 animate-pulse rounded bg-slate-100" />
+    <div className="mx-auto max-w-5xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+      <div className="h-6 w-36 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+      <div className="h-44 animate-pulse rounded-3xl bg-slate-200 dark:bg-slate-800 sm:h-52" />
+      <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
+        <div className="h-6 w-48 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+        <div className="h-4 w-5/6 animate-pulse rounded bg-slate-100 dark:bg-slate-800/60" />
+        <div className="h-4 w-3/4 animate-pulse rounded bg-slate-100 dark:bg-slate-800/60" />
+        <div className="h-32 animate-pulse rounded bg-slate-100 dark:bg-slate-800/60" />
       </div>
     </div>
   );
@@ -59,14 +127,21 @@ function PolicyPageSkeleton() {
 export default function StorePrivacyPolicyPage() {
   const { i18n } = useTranslation();
   const lang = String(i18n?.language || DEFAULT_LANG).toLowerCase().startsWith("id") ? "id" : "en";
+  const isId = lang === "id";
+
   const policyQuery = useQuery({
     queryKey: ["store-customization", "privacy-policy", lang],
     queryFn: () => getStoreCustomization({ lang, include: "policy" }),
     staleTime: 60_000,
   });
 
-  const pageRaw = policyQuery.data?.customization?.privacyPolicy;
-  const page = useMemo(() => normalizePolicy(pageRaw), [pageRaw]);
+  // Safely extract from either data envelope format
+  const customization =
+    policyQuery.data?.data?.customization ||
+    policyQuery.data?.customization ||
+    policyQuery.data;
+  const pageRaw = customization?.privacyPolicy;
+  const page = useMemo(() => normalizePolicy(pageRaw, lang), [pageRaw, lang]);
   const safeHtml = useMemo(() => sanitizeRichTextHtml(page.pageTextHtml), [page.pageTextHtml]);
 
   if (policyQuery.isLoading) return <PolicyPageSkeleton />;
@@ -75,11 +150,11 @@ export default function StorePrivacyPolicyPage() {
     const errorMessage =
       policyQuery.error?.response?.data?.message ||
       policyQuery.error?.message ||
-      "Failed to load privacy policy.";
+      (isId ? "Gagal memuat kebijakan privasi." : "Failed to load privacy policy.");
     return (
-      <div className="mx-auto max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-6">
+      <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
         <UiErrorState
-          title="Failed to load Privacy Policy."
+          title={isId ? "Gagal Memuat Kebijakan Privasi" : "Failed to load Privacy Policy"}
           message={errorMessage}
           onRetry={() => policyQuery.refetch()}
         />
@@ -87,63 +162,131 @@ export default function StorePrivacyPolicyPage() {
     );
   }
 
-  if (!pageRaw) {
-    return (
-      <div className="mx-auto max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-6">
-        <UiEmptyState
-          title="Content not configured yet."
-          description="Privacy policy content is currently unavailable."
-        />
-      </div>
-    );
-  }
-
   if (!page.enabled) {
     return (
-      <div className="mx-auto max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-6">
+      <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
         <UiEmptyState
-          title="This page is disabled."
-          description="Privacy policy is currently disabled."
-        />
-      </div>
-    );
-  }
-
-  if (!safeHtml.trim()) {
-    return (
-      <div className="mx-auto max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-6">
-        <UiEmptyState
-          title="Content not configured yet."
-          description="Privacy policy text has not been set."
+          title={isId ? "Halaman Sedang Dinonaktifkan" : "This page is disabled."}
+          description={
+            isId
+              ? "Kebijakan privasi saat ini sedang tidak dapat diakses."
+              : "Privacy policy is currently disabled."
+          }
         />
       </div>
     );
   }
 
   const hasBackground = Boolean(page.pageHeaderBackgroundDataUrl);
-  return (
-    <div className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:px-4 sm:py-8 lg:px-6">
-      <header
-        className="relative overflow-hidden rounded-3xl border border-slate-200 bg-slate-900 px-6 py-12 text-white sm:px-8 sm:py-16"
-        style={
-          hasBackground
-            ? {
-                backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.58), rgba(15, 23, 42, 0.58)), url(${page.pageHeaderBackgroundDataUrl})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }
-            : undefined
-        }
-      >
-        <h1 className="text-3xl font-bold sm:text-4xl">{page.pageTitle}</h1>
-      </header>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-        <div
-          className="prose prose-slate max-w-none prose-headings:font-bold prose-a:font-semibold prose-a:text-[#034c85] hover:prose-a:text-[#fe6f05] dark:prose-invert"
-          dangerouslySetInnerHTML={{ __html: safeHtml }}
-        />
-      </section>
+  return (
+    <div className="min-h-screen bg-slate-50/50 pb-16 dark:bg-slate-950">
+      <div className="mx-auto max-w-5xl space-y-6 px-4 pt-6 sm:px-6 lg:px-8">
+        {/* Breadcrumb Navigation */}
+        <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+          <Link to="/" className="transition hover:text-[#034c85] dark:hover:text-sky-400">
+            {isId ? "Beranda" : "Home"}
+          </Link>
+          <ChevronRight className="h-3 w-3 text-slate-400" />
+          <span className="font-semibold text-slate-800 dark:text-slate-200">
+            {page.pageTitle}
+          </span>
+        </nav>
+
+        {/* Hero Header Banner */}
+        <header
+          className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-br from-[#034c85] via-[#02335a] to-slate-950 px-6 py-10 text-white shadow-lg sm:px-10 sm:py-14 dark:border-slate-800"
+          style={
+            hasBackground
+              ? {
+                  backgroundImage: `linear-gradient(rgba(3, 76, 133, 0.88), rgba(2, 51, 90, 0.94)), url(${page.pageHeaderBackgroundDataUrl})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }
+              : undefined
+          }
+        >
+          {/* Subtle Accent Glow */}
+          <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-[#fe6f05]/15 blur-3xl" />
+
+          <div className="relative z-10 max-w-3xl space-y-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-orange-400/30 bg-orange-500/10 px-3 py-1 text-xs font-bold text-orange-300 backdrop-blur-sm">
+              <ShieldCheck className="h-3.5 w-3.5 text-[#fe6f05]" />
+              <span>TP PRENEURS PRIVACY</span>
+            </div>
+
+            <h1 className="text-2xl font-black tracking-tight sm:text-4xl text-white">
+              {page.pageTitle}
+            </h1>
+
+            <p className="text-xs sm:text-sm text-slate-200/90 leading-relaxed max-w-2xl">
+              {isId
+                ? "Standar perlindungan data pribadi dan kerahasiaan informasi civitas akademika, penjual, serta pembeli sesuai UU No. 27 Tahun 2022 (UU PDP)."
+                : "Official legal framework protecting personal data and confidentiality across the TP Preneurs campus multi-vendor ecosystem (UU PDP No. 27/2022)."}
+            </p>
+
+            <div className="flex flex-wrap items-center gap-4 pt-2 text-xs text-slate-300">
+              <div className="inline-flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 text-[#fe6f05]" />
+                <span>{isId ? "Status: Berlaku Efektif & Mengikat" : "Status: Effective & Binding"}</span>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Legal Text Content Card */}
+        <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-10">
+          <div
+            className="prose prose-slate max-w-none text-sm sm:text-base leading-relaxed dark:prose-invert
+              prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-[#034c85] dark:prose-headings:text-sky-300
+              prose-h2:text-xl sm:prose-h2:text-2xl prose-h2:border-b prose-h2:border-slate-100 dark:prose-h2:border-slate-800 prose-h2:pb-3
+              prose-h3:text-base sm:prose-h3:text-lg prose-h3:text-slate-800 dark:prose-h3:text-slate-200 prose-h3:mt-6
+              prose-p:text-slate-600 dark:prose-p:text-slate-300
+              prose-li:text-slate-600 dark:prose-li:text-slate-300
+              prose-strong:text-slate-900 dark:prose-strong:text-white
+              prose-a:font-semibold prose-a:text-[#034c85] dark:prose-a:text-[#fe6f05] hover:prose-a:text-[#fe6f05] transition-colors"
+            dangerouslySetInnerHTML={{ __html: safeHtml }}
+          />
+        </section>
+
+        {/* Customer Support Direct Contact Card */}
+        <aside className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-slate-200/80 bg-slate-100/70 p-5 dark:border-slate-800 dark:bg-slate-900/60">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#034c85] text-white shadow-sm">
+              <HelpCircle className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
+                {isId ? "Butuh Bantuan atau Klarifikasi Data Pribadi?" : "Need Privacy Help or Data Inquiries?"}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {isId
+                  ? "Tim kepatuhan dan layanan bantuan kami siap melayani Anda setiap hari kerja."
+                  : "Our compliance and support desk is ready to assist you during business days."}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex w-full sm:w-auto items-center gap-2.5">
+            <a
+              href="mailto:support@tppreneurs.com"
+              className="inline-flex flex-1 sm:flex-initial items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            >
+              <Mail className="h-3.5 w-3.5 text-[#034c85]" />
+              <span>Email</span>
+            </a>
+            <a
+              href="https://wa.me/628218866824"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex flex-1 sm:flex-initial items-center justify-center gap-1.5 rounded-lg bg-[#fe6f05] px-3.5 py-2 text-xs font-bold text-white shadow transition hover:bg-[#e05f00]"
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+              <span>WhatsApp</span>
+            </a>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }

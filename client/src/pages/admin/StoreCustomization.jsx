@@ -3953,10 +3953,10 @@ export default function StoreCustomizationPage() {
   );
   const [aboutUsState, setAboutUsState] = useState(() => getDefaultCustomization().aboutUs);
   const [privacyPolicyState, setPrivacyPolicyState] = useState(
-    () => getDefaultCustomization().privacyPolicy
+    () => getDefaultCustomization(getStoredAdminLanguageIso()).privacyPolicy
   );
   const [termsAndConditionsState, setTermsAndConditionsState] = useState(
-    () => getDefaultCustomization().termsAndConditions
+    () => getDefaultCustomization(getStoredAdminLanguageIso()).termsAndConditions
   );
   const [faqsState, setFaqsState] = useState(() => getDefaultCustomization().faqs);
   const [offersState, setOffersState] = useState(() => getDefaultCustomization().offers);
@@ -4303,6 +4303,9 @@ export default function StoreCustomizationPage() {
       await queryClient.invalidateQueries({
         queryKey: ["admin", "store-customization"],
       });
+      await queryClient.invalidateQueries({
+        queryKey: ["store-customization"],
+      });
     },
     onError: (error, _variables, context) => {
       const serverMessage =
@@ -4416,7 +4419,7 @@ export default function StoreCustomizationPage() {
     setNotice(null);
     const current = queryClient.getQueryData(["admin-store-customization", lang]);
     const currentCustomization = normalizeCustomizationPayload(
-      unwrapCustomizationEnvelope(current),
+      unwrapCustomizationEnvelope(current || customizationQuery.data),
       lang
     );
 
@@ -4702,10 +4705,13 @@ export default function StoreCustomizationPage() {
         pageHeaderBackgroundDataUrl: toText(
           privacyPolicyState?.pageHeaderBackgroundDataUrl
         ),
-        pageTitle: toText(privacyPolicyState?.pageTitle),
+        pageTitle: toText(
+          privacyPolicyState?.pageTitle,
+          getDefaultCustomization(lang).privacyPolicy.pageTitle
+        ),
         pageTextHtml: toText(
           privacyPolicyState?.pageTextHtml,
-          getDefaultCustomization().privacyPolicy.pageTextHtml
+          getDefaultCustomization(lang).privacyPolicy.pageTextHtml
         ),
       },
       termsAndConditions: {
@@ -4715,10 +4721,13 @@ export default function StoreCustomizationPage() {
         pageHeaderBackgroundDataUrl: toText(
           termsAndConditionsState?.pageHeaderBackgroundDataUrl
         ),
-        pageTitle: toText(termsAndConditionsState?.pageTitle),
+        pageTitle: toText(
+          termsAndConditionsState?.pageTitle,
+          getDefaultCustomization(lang).termsAndConditions.pageTitle
+        ),
         pageTextHtml: toText(
           termsAndConditionsState?.pageTextHtml,
-          getDefaultCustomization().termsAndConditions.pageTextHtml
+          getDefaultCustomization(lang).termsAndConditions.pageTextHtml
         ),
       },
       faqs: {
@@ -5119,6 +5128,17 @@ export default function StoreCustomizationPage() {
       } else if (activeTab === "aboutUs") {
         nextPayload.aboutUs = {
           ...nextPayload.aboutUs,
+          status: "published",
+          publishStatus: "published",
+        };
+      } else if (activeTab === "privacyPolicyTerms") {
+        nextPayload.privacyPolicy = {
+          ...nextPayload.privacyPolicy,
+          status: "published",
+          publishStatus: "published",
+        };
+        nextPayload.termsAndConditions = {
+          ...nextPayload.termsAndConditions,
           status: "published",
           publishStatus: "published",
         };
@@ -6143,12 +6163,12 @@ export default function StoreCustomizationPage() {
   const updatePolicyState = (policyKey, updater) => {
     if (policyKey === "termsAndConditions") {
       setTermsAndConditionsState((prev) =>
-        updater(prev || getDefaultCustomization().termsAndConditions)
+        updater(prev || getDefaultCustomization(lang).termsAndConditions)
       );
       return;
     }
     setPrivacyPolicyState((prev) =>
-      updater(prev || getDefaultCustomization().privacyPolicy)
+      updater(prev || getDefaultCustomization(lang).privacyPolicy)
     );
   };
 
@@ -6828,7 +6848,7 @@ export default function StoreCustomizationPage() {
       ),
     },
   };
-  const privacyPolicyDefaults = getDefaultCustomization().privacyPolicy;
+  const privacyPolicyDefaults = getDefaultCustomization(lang).privacyPolicy;
   const privacyPolicy = {
     ...privacyPolicyDefaults,
     ...(privacyPolicyState || {}),
@@ -6843,7 +6863,7 @@ export default function StoreCustomizationPage() {
       privacyPolicyDefaults.pageTextHtml
     ),
   };
-  const termsAndConditionsDefaults = getDefaultCustomization().termsAndConditions;
+  const termsAndConditionsDefaults = getDefaultCustomization(lang).termsAndConditions;
   const termsAndConditions = {
     ...termsAndConditionsDefaults,
     ...(termsAndConditionsState || {}),
