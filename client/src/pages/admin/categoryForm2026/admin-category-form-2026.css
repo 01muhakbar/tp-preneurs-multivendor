@@ -79,4 +79,16 @@
     padding-left: 16px;
     padding-right: 16px;
   }
+
+  .acf26-footer > div {
+    flex-direction: column-reverse;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .acf26-footer button {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
 }

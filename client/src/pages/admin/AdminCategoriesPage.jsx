@@ -276,16 +276,20 @@ export function CategoryFormPanel({
               {t("categories.Name", "Name")}
               <input
                 ref={activeNameRef}
+                id="admin-category-name"
+                name="name"
                 value={form.name}
                 onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-                className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
-                placeholder={t("categories.Books", "Books")}
+                className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-[#034c85]/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
+                placeholder={t("categories.Category name...", "Category name...")}
                 required
               />
             </label>
             <label className="grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
               {t("categories.Code / slug", "Code / slug")}
               <input
+                id="admin-category-code"
+                name="code"
                 value={form.code}
                 onChange={(event) => {
                   const value = event.target.value
@@ -294,19 +298,21 @@ export function CategoryFormPanel({
                     .replace(/-+/g, "-");
                   setForm((prev) => ({ ...prev, code: value }));
                 }}
-                className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
-                placeholder={t("categories.books", "books")}
+                className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-[#034c85]/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
+                placeholder={t("categories.category-code", "category-code")}
               />
             </label>
             <label className="grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
               {t("categories.Description", "Description")}
               <textarea
+                id="admin-category-description"
+                name="description"
                 value={form.description}
                 maxLength={255}
                 rows={4}
                 onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
-                placeholder={t("categories.Describe this category", "Describe this category")}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-[#034c85]/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
+                placeholder={t("categories.Short description...", "Short description...")}
               />
             </label>
           </div>
@@ -317,9 +323,11 @@ export function CategoryFormPanel({
           <label className="mt-4 grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
             {t("categories.Parent Category", "Parent Category")}
             <select
+              id="admin-category-parent"
+              name="parent_id"
               value={form.parent_id}
               onChange={(event) => setForm((prev) => ({ ...prev, parent_id: event.target.value }))}
-              className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
+              className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-[#034c85]/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
             >
               <option value="">{t("categories.Top level", "Top level")}</option>
               {parentOptionsLoading ? <option disabled>{t("categories.Loading parents...", "Loading parents...")}</option> : null}
@@ -337,18 +345,20 @@ export function CategoryFormPanel({
         <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
           <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{t("categories.Media", "Media")}</h3>
           <label className="mt-4 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300">
-            <Upload className="h-5 w-5" />
+            <Upload className="h-5 w-5 text-[#034c85]" />
             <span className="font-semibold">{t("categories.Upload category image", "Upload category image")}</span>
-            <span className="text-xs">{t("categories.PNG, JPG, WEBP, SVG up to the upload limit", "PNG, JPG, WEBP, SVG up to the upload limit")}</span>
-            <input type="file" className="hidden" accept="image/*" onChange={onFileChange} />
+            <span className="text-xs">{t("categories.PNG, JPG, WEBP, SVG (Max 2MB)", "PNG, JPG, WEBP, SVG (Max 2MB)")}</span>
+            <input id="admin-category-file" name="category_file" type="file" className="hidden" accept="image/*" onChange={onFileChange} />
           </label>
           {imageFileName ? <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{t("categories.Selected:", "Selected:")} {imageFileName}</p> : null}
           {uploadPending ? <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{t("categories.Uploading image...", "Uploading image...")}</p> : null}
           {uploadError ? <p className="mt-2 text-xs text-rose-600">{uploadError}</p> : null}
           <input
+            id="admin-category-icon"
+            name="icon"
             value={form.icon}
             onChange={(event) => setForm((prev) => ({ ...prev, icon: event.target.value }))}
-            className="mt-3 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
+            className="mt-3 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-[#034c85]/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
             placeholder={t("categories.Icon or image URL", "Icon or image URL")}
           />
           {previewImageUrl ? (
@@ -361,7 +371,7 @@ export function CategoryFormPanel({
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{t("categories.Published", "Published")}</h3>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                {form.published ? t("categories.Eligible for public catalog visibility.", "Eligible for public catalog visibility.") : t("categories.Hidden until you publish it.", "Hidden until you publish it.")}
+                {form.published ? t("categories.Visible in storefront", "Visible in storefront") : t("categories.Hidden", "Hidden")}
               </p>
             </div>
             <PublishSwitch

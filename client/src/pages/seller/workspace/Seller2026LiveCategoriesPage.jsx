@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   AlertTriangle,
@@ -98,6 +98,8 @@ function CategoryModal({
           <label className={errors.name ? "has-error" : ""}>
             <span>{isId ? "Nama Kategori *" : "Category Name *"}</span>
             <input
+              id="seller-category-name"
+              name="name"
               value={form.name}
               placeholder={isId ? "Nama kategori..." : "Category name..."}
               onChange={(event) => {
@@ -110,7 +112,7 @@ function CategoryModal({
 
           <label>
             <span>{isId ? "Kategori Induk" : "Parent Category"}</span>
-            <select value={form.parentId} onChange={(event) => onChange({ parentId: event.target.value })}>
+            <select id="seller-category-parent" name="parentId" value={form.parentId} onChange={(event) => onChange({ parentId: event.target.value })}>
               {parentOptions.map((option) => <option value={option.value} key={option.value || "root"}>{option.label}</option>)}
             </select>
           </label>
@@ -118,6 +120,8 @@ function CategoryModal({
           <label className={errors.description ? "has-error" : ""}>
             <span>{isId ? "Deskripsi" : "Description"}</span>
             <textarea
+              id="seller-category-description"
+              name="description"
               rows={5}
               value={form.description}
               maxLength={160}
@@ -151,6 +155,8 @@ function CategoryModal({
             <div className="seller2026-category-form__slug">
               <span>/categories/</span>
               <input
+                id="seller-category-slug"
+                name="slug"
                 value={form.slug}
                 placeholder={isId ? "tautan-kategori" : "category-handle"}
                 onChange={(event) => onChange({ slug: slugifySeller2026Category(event.target.value) })}
@@ -183,8 +189,11 @@ function CategoryModal({
   );
 }
 
-export default function Seller2026LiveCategoriesPage() {
+export default function Seller2026LiveCategoriesPage({ initialCreateOpen = false }) {
   const { sellerContext, workspaceStoreId: storeId, workspaceRoutes, isId: outletIsId = false } = useSellerWorkspaceRoute();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isCreateRoute = initialCreateOpen || location.pathname.endsWith("/categories/new");
   const { i18n } = useTranslation();
   const isId = Boolean(outletIsId || String(i18n.language || "").toLowerCase().startsWith("id"));
 
@@ -205,7 +214,7 @@ export default function Seller2026LiveCategoriesPage() {
   });
   const [notice, setNotice] = useState(null);
   const [modalMode, setModalMode] = useState("create");
-  const [modalOpen, setModalOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(isCreateRoute);
   const [form, setForm] = useState(createSeller2026CategoryForm());
   const [formErrors, setFormErrors] = useState({});
   const [uploading, setUploading] = useState(false);
@@ -233,6 +242,9 @@ export default function Seller2026LiveCategoriesPage() {
   const closeModal = () => {
     setModalOpen(false);
     setFormErrors({});
+    if (isCreateRoute) {
+      navigate(workspaceRoutes.categories(), { replace: true });
+    }
   };
 
   const updateForm = (patch) => setForm((current) => ({ ...current, ...patch }));

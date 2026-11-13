@@ -125,7 +125,7 @@ export default function AdminCategoryCreatePage() {
       <header className="apf26-header">
         <div>
           <h1>{t("categories.Add Category", "Add Category")}</h1>
-          <p>{t("categories.Create Mode", "Create Mode")}</p>
+          <p>{t("categories.Kategori baru", "New category")}</p>
           <nav className="acf26-breadcrumb" aria-label="Breadcrumb">
             <span>{t("categories.Catalog", "Catalog")}</span>
             <ChevronRight size={14} />
