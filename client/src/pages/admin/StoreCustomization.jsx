@@ -46,6 +46,7 @@ import StoreCustomizationAboutUsSettings2026 from "../../components/admin/store-
 import StoreCustomizationPrivacyTermsSettings2026 from "../../components/admin/store-customization/StoreCustomizationPrivacyTermsSettings2026.jsx";
 import StoreCustomizationFaqsSettings2026 from "../../components/admin/store-customization/StoreCustomizationFaqsSettings2026.jsx";
 import StoreCustomizationContactSettings2026 from "../../components/admin/store-customization/StoreCustomizationContactSettings2026.jsx";
+import StoreCustomizationOffersSettings2026 from "../../components/admin/store-customization/StoreCustomizationOffersSettings2026.jsx";
 import StoreCustomizationSaveActions2026 from "../../components/admin/store-customization/StoreCustomizationSaveActions2026.jsx";
 import StoreCustomizationTabNav2026 from "../../components/admin/store-customization/StoreCustomizationTabNav2026.jsx";
 
@@ -3793,6 +3794,7 @@ export default function StoreCustomizationPage() {
   const [activeMainSliderTab, setActiveMainSliderTab] = useState("slider-0");
   const [activeAboutUsMemberTab, setActiveAboutUsMemberTab] = useState("member-0");
   const [lang, setLang] = useState(getStoredAdminLanguageIso);
+  const isIndo = String(lang || i18n?.resolvedLanguage || i18n?.language || "").toLowerCase().startsWith("id");
   const [homeState, setHomeState] = useState(() => getDefaultCustomization().home);
   const [shopState, setShopState] = useState(() => getDefaultCustomization().shop);
   const [shopImageError, setShopImageError] = useState("");
@@ -5042,6 +5044,21 @@ export default function StoreCustomizationPage() {
     setNotice({
       type: "success",
       message: isIndo ? "Draf FAQs berhasil diatur ulang." : "FAQs draft reset.",
+    });
+  };
+
+  const onResetOffersSetting = () => {
+    const current = queryClient.getQueryData(["admin-store-customization", lang]);
+    const currentCustomization = normalizeCustomizationPayload(
+      unwrapCustomizationEnvelope(current || customizationQuery.data),
+      lang
+    );
+    setOffersState(currentCustomization.offers);
+    setOffersImageErrors({});
+    setOffersDropActive({});
+    setNotice({
+      type: "success",
+      message: isIndo ? "Draf Offers & Promo berhasil diatur ulang." : "Offers draft reset.",
     });
   };
 
@@ -7402,7 +7419,7 @@ export default function StoreCustomizationPage() {
 
   return (
     <div className="mx-auto w-full max-w-[1280px] space-y-5 px-1 sm:px-2">
-      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" || activeTab === "aboutUs" || activeTab === "privacyPolicyTerms" || activeTab === "faqs" || activeTab === "contactUs" ? null : (
+      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" || activeTab === "aboutUs" || activeTab === "privacyPolicyTerms" || activeTab === "faqs" || activeTab === "offers" || activeTab === "contactUs" ? null : (
         <AdminOpsPageHeader
           title="Store Customizations"
           description="Customize storefront sections, labels, and SEO."
@@ -7440,7 +7457,7 @@ export default function StoreCustomizationPage() {
         </div>
       ) : null}
 
-      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" || activeTab === "aboutUs" || activeTab === "privacyPolicyTerms" || activeTab === "faqs" || activeTab === "contactUs" ? null : (
+      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" || activeTab === "aboutUs" || activeTab === "privacyPolicyTerms" || activeTab === "faqs" || activeTab === "offers" || activeTab === "contactUs" ? null : (
         <StoreCustomizationTabNav2026 activeTab={activeTab} onTabChange={onSelectTab} />
       )}
 
@@ -7580,249 +7597,27 @@ export default function StoreCustomizationPage() {
           isLoading={isLoadingHeader}
         />
       ) : activeTab === "offers" ? (
-        <div className="flex flex-col gap-5">
-          <div className="flex items-center justify-between rounded-xl border border-sky-200 bg-sky-50/80 p-3.5 text-xs text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-200">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-[#fe6f05]" />
-              <span>
-                {isIndo
-                  ? "Kelola banner promosi dan voucher Mega Offer lebih lengkap di menu Katalog > Campaigns."
-                  : "Manage full campaign hero banners and vouchers in Catalog > Campaigns."}
-              </span>
-            </div>
-            <Link
-              to="/admin/catalog/campaigns"
-              className="inline-flex items-center gap-1 font-bold text-[#034c85] hover:underline dark:text-sky-300"
-            >
-              <span>{isIndo ? "Buka Campaigns" : "Open Campaigns"}</span>
-              <ChevronRight className="h-3 w-3" />
-            </Link>
-          </div>
-
-          <section className={sectionCard}>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-                <Settings className="h-4 w-4" />
-              </span>
-              <h2 className="text-base font-semibold text-slate-900">Page Header</h2>
-            </div>
-            <div className="mt-4 h-px w-full bg-slate-200" />
-
-            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[320px_1fr]">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Enable This Block
-                </p>
-                <SegmentedToggle
-                  value={Boolean(offers.pageHeader.enabled)}
-                  onChange={(value) => onChangeOffersBlockEnabled("pageHeader", value)}
-                />
-              </div>
-              <ImageUploadField
-                id="offers-page-header-background-image-input"
-                label="Page Header Background"
-                error={offersImageErrors[OFFERS_IMAGE_FIELD_KEYS.pageHeaderBackground]}
-                dropActive={Boolean(
-                  offersDropActive[OFFERS_IMAGE_FIELD_KEYS.pageHeaderBackground]
-                )}
-                onDropActiveChange={(value) =>
-                  setOffersDropActiveField(
-                    OFFERS_IMAGE_FIELD_KEYS.pageHeaderBackground,
-                    value
-                  )
-                }
-                onInputChange={(event) =>
-                  onOffersImageInputChange(
-                    OFFERS_IMAGE_FIELD_KEYS.pageHeaderBackground,
-                    event
-                  )
-                }
-                onDrop={(event) =>
-                  onDropOffersImage(OFFERS_IMAGE_FIELD_KEYS.pageHeaderBackground, event)
-                }
-                previewDataUrl={offers.pageHeader.backgroundImageDataUrl}
-                onRemove={() =>
-                  onRemoveOffersImage(OFFERS_IMAGE_FIELD_KEYS.pageHeaderBackground)
-                }
-                previewAlt="Offers page header background"
-              />
-              <label className="block xl:col-span-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Eyebrow / Badge Tag
-                </span>
-                <input
-                  type="text"
-                  value={offers?.pageHeader?.eyebrow || ""}
-                  onChange={(event) =>
-                    onChangeOffersPageHeaderField("eyebrow", event.target.value)
-                  }
-                  className={`${inputBase} mt-2`}
-                  placeholder="MEGA OFFER & PROMO"
-                />
-              </label>
-              <label className="block xl:col-span-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Page Title
-                </span>
-                <input
-                  type="text"
-                  value={offers?.pageHeader?.pageTitle || ""}
-                  onChange={(event) =>
-                    onChangeOffersPageHeaderField("pageTitle", event.target.value)
-                  }
-                  className={`${inputBase} mt-2`}
-                />
-              </label>
-              <label className="block xl:col-span-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Page Description
-                </span>
-                <textarea
-                  value={offers?.pageHeader?.description || ""}
-                  onChange={(event) =>
-                    onChangeOffersPageHeaderField("description", event.target.value)
-                  }
-                  className={`${textAreaBase} mt-2`}
-                  rows={2}
-                  placeholder="Dapatkan penawaran terbaik dan kupon diskon spesial..."
-                />
-              </label>
-            </div>
-          </section>
-
-          <section className={sectionCard}>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-                <Settings className="h-4 w-4" />
-              </span>
-              <h2 className="text-base font-semibold text-slate-900">
-                Super Discount Active Coupon Code
-              </h2>
-            </div>
-            <div className="mt-4 h-px w-full bg-slate-200" />
-
-            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[320px_1fr]">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Enable This Block
-                </p>
-                <SegmentedToggle
-                  value={Boolean(offers.superDiscount.enabled)}
-                  onChange={(value) => onChangeOffersBlockEnabled("superDiscount", value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Super Discount Active Coupon Code
-                </span>
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <select
-                      value={selectedOfferCouponCode}
-                      onChange={(event) =>
-                        onChangeOffersSuperDiscountField(
-                          "activeCouponCode",
-                          event.target.value
-                        )
-                      }
-                      className={`${inputBase} appearance-none pr-9`}
-                    >
-                      <option value="ALL">All items are selected.</option>
-                      {offersCouponOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                      {!hasSelectedOfferCouponOption &&
-                      selectedOfferCouponCode !== "ALL" ? (
-                        <option value={selectedOfferCouponCode}>
-                          {selectedOfferCouponCode}
-                        </option>
-                      ) : null}
-                    </select>
-                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onChangeOffersSuperDiscountField("activeCouponCode", "ALL")
-                    }
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
-                    aria-label="Clear selected coupon"
-                    disabled={selectedOfferCouponCode === "ALL"}
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-                {offersCouponsQuery.isLoading ? (
-                  <p className="text-xs text-slate-500">Loading coupons...</p>
-                ) : null}
-                {offersCouponsQuery.isError ? (
-                  <p className="text-xs text-rose-600">
-                    Failed to load coupons list. You can still save the selected code.
-                  </p>
-                ) : null}
-              </div>
-            </div>
-          </section>
-
-          <section className={sectionCard}>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-                <Settings className="h-4 w-4" />
-              </span>
-              <h2 className="text-base font-semibold text-slate-900">
-                Discounted Deals Catalog Section
-              </h2>
-            </div>
-            <div className="mt-4 h-px w-full bg-slate-200" />
-
-            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[320px_1fr]">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Enable This Block
-                </p>
-                <SegmentedToggle
-                  value={Boolean(offers.dealsSection.enabled)}
-                  onChange={(value) => onChangeOffersBlockEnabled("dealsSection", value)}
-                />
-              </div>
-
-              <div className="space-y-4">
-                <label className="block">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Section Title
-                  </span>
-                  <input
-                    type="text"
-                    value={offers?.dealsSection?.title || ""}
-                    onChange={(event) =>
-                      onChangeOffersDealsField("title", event.target.value)
-                    }
-                    className={`${inputBase} mt-2`}
-                    placeholder="Koleksi Produk Diskon"
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Section Description
-                  </span>
-                  <input
-                    type="text"
-                    value={offers?.dealsSection?.description || ""}
-                    onChange={(event) =>
-                      onChangeOffersDealsField("description", event.target.value)
-                    }
-                    className={`${inputBase} mt-2`}
-                    placeholder="Hemat lebih banyak untuk karya inovasi..."
-                  />
-                </label>
-              </div>
-            </div>
-          </section>
-        </div>
+        <StoreCustomizationOffersSettings2026
+          value={offers}
+          onChange={setOffersState}
+          activeTab={activeTab}
+          onTabChange={onSelectTab}
+          onSave={onSave}
+          onPublish={onPublish}
+          onReset={onResetOffersSetting}
+          onPreview={onPreviewStorefront}
+          isSaving={isSaving && !isPublishing}
+          isPublishing={isPublishing}
+          meta={customizationMeta}
+          language={lang}
+          languages={publishedLanguages}
+          onLanguageChange={(nextLanguage) =>
+            setLang(String(nextLanguage || "en").toLowerCase())
+          }
+          isLoading={isLoadingHeader}
+          couponOptions={offersCouponOptions}
+          isLoadingCoupons={offersCouponsQuery.isLoading}
+        />
       ) : activeTab === "contactUs" ? (
         <StoreCustomizationContactSettings2026
           value={contactUs}
