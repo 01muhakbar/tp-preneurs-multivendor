@@ -1,5 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
+import {
+  AlertCircle,
+  Building2,
+  CheckCircle2,
+  CreditCard,
+  FileText,
+  Globe,
+  Image as ImageIcon,
+  Lock,
+  Mail,
+  Phone,
+  Save,
+  Server,
+  Settings as SettingsIcon,
+  Sparkles,
+  Upload,
+} from "lucide-react";
 import {
   fetchAdminSettings,
   fetchAdminStoreSettings,
@@ -17,9 +35,9 @@ import {
 import {
   AdminOpsErrorState,
   AdminOpsLoadingState,
-  AdminOpsPageHeader,
 } from "../components/admin/AdminOpsPrimitives.jsx";
 import adminLoginHero from "../assets/admin-login-hero.jpg";
+import "./Settings.css";
 
 const DEFAULT_SETTINGS = {
   imagesPerProduct: "12",
@@ -31,22 +49,22 @@ const DEFAULT_SETTINGS = {
   receiptWidth: "57 mm",
   invoiceEmailEnabled: "true",
   invoiceFromEmail: "sales@kachabazar.com",
-  companyFromName: "KachaBazar",
-  companyName: "HtmlLover ltd",
+  companyFromName: "TP PRENEURS",
+  companyName: "TP Preneurs",
   vatNumber: "47589",
-  companyAddress: "59 Station Rd, Purls Bridge, United Kingdom",
-  postCode: "2030",
-  contactPhone: "019579034",
-  contactEmail: "kachabazar@gmail.com",
-  website: "kachabazar-admin.vercel.app",
-  smtpProvider: "google",
-  smtpHost: "smtp.gmail.com",
+  companyAddress: "Jl. Tamalate No.1, Bonto Makkio, Kec. Rappocini, Kota Makassar, Sulawesi Selatan 90222",
+  postCode: "90222",
+  contactPhone: "+62 821-8866-824",
+  contactEmail: "tppreneurs@gmail.com",
+  website: "tppreneurs.com",
+  smtpProvider: "Hostinger",
+  smtpHost: "smtp.hostinger.com",
   smtpPort: "465",
   smtpSecure: "true",
-  smtpUser: "",
+  smtpUser: "noreply@tppreneurs.com",
   smtpPassword: "",
   smtpPasswordConfigured: "false",
-  smtpFromEmail: "",
+  smtpFromEmail: "noreply@tppreneurs.com",
   smtpFromName: "TP PRENEURS",
 };
 
@@ -62,78 +80,91 @@ const DEFAULT_BRANDING_SETTINGS = {
 
 const BRANDING_MAX_FILE_BYTES = 5 * 1024 * 1024;
 const BRANDING_ACCEPT = "image/png,image/jpeg,image/webp";
+
 const BRANDING_ITEMS = [
   {
     key: "client",
     field: "clientLogoUrl",
-    label: "Client Logo",
-    helper: "Logo horizontal navbar toko. Rekomendasi: 1600×400 px atau 1200×300 px (rasio 4:1) PNG transparan, crop pas tanpa margin vertikal.",
-    previewClass: "aspect-[3.4/1] rounded-2xl",
-    previewImageClass: "object-contain",
+    labelEn: "Client Storefront Logo",
+    labelId: "Logo Toko Client",
+    spec: "1600×400 px • PNG/SVG",
+    aspectClass: "sett-preview-client",
     assetType: "logo",
   },
   {
     key: "admin",
     field: "adminLogoUrl",
-    label: "Admin Logo",
-    helper: "Logo utama untuk Admin Workspace. Rekomendasi: 512×512 px (1:1) PNG/JPG.",
-    previewClass: "aspect-square rounded-2xl",
-    previewImageClass: "object-contain",
+    labelEn: "Admin Workspace Logo",
+    labelId: "Logo Admin Workspace",
+    spec: "512×512 px (1:1)",
+    aspectClass: "sett-preview-square",
     assetType: "logo",
   },
   {
     key: "seller",
     field: "sellerLogoUrl",
-    label: "Seller Logo",
-    helper: "Logo utama untuk Seller Workspace. Rekomendasi: 512×512 px (1:1) PNG/JPG.",
-    previewClass: "aspect-square rounded-2xl",
-    previewImageClass: "object-contain",
+    labelEn: "Seller Workspace Logo",
+    labelId: "Logo Seller Workspace",
+    spec: "512×512 px (1:1)",
+    aspectClass: "sett-preview-square",
     assetType: "logo",
   },
   {
     key: "admin-login-hero",
     field: "adminLoginHeroUrl",
-    label: "Admin Login Hero",
-    helper: "Gambar besar di sisi kiri halaman login admin.",
-    previewClass: "aspect-[4/5] rounded-2xl",
-    previewImageClass: "object-cover",
+    labelEn: "Admin Login Banner",
+    labelId: "Banner Login Admin",
+    spec: "4:5 Portrait • Maks 5MB",
+    aspectClass: "sett-preview-hero",
     assetType: "hero",
   },
   {
     key: "admin-forgot-password-hero",
     field: "adminForgotPasswordHeroUrl",
-    label: "Forgot Password Hero",
-    helper: "Gambar besar di sisi kiri halaman lupa password admin.",
-    previewClass: "aspect-[4/5] rounded-2xl",
-    previewImageClass: "object-cover",
+    labelEn: "Forgot Password Banner",
+    labelId: "Banner Lupa Password",
+    spec: "4:5 Portrait • Maks 5MB",
+    aspectClass: "sett-preview-hero",
     assetType: "hero",
   },
   {
     key: "admin-create-account-hero",
     field: "adminCreateAccountHeroUrl",
-    label: "Create Account Hero",
-    helper: "Gambar besar di sisi kiri halaman buat akun admin.",
-    previewClass: "aspect-[4/5] rounded-2xl",
-    previewImageClass: "object-cover",
+    labelEn: "Create Account Banner",
+    labelId: "Banner Buat Akun",
+    spec: "4:5 Portrait • Maks 5MB",
+    aspectClass: "sett-preview-hero",
     assetType: "hero",
   },
 ];
 
-const LANGUAGE_OPTIONS = ["English", "Indonesian", "Arabic", "French"];
+const LANGUAGE_OPTIONS = [
+  { value: "Indonesian", labelEn: "Indonesian (Bahasa Indonesia)", labelId: "Bahasa Indonesia" },
+  { value: "English", labelEn: "English", labelId: "Bahasa Inggris (English)" },
+  { value: "Arabic", labelEn: "Arabic", labelId: "Bahasa Arab" },
+  { value: "French", labelEn: "French", labelId: "Bahasa Prancis" },
+];
+
 const CURRENCY_OPTIONS = ["IDR", "USD", "EUR", "GBP"];
+
 const TIME_ZONE_OPTIONS = [
   { value: "Asia/Makassar", label: "Asia/Makassar (UTC+08:00 WITA)" },
   { value: "Asia/Jakarta", label: "Asia/Jakarta (UTC+07:00 WIB)" },
   { value: "Asia/Jayapura", label: "Asia/Jayapura (UTC+09:00 WIT)" },
   { value: "UTC", label: "UTC (UTC+00:00)" },
 ];
+
 const DATE_FORMAT_OPTIONS = [
   "D MMM, YYYY",
   "DD/MM/YYYY",
   "YYYY-MM-DD",
   "MMM D, YYYY",
 ];
-const RECEIPT_WIDTH_OPTIONS = ["57 mm", "80 mm"];
+
+const RECEIPT_WIDTH_OPTIONS = [
+  { value: "57 mm", labelEn: "57 mm (Thermal POS 58mm)", labelId: "57 mm (Struk Kasir Thermal 58mm)" },
+  { value: "80 mm", labelEn: "80 mm (Standard POS 80mm)", labelId: "80 mm (Struk Kasir Standar 80mm)" },
+];
 
 const toStringValue = (value, fallback = "") => {
   if (value === undefined || value === null) return fallback;
@@ -149,87 +180,34 @@ const normalizeBooleanString = (value, fallback = "false") => {
 const mapSettingsToForm = (settings) => {
   const merged = { ...DEFAULT_SETTINGS, ...(settings || {}) };
   return {
-    imagesPerProduct: toStringValue(
-      merged.imagesPerProduct,
-      DEFAULT_SETTINGS.imagesPerProduct
-    ),
-    allowAutoTranslation: normalizeBooleanString(
-      merged.allowAutoTranslation,
-      DEFAULT_SETTINGS.allowAutoTranslation
-    ),
-    defaultLanguage: toStringValue(
-      merged.defaultLanguage,
-      DEFAULT_SETTINGS.defaultLanguage
-    ),
-    defaultCurrency: toStringValue(
-      merged.defaultCurrency,
-      DEFAULT_SETTINGS.defaultCurrency
-    ),
-    defaultTimeZone: toStringValue(
-      merged.defaultTimeZone,
-      DEFAULT_SETTINGS.defaultTimeZone
-    ),
-    defaultDateFormat: toStringValue(
-      merged.defaultDateFormat,
-      DEFAULT_SETTINGS.defaultDateFormat
-    ),
+    imagesPerProduct: toStringValue(merged.imagesPerProduct, DEFAULT_SETTINGS.imagesPerProduct),
+    allowAutoTranslation: normalizeBooleanString(merged.allowAutoTranslation, DEFAULT_SETTINGS.allowAutoTranslation),
+    defaultLanguage: toStringValue(merged.defaultLanguage, DEFAULT_SETTINGS.defaultLanguage),
+    defaultCurrency: toStringValue(merged.defaultCurrency, DEFAULT_SETTINGS.defaultCurrency),
+    defaultTimeZone: toStringValue(merged.defaultTimeZone, DEFAULT_SETTINGS.defaultTimeZone),
+    defaultDateFormat: toStringValue(merged.defaultDateFormat, DEFAULT_SETTINGS.defaultDateFormat),
     receiptWidth: toStringValue(merged.receiptWidth, DEFAULT_SETTINGS.receiptWidth),
-    invoiceEmailEnabled: normalizeBooleanString(
-      merged.invoiceEmailEnabled,
-      DEFAULT_SETTINGS.invoiceEmailEnabled
-    ),
-    invoiceFromEmail: toStringValue(
-      merged.invoiceFromEmail,
-      DEFAULT_SETTINGS.invoiceFromEmail
-    ),
-    companyFromName: toStringValue(
-      merged.companyFromName,
-      DEFAULT_SETTINGS.companyFromName
-    ),
+    invoiceEmailEnabled: normalizeBooleanString(merged.invoiceEmailEnabled, DEFAULT_SETTINGS.invoiceEmailEnabled),
+    invoiceFromEmail: toStringValue(merged.invoiceFromEmail, DEFAULT_SETTINGS.invoiceFromEmail),
+    companyFromName: toStringValue(merged.companyFromName, DEFAULT_SETTINGS.companyFromName),
     companyName: toStringValue(merged.companyName, DEFAULT_SETTINGS.companyName),
     vatNumber: toStringValue(merged.vatNumber, DEFAULT_SETTINGS.vatNumber),
-    companyAddress: toStringValue(
-      merged.companyAddress,
-      DEFAULT_SETTINGS.companyAddress
-    ),
+    companyAddress: toStringValue(merged.companyAddress, DEFAULT_SETTINGS.companyAddress),
     postCode: toStringValue(merged.postCode, DEFAULT_SETTINGS.postCode),
-    contactPhone: toStringValue(
-      merged.contactPhone,
-      DEFAULT_SETTINGS.contactPhone
-    ),
-    contactEmail: toStringValue(
-      merged.contactEmail,
-      DEFAULT_SETTINGS.contactEmail
-    ),
+    contactPhone: toStringValue(merged.contactPhone, DEFAULT_SETTINGS.contactPhone),
+    contactEmail: toStringValue(merged.contactEmail, DEFAULT_SETTINGS.contactEmail),
     website: toStringValue(merged.website, DEFAULT_SETTINGS.website),
     smtpProvider: toStringValue(merged.smtpProvider, DEFAULT_SETTINGS.smtpProvider),
     smtpHost: toStringValue(merged.smtpHost, DEFAULT_SETTINGS.smtpHost),
     smtpPort: toStringValue(merged.smtpPort, DEFAULT_SETTINGS.smtpPort),
-    smtpSecure: normalizeBooleanString(
-      merged.smtpSecure,
-      DEFAULT_SETTINGS.smtpSecure
-    ),
+    smtpSecure: normalizeBooleanString(merged.smtpSecure, DEFAULT_SETTINGS.smtpSecure),
     smtpUser: toStringValue(merged.smtpUser, DEFAULT_SETTINGS.smtpUser),
     smtpPassword: "",
-    smtpPasswordConfigured: normalizeBooleanString(
-      merged.smtpPasswordConfigured,
-      DEFAULT_SETTINGS.smtpPasswordConfigured
-    ),
-    smtpFromEmail: toStringValue(
-      merged.smtpFromEmail,
-      DEFAULT_SETTINGS.smtpFromEmail
-    ),
-    smtpFromName: toStringValue(
-      merged.smtpFromName,
-      DEFAULT_SETTINGS.smtpFromName
-    ),
+    smtpPasswordConfigured: normalizeBooleanString(merged.smtpPasswordConfigured, DEFAULT_SETTINGS.smtpPasswordConfigured),
+    smtpFromEmail: toStringValue(merged.smtpFromEmail, DEFAULT_SETTINGS.smtpFromEmail),
+    smtpFromName: toStringValue(merged.smtpFromName, DEFAULT_SETTINGS.smtpFromName),
   };
 };
-
-const buildSmtpPasswordHint = (form) =>
-  form.smtpPasswordConfigured === "true"
-    ? "Password SMTP sudah tersimpan. Kosongkan field ini jika tidak ingin mengganti secret."
-    : "Masukkan App Password Gmail 16 karakter untuk mulai mengaktifkan pengiriman email.";
 
 const normalizeBrandingSettings = (settings) => {
   const branding = settings?.storeSettings?.branding || settings?.branding || {};
@@ -247,95 +225,13 @@ const normalizeBrandingSettings = (settings) => {
   };
 };
 
-const inputClass =
-  "mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-700 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100";
-
-const textareaClass =
-  "mt-2 min-h-[120px] w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-700 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100";
-
-function Field({ label, hint, children }) {
-  return (
-    <label className="block">
-      <span className="text-sm font-semibold text-slate-700">{label}</span>
-      {children}
-      {hint ? <p className="mt-2 text-xs leading-5 text-slate-500">{hint}</p> : null}
-    </label>
-  );
-}
-
-function ToggleField({ label, value, onChange }) {
-  const activeYes = value === "true";
-  return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3.5">
-      <div className="text-sm font-semibold text-slate-700">{label}</div>
-      <div className="mt-3 grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-white p-1.5">
-        <button
-          type="button"
-          onClick={() => onChange("true")}
-          className={`h-9 rounded-lg border px-4 text-sm font-semibold transition ${
-            activeYes
-              ? "border-emerald-600 bg-emerald-600 text-white shadow-sm"
-              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-          }`}
-        >
-          Yes
-        </button>
-        <button
-          type="button"
-          onClick={() => onChange("false")}
-          className={`h-9 rounded-lg border px-4 text-sm font-semibold transition ${
-            activeYes
-              ? "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-              : "border-emerald-600 bg-emerald-600 text-white shadow-sm"
-          }`}
-        >
-          No
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function Section({ id, title, children }) {
-  return (
-    <section
-      id={id}
-      className="rounded-xl border border-slate-200 bg-white px-5 py-5 shadow-[0_1px_2px_rgba(15,23,42,0.05)] sm:px-6 sm:py-6"
-    >
-      <h2 className="text-[17px] font-semibold text-slate-800">{title}</h2>
-      <div className="mt-5 grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-        {children}
-      </div>
-    </section>
-  );
-}
-
-function SummaryCard({ label, value, helper, tone = "slate" }) {
-  const toneClass =
-    tone === "emerald"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-      : tone === "amber"
-        ? "border-amber-200 bg-amber-50 text-amber-700"
-        : "border-slate-200 bg-slate-50 text-slate-700";
-
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-      <div className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${toneClass}`}>
-        {label}
-      </div>
-      <p className="mt-3 text-xl font-semibold text-slate-900">{value}</p>
-      {helper ? <p className="mt-1 text-xs leading-5 text-slate-500">{helper}</p> : null}
-    </div>
-  );
-}
-
-function BrandingCard({
-  item,
-  logoUrl,
-  isUploading,
-  onFileChange,
-}) {
+/* ==========================================================================
+   BRANDING CARD COMPONENT
+   ========================================================================== */
+function BrandingCard({ item, logoUrl, isUploading, onFileChange, isId }) {
   const [imgError, setImgError] = useState(false);
+  const fileInputRef = useRef(null);
+
   useEffect(() => {
     setImgError(false);
   }, [logoUrl]);
@@ -354,76 +250,67 @@ function BrandingCard({
   const previewSrc = !imgError ? (primarySrc || canonicalFallback) : canonicalFallback;
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-      <div className="flex flex-col gap-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-slate-800">{item.label}</p>
-            {item.helper ? (
-              <p className="mt-1 text-xs leading-5 text-slate-500">{item.helper}</p>
-            ) : null}
-          </div>
-          <span
-            className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
-              hasCustomLogo && !imgError
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border-slate-200 bg-white text-slate-500"
-            }`}
-          >
-            {hasCustomLogo && !imgError ? "Custom" : "Fallback"}
-          </span>
-        </div>
+    <div className="sett-branding-card">
+      <div className="sett-branding-card-header">
+        <strong>{isId ? item.labelId : item.labelEn}</strong>
+        <span className={hasCustomLogo && !imgError ? "sett-pill-custom" : "sett-pill-fallback"}>
+          {hasCustomLogo && !imgError
+            ? (isId ? "Kustom" : "Custom")
+            : (isId ? "Bawaan" : "Fallback")}
+        </span>
+      </div>
 
-        <div
-          className={`flex items-center justify-center overflow-hidden border border-slate-200 bg-white ${
-            item.key === "client" ? "p-2 sm:p-2.5" : "p-3"
-          } ${item.previewClass}`}
+      <div className={`sett-branding-preview ${item.aspectClass}`}>
+        {previewSrc ? (
+          <img
+            src={previewSrc}
+            alt=""
+            onError={() => {
+              if (!imgError && primarySrc !== canonicalFallback) {
+                setImgError(true);
+              }
+            }}
+          />
+        ) : (
+          <ImageIcon size={28} color="#94a3b8" />
+        )}
+      </div>
+
+      <div className="sett-branding-footer">
+        <span className="sett-spec-chip">{item.spec}</span>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={BRANDING_ACCEPT}
+          style={{ display: "none" }}
+          disabled={isUploading}
+          onChange={(e) => onFileChange(item, e)}
+        />
+        <button
+          type="button"
+          className="sett-upload-btn"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading}
         >
-          {previewSrc ? (
-            <img
-              src={previewSrc}
-              alt={`${item.label} preview`}
-              onError={() => {
-                if (!imgError && primarySrc !== canonicalFallback) {
-                  setImgError(true);
-                }
-              }}
-              className={`h-full w-full ${item.previewImageClass || "object-contain"}`}
-            />
-          ) : (
-            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-              Fallback
-            </span>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <label className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border border-emerald-200 bg-white px-4 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50">
-            <input
-              type="file"
-              accept={BRANDING_ACCEPT}
-              className="sr-only"
-              disabled={isUploading}
-              onChange={(event) => onFileChange(item, event)}
-            />
-            {isUploading
-              ? "Uploading..."
-              : hasCustomLogo
-                ? item.assetType === "hero"
-                  ? "Replace Image"
-                  : "Replace Logo"
-                : item.assetType === "hero"
-                  ? "Upload Image"
-                  : "Upload Logo"}
-          </label>
-        </div>
+          <Upload size={12} />
+          {isUploading
+            ? (isId ? "Mengunggah..." : "Uploading...")
+            : (isId ? "Ganti Gambar" : "Replace Image")}
+        </button>
       </div>
     </div>
   );
 }
 
+/* ==========================================================================
+   MAIN GLOBAL SETTINGS COMPONENT
+   ========================================================================== */
 export default function Settings() {
+  const { t, i18n } = useTranslation(["admin", "common"]);
   const queryClient = useQueryClient();
+  const isId = Boolean(i18n.language?.toLowerCase().startsWith("id"));
+
+  const [activeTab, setActiveTab] = useState("branding");
   const [form, setForm] = useState(() => mapSettingsToForm());
   const [feedback, setFeedback] = useState(null);
   const [brandingFeedback, setBrandingFeedback] = useState(null);
@@ -457,7 +344,7 @@ export default function Settings() {
       setForm(mapSettingsToForm(data));
       setFeedback({
         type: "success",
-        message: "Settings updated successfully.",
+        message: isId ? "Pengaturan berhasil diperbarui." : "Settings updated successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["admin-settings"] });
     },
@@ -465,7 +352,7 @@ export default function Settings() {
       const message =
         error?.response?.data?.message ||
         error?.message ||
-        "Failed to update settings.";
+        (isId ? "Gagal memperbarui pengaturan." : "Failed to update settings.");
       setFeedback({ type: "error", message });
     },
   });
@@ -482,14 +369,11 @@ export default function Settings() {
       setCachedStoreBranding(nextBranding);
       setBrandingFeedback({
         type: "success",
-        message: "Workspace brand text updated successfully.",
+        message: isId ? "Nama brand workspace berhasil diperbarui." : "Workspace brand name updated successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["admin-store-settings"], exact: false });
       queryClient.invalidateQueries({ queryKey: ["store-settings", "public"], exact: false });
-      queryClient.invalidateQueries({
-        queryKey: ["store-settings", "public", "branding"],
-        exact: false,
-      });
+      queryClient.invalidateQueries({ queryKey: ["store-settings", "public", "branding"], exact: false });
     },
     onError: (error) => {
       setBrandingFeedback({
@@ -497,7 +381,7 @@ export default function Settings() {
         message:
           error?.response?.data?.message ||
           error?.message ||
-          "Failed to update workspace brand text.",
+          (isId ? "Gagal memperbarui nama brand." : "Failed to update brand name."),
       });
     },
   });
@@ -505,27 +389,12 @@ export default function Settings() {
   const isSaving = mutation.isPending;
   const isSavingBrandingText = brandingMutation.isPending;
 
-  const statusBoxClass = useMemo(() => {
-    if (!feedback) return "";
-    return feedback.type === "success"
-      ? "rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700"
-      : "rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700";
-  }, [feedback]);
-
-  const brandingStatusBoxClass = useMemo(() => {
-    if (!brandingFeedback) return "";
-    return brandingFeedback.type === "success"
-      ? "rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700"
-      : "rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700";
-  }, [brandingFeedback]);
-
   const branding = useMemo(
     () => normalizeBrandingSettings(brandingSettingsQuery.data),
     [brandingSettingsQuery.data]
   );
   const customBrandingCount = useMemo(
-    () =>
-      BRANDING_ITEMS.filter((item) => hasCustomBrandingLogo(branding[item.field])).length,
+    () => BRANDING_ITEMS.filter((item) => hasCustomBrandingLogo(branding[item.field])).length,
     [branding]
   );
   const smtpReady = normalizeBooleanString(form.smtpPasswordConfigured, "false") === "true";
@@ -542,14 +411,8 @@ export default function Settings() {
     setFeedback(null);
     mutation.mutate({
       ...form,
-      allowAutoTranslation: normalizeBooleanString(
-        form.allowAutoTranslation,
-        "false"
-      ),
-      invoiceEmailEnabled: normalizeBooleanString(
-        form.invoiceEmailEnabled,
-        "true"
-      ),
+      allowAutoTranslation: normalizeBooleanString(form.allowAutoTranslation, "false"),
+      invoiceEmailEnabled: normalizeBooleanString(form.invoiceEmailEnabled, "true"),
       smtpSecure: normalizeBooleanString(form.smtpSecure, "true"),
     });
   };
@@ -558,15 +421,13 @@ export default function Settings() {
     const input = event.target;
     const file = input?.files?.[0];
     input.value = "";
-
     if (!file) return;
 
     setBrandingFeedback(null);
-
     if (!String(file.type || "").startsWith("image/")) {
       setBrandingFeedback({
         type: "error",
-        message: `${item.label} must be an image file.`,
+        message: isId ? "Berkas harus berupa gambar." : `${item.labelEn} must be an image file.`,
       });
       return;
     }
@@ -574,7 +435,7 @@ export default function Settings() {
     if (Number(file.size || 0) > BRANDING_MAX_FILE_BYTES) {
       setBrandingFeedback({
         type: "error",
-        message: `${item.label} must be 5MB or smaller.`,
+        message: isId ? "Ukuran gambar maksimal 5MB." : `${item.labelEn} must be 5MB or smaller.`,
       });
       return;
     }
@@ -584,21 +445,18 @@ export default function Settings() {
       await brandingUploadMutation.mutateAsync({ target: item.key, file });
       setBrandingFeedback({
         type: "success",
-        message: `${item.label} updated successfully.`,
+        message: isId ? "Gambar berhasil diperbarui." : `${item.labelEn} updated successfully.`,
       });
       queryClient.invalidateQueries({ queryKey: ["admin-store-settings"], exact: false });
       queryClient.invalidateQueries({ queryKey: ["store-settings", "public"], exact: false });
-      queryClient.invalidateQueries({
-        queryKey: ["store-settings", "public", "branding"],
-        exact: false,
-      });
+      queryClient.invalidateQueries({ queryKey: ["store-settings", "public", "branding"], exact: false });
     } catch (error) {
       setBrandingFeedback({
         type: "error",
         message:
           error?.response?.data?.message ||
           error?.message ||
-          `Failed to upload ${item.label.toLowerCase()}.`,
+          (isId ? "Gagal mengunggah gambar." : `Failed to upload image.`),
       });
     } finally {
       setActiveBrandingTarget("");
@@ -621,8 +479,10 @@ export default function Settings() {
 
   if (settingsQuery.isLoading) {
     return (
-      <div className="mx-auto w-full max-w-[1120px] px-1 sm:px-2">
-        <AdminOpsLoadingState title="Loading global settings..." />
+      <div className="settings-page-2026">
+        <AdminOpsLoadingState
+          title={isId ? "Memuat pengaturan global..." : "Loading global settings..."}
+        />
       </div>
     );
   }
@@ -631,393 +491,648 @@ export default function Settings() {
     const message =
       settingsQuery.error?.response?.data?.message ||
       settingsQuery.error?.message ||
-      "Failed to load settings.";
+      (isId ? "Gagal memuat pengaturan." : "Failed to load settings.");
     return (
-      <div className="mx-auto w-full max-w-[1120px] px-1 sm:px-2">
+      <div className="settings-page-2026">
         <AdminOpsErrorState message={message} onRetry={() => settingsQuery.refetch()} />
       </div>
     );
   }
 
-  if (brandingSettingsQuery.isError) {
-    const message =
-      brandingSettingsQuery.error?.response?.data?.message ||
-      brandingSettingsQuery.error?.message ||
-      "Failed to load branding settings.";
-    return (
-      <div className="mx-auto w-full max-w-[1120px] px-1 sm:px-2">
-        <AdminOpsErrorState
-          message={message}
-          onRetry={() => brandingSettingsQuery.refetch()}
-        />
-      </div>
-    );
-  }
-
   return (
-    <div className="mx-auto w-full max-w-[1120px] px-1 sm:px-2">
-      <form className="space-y-5 pb-2" onSubmit={onSubmit}>
-        <AdminOpsPageHeader
-          title="Global Settings"
-          description="Brand, locale, receipt, and SMTP controls."
-          actions={
+    <div className="settings-page-2026">
+      <form onSubmit={onSubmit}>
+        {/* Header */}
+        <header className="sett-header">
+          <div>
+            <h1>{isId ? "Pengaturan Global" : "Global Settings"}</h1>
+            <p>
+              {isId
+                ? "Kelola identitas brand, wilayah, faktur, dan konfigurasi SMTP."
+                : "Brand identity, regional locale, invoice, and SMTP controls."}
+            </p>
+          </div>
+          <div className="sett-header__actions">
             <button
               type="submit"
               disabled={isSaving}
-              className="h-10 min-w-[110px] rounded-lg bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="sett-btn-primary"
             >
-              {isSaving ? "Updating..." : "Update"}
+              <Save size={15} />
+              {isSaving
+                ? (isId ? "Menyimpan..." : "Saving...")
+                : (isId ? "Simpan Pengaturan" : "Save Settings")}
             </button>
-          }
-        />
+          </div>
+        </header>
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <SummaryCard
-            label="Brand assets"
-            value={`${customBrandingCount}/${BRANDING_ITEMS.length}`}
-            helper="Custom logos and auth hero images."
-            tone={customBrandingCount === BRANDING_ITEMS.length ? "emerald" : "amber"}
-          />
-          <SummaryCard
-            label="Workspace"
-            value={branding.workspaceBrandName || DEFAULT_BRANDING_SETTINGS.workspaceBrandName}
-            helper="Visible in Admin and Seller shells."
-          />
-          <SummaryCard
-            label="SMTP"
-            value={smtpReady ? "Configured" : "Needs secret"}
-            helper="Used for OTP and operational email."
-            tone={smtpReady ? "emerald" : "amber"}
-          />
-        </div>
+        {/* KPI Metrics Summary */}
+        <section className="sett-metrics" aria-label="Settings Overview">
+          <div className="sett-metric sett-metric--navy">
+            <div className="sett-metric__icon">
+              <Sparkles size={22} />
+            </div>
+            <div className="sett-metric__body">
+              <span>{isId ? "Aset Brand" : "Brand Assets"}</span>
+              <strong>{customBrandingCount} / {BRANDING_ITEMS.length}</strong>
+              <small>{isId ? "Logo & banner terpasang" : "Custom logos & banners"}</small>
+            </div>
+          </div>
 
-        {feedback ? <div className={statusBoxClass}>{feedback.message}</div> : null}
+          <div className="sett-metric sett-metric--orange">
+            <div className="sett-metric__icon">
+              <Building2 size={22} />
+            </div>
+            <div className="sett-metric__body">
+              <span>{isId ? "Brand Workspace" : "Workspace Brand"}</span>
+              <strong>{branding.workspaceBrandName || DEFAULT_BRANDING_SETTINGS.workspaceBrandName}</strong>
+              <small>{isId ? "Tampil di sidebar Admin & Seller" : "Visible in Admin & Seller"}</small>
+            </div>
+          </div>
 
-        <Section id="branding-settings" title="Branding Settings">
-          <div className="lg:col-span-2">
-            <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
-                <div className="min-w-0 flex-1">
-                  <label className="block">
-                    <span className="text-sm font-semibold text-slate-700">
-                      Workspace Brand Text
-                    </span>
-                    <p className="mt-1 text-xs leading-5 text-slate-500">
-                      Nama brand ini tampil di sidebar Admin dan Seller.
-                    </p>
-                    <input
-                      type="text"
-                      value={brandingForm.workspaceBrandName}
-                      onChange={(event) =>
-                        setBrandingForm((prev) => ({
-                          ...prev,
-                          workspaceBrandName: event.target.value,
-                        }))
-                      }
-                      className={inputClass}
-                      placeholder="TP PRENEURS"
-                      maxLength={60}
-                    />
-                  </label>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleBrandingTextSubmit}
-                  disabled={isSavingBrandingText}
-                  className="h-10 min-w-[170px] rounded-lg bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isSavingBrandingText ? "Updating..." : "Update Brand Name"}
-                </button>
+          <div className="sett-metric sett-metric--teal">
+            <div className="sett-metric__icon">
+              <Server size={22} />
+            </div>
+            <div className="sett-metric__body">
+              <span>{isId ? "Layanan SMTP" : "SMTP Service"}</span>
+              <strong>
+                {smtpReady
+                  ? (isId ? "Terkonfigurasi" : "Configured")
+                  : (isId ? "Perlu Kunci" : "Needs Secret")}
+              </strong>
+              <small>{isId ? "OTP & email transaksi" : "OTP & transactional email"}</small>
+            </div>
+          </div>
+        </section>
+
+        {/* Feedback Notices */}
+        {feedback && (
+          <div
+            className={`sett-notice ${
+              feedback.type === "success" ? "sett-notice--success" : "sett-notice--error"
+            }`}
+          >
+            {feedback.type === "success" ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+            <span>{feedback.message}</span>
+          </div>
+        )}
+
+        {/* Tab Navigation */}
+        <nav className="sett-tabs" aria-label="Settings tabs">
+          <button
+            type="button"
+            className={`sett-tab-btn ${activeTab === "branding" ? "is-active" : ""}`}
+            onClick={() => setActiveTab("branding")}
+          >
+            <Sparkles size={14} />
+            {isId ? "Branding & Logo" : "Branding & Logos"}
+          </button>
+          <button
+            type="button"
+            className={`sett-tab-btn ${activeTab === "general" ? "is-active" : ""}`}
+            onClick={() => setActiveTab("general")}
+          >
+            <SettingsIcon size={14} />
+            {isId ? "Umum & Wilayah" : "General & Locale"}
+          </button>
+          <button
+            type="button"
+            className={`sett-tab-btn ${activeTab === "smtp" ? "is-active" : ""}`}
+            onClick={() => setActiveTab("smtp")}
+          >
+            <Server size={14} />
+            {isId ? "Akun Google SMTP" : "Google SMTP Account"}
+          </button>
+          <button
+            type="button"
+            className={`sett-tab-btn ${activeTab === "invoice" ? "is-active" : ""}`}
+            onClick={() => setActiveTab("invoice")}
+          >
+            <FileText size={14} />
+            {isId ? "Faktur & Perusahaan" : "Invoice & Company"}
+          </button>
+          <button
+            type="button"
+            className={`sett-tab-btn ${activeTab === "contact" ? "is-active" : ""}`}
+            onClick={() => setActiveTab("contact")}
+          >
+            <Phone size={14} />
+            {isId ? "Informasi Kontak" : "Contact Information"}
+          </button>
+        </nav>
+
+        {/* TAB 1: BRANDING SETTINGS */}
+        {activeTab === "branding" && (
+          <section className="sett-section-card">
+            <div className="sett-section-header">
+              <div>
+                <h2>
+                  <Sparkles size={18} color="var(--sett-accent)" />
+                  {isId ? "Pengaturan Identitas Brand" : "Branding & Identity Settings"}
+                </h2>
+                <p>
+                  {isId
+                    ? "Kelola nama brand sidebar dan aset visual logo di seluruh ekosistem."
+                    : "Manage sidebar brand title and ecosystem visual logos."}
+                </p>
               </div>
             </div>
-            <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-              Upload PNG, JPG, atau WEBP maksimal 5MB. Preview dan status asset diperbarui setelah upload berhasil.
-            </div>
-            {brandingFeedback ? (
-              <div className={`${brandingStatusBoxClass} mb-4`}>{brandingFeedback.message}</div>
-            ) : null}
-            {brandingSettingsQuery.isLoading ? (
-              <div className="rounded-xl border border-slate-200 bg-white px-4 py-5 text-sm text-slate-500">
-                Loading branding settings...
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                {BRANDING_ITEMS.map((item) => (
-                  <BrandingCard
-                    key={item.key}
-                    item={item}
-                    logoUrl={branding[item.field]}
-                    isUploading={activeBrandingTarget === item.key}
-                    onFileChange={handleBrandingFileChange}
+
+            {/* Workspace Brand Text Input */}
+            <div className="sett-branding-banner-box">
+              <div className="sett-branding-banner-input">
+                <div className="sett-field">
+                  <label>{isId ? "Nama Brand Workspace" : "Workspace Brand Text"}</label>
+                  <input
+                    type="text"
+                    value={brandingForm.workspaceBrandName}
+                    onChange={(e) =>
+                      setBrandingForm((prev) => ({
+                        ...prev,
+                        workspaceBrandName: e.target.value,
+                      }))
+                    }
+                    placeholder="TP PRENEURS"
+                    maxLength={60}
                   />
-                ))}
+                  <small>
+                    {isId
+                      ? "Tampil di header sidebar Admin dan Seller Workspace."
+                      : "Displayed in Admin and Seller Workspace sidebar header."}
+                  </small>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleBrandingTextSubmit}
+                disabled={isSavingBrandingText}
+                className="sett-branding-banner-btn"
+              >
+                <Save size={14} />
+                {isSavingBrandingText
+                  ? (isId ? "Menyimpan..." : "Updating...")
+                  : (isId ? "Perbarui Nama Brand" : "Update Brand Name")}
+              </button>
+            </div>
+
+            {brandingFeedback && (
+              <div
+                className={`sett-notice ${
+                  brandingFeedback.type === "success"
+                    ? "sett-notice--success"
+                    : "sett-notice--error"
+                }`}
+              >
+                {brandingFeedback.type === "success" ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                <span>{brandingFeedback.message}</span>
               </div>
             )}
+
+            {/* Branding Logo & Hero Cards Grid */}
+            <div className="sett-branding-grid">
+              {BRANDING_ITEMS.map((item) => (
+                <BrandingCard
+                  key={item.key}
+                  item={item}
+                  logoUrl={branding[item.field]}
+                  isUploading={activeBrandingTarget === item.key}
+                  onFileChange={handleBrandingFileChange}
+                  isId={isId}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* TAB 2: GENERAL SETTINGS */}
+        {activeTab === "general" && (
+          <section className="sett-section-card">
+            <div className="sett-section-header">
+              <div>
+                <h2>
+                  <SettingsIcon size={18} color="var(--sett-primary)" />
+                  {isId ? "Pengaturan Umum & Wilayah" : "General & Regional Settings"}
+                </h2>
+                <p>
+                  {isId
+                    ? "Konfigurasi kuota foto produk, bahasa default, mata uang, zona waktu, dan format cetak struk."
+                    : "Configure product image quota, default locale, currency, timezone, and receipt size."}
+                </p>
+              </div>
+            </div>
+
+            <div className="sett-form-grid">
+              <div className="sett-field">
+                <label>{isId ? "Jumlah Foto per Produk" : "Number of Images per Product"}</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={form.imagesPerProduct}
+                  onChange={(e) => onInputChange("imagesPerProduct", e.target.value)}
+                />
+                <small>
+                  {isId
+                    ? "Batas maksimal upload foto pada halaman kelola produk Admin & Seller."
+                    : "Maximum image upload limit on Admin & Seller product management forms."}
+                </small>
+              </div>
+
+              <div className="sett-field">
+                <label>{isId ? "Bahasa Bawaan (Default)" : "Default Language"}</label>
+                <select
+                  value={form.defaultLanguage}
+                  onChange={(e) => onInputChange("defaultLanguage", e.target.value)}
+                >
+                  {LANGUAGE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {isId ? opt.labelId : opt.labelEn}
+                    </option>
+                  ))}
+                </select>
+                <small>{isId ? "Bahasa awal saat pengunjung pertama kali membuka web." : "Initial language for new visitors."}</small>
+              </div>
+
+              <div className="sett-toggle-box">
+                <span>{isId ? "Terjemahan Otomatis" : "Allow Auto Translation"}</span>
+                <div className="sett-toggle-segmented">
+                  <button
+                    type="button"
+                    className={`sett-toggle-btn ${form.allowAutoTranslation === "true" ? "is-active" : ""}`}
+                    onClick={() => onInputChange("allowAutoTranslation", "true")}
+                  >
+                    {isId ? "Aktif (Yes)" : "Yes"}
+                  </button>
+                  <button
+                    type="button"
+                    className={`sett-toggle-btn ${form.allowAutoTranslation === "false" ? "is-active" : ""}`}
+                    onClick={() => onInputChange("allowAutoTranslation", "false")}
+                  >
+                    {isId ? "Nonaktif (No)" : "No"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="sett-field">
+                <label>{isId ? "Mata Uang Bawaan (Default)" : "Default Currency"}</label>
+                <select
+                  value={form.defaultCurrency}
+                  onChange={(e) => onInputChange("defaultCurrency", e.target.value)}
+                >
+                  {CURRENCY_OPTIONS.map((curr) => (
+                    <option key={curr} value={curr}>
+                      {curr}
+                    </option>
+                  ))}
+                </select>
+                <small>{isId ? "Format kurs dasar pada katalog dan pesanan." : "Base currency format on catalog and checkout."}</small>
+              </div>
+
+              <div className="sett-field">
+                <label>{isId ? "Zona Waktu (Timezone)" : "Default Time Zone"}</label>
+                <select
+                  value={form.defaultTimeZone}
+                  onChange={(e) => onInputChange("defaultTimeZone", e.target.value)}
+                >
+                  {TIME_ZONE_OPTIONS.map((tz) => (
+                    <option key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </option>
+                  ))}
+                </select>
+                <small>{isId ? "Digunakan untuk timestamp dan laporan transaksi harian." : "Used for transaction timestamps and reporting boundaries."}</small>
+              </div>
+
+              <div className="sett-field">
+                <label>{isId ? "Format Tanggal" : "Default Date Format"}</label>
+                <select
+                  value={form.defaultDateFormat}
+                  onChange={(e) => onInputChange("defaultDateFormat", e.target.value)}
+                >
+                  {DATE_FORMAT_OPTIONS.map((df) => (
+                    <option key={df} value={df}>
+                      {df}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="sett-field sett-col-full">
+                <label>{isId ? "Lebar Kertas Struk / Resi (Thermal POS)" : "Receipt Size (Thermal POS Width)"}</label>
+                <select
+                  value={form.receiptWidth}
+                  onChange={(e) => onInputChange("receiptWidth", e.target.value)}
+                >
+                  {RECEIPT_WIDTH_OPTIONS.map((rw) => (
+                    <option key={rw.value} value={rw.value}>
+                      {isId ? rw.labelId : rw.labelEn}
+                    </option>
+                  ))}
+                </select>
+                <small>{isId ? "Menentukan lebar cetak printer struk kasir atau label ekspedisi." : "Determines printing format for thermal POS receipts and courier slips."}</small>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* TAB 3: GOOGLE SMTP ACCOUNT */}
+        {activeTab === "smtp" && (
+          <section className="sett-section-card">
+            <div className="sett-section-header">
+              <div>
+                <h2>
+                  <Server size={18} color="var(--sett-primary)" />
+                  {isId ? "Konfigurasi Akun Google / Hostinger SMTP" : "Google / Hostinger SMTP Account"}
+                </h2>
+                <p>
+                  {isId
+                    ? "Digunakan untuk pengiriman OTP verifikasi registrasi akun, reset password, dan notifikasi pesanan."
+                    : "Used for account OTP verification, password resets, and operational email notifications."}
+                </p>
+              </div>
+            </div>
+
+            <div className="sett-form-grid">
+              <div className="sett-field">
+                <label>{isId ? "Penyedia (Provider)" : "Provider"}</label>
+                <input
+                  type="text"
+                  value={form.smtpProvider}
+                  onChange={(e) => onInputChange("smtpProvider", e.target.value)}
+                  placeholder="Hostinger / Google"
+                />
+              </div>
+
+              <div className="sett-toggle-box">
+                <span>{isId ? "Gunakan SMTP Aman (SSL/TLS)" : "Use Secure SMTP"}</span>
+                <div className="sett-toggle-segmented">
+                  <button
+                    type="button"
+                    className={`sett-toggle-btn ${form.smtpSecure === "true" ? "is-active" : ""}`}
+                    onClick={() => onInputChange("smtpSecure", "true")}
+                  >
+                    {isId ? "Ya (Yes)" : "Yes"}
+                  </button>
+                  <button
+                    type="button"
+                    className={`sett-toggle-btn ${form.smtpSecure === "false" ? "is-active" : ""}`}
+                    onClick={() => onInputChange("smtpSecure", "false")}
+                  >
+                    {isId ? "Tidak (No)" : "No"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="sett-field">
+                <label>SMTP Host</label>
+                <input
+                  type="text"
+                  value={form.smtpHost}
+                  onChange={(e) => onInputChange("smtpHost", e.target.value)}
+                  placeholder="smtp.hostinger.com"
+                />
+              </div>
+
+              <div className="sett-field">
+                <label>SMTP Port</label>
+                <input
+                  type="number"
+                  value={form.smtpPort}
+                  onChange={(e) => onInputChange("smtpPort", e.target.value)}
+                  placeholder="465"
+                />
+              </div>
+
+              <div className="sett-field">
+                <label>{isId ? "Username SMTP / Email" : "SMTP Username / Email"}</label>
+                <input
+                  type="email"
+                  value={form.smtpUser}
+                  onChange={(e) => onInputChange("smtpUser", e.target.value)}
+                  placeholder="noreply@tppreneurs.com"
+                />
+              </div>
+
+              <div className="sett-field">
+                <label>{isId ? "Password / App Password" : "SMTP Password"}</label>
+                <input
+                  type="password"
+                  value={form.smtpPassword}
+                  onChange={(e) => onInputChange("smtpPassword", e.target.value)}
+                  placeholder={
+                    form.smtpPasswordConfigured === "true"
+                      ? (isId ? "•••••••••••• (Tersimpan - Kosongkan jika tidak diganti)" : "•••••••••••• (Configured - Leave empty to keep)")
+                      : (isId ? "Masukkan password SMTP" : "Enter SMTP secret")
+                  }
+                />
+                <small>
+                  {form.smtpPasswordConfigured === "true"
+                    ? (isId ? "Password sudah tersimpan aman di server." : "Password already stored securely in database.")
+                    : (isId ? "Masukkan App Password untuk mulai mengaktifkan kirim email." : "Enter App Password to enable email dispatch.")}
+                </small>
+              </div>
+
+              <div className="sett-field">
+                <label>{isId ? "Email Pengirim (From Email)" : "From Email"}</label>
+                <input
+                  type="email"
+                  value={form.smtpFromEmail}
+                  onChange={(e) => onInputChange("smtpFromEmail", e.target.value)}
+                  placeholder="noreply@tppreneurs.com"
+                />
+              </div>
+
+              <div className="sett-field">
+                <label>{isId ? "Nama Pengirim (From Name)" : "From Name"}</label>
+                <input
+                  type="text"
+                  value={form.smtpFromName}
+                  onChange={(e) => onInputChange("smtpFromName", e.target.value)}
+                  placeholder="TP PRENEURS"
+                />
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* TAB 4: INVOICE & COMPANY INFORMATION */}
+        {activeTab === "invoice" && (
+          <section className="sett-section-card">
+            <div className="sett-section-header">
+              <div>
+                <h2>
+                  <FileText size={18} color="var(--sett-primary)" />
+                  {isId ? "Pengaturan Faktur & Perusahaan" : "Invoice & Company Settings"}
+                </h2>
+                <p>
+                  {isId
+                    ? "Tampil di kop faktur pesanan pembeli (cetak PDF) dan email bukti pembelian."
+                    : "Appears on order invoice headers (printable PDF) and purchase receipts."}
+                </p>
+              </div>
+            </div>
+
+            <div className="sett-form-grid">
+              <div className="sett-toggle-box">
+                <span>{isId ? "Kirim Faktur Otomatis ke Email Pembeli" : "Enable Invoice Send to Customer by Email"}</span>
+                <div className="sett-toggle-segmented">
+                  <button
+                    type="button"
+                    className={`sett-toggle-btn ${form.invoiceEmailEnabled === "true" ? "is-active" : ""}`}
+                    onClick={() => onInputChange("invoiceEmailEnabled", "true")}
+                  >
+                    {isId ? "Ya (Yes)" : "Yes"}
+                  </button>
+                  <button
+                    type="button"
+                    className={`sett-toggle-btn ${form.invoiceEmailEnabled === "false" ? "is-active" : ""}`}
+                    onClick={() => onInputChange("invoiceEmailEnabled", "false")}
+                  >
+                    {isId ? "Tidak (No)" : "No"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="sett-field">
+                <label>{isId ? "Email Pengirim Faktur" : "Invoice From Email"}</label>
+                <input
+                  type="email"
+                  value={form.invoiceFromEmail}
+                  onChange={(e) => onInputChange("invoiceFromEmail", e.target.value)}
+                  placeholder="noreply@tppreneurs.com"
+                />
+              </div>
+
+              {/* Company Details */}
+              <div className="sett-field">
+                <label>{isId ? "Nama Pengirim Faktur (Company/Sender Name)" : "Invoice Sender / Company Name"}</label>
+                <input
+                  type="text"
+                  value={form.companyFromName}
+                  onChange={(e) => onInputChange("companyFromName", e.target.value)}
+                  placeholder="TP PRENEURS"
+                />
+              </div>
+
+              <div className="sett-field">
+                <label>{isId ? "Nama Badan Usaha / Perusahaan" : "Official Company Name"}</label>
+                <input
+                  type="text"
+                  value={form.companyName}
+                  onChange={(e) => onInputChange("companyName", e.target.value)}
+                  placeholder="TP Preneurs Indonesia"
+                />
+              </div>
+
+              <div className="sett-field">
+                <label>{isId ? "Nomor NPWP / Pajak (VAT Number)" : "VAT / Tax Number"}</label>
+                <input
+                  type="text"
+                  value={form.vatNumber}
+                  onChange={(e) => onInputChange("vatNumber", e.target.value)}
+                  placeholder="47589"
+                />
+              </div>
+
+              <div className="sett-field">
+                <label>{isId ? "Kode Pos Kantor" : "Postal Code"}</label>
+                <input
+                  type="text"
+                  value={form.postCode}
+                  onChange={(e) => onInputChange("postCode", e.target.value)}
+                  placeholder="90222"
+                />
+              </div>
+
+              <div className="sett-field sett-col-full">
+                <label>{isId ? "Alamat Lengkap Perusahaan" : "Official Company Address"}</label>
+                <textarea
+                  rows={3}
+                  value={form.companyAddress}
+                  onChange={(e) => onInputChange("companyAddress", e.target.value)}
+                  placeholder={isId ? "Alamat lengkap kantor resmi..." : "Full company registered address..."}
+                />
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* TAB 5: CONTACT INFORMATION */}
+        {activeTab === "contact" && (
+          <section className="sett-section-card">
+            <div className="sett-section-header">
+              <div>
+                <h2>
+                  <Phone size={18} color="var(--sett-accent)" />
+                  {isId ? "Informasi Kontak & Layanan Bantuan" : "Contact & Support Information"}
+                </h2>
+                <p>
+                  {isId
+                    ? "Tampil pada footer seluruh halaman toko (Storefront), top info bar, dan halaman Hubungi Kami."
+                    : "Displayed on the storefront footer, top info bar, and Contact Us page."}
+                </p>
+              </div>
+            </div>
+
+            <div className="sett-form-grid">
+              <div className="sett-field">
+                <label>{isId ? "Nomor Telepon / Hotline CS" : "Customer Support Phone / Hotline"}</label>
+                <input
+                  type="text"
+                  value={form.contactPhone}
+                  onChange={(e) => onInputChange("contactPhone", e.target.value)}
+                  placeholder="+62 821-8866-824"
+                />
+                <small>{isId ? "Tampil pada header Customer Support & Hub toko." : "Visible on top Customer Support & Hub bar."}</small>
+              </div>
+
+              <div className="sett-field">
+                <label>{isId ? "Email Layanan Bantuan" : "Support Email"}</label>
+                <input
+                  type="email"
+                  value={form.contactEmail}
+                  onChange={(e) => onInputChange("contactEmail", e.target.value)}
+                  placeholder="tppreneurs@gmail.com"
+                />
+                <small>{isId ? "Email resmi untuk pertanyaan pembeli dan seller." : "Official email for buyer and seller inquiries."}</small>
+              </div>
+
+              <div className="sett-field sett-col-full">
+                <label>{isId ? "Tautan Website Resmi" : "Official Website URL"}</label>
+                <input
+                  type="text"
+                  value={form.website}
+                  onChange={(e) => onInputChange("website", e.target.value)}
+                  placeholder="tppreneurs.com"
+                />
+                <small>{isId ? "Domain utama website toko." : "Primary marketplace web domain."}</small>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Sticky Bottom Save Bar */}
+        <div className="sett-sticky-bar">
+          <div className="sett-sticky-info">
+            <SettingsIcon size={16} />
+            <span>
+              {isId
+                ? "Simpan perubahan untuk menerapkan ke seluruh sistem."
+                : "Save changes to apply across all storefront and workspace systems."}
+            </span>
           </div>
-        </Section>
-
-        <Section id="general-settings" title="General Settings">
-          <Field label="Number of images per product">
-            <input
-              type="number"
-              min="1"
-              className={inputClass}
-              value={form.imagesPerProduct}
-              onChange={(event) =>
-                onInputChange("imagesPerProduct", event.target.value)
-              }
-            />
-          </Field>
-
-          <Field label="Default language">
-            <select
-              className={inputClass}
-              value={form.defaultLanguage}
-              onChange={(event) => onInputChange("defaultLanguage", event.target.value)}
-            >
-              {LANGUAGE_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </Field>
-
-          <ToggleField
-            label="Allow Auto Translation"
-            value={form.allowAutoTranslation}
-            onChange={(value) => onInputChange("allowAutoTranslation", value)}
-          />
-
-          <Field label="Default currency">
-            <select
-              className={inputClass}
-              value={form.defaultCurrency}
-              onChange={(event) => onInputChange("defaultCurrency", event.target.value)}
-            >
-              {CURRENCY_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </Field>
-
-          <Field label="Default time zone">
-            <select
-              className={inputClass}
-              value={form.defaultTimeZone}
-              onChange={(event) => onInputChange("defaultTimeZone", event.target.value)}
-            >
-              {TIME_ZONE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-
-          <Field label="Default Date Format">
-            <select
-              className={inputClass}
-              value={form.defaultDateFormat}
-              onChange={(event) => onInputChange("defaultDateFormat", event.target.value)}
-            >
-              {DATE_FORMAT_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </Field>
-
-          <Field label="Receipt size (width)">
-            <select
-              className={inputClass}
-              value={form.receiptWidth}
-              onChange={(event) => onInputChange("receiptWidth", event.target.value)}
-            >
-              {RECEIPT_WIDTH_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </Field>
-        </Section>
-
-        <Section id="smtp-settings" title="Google SMTP Account">
-          <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
-            Backend memakai SMTP untuk OTP dan email operasional. Biarkan password kosong untuk mempertahankan secret tersimpan.
-          </div>
-
-          <Field label="Provider">
-            <input
-              type="text"
-              className={inputClass}
-              value={form.smtpProvider}
-              onChange={(event) => onInputChange("smtpProvider", event.target.value)}
-              placeholder="google"
-            />
-          </Field>
-
-          <ToggleField
-            label="Use Secure SMTP"
-            value={form.smtpSecure}
-            onChange={(value) => onInputChange("smtpSecure", value)}
-          />
-
-          <Field label="SMTP Host">
-            <input
-              type="text"
-              className={inputClass}
-              value={form.smtpHost}
-              onChange={(event) => onInputChange("smtpHost", event.target.value)}
-              placeholder="smtp.gmail.com"
-            />
-          </Field>
-
-          <Field label="SMTP Port">
-            <input
-              type="number"
-              min="1"
-              className={inputClass}
-              value={form.smtpPort}
-              onChange={(event) => onInputChange("smtpPort", event.target.value)}
-              placeholder="465"
-            />
-          </Field>
-
-          <Field label="SMTP Username / Gmail">
-            <input
-              type="email"
-              className={inputClass}
-              value={form.smtpUser}
-              onChange={(event) => onInputChange("smtpUser", event.target.value)}
-              placeholder="your_gmail@gmail.com"
-            />
-          </Field>
-
-          <Field label="SMTP Password" hint={buildSmtpPasswordHint(form)}>
-            <input
-              type="password"
-              className={inputClass}
-              value={form.smtpPassword}
-              onChange={(event) => onInputChange("smtpPassword", event.target.value)}
-              placeholder="App Password Gmail"
-            />
-          </Field>
-
-          <Field label="From Email">
-            <input
-              type="email"
-              className={inputClass}
-              value={form.smtpFromEmail}
-              onChange={(event) => onInputChange("smtpFromEmail", event.target.value)}
-              placeholder="your_gmail@gmail.com"
-            />
-          </Field>
-
-          <Field label="From Name">
-            <input
-              type="text"
-              className={inputClass}
-              value={form.smtpFromName}
-              onChange={(event) => onInputChange("smtpFromName", event.target.value)}
-              placeholder="TP PRENEURS"
-            />
-          </Field>
-        </Section>
-
-        <Section id="invoice-settings" title="Invoice Settings">
-          <ToggleField
-            label="Enable invoice send to customer by email"
-            value={form.invoiceEmailEnabled}
-            onChange={(value) => onInputChange("invoiceEmailEnabled", value)}
-          />
-          <Field label="From Email">
-            <input
-              type="email"
-              className={inputClass}
-              value={form.invoiceFromEmail}
-              onChange={(event) => onInputChange("invoiceFromEmail", event.target.value)}
-            />
-          </Field>
-        </Section>
-
-        <Section id="company-information" title="Company Information">
-          <Field label="From Email">
-            <input
-              type="text"
-              className={inputClass}
-              value={form.companyFromName}
-              onChange={(event) => onInputChange("companyFromName", event.target.value)}
-            />
-          </Field>
-          <Field label="Company Name">
-            <input
-              type="text"
-              className={inputClass}
-              value={form.companyName}
-              onChange={(event) => onInputChange("companyName", event.target.value)}
-            />
-          </Field>
-          <Field label="Vat Number">
-            <input
-              type="text"
-              className={inputClass}
-              value={form.vatNumber}
-              onChange={(event) => onInputChange("vatNumber", event.target.value)}
-            />
-          </Field>
-          <Field label="Post Code">
-            <input
-              type="text"
-              className={inputClass}
-              value={form.postCode}
-              onChange={(event) => onInputChange("postCode", event.target.value)}
-            />
-          </Field>
-          <div className="lg:col-span-2">
-            <Field label="Address">
-              <textarea
-                rows="4"
-                className={textareaClass}
-                value={form.companyAddress}
-                onChange={(event) => onInputChange("companyAddress", event.target.value)}
-              />
-            </Field>
-          </div>
-        </Section>
-
-        <Section id="contact-information" title="Contact Information">
-          <Field label="Contact">
-            <input
-              type="text"
-              className={inputClass}
-              value={form.contactPhone}
-              onChange={(event) => onInputChange("contactPhone", event.target.value)}
-            />
-          </Field>
-          <Field label="Email">
-            <input
-              type="email"
-              className={inputClass}
-              value={form.contactEmail}
-              onChange={(event) => onInputChange("contactEmail", event.target.value)}
-            />
-          </Field>
-          <div className="lg:col-span-2">
-            <Field label="Web site">
-              <input
-                type="text"
-                className={inputClass}
-                value={form.website}
-                onChange={(event) => onInputChange("website", event.target.value)}
-              />
-            </Field>
-          </div>
-        </Section>
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="sett-btn-primary"
+          >
+            <Save size={15} />
+            {isSaving
+              ? (isId ? "Menyimpan Perubahan..." : "Saving Changes...")
+              : (isId ? "Simpan Semua Pengaturan" : "Save All Settings")}
+          </button>
+        </div>
       </form>
     </div>
   );

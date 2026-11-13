@@ -1,0 +1,714 @@
+/* Global Settings 2026 Modern Stylesheet */
+/* Brand Colors: Primary Navy #034c85 | Accent Orange #fe6f05 */
+
+.settings-page-2026 {
+  --sett-primary: #034c85;
+  --sett-primary-hover: #023864;
+  --sett-primary-soft: rgba(3, 76, 133, 0.12);
+  --sett-accent: #fe6f05;
+  --sett-accent-hover: #e05e00;
+  --sett-accent-soft: rgba(254, 111, 5, 0.14);
+
+  --sett-bg-card: #ffffff;
+  --sett-bg-subpanel: #f8fafc;
+  --sett-border: #e2e8f0;
+  --sett-border-subtle: #cbd5e1;
+  --sett-text-title: #071a3f;
+  --sett-text-body: #334155;
+  --sett-text-muted: #64748b;
+
+  --sett-radius-sm: 8px;
+  --sett-radius-md: 12px;
+  --sett-radius-lg: 16px;
+  --sett-shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
+  --sett-shadow-md: 0 10px 25px rgba(15, 23, 42, 0.08);
+
+  width: 100%;
+  max-width: 1140px;
+  margin: 0 auto;
+  color: var(--sett-text-body);
+}
+
+.settings-page-2026 *,
+.settings-page-2026 *::before,
+.settings-page-2026 *::after {
+  box-sizing: border-box;
+}
+
+.settings-page-2026 button,
+.settings-page-2026 input,
+.settings-page-2026 select,
+.settings-page-2026 textarea {
+  font: inherit;
+}
+
+/* ==========================================================================
+   HEADER SECTION
+   ========================================================================== */
+.sett-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.sett-header h1 {
+  margin: 0;
+  color: var(--sett-text-title);
+  font-size: 22px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+
+.sett-header p {
+  margin: 4px 0 0;
+  color: var(--sett-text-muted);
+  font-size: 13px;
+}
+
+.sett-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sett-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 20px;
+  border-radius: var(--sett-radius-sm);
+  border: 1px solid transparent;
+  background: var(--sett-primary);
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 650;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(3, 76, 133, 0.25);
+  transition: all 160ms ease;
+}
+
+.sett-btn-primary:hover:not(:disabled) {
+  background: var(--sett-accent);
+  box-shadow: 0 6px 16px rgba(254, 111, 5, 0.35);
+  transform: translateY(-1px);
+}
+
+.sett-btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ==========================================================================
+   KPI SUMMARY CARDS
+   ========================================================================== */
+.sett-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.sett-metric {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: var(--sett-radius-md);
+  border: 1px solid var(--sett-border);
+  background: var(--sett-bg-card);
+  box-shadow: var(--sett-shadow-sm);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.sett-metric:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sett-shadow-md);
+}
+
+.sett-metric__icon {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+}
+
+.sett-metric--navy .sett-metric__icon {
+  background: var(--sett-primary-soft);
+  color: var(--sett-primary);
+}
+
+.sett-metric--orange .sett-metric__icon {
+  background: var(--sett-accent-soft);
+  color: var(--sett-accent);
+}
+
+.sett-metric--teal .sett-metric__icon {
+  background: rgba(14, 165, 233, 0.12);
+  color: #0284c7;
+}
+
+.sett-metric__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sett-metric__body span {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--sett-text-muted);
+}
+
+.sett-metric__body strong {
+  margin-top: 3px;
+  font-size: 18px;
+  font-weight: 750;
+  color: var(--sett-text-title);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sett-metric__body small {
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--sett-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ==========================================================================
+   STATUS NOTICES / TOASTS
+   ========================================================================== */
+.sett-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: var(--sett-radius-sm);
+  font-size: 13px;
+  font-weight: 550;
+  margin-bottom: 20px;
+  animation: settFadeIn 180ms ease-out;
+}
+
+@keyframes settFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.sett-notice--success {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #059669;
+}
+
+.sett-notice--error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #dc2626;
+}
+
+/* ==========================================================================
+   SEGMENTED NAVIGATION TABS
+   ========================================================================== */
+.sett-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 22px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.sett-tabs::-webkit-scrollbar {
+  height: 4px;
+}
+
+.sett-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 15px;
+  border-radius: var(--sett-radius-sm);
+  border: 1px solid var(--sett-border);
+  background: var(--sett-bg-card);
+  color: var(--sett-text-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 160ms ease;
+}
+
+.sett-tab-btn:hover {
+  border-color: var(--sett-primary);
+  color: var(--sett-primary);
+}
+
+.sett-tab-btn.is-active {
+  background: var(--sett-primary);
+  border-color: var(--sett-primary);
+  color: #ffffff;
+  box-shadow: 0 3px 10px rgba(3, 76, 133, 0.22);
+}
+
+/* ==========================================================================
+   CARD SECTIONS
+   ========================================================================== */
+.sett-section-card {
+  border-radius: var(--sett-radius-lg);
+  border: 1px solid var(--sett-border);
+  background: var(--sett-bg-card);
+  box-shadow: var(--sett-shadow-sm);
+  padding: 22px;
+  margin-bottom: 22px;
+}
+
+.sett-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--sett-border);
+}
+
+.sett-section-header h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--sett-text-title);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sett-section-header p {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: var(--sett-text-muted);
+}
+
+/* Grid & Form Fields */
+.sett-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 16px;
+}
+
+.sett-col-full {
+  grid-column: 1 / -1;
+}
+
+.sett-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sett-field label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--sett-text-muted);
+}
+
+.sett-field input,
+.sett-field select,
+.sett-field textarea {
+  width: 100%;
+  height: 42px;
+  padding: 0 13px;
+  border-radius: var(--sett-radius-sm);
+  border: 1px solid var(--sett-border);
+  background: var(--sett-bg-card);
+  color: var(--sett-text-title);
+  font-size: 13.5px;
+  outline: none;
+  transition: all 140ms ease;
+}
+
+.sett-field textarea {
+  height: auto;
+  min-height: 90px;
+  padding: 10px 13px;
+  line-height: 1.5;
+}
+
+.sett-field input:focus,
+.sett-field select:focus,
+.sett-field textarea:focus {
+  border-color: var(--sett-primary);
+  box-shadow: 0 0 0 3px rgba(3, 76, 133, 0.12);
+}
+
+.sett-field small {
+  font-size: 11.5px;
+  color: var(--sett-text-muted);
+  line-height: 1.4;
+}
+
+/* ==========================================================================
+   BRANDED TOGGLE BUTTONS (NO HARSH GREEN)
+   ========================================================================== */
+.sett-toggle-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--sett-radius-sm);
+  border: 1px solid var(--sett-border);
+  background: var(--sett-bg-subpanel);
+}
+
+.sett-toggle-box span {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--sett-text-muted);
+}
+
+.sett-toggle-segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  background: var(--sett-bg-card);
+  border: 1px solid var(--sett-border);
+  border-radius: var(--sett-radius-sm);
+  padding: 3px;
+}
+
+.sett-toggle-btn {
+  height: 32px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--sett-text-muted);
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.sett-toggle-btn.is-active {
+  background: var(--sett-primary);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(3, 76, 133, 0.25);
+}
+
+/* ==========================================================================
+   BRANDING ASSET CARDS
+   ========================================================================== */
+.sett-branding-banner-box {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  padding: 16px;
+  border-radius: var(--sett-radius-md);
+  border: 1px solid var(--sett-border);
+  background: var(--sett-bg-subpanel);
+  margin-bottom: 20px;
+}
+
+.sett-branding-banner-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.sett-branding-banner-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 42px;
+  padding: 0 18px;
+  border-radius: var(--sett-radius-sm);
+  border: 1px solid transparent;
+  background: var(--sett-primary);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 3px 10px rgba(3, 76, 133, 0.22);
+  transition: all 160ms ease;
+}
+
+.sett-branding-banner-btn:hover:not(:disabled) {
+  background: var(--sett-accent);
+}
+
+.sett-branding-banner-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.sett-branding-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.sett-branding-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--sett-radius-md);
+  border: 1px solid var(--sett-border);
+  background: var(--sett-bg-subpanel);
+}
+
+.sett-branding-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sett-branding-card-header strong {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--sett-text-title);
+}
+
+.sett-pill-custom {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--sett-primary-soft);
+  color: var(--sett-primary);
+  border: 1px solid rgba(3, 76, 133, 0.25);
+}
+
+.sett-pill-fallback {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.16);
+  color: var(--sett-text-muted);
+}
+
+.sett-branding-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--sett-radius-sm);
+  border: 1px solid var(--sett-border);
+  background: #ffffff;
+  overflow: hidden;
+  padding: 10px;
+}
+
+.sett-preview-client {
+  aspect-ratio: 3.4 / 1;
+}
+
+.sett-preview-square {
+  aspect-ratio: 1 / 1;
+}
+
+.sett-preview-hero {
+  aspect-ratio: 4 / 5;
+  padding: 0;
+}
+
+.sett-branding-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.sett-preview-hero img {
+  object-fit: cover;
+}
+
+.sett-branding-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.sett-spec-chip {
+  font-size: 11px;
+  color: var(--sett-text-muted);
+  font-weight: 500;
+}
+
+.sett-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--sett-radius-sm);
+  border: 1px solid var(--sett-border);
+  background: var(--sett-bg-card);
+  color: var(--sett-primary);
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.sett-upload-btn:hover {
+  border-color: var(--sett-primary);
+  background: var(--sett-primary-soft);
+}
+
+/* ==========================================================================
+   STICKY BOTTOM SAVE BAR
+   ========================================================================== */
+.sett-sticky-bar {
+  position: sticky;
+  bottom: 16px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-radius: var(--sett-radius-md);
+  background: var(--sett-bg-card);
+  border: 1px solid var(--sett-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  margin-top: 24px;
+}
+
+.sett-sticky-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--sett-text-muted);
+}
+
+/* ==========================================================================
+   DARK THEME OVERRIDES
+   ========================================================================== */
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .settings-page-2026 {
+  --sett-bg-card: #0b1523;
+  --sett-bg-subpanel: #070d18;
+  --sett-border: #1e3552;
+  --sett-border-subtle: #2b4566;
+  --sett-text-title: #f1f5f9;
+  --sett-text-body: #cbd5e1;
+  --sett-text-muted: #94a3b8;
+  --sett-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --sett-shadow-md: 0 10px 25px rgba(0, 0, 0, 0.45);
+}
+
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .sett-field input,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .sett-field select,
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .sett-field textarea {
+  background: #070d18;
+  border-color: #1e3552;
+  color: #f1f5f9;
+}
+
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .sett-tab-btn {
+  background: #0d1b2c;
+  border-color: #1e3552;
+  color: #cbd5e1;
+}
+
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .sett-tab-btn.is-active {
+  background: var(--sett-primary);
+  border-color: var(--sett-primary);
+  color: #ffffff;
+}
+
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .sett-branding-preview {
+  background: #070d18;
+  border-color: #1e3552;
+}
+
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .sett-upload-btn {
+  background: #0d1b2c;
+  border-color: #1e3552;
+  color: #93c5fd;
+}
+
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .sett-upload-btn:hover {
+  background: rgba(3, 76, 133, 0.3);
+  border-color: var(--sett-primary);
+}
+
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .sett-toggle-segmented {
+  background: #070d18;
+  border-color: #1e3552;
+}
+
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .sett-toggle-btn.is-active {
+  background: var(--sett-primary);
+  color: #ffffff;
+}
+
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .sett-sticky-bar {
+  background: #0b1523;
+  border-color: #1e3552;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN (TABLET & MOBILE)
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .sett-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .sett-branding-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .sett-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .sett-header__actions {
+    width: 100%;
+  }
+  .sett-btn-primary {
+    width: 100%;
+  }
+  .sett-metrics {
+    grid-template-columns: 1fr;
+  }
+  .sett-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .sett-branding-grid {
+    grid-template-columns: 1fr;
+  }
+  .sett-branding-banner-box {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .sett-sticky-bar {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+}
+
