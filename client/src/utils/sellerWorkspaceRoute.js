@@ -80,6 +80,7 @@ export const createSellerWorkspaceRoutes = (storeSlug) => ({
   paymentCenter: () => buildSellerWorkspacePath(storeSlug, "/payment-center"),
   paymentProfile: () => resolveSellerPaymentProfileRoute({ storeSlug }),
   coupons: () => buildSellerWorkspacePath(storeSlug, "/catalog/coupons"),
+  couponCreate: () => buildSellerWorkspacePath(storeSlug, "/catalog/coupons/new"),
   team: () => buildSellerWorkspacePath(storeSlug, "/team"),
   teamAudit: () => buildSellerWorkspacePath(storeSlug, "/team/audit"),
   memberLifecycle: (memberId) =>

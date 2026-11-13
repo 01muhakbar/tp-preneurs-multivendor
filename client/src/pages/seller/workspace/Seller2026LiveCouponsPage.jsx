@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   AlertTriangle,
@@ -166,12 +166,15 @@ function CouponActions({
   );
 }
 
-export default function Seller2026LiveCouponsPage() {
+export default function Seller2026LiveCouponsPage({ initialCreateOpen = false }) {
   const { i18n } = useTranslation();
   const isId = Boolean(String(i18n?.language || "").toLowerCase().startsWith("id"));
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const actionMenuRef = useRef(null);
-  const { sellerContext, workspaceStoreId: storeId } = useSellerWorkspaceRoute();
+  const { sellerContext, workspaceStoreId: storeId, workspaceRoutes } = useSellerWorkspaceRoute();
+  const isCreateRoute = initialCreateOpen || location.pathname.endsWith("/coupons/new");
   const { can } = getSeller2026PagePermissions(sellerContext);
   const canView = can("COUPON_READ");
   const query = {
@@ -191,7 +194,7 @@ export default function Seller2026LiveCouponsPage() {
     },
   });
   const [view, setView] = useState("list");
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(isCreateRoute);
   const [editingCoupon, setEditingCoupon] = useState(null);
   const [menuCouponId, setMenuCouponId] = useState(null);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
@@ -254,6 +257,22 @@ export default function Seller2026LiveCouponsPage() {
     return () => window.clearTimeout(timer);
   }, [notice]);
 
+  useEffect(() => {
+    if (isCreateRoute) {
+      setDrawerOpen(true);
+      setEditingCoupon(null);
+    }
+  }, [isCreateRoute]);
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setEditingCoupon(null);
+    if (isCreateRoute) {
+      const target = workspaceRoutes?.coupons ? workspaceRoutes.coupons() : "../catalog/coupons";
+      navigate(target, { replace: true });
+    }
+  };
+
   const dateRangeLabel = useMemo(() => {
     const dates = filteredCoupons
       .flatMap((coupon) => [coupon.startsAt, coupon.expiresAt])
@@ -296,6 +315,10 @@ export default function Seller2026LiveCouponsPage() {
       }
       setDrawerOpen(false);
       setEditingCoupon(null);
+      if (isCreateRoute) {
+        const target = workspaceRoutes?.coupons ? workspaceRoutes.coupons() : "../catalog/coupons";
+        navigate(target, { replace: true });
+      }
     } catch (error) {
       throw new Error(getErrorMessage(error, isId ? "Gagal menyimpan kupon." : "Unable to save coupon."));
     }
@@ -694,8 +717,7 @@ export default function Seller2026LiveCouponsPage() {
         isId={isId}
         onClose={() => {
           if (busy) return;
-          setDrawerOpen(false);
-          setEditingCoupon(null);
+          closeDrawer();
         }}
         onSubmit={submitCoupon}
       />

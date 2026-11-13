@@ -235,10 +235,10 @@ function LegacySellerCatalogRedirect() {
   return <Navigate to={target} replace />;
 }
 
-function LegacySellerCouponsRedirect() {
+function LegacySellerCouponsRedirect({ isCreate = false } = {}) {
   const { storeSlug } = useParams();
   const target = storeSlug
-    ? `/seller/stores/${encodeURIComponent(storeSlug)}/catalog/coupons`
+    ? `/seller/stores/${encodeURIComponent(storeSlug)}/catalog/coupons${isCreate ? "/new" : ""}`
     : "/seller/stores";
   return <Navigate to={target} replace />;
 }
@@ -502,6 +502,10 @@ export default function App() {
             path="/seller/stores/:storeSlug/coupons"
             element={<LegacySellerCouponsRedirect />}
           />
+          <Route
+            path="/seller/stores/:storeSlug/coupons/new"
+            element={<LegacySellerCouponsRedirect isCreate={true} />}
+          />
           <Route path="/seller/stores/:storeSlug" element={<SellerLayout />}>
             <Route index element={<Seller2026LiveDashboardPage />} />
             <Route path="dashboard" element={<Seller2026LiveDashboardPage />} />
@@ -534,7 +538,9 @@ export default function App() {
             <Route path="payment-profile" element={<Seller2026LivePaymentProfilePage />} />
             <Route path="payment-center" element={<SellerPaymentCenterPage productionMode={true} />} />
             <Route path="coupons" element={<LegacySellerCouponsRedirect />} />
+            <Route path="coupons/new" element={<LegacySellerCouponsRedirect isCreate={true} />} />
             <Route path="catalog/coupons" element={<Seller2026LiveCouponsPage />} />
+            <Route path="catalog/coupons/new" element={<Seller2026LiveCouponsPage initialCreateOpen={true} />} />
           </Route>
           <Route path="/admin" element={<AdminGuard />}>
             <Route element={<AdminLayout />}>
