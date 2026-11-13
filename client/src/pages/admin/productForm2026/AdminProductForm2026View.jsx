@@ -82,31 +82,40 @@ function TextField({
 function Stepper({ activeStep, maxVisitedStep, onStepClick, success = false }) {
   const { t } = useTranslation("admin");
   return (
-    <div className="apf26-stepper">
-      {PRODUCT_FORM_2026_STEPS.map((step) => {
-        const isComplete = success || step.id < activeStep;
-        const isActive = !success && step.id === activeStep;
-        const canOpen = step.id <= maxVisitedStep;
+    <nav className="apf26-stepper" aria-label={t("productForm.Product creation steps")}>
+      <div className="apf26-stepper__track">
+        {PRODUCT_FORM_2026_STEPS.map((step, index) => {
+          const isComplete = success || step.id < activeStep;
+          const isActive = !success && step.id === activeStep;
+          const canOpen = step.id <= maxVisitedStep;
+          const stepTitle = t("productForm." + step.label);
 
-        return (
-          <button
-            key={step.id}
-            type="button"
-            className={`apf26-step ${isActive ? "is-active" : ""} ${isComplete ? "is-complete" : ""}`}
-            disabled={!canOpen || success}
-            onClick={() => onStepClick(step.id)}
-          >
-            <span className="apf26-step__badge">
-              {isComplete ? <Check size={22} /> : step.id}
-            </span>
-            <span className="apf26-step__copy">
-              <strong>{t("productForm." + step.label)}</strong>
-              <span>{t("productForm." + step.helper)}</span>
-            </span>
-          </button>
-        );
-      })}
-    </div>
+          return (
+            <div key={step.id} className="apf26-stepper__item">
+              <button
+                type="button"
+                className={`apf26-step ${isActive ? "is-active" : ""} ${isComplete ? "is-complete" : ""}`}
+                disabled={!canOpen || success}
+                onClick={() => onStepClick(step.id)}
+                aria-current={isActive ? "step" : undefined}
+                title={stepTitle}
+              >
+                <span className="apf26-step__badge">
+                  {isComplete ? <Check size={16} strokeWidth={2.5} /> : step.id}
+                </span>
+                <span className="apf26-step__label">{stepTitle}</span>
+              </button>
+              {index < PRODUCT_FORM_2026_STEPS.length - 1 ? (
+                <div
+                  className={`apf26-stepper__connector ${step.id < activeStep ? "is-complete" : ""}`}
+                  aria-hidden="true"
+                />
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </nav>
   );
 }
 
@@ -1713,8 +1722,8 @@ export default function AdminProductForm2026View({
 }) {
   const { t } = useTranslation("admin");
   const subtitle = isEdit
-    ? t("productForm.Edit Produk")
-    : t("productForm.Katalog Produk");
+    ? t("productForm.Update product information, media, pricing, inventory, and settings.")
+    : t("productForm.Create a new product and add it to your catalog.");
   const isSuccess = Boolean(createdProductId);
 
   return (

@@ -483,7 +483,15 @@
     "Product authoring is temporarily unavailable.": "Product authoring is temporarily unavailable.",
     "Product authoring is not available for your current role.": "Product authoring is not available for your current role.",
     "Fetching product authoring data.": "Fetching product authoring data.",
-    "Accepted formats: JPG, PNG, WEBP (1:1 Square recommended, max 5 MB) • Image 1 is the main Cover.": "Accepted formats: JPG, PNG, WEBP (1:1 Square recommended, max 5 MB) • Image 1 is the main Cover."
+    "Accepted formats: JPG, PNG, WEBP (1:1 Square recommended, max 5 MB) • Image 1 is the main Cover.": "Accepted formats: JPG, PNG, WEBP (1:1 Square recommended, max 5 MB) • Image 1 is the main Cover.",
+    "Katalog Produk": "Product Catalog",
+    "Product creation steps": "Product creation steps",
+    "Info Dasar": "Basic Info",
+    "Foto & Media": "Media",
+    "Harga & Stok": "Pricing & Stock",
+    "Varian": "Variants",
+    "Detail Produk": "Details",
+    "Ringkasan": "Review"
   },
   "categories": {
     "Active": "Active",
@@ -995,7 +1003,6 @@
     "Banner uploaded and ready to save.": "Banner uploaded and ready to save.",
     "Remove": "Remove",
     "Action": "Action",
-    "Back to Coupons": "Back to Coupons",
     "Campaign Name or Campaign Code is required.": "Campaign Name or Campaign Code is required.",
     "Wait for the banner image upload to finish before saving.": "Wait for the banner image upload to finish before saving.",
     "Banner upload failed. Re-upload the image before saving this coupon.": "Banner upload failed. Re-upload the image before saving this coupon.",

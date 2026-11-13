@@ -483,7 +483,15 @@
     "Product authoring is temporarily unavailable.": "Penyuntingan produk sementara tidak tersedia.",
     "Product authoring is not available for your current role.": "Penyuntingan produk tidak tersedia untuk peran Anda saat ini.",
     "Fetching product authoring data.": "Mengambil data penyuntingan produk.",
-    "Accepted formats: JPG, PNG, WEBP (1:1 Square recommended, max 5 MB) • Image 1 is the main Cover.": "Format yang didukung: JPG, PNG, WEBP (1:1 Disarankan, maks. 5 MB) • Gambar 1 menjadi Sampul utama."
+    "Accepted formats: JPG, PNG, WEBP (1:1 Square recommended, max 5 MB) • Image 1 is the main Cover.": "Format yang didukung: JPG, PNG, WEBP (1:1 Disarankan, maks. 5 MB) • Gambar 1 menjadi Sampul utama.",
+    "Katalog Produk": "Katalog Produk",
+    "Product creation steps": "Langkah pembuatan produk",
+    "Info Dasar": "Info Dasar",
+    "Foto & Media": "Foto & Media",
+    "Harga & Stok": "Harga & Stok",
+    "Varian": "Varian",
+    "Detail Produk": "Detail Produk",
+    "Ringkasan": "Ringkasan"
   },
   "categories": {
     "Active": "Aktif",
@@ -928,7 +936,7 @@
     "This coupon can be used in public checkout.": "Kupon ini bisa digunakan di checkout publik.",
     "This coupon is hidden from public checkout.": "Kupon ini disembunyikan dari checkout publik.",
     "Close": "Tutup",
-    "Back to Coupons": "Kembali ke Kupon",
+    "Back to Coupons": "Kembali ke Daftar Kupon",
     "Coupon details could not be loaded.": "Detail kupon tidak dapat dimuat.",
     "Failed to load coupon details.": "Gagal memuat detail kupon.",
     "Coupon updated.": "Kupon berhasil diperbarui.",
@@ -995,7 +1003,6 @@
     "Banner uploaded and ready to save.": "Banner berhasil diunggah dan siap disimpan.",
     "Remove": "Hapus Banner",
     "Action": "Aksi",
-    "Back to Coupons": "Kembali ke Daftar Kupon",
     "Campaign Name or Campaign Code is required.": "Nama promosi atau kode kupon wajib diisi.",
     "Wait for the banner image upload to finish before saving.": "Tunggu proses unggah banner selesai sebelum menyimpan.",
     "Banner upload failed. Re-upload the image before saving this coupon.": "Unggah banner gagal. Silakan unggah ulang gambar.",
