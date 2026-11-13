@@ -1,49 +1,159 @@
-.acf26-shell {
+/* ==========================================================================
+   Admin Coupon Form 2026 Design System
+   Brand Colors: Deep Navy (#034c85) & Vibrant Orange (#fe6f05)
+   Support: Dark Theme & Light Theme (WCAG AAA Contrast Standard)
+   ========================================================================== */
+
+:root {
   --acf26-primary: #034c85;
-  --acf26-primary-strong: #023863;
+  --acf26-primary-hover: #023863;
+  --acf26-primary-soft: rgba(3, 76, 133, 0.1);
   --acf26-accent: #fe6f05;
-  --acf26-soft-blue: #edf6ff;
-  --acf26-soft-orange: #fff4ea;
-  background: linear-gradient(180deg, #ffffff 0, #f4f8fc 180px, #f7f9fc 100%);
+  --acf26-accent-hover: #e05f00;
+  --acf26-accent-soft: rgba(254, 111, 5, 0.1);
+
+  /* Light Theme Defaults */
+  --acf26-bg: #f8fbff;
+  --acf26-surface: #ffffff;
+  --acf26-surface-card: #ffffff;
+  --acf26-surface-subtle: #f4f8fc;
+  --acf26-input-bg: #ffffff;
+  --acf26-border: #dfe8f2;
+  --acf26-border-subtle: #e6eef6;
+  --acf26-text: #071a3f;
+  --acf26-text-muted: #63738e;
+  --acf26-shadow: 0 10px 30px -18px rgba(3, 76, 133, 0.14);
 }
 
-.acf26-header {
-  min-height: 0;
-  padding: 22px 32px 18px;
-  background:
-    linear-gradient(90deg, rgba(3, 76, 133, 0.08), rgba(254, 111, 5, 0.08)),
-    #ffffff;
+/* --------------------------------------------------------------------------
+   Dark Mode System Integration
+   -------------------------------------------------------------------------- */
+.admin-theme-dark,
+[data-admin-theme="dark"],
+.dark {
+  --acf26-bg: var(--admin-bg, #001429);
+  --acf26-surface: var(--admin-surface, #071d36);
+  --acf26-surface-card: #0a223f;
+  --acf26-surface-subtle: #0d2847;
+  --acf26-input-bg: #061528;
+  --acf26-border: var(--admin-border, rgba(148, 163, 184, 0.22));
+  --acf26-border-subtle: rgba(148, 163, 184, 0.14));
+  --acf26-text: var(--admin-text, #f5f8ff);
+  --acf26-text-muted: var(--admin-muted, #9dafc6);
+  --acf26-shadow: none;
 }
 
-.acf26-header-actions {
+/* --------------------------------------------------------------------------
+   Shell Layout
+   -------------------------------------------------------------------------- */
+.acf26-shell {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  flex: 0 0 auto;
+  flex-direction: column;
+  min-height: calc(100vh - 120px);
+  width: 100%;
+  background: transparent;
+  color: var(--acf26-text);
+  box-sizing: border-box;
+}
+
+.acf26-shell * {
+  box-sizing: border-box;
+}
+
+/* --------------------------------------------------------------------------
+   Header & Breadcrumb
+   -------------------------------------------------------------------------- */
+.acf26-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  background: var(--acf26-surface);
+  border: 1px solid var(--acf26-border);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: var(--acf26-shadow);
+}
+
+.acf26-header-titles {
+  min-width: 0;
+}
+
+.acf26-header h1 {
+  margin: 0;
+  font-size: clamp(20px, 2vw, 24px);
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--acf26-text);
+  line-height: 1.2;
 }
 
 .acf26-breadcrumb {
-  margin-top: 10px;
+  margin-top: 6px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: #5c6f8d;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--acf26-text-muted);
   font-size: 13px;
 }
 
+.acf26-breadcrumb span {
+  display: inline-flex;
+  align-items: center;
+}
+
+.acf26-breadcrumb-current {
+  color: var(--acf26-primary);
+  font-weight: 600;
+}
+
+.admin-theme-dark .acf26-breadcrumb-current,
+[data-admin-theme="dark"] .acf26-breadcrumb-current,
+.dark .acf26-breadcrumb-current {
+  color: #38bdf8;
+}
+
+.acf26-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--acf26-text);
+  background: var(--acf26-surface-subtle);
+  border: 1px solid var(--acf26-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.acf26-back-btn:hover {
+  background: var(--acf26-primary-soft);
+  color: var(--acf26-primary);
+  border-color: var(--acf26-primary);
+}
+
+/* --------------------------------------------------------------------------
+   Content & Form Card
+   -------------------------------------------------------------------------- */
 .acf26-content {
-  padding-top: 24px;
-  background: transparent;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
 }
 
 .acf26-form-card {
-  width: min(920px, 100%);
+  width: min(880px, 100%);
   margin: 0 auto;
   overflow: hidden;
-  border: 1px solid rgba(3, 76, 133, 0.14);
-  border-radius: 8px;
-  background: var(--apf26-surface);
-  box-shadow: 0 18px 42px -34px rgba(3, 76, 133, 0.5);
+  border: 1px solid var(--acf26-border);
+  border-radius: 12px;
+  background: var(--acf26-surface);
+  box-shadow: var(--acf26-shadow);
 }
 
 .acf26-form {
@@ -54,146 +164,346 @@
 
 .acf26-form-body {
   display: grid;
-  gap: 14px;
-  padding: 18px;
-  background: var(--apf26-surface);
+  gap: 18px;
+  padding: 24px;
+  background: var(--acf26-surface);
 }
 
-.acf26-footer {
-  border-top: 1px solid rgba(3, 76, 133, 0.12);
-  background: var(--apf26-surface);
-  padding: 14px 18px;
-}
-
-.acf26-badge {
-  margin-bottom: 8px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid rgba(3, 76, 133, 0.16);
-  border-radius: 999px;
-  background: #ffffff;
-  padding: 5px 10px;
-  color: var(--acf26-primary);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
+/* --------------------------------------------------------------------------
+   Form Sections
+   -------------------------------------------------------------------------- */
 .acf26-section {
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(3, 76, 133, 0.14);
-  border-radius: 8px;
-  background: #ffffff;
-  padding: 16px;
+  border: 1px solid var(--acf26-border-subtle);
+  border-radius: 10px;
+  background: var(--acf26-surface-card);
+  padding: 20px;
+  transition: border-color 0.2s ease;
 }
 
 .acf26-section::before {
   content: "";
   position: absolute;
-  inset: 0 auto 0 0;
-  width: 3px;
-  background: linear-gradient(180deg, var(--acf26-primary), var(--acf26-accent));
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 3.5px;
+  background: linear-gradient(180deg, var(--acf26-primary) 0%, var(--acf26-accent) 100%);
 }
 
 .acf26-section-head {
-  margin-bottom: 12px;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-  border-bottom: 1px solid rgba(3, 76, 133, 0.1);
-  padding-bottom: 10px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--acf26-border-subtle);
+  padding-bottom: 12px;
 }
 
-.acf26-section-head p {
-  margin: 0 0 4px;
-  color: var(--acf26-accent);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.acf26-section-head h3,
-.acf26-simple-title {
+.acf26-section-head h3 {
   margin: 0;
-  color: #061a3a;
+  color: var(--acf26-text);
   font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .acf26-section-head span {
   display: block;
-  margin-top: 3px;
-  color: #60718d;
+  margin-top: 4px;
+  color: var(--acf26-text-muted);
   font-size: 12px;
+  line-height: 1.4;
 }
 
-.acf26-section-head strong {
-  flex: 0 0 auto;
-  border: 1px solid rgba(3, 76, 133, 0.12);
-  border-radius: 999px;
-  background: var(--acf26-soft-blue);
-  padding: 5px 10px;
-  color: var(--acf26-primary);
-  font-size: 11px;
-  font-weight: 800;
-}
-
+/* --------------------------------------------------------------------------
+   Input Controls & Selects
+   -------------------------------------------------------------------------- */
 .acf26-section label {
-  color: #516480;
-  letter-spacing: 0;
+  display: block;
+  margin-bottom: 6px;
+  color: var(--acf26-text);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
-.acf26-section input,
+.acf26-input,
+.acf26-select,
+.acf26-section input[type="text"],
+.acf26-section input[type="number"],
+.acf26-section input[type="date"],
 .acf26-section select {
+  height: 44px;
+  width: 100%;
   border-radius: 8px;
+  border: 1px solid var(--acf26-border);
+  background-color: var(--acf26-input-bg);
+  color: var(--acf26-text);
+  padding: 0 12px;
+  font-size: 13.5px;
+  transition: all 0.2s ease;
 }
 
-.acf26-section .rounded-xl {
+.acf26-section input:focus,
+.acf26-section select:focus {
+  outline: none;
+  border-color: var(--acf26-primary);
+  box-shadow: 0 0 0 3px rgba(3, 76, 133, 0.18);
+}
+
+.acf26-section input::placeholder {
+  color: var(--acf26-text-muted);
+  opacity: 0.65;
+}
+
+/* --------------------------------------------------------------------------
+   Segmented Controls (Discount Type)
+   -------------------------------------------------------------------------- */
+.acf26-segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
   border-radius: 8px;
+  background: var(--acf26-surface-subtle);
+  border: 1px solid var(--acf26-border-subtle);
 }
 
-.acf26-section .rounded-2xl {
+.acf26-segment-btn {
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: var(--acf26-text-muted);
+  transition: all 0.2s ease;
+}
+
+.acf26-segment-btn.is-active {
+  background: var(--acf26-primary);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(3, 76, 133, 0.28);
+}
+
+.acf26-segment-btn:not(.is-active):hover {
+  color: var(--acf26-text);
+  background: rgba(3, 76, 133, 0.05);
+}
+
+/* --------------------------------------------------------------------------
+   Toggle Switch (Published)
+   -------------------------------------------------------------------------- */
+.acf26-toggle-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
   border-radius: 8px;
+  background: var(--acf26-surface-subtle);
+  border: 1px solid var(--acf26-border-subtle);
 }
 
-.acf26-section .bg-slate-50 {
-  background-color: #f8fbff;
+.acf26-toggle-card p.title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--acf26-text);
 }
 
-.acf26-section .text-emerald-700 {
-  color: var(--acf26-primary);
+.acf26-toggle-card p.desc {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--acf26-text-muted);
 }
 
-.acf26-section .bg-emerald-100 {
-  background-color: rgba(3, 76, 133, 0.1);
+.acf26-switch {
+  position: relative;
+  display: inline-flex;
+  height: 24px;
+  width: 44px;
+  flex-shrink: 0;
+  cursor: pointer;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  transition: background-color 0.2s ease;
+  background-color: var(--acf26-border);
 }
 
-.acf26-section .hover\:border-emerald-400:hover {
+.acf26-switch.is-active {
+  background-color: var(--acf26-primary);
+}
+
+.acf26-switch-thumb {
+  pointer-events: none;
+  display: inline-block;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateX(0);
+}
+
+.acf26-switch.is-active .acf26-switch-thumb {
+  transform: translateX(20px);
+}
+
+/* --------------------------------------------------------------------------
+   Banner Upload Zone
+   -------------------------------------------------------------------------- */
+.acf26-upload-zone {
+  display: block;
+  cursor: pointer;
+  border: 1.5px dashed var(--acf26-border);
+  border-radius: 10px;
+  background: var(--acf26-surface-subtle);
+  padding: 20px;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.acf26-upload-zone:hover {
   border-color: var(--acf26-accent);
+  background: rgba(254, 111, 5, 0.03);
 }
 
-@media (max-width: 700px) {
+.acf26-upload-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--acf26-primary-soft);
+  color: var(--acf26-primary);
+  margin-bottom: 8px;
+}
+
+.acf26-upload-preview {
+  position: relative;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--acf26-border);
+  background: var(--acf26-input-bg);
+  aspect-ratio: 16 / 5;
+}
+
+.acf26-upload-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* --------------------------------------------------------------------------
+   Footer & Action Buttons
+   -------------------------------------------------------------------------- */
+.acf26-footer {
+  border-top: 1px solid var(--acf26-border);
+  background: var(--acf26-surface);
+  padding: 16px 24px;
+}
+
+.acf26-footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.acf26-btn-cancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 42px;
+  padding: 0 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--acf26-text-muted);
+  background: var(--acf26-surface-subtle);
+  border: 1px solid var(--acf26-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.acf26-btn-cancel:hover {
+  background: var(--acf26-border-subtle);
+  color: var(--acf26-text);
+}
+
+.acf26-btn-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 24px;
+  font-size: 13.5px;
+  font-weight: 650;
+  color: #ffffff;
+  background: var(--acf26-primary);
+  border: 1px solid var(--acf26-primary-hover);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(3, 76, 133, 0.25);
+}
+
+.acf26-btn-submit:hover:not(:disabled) {
+  background: var(--acf26-primary-hover);
+  box-shadow: 0 4px 14px rgba(3, 76, 133, 0.35);
+  transform: translateY(-1px);
+}
+
+.acf26-btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* --------------------------------------------------------------------------
+   Mobile Adaptability
+   -------------------------------------------------------------------------- */
+@media (max-width: 680px) {
   .acf26-header {
-    align-items: stretch;
-    padding: 18px;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
+    gap: 12px;
   }
 
-  .acf26-header-actions {
-    justify-content: flex-end;
+  .acf26-back-btn {
+    width: 100%;
+    justify-content: center;
   }
 
-  .acf26-form-body,
-  .acf26-footer {
+  .acf26-form-body {
+    padding: 16px;
+    gap: 14px;
+  }
+
+  .acf26-section {
     padding: 16px;
   }
 
-  .acf26-section-head {
+  .acf26-footer-inner {
     flex-direction: column;
+    width: 100%;
+  }
+
+  .acf26-btn-cancel,
+  .acf26-btn-submit {
+    width: 100%;
   }
 }

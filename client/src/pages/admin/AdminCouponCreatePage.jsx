@@ -3,14 +3,13 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { ChevronRight, X } from "lucide-react";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 import {
   createAdminCoupon,
   fetchAdminCouponMeta,
 } from "../../lib/adminApi.js";
 import { AddCouponFormPanel } from "../../components/admin/coupons/AddCouponDrawer.jsx";
 import { invalidateAdminCouponSurfaces } from "./AdminCouponsPage.jsx";
-import "./productForm2026/admin-product-form-2026.css";
 import "./couponForm2026/admin-coupon-form-2026.css";
 
 export default function AdminCouponCreatePage() {
@@ -54,33 +53,33 @@ export default function AdminCouponCreatePage() {
   };
 
   return (
-    <div className="apf26-shell acf26-shell">
-      <header className="apf26-header acf26-header">
-        <div className="min-w-0">
+    <div className="acf26-shell">
+      <header className="acf26-header">
+        <div className="acf26-header-titles">
           <h1>{t("coupons.Add Coupon", "Add Coupon")}</h1>
           <nav className="acf26-breadcrumb" aria-label="Breadcrumb">
             <span>{t("coupons.Catalog", "Catalog")}</span>
-            <ChevronRight size={14} />
+            <ChevronRight size={13} />
             <span>{t("coupons.Coupons", "Coupons")}</span>
-            <ChevronRight size={14} />
-            <span>{t("coupons.Add Coupon", "Add Coupon")}</span>
+            <ChevronRight size={13} />
+            <span className="acf26-breadcrumb-current">
+              {t("coupons.Add Coupon", "Add Coupon")}
+            </span>
           </nav>
         </div>
 
-        <div className="acf26-header-actions">
-          <button
-            type="button"
-            className="apf26-close"
-            onClick={handleCancel}
-            aria-label={t("coupons.Close add coupon page", "Close add coupon page")}
-            disabled={createMutation.isPending}
-          >
-            <X size={22} />
-          </button>
-        </div>
+        <button
+          type="button"
+          className="acf26-back-btn"
+          onClick={handleCancel}
+          disabled={createMutation.isPending}
+        >
+          <ArrowLeft size={16} />
+          <span>{t("coupons.Back to Coupons", "Back to Coupons")}</span>
+        </button>
       </header>
 
-      <main className="apf26-content acf26-content">
+      <main className="acf26-content">
         <section className="acf26-form-card">
           <AddCouponFormPanel
             onCancel={handleCancel}
