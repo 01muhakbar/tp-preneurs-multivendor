@@ -1,24 +1,27 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "../Layout/Sidebar.jsx";
 import Navbar from "../Layout/Navbar.jsx";
 import AdminSearchPalette from "../admin/AdminSearchPalette.jsx";
 import ErrorBoundary from "../common/ErrorBoundary.js";
 import useStoredBoolean from "../../hooks/useStoredBoolean.js";
+import { useTheme } from "../../theme/ThemeProvider.jsx";
 import "../Layout/MainLayout.css";
 
 const ADMIN_THEME_KEY = "admin_theme";
 const ADMIN_SIDEBAR_COLLAPSED_KEY = "admin_sidebar_collapsed";
 
 const readStoredTheme = () => {
-  if (typeof window === "undefined") return "light";
+  if (typeof window === "undefined") return null;
   const value = String(window.localStorage.getItem(ADMIN_THEME_KEY) || "").trim();
-  return value === "dark" ? "dark" : "light";
+  return value === "dark" || value === "light" ? value : null;
 };
 
 export default function AdminLayout() {
   const { pathname } = useLocation();
-  const [theme, setTheme] = useState(readStoredTheme);
+  const { resolvedTheme, setTheme: setGlobalTheme } = useTheme();
+  const initialAdminThemeRef = useRef(readStoredTheme());
+
   const [searchPaletteOpen, setSearchPaletteOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== "undefined" && window.matchMedia("(max-width: 760px)").matches
@@ -28,30 +31,30 @@ export default function AdminLayout() {
     ADMIN_SIDEBAR_COLLAPSED_KEY,
     false
   );
-  const isDark = theme === "dark";
+
+  // If there's a stored admin theme, apply it on mount
+  useEffect(() => {
+    const stored = initialAdminThemeRef.current;
+    if (stored && stored !== resolvedTheme) {
+      setGlobalTheme(stored);
+    }
+  }, [resolvedTheme, setGlobalTheme]);
+
+  const isDark = resolvedTheme === "dark";
+  const theme = resolvedTheme;
 
   useEffect(() => {
-    const media = window.matchMedia("(max-width: 760px)");
-    const sync = (event) => {
-      setIsMobile(event.matches);
-      if (!event.matches) setMobileSidebarOpen(false);
-    };
-    sync(media);
-    media.addEventListener("change", sync);
-    return () => media.removeEventListener("change", sync);
-  }, []);
-
-  useEffect(() => {
-    setMobileSidebarOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem(ADMIN_THEME_KEY, theme);
+    if (typeof document !== "undefined") {
+      document.documentElement.setAttribute("data-admin-theme", theme);
+    }
   }, [theme]);
 
   const handleToggleTheme = () => {
-    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+    const nextTheme = isDark ? "light" : "dark";
+    setGlobalTheme(nextTheme);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(ADMIN_THEME_KEY, nextTheme);
+    }
   };
 
   useEffect(() => {
