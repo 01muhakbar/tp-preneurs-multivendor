@@ -1859,6 +1859,20 @@ const normalizeAboutUs = (root: Record<string, any>) => {
   };
 };
 
+const decodeHtmlEntitiesIfNeeded = (raw: unknown): string => {
+  const str = String(raw ?? "").trim();
+  if (!str) return "";
+  if (/&lt;\/?(?:h[1-6]|p|strong|b|em|i|u|ul|ol|li|a|br|div|span|blockquote|hr)\b/i.test(str)) {
+    return str
+      .replace(/&lt;/gi, "<")
+      .replace(/&gt;/gi, ">")
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/gi, "'")
+      .replace(/&amp;/gi, "&");
+  }
+  return str;
+};
+
 const normalizePolicyPage = (
   root: Record<string, any>,
   key: "privacyPolicy" | "termsAndConditions",
@@ -1879,9 +1893,11 @@ const normalizePolicyPage = (
       ""
     ),
     pageTitle: toText(source.pageTitle, defaults.pageTitle),
-    pageTextHtml: toText(
-      source.pageTextHtml ?? source.pageText ?? source.contentHtml ?? source.content ?? "",
-      defaults.pageTextHtml
+    pageTextHtml: decodeHtmlEntitiesIfNeeded(
+      toText(
+        source.pageTextHtml ?? source.pageText ?? source.contentHtml ?? source.content ?? "",
+        defaults.pageTextHtml
+      )
     ),
   };
 };

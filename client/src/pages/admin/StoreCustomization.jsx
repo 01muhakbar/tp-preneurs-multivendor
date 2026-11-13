@@ -51,6 +51,7 @@ import StoreCustomizationSeoSettings2026 from "../../components/admin/store-cust
 import StoreCustomizationDashboardSettings2026 from "../../components/admin/store-customization/StoreCustomizationDashboardSettings2026.jsx";
 import StoreCustomizationSaveActions2026 from "../../components/admin/store-customization/StoreCustomizationSaveActions2026.jsx";
 import StoreCustomizationTabNav2026 from "../../components/admin/store-customization/StoreCustomizationTabNav2026.jsx";
+import { autoDetectAndParseHtml } from "../../utils/autoDetectAndParseHtml.js";
 
 const ADMIN_LANGUAGE_KEY = "adminLanguage";
 
@@ -1885,13 +1886,15 @@ const normalizePolicyPage = (source, defaults) => {
       ""
     ),
     pageTitle: toText(policySource.pageTitle, defaults.pageTitle),
-    pageTextHtml: toText(
-      policySource.pageTextHtml ??
-        policySource.pageText ??
-        policySource.contentHtml ??
-        policySource.content ??
-        "",
-      defaults.pageTextHtml
+    pageTextHtml: autoDetectAndParseHtml(
+      toText(
+        policySource.pageTextHtml ??
+          policySource.pageText ??
+          policySource.contentHtml ??
+          policySource.content ??
+          "",
+        defaults.pageTextHtml
+      )
     ),
   };
 };

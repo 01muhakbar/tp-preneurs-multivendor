@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { ShieldCheck, ChevronRight, Clock, HelpCircle, Mail, MessageCircle } from "lucide-react";
 import { getStoreCustomization } from "../../api/public/storeCustomizationPublic.ts";
 import { UiEmptyState, UiErrorState } from "../../components/primitives/state/index.js";
-import { sanitizeRichTextHtml } from "../../utils/sanitizeRichTextHtml.js";
+import { autoDetectAndParseHtml } from "../../utils/autoDetectAndParseHtml.js";
 
 const DEFAULT_LANG = "en";
 
@@ -142,7 +142,7 @@ export default function StorePrivacyPolicyPage() {
     policyQuery.data;
   const pageRaw = customization?.privacyPolicy;
   const page = useMemo(() => normalizePolicy(pageRaw, lang), [pageRaw, lang]);
-  const safeHtml = useMemo(() => sanitizeRichTextHtml(page.pageTextHtml), [page.pageTextHtml]);
+  const safeHtml = useMemo(() => autoDetectAndParseHtml(page.pageTextHtml), [page.pageTextHtml]);
 
   if (policyQuery.isLoading) return <PolicyPageSkeleton />;
 

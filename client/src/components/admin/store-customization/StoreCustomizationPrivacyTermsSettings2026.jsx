@@ -23,9 +23,18 @@ import {
   ExternalLink,
   Heading2,
   Heading3,
+  Code,
+  Wand2,
+  Check,
 } from "lucide-react";
 import StoreCustomizationTabNav2026 from "./StoreCustomizationTabNav2026.jsx";
 import { sanitizeRichTextHtml } from "../../../utils/sanitizeRichTextHtml.js";
+import {
+  autoDetectAndParseHtml,
+  formatHtmlForSourceView,
+  hasHtmlMarkup,
+  isEntityEncodedHtml,
+} from "../../../utils/autoDetectAndParseHtml.js";
 import "./StoreCustomizationPrivacyTermsSettings2026.css";
 
 const toText = (value, fallback = "") => {
@@ -315,28 +324,45 @@ function ModernPolicyEditor({
   policyType,
 }) {
   const editorRef = useRef(null);
+  const codeAreaRef = useRef(null);
+  const [editorMode, setEditorMode] = useState("visual"); // "visual" | "code"
   const [showLinkBar, setShowLinkBar] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
+  const [formatNotice, setFormatNotice] = useState(null);
 
+  // Sync value into visual editor or code area
   useEffect(() => {
-    if (!editorRef.current) return;
-    const currentHtml = editorRef.current.innerHTML;
-    const nextHtml = value || "<p></p>";
-    if (currentHtml !== nextHtml) {
-      editorRef.current.innerHTML = nextHtml;
+    const cleanHtml = autoDetectAndParseHtml(value || "<p></p>");
+    if (editorMode === "visual" && editorRef.current) {
+      if (
+        editorRef.current.innerHTML !== cleanHtml &&
+        document.activeElement !== editorRef.current
+      ) {
+        editorRef.current.innerHTML = cleanHtml;
+      }
+    } else if (editorMode === "code" && codeAreaRef.current) {
+      const formatted = formatHtmlForSourceView(value || "");
+      if (
+        codeAreaRef.current.value !== formatted &&
+        document.activeElement !== codeAreaRef.current
+      ) {
+        codeAreaRef.current.value = formatted;
+      }
     }
-  }, [value]);
+  }, [value, editorMode]);
 
-  const emitChange = () => {
-    if (editorRef.current) {
-      onChange(editorRef.current.innerHTML);
-    }
+  const emitChange = (htmlContent) => {
+    const cleanHtml = autoDetectAndParseHtml(htmlContent);
+    onChange(cleanHtml);
   };
 
   const applyCmd = (command, val = null) => {
+    if (editorMode !== "visual") return;
     editorRef.current?.focus();
     document.execCommand(command, false, val);
-    emitChange();
+    if (editorRef.current) {
+      emitChange(editorRef.current.innerHTML);
+    }
   };
 
   const handleApplyLink = () => {
@@ -346,93 +372,255 @@ function ModernPolicyEditor({
     setShowLinkBar(false);
   };
 
+  // Smart Paste Interceptor in Visual Mode: Detects HTML & Inserts Elements
+  const handlePaste = (e) => {
+    const clipboardData = e.clipboardData;
+    if (!clipboardData) return;
+
+    const textPlain = clipboardData.getData("text/plain") || "";
+    const textHtml = clipboardData.getData("text/html") || "";
+
+    // If pasted content contains HTML tags or entity-encoded HTML, auto-detect & parse it
+    if (textPlain && (hasHtmlMarkup(textPlain) || isEntityEncodedHtml(textPlain))) {
+      e.preventDefault();
+      const parsed = autoDetectAndParseHtml(textPlain);
+      document.execCommand("insertHTML", false, parsed);
+      if (editorRef.current) {
+        emitChange(editorRef.current.innerHTML);
+      }
+      setFormatNotice(
+        isId
+          ? "✓ Tag HTML otomatis terdeteksi & diformat!"
+          : "✓ HTML tags auto-detected & formatted!"
+      );
+      setTimeout(() => setFormatNotice(null), 3000);
+      return;
+    }
+
+    if (textHtml && hasHtmlMarkup(textHtml)) {
+      e.preventDefault();
+      const parsed = autoDetectAndParseHtml(textHtml);
+      document.execCommand("insertHTML", false, parsed);
+      if (editorRef.current) {
+        emitChange(editorRef.current.innerHTML);
+      }
+      return;
+    }
+  };
+
+  // One-click action to auto-detect and parse all unrendered HTML tags in current text
+  const handleAutoDetectTags = () => {
+    let currentRaw = "";
+    if (editorMode === "visual" && editorRef.current) {
+      const innerText = editorRef.current.innerText || "";
+      const innerHtml = editorRef.current.innerHTML || "";
+      currentRaw = hasHtmlMarkup(innerText) ? innerText : innerHtml;
+      const formatted = autoDetectAndParseHtml(currentRaw);
+      editorRef.current.innerHTML = formatted;
+      emitChange(formatted);
+    } else if (editorMode === "code" && codeAreaRef.current) {
+      const codeVal = codeAreaRef.current.value || "";
+      const formatted = autoDetectAndParseHtml(codeVal);
+      codeAreaRef.current.value = formatHtmlForSourceView(formatted);
+      emitChange(formatted);
+    }
+    setFormatNotice(
+      isId
+        ? "✓ Simbol HTML berhasil dideteksi & diformat!"
+        : "✓ HTML symbols detected & formatted!"
+    );
+    setTimeout(() => setFormatNotice(null), 3000);
+  };
+
+  // Switch between Visual WYSIWYG and Raw HTML Source View
+  const handleToggleMode = (nextMode) => {
+    if (nextMode === editorMode) return;
+    if (nextMode === "code") {
+      // Transitioning to Code View: extract from visual editor
+      const currentHtml = editorRef.current ? editorRef.current.innerHTML : (value || "");
+      const formattedCode = formatHtmlForSourceView(currentHtml);
+      setEditorMode("code");
+      setTimeout(() => {
+        if (codeAreaRef.current) {
+          codeAreaRef.current.value = formattedCode;
+        }
+      }, 0);
+    } else {
+      // Transitioning to Visual View: parse from code editor
+      const codeVal = codeAreaRef.current ? codeAreaRef.current.value : (value || "");
+      const parsedHtml = autoDetectAndParseHtml(codeVal);
+      setEditorMode("visual");
+      emitChange(parsedHtml);
+      setTimeout(() => {
+        if (editorRef.current) {
+          editorRef.current.innerHTML = parsedHtml;
+        }
+      }, 0);
+    }
+  };
+
+  // On Visual Editor Blur: auto-convert if user typed literal tags
+  const handleVisualBlur = () => {
+    if (!editorRef.current) return;
+    const innerText = editorRef.current.innerText || "";
+    if (hasHtmlMarkup(innerText) || isEntityEncodedHtml(editorRef.current.innerHTML)) {
+      const parsed = autoDetectAndParseHtml(
+        hasHtmlMarkup(innerText) ? innerText : editorRef.current.innerHTML
+      );
+      if (parsed !== editorRef.current.innerHTML) {
+        editorRef.current.innerHTML = parsed;
+        emitChange(parsed);
+      }
+    }
+  };
+
+  // Text metrics
+  const textSample = (value || "").replace(/<[^>]*>/g, " ").trim();
+  const charCount = textSample.length;
+  const wordCount = textSample ? textSample.split(/\s+/).filter(Boolean).length : 0;
+
   return (
     <div className="pt26-editor-container">
       <div className="pt26-editor-toolbar">
+        {/* Mode Switcher: Visual vs Code */}
+        <div className="pt26-mode-switcher mr-1">
+          <button
+            type="button"
+            onClick={() => handleToggleMode("visual")}
+            className={`pt26-mode-btn ${editorMode === "visual" ? "is-active" : ""}`}
+            title={isId ? "Tampilan Visual (WYSIWYG)" : "Visual Mode"}
+          >
+            <Eye className="h-3.5 w-3.5" />
+            <span>{isId ? "Visual" : "Visual"}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleToggleMode("code")}
+            className={`pt26-mode-btn ${editorMode === "code" ? "is-active" : ""}`}
+            title={isId ? "Kode Sumber HTML" : "HTML Source View"}
+          >
+            <Code className="h-3.5 w-3.5" />
+            <span>{isId ? "Kode HTML" : "HTML Code"}</span>
+          </button>
+        </div>
+
+        <span className="pt26-tool-divider" />
+
+        {/* Visual Formatting Tools (disabled in code view) */}
         <button
           type="button"
+          disabled={editorMode !== "visual"}
           onClick={() => applyCmd("formatBlock", "<h2>")}
-          className="pt26-tool-btn"
-          title="Heading 2"
+          className="pt26-tool-btn disabled:opacity-40"
+          title="Heading 2 (<h2>)"
         >
           <Heading2 className="h-4 w-4" />
         </button>
         <button
           type="button"
+          disabled={editorMode !== "visual"}
           onClick={() => applyCmd("formatBlock", "<h3>")}
-          className="pt26-tool-btn"
-          title="Heading 3"
+          className="pt26-tool-btn disabled:opacity-40"
+          title="Heading 3 (<h3>)"
         >
           <Heading3 className="h-4 w-4" />
         </button>
         <span className="pt26-tool-divider" />
         <button
           type="button"
+          disabled={editorMode !== "visual"}
           onClick={() => applyCmd("bold")}
-          className="pt26-tool-btn"
-          title="Bold (Ctrl+B)"
+          className="pt26-tool-btn disabled:opacity-40"
+          title="Bold (Ctrl+B / <strong>)"
         >
           <Bold className="h-4 w-4" />
         </button>
         <button
           type="button"
+          disabled={editorMode !== "visual"}
           onClick={() => applyCmd("italic")}
-          className="pt26-tool-btn"
-          title="Italic (Ctrl+I)"
+          className="pt26-tool-btn disabled:opacity-40"
+          title="Italic (Ctrl+I / <em>)"
         >
           <Italic className="h-4 w-4" />
         </button>
         <button
           type="button"
+          disabled={editorMode !== "visual"}
           onClick={() => applyCmd("underline")}
-          className="pt26-tool-btn"
-          title="Underline (Ctrl+U)"
+          className="pt26-tool-btn disabled:opacity-40"
+          title="Underline (Ctrl+U / <u>)"
         >
           <Underline className="h-4 w-4" />
         </button>
         <span className="pt26-tool-divider" />
         <button
           type="button"
+          disabled={editorMode !== "visual"}
           onClick={() => applyCmd("insertUnorderedList")}
-          className="pt26-tool-btn"
-          title={isId ? "Daftar Poin" : "Bullet List"}
+          className="pt26-tool-btn disabled:opacity-40"
+          title={isId ? "Daftar Poin (<ul> <li>)" : "Bullet List (<ul> <li>)"}
         >
           <List className="h-4 w-4" />
         </button>
         <button
           type="button"
+          disabled={editorMode !== "visual"}
           onClick={() => applyCmd("insertOrderedList")}
-          className="pt26-tool-btn"
-          title={isId ? "Daftar Nomor" : "Numbered List"}
+          className="pt26-tool-btn disabled:opacity-40"
+          title={isId ? "Daftar Nomor (<ol> <li>)" : "Numbered List (<ol> <li>)"}
         >
           <ListOrdered className="h-4 w-4" />
         </button>
         <button
           type="button"
+          disabled={editorMode !== "visual"}
           onClick={() => setShowLinkBar(!showLinkBar)}
-          className={`pt26-tool-btn ${showLinkBar ? "bg-slate-200 dark:bg-slate-700" : ""}`}
-          title={isId ? "Sisipkan Tautan" : "Insert Link"}
+          className={`pt26-tool-btn disabled:opacity-40 ${
+            showLinkBar ? "bg-slate-200 dark:bg-slate-700" : ""
+          }`}
+          title={isId ? "Sisipkan Tautan (<a>)" : "Insert Link (<a>)"}
         >
           <LinkIcon className="h-4 w-4" />
         </button>
         <span className="pt26-tool-divider" />
         <button
           type="button"
+          disabled={editorMode !== "visual"}
           onClick={() => applyCmd("undo")}
-          className="pt26-tool-btn"
+          className="pt26-tool-btn disabled:opacity-40"
           title={isId ? "Urungkan (Ctrl+Z)" : "Undo (Ctrl+Z)"}
         >
           <RotateCcw className="h-4 w-4" />
         </button>
         <button
           type="button"
+          disabled={editorMode !== "visual"}
           onClick={() => applyCmd("redo")}
-          className="pt26-tool-btn"
+          className="pt26-tool-btn disabled:opacity-40"
           title={isId ? "Ulangi (Ctrl+Y)" : "Redo (Ctrl+Y)"}
         >
           <RotateCw className="h-4 w-4" />
         </button>
 
+        <span className="pt26-tool-divider" />
+
+        {/* Auto-detect HTML Tag Formatter Button */}
+        <button
+          type="button"
+          onClick={handleAutoDetectTags}
+          className="pt26-autodetect-btn"
+          title={
+            isId
+              ? "Deteksi & Format Simbol Tag HTML (<h2>, <p>, <strong>, dll)"
+              : "Auto-detect & Format HTML Tags (<h2>, <p>, <strong>, etc.)"
+          }
+        >
+          <Wand2 className="h-3.5 w-3.5 text-[#fe6f05]" />
+          <span>{isId ? "Format Tag HTML" : "Auto-Detect HTML"}</span>
+        </button>
+
+        {/* Insert TP Preneurs Standard Template */}
         <button
           type="button"
           onClick={onApplyTemplate}
@@ -480,13 +668,64 @@ function ModernPolicyEditor({
         </div>
       )}
 
-      <div
-        ref={editorRef}
-        contentEditable
-        suppressContentEditableWarning
-        onInput={emitChange}
-        className="pt26-editor-content focus:outline-none"
-      />
+      {/* Editor Body: Visual WYSIWYG vs Raw HTML Code */}
+      {editorMode === "visual" ? (
+        <div
+          ref={editorRef}
+          contentEditable
+          suppressContentEditableWarning
+          onInput={() => editorRef.current && emitChange(editorRef.current.innerHTML)}
+          onPaste={handlePaste}
+          onBlur={handleVisualBlur}
+          className="pt26-editor-content focus:outline-none"
+        />
+      ) : (
+        <textarea
+          ref={codeAreaRef}
+          defaultValue={formatHtmlForSourceView(value || "")}
+          onChange={(e) => emitChange(e.target.value)}
+          placeholder={
+            isId
+              ? "Ketik atau tempel kode HTML di sini (misal: <h2>Judul</h2>, <p>Paragraf</p>, <strong>Teks Tebal</strong>, <ul><li>Poin</li></ul>)..."
+              : "Type or paste HTML code here (e.g. <h2>Title</h2>, <p>Paragraph</p>, <strong>Bold</strong>, <ul><li>Item</li></ul>)..."
+          }
+          className="pt26-editor-codearea focus:outline-none"
+          spellCheck={false}
+        />
+      )}
+
+      {/* Modern Status Bar & Format Feedback Toast */}
+      <div className="pt26-editor-statusbar">
+        <div className="flex items-center gap-2">
+          <span className="pt26-editor-badge">
+            {editorMode === "visual"
+              ? isId
+                ? "Mode Visual (Otomatis Render Tag)"
+                : "Visual Mode (Auto-Render Tags)"
+              : isId
+              ? "Mode Kode HTML (Source)"
+              : "HTML Code Mode (Source)"}
+          </span>
+          {formatNotice ? (
+            <span className="pt26-editor-toast">
+              <Check className="h-3.5 w-3.5" />
+              <span>{formatNotice}</span>
+            </span>
+          ) : (
+            <span className="text-slate-400">
+              {isId
+                ? "Simbol <h2>, <p>, <strong>, <ul>, <li> otomatis dideteksi"
+                : "<h2>, <p>, <strong>, <ul>, <li> tags automatically detected"}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3 text-slate-500">
+          <span>{wordCount} {isId ? "kata" : "words"}</span>
+          <span>•</span>
+          <span>{charCount} {isId ? "karakter" : "chars"}</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -538,7 +777,7 @@ export default function StoreCustomizationPrivacyTermsSettings2026({
   const pageHtml = toText(activePolicyData?.pageTextHtml, "");
 
   const safePreviewHtml = useMemo(() => {
-    return sanitizeRichTextHtml(pageHtml);
+    return autoDetectAndParseHtml(pageHtml);
   }, [pageHtml]);
 
   const handleApplyTemplate = () => {
