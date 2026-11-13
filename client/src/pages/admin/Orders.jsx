@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import {
@@ -68,55 +69,62 @@ const DEFAULT_FILTERS = {
   deliveryStatus: "",
 };
 
-const PAYMENT_STATUS_OPTIONS = [
-  { value: "", label: "All Payment Statuses" },
-  { value: "PAID", label: "Paid" },
-  { value: "UNPAID", label: "Unpaid" },
-  { value: "PENDING_CONFIRMATION", label: "Pending confirmation" },
-  { value: "FAILED", label: "Failed" },
-  { value: "EXPIRED", label: "Expired" },
-  { value: "CANCELLED", label: "Cancelled" },
+const getPaymentStatusOptions = (isId) => [
+  { value: "", label: isId ? "Semua Status Pembayaran" : "All Payment Statuses" },
+  { value: "PAID", label: isId ? "Lunas" : "Paid" },
+  { value: "UNPAID", label: isId ? "Belum Bayar" : "Unpaid" },
+  { value: "PENDING_CONFIRMATION", label: isId ? "Menunggu Konfirmasi" : "Pending confirmation" },
+  { value: "FAILED", label: isId ? "Gagal" : "Failed" },
+  { value: "EXPIRED", label: isId ? "Kedaluwarsa" : "Expired" },
+  { value: "CANCELLED", label: isId ? "Dibatalkan" : "Cancelled" },
 ];
 
-const PAYMENT_METHOD_OPTIONS = [
-  { value: "", label: "All Payment Methods" },
-  { value: "qris", label: "Static QRIS" },
-  { value: "duitku", label: "Duitku" },
+const getPaymentMethodOptions = (isId) => [
+  { value: "", label: isId ? "Semua Metode Pembayaran" : "All Payment Methods" },
+  { value: "qris", label: isId ? "QRIS Statis" : "Static QRIS" },
+  { value: "duitku", label: "Duitku POP" },
 ];
 
-const DELIVERY_STATUS_OPTIONS = [
-  { value: "", label: "All Delivery Statuses" },
-  { value: "waiting_payment", label: "Waiting payment" },
-  { value: "ready_to_fulfill", label: "Ready to fulfill" },
-  { value: "processing", label: "Processing" },
-  { value: "in_delivery", label: "In delivery" },
-  { value: "delivered", label: "Delivered" },
-  { value: "cancelled", label: "Cancelled" },
-  { value: "failed", label: "Failed" },
+const getDeliveryStatusOptions = (isId) => [
+  { value: "", label: isId ? "Semua Status Pengiriman" : "All Delivery Statuses" },
+  { value: "waiting_payment", label: isId ? "Menunggu Pembayaran" : "Waiting payment" },
+  { value: "ready_to_fulfill", label: isId ? "Siap Diproses" : "Ready to fulfill" },
+  { value: "processing", label: isId ? "Diproses" : "Processing" },
+  { value: "in_delivery", label: isId ? "Dalam Pengiriman" : "In delivery" },
+  { value: "delivered", label: isId ? "Terkirim" : "Delivered" },
+  { value: "cancelled", label: isId ? "Dibatalkan" : "Cancelled" },
+  { value: "failed", label: isId ? "Gagal" : "Failed" },
 ];
 
 const ROW_LIMIT_OPTIONS = [10, 20, 50, 100];
 
-const COLUMN_DEFS = [
-  { key: "invoice", label: "Invoice ID" },
-  { key: "orderDate", label: "Date" },
-  { key: "customer", label: "Customer" },
-  { key: "paymentMethod", label: "Method" },
-  { key: "amount", label: "Amount" },
-  { key: "paymentStatus", label: "Payment" },
-  { key: "deliveryStatus", label: "Delivery" },
-  { key: "orderStatus", label: "Status" },
+const getColumnDefs = (isId) => [
+  { key: "invoiceDate", label: isId ? "Invoice & Tanggal" : "Invoice & Date" },
+  { key: "customer", label: isId ? "Pelanggan" : "Customer" },
+  { key: "amountMethod", label: isId ? "Total & Metode" : "Total & Method" },
+  { key: "paymentStatus", label: isId ? "Pembayaran" : "Payment" },
+  { key: "orderStatus", label: isId ? "Status Pesanan" : "Order Status" },
 ];
 
-const INITIAL_VISIBLE_COLUMNS = COLUMN_DEFS.reduce(
-  (acc, column) => ({ ...acc, [column.key]: true }),
-  {}
-);
-
-const BULK_ACTIONS = [
-  { action: "MARK_DELIVERED", label: "Mark as Delivered", tone: "success", icon: CheckCircle2 },
-  { action: "MARK_CANCELLED", label: "Mark as Cancelled", tone: "muted", icon: Ban },
-  { action: "MARK_FAILED", label: "Mark as Failed", tone: "danger", icon: X },
+const getBulkActions = (isId) => [
+  {
+    action: "MARK_DELIVERED",
+    label: isId ? "Tandai Terkirim" : "Mark as Delivered",
+    tone: "success",
+    icon: CheckCircle2,
+  },
+  {
+    action: "MARK_CANCELLED",
+    label: isId ? "Tandai Dibatalkan" : "Mark as Cancelled",
+    tone: "muted",
+    icon: Ban,
+  },
+  {
+    action: "MARK_FAILED",
+    label: isId ? "Tandai Gagal" : "Mark as Failed",
+    tone: "danger",
+    icon: X,
+  },
 ];
 
 const toText = (value) => String(value ?? "").trim();
@@ -151,6 +159,20 @@ const formatCompactOrderNumber = (invoiceNo, orderId, createdAt) => {
 const getOrderDateValue = (order, view) =>
   view?.orderTime || order?.orderDate || order?.createdAt || order?.created_at || order?.order_time || null;
 
+const formatOrderDateTime = (value, isId = false) => {
+  if (!value) return "-";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "-";
+  return new Intl.DateTimeFormat(isId ? "id-ID" : "en-US", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: !isId,
+  }).format(d);
+};
+
 const getPaymentStatus = (order) =>
   normalizeToken(order?.paymentStatus || order?.payment?.status || order?.payment_state || "UNPAID");
 
@@ -179,15 +201,42 @@ const getTone = (raw) => {
   return "neutral";
 };
 
-const labelize = (raw) => {
-  const value = toText(raw);
-  if (!value) return "-";
-  return value
-    .replace(/_/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase()
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+const getLocalizedPaymentStatus = (status, isId) => {
+  const token = normalizeToken(status);
+  const labels = {
+    PAID: isId ? "Lunas" : "Paid",
+    UNPAID: isId ? "Belum Bayar" : "Unpaid",
+    PENDING_CONFIRMATION: isId ? "Menunggu" : "Pending",
+    FAILED: isId ? "Gagal" : "Failed",
+    EXPIRED: isId ? "Kedaluwarsa" : "Expired",
+    CANCELLED: isId ? "Batal" : "Cancelled",
+  };
+  return labels[token] || (isId ? "Belum Bayar" : "Unpaid");
+};
+
+const getLocalizedDeliveryStatus = (status, isId) => {
+  const token = normalizeToken(status);
+  const labels = {
+    DELIVERED: isId ? "Terkirim" : "Delivered",
+    IN_DELIVERY: isId ? "Dikirim" : "In delivery",
+    PROCESSING: isId ? "Diproses" : "Processing",
+    READY_TO_FULFILL: isId ? "Siap Kirim" : "Ready to fulfill",
+    WAITING_PAYMENT: isId ? "Tunggu Bayar" : "Waiting payment",
+    CANCELLED: isId ? "Batal" : "Cancelled",
+    FAILED: isId ? "Gagal" : "Failed",
+  };
+  return labels[token] || (isId ? "Diproses" : "Processing");
+};
+
+const getLocalizedActionLabel = (value, isId) => {
+  const map = {
+    pending: isId ? "Menunggu" : "Pending",
+    processing: isId ? "Diproses" : "Processing",
+    shipping: isId ? "Dikirim" : "On delivery",
+    delivered: isId ? "Selesai" : "Delivered",
+    cancel: isId ? "Dibatalkan" : "Cancelled",
+  };
+  return map[value] || value;
 };
 
 const getPaymentMethodLabel = (view, order) => {
@@ -211,6 +260,16 @@ const getPaymentMethodLabel = (view, order) => {
   if (normalized.includes("cash") || normalized.includes("cod")) return "COD";
   if (normalized.includes("credit")) return "Credit";
   return raw || "Static QRIS";
+};
+
+const getCustomerInitials = (name) => {
+  const clean = String(name || "").trim();
+  if (!clean || clean === "-") return "C";
+  const parts = clean.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0][0] || ""}${parts[1][0] || ""}`.toUpperCase();
+  }
+  return clean.slice(0, 2).toUpperCase();
 };
 
 const normalizeRows = (items) =>
@@ -253,17 +312,25 @@ const getErrorMessage = (error, fallback = GENERIC_ERROR) =>
 export default function Orders() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { formatDateTime, formatMoney } = useAdminLocale();
+  const { formatMoney } = useAdminLocale();
+  const { i18n } = useTranslation();
+  const isId = String(i18n.language || "").toLowerCase().startsWith("id");
+
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [goToPage, setGoToPage] = useState("1");
   const [sortDir, setSortDir] = useState("desc");
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [customerInput, setCustomerInput] = useState(DEFAULT_FILTERS.customer);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [bulkMenuOpen, setBulkMenuOpen] = useState(false);
   const [columnsMenuOpen, setColumnsMenuOpen] = useState(false);
-  const [visibleColumns, setVisibleColumns] = useState(INITIAL_VISIBLE_COLUMNS);
+  const [visibleColumns, setVisibleColumns] = useState({
+    invoiceDate: true,
+    customer: true,
+    amountMethod: true,
+    paymentStatus: true,
+    orderStatus: true,
+  });
   const [pendingUpdateId, setPendingUpdateId] = useState(null);
 
   useEffect(() => {
@@ -275,10 +342,6 @@ export default function Orders() {
     }, 350);
     return () => window.clearTimeout(timer);
   }, [customerInput]);
-
-  useEffect(() => {
-    setGoToPage(String(page));
-  }, [page]);
 
   useEffect(() => {
     const closeMenus = (event) => {
@@ -320,12 +383,12 @@ export default function Orders() {
   const mutationOptions = {
     meta: { suppressGlobalToast: true },
     onSuccess: (payload) => {
-      toast.success(payload?.message || "Order action completed.");
+      toast.success(payload?.message || (isId ? "Aksi pesanan selesai." : "Order action completed."));
       setSelectedIds(new Set());
       invalidateOrders();
     },
     onError: (error) => {
-      toast.error(getErrorMessage(error, "Order action failed."));
+      toast.error(getErrorMessage(error, isId ? "Aksi pesanan gagal." : "Order action failed."));
     },
   };
 
@@ -334,7 +397,7 @@ export default function Orders() {
     meta: { suppressGlobalToast: true },
     onMutate: ({ target }) => setPendingUpdateId(target),
     onSuccess: () => {
-      toast.success("Order status updated.");
+      toast.success(isId ? "Status pesanan diperbarui." : "Order status updated.");
       invalidateOrders();
     },
     onError: (error) => {
@@ -370,9 +433,9 @@ export default function Orders() {
     onSuccess: (response) => {
       const stamp = new Date().toISOString().slice(0, 10);
       const filename = downloadBlob(response, `orders-${stamp}.csv`);
-      toast.success(`Exported as ${filename}.`);
+      toast.success(isId ? `Berhasil diekspor sebagai ${filename}.` : `Exported as ${filename}.`);
     },
-    onError: (error) => toast.error(getErrorMessage(error, "Failed to download orders.")),
+    onError: (error) => toast.error(getErrorMessage(error, isId ? "Gagal mengunduh pesanan." : "Failed to download orders.")),
   });
 
   const items = Array.isArray(ordersQuery.data?.data) ? ordersQuery.data.data : [];
@@ -454,27 +517,37 @@ export default function Orders() {
   const runBulkAction = (action) => {
     setBulkMenuOpen(false);
     if (selectedCount === 0) {
-      toast.error("Select at least one order first.");
+      toast.error(isId ? "Pilih minimal satu pesanan terlebih dahulu." : "Select at least one order first.");
       return;
     }
     bulkMutation.mutate({ ...selectedPayload(), action });
   };
 
   const runAssign = () => {
-    if (selectedCount === 0) return toast.error("Select at least one order first.");
+    if (selectedCount === 0) {
+      return toast.error(isId ? "Pilih minimal satu pesanan terlebih dahulu." : "Select at least one order first.");
+    }
     assignMutation.mutate(selectedPayload());
   };
 
   const runUnassign = () => {
-    if (selectedCount === 0) return toast.error("Select at least one order first.");
+    if (selectedCount === 0) {
+      return toast.error(isId ? "Pilih minimal satu pesanan terlebih dahulu." : "Select at least one order first.");
+    }
     unassignMutation.mutate(selectedPayload());
   };
 
   const runDelete = () => {
-    if (selectedCount === 0) return toast.error("Select at least one order first.");
+    if (selectedCount === 0) {
+      return toast.error(isId ? "Pilih minimal satu pesanan terlebih dahulu." : "Select at least one order first.");
+    }
     const confirmed = window.confirm(
       selectedCount === 1
-        ? "Delete selected order? This action cannot be undone."
+        ? isId
+          ? "Hapus pesanan terpilih? Tindakan ini tidak dapat dibatalkan."
+          : "Delete selected order? This action cannot be undone."
+        : isId
+        ? `Hapus ${selectedCount} pesanan terpilih? Tindakan ini tidak dapat dibatalkan.`
         : `Delete ${selectedCount} selected orders? This action cannot be undone.`
     );
     if (!confirmed) return;
@@ -497,14 +570,26 @@ export default function Orders() {
 
   const onPrintInvoice = (order, view) => {
     const invoiceParam = getInvoiceParam(order, view);
-    if (!invoiceParam) return toast.error("Order detail unavailable.");
+    if (!invoiceParam) {
+      return toast.error(isId ? "Detail pesanan tidak tersedia." : "Order detail unavailable.");
+    }
     const printWindow = window.open(`/admin/orders/${encodeURIComponent(invoiceParam)}?print=1`, "_blank");
-    if (!printWindow) toast.error("Pop-up blocked. Allow pop-ups to print invoice.");
+    if (!printWindow) {
+      toast.error(isId ? "Pop-up diblokir. Izinkan pop-up untuk mencetak invoice." : "Pop-up blocked. Allow pop-ups to print invoice.");
+    }
   };
 
   const copyInvoice = (invoiceParam) => {
-    navigator.clipboard.writeText(invoiceParam).then(() => toast.success("Invoice copied."));
+    navigator.clipboard.writeText(invoiceParam).then(() => {
+      toast.success(isId ? "Invoice berhasil disalin." : "Invoice copied.");
+    });
   };
+
+  const columnDefs = getColumnDefs(isId);
+  const bulkActions = getBulkActions(isId);
+  const paymentStatusOptions = getPaymentStatusOptions(isId);
+  const deliveryStatusOptions = getDeliveryStatusOptions(isId);
+  const paymentMethodOptions = getPaymentMethodOptions(isId);
 
   return (
     <div className="admin-orders-2026">
@@ -516,10 +601,10 @@ export default function Orders() {
           </div>
           <div className="orders-title-text">
             <div className="orders-title-row">
-              <h1>Orders</h1>
+              <h1>{isId ? "Pesanan" : "Orders"}</h1>
               <span className="orders-badge-count">{meta.total || rows.length}</span>
             </div>
-            <p>Manage customer orders</p>
+            <p>{isId ? "Kelola pesanan pelanggan" : "Manage customer orders"}</p>
           </div>
         </div>
 
@@ -529,20 +614,26 @@ export default function Orders() {
             className="orders-btn"
             onClick={() => invalidateOrders()}
             disabled={ordersQuery.isFetching}
-            title="Refresh list"
+            title={isId ? "Segarkan daftar" : "Refresh list"}
           >
             <RefreshCw size={14} className={ordersQuery.isFetching ? "animate-spin" : ""} />
-            Refresh
+            {isId ? "Segarkan" : "Refresh"}
           </button>
           <button
             type="button"
             className="orders-btn orders-btn--primary"
             onClick={runDownload}
             disabled={downloadMutation.isPending}
-            title="Export CSV"
+            title={isId ? "Ekspor CSV" : "Export CSV"}
           >
             <Download size={14} />
-            {downloadMutation.isPending ? "Exporting..." : "Export CSV"}
+            {downloadMutation.isPending
+              ? isId
+                ? "Mengekspor..."
+                : "Exporting..."
+              : isId
+              ? "Ekspor CSV"
+              : "Export CSV"}
           </button>
         </div>
       </header>
@@ -552,7 +643,7 @@ export default function Orders() {
         <section className="orders-floating-bar" aria-label="Selected actions">
           <div className="orders-floating-info">
             <span className="orders-floating-badge">{selectedCount}</span>
-            <span>orders selected</span>
+            <span>{isId ? "pesanan dipilih" : "orders selected"}</span>
           </div>
           <div className="orders-floating-actions">
             <button
@@ -562,7 +653,7 @@ export default function Orders() {
               disabled={isBusy}
             >
               <Truck size={14} />
-              Assign
+              {isId ? "Tugaskan" : "Assign"}
             </button>
             <button
               type="button"
@@ -571,7 +662,7 @@ export default function Orders() {
               disabled={isBusy}
             >
               <UserRound size={14} />
-              Unassign
+              {isId ? "Lepas Kurir" : "Unassign"}
             </button>
             <div className="orders-menu-wrap" data-admin-orders-menu>
               <button
@@ -584,11 +675,11 @@ export default function Orders() {
                 disabled={isBusy}
               >
                 <FileText size={14} />
-                Status <ChevronDown size={13} />
+                {isId ? "Status" : "Status"} <ChevronDown size={13} />
               </button>
               {bulkMenuOpen && (
                 <div className="orders-dropdown">
-                  {BULK_ACTIONS.map((item) => (
+                  {bulkActions.map((item) => (
                     <button
                       key={item.action}
                       type="button"
@@ -608,13 +699,13 @@ export default function Orders() {
               disabled={isBusy}
             >
               <Trash2 size={14} />
-              Delete
+              {isId ? "Hapus" : "Delete"}
             </button>
             <button
               type="button"
               className="orders-floating-close"
               onClick={() => setSelectedIds(new Set())}
-              title="Clear selection"
+              title={isId ? "Batalkan pilihan" : "Clear selection"}
             >
               <X size={16} />
             </button>
@@ -626,7 +717,7 @@ export default function Orders() {
       <section className="orders-metrics" aria-label="Order summary">
         <div className="orders-metric-card is-blue">
           <div className="orders-metric-top">
-            <span className="orders-metric-title">Total Orders</span>
+            <span className="orders-metric-title">{isId ? "Total Pesanan" : "Total Orders"}</span>
             <div className="orders-metric-icon">
               <ShoppingBag size={17} />
             </div>
@@ -639,40 +730,40 @@ export default function Orders() {
 
         <div className="orders-metric-card is-blue">
           <div className="orders-metric-top">
-            <span className="orders-metric-title">Processing</span>
+            <span className="orders-metric-title">{isId ? "Sedang Diproses" : "Processing"}</span>
             <div className="orders-metric-icon">
               <Clock3 size={17} />
             </div>
           </div>
           <div className="orders-metric-val-row">
             <span className="orders-metric-val">{summary.processing}</span>
-            <span className="orders-metric-sub">Fulfillment</span>
+            <span className="orders-metric-sub">{isId ? "Pemrosesan" : "Fulfillment"}</span>
           </div>
         </div>
 
         <div className="orders-metric-card is-orange">
           <div className="orders-metric-top">
-            <span className="orders-metric-title">Payment Issues</span>
+            <span className="orders-metric-title">{isId ? "Masalah Pembayaran" : "Payment Issues"}</span>
             <div className="orders-metric-icon">
               <CreditCard size={17} />
             </div>
           </div>
           <div className="orders-metric-val-row">
             <span className="orders-metric-val">{summary.paymentIssues}</span>
-            <span className="orders-metric-sub">Attention</span>
+            <span className="orders-metric-sub">{isId ? "Perhatian" : "Attention"}</span>
           </div>
         </div>
 
         <div className="orders-metric-card is-green">
           <div className="orders-metric-top">
-            <span className="orders-metric-title">Delivered</span>
+            <span className="orders-metric-title">{isId ? "Terkirim" : "Delivered"}</span>
             <div className="orders-metric-icon">
               <CheckCircle2 size={17} />
             </div>
           </div>
           <div className="orders-metric-val-row">
             <span className="orders-metric-val">{summary.delivered}</span>
-            <span className="orders-metric-sub">Completed</span>
+            <span className="orders-metric-sub">{isId ? "Selesai" : "Completed"}</span>
           </div>
         </div>
       </section>
@@ -689,7 +780,7 @@ export default function Orders() {
             }}
             className={`orders-quick-chip ${!filters.paymentStatus && !filters.deliveryStatus ? "is-active" : ""}`}
           >
-            All
+            {isId ? "Semua" : "All"}
             <span className="orders-quick-count">{meta.total || rows.length}</span>
           </button>
           <button
@@ -698,9 +789,9 @@ export default function Orders() {
               updateFilter("paymentStatus", "UNPAID");
               updateFilter("deliveryStatus", "");
             }}
-            className={`orders-quick-chip ${filters.paymentStatus === "UNPAID" ? "is-active" : ""}`}
+            className={`orders-quick-chip ${filters.paymentStatus === "UNPAID" ? "is-active is-orange" : ""}`}
           >
-            Payment Issues
+            {isId ? "Masalah Pembayaran" : "Payment Issues"}
             <span className="orders-quick-count">{summary.paymentIssues}</span>
           </button>
           <button
@@ -711,7 +802,7 @@ export default function Orders() {
             }}
             className={`orders-quick-chip ${filters.deliveryStatus === "processing" ? "is-active" : ""}`}
           >
-            Processing
+            {isId ? "Sedang Diproses" : "Processing"}
             <span className="orders-quick-count">{summary.processing}</span>
           </button>
           <button
@@ -720,9 +811,9 @@ export default function Orders() {
               updateFilter("paymentStatus", "");
               updateFilter("deliveryStatus", "delivered");
             }}
-            className={`orders-quick-chip ${filters.deliveryStatus === "delivered" ? "is-active" : ""}`}
+            className={`orders-quick-chip ${filters.deliveryStatus === "delivered" ? "is-active is-green" : ""}`}
           >
-            Delivered
+            {isId ? "Terkirim" : "Delivered"}
             <span className="orders-quick-count">{summary.delivered}</span>
           </button>
         </div>
@@ -735,13 +826,14 @@ export default function Orders() {
               type="text"
               value={customerInput}
               onChange={(e) => setCustomerInput(e.target.value)}
-              placeholder="Search customer or invoice..."
+              placeholder={isId ? "Cari pelanggan atau invoice..." : "Search customer or invoice..."}
             />
             {customerInput && (
               <button
                 type="button"
                 onClick={() => setCustomerInput("")}
                 style={{ background: "none", border: "none", cursor: "pointer", color: "var(--orders-dim)" }}
+                title={isId ? "Hapus pencarian" : "Clear search"}
               >
                 <X size={13} />
               </button>
@@ -752,8 +844,9 @@ export default function Orders() {
             value={filters.paymentStatus}
             onChange={(e) => updateFilter("paymentStatus", e.target.value)}
             className="orders-select"
+            aria-label={isId ? "Filter status pembayaran" : "Filter payment status"}
           >
-            {PAYMENT_STATUS_OPTIONS.map((opt) => (
+            {paymentStatusOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
@@ -764,8 +857,9 @@ export default function Orders() {
             value={filters.deliveryStatus}
             onChange={(e) => updateFilter("deliveryStatus", e.target.value)}
             className="orders-select"
+            aria-label={isId ? "Filter status pengiriman" : "Filter delivery status"}
           >
-            {DELIVERY_STATUS_OPTIONS.map((opt) => (
+            {deliveryStatusOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
@@ -776,8 +870,9 @@ export default function Orders() {
             value={filters.paymentMethod}
             onChange={(e) => updateFilter("paymentMethod", e.target.value)}
             className="orders-select"
+            aria-label={isId ? "Filter metode pembayaran" : "Filter payment method"}
           >
-            {PAYMENT_METHOD_OPTIONS.map((opt) => (
+            {paymentMethodOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
@@ -789,12 +884,14 @@ export default function Orders() {
               type="date"
               value={filters.startDate}
               onChange={(e) => updateFilter("startDate", e.target.value)}
+              aria-label={isId ? "Tanggal mulai" : "Start date"}
             />
             <span style={{ color: "var(--orders-dim)", fontSize: "0.75rem" }}>—</span>
             <input
               type="date"
               value={filters.endDate}
               onChange={(e) => updateFilter("endDate", e.target.value)}
+              aria-label={isId ? "Tanggal selesai" : "End date"}
             />
           </div>
 
@@ -802,10 +899,10 @@ export default function Orders() {
             type="button"
             onClick={resetFilters}
             className="orders-btn"
-            title="Reset filters"
+            title={isId ? "Atur ulang filter" : "Reset filters"}
           >
             <RotateCcw size={13} />
-            Reset
+            {isId ? "Atur Ulang" : "Reset"}
           </button>
         </div>
       </section>
@@ -825,10 +922,18 @@ export default function Orders() {
       {!isInitialLoading && !isErrorState && (
         <section className="orders-table-card">
           <div className="orders-table-toolbar">
-            <div>
-              Showing {rows.length > 0 ? (Number(meta.page || page) - 1) * Number(meta.limit || pageSize) + 1 : 0} to{" "}
-              {Math.min(Number(meta.total || 0), (Number(meta.page || page) - 1) * Number(meta.limit || pageSize) + rows.length)} of{" "}
-              {Number(meta.total || 0)} orders
+            <div className="orders-toolbar-count">
+              {isId ? "Menampilkan " : "Showing "}
+              <strong>
+                {rows.length > 0 ? (Number(meta.page || page) - 1) * Number(meta.limit || pageSize) + 1 : 0}
+              </strong>
+              {isId ? " sampai " : " to "}
+              <strong>
+                {Math.min(Number(meta.total || 0), (Number(meta.page || page) - 1) * Number(meta.limit || pageSize) + rows.length)}
+              </strong>
+              {isId ? " dari " : " of "}
+              <strong>{Number(meta.total || 0)}</strong>
+              {isId ? " pesanan" : " orders"}
               {ordersQuery.isFetching && <UiUpdatingBadge />}
             </div>
 
@@ -843,12 +948,12 @@ export default function Orders() {
                   }}
                 >
                   <Grid2X2 size={13} />
-                  Columns
+                  {isId ? "Kolom" : "Columns"}
                   <ChevronDown size={12} />
                 </button>
                 {columnsMenuOpen && (
                   <div className="orders-dropdown">
-                    {COLUMN_DEFS.map((col) => (
+                    {columnDefs.map((col) => (
                       <label key={col.key}>
                         <input
                           type="checkbox"
@@ -872,22 +977,22 @@ export default function Orders() {
           {rows.length === 0 ? (
             <div className="orders-empty">
               <div className="orders-empty-icon">
-                <PackageCheck size={22} />
+                <PackageCheck size={24} />
               </div>
-              <h3 className="orders-empty-title">No orders found</h3>
-              <p className="orders-empty-desc">Adjust filters or search criteria.</p>
+              <h3 className="orders-empty-title">{isId ? "Tidak ada pesanan ditemukan" : "No orders found"}</h3>
+              <p className="orders-empty-desc">{isId ? "Sesuaikan filter atau kriteria pencarian Anda." : "Adjust filters or search criteria."}</p>
               <button
                 type="button"
                 onClick={resetFilters}
                 className="orders-btn orders-btn--sm"
                 style={{ marginTop: 8 }}
               >
-                Reset Filters
+                {isId ? "Atur Ulang Filter" : "Reset Filters"}
               </button>
             </div>
           ) : (
             <>
-              {/* DESKTOP TABLE (>= 768px) */}
+              {/* DESKTOP STREAMLINED ZERO-SCROLL TABLE (>= 768px) */}
               <div className="orders-table-scroll">
                 <table className="orders-table">
                   <thead>
@@ -897,29 +1002,38 @@ export default function Orders() {
                           type="checkbox"
                           checked={allVisibleSelected}
                           onChange={toggleSelectAllVisible}
-                          aria-label="Select all"
+                          aria-label={isId ? "Pilih semua baris" : "Select all rows"}
                         />
                       </th>
-                      {visibleColumns.invoice && <th>Invoice</th>}
-                      {visibleColumns.orderDate && (
-                        <th>
+                      {visibleColumns.invoiceDate && (
+                        <th style={{ width: "23%" }}>
                           <button
                             type="button"
                             onClick={() => setSortDir((c) => (c === "desc" ? "asc" : "desc"))}
-                            style={{ background: "none", border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, font: "inherit", color: "inherit", fontWeight: 700 }}
+                            className="orders-th-sort"
+                            title={isId ? "Urutkan berdasarkan tanggal" : "Sort by date"}
                           >
-                            Date
-                            <ChevronDown size={13} style={{ transform: sortDir === "asc" ? "rotate(180deg)" : "none" }} />
+                            <span>{isId ? "Invoice & Tanggal" : "Invoice & Date"}</span>
+                            <ChevronDown
+                              size={13}
+                              style={{ transform: sortDir === "asc" ? "rotate(180deg)" : "none", transition: "transform 0.15s ease" }}
+                            />
                           </button>
                         </th>
                       )}
-                      {visibleColumns.customer && <th>Customer</th>}
-                      {visibleColumns.paymentMethod && <th>Method</th>}
-                      {visibleColumns.amount && <th>Amount</th>}
-                      {visibleColumns.paymentStatus && <th>Payment</th>}
-                      {visibleColumns.deliveryStatus && <th>Delivery</th>}
-                      {visibleColumns.orderStatus && <th>Status</th>}
-                      <th style={{ textAlign: "right" }}>Action</th>
+                      {visibleColumns.customer && (
+                        <th style={{ width: "23%" }}>{isId ? "Pelanggan" : "Customer"}</th>
+                      )}
+                      {visibleColumns.amountMethod && (
+                        <th style={{ width: "19%" }}>{isId ? "Total & Metode" : "Total & Method"}</th>
+                      )}
+                      {visibleColumns.paymentStatus && (
+                        <th style={{ width: "13%" }}>{isId ? "Pembayaran" : "Payment"}</th>
+                      )}
+                      {visibleColumns.orderStatus && (
+                        <th style={{ width: "16%" }}>{isId ? "Status Pesanan" : "Order Status"}</th>
+                      )}
+                      <th style={{ width: "6%", textAlign: "right" }}>{isId ? "Aksi" : "Action"}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -943,6 +1057,8 @@ export default function Orders() {
                             }));
                       const isUpdating = pendingUpdateId === invoiceParam || pendingUpdateId === rowId;
                       const isSelected = selectedIds.has(rowId);
+                      const customerName = view.customerName || "-";
+                      const initials = getCustomerInitials(customerName);
 
                       return (
                         <tr key={rowId || invoiceParam} className={isSelected ? "is-selected" : ""}>
@@ -951,87 +1067,91 @@ export default function Orders() {
                               type="checkbox"
                               checked={isSelected}
                               onChange={() => toggleRowSelection(rowId)}
+                              aria-label={isId ? `Pilih pesanan ${invoiceParam}` : `Select order ${invoiceParam}`}
                             />
                           </td>
-                          {visibleColumns.invoice && (
+                          {visibleColumns.invoiceDate && (
                             <td>
-                              <div className="orders-invoice-cell">
-                                <Link
-                                  to={`/admin/orders/${encodeURIComponent(invoiceParam)}`}
-                                  className="orders-invoice-link"
-                                  title={invoiceParam}
-                                >
-                                  {formatCompactOrderNumber(invoiceParam, rowId, orderDateValue)}
-                                </Link>
-                                <button
-                                  type="button"
-                                  onClick={() => copyInvoice(invoiceParam)}
-                                  className="orders-copy-icon"
-                                  title={`Copy ${invoiceParam}`}
-                                >
-                                  <Copy size={12} />
-                                </button>
+                              <div className="orders-inv-date-stack">
+                                <div className="orders-invoice-cell">
+                                  <Link
+                                    to={`/admin/orders/${encodeURIComponent(invoiceParam)}`}
+                                    className="orders-invoice-link"
+                                    title={invoiceParam}
+                                  >
+                                    {formatCompactOrderNumber(invoiceParam, rowId, orderDateValue)}
+                                  </Link>
+                                  <button
+                                    type="button"
+                                    onClick={() => copyInvoice(invoiceParam)}
+                                    className="orders-copy-icon"
+                                    title={isId ? `Salin ${invoiceParam}` : `Copy ${invoiceParam}`}
+                                  >
+                                    <Copy size={12} />
+                                  </button>
+                                </div>
+                                <div className="orders-date-sub">
+                                  {formatOrderDateTime(orderDateValue, isId)}
+                                </div>
                               </div>
-                            </td>
-                          )}
-                          {visibleColumns.orderDate && (
-                            <td style={{ whiteSpace: "nowrap", color: "var(--orders-muted)" }}>
-                              {formatDateTime(orderDateValue)}
                             </td>
                           )}
                           {visibleColumns.customer && (
                             <td>
-                              <div className="orders-customer-name" title={view.customerName}>
-                                {view.customerName}
+                              <div className="orders-customer-flex">
+                                <div className="orders-avatar-badge" aria-hidden="true">
+                                  {initials}
+                                </div>
+                                <div className="orders-customer-name" title={customerName}>
+                                  {customerName}
+                                </div>
                               </div>
                             </td>
                           )}
-                          {visibleColumns.paymentMethod && (
+                          {visibleColumns.amountMethod && (
                             <td>
-                              <span className="orders-badge orders-badge--blue">
-                                {paymentMethod}
-                              </span>
-                            </td>
-                          )}
-                          {visibleColumns.amount && (
-                            <td>
-                              <span className="orders-amount-text">
-                                {formatMoney(view.amount)}
-                              </span>
+                              <div className="orders-amount-method-stack">
+                                <div className="orders-amount-text">
+                                  {formatMoney(view.amount)}
+                                </div>
+                                <div className="orders-method-tag">
+                                  {paymentMethod}
+                                </div>
+                              </div>
                             </td>
                           )}
                           {visibleColumns.paymentStatus && (
                             <td>
                               <span className={`orders-badge ${paymentStatus === "PAID" ? "orders-badge--green" : "orders-badge--orange"}`}>
-                                {labelize(paymentStatus)}
-                              </span>
-                            </td>
-                          )}
-                          {visibleColumns.deliveryStatus && (
-                            <td>
-                              <span className={`orders-badge ${deliveryStatus === "DELIVERED" ? "orders-badge--green" : deliveryStatus === "IN_DELIVERY" || deliveryStatus === "PROCESSING" ? "orders-badge--blue" : "orders-badge--orange"}`}>
-                                {labelize(deliveryStatus)}
+                                <span className={`orders-badge-dot ${paymentStatus === "PAID" ? "is-green" : "is-orange"}`} />
+                                {getLocalizedPaymentStatus(paymentStatus, isId)}
                               </span>
                             </td>
                           )}
                           {visibleColumns.orderStatus && (
                             <td>
-                              <select
-                                className="orders-status-select"
-                                value={actionStatus}
-                                disabled={isUpdating}
-                                onChange={(e) => onUpdateStatus(order, view, e.target.value)}
-                              >
-                                {actionOptions.map((opt) => (
-                                  <option
-                                    key={opt.code || opt.value}
-                                    value={opt.code || opt.value}
-                                    disabled={opt.enabled === false}
-                                  >
-                                    {opt.label}
-                                  </option>
-                                ))}
-                              </select>
+                              <div className="orders-status-stack">
+                                <select
+                                  className="orders-status-select"
+                                  value={actionStatus}
+                                  disabled={isUpdating}
+                                  onChange={(e) => onUpdateStatus(order, view, e.target.value)}
+                                  aria-label={isId ? "Ubah status pesanan" : "Change order status"}
+                                >
+                                  {actionOptions.map((opt) => (
+                                    <option
+                                      key={opt.code || opt.value}
+                                      value={opt.code || opt.value}
+                                      disabled={opt.enabled === false}
+                                    >
+                                      {getLocalizedActionLabel(opt.code || opt.value, isId)}
+                                    </option>
+                                  ))}
+                                </select>
+                                <span className="orders-delivery-indicator" title={getLocalizedDeliveryStatus(deliveryStatus, isId)}>
+                                  {getLocalizedDeliveryStatus(deliveryStatus, isId)}
+                                </span>
+                              </div>
                             </td>
                           )}
                           <td style={{ textAlign: "right" }}>
@@ -1040,7 +1160,7 @@ export default function Orders() {
                                 type="button"
                                 onClick={() => navigate(`/admin/orders/${encodeURIComponent(invoiceParam)}`)}
                                 className="orders-action-btn"
-                                title="View Detail"
+                                title={isId ? "Lihat Detail" : "View Detail"}
                               >
                                 <Eye size={15} />
                               </button>
@@ -1048,7 +1168,7 @@ export default function Orders() {
                                 type="button"
                                 onClick={() => onPrintInvoice(order, view)}
                                 className="orders-action-btn"
-                                title="Print Invoice"
+                                title={isId ? "Cetak Invoice" : "Print Invoice"}
                               >
                                 <Printer size={15} />
                               </button>
@@ -1066,9 +1186,14 @@ export default function Orders() {
                 {rows.map(({ order, view }) => {
                   const rowId = Number(view?.id || order?.id || 0);
                   const invoiceParam = getInvoiceParam(order, view);
+                  const orderDateValue = getOrderDateValue(order, view);
                   const paymentStatus = getPaymentStatus(order);
                   const deliveryStatus = getDeliveryStatus(order, view);
+                  const orderStatus = getOrderStatus(order);
+                  const actionStatus = toAdminOrderActionValue(orderStatus);
                   const isSelected = selectedIds.has(rowId);
+                  const customerName = view.customerName || "-";
+                  const initials = getCustomerInitials(customerName);
 
                   return (
                     <div
@@ -1076,44 +1201,69 @@ export default function Orders() {
                       className={`orders-mobile-card ${isSelected ? "is-selected" : ""}`}
                     >
                       <div className="orders-mobile-top">
-                        <span className="orders-mobile-inv" title={invoiceParam}>
-                          {formatCompactOrderNumber(invoiceParam, rowId, getOrderDateValue(order, view))}
-                        </span>
+                        <div className="orders-mobile-inv-wrap">
+                          <span className="orders-mobile-inv" title={invoiceParam}>
+                            {formatCompactOrderNumber(invoiceParam, rowId, orderDateValue)}
+                          </span>
+                          <span className="orders-mobile-date">
+                            {formatOrderDateTime(orderDateValue, isId)}
+                          </span>
+                        </div>
                         <span className={`orders-badge ${paymentStatus === "PAID" ? "orders-badge--green" : "orders-badge--orange"}`}>
-                          {labelize(paymentStatus)}
+                          <span className={`orders-badge-dot ${paymentStatus === "PAID" ? "is-green" : "is-orange"}`} />
+                          {getLocalizedPaymentStatus(paymentStatus, isId)}
                         </span>
                       </div>
 
                       <div className="orders-mobile-mid">
-                        <span className="orders-mobile-customer">{view.customerName}</span>
+                        <div className="orders-customer-flex">
+                          <div className="orders-avatar-badge" aria-hidden="true">
+                            {initials}
+                          </div>
+                          <span className="orders-mobile-customer">{customerName}</span>
+                        </div>
                         <span className="orders-mobile-amount">{formatMoney(view.amount)}</span>
                       </div>
 
                       <div className="orders-mobile-badges">
-                        <span className="orders-badge orders-badge--neutral">
+                        <span className="orders-badge orders-badge--blue">
                           {getPaymentMethodLabel(view, order)}
                         </span>
                         <span className={`orders-badge ${deliveryStatus === "DELIVERED" ? "orders-badge--green" : "orders-badge--blue"}`}>
-                          {labelize(deliveryStatus)}
+                          {getLocalizedDeliveryStatus(deliveryStatus, isId)}
+                        </span>
+                        <span className="orders-badge orders-badge--neutral">
+                          {getLocalizedActionLabel(actionStatus, isId)}
                         </span>
                       </div>
 
                       <div className="orders-mobile-actions">
                         <button
                           type="button"
+                          onClick={() => copyInvoice(invoiceParam)}
+                          className="orders-btn orders-btn--sm"
+                          title={isId ? "Salin Invoice" : "Copy Invoice"}
+                        >
+                          <Copy size={13} />
+                          {isId ? "Salin" : "Copy"}
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => onPrintInvoice(order, view)}
                           className="orders-btn orders-btn--sm"
+                          title={isId ? "Cetak Invoice" : "Print Invoice"}
                         >
                           <Printer size={13} />
-                          Print
+                          {isId ? "Cetak" : "Print"}
                         </button>
                         <button
                           type="button"
                           onClick={() => navigate(`/admin/orders/${encodeURIComponent(invoiceParam)}`)}
                           className="orders-btn orders-btn--primary orders-btn--sm"
+                          title={isId ? "Lihat Detail" : "View Detail"}
                         >
                           <Eye size={13} />
-                          Detail
+                          {isId ? "Detail" : "Detail"}
                         </button>
                       </div>
                     </div>
@@ -1125,16 +1275,16 @@ export default function Orders() {
 
           {/* PAGINATION */}
           <div className="orders-pagination">
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span>Rows per page:</span>
+            <div className="orders-page-limit-wrap">
+              <span>{isId ? "Baris per halaman:" : "Rows per page:"}</span>
               <select
                 value={pageSize}
                 onChange={(e) => {
                   setPageSize(Number(e.target.value));
                   setPage(1);
                 }}
-                className="orders-select"
-                style={{ height: 32, padding: "0 8px" }}
+                className="orders-select orders-page-limit-select"
+                aria-label={isId ? "Pilih jumlah baris per halaman" : "Select rows per page"}
               >
                 {ROW_LIMIT_OPTIONS.map((n) => (
                   <option key={n} value={n}>
@@ -1149,7 +1299,8 @@ export default function Orders() {
                 type="button"
                 disabled={page <= 1}
                 onClick={() => setPage((c) => Math.max(1, c - 1))}
-                aria-label="Previous page"
+                aria-label={isId ? "Halaman sebelumnya" : "Previous page"}
+                title={isId ? "Halaman sebelumnya" : "Previous page"}
               >
                 <ChevronLeft size={16} />
               </button>
@@ -1172,7 +1323,8 @@ export default function Orders() {
                 type="button"
                 disabled={page >= totalPages}
                 onClick={() => setPage((c) => Math.min(totalPages, c + 1))}
-                aria-label="Next page"
+                aria-label={isId ? "Halaman berikutnya" : "Next page"}
+                title={isId ? "Halaman berikutnya" : "Next page"}
               >
                 <ChevronRight size={16} />
               </button>
