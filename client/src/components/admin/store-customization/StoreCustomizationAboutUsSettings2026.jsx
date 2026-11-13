@@ -27,8 +27,8 @@ import StoreCustomizationTabNav2026 from "./StoreCustomizationTabNav2026.jsx";
 import "./StoreCustomizationAboutUsSettings2026.css";
 
 const toText = (value, fallback = "") => {
-  const normalized = String(value ?? "").trim();
-  return normalized || fallback;
+  if (value === undefined || value === null) return fallback;
+  return String(value);
 };
 
 const isPlainObject = (value) =>
