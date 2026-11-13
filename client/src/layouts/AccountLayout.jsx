@@ -6,7 +6,7 @@ import {
   useNavigate,
   useOutletContext,
 } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -18,15 +18,19 @@ import {
   LayoutDashboard,
   LogOut,
   MapPin,
+  Menu,
   Star,
   User,
+  X,
 } from "lucide-react";
 import { useAccountAuth } from "../auth/authDomainHooks.js";
 import { useCartStore } from "../store/cart.store.ts";
 import { getStoreCustomization } from "../api/public/storeCustomizationPublic.ts";
 import { normalizeDashboardSettingCopy } from "../utils/dashboardSettingCopy.js";
 import { resolveAssetUrl } from "../lib/assetUrl.js";
+import { fetchUserUnreadNotificationCount } from "../api/userNotifications.ts";
 import ThemeToggle from "../components/store/ThemeToggle.jsx";
+import "./account-layout-2026.css";
 
 const getInitials = (value) => {
   const text = String(value || "").trim();
@@ -39,144 +43,264 @@ const getInitials = (value) => {
   return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
 };
 
-function AccountSidebar({ user, onLogout, isLoggingOut, dashboardSettingCopy, isId }) {
-  const displayName = user?.name || user?.fullName || "Guest User";
-  const email = user?.email || "No email provided";
-  const initials = getInitials(user?.name || user?.email || "User");
-  const avatarSrc = resolveAssetUrl(user?.avatarUrl || user?.avatar || "");
-  const copy = dashboardSettingCopy || normalizeDashboardSettingCopy({});
-  const navItems = [
-    {
-      to: "/user/dashboard",
-      label: isId ? "Dashboard" : (copy.dashboard.dashboardLabel || "Dashboard"),
-      Icon: LayoutDashboard,
-    },
-    {
-      to: "/user/my-orders",
-      label: isId ? "Pesanan Saya" : (copy.dashboard.myOrderValue || "My Orders"),
-      Icon: ClipboardList,
-    },
-    {
-      to: "/user/notifications",
-      label: isId ? "Notifikasi" : "Notifications",
-      Icon: Bell,
-    },
-    {
-      to: "/user/store-invitations",
-      label: isId ? "Undangan Toko" : "Store Invitations",
-      Icon: BriefcaseBusiness,
-    },
-    {
-      to: "/user/my-reviews",
-      label: isId ? "Ulasan Saya" : "My Reviews",
-      Icon: Star,
-    },
-    {
-      to: "/user/my-account",
-      label: isId ? "Akun Saya" : "My Account",
-      Icon: User,
-    },
-    {
-      to: "/user/update-profile",
-      label: isId ? "Perbarui Profil" : (copy.updateProfile.sectionTitleValue || "Update Profile"),
-      Icon: User,
-    },
-    {
-      to: "/user/shipping-address",
-      label: isId ? "Alamat Pengiriman" : "Shipping Addresses",
-      Icon: MapPin,
-    },
-    {
-      to: "/user/change-password",
-      label: isId ? "Ubah Kata Sandi" : (copy.updateProfile.changePasswordLabel || "Change Password"),
-      Icon: KeyRound,
-    },
-  ];
+function AccountNavList({ navItems, isCollapsed, onItemClick }) {
   return (
-    <aside className="order-2 lg:order-1 lg:sticky lg:top-[172px] lg:self-start">
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_18px_44px_rgba(3,76,133,0.07)] dark:border-slate-800 dark:bg-slate-900/80 lg:max-h-[calc(100vh-190px)] lg:overflow-y-auto">
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-xl font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+    <nav className="tp-account-nav" aria-label="Account navigation">
+      {navItems.map((item) => (
+        <NavLink
+          key={item.to}
+          to={item.to}
+          end={item.to === "/user/dashboard"}
+          onClick={onItemClick}
+          title={isCollapsed ? item.label : undefined}
+          className={({ isActive }) =>
+            `tp-account-nav-item ${isActive ? "tp-account-nav-item--active" : ""}`
+          }
+        >
+          <item.Icon className="tp-account-nav-icon" aria-hidden="true" />
+          <span className="tp-account-nav-label">{item.label}</span>
+          {item.badge ? (
+            <span className="tp-account-nav-badge" aria-label={`${item.badge} unread`}>
+              {item.badge}
+            </span>
+          ) : null}
+        </NavLink>
+      ))}
+    </nav>
+  );
+}
+
+function AccountHelpCard({ isId }) {
+  return (
+    <div className="tp-account-help-box">
+      <div className="tp-account-help-content">
+        <span className="tp-account-help-icon" aria-hidden="true">
+          <Headphones />
+        </span>
+        <div className="tp-account-help-text">
+          <strong>{isId ? "Butuh Bantuan?" : "Need Help?"}</strong>
+          <span>{isId ? "Hub: +62821-8866-824" : "Hub: +62821-8866-824"}</span>
+        </div>
+      </div>
+      <Link to="/contact-us?topic=account" className="tp-account-help-btn">
+        {isId ? "Hubungi CS 24/7" : "Contact 24/7 CS"}
+      </Link>
+    </div>
+  );
+}
+
+function AccountSidebar({
+  user,
+  navItems,
+  isCollapsed,
+  onToggleCollapse,
+  onLogout,
+  isLoggingOut,
+  isId,
+}) {
+  const displayName = user?.name || user?.fullName || "Super Client";
+  const email = user?.email || "superclient@local.dev";
+  const initials = getInitials(displayName || email);
+  const avatarSrc = resolveAssetUrl(user?.avatarUrl || user?.avatar || "");
+
+  return (
+    <aside
+      className={`tp-account-sidebar ${
+        isCollapsed ? "tp-account-sidebar--collapsed" : "tp-account-sidebar--expanded"
+      }`}
+    >
+      <div className="tp-account-sidebar__header">
+        <div className="tp-account-profile-summary">
+          <div className="tp-account-avatar-wrap">
+            <div className="tp-account-avatar">
               {avatarSrc ? (
-                <img
-                  src={avatarSrc}
-                  alt={displayName}
-                  className="h-full w-full rounded-full object-cover"
-                />
+                <img src={avatarSrc} alt={displayName} />
               ) : (
-                initials
+                <span>{initials}</span>
               )}
             </div>
-            <span className="absolute -bottom-1 left-1/2 h-3 w-3 -translate-x-1/2 rounded-full border-2 border-white bg-[var(--tp-accent)] dark:border-slate-900" />
+            <span className="tp-account-status-dot" title="Active" />
           </div>
-          <div>
-            <p className="text-sm font-semibold text-slate-900 dark:text-white">{displayName}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{email}</p>
-          </div>
-        </div>
-
-        <nav className="mt-6 flex flex-col gap-2">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === "/user/dashboard"}
-              className={({ isActive }) =>
-                [
-                  "flex items-center gap-3 rounded-lg border-l-4 px-4 py-3 text-sm font-medium transition",
-                  isActive
-                    ? "border-[var(--tp-primary)] bg-[var(--tp-primary-soft)] pl-3 text-[var(--tp-primary)] font-semibold dark:text-sky-200"
-                    : "border-transparent text-slate-600 hover:bg-[var(--tp-primary-soft)] hover:text-[var(--tp-primary)] dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-sky-200",
-                ].join(" ")
-              }
-            >
-              <item.Icon className="h-4 w-4" />
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className="mt-6 rounded-xl border border-slate-200 bg-[#f7fbff] p-4 dark:border-slate-800 dark:bg-slate-950/60">
-          <div className="flex items-center gap-3">
-            <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--tp-primary-soft)] text-[var(--tp-primary)] dark:bg-slate-800 dark:text-sky-200">
-              <Headphones className="h-5 w-5" />
+          <div className="tp-account-profile-info">
+            <span className="tp-account-profile-name" title={displayName}>
+              {displayName}
             </span>
-            <div>
-              <p className="text-sm font-black text-slate-900 dark:text-white">
-                {isId ? "Butuh bantuan?" : "Need help?"}
-              </p>
-              <p className="mt-0.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                {isId ? "Kami siap 24/7" : "We're here 24/7"}
-              </p>
-            </div>
+            <span className="tp-account-profile-email" title={email}>
+              {email}
+            </span>
+            <span className="tp-account-profile-badge">
+              {isId ? "Member Aktif" : "Active Member"}
+            </span>
           </div>
-          <Link
-            to="/contact-us?topic=account"
-            className="mt-4 inline-flex w-full items-center justify-center rounded-lg border border-[var(--tp-primary)] px-4 py-2.5 text-sm font-black text-[var(--tp-primary)] transition hover:bg-[var(--tp-primary)] hover:text-white dark:border-sky-700 dark:text-sky-200 dark:hover:bg-sky-900/40"
-          >
-            {isId ? "Hubungi Bantuan" : "Contact Support"}
-          </Link>
         </div>
 
-        <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-800">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
-            {isId ? "TAMPILAN" : "APPEARANCE"}
-          </p>
-          <ThemeToggle variant="segmented" />
-        </div>
-
+        {/* Desktop Hamburger / Toggle Button */}
         <button
           type="button"
-          onClick={onLogout}
-          disabled={isLoggingOut}
-          className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg border border-rose-200 px-4 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-900/70 dark:text-rose-300 dark:hover:bg-rose-950/40"
+          onClick={onToggleCollapse}
+          className="tp-account-hamburger-desktop"
+          aria-label={
+            isId
+              ? isCollapsed
+                ? "Perluas menu navigasi"
+                : "Ciutkan menu navigasi"
+              : isCollapsed
+                ? "Expand navigation menu"
+                : "Collapse navigation menu"
+          }
+          title={
+            isId
+              ? isCollapsed
+                ? "Perluas Menu"
+                : "Ciutkan Menu"
+              : isCollapsed
+                ? "Expand Menu"
+                : "Collapse Menu"
+          }
         >
-          <LogOut className="h-4 w-4" />
-          <span>{isId ? (isLoggingOut ? "Sedang keluar..." : "Keluar") : (isLoggingOut ? "Logging out..." : "Logout")}</span>
+          <Menu aria-hidden="true" />
         </button>
       </div>
+
+      <AccountNavList navItems={navItems} isCollapsed={isCollapsed} />
+
+      <AccountHelpCard isId={isId} />
+
+      <div className="tp-account-theme-section">
+        <span className="tp-account-theme-label">
+          {isId ? "Tampilan" : "Appearance"}
+        </span>
+        <ThemeToggle variant="segmented" />
+      </div>
+
+      <button
+        type="button"
+        onClick={onLogout}
+        disabled={isLoggingOut}
+        className="tp-account-logout-btn"
+        title={isId ? "Keluar dari Akun" : "Log out from account"}
+      >
+        <LogOut aria-hidden="true" />
+        <span>
+          {isId
+            ? isLoggingOut
+              ? "Sedang keluar..."
+              : "Keluar"
+            : isLoggingOut
+              ? "Logging out..."
+              : "Logout"}
+        </span>
+      </button>
     </aside>
+  );
+}
+
+function AccountMobileDrawer({
+  isOpen,
+  onClose,
+  user,
+  navItems,
+  onLogout,
+  isLoggingOut,
+  isId,
+}) {
+  const displayName = user?.name || user?.fullName || "Super Client";
+  const email = user?.email || "superclient@local.dev";
+  const initials = getInitials(displayName || email);
+  const avatarSrc = resolveAssetUrl(user?.avatarUrl || user?.avatar || "");
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  return (
+    <>
+      <div
+        className="tp-account-drawer-backdrop"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div className="tp-account-drawer" role="dialog" aria-modal="true">
+        <div className="tp-account-drawer__head">
+          <span className="tp-account-drawer__title">
+            {isId ? "Menu Akun Pengguna" : "Account Menu"}
+          </span>
+          <button
+            type="button"
+            className="tp-account-drawer__close"
+            onClick={onClose}
+            aria-label={isId ? "Tutup menu" : "Close menu"}
+          >
+            <X aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className="tp-account-drawer__body">
+          <div className="tp-account-profile-summary mb-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+            <div className="tp-account-avatar-wrap">
+              <div className="tp-account-avatar">
+                {avatarSrc ? (
+                  <img src={avatarSrc} alt={displayName} />
+                ) : (
+                  <span>{initials}</span>
+                )}
+              </div>
+              <span className="tp-account-status-dot" />
+            </div>
+            <div className="tp-account-profile-info">
+              <span className="tp-account-profile-name">{displayName}</span>
+              <span className="tp-account-profile-email">{email}</span>
+              <span className="tp-account-profile-badge">
+                {isId ? "Member Aktif" : "Active Member"}
+              </span>
+            </div>
+          </div>
+
+          <AccountNavList
+            navItems={navItems}
+            isCollapsed={false}
+            onItemClick={onClose}
+          />
+
+          <AccountHelpCard isId={isId} />
+
+          <div className="tp-account-theme-section">
+            <span className="tp-account-theme-label">
+              {isId ? "Tampilan" : "Appearance"}
+            </span>
+            <ThemeToggle variant="segmented" />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              onLogout();
+            }}
+            disabled={isLoggingOut}
+            className="tp-account-logout-btn"
+          >
+            <LogOut aria-hidden="true" />
+            <span>
+              {isId
+                ? isLoggingOut
+                  ? "Sedang keluar..."
+                  : "Keluar"
+                : isLoggingOut
+                  ? "Logging out..."
+                  : "Logout"}
+            </span>
+          </button>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -187,36 +311,78 @@ export default function AccountLayout() {
   const { logout } = useAccountAuth();
   const { i18n } = useTranslation();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [activeLang, setActiveLang] = useState(() => i18n.language || "en");
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("tp_account_sidebar_collapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const [activeLang, setActiveLang] = useState(() => {
+    const raw =
+      localStorage.getItem("store_language") ||
+      localStorage.getItem("i18nextLng") ||
+      i18n.language ||
+      "en";
+    return String(raw).toLowerCase().startsWith("id") || String(raw).toLowerCase() === "indonesia"
+      ? "id"
+      : "en";
+  });
 
   useEffect(() => {
-    const handleLanguageChanged = (lng) => setActiveLang(lng);
-    const handleCustomLang = (e) => {
-      if (e?.detail?.isoCode) setActiveLang(e.detail.isoCode);
-    };
-    const handleStorage = () => {
-      const stored = localStorage.getItem("store_language");
-      if (stored === "Indonesia") setActiveLang("id");
-      else if (stored === "English") setActiveLang("en");
-      else setActiveLang(i18n.language || "en");
+    const handleSync = () => {
+      const raw =
+        localStorage.getItem("store_language") ||
+        localStorage.getItem("i18nextLng") ||
+        i18n.language ||
+        "en";
+      const next =
+        String(raw).toLowerCase().startsWith("id") || String(raw).toLowerCase() === "indonesia"
+          ? "id"
+          : "en";
+      setActiveLang(next);
     };
 
-    i18n.on("languageChanged", handleLanguageChanged);
+    const handleCustomLang = (e) => {
+      if (e?.detail?.isoCode) {
+        const next = String(e.detail.isoCode).toLowerCase().startsWith("id") ? "id" : "en";
+        setActiveLang(next);
+      } else {
+        handleSync();
+      }
+    };
+
+    i18n.on("languageChanged", handleSync);
     window.addEventListener("store_language_changed", handleCustomLang);
-    window.addEventListener("storage", handleStorage);
+    window.addEventListener("storage", handleSync);
 
     return () => {
-      i18n.off("languageChanged", handleLanguageChanged);
+      i18n.off("languageChanged", handleSync);
       window.removeEventListener("store_language_changed", handleCustomLang);
-      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("storage", handleSync);
     };
   }, [i18n]);
 
-  const isId =
-    activeLang?.startsWith("id") ||
-    (typeof window !== "undefined" &&
-      (localStorage.getItem("store_language") === "Indonesia" ||
-        localStorage.getItem("i18nextLng")?.startsWith("id")));
+  const isId = activeLang === "id";
+
+  const handleToggleCollapse = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("tp_account_sidebar_collapsed", String(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  const unreadCountQuery = useQuery({
+    queryKey: ["user", "notifications", "unread-count"],
+    queryFn: () => fetchUserUnreadNotificationCount().catch(() => 0),
+    staleTime: 30_000,
+  });
+  const unreadCount = Number(unreadCountQuery.data) || 0;
 
   const dashboardSettingQuery = useQuery({
     queryKey: ["store-customization", "dashboard-setting", isId ? "id" : "en"],
@@ -226,6 +392,64 @@ export default function AccountLayout() {
   const dashboardSettingCopy = normalizeDashboardSettingCopy(
     dashboardSettingQuery.data?.customization?.dashboardSetting
   );
+
+  const navItems = useMemo(
+    () => [
+      {
+        to: "/user/dashboard",
+        label: isId ? "Dashboard" : "Dashboard",
+        Icon: LayoutDashboard,
+      },
+      {
+        to: "/user/my-orders",
+        label: isId ? "Pesanan Saya" : "My Orders",
+        Icon: ClipboardList,
+      },
+      {
+        to: "/user/notifications",
+        label: isId ? "Notifikasi" : "Notifications",
+        Icon: Bell,
+        badge: unreadCount > 0 ? unreadCount : null,
+      },
+      {
+        to: "/user/store-invitations",
+        label: isId ? "Undangan Toko" : "Store Invitations",
+        Icon: BriefcaseBusiness,
+      },
+      {
+        to: "/user/my-reviews",
+        label: isId ? "Ulasan Saya" : "My Reviews",
+        Icon: Star,
+      },
+      {
+        to: "/user/my-account",
+        label: isId ? "Akun Saya" : "My Account",
+        Icon: User,
+      },
+      {
+        to: "/user/update-profile",
+        label: isId ? "Perbarui Profil" : "Update Profile",
+        Icon: User,
+      },
+      {
+        to: "/user/shipping-address",
+        label: isId ? "Alamat Pengiriman" : "Shipping Addresses",
+        Icon: MapPin,
+      },
+      {
+        to: "/user/change-password",
+        label: isId ? "Ubah Kata Sandi" : "Change Password",
+        Icon: KeyRound,
+      },
+    ],
+    [isId, unreadCount]
+  );
+
+  const currentNavItem = useMemo(
+    () => navItems.find((item) => item.to === location.pathname) || navItems[0],
+    [navItems, location.pathname]
+  );
+
   const isOrderDetailRoute = /^\/user\/my-orders\/[^/]+(?:\/payment)?$/.test(
     location.pathname
   );
@@ -251,27 +475,77 @@ export default function AccountLayout() {
       try {
         sessionStorage.removeItem("cart_remote_ok");
         sessionStorage.removeItem("pending_cart_add_consumed");
-      } catch {
-        // ignore storage errors
-      }
+      } catch {}
       navigate("/", { replace: true });
       setIsLoggingOut(false);
     }
   };
+
+  const displayName = user?.name || user?.fullName || "Super Client";
+  const initials = getInitials(displayName || user?.email || "User");
+  const avatarSrc = resolveAssetUrl(user?.avatarUrl || user?.avatar || "");
+
   return (
-    <section className="account-shell grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
+    <section
+      className={`tp-account-shell ${
+        isCollapsed ? "tp-account-shell--collapsed" : "tp-account-shell--expanded"
+      }`}
+    >
+      {/* Mobile Top Hamburger Bar (<1024px) */}
+      <div className="tp-account-mobile-bar">
+        <button
+          type="button"
+          onClick={() => setIsMobileOpen(true)}
+          className="tp-account-mobile-trigger"
+          aria-label={isId ? "Buka Menu Akun" : "Open Account Menu"}
+        >
+          <Menu aria-hidden="true" />
+          <span>{isId ? "Menu Akun" : "Account Menu"}</span>
+          <span className="tp-account-mobile-active-tag">
+            {currentNavItem.label}
+          </span>
+        </button>
+
+        <div className="tp-account-mobile-user">
+          <div className="tp-account-mobile-avatar">
+            {avatarSrc ? (
+              <img src={avatarSrc} alt={displayName} />
+            ) : (
+              <span>{initials}</span>
+            )}
+          </div>
+          <span className="tp-account-mobile-name">{displayName}</span>
+        </div>
+      </div>
+
+      {/* Desktop Sidebar (>=1024px) */}
       <AccountSidebar
         user={user}
+        navItems={navItems}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={handleToggleCollapse}
         onLogout={handleLogout}
         isLoggingOut={isLoggingOut}
-        dashboardSettingCopy={dashboardSettingCopy}
         isId={isId}
       />
+
+      {/* Mobile Slide-Out Drawer */}
+      <AccountMobileDrawer
+        isOpen={isMobileOpen}
+        onClose={() => setIsMobileOpen(false)}
+        user={user}
+        navItems={navItems}
+        onLogout={handleLogout}
+        isLoggingOut={isLoggingOut}
+        isId={isId}
+      />
+
+      {/* Main Content View */}
       <main
         className={
           usesStandaloneSurface
-            ? "order-1 min-w-0 lg:order-2"
-            : "order-1 min-w-0 rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/80 lg:order-2"
+            ? "min-w-0"
+            : "min-w-0 rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/80 shadow-sm"
         }
       >
         <Outlet context={{ user, dashboardSettingCopy, isId }} />
