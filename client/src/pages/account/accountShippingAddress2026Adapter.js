@@ -54,7 +54,7 @@ export const buildShippingAddressPayloadFrom2026Form = (form) =>
     postalCode: text(form?.postalCode).replace(/\D/g, "").slice(0, 5),
   });
 
-export const validateShippingAddress2026Form = (form) => {
+export const validateShippingAddress2026Form = (form, isIndo = false) => {
   const source = form || {};
   const required = {
     firstName: text(source.firstName),
@@ -68,24 +68,69 @@ export const validateShippingAddress2026Form = (form) => {
     streetName: text(source.streetName),
     houseNumber: text(source.houseNumber),
   };
+
   const errors = {
-    firstName: required.firstName ? "" : "First name is required.",
-    lastName: required.lastName ? "" : "Last name is required.",
-    emailAddress: required.emailAddress ? "" : "Email is required.",
-    phoneNumber: required.phoneNumber ? "" : "Phone number is required.",
-    province: required.province ? "" : "Province is required.",
-    city: required.city ? "" : "City/Regency is required.",
-    district: required.district ? "" : "Subdistrict is required.",
-    postalCode: required.postalCode ? "" : "Postal code is required.",
-    streetName: required.streetName ? "" : "Street name is required.",
-    houseNumber: required.houseNumber ? "" : "House number is required.",
+    firstName: required.firstName
+      ? ""
+      : isIndo
+        ? "Nama depan wajib diisi."
+        : "First name is required.",
+    lastName: required.lastName
+      ? ""
+      : isIndo
+        ? "Nama belakang wajib diisi."
+        : "Last name is required.",
+    emailAddress: required.emailAddress
+      ? ""
+      : isIndo
+        ? "Alamat email wajib diisi."
+        : "Email is required.",
+    phoneNumber: required.phoneNumber
+      ? ""
+      : isIndo
+        ? "Nomor telepon wajib diisi."
+        : "Phone number is required.",
+    province: required.province
+      ? ""
+      : isIndo
+        ? "Provinsi wajib dipilih."
+        : "Province is required.",
+    city: required.city
+      ? ""
+      : isIndo
+        ? "Kota/Kabupaten wajib dipilih."
+        : "City/Regency is required.",
+    district: required.district
+      ? ""
+      : isIndo
+        ? "Kecamatan wajib dipilih."
+        : "Subdistrict is required.",
+    postalCode: required.postalCode
+      ? ""
+      : isIndo
+        ? "Kode pos wajib diisi."
+        : "Postal code is required.",
+    streetName: required.streetName
+      ? ""
+      : isIndo
+        ? "Nama jalan wajib diisi."
+        : "Street name is required.",
+    houseNumber: required.houseNumber
+      ? ""
+      : isIndo
+        ? "Nomor rumah wajib diisi."
+        : "House number is required.",
   };
 
   if (required.emailAddress && !EMAIL_ADDRESS_REGEX.test(required.emailAddress)) {
-    errors.emailAddress = "Enter a valid email address.";
+    errors.emailAddress = isIndo
+      ? "Masukkan alamat email yang valid."
+      : "Enter a valid email address.";
   }
   if (required.postalCode && !POSTAL_CODE_REGEX.test(required.postalCode)) {
-    errors.postalCode = "Postal code must be 5 digits.";
+    errors.postalCode = isIndo
+      ? "Kode pos harus 5 digit angka."
+      : "Postal code must be 5 digits.";
   }
 
   return {
@@ -94,19 +139,21 @@ export const validateShippingAddress2026Form = (form) => {
   };
 };
 
-const normalizeAddress = (address, fallbackEmailAddress = "") => {
+const normalizeAddress = (address, fallbackEmailAddress = "", isIndo = false) => {
+  const notSetLabel = isIndo ? "Belum diatur" : "Not set";
   const id = Number(address?.id || 0);
   const form = getShippingAddress2026FormFromAddress(address, fallbackEmailAddress);
   const summary = formatAddressSummary(address || {});
   const label = normalizeMarkAs(address?.markAs);
+
   return {
     id,
-    title: label === "OFFICE" ? "Office" : "Home",
+    title: label === "OFFICE" ? (isIndo ? "Kantor" : "Office") : (isIndo ? "Rumah" : "Home"),
     label,
-    contactName: formatContactName(address || {}) || "Not set",
-    emailAddress: resolveAddressEmailAddress(address, fallbackEmailAddress) || "Not set",
-    phoneNumber: text(address?.phoneNumber, "Not set"),
-    summary: summary || "Not set",
+    contactName: formatContactName(address || {}) || notSetLabel,
+    emailAddress: resolveAddressEmailAddress(address, fallbackEmailAddress) || notSetLabel,
+    phoneNumber: text(address?.phoneNumber, notSetLabel),
+    summary: summary || notSetLabel,
     line1: [`${text(address?.streetName)} ${text(address?.houseNumber)}`.trim()]
       .filter(Boolean)
       .join(""),
@@ -133,14 +180,16 @@ export const normalizeShippingAddressesFor2026 = ({
   provinces,
   cities,
   districts,
+  isIndo = false,
 } = {}) => {
+  const notSetLabel = isIndo ? "Belum diatur" : "Not set";
   const account = {
-    name: text(profile?.name || user?.name || user?.fullName, "Not set"),
-    email: text(profile?.email || user?.email, "Not set"),
+    name: text(profile?.name || user?.name || user?.fullName, notSetLabel),
+    email: text(profile?.email || user?.email, notSetLabel),
   };
-  const fallbackEmailAddress = account.email === "Not set" ? "" : account.email;
+  const fallbackEmailAddress = account.email === notSetLabel ? "" : account.email;
   const addressItems = asArray(addresses).map((item) =>
-    normalizeAddress(item, fallbackEmailAddress)
+    normalizeAddress(item, fallbackEmailAddress, isIndo)
   );
   const defaultId = Number(defaultAddress?.id || 0);
 
@@ -151,7 +200,7 @@ export const normalizeShippingAddressesFor2026 = ({
       isPrimary: item.isPrimary || (defaultId > 0 && item.id === defaultId),
     })),
     defaultAddress: defaultAddress
-      ? normalizeAddress(defaultAddress, fallbackEmailAddress)
+      ? normalizeAddress(defaultAddress, fallbackEmailAddress, isIndo)
       : null,
     form: {
       ...getEmptyShippingAddress2026(fallbackEmailAddress),

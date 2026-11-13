@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useOutletContext, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import {
   createAddress,
   deleteAddress,
@@ -40,10 +41,60 @@ const getRequestMessage = (error, fallback) =>
 
 export default function AccountShippingAddressPage() {
   const queryClient = useQueryClient();
-  const { user: accountUser } = useOutletContext() || {};
+  const { i18n } = useTranslation();
+  const outletCtx = useOutletContext() || {};
+  const { user: accountUser } = outletCtx;
   const accountEmail = String(accountUser?.email || "").trim();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("saved");
+
+  const [currentLang, setCurrentLang] = useState(() => {
+    const raw =
+      localStorage.getItem("store_language") ||
+      localStorage.getItem("i18nextLng") ||
+      i18n.language ||
+      "en";
+    return String(raw).toLowerCase().startsWith("id") || String(raw).toLowerCase() === "indonesia"
+      ? "id"
+      : "en";
+  });
+
+  useEffect(() => {
+    const syncLang = () => {
+      const raw =
+        localStorage.getItem("store_language") ||
+        localStorage.getItem("i18nextLng") ||
+        i18n.language ||
+        "en";
+      const next =
+        String(raw).toLowerCase().startsWith("id") || String(raw).toLowerCase() === "indonesia"
+          ? "id"
+          : "en";
+      setCurrentLang(next);
+    };
+
+    const handleCustomLang = (e) => {
+      if (e?.detail?.isoCode) {
+        const next = String(e.detail.isoCode).toLowerCase().startsWith("id") ? "id" : "en";
+        setCurrentLang(next);
+      } else {
+        syncLang();
+      }
+    };
+
+    i18n.on("languageChanged", syncLang);
+    window.addEventListener("store_language_changed", handleCustomLang);
+    window.addEventListener("storage", syncLang);
+
+    return () => {
+      i18n.off("languageChanged", syncLang);
+      window.removeEventListener("store_language_changed", handleCustomLang);
+      window.removeEventListener("storage", syncLang);
+    };
+  }, [i18n]);
+
+  const isIndo = Boolean(outletCtx.isId || currentLang === "id");
+
   const [formState, setFormState] = useState(() =>
     getEmptyShippingAddress2026(accountEmail)
   );
@@ -67,6 +118,7 @@ export default function AccountShippingAddressPage() {
     defaultAddressQuery.data ||
     addressList.find((item) => Boolean(item?.isPrimary)) ||
     null;
+
   const provinceOptions = useMemo(
     () => getProvinceOptions(formState.province),
     [formState.province]
@@ -79,6 +131,7 @@ export default function AccountShippingAddressPage() {
     () => getDistrictOptions(formState.province, formState.city, formState.district),
     [formState.province, formState.city, formState.district]
   );
+
   const normalized = useMemo(
     () =>
       normalizeShippingAddressesFor2026({
@@ -90,6 +143,7 @@ export default function AccountShippingAddressPage() {
         provinces: provinceOptions,
         cities: cityOptions,
         districts: districtOptions,
+        isIndo,
       }),
     [
       accountUser,
@@ -98,18 +152,27 @@ export default function AccountShippingAddressPage() {
       defaultAddress,
       districtOptions,
       formState,
+      isIndo,
       provinceOptions,
     ]
   );
+
   const isLoading = addressesQuery.isLoading || defaultAddressQuery.isLoading;
   const error = addressesQuery.isError
-    ? getRequestMessage(addressesQuery.error, "Failed to load addresses.")
+    ? getRequestMessage(
+        addressesQuery.error,
+        isIndo ? "Gagal memuat daftar alamat." : "Failed to load addresses."
+      )
     : "";
 
   const refetchAddresses = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["user", "addresses"] }),
       queryClient.invalidateQueries({ queryKey: ["user", "addresses", "default"] }),
+      queryClient.invalidateQueries({ queryKey: ["account", "addresses", "default"] }),
+      queryClient.invalidateQueries({ queryKey: ["account", "addresses"] }),
+      queryClient.invalidateQueries({ queryKey: ["account"] }),
+      queryClient.invalidateQueries({ queryKey: ["addresses"] }),
     ]);
   };
 
@@ -207,10 +270,15 @@ export default function AccountShippingAddressPage() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setStatus(null);
-    const validation = validateShippingAddress2026Form(formState);
+    const validation = validateShippingAddress2026Form(formState, isIndo);
     setFieldErrors(validation.errors);
     if (!validation.isValid) {
-      setStatus({ type: "error", message: "Please complete required fields correctly." });
+      setStatus({
+        type: "error",
+        message: isIndo
+          ? "Harap lengkapi semua kolom wajib dengan benar."
+          : "Please complete required fields correctly.",
+      });
       setActiveTab("form");
       return;
     }
@@ -220,10 +288,16 @@ export default function AccountShippingAddressPage() {
     try {
       if (formState.id) {
         await updateAddress(Number(formState.id), payload);
-        setStatus({ type: "success", message: "Address updated successfully." });
+        setStatus({
+          type: "success",
+          message: isIndo ? "Alamat berhasil diperbarui." : "Address updated successfully.",
+        });
       } else {
         await createAddress(payload);
-        setStatus({ type: "success", message: "Address created successfully." });
+        setStatus({
+          type: "success",
+          message: isIndo ? "Alamat berhasil ditambahkan." : "Address created successfully.",
+        });
       }
       await refetchAddresses();
       setFormState(getEmptyShippingAddress2026(accountEmail));
@@ -233,7 +307,10 @@ export default function AccountShippingAddressPage() {
     } catch (requestError) {
       setStatus({
         type: "error",
-        message: getRequestMessage(requestError, "Failed to save address."),
+        message: getRequestMessage(
+          requestError,
+          isIndo ? "Gagal menyimpan alamat." : "Failed to save address."
+        ),
       });
     } finally {
       setIsSaving(false);
@@ -246,7 +323,9 @@ export default function AccountShippingAddressPage() {
     if (item?.isPrimary || id === Number(defaultAddress?.id)) {
       setStatus({
         type: "error",
-        message: "Cannot delete default shipping address. Please set another address as default first.",
+        message: isIndo
+          ? "Tidak dapat menghapus alamat utama. Tetapkan alamat lain sebagai alamat utama terlebih dahulu."
+          : "Cannot delete default shipping address. Please set another address as default first.",
       });
       return;
     }
@@ -259,12 +338,18 @@ export default function AccountShippingAddressPage() {
         setFormState(getEmptyShippingAddress2026(accountEmail));
         clearIdParam();
       }
-      setStatus({ type: "success", message: "Address deleted successfully." });
+      setStatus({
+        type: "success",
+        message: isIndo ? "Alamat berhasil dihapus." : "Address deleted successfully.",
+      });
       setActiveTab("saved");
     } catch (requestError) {
       setStatus({
         type: "error",
-        message: getRequestMessage(requestError, "Failed to delete address."),
+        message: getRequestMessage(
+          requestError,
+          isIndo ? "Gagal menghapus alamat." : "Failed to delete address."
+        ),
       });
     } finally {
       setIsSaving(false);
@@ -284,12 +369,20 @@ export default function AccountShippingAddressPage() {
     try {
       await updateAddress(id, payload);
       await refetchAddresses();
-      setStatus({ type: "success", message: "Primary shipping address updated." });
+      setStatus({
+        type: "success",
+        message: isIndo
+          ? "Alamat pengiriman utama berhasil diperbarui."
+          : "Primary shipping address updated.",
+      });
       setActiveTab("saved");
     } catch (requestError) {
       setStatus({
         type: "error",
-        message: getRequestMessage(requestError, "Failed to update primary address."),
+        message: getRequestMessage(
+          requestError,
+          isIndo ? "Gagal memperbarui alamat utama." : "Failed to update primary address."
+        ),
       });
     } finally {
       setIsSaving(false);
@@ -308,6 +401,7 @@ export default function AccountShippingAddressPage() {
       activeTab={activeTab}
       isLoading={isLoading}
       isSaving={isSaving}
+      isIndo={isIndo}
       error={error}
       status={status}
       LinkComponent={Link}
