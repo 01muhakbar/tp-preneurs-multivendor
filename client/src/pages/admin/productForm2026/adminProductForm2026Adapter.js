@@ -1,10 +1,10 @@
 export const PRODUCT_FORM_2026_STEPS = [
-  { id: 1, key: "basic", label: "Basic Info", helper: "Product details" },
-  { id: 2, key: "media", label: "Media", helper: "Images & gallery" },
-  { id: 3, key: "pricing", label: "Pricing & Stock", helper: "Price & inventory" },
-  { id: 4, key: "variants", label: "Variants", helper: "Product combinations" },
-  { id: 5, key: "details", label: "Details", helper: "Additional info" },
-  { id: 6, key: "review", label: "Review", helper: "Review & publish" },
+  { id: 1, key: "basic", label: "Basic Info", helper: "Info Dasar" },
+  { id: 2, key: "media", label: "Media", helper: "Foto & Media" },
+  { id: 3, key: "pricing", label: "Pricing & Stock", helper: "Harga & Stok" },
+  { id: 4, key: "variants", label: "Variants", helper: "Varian" },
+  { id: 5, key: "details", label: "Details", helper: "Detail Produk" },
+  { id: 6, key: "review", label: "Review", helper: "Ringkasan" },
 ];
 
 export const createInitialProductForm2026Meta = () => ({

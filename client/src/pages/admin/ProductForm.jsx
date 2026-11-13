@@ -833,6 +833,12 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
     onSuccess: (payload) => {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+      queryClient.invalidateQueries({ queryKey: ["seller2026", "products"] });
+      queryClient.invalidateQueries({ queryKey: ["seller", "products"] });
+      queryClient.invalidateQueries({ queryKey: ["sellerProducts"] });
+      queryClient.invalidateQueries({ queryKey: ["storefront", "products"] });
+      queryClient.invalidateQueries({ queryKey: ["public-products"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
       toast.success(submitIntentRef.current === "draft" ? "Product draft saved." : "Product created.");
       handleSubmitSuccess(payload);
     },
@@ -854,6 +860,12 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
       queryClient.invalidateQueries({
         queryKey: ["admin", "products", "detail", String(activeProductId)],
       });
+      queryClient.invalidateQueries({ queryKey: ["seller2026", "products"] });
+      queryClient.invalidateQueries({ queryKey: ["seller", "products"] });
+      queryClient.invalidateQueries({ queryKey: ["sellerProducts"] });
+      queryClient.invalidateQueries({ queryKey: ["storefront", "products"] });
+      queryClient.invalidateQueries({ queryKey: ["public-products"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
       toast.success("Product updated.");
       handleSubmitSuccess(payload);
     },

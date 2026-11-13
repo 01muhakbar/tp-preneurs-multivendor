@@ -779,6 +779,13 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["seller2026", "products"] });
       queryClient.invalidateQueries({ queryKey: ["seller2026", "product-detail"] });
+      queryClient.invalidateQueries({ queryKey: ["seller", "products"] });
+      queryClient.invalidateQueries({ queryKey: ["sellerProducts"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+      queryClient.invalidateQueries({ queryKey: ["storefront", "products"] });
+      queryClient.invalidateQueries({ queryKey: ["public-products"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
     },
   });
 
@@ -792,6 +799,13 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["seller2026", "products"] });
       queryClient.invalidateQueries({ queryKey: ["seller2026", "product-detail"] });
+      queryClient.invalidateQueries({ queryKey: ["seller", "products"] });
+      queryClient.invalidateQueries({ queryKey: ["sellerProducts"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+      queryClient.invalidateQueries({ queryKey: ["storefront", "products"] });
+      queryClient.invalidateQueries({ queryKey: ["public-products"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
     },
   });
 
