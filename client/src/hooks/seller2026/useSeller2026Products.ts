@@ -102,8 +102,10 @@ export function useSeller2026Products(
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["seller2026", "products", storeId] }),
         queryClient.invalidateQueries({ queryKey: ["seller2026", "product", storeId, variables.productId] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-products"] }),
         queryClient.invalidateQueries({ queryKey: ["storefront", "products"] }),
         queryClient.invalidateQueries({ queryKey: ["storefront", "product"] }),
+        queryClient.invalidateQueries({ queryKey: ["public-products"] }),
       ]);
     },
   });
@@ -114,7 +116,9 @@ export function useSeller2026Products(
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["seller2026", "products", storeId] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-products"] }),
         queryClient.invalidateQueries({ queryKey: ["storefront", "products"] }),
+        queryClient.invalidateQueries({ queryKey: ["public-products"] }),
       ]);
     },
   });

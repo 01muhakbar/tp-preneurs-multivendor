@@ -90,7 +90,16 @@ export default function AdminProductsPage() {
     queryFn: () => fetchAdminCategories({ page: 1, limit: 250 }),
   });
 
-  const invalidateProducts = () => queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+  const invalidateProducts = () => {
+    queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+    queryClient.invalidateQueries({ queryKey: ["seller2026", "products"] });
+    queryClient.invalidateQueries({ queryKey: ["seller2026"] });
+    queryClient.invalidateQueries({ queryKey: ["storefront"] });
+    queryClient.invalidateQueries({ queryKey: ["storefront", "products"] });
+    queryClient.invalidateQueries({ queryKey: ["products"] });
+    queryClient.invalidateQueries({ queryKey: ["shop-products"] });
+    queryClient.invalidateQueries({ queryKey: ["public-products"] });
+  };
 
   const deleteMutation = useMutation({
     mutationFn: deleteAdminProduct,

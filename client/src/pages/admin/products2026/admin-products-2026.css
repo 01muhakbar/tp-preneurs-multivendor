@@ -96,15 +96,30 @@
 }
 
 .ap26-action--primary {
-  border-color: var(--ap26-primary);
-  background: var(--ap26-primary);
-  color: #fff;
+  border-color: var(--ap26-accent, #fe6f05);
+  background: var(--ap26-accent, #fe6f05);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 4px 14px -3px rgba(254, 111, 5, 0.42);
 }
 
-.ap26-action--primary:hover {
-  border-color: var(--ap26-primary-strong);
-  background: var(--ap26-primary-strong);
-  color: #fff;
+.ap26-action--primary:hover:not(:disabled) {
+  border-color: #e05e00;
+  background: #e05e00;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.ap26-action:not(.ap26-action--primary):not(.ap26-action--danger) {
+  border-color: var(--ap26-border);
+  background: var(--ap26-surface);
+  color: var(--ap26-primary);
+}
+
+.ap26-action:not(.ap26-action--primary):not(.ap26-action--danger):hover:not(:disabled) {
+  border-color: var(--ap26-primary);
+  background: var(--ap26-primary-soft);
+  color: var(--ap26-primary-strong);
 }
 
 .ap26-action--danger {
@@ -200,6 +215,13 @@
   background: var(--ap26-surface);
   color: var(--ap26-muted);
   padding: 0 13px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ap26-search:focus-within,
+.ap26-select-field:focus-within {
+  border-color: var(--ap26-primary, #034c85);
+  box-shadow: 0 0 0 3px rgba(3, 76, 133, 0.16);
 }
 
 .ap26-search input,
@@ -496,8 +518,10 @@
 }
 
 .ap26-row-actions .ap26-icon-button {
-  width: 27px;
-  height: 27px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
   border-radius: 6px;
 }
 
@@ -691,10 +715,11 @@
 }
 
 .ap26-pagination button {
-  min-width: 38px;
-  height: 38px;
+  min-width: 44px;
+  height: 44px;
   border-radius: 8px;
-  padding: 0 12px;
+  padding: 0 14px;
+  font-size: 13px;
 }
 
 .ap26-pagination button.is-active {
@@ -794,9 +819,10 @@
 }
 
 .ap26-bulk-bar button {
-  min-height: 36px;
+  min-height: 44px;
   border-radius: 8px;
-  padding: 0 12px;
+  padding: 0 16px;
+  font-size: 13px;
 }
 
 .admin-theme-dark .ap26-page,

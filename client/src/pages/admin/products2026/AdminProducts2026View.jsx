@@ -125,11 +125,13 @@ function ActionButton({ children, icon: Icon, tone = "default", ...props }) {
   );
 }
 
-function FieldSelect({ label, value, onChange, options }) {
+function FieldSelect({ label, value, onChange, options, id, name }) {
+  const selectId = id || `ap26-select-${String(label || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+  const selectName = name || String(label || "").toLowerCase().replace(/[^a-z0-9]+/g, "_");
   return (
-    <label className="ap26-select-field">
+    <label className="ap26-select-field" htmlFor={selectId}>
       <span>{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
+      <select id={selectId} name={selectName} value={value} onChange={(event) => onChange(event.target.value)}>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
@@ -141,13 +143,12 @@ function FieldSelect({ label, value, onChange, options }) {
   );
 }
 
-function KpiCard({ label, value, helper, icon: Icon, tone }) {
+function KpiCard({ label, value, icon: Icon, tone }) {
   return (
     <article className={`ap26-kpi ap26-kpi--${tone}`}>
       <div>
         <p>{label}</p>
         <strong>{value}</strong>
-        <span>{helper}</span>
       </div>
       <span className="ap26-kpi__icon">
         <Icon size={22} />
@@ -511,7 +512,7 @@ export default function AdminProducts2026View({
 
   return (
     <div className="ap26-page">
-      <input ref={fileInputRef} type="file" className="ap26-file-input" accept=".json,.csv" onChange={handleImportChange} />
+      <input ref={fileInputRef} id="admin-products-file-import" name="importFile" type="file" className="ap26-file-input" accept=".json,.csv" onChange={handleImportChange} />
 
       <section className="ap26-header">
         <div>
@@ -552,19 +553,21 @@ export default function AdminProducts2026View({
       </section>
 
       <section className="ap26-kpis" aria-label="Product summary">
-        <KpiCard label={t("products.Total Products")} value={stats.total} helper={t("products.All products")} icon={Package} tone="blue" />
-        <KpiCard label={t("products.Published")} value={stats.published} helper={t("products.Loaded active listings")} icon={Package} tone="green" />
-        <KpiCard label={t("products.Draft")} value={stats.draft} helper={t("products.Loaded unpublished")} icon={Pencil} tone="orange" />
-        <KpiCard label={t("products.Review Queue")} value={stats.reviewQueue} helper={t("products.Awaiting review")} icon={ShieldCheck} tone="blue" />
+        <KpiCard label={t("products.Total Products")} value={stats.total} icon={Package} tone="blue" />
+        <KpiCard label={t("products.Published")} value={stats.published} icon={Package} tone="green" />
+        <KpiCard label={t("products.Draft")} value={stats.draft} icon={Pencil} tone="orange" />
+        <KpiCard label={t("products.Review Queue")} value={stats.reviewQueue} icon={ShieldCheck} tone="blue" />
       </section>
 
       <section className="ap26-toolbar">
-        <label className="ap26-search">
+        <label className="ap26-search" htmlFor="admin-products-search">
           <Search size={20} />
           <input
+            id="admin-products-search"
+            name="search"
             value={filters.q}
             onChange={(event) => onFilterChange({ q: event.target.value })}
-            placeholder={t("products.Search by product name, SKU, or ID")}
+            placeholder={t("products.Search...") || "Cari produk..."}
           />
         </label>
         <FieldSelect
@@ -624,7 +627,7 @@ export default function AdminProducts2026View({
       ) : products.length === 0 ? (
         <section className="ap26-state">
           <strong>{t("products.No products found.")}</strong>
-          <p>{t("products.Adjust filters or create a new product for this catalog.")}</p>
+          <p>{t("products.No products match the selected criteria.")}</p>
           <button type="button" disabled={!permissions.canCreate} onClick={onAddProduct}>{t("products.Add Product")}</button>
         </section>
       ) : viewMode === "grid" ? (
@@ -639,6 +642,8 @@ export default function AdminProducts2026View({
                 <div key={product.id} className={`ap26-grid-item ${selected ? "is-selected" : ""}`}>
                   <div className="ap26-grid-item-header">
                     <input
+                      id={`admin-grid-select-${productId}`}
+                      name={`gridSelectProduct_${productId}`}
                       type="checkbox"
                       aria-label={`Select ${product.name}`}
                       checked={selected}
@@ -717,6 +722,8 @@ export default function AdminProducts2026View({
                 <tr>
                   <th>
                     <input
+                      id="admin-products-select-all"
+                      name="selectAll"
                       type="checkbox"
                       aria-label="Select all visible products"
                       checked={allSelected}
@@ -743,6 +750,8 @@ export default function AdminProducts2026View({
                     <tr key={product.id}>
                       <td className="ap26-cell-select">
                         <input
+                          id={`admin-select-product-${productId}`}
+                          name={`selectProduct_${productId}`}
                           type="checkbox"
                           aria-label={`Select ${product.name}`}
                           checked={selected}

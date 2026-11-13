@@ -1,0 +1,1 @@
+import{A as r,j as s,$ as a}from"./index-FA2rZaK9.js";function c(){const{productSlug:o}=r(),t=String(o||"").trim(),e=t?`/product/${encodeURIComponent(t)}`:"/shop";return s.jsx(a,{to:e,replace:!0})}export{c as default};
