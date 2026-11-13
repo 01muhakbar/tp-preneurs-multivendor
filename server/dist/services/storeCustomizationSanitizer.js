@@ -1,44 +1,156 @@
 import { toPreferredWhatsAppLink } from "./sharedContracts/publicStoreIdentity.js";
-const DEFAULT_PRIVACY_POLICY_HTML = [
-    "<h3>Consent</h3>",
-    "<p>By using KachaBazar, you consent to this privacy policy and agree to the way we collect and use data for shopping, delivery, and support services.</p>",
-    "<h3>Information we collect</h3>",
-    "<p>We may collect account details, order information, payment metadata, and customer support communications when you use our platform.</p>",
-    "<h3>How we use your information</h3>",
+const DEFAULT_PRIVACY_POLICY_HTML_EN = [
+    "<h2>TP Preneurs Privacy Policy</h2>",
+    "<p>Welcome to TP Preneurs (<strong>tppreneurs.com</strong>). We are fully committed to respecting, protecting, and lawfully processing the personal data of our campus innovators, student edupreneurs, merchants, and buyers in compliance with Law of the Republic of Indonesia No. 27 of 2022 on Personal Data Protection (UU PDP) and relevant e-commerce standards.</p>",
+    "<h3>1. Information We Collect</h3>",
+    "<p>To enable multi-vendor campus marketplace transactions, educational tools, and support services, we collect:</p>",
+    "<ul>",
+    "<li><strong>Account Credentials:</strong> Full name, active email address, phone/WhatsApp number, profile avatar, and securely hashed passwords.</li>",
+    "<li><strong>Vendor Verification Data (Seller KYC):</strong> National identity (KTP/Student Card), academic institution affiliation, payout bank account details, and merchant store profile.</li>",
+    "<li><strong>Transaction & Logistics Data:</strong> Delivery destination address, purchased items, order receipts, shipping preferences, and payment confirmation metadata.</li>",
+    "<li><strong>Device & Interaction Logs:</strong> IP address, browser type, operating system, unique device identifiers, and site interaction cookies.</li>",
+    "</ul>",
+    "<h3>2. Purpose & Lawful Processing</h3>",
+    "<p>Your personal information is processed exclusively for legitimate purposes, including:</p>",
     "<ol>",
-    "<li>To process and deliver your orders accurately.</li>",
-    "<li>To verify payments and prevent fraud.</li>",
-    "<li>To provide account access and order tracking updates.</li>",
-    "<li>To improve product recommendations and store experience.</li>",
-    "<li>To respond to support requests and complaints.</li>",
-    "<li>To send service notices and policy updates.</li>",
-    "<li>To comply with legal and regulatory obligations.</li>",
+    "<li>Processing, fulfilling, and tracking multi-vendor orders for physical goods and verified digital products.</li>",
+    "<li>Verifying buyer authenticity and validating academic innovation showcases submitted by student merchants.</li>",
+    "<li>Delivering order notifications, invoices, shipping tracking status, and account security notices.</li>",
+    "<li>Providing customer care, dispute mediation, and resolving order inquiries.</li>",
+    "<li>Preventing fraudulent checkouts, payment abuse, and unauthorized workspace access.</li>",
+    "<li>Complying with applicable Indonesian consumer protection, tax, and electronic commerce laws.</li>",
     "</ol>",
-    "<h3>Data protection</h3>",
-    "<p>We apply reasonable technical and organizational safeguards to protect your personal data from unauthorized access, misuse, or disclosure.</p>",
-    "<h3>Your rights</h3>",
-    "<p>You may request access, correction, or deletion of personal data by contacting the KachaBazar support team.</p>",
+    "<h3>3. Data Disclosure & Third Parties</h3>",
+    "<p>TP Preneurs <strong>never sells, rents, or trades your personal data</strong> to third parties for independent marketing. Information is shared strictly on a need-to-know operational basis with designated vendors for order packaging, integrated logistics carriers for package dispatch, and licensed payment gateways for transaction clearance.</p>",
+    "<h3>4. Data Security & Retention</h3>",
+    "<p>We deploy modern SSL/TLS encryption, granular role-based access controls, and robust infrastructure monitoring to prevent unauthorized access, alteration, or disclosure. Personal data is maintained as long as your account remains active or as required by regulatory audit requirements.</p>",
+    "<h3>5. Your Rights as a Data Subject</h3>",
+    "<p>Under Indonesian Personal Data Protection legislation, you hold the right to access, verify, request corrections to your records, or request complete account erasure and data deletion by contacting our official support desk at support@tppreneurs.com.</p>",
+    "<h3>6. Contact & Support</h3>",
+    "<p>For privacy inquiries or rights enforcement, contact our support team at <a href=\"mailto:support@tppreneurs.com\">support@tppreneurs.com</a> or via WhatsApp at <a href=\"https://wa.me/628218866824\" target=\"_blank\" rel=\"noreferrer\">+62 821-8866-824</a>.</p>",
 ].join("");
-const DEFAULT_TERMS_AND_CONDITIONS_HTML = [
-    "<h2>Welcome to KachaBazar!</h2>",
-    "<p>These terms and conditions govern your use of KachaBazar services, including browsing products, placing orders, and managing your account.</p>",
-    "<h3>Cookies</h3>",
-    "<p>We use cookies to keep your session active, remember preferences, and improve site performance. By continuing to use the site, you agree to our cookie usage.</p>",
-    "<h3>License</h3>",
-    "<p>Unless otherwise stated, KachaBazar and its licensors own the intellectual property rights for all material on this site.</p>",
+const DEFAULT_PRIVACY_POLICY_HTML_ID = [
+    "<h2>Kebijakan Privasi TP Preneurs</h2>",
+    "<p>Selamat datang di TP Preneurs (<strong>tppreneurs.com</strong>). Kami berkomitmen penuh untuk menghormati, melindungi, dan memperlakukan data pribadi seluruh civitas akademika, mitra wirausaha kampus (edupreneur), penjual (seller), serta pembeli (buyer) dengan standar keamanan tertinggi sesuai Undang-Undang Republik Indonesia Nomor 27 Tahun 2022 tentang Perlindungan Data Pribadi (UU PDP).</p>",
+    "<h3>1. Informasi yang Kami Kumpulkan</h3>",
+    "<p>Untuk mendukung kelancaran ekosistem perdagangan elektronik multi-vendor dan media pembelajaran, kami mengumpulkan data yang mencakup:</p>",
+    "<ul>",
+    "<li><strong>Identitas Akun:</strong> Nama lengkap, alamat email aktif, nomor telepon/WhatsApp, foto profil, dan kata sandi yang terenkripsi.</li>",
+    "<li><strong>Data Verifikasi Mitra Penjual (KYC Seller):</strong> Kartu Identitas (KTP/Kartu Mahasiswa/NIM), bukti afiliasi institusi kampus, rekening bank pencairan dana, dan profil toko.</li>",
+    "<li><strong>Informasi Transaksi & Pengiriman:</strong> Alamat pengiriman, rincian produk yang dipesan, riwayat checkout, preferensi ekspedisi, dan metadata pembayaran.</li>",
+    "<li><strong>Data Perangkat & Log Akses:</strong> Alamat IP, jenis peramban (browser), sistem operasi, pengidentifikasi perangkat unik, dan data cookie.</li>",
+    "</ul>",
+    "<h3>2. Tujuan Penggunaan Data Pribadi</h3>",
+    "<p>Data pribadi yang dikumpulkan digunakan semata-mata untuk tujuan yang sah, antara lain:</p>",
     "<ol>",
-    "<li>You must not republish material from KachaBazar.</li>",
-    "<li>You must not sell, rent, or sub-license material from KachaBazar.</li>",
-    "<li>You must not reproduce, duplicate, or copy material from KachaBazar.</li>",
-    "<li>You must not redistribute content from KachaBazar without permission.</li>",
+    "<li>Memproses, mengonfirmasi, dan memfasilitasi pesanan produk fisik maupun akses modul digital antar-multi-vendor.</li>",
+    "<li>Memverifikasi keabsahan identitas pembeli serta kelaikan etalase karya inovasi yang dijual oleh merchant kampus.</li>",
+    "<li>Mengirimkan notifikasi pembaruan status transaksi, tanda terima pembayaran (invoice), dan informasi pengiriman pesanan.</li>",
+    "<li>Menyediakan layanan bantuan pelanggan (customer service) dan penyelesaian kendala pesanan.</li>",
+    "<li>Mendeteksi, mencegah kecurangan transaksi (fraud), dan melindungi keamanan akun dari akses tanpa hak.</li>",
+    "<li>Memenuhi seluruh kewajiban hukum dan regulasi perdagangan elektronik yang berlaku di Indonesia.</li>",
     "</ol>",
-    "<h3>Content Liability</h3>",
-    "<p>We are not responsible for content appearing on third-party websites that link to or reference KachaBazar.</p>",
-    "<h3>Reservation of Rights</h3>",
-    "<p>We reserve the right to request removal of links or restrict access if usage violates these terms.</p>",
-    "<h3>Disclaimer</h3>",
-    "<p>To the fullest extent permitted by law, we exclude all representations and warranties relating to this website and its use.</p>",
+    "<h3>3. Pengungkapan Informasi kepada Pihak Ketiga</h3>",
+    "<p>TP Preneurs <strong>tidak pernah menjual, menyewakan, atau memperdagangkan data pribadi pengguna</strong> kepada pihak mana pun. Pengungkapan data hanya dilakukan secara terbatas untuk kebutuhan operasional: kepada Penjual terkait untuk pemenuhan pesanan, mitra logistik resmi untuk pengantaran paket, dan payment gateway resmi untuk verifikasi pembayaran.</p>",
+    "<h3>4. Keamanan & Retensi Data</h3>",
+    "<p>Kami menerapkan standar enkripsi Secure Sockets Layer (SSL/TLS), sistem autentikasi aman, serta protokol proteksi server untuk melindungi data dari kebocoran, kehilangan, atau manipulasi. Data disimpan selama akun aktif atau sesuai ketentuan regulasi transaksi komersial.</p>",
+    "<h3>5. Hak-Hak Pemilik Data Pribadi</h3>",
+    "<p>Sesuai UU PDP No. 27/2022, Anda memiliki hak penuh untuk mengakses, memperbaiki data yang tidak akurat, menarik persetujuan, atau mengajukan permohonan penutupan akun dan penghapusan data pribadi (right to erasure) dengan menghubungi tim bantuan resmi kami.</p>",
+    "<h3>6. Kontak Pengendali Data & Bantuan</h3>",
+    "<p>Untuk pertanyaan, konsultasi, atau permohonan terkait data pribadi, hubungi tim kami melalui email <a href=\"mailto:support@tppreneurs.com\">support@tppreneurs.com</a> atau WhatsApp resmi <a href=\"https://wa.me/628218866824\" target=\"_blank\" rel=\"noreferrer\">+62 821-8866-824</a>.</p>",
 ].join("");
+const DEFAULT_PRIVACY_POLICY_HTML = DEFAULT_PRIVACY_POLICY_HTML_EN;
+const DEFAULT_TERMS_AND_CONDITIONS_HTML_EN = [
+    "<h2>TP Preneurs Terms & Conditions of Service</h2>",
+    "<p>Welcome to <strong>TP Preneurs</strong> (<strong>tppreneurs.com</strong>). Please review these Terms and Conditions carefully. By registering, browsing, or purchasing on TP Preneurs, you acknowledge that you have read, understood, and agreed to be bound by these platform terms.</p>",
+    "<h3>1. Definitions & Platform Scope</h3>",
+    "<ul>",
+    "<li><strong>TP Preneurs:</strong> A multi-vendor digital marketplace designed to empower campus edupreneurs, student innovators, and verified businesses in showcasing and commercializing authentic products.</li>",
+    "<li><strong>User:</strong> Any individual or entity accessing the platform, acting either as a Buyer or a Vendor/Seller.</li>",
+    "<li><strong>Vendor/Seller:</strong> Verified campus students, faculty innovators, or affiliated business incubators authorized to operate storefronts.</li>",
+    "<li><strong>Product:</strong> Physical merchandise, campus innovations, crafts, or digital goods (study modules, e-books, licensed creative assets).</li>",
+    "</ul>",
+    "<h3>2. Account Registration & Security</h3>",
+    "<ol>",
+    "<li>Users must supply accurate, complete, and verifiable details during account creation.</li>",
+    "<li>You hold full responsibility for safeguarding your password credentials and for all actions performed under your account.</li>",
+    "<li>TP Preneurs reserves the right to suspend accounts or revoke store privileges if fraudulent activity or policy violations are detected.</li>",
+    "</ol>",
+    "<h3>3. Orders, Pricing & Payment</h3>",
+    "<ol>",
+    "<li>All item prices are listed transparently in Indonesian Rupiah (IDR) prior to checkout confirmation.</li>",
+    "<li>Buyers are expected to review product specifications, delivery fees, and terms prior to completing payment.</li>",
+    "<li>Payments must be cleared through official payment channels (Licensed Payment Gateway or TP Preneurs Official Accounts). TP Preneurs assumes no liability for settlements made outside the platform.</li>",
+    "<li>Orders are dispatched to vendors upon successful automated or audited payment clearance.</li>",
+    "</ol>",
+    "<h3>4. Shipping & Delivery Terms</h3>",
+    "<ol>",
+    "<li><strong>Physical Items:</strong> Sellers must securely pack products and transfer consignments to selected logistics carriers within platform deadlines.</li>",
+    "<li><strong>Digital Downloads:</strong> Access to licensed learning media or digital assets is unlocked immediately upon order status confirmation.</li>",
+    "<li>Vendors must provide valid courier tracking waybills to facilitate real-time delivery status updates.</li>",
+    "</ol>",
+    "<h3>5. Intellectual Property & Originality</h3>",
+    "<ol>",
+    "<li>Sellers warrant that all listed creations, designs, courseware, and photography are original works or backed by legitimate commercial licenses.</li>",
+    "<li>Selling counterfeit items, pirated media, or material infringing on third-party trademarks/copyrights is strictly prohibited.</li>",
+    "<li>All TP Preneurs brand identity assets, logos, interfaces, and proprietary code remain the exclusive property of TP Preneurs.</li>",
+    "</ol>",
+    "<h3>6. Cancellation, Return & Refund Policy</h3>",
+    "<ol>",
+    "<li>Buyers may cancel orders prior to vendor dispatch processing.</li>",
+    "<li>Return claims for damaged or incorrect physical products must be submitted with an <strong>uninterrupted unboxing video recording</strong> within 48 hours of carrier delivery confirmation.</li>",
+    "<li>Approved claims will be resolved through product replacement or refund to the buyer's original payment method.</li>",
+    "<li>Digital downloads are non-refundable once accessed, except in cases of persistent file corruption verified by support.</li>",
+    "</ol>",
+    "<h3>7. Prohibited Conduct & Dispute Resolution</h3>",
+    "<p>Users shall not utilize TP Preneurs for prohibited commercial items, fraudulent transactions, or system abuse. Disagreements between buyers and sellers are mediated internally in accordance with the laws of the Republic of Indonesia.</p>",
+].join("");
+const DEFAULT_TERMS_AND_CONDITIONS_HTML_ID = [
+    "<h2>Syarat & Ketentuan Layanan TP Preneurs</h2>",
+    "<p>Selamat datang di <strong>TP Preneurs</strong> (<strong>tppreneurs.com</strong>). Harap membaca Syarat & Ketentuan ini dengan saksama. Dengan mendaftar, mengakses, atau bertransaksi di platform TP Preneurs, Anda menyatakan telah membaca, memahami, dan menyetujui seluruh ketentuan yang tercantum di bawah ini.</p>",
+    "<h3>1. Definisi & Peran Platform</h3>",
+    "<ul>",
+    "<li><strong>TP Preneurs:</strong> Platform pasar daring (marketplace multi-vendor) yang memfasilitasi temu-bisnis, promosi, dan transaksi produk edukasi, karya inovasi mahasiswa, serta komoditas UMKM kampus.</li>",
+    "<li><strong>Pengguna:</strong> Seluruh pihak yang mengakses dan memanfaatkan layanan TP Preneurs, baik sebagai Pembeli (Buyer) maupun Penjual (Seller/Vendor).</li>",
+    "<li><strong>Penjual/Vendor:</strong> Mahasiswa, dosen, inkubator bisnis, atau civitas akademika yang telah terverifikasi untuk membuka etalase toko dan menjual produk.</li>",
+    "<li><strong>Produk:</strong> Barang fisik (kerajinan, merchandise, olahan pangan terdaftar, prototipe) atau produk digital (modul belajar, buku elektronik, aset desain, karya terlisensi).</li>",
+    "</ul>",
+    "<h3>2. Pendaftaran Akun & Keamanan Kredensial</h3>",
+    "<ol>",
+    "<li>Pengguna wajib memberikan data yang jujur, akurat, dan terkini saat membuat akun di TP Preneurs.</li>",
+    "<li>Pengguna bertanggung jawab penuh atas kerahasiaan kata sandi dan seluruh aktivitas yang terjadi di bawah akun terdaftarnya.</li>",
+    "<li>TP Preneurs berhak menolak pendaftaran, menonaktifkan fitur toko, atau membekukan akun yang terindikasi memberikan data palsu atau melakukan tindakan yang merugikan ekosistem platform.</li>",
+    "</ol>",
+    "<h3>3. Transaksi, Harga & Pembayaran</h3>",
+    "<ol>",
+    "<li>Semua harga produk tertera dalam mata uang Rupiah (IDR) secara transparan sebelum proses checkout dilakukan.</li>",
+    "<li>Pembeli wajib meneliti deskripsi, spesifikasi, dan estimasi biaya pengiriman sebelum melakukan konfirmasi pembelian.</li>",
+    "<li>Pembayaran wajib diselesaikan melalui saluran resmi (Payment Gateway / Rekening Resmi TP Preneurs) sesuai instruksi invoice. TP Preneurs tidak bertanggung jawab atas transaksi di luar sistem resmi.</li>",
+    "<li>Pesanan akan diteruskan kepada penjual setelah pembayaran diverifikasi oleh sistem.</li>",
+    "</ol>",
+    "<h3>4. Pengiriman & Pemenuhan Pesanan</h3>",
+    "<ol>",
+    "<li><strong>Produk Fisik:</strong> Penjual wajib mengemas produk dengan standar aman dan menyerahkan paket ke pihak ekspedisi yang dipilih pembeli selambat-lambatnya dalam batas waktu yang ditentukan sistem.</li>",
+    "<li><strong>Produk Digital:</strong> Akses unduh atau lisensi modul digital akan aktif secara instan pada menu dashboard akun pembeli setelah status pesanan terkonfirmasi selesai.</li>",
+    "<li>Nomor resi pengiriman yang sah wajib diinput oleh penjual untuk memungkinkan pelacakan pesanan secara real-time.</li>",
+    "</ol>",
+    "<h3>5. Hak Kekayaan Intelektual (HAKI) & Orisinalitas Produk</h3>",
+    "<ol>",
+    "<li>Penjual menjamin bahwa seluruh karya inovasi, modul, desain, dan foto produk yang dipajang adalah karya orisinal atau memiliki hak lisensi komersial yang sah.</li>",
+    "<li>Dilarang keras menjual barang bajakan, plagiat karya orang lain, atau materi yang melanggar hak cipta, merek, atau paten pihak ketiga.</li>",
+    "<li>Seluruh logo, merek dagang, desain antarmuka, dan kode sumber platform TP Preneurs adalah kekayaan intelektual milik TP Preneurs dan dilindungi oleh undang-undang.</li>",
+    "</ol>",
+    "<h3>6. Kebijakan Pembatalan, Retur & Pengembalian Dana (Refund)</h3>",
+    "<ol>",
+    "<li>Pembeli dapat membatalkan pesanan selama penjual belum memproses atau mengirimkan barang.</li>",
+    "<li>Pengajuan komplain atau retur barang fisik wajib menyertakan <strong>bukti rekaman video unboxing utuh tanpa jeda</strong> maksimal 2x24 jam sejak paket berstatus diterima menurut kurir.</li>",
+    "<li>Komplain yang disetujui akibat kerusakan barang, cacat produksi, atau ketidaksesuaian varian akan diselesaikan melalui penggantian barang atau pengembalian dana (refund) melalui dompet/rekening pembeli.</li>",
+    "<li>Produk digital yang telah diunduh tidak dapat dibatalkan atau direfund, kecuali terdapat kerusakan file yang tidak dapat diperbaiki oleh penjual.</li>",
+    "</ol>",
+    "<h3>7. Larangan Penggunaan & Penyelesaian Sengketa</h3>",
+    "<p>Pengguna dilarang keras melakukan transaksi fiktif, ulasan palsu, atau penyalahgunaan platform. Perselisihan antara pembeli dan penjual difasilitasi melalui musyawarah internal dan tunduk pada yurisdiksi hukum Negara Republik Indonesia.</p>",
+].join("");
+const DEFAULT_TERMS_AND_CONDITIONS_HTML = DEFAULT_TERMS_AND_CONDITIONS_HTML_EN;
 const FAQS_ITEM_LENGTH = 8;
 const DEFAULT_FAQS_ITEMS = [
     {
@@ -622,7 +734,21 @@ const normalizeStoreSlug = (value) => String(value || "")
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9-]/g, "");
-export const cloneStoreCustomizationDefaults = () => JSON.parse(JSON.stringify(DEFAULT_CUSTOMIZATION));
+export const cloneStoreCustomizationDefaults = (lang) => {
+    const cloned = JSON.parse(JSON.stringify(DEFAULT_CUSTOMIZATION));
+    const isId = String(lang || "").toLowerCase().startsWith("id");
+    if (isId) {
+        if (cloned.privacyPolicy) {
+            cloned.privacyPolicy.pageTitle = "Kebijakan Privasi";
+            cloned.privacyPolicy.pageTextHtml = DEFAULT_PRIVACY_POLICY_HTML_ID;
+        }
+        if (cloned.termsAndConditions) {
+            cloned.termsAndConditions.pageTitle = "Syarat & Ketentuan";
+            cloned.termsAndConditions.pageTextHtml = DEFAULT_TERMS_AND_CONDITIONS_HTML_ID;
+        }
+    }
+    return cloned;
+};
 export const mergeStoreCustomizationDeep = (base, source) => {
     if (!isPlainObject(base))
         return source;
@@ -1314,8 +1440,8 @@ const normalizeAboutUs = (root) => {
         },
     };
 };
-const normalizePolicyPage = (root, key) => {
-    const defaults = cloneStoreCustomizationDefaults()[key];
+const normalizePolicyPage = (root, key, lang) => {
+    const defaults = cloneStoreCustomizationDefaults(lang)[key];
     const source = isPlainObject(root[key]) ? root[key] : {};
     return {
         ...defaults,
@@ -1723,15 +1849,15 @@ const normalizeDashboardSetting = (root) => {
         },
     };
 };
-export const sanitizeStoreCustomization = (rawData) => {
+export const sanitizeStoreCustomization = (rawData, lang) => {
     const source = isPlainObject(rawData) ? rawData : {};
-    const merged = mergeStoreCustomizationDeep(cloneStoreCustomizationDefaults(), source);
+    const merged = mergeStoreCustomizationDeep(cloneStoreCustomizationDefaults(lang), source);
     const normalizedHome = normalizeHome(source);
     const normalizedShop = normalizeShop(source);
     const normalizedProductSlugPage = normalizeProductSlugPage(source);
     const normalizedAboutUs = normalizeAboutUs(source);
-    const normalizedPrivacyPolicy = normalizePolicyPage(source, "privacyPolicy");
-    const normalizedTermsAndConditions = normalizePolicyPage(source, "termsAndConditions");
+    const normalizedPrivacyPolicy = normalizePolicyPage(source, "privacyPolicy", lang);
+    const normalizedTermsAndConditions = normalizePolicyPage(source, "termsAndConditions", lang);
     const normalizedFaqs = normalizeFaqs(source);
     const normalizedOffers = normalizeOffers(source);
     const normalizedContactUs = normalizeContactUs(source);
@@ -1760,15 +1886,15 @@ export const sanitizeStoreCustomization = (rawData) => {
     delete output.homePage;
     return output;
 };
-export const parseStoredCustomization = (raw) => {
+export const parseStoredCustomization = (raw, lang) => {
     if (!raw)
-        return cloneStoreCustomizationDefaults();
+        return cloneStoreCustomizationDefaults(lang);
     try {
         const parsed = JSON.parse(raw);
-        return sanitizeStoreCustomization(parsed);
+        return sanitizeStoreCustomization(parsed, lang);
     }
     catch {
-        return cloneStoreCustomizationDefaults();
+        return cloneStoreCustomizationDefaults(lang);
     }
 };
 const pickLatestIsoString = (...values) => {

@@ -585,7 +585,6 @@ const resolvePublicStoreBySlug = async (slug: string) => {
   return Store.findOne({
     where: {
       slug: normalizedSlug,
-      status: "ACTIVE",
     } as any,
     attributes: [...PUBLIC_STORE_IDENTITY_ATTRIBUTES],
     include: [buildPublicOperationalPaymentProfileInclude()],

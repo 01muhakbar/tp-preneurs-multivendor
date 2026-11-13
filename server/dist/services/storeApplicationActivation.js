@@ -122,7 +122,7 @@ const buildStoreCreatePayload = (application, slug) => {
             toText(onboarding.ownerName) ||
             `Store ${Number(getAttr(application, "applicantUserId") || 0)}`,
         slug,
-        status: "INACTIVE",
+        status: "ACTIVE",
         description: toText(snapshots.storeInformationSnapshot.description) ||
             toText(onboarding.description) ||
             "Toko resmi di TP Preneurs",
@@ -417,7 +417,8 @@ export async function provisionApprovedStoreApplication(application, options) {
         }
         else {
             const synchronizedProfile = buildStoreCreatePayload(lockedApplication, String(getAttr(store, "slug") || ""));
-            const reusableStorePatch = Object.fromEntries(Object.entries(synchronizedProfile).filter(([key, value]) => !["ownerUserId", "slug", "status"].includes(key) && value !== null));
+            const reusableStorePatch = Object.fromEntries(Object.entries(synchronizedProfile).filter(([key, value]) => !["ownerUserId", "slug"].includes(key) && value !== null));
+            reusableStorePatch.status = "ACTIVE";
             reusableStorePatch.ownerIdentity = mergeDefinedObject(getAttr(store, "ownerIdentity"), synchronizedProfile.ownerIdentity);
             reusableStorePatch.businessDetails = mergeDefinedObject(getAttr(store, "businessDetails"), synchronizedProfile.businessDetails);
             reusableStorePatch.shippingSetup = mergeDefinedObject(getAttr(store, "shippingSetup"), synchronizedProfile.shippingSetup);
@@ -449,7 +450,7 @@ export async function provisionApprovedStoreApplication(application, options) {
                 ...currentActivation,
                 storeId: Number(getAttr(store, "id") || 0),
                 storeSlug: toText(getAttr(store, "slug")),
-                storeStatus: toText(getAttr(store, "status")) || "INACTIVE",
+                storeStatus: toText(getAttr(store, "status")) || "ACTIVE",
                 ownerMembershipId: Number(getAttr(membership, "id") || 0) || null,
                 ownerMembershipStatus: toText(getAttr(membership, "status")) || "ACTIVE",
                 sellerAccessReady: true,

@@ -1,8 +1,9 @@
 import { Router } from "express";
-import { Store, User } from "../models/index.js";
-import { ADMIN_OWNED_STORE_PROFILE_FIELDS, STORE_PROFILE_ATTRIBUTES, adminStoreProfilePatchSchema, serializeStoreProfileSnapshot, } from "../services/sharedContracts/storeProfileGovernance.js";
+import { Store, StoreApplication, User } from "../models/index.js";
+import { ADMIN_OWNED_STORE_PROFILE_FIELDS, STORE_PROFILE_ATTRIBUTES, adminStoreProfilePatchSchema, getStoreProfileAttr, mergeStoredProfileObjectPatch, serializeStoreProfileSnapshot, } from "../services/sharedContracts/storeProfileGovernance.js";
 import { serializePublicStoreIdentityPayload } from "../services/sharedContracts/publicStoreIdentity.js";
 import { STORE_PAYMENT_PROFILE_BASE_ATTRIBUTES } from "../services/sharedContracts/storePaymentProfileCompat.js";
+import { mergeSellerShippingSetupPatch } from "../services/sellerShippingSetup.service.js";
 const router = Router();
 const ownerAttributes = ["id", "name", "email", "role"];
 const serializeAdminStoreProfileEntry = async (store) => ({
@@ -77,8 +78,20 @@ router.patch("/store/profiles/:storeId", async (req, res) => {
                 errors: parsed.error.flatten(),
             });
         }
-        const updatePayload = Object.fromEntries(Object.entries(parsed.data).filter(([, value]) => value !== undefined));
-        if (Object.keys(updatePayload).length === 0) {
+        const rawData = parsed.data;
+        const updatePayload = {};
+        for (const [key, value] of Object.entries(rawData)) {
+            if (value !== undefined &&
+                key !== "shippingSetup" &&
+                key !== "ownerIdentity" &&
+                key !== "businessDetails") {
+                updatePayload[key] = value;
+            }
+        }
+        if (Object.keys(updatePayload).length === 0 &&
+            rawData.shippingSetup === undefined &&
+            rawData.ownerIdentity === undefined &&
+            rawData.businessDetails === undefined) {
             return res.status(400).json({
                 success: false,
                 message: "No admin-owned store profile fields were provided.",
@@ -106,7 +119,32 @@ router.patch("/store/profiles/:storeId", async (req, res) => {
                 message: "Store not found.",
             });
         }
+        if (rawData.shippingSetup !== undefined) {
+            updatePayload.shippingSetup = mergeSellerShippingSetupPatch(getStoreProfileAttr(store, "shippingSetup"), rawData.shippingSetup);
+        }
+        if (rawData.ownerIdentity !== undefined) {
+            updatePayload.ownerIdentity = mergeStoredProfileObjectPatch(getStoreProfileAttr(store, "ownerIdentity"), rawData.ownerIdentity);
+        }
+        if (rawData.businessDetails !== undefined) {
+            updatePayload.businessDetails = mergeStoredProfileObjectPatch(getStoreProfileAttr(store, "businessDetails"), rawData.businessDetails);
+        }
         await store.update(updatePayload);
+        if (updatePayload.status !== undefined) {
+            const ownerUserId = Number(getStoreProfileAttr(store, "ownerUserId") || 0);
+            if (ownerUserId > 0) {
+                const linkedApp = await StoreApplication.findOne({
+                    where: { applicantUserId: ownerUserId },
+                    order: [["updatedAt", "DESC"], ["id", "DESC"]],
+                });
+                if (linkedApp) {
+                    const meta = linkedApp.internalMetadata || {};
+                    if (meta.activation) {
+                        meta.activation.storeStatus = updatePayload.status;
+                        await linkedApp.update({ internalMetadata: meta });
+                    }
+                }
+            }
+        }
         return res.json({
             success: true,
             data: await serializeAdminStoreProfileEntry(store),

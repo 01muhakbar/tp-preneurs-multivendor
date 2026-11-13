@@ -3,6 +3,17 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
+import {
+  Store as StoreIcon,
+  MessageCircleMore,
+  Mail,
+  ArrowLeft,
+  Search,
+  Sparkles,
+  PhoneCall,
+  Clock,
+  ShieldCheck,
+} from "lucide-react";
 import { fetchStoreProducts } from "../../api/public/storeProducts.ts";
 import { getStoreMicrositeRichAboutBySlug } from "../../api/public/storeCustomizationPublic.ts";
 import { getStorePublicIdentityBySlug } from "../../api/public/storePublicIdentity.ts";
@@ -10,7 +21,7 @@ import { toPreferredWhatsAppLink } from "../../utils/storePublicIdentity.ts";
 import { buildStoreMicrosite2026ViewModel } from "./microsite2026/storeMicrosite2026Adapter.js";
 import StoreMicrosite2026View from "./microsite2026/StoreMicrosite2026View.jsx";
 import StoreMicrositeShell from "../../components/store/StoreMicrositeShell.jsx";
-import { UiEmptyState, UiErrorState } from "../../components/primitives/state/index.js";
+import { UiEmptyState } from "../../components/primitives/state/index.js";
 import "./microsite2026/store-microsite-2026.css";
 
 const toText = (value, fallback = "") => {
@@ -31,7 +42,7 @@ const toggleFollowStore = (slug) => {
   try {
     let stores = getFollowedStores();
     if (stores.includes(slug)) {
-      stores = stores.filter(s => s !== slug);
+      stores = stores.filter((s) => s !== slug);
     } else {
       stores.push(slug);
     }
@@ -61,12 +72,15 @@ export default function StoreMicrositePage() {
         localStorage.getItem("store_language") === "id"));
 
   const activeTabFromQuery = toText(searchParams.get("view"), "home").toLowerCase();
-  const activeSearchQuery = toText(searchParams.get("q") || searchParams.get("query") || searchParams.get("search"));
+  const activeSearchQuery = toText(
+    searchParams.get("q") || searchParams.get("query") || searchParams.get("search")
+  );
   const sortValue = toText(searchParams.get("sort"), "relevance").toLowerCase();
 
   const [activeTab, setActiveTab] = useState(activeTabFromQuery);
   const [isFollowed, setIsFollowed] = useState(() => isStoreFollowed(safeSlug));
 
+  // 1. Unconditional React Queries
   const micrositeQuery = useQuery({
     queryKey: ["store-public-identity", "slug", safeSlug],
     queryFn: () => getStorePublicIdentityBySlug(safeSlug),
@@ -82,7 +96,7 @@ export default function StoreMicrositePage() {
         storeSlug: safeSlug,
         q: activeSearchQuery || undefined,
         page: 1,
-        limit: 50, // Increase limit for client side operations if needed, or pagination
+        limit: 50,
       }),
     enabled: Boolean(safeSlug),
     staleTime: 60_000,
@@ -97,14 +111,17 @@ export default function StoreMicrositePage() {
     retry: 1,
   });
 
-  // Sync tab state with query params
+  // 2. Unconditional Effects
   useEffect(() => {
     if (activeTabFromQuery !== activeTab) {
-      setActiveTab(activeTabFromQuery === "products" || activeTabFromQuery === "about" ? activeTabFromQuery : "home");
+      setActiveTab(
+        activeTabFromQuery === "products" || activeTabFromQuery === "about"
+          ? activeTabFromQuery
+          : "home"
+      );
     }
   }, [activeTabFromQuery]);
 
-  // Sync client-side document title and OpenGraph metadata
   useEffect(() => {
     const storeData = micrositeQuery.data?.data;
     if (!storeData?.name) return;
@@ -146,28 +163,82 @@ export default function StoreMicrositePage() {
     }
   }, [micrositeQuery.data?.data]);
 
+  // 3. Unconditional View Model computation (ALWAYS runs in exact same order)
+  const vm = useMemo(() => {
+    if (!micrositeQuery.data) {
+      return {
+        store: { name: "", slug: safeSlug, description: "" },
+        products: [],
+        featuredProducts: [],
+      };
+    }
+
+    const baseVm = buildStoreMicrosite2026ViewModel({
+      identity: micrositeQuery.data,
+      productsPayload: productsQuery.data,
+      richAbout: richAboutQuery.data,
+      slug: safeSlug,
+    });
+
+    // Apply client-side sorting
+    let sortedProducts = [...baseVm.products];
+    if (sortValue === "newest") {
+      sortedProducts.sort((a, b) => {
+        const dateA = Date.parse(String(a?.updatedAt || "")) || 0;
+        const dateB = Date.parse(String(b?.updatedAt || "")) || 0;
+        return dateB - dateA;
+      });
+    } else if (sortValue === "price-asc") {
+      sortedProducts.sort((a, b) => (Number(a?.price) || 0) - (Number(b?.price) || 0));
+    } else if (sortValue === "price-desc") {
+      sortedProducts.sort((a, b) => (Number(b?.price) || 0) - (Number(a?.price) || 0));
+    } else {
+      sortedProducts.sort((a, b) => {
+        const reviewDiff = (Number(b?.reviewCount) || 0) - (Number(a?.reviewCount) || 0);
+        if (reviewDiff !== 0) return reviewDiff;
+        return (Number(b?.ratingAvg) || 0) - (Number(a?.ratingAvg) || 0);
+      });
+    }
+
+    const applyProductLinks = (productsArray) => {
+      return productsArray.map((product) => {
+        const productSlug = toText(product?.routeSlug || product?.slug || product?.id);
+        const productHref = productSlug
+          ? `/product/${encodeURIComponent(productSlug)}`
+          : `/product/${product?.id || ""}`;
+        return {
+          ...product,
+          productHref,
+        };
+      });
+    };
+
+    return {
+      ...baseVm,
+      products: applyProductLinks(sortedProducts),
+      featuredProducts: applyProductLinks(baseVm.featuredProducts),
+    };
+  }, [micrositeQuery.data, productsQuery.data, richAboutQuery.data, safeSlug, sortValue]);
+
+  // Handler functions
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
     const next = new URLSearchParams(searchParams);
     next.set("view", tabId);
     setSearchParams(next, { replace: true });
-    
-    // Smooth scroll to top of tabs section
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleSearchChange = (val) => {
-    // Just update UI state if needed, but we rely on form submit for actual query
-  };
+  const handleSearchChange = () => {};
 
   const handleSearchSubmit = (e) => {
-    if(e && e.preventDefault) e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     const formData = new FormData(e.target);
     const val = formData.get("q") || e.target[0].value;
     const next = new URLSearchParams(searchParams);
     if (val) {
       next.set("q", val);
-      next.set("view", "products"); // switch to products tab automatically
+      next.set("view", "products");
     } else {
       next.delete("q");
     }
@@ -194,14 +265,13 @@ export default function StoreMicrositePage() {
     const waUrl = toPreferredWhatsAppLink(
       storeData?.whatsapp || storeData?.phone,
       "",
-      `Halo ${storeData?.name || 'Store'}, saya ingin bertanya.`
+      `Halo ${storeData?.name || "Store"}, saya ingin bertanya tentang produk Anda di TP Preneurs.`
     );
     if (waUrl) {
-      window.open(waUrl, '_blank');
+      window.open(waUrl, "_blank");
     } else if (storeData?.phone) {
       window.open(`tel:${storeData.phone}`);
     } else {
-      // Fallback
       window.location.href = "/contact-us";
     }
   };
@@ -222,10 +292,12 @@ export default function StoreMicrositePage() {
 
   const handleShare = () => {
     if (navigator.share) {
-      navigator.share({
-        title: micrositeQuery.data?.data?.name || (isIndo ? "Toko" : "Store"),
-        url: window.location.href,
-      }).catch(() => {});
+      navigator
+        .share({
+          title: micrositeQuery.data?.data?.name || (isIndo ? "Toko" : "Store"),
+          url: window.location.href,
+        })
+        .catch(() => {});
     } else {
       navigator.clipboard?.writeText(window.location.href).then(() => {
         toast.success(isIndo ? "Tautan toko berhasil disalin!" : "Store link copied to clipboard!");
@@ -239,107 +311,230 @@ export default function StoreMicrositePage() {
     richAboutQuery.refetch();
   };
 
+  // Operational & Error state checks
   const isNotFound = micrositeQuery.error?.response?.status === 404;
-  const isStoreOperationallyGated = micrositeQuery.data?.data?.summary?.operationalReadiness && !micrositeQuery.data.data.summary.operationalReadiness.isReady;
+  const storeData = micrositeQuery.data?.data;
+  const isStoreInactive =
+    storeData &&
+    (String(storeData.status?.code || "").toUpperCase() === "INACTIVE" ||
+      (storeData.summary?.operationalReadiness &&
+        !storeData.summary.operationalReadiness.isReady));
 
+  // --- RENDER CONDITIONAL BRANCHES (All Hooks already executed above) ---
+
+  // A. Missing slug
   if (!safeSlug) {
     return (
-      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-        <UiEmptyState
-          title={isIndo ? "Slug toko tidak valid." : "Store slug is missing."}
-          description={isIndo ? "Gunakan rute /store/:slug yang valid." : "Use a valid /store/:slug route."}
-          actions={
-            <Link to="/" className="inline-flex h-11 items-center justify-center rounded-full border border-slate-200 px-5 text-sm font-semibold text-[#034c85] hover:bg-slate-50">
-              {isIndo ? "Kembali ke Beranda" : "Back to Marketplace"}
-            </Link>
-          }
-        />
-      </div>
+      <StoreMicrositeShell safeSlug="" hideHero={true}>
+        <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
+          <UiEmptyState
+            title={isIndo ? "Tautan toko tidak valid" : "Invalid store link"}
+            description={
+              isIndo
+                ? "Format tautan toko yang Anda akses tidak sesuai. Silakan kembali ke beranda."
+                : "The store URL accessed is invalid. Please return to the homepage."
+            }
+            actions={
+              <Link
+                to="/"
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-[#034c85] px-6 text-sm font-semibold text-white shadow-sm hover:bg-[#023864] transition-colors"
+              >
+                {isIndo ? "Kembali ke Beranda" : "Back to Marketplace"}
+              </Link>
+            }
+          />
+        </div>
+      </StoreMicrositeShell>
     );
   }
 
+  // B. Loading state
+  if (micrositeQuery.isLoading && !micrositeQuery.data) {
+    return (
+      <StoreMicrositeShell safeSlug={safeSlug} hideHero={true}>
+        <div className="mx-auto flex min-h-[50vh] max-w-4xl flex-col items-center justify-center px-4 py-16 text-center">
+          <div className="relative flex h-14 w-14 items-center justify-center">
+            <div className="absolute inset-0 rounded-full border-4 border-slate-200 dark:border-slate-800" />
+            <div className="absolute inset-0 rounded-full border-4 border-[#034c85] border-t-transparent animate-spin" />
+            <StoreIcon size={22} className="text-[#034c85]" />
+          </div>
+          <h3 className="mt-5 text-base font-bold text-slate-800 dark:text-slate-100">
+            {isIndo ? "Memuat Etalase Toko..." : "Loading Storefront..."}
+          </h3>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            {isIndo ? "Menyiapkan identitas dan produk toko..." : "Preparing store details and catalog..."}
+          </p>
+        </div>
+      </StoreMicrositeShell>
+    );
+  }
+
+  // C. Store not found (404)
   if (isNotFound) {
     return (
-      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-        <UiEmptyState
-          title={isIndo ? "Toko tidak ditemukan." : "Store not found."}
-          description={isIndo ? `Tidak dapat menemukan toko publik yang sesuai untuk "${safeSlug}".` : `We could not find an eligible public store for "${safeSlug}".`}
-          actions={
-            <Link to="/" className="inline-flex h-11 items-center justify-center rounded-full border border-slate-200 px-5 text-sm font-semibold text-[#034c85] hover:bg-slate-50">
-              {isIndo ? "Kembali ke Beranda" : "Back to Marketplace"}
-            </Link>
-          }
-        />
-      </div>
+      <StoreMicrositeShell safeSlug={safeSlug} hideHero={true}>
+        <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="rounded-2xl border border-slate-200/80 bg-white/95 p-8 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900/90 sm:p-12">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-[#034c85] dark:bg-slate-800 dark:text-sky-400">
+              <StoreIcon size={32} />
+            </div>
+            <h2 className="mt-5 text-xl font-bold text-slate-900 dark:text-white sm:text-2xl">
+              {isIndo ? "Toko Tidak Ditemukan" : "Store Not Found"}
+            </h2>
+            <p className="mx-auto mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">
+              {isIndo
+                ? `Toko dengan tautan "/store/${safeSlug}" tidak terdaftar atau belum aktif di TP Preneurs.`
+                : `We could not find an active registered store for "/store/${safeSlug}".`}
+            </p>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                to="/"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#034c85] px-6 text-sm font-semibold text-white shadow-sm hover:bg-[#023864] transition-colors"
+              >
+                <ArrowLeft size={16} />
+                {isIndo ? "Kembali ke Beranda" : "Back to Home"}
+              </Link>
+              <Link
+                to="/search"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 transition-colors"
+              >
+                <Search size={16} />
+                {isIndo ? "Cari Produk Lain" : "Explore Products"}
+              </Link>
+            </div>
+          </div>
+        </div>
+      </StoreMicrositeShell>
     );
   }
 
-  if (isStoreOperationallyGated) {
-    const readiness = micrositeQuery.data?.data?.summary?.operationalReadiness || {};
+  // D. Store Inactive / Needs Setup / Operational Gated
+  if (isStoreInactive) {
+    const storeName = storeData?.name || safeSlug;
+    const storeLogo = storeData?.logoUrl;
+    const storeWa = storeData?.whatsapp || storeData?.phone;
+    const storeEmail = storeData?.email;
+
     return (
-      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-        <UiEmptyState
-          title={readiness.label || (isIndo ? "Toko Sedang Tidak Tersedia" : "Store Currently Unavailable")}
-          description={readiness.description || (isIndo ? `Toko "${safeSlug}" belum beroperasi penuh untuk publik.` : `The store "${safeSlug}" is not operational yet and cannot be accessed on public storefront routes.`)}
-          actions={
-            <Link to="/" className="inline-flex h-11 items-center justify-center rounded-full border border-slate-200 px-5 text-sm font-semibold text-[#034c85] hover:bg-slate-50">
-              {isIndo ? "Kembali ke Beranda" : "Back to Marketplace"}
-            </Link>
-          }
-        />
-      </div>
+      <StoreMicrositeShell safeSlug={safeSlug} identity={storeData} hideHero={true}>
+        <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
+          <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900">
+            {/* Header banner strip with brand colors */}
+            <div className="h-32 bg-gradient-to-r from-[#034c85] via-[#023864] to-[#fe6f05] relative">
+              <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px]" />
+            </div>
+
+            {/* Content area */}
+            <div className="relative px-6 pb-8 pt-0 sm:px-10 sm:pb-10">
+              {/* Avatar overlap */}
+              <div className="-mt-14 mb-4 flex items-center justify-between">
+                <div className="flex h-24 w-24 items-center justify-center rounded-2xl border-4 border-white bg-white shadow-md overflow-hidden dark:border-slate-900 dark:bg-slate-800">
+                  {storeLogo ? (
+                    <img
+                      src={storeLogo}
+                      alt={storeName}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-[#034c85]/10 text-xl font-bold text-[#034c85] dark:text-sky-400">
+                      {storeName.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400">
+                  <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                  <Clock size={13} className="text-amber-600 dark:text-amber-400" />
+                  {isIndo ? "Toko Sedang Dalam Persiapan" : "Store Under Preparation"}
+                </span>
+              </div>
+
+              {/* Title & info */}
+              <div>
+                <h1 className="text-2xl font-black text-slate-900 dark:text-white sm:text-3xl">
+                  {storeName}
+                </h1>
+                <p className="mt-0.5 text-xs font-semibold tracking-wide text-slate-500 dark:text-slate-400">
+                  @{safeSlug} • TP Preneurs Official Merchant
+                </p>
+              </div>
+
+              <div className="mt-6 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-5 dark:border-slate-800 dark:bg-slate-800/50">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-xl bg-[#034c85]/10 p-2 text-[#034c85] dark:bg-sky-500/15 dark:text-sky-300">
+                    <ShieldCheck size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                      {isIndo
+                        ? "Toko Resmi Sedang Menyiapkan Etalase Produk"
+                        : "Official Store is Preparing Catalog"}
+                    </h3>
+                    <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
+                      {isIndo
+                        ? `Toko "${storeName}" telah resmi disetujui di ekosistem TP Preneurs dan saat ini sedang mempersiapkan daftar produk serta operasional pengiriman. Silakan kembali dalam waktu dekat untuk menemukan penawaran terbaik!`
+                        : `The store "${storeName}" has been officially approved in the TP Preneurs ecosystem and is currently setting up its product catalog and shipping fulfillment. Please check back soon for great deals!`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact actions if available */}
+              {(storeWa || storeEmail) && (
+                <div className="mt-6">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    {isIndo ? "Kontak Langsung Penjual" : "Direct Seller Contact"}
+                  </h4>
+                  <div className="mt-3 flex flex-wrap gap-2.5">
+                    {storeWa && (
+                      <button
+                        type="button"
+                        onClick={handleChat}
+                        className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition-colors"
+                      >
+                        <MessageCircleMore size={15} />
+                        {isIndo ? "Chat WhatsApp" : "WhatsApp"}
+                      </button>
+                    )}
+                    {storeEmail && (
+                      <button
+                        type="button"
+                        onClick={handleEmail}
+                        className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 transition-colors"
+                      >
+                        <Mail size={15} />
+                        {storeEmail}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Navigation CTAs */}
+              <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-slate-200/80 pt-6 dark:border-slate-800">
+                <Link
+                  to="/"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#034c85] px-6 text-sm font-semibold text-white shadow-sm hover:bg-[#023864] transition-colors"
+                >
+                  <ArrowLeft size={16} />
+                  {isIndo ? "Kembali ke Beranda" : "Back to Home"}
+                </Link>
+                <Link
+                  to="/search"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#fe6f05] px-6 text-sm font-semibold text-white shadow-sm hover:bg-[#e05e00] transition-colors"
+                >
+                  <Sparkles size={16} />
+                  {isIndo ? "Jelajahi Produk Lain" : "Explore Other Products"}
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </StoreMicrositeShell>
     );
   }
 
-  // Use adapter to build view model
-  const vm = useMemo(() => {
-    const baseVm = buildStoreMicrosite2026ViewModel({
-      identity: micrositeQuery.data,
-      productsPayload: productsQuery.data,
-      richAbout: richAboutQuery.data,
-      slug: safeSlug,
-    });
-    
-    // Apply client-side sorting
-    let sortedProducts = [...baseVm.products];
-    if (sortValue === "newest") {
-       sortedProducts.sort((a, b) => {
-          const dateA = Date.parse(String(a?.updatedAt || "")) || 0;
-          const dateB = Date.parse(String(b?.updatedAt || "")) || 0;
-          return dateB - dateA;
-       });
-    } else if (sortValue === "price-asc") {
-       sortedProducts.sort((a, b) => (Number(a?.price) || 0) - (Number(b?.price) || 0));
-    } else if (sortValue === "price-desc") {
-       sortedProducts.sort((a, b) => (Number(b?.price) || 0) - (Number(a?.price) || 0));
-    } else {
-       // Relevance / Popular
-       sortedProducts.sort((a, b) => {
-          const reviewDiff = (Number(b?.reviewCount) || 0) - (Number(a?.reviewCount) || 0);
-          if (reviewDiff !== 0) return reviewDiff;
-          return (Number(b?.ratingAvg) || 0) - (Number(a?.ratingAvg) || 0);
-       });
-    }
-    
-    // Apply standard product links to product cards
-    const applyProductLinks = (productsArray) => {
-       return productsArray.map(product => {
-         const productSlug = toText(product?.routeSlug || product?.slug || product?.id);
-         const productHref = productSlug ? `/product/${encodeURIComponent(productSlug)}` : `/product/${product?.id || ""}`;
-         return {
-           ...product,
-           productHref
-         };
-       });
-    };
-
-    return {
-      ...baseVm,
-      products: applyProductLinks(sortedProducts),
-      featuredProducts: applyProductLinks(baseVm.featuredProducts)
-    };
-  }, [micrositeQuery.data, productsQuery.data, richAboutQuery.data, safeSlug, sortValue]);
-
+  // E. Normal Active Store: Full Storefront
   return (
     <StoreMicrositeShell
       identity={micrositeQuery.data?.data}
@@ -348,7 +543,7 @@ export default function StoreMicrositePage() {
       compact={false}
       hideHero={true}
     >
-      <StoreMicrosite2026View 
+      <StoreMicrosite2026View
         vm={vm}
         loading={micrositeQuery.isLoading && !micrositeQuery.data}
         productsLoading={productsQuery.isLoading || productsQuery.isFetching}

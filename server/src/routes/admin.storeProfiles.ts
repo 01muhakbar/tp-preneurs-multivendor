@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { Store, User } from "../models/index.js";
+import { Store, StoreApplication, User } from "../models/index.js";
 import {
   ADMIN_OWNED_STORE_PROFILE_FIELDS,
   STORE_PROFILE_ATTRIBUTES,
@@ -164,6 +164,23 @@ router.patch("/store/profiles/:storeId", async (req, res) => {
     }
 
     await store.update(updatePayload as any);
+
+    if (updatePayload.status !== undefined) {
+      const ownerUserId = Number(getStoreProfileAttr(store, "ownerUserId") || 0);
+      if (ownerUserId > 0) {
+        const linkedApp = await StoreApplication.findOne({
+          where: { applicantUserId: ownerUserId } as any,
+          order: [["updatedAt", "DESC"], ["id", "DESC"]],
+        });
+        if (linkedApp) {
+          const meta = (linkedApp as any).internalMetadata || {};
+          if (meta.activation) {
+            meta.activation.storeStatus = updatePayload.status;
+            await linkedApp.update({ internalMetadata: meta } as any);
+          }
+        }
+      }
+    }
 
     return res.json({
       success: true,

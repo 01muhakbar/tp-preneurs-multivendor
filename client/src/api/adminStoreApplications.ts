@@ -246,7 +246,20 @@ const normalizeDetail = (value: any) => {
     },
     createdAt: value?.createdAt || null,
     updatedAt: value?.updatedAt || null,
+    liveStore: value?.liveStore
+      ? {
+          id: numberOrZero(value.liveStore.id),
+          name: textOrFallback(value.liveStore.name),
+          slug: textOrFallback(value.liveStore.slug),
+          status: textOrFallback(value.liveStore.status, "INACTIVE"),
+        }
+      : null,
   };
+};
+
+export const activateAdminStoreFromApplication = async (applicationId: number | string) => {
+  const { data } = await api.patch(`/admin/store-applications/${applicationId}/activate-store`);
+  return data;
 };
 
 export const fetchAdminStoreApplications = async (params: {

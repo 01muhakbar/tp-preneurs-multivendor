@@ -164,6 +164,18 @@ app.get("/sitemap.xml", (req, res) => {
     res.type("application/xml").send(body);
 });
 app.get(["/favicon.ico", "/favicon.svg"], (_req, res) => {
+    const clientDistDir = resolveClientDistDir();
+    const candidates = [
+        clientDistDir ? path.join(clientDistDir, "favicon.ico") : "",
+        clientDistDir ? path.join(clientDistDir, "favicon.png") : "",
+        path.resolve(process.cwd(), "client/public/favicon.ico"),
+        path.resolve(process.cwd(), "client/public/favicon.png"),
+    ].filter(Boolean);
+    const matched = candidates.find((filePath) => fs.existsSync(filePath));
+    if (matched) {
+        res.type(matched.endsWith(".ico") ? "image/x-icon" : "image/png").sendFile(matched);
+        return;
+    }
     res.redirect(302, "/favicon.png");
 });
 app.get(["/site.webmanifest", "/manifest.webmanifest"], (_req, res) => {

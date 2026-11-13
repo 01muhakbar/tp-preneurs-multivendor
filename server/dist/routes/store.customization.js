@@ -418,7 +418,6 @@ const resolvePublicStoreBySlug = async (slug) => {
     return Store.findOne({
         where: {
             slug: normalizedSlug,
-            status: "ACTIVE",
         },
         attributes: [...PUBLIC_STORE_IDENTITY_ATTRIBUTES],
         include: [buildPublicOperationalPaymentProfileInclude()],
@@ -645,7 +644,23 @@ router.get("/", async (req, res, next) => {
             includeSet.has("homesettings") ||
             includeSet.has("home-settings") ||
             includeSet.has("home_settings");
-        const includePolicy = !includeProvided || includeSet.has("policy");
+        const includePolicy = !includeProvided ||
+            includeSet.has("policy") ||
+            includeSet.has("policies") ||
+            includeSet.has("privacy") ||
+            includeSet.has("privacypolicy") ||
+            includeSet.has("privacy-policy") ||
+            includeSet.has("privacy_policy") ||
+            includeSet.has("privacy-setting") ||
+            includeSet.has("privacy-settings") ||
+            includeSet.has("terms") ||
+            includeSet.has("termsandconditions") ||
+            includeSet.has("terms-and-conditions") ||
+            includeSet.has("terms_and_conditions") ||
+            includeSet.has("terms-setting") ||
+            includeSet.has("terms-settings") ||
+            includeSet.has("privacypolicyterms") ||
+            includeSet.has("privacy-policy-terms");
         const includeFaq = !includeProvided || includeSet.has("faq") || includeSet.has("faqs");
         const includeOffers = !includeProvided || includeSet.has("offer") || includeSet.has("offers");
         const includeContactUs = !includeProvided ||
@@ -675,7 +690,10 @@ router.get("/", async (req, res, next) => {
         const includeProductSlugPage = !includeProvided ||
             includeSet.has("productslugpage") ||
             includeSet.has("product-slug-page") ||
-            includeSet.has("product_slug_page");
+            includeSet.has("product_slug_page") ||
+            includeSet.has("single-setting") ||
+            includeSet.has("singlesetting") ||
+            includeSet.has("single_setting");
         const includeShop = !includeProvided ||
             includeSet.has("shop") ||
             includeSet.has("shopsettings") ||
@@ -687,13 +705,13 @@ router.get("/", async (req, res, next) => {
         const rowHasPublishedCustomization = hasPublishedCustomization(row);
         const fallbackRow = lang !== "en" ? await getCustomizationRow("en") : null;
         const sourcePayload = rowHasPublishedCustomization
-            ? parseStoredCustomization(getPublishedCustomizationRaw(row))
+            ? parseStoredCustomization(getPublishedCustomizationRaw(row), lang)
             : fallbackRow
-                ? parseStoredCustomization(getPublishedCustomizationRaw(fallbackRow))
-                : sanitizeStoreCustomization({});
-        const sanitizedSource = sanitizeStoreCustomization(sourcePayload);
+                ? parseStoredCustomization(getPublishedCustomizationRaw(fallbackRow), lang)
+                : sanitizeStoreCustomization({}, lang);
+        const sanitizedSource = sanitizeStoreCustomization(sourcePayload, lang);
         const sanitized = applySeoMissingUploadFallbacks(fallbackRow
-            ? mergeCustomizationMediaFallback(sanitizedSource, sanitizeStoreCustomization(parseStoredCustomization(getPublishedCustomizationRaw(fallbackRow))))
+            ? mergeCustomizationMediaFallback(sanitizedSource, sanitizeStoreCustomization(parseStoredCustomization(getPublishedCustomizationRaw(fallbackRow), "en"), lang))
             : sanitizedSource);
         const customization = {};
         if (includeHome) {

@@ -390,11 +390,11 @@ export const countUserUnreadNotifications = async (userId) => {
 };
 export const listUserNotifications = async (userId, limit = 20, offset = 0) => {
     await ensureNotificationStorage();
-    const safeLimit = Math.max(1, Math.min(50, Number(limit) || 20));
+    const safeLimit = Math.max(1, Math.min(100, Number(limit) || 20));
     const safeOffset = Math.max(0, Math.floor(Number(offset) || 0));
     const safeUserId = toNumber(userId, 0);
     if (!safeUserId) {
-        return { unreadCount: 0, items: [] };
+        return { unreadCount: 0, total: 0, items: [] };
     }
     const [items, unreadItems] = await Promise.all([
         Notification.findAll({
@@ -405,12 +405,12 @@ export const listUserNotifications = async (userId, limit = 20, offset = 0) => {
             order: [["createdAt", "DESC"]],
         }),
     ]);
-    const filteredItems = items
-        .filter((item) => isUserTargeted(item.meta) && toUserIdFromMeta(item.meta) === safeUserId)
-        .slice(safeOffset, safeOffset + safeLimit);
+    const userItems = items.filter((item) => isUserTargeted(item.meta) && toUserIdFromMeta(item.meta) === safeUserId);
+    const filteredItems = userItems.slice(safeOffset, safeOffset + safeLimit);
     const unreadCount = unreadItems.filter((item) => isUserTargeted(item.meta) && toUserIdFromMeta(item.meta) === safeUserId).length;
     return {
         unreadCount,
+        total: userItems.length,
         items: filteredItems.map(toNotificationPayload),
     };
 };

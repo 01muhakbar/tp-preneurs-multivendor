@@ -181,6 +181,7 @@ export const seoRenderer = (clientDistDir) => {
         <meta name="robots" content="${robots}" />
         <link rel="canonical" href="${escapeHtml(canonicalUrl)}" />
         <link rel="icon" type="image/png" href="${escapeHtml(favicon)}" />
+        <link rel="shortcut icon" href="${escapeHtml(favicon)}" />
         <link rel="apple-touch-icon" href="${escapeHtml(resolveSeoAssetAbsoluteUrl(req, "/apple-touch-icon.png", DEFAULT_FAVICON_PATH))}" />
         <meta property="og:site_name" content="TP Preneurs" />
         <meta property="og:type" content="website" />
@@ -199,6 +200,33 @@ export const seoRenderer = (clientDistDir) => {
         <meta name="twitter:description" content="${escapeHtml(metaDescription)}" />
         <meta name="twitter:image" content="${escapeHtml(metaImage)}" />
         <meta name="twitter:image:alt" content="${escapeHtml(metaTitle)}" />
+        <script type="application/ld+json">
+          ${JSON.stringify({
+                "@context": "https://schema.org",
+                "@graph": [
+                    {
+                        "@type": "WebSite",
+                        "@id": `${canonicalUrl}#website`,
+                        url: canonicalUrl,
+                        name: "TP Preneurs",
+                        description: metaDescription,
+                        publisher: {
+                            "@id": `${canonicalUrl}#organization`,
+                        },
+                    },
+                    {
+                        "@type": "Organization",
+                        "@id": `${canonicalUrl}#organization`,
+                        name: "TP Preneurs",
+                        url: canonicalUrl,
+                        logo: {
+                            "@type": "ImageObject",
+                            url: favicon,
+                        },
+                    },
+                ],
+            })}
+        </script>
       `;
             html = html.replace("</head>", `${ogTags}</head>`);
             res.send(html);

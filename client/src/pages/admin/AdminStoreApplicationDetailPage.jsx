@@ -9,15 +9,18 @@ import {
   CalendarDays,
   CheckCircle2,
   Database,
+  ExternalLink,
   FileText,
   GitBranch,
   Globe2,
+  Settings,
   ShieldCheck,
   UserRound,
   UsersRound,
   XCircle,
 } from "lucide-react";
 import {
+  activateAdminStoreFromApplication,
   approveAdminStoreApplication,
   fetchAdminStoreApplicationDetail,
   rejectAdminStoreApplication,
@@ -493,8 +496,26 @@ export default function AdminStoreApplicationDetailPage() {
       toast.error(error?.response?.data?.message || error?.message || (isId ? "Gagal menolak pengajuan." : "Failed to reject application.")),
   });
 
+  const activateStoreMutation = useMutation({
+    mutationFn: () => activateAdminStoreFromApplication(applicationId),
+    onSuccess: async () => {
+      toast.success(isId ? "Toko berhasil diaktifkan (Live)!" : "Store activated successfully (Live)!");
+      await invalidateApplications();
+      queryClient.invalidateQueries({ queryKey: ["admin-store-profiles"] });
+    },
+    onError: (error) => {
+      toast.error(
+        error?.response?.data?.message ||
+          (isId ? "Gagal mengaktifkan toko." : "Failed to activate store.")
+      );
+    },
+  });
+
   const isBusy =
-    approveMutation.isPending || revisionMutation.isPending || rejectMutation.isPending;
+    approveMutation.isPending ||
+    revisionMutation.isPending ||
+    rejectMutation.isPending ||
+    activateStoreMutation.isPending;
 
   if (isInvalidId) {
     return (
@@ -564,13 +585,20 @@ export default function AdminStoreApplicationDetailPage() {
             <ArrowLeft size={16} aria-hidden="true" />
             {isId ? "Kembali ke Antrean" : "Back to Queue"}
           </Link>
-          <button
-            type="button"
-            className="asad-primary-button"
-            onClick={() => reviewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-          >
-            {isId ? "Tinjau Pengajuan" : "Review Application"}
-          </button>
+          {hasReviewAction ? (
+            <button
+              type="button"
+              className="asad-primary-button"
+              onClick={() => reviewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            >
+              {isId ? "Tinjau Pengajuan" : "Review Application"}
+            </button>
+          ) : detail.status === "approved" ? (
+            <Link to="/admin/online-store/store-profile" className="asad-primary-button">
+              <Settings size={16} aria-hidden="true" />
+              {isId ? "Lihat Profil Toko" : "View Store Profile"}
+            </Link>
+          ) : null}
         </div>
       </header>
 
@@ -739,146 +767,356 @@ export default function AdminStoreApplicationDetailPage() {
         </Section>
       </main>
 
-      {/* Review Actions Section */}
+      {/* Review Actions / Decision Resolution Section */}
       <section className="asad-section asad-review" ref={reviewRef}>
-        <div className="asad-section__head">
-          <h2>{isId ? "Tindakan Peninjauan" : "Review Actions"}</h2>
-          <p>{isId ? "Pilih keputusan untuk pengajuan onboarding toko ini." : "Select a decision for this store onboarding application."}</p>
-        </div>
-        <div className="asad-action-grid">
-          <button
-            type="button"
-            className={`asad-action-card asad-action-card--approve ${activeAction === "approve" ? "is-active" : ""}`}
-            onClick={() => setActiveAction(activeAction === "approve" ? "" : "approve")}
-          >
-            <CheckCircle2 size={24} aria-hidden="true" />
-            <span>
-              <strong>{isId ? "Setujui Toko" : "Approve"}</strong>
-              <small>{isId ? "Buat toko & aktifkan akses seller" : "Provision store & activate access"}</small>
-            </span>
-          </button>
-          <button
-            type="button"
-            className={`asad-action-card asad-action-card--revision ${activeAction === "revision" ? "is-active" : ""}`}
-            onClick={() => setActiveAction(activeAction === "revision" ? "" : "revision")}
-          >
-            <AlertTriangle size={24} aria-hidden="true" />
-            <span>
-              <strong>{isId ? "Minta Revisi" : "Request Revision"}</strong>
-              <small>{isId ? "Kirim catatan perbaikan ke seller" : "Send notes for seller correction"}</small>
-            </span>
-          </button>
-          <button
-            type="button"
-            className={`asad-action-card asad-action-card--reject ${activeAction === "reject" ? "is-active" : ""}`}
-            onClick={() => setActiveAction(activeAction === "reject" ? "" : "reject")}
-          >
-            <XCircle size={24} aria-hidden="true" />
-            <span>
-              <strong>{isId ? "Tolak Pengajuan" : "Reject"}</strong>
-              <small>{isId ? "Batalkan pengajuan toko ini" : "Decline this application"}</small>
-            </span>
-          </button>
-        </div>
+        {detail.status === "approved" ? (
+          <div>
+            <div className="asad-section__head" style={{ marginBottom: "16px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ width: 40, height: 40, borderRadius: "50%", backgroundColor: "rgba(16, 185, 129, 0.15)", color: "#10b981", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <CheckCircle2 size={24} />
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 700 }}>
+                    {isId ? "Status Keputusan: Pengajuan Disetujui" : "Decision Status: Application Approved"}
+                  </h2>
+                  <p style={{ margin: 0, marginTop: 4, color: "var(--asad-text-muted)", fontSize: "0.85rem" }}>
+                    {isId
+                      ? "Pengajuan toko ini telah disetujui. Toko dan hak akses penjual telah dibuat."
+                      : "This store application has been approved. The store and seller access have been provisioned."}
+                  </p>
+                </div>
+              </div>
+            </div>
 
-        {activeAction ? (
-          <div className="asad-action-form">
-            {activeAction === "approve" ? (
-              <>
-                <label>
-                  <span>{isId ? "Catatan Internal Admin (Opsional)" : "Internal Note (Optional)"}</span>
-                  <textarea
-                    value={approveInternalNote}
-                    onChange={(event) => setApproveInternalNote(event.target.value)}
-                    placeholder={isId ? "Catatan tambahan untuk tim admin..." : "Optional internal notes..."}
-                  />
-                </label>
-                <button
-                  type="button"
-                  className="asad-submit asad-submit--approve"
-                  disabled={isBusy}
-                  onClick={() => approveMutation.mutate()}
-                >
-                  {approveMutation.isPending
-                    ? (isId ? "Menyetujui..." : "Approving...")
-                    : (isId ? "Konfirmasi Persetujuan Toko" : "Confirm Store Approval")}
-                </button>
-              </>
-            ) : null}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px" }}>
+              {/* Card 1: Review Metadata */}
+              <div style={{ background: "var(--asad-surface-card)", border: "1px solid var(--asad-border)", borderRadius: "14px", padding: "18px" }}>
+                <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--asad-text-muted)" }}>
+                  {isId ? "Ringkasan Peninjauan" : "Review Summary"}
+                </span>
+                <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 13, color: "var(--asad-text-muted)" }}>{isId ? "Keputusan" : "Decision"}</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "3px 10px", borderRadius: "999px", fontSize: 12, fontWeight: 700, background: "rgba(3, 76, 133, 0.2)", color: "#38bdf8", border: "1px solid rgba(3, 76, 133, 0.4)" }}>
+                      ✓ {isId ? "Disetujui" : "Approved"}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 13, color: "var(--asad-text-muted)" }}>{isId ? "Peninjau" : "Reviewer"}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>{text(detail.reviewer.name, isId ? "Super Admin" : "Admin")}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 13, color: "var(--asad-text-muted)" }}>{isId ? "Waktu Disetujui" : "Approved At"}</span>
+                    <span style={{ fontSize: 13 }}>{formatDate(detail.reviewedAt, isId)}</span>
+                  </div>
+                  {detail.reviewSummary.internalAdminNote ? (
+                    <div style={{ marginTop: "6px", padding: "10px 12px", borderRadius: "8px", background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.06)" }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: "var(--asad-text-muted)", display: "block" }}>{isId ? "Catatan Internal:" : "Internal Note:"}</span>
+                      <span style={{ fontSize: 12, color: "var(--asad-text)" }}>{detail.reviewSummary.internalAdminNote}</span>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
 
-            {activeAction === "revision" ? (
-              <>
-                <label>
-                  <span>{isId ? "Catatan Revisi untuk Penjual *" : "Revision Note for Seller *"}</span>
-                  <textarea
-                    value={revisionNote}
-                    onChange={(event) => setRevisionNote(event.target.value)}
-                    placeholder={isId ? "Tuliskan data yang perlu diperbaiki oleh penjual..." : "Explain required corrections for the seller..."}
-                    required
-                  />
-                </label>
-                <label>
-                  <span>{isId ? "Ringkasan Revisi (Opsional)" : "Summary (Optional)"}</span>
-                  <textarea
-                    value={revisionSummary}
-                    onChange={(event) => setRevisionSummary(event.target.value)}
-                    placeholder={isId ? "Ringkasan singkat..." : "Brief summary..."}
-                  />
-                </label>
-                <label>
-                  <span>{isId ? "Catatan Internal Admin (Opsional)" : "Internal Admin Note (Optional)"}</span>
-                  <textarea
-                    value={revisionInternalNote}
-                    onChange={(event) => setRevisionInternalNote(event.target.value)}
-                    placeholder={isId ? "Catatan tim admin..." : "Admin-only notes..."}
-                  />
-                </label>
-                <button
-                  type="button"
-                  className="asad-submit asad-submit--revision"
-                  disabled={isBusy || !revisionNote.trim()}
-                  onClick={() => revisionMutation.mutate()}
-                >
-                  {revisionMutation.isPending
-                    ? (isId ? "Mengirim Permintaan..." : "Requesting...")
-                    : (isId ? "Kirim Permintaan Revisi" : "Request Revision")}
-                </button>
-              </>
-            ) : null}
+              {/* Card 2: Store Connection & Live Status */}
+              <div style={{ background: "var(--asad-surface-card)", border: "1px solid var(--asad-border)", borderRadius: "14px", padding: "18px" }}>
+                <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--asad-text-muted)" }}>
+                  {isId ? "Toko & Visibilitas Etalase" : "Store & Storefront Visibility"}
+                </span>
+                <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 13, color: "var(--asad-text-muted)" }}>{isId ? "Nama Toko" : "Store Name"}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#f1f5f9" }}>{detail.store.name}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 13, color: "var(--asad-text-muted)" }}>{isId ? "Tautan / Slug" : "Store Slug"}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "#38bdf8" }}>@{detail.store.slug}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 13, color: "var(--asad-text-muted)" }}>{isId ? "Status Etalase" : "Storefront Status"}</span>
+                    {publicStatus ? (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "3px 10px", borderRadius: "999px", fontSize: 12, fontWeight: 700, background: "rgba(16, 185, 129, 0.15)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.3)" }}>
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#10b981" }} />
+                        {isId ? "Aktif (Live)" : "Active (Live)"}
+                      </span>
+                    ) : (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "3px 10px", borderRadius: "999px", fontSize: 12, fontWeight: 700, background: "rgba(245, 158, 11, 0.15)", color: "#f59e0b", border: "1px solid rgba(245, 158, 11, 0.3)" }}>
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#f59e0b" }} />
+                        {isId ? "Nonaktif (Inactive)" : "Inactive"}
+                      </span>
+                    )}
+                  </div>
 
-            {activeAction === "reject" ? (
-              <>
-                <label>
-                  <span>{isId ? "Alasan Penolakan *" : "Reject Reason *"}</span>
-                  <textarea
-                    value={rejectReason}
-                    onChange={(event) => setRejectReason(event.target.value)}
-                    placeholder={isId ? "Tuliskan alasan penolakan secara jelas..." : "Explain reason for rejection..."}
-                    required
-                  />
-                </label>
-                <label>
-                  <span>{isId ? "Catatan Internal Admin (Opsional)" : "Internal Admin Note (Optional)"}</span>
-                  <textarea
-                    value={rejectInternalNote}
-                    onChange={(event) => setRejectInternalNote(event.target.value)}
-                    placeholder={isId ? "Catatan tim admin..." : "Admin-only notes..."}
-                  />
-                </label>
-                <button
-                  type="button"
-                  className="asad-submit asad-submit--reject"
-                  disabled={isBusy || !rejectReason.trim()}
-                  onClick={() => rejectMutation.mutate()}
-                >
-                  {rejectMutation.isPending
-                    ? (isId ? "Menolak..." : "Rejecting...")
-                    : (isId ? "Konfirmasi Penolakan Pengajuan" : "Confirm Application Rejection")}
-                </button>
-              </>
-            ) : null}
+                  {!publicStatus && (
+                    <div style={{ padding: "10px 12px", borderRadius: "8px", background: "rgba(245, 158, 11, 0.08)", border: "1px solid rgba(245, 158, 11, 0.25)", fontSize: 12, color: "#fbbf24" }}>
+                      {isId
+                        ? "Visibilitas toko saat ini masih Nonaktif. Klik tombol di bawah untuk mengaktifkannya secara langsung agar dapat diakses pembeli."
+                        : "Store is currently Inactive. Click below to activate it so buyers can view the storefront."}
+                    </div>
+                  )}
+
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "4px" }}>
+                    {!publicStatus && (
+                      <button
+                        type="button"
+                        onClick={() => activateStoreMutation.mutate()}
+                        disabled={activateStoreMutation.isPending}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          padding: "8px 16px",
+                          borderRadius: "10px",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          background: "linear-gradient(135deg, #034c85 0%, #023864 100%)",
+                          color: "#fff",
+                          border: "1px solid rgba(56, 189, 248, 0.4)",
+                          cursor: activateStoreMutation.isPending ? "wait" : "pointer",
+                          boxShadow: "0 2px 8px rgba(3, 76, 133, 0.35)",
+                        }}
+                      >
+                        <CheckCircle2 size={14} />
+                        {activateStoreMutation.isPending
+                          ? (isId ? "Mengaktifkan..." : "Activating...")
+                          : (isId ? "Aktifkan Toko Sekarang (Live)" : "Activate Store Now (Live)")}
+                      </button>
+                    )}
+
+                    <Link
+                      to="/admin/online-store/store-profile"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        padding: "8px 14px",
+                        borderRadius: "10px",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        background: "rgba(255, 255, 255, 0.05)",
+                        color: "var(--asad-text)",
+                        border: "1px solid var(--asad-border)",
+                        textDecoration: "none",
+                      }}
+                    >
+                      <Settings size={14} />
+                      {isId ? "Profil Toko" : "Store Profile"}
+                    </Link>
+
+                    <a
+                      href={`/store/${encodeURIComponent(detail.store.slug || "")}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        padding: "8px 14px",
+                        borderRadius: "10px",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        background: "rgba(254, 111, 5, 0.12)",
+                        color: "#fe6f05",
+                        border: "1px solid rgba(254, 111, 5, 0.35)",
+                        textDecoration: "none",
+                      }}
+                    >
+                      <ExternalLink size={14} />
+                      {isId ? "Buka Etalase" : "Visit Storefront"}
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        ) : null}
+        ) : detail.status === "rejected" ? (
+          <div>
+            <div className="asad-section__head">
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ width: 40, height: 40, borderRadius: "50%", backgroundColor: "rgba(239, 68, 68, 0.15)", color: "#ef4444", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <XCircle size={24} />
+                </div>
+                <div>
+                  <h2 style={{ margin: 0 }}>{isId ? "Status Keputusan: Pengajuan Ditolak" : "Decision Status: Application Rejected"}</h2>
+                  <p style={{ margin: 0, marginTop: 4, color: "var(--asad-text-muted)" }}>
+                    {isId ? "Pengajuan onboarding toko ini telah ditolak." : "This store application has been rejected."}
+                  </p>
+                </div>
+              </div>
+            </div>
+            {detail.reviewSummary.rejectReason && (
+              <div style={{ marginTop: "14px", padding: "14px", borderRadius: "10px", background: "rgba(239, 68, 68, 0.08)", border: "1px solid rgba(239, 68, 68, 0.25)" }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#ef4444", display: "block" }}>{isId ? "Alasan Penolakan:" : "Rejection Reason:"}</span>
+                <p style={{ margin: 0, marginTop: 4, fontSize: 13, color: "var(--asad-text)" }}>{detail.reviewSummary.rejectReason}</p>
+              </div>
+            )}
+          </div>
+        ) : detail.status === "revision_requested" ? (
+          <div>
+            <div className="asad-section__head">
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ width: 40, height: 40, borderRadius: "50%", backgroundColor: "rgba(245, 158, 11, 0.15)", color: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <AlertTriangle size={24} />
+                </div>
+                <div>
+                  <h2 style={{ margin: 0 }}>{isId ? "Status Keputusan: Menunggu Revisi Penjual" : "Decision Status: Awaiting Revision"}</h2>
+                  <p style={{ margin: 0, marginTop: 4, color: "var(--asad-text-muted)" }}>
+                    {isId ? "Permintaan revisi telah dikirim kepada penjual." : "Revision requested from the seller."}
+                  </p>
+                </div>
+              </div>
+            </div>
+            {detail.reviewSummary.revisionNote && (
+              <div style={{ marginTop: "14px", padding: "14px", borderRadius: "10px", background: "rgba(245, 158, 11, 0.08)", border: "1px solid rgba(245, 158, 11, 0.25)" }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#f59e0b", display: "block" }}>{isId ? "Catatan Revisi untuk Penjual:" : "Revision Note for Seller:"}</span>
+                <p style={{ margin: 0, marginTop: 4, fontSize: 13, color: "var(--asad-text)" }}>{detail.reviewSummary.revisionNote}</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Normal Interactive Actions for Pending Review */
+          <>
+            <div className="asad-section__head">
+              <h2>{isId ? "Tindakan Peninjauan" : "Review Actions"}</h2>
+              <p>{isId ? "Pilih keputusan untuk pengajuan onboarding toko ini." : "Select a decision for this store onboarding application."}</p>
+            </div>
+            <div className="asad-action-grid">
+              <button
+                type="button"
+                className={`asad-action-card asad-action-card--approve ${activeAction === "approve" ? "is-active" : ""}`}
+                onClick={() => setActiveAction(activeAction === "approve" ? "" : "approve")}
+              >
+                <CheckCircle2 size={24} aria-hidden="true" />
+                <span>
+                  <strong>{isId ? "Setujui Toko" : "Approve"}</strong>
+                  <small>{isId ? "Buat toko & aktifkan akses seller" : "Provision store & activate access"}</small>
+                </span>
+              </button>
+              <button
+                type="button"
+                className={`asad-action-card asad-action-card--revision ${activeAction === "revision" ? "is-active" : ""}`}
+                onClick={() => setActiveAction(activeAction === "revision" ? "" : "revision")}
+              >
+                <AlertTriangle size={24} aria-hidden="true" />
+                <span>
+                  <strong>{isId ? "Minta Revisi" : "Request Revision"}</strong>
+                  <small>{isId ? "Kirim catatan perbaikan ke seller" : "Send notes for seller correction"}</small>
+                </span>
+              </button>
+              <button
+                type="button"
+                className={`asad-action-card asad-action-card--reject ${activeAction === "reject" ? "is-active" : ""}`}
+                onClick={() => setActiveAction(activeAction === "reject" ? "" : "reject")}
+              >
+                <XCircle size={24} aria-hidden="true" />
+                <span>
+                  <strong>{isId ? "Tolak Pengajuan" : "Reject"}</strong>
+                  <small>{isId ? "Batalkan pengajuan toko ini" : "Decline this application"}</small>
+                </span>
+              </button>
+            </div>
+
+            {activeAction ? (
+              <div className="asad-action-form">
+                {activeAction === "approve" ? (
+                  <>
+                    <label>
+                      <span>{isId ? "Catatan Internal Admin (Opsional)" : "Internal Note (Optional)"}</span>
+                      <textarea
+                        value={approveInternalNote}
+                        onChange={(event) => setApproveInternalNote(event.target.value)}
+                        placeholder={isId ? "Catatan tambahan untuk tim admin..." : "Optional internal notes..."}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="asad-submit asad-submit--approve"
+                      disabled={isBusy}
+                      onClick={() => approveMutation.mutate()}
+                    >
+                      {approveMutation.isPending
+                        ? (isId ? "Menyetujui..." : "Approving...")
+                        : (isId ? "Konfirmasi Persetujuan Toko" : "Confirm Store Approval")}
+                    </button>
+                  </>
+                ) : null}
+
+                {activeAction === "revision" ? (
+                  <>
+                    <label>
+                      <span>{isId ? "Catatan Revisi untuk Penjual *" : "Revision Note for Seller *"}</span>
+                      <textarea
+                        value={revisionNote}
+                        onChange={(event) => setRevisionNote(event.target.value)}
+                        placeholder={isId ? "Tuliskan data yang perlu diperbaiki oleh penjual..." : "Explain required corrections for the seller..."}
+                        required
+                      />
+                    </label>
+                    <label>
+                      <span>{isId ? "Ringkasan Revisi (Opsional)" : "Summary (Optional)"}</span>
+                      <textarea
+                        value={revisionSummary}
+                        onChange={(event) => setRevisionSummary(event.target.value)}
+                        placeholder={isId ? "Ringkasan singkat..." : "Brief summary..."}
+                      />
+                    </label>
+                    <label>
+                      <span>{isId ? "Catatan Internal Admin (Opsional)" : "Internal Admin Note (Optional)"}</span>
+                      <textarea
+                        value={revisionInternalNote}
+                        onChange={(event) => setRevisionInternalNote(event.target.value)}
+                        placeholder={isId ? "Catatan tim admin..." : "Admin-only notes..."}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="asad-submit asad-submit--revision"
+                      disabled={isBusy || !revisionNote.trim()}
+                      onClick={() => revisionMutation.mutate()}
+                    >
+                      {revisionMutation.isPending
+                        ? (isId ? "Mengirim Permintaan..." : "Requesting...")
+                        : (isId ? "Kirim Permintaan Revisi" : "Request Revision")}
+                    </button>
+                  </>
+                ) : null}
+
+                {activeAction === "reject" ? (
+                  <>
+                    <label>
+                      <span>{isId ? "Alasan Penolakan *" : "Reject Reason *"}</span>
+                      <textarea
+                        value={rejectReason}
+                        onChange={(event) => setRejectReason(event.target.value)}
+                        placeholder={isId ? "Tuliskan alasan penolakan secara jelas..." : "Explain reason for rejection..."}
+                        required
+                      />
+                    </label>
+                    <label>
+                      <span>{isId ? "Catatan Internal Admin (Opsional)" : "Internal Admin Note (Optional)"}</span>
+                      <textarea
+                        value={rejectInternalNote}
+                        onChange={(event) => setRejectInternalNote(event.target.value)}
+                        placeholder={isId ? "Catatan tim admin..." : "Admin-only notes..."}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="asad-submit asad-submit--reject"
+                      disabled={isBusy || !rejectReason.trim()}
+                      onClick={() => rejectMutation.mutate()}
+                    >
+                      {rejectMutation.isPending
+                        ? (isId ? "Menolak..." : "Rejecting...")
+                        : (isId ? "Konfirmasi Penolakan Pengajuan" : "Confirm Application Rejection")}
+                    </button>
+                  </>
+                ) : null}
+              </div>
+            ) : null}
+          </>
+        )}
       </section>
     </div>
   );

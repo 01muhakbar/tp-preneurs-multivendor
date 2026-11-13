@@ -163,7 +163,7 @@ const buildStoreCreatePayload = (application: any, slug: string) => {
       toText(onboarding.ownerName) ||
       `Store ${Number(getAttr(application, "applicantUserId") || 0)}`,
     slug,
-    status: "INACTIVE",
+    status: "ACTIVE",
     description:
       toText(snapshots.storeInformationSnapshot.description) ||
       toText(onboarding.description) ||
@@ -552,9 +552,10 @@ export async function provisionApprovedStoreApplication(
       const reusableStorePatch: Record<string, any> = Object.fromEntries(
         Object.entries(synchronizedProfile).filter(
           ([key, value]) =>
-            !["ownerUserId", "slug", "status"].includes(key) && value !== null
+            !["ownerUserId", "slug"].includes(key) && value !== null
         )
       );
+      reusableStorePatch.status = "ACTIVE";
       reusableStorePatch.ownerIdentity = mergeDefinedObject(
         getAttr(store, "ownerIdentity"),
         synchronizedProfile.ownerIdentity
@@ -599,7 +600,7 @@ export async function provisionApprovedStoreApplication(
         ...currentActivation,
         storeId: Number(getAttr(store, "id") || 0),
         storeSlug: toText(getAttr(store, "slug")),
-        storeStatus: toText(getAttr(store, "status")) || "INACTIVE",
+        storeStatus: toText(getAttr(store, "status")) || "ACTIVE",
         ownerMembershipId: Number(getAttr(membership, "id") || 0) || null,
         ownerMembershipStatus: toText(getAttr(membership, "status")) || "ACTIVE",
         sellerAccessReady: true,

@@ -1,7 +1,7 @@
 import { Op } from "sequelize";
 import { Router } from "express";
 import { z } from "zod";
-import { StoreApplication, User } from "../models/index.js";
+import { Store, StoreApplication, User } from "../models/index.js";
 import {
   buildStoreApplicationCompleteness,
   buildStoreApplicationMutationMetadata,
@@ -533,9 +533,33 @@ router.get("/store-applications/:applicationId", async (req, res) => {
     const application = await loadStoreApplicationById(applicationId);
     if (!application) return sendNotFound(res);
 
+    const detail: any = serializeAdminStoreApplicationDetail(application);
+    if (detail) {
+      const applicantUserId = Number(detail.applicant?.userId || 0);
+      const storeIdFromMeta = Number(detail.workflowSummary?.activation?.storeId || 0);
+      let liveStore = null;
+      if (storeIdFromMeta > 0) {
+        liveStore = await Store.findByPk(storeIdFromMeta);
+      }
+      if (!liveStore && applicantUserId > 0) {
+        liveStore = await Store.findOne({ where: { ownerUserId: applicantUserId } as any });
+      }
+      if (liveStore) {
+        detail.workflowSummary.activation.storeId = Number(liveStore.id);
+        detail.workflowSummary.activation.storeSlug = String(liveStore.slug || "");
+        detail.workflowSummary.activation.storeStatus = String(liveStore.status || "INACTIVE").toUpperCase();
+        detail.liveStore = {
+          id: Number(liveStore.id),
+          name: String(liveStore.name || ""),
+          slug: String(liveStore.slug || ""),
+          status: String(liveStore.status || "INACTIVE").toUpperCase(),
+        };
+      }
+    }
+
     return res.json({
       success: true,
-      data: serializeAdminStoreApplicationDetail(application),
+      data: detail,
     });
   } catch (error) {
     console.error("[admin.store-applications:detail] error", error);
@@ -543,6 +567,50 @@ router.get("/store-applications/:applicationId", async (req, res) => {
       success: false,
       message: "Failed to load the store application detail.",
     });
+  }
+});
+
+router.patch("/store-applications/:applicationId/activate-store", async (req, res) => {
+  try {
+    const applicationId = Number(req.params.applicationId);
+    if (!Number.isInteger(applicationId) || applicationId <= 0) {
+      return res.status(400).json({ success: false, message: "Invalid application id." });
+    }
+    const application = await loadStoreApplicationById(applicationId);
+    if (!application) return sendNotFound(res);
+
+    const applicantUserId = Number(getAttr(application, "applicantUserId") || 0);
+    const meta = getInternalMetadata(application);
+    const storeIdFromMeta = Number(meta?.activation?.storeId || 0);
+
+    let store = storeIdFromMeta > 0 ? await Store.findByPk(storeIdFromMeta) : null;
+    if (!store && applicantUserId > 0) {
+      store = await Store.findOne({ where: { ownerUserId: applicantUserId } as any });
+    }
+    if (!store) {
+      return res.status(404).json({ success: false, message: "No store found linked to this application." });
+    }
+
+    await store.update({ status: "ACTIVE" } as any);
+
+    if (meta?.activation) {
+      meta.activation.storeStatus = "ACTIVE";
+      await application.update({ internalMetadata: meta } as any);
+    }
+
+    return res.json({
+      success: true,
+      message: "Store successfully activated.",
+      store: {
+        id: store.id,
+        name: store.name,
+        slug: store.slug,
+        status: "ACTIVE",
+      },
+    });
+  } catch (error) {
+    console.error("[admin.store-applications:activate-store] error", error);
+    return res.status(500).json({ success: false, message: "Failed to activate store." });
   }
 });
 
