@@ -73,6 +73,7 @@ const TABS = [
 const STORE_CUSTOMIZATION_PATH = "/admin/store/customization";
 const ABOUT_US_CUSTOMIZATION_PATH = "/admin/customization";
 const DEFAULT_TAB_KEY = "home";
+
 const STORE_TAB_BY_KEY = {
   home: "home-settings",
   shop: "shop",
@@ -88,42 +89,152 @@ const STORE_TAB_BY_KEY = {
   dashboardSetting: "dashboard-setting",
   seoSettings: "seo-settings",
 };
+
+const TAB_ALIASES_MAP = {
+  // home
+  "home": "home",
+  "home-settings": "home",
+  "home-setting": "home",
+  "homepage": "home",
+  // shop
+  "shop": "shop",
+  "shop-settings": "shop",
+  "shop-setting": "shop",
+  "store": "shop",
+  // productSlugPage
+  "productslugpage": "productSlugPage",
+  "single-setting": "productSlugPage",
+  "single-settings": "productSlugPage",
+  "single": "productSlugPage",
+  "product-slug": "productSlugPage",
+  "product-slug-page": "productSlugPage",
+  "product": "productSlugPage",
+  "product-setting": "productSlugPage",
+  "product-settings": "productSlugPage",
+  // aboutUs
+  "aboutus": "aboutUs",
+  "about-us": "aboutUs",
+  "about-us-setting": "aboutUs",
+  "about-us-settings": "aboutUs",
+  "about": "aboutUs",
+  // privacyPolicyTerms
+  "privacypolicyterms": "privacyPolicyTerms",
+  "privacy-setting": "privacyPolicyTerms",
+  "privacy-settings": "privacyPolicyTerms",
+  "privacy": "privacyPolicyTerms",
+  "privacy-policy": "privacyPolicyTerms",
+  "privacypolicy": "privacyPolicyTerms",
+  "terms": "privacyPolicyTerms",
+  "terms-and-conditions": "privacyPolicyTerms",
+  "privacy-terms": "privacyPolicyTerms",
+  // faqs
+  "faqs": "faqs",
+  "faq": "faqs",
+  "faq-setting": "faqs",
+  "faq-settings": "faqs",
+  "faqs-setting": "faqs",
+  "faqs-settings": "faqs",
+  // offers
+  "offers": "offers",
+  "offer": "offers",
+  "offers-setting": "offers",
+  "offers-settings": "offers",
+  "offer-setting": "offers",
+  "promotions": "offers",
+  "promos": "offers",
+  // contactUs
+  "contactus": "contactUs",
+  "contact-us": "contactUs",
+  "contact-us-setting": "contactUs",
+  "contact-us-settings": "contactUs",
+  "contact": "contactUs",
+  "contact-setting": "contactUs",
+  // shoppingCart
+  "shoppingcart": "shoppingCart",
+  "shopping-cart": "shoppingCart",
+  "shopping-cart-setting": "shoppingCart",
+  "shopping-cart-settings": "shoppingCart",
+  "cart": "shoppingCart",
+  "cart-setting": "shoppingCart",
+  "cart-settings": "shoppingCart",
+  // checkout
+  "checkout": "checkout",
+  "checkout-setting": "checkout",
+  "checkout-settings": "checkout",
+  "check-out": "checkout",
+  // categories
+  "categories": "categories",
+  "categories-setting": "categories",
+  "categories-settings": "categories",
+  "category": "categories",
+  "category-setting": "categories",
+  "category-settings": "categories",
+  // dashboardSetting
+  "dashboardsetting": "dashboardSetting",
+  "dashboard": "dashboardSetting",
+  "dashboard-setting": "dashboardSetting",
+  "dashboard-settings": "dashboardSetting",
+  "dasbor": "dashboardSetting",
+  // seoSettings
+  "seosettings": "seoSettings",
+  "seo": "seoSettings",
+  "seo-settings": "seoSettings",
+  "seo-setting": "seoSettings",
+};
+
 const KEY_BY_STORE_TAB = {
+  ...TAB_ALIASES_MAP,
   ...Object.fromEntries(
     Object.entries(STORE_TAB_BY_KEY).map(([tabKey, storeTab]) => [storeTab, tabKey])
   ),
-  "shopping-cart-setting": "shoppingCart",
-  "shopping-cart": "shoppingCart",
-  "cart-setting": "shoppingCart",
-  "cart": "shoppingCart",
-  "categories-setting": "categories",
-  "categories": "categories",
-  "category-setting": "categories",
-  "category": "categories",
-  "shop-settings": "shop",
-  "shop-setting": "shop",
 };
+
 const normalizeRoutePath = (pathname) => {
   if (!pathname) return STORE_CUSTOMIZATION_PATH;
   if (pathname.length > 1 && pathname.endsWith("/")) return pathname.slice(0, -1);
   return pathname;
 };
+
 const getDefaultTabKeyByPath = (pathname) =>
   normalizeRoutePath(pathname) === ABOUT_US_CUSTOMIZATION_PATH
     ? "aboutUs"
     : DEFAULT_TAB_KEY;
-const getCanonicalStoreTab = (storeTabFromUrl, pathname) => {
-  const normalizedStoreTab = String(storeTabFromUrl || "").trim();
-  if (KEY_BY_STORE_TAB[normalizedStoreTab]) return normalizedStoreTab;
-  const fallbackTabKey = getDefaultTabKeyByPath(pathname);
-  return STORE_TAB_BY_KEY[fallbackTabKey];
+
+const resolveTabKey = (keyOrStoreTab, pathname) => {
+  if (!keyOrStoreTab) {
+    return getDefaultTabKeyByPath(pathname);
+  }
+  const raw = String(keyOrStoreTab).trim();
+  if (STORE_TAB_BY_KEY[raw]) {
+    return raw;
+  }
+  const normalized = raw.toLowerCase().replace(/_/g, "-");
+  if (TAB_ALIASES_MAP[normalized]) {
+    return TAB_ALIASES_MAP[normalized];
+  }
+  if (KEY_BY_STORE_TAB[raw] || KEY_BY_STORE_TAB[normalized]) {
+    return KEY_BY_STORE_TAB[raw] || KEY_BY_STORE_TAB[normalized];
+  }
+  return getDefaultTabKeyByPath(pathname);
 };
-const getPathByTabKey = (tabKey) =>
-  tabKey === "aboutUs" ? ABOUT_US_CUSTOMIZATION_PATH : STORE_CUSTOMIZATION_PATH;
-const getUrlByTabKey = (tabKey) => {
-  const safeTabKey = STORE_TAB_BY_KEY[tabKey] ? tabKey : DEFAULT_TAB_KEY;
-  const storeTab = STORE_TAB_BY_KEY[safeTabKey];
-  const path = getPathByTabKey(safeTabKey);
+
+const getCanonicalStoreTab = (storeTabFromUrl, pathname) => {
+  const safeTabKey = resolveTabKey(storeTabFromUrl, pathname);
+  return STORE_TAB_BY_KEY[safeTabKey] || STORE_TAB_BY_KEY[DEFAULT_TAB_KEY];
+};
+
+const getPathByTabKey = (tabKey, currentPathname) => {
+  const norm = normalizeRoutePath(currentPathname);
+  if (norm === ABOUT_US_CUSTOMIZATION_PATH && tabKey === "aboutUs") {
+    return ABOUT_US_CUSTOMIZATION_PATH;
+  }
+  return STORE_CUSTOMIZATION_PATH;
+};
+
+const getUrlByTabKey = (tabKey, currentPathname) => {
+  const safeTabKey = resolveTabKey(tabKey, currentPathname);
+  const storeTab = STORE_TAB_BY_KEY[safeTabKey] || STORE_TAB_BY_KEY[DEFAULT_TAB_KEY];
+  const path = getPathByTabKey(safeTabKey, currentPathname);
   return `${path}?storeTab=${encodeURIComponent(storeTab)}`;
 };
 
@@ -3792,7 +3903,16 @@ export default function StoreCustomizationPage() {
   const tabContentRef = useRef(null);
   const quickDeliveryFileInputRef = useRef(null);
 
-  const [activeTab, setActiveTab] = useState("home");
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window === "undefined") return DEFAULT_TAB_KEY;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const storeTab = params.get("storeTab");
+      return resolveTabKey(storeTab, window.location.pathname);
+    } catch {
+      return DEFAULT_TAB_KEY;
+    }
+  });
   const [activeMainSliderTab, setActiveMainSliderTab] = useState("slider-0");
   const [activeAboutUsMemberTab, setActiveAboutUsMemberTab] = useState("member-0");
   const [lang, setLang] = useState(getStoredAdminLanguageIso);
@@ -3924,17 +4044,20 @@ export default function StoreCustomizationPage() {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const storeTabFromUrl = params.get("storeTab");
-    const canonicalStoreTab = getCanonicalStoreTab(storeTabFromUrl, location.pathname);
+    const canonicalTabKey = resolveTabKey(storeTabFromUrl, location.pathname);
+    const canonicalStoreTab = STORE_TAB_BY_KEY[canonicalTabKey] || STORE_TAB_BY_KEY[DEFAULT_TAB_KEY];
 
     if (storeTabFromUrl !== canonicalStoreTab) {
-      const canonicalTabKey = KEY_BY_STORE_TAB[canonicalStoreTab] || DEFAULT_TAB_KEY;
-      navigate(getUrlByTabKey(canonicalTabKey), { replace: true });
-      return;
+      const canonicalUrl = getUrlByTabKey(canonicalTabKey, location.pathname);
+      const currentUrl = `${location.pathname}${location.search}`;
+      if (currentUrl !== canonicalUrl) {
+        navigate(canonicalUrl, { replace: true });
+      }
     }
 
-    const nextTabKey =
-      KEY_BY_STORE_TAB[canonicalStoreTab] || getDefaultTabKeyByPath(location.pathname);
-    setActiveTab((previousTab) => (previousTab === nextTabKey ? previousTab : nextTabKey));
+    setActiveTab((previousTab) =>
+      previousTab === canonicalTabKey ? previousTab : canonicalTabKey
+    );
   }, [location.pathname, location.search, navigate]);
 
   useEffect(() => {
@@ -5127,16 +5250,17 @@ export default function StoreCustomizationPage() {
   };
 
   const onSelectTab = (tabKey) => {
-    const safeTabKey = STORE_TAB_BY_KEY[tabKey] ? tabKey : DEFAULT_TAB_KEY;
-    if (safeTabKey === activeTab) return;
+    const safeTabKey = resolveTabKey(tabKey, location.pathname);
+    setActiveTab(safeTabKey);
     setReviewSectionKey(null);
     setQuickActionSectionKey(null);
     setAiSuggestionSectionKey(null);
     setIsAdvancedEditorOpen(false);
-    const canonicalUrl = getUrlByTabKey(safeTabKey);
+    const canonicalUrl = getUrlByTabKey(safeTabKey, location.pathname);
     const currentUrl = `${location.pathname}${location.search}`;
-    if (currentUrl === canonicalUrl) return;
-    navigate(canonicalUrl, { replace: false });
+    if (currentUrl !== canonicalUrl) {
+      navigate(canonicalUrl, { replace: false });
+    }
   };
 
   const onReviewSection = (sectionKey) => {
