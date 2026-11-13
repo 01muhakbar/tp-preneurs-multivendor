@@ -1,27 +1,35 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import toast from "react-hot-toast";
 import {
   CheckCheck,
+  CheckCircle2,
   ClipboardCheck,
   Eye,
   Filter,
   Pencil,
   Plus,
+  RefreshCw,
   RotateCcw,
   Search,
+  ShieldCheck,
+  Store,
   Trash2,
+  UserCheck,
+  UsersRound,
+  X,
 } from "lucide-react";
+
 import {
   approveStaffAccount,
-  createStaff,
   deleteStaff,
   fetchStaff,
   updateStaff,
 } from "../../api/adminStaff.ts";
 import { useAuth } from "../../auth/useAuth.js";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
-import AddStaffDrawer from "../../components/admin/staff/AddStaffDrawer.jsx";
 import EditStaffDrawer from "../../components/admin/staff/EditStaffDrawer.jsx";
 import DeleteCouponModal from "../../components/admin/coupons/DeleteCouponModal.jsx";
 import {
@@ -31,40 +39,36 @@ import {
 import {
   GENERIC_ERROR,
   NO_STAFF_FOUND,
-  UPDATING,
 } from "../../constants/uiMessages.js";
-
-const headerBtnBase =
-  "inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-[11px] font-medium transition";
-const headerBtnSoft = `${headerBtnBase} bg-slate-50/80 text-slate-600 hover:bg-slate-100`;
-const headerBtnGreen = `${headerBtnBase} bg-[var(--admin-primary)] text-white hover:bg-[var(--admin-primary-strong)]`;
-const fieldClass =
-  "h-8 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-[var(--admin-primary)] focus:outline-none";
-const tableHeadCell =
-  "whitespace-nowrap px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500";
-const tableCell = "px-3 py-2 align-middle text-sm text-slate-700";
+import "./AdminStaffPage.css";
 
 const toText = (value) => String(value ?? "").trim();
 const normalizeRole = (value) => toText(value).toLowerCase();
 
-const formatRoleLabel = (value) => {
-  const raw = toText(value);
-  if (!raw) return "-";
-  return raw
-    .replace(/[_-]+/g, " ")
-    .split(" ")
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
+const formatRoleLabel = (value, isId = false) => {
+  const norm = normalizeRole(value);
+  if (norm === "super_admin" || norm === "superadmin") return "Super Admin";
+  if (norm === "admin") return "Admin";
+  if (norm === "staff") return isId ? "Staf" : "Staff";
+  if (norm === "seller") return isId ? "Penjual" : "Seller";
+
+  return value
+    ? String(value)
+        .replace(/[_-]+/g, " ")
+        .split(" ")
+        .filter(Boolean)
+        .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+        .join(" ")
+    : "-";
 };
 
-const formatJoiningDate = (value) => {
+const formatJoiningDate = (value, isId = false) => {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat(isId ? "id-ID" : "en-US", {
+    day: "numeric",
     month: "short",
-    day: "2-digit",
     year: "numeric",
   }).format(date);
 };
@@ -73,10 +77,12 @@ const getStaffName = (staff) => toText(staff?.name) || `#${staff?.id ?? "-"}`;
 const getStaffEmail = (staff) => toText(staff?.email) || "-";
 const getStaffPhone = (staff) => toText(staff?.phoneNumber || staff?.phone) || "-";
 const getStaffAvatarUrl = (staff) => resolveAssetUrl(toText(staff?.avatarUrl) || "");
+
 const getAvatarInitial = (staff) => {
   const name = getStaffName(staff);
   return name.charAt(0).toUpperCase() || "S";
 };
+
 const isSameAccount = (currentUser, staff) => {
   const currentId = Number(currentUser?.id || 0);
   const staffId = Number(staff?.id || 0);
@@ -88,35 +94,34 @@ const isSameAccount = (currentUser, staff) => {
     toText(currentUser?.email).toLowerCase() === toText(staff?.email).toLowerCase()
   );
 };
+
 const isPrivilegedRole = (role) => {
   const normalized = normalizeRole(role);
   return normalized === "admin" || normalized === "super_admin" || normalized === "superadmin";
 };
+
 const isSuperAdminRole = (role) => {
   const normalized = normalizeRole(role);
   return normalized === "super_admin" || normalized === "superadmin";
 };
 
-function RoleBadge({ role }) {
+function RoleBadge({ role, isId }) {
   const normalized = normalizeRole(role);
   const styleMap = {
-    super_admin: "border-violet-200/80 bg-violet-50/80 text-violet-700",
-    admin: "border-indigo-200/80 bg-indigo-50/80 text-indigo-700",
-    staff: "border-sky-200/80 bg-sky-50/80 text-sky-700",
-    seller: "border-amber-200/80 bg-amber-50/80 text-amber-700",
+    super_admin: "staff-badge--superadmin",
+    superadmin: "staff-badge--superadmin",
+    admin: "staff-badge--admin",
+    staff: "staff-badge--staff",
+    seller: "staff-badge--seller",
   };
   return (
-    <span
-      className={`inline-flex min-h-5 items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
-        styleMap[normalized] || "border-slate-200 bg-slate-100/80 text-slate-700"
-      }`}
-    >
-      {formatRoleLabel(role)}
+    <span className={`staff-badge ${styleMap[normalized] || "staff-badge--staff"}`}>
+      {formatRoleLabel(role, isId)}
     </span>
   );
 }
 
-function StoreApplicationBadge({ staff }) {
+function StoreApplicationBadge({ staff, isId }) {
   if (normalizeRole(staff?.role) !== "seller" && !staff?.storeApplication) return null;
 
   const app = staff?.storeApplication;
@@ -124,113 +129,44 @@ function StoreApplicationBadge({ staff }) {
 
   if (store && String(store.status).toUpperCase() === "ACTIVE") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9px] font-medium text-emerald-700">
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-        Store: Active
+      <span className="staff-sub-badge staff-sub-badge--active">
+        ● {isId ? "Toko: Aktif" : "Store: Active"}
       </span>
     );
   }
 
   if (!app) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-medium text-slate-500">
-        No Application
+      <span className="staff-sub-badge staff-sub-badge--none">
+        {isId ? "Tanpa Toko" : "No Store"}
       </span>
     );
   }
 
   const status = String(app.status || "").toLowerCase();
-  const metaMap = {
-    submitted: {
-      label: "App: Submitted (In Queue)",
-      style: "border-amber-300 bg-amber-50 text-amber-800 font-semibold animate-pulse",
-    },
-    under_review: {
-      label: "App: In Review",
-      style: "border-sky-300 bg-sky-50 text-sky-800 font-semibold",
-    },
-    revision_requested: {
-      label: "App: Needs Revision",
-      style: "border-rose-200 bg-rose-50 text-rose-700",
-    },
-    approved: {
-      label: "App: Approved",
-      style: "border-emerald-200 bg-emerald-50 text-emerald-700",
-    },
-    rejected: {
-      label: "App: Rejected",
-      style: "border-slate-200 bg-slate-100 text-slate-600",
-    },
-    draft: {
-      label: "App: Draft",
-      style: "border-slate-200 bg-slate-50 text-slate-500",
-    },
-  };
-
-  const meta = metaMap[status] || {
-    label: `App: ${status}`,
-    style: "border-slate-200 bg-slate-50 text-slate-600",
+  const labelMap = {
+    submitted: isId ? "Diajukan" : "Submitted",
+    under_review: isId ? "Ditinjau" : "In Review",
+    revision_requested: isId ? "Revisi" : "Revision",
+    approved: isId ? "Disetujui" : "Approved",
+    rejected: isId ? "Ditolak" : "Rejected",
+    draft: isId ? "Draf" : "Draft",
   };
 
   return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] ${meta.style}`}
-    >
-      {meta.label}
+    <span className="staff-sub-badge staff-sub-badge--submitted">
+      {isId ? "Pengajuan: " : "App: "}
+      {labelMap[status] || status}
     </span>
   );
 }
-
-function ActiveStatusBadge({ isActive }) {
-  return (
-    <span
-      className={`inline-flex min-h-5 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
-        isActive
-          ? "border-[var(--admin-primary-soft)]/80 bg-[var(--admin-primary-soft)]/80 text-[var(--admin-primary)]"
-          : "border-rose-200/80 bg-rose-50/80 text-rose-700"
-      }`}
-    >
-      <span
-        className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-          isActive ? "bg-[var(--admin-primary)]" : "bg-rose-500"
-        }`}
-      />
-      {isActive ? "Active" : "Inactive"}
-    </span>
-  );
-}
-
-function AccountStatusBadge({ staff, isLiveActive }) {
-  const normalizedStatus = toText(staff?.status).toLowerCase();
-  if (normalizedStatus === "pending_approval") {
-    return (
-      <span className="inline-flex min-h-5 items-center gap-1 rounded-full border border-amber-200/80 bg-amber-50/80 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
-        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
-        Pending approval
-      </span>
-    );
-  }
-  if (normalizedStatus === "pending_verification") {
-    return (
-      <span className="inline-flex min-h-5 items-center gap-1 rounded-full border border-sky-200/80 bg-sky-50/80 px-2 py-0.5 text-[10px] font-semibold text-sky-700">
-        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-sky-500" />
-        Pending verification
-      </span>
-    );
-  }
-  const effectiveActive =
-    typeof isLiveActive === "boolean"
-      ? isLiveActive
-      : staff?.isActive !== false && normalizedStatus === "active";
-  return (
-    <ActiveStatusBadge isActive={effectiveActive} />
-  );
-}
-
 
 export default function AdminStaffPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuth();
+  const { i18n } = useTranslation("admin");
+  const isId = String(i18n.language || "").toLowerCase().startsWith("id");
 
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
@@ -238,15 +174,11 @@ export default function AdminStaffPage() {
   const [roleInput, setRoleInput] = useState("");
   const [appliedFilters, setAppliedFilters] = useState({ q: "", role: "" });
 
-  const [notice, setNotice] = useState("");
-  const [rowError, setRowError] = useState("");
-  const [createDrawerError, setCreateDrawerError] = useState("");
   const [editDrawerError, setEditDrawerError] = useState("");
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
   const [pendingPublishedId, setPendingPublishedId] = useState(null);
   const [pendingApproveId, setPendingApproveId] = useState(null);
 
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -255,12 +187,6 @@ export default function AdminStaffPage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteModalError, setDeleteModalError] = useState("");
   const [publishedMap, setPublishedMap] = useState({});
-
-  useEffect(() => {
-    if (!notice) return;
-    const timer = setTimeout(() => setNotice(""), 2500);
-    return () => clearTimeout(timer);
-  }, [notice]);
 
   const params = useMemo(
     () => ({
@@ -277,50 +203,36 @@ export default function AdminStaffPage() {
     placeholderData: (prev) => prev,
   });
 
-  const createMutation = useMutation({
-    mutationFn: createStaff,
-    onSuccess: () => {
-      setIsCreateModalOpen(false);
-      setCreateDrawerError("");
-      setNotice("Account created.");
-      queryClient.invalidateQueries({ queryKey: ["admin-staff"] });
-    },
-    onError: (error) => {
-      setCreateDrawerError(error?.response?.data?.message ?? error?.message ?? GENERIC_ERROR);
-    },
-  });
-
   const updateMutation = useMutation({
     mutationFn: ({ id, payload }) => updateStaff(id, payload),
     onSuccess: () => {
-      setRowError("");
       setEditDrawerError("");
       setIsEditModalOpen(false);
       setEditTarget(null);
-      setNotice("Account updated.");
+      toast.success(isId ? "Akun berhasil diperbarui." : "Account updated.");
       queryClient.invalidateQueries({ queryKey: ["admin-staff"] });
     },
     onError: (error) => {
       const message = error?.response?.data?.message ?? error?.message ?? GENERIC_ERROR;
       setEditDrawerError(message);
+      toast.error(message);
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => deleteStaff(id),
     onSuccess: () => {
-      setRowError("");
       setDeleteModalError("");
       setIsDeleteModalOpen(false);
       setDeleteTarget(null);
       setPendingDeleteId(null);
-      setNotice("Staff deleted.");
+      toast.success(isId ? "Akun berhasil dihapus." : "Account deleted.");
       queryClient.invalidateQueries({ queryKey: ["admin-staff"] });
     },
     onError: (error) => {
       const message = error?.response?.data?.message ?? error?.message ?? GENERIC_ERROR;
       setDeleteModalError(message);
-      setRowError(message);
+      toast.error(message);
       setPendingDeleteId(null);
     },
   });
@@ -332,14 +244,13 @@ export default function AdminStaffPage() {
         isActive: typeof isActive === "boolean" ? isActive : isPublished,
       }),
     onSuccess: () => {
-      setRowError("");
-      setNotice("Account status updated.");
+      toast.success(isId ? "Status akun diperbarui." : "Account status updated.");
       queryClient.invalidateQueries({ queryKey: ["admin-staff"] });
     },
     onError: (error, variables) => {
       const message = error?.response?.data?.message ?? error?.message ?? GENERIC_ERROR;
       setPublishedMap((prev) => ({ ...prev, [variables.id]: variables.previousValue }));
-      setRowError(message);
+      toast.error(message);
     },
     onSettled: () => {
       setPendingPublishedId(null);
@@ -349,16 +260,17 @@ export default function AdminStaffPage() {
   const approveMutation = useMutation({
     mutationFn: (id) => approveStaffAccount(id),
     onSuccess: (result) => {
-      setRowError("");
-      setNotice(
+      toast.success(
         result?.message ||
-          "Staff account approved. The user can now sign in at /admin/login with the registered email."
+          (isId
+            ? "Akun berhasil disetujui. Pengguna kini dapat masuk."
+            : "Staff account approved. The user can now sign in.")
       );
       queryClient.invalidateQueries({ queryKey: ["admin-staff"] });
     },
     onError: (error) => {
       const message = error?.response?.data?.message ?? error?.message ?? GENERIC_ERROR;
-      setRowError(message);
+      toast.error(message);
     },
     onSettled: () => {
       setPendingApproveId(null);
@@ -421,10 +333,18 @@ export default function AdminStaffPage() {
       return true;
     });
   }, [items, appliedFilters]);
-  const activeFilterCount = (appliedFilters.q ? 1 : 0) + (appliedFilters.role ? 1 : 0);
+
+  // KPI Summary calculations
+  const summary = useMemo(() => {
+    const total = Number(meta.count || items.length);
+    const admins = items.filter((s) => ["admin", "super_admin", "superadmin", "staff"].includes(normalizeRole(s.role))).length;
+    const sellers = items.filter((s) => normalizeRole(s.role) === "seller").length;
+    const active = items.filter((s) => s.isActive !== false && toText(s.status).toLowerCase() === "active").length;
+
+    return { total, admins, sellers, active };
+  }, [items, meta.count]);
 
   const isInitialLoading = staffQuery.isLoading && !staffQuery.data;
-  const isRefetching = staffQuery.isFetching && !isInitialLoading;
   const isErrorState = staffQuery.isError && !staffQuery.data;
   const isEmpty = !isInitialLoading && !isErrorState && filteredItems.length === 0;
   const tableErrorMessage =
@@ -452,17 +372,6 @@ export default function AdminStaffPage() {
     setRoleInput("");
     setAppliedFilters({ q: "", role: "" });
     setPage(1);
-  };
-
-  const openCreateModal = () => {
-    setCreateDrawerError("");
-    setIsCreateModalOpen(true);
-  };
-
-  const closeCreateModal = () => {
-    if (createMutation.isPending) return;
-    setIsCreateModalOpen(false);
-    setCreateDrawerError("");
   };
 
   const openViewModal = (staff) => {
@@ -507,11 +416,6 @@ export default function AdminStaffPage() {
     deleteMutation.mutate(deleteTarget.id);
   };
 
-  const onSubmitCreate = (payload) => {
-    setCreateDrawerError("");
-    createMutation.mutate(payload);
-  };
-
   const onSubmitEdit = (payload) => {
     if (!editTarget?.id) return;
     setEditDrawerError("");
@@ -526,7 +430,6 @@ export default function AdminStaffPage() {
     if (!id || pendingPublishedId === id) return;
     const previousValue = getPublished(staff);
     const nextValue = !previousValue;
-    setRowError("");
     setPendingPublishedId(id);
     setPublishedMap((prev) => ({ ...prev, [id]: nextValue }));
     publishMutation.mutate({
@@ -540,7 +443,6 @@ export default function AdminStaffPage() {
   const onApproveStaff = (staff) => {
     const id = Number(staff?.id);
     if (!id || pendingApproveId === id) return;
-    setRowError("");
     setPendingApproveId(id);
     approveMutation.mutate(id);
   };
@@ -550,138 +452,282 @@ export default function AdminStaffPage() {
     const isSelf = isSameAccount(currentUser, staff);
     return !roleProtected && !isSelf;
   };
+
   const getDeleteDisabledReason = (staff) => {
     if (isSameAccount(currentUser, staff)) {
-      return "You cannot delete your own account from this flow.";
+      return isId
+        ? "Anda tidak dapat menghapus akun Anda sendiri."
+        : "You cannot delete your own account.";
     }
     if (isPrivilegedRole(staff?.role)) {
-      return "Cannot delete this account.";
+      return isId
+        ? "Akun administrator dilindungi dari penghapusan."
+        : "Cannot delete this privileged account.";
     }
     return undefined;
   };
+
   const canApproveStaff = (staff) =>
     normalizeRole(staff?.role) === "staff" &&
     toText(staff?.status).toLowerCase() === "pending_approval";
 
   return (
-    <div className="space-y-2">
-      <div className="rounded-[20px] border border-slate-200 bg-white px-4 py-2 shadow-sm sm:px-5">
-        <div className="flex flex-col gap-1.5">
-          <div className="space-y-0.5">
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">All Accounts</h1>
-            <p className="text-sm text-slate-500">
-              Create workspace accounts and manage role-based admin or seller access.
+    <div className="admin-staff-2026">
+      {/* HEADER SECTION */}
+      <header className="staff-hero">
+        <div className="staff-title">
+          <div className="staff-title__icon">
+            <UsersRound size={22} />
+          </div>
+          <div className="staff-title-text">
+            <div className="staff-title-row">
+              <h1>{isId ? "Semua Akun" : "All Accounts"}</h1>
+              <span className="staff-badge-count">{meta.count || items.length}</span>
+            </div>
+            <p>
+              {isId
+                ? "Kelola akun pengguna, staf admin, dan penjual dalam ruang kerja."
+                : "Create workspace accounts and manage role-based admin or seller access."}
             </p>
           </div>
-          <p className="text-[11px] text-slate-500">
-            {Number(meta.count || 0)} total
-            <span className="mx-1.5 text-slate-300">•</span>
-            {activeFilterCount} filters
-          </p>
         </div>
-      </div>
 
-      <div className="rounded-[20px] border border-slate-200 bg-white p-2 shadow-sm">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <div className="relative w-full min-w-[220px] flex-1 xl:max-w-[300px]">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              type="search"
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") applyFilters();
-              }}
-              placeholder="Search by name/email/phone"
-              className={`${fieldClass} pl-9`}
-            />
-          </div>
-
-          <div className="ml-auto flex flex-wrap items-center justify-end gap-1.5">
-            <select
-              value={roleInput}
-              onChange={(event) => setRoleInput(event.target.value)}
-              className={`${fieldClass} min-w-[140px]`}
-            >
-              <option value="">All Roles</option>
-              {roleOptions.map((role) => (
-                <option key={role} value={role}>
-                  {formatRoleLabel(role)}
-                </option>
-              ))}
-            </select>
-            <button type="button" onClick={applyFilters} className={headerBtnSoft}>
-              <Filter className="h-4 w-4" />
-              Apply
-            </button>
-            <button type="button" onClick={resetFilters} className={headerBtnSoft}>
-              <RotateCcw className="h-4 w-4" />
-              Reset
-            </button>
-            <button type="button" className={headerBtnGreen} onClick={openCreateModal}>
-              <Plus className="h-4 w-4" />
-              Create Account
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {notice ? (
-        <div
-          id="admin-staff-notice"
-          className="rounded-2xl border border-[var(--admin-primary-soft)] bg-[var(--admin-primary-soft)] px-4 py-2 text-sm text-[var(--admin-primary)]"
-        >
-          {notice}
-        </div>
-      ) : null}
-
-      {rowError ? (
-        <div
-          id="admin-staff-row-error"
-          className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700"
-        >
-          {rowError}
-        </div>
-      ) : null}
-
-      {isInitialLoading ? <UiSkeleton variant="table" rows={8} /> : null}
-
-      {isErrorState ? (
-        <UiErrorState title={GENERIC_ERROR} message={tableErrorMessage} onRetry={staffQuery.refetch} />
-      ) : null}
-
-      {isEmpty ? (
-        <div className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center shadow-sm">
-          <p className="text-sm font-semibold text-slate-800">{NO_STAFF_FOUND}</p>
-          <p className="mt-1 text-xs text-slate-500">Try another keyword or reset your filters.</p>
+        <div className="staff-actions">
           <button
             type="button"
-            onClick={openCreateModal}
-            className="mt-2.5 inline-flex h-8 items-center justify-center rounded-lg bg-[var(--admin-primary)] px-3 text-[11px] font-medium text-white hover:bg-[var(--admin-primary-strong)]"
+            className="staff-btn"
+            onClick={() => staffQuery.refetch()}
+            disabled={staffQuery.isFetching}
+            title={isId ? "Segarkan data" : "Refresh accounts"}
           >
-            Create Account
+            <RefreshCw size={14} className={staffQuery.isFetching ? "animate-spin" : ""} />
+            {isId ? "Segarkan" : "Refresh"}
+          </button>
+          <Link
+            to="/admin/all-accounts/create"
+            className="staff-btn staff-btn--primary"
+            title={isId ? "Tambah akun baru" : "Create new account"}
+          >
+            <Plus size={14} />
+            {isId ? "Tambah Akun" : "Create Account"}
+          </Link>
+        </div>
+      </header>
+
+      {/* METRICS SUMMARY KPI CARDS */}
+      <section className="staff-metrics" aria-label="Account summary metrics">
+        <div className="staff-metric-card is-blue">
+          <div className="staff-metric-top">
+            <span className="staff-metric-title">{isId ? "Total Akun" : "Total Accounts"}</span>
+            <div className="staff-metric-icon">
+              <UsersRound size={17} />
+            </div>
+          </div>
+          <div className="staff-metric-val-row">
+            <span className="staff-metric-val">{summary.total}</span>
+            <span className="staff-metric-sub">{isId ? "Pengguna" : "Members"}</span>
+          </div>
+        </div>
+
+        <div className="staff-metric-card is-blue">
+          <div className="staff-metric-top">
+            <span className="staff-metric-title">{isId ? "Admin & Staf" : "Admins & Staff"}</span>
+            <div className="staff-metric-icon">
+              <ShieldCheck size={17} />
+            </div>
+          </div>
+          <div className="staff-metric-val-row">
+            <span className="staff-metric-val">{summary.admins}</span>
+            <span className="staff-metric-sub">{isId ? "Operator" : "Operators"}</span>
+          </div>
+        </div>
+
+        <div className="staff-metric-card is-orange">
+          <div className="staff-metric-top">
+            <span className="staff-metric-title">{isId ? "Penjual" : "Sellers"}</span>
+            <div className="staff-metric-icon">
+              <Store size={17} />
+            </div>
+          </div>
+          <div className="staff-metric-val-row">
+            <span className="staff-metric-val">{summary.sellers}</span>
+            <span className="staff-metric-sub">{isId ? "Merchant" : "Merchants"}</span>
+          </div>
+        </div>
+
+        <div className="staff-metric-card is-green">
+          <div className="staff-metric-top">
+            <span className="staff-metric-title">{isId ? "Akun Aktif" : "Active Accounts"}</span>
+            <div className="staff-metric-icon">
+              <UserCheck size={17} />
+            </div>
+          </div>
+          <div className="staff-metric-val-row">
+            <span className="staff-metric-val">{summary.active}</span>
+            <span className="staff-metric-sub">{isId ? "Status Aktif" : "Live Status"}</span>
+          </div>
+        </div>
+      </section>
+
+      {/* FILTER & SEARCH TOOLBAR */}
+      <section className="staff-filter-card">
+        {/* Quick Filter Chips */}
+        <div className="staff-quick-chips">
+          <button
+            type="button"
+            onClick={() => {
+              setRoleInput("");
+              setAppliedFilters((c) => ({ ...c, role: "" }));
+            }}
+            className={`staff-quick-chip ${!appliedFilters.role ? "is-active" : ""}`}
+          >
+            {isId ? "Semua Peran" : "All Roles"}
+            <span className="staff-quick-count">{summary.total}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setRoleInput("staff");
+              setAppliedFilters((c) => ({ ...c, role: "staff" }));
+            }}
+            className={`staff-quick-chip ${appliedFilters.role === "staff" ? "is-active" : ""}`}
+          >
+            {isId ? "Staf" : "Staff"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setRoleInput("seller");
+              setAppliedFilters((c) => ({ ...c, role: "seller" }));
+            }}
+            className={`staff-quick-chip ${appliedFilters.role === "seller" ? "is-active is-orange" : ""}`}
+          >
+            {isId ? "Penjual" : "Seller"}
+            <span className="staff-quick-count">{summary.sellers}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setRoleInput("admin");
+              setAppliedFilters((c) => ({ ...c, role: "admin" }));
+            }}
+            className={`staff-quick-chip ${appliedFilters.role === "admin" ? "is-active" : ""}`}
+          >
+            {isId ? "Admin" : "Admin"}
           </button>
         </div>
-      ) : null}
 
-      {!isInitialLoading && !isErrorState && !isEmpty ? (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 bg-slate-50/70 px-3 py-1 text-[10px] text-slate-400">
-            <span className="font-semibold text-slate-700">{filteredItems.length}</span> /{" "}
-            <span className="font-semibold text-slate-700">{Number(meta.count || 0)}</span>
-            {isRefetching || publishMutation.isPending ? (
-              <span className="ml-2 text-slate-400">{UPDATING}</span>
-            ) : null}
+        {/* Inputs Grid */}
+        <div className="staff-filter-grid">
+          <div className="staff-input-wrap">
+            <Search size={14} style={{ color: "var(--staff-dim)" }} />
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") applyFilters();
+              }}
+              placeholder={isId ? "Cari nama, email, atau telepon..." : "Search by name, email, or phone..."}
+            />
+            {searchInput && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchInput("");
+                  setAppliedFilters((c) => ({ ...c, q: "" }));
+                }}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--staff-dim)" }}
+                title={isId ? "Hapus pencarian" : "Clear search"}
+              >
+                <X size={13} />
+              </button>
+            )}
           </div>
-          <div className="-mx-3 w-auto overflow-x-auto px-3 pb-1 md:mx-0 md:w-full md:px-0">
-            <table className="w-full min-w-[720px] text-left text-sm">
-              <thead className="bg-slate-50">
+
+          <select
+            value={roleInput}
+            onChange={(e) => setRoleInput(e.target.value)}
+            className="staff-select"
+            aria-label={isId ? "Pilih peran" : "Filter by role"}
+          >
+            <option value="">{isId ? "Semua Peran" : "All Roles"}</option>
+            {roleOptions.map((role) => (
+              <option key={role} value={role}>
+                {formatRoleLabel(role, isId)}
+              </option>
+            ))}
+          </select>
+
+          <button type="button" onClick={applyFilters} className="staff-btn staff-btn--primary">
+            <Filter size={13} />
+            {isId ? "Terapkan" : "Apply"}
+          </button>
+
+          {(appliedFilters.q || appliedFilters.role || searchInput || roleInput) && (
+            <button type="button" onClick={resetFilters} className="staff-btn" title={isId ? "Atur ulang filter" : "Reset filters"}>
+              <RotateCcw size={13} />
+              {isId ? "Atur Ulang" : "Reset"}
+            </button>
+          )}
+        </div>
+      </section>
+
+      {/* SKELETON / ERROR */}
+      {isInitialLoading && <UiSkeleton variant="table" rows={6} />}
+
+      {isErrorState && (
+        <UiErrorState
+          title={GENERIC_ERROR}
+          message={tableErrorMessage}
+          onRetry={staffQuery.refetch}
+        />
+      )}
+
+      {/* EMPTY STATE */}
+      {isEmpty && (
+        <div className="staff-empty">
+          <div className="staff-empty-icon">
+            <UsersRound size={24} />
+          </div>
+          <h3 className="staff-empty-title">
+            {isId ? "Tidak ada akun ditemukan" : NO_STAFF_FOUND}
+          </h3>
+          <p className="staff-empty-desc">
+            {isId
+              ? "Coba gunakan kata kunci lain atau atur ulang filter pencarian Anda."
+              : "Try another keyword or reset your filters."}
+          </p>
+          <Link to="/admin/all-accounts/create" className="staff-btn staff-btn--primary" style={{ marginTop: 8 }}>
+            <Plus size={14} />
+            {isId ? "Tambah Akun Baru" : "Create Account"}
+          </Link>
+        </div>
+      )}
+
+      {/* ZERO-SCROLL TABLE CONTENT */}
+      {!isInitialLoading && !isErrorState && !isEmpty && (
+        <section className="staff-table-card">
+          <div className="staff-table-toolbar">
+            <div className="staff-toolbar-count">
+              {isId ? "Menampilkan " : "Showing "}
+              <strong>{filteredItems.length}</strong>
+              {isId ? " dari " : " of "}
+              <strong>{Number(meta.count || items.length)}</strong>
+              {isId ? " akun pengguna" : " workspace accounts"}
+            </div>
+          </div>
+
+          {/* DESKTOP TABLE (>= 768px) - ZERO HORIZONTAL SCROLL */}
+          <div className="staff-table-scroll">
+            <table className="staff-table">
+              <thead>
                 <tr>
-                  <th className={`${tableHeadCell} w-[44%] min-w-[300px]`}>Staff</th>
-                  <th className={`${tableHeadCell} w-[16%]`}>Role</th>
-                  <th className={`${tableHeadCell} w-[16%]`}>Joined</th>
-                  <th className={`${tableHeadCell} w-[16%] min-w-[170px]`}>Status</th>
-                  <th className={`${tableHeadCell} w-[8%] text-right`}>Actions</th>
+                  <th style={{ width: "36%" }}>{isId ? "Anggota / Akun" : "Staff / Account"}</th>
+                  <th style={{ width: "20%" }}>{isId ? "Peran" : "Role"}</th>
+                  <th style={{ width: "16%" }}>{isId ? "Bergabung" : "Joined"}</th>
+                  <th style={{ width: "16%" }}>{isId ? "Status" : "Status"}</th>
+                  <th style={{ width: "12%", textAlign: "right" }}>{isId ? "Aksi" : "Actions"}</th>
                 </tr>
               </thead>
               <tbody>
@@ -689,132 +735,140 @@ export default function AdminStaffPage() {
                   const canDelete = canDeleteStaff(staff);
                   const isDeleting = pendingDeleteId === staff?.id;
                   const isPublishing = pendingPublishedId === staff?.id;
-                  const isActive = staff?.isActive !== false;
                   const isApproving = pendingApproveId === staff?.id;
+                  const isLive = getPublished(staff);
+                  const staffName = getStaffName(staff);
+                  const staffEmail = getStaffEmail(staff);
+                  const staffPhone = getStaffPhone(staff);
+                  const isPendingApproval = toText(staff?.status).toLowerCase() === "pending_approval";
+
                   return (
-                    <tr
-                      key={staff?.id || `${getStaffEmail(staff)}-${getStaffName(staff)}`}
-                      className="border-t border-slate-100 text-slate-700 transition hover:bg-slate-50/80"
-                    >
-                      <td className={`${tableCell} w-[44%]`}>
-                        <div className="flex items-center gap-3">
-                          <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--admin-primary-soft)] text-[11px] font-semibold text-[var(--admin-primary)]">
+                    <tr key={staff?.id || `${staffEmail}-${staffName}`}>
+                      <td>
+                        <div className="staff-user-cell">
+                          <div className="staff-avatar-badge" aria-hidden="true">
                             {getStaffAvatarUrl(staff) ? (
-                              <img
-                                src={getStaffAvatarUrl(staff)}
-                                alt={getStaffName(staff)}
-                                className="h-full w-full rounded-full object-cover"
-                              />
+                              <img src={getStaffAvatarUrl(staff)} alt={staffName} />
                             ) : (
                               getAvatarInitial(staff)
                             )}
-                          </span>
-                          <div className="min-w-0 max-w-[300px]">
-                            <p className="truncate font-semibold text-slate-900">{getStaffName(staff)}</p>
-                            <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[10px] text-slate-400">
-                              <span className="truncate">{getStaffEmail(staff)}</span>
-                              {getStaffPhone(staff) !== "-" ? (
+                          </div>
+                          <div className="staff-user-info">
+                            <span className="staff-user-name" title={staffName}>
+                              {staffName}
+                            </span>
+                            <div className="staff-user-sub">
+                              <span title={staffEmail}>{staffEmail}</span>
+                              {staffPhone !== "-" && (
                                 <>
-                                  <span className="text-slate-300">•</span>
-                                  <span>{getStaffPhone(staff)}</span>
+                                  <span>•</span>
+                                  <span>{staffPhone}</span>
                                 </>
-                              ) : null}
+                              )}
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td className={`${tableCell} w-[16%]`}>
-                        <div className="flex flex-col items-start gap-1">
-                          <RoleBadge role={staff?.role} />
-                          <StoreApplicationBadge staff={staff} />
+
+                      <td>
+                        <div className="staff-role-cell">
+                          <RoleBadge role={staff?.role} isId={isId} />
+                          <StoreApplicationBadge staff={staff} isId={isId} />
                         </div>
                       </td>
-                      <td className={`${tableCell} w-[16%] whitespace-nowrap text-slate-600`}>
-                        {formatJoiningDate(staff?.createdAt)}
+
+                      <td style={{ color: "var(--staff-muted)" }}>
+                        {formatJoiningDate(staff?.createdAt, isId)}
                       </td>
-                      <td className={`${tableCell} w-[16%]`}>
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between gap-2">
-                            <AccountStatusBadge
-                              staff={staff}
-                              isLiveActive={getPublished(staff)}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => onTogglePublished(staff)}
-                              disabled={isPublishing}
-                              className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition ${
-                                getPublished(staff) ? "bg-[var(--admin-primary)]" : "bg-slate-300"
-                              } ${isPublishing ? "cursor-not-allowed opacity-60" : ""}`}
-                              aria-label={`Toggle status for ${getStaffName(staff)}`}
-                            >
-                              <span
-                                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition ${
-                                  getPublished(staff) ? "translate-x-4" : "translate-x-0.5"
-                                }`}
-                              />
-                            </button>
-                          </div>
-                          <div className="text-[10px] text-slate-400">
-                            {toText(staff?.status).toLowerCase() === "pending_approval"
-                              ? "Waiting for admin approval"
-                              : isPublishing
-                                ? UPDATING
-                                : getPublished(staff)
-                                  ? "Live"
-                                  : "Inactive"}
-                          </div>
+
+                      <td>
+                        <div className="staff-status-stack">
+                          <span
+                            className={`staff-status-pill ${
+                              isPendingApproval
+                                ? "staff-status-pill--pending"
+                                : isLive
+                                ? "staff-status-pill--active"
+                                : "staff-status-pill--inactive"
+                            }`}
+                          >
+                            <span className="staff-badge-dot" />
+                            {isPendingApproval
+                              ? isId
+                                ? "Menunggu"
+                                : "Pending approval"
+                              : isLive
+                              ? isId
+                                ? "Aktif"
+                                : "Active"
+                              : isId
+                              ? "Nonaktif"
+                              : "Inactive"}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() => onTogglePublished(staff)}
+                            disabled={isPublishing}
+                            className={`staff-toggle-switch ${isLive ? "is-on" : "is-off"}`}
+                            title={isId ? "Ubah status aktif/nonaktif" : "Toggle active/inactive status"}
+                            aria-label={`Toggle status for ${staffName}`}
+                          >
+                            <span className="staff-toggle-knob" />
+                          </button>
                         </div>
                       </td>
-                      <td className={`${tableCell} w-[8%] text-right`}>
-                        <div className="flex items-center justify-end gap-0.5">
-                          {canApproveStaff(staff) ? (
+
+                      <td style={{ textAlign: "right" }}>
+                        <div className="staff-row-actions">
+                          {canApproveStaff(staff) && (
                             <button
                               type="button"
                               onClick={() => onApproveStaff(staff)}
                               disabled={isApproving}
-                              title="Approve account"
-                              className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-[var(--admin-primary-soft)] text-[var(--admin-primary)] hover:border-[var(--admin-primary)] hover:bg-[var(--admin-primary-soft)] disabled:cursor-not-allowed disabled:opacity-60"
-                              aria-label={`Approve ${getStaffName(staff)}`}
+                              className="staff-action-icon-btn is-amber"
+                              title={isId ? "Setujui akun staf" : "Approve staff account"}
                             >
-                              <CheckCheck className="h-3.5 w-3.5" />
+                              <CheckCheck size={14} />
                             </button>
-                          ) : null}
-                          {staff?.storeApplication?.id ? (
+                          )}
+
+                          {staff?.storeApplication?.id && (
                             <Link
                               to={`/admin/store/applications/${staff.storeApplication.id}`}
-                              className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-amber-300 bg-amber-50 text-amber-700 hover:border-amber-400 hover:bg-amber-100"
-                              title="Review Store Application"
-                              aria-label={`Review store application for ${getStaffName(staff)}`}
+                              className="staff-action-icon-btn is-amber"
+                              title={isId ? "Tinjau Permohonan Toko" : "Review Store Application"}
                             >
-                              <ClipboardCheck className="h-3.5 w-3.5" />
+                              <ClipboardCheck size={14} />
                             </Link>
-                          ) : null}
+                          )}
+
                           <button
                             type="button"
                             onClick={() => openViewModal(staff)}
-                            className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
-                            aria-label={`View ${getStaffName(staff)}`}
+                            className="staff-action-icon-btn"
+                            title={isId ? "Lihat Detail" : "View Detail"}
                           >
-                            <Eye className="h-3.5 w-3.5" />
+                            <Eye size={14} />
                           </button>
+
                           <button
                             type="button"
                             onClick={() => openEditModal(staff)}
-                            className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
-                            aria-label={`Edit ${getStaffName(staff)}`}
+                            className="staff-action-icon-btn"
+                            title={isId ? "Edit Akun" : "Edit Account"}
                           >
-                            <Pencil className="h-3.5 w-3.5" />
+                            <Pencil size={14} />
                           </button>
+
                           <button
                             type="button"
                             onClick={() => openDeleteModal(staff)}
                             disabled={!canDelete || isDeleting}
-                            title={!canDelete ? getDeleteDisabledReason(staff) : undefined}
-                            className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-rose-200 text-rose-600 hover:border-rose-300 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
-                            aria-label={`Delete ${getStaffName(staff)}`}
+                            className="staff-action-icon-btn is-danger"
+                            title={!canDelete ? getDeleteDisabledReason(staff) : isId ? "Hapus Akun" : "Delete Account"}
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 size={14} />
                           </button>
                         </div>
                       </td>
@@ -824,41 +878,160 @@ export default function AdminStaffPage() {
               </tbody>
             </table>
           </div>
-        </div>
-      ) : null}
 
-      <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-0.5 text-[10px] shadow-sm">
-        <button
-          type="button"
-          className="rounded-full border border-slate-200 px-2 py-0.5 text-slate-700 disabled:opacity-50"
-          disabled={meta.page <= 1}
-          onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-        >
-          Previous
-        </button>
-        <span className="text-[10px] text-slate-500">
-          Page {meta.page} of {totalPages}
-        </span>
-        <button
-          type="button"
-          className="rounded-full border border-slate-200 px-2 py-0.5 text-slate-700 disabled:opacity-50"
-          disabled={meta.page >= totalPages}
-          onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-        >
-          Next
-        </button>
-      </div>
+          {/* MOBILE FEED (< 768px) */}
+          <div className="staff-mobile-feed">
+            {filteredItems.map((staff) => {
+              const canDelete = canDeleteStaff(staff);
+              const isDeleting = pendingDeleteId === staff?.id;
+              const isPublishing = pendingPublishedId === staff?.id;
+              const isApproving = pendingApproveId === staff?.id;
+              const isLive = getPublished(staff);
+              const staffName = getStaffName(staff);
+              const staffEmail = getStaffEmail(staff);
+              const isPendingApproval = toText(staff?.status).toLowerCase() === "pending_approval";
 
-      <AddStaffDrawer
-        open={isCreateModalOpen}
-        onClose={closeCreateModal}
-        onSubmit={onSubmitCreate}
-        isSubmitting={createMutation.isPending}
-        error={createDrawerError}
-        rolesOptions={roleOptions}
-        canManageRoles={isSuperAdminRole(currentUser?.role)}
-      />
+              return (
+                <div key={staff?.id || `${staffEmail}-${staffName}`} className="staff-mobile-card">
+                  <div className="staff-mobile-top">
+                    <div className="staff-user-cell">
+                      <div className="staff-avatar-badge" aria-hidden="true">
+                        {getStaffAvatarUrl(staff) ? (
+                          <img src={getStaffAvatarUrl(staff)} alt={staffName} />
+                        ) : (
+                          getAvatarInitial(staff)
+                        )}
+                      </div>
+                      <div className="staff-user-info">
+                        <span className="staff-user-name">{staffName}</span>
+                        <span className="staff-user-sub">{staffEmail}</span>
+                      </div>
+                    </div>
 
+                    <button
+                      type="button"
+                      onClick={() => onTogglePublished(staff)}
+                      disabled={isPublishing}
+                      className={`staff-toggle-switch ${isLive ? "is-on" : "is-off"}`}
+                    >
+                      <span className="staff-toggle-knob" />
+                    </button>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                    <div className="staff-role-cell">
+                      <RoleBadge role={staff?.role} isId={isId} />
+                      <StoreApplicationBadge staff={staff} isId={isId} />
+                    </div>
+
+                    <span style={{ fontSize: "0.75rem", color: "var(--staff-muted)" }}>
+                      {formatJoiningDate(staff?.createdAt, isId)}
+                    </span>
+                  </div>
+
+                  <div className="staff-mobile-actions">
+                    <span
+                      className={`staff-status-pill ${
+                        isPendingApproval
+                          ? "staff-status-pill--pending"
+                          : isLive
+                          ? "staff-status-pill--active"
+                          : "staff-status-pill--inactive"
+                      }`}
+                    >
+                      <span className="staff-badge-dot" />
+                      {isPendingApproval
+                        ? isId
+                          ? "Menunggu"
+                          : "Pending approval"
+                        : isLive
+                        ? isId
+                          ? "Aktif"
+                          : "Active"
+                        : isId
+                        ? "Nonaktif"
+                        : "Inactive"}
+                    </span>
+
+                    <div className="staff-row-actions">
+                      {canApproveStaff(staff) && (
+                        <button
+                          type="button"
+                          onClick={() => onApproveStaff(staff)}
+                          disabled={isApproving}
+                          className="staff-action-icon-btn is-amber"
+                        >
+                          <CheckCheck size={14} />
+                        </button>
+                      )}
+
+                      {staff?.storeApplication?.id && (
+                        <Link
+                          to={`/admin/store/applications/${staff.storeApplication.id}`}
+                          className="staff-action-icon-btn is-amber"
+                        >
+                          <ClipboardCheck size={14} />
+                        </Link>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => openViewModal(staff)}
+                        className="staff-action-icon-btn"
+                      >
+                        <Eye size={14} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(staff)}
+                        className="staff-action-icon-btn"
+                      >
+                        <Pencil size={14} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => openDeleteModal(staff)}
+                        disabled={!canDelete || isDeleting}
+                        className="staff-action-icon-btn is-danger"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* PAGINATION */}
+          <div className="staff-pagination">
+            <span style={{ fontSize: "0.775rem", color: "var(--staff-muted)" }}>
+              {isId ? `Halaman ${meta.page} dari ${totalPages}` : `Page ${meta.page} of ${totalPages}`}
+            </span>
+
+            <div className="staff-pages">
+              <button
+                type="button"
+                disabled={meta.page <= 1}
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              >
+                {isId ? "Sebelumnya" : "Previous"}
+              </button>
+              <button
+                type="button"
+                disabled={meta.page >= totalPages}
+                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+              >
+                {isId ? "Berikutnya" : "Next"}
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* EDIT STAFF DRAWER */}
       <EditStaffDrawer
         open={isEditModalOpen}
         onClose={closeEditModal}
@@ -871,108 +1044,163 @@ export default function AdminStaffPage() {
         canManageRoles={isSuperAdminRole(currentUser?.role)}
       />
 
-      {isViewModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Staff Detail</h2>
-              <button type="button" className="text-sm text-slate-500" onClick={closeViewModal}>
-                Close
+      {/* VIEW STAFF DETAIL MODAL */}
+      {isViewModalOpen && viewTarget && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.65)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1050,
+            padding: 16,
+          }}
+          onClick={closeViewModal}
+        >
+          <div
+            style={{
+              background: "var(--staff-surface)",
+              border: "1px solid var(--staff-border)",
+              borderRadius: "var(--staff-radius-lg)",
+              boxShadow: "var(--staff-shadow-md)",
+              width: "480px",
+              maxWidth: "100%",
+              overflow: "hidden",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "16px 20px",
+                borderBottom: "1px solid var(--staff-border-subtle)",
+                background: "var(--staff-surface-soft)",
+              }}
+            >
+              <h2 style={{ fontSize: "1.05rem", fontWeight: 700, margin: 0, color: "var(--staff-text)" }}>
+                {isId ? "Detail Akun" : "Account Detail"}
+              </h2>
+              <button
+                type="button"
+                onClick={closeViewModal}
+                style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--staff-dim)" }}
+              >
+                <X size={18} />
               </button>
             </div>
-            <div className="mt-4 space-y-3 text-sm">
-              <div className="flex items-center gap-3">
-                <span className="inline-flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-[var(--admin-primary-soft)] text-sm font-semibold text-[var(--admin-primary)]">
+
+            <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <div className="staff-avatar-badge" style={{ width: 48, height: 48, fontSize: "1.2rem" }}>
                   {getStaffAvatarUrl(viewTarget) ? (
-                    <img
-                      src={getStaffAvatarUrl(viewTarget)}
-                      alt={getStaffName(viewTarget)}
-                      className="h-full w-full object-cover"
-                    />
+                    <img src={getStaffAvatarUrl(viewTarget)} alt={getStaffName(viewTarget)} />
                   ) : (
                     getAvatarInitial(viewTarget)
                   )}
-                </span>
+                </div>
                 <div>
-                  <p className="font-semibold text-slate-900">{getStaffName(viewTarget)}</p>
-                  <p className="text-xs text-slate-500">{getStaffEmail(viewTarget)}</p>
+                  <h3 style={{ fontSize: "1rem", fontWeight: 700, margin: 0, color: "var(--staff-text)" }}>
+                    {getStaffName(viewTarget)}
+                  </h3>
+                  <p style={{ fontSize: "0.775rem", color: "var(--staff-muted)", margin: "2px 0 0" }}>
+                    {getStaffEmail(viewTarget)}
+                  </p>
                 </div>
               </div>
-              <p><span className="font-semibold text-slate-700">Name:</span> {getStaffName(viewTarget)}</p>
-              <p><span className="font-semibold text-slate-700">Email:</span> {getStaffEmail(viewTarget)}</p>
-              <p><span className="font-semibold text-slate-700">Contact:</span> {getStaffPhone(viewTarget)}</p>
-              <p><span className="font-semibold text-slate-700">Role:</span> {formatRoleLabel(viewTarget?.role)}</p>
-              <p>
-                <span className="font-semibold text-slate-700">Status:</span>{" "}
-                {toText(viewTarget?.status).toLowerCase() === "pending_approval"
-                  ? "Pending approval"
-                  : viewTarget?.isActive !== false &&
-                      viewTarget?.isPublished !== false &&
-                      toText(viewTarget?.status).toLowerCase() === "active"
-                    ? "Active"
-                    : "Inactive"}
-              </p>
-              <p>
-                <span className="font-semibold text-slate-700">Joining Date:</span>{" "}
-                {formatJoiningDate(viewTarget?.createdAt)}
-              </p>
-              {viewTarget?.store ? (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs">
-                  <p className="font-semibold text-amber-900">Connected Store Workspace:</p>
-                  <p className="mt-0.5 font-medium text-slate-800">
-                    {viewTarget.store.name} <span className="text-slate-500">({viewTarget.store.slug})</span>
-                  </p>
-                  <p className="mt-0.5 text-[10px] font-semibold text-emerald-700">Status: {viewTarget.store.status}</p>
-                </div>
-              ) : null}
 
-              {viewTarget?.storeApplication ? (
-                <div className="rounded-xl border border-sky-200 bg-sky-50/70 p-3 text-xs">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold text-sky-900">Store Application:</p>
-                    <span className="rounded-full bg-sky-200/80 px-2 py-0.5 text-[10px] font-semibold text-sky-800 uppercase">
-                      {viewTarget.storeApplication.status}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 12,
+                  padding: "14px",
+                  borderRadius: "var(--staff-radius-md)",
+                  background: "var(--staff-surface-soft)",
+                  border: "1px solid var(--staff-border-subtle)",
+                  fontSize: "0.813rem",
+                }}
+              >
+                <div>
+                  <span style={{ fontSize: "0.72rem", color: "var(--staff-muted)", fontWeight: 700 }}>
+                    {isId ? "TELEPON" : "CONTACT"}
+                  </span>
+                  <div style={{ fontWeight: 600, color: "var(--staff-text)", marginTop: 2 }}>
+                    {getStaffPhone(viewTarget)}
+                  </div>
+                </div>
+
+                <div>
+                  <span style={{ fontSize: "0.72rem", color: "var(--staff-muted)", fontWeight: 700 }}>
+                    {isId ? "PERAN" : "ROLE"}
+                  </span>
+                  <div style={{ marginTop: 2 }}>
+                    <RoleBadge role={viewTarget?.role} isId={isId} />
+                  </div>
+                </div>
+
+                <div>
+                  <span style={{ fontSize: "0.72rem", color: "var(--staff-muted)", fontWeight: 700 }}>
+                    {isId ? "STATUS" : "STATUS"}
+                  </span>
+                  <div style={{ fontWeight: 600, color: "var(--staff-text)", marginTop: 2 }}>
+                    {getPublished(viewTarget) ? (isId ? "Aktif" : "Active") : (isId ? "Nonaktif" : "Inactive")}
+                  </div>
+                </div>
+
+                <div>
+                  <span style={{ fontSize: "0.72rem", color: "var(--staff-muted)", fontWeight: 700 }}>
+                    {isId ? "BERGABUNG" : "JOINED"}
+                  </span>
+                  <div style={{ fontWeight: 600, color: "var(--staff-text)", marginTop: 2 }}>
+                    {formatJoiningDate(viewTarget?.createdAt, isId)}
+                  </div>
+                </div>
+              </div>
+
+              {viewTarget?.store && (
+                <div
+                  style={{
+                    padding: "12px",
+                    borderRadius: "var(--staff-radius-md)",
+                    background: "rgba(3, 76, 133, 0.08)",
+                    border: "1px solid rgba(3, 76, 133, 0.2)",
+                    fontSize: "0.8rem",
+                  }}
+                >
+                  <span style={{ fontWeight: 700, color: "var(--staff-primary)" }}>
+                    {isId ? "Toko Terhubung:" : "Connected Store:"}
+                  </span>
+                  <p style={{ margin: "3px 0 0", color: "var(--staff-text)", fontWeight: 600 }}>
+                    {viewTarget.store.name}{" "}
+                    <span style={{ color: "var(--staff-muted)", fontWeight: 400 }}>
+                      (@{viewTarget.store.slug})
                     </span>
-                  </div>
-                  <p className="mt-1 text-slate-600">
-                    Status: <strong className="text-slate-800">{viewTarget.storeApplication.status}</strong>
-                    {viewTarget.storeApplication.submittedAt && (
-                      <span className="ml-1 text-[11px] text-slate-500">
-                        (Submitted: {formatJoiningDate(viewTarget.storeApplication.submittedAt)})
-                      </span>
-                    )}
                   </p>
-                  <div className="mt-2.5">
-                    <Link
-                      to={`/admin/store/applications/${viewTarget.storeApplication.id}`}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--admin-primary)] px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:opacity-95"
-                    >
-                      <ClipboardCheck className="h-3.5 w-3.5" />
-                      Open & Review Application
-                    </Link>
-                  </div>
                 </div>
-              ) : normalizeRole(viewTarget?.role) === "seller" && !viewTarget?.store ? (
-                <div className="rounded-xl border border-amber-100 bg-amber-50/70 p-2.5 text-xs text-amber-800">
-                  Seller belum memiliki permohonan toko yang diajukan.
-                </div>
-              ) : null}
+              )}
             </div>
-
           </div>
         </div>
-      ) : null}
+      )}
 
+      {/* DELETE CONFIRMATION MODAL */}
       <DeleteCouponModal
         open={isDeleteModalOpen}
         onClose={closeDeleteModal}
         onConfirm={onConfirmDelete}
-        title="Are You Sure! Want to Delete ?"
-        description={`Do you really want to delete ${
-          deleteTarget?.name || deleteTarget?.email || "this staff"
-        }? You can't view this in your list anymore if you delete!`}
-        cancelLabel="No, Keep It"
-        confirmLabel="Yes, Delete It"
+        title={isId ? "Hapus Akun Pengguna?" : "Are You Sure! Want to Delete ?"}
+        description={
+          isId
+            ? `Apakah Anda yakin ingin menghapus akun ${deleteTarget?.name || deleteTarget?.email || "ini"}? Tindakan ini tidak dapat dibatalkan.`
+            : `Do you really want to delete ${deleteTarget?.name || deleteTarget?.email || "this staff"}? You cannot undo this action!`
+        }
+        cancelLabel={isId ? "Batal" : "No, Keep It"}
+        confirmLabel={isId ? "Ya, Hapus Akun" : "Yes, Delete It"}
         isLoading={isDeletePending}
         errorMessage={deleteModalError}
       />

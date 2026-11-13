@@ -94,6 +94,9 @@ const AdminStoreSettingsRedirectPage = lazy(() =>
   import("./pages/admin/AdminStoreSettingsRedirectPage.jsx")
 );
 const AdminStaffPage = lazy(() => import("./pages/admin/Staff.jsx"));
+const AdminCreateStaffPage = lazy(() =>
+  import("./pages/admin/AdminCreateStaffPage.jsx")
+);
 const AdminForbiddenPage = lazy(() => import("./pages/admin/Forbidden.jsx"));
 const AccountLayout = lazy(() => import("./layouts/AccountLayout.jsx"));
 const AccountDashboardPage = lazy(() => import("./pages/account/AccountDashboardPage.jsx"));
@@ -773,6 +776,22 @@ export default function App() {
                 element={
                   <RequirePerm perm="STAFF_MANAGE">
                     <AdminStaffPage />
+                  </RequirePerm>
+                }
+              />
+              <Route
+                path="all-accounts/create"
+                element={
+                  <RequirePerm perm="STAFF_MANAGE">
+                    <AdminCreateStaffPage />
+                  </RequirePerm>
+                }
+              />
+              <Route
+                path="accounts/create"
+                element={
+                  <RequirePerm perm="STAFF_MANAGE">
+                    <Navigate to="/admin/all-accounts/create" replace />
                   </RequirePerm>
                 }
               />

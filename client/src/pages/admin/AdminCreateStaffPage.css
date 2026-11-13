@@ -1,0 +1,591 @@
+/* ==========================================================================
+   Admin Create Staff / Account Modern 2026 Redesign
+   Brand Palette: Deep Navy #034c85 | Vibrant Orange #fe6f05
+   ========================================================================== */
+
+.admin-create-staff-2026 {
+  --staff-primary: #034c85;
+  --staff-primary-hover: #023a66;
+  --staff-primary-soft: rgba(3, 76, 133, 0.12);
+  --staff-primary-soft-border: rgba(3, 76, 133, 0.28);
+
+  --staff-accent: #fe6f05;
+  --staff-accent-hover: #e35f00;
+  --staff-accent-soft: rgba(254, 111, 5, 0.14);
+  --staff-accent-soft-border: rgba(254, 111, 5, 0.3);
+
+  --staff-surface: #ffffff;
+  --staff-surface-soft: #f8fafc;
+  --staff-surface-hover: #f1f5f9;
+  --staff-border: #e2e8f0;
+  --staff-border-subtle: #edf2f7;
+
+  --staff-text: #071a3f;
+  --staff-body: #334155;
+  --staff-muted: #64748b;
+  --staff-dim: #94a3b8;
+
+  --staff-radius-sm: 8px;
+  --staff-radius-md: 12px;
+  --staff-radius-lg: 16px;
+  --staff-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05);
+  --staff-shadow-md: 0 4px 16px rgba(15, 23, 42, 0.07);
+
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  color: var(--staff-body);
+}
+
+.admin-create-staff-2026 *,
+.admin-create-staff-2026 *::before,
+.admin-create-staff-2026 *::after {
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   BREADCRUMBS & HERO
+   ========================================================================== */
+.create-staff-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.775rem;
+  color: var(--staff-muted);
+}
+
+.create-staff-breadcrumbs a {
+  color: var(--staff-muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.create-staff-breadcrumbs a:hover {
+  color: var(--staff-primary);
+}
+
+.create-staff-breadcrumbs span.active {
+  color: var(--staff-primary);
+  font-weight: 600;
+}
+
+.create-staff-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  background: var(--staff-surface);
+  border: 1px solid var(--staff-border);
+  border-radius: var(--staff-radius-lg);
+  padding: 18px 22px;
+  box-shadow: var(--staff-shadow-sm);
+}
+
+.create-staff-hero-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.create-staff-hero-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--staff-radius-md);
+  background: var(--staff-primary-soft);
+  color: var(--staff-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.create-staff-hero-text h1 {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--staff-text);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.create-staff-hero-text p {
+  font-size: 0.813rem;
+  color: var(--staff-muted);
+  margin: 3px 0 0;
+}
+
+.create-staff-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: 0.813rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: var(--staff-radius-md);
+  border: 1px solid var(--staff-border);
+  background: var(--staff-surface);
+  color: var(--staff-body);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.create-staff-btn:hover:not(:disabled) {
+  border-color: var(--staff-primary);
+  color: var(--staff-primary);
+  background: var(--staff-primary-soft);
+}
+
+.create-staff-btn--primary {
+  background: var(--staff-primary);
+  border-color: var(--staff-primary);
+  color: #ffffff;
+}
+
+.create-staff-btn--primary:hover:not(:disabled) {
+  background: var(--staff-primary-hover);
+  border-color: var(--staff-primary-hover);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   FORM GRID & SECTIONS
+   ========================================================================== */
+.create-staff-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.create-staff-card {
+  background: var(--staff-surface);
+  border: 1px solid var(--staff-border);
+  border-radius: var(--staff-radius-lg);
+  padding: 22px;
+  box-shadow: var(--staff-shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.create-staff-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--staff-border-subtle);
+  padding-bottom: 12px;
+}
+
+.create-staff-card-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--staff-radius-sm);
+  background: var(--staff-primary-soft);
+  color: var(--staff-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.create-staff-card-header h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--staff-text);
+  margin: 0;
+}
+
+.create-staff-card-header p {
+  font-size: 0.775rem;
+  color: var(--staff-muted);
+  margin: 2px 0 0;
+}
+
+/* Profile Image Upload */
+.create-staff-avatar-grid {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.create-staff-avatar-preview {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #034c85 0%, #02335a 100%);
+  color: #ffffff;
+  font-size: 1.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(3, 76, 133, 0.25);
+  overflow: hidden;
+  border: 3px solid var(--staff-surface);
+}
+
+.create-staff-avatar-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.create-staff-upload-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 220px;
+}
+
+.create-staff-upload-btn-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.create-staff-upload-help {
+  font-size: 0.75rem;
+  color: var(--staff-muted);
+  line-height: 1.4;
+}
+
+/* Fields Grid */
+.create-staff-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.create-staff-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.create-staff-field.span-2 {
+  grid-column: span 2;
+}
+
+.create-staff-label {
+  font-size: 0.813rem;
+  font-weight: 600;
+  color: var(--staff-text);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.create-staff-required {
+  color: #ef4444;
+}
+
+.create-staff-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.create-staff-input {
+  width: 100%;
+  height: 42px;
+  padding: 0 14px;
+  border-radius: var(--staff-radius-md);
+  border: 1px solid var(--staff-border);
+  background: var(--staff-surface);
+  font-size: 0.813rem;
+  color: var(--staff-text);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.create-staff-input:focus {
+  border-color: var(--staff-primary);
+  box-shadow: 0 0 0 3px var(--staff-primary-soft);
+}
+
+.create-staff-input.has-icon-left {
+  padding-left: 38px;
+}
+
+.create-staff-input.has-icon-right {
+  padding-right: 42px;
+}
+
+.create-staff-icon-left {
+  position: absolute;
+  left: 12px;
+  pointer-events: none;
+  color: var(--staff-dim);
+}
+
+.create-staff-eye-btn {
+  position: absolute;
+  right: 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--staff-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+}
+
+.create-staff-eye-btn:hover {
+  color: var(--staff-primary);
+}
+
+.create-staff-field-desc {
+  font-size: 0.725rem;
+  color: var(--staff-muted);
+}
+
+/* Role Selector Radio / Cards */
+.create-staff-roles-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.create-staff-role-card {
+  border: 1px solid var(--staff-border);
+  border-radius: var(--staff-radius-md);
+  padding: 14px;
+  background: var(--staff-surface);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.create-staff-role-card:hover {
+  border-color: var(--staff-primary);
+  background: var(--staff-surface-soft);
+}
+
+.create-staff-role-card.is-selected {
+  border-color: var(--staff-primary);
+  background: var(--staff-primary-soft);
+  box-shadow: 0 0 0 1px var(--staff-primary);
+}
+
+.create-staff-role-radio {
+  margin-top: 3px;
+  accent-color: var(--staff-primary);
+}
+
+.create-staff-role-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.create-staff-role-title {
+  font-size: 0.825rem;
+  font-weight: 700;
+  color: var(--staff-text);
+}
+
+.create-staff-role-desc {
+  font-size: 0.72rem;
+  color: var(--staff-muted);
+  line-height: 1.35;
+}
+
+/* Seller Specific Presets Card */
+.create-staff-seller-box {
+  margin-top: 10px;
+  padding: 14px;
+  border-radius: var(--staff-radius-md);
+  background: var(--staff-surface-soft);
+  border: 1px solid var(--staff-border);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.create-staff-seller-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--staff-accent);
+  background: var(--staff-accent-soft);
+  border: 1px solid var(--staff-accent-soft-border);
+  padding: 2px 8px;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+/* Permissions Group */
+.create-staff-perm-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.create-staff-perm-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.create-staff-perm-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--staff-muted);
+  text-transform: uppercase;
+}
+
+.create-staff-perm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.create-staff-perm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: var(--staff-radius-sm);
+  border: 1px solid var(--staff-border);
+  background: var(--staff-surface);
+  cursor: pointer;
+  color: var(--staff-body);
+}
+
+.create-staff-perm-chip input {
+  accent-color: var(--staff-primary);
+}
+
+/* Bottom Action Bar */
+.create-staff-actions-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 18px 22px;
+  border-radius: var(--staff-radius-lg);
+  background: var(--staff-surface);
+  border: 1px solid var(--staff-border);
+  box-shadow: var(--staff-shadow-sm);
+}
+
+/* ==========================================================================
+   DARK THEME OVERRIDES
+   ========================================================================== */
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .admin-create-staff-2026 {
+  --staff-primary: #2575b5;
+  --staff-primary-hover: #388ad1;
+  --staff-primary-soft: rgba(37, 117, 181, 0.2);
+  --staff-primary-soft-border: rgba(37, 117, 181, 0.4);
+
+  --staff-accent: #fe6f05;
+  --staff-accent-hover: #ff8629;
+  --staff-accent-soft: rgba(254, 111, 5, 0.18);
+  --staff-accent-soft-border: rgba(254, 111, 5, 0.38);
+
+  --staff-surface: #0d1b2c;
+  --staff-surface-soft: #13253a;
+  --staff-surface-hover: #182f49;
+  --staff-border: #1e3552;
+  --staff-border-subtle: #29466b;
+
+  --staff-text: #f8fafc;
+  --staff-body: #cbd5e1;
+  --staff-muted: #94a3b8;
+  --staff-dim: #64748b;
+  --staff-shadow-sm: none;
+  --staff-shadow-md: none;
+}
+
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .create-staff-btn {
+  background: #0d1b2c;
+  border-color: #1e3552;
+  color: #cbd5e1;
+}
+
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .create-staff-btn--primary {
+  background: #034c85;
+  border-color: #034c85;
+  color: #ffffff;
+}
+
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .create-staff-input {
+  background: #0b1523;
+  border-color: #1e3552;
+  color: #f8fafc;
+}
+
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .create-staff-role-card {
+  background: #0b1523;
+  border-color: #1e3552;
+}
+
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .create-staff-role-card.is-selected {
+  background: rgba(3, 76, 133, 0.3);
+  border-color: #2575b5;
+}
+
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .create-staff-seller-box {
+  background: #0b1523;
+  border-color: #1e3552;
+}
+
+:where(.dark, [data-theme="dark"], .admin-theme-dark) .create-staff-perm-chip {
+  background: #0d1b2c;
+  border-color: #1e3552;
+  color: #cbd5e1;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN BREAKPOINTS
+   ========================================================================== */
+@media (max-width: 768px) {
+  .create-staff-hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .create-staff-fields-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .create-staff-field.span-2 {
+    grid-column: span 1;
+  }
+
+  .create-staff-roles-list {
+    grid-template-columns: 1fr;
+  }
+
+  .create-staff-avatar-grid {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .create-staff-actions-bar {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .create-staff-actions-bar .create-staff-btn {
+    width: 100%;
+  }
+}
+
