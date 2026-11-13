@@ -219,6 +219,7 @@ export default function StoreCustomizationOffersSettings2026({
   const isId =
     String(language || "").toLowerCase().startsWith("id") ||
     String(i18n?.language || "").toLowerCase().startsWith("id");
+  const isIndo = isId;
 
   // Device switcher for preview: "desktop" | "mobile"
   const [previewDevice, setPreviewDevice] = useState("desktop");
@@ -342,11 +343,11 @@ export default function StoreCustomizationOffersSettings2026({
             <button
               type="button"
               onClick={handleApplyOfficialPreset}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50/80 px-3 py-1.5 text-xs font-bold text-amber-800 transition hover:bg-amber-100 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-300"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[#fe6f05]/30 bg-[#fe6f05]/10 px-3 py-1.5 text-xs font-bold text-[#fe6f05] transition hover:bg-[#fe6f05]/20 dark:border-[#fe6f05]/40 dark:bg-[#fe6f05]/20 dark:text-orange-300"
               title={isId ? "Muat template promo resmi" : "Load official promo preset"}
             >
-              <Sparkles className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-              <span>{isId ? "Muat Preset Promo TP Preneurs" : "Load Official Preset"}</span>
+              <Sparkles className="h-3.5 w-3.5 text-[#fe6f05]" />
+              <span>{isId ? "Muat Preset Promo" : "Load Official Preset"}</span>
             </button>
 
             <a
@@ -365,11 +366,11 @@ export default function StoreCustomizationOffersSettings2026({
         {/* Quick Campaign Redirect Notice */}
         <div className="of26-campaigns-notice">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-[#fe6f05]" />
+            <Sparkles className="h-4 w-4 text-[#fe6f05] flex-shrink-0" />
             <span>
               {isIndo
-                ? "Kelola banner promosi dan voucher Mega Offer lebih lengkap di menu Katalog > Campaigns."
-                : "Manage full campaign hero banners and vouchers in Catalog > Campaigns."}
+                ? "Kelola banner promosi dan voucher di Katalog > Campaigns."
+                : "Manage campaign hero banners & vouchers in Catalog > Campaigns."}
             </span>
           </div>
           <Link
@@ -584,11 +585,11 @@ export default function StoreCustomizationOffersSettings2026({
                 <span>
                   {selectedCouponCode === "ALL"
                     ? isId
-                      ? "Mode Semua Kupon: Storefront akan menampilkan seluruh kupon promo yang aktif."
-                      : "All Coupons Mode: The storefront will showcase all available active vouchers."
+                      ? "Mode Semua Kupon: Menampilkan seluruh kupon promo aktif."
+                      : "All Coupons Mode: Showcase all active vouchers."
                     : isId
-                    ? `Kupon Terpilih: Voucher ${selectedCouponCode} akan ditonjolkan secara otomatis pada hero banner.`
-                    : `Selected Coupon: Voucher ${selectedCouponCode} will be highlighted on the hero banner.`}
+                    ? `Kupon Terpilih: Voucher ${selectedCouponCode} disorot pada banner.`
+                    : `Selected Coupon: Voucher ${selectedCouponCode} highlighted on banner.`}
                 </span>
               </div>
             </div>
