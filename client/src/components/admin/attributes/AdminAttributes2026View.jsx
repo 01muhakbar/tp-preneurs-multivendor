@@ -489,7 +489,7 @@ export default function AdminAttributes2026View({
           <input
             value={filters.q || ""}
             onChange={(event) => onFilterChange({ q: event.target.value })}
-            placeholder={t("attributes.Search by attribute name or display name", "Search by attribute name or display name")}
+            placeholder={t("attributes.Search attributes...", "Search attributes...")}
           />
         </label>
         <FieldSelect
@@ -582,7 +582,7 @@ export default function AdminAttributes2026View({
       ) : attributes.length === 0 ? (
         <section className="aa26-state">
           <strong>{t("attributes.No attributes found.", "No attributes found.")}</strong>
-          <p>{t("attributes.Create your first attribute or adjust the current search and filters.", "Create your first attribute or adjust the current search and filters.")}</p>
+          <p>{t("attributes.Mulai dengan membuat atribut baru.", "Start by creating an attribute.")}</p>
           <button type="button" className="aa26-action aa26-action--primary" onClick={onAddAttribute}>
             {t("attributes.Add Attribute", "Add Attribute")}
           </button>

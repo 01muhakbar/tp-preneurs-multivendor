@@ -56,6 +56,7 @@ export const createSellerWorkspaceRoutes = (storeSlug) => ({
   reviews: () => buildSellerWorkspacePath(storeSlug, "/catalog/reviews"),
   categories: () => buildSellerWorkspacePath(storeSlug, "/catalog/categories"),
   attributes: () => buildSellerWorkspacePath(storeSlug, "/catalog/attributes"),
+  attributeCreate: () => buildSellerWorkspacePath(storeSlug, "/catalog/attributes/new"),
   attributeValues: (attributeId) =>
     buildSellerWorkspacePath(
       storeSlug,

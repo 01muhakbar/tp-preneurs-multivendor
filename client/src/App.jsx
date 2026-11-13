@@ -519,6 +519,7 @@ export default function App() {
             <Route path="catalog/categories" element={<Seller2026LiveCategoriesPage />} />
             <Route path="catalog/categories/new" element={<Seller2026LiveCategoriesPage initialCreateOpen={true} />} />
             <Route path="catalog/attributes" element={<Seller2026LiveAttributesPage />} />
+            <Route path="catalog/attributes/new" element={<Seller2026LiveAttributesPage initialCreateOpen={true} />} />
             <Route path="catalog/attributes/:attributeId/values" element={<Seller2026LiveAttributeValuesPage />} />
             <Route path="catalog/reviews" element={<Seller2026LiveProductReviewsPage />} />
             <Route path="catalog/products/new" element={<Seller2026LiveProductEditorPage mode="create" />} />

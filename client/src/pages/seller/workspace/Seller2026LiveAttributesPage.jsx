@@ -1,5 +1,5 @@
-import React, { useMemo, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
 import {
@@ -35,8 +35,11 @@ const readPageNumber = (value, fallback) => {
 
 const statusClass = (status) => (status === "published" || status === "active" ? "published" : "draft");
 
-export default function Seller2026LiveAttributesPage() {
+export default function Seller2026LiveAttributesPage({ initialCreateOpen = false }) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isCreateRoute = initialCreateOpen || location.pathname.endsWith("/attributes/new");
   const importInputRef = useRef(null);
   const { sellerContext, workspaceStoreId: storeId, workspaceRoutes, isId: outletIsId = false } = useSellerWorkspaceRoute();
   const { i18n } = useTranslation();
@@ -85,10 +88,34 @@ export default function Seller2026LiveAttributesPage() {
     },
   });
 
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(isCreateRoute);
   const [activeAttribute, setActiveAttribute] = useState(null);
   const [isImporting, setIsImporting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+
+  useEffect(() => {
+    if (isCreateRoute) {
+      setActiveAttribute(null);
+      setDrawerOpen(true);
+    }
+  }, [isCreateRoute]);
+
+  const handleCloseDrawer = () => {
+    setDrawerOpen(false);
+    setActiveAttribute(null);
+    if (isCreateRoute) {
+      navigate(workspaceRoutes.attributes(), { replace: true });
+    }
+  };
+
+  const handleOpenCreate = () => {
+    setActiveAttribute(null);
+    if (workspaceRoutes?.attributeCreate) {
+      navigate(workspaceRoutes.attributeCreate());
+    } else {
+      setDrawerOpen(true);
+    }
+  };
 
   const updateQuery = (key, value) => {
     const next = new URLSearchParams(searchParams);
@@ -113,6 +140,10 @@ export default function Seller2026LiveAttributesPage() {
         toast.success(isId ? "Atribut berhasil dibuat" : "Attribute created", { id: "seller2026-attribute-created" });
       }
       setDrawerOpen(false);
+      setActiveAttribute(null);
+      if (isCreateRoute) {
+        navigate(workspaceRoutes.attributes(), { replace: true });
+      }
     } catch {
       toast.error(activeAttribute ? (isId ? "Gagal memperbarui atribut" : "Unable to update attribute") : (isId ? "Gagal membuat atribut" : "Unable to create attribute"));
     }
@@ -207,7 +238,7 @@ export default function Seller2026LiveAttributesPage() {
               <Layers size={16} /> {bulkButtonLabel}
             </button>
             {canCreate ? (
-              <button className="seller2026-btn-primary" type="button" onClick={() => { setActiveAttribute(null); setDrawerOpen(true); }}>
+              <button className="seller2026-btn-primary" type="button" onClick={handleOpenCreate}>
                 <Plus size={16} /> {isId ? "Tambah Atribut" : "Add Attribute"}
               </button>
             ) : null}
@@ -318,7 +349,7 @@ export default function Seller2026LiveAttributesPage() {
                   <td colSpan={9} className="seller2026-table-empty">
                     <h2>{isId ? "Belum ada atribut" : "No attributes yet"}</h2>
                     <p>{isId ? "Mulai dengan membuat atribut baru." : "Start by creating an attribute."}</p>
-                    {canCreate ? <button className="seller2026-btn-primary" type="button" onClick={() => { setActiveAttribute(null); setDrawerOpen(true); }}>{isId ? "Tambah Atribut" : "Add Attribute"}</button> : null}
+                    {canCreate ? <button className="seller2026-btn-primary" type="button" onClick={handleOpenCreate}>{isId ? "Tambah Atribut" : "Add Attribute"}</button> : null}
                   </td>
                 </tr>
               ) : (
@@ -425,7 +456,7 @@ export default function Seller2026LiveAttributesPage() {
 
       <Seller2026AttributeDrawer
         isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
+        onClose={handleCloseDrawer}
         attribute={activeAttribute}
         onSave={saveAttribute}
         isSaving={isCreating || isUpdating}

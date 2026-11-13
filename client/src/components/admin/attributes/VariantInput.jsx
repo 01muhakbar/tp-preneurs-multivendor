@@ -49,6 +49,9 @@ export default function VariantInput({
         <div className="flex min-h-[38px] items-center gap-2">
           <Plus className="h-4 w-4 text-[#fe6f05]" />
           <input
+            id="admin-attribute-variant-input"
+            name="variantInput"
+            aria-label={defaultPlaceholder}
             value={input}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={(event) => {
@@ -88,7 +91,7 @@ export default function VariantInput({
       </div>
 
       <p className="text-xs text-slate-500">
-        {t("attributes.Press Enter to add. Duplicates are ignored.", "Press Enter to add. Duplicates are ignored.")}
+        {t("attributes.Press Enter to add.", "Press Enter to add.")}
       </p>
     </div>
   );
