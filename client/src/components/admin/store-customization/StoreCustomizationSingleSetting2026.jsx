@@ -1,33 +1,39 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ArrowDown,
   ArrowUp,
+  Award,
   BadgeCheck,
   Check,
+  CheckCircle2,
   ChevronDown,
+  Clock,
   Copy,
-  Edit3,
   Eye,
   GripVertical,
+  HelpCircle,
   Leaf,
   MapPin,
   Monitor,
   PackageCheck,
   Plus,
-  RefreshCcw,
-  RotateCcw,
+  RefreshCw,
   Rocket,
+  RotateCcw,
   Save,
   ShieldCheck,
-  SlidersHorizontal,
+  ShoppingBag,
+  ShoppingCart,
   Smartphone,
   Sparkles,
+  Star,
   Trash2,
   Truck,
   Wallet,
 } from "lucide-react";
 import StoreCustomizationTabNav2026 from "./StoreCustomizationTabNav2026.jsx";
-import StoreCustomizationSaveActions2026 from "./StoreCustomizationSaveActions2026.jsx";
+import "./StoreCustomizationSingleSetting2026.css";
 
 const DESCRIPTION_KEYS = [
   "descriptionOne",
@@ -39,94 +45,147 @@ const DESCRIPTION_KEYS = [
   "descriptionSeven",
 ];
 
-const DEFAULT_ITEMS = [
+const DEFAULT_ITEMS_EN = [
   {
     id: "free-shipping",
     title: "Free Shipping",
-    message: "Free shipping applies to all orders over shipping 100",
+    message: "Free shipping applies to all orders over Rp100.000",
     icon: "truck",
-    tone: "positive",
     visible: true,
   },
   {
     id: "one-hour-delivery",
     title: "1-Hour Delivery",
-    message: "Home Delivery within 1 Hour",
+    message: "Home delivery available within 1 hour for local orders",
     icon: "clock",
-    tone: "positive",
     visible: true,
   },
   {
     id: "cash-on-delivery",
     title: "Cash on Delivery",
-    message: "Cash on Delivery Available",
+    message: "Cash on Delivery (COD) available for selected regions",
     icon: "wallet",
-    tone: "neutral",
     visible: true,
   },
   {
     id: "seven-day-returns",
     title: "7-Day Returns",
-    message: "7 Days returns money back guarantee",
+    message: "7-day money-back return policy for damaged items",
     icon: "returns",
-    tone: "neutral",
     visible: true,
   },
   {
     id: "warranty-info",
-    title: "Warranty Info",
-    message: "Warranty not available for this item",
+    title: "Quality Guarantee",
+    message: "Verified authentic local products from certified sellers",
     icon: "shield",
-    tone: "neutral",
     visible: true,
   },
   {
     id: "organic",
-    title: "100% Organic",
-    message: "Guaranteed 100% organic from natural products.",
+    title: "100% Authentic & Fresh",
+    message: "Guaranteed freshly prepared with high quality ingredients",
     icon: "leaf",
-    tone: "positive",
     visible: true,
   },
   {
     id: "pickup-point",
-    title: "Pickup Point Delivery",
-    message: "Delivery from our pick point Boho One, Bridge Street West, Middlesbrough.",
+    title: "Store Pickup Option",
+    message: "Direct self-pickup available at merchant physical branch",
     icon: "pin",
-    tone: "neutral",
     visible: true,
   },
 ];
 
-const DEFAULT_SUMMARY_LABELS = [
-  { id: "organic", title: "100% Organic", icon: "shield", visible: true },
+const DEFAULT_ITEMS_ID = [
+  {
+    id: "free-shipping",
+    title: "Gratis Ongkir",
+    message: "Bebas ongkos kirim untuk pesanan minimal Rp100.000",
+    icon: "truck",
+    visible: true,
+  },
+  {
+    id: "one-hour-delivery",
+    title: "Pengiriman Cepat",
+    message: "Layanan kirim kilat tiba di hari yang sama untuk area lokal",
+    icon: "clock",
+    visible: true,
+  },
+  {
+    id: "cash-on-delivery",
+    title: "Bayar di Tempat (COD)",
+    message: "Mendukung pembayaran tunai saat paket diterima di rumah",
+    icon: "wallet",
+    visible: true,
+  },
+  {
+    id: "seven-day-returns",
+    title: "Jaminan Retur 7 Hari",
+    message: "Garansi retur dan pengembalian dana jika barang tidak sesuai",
+    icon: "returns",
+    visible: true,
+  },
+  {
+    id: "warranty-info",
+    title: "Jaminan Kualitas UMKM",
+    message: "Produk orisinal langsung dari produsen UMKM terverifikasi",
+    icon: "shield",
+    visible: true,
+  },
+  {
+    id: "organic",
+    title: "Bahan Segar & Alami",
+    message: "Diproduksi higienis dengan bahan baku berkualitas tinggi",
+    icon: "leaf",
+    visible: true,
+  },
+  {
+    id: "pickup-point",
+    title: "Ambil di Toko",
+    message: "Bisa diambil langsung di gerai merchant tanpa antre",
+    icon: "pin",
+    visible: true,
+  },
+];
+
+const DEFAULT_SUMMARY_LABELS_EN = [
+  { id: "organic", title: "100% Authentic", icon: "shield", visible: true },
   { id: "fresh-natural", title: "Fresh & Natural", icon: "badge", visible: true },
   { id: "fast-delivery", title: "Fast Delivery", icon: "truck", visible: true },
 ];
 
-const ICON_OPTIONS = [
-  { key: "truck", label: "Truck", icon: Truck },
-  { key: "clock", label: "Clock", icon: PackageCheck },
-  { key: "wallet", label: "Wallet", icon: Wallet },
-  { key: "returns", label: "Returns", icon: RotateCcw },
-  { key: "shield", label: "Shield", icon: ShieldCheck },
-  { key: "leaf", label: "Leaf", icon: Leaf },
-  { key: "pin", label: "Pin", icon: MapPin },
-  { key: "sparkles", label: "Sparkles", icon: Sparkles },
+const DEFAULT_SUMMARY_LABELS_ID = [
+  { id: "organic", title: "100% Orisinal", icon: "shield", visible: true },
+  { id: "fresh-natural", title: "Segar & Alami", icon: "badge", visible: true },
+  { id: "fast-delivery", title: "Kirim Cepat", icon: "truck", visible: true },
 ];
 
-const SUMMARY_ICON_OPTIONS = [
-  { key: "shield", label: "Shield", icon: ShieldCheck },
-  { key: "badge", label: "Badge", icon: BadgeCheck },
-  { key: "truck", label: "Truck", icon: Truck },
-  { key: "leaf", label: "Leaf", icon: Leaf },
-  { key: "sparkles", label: "Sparkles", icon: Sparkles },
-];
+const ICON_REGISTRY = {
+  truck: { label: "Truk / Kurir", labelEn: "Truck / Shipping", icon: Truck },
+  clock: { label: "Jam / Kilat", labelEn: "Clock / Express", icon: Clock },
+  wallet: { label: "Dompet / COD", labelEn: "Wallet / COD", icon: Wallet },
+  returns: { label: "Retur / Putar", labelEn: "Returns / Refund", icon: RotateCcw },
+  shield: { label: "Perisai / Garansi", labelEn: "Shield / Guarantee", icon: ShieldCheck },
+  leaf: { label: "Daun / Organik", labelEn: "Leaf / Natural", icon: Leaf },
+  pin: { label: "Lokasi / Toko", labelEn: "Pin / Location", icon: MapPin },
+  sparkles: { label: "Bintang / Spesial", labelEn: "Sparkles / Special", icon: Sparkles },
+  badge: { label: "Lencana / Cek", labelEn: "Badge / Verified", icon: BadgeCheck },
+  award: { label: "Medali / Terbaik", labelEn: "Award / Premium", icon: Award },
+  package: { label: "Paket / Box", labelEn: "Package / Box", icon: PackageCheck },
+};
 
-const TONE_OPTIONS = [
-  { key: "positive", label: "Positive", dot: "bg-emerald-500" },
-  { key: "neutral", label: "Neutral", dot: "bg-amber-400" },
-  { key: "info", label: "Info", dot: "bg-sky-500" },
+const SUMMARY_ICON_KEYS = ["shield", "badge", "truck", "leaf", "sparkles", "award"];
+const BENEFIT_ICON_KEYS = [
+  "truck",
+  "clock",
+  "wallet",
+  "returns",
+  "shield",
+  "leaf",
+  "pin",
+  "sparkles",
+  "package",
 ];
 
 const toText = (value, fallback = "") => {
@@ -137,45 +196,25 @@ const toText = (value, fallback = "") => {
 const isPlainObject = (value) =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
-const getIconMeta = (key) =>
-  ICON_OPTIONS.find((item) => item.key === key) || ICON_OPTIONS[ICON_OPTIONS.length - 1];
-
-const getSummaryIconMeta = (key) =>
-  SUMMARY_ICON_OPTIONS.find((item) => item.key === key) || SUMMARY_ICON_OPTIONS[0];
-
-const getToneMeta = (key) =>
-  TONE_OPTIONS.find((item) => item.key === key) || TONE_OPTIONS[1];
-
-const readLegacyDescriptions = (source) =>
-  DEFAULT_ITEMS.map((fallback, index) => {
-    const arrayValue = Array.isArray(source?.descriptions) ? source.descriptions[index] : "";
-    const legacyValue = source?.[DESCRIPTION_KEYS[index]];
-    return toText(arrayValue || legacyValue, fallback.message);
-  });
-
-const normalizeItems = (rightBox) => {
+const normalizeItems = (rightBox, isId) => {
+  const defaults = isId ? DEFAULT_ITEMS_ID : DEFAULT_ITEMS_EN;
   const source = isPlainObject(rightBox) ? rightBox : {};
   const sourceItems = Array.isArray(source.items)
     ? source.items
     : Array.isArray(source.benefitItems)
       ? source.benefitItems
       : [];
-  const legacyDescriptions = readLegacyDescriptions(source);
 
   if (sourceItems.length > 0) {
     return sourceItems.map((item, index) => {
-      const fallback = DEFAULT_ITEMS[index] || DEFAULT_ITEMS[DEFAULT_ITEMS.length - 1];
+      const fallback = defaults[index] || defaults[defaults.length - 1];
       return {
         ...fallback,
         ...(isPlainObject(item) ? item : {}),
         id: toText(item?.id, `${fallback.id}-${index}`),
         title: toText(item?.title ?? item?.label, fallback.title),
-        message: toText(
-          item?.message ?? item?.description ?? item?.text,
-          legacyDescriptions[index] || fallback.message
-        ),
+        message: toText(item?.message ?? item?.description ?? item?.text, fallback.message),
         icon: toText(item?.icon, fallback.icon),
-        tone: toText(item?.tone, fallback.tone),
         visible:
           typeof item?.visible === "boolean"
             ? item.visible
@@ -186,13 +225,17 @@ const normalizeItems = (rightBox) => {
     });
   }
 
-  return DEFAULT_ITEMS.map((item, index) => ({
-    ...item,
-    message: legacyDescriptions[index] || item.message,
-  }));
+  return defaults.map((item, index) => {
+    const legacyDesc = Array.isArray(source.descriptions) ? source.descriptions[index] : "";
+    return {
+      ...item,
+      message: toText(legacyDesc, item.message),
+    };
+  });
 };
 
-const normalizeSummaryLabels = (rightBox) => {
+const normalizeSummaryLabels = (rightBox, isId) => {
+  const defaults = isId ? DEFAULT_SUMMARY_LABELS_ID : DEFAULT_SUMMARY_LABELS_EN;
   const source = isPlainObject(rightBox) ? rightBox : {};
   const sourceLabels = Array.isArray(source.summaryLabels)
     ? source.summaryLabels
@@ -200,7 +243,7 @@ const normalizeSummaryLabels = (rightBox) => {
       ? source.summary_labels
       : [];
 
-  return DEFAULT_SUMMARY_LABELS.map((fallback, index) => {
+  return defaults.map((fallback, index) => {
     const item = isPlainObject(sourceLabels[index]) ? sourceLabels[index] : {};
     return {
       ...fallback,
@@ -218,7 +261,7 @@ const normalizeSummaryLabels = (rightBox) => {
   });
 };
 
-const normalizeValue = (value) => {
+const normalizeValue = (value, isId) => {
   const page = isPlainObject(value) ? value : {};
   const rightBox = isPlainObject(page.rightBox)
     ? page.rightBox
@@ -236,410 +279,24 @@ const normalizeValue = (value) => {
           : typeof rightBox?.isEnabled === "boolean"
             ? rightBox.isEnabled
             : true,
-      items: normalizeItems(rightBox),
-      summaryLabels: normalizeSummaryLabels(rightBox),
+      items: normalizeItems(rightBox, isId),
+      summaryLabels: normalizeSummaryLabels(rightBox, isId),
     },
   };
 };
 
-const cloneWithItems = (draft, items) => ({
-  ...draft,
-  rightBox: {
-    ...draft.rightBox,
-    items,
-    benefitItems: items,
-    descriptions: items.map((item) => toText(item.message)),
-  },
-});
-
-const cloneWithSummaryLabels = (draft, summaryLabels) => ({
-  ...draft,
-  rightBox: {
-    ...draft.rightBox,
-    summaryLabels,
-  },
-});
-
-function Toggle({ checked, onChange, ariaLabel }) {
+function Switch({ checked, onChange, ariaLabel }) {
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={Boolean(checked)}
       aria-label={ariaLabel}
-      aria-pressed={Boolean(checked)}
       onClick={() => onChange?.(!checked)}
-      className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full border transition ${
-        checked
-          ? "border-emerald-500 bg-emerald-600"
-          : "border-slate-300 bg-slate-200 dark:border-slate-700 dark:bg-slate-800"
-      }`}
+      className={`ps26-toggle-btn ${checked ? "is-active" : "is-inactive"}`}
     >
-      <span
-        className={`h-6 w-6 rounded-full bg-white shadow-sm transition ${
-          checked ? "translate-x-7" : "translate-x-1"
-        }`}
-      />
+      <span className="ps26-toggle-knob" />
     </button>
-  );
-}
-
-function IconBadge({ iconKey, className = "" }) {
-  const Icon = getIconMeta(iconKey).icon;
-  return (
-    <span
-      className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300 ${className}`}
-    >
-      <Icon className="h-5 w-5" />
-    </span>
-  );
-}
-
-function IconButton({ label, onClick, children, disabled = false }) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      disabled={disabled}
-      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-45 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400 dark:hover:border-emerald-500/40 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-200"
-    >
-      {children}
-    </button>
-  );
-}
-
-function ActionButton({ children, onClick, variant = "secondary", disabled = false }) {
-  const className =
-    variant === "primary"
-      ? "border-emerald-600 bg-emerald-600 text-white shadow-[0_14px_28px_rgba(5,150,105,0.22)] hover:bg-emerald-700 dark:border-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400"
-      : variant === "draft"
-        ? "border-emerald-500 bg-white text-emerald-700 hover:bg-emerald-50 dark:bg-slate-950 dark:hover:bg-emerald-500/10"
-      : "border-slate-200 bg-white text-slate-700 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-emerald-500/40 dark:hover:bg-emerald-500/10";
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`inline-flex h-11 items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
-    >
-      {children}
-    </button>
-  );
-}
-
-function BenefitRow({ item, index, total, onChange, onMove, onDelete, onCopy }) {
-  const tone = getToneMeta(item.tone);
-
-  return (
-    <article className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_10px_30px_rgba(15,23,42,0.04)] dark:border-slate-800 dark:bg-slate-950 lg:grid-cols-[34px_44px_minmax(150px,1.1fr)_minmax(220px,1.7fr)_84px_130px_82px_156px] lg:items-center">
-      <div className="hidden justify-center text-slate-300 dark:text-slate-600 lg:flex">
-        <GripVertical className="h-5 w-5" aria-hidden="true" />
-      </div>
-      <div className="flex items-center gap-3 lg:block">
-        <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-sm font-bold text-slate-600 dark:border-slate-800 dark:text-slate-300">
-          {index + 1}
-        </span>
-        <span className="text-xs font-semibold text-slate-400 lg:hidden">Drag handle</span>
-      </div>
-      <label className="min-w-0">
-        <span className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">
-          Item Title
-        </span>
-        <input
-          type="text"
-          value={item.title}
-          onChange={(event) => onChange({ ...item, title: event.target.value })}
-          className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-emerald-500/15"
-        />
-      </label>
-      <label className="min-w-0">
-        <span className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">
-          Message <span className="font-normal">({String(item.message || "").length}/80)</span>
-        </span>
-        <input
-          type="text"
-          value={item.message}
-          maxLength={140}
-          onChange={(event) => onChange({ ...item, message: event.target.value })}
-          className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-emerald-500/15"
-        />
-      </label>
-      <label className="min-w-0">
-        <span className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">
-          Icon
-        </span>
-        <span className="relative block">
-          <select
-            value={item.icon}
-            onChange={(event) => onChange({ ...item, icon: event.target.value })}
-            className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 pr-8 text-sm font-semibold text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-emerald-500/15"
-          >
-            {ICON_OPTIONS.map((option) => (
-              <option key={option.key} value={option.key}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        </span>
-      </label>
-      <label className="min-w-0">
-        <span className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">
-          Tone
-        </span>
-        <span className="relative block">
-          <select
-            value={item.tone}
-            onChange={(event) => onChange({ ...item, tone: event.target.value })}
-            className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 pr-8 text-sm font-semibold text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-emerald-500/15"
-          >
-            {TONE_OPTIONS.map((option) => (
-              <option key={option.key} value={option.key}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <span
-            className={`pointer-events-none absolute right-7 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full ${tone.dot}`}
-          />
-        </span>
-      </label>
-      <div className="flex items-center justify-between gap-3 lg:justify-center">
-        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 lg:hidden">
-          Visible
-        </span>
-        <Toggle
-          checked={item.visible}
-          ariaLabel={`Toggle ${item.title || `item ${index + 1}`} visibility`}
-          onChange={(next) => onChange({ ...item, visible: next })}
-        />
-      </div>
-      <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-        <IconButton
-          label={`Move ${item.title || `item ${index + 1}`} up`}
-          onClick={() => onMove(index, index - 1)}
-          disabled={index === 0}
-        >
-          <ArrowUp className="h-4 w-4" />
-        </IconButton>
-        <IconButton
-          label={`Move ${item.title || `item ${index + 1}`} down`}
-          onClick={() => onMove(index, index + 1)}
-          disabled={index === total - 1}
-        >
-          <ArrowDown className="h-4 w-4" />
-        </IconButton>
-        <IconButton label={`Copy ${item.title || `item ${index + 1}`}`} onClick={() => onCopy(index)}>
-          <Copy className="h-4 w-4" />
-        </IconButton>
-        <IconButton label={`Edit ${item.title || `item ${index + 1}`}`}>
-          <Edit3 className="h-4 w-4" />
-        </IconButton>
-        <IconButton label={`Delete ${item.title || `item ${index + 1}`}`} onClick={() => onDelete(index)}>
-          <Trash2 className="h-4 w-4" />
-        </IconButton>
-      </div>
-    </article>
-  );
-}
-
-function SummaryLabelRow({ item, index, onChange }) {
-  const Icon = getSummaryIconMeta(item.icon).icon;
-
-  return (
-    <article className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_10px_30px_rgba(15,23,42,0.04)] dark:border-slate-800 dark:bg-slate-950 md:grid-cols-[44px_minmax(180px,1fr)_140px_92px] md:items-center">
-      <div className="flex items-center gap-3">
-        <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
-          <Icon className="h-5 w-5" />
-        </span>
-        <span className="text-xs font-semibold text-slate-400 md:hidden">Label {index + 1}</span>
-      </div>
-      <label className="min-w-0">
-        <span className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">
-          Summary Label {index + 1}
-        </span>
-        <input
-          type="text"
-          value={item.title}
-          maxLength={36}
-          onChange={(event) => onChange({ ...item, title: event.target.value })}
-          className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-emerald-500/15"
-        />
-      </label>
-      <label className="min-w-0">
-        <span className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">
-          Icon
-        </span>
-        <span className="relative block">
-          <select
-            value={item.icon}
-            onChange={(event) => onChange({ ...item, icon: event.target.value })}
-            className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 pr-8 text-sm font-semibold text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-emerald-500/15"
-          >
-            {SUMMARY_ICON_OPTIONS.map((option) => (
-              <option key={option.key} value={option.key}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        </span>
-      </label>
-      <div className="flex items-center justify-between gap-3 md:justify-center">
-        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 md:hidden">
-          Visible
-        </span>
-        <Toggle
-          checked={item.visible}
-          ariaLabel={`Toggle ${item.title || `summary label ${index + 1}`} visibility`}
-          onChange={(next) => onChange({ ...item, visible: next })}
-        />
-      </div>
-    </article>
-  );
-}
-
-function ReadinessRing({ completion }) {
-  const circumference = 2 * Math.PI * 39;
-  const dash = (completion / 100) * circumference;
-
-  return (
-    <div className="relative h-28 w-28 shrink-0">
-      <svg viewBox="0 0 96 96" className="h-full w-full -rotate-90">
-        <circle
-          cx="48"
-          cy="48"
-          r="39"
-          className="fill-none stroke-slate-100 dark:stroke-slate-800"
-          strokeWidth="7"
-        />
-        <circle
-          cx="48"
-          cy="48"
-          r="39"
-          className="fill-none stroke-emerald-500"
-          strokeWidth="7"
-          strokeDasharray={`${dash} ${circumference}`}
-          strokeLinecap="round"
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl font-extrabold text-slate-950 dark:text-white">
-          {completion}%
-        </span>
-        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-          Complete
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function PreviewPanel({ enabled, items, summaryLabels, mode, onModeChange }) {
-  const visibleItems = items.filter((item) => item.visible && toText(item.message));
-  const visibleSummaryLabels = summaryLabels.filter((item) => item.visible && toText(item.title));
-
-  return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_48px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-950">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-extrabold text-slate-950 dark:text-white">
-            Live Storefront Preview
-          </h2>
-          <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">
-            See how it appears on the product page.
-          </p>
-        </div>
-        <div className="grid grid-cols-2 rounded-2xl border border-slate-200 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-900">
-          <button
-            type="button"
-            aria-label="Desktop preview"
-            onClick={() => onModeChange("desktop")}
-            className={`inline-flex h-9 w-11 items-center justify-center rounded-xl ${
-              mode === "desktop"
-                ? "bg-white text-emerald-700 shadow-sm dark:bg-slate-950 dark:text-emerald-300"
-                : "text-slate-500 dark:text-slate-400"
-            }`}
-          >
-            <Monitor className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            aria-label="Mobile preview"
-            onClick={() => onModeChange("mobile")}
-            className={`inline-flex h-9 w-11 items-center justify-center rounded-xl ${
-              mode === "mobile"
-                ? "bg-white text-emerald-700 shadow-sm dark:bg-slate-950 dark:text-emerald-300"
-                : "text-slate-500 dark:text-slate-400"
-            }`}
-          >
-            <Smartphone className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-
-      <div
-        className={`mt-5 rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/60 ${
-          mode === "mobile" ? "mx-auto max-w-[360px]" : ""
-        }`}
-      >
-        <div className="mb-4 flex gap-2">
-          {[1, 2, 3, 4, 5].map((item) => (
-            <span key={item} className="h-2 w-12 rounded-full bg-slate-200 dark:bg-slate-800" />
-          ))}
-        </div>
-        <div className={`grid gap-4 ${mode === "mobile" ? "grid-cols-1" : "lg:grid-cols-[1.1fr_1fr]"}`}>
-          <div className="min-h-[260px] rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900">
-            <span className="m-4 inline-flex rounded-lg bg-emerald-600 px-2 py-1 text-xs font-bold text-white">
-              -20%
-            </span>
-          </div>
-          <aside className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
-            <h3 className="text-base font-extrabold text-slate-950 dark:text-white">
-              Readiness Overview
-            </h3>
-            {enabled && visibleSummaryLabels.length > 0 ? (
-              <div className="mt-4 grid gap-2 rounded-2xl border-t border-slate-200 pt-3 text-xs font-semibold text-slate-600 dark:border-slate-800 dark:text-slate-300 sm:grid-cols-3">
-                {visibleSummaryLabels.slice(0, 3).map((item, index) => {
-                  const Icon = getSummaryIconMeta(item.icon).icon;
-                  return (
-                    <div key={item.id || `${item.title}-${index}`} className="flex min-w-0 items-center gap-2">
-                      <Icon className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-300" />
-                      <span className="min-w-0 break-words">{item.title}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : null}
-            {enabled ? (
-              <ul className="mt-4 space-y-3">
-                {visibleItems.map((item) => {
-                  const Icon = getIconMeta(item.icon).icon;
-                  return (
-                    <li key={item.id} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
-                      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-300" />
-                      <span className="break-words">{item.title}</span>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <p className="mt-4 rounded-2xl border border-dashed border-slate-300 px-3 py-4 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                Right Box is disabled.
-              </p>
-            )}
-          </aside>
-        </div>
-        <div className="mt-4 grid grid-cols-4 gap-3">
-          {[1, 2, 3, 4].map((item) => (
-            <span key={item} className="h-14 rounded-xl bg-slate-200/80 dark:bg-slate-800" />
-          ))}
-        </div>
-      </div>
-      <p className="mt-4 text-center text-xs font-medium text-slate-400 dark:text-slate-500">
-        Preview may vary slightly from the live site.
-      </p>
-    </section>
   );
 }
 
@@ -654,378 +311,612 @@ export default function StoreCustomizationSingleSetting2026({
   onPreview,
   isSaving,
   isPublishing,
-  language = "en",
-  languages = [],
-  onLanguageChange,
   meta = {},
   isLoading = false,
 }) {
-  const [previewMode, setPreviewMode] = useState("desktop");
-  const draft = useMemo(() => normalizeValue(value), [value]);
-  const items = draft.rightBox.items;
-  const summaryLabels = draft.rightBox.summaryLabels;
-  const visibleItems = items.filter((item) => item.visible);
-  const hasContent =
-    visibleItems.length > 0 &&
-    visibleItems.every((item) => toText(item.title) && toText(item.message));
-  const enabled = Boolean(draft.rightBox.enabled);
-  const noEmptyFields = items.every((item) => toText(item.title) && toText(item.message));
+  const { i18n } = useTranslation();
+  const isId = Boolean(i18n.language?.toLowerCase().startsWith("id"));
+  const [previewDevice, setPreviewDevice] = useState("desktop");
+
+  const draft = useMemo(() => normalizeValue(value, isId), [value, isId]);
+  const rightBox = draft.rightBox;
+  const items = rightBox.items;
+  const summaryLabels = rightBox.summaryLabels;
+  const isBoxEnabled = Boolean(rightBox.enabled);
+
   const published =
     draft.status === "published" ||
     draft.publishStatus === "published" ||
-    draft.rightBox?.status === "published" ||
-    draft.rightBox?.publishStatus === "published";
-  const readyChecks = [
-    enabled,
-    visibleItems.length >= 5,
-    hasContent,
-    noEmptyFields,
-  ];
-  const completion = Math.round((readyChecks.filter(Boolean).length / readyChecks.length) * 100);
-  const status = enabled && visibleItems.length >= 5 && hasContent
-    ? published
-      ? "Published"
-      : "Ready"
-    : "Draft";
-  const statusDotClass =
-    status === "Published" || status === "Ready" ? "bg-emerald-500" : "bg-amber-400";
-  const statusHint =
-    status === "Published"
-      ? "Published to storefront"
-      : status === "Ready"
-        ? "Ready to publish"
-        : "Draft changes";
+    rightBox?.status === "published" ||
+    rightBox?.publishStatus === "published";
 
-  const emit = (nextDraft) =>
+  const emit = (nextRightBox) => {
     onChange?.({
-      ...nextDraft,
+      ...draft,
       status: "draft",
       publishStatus: "draft",
       rightBox: {
-        ...nextDraft.rightBox,
+        ...nextRightBox,
         status: "draft",
         publishStatus: "draft",
-      },
-    });
-
-  const updateRightBox = (patch) => {
-    emit({
-      ...draft,
-      rightBox: {
-        ...draft.rightBox,
-        ...patch,
+        benefitItems: nextRightBox.items,
+        descriptions: (nextRightBox.items || []).map((it) => it.message),
       },
     });
   };
 
-  const updateItem = (index, nextItem) => {
-    const nextItems = items.map((item, itemIndex) => (itemIndex === index ? nextItem : item));
-    emit(cloneWithItems(draft, nextItems));
+  const setBoxEnabled = (enabled) => {
+    emit({ ...rightBox, enabled });
   };
 
-  const addItem = () => {
-    const nextIndex = items.length + 1;
-    const nextItem = {
-      ...DEFAULT_ITEMS[(nextIndex - 1) % DEFAULT_ITEMS.length],
-      id: `custom-benefit-${Date.now()}`,
-      title: `Benefit ${nextIndex}`,
-      message: "",
+  const handleUpdateSummaryLabel = (index, field, val) => {
+    const nextLabels = summaryLabels.map((lbl, idx) =>
+      idx === index ? { ...lbl, [field]: val } : lbl
+    );
+    emit({ ...rightBox, summaryLabels: nextLabels });
+  };
+
+  const handleUpdateItem = (index, field, val) => {
+    const nextItems = items.map((it, idx) => (idx === index ? { ...it, [field]: val } : it));
+    emit({ ...rightBox, items: nextItems });
+  };
+
+  const handleAddItem = () => {
+    const fallbackList = isId ? DEFAULT_ITEMS_ID : DEFAULT_ITEMS_EN;
+    const template = fallbackList[items.length % fallbackList.length];
+    const newItem = {
+      id: `benefit-${Date.now()}`,
+      title: isId ? `Keunggulan Baru ${items.length + 1}` : `New Highlight ${items.length + 1}`,
+      message: isId ? "Deskripsi jaminan atau layanan..." : "Service guarantee description...",
+      icon: template.icon || "shield",
       visible: true,
     };
-    emit(cloneWithItems(draft, [...items, nextItem]));
+    emit({ ...rightBox, items: [...items, newItem] });
   };
 
-  const deleteItem = (index) => {
+  const handleDeleteItem = (index) => {
     if (items.length <= 1) return;
-    emit(cloneWithItems(draft, items.filter((_, itemIndex) => itemIndex !== index)));
+    const nextItems = items.filter((_, idx) => idx !== index);
+    emit({ ...rightBox, items: nextItems });
   };
 
-  const moveItem = (from, to) => {
-    if (to < 0 || to >= items.length || from === to) return;
-    const nextItems = [...items];
-    const [item] = nextItems.splice(from, 1);
-    nextItems.splice(to, 0, item);
-    emit(cloneWithItems(draft, nextItems));
-  };
-
-  const copyItem = (index) => {
+  const handleDuplicateItem = (index) => {
     const source = items[index];
     if (!source) return;
-    const nextItems = [
-      ...items.slice(0, index + 1),
-      { ...source, id: `${source.id || "benefit"}-copy-${Date.now()}`, title: `${source.title} Copy` },
-      ...items.slice(index + 1),
-    ];
-    emit(cloneWithItems(draft, nextItems));
+    const duplicate = {
+      ...source,
+      id: `benefit-copy-${Date.now()}`,
+      title: `${source.title} (${isId ? "Salinan" : "Copy"})`,
+    };
+    const nextItems = [...items.slice(0, index + 1), duplicate, ...items.slice(index + 1)];
+    emit({ ...rightBox, items: nextItems });
   };
 
-  const updateSummaryLabel = (index, nextLabel) => {
-    const nextLabels = summaryLabels.map((item, itemIndex) =>
-      itemIndex === index ? nextLabel : item
-    );
-    emit(cloneWithSummaryLabels(draft, nextLabels));
+  const handleMoveItem = (from, to) => {
+    if (to < 0 || to >= items.length || from === to) return;
+    const nextItems = [...items];
+    const [moved] = nextItems.splice(from, 1);
+    nextItems.splice(to, 0, moved);
+    emit({ ...rightBox, items: nextItems });
   };
 
-  const languageItems = languages.length
-    ? languages
-    : [{ isoCode: language || "en", name: "English" }];
+  const handleLoadPresets = () => {
+    const presets = isId ? DEFAULT_ITEMS_ID : DEFAULT_ITEMS_EN;
+    const labels = isId ? DEFAULT_SUMMARY_LABELS_ID : DEFAULT_SUMMARY_LABELS_EN;
+    emit({
+      ...rightBox,
+      items: presets.map((it) => ({ ...it })),
+      summaryLabels: labels.map((lb) => ({ ...lb })),
+      enabled: true,
+    });
+  };
+
+  const visibleSummaryCount = summaryLabels.filter((l) => l.visible).length;
+  const visibleItemsCount = items.filter((it) => it.visible).length;
 
   return (
-    <div className="min-w-0 max-w-full space-y-5 overflow-x-clip pb-8 text-slate-900 dark:text-slate-100">
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-3xl font-extrabold tracking-normal text-slate-950 dark:text-white">
-            Store Customizations
-          </h1>
-          <p className="mt-2 text-sm font-medium text-slate-500 dark:text-slate-400">
-            Configure content blocks, messages, and storefront SEO.
+    <div className="ps26-container space-y-6 pb-20">
+      {/* Top Header */}
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">
+              {isId ? "Kustomisasi Toko" : "Store Customizations"}
+            </h1>
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                published ? "ps26-badge-navy" : "ps26-badge-orange"
+              }`}
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${published ? "bg-[#034c85]" : "bg-[#fe6f05]"}`}
+              />
+              {published ? (isId ? "Diterbitkan" : "Published") : isId ? "Draf" : "Draft"}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 sm:text-sm">
+            {isId
+              ? "Kelola tata letak konten, jaminan layanan, dan sorotan halaman detail produk."
+              : "Configure content blocks, service guarantees, and product page highlights."}
           </p>
         </div>
-        <div className="flex min-w-0 flex-wrap items-center gap-3">
-          <StoreCustomizationSaveActions2026
-            onSave={() => onSave?.({ publish: false })}
-            onPublish={() => onPublish?.()}
-            isSaving={isSaving}
-            isPublishing={isPublishing}
-            isLoading={isLoading}
-            meta={meta}
-          />
+
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={onPreview}
+            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200"
+          >
+            <Eye className="h-4 w-4 text-[#034c85]" />
+            <span>{isId ? "Pratinjau Toko" : "Preview Storefront"}</span>
+          </button>
         </div>
       </header>
 
+      {/* Tab Navigation */}
       <StoreCustomizationTabNav2026 activeTab={activeTab} onTabChange={onTabChange} />
 
-      <section className="rounded-3xl border border-slate-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-950">
-        <div className="flex flex-col gap-4 border-b border-slate-200 p-5 dark:border-slate-800 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <h2 className="text-xl font-extrabold text-slate-950 dark:text-white">
-              Single Setting (Right Box)
-            </h2>
-            <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">
-              Manage the key messages displayed on the product slug page.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">Status:</span>
-            <span className="inline-flex h-9 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
-              <span className={`h-2 w-2 rounded-full ${statusDotClass}`} />
-              {status}
-            </span>
-            <ActionButton onClick={onPreview}>
-              <Eye className="h-4 w-4" />
-              Live Preview
-            </ActionButton>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-3 border-b border-slate-200 p-5 dark:border-slate-800 sm:flex-row sm:items-center">
-          <Toggle
-            checked={enabled}
-            ariaLabel="Enable Right Box"
-            onChange={(next) => updateRightBox({ enabled: next })}
-          />
-          <div>
-            <p className="text-sm font-extrabold text-slate-950 dark:text-white">
-              Enable Right Box
-            </p>
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-              Display this message box on the product slug page.
-            </p>
-          </div>
-        </div>
-
-        <div className="border-b border-slate-200 p-4 dark:border-slate-800">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex h-9 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
-                <span className={`h-2 w-2 rounded-full ${statusDotClass}`} />
-                {status}
-              </span>
-              <span className="inline-flex h-9 items-center rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
-                {items.length} items
-              </span>
-              <span className="inline-flex h-9 items-center gap-2 rounded-2xl px-2 text-sm font-semibold text-slate-500 dark:text-slate-400">
-                <Check className="h-4 w-4 text-emerald-600" />
-                {statusHint}
-              </span>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <ActionButton onClick={addItem}>
-                <Plus className="h-4 w-4" />
-                Add Item
-              </ActionButton>
-              <ActionButton onClick={() => emit(cloneWithItems(draft, [...items].reverse()))}>
-                <SlidersHorizontal className="h-4 w-4" />
-                Reorder
-              </ActionButton>
-              <ActionButton onClick={() => onSave?.({ publish: false })} disabled={isSaving || isPublishing} variant="draft">
-                <Save className="h-4 w-4" />
-                {isSaving ? "Saving..." : "Save Changes"}
-              </ActionButton>
-              <ActionButton onClick={onPreview}>
-                <Eye className="h-4 w-4" />
-                Preview
-              </ActionButton>
-              <ActionButton onClick={onPublish} disabled={isSaving || isPublishing} variant="primary">
-                <Rocket className="h-4 w-4" />
-                {isPublishing ? "Publishing..." : "Publish Draft"}
-              </ActionButton>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-6 p-5">
-          <section>
-            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <h3 className="text-lg font-extrabold text-slate-950 dark:text-white">
-                  Product Summary Labels
-                </h3>
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                  Edit the three compact labels shown below Buy Now on the product page.
-                </p>
-              </div>
-              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
-                {summaryLabels.filter((item) => item.visible).length} visible
-              </p>
-            </div>
-            <div className="space-y-3">
-              {summaryLabels.map((item, index) => (
-                <SummaryLabelRow
-                  key={item.id || `summary-label-${index}`}
-                  item={item}
-                  index={index}
-                  onChange={(nextLabel) => updateSummaryLabel(index, nextLabel)}
-                />
-              ))}
-            </div>
-          </section>
-
-          <section>
-          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h3 className="text-lg font-extrabold text-slate-950 dark:text-white">
-                Benefit Item Editor
-              </h3>
-              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                Manage the key messages displayed in the product slug page right box.
-              </p>
-            </div>
-            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
-              Showing 1 to {items.length} of {items.length} items
-            </p>
-          </div>
-          <div className="space-y-3">
-            {items.map((item, index) => (
-              <BenefitRow
-                key={item.id || `${item.title}-${index}`}
-                item={item}
-                index={index}
-                total={items.length}
-                onChange={(nextItem) => updateItem(index, nextItem)}
-                onMove={moveItem}
-                onDelete={deleteItem}
-                onCopy={copyItem}
-              />
-            ))}
-          </div>
-          </section>
-        </div>
-      </section>
-
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <PreviewPanel
-          enabled={enabled}
-          items={items}
-          summaryLabels={summaryLabels}
-          mode={previewMode}
-          onModeChange={setPreviewMode}
-        />
-
-        <aside className="space-y-5">
-          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_48px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-950">
-            <h2 className="text-lg font-extrabold text-slate-950 dark:text-white">
-              Readiness Overview
-            </h2>
-            <div className="mt-5 flex items-center gap-4">
-              <ReadinessRing completion={completion} />
-              <div>
-                <p className="text-sm font-extrabold text-slate-950 dark:text-white">
-                  Great job! You're almost ready.
-                </p>
-                <p className="mt-2 text-sm font-medium text-slate-500 dark:text-slate-400">
-                  {readyChecks.filter(Boolean).length} of {readyChecks.length} items configured
-                </p>
-              </div>
-            </div>
-            <ul className="mt-6 space-y-3">
-              {[
-                ["Right Box Enabled", enabled],
-                ["At least 5 benefit items", visibleItems.length >= 5],
-                ["All items have content", hasContent],
-                ["No empty fields", noEmptyFields],
-              ].map(([label, checked]) => (
-                <li key={label} className="flex items-center gap-3 text-sm font-medium text-slate-600 dark:text-slate-300">
+      {/* Main Settings Panel */}
+      <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        {/* Left Column: Form Editor */}
+        <div className="space-y-6">
+          {/* Master Toggle Card */}
+          <section className="ps26-card p-5">
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-bold text-slate-900 dark:text-white sm:text-lg">
+                    {isId ? "Kotak Keunggulan & Jaminan Produk" : "Product Trust & Guarantee Box"}
+                  </h2>
                   <span
-                    className={`inline-flex h-5 w-5 items-center justify-center rounded-full border ${
-                      checked
-                        ? "border-emerald-500 bg-emerald-500 text-white"
-                        : "border-slate-300 text-transparent dark:border-slate-700"
+                    className={`rounded-md px-2 py-0.5 text-[11px] font-extrabold ${
+                      isBoxEnabled ? "ps26-badge-navy" : "bg-slate-100 text-slate-500 dark:bg-slate-800"
                     }`}
                   >
-                    <Check className="h-3 w-3" />
+                    {isBoxEnabled ? (isId ? "AKTIF" : "ACTIVE") : isId ? "NONAKTIF" : "DISABLED"}
                   </span>
-                  {label}
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_48px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-950">
-            <h2 className="text-lg font-extrabold text-slate-950 dark:text-white">
-              Quick Actions
-            </h2>
-            <div className="mt-5 grid gap-3">
-              <ActionButton onClick={onPublish} disabled={isSaving || isPublishing} variant="primary">
-                <Rocket className="h-4 w-4" />
-                {isPublishing ? "Publishing..." : "Publish Draft"}
-              </ActionButton>
-              <ActionButton onClick={onPreview}>
-                <Eye className="h-4 w-4" />
-                Preview Storefront
-              </ActionButton>
-              <ActionButton>
-                <Sparkles className="h-4 w-4" />
-                AI Suggestions
-              </ActionButton>
-            </div>
-            <p className="mt-4 text-sm font-medium text-slate-500 dark:text-slate-400">
-              Get AI suggestions to improve your messages and conversions.
-            </p>
-          </section>
-
-          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_48px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-950">
-            <h2 className="text-sm font-extrabold uppercase tracking-normal text-slate-500 dark:text-slate-400">
-              Visible Items
-            </h2>
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              {visibleItems.slice(0, 6).map((item) => (
-                <div key={item.id} className="rounded-2xl border border-slate-200 p-3 dark:border-slate-800">
-                  <IconBadge iconKey={item.icon} />
-                  <p className="mt-2 truncate text-xs font-bold text-slate-700 dark:text-slate-200">
-                    {item.title}
-                  </p>
                 </div>
-              ))}
-              {visibleItems.length === 0 ? (
-                <div className="col-span-2 rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                  No visible items yet.
-                </div>
-              ) : null}
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {isId
+                    ? "Tampilkan label ringkas dan poin jaminan belanja pada halaman detail produk pembeli."
+                    : "Display summary badges and trust highlights on the product page."}
+                </p>
+              </div>
+
+              <Switch
+                checked={isBoxEnabled}
+                onChange={setBoxEnabled}
+                ariaLabel={isId ? "Aktifkan kotak jaminan" : "Enable trust box"}
+              />
             </div>
           </section>
-        </aside>
+
+          {/* Section 1: Summary Labels */}
+          <section className="ps26-card p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                  {isId ? "1. Label Ringkas Produk (Summary Labels)" : "1. Product Summary Badges"}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {isId
+                    ? "3 label ringkas yang tampil tepat di bawah tombol Beli Sekarang."
+                    : "3 compact badges displayed directly below the Buy Now button."}
+                </p>
+              </div>
+              <span className="ps26-badge-navy rounded-full px-2.5 py-0.5 text-xs font-bold">
+                {visibleSummaryCount} / 3 {isId ? "Aktif" : "Active"}
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              {summaryLabels.map((label, idx) => {
+                const IconComp = ICON_REGISTRY[label.icon]?.icon || ShieldCheck;
+                return (
+                  <div
+                    key={label.id || `lbl-${idx}`}
+                    className="ps26-item-card flex flex-col gap-3 sm:flex-row sm:items-center"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-[130px]">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#034c85]/10 text-[#034c85] dark:bg-[#034c85]/20 dark:text-sky-400">
+                        <IconComp className="h-4 w-4" />
+                      </div>
+                      <div className="relative flex-1">
+                        <select
+                          value={label.icon}
+                          onChange={(e) => handleUpdateSummaryLabel(idx, "icon", e.target.value)}
+                          className="ps26-select text-xs font-semibold py-1.5"
+                        >
+                          {SUMMARY_ICON_KEYS.map((k) => (
+                            <option key={k} value={k}>
+                              {isId ? ICON_REGISTRY[k]?.label : ICON_REGISTRY[k]?.labelEn}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                      </div>
+                    </div>
+
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={label.title}
+                        maxLength={32}
+                        placeholder={isId ? "Judul label..." : "Label title..."}
+                        onChange={(e) => handleUpdateSummaryLabel(idx, "title", e.target.value)}
+                        className="ps26-input text-xs font-bold"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-end gap-2">
+                      <span className="text-[11px] font-semibold text-slate-500 sm:hidden">
+                        {isId ? "Tampilkan" : "Visible"}
+                      </span>
+                      <Switch
+                        checked={label.visible}
+                        onChange={(val) => handleUpdateSummaryLabel(idx, "visible", val)}
+                        ariaLabel={`Toggle label ${idx + 1}`}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Section 2: Benefit Items */}
+          <section className="ps26-card p-5 space-y-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                  {isId ? "2. Poin Keunggulan & Jaminan Belanja" : "2. Trust & Guarantee Highlights"}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {isId
+                    ? "Daftar jaminan layanan untuk meyakinkan pembeli berbelanja di toko."
+                    : "Service value propositions to increase buyer confidence."}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleLoadPresets}
+                  title={isId ? "Muat rekomendasi UMKM standar" : "Reset to default presets"}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-300"
+                >
+                  <RefreshCw className="h-3.5 w-3.5 text-slate-400" />
+                  <span>{isId ? "Preset UMKM" : "Reset Presets"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleAddItem}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#034c85] px-3 text-xs font-bold text-white shadow-sm hover:bg-[#023864]"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>{isId ? "Tambah Poin" : "Add Item"}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {items.map((item, index) => {
+                const IconComp = ICON_REGISTRY[item.icon]?.icon || CheckCircle2;
+                return (
+                  <div key={item.id || `item-${index}`} className="ps26-item-card space-y-2.5">
+                    <div className="flex items-center justify-between gap-2 border-b border-slate-200/70 pb-2 dark:border-white/5">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-md bg-slate-200 text-[11px] font-black text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                          {index + 1}
+                        </span>
+                        <div className="relative">
+                          <select
+                            value={item.icon}
+                            onChange={(e) => handleUpdateItem(index, "icon", e.target.value)}
+                            className="ps26-select text-xs font-bold py-1 pl-7 pr-6 w-auto"
+                          >
+                            {BENEFIT_ICON_KEYS.map((k) => (
+                              <option key={k} value={k}>
+                                {isId ? ICON_REGISTRY[k]?.label : ICON_REGISTRY[k]?.labelEn}
+                              </option>
+                            ))}
+                          </select>
+                          <IconComp className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#034c85] dark:text-sky-400" />
+                          <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          disabled={index === 0}
+                          onClick={() => handleMoveItem(index, index - 1)}
+                          title={isId ? "Geser ke atas" : "Move up"}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:opacity-30 dark:border-white/10 dark:text-slate-400"
+                        >
+                          <ArrowUp className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={index === items.length - 1}
+                          onClick={() => handleMoveItem(index, index + 1)}
+                          title={isId ? "Geser ke bawah" : "Move down"}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:opacity-30 dark:border-white/10 dark:text-slate-400"
+                        >
+                          <ArrowDown className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDuplicateItem(index)}
+                          title={isId ? "Duplikat poin" : "Duplicate item"}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:text-[#034c85] dark:border-white/10 dark:text-slate-400"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteItem(index)}
+                          disabled={items.length <= 1}
+                          title={isId ? "Hapus poin" : "Delete item"}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-30 dark:border-rose-900/50 dark:text-rose-400"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                        <div className="ml-1 pl-1 border-l border-slate-200 dark:border-white/10">
+                          <Switch
+                            checked={item.visible}
+                            onChange={(val) => handleUpdateItem(index, "visible", val)}
+                            ariaLabel={`Toggle item ${index + 1}`}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-2 sm:grid-cols-[160px_1fr]">
+                      <div>
+                        <input
+                          type="text"
+                          value={item.title}
+                          maxLength={40}
+                          placeholder={isId ? "Judul poin..." : "Item title..."}
+                          onChange={(e) => handleUpdateItem(index, "title", e.target.value)}
+                          className="ps26-input text-xs font-bold"
+                        />
+                      </div>
+                      <div>
+                        <input
+                          type="text"
+                          value={item.message}
+                          maxLength={120}
+                          placeholder={isId ? "Deskripsi jaminan..." : "Guarantee message..."}
+                          onChange={(e) => handleUpdateItem(index, "message", e.target.value)}
+                          className="ps26-input text-xs text-slate-600 dark:text-slate-300"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+
+        {/* Right Column: Realistic 1:1 Live Preview */}
+        <div className="space-y-4">
+          <section className="ps26-card p-5 sticky top-20 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3 dark:border-white/10">
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                  {isId ? "Pratinjau Etalase Langsung" : "Live Storefront Preview"}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {isId
+                    ? "Simulasi 1:1 tampilan produk pada etalase toko."
+                    : "1:1 real-time simulation on the customer storefront."}
+                </p>
+              </div>
+
+              <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 p-0.5 dark:border-white/10 dark:bg-slate-900">
+                <button
+                  type="button"
+                  onClick={() => setPreviewDevice("desktop")}
+                  title={isId ? "Mode Desktop" : "Desktop View"}
+                  className={`flex h-7 w-8 items-center justify-center rounded-lg text-xs transition ${
+                    previewDevice === "desktop"
+                      ? "bg-white text-[#034c85] font-bold shadow-sm dark:bg-slate-800 dark:text-white"
+                      : "text-slate-400 hover:text-slate-600"
+                  }`}
+                >
+                  <Monitor className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewDevice("mobile")}
+                  title={isId ? "Mode Ponsel" : "Mobile View"}
+                  className={`flex h-7 w-8 items-center justify-center rounded-lg text-xs transition ${
+                    previewDevice === "mobile"
+                      ? "bg-white text-[#034c85] font-bold shadow-sm dark:bg-slate-800 dark:text-white"
+                      : "text-slate-400 hover:text-slate-600"
+                  }`}
+                >
+                  <Smartphone className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Mockup Frame */}
+            <div
+              className={`ps26-preview-frame transition-all duration-300 ${
+                previewDevice === "mobile" ? "mx-auto max-w-[340px]" : "w-full"
+              }`}
+            >
+              <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900 space-y-4">
+                {/* Mockup Product Header */}
+                <div className="flex gap-3">
+                  <div className="h-20 w-20 shrink-0 rounded-xl bg-slate-100 flex items-center justify-center border border-slate-200 dark:border-white/10 dark:bg-slate-800">
+                    <ShoppingBag className="h-8 w-8 text-slate-300 dark:text-slate-600" />
+                  </div>
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <span className="inline-block text-[11px] font-extrabold text-[#fe6f05] uppercase">
+                      Kreasi Singkong Keju
+                    </span>
+                    <h4 className="text-sm font-black text-slate-900 dark:text-white truncate">
+                      Kue Singkong Keju Lumer Crispy
+                    </h4>
+                    <div className="flex items-center gap-1 text-[11px] text-amber-500 font-bold">
+                      <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                      <span>5.0</span>
+                      <span className="text-slate-400 font-normal">• 48 terjual</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-base font-black text-[#034c85] dark:text-sky-400">
+                        Rp 25.000
+                      </span>
+                      <span className="rounded bg-rose-50 px-1.5 py-0.2 text-[10px] font-bold text-rose-600">
+                        -20%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mock CTA Buttons */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    disabled
+                    className="flex h-9 items-center justify-center gap-1.5 rounded-xl border-2 border-[#034c85] text-xs font-black text-[#034c85] dark:border-sky-400 dark:text-sky-400"
+                  >
+                    <ShoppingCart className="h-3.5 w-3.5" />
+                    <span>{isId ? "+ Keranjang" : "Add to Cart"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled
+                    className="flex h-9 items-center justify-center gap-1.5 rounded-xl bg-[#fe6f05] text-xs font-black text-white shadow-sm"
+                  >
+                    <span>{isId ? "Beli Sekarang" : "Buy Now"}</span>
+                  </button>
+                </div>
+
+                {/* Live Summary Badges Preview */}
+                {isBoxEnabled && visibleSummaryCount > 0 ? (
+                  <div className="pt-2 border-t border-slate-100 dark:border-white/5">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                      {isId ? "Label Ringkas Produk:" : "Product Summary Badges:"}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {summaryLabels
+                        .filter((lbl) => lbl.visible && lbl.title)
+                        .map((lbl, i) => {
+                          const IconComp = ICON_REGISTRY[lbl.icon]?.icon || CheckCircle2;
+                          return (
+                            <span
+                              key={i}
+                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-700 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200"
+                            >
+                              <IconComp className="h-3.5 w-3.5 text-[#034c85] dark:text-sky-400 shrink-0" />
+                              <span>{lbl.title}</span>
+                            </span>
+                          );
+                        })}
+                    </div>
+                  </div>
+                ) : null}
+
+                {/* Live Benefit Items Preview */}
+                <div className="pt-3 border-t border-slate-100 dark:border-white/5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      {isId ? "Jaminan & Layanan Toko:" : "Store Service Guarantees:"}
+                    </p>
+                    <span className="text-[10px] font-bold text-slate-400">
+                      {visibleItemsCount} {isId ? "Poin Aktif" : "Active Items"}
+                    </span>
+                  </div>
+
+                  {isBoxEnabled ? (
+                    <div className="space-y-2 rounded-xl border border-slate-200/80 bg-slate-50/50 p-2.5 dark:border-white/5 dark:bg-slate-800/40">
+                      {items
+                        .filter((it) => it.visible)
+                        .map((it, idx) => {
+                          const IconComp = ICON_REGISTRY[it.icon]?.icon || ShieldCheck;
+                          return (
+                            <div key={idx} className="flex items-start gap-2 text-xs">
+                              <div className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#034c85]/10 text-[#034c85] dark:bg-[#034c85]/30 dark:text-sky-400">
+                                <IconComp className="h-2.5 w-2.5" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <span className="font-bold text-slate-800 dark:text-slate-200">
+                                  {it.title || (isId ? "Judul poin" : "Item title")}
+                                </span>
+                                {it.message ? (
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
+                                    {it.message}
+                                  </p>
+                                ) : null}
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-slate-300 p-3 text-center text-xs text-slate-400 dark:border-white/10">
+                      {isId
+                        ? "Kotak keunggulan & jaminan sedang dinonaktifkan."
+                        : "Trust & guarantee box is currently disabled."}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
+
+      {/* Sticky Bottom Action Bar */}
+      <footer className="ps26-sticky-bar">
+        <div className="flex items-center gap-2">
+          <span className="flex h-2.5 w-2.5 rounded-full bg-[#fe6f05] animate-pulse" />
+          <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+            {isId
+              ? `${visibleSummaryCount} Label & ${visibleItemsCount} Poin Aktif`
+              : `${visibleSummaryCount} Badges & ${visibleItemsCount} Items Active`}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={onReset}
+            disabled={isSaving || isPublishing}
+            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-300"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">{isId ? "Reset ke Awal" : "Reset Default"}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onSave?.({ publish: false })}
+            disabled={isSaving || isPublishing}
+            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-4 text-xs font-black text-slate-800 shadow-sm hover:border-[#034c85] hover:text-[#034c85] disabled:opacity-50 dark:border-white/15 dark:bg-slate-900 dark:text-white"
+          >
+            <Save className="h-3.5 w-3.5 text-slate-500" />
+            <span>{isSaving ? (isId ? "Menyimpan..." : "Saving...") : isId ? "Simpan Draf" : "Save Draft"}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onPublish}
+            disabled={isSaving || isPublishing}
+            className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#034c85] px-4 text-xs font-black text-white shadow-sm hover:bg-[#023864] disabled:opacity-50"
+          >
+            <Rocket className="h-3.5 w-3.5 text-[#fe6f05]" />
+            <span>{isPublishing ? (isId ? "Menerbitkan..." : "Publishing...") : isId ? "Publikasikan" : "Publish Draft"}</span>
+          </button>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -2,28 +2,35 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
+  Award,
   BadgeCheck,
   Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  Clock,
   Heart,
   Home,
+  Leaf,
   Loader2,
   MapPin,
   MessageCircle,
   Minus,
+  PackageCheck,
   Plus,
+  RotateCcw,
   SearchX,
   Share2,
   ShieldCheck,
   ShoppingBag,
   ShoppingCart,
+  Sparkles,
   Star,
   Store,
   Tag,
   Truck,
+  Wallet,
   X,
   ZoomIn,
   ZoomOut,
@@ -37,7 +44,22 @@ import { useStorefrontWishlist } from "../../utils/storefrontWishlist.js";
 import { toPreferredWhatsAppLink } from "../../utils/storePublicIdentity.ts";
 import { getStorePublicIdentityBySlug } from "../../api/storePublicIdentity.ts";
 import { fetchStoreCoupons } from "../../api/storeCoupons.ts";
+import { getStoreCustomization } from "../../api/public/storeCustomizationPublic.ts";
 import "./store-product-detail-2026.css";
+
+const BENEFIT_ICON_MAP = {
+  truck: Truck,
+  clock: Clock,
+  wallet: Wallet,
+  returns: RotateCcw,
+  shield: ShieldCheck,
+  leaf: Leaf,
+  pin: MapPin,
+  sparkles: Sparkles,
+  badge: BadgeCheck,
+  award: Award,
+  package: PackageCheck,
+};
 
 const DEFAULT_LIMIT = 12;
 
@@ -894,6 +916,34 @@ export default function StoreProductDetailPage2026() {
       .slice(0, 6);
   }, [product, recsQuery.data]);
 
+  /* Store Customization Query for Product Slug Page (Summary Badges & Trust Highlights) */
+  const customizationQuery = useQuery({
+    queryKey: ["store-customization-pdp", isIndo ? "id" : "en"],
+    queryFn: () =>
+      getStoreCustomization({
+        lang: isIndo ? "id" : "en",
+        include: "productSlugPage",
+      }),
+    staleTime: 60 * 1000,
+  });
+
+  const rightBoxData =
+    customizationQuery.data?.customization?.productSlugPage?.rightBox ||
+    customizationQuery.data?.productSlugPage?.rightBox;
+
+  const isRightBoxEnabled = rightBoxData ? Boolean(rightBoxData.enabled !== false) : true;
+
+  const summaryLabels = useMemo(() => {
+    if (!rightBoxData?.summaryLabels || !Array.isArray(rightBoxData.summaryLabels)) return [];
+    return rightBoxData.summaryLabels.filter((l) => l && l.visible && l.title);
+  }, [rightBoxData]);
+
+  const customBenefitItems = useMemo(() => {
+    const list = rightBoxData?.items || rightBoxData?.benefitItems;
+    if (!Array.isArray(list)) return [];
+    return list.filter((it) => it && it.visible && (it.title || it.message));
+  }, [rightBoxData]);
+
   useEffect(() => {
     const defaults = {};
     variationGroups.forEach((group) => {
@@ -1318,33 +1368,61 @@ export default function StoreProductDetailPage2026() {
             </div>
           </div>
 
-          {/* Delivery & Protection Trust Rows (Shopee Style) */}
-          <div className="space-y-0 rounded-xl border border-slate-200 bg-slate-50/50 overflow-hidden dark:border-white/10 dark:bg-slate-900/40">
-            <div className="pdp26-trust-row">
-              <div className="flex items-center gap-2.5">
-                <Truck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <div>
-                  <span className="font-bold text-slate-900 dark:text-white">
-                    {t("productDetail.deliveryEstimate")}
-                  </span>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {t("productDetail.deliveryHint")} ({storeCity})
-                  </p>
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-slate-400 shrink-0" />
-            </div>
+          {/* Delivery & Protection Trust Rows (Shopee Style / Store Customization) */}
+          {isRightBoxEnabled && (
+            <div className="space-y-0 rounded-xl border border-slate-200 bg-slate-50/50 overflow-hidden dark:border-white/10 dark:bg-slate-900/40">
+              {customBenefitItems.length > 0 ? (
+                customBenefitItems.map((item, idx) => {
+                  const IconComp = BENEFIT_ICON_MAP[item.icon] || ShieldCheck;
+                  return (
+                    <div key={item.id || idx} className="pdp26-trust-row">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <IconComp className="h-4 w-4 text-[var(--pdp-navy)] dark:text-sky-400 shrink-0" />
+                        <div className="min-w-0">
+                          <span className="font-bold text-slate-900 dark:text-white block truncate">
+                            {item.title}
+                          </span>
+                          {item.message ? (
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              {item.message}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-slate-400 shrink-0" />
+                    </div>
+                  );
+                })
+              ) : (
+                <>
+                  <div className="pdp26-trust-row">
+                    <div className="flex items-center gap-2.5">
+                      <Truck className="h-4 w-4 text-[#fe6f05] shrink-0" />
+                      <div>
+                        <span className="font-bold text-slate-900 dark:text-white">
+                          {t("productDetail.deliveryEstimate")}
+                        </span>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {t("productDetail.deliveryHint")} ({storeCity})
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-slate-400 shrink-0" />
+                  </div>
 
-            <div className="pdp26-trust-row">
-              <div className="flex items-center gap-2.5">
-                <ShieldCheck className="h-4 w-4 text-[var(--pdp-navy)] dark:text-sky-400 shrink-0" />
-                <span className="font-bold text-slate-900 dark:text-white">
-                  {t("productDetail.returnGuarantee")} • {t("productDetail.productProtection")}
-                </span>
-              </div>
-              <ChevronRight className="h-4 w-4 text-slate-400 shrink-0" />
+                  <div className="pdp26-trust-row">
+                    <div className="flex items-center gap-2.5">
+                      <ShieldCheck className="h-4 w-4 text-[var(--pdp-navy)] dark:text-sky-400 shrink-0" />
+                      <span className="font-bold text-slate-900 dark:text-white">
+                        {t("productDetail.returnGuarantee")} • {t("productDetail.productProtection")}
+                      </span>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-slate-400 shrink-0" />
+                  </div>
+                </>
+              )}
             </div>
-          </div>
+          )}
 
           {/* Desktop Direct CTA Buttons */}
           <div className="hidden gap-3 sm:flex">
@@ -1370,6 +1448,24 @@ export default function StoreProductDetailPage2026() {
               </span>
             </button>
           </div>
+
+          {/* Product Summary Badges (from Admin Customization) */}
+          {isRightBoxEnabled && summaryLabels.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              {summaryLabels.map((lbl, idx) => {
+                const IconComp = BENEFIT_ICON_MAP[lbl.icon] || ShieldCheck;
+                return (
+                  <span
+                    key={lbl.id || idx}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:border-white/10 dark:bg-slate-800/80 dark:text-slate-200"
+                  >
+                    <IconComp className="h-3.5 w-3.5 text-[#034c85] dark:text-sky-400 shrink-0" />
+                    <span>{lbl.title}</span>
+                  </span>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 

@@ -883,7 +883,10 @@ router.get("/", async (req, res, next) => {
       !includeProvided ||
       includeSet.has("productslugpage") ||
       includeSet.has("product-slug-page") ||
-      includeSet.has("product_slug_page");
+      includeSet.has("product_slug_page") ||
+      includeSet.has("single-setting") ||
+      includeSet.has("singlesetting") ||
+      includeSet.has("single_setting");
     const includeShop =
       !includeProvided ||
       includeSet.has("shop") ||

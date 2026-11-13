@@ -12514,5 +12514,1015 @@ export default function StoreCustomizationPage() {
                   <p className="mt-2 text-sm font-medium text-slate-700">
                     Drag your images here
                   </p>
-                  <p className="mt-
-... [truncated for diff preview]
+                  <p className="mt-1 text-xs text-slate-500">
+                    (Only *.jpeg, *.webp and *.png images will be accepted)
+                  </p>
+                </label>
+                {dailyNeedsImageErrors.button2ImageDataUrl ? (
+                  <p className="text-xs text-rose-600">
+                    {dailyNeedsImageErrors.button2ImageDataUrl}
+                  </p>
+                ) : null}
+                {getYourDailyNeeds.button2?.imageDataUrl ? (
+                  <div className="relative inline-flex rounded-xl border border-slate-200 bg-white p-2">
+                    <img
+                      src={getYourDailyNeeds.button2.imageDataUrl}
+                      alt="Daily needs button 2 preview"
+                      className="h-20 w-24 rounded-md object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => onRemoveDailyNeedsImage("button2ImageDataUrl")}
+                      className="absolute -right-2 -top-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 hover:bg-slate-100"
+                      aria-label="Remove daily needs button 2 image"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : null}
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Button 2 Link
+                  </span>
+                  <input
+                    type="text"
+                    value={getYourDailyNeeds.button2?.link || ""}
+                    onChange={(event) =>
+                      onChangeDailyNeedsButtonField(
+                        "button2",
+                        "link",
+                        event.target.value
+                      )
+                    }
+                    className={`${inputBase} mt-2`}
+                  />
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <section className={`${sectionCard} order-11`}>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                <Settings className="h-4 w-4" />
+              </span>
+              <h2 className="text-base font-semibold text-slate-900">
+                Vision &amp; Mission Commitments
+              </h2>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3 md:col-span-2">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  Enable This Block
+                </p>
+                <SegmentedToggle
+                  value={Boolean(featurePromoSection.enabled)}
+                  onChange={(value) =>
+                    onChangeSimpleHomeToggle("featurePromoSection", value)
+                  }
+                />
+              </div>
+
+              <label className="block md:col-span-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Badge Tag / Eyebrow
+                </span>
+                <input
+                  type="text"
+                  value={featurePromoSection.eyebrow || ""}
+                  placeholder="VISION-MISSION COMMITMENTS"
+                  onChange={(event) =>
+                    onChangeSimpleHomeBlock(
+                      "featurePromoSection",
+                      "eyebrow",
+                      event.target.value
+                    )
+                  }
+                  className={`${inputBase} mt-2`}
+                />
+              </label>
+
+              <label className="block md:col-span-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Vision Title (Judul Visi Utama)
+                </span>
+                <input
+                  type="text"
+                  value={featurePromoSection.title || ""}
+                  placeholder="Pusat Inovasi & Edupreneurship Media Belajar Digital"
+                  onChange={(event) =>
+                    onChangeSimpleHomeBlock(
+                      "featurePromoSection",
+                      "title",
+                      event.target.value
+                    )
+                  }
+                  className={`${inputBase} mt-2`}
+                />
+              </label>
+
+              <label className="block md:col-span-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Vision Description (Deskripsi Ringkas Visi)
+                </span>
+                <textarea
+                  rows={3}
+                  value={featurePromoSection.description || ""}
+                  placeholder="Solusi media pembelajaran interaktif yang berkualitas, aplikatif, dan berdaya saing."
+                  onChange={(event) =>
+                    onChangeSimpleHomeBlock(
+                      "featurePromoSection",
+                      "description",
+                      event.target.value
+                    )
+                  }
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-[var(--admin-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary-soft)]"
+                />
+              </label>
+
+              <div className="space-y-2 md:col-span-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Content Image (Unggah Gambar Visual Visi-Misi)
+                </span>
+                <input
+                  ref={featurePromoFileInputRef}
+                  id="feature-promo-image-input"
+                  type="file"
+                  accept=".png,.jpeg,.jpg,.webp"
+                  onChange={onFeaturePromoImageChange}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => featurePromoFileInputRef.current?.click()}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    setIsFeaturePromoDropActive(true);
+                  }}
+                  onDragLeave={() => setIsFeaturePromoDropActive(false)}
+                  onDrop={onDropFeaturePromoImage}
+                  className={`flex w-full flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${
+                    isFeaturePromoDropActive
+                      ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)]"
+                      : "border-slate-300 bg-slate-50 hover:border-slate-400"
+                  }`}
+                >
+                  <Upload className="h-5 w-5 text-slate-500" />
+                  <p className="mt-2 text-sm font-medium text-slate-700">
+                    Klik atau seret gambar ke sini
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    (Mendukung *.jpeg, *.jpg, *.png, dan *.webp)
+                  </p>
+                </button>
+
+                {featurePromoImageError ? (
+                  <p className="text-xs text-rose-600">{featurePromoImageError}</p>
+                ) : null}
+
+                {featurePromoSection.imageDataUrl ? (
+                  <div className="relative inline-flex rounded-xl border border-slate-200 bg-white p-2">
+                    <img
+                      src={featurePromoSection.imageDataUrl}
+                      alt="Vision & Mission preview"
+                      className="h-24 w-36 rounded-md object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={onRemoveFeaturePromoImage}
+                      className="absolute -right-2 -top-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 hover:bg-slate-100"
+                      aria-label="Remove image"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+
+              {/* 4 Mission Commitments Cards */}
+              <div className="md:col-span-2 pt-2">
+                <p className="text-xs font-bold uppercase tracking-wider text-[#034c85]">
+                  4 Komitmen Misi (Sesuai Halaman /about-us)
+                </p>
+                <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+                  {/* Item 1 */}
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
+                    <span className="text-xs font-bold text-[#fe6f05]">Misi 01</span>
+                    <label className="block">
+                      <span className="text-xs font-medium text-slate-600">Judul</span>
+                      <input
+                        type="text"
+                        value={featurePromoSection.item1Title || featurePromoSection.freeShippingText || ""}
+                        placeholder="Ruang Kolaborasi Cipta Karya"
+                        onChange={(event) => {
+                          const val = event.target.value;
+                          setHomeState((prev) => ({
+                            ...prev,
+                            featurePromoSection: {
+                              ...prev.featurePromoSection,
+                              item1Title: val,
+                              freeShippingText: val,
+                            },
+                          }));
+                        }}
+                        className={`${inputBase} mt-1`}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-medium text-slate-600">Deskripsi Ringkas</span>
+                      <textarea
+                        rows={2}
+                        value={featurePromoSection.item1Text || ""}
+                        placeholder="Wadah mahasiswa mewujudkan ide kreatif menjadi produk edukasi nyata."
+                        onChange={(event) =>
+                          onChangeSimpleHomeBlock(
+                            "featurePromoSection",
+                            "item1Text",
+                            event.target.value
+                          )
+                        }
+                        className={`${inputBase} mt-1`}
+                      />
+                    </label>
+                  </div>
+
+                  {/* Item 2 */}
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
+                    <span className="text-xs font-bold text-[#fe6f05]">Misi 02</span>
+                    <label className="block">
+                      <span className="text-xs font-medium text-slate-600">Judul</span>
+                      <input
+                        type="text"
+                        value={featurePromoSection.item2Title || featurePromoSection.supportText || ""}
+                        placeholder="Mengutamakan Kualitas Edukasi"
+                        onChange={(event) => {
+                          const val = event.target.value;
+                          setHomeState((prev) => ({
+                            ...prev,
+                            featurePromoSection: {
+                              ...prev.featurePromoSection,
+                              item2Title: val,
+                              supportText: val,
+                            },
+                          }));
+                        }}
+                        className={`${inputBase} mt-1`}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-medium text-slate-600">Deskripsi Ringkas</span>
+                      <textarea
+                        rows={2}
+                        value={featurePromoSection.item2Text || ""}
+                        placeholder="Menjamin efektivitas belajar dengan pemanfaatan teknologi tepat sasaran."
+                        onChange={(event) =>
+                          onChangeSimpleHomeBlock(
+                            "featurePromoSection",
+                            "item2Text",
+                            event.target.value
+                          )
+                        }
+                        className={`${inputBase} mt-1`}
+                      />
+                    </label>
+                  </div>
+
+                  {/* Item 3 */}
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
+                    <span className="text-xs font-bold text-[#fe6f05]">Misi 03</span>
+                    <label className="block">
+                      <span className="text-xs font-medium text-slate-600">Judul</span>
+                      <input
+                        type="text"
+                        value={featurePromoSection.item3Title || featurePromoSection.securePaymentText || ""}
+                        placeholder="Membangun Jiwa Edupreneurship"
+                        onChange={(event) => {
+                          const val = event.target.value;
+                          setHomeState((prev) => ({
+                            ...prev,
+                            featurePromoSection: {
+                              ...prev.featurePromoSection,
+                              item3Title: val,
+                              securePaymentText: val,
+                            },
+                          }));
+                        }}
+                        className={`${inputBase} mt-1`}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-medium text-slate-600">Deskripsi Ringkas</span>
+                      <textarea
+                        rows={2}
+                        value={featurePromoSection.item3Text || ""}
+                        placeholder="Membimbing mahasiswa mengelola dan memasarkan karya secara profesional."
+                        onChange={(event) =>
+                          onChangeSimpleHomeBlock(
+                            "featurePromoSection",
+                            "item3Text",
+                            event.target.value
+                          )
+                        }
+                        className={`${inputBase} mt-1`}
+                      />
+                    </label>
+                  </div>
+
+                  {/* Item 4 */}
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
+                    <span className="text-xs font-bold text-[#fe6f05]">Misi 04</span>
+                    <label className="block">
+                      <span className="text-xs font-medium text-slate-600">Judul</span>
+                      <input
+                        type="text"
+                        value={featurePromoSection.item4Title || featurePromoSection.latestOfferText || ""}
+                        placeholder="Menghadirkan Solusi Belajar"
+                        onChange={(event) => {
+                          const val = event.target.value;
+                          setHomeState((prev) => ({
+                            ...prev,
+                            featurePromoSection: {
+                              ...prev.featurePromoSection,
+                              item4Title: val,
+                              latestOfferText: val,
+                            },
+                          }));
+                        }}
+                        className={`${inputBase} mt-1`}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-medium text-slate-600">Deskripsi Ringkas</span>
+                      <textarea
+                        rows={2}
+                        value={featurePromoSection.item4Text || ""}
+                        placeholder="Akses media belajar interaktif menjawab tantangan pendidikan masa kini."
+                        onChange={(event) =>
+                          onChangeSimpleHomeBlock(
+                            "featurePromoSection",
+                            "item4Text",
+                            event.target.value
+                          )
+                        }
+                        className={`${inputBase} mt-1`}
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className={`${sectionCard} order-12`}>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                <Settings className="h-4 w-4" />
+              </span>
+              <h2 className="text-base font-semibold text-slate-900">Footer</h2>
+            </div>
+
+            <div className="mt-5 space-y-5">
+              {[
+                { key: "block1", heading: "Block 1" },
+                { key: "block2", heading: "Block 2" },
+                { key: "block3", heading: "Block 3" },
+              ].map((meta) => {
+                const blockData = footer[meta.key];
+                return (
+                  <div
+                    key={meta.key}
+                    className="rounded-xl border border-slate-200 bg-slate-50/40 p-4"
+                  >
+                    <h3 className="text-sm font-semibold text-slate-900">{meta.heading}</h3>
+                    <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <div className="rounded-xl border border-slate-200 bg-white px-3 py-3 md:col-span-2">
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                          Enable This Block
+                        </p>
+                        <SegmentedToggle
+                          value={Boolean(blockData.enabled)}
+                          onChange={(value) =>
+                            onChangeFooterBlockField(meta.key, "enabled", value)
+                          }
+                        />
+                      </div>
+
+                      <label className="block md:col-span-2">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Title
+                        </span>
+                        <input
+                          type="text"
+                          value={blockData.title}
+                          onChange={(event) =>
+                            onChangeFooterBlockField(
+                              meta.key,
+                              "title",
+                              event.target.value
+                            )
+                          }
+                          className={`${inputBase} mt-2`}
+                        />
+                      </label>
+
+                      {blockData.links.map((link, linkIndex) => (
+                        <div key={`${meta.key}-link-${linkIndex}`} className="space-y-2">
+                          <label className="block">
+                            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                              Link {linkIndex + 1} Label
+                            </span>
+                            <input
+                              type="text"
+                              value={link.label}
+                              onChange={(event) =>
+                                onChangeFooterLink(
+                                  meta.key,
+                                  linkIndex,
+                                  "label",
+                                  event.target.value
+                                )
+                              }
+                              className={`${inputBase} mt-2`}
+                            />
+                          </label>
+                          <label className="block">
+                            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                              Link {linkIndex + 1} Href
+                            </span>
+                            <input
+                              type="text"
+                              value={link.href}
+                              onChange={(event) =>
+                                onChangeFooterLink(
+                                  meta.key,
+                                  linkIndex,
+                                  "href",
+                                  event.target.value
+                                )
+                              }
+                              className={`${inputBase} mt-2`}
+                            />
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50/40 p-4">
+                <h3 className="text-sm font-semibold text-slate-900">Block 4</h3>
+                <div className="mt-3 grid grid-cols-1 gap-4 xl:grid-cols-[320px_1fr]">
+                  <div className="space-y-2">
+                    <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                        Enable This Block
+                      </p>
+                      <SegmentedToggle
+                        value={Boolean(footer.block4.enabled)}
+                        onChange={(value) =>
+                          onChangeFooterBlockField("block4", "enabled", value)
+                        }
+                      />
+                    </div>
+
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Footer Logo
+                    </span>
+                    <input
+                      id="footer-logo-image-input"
+                      type="file"
+                      accept=".png,.jpeg,.jpg,.webp"
+                      onChange={(event) =>
+                        onFooterImageInputChange("footerLogoDataUrl", event)
+                      }
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="footer-logo-image-input"
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        setFooterDropActiveField("footerLogoDataUrl", true);
+                      }}
+                      onDragLeave={() =>
+                        setFooterDropActiveField("footerLogoDataUrl", false)
+                      }
+                      onDrop={(event) => onDropFooterImage("footerLogoDataUrl", event)}
+                      className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${
+                        footerDropActive.footerLogoDataUrl
+                          ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)]"
+                          : "border-slate-300 bg-white hover:border-slate-400"
+                      }`}
+                    >
+                      <Upload className="h-5 w-5 text-slate-500" />
+                      <p className="mt-2 text-sm font-medium text-slate-700">
+                        Drag your images here
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        (Only *.jpeg, *.webp and *.png images will be accepted)
+                      </p>
+                    </label>
+                    {footerImageErrors.footerLogoDataUrl ? (
+                      <p className="text-xs text-rose-600">
+                        {footerImageErrors.footerLogoDataUrl}
+                      </p>
+                    ) : null}
+                    {footer.block4.footerLogoDataUrl ? (
+                      <div className="relative inline-flex rounded-xl border border-slate-200 bg-white p-2">
+                        <img
+                          src={footer.block4.footerLogoDataUrl}
+                          alt="Footer logo preview"
+                          className="h-20 w-24 rounded-md object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => onRemoveFooterImage("footerLogoDataUrl")}
+                          className="absolute -right-2 -top-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 hover:bg-slate-100"
+                          aria-label="Remove footer logo"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    <label className="block">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Address
+                      </span>
+                      <input
+                        type="text"
+                        value={footer.block4.address}
+                        onChange={(event) =>
+                          onChangeFooterBlockField("block4", "address", event.target.value)
+                        }
+                        className={`${inputBase} mt-2`}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Phone
+                      </span>
+                      <input
+                        type="text"
+                        value={footer.block4.phone}
+                        onChange={(event) =>
+                          onChangeFooterBlockField("block4", "phone", event.target.value)
+                        }
+                        className={`${inputBase} mt-2`}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Email
+                      </span>
+                      <input
+                        type="text"
+                        value={footer.block4.email}
+                        onChange={(event) =>
+                          onChangeFooterBlockField("block4", "email", event.target.value)
+                        }
+                        className={`${inputBase} mt-2`}
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50/40 p-4">
+                <h3 className="text-sm font-semibold text-slate-900">Social Links</h3>
+                <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="rounded-xl border border-slate-200 bg-white px-3 py-3 md:col-span-2">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                      Enable This Block
+                    </p>
+                    <SegmentedToggle
+                      value={Boolean(footer.socialLinks.enabled)}
+                      onChange={(value) =>
+                        onChangeFooterBlockField("socialLinks", "enabled", value)
+                      }
+                    />
+                  </div>
+                  <label className="block">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Facebook
+                    </span>
+                    <input
+                      type="text"
+                      value={footer.socialLinks.facebook}
+                      onChange={(event) =>
+                        onChangeFooterBlockField(
+                          "socialLinks",
+                          "facebook",
+                          event.target.value
+                        )
+                      }
+                      className={`${inputBase} mt-2`}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Twitter
+                    </span>
+                    <input
+                      type="text"
+                      value={footer.socialLinks.twitter}
+                      onChange={(event) =>
+                        onChangeFooterBlockField(
+                          "socialLinks",
+                          "twitter",
+                          event.target.value
+                        )
+                      }
+                      className={`${inputBase} mt-2`}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Pinterest
+                    </span>
+                    <input
+                      type="text"
+                      value={footer.socialLinks.pinterest}
+                      onChange={(event) =>
+                        onChangeFooterBlockField(
+                          "socialLinks",
+                          "pinterest",
+                          event.target.value
+                        )
+                      }
+                      className={`${inputBase} mt-2`}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Linkedin
+                    </span>
+                    <input
+                      type="text"
+                      value={footer.socialLinks.linkedin}
+                      onChange={(event) =>
+                        onChangeFooterBlockField(
+                          "socialLinks",
+                          "linkedin",
+                          event.target.value
+                        )
+                      }
+                      className={`${inputBase} mt-2`}
+                    />
+                  </label>
+                  <label className="block md:col-span-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      WhatsApp
+                    </span>
+                    <input
+                      type="text"
+                      value={footer.socialLinks.whatsapp}
+                      onChange={(event) =>
+                        onChangeFooterBlockField(
+                          "socialLinks",
+                          "whatsapp",
+                          event.target.value
+                        )
+                      }
+                      className={`${inputBase} mt-2`}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50/40 p-4">
+                <h3 className="text-sm font-semibold text-slate-900">Payment Method</h3>
+                <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="rounded-xl border border-slate-200 bg-white px-3 py-3 md:col-span-2">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                      Enable This Block
+                    </p>
+                    <SegmentedToggle
+                      value={Boolean(footer.paymentMethod.enabled)}
+                      onChange={(value) =>
+                        onChangeFooterBlockField("paymentMethod", "enabled", value)
+                      }
+                    />
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Payment Method Image
+                    </span>
+                    <input
+                      id="footer-payment-image-input"
+                      type="file"
+                      accept=".png,.jpeg,.jpg,.webp"
+                      onChange={(event) =>
+                        onFooterImageInputChange("paymentImageDataUrl", event)
+                      }
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="footer-payment-image-input"
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        setFooterDropActiveField("paymentImageDataUrl", true);
+                      }}
+                      onDragLeave={() =>
+                        setFooterDropActiveField("paymentImageDataUrl", false)
+                      }
+                      onDrop={(event) => onDropFooterImage("paymentImageDataUrl", event)}
+                      className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${
+                        footerDropActive.paymentImageDataUrl
+                          ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)]"
+                          : "border-slate-300 bg-white hover:border-slate-400"
+                      }`}
+                    >
+                      <Upload className="h-5 w-5 text-slate-500" />
+                      <p className="mt-2 text-sm font-medium text-slate-700">
+                        Drag your images here
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        (Only *.jpeg, *.webp and *.png images will be accepted)
+                      </p>
+                    </label>
+                    {footerImageErrors.paymentImageDataUrl ? (
+                      <p className="text-xs text-rose-600">
+                        {footerImageErrors.paymentImageDataUrl}
+                      </p>
+                    ) : null}
+                    {footer.paymentMethod.imageDataUrl ? (
+                      <div className="relative inline-flex rounded-xl border border-slate-200 bg-white p-2">
+                        <img
+                          src={footer.paymentMethod.imageDataUrl}
+                          alt="Footer payment preview"
+                          className="h-20 w-24 rounded-md object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => onRemoveFooterImage("paymentImageDataUrl")}
+                          className="absolute -right-2 -top-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 hover:bg-slate-100"
+                          aria-label="Remove payment method image"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50/40 p-4">
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Footer Bottom Contact Number
+                </h3>
+                <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="rounded-xl border border-slate-200 bg-white px-3 py-3 md:col-span-2">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                      Enable This Block
+                    </p>
+                    <SegmentedToggle
+                      value={Boolean(footer.bottomContact.enabled)}
+                      onChange={(value) =>
+                        onChangeFooterBlockField("bottomContact", "enabled", value)
+                      }
+                    />
+                  </div>
+
+                  <label className="block md:col-span-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Footer Bottom Contact Number
+                    </span>
+                    <input
+                      type="text"
+                      value={footer.bottomContact.contactNumber}
+                      onChange={(event) =>
+                        onChangeFooterBlockField(
+                          "bottomContact",
+                          "contactNumber",
+                          event.target.value
+                        )
+                      }
+                      className={`${inputBase} mt-2`}
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className={`${sectionCard} order-2`}>
+            <h2 className="text-base font-semibold text-slate-900">Menu Editor</h2>
+
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {MENU_LABEL_FIELDS.map((field) => (
+                <label key={field.key} className="block">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {field.label}
+                  </span>
+                  <input
+                    type="text"
+                    value={homeState.menuEditor.labels[field.key]}
+                    onChange={(event) =>
+                      onChangeMenuLabel(field.key, event.target.value)
+                    }
+                    className={`${inputBase} mt-2`}
+                  />
+                </label>
+              ))}
+            </div>
+
+            <div className="mt-6 border-t border-slate-100 pt-4">
+              <h3 className="text-sm font-semibold text-slate-800">Show / Hide Menu</h3>
+              <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {ENABLED_FIELDS.map((field) => (
+                  <div
+                    key={field.key}
+                    className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3"
+                  >
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                      {field.label}
+                    </p>
+                    <SegmentedToggle
+                      value={Boolean(homeState.menuEditor.enabled[field.key])}
+                      onChange={(value) => onChangeMenuEnabled(field.key, value)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+            </div>
+            ) : null}
+          </details>
+          </div>
+        )}
+      </div>
+
+      {isAddLanguageOpen ? (
+        <>
+          <button
+            type="button"
+            className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-[1px]"
+            aria-label="Close add language overlay"
+            onClick={() => setIsAddLanguageOpen(false)}
+          />
+          <aside className="fixed inset-y-0 right-0 z-50 w-full border-l border-slate-200 bg-white shadow-2xl sm:max-w-[560px] lg:w-[40vw] lg:max-w-[620px]">
+            <form className="flex h-full flex-col" onSubmit={onSubmitAddLanguage}>
+              <div className="border-b border-slate-200 px-6 py-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-900">Add Language</h2>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Add your Language necessary information from here
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddLanguageOpen(false)}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-100"
+                    aria-label="Close language drawer"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Select Language
+                  </span>
+                  <div className="relative mt-2" ref={presetRef}>
+                    <button
+                      type="button"
+                      onClick={() => setPresetOpen((prev) => !prev)}
+                      className={`${inputBase} flex items-center justify-between px-3.5`}
+                    >
+                      <span className="truncate">{selectedPresetLabel}</span>
+                      <ChevronDown
+                        className={`h-4 w-4 shrink-0 text-slate-400 transition ${
+                          presetOpen ? "rotate-180" : ""
+                        }`}
+                      />
+                    </button>
+                    {presetOpen ? (
+                      <div className="absolute z-20 mt-2 max-h-60 w-full overflow-auto rounded-xl border border-slate-200 bg-white p-1 shadow-lg">
+                        {LANGUAGE_PRESETS.map((preset) => (
+                          <button
+                            key={preset.isoCode}
+                            type="button"
+                            onClick={() => onSelectPreset(preset.isoCode)}
+                            className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition hover:bg-slate-100 ${
+                              addLanguageForm.selectedPreset === preset.isoCode
+                                ? "bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]"
+                                : "text-slate-700"
+                            }`}
+                          >
+                            {preset.flag} {preset.displayName} ({preset.isoCode})
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                </label>
+
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Name
+                  </span>
+                  <input
+                    type="text"
+                    value={addLanguageForm.name}
+                    onChange={(event) =>
+                      setAddLanguageForm((prev) => ({
+                        ...prev,
+                        name: event.target.value,
+                      }))
+                    }
+                    className={`${inputBase} mt-2`}
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    ISO Code
+                  </span>
+                  <input
+                    type="text"
+                    value={addLanguageForm.isoCode}
+                    onChange={(event) =>
+                      setAddLanguageForm((prev) => ({
+                        ...prev,
+                        isoCode: event.target.value,
+                      }))
+                    }
+                    className={`${inputBase} mt-2`}
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Flag
+                  </span>
+                  <input
+                    type="text"
+                    value={addLanguageForm.flag}
+                    onChange={(event) =>
+                      setAddLanguageForm((prev) => ({
+                        ...prev,
+                        flag: event.target.value,
+                      }))
+                    }
+                    className={`${inputBase} mt-2 uppercase`}
+                  />
+                </label>
+
+                <div>
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Published
+                  </span>
+                  <div className="mt-2">
+                    <SegmentedToggle
+                      value={Boolean(addLanguageForm.published)}
+                      onChange={(value) =>
+                        setAddLanguageForm((prev) => ({
+                          ...prev,
+                          published: value,
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                {addLanguageError ? (
+                  <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-600">
+                    {addLanguageError}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="border-t border-slate-200 bg-white px-6 py-4">
+                <div className="flex items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddLanguageOpen(false)}
+                    className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:border-slate-300"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={addLanguageMutation.isPending}
+                    className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--admin-primary)] px-4 text-sm font-semibold text-white hover:bg-[var(--admin-primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {addLanguageMutation.isPending ? "Adding..." : "Add Language"}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </aside>
+        </>
+      ) : null}
+    </div>
+  );
+}
