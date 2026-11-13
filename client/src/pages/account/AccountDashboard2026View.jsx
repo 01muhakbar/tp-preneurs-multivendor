@@ -423,13 +423,13 @@ function QuickAction({ label, value, href, Icon, tone, isId }) {
   );
 }
 
-function RecentOrders({ orders = [], loading, isId }) {
+function RecentOrders({ orders = [], loading, isId, title }) {
   const dict = isId ? DASHBOARD_I18N.id : DASHBOARD_I18N.en;
 
   return (
     <section className="tp-recent-orders" aria-labelledby="tp-recent-orders-title">
       <div className="tp-recent-orders__heading">
-        <h2 id="tp-recent-orders-title">{dict.recentOrders}</h2>
+        <h2 id="tp-recent-orders-title">{title || dict.recentOrders}</h2>
         <Link to="/user/my-orders" className="tp-recent-orders__viewall">
           {dict.viewAllOrders} <ArrowRight aria-hidden="true" />
         </Link>
@@ -503,6 +503,7 @@ function RecentOrders({ orders = [], loading, isId }) {
 
 export default function AccountDashboard2026View({
   user,
+  dashboardSettingCopy = null,
   stats = {},
   recentOrders = [],
   onboarding = {},
@@ -578,11 +579,24 @@ export default function AccountDashboard2026View({
   const dict = isId ? DASHBOARD_I18N.id : DASHBOARD_I18N.en;
   const name = user?.name || user?.fullName || user?.email?.split("@")[0] || "User";
 
+  const totalOrdersLabel =
+    String(dashboardSettingCopy?.dashboard?.totalOrdersLabel || "").trim() || dict.totalOrders;
+  const pendingOrdersLabel =
+    String(dashboardSettingCopy?.dashboard?.pendingOrderValue || "").trim() || dict.pendingOrders;
+  const processingOrdersLabel =
+    String(dashboardSettingCopy?.dashboard?.processingOrderValue || "").trim() || dict.processingOrders;
+  const completedOrdersLabel =
+    String(dashboardSettingCopy?.dashboard?.completeOrderValue || "").trim() || dict.completedOrders;
+  const recentOrdersTitle =
+    String(dashboardSettingCopy?.dashboard?.recentOrderValue || "").trim() || dict.recentOrders;
+  const dashboardTitle =
+    String(dashboardSettingCopy?.dashboard?.sectionTitle || "").trim() || dict.dashboardTitle;
+
   const statCards = [
-    [dict.totalOrders, stats.total, dict.allOrders, ShoppingBag, "navy"],
-    [dict.pendingOrders, stats.pending, dict.awaitingAction, Clock3, "orange"],
-    [dict.processingOrders, stats.processing, dict.inProgress, Truck, "navy-soft"],
-    [dict.completedOrders, stats.completed, dict.done, CheckCircle2, "emerald"],
+    [totalOrdersLabel, stats.total, dict.allOrders, ShoppingBag, "navy"],
+    [pendingOrdersLabel, stats.pending, dict.awaitingAction, Clock3, "orange"],
+    [processingOrdersLabel, stats.processing, dict.inProgress, Truck, "navy-soft"],
+    [completedOrdersLabel, stats.completed, dict.done, CheckCircle2, "emerald"],
   ];
 
   const quickLinks = [
@@ -625,7 +639,7 @@ export default function AccountDashboard2026View({
       {/* Header & Greeting */}
       <header className="tp-account-dashboard-2026__heading">
         <span className="tp-account-dashboard-2026__badge">{dict.overviewTag}</span>
-        <h1>{dict.dashboardTitle}</h1>
+        <h1>{dashboardTitle}</h1>
         <p>{dict.welcome.replace("{{name}}", name)}</p>
       </header>
 
@@ -669,7 +683,12 @@ export default function AccountDashboard2026View({
       </section>
 
       {/* Recent Orders Section */}
-      <RecentOrders orders={recentOrders} loading={isOrdersLoading} isId={isId} />
+      <RecentOrders
+        orders={recentOrders}
+        loading={isOrdersLoading}
+        isId={isId}
+        title={recentOrdersTitle}
+      />
 
       {/* 24/7 Help & Support Banner */}
       <aside className="tp-account-dashboard-2026__help">

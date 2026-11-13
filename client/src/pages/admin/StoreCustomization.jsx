@@ -48,6 +48,7 @@ import StoreCustomizationFaqsSettings2026 from "../../components/admin/store-cus
 import StoreCustomizationContactSettings2026 from "../../components/admin/store-customization/StoreCustomizationContactSettings2026.jsx";
 import StoreCustomizationOffersSettings2026 from "../../components/admin/store-customization/StoreCustomizationOffersSettings2026.jsx";
 import StoreCustomizationSeoSettings2026 from "../../components/admin/store-customization/StoreCustomizationSeoSettings2026.jsx";
+import StoreCustomizationDashboardSettings2026 from "../../components/admin/store-customization/StoreCustomizationDashboardSettings2026.jsx";
 import StoreCustomizationSaveActions2026 from "../../components/admin/store-customization/StoreCustomizationSaveActions2026.jsx";
 import StoreCustomizationTabNav2026 from "../../components/admin/store-customization/StoreCustomizationTabNav2026.jsx";
 
@@ -5093,6 +5094,21 @@ export default function StoreCustomizationPage() {
     });
   };
 
+  const onResetDashboardSetting = () => {
+    const current = queryClient.getQueryData(["admin-store-customization", lang]);
+    const currentCustomization = normalizeCustomizationPayload(
+      unwrapCustomizationEnvelope(current || customizationQuery.data),
+      lang
+    );
+    setDashboardSettingState(currentCustomization.dashboardSetting);
+    setNotice({
+      type: "success",
+      message: isIndo
+        ? "Draf Pengaturan Dasbor berhasil diatur ulang."
+        : "Dashboard settings draft reset.",
+    });
+  };
+
   const onChangeHeaderField = (field, value) => {
     if (field === "whatsAppLink") {
       setWhatsAppLinkServerError("");
@@ -7435,7 +7451,7 @@ export default function StoreCustomizationPage() {
 
   return (
     <div className="mx-auto w-full max-w-[1280px] space-y-5 px-1 sm:px-2">
-      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" || activeTab === "aboutUs" || activeTab === "privacyPolicyTerms" || activeTab === "faqs" || activeTab === "offers" || activeTab === "contactUs" || activeTab === "seoSettings" ? null : (
+      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" || activeTab === "aboutUs" || activeTab === "privacyPolicyTerms" || activeTab === "faqs" || activeTab === "offers" || activeTab === "contactUs" || activeTab === "seoSettings" || activeTab === "dashboardSetting" ? null : (
         <AdminOpsPageHeader
           title="Store Customizations"
           description="Customize storefront sections, labels, and SEO."
@@ -7473,7 +7489,7 @@ export default function StoreCustomizationPage() {
         </div>
       ) : null}
 
-      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" || activeTab === "aboutUs" || activeTab === "privacyPolicyTerms" || activeTab === "faqs" || activeTab === "offers" || activeTab === "contactUs" || activeTab === "seoSettings" ? null : (
+      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" || activeTab === "aboutUs" || activeTab === "privacyPolicyTerms" || activeTab === "faqs" || activeTab === "offers" || activeTab === "contactUs" || activeTab === "seoSettings" || activeTab === "dashboardSetting" ? null : (
         <StoreCustomizationTabNav2026 activeTab={activeTab} onTabChange={onSelectTab} />
       )}
 
@@ -9277,129 +9293,19 @@ export default function StoreCustomizationPage() {
           </section>
         </div>
       ) : activeTab === "dashboardSetting" ? (
-        <div className="flex flex-col gap-5">
-          <section className={sectionCard}>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-                <Settings className="h-4 w-4" />
-              </span>
-              <h2 className="text-base font-semibold text-slate-900">Dashboard</h2>
-            </div>
-            <div className="mt-4 h-px w-full bg-slate-200" />
-            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <label className="block md:col-span-2 xl:col-span-3">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Section Title
-                </span>
-                <input
-                  type="text"
-                  value={dashboardSetting.dashboard.sectionTitle}
-                  onChange={(event) =>
-                    onChangeDashboardSettingField(
-                      "dashboard",
-                      "sectionTitle",
-                      event.target.value
-                    )
-                  }
-                  className={`${inputBase} mt-2`}
-                />
-              </label>
-              {DASHBOARD_SETTING_DASHBOARD_FIELDS.map((field) => (
-                <label key={field.field} className="block">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    {field.label}
-                  </span>
-                  <input
-                    type="text"
-                    value={toText(dashboardSetting.dashboard?.[field.field], "")}
-                    onChange={(event) =>
-                      onChangeDashboardSettingField(
-                        "dashboard",
-                        field.field,
-                        event.target.value
-                      )
-                    }
-                    className={`${inputBase} mt-2`}
-                  />
-                </label>
-              ))}
-            </div>
-          </section>
-
-          <section className={sectionCard}>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-                <Settings className="h-4 w-4" />
-              </span>
-              <h2 className="text-base font-semibold text-slate-900">Update Profile</h2>
-            </div>
-            <div className="mt-4 h-px w-full bg-slate-200" />
-
-            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[220px_1fr]">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  {dashboardSetting.updateProfile.sectionTitleLabel}
-                </p>
-              </div>
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Section Title Value
-                </span>
-                <input
-                  type="text"
-                  value={dashboardSetting.updateProfile.sectionTitleValue}
-                  onChange={(event) =>
-                    onChangeDashboardSettingField(
-                      "updateProfile",
-                      "sectionTitleValue",
-                      event.target.value
-                    )
-                  }
-                  className={`${inputBase} mt-2`}
-                />
-              </label>
-            </div>
-
-            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Section Title Label
-                </span>
-                <input
-                  type="text"
-                  value={dashboardSetting.updateProfile.sectionTitleLabel}
-                  onChange={(event) =>
-                    onChangeDashboardSettingField(
-                      "updateProfile",
-                      "sectionTitleLabel",
-                      event.target.value
-                    )
-                  }
-                  className={`${inputBase} mt-2`}
-                />
-              </label>
-              {DASHBOARD_SETTING_UPDATE_PROFILE_FIELDS.map((field) => (
-                <label key={field.field} className="block">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    {field.label}
-                  </span>
-                  <input
-                    type="text"
-                    value={toText(dashboardSetting.updateProfile?.[field.field], "")}
-                    onChange={(event) =>
-                      onChangeDashboardSettingField(
-                        "updateProfile",
-                        field.field,
-                        event.target.value
-                      )
-                    }
-                    className={`${inputBase} mt-2`}
-                  />
-                </label>
-              ))}
-            </div>
-          </section>
-        </div>
+        <StoreCustomizationDashboardSettings2026
+          activeTab={activeTab}
+          onTabChange={onSelectTab}
+          dashboardSetting={dashboardSetting}
+          onChangeDashboardSettingField={onChangeDashboardSettingField}
+          onSave={onSave}
+          onPublish={onPublish}
+          onReset={onResetDashboardSetting}
+          isSaving={isSaving && !isPublishing}
+          isPublishing={isPublishing}
+          isLoading={isLoadingHeader}
+          meta={customizationMeta}
+        />
       ) : activeTab === "seoSettings" ? (
         <StoreCustomizationSeoSettings2026
           activeTab={activeTab}

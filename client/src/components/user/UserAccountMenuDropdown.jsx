@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { getStoreCustomization } from "../../api/public/storeCustomizationPublic.ts";
 import { normalizeDashboardSettingCopy } from "../../utils/dashboardSettingCopy.js";
 import { useAccountAuth } from "../../auth/authDomainHooks.js";
@@ -18,9 +19,13 @@ export default function UserAccountMenuDropdown({
   triggerLabel = "My account",
 }) {
   const { user } = useAccountAuth();
+  const { i18n } = useTranslation();
+  const isIndo = Boolean(i18n.language?.toLowerCase().startsWith("id"));
+  const langKey = isIndo ? "id" : "en";
+
   const dashboardSettingQuery = useQuery({
-    queryKey: ["store-customization", "dashboard-setting", "en"],
-    queryFn: () => getStoreCustomization({ lang: "en", include: "dashboardSetting" }),
+    queryKey: ["store-customization", "dashboard-setting", langKey],
+    queryFn: () => getStoreCustomization({ lang: langKey, include: "dashboardSetting" }),
     staleTime: 60_000,
   });
   const dashboardSettingCopy = normalizeDashboardSettingCopy(

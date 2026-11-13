@@ -397,12 +397,16 @@ export default function AccountLayout() {
     () => [
       {
         to: "/user/dashboard",
-        label: isId ? "Dashboard" : "Dashboard",
+        label:
+          String(dashboardSettingCopy?.dashboard?.dashboardLabel || "").trim() ||
+          (isId ? "Dasbor" : "Dashboard"),
         Icon: LayoutDashboard,
       },
       {
         to: "/user/my-orders",
-        label: isId ? "Pesanan Saya" : "My Orders",
+        label:
+          String(dashboardSettingCopy?.dashboard?.myOrderValue || "").trim() ||
+          (isId ? "Pesanan Saya" : "My Orders"),
         Icon: ClipboardList,
       },
       {
@@ -428,7 +432,9 @@ export default function AccountLayout() {
       },
       {
         to: "/user/update-profile",
-        label: isId ? "Perbarui Profil" : "Update Profile",
+        label:
+          String(dashboardSettingCopy?.updateProfile?.sectionTitleValue || "").trim() ||
+          (isId ? "Perbarui Profil" : "Update Profile"),
         Icon: User,
       },
       {
@@ -438,11 +444,13 @@ export default function AccountLayout() {
       },
       {
         to: "/user/change-password",
-        label: isId ? "Ubah Kata Sandi" : "Change Password",
+        label:
+          String(dashboardSettingCopy?.updateProfile?.changePasswordLabel || "").trim() ||
+          (isId ? "Ubah Kata Sandi" : "Change Password"),
         Icon: KeyRound,
       },
     ],
-    [isId, unreadCount]
+    [isId, unreadCount, dashboardSettingCopy]
   );
 
   const currentNavItem = useMemo(
