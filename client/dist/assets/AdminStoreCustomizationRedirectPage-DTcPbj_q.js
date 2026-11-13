@@ -1,1 +1,0 @@
-import{a as e,j as o,R as s}from"./index-26TPpQPf.js";function i(){const t=e(),a={pathname:"/admin/store/customization",search:t.search,hash:t.hash};return o.jsx(s,{to:a,replace:!0})}export{i as default};

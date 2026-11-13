@@ -31,7 +31,8 @@ import {
   ShieldCheck,
   ShieldAlert,
   Lock,
-  Star
+  Star,
+  X
 } from "lucide-react";
 import {
   getSellerWorkspaceContext,
@@ -660,14 +661,14 @@ function SellerSidebar({
           Icon: Truck,
           enabled: hasPermission("STORE_VIEW"),
           implemented: true,
-          meta: isId ? "Asal & kesiapan" : (shippingSetupMeta?.message || "Origin & readiness"),
           badge: shippingSetupStatus
             ? {
-                label: isId && shippingSetupStatus.label === "Ready"
-                  ? "Siap"
-                  : isId && shippingSetupStatus.label === "Unavailable"
-                  ? "Tidak Tersedia"
-                  : shippingSetupStatus.label || (isId ? "Tidak Tersedia" : "Unavailable"),
+                label:
+                  isId && shippingSetupStatus.label === "Ready"
+                    ? "Siap"
+                    : isId && shippingSetupStatus.label === "Unavailable"
+                    ? "Tidak Tersedia"
+                    : shippingSetupStatus.label || (isId ? "Tidak Tersedia" : "Unavailable"),
                 tone: shippingSetupStatus.tone || "stone",
               }
             : null,
@@ -783,7 +784,7 @@ function SellerSidebar({
       className={joinClassNames(
         "fixed inset-y-0 left-0 z-50 flex h-screen max-h-screen w-[min(88vw,320px)] shrink-0 flex-col shadow-xl transition-[transform,width] duration-200 lg:sticky lg:top-0 lg:z-20 lg:h-screen lg:max-h-screen lg:self-start lg:translate-x-0 lg:overflow-hidden lg:shadow-none",
         mobileOpen ? "translate-x-0" : "-translate-x-full",
-        isDark ? "border-r border-slate-800 bg-slate-950" : "border-r border-slate-200 bg-slate-50",
+        isDark ? "border-r border-slate-800/90 bg-[#070e18]" : "border-r border-slate-200/90 bg-[#f8fafc]",
         collapsed ? "lg:w-[86px]" : "lg:w-[252px]"
       )}
     >
@@ -794,12 +795,29 @@ function SellerSidebar({
           collapsed ? "px-2.5" : "px-3.5"
         )}
       >
-        <WorkspaceSidebarBrand
-          brandName="TP PRENEURS"
-          workspaceLabel={isId ? "Ruang Kerja Penjual" : "Seller Workspace"}
-          workspaceKey="seller"
-          collapsed={collapsed}
-        />
+        <div className="flex items-center justify-between">
+          <WorkspaceSidebarBrand
+            brandName="TP PRENEURS"
+            workspaceLabel={isId ? "Ruang Kerja Penjual" : "Seller Workspace"}
+            workspaceKey="seller"
+            collapsed={collapsed}
+          />
+          {mobileOpen ? (
+            <button
+              type="button"
+              onClick={onNavigate}
+              className={joinClassNames(
+                "flex h-8 w-8 items-center justify-center rounded-lg border transition lg:hidden",
+                isDark
+                  ? "border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white"
+                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              )}
+              aria-label={isId ? "Tutup navigasi" : "Close navigation"}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
         {collapsed ? (
           <div
             className="mt-2.5 flex justify-center"
@@ -807,10 +825,10 @@ function SellerSidebar({
           >
             <div
               className={joinClassNames(
-                "flex h-9 w-9 items-center justify-center rounded-xl border text-sm font-semibold",
+                "flex h-9 w-9 items-center justify-center rounded-xl border text-sm font-semibold transition",
                 isDark
-                  ? "border-slate-700 bg-slate-900 text-slate-100"
-                  : "border-slate-200 bg-white text-slate-700"
+                  ? "border-[#034c85]/40 bg-[#034c85]/20 text-white"
+                  : "border-[#034c85]/20 bg-[#034c85]/10 text-[#034c85]"
               )}
             >
               {(sellerContext?.store?.name || "S").trim().charAt(0).toUpperCase()}
@@ -819,45 +837,52 @@ function SellerSidebar({
         ) : (
           <div
             className={joinClassNames(
-              "mt-2.5 rounded-xl border px-3 py-2.5",
+              "mt-2.5 flex items-center gap-2.5 rounded-xl border px-3 py-2 transition",
               isDark
-                ? "border-slate-700 bg-slate-900"
-                : "border-slate-200 bg-white"
+                ? "border-slate-800/80 bg-slate-900/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+                : "border-slate-200/90 bg-white shadow-sm"
             )}
           >
-            <p
+            <div
               className={joinClassNames(
-                "text-[10px] font-semibold uppercase tracking-[0.16em]",
-                isDark ? "text-slate-400" : "text-slate-500"
+                "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg font-bold text-xs text-white shadow-sm",
+                isDark
+                  ? "bg-gradient-to-br from-[#034c85] to-[#022c50] ring-1 ring-white/10"
+                  : "bg-gradient-to-br from-[#034c85] to-[#023359] shadow-[#034c85]/15"
               )}
             >
-              {isId ? "Toko Aktif" : "Active Store"}
-            </p>
-            <p
-              className={joinClassNames(
-                "mt-1.5 truncate text-sm font-semibold",
-                isDark ? "text-slate-50" : "text-slate-900"
-              )}
-            >
-              {sellerContext?.store?.name || "Seller Workspace"}
-            </p>
-            <div className="mt-2.5 flex flex-wrap gap-1.5">
-              <SellerWorkspaceBadge
-                label={sellerContext?.store?.slug || "store"}
-                className="!px-2 !py-0.5 !text-[10px]"
-              />
-              <SellerWorkspaceBadge
-                label={sellerContext?.store?.status || "ACTIVE"}
-                tone="emerald"
-                className="!px-2 !py-0.5 !text-[10px]"
-              />
-              {shippingSetupStatus ? (
-                <SellerWorkspaceBadge
-                  label={`Shipping ${shippingSetupStatus.label || "Unavailable"}`}
-                  tone={shippingSetupStatus.tone || "stone"}
-                  className="!px-2 !py-0.5 !text-[10px]"
-                />
-              ) : null}
+              {(sellerContext?.store?.name || "S").trim().charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={joinClassNames(
+                    "truncate text-xs font-semibold leading-tight",
+                    isDark ? "text-slate-100" : "text-slate-900"
+                  )}
+                  title={sellerContext?.store?.name || "Seller Workspace"}
+                >
+                  {sellerContext?.store?.name || "Seller Workspace"}
+                </span>
+                <span
+                  className={joinClassNames(
+                    "inline-flex shrink-0 items-center rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+                    isDark
+                      ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                      : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                  )}
+                >
+                  {isId ? "AKTIF" : "ACTIVE"}
+                </span>
+              </div>
+              <p
+                className={joinClassNames(
+                  "mt-0.5 truncate font-mono text-[10px]",
+                  isDark ? "text-slate-400" : "text-slate-500"
+                )}
+              >
+                @{sellerContext?.store?.slug || "store"}
+              </p>
             </div>
           </div>
         )}
@@ -865,10 +890,10 @@ function SellerSidebar({
 
       <nav
         className={joinClassNames(
-          "flex-1 overflow-y-auto py-2.5",
+          "seller-sidebar-nav flex-1 overflow-y-auto py-2.5",
           collapsed ? "px-1.5" : "px-2.5"
         )}
-        aria-label="Seller sidebar"
+        aria-label={isId ? "Navigasi ruang kerja penjual" : "Seller workspace navigation"}
       >
         {navSections.map((section) => (
           <div key={section.title} className="mb-3 last:mb-0">
@@ -929,7 +954,7 @@ function SellerSidebar({
                               item.children.some((child) => isPathActive(child.to))
                                 ? isDark
                                   ? "!text-white"
-                                  : "text-teal-700"
+                                  : "text-[#034c85]"
                                 : isDark
                                   ? "!text-slate-100"
                                   : "text-slate-700"
@@ -942,9 +967,7 @@ function SellerSidebar({
                           className={joinClassNames(
                             "h-3.5 w-3.5 transition",
                             item.children.some((child) => isPathActive(child.to))
-                              ? isDark
-                                ? "rotate-90 text-emerald-200"
-                                : "rotate-90 text-emerald-600"
+                              ? "rotate-90 text-[#fe6f05]"
                               : isDark
                                 ? "text-slate-400"
                                 : "text-slate-300"
@@ -1017,19 +1040,19 @@ function SellerSidebar({
                       end={item.to === sellerRoutes.home() || item.to === sellerRoutes.catalog()}
                       title={collapsed ? item.label : undefined}
                       onClick={(event) => handleNavLinkClick(event, item.to)}
-                        className={({ isActive }) =>
-                          joinClassNames(
-                            "group relative flex items-center rounded-lg py-1.5 text-[13px] transition",
-                            collapsed ? "justify-center px-1.5" : "gap-2.5 px-2.5",
-                            isActive
-                              ? isDark
+                      className={({ isActive }) =>
+                        joinClassNames(
+                          "group relative flex items-center rounded-lg py-1.5 text-[13px] transition",
+                          collapsed ? "justify-center px-1.5" : "gap-2.5 px-2.5",
+                          isActive
+                            ? isDark
                               ? "bg-[#034c85]/25 text-white shadow-[inset_0_0_0_1px_rgba(3,76,133,0.35)]"
                               : "bg-[#034c85]/10 text-[#034c85] shadow-[inset_0_0_0_1px_rgba(3,76,133,0.15)]"
                             : isDark
                               ? "text-slate-100 hover:bg-slate-800 hover:text-white"
-                              : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                          )
-                        }
+                              : "text-slate-600 hover:bg-slate-100/70 hover:text-slate-900"
+                        )
+                      }
                     >
                       {({ isActive }) => (
                         <>
@@ -1056,48 +1079,43 @@ function SellerSidebar({
                           </span>
                           {collapsed ? null : (
                             <>
-                              <span className="min-w-0 flex-1">
+                              <span className="min-w-0 flex-1 flex items-center justify-between gap-1.5">
                                 <span
                                   className={joinClassNames(
-                                    "block truncate font-semibold",
+                                    "truncate font-semibold",
                                     isActive
                                       ? isDark
                                         ? "!text-white"
-                                        : "text-teal-700"
+                                        : "text-[#034c85]"
                                       : isDark
                                         ? "!text-slate-100"
                                         : "text-slate-700"
                                   )}
-                                  >
-                                    {item.label}
-                                  </span>
-                                  {item.badge ? (
-                                    <span className="mt-1 block">
-                                      <SellerWorkspaceBadge
-                                        label={item.badge.label}
-                                        tone={item.badge.tone}
-                                        className="!px-2 !py-0.5 !text-[10px]"
-                                      />
-                                    </span>
-                                  ) : null}
-                                {item.meta ? (
+                                >
+                                  {item.label}
+                                </span>
+                                {item.badge ? (
                                   <span
                                     className={joinClassNames(
-                                      "block truncate text-[11px]",
-                                      isDark ? "text-slate-400" : "text-slate-400"
+                                      "inline-flex shrink-0 items-center rounded-full px-1.5 py-0.5 text-[9px] font-bold tracking-tight",
+                                      isActive
+                                        ? isDark
+                                          ? "bg-[#fe6f05]/20 text-[#fe6f05] border border-[#fe6f05]/40"
+                                          : "bg-[#fe6f05]/10 text-[#fe6f05] border border-[#fe6f05]/30"
+                                        : isDark
+                                          ? "bg-slate-800 text-slate-300 border border-slate-700"
+                                          : "bg-slate-100 text-slate-600 border border-slate-200"
                                     )}
                                   >
-                                    {item.meta}
+                                    {item.badge.label}
                                   </span>
                                 ) : null}
                               </span>
                               <ChevronRight
                                 className={joinClassNames(
-                                  "h-3.5 w-3.5 transition",
+                                  "h-3.5 w-3.5 shrink-0 transition",
                                   isActive
-                                    ? isDark
-                                      ? "text-emerald-200"
-                                      : "text-emerald-600"
+                                    ? "text-[#fe6f05]"
                                     : isDark
                                       ? "text-slate-400"
                                       : "text-slate-300"
@@ -1135,9 +1153,6 @@ function SellerSidebar({
                       <>
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-[13px] font-semibold">{item.label}</span>
-                          {item.meta ? (
-                            <span className="block truncate text-[11px] text-slate-400">{item.meta}</span>
-                          ) : null}
                         </span>
                         <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
                           Soon
@@ -1167,8 +1182,8 @@ function SellerSidebar({
             "inline-flex w-full items-center justify-center rounded-lg border text-sm font-semibold transition",
             collapsed ? "h-10 px-0" : "h-9 gap-2 px-3",
             isDark
-              ? "border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
-              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+              ? "border-slate-800 bg-slate-900 text-slate-300 hover:border-rose-900/50 hover:bg-rose-950/20 hover:text-rose-400"
+              : "border-slate-200 bg-white text-slate-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
           )}
         >
           <LogOut className="h-4 w-4" />
@@ -1676,10 +1691,27 @@ export default function SellerLayout() {
         <header className="navbar">
           <div className="navbar__left">
             <button
-              className={`navbar__menu ${sidebarCollapsed ? "is-active" : ""}`}
-              aria-label={mobileSidebarOpen ? "Close seller navigation" : "Open seller navigation"}
-              aria-expanded={mobileSidebarOpen}
+              className={`navbar__menu ${sidebarCollapsed || mobileSidebarOpen ? "is-active" : ""}`}
+              aria-label={
+                mobileSidebarOpen
+                  ? isId
+                    ? "Tutup navigasi penjual"
+                    : "Close seller navigation"
+                  : isId
+                    ? "Buka navigasi penjual"
+                    : "Open seller navigation"
+              }
+              aria-expanded={mobileSidebarOpen || !sidebarCollapsed}
               aria-pressed={sidebarCollapsed}
+              title={
+                isId
+                  ? sidebarCollapsed
+                    ? "Buka bilah samping"
+                    : "Ciutkan bilah samping"
+                  : sidebarCollapsed
+                    ? "Expand sidebar"
+                    : "Collapse sidebar"
+              }
               type="button"
               onClick={handleSidebarToggle}
             >

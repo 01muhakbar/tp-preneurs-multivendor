@@ -25,9 +25,9 @@
 }
 
 .navbar__menu {
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   border: 1px solid var(--admin-border, #dbe4ee);
   background: var(--admin-surface, #ffffff);
   color: var(--admin-muted, #64748b);
@@ -39,26 +39,87 @@
     border-color 160ms ease,
     background-color 160ms ease,
     box-shadow 160ms ease,
-    color 160ms ease;
+    color 160ms ease,
+    transform 160ms ease;
 }
 
 .navbar__menu-icon {
-  width: 16px;
-  height: 16px;
-  stroke-width: 1.9;
+  width: 17px;
+  height: 17px;
+  stroke-width: 2;
 }
 
 .navbar__menu:hover {
-  border-color: #cbd5e1;
-  background: #f8fafc;
-  color: #475569;
+  border-color: rgba(3, 76, 133, 0.4);
+  background: rgba(3, 76, 133, 0.05);
+  color: #034c85;
 }
 
 .navbar__menu.is-active {
-  border-color: rgb(var(--tp-primary-rgb) / 0.22);
-  background: var(--admin-primary-soft, #ecfdf5);
-  color: var(--admin-primary, #047857);
-  box-shadow: 0 0 0 2px rgb(var(--tp-primary-rgb) / 0.12);
+  border-color: #034c85;
+  background: rgba(3, 76, 133, 0.1);
+  color: #034c85;
+  box-shadow: 0 0 0 2px rgba(3, 76, 133, 0.18);
+}
+
+.dark .navbar__menu,
+[data-seller-theme="dark"] .navbar__menu {
+  border-color: #334155;
+  background: #0f172a;
+  color: #94a3b8;
+}
+
+.dark .navbar__menu:hover,
+[data-seller-theme="dark"] .navbar__menu:hover {
+  border-color: rgba(3, 76, 133, 0.6);
+  background: rgba(3, 76, 133, 0.25);
+  color: #ffffff;
+}
+
+.dark .navbar__menu.is-active,
+[data-seller-theme="dark"] .navbar__menu.is-active {
+  border-color: #034c85;
+  background: rgba(3, 76, 133, 0.35);
+  color: #ffffff;
+  box-shadow: 0 0 0 2px rgba(254, 111, 5, 0.35);
+}
+
+/* Sleek custom scrollbar for seller sidebar menu */
+.seller-sidebar-nav {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(3, 76, 133, 0.2) transparent;
+}
+
+.seller-sidebar-nav::-webkit-scrollbar {
+  width: 5px;
+}
+
+.seller-sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.seller-sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(3, 76, 133, 0.2);
+  border-radius: 9999px;
+}
+
+.seller-sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: #fe6f05;
+}
+
+.dark .seller-sidebar-nav,
+[data-seller-theme="dark"] .seller-sidebar-nav {
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.dark .seller-sidebar-nav::-webkit-scrollbar-thumb,
+[data-seller-theme="dark"] .seller-sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.dark .seller-sidebar-nav::-webkit-scrollbar-thumb:hover,
+[data-seller-theme="dark"] .seller-sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: #fe6f05;
 }
 
 .navbar__actions {
