@@ -43,6 +43,7 @@ import StoreCustomizationHomeSettings2026 from "../../components/admin/store-cus
 import StoreCustomizationSingleSetting2026 from "../../components/admin/store-customization/StoreCustomizationSingleSetting2026.jsx";
 import StoreCustomizationShopSettings2026 from "../../components/admin/store-customization/StoreCustomizationShopSettings2026.jsx";
 import StoreCustomizationAboutUsSettings2026 from "../../components/admin/store-customization/StoreCustomizationAboutUsSettings2026.jsx";
+import StoreCustomizationPrivacyTermsSettings2026 from "../../components/admin/store-customization/StoreCustomizationPrivacyTermsSettings2026.jsx";
 import StoreCustomizationSaveActions2026 from "../../components/admin/store-customization/StoreCustomizationSaveActions2026.jsx";
 import StoreCustomizationTabNav2026 from "../../components/admin/store-customization/StoreCustomizationTabNav2026.jsx";
 
@@ -5015,6 +5016,20 @@ export default function StoreCustomizationPage() {
     });
   };
 
+  const onResetPrivacyTermsSetting = () => {
+    const current = queryClient.getQueryData(["admin-store-customization", lang]);
+    const currentCustomization = normalizeCustomizationPayload(
+      unwrapCustomizationEnvelope(current || customizationQuery.data),
+      lang
+    );
+    setPrivacyPolicyState(currentCustomization.privacyPolicy);
+    setTermsAndConditionsState(currentCustomization.termsAndConditions);
+    setNotice({
+      type: "success",
+      message: isIndo ? "Draf Kebijakan Privasi & Syarat Ketentuan berhasil diatur ulang." : "Privacy Policy & Terms draft reset.",
+    });
+  };
+
   const onChangeHeaderField = (field, value) => {
     if (field === "whatsAppLink") {
       setWhatsAppLinkServerError("");
@@ -7357,7 +7372,7 @@ export default function StoreCustomizationPage() {
 
   return (
     <div className="mx-auto w-full max-w-[1280px] space-y-5 px-1 sm:px-2">
-      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" || activeTab === "aboutUs" ? null : (
+      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" || activeTab === "aboutUs" || activeTab === "privacyPolicyTerms" ? null : (
         <AdminOpsPageHeader
           title="Store Customizations"
           description="Customize storefront sections, labels, and SEO."
@@ -7395,7 +7410,7 @@ export default function StoreCustomizationPage() {
         </div>
       ) : null}
 
-      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" || activeTab === "aboutUs" ? null : (
+      {activeTab === "home" || activeTab === "productSlugPage" || activeTab === "shop" || activeTab === "aboutUs" || activeTab === "privacyPolicyTerms" ? null : (
         <StoreCustomizationTabNav2026 activeTab={activeTab} onTabChange={onSelectTab} />
       )}
 
@@ -7494,160 +7509,26 @@ export default function StoreCustomizationPage() {
             isLoading={isLoadingHeader}
           />
       ) : activeTab === "privacyPolicyTerms" ? (
-        <div className="flex flex-col gap-5">
-          <section className={sectionCard}>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                <Settings className="h-4 w-4" />
-              </span>
-              <h2 className="text-base font-semibold text-slate-900 dark:text-white">Privacy Policy</h2>
-            </div>
-            <div className="mt-4 h-px w-full bg-slate-200 dark:bg-slate-700/50" />
-
-            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[320px_1fr]">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3 dark:border-slate-800 dark:bg-slate-900/60">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">
-                  Enable This Block
-                </p>
-                <SegmentedToggle
-                  value={Boolean(privacyPolicy.enabled)}
-                  onChange={(value) => onChangePolicyEnabled("privacyPolicy", value)}
-                />
-              </div>
-              <ImageUploadField
-                id="privacy-policy-background-image-input"
-                label="Page Header Background"
-                error={policyImageErrors[POLICY_IMAGE_FIELD_KEYS.privacyPolicyBackground]}
-                dropActive={Boolean(
-                  policyDropActive[POLICY_IMAGE_FIELD_KEYS.privacyPolicyBackground]
-                )}
-                onDropActiveChange={(value) =>
-                  setPolicyDropActiveField(
-                    POLICY_IMAGE_FIELD_KEYS.privacyPolicyBackground,
-                    value
-                  )
-                }
-                onInputChange={(event) =>
-                  onPolicyImageInputChange(
-                    POLICY_IMAGE_FIELD_KEYS.privacyPolicyBackground,
-                    event
-                  )
-                }
-                onDrop={(event) =>
-                  onDropPolicyImage(POLICY_IMAGE_FIELD_KEYS.privacyPolicyBackground, event)
-                }
-                previewDataUrl={privacyPolicy.pageHeaderBackgroundDataUrl}
-                onRemove={() =>
-                  onRemovePolicyImage(POLICY_IMAGE_FIELD_KEYS.privacyPolicyBackground)
-                }
-                previewAlt="Privacy policy page header background"
-              />
-              <label className="block xl:col-span-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Page Title
-                </span>
-                <input
-                  type="text"
-                  value={privacyPolicy.pageTitle}
-                  onChange={(event) =>
-                    onChangePolicyField("privacyPolicy", "pageTitle", event.target.value)
-                  }
-                  className={`${inputBase} mt-2`}
-                />
-              </label>
-              <div className="xl:col-span-2">
-                <RichTextEditor
-                  id="privacy-policy-page-text-editor"
-                  label="Page Text"
-                  value={privacyPolicy.pageTextHtml}
-                  onChange={(nextValue) =>
-                    onChangePolicyField("privacyPolicy", "pageTextHtml", nextValue)
-                  }
-                />
-              </div>
-            </div>
-          </section>
-
-          <section className={sectionCard}>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                <Settings className="h-4 w-4" />
-              </span>
-              <h2 className="text-base font-semibold text-slate-900 dark:text-white">
-                Terms & Conditions
-              </h2>
-            </div>
-            <div className="mt-4 h-px w-full bg-slate-200 dark:bg-slate-700/50" />
-
-            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[320px_1fr]">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3 dark:border-slate-800 dark:bg-slate-900/60">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">
-                  Enable This Block
-                </p>
-                <SegmentedToggle
-                  value={Boolean(termsAndConditions.enabled)}
-                  onChange={(value) => onChangePolicyEnabled("termsAndConditions", value)}
-                />
-              </div>
-              <ImageUploadField
-                id="terms-and-conditions-background-image-input"
-                label="Page Header Background"
-                error={
-                  policyImageErrors[POLICY_IMAGE_FIELD_KEYS.termsAndConditionsBackground]
-                }
-                dropActive={Boolean(
-                  policyDropActive[POLICY_IMAGE_FIELD_KEYS.termsAndConditionsBackground]
-                )}
-                onDropActiveChange={(value) =>
-                  setPolicyDropActiveField(
-                    POLICY_IMAGE_FIELD_KEYS.termsAndConditionsBackground,
-                    value
-                  )
-                }
-                onInputChange={(event) =>
-                  onPolicyImageInputChange(
-                    POLICY_IMAGE_FIELD_KEYS.termsAndConditionsBackground,
-                    event
-                  )
-                }
-                onDrop={(event) =>
-                  onDropPolicyImage(
-                    POLICY_IMAGE_FIELD_KEYS.termsAndConditionsBackground,
-                    event
-                  )
-                }
-                previewDataUrl={termsAndConditions.pageHeaderBackgroundDataUrl}
-                onRemove={() =>
-                  onRemovePolicyImage(POLICY_IMAGE_FIELD_KEYS.termsAndConditionsBackground)
-                }
-                previewAlt="Terms and conditions page header background"
-              />
-              <label className="block xl:col-span-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Page Title
-                </span>
-                <input
-                  type="text"
-                  value={termsAndConditions.pageTitle}
-                  onChange={(event) =>
-                    onChangePolicyField("termsAndConditions", "pageTitle", event.target.value)
-                  }
-                  className={`${inputBase} mt-2`}
-                />
-              </label>
-              <div className="xl:col-span-2">
-                <RichTextEditor
-                  id="terms-and-conditions-page-text-editor"
-                  label="Page Text"
-                  value={termsAndConditions.pageTextHtml}
-                  onChange={(nextValue) =>
-                    onChangePolicyField("termsAndConditions", "pageTextHtml", nextValue)
-                  }
-                />
-              </div>
-            </div>
-          </section>
-        </div>
+        <StoreCustomizationPrivacyTermsSettings2026
+          privacyPolicy={privacyPolicy}
+          termsAndConditions={termsAndConditions}
+          activeTab={activeTab}
+          onTabChange={onSelectTab}
+          onChangePolicy={onChangePolicyField}
+          onSave={onSave}
+          onPublish={onPublish}
+          onReset={onResetPrivacyTermsSetting}
+          onPreview={onPreviewStorefront}
+          isSaving={isSaving && !isPublishing}
+          isPublishing={isPublishing}
+          meta={customizationMeta}
+          language={lang}
+          languages={publishedLanguages}
+          onLanguageChange={(nextLanguage) =>
+            setLang(String(nextLanguage || "en").toLowerCase())
+          }
+          isLoading={isLoadingHeader}
+        />
       ) : activeTab === "faqs" ? (
         <div className="flex flex-col gap-5">
           <section className={sectionCard}>
