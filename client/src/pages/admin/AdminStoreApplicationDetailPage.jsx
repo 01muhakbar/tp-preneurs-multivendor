@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
 import {
   AlertTriangle,
@@ -33,7 +34,12 @@ const text = (value, fallback = DASH) => {
   return normalized || fallback;
 };
 
-const boolText = (value) => (value === true ? "Yes" : value === false ? "No" : DASH);
+const boolText = (value, isId) =>
+  value === true
+    ? (isId ? "Ya" : "Yes")
+    : value === false
+      ? (isId ? "Tidak" : "No")
+      : (isId ? "Belum diatur" : DASH);
 
 const unwrapApplication = (payload) =>
   payload?.data?.data ||
@@ -50,7 +56,7 @@ const unwrapApplication = (payload) =>
 const firstObject = (...values) =>
   values.find((value) => value && typeof value === "object" && !Array.isArray(value)) || {};
 
-const getCompleteness = (application) => {
+const getCompleteness = (application, isId) => {
   const source = firstObject(
     application?.completeness,
     application?.workflowSummary?.completeness
@@ -71,20 +77,20 @@ const getCompleteness = (application) => {
     completed: Number.isFinite(completed) ? completed : 0,
     total: Number.isFinite(total) ? total : 0,
     percent: Math.max(0, Math.min(100, Number.isFinite(percent) ? percent : 0)),
-    label: source.label || (total > 0 && completed >= total ? "Ready" : "Needs completion"),
+    label: source.label || (total > 0 && completed >= total ? (isId ? "Lengkap" : "Ready") : (isId ? "Belum Lengkap" : "Needs completion")),
   };
 };
 
-const getStatusLabel = (status) => {
+const getStatusLabel = (status, isId) => {
   const normalized = String(status || "draft").toLowerCase();
   const labels = {
-    draft: "Draft",
-    submitted: "Submitted",
-    under_review: "In Review",
-    revision_requested: "Needs Revision",
-    approved: "Approved",
-    rejected: "Rejected",
-    cancelled: "Cancelled",
+    draft: isId ? "Draf" : "Draft",
+    submitted: isId ? "Diajukan" : "Submitted",
+    under_review: isId ? "Ditinjau" : "In Review",
+    revision_requested: isId ? "Perlu Revisi" : "Needs Revision",
+    approved: isId ? "Disetujui" : "Approved",
+    rejected: isId ? "Ditolak" : "Rejected",
+    cancelled: isId ? "Dibatalkan" : "Cancelled",
   };
   return labels[normalized] || text(status);
 };
@@ -98,22 +104,22 @@ const getStatusTone = (status) => {
   return "neutral";
 };
 
-const formatDate = (value) => {
+const formatDate = (value, isId) => {
   if (!value) return DASH;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return DASH;
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat(isId ? "id-ID" : "en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
   }).format(date);
 };
 
-const formatTime = (value) => {
+const formatTime = (value, isId) => {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat(isId ? "id-ID" : "en-US", {
     hour: "numeric",
     minute: "2-digit",
   }).format(date);
@@ -125,7 +131,7 @@ const getMatchValue = (fields, key) => {
   return found.matched;
 };
 
-const normalizeDetail = (payload, fallbackId) => {
+const normalizeDetail = (payload, fallbackId, isId) => {
   const application = unwrapApplication(payload);
   if (!application) return null;
 
@@ -167,21 +173,32 @@ const normalizeDetail = (payload, fallbackId) => {
   const activation = firstObject(workflow.activation, application.activation);
   const identityMatch = firstObject(applicant.identityMatch, application.identityMatch);
   const matchFields = Array.isArray(identityMatch.fields) ? identityMatch.fields : [];
-  const completeness = getCompleteness(application);
+  const completeness = getCompleteness(application, isId);
 
   const status = text(application.status || workflow.applicationStatus || "draft", "draft").toLowerCase();
   const currentStep = firstObject(application.currentStepMeta, workflow.currentStepMeta);
   const actionGovernance = firstObject(workflow.actionGovernance, application.actionGovernance);
 
+  // Parse match status concisely
+  const rawMatchSummary = String(identityMatch.summaryLabel || application.identityMatchLabel || "").toLowerCase();
+  let matchSummary = isId ? "Cocok Sebagian" : "Partial Match";
+  if (rawMatchSummary.includes("exact") || rawMatchSummary.includes("full") || rawMatchSummary.includes("all match")) {
+    matchSummary = isId ? "Cocok Penuh" : "Full Match";
+  } else if (rawMatchSummary.includes("mismatch") || rawMatchSummary.includes("no match")) {
+    matchSummary = isId ? "Tidak Cocok" : "Mismatch";
+  } else if (!rawMatchSummary) {
+    matchSummary = isId ? "Belum Verifikasi" : "Unverified";
+  }
+
   return {
     id: application.id || fallbackId,
     status,
-    statusLabel: application.statusMeta?.label || getStatusLabel(status),
-    stepLabel: currentStep.label || text(application.currentStep || workflow.currentStep, "Review"),
+    statusLabel: getStatusLabel(status, isId),
+    stepLabel: currentStep.label || text(application.currentStep || workflow.currentStep, isId ? "Peninjauan" : "Review"),
     submittedAt: application.submittedAt || workflow.submittedAt,
     reviewedAt: application.reviewedAt || workflow.reviewedAt,
     reviewer: {
-      name: reviewer.name || workflow.reviewedBy?.name || DASH,
+      name: reviewer.name || workflow.reviewedBy?.name || (isId ? "Belum Ditinjau" : DASH),
       email: reviewer.email || workflow.reviewedBy?.email || null,
     },
     actionGovernance,
@@ -198,7 +215,7 @@ const normalizeDetail = (payload, fallbackId) => {
     identity: {
       number: ownerIdentity.identityNumber,
       birthDate: ownerIdentity.birthDate,
-      type: ownerIdentity.identityType,
+      type: ownerIdentity.identityType || "KTP",
       idName: ownerIdentity.fullName,
       legalName: ownerIdentity.identityLegalName || ownerIdentity.legalName,
       residentialAddress: ownerIdentity.residentialAddress,
@@ -213,7 +230,7 @@ const normalizeDetail = (payload, fallbackId) => {
         .join(", "),
     },
     identityMatch: {
-      summary: identityMatch.summaryLabel || application.identityMatchLabel || "Partial Match",
+      summary: matchSummary,
       name: getMatchValue(matchFields, "name"),
       email: getMatchValue(matchFields, "email"),
       phone: getMatchValue(matchFields, "phone"),
@@ -323,12 +340,12 @@ function Section({ title, subtitle, children, className = "" }) {
   );
 }
 
-function FieldGrid({ fields, columns = "auto" }) {
+function FieldGrid({ fields, columns = "2", isId }) {
   return (
     <div className={`asad-field-grid asad-field-grid--${columns}`}>
       {fields.map((field) => {
-        const valText = text(field.value);
-        const isEmpty = valText === DASH || !field.value;
+        const valText = text(field.value, isId ? "Belum diatur" : DASH);
+        const isEmpty = valText === DASH || valText === (isId ? "Belum diatur" : DASH) || !field.value;
         return (
           <div
             key={field.label}
@@ -343,7 +360,7 @@ function FieldGrid({ fields, columns = "auto" }) {
   );
 }
 
-function MatchTile({ label, value }) {
+function MatchTile({ label, value, isId }) {
   const isMatch = value === true;
   const isMismatch = value === false;
   return (
@@ -351,35 +368,41 @@ function MatchTile({ label, value }) {
       {isMismatch ? <AlertTriangle size={15} /> : <CheckCircle2 size={15} />}
       <div>
         <span>{label}</span>
-        <strong>{isMismatch ? "Mismatch" : isMatch ? "Match" : DASH}</strong>
+        <strong>
+          {isMismatch
+            ? (isId ? "Tidak Cocok" : "Mismatch")
+            : isMatch
+              ? (isId ? "Cocok" : "Match")
+              : (isId ? "Belum diatur" : DASH)}
+        </strong>
       </div>
     </div>
   );
 }
 
-function LoadingState() {
+function LoadingState({ isId }) {
   return (
     <div className="asad-page">
       <div className="asad-loading-card">
         <span className="asad-spinner" />
-        <strong>Loading application</strong>
+        <strong>{isId ? "Memuat pengajuan toko..." : "Loading application..."}</strong>
       </div>
     </div>
   );
 }
 
-function ErrorState({ message, onRetry }) {
+function ErrorState({ message, onRetry, isId }) {
   return (
     <div className="asad-page">
       <div className="asad-error-card">
-        <h1>Application unavailable</h1>
+        <h1>{isId ? "Pengajuan Tidak Tersedia" : "Application unavailable"}</h1>
         <p>{message}</p>
-        <div>
+        <div style={{ display: "flex", gap: "10px" }}>
           <Link to="/admin/store/applications" className="asad-secondary-button">
-            Back to Queue
+            {isId ? "Kembali ke Antrean" : "Back to Queue"}
           </Link>
           <button type="button" className="asad-primary-button" onClick={onRetry}>
-            Retry
+            {isId ? "Coba Lagi" : "Retry"}
           </button>
         </div>
       </div>
@@ -388,6 +411,8 @@ function ErrorState({ message, onRetry }) {
 }
 
 export default function AdminStoreApplicationDetailPage() {
+  const { i18n } = useTranslation("admin");
+  const isId = String(i18n.language || "").toLowerCase().startsWith("id");
   const params = useParams();
   const applicationId = params.applicationId || params.id;
   const numericId = Number(applicationId);
@@ -410,8 +435,8 @@ export default function AdminStoreApplicationDetailPage() {
   });
 
   const detail = useMemo(
-    () => normalizeDetail(detailQuery.data, applicationId),
-    [applicationId, detailQuery.data]
+    () => normalizeDetail(detailQuery.data, applicationId, isId),
+    [applicationId, detailQuery.data, isId]
   );
 
   const invalidateApplications = async () => {
@@ -429,12 +454,12 @@ export default function AdminStoreApplicationDetailPage() {
         internalAdminNote: approveInternalNote || null,
       }),
     onSuccess: async () => {
-      toast.success("Application approved");
+      toast.success(isId ? "Pengajuan toko berhasil disetujui." : "Application approved successfully.");
       setActiveAction("");
       await invalidateApplications();
     },
     onError: (error) =>
-      toast.error(error?.response?.data?.message || error?.message || "Failed to approve application."),
+      toast.error(error?.response?.data?.message || error?.message || (isId ? "Gagal menyetujui pengajuan." : "Failed to approve application.")),
   });
 
   const revisionMutation = useMutation({
@@ -445,12 +470,12 @@ export default function AdminStoreApplicationDetailPage() {
         internalAdminNote: revisionInternalNote || null,
       }),
     onSuccess: async () => {
-      toast.success("Revision requested");
+      toast.success(isId ? "Permintaan revisi berhasil dikirim." : "Revision requested successfully.");
       setActiveAction("");
       await invalidateApplications();
     },
     onError: (error) =>
-      toast.error(error?.response?.data?.message || error?.message || "Failed to request revision."),
+      toast.error(error?.response?.data?.message || error?.message || (isId ? "Gagal meminta revisi." : "Failed to request revision.")),
   });
 
   const rejectMutation = useMutation({
@@ -460,12 +485,12 @@ export default function AdminStoreApplicationDetailPage() {
         internalAdminNote: rejectInternalNote || null,
       }),
     onSuccess: async () => {
-      toast.success("Application rejected");
+      toast.success(isId ? "Pengajuan toko berhasil ditolak." : "Application rejected successfully.");
       setActiveAction("");
       await invalidateApplications();
     },
     onError: (error) =>
-      toast.error(error?.response?.data?.message || error?.message || "Failed to reject application."),
+      toast.error(error?.response?.data?.message || error?.message || (isId ? "Gagal menolak pengajuan." : "Failed to reject application.")),
   });
 
   const isBusy =
@@ -474,13 +499,14 @@ export default function AdminStoreApplicationDetailPage() {
   if (isInvalidId) {
     return (
       <ErrorState
-        message={`Invalid store application ID "${applicationId}". Application ID must be a positive integer.`}
+        message={isId ? `ID pengajuan "${applicationId}" tidak valid.` : `Invalid store application ID "${applicationId}".`}
         onRetry={() => {}}
+        isId={isId}
       />
     );
   }
 
-  if (detailQuery.isLoading) return <LoadingState />;
+  if (detailQuery.isLoading) return <LoadingState isId={isId} />;
 
   if (detailQuery.isError || !detail) {
     return (
@@ -488,9 +514,10 @@ export default function AdminStoreApplicationDetailPage() {
         message={
           detailQuery.error?.response?.data?.message ||
           detailQuery.error?.message ||
-          "Failed to load store application detail."
+          (isId ? "Gagal memuat rincian pengajuan toko." : "Failed to load store application detail.")
         }
         onRetry={() => detailQuery.refetch()}
+        isId={isId}
       />
     );
   }
@@ -510,202 +537,246 @@ export default function AdminStoreApplicationDetailPage() {
       <header className="asad-header">
         <div>
           <nav className="asad-breadcrumb" aria-label="Breadcrumb">
-            <span>Online Store</span>
+            <Link to="/admin">{isId ? "Toko Online" : "Online Store"}</Link>
             <span>/</span>
-            <span>Store Applications</span>
+            <Link to="/admin/store/applications">{isId ? "Pengajuan Toko" : "Store Applications"}</Link>
+            <span>/</span>
+            <span>#{detail.id}</span>
           </nav>
-          <h1>Store Application #{detail.id}</h1>
+          <h1>
+            {isId ? "Pengajuan Toko #" : "Store Application #"}
+            {detail.id}
+          </h1>
           <div className="asad-pills">
             <Pill tone={statusTone}>{detail.statusLabel}</Pill>
             <Pill tone={publicStatus ? "blue" : "neutral"}>
-              {publicStatus ? "Public" : "Not Public"}
+              {publicStatus ? (isId ? "Publik" : "Public") : (isId ? "Belum Publik" : "Not Public")}
             </Pill>
-            {hasReviewAction ? <Pill tone="orange">Action Needed</Pill> : <Pill tone="blue">Reviewed</Pill>}
+            {hasReviewAction ? (
+              <Pill tone="orange">{isId ? "Perlu Tindakan" : "Action Needed"}</Pill>
+            ) : (
+              <Pill tone="blue">{isId ? "Selesai Ditinjau" : "Reviewed"}</Pill>
+            )}
           </div>
         </div>
         <div className="asad-header__actions">
           <Link to="/admin/store/applications" className="asad-secondary-button">
             <ArrowLeft size={16} aria-hidden="true" />
-            Back to Queue
+            {isId ? "Kembali ke Antrean" : "Back to Queue"}
           </Link>
           <button
             type="button"
             className="asad-primary-button"
             onClick={() => reviewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
           >
-            Review Application
+            {isId ? "Tinjau Pengajuan" : "Review Application"}
           </button>
         </div>
       </header>
 
-      <section className="asad-summary-grid" aria-label="Application summary">
-        <SummaryCard icon={FileText} label="Status" value={detail.statusLabel} tone={statusTone} />
-        <SummaryCard icon={GitBranch} label="Step" value={detail.stepLabel} tone="blue" />
+      {/* Summary KPI Grid */}
+      <section className="asad-summary-grid" aria-label={isId ? "Ringkasan pengajuan" : "Application summary"}>
+        <SummaryCard
+          icon={FileText}
+          label={isId ? "Status" : "Status"}
+          value={detail.statusLabel}
+          tone={statusTone}
+        />
+        <SummaryCard
+          icon={GitBranch}
+          label={isId ? "Tahap" : "Step"}
+          value={detail.stepLabel}
+          tone="blue"
+        />
         <SummaryCard
           icon={CheckCircle2}
-          label="Completeness"
+          label={isId ? "Kelengkapan" : "Completeness"}
           value={`${detail.completeness.completed}/${detail.completeness.total}`}
-          helper={`${detail.completeness.percent}% complete`}
+          helper={`${detail.completeness.percent}% ${isId ? "selesai" : "complete"}`}
           tone="orange"
           progress={detail.completeness.percent}
         />
         <SummaryCard
           icon={CalendarDays}
-          label="Submitted"
-          value={formatDate(detail.submittedAt)}
-          helper={formatTime(detail.submittedAt)}
+          label={isId ? "Diajukan" : "Submitted"}
+          value={formatDate(detail.submittedAt, isId)}
+          helper={formatTime(detail.submittedAt, isId)}
           tone="blue"
         />
-        <SummaryCard icon={UserRound} label="Reviewer" value={text(detail.reviewer.name)} tone="neutral" />
+        <SummaryCard
+          icon={UserRound}
+          label={isId ? "Peninjau" : "Reviewer"}
+          value={text(detail.reviewer.name)}
+          tone="neutral"
+        />
         <SummaryCard
           icon={ShieldCheck}
-          label="Identity Match"
-          value={text(detail.identityMatch.summary)}
+          label={isId ? "Kecocokan Identitas" : "Identity Match"}
+          value={detail.identityMatch.summary}
+          helper={isId ? "Verifikasi KTP & Akun" : "KYC & Account data"}
           tone="orange"
         />
       </section>
 
+      {/* 2-Column Main Layout Grid */}
       <main className="asad-main-grid">
-        <Section title="Store Readiness">
-          <div className="asad-readiness-grid">
-            <ReadinessItem
-              icon={Globe2}
-              label="Store Visibility"
-              value={publicStatus ? "Public" : "Not Public"}
-              isReady={publicStatus}
-            />
-            <ReadinessItem
-              icon={Database}
-              label="Provisioned Store"
-              value={boolText(provisionedStore)}
-              isReady={provisionedStore}
-            />
-            <ReadinessItem
-              icon={UsersRound}
-              label="Owner Access"
-              value={ownerAccess ? "Ready" : "Not Ready"}
-              isReady={ownerAccess}
-            />
-            <ReadinessItem
-              icon={UserRound}
-              label="Seller Access"
-              value={sellerAccess ? "Ready" : "Not Ready"}
-              isReady={sellerAccess}
-            />
-          </div>
-          <div className="asad-notice">
-            <AlertTriangle size={15} aria-hidden="true" />
-            <span>Approval provisions store workspace & seller access.</span>
-          </div>
-        </Section>
+        {/* Left Column: Store Readiness & Applicant Identity */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+          <Section title={isId ? "Kesiapan Toko" : "Store Readiness"}>
+            <div className="asad-readiness-grid">
+              <ReadinessItem
+                icon={Globe2}
+                label={isId ? "Visibilitas Toko" : "Store Visibility"}
+                value={publicStatus ? (isId ? "Publik" : "Public") : (isId ? "Belum Publik" : "Not Public")}
+                isReady={publicStatus}
+              />
+              <ReadinessItem
+                icon={Database}
+                label={isId ? "Toko Tersedia" : "Provisioned Store"}
+                value={boolText(provisionedStore, isId)}
+                isReady={provisionedStore}
+              />
+              <ReadinessItem
+                icon={UsersRound}
+                label={isId ? "Akses Pemilik" : "Owner Access"}
+                value={ownerAccess ? (isId ? "Siap" : "Ready") : (isId ? "Belum Siap" : "Not Ready")}
+                isReady={ownerAccess}
+              />
+              <ReadinessItem
+                icon={UserRound}
+                label={isId ? "Akses Penjual" : "Seller Access"}
+                value={sellerAccess ? (isId ? "Siap" : "Ready") : (isId ? "Belum Siap" : "Not Ready")}
+                isReady={sellerAccess}
+              />
+            </div>
+            <div className="asad-notice">
+              <AlertTriangle size={15} aria-hidden="true" />
+              <span>
+                {isId
+                  ? "Persetujuan akan mengaktifkan ruang kerja toko dan akses penjual."
+                  : "Approval provisions store workspace & seller access."}
+              </span>
+            </div>
+          </Section>
 
-        <Section title="Applicant Identity">
-          <FieldGrid
-            fields={[
-              { label: "User ID", value: detail.applicant.userId },
-              { label: "Account Name", value: detail.applicant.name },
-              { label: "Account Email", value: detail.applicant.email },
-              { label: "Mobile / Phone", value: detail.applicant.phone },
-              { label: "Account Role", value: detail.applicant.role },
-              { label: "Account Status", value: detail.applicant.status },
-              { label: "ID Number", value: detail.identity.number },
-              { label: "Birth Date", value: detail.identity.birthDate },
-              { label: "ID Type", value: detail.identity.type },
-              { label: "ID Name", value: detail.identity.idName },
-              { label: "Legal Name", value: detail.identity.legalName },
-              { label: "Residential Address", value: detail.identity.residentialAddress, wide: true },
-              { label: "Residential Region", value: detail.identity.region, wide: true },
-            ]}
-          />
-          <div className="asad-match-grid">
-            <MatchTile label="Name Match" value={detail.identityMatch.name} />
-            <MatchTile label="Email Match" value={detail.identityMatch.email} />
-            <MatchTile label="Phone Match" value={detail.identityMatch.phone} />
-          </div>
-        </Section>
+          <Section title={isId ? "Identitas Pemohon" : "Applicant Identity"}>
+            <FieldGrid
+              isId={isId}
+              fields={[
+                { label: isId ? "User ID" : "User ID", value: detail.applicant.userId },
+                { label: isId ? "Nama Akun" : "Account Name", value: detail.applicant.name },
+                { label: isId ? "Email Akun" : "Account Email", value: detail.applicant.email },
+                { label: isId ? "No. Telepon / HP" : "Mobile / Phone", value: detail.applicant.phone },
+                { label: isId ? "Peran Akun" : "Account Role", value: detail.applicant.role },
+                { label: isId ? "Status Akun" : "Account Status", value: detail.applicant.status },
+                { label: isId ? "Nomor KTP / ID" : "ID Number", value: detail.identity.number },
+                { label: isId ? "Tanggal Lahir" : "Birth Date", value: detail.identity.birthDate },
+                { label: isId ? "Jenis Identitas" : "ID Type", value: detail.identity.type },
+                { label: isId ? "Nama di KTP" : "ID Name", value: detail.identity.idName },
+                { label: isId ? "Nama Legal" : "Legal Name", value: detail.identity.legalName },
+                { label: isId ? "Alamat Domisili" : "Residential Address", value: detail.identity.residentialAddress, wide: true },
+                { label: isId ? "Wilayah Domisili" : "Residential Region", value: detail.identity.region, wide: true },
+              ]}
+            />
+            <div className="asad-match-grid">
+              <MatchTile label={isId ? "Kecocokan Nama" : "Name Match"} value={detail.identityMatch.name} isId={isId} />
+              <MatchTile label={isId ? "Kecocokan Email" : "Email Match"} value={detail.identityMatch.email} isId={isId} />
+              <MatchTile label={isId ? "Kecocokan Telepon" : "Phone Match"} value={detail.identityMatch.phone} isId={isId} />
+            </div>
+          </Section>
+        </div>
 
-        <Section title="Store Information">
-          <FieldGrid
-            fields={[
-              { label: "Store Name", value: detail.store.name },
-              { label: "Store Slug", value: detail.store.slug },
-              { label: "Category", value: detail.store.category },
-              { label: "Seller Type", value: detail.store.sellerType },
-              { label: "Tax ID / NPWP", value: detail.store.taxId },
-              { label: "Business Type", value: detail.store.businessType },
-              { label: "Store Description", value: detail.store.description, wide: true },
-            ]}
-          />
-        </Section>
+        {/* Right Column: Store Information & Operational Verification */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+          <Section title={isId ? "Informasi Toko" : "Store Information"}>
+            <FieldGrid
+              isId={isId}
+              fields={[
+                { label: isId ? "Nama Toko" : "Store Name", value: detail.store.name },
+                { label: isId ? "Slug Toko" : "Store Slug", value: detail.store.slug ? `@${detail.store.slug}` : null },
+                { label: isId ? "Kategori" : "Category", value: detail.store.category },
+                { label: isId ? "Tipe Penjual" : "Seller Type", value: detail.store.sellerType },
+                { label: isId ? "NPWP / Tax ID" : "Tax ID / NPWP", value: detail.store.taxId },
+                { label: isId ? "Bentuk Bisnis" : "Business Type", value: detail.store.businessType },
+                { label: isId ? "Deskripsi Toko" : "Store Description", value: detail.store.description, wide: true },
+              ]}
+            />
+          </Section>
 
-        <Section title="Operational Verification">
-          <FieldGrid
-            fields={[
-              { label: "Contact", value: detail.operational.contact },
-              { label: "Phone", value: detail.operational.phone },
-              { label: "Address", value: detail.operational.address, wide: true },
-              { label: "Province", value: detail.operational.province },
-              { label: "City / Regency", value: detail.operational.city },
-              { label: "District", value: detail.operational.district },
-              { label: "Postal Code", value: detail.operational.postalCode },
-              { label: "Country", value: detail.operational.country },
-            ]}
-          />
-        </Section>
+          <Section title={isId ? "Verifikasi Operasional" : "Operational Verification"}>
+            <FieldGrid
+              isId={isId}
+              fields={[
+                { label: isId ? "Kontak Person" : "Contact", value: detail.operational.contact },
+                { label: isId ? "Telepon Operasional" : "Phone", value: detail.operational.phone },
+                { label: isId ? "Alamat Operasional" : "Address", value: detail.operational.address, wide: true },
+                { label: isId ? "Provinsi" : "Province", value: detail.operational.province },
+                { label: isId ? "Kota / Kabupaten" : "City / Regency", value: detail.operational.city },
+                { label: isId ? "Kecamatan" : "District", value: detail.operational.district },
+                { label: isId ? "Kode Pos" : "Postal Code", value: detail.operational.postalCode },
+                { label: isId ? "Negara" : "Country", value: detail.operational.country },
+              ]}
+            />
+          </Section>
+        </div>
 
-        <Section title="Compliance & Risk" className="asad-section--full">
+        {/* Full-Width Section: Compliance & Risk */}
+        <Section title={isId ? "Kepatuhan & Penilaian Risiko" : "Compliance & Risk"} className="asad-section--full">
           <FieldGrid
             columns="4"
+            isId={isId}
             fields={[
-              { label: "Product Types", value: detail.compliance.productTypes },
-              { label: "Brand Ownership", value: detail.compliance.brandOwnership },
-              { label: "Authenticity Statement", value: boolText(detail.compliance.authenticity) },
-              { label: "Prohibited Goods", value: boolText(detail.compliance.prohibitedGoods) },
-              { label: "Website", value: detail.compliance.website },
-              { label: "Social Media", value: detail.compliance.socialMedia },
-              { label: "Support Email", value: detail.compliance.supportEmail },
-              { label: "Support Phone", value: detail.compliance.supportPhone },
+              { label: isId ? "Tipe Produk" : "Product Types", value: detail.compliance.productTypes },
+              { label: isId ? "Kepemilikan Merek" : "Brand Ownership", value: detail.compliance.brandOwnership },
+              { label: isId ? "Pernyataan Keaslian" : "Authenticity Statement", value: boolText(detail.compliance.authenticity, isId) },
+              { label: isId ? "Barang Terlarang" : "Prohibited Goods", value: boolText(detail.compliance.prohibitedGoods, isId) },
+              { label: isId ? "Situs Web" : "Website", value: detail.compliance.website },
+              { label: isId ? "Media Sosial" : "Social Media", value: detail.compliance.socialMedia },
+              { label: isId ? "Email Dukungan" : "Support Email", value: detail.compliance.supportEmail },
+              { label: isId ? "Telepon Dukungan" : "Support Phone", value: detail.compliance.supportPhone },
             ]}
           />
         </Section>
       </main>
 
+      {/* Review Actions Section */}
       <section className="asad-section asad-review" ref={reviewRef}>
         <div className="asad-section__head">
-          <h2>Review Actions</h2>
+          <h2>{isId ? "Tindakan Peninjauan" : "Review Actions"}</h2>
+          <p>{isId ? "Pilih keputusan untuk pengajuan onboarding toko ini." : "Select a decision for this store onboarding application."}</p>
         </div>
         <div className="asad-action-grid">
           <button
             type="button"
             className={`asad-action-card asad-action-card--approve ${activeAction === "approve" ? "is-active" : ""}`}
-            onClick={() => setActiveAction("approve")}
+            onClick={() => setActiveAction(activeAction === "approve" ? "" : "approve")}
           >
             <CheckCircle2 size={24} aria-hidden="true" />
             <span>
-              <strong>Approve</strong>
-              <small>Provision store & activate access</small>
+              <strong>{isId ? "Setujui Toko" : "Approve"}</strong>
+              <small>{isId ? "Buat toko & aktifkan akses seller" : "Provision store & activate access"}</small>
             </span>
           </button>
           <button
             type="button"
             className={`asad-action-card asad-action-card--revision ${activeAction === "revision" ? "is-active" : ""}`}
-            onClick={() => setActiveAction("revision")}
+            onClick={() => setActiveAction(activeAction === "revision" ? "" : "revision")}
           >
             <AlertTriangle size={24} aria-hidden="true" />
             <span>
-              <strong>Request Revision</strong>
-              <small>Send notes for seller correction</small>
+              <strong>{isId ? "Minta Revisi" : "Request Revision"}</strong>
+              <small>{isId ? "Kirim catatan perbaikan ke seller" : "Send notes for seller correction"}</small>
             </span>
           </button>
           <button
             type="button"
             className={`asad-action-card asad-action-card--reject ${activeAction === "reject" ? "is-active" : ""}`}
-            onClick={() => setActiveAction("reject")}
+            onClick={() => setActiveAction(activeAction === "reject" ? "" : "reject")}
           >
             <XCircle size={24} aria-hidden="true" />
             <span>
-              <strong>Reject</strong>
-              <small>Decline this application</small>
+              <strong>{isId ? "Tolak Pengajuan" : "Reject"}</strong>
+              <small>{isId ? "Batalkan pengajuan toko ini" : "Decline this application"}</small>
             </span>
           </button>
         </div>
@@ -715,11 +786,11 @@ export default function AdminStoreApplicationDetailPage() {
             {activeAction === "approve" ? (
               <>
                 <label>
-                  <span>Internal Note</span>
+                  <span>{isId ? "Catatan Internal Admin (Opsional)" : "Internal Note (Optional)"}</span>
                   <textarea
                     value={approveInternalNote}
                     onChange={(event) => setApproveInternalNote(event.target.value)}
-                    placeholder="Optional"
+                    placeholder={isId ? "Catatan tambahan untuk tim admin..." : "Optional internal notes..."}
                   />
                 </label>
                 <button
@@ -728,7 +799,9 @@ export default function AdminStoreApplicationDetailPage() {
                   disabled={isBusy}
                   onClick={() => approveMutation.mutate()}
                 >
-                  {approveMutation.isPending ? "Approving..." : "Approve Application"}
+                  {approveMutation.isPending
+                    ? (isId ? "Menyetujui..." : "Approving...")
+                    : (isId ? "Konfirmasi Persetujuan Toko" : "Confirm Store Approval")}
                 </button>
               </>
             ) : null}
@@ -736,27 +809,28 @@ export default function AdminStoreApplicationDetailPage() {
             {activeAction === "revision" ? (
               <>
                 <label>
-                  <span>Revision Note</span>
+                  <span>{isId ? "Catatan Revisi untuk Penjual *" : "Revision Note for Seller *"}</span>
                   <textarea
                     value={revisionNote}
                     onChange={(event) => setRevisionNote(event.target.value)}
-                    placeholder="Required"
+                    placeholder={isId ? "Tuliskan data yang perlu diperbaiki oleh penjual..." : "Explain required corrections for the seller..."}
+                    required
                   />
                 </label>
                 <label>
-                  <span>Summary</span>
+                  <span>{isId ? "Ringkasan Revisi (Opsional)" : "Summary (Optional)"}</span>
                   <textarea
                     value={revisionSummary}
                     onChange={(event) => setRevisionSummary(event.target.value)}
-                    placeholder="Optional"
+                    placeholder={isId ? "Ringkasan singkat..." : "Brief summary..."}
                   />
                 </label>
                 <label>
-                  <span>Internal Note</span>
+                  <span>{isId ? "Catatan Internal Admin (Opsional)" : "Internal Admin Note (Optional)"}</span>
                   <textarea
                     value={revisionInternalNote}
                     onChange={(event) => setRevisionInternalNote(event.target.value)}
-                    placeholder="Optional"
+                    placeholder={isId ? "Catatan tim admin..." : "Admin-only notes..."}
                   />
                 </label>
                 <button
@@ -765,7 +839,9 @@ export default function AdminStoreApplicationDetailPage() {
                   disabled={isBusy || !revisionNote.trim()}
                   onClick={() => revisionMutation.mutate()}
                 >
-                  {revisionMutation.isPending ? "Requesting..." : "Request Revision"}
+                  {revisionMutation.isPending
+                    ? (isId ? "Mengirim Permintaan..." : "Requesting...")
+                    : (isId ? "Kirim Permintaan Revisi" : "Request Revision")}
                 </button>
               </>
             ) : null}
@@ -773,19 +849,20 @@ export default function AdminStoreApplicationDetailPage() {
             {activeAction === "reject" ? (
               <>
                 <label>
-                  <span>Reject Reason</span>
+                  <span>{isId ? "Alasan Penolakan *" : "Reject Reason *"}</span>
                   <textarea
                     value={rejectReason}
                     onChange={(event) => setRejectReason(event.target.value)}
-                    placeholder="Required"
+                    placeholder={isId ? "Tuliskan alasan penolakan secara jelas..." : "Explain reason for rejection..."}
+                    required
                   />
                 </label>
                 <label>
-                  <span>Internal Note</span>
+                  <span>{isId ? "Catatan Internal Admin (Opsional)" : "Internal Admin Note (Optional)"}</span>
                   <textarea
                     value={rejectInternalNote}
                     onChange={(event) => setRejectInternalNote(event.target.value)}
-                    placeholder="Optional"
+                    placeholder={isId ? "Catatan tim admin..." : "Admin-only notes..."}
                   />
                 </label>
                 <button
@@ -794,7 +871,9 @@ export default function AdminStoreApplicationDetailPage() {
                   disabled={isBusy || !rejectReason.trim()}
                   onClick={() => rejectMutation.mutate()}
                 >
-                  {rejectMutation.isPending ? "Rejecting..." : "Reject Application"}
+                  {rejectMutation.isPending
+                    ? (isId ? "Menolak..." : "Rejecting...")
+                    : (isId ? "Konfirmasi Penolakan Pengajuan" : "Confirm Application Rejection")}
                 </button>
               </>
             ) : null}

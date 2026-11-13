@@ -1,25 +1,28 @@
 /**
  * AdminStoreApplicationsPage.css
  * TP Preneurs Admin Store Applications
- * Strict Brand Palette: #034c85 (TP Deep Blue) and #fe6f05 (TP Vibrant Orange)
+ * Brand Colors: #034c85 (Deep Navy) & #fe6f05 (Vibrant Orange)
+ * Modern 2026 UI/UX: Zero-Scroll Desktop Table, Mobile Feed, Clean Contrast
  */
 
 .asa-page {
   --tp-blue: #034c85;
   --tp-blue-hover: #023864;
-  --tp-blue-light: #0284c7;
+  --tp-blue-light: #38bdf8;
   --tp-blue-subtle: rgba(3, 76, 133, 0.16);
   --tp-blue-border: rgba(3, 76, 133, 0.35);
 
   --tp-orange: #fe6f05;
   --tp-orange-hover: #e05e00;
   --tp-orange-light: #ff8528;
-  --tp-orange-subtle: rgba(254, 111, 5, 0.14);
-  --tp-orange-border: rgba(254, 111, 5, 0.32);
+  --tp-orange-subtle: rgba(254, 111, 5, 0.15);
+  --tp-orange-border: rgba(254, 111, 5, 0.35);
 
-  --asa-bg: #030a14;
+  --asa-bg: transparent;
   --asa-surface: #081424;
+  --asa-surface-card: #0d1e34;
   --asa-surface-soft: #0e1e34;
+  --asa-surface-hover: #122846;
   --asa-border: rgba(255, 255, 255, 0.08);
   --asa-border-hover: rgba(255, 255, 255, 0.15);
   --asa-text: #f1f5f9;
@@ -43,12 +46,13 @@
 
 .asa-page button,
 .asa-page input,
-.asa-page select {
+.asa-page select,
+.asa-page textarea {
   font: inherit;
 }
 
 /* ==========================================================================
-   Header
+   Header Section
    ========================================================================== */
 
 .asa-header {
@@ -64,7 +68,7 @@
   color: var(--tp-orange);
   font-size: 11.5px;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   margin-bottom: 4px;
 }
@@ -124,6 +128,7 @@
   font-weight: 700;
   transition: all 180ms ease;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .asa-primary {
@@ -165,7 +170,7 @@
 }
 
 /* ==========================================================================
-   KPI Cards
+   KPI Summary Metrics
    ========================================================================== */
 
 .asa-kpis {
@@ -203,7 +208,6 @@
   border-radius: 12px;
 }
 
-.asa-kpi div,
 .asa-kpi__content {
   min-width: 0;
   flex: 1;
@@ -235,7 +239,6 @@
   white-space: nowrap;
 }
 
-/* KPI Tones strictly adhering to #034c85 and #fe6f05 */
 .asa-kpi--orange .asa-kpi__icon {
   background: var(--tp-orange-subtle);
   color: var(--tp-orange);
@@ -254,16 +257,6 @@
 
 .asa-kpi--blue small {
   color: var(--tp-blue-light);
-}
-
-.asa-kpi--neutral .asa-kpi__icon {
-  background: rgba(148, 163, 184, 0.1);
-  color: var(--asa-muted);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-}
-
-.asa-kpi--neutral small {
-  color: var(--asa-muted);
 }
 
 /* ==========================================================================
@@ -369,7 +362,7 @@
 }
 
 /* ==========================================================================
-   Table Section & Anti-Squish Responsive Table
+   Zero-Scroll Desktop Table (100% Width Fit, No Horizontal Overflow)
    ========================================================================== */
 
 .asa-table-card {
@@ -378,33 +371,43 @@
   background: var(--asa-surface);
   box-shadow: var(--asa-shadow);
   overflow: visible;
+  margin-bottom: 18px;
 }
 
 .asa-table-scroll {
-  overflow-x: auto;
   width: 100%;
+  overflow-x: hidden; /* Zero horizontal scroll on desktop! */
   border-radius: 14px;
 }
 
-/* Removed min-width: 1120px to eliminate horizontal scrollbar bug! */
 .asa-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed; /* Ensures strict percentage column adherence */
   border-collapse: separate;
   border-spacing: 0;
-  min-width: 860px;
-  width: 100%;
 }
+
+/* Column Width Percentages Totaling 100% */
+.asa-col-applicant { width: 30%; }
+.asa-col-store     { width: 24%; }
+.asa-col-status    { width: 18%; }
+.asa-col-submitted { width: 14%; }
+.asa-col-actions   { width: 14%; }
 
 .asa-table th {
   background: var(--asa-surface-soft);
   color: var(--asa-muted);
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   padding: 12px 14px;
   text-align: left;
   text-transform: uppercase;
   border-bottom: 1px solid var(--asa-border);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .asa-table th:first-child {
@@ -415,13 +418,15 @@
 .asa-table th:last-child {
   border-top-right-radius: 13px;
   padding-right: 18px;
+  text-align: right;
 }
 
 .asa-table td {
   border-top: 1px solid var(--asa-border);
   color: var(--asa-text);
-  padding: 13px 14px;
+  padding: 12px 14px;
   vertical-align: middle;
+  font-size: 13px;
 }
 
 .asa-table td:first-child {
@@ -430,19 +435,15 @@
 
 .asa-table td:last-child {
   padding-right: 18px;
+  text-align: right;
 }
 
 .asa-table tr:hover td {
   background: rgba(255, 255, 255, 0.02);
 }
 
-.asa-th-actions,
-.asa-cell-actions {
-  text-align: right;
-}
-
 /* ==========================================================================
-   Table Cell: Applicant
+   Applicant Cell
    ========================================================================== */
 
 .asa-person {
@@ -453,58 +454,40 @@
 }
 
 .asa-avatar {
-  align-items: center;
+  width: 38px;
+  height: 38px;
   border-radius: 10px;
-  display: inline-flex;
-  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 13px;
   font-weight: 800;
-  height: 38px;
-  justify-content: center;
-  width: 38px;
-  border: 1px solid transparent;
-}
-
-.asa-avatar--blue {
-  background: var(--tp-blue-subtle);
-  color: var(--tp-blue-light);
-  border-color: var(--tp-blue-border);
-}
-
-.asa-avatar--orange {
-  background: var(--tp-orange-subtle);
-  color: var(--tp-orange);
-  border-color: var(--tp-orange-border);
-}
-
-.asa-avatar--neutral {
-  background: rgba(148, 163, 184, 0.1);
-  color: var(--asa-muted);
-  border-color: rgba(148, 163, 184, 0.2);
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--tp-blue), #022a4d);
+  color: #ffffff;
+  border: 1px solid var(--tp-blue-border);
+  box-shadow: 0 2px 8px rgba(3, 76, 133, 0.3);
 }
 
 .asa-person__info {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  gap: 2px;
 }
 
-.asa-person__info strong,
-.asa-store-cell strong {
+.asa-person__info strong {
   color: var(--asa-text);
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 700;
-  line-height: 1.25;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.asa-person__info small,
-.asa-store-cell small {
+.asa-person__info small {
   color: var(--asa-muted);
-  font-size: 12px;
-  line-height: 1.35;
+  font-size: 11.5px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -514,150 +497,151 @@
   display: inline-flex;
   align-items: center;
   width: fit-content;
-  font-size: 10.5px;
+  border-radius: 999px;
+  font-size: 10px;
   font-weight: 700;
-  border-radius: 5px;
-  padding: 1px 6px;
-  margin-top: 3px;
+  padding: 1px 7px;
   letter-spacing: 0.02em;
+  margin-top: 2px;
 }
 
 .asa-match-badge--blue {
   background: var(--tp-blue-subtle);
-  color: var(--tp-blue-light);
   border: 1px solid var(--tp-blue-border);
+  color: var(--tp-blue-light);
 }
 
 .asa-match-badge--orange {
   background: var(--tp-orange-subtle);
-  color: var(--tp-orange);
   border: 1px solid var(--tp-orange-border);
+  color: var(--tp-orange);
 }
 
 .asa-match-badge--neutral {
-  background: rgba(148, 163, 184, 0.12);
-  color: var(--asa-muted);
+  background: rgba(148, 163, 184, 0.1);
   border: 1px solid rgba(148, 163, 184, 0.2);
+  color: var(--asa-muted);
 }
 
 /* ==========================================================================
-   Table Cell: Store
+   Store Cell
    ========================================================================== */
 
 .asa-store-cell {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  gap: 2px;
+}
+
+.asa-store-cell strong {
+  color: var(--asa-text);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .asa-store-cell small {
   color: var(--tp-blue-light);
+  font-size: 11.5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .asa-store-cell em {
   color: var(--asa-subtle);
-  font-size: 11.5px;
+  font-size: 11px;
   font-style: normal;
-  margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 /* ==========================================================================
-   Table Cell: Status
+   Status & Completion
    ========================================================================== */
 
 .asa-status-stack {
-  align-items: flex-start;
-  display: inline-flex;
+  display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
 .asa-status {
-  align-items: center;
-  border-radius: 6px;
   display: inline-flex;
-  font-size: 11.5px;
-  font-weight: 700;
+  align-items: center;
   justify-content: center;
-  line-height: 1;
+  width: fit-content;
   min-height: 22px;
-  padding: 0 8px;
-  letter-spacing: 0.01em;
-}
-
-.asa-status--orange {
-  background: var(--tp-orange-subtle);
-  color: var(--tp-orange);
-  border: 1px solid var(--tp-orange-border);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0 9px;
+  white-space: nowrap;
 }
 
 .asa-status--blue {
   background: var(--tp-blue-subtle);
-  color: var(--tp-blue-light);
   border: 1px solid var(--tp-blue-border);
+  color: #60a5fa;
+}
+
+.asa-status--orange {
+  background: var(--tp-orange-subtle);
+  border: 1px solid var(--tp-orange-border);
+  color: var(--tp-orange);
 }
 
 .asa-status--danger {
-  background: rgba(239, 68, 68, 0.15);
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.35);
   color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .asa-status--neutral {
-  background: rgba(148, 163, 184, 0.12);
-  color: var(--asa-muted);
+  background: rgba(148, 163, 184, 0.1);
   border: 1px solid rgba(148, 163, 184, 0.2);
+  color: var(--asa-muted);
 }
-
-.asa-step {
-  color: var(--asa-subtle);
-  font-size: 10.5px;
-  font-weight: 600;
-  padding-left: 2px;
-}
-
-/* ==========================================================================
-   Table Cell: Completion
-   ========================================================================== */
 
 .asa-completion {
-  min-width: 125px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 3px;
 }
 
 .asa-completion__header {
   display: flex;
   align-items: baseline;
-  gap: 6px;
-  margin-bottom: 5px;
+  gap: 5px;
+  font-size: 11px;
 }
 
 .asa-completion__header strong {
+  font-weight: 700;
   color: var(--asa-text);
-  font-size: 13px;
-  font-weight: 800;
 }
 
 .asa-completion__header small {
   color: var(--asa-muted);
-  font-size: 11.5px;
 }
 
 .asa-progress {
+  width: 100%;
+  height: 4px;
   background: rgba(255, 255, 255, 0.08);
   border-radius: 999px;
-  display: block;
-  height: 5px;
   overflow: hidden;
-  width: 100%;
 }
 
 .asa-progress__bar {
-  border-radius: inherit;
-  display: block;
   height: 100%;
+  border-radius: 999px;
   transition: width 300ms ease;
 }
 
@@ -666,164 +650,275 @@
 }
 
 .asa-progress__bar--orange {
-  background: linear-gradient(90deg, var(--tp-orange), var(--tp-orange-light));
-}
-
-.asa-completion em {
-  display: block;
-  color: var(--asa-subtle);
-  font-size: 11px;
-  font-style: normal;
-  margin-top: 4px;
+  background: linear-gradient(90deg, var(--tp-orange-hover), var(--tp-orange));
 }
 
 /* ==========================================================================
-   Table Cell: Dates
+   Date Cell
    ========================================================================== */
 
 .asa-date {
-  color: var(--asa-text);
   display: flex;
   flex-direction: column;
   gap: 2px;
-  font-size: 12.5px;
-  font-weight: 600;
-  white-space: nowrap;
+  min-width: 0;
 }
 
-.asa-date svg {
-  display: none;
+.asa-date span {
+  color: var(--asa-text);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .asa-date small {
-  color: var(--asa-subtle);
+  color: var(--asa-muted);
   font-size: 11px;
-  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ==========================================================================
-   Table Cell: Actions
+   Actions Cell & Kebab Dropdown
    ========================================================================== */
 
 .asa-actions {
+  display: inline-flex;
   align-items: center;
-  display: flex;
-  gap: 8px;
   justify-content: flex-end;
+  gap: 6px;
   position: relative;
 }
 
 .asa-row-primary {
-  min-height: 34px;
-  min-width: 74px;
-  border: 1px solid var(--tp-blue-border);
-  background: var(--tp-blue-subtle);
-  color: var(--tp-blue-light);
-  font-size: 12.5px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 12px;
   font-weight: 700;
-  padding: 0 13px;
+  border: 1px solid var(--tp-blue);
+  background: var(--tp-blue);
+  color: #ffffff;
 }
 
 .asa-row-primary:hover {
-  background: var(--tp-blue);
-  color: #ffffff;
-  border-color: var(--tp-blue);
-  box-shadow: 0 2px 10px rgba(3, 76, 133, 0.35);
+  background: var(--tp-blue-hover);
+  border-color: var(--tp-blue-hover);
 }
 
 .asa-row-primary.is-review {
   border-color: var(--tp-orange);
   background: var(--tp-orange);
   color: #ffffff;
-  box-shadow: 0 2px 10px rgba(254, 111, 5, 0.35);
 }
 
 .asa-row-primary.is-review:hover {
   background: var(--tp-orange-hover);
   border-color: var(--tp-orange-hover);
-  box-shadow: 0 4px 14px rgba(254, 111, 5, 0.45);
-}
-
-.asa-icon-button {
-  width: 34px;
-  height: 34px;
-  border: 1px solid var(--asa-border);
-  background: var(--asa-surface-soft);
-  color: var(--asa-muted);
-}
-
-.asa-icon-button:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--asa-text);
-  border-color: var(--asa-border-hover);
 }
 
 .asa-kebab {
   position: relative;
 }
 
+.asa-icon-button {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--asa-border);
+  background: var(--asa-surface-soft);
+  color: var(--asa-muted);
+}
+
+.asa-icon-button:hover {
+  color: var(--asa-text);
+  border-color: var(--asa-border-hover);
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .asa-menu {
-  background: #09172a;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
-  display: grid;
-  min-width: 170px;
-  padding: 5px;
   position: absolute;
-  right: 0;
   top: calc(100% + 6px);
-  z-index: 30;
+  right: 0;
+  z-index: 50;
+  min-width: 170px;
+  background: var(--asa-surface-card);
+  border: 1px solid var(--asa-border);
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .asa-menu a,
 .asa-menu button {
-  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
   border: 0;
-  border-radius: 8px;
+  background: transparent;
   color: var(--asa-text);
-  cursor: pointer;
   font-size: 12.5px;
-  font-weight: 700;
+  font-weight: 600;
   padding: 8px 12px;
+  border-radius: 8px;
   text-align: left;
   text-decoration: none;
-  transition: background 150ms ease, color 150ms ease;
+  cursor: pointer;
+  transition: background 150ms ease;
 }
 
 .asa-menu a:hover,
-.asa-menu button:hover {
-  background: var(--tp-blue-subtle);
-  color: #ffffff;
-}
-
-.asa-menu .asa-menu__danger:hover {
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
+.asa-menu button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .asa-menu button:disabled {
-  color: var(--asa-subtle);
-  cursor: not-allowed;
   opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.asa-menu .asa-menu__danger {
+  color: #f87171;
+}
+
+.asa-menu .asa-menu__danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.15);
 }
 
 /* ==========================================================================
-   Skeleton & Loading
+   Mobile Card Feed (< 768px)
    ========================================================================== */
 
-.asa-skeleton {
-  animation: asa-pulse 1.2s ease-in-out infinite;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.09) 50%, rgba(255, 255, 255, 0.04) 100%);
-  border-radius: 6px;
-  display: block;
-  height: 16px;
-  width: 100%;
+.asa-mobile-feed {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
 }
 
-@keyframes asa-pulse {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
+.asa-mobile-card {
+  border: 1px solid var(--asa-border);
+  border-radius: 12px;
+  background: var(--asa-surface-soft);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.asa-mobile-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.asa-mobile-card__store {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--asa-border);
+}
+
+.asa-mobile-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--asa-border);
+}
+
+/* ==========================================================================
+   Modal Dialog for Actions
+   ========================================================================== */
+
+.asa-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(3, 10, 20, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.asa-modal {
+  width: 100%;
+  max-width: 460px;
+  background: var(--asa-surface-card);
+  border: 1px solid var(--asa-border);
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.asa-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.asa-modal__header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--asa-text);
+}
+
+.asa-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.asa-modal__body label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--asa-muted);
+}
+
+.asa-modal__body textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--asa-border);
+  background: var(--asa-surface-soft);
+  color: var(--asa-text);
+  font-size: 13px;
+  outline: 0;
+}
+
+.asa-modal__body textarea:focus {
+  border-color: var(--tp-blue-light);
+  box-shadow: 0 0 0 3px rgba(3, 76, 133, 0.25);
+}
+
+.asa-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 /* ==========================================================================
@@ -831,127 +926,150 @@
    ========================================================================== */
 
 .asa-pagination {
-  align-items: center;
   display: flex;
-  gap: 14px;
+  align-items: center;
   justify-content: space-between;
-  margin-top: 14px;
-  padding: 12px 16px;
+  gap: 14px;
+  padding: 14px 16px;
   border: 1px solid var(--asa-border);
   border-radius: 14px;
   background: var(--asa-surface);
   box-shadow: var(--asa-shadow-sm);
+  font-size: 12.5px;
+  color: var(--asa-muted);
 }
 
 .asa-pagination p {
-  color: var(--asa-muted);
-  font-size: 12.5px;
-  font-weight: 600;
   margin: 0;
 }
 
 .asa-pagination__controls {
-  align-items: center;
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: 8px;
 }
 
 .asa-page-button {
   width: 34px;
   height: 34px;
+  border-radius: 8px;
   border: 1px solid var(--asa-border);
   background: var(--asa-surface-soft);
   color: var(--asa-text);
 }
 
 .asa-page-button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.08);
   border-color: var(--asa-border-hover);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .asa-current-page {
-  align-items: center;
-  background: var(--tp-blue);
-  border-radius: 8px;
-  color: #ffffff;
-  display: inline-flex;
-  font-size: 12.5px;
-  font-weight: 800;
+  min-width: 34px;
   height: 34px;
+  display: flex;
+  align-items: center;
   justify-content: center;
-  width: 34px;
+  border-radius: 8px;
+  background: var(--tp-blue);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 13px;
 }
 
 .asa-per-page {
-  align-items: center;
-  display: inline-flex;
   position: relative;
+  display: inline-flex;
+  align-items: center;
 }
 
 .asa-per-page select {
   appearance: none;
+  border-radius: 8px;
   border: 1px solid var(--asa-border);
-  border-radius: 9px;
   background: var(--asa-surface-soft);
   color: var(--asa-text);
-  font-size: 12.5px;
-  min-height: 34px;
-  outline: 0;
-  padding: 0 32px 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  height: 34px;
+  padding: 0 28px 0 10px;
+  cursor: pointer;
 }
 
 .asa-per-page svg {
-  color: var(--asa-muted);
-  pointer-events: none;
   position: absolute;
-  right: 10px;
+  right: 8px;
+  pointer-events: none;
+  color: var(--asa-subtle);
 }
 
 /* ==========================================================================
    Responsive Breakpoints
    ========================================================================== */
 
-@media (max-width: 1100px) {
+@media (max-width: 1024px) {
   .asa-kpis {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, 1fr);
   }
-
   .asa-filter-grid {
     grid-template-columns: 1fr 1fr;
   }
-
-  .asa-search-field {
-    grid-column: 1 / -1;
-  }
 }
 
-@media (max-width: 720px) {
-  .asa-header,
-  .asa-pagination {
-    align-items: stretch;
+@media (max-width: 768px) {
+  .asa-header {
     flex-direction: column;
+    align-items: stretch;
   }
-
-  .asa-header__actions,
-  .asa-pagination__controls {
+  .asa-header__actions {
     justify-content: space-between;
-    width: 100%;
   }
-
   .asa-kpis {
     grid-template-columns: 1fr;
   }
-
   .asa-filter-grid {
     grid-template-columns: 1fr;
   }
-
-  .asa-status-tabs {
-    flex-wrap: nowrap;
-    overflow-x: auto;
+  /* On mobile, switch from desktop table to mobile card feed */
+  .asa-table-scroll {
+    display: none;
   }
-
-  .asa-status-tabs button {
-    flex: 0 0 auto;
+  .asa-mobile-feed {
+    display: flex;
   }
+  .asa-pagination {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .asa-pagination__controls {
+    justify-content: center;
+  }
+}
+
+/* ==========================================================================
+   Light Mode Overrides (Aligned with Ruang Kerja Admin)
+   ========================================================================== */
+
+:where(.admin-theme-light, [data-admin-theme="light"]):not(.dark):not(.admin-theme-dark) .asa-page {
+  --asa-bg: #f8fafc;
+  --asa-surface: #ffffff;
+  --asa-surface-card: #ffffff;
+  --asa-surface-soft: #f8fafc;
+  --asa-surface-hover: #f1f5f9;
+  --asa-border: #e2e8f0;
+  --asa-border-hover: #cbd5e1;
+  --asa-text: #0f172a;
+  --asa-muted: #64748b;
+  --asa-subtle: #94a3b8;
+  --asa-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+  --asa-shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+:where(.admin-theme-light, [data-admin-theme="light"]):not(.dark):not(.admin-theme-dark) .asa-status-tabs {
+  background: #f1f5f9;
+}
+
+:where(.admin-theme-light, [data-admin-theme="light"]):not(.dark):not(.admin-theme-dark) .asa-avatar {
+  background: linear-gradient(135deg, var(--tp-blue), #023864);
+  color: #ffffff;
 }
