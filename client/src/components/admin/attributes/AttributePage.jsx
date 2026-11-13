@@ -63,6 +63,8 @@ export const invalidateAdminAttributeSurfaces = (queryClient) => {
   queryClient.invalidateQueries({ queryKey: ["seller2026", "product-editor", "attributes"] });
   queryClient.invalidateQueries({ queryKey: ["seller-attributes"] });
   queryClient.invalidateQueries({ queryKey: ["attributes"] });
+  queryClient.invalidateQueries({ queryKey: ["product"] });
+  queryClient.invalidateQueries({ queryKey: ["storefront", "products"] });
 };
 
 const parseFilename = (headerValue, fallback) => {

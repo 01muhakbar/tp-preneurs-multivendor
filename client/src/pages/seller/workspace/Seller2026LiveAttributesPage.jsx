@@ -193,7 +193,7 @@ export default function Seller2026LiveAttributesPage() {
         <header className="seller2026-attributes-header">
           <div className="seller2026-header-titles">
             <h1>{isId ? "Atribut" : "Attributes"}</h1>
-            <p>{isId ? "Kelola atribut dan opsi varian produk Anda." : "Manage product attributes."}</p>
+            <p>{isId ? "Kelola atribut produk." : "Manage product attributes."}</p>
           </div>
           <div className="seller2026-header-actions">
             <button className="seller2026-btn-outline" type="button" onClick={exportAttributes} disabled={isExporting}>
@@ -317,7 +317,7 @@ export default function Seller2026LiveAttributesPage() {
                 <tr>
                   <td colSpan={9} className="seller2026-table-empty">
                     <h2>{isId ? "Belum ada atribut" : "No attributes yet"}</h2>
-                    <p>{isId ? "Buat atribut pertama Anda untuk mengatur opsi produk." : "Create your first attribute for product options."}</p>
+                    <p>{isId ? "Mulai dengan membuat atribut baru." : "Start by creating an attribute."}</p>
                     {canCreate ? <button className="seller2026-btn-primary" type="button" onClick={() => { setActiveAttribute(null); setDrawerOpen(true); }}>{isId ? "Tambah Atribut" : "Add Attribute"}</button> : null}
                   </td>
                 </tr>

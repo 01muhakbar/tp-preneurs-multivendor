@@ -116,8 +116,18 @@ export function useSeller2026Attributes(
   const pageStart = (page - 1) * filters.limit;
   const attributes = filteredAttributes.slice(pageStart, pageStart + filters.limit);
 
-  const invalidateAttributes = () =>
-    queryClient.invalidateQueries({ queryKey: ["seller2026", "attributes", storeId] });
+  const invalidateAttributes = async () => {
+    await Promise.allSettled([
+      queryClient.invalidateQueries({ queryKey: ["seller2026", "attributes"] }),
+      queryClient.invalidateQueries({ queryKey: ["seller2026", "product-editor", "attributes"] }),
+      queryClient.invalidateQueries({ queryKey: ["seller-attributes"] }),
+      queryClient.invalidateQueries({ queryKey: ["admin", "attributes"] }),
+      queryClient.invalidateQueries({ queryKey: ["admin-product-attributes"] }),
+      queryClient.invalidateQueries({ queryKey: ["attributes"] }),
+      queryClient.invalidateQueries({ queryKey: ["product"] }),
+      queryClient.invalidateQueries({ queryKey: ["storefront", "products"] }),
+    ]);
+  };
 
   const createMutation = useMutation({
     mutationFn: (form: Seller2026AttributeForm) =>

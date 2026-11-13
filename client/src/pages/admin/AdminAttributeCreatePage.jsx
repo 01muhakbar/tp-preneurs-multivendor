@@ -16,6 +16,8 @@ const invalidateAttributeSurfaces = (queryClient) => {
   queryClient.invalidateQueries({ queryKey: ["seller2026", "product-editor", "attributes"] });
   queryClient.invalidateQueries({ queryKey: ["seller-attributes"] });
   queryClient.invalidateQueries({ queryKey: ["attributes"] });
+  queryClient.invalidateQueries({ queryKey: ["product"] });
+  queryClient.invalidateQueries({ queryKey: ["storefront", "products"] });
 };
 
 export default function AdminAttributeCreatePage() {
@@ -51,7 +53,7 @@ export default function AdminAttributeCreatePage() {
       <header className="apf26-header aaf26-header">
         <div className="min-w-0">
           <h1>{t("attributes.New Attribute", "New Attribute")}</h1>
-          <p>{t("attributes.Name, option type, publish state, and values.", "Name, option type, publish state, and values.")}</p>
+          <p>{t("attributes.Atribut produk baru", "New product attribute")}</p>
           <nav className="aaf26-breadcrumb" aria-label="Breadcrumb">
             <span>{t("attributes.Catalog", "Catalog")}</span>
             <ChevronRight size={14} />

@@ -111,26 +111,32 @@ export function AttributeFormPanel({
         <div className="divide-y divide-slate-200">
           <FieldRow label={t("attributes.Name", "Name")}>
             <input
+              id="admin-attribute-name"
+              name="name"
               value={form.name}
               onChange={(event) => updateForm({ name: event.target.value })}
               disabled={isSubmitting}
-              placeholder={t("attributes.Color, Size, Material", "Color, Size, Material")}
+              placeholder={t("attributes.Color, Size...", "Color, Size...")}
               className={fieldClass}
             />
           </FieldRow>
 
           <FieldRow label={t("attributes.Display", "Display")}>
             <input
+              id="admin-attribute-display"
+              name="displayName"
               value={form.displayName}
               onChange={(event) => updateForm({ displayName: event.target.value })}
               disabled={isSubmitting}
-              placeholder={t("attributes.Customer-facing label", "Customer-facing label")}
+              placeholder={t("attributes.Label display...", "Label display...")}
               className={fieldClass}
             />
           </FieldRow>
 
           <FieldRow label={t("attributes.Input Type", "Input Type")}>
             <select
+              id="admin-attribute-type"
+              name="optionType"
               value={form.optionType}
               onChange={(event) => updateForm({ optionType: event.target.value })}
               disabled={isSubmitting}
@@ -146,6 +152,8 @@ export function AttributeFormPanel({
 
           <FieldRow label={t("attributes.Status", "Status")}>
             <select
+              id="admin-attribute-status"
+              name="published"
               value={form.published ? "published" : "draft"}
               onChange={(event) => updateForm({ published: event.target.value === "published" })}
               disabled={isSubmitting}
@@ -179,7 +187,7 @@ export function AttributeFormPanel({
             type="button"
             onClick={onCancel}
             disabled={isSubmitting}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#034c85]/20 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {t("attributes.Cancel", "Cancel")}
           </button>
@@ -187,7 +195,7 @@ export function AttributeFormPanel({
             type="submit"
             form={formId}
             disabled={isSubmitting || !isValid}
-            className="inline-flex h-10 items-center justify-center rounded-lg bg-[#034c85] px-4 text-sm font-semibold text-white shadow-sm shadow-[#034c85]/25 transition hover:bg-[#023e6d] disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#fe6f05] px-4 text-sm font-semibold text-white shadow-sm shadow-[#fe6f05]/25 transition hover:bg-[#e05f00] focus:outline-none focus:ring-2 focus:ring-[#fe6f05]/30 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting ? t("attributes.Saving...", "Saving...") : actionLabel}
           </button>

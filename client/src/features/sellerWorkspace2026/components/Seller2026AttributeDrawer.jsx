@@ -72,7 +72,7 @@ export default function Seller2026AttributeDrawer({
             <h2 id="seller2026-attribute-drawer-title">
               {isEdit ? (isId ? "Perbarui Atribut" : "Update Attribute") : (isId ? "Tambah Atribut" : "Add Attribute")}
             </h2>
-            <p>{isEdit ? (isId ? "Edit rincian dan nilai atribut." : "Edit attribute details and values.") : (isId ? "Buat atribut baru untuk opsi produk." : "Create an attribute for product options.")}</p>
+            <p>{isEdit ? (isId ? "Edit rincian atribut." : "Edit attribute details.") : (isId ? "Tambah opsi produk." : "Add product option.")}</p>
           </div>
           <button className="seller2026-drawer-close" type="button" onClick={onClose} aria-label={isId ? "Tutup" : "Close"}>
             <X size={20} />
@@ -80,9 +80,11 @@ export default function Seller2026AttributeDrawer({
         </header>
 
         <div className="seller2026-drawer-body">
-          <label className={`seller2026-form-group ${errors.name ? "has-error" : ""}`}>
+          <label htmlFor="seller2026-attr-name" className={`seller2026-form-group ${errors.name ? "has-error" : ""}`}>
             <span>{isId ? "Nama Atribut *" : "Attribute Name *"}</span>
             <input
+              id="seller2026-attr-name"
+              name="name"
               aria-label={isId ? "Nama Atribut" : "Attribute Name"}
               type="text"
               placeholder={isId ? "cth. Ukuran Baju" : "e.g. Size Dress"}
@@ -96,9 +98,11 @@ export default function Seller2026AttributeDrawer({
             {errors.name ? <small>{errors.name}</small> : null}
           </label>
 
-          <label className={`seller2026-form-group ${errors.displayName ? "has-error" : ""}`}>
+          <label htmlFor="seller2026-attr-display" className={`seller2026-form-group ${errors.displayName ? "has-error" : ""}`}>
             <span>{isId ? "Nama Tampilan *" : "Display Name *"}</span>
             <input
+              id="seller2026-attr-display"
+              name="displayName"
               aria-label={isId ? "Nama Tampilan" : "Display Name"}
               type="text"
               placeholder={isId ? "cth. Ukuran Baju" : "e.g. Size Dress"}
@@ -109,9 +113,11 @@ export default function Seller2026AttributeDrawer({
             {errors.displayName ? <small>{errors.displayName}</small> : null}
           </label>
 
-          <label className={`seller2026-form-group ${errors.optionType ? "has-error" : ""}`}>
+          <label htmlFor="seller2026-attr-type" className={`seller2026-form-group ${errors.optionType ? "has-error" : ""}`}>
             <span>{isId ? "Tipe Opsi *" : "Option Type *"}</span>
             <select
+              id="seller2026-attr-type"
+              name="optionType"
               aria-label={isId ? "Tipe Opsi" : "Option Type"}
               value={form.optionType}
               onChange={(event) => updateForm({ optionType: event.target.value })}
@@ -144,6 +150,7 @@ export default function Seller2026AttributeDrawer({
               </div>
               <input
                 id="seller2026-attribute-values"
+                name="values"
                 aria-label={isId ? "Nilai Opsi" : "Values"}
                 type="text"
                 placeholder={isId ? "Tambah nilai lalu tekan Enter" : "Add value and press Enter"}
@@ -159,17 +166,19 @@ export default function Seller2026AttributeDrawer({
                 disabled={isSaving}
               />
             </div>
-            <small>{isId ? "Tips: Tekan Enter untuk menambahkan beberapa nilai opsi." : "Tip: Press Enter to add more values."}</small>
+            <small>{isId ? "Tekan Enter untuk menambah." : "Press Enter to add."}</small>
             {errors.values ? <small>{errors.values}</small> : null}
           </div>
 
           <div className="seller2026-form-group seller2026-toggle-group">
             <div>
               <span className="seller2026-form-label">{isId ? "Visibilitas di Etalase" : "Storefront Visibility"}</span>
-              <p className="seller2026-helper-text">{isId ? "Tampilkan atribut ini di etalase pembeli." : "Show this attribute on the storefront."}</p>
+              <p className="seller2026-helper-text">{isId ? "Tampilkan di etalase." : "Show on storefront."}</p>
             </div>
-            <label className="seller2026-toggle">
+            <label htmlFor="seller2026-attr-visible" className="seller2026-toggle">
               <input
+                id="seller2026-attr-visible"
+                name="visible"
                 aria-label={isId ? "Visibilitas di Etalase" : "Storefront Visibility"}
                 type="checkbox"
                 checked={form.visible}
@@ -182,7 +191,7 @@ export default function Seller2026AttributeDrawer({
 
           <div className="seller2026-form-group seller2026-status-section">
             <span className="seller2026-form-label">{isId ? "Status Publikasi" : "Status"}</span>
-            <p className="seller2026-helper-text">{isId ? "Tentukan status awal atribut produk ini." : "Set initial status for this attribute."}</p>
+            <p className="seller2026-helper-text">{isId ? "Status awal atribut." : "Initial status."}</p>
             <div className="seller2026-segmented-control">
               <button
                 type="button"

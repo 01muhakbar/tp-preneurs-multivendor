@@ -3029,7 +3029,7 @@ body.dark .seller2026-attributes,
   font-weight: 720;
   gap: 8px;
   justify-content: center;
-  min-height: 42px;
+  min-height: 44px;
   padding: 10px 16px;
   white-space: nowrap;
   transition: all 0.15s ease;
@@ -3049,18 +3049,20 @@ body.dark .seller2026-attributes,
   color: #ffffff;
 }
 .seller2026-btn-accent:hover {
-  background: #e06002;
-  border-color: #e06002;
+  background: #e05f00;
+  border-color: #e05f00;
 }
 .seller2026-btn-primary {
-  background: #034c85;
-  border: 1px solid #034c85;
+  background: #fe6f05;
+  border: 1px solid #fe6f05;
   color: #fff;
-  box-shadow: 0 8px 18px rgba(3, 76, 133, .22);
+  box-shadow: 0 4px 14px rgba(254, 111, 5, .28);
 }
 .seller2026-btn-primary:hover {
-  background: #023863;
-  border-color: #023863;
+  background: #e05f00;
+  border-color: #e05f00;
+  box-shadow: 0 6px 18px rgba(254, 111, 5, .38);
+  transform: translateY(-1px);
 }
 .seller2026-btn-cancel {
   background: var(--seller2026-surface);
