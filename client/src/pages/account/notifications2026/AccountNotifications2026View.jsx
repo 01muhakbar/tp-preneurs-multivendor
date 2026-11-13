@@ -3,6 +3,7 @@ import {
   Bell,
   Check,
   CheckCheck,
+  ChevronLeft,
   ChevronRight,
   CreditCard,
   Inbox,
@@ -16,7 +17,6 @@ import {
   Truck,
   UserRound,
 } from "lucide-react";
-import { useTranslation } from "react-i18next";
 import { NOTIFICATION_FILTERS } from "./accountNotifications2026Adapter.js";
 import "./account-notifications-2026.css";
 
@@ -36,7 +36,7 @@ function NotificationIcon({ item }) {
   const Icon = ICONS[item.iconName] || Bell;
   return (
     <span className={`tpn-row-icon tpn-row-icon--${item.iconTone || "blue"}`} aria-hidden="true">
-      <Icon size={24} strokeWidth={2} />
+      <Icon size={22} strokeWidth={2.2} />
     </span>
   );
 }
@@ -44,7 +44,7 @@ function NotificationIcon({ item }) {
 function LoadingSkeleton() {
   return (
     <div className="tpn-notification-list" aria-label="Loading notifications">
-      {Array.from({ length: 6 }).map((_, index) => (
+      {Array.from({ length: 5 }).map((_, index) => (
         <article className="tpn-notification-row tpn-notification-row--skeleton" key={index}>
           <span className="tpn-skeleton-dot" />
           <span className="tpn-skeleton-icon" />
@@ -64,12 +64,12 @@ function StatePanel({ type = "empty", title, message, actionLabel, onAction }) {
   const Icon = type === "error" ? Bell : Inbox;
   return (
     <div className={`tpn-state tpn-state--${type}`} role={type === "error" ? "alert" : "status"}>
-      <Icon size={28} />
+      <Icon size={32} />
       <strong>{title}</strong>
       <p>{message}</p>
       {actionLabel && onAction ? (
         <button type="button" className="tpn-action-button" onClick={onAction}>
-          {type === "error" ? <RefreshCw size={16} /> : null}
+          {type === "error" ? <RefreshCw size={15} /> : null}
           <span>{actionLabel}</span>
         </button>
       ) : null}
@@ -83,6 +83,11 @@ export default function AccountNotifications2026View({
   counts = {},
   activeFilter = "all",
   filtersActive = false,
+  page = 1,
+  totalPages = 1,
+  totalFilteredCount = 0,
+  pageSize = 10,
+  isIndo = false,
   loading = false,
   error = null,
   mutationError = null,
@@ -94,13 +99,13 @@ export default function AccountNotifications2026View({
   onMarkAllRead,
   onClearFilters,
   onOpenFilters,
+  onPageChange,
   onOpenNotification,
   onMarkNotificationRead,
   onDeleteNotification,
   onClearNotifications,
   onRefresh,
 }) {
-  const { t } = useTranslation();
   const [openMenuId, setOpenMenuId] = useState("");
   const [pageMenuOpen, setPageMenuOpen] = useState(false);
 
@@ -153,32 +158,84 @@ export default function AccountNotifications2026View({
     onClearNotifications?.();
   };
 
+  // Translations
+  const t = {
+    title: isIndo ? "Notifikasi" : "Notifications",
+    subtitle: isIndo ? "Pembaruan pesanan dan akun." : "Order and account updates.",
+    unreadBadge: isIndo
+      ? `${Number(unreadCount || 0)} belum dibaca`
+      : `${Number(unreadCount || 0)} unread`,
+    markAllRead: isIndo ? "Tandai semua dibaca" : "Mark all read",
+    marking: isIndo ? "Menandai..." : "Marking...",
+    clearFilters: isIndo ? "Hapus filter" : "Clear filters",
+    filter: isIndo ? "Belum Dibaca" : "Unread Only",
+    clearAll: isIndo ? "Hapus semua" : "Clear all",
+    clearing: isIndo ? "Menghapus..." : "Clearing...",
+    errorTitle: isIndo ? "Gagal memuat notifikasi." : "Notifications could not be loaded.",
+    tryAgain: isIndo ? "Coba Lagi" : "Try again",
+    emptyTitle: isIndo ? "Belum ada notifikasi." : "No notifications found.",
+    emptyMessage: isIndo
+      ? "Pembaruan pesanan, akun, dan promo baru akan muncul di sini."
+      : "New order, account, and offer updates will appear here.",
+    open: isIndo ? "Buka" : "Open",
+    markRead: isIndo ? "Tandai dibaca" : "Mark read",
+    delete: isIndo ? "Hapus" : "Delete",
+    deleting: isIndo ? "Menghapus..." : "Deleting...",
+    previous: isIndo ? "Sebelumnya" : "Previous",
+    next: isIndo ? "Selanjutnya" : "Next",
+  };
+
+  // Pagination calculation
+  const fromIndex = totalFilteredCount > 0 ? (page - 1) * pageSize + 1 : 0;
+  const toIndex = Math.min(page * pageSize, totalFilteredCount);
+  const paginationSummary = isIndo
+    ? `Menampilkan ${fromIndex}–${toIndex} dari ${totalFilteredCount} notifikasi`
+    : `Showing ${fromIndex}–${toIndex} of ${totalFilteredCount} notifications`;
+
+  // Page numbers generator
+  const getPageNumbers = () => {
+    if (totalPages <= 5) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    if (page <= 3) {
+      return [1, 2, 3, 4, "...", totalPages];
+    }
+    if (page >= totalPages - 2) {
+      return [1, "...", totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    }
+    return [1, "...", page - 1, page, page + 1, "...", totalPages];
+  };
+
   return (
     <section className="tpn-page-shell" aria-labelledby="tpn-notifications-title">
       <div className="tpn-panel">
         <header className="tpn-panel-header">
           <div>
-            <h1 id="tpn-notifications-title">{t("notifications.title")}</h1>
-            <p>{t("notifications.subtitle")}</p>
+            <h1 id="tpn-notifications-title">{t.title}</h1>
+            <p>{t.subtitle}</p>
           </div>
-          <span className="tpn-unread-badge">{t("notifications.unreadCount", { count: Number(unreadCount || 0) })}</span>
+          <span className="tpn-unread-badge">{t.unreadBadge}</span>
         </header>
 
         <div className="tpn-toolbar" aria-label="Notification controls">
           <div className="tpn-tabs" role="tablist" aria-label="Notification filters">
-            {NOTIFICATION_FILTERS.map((filter) => (
-              <button
-                type="button"
-                key={filter.key}
-                role="tab"
-                aria-selected={activeFilter === filter.key}
-                className={activeFilter === filter.key ? "is-active" : ""}
-                onClick={() => onFilterChange?.(filter.key)}
-              >
-                <span>{t(`notifications.filters.${filter.key}`)}</span>
-                {counts[filter.key] ? <em>{counts[filter.key]}</em> : null}
-              </button>
-            ))}
+            {NOTIFICATION_FILTERS.map((filter) => {
+              const label = isIndo ? filter.idLabel : filter.label;
+              const countVal = counts[filter.key];
+              return (
+                <button
+                  type="button"
+                  key={filter.key}
+                  role="tab"
+                  aria-selected={activeFilter === filter.key}
+                  className={activeFilter === filter.key ? "is-active" : ""}
+                  onClick={() => onFilterChange?.(filter.key)}
+                >
+                  <span>{label}</span>
+                  {countVal ? <em>{countVal}</em> : null}
+                </button>
+              );
+            })}
           </div>
 
           <div className="tpn-actions">
@@ -188,12 +245,12 @@ export default function AccountNotifications2026View({
               onClick={onMarkAllRead}
               disabled={isMarkingAllRead || Number(unreadCount || 0) <= 0}
             >
-              <Check size={17} />
-              <span>{isMarkingAllRead ? t("notifications.marking") : t("notifications.markAllRead")}</span>
+              <Check size={16} />
+              <span>{isMarkingAllRead ? t.marking : t.markAllRead}</span>
             </button>
             <button type="button" className="tpn-action-button" onClick={onClearFilters}>
-              <CheckCheck size={17} />
-              <span>{t("notifications.clearFilters")}</span>
+              <CheckCheck size={16} />
+              <span>{t.clearFilters}</span>
             </button>
             <button
               type="button"
@@ -201,8 +258,8 @@ export default function AccountNotifications2026View({
               onClick={onOpenFilters}
               aria-pressed={filtersActive}
             >
-              <SlidersHorizontal size={17} />
-              <span>{t("notifications.filter")}</span>
+              <SlidersHorizontal size={16} />
+              <span>{t.filter}</span>
             </button>
             {onClearNotifications ? (
               <div className="tpn-page-menu-wrap">
@@ -224,8 +281,8 @@ export default function AccountNotifications2026View({
                       onClick={handleClearAll}
                       disabled={isClearingAll || loading}
                     >
-                      <Trash2 size={16} />
-                      <span>{isClearingAll ? t("notifications.clearing") : t("notifications.clearAll")}</span>
+                      <Trash2 size={15} />
+                      <span>{isClearingAll ? t.clearing : t.clearAll}</span>
                     </button>
                   </div>
                 ) : null}
@@ -245,18 +302,18 @@ export default function AccountNotifications2026View({
         {!loading && errorMessage ? (
           <StatePanel
             type="error"
-            title={t("notifications.errorTitle")}
+            title={t.errorTitle}
             message={errorMessage}
-            actionLabel={t("notifications.tryAgain")}
+            actionLabel={t.tryAgain}
             onAction={onRefresh}
           />
         ) : null}
 
         {!loading && !errorMessage && notifications.length === 0 ? (
           <StatePanel
-            title={t("notifications.emptyTitle")}
-            message={t("notifications.emptyMessage")}
-            actionLabel={activeFilter !== "all" || filtersActive ? t("notifications.clearFilters") : ""}
+            title={t.emptyTitle}
+            message={t.emptyMessage}
+            actionLabel={activeFilter !== "all" || filtersActive ? t.clearFilters : ""}
             onAction={onClearFilters}
           />
         ) : null}
@@ -284,14 +341,14 @@ export default function AccountNotifications2026View({
                   </button>
 
                   <div className="tpn-row-meta">
-                    <time>{item.timeLabel || t("notifications.recent")}</time>
+                    <time>{item.timeLabel}</time>
                     <button
                       type="button"
                       className="tpn-row-cta"
                       onClick={() => handleOpen(item)}
                       disabled={rowBusy || rowDeleting}
                     >
-                      <span>{item.actionLabel || t("notifications.open")}</span>
+                      <span>{item.actionLabel || t.open}</span>
                     </button>
                   </div>
 
@@ -307,7 +364,7 @@ export default function AccountNotifications2026View({
                         )
                       }
                     >
-                      <MoreVertical size={19} />
+                      <MoreVertical size={18} />
                     </button>
                     {menuOpen ? (
                       <div className="tpn-row-menu" role="menu">
@@ -317,10 +374,10 @@ export default function AccountNotifications2026View({
                           onClick={() => handleMarkRead(item)}
                           disabled={!item.isUnread || rowBusy}
                         >
-                          {t("notifications.markRead")}
+                          {t.markRead}
                         </button>
                         <button type="button" role="menuitem" onClick={() => handleOpen(item)}>
-                          {t("notifications.open")}
+                          {t.open}
                         </button>
                         <button
                           type="button"
@@ -329,7 +386,7 @@ export default function AccountNotifications2026View({
                           onClick={() => handleDelete(item)}
                           disabled={rowDeleting}
                         >
-                          {rowDeleting ? t("notifications.deleting") : t("notifications.delete")}
+                          {rowDeleting ? t.deleting : t.delete}
                         </button>
                       </div>
                     ) : null}
@@ -340,11 +397,56 @@ export default function AccountNotifications2026View({
           </div>
         ) : null}
 
-        {!loading && !errorMessage && notifications.length > 0 ? (
-          <footer className="tpn-panel-footer">
-            <Bell size={17} />
-            <span>{t("notifications.footerText")}</span>
-            <ChevronRight size={17} aria-hidden="true" />
+        {/* Clean, Modern Pagination (Slide 1, Slide 2, etc.) */}
+        {!loading && !errorMessage && totalFilteredCount > 0 ? (
+          <footer className="tpn-pagination" aria-label="Notifications pagination">
+            <span className="tpn-pagination-summary">{paginationSummary}</span>
+
+            {totalPages > 1 ? (
+              <div className="tpn-pagination-controls">
+                <button
+                  type="button"
+                  className="tpn-page-btn tpn-page-nav"
+                  onClick={() => onPageChange?.(page - 1)}
+                  disabled={page <= 1}
+                  aria-label={t.previous}
+                >
+                  <ChevronLeft size={16} />
+                  <span>{t.previous}</span>
+                </button>
+
+                <div className="tpn-page-numbers">
+                  {getPageNumbers().map((num, idx) =>
+                    num === "..." ? (
+                      <span key={`dots-${idx}`} className="tpn-page-ellipsis">
+                        …
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        key={num}
+                        className={`tpn-page-btn tpn-page-num ${page === num ? "is-active" : ""}`}
+                        onClick={() => onPageChange?.(num)}
+                        aria-current={page === num ? "page" : undefined}
+                      >
+                        {num}
+                      </button>
+                    )
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  className="tpn-page-btn tpn-page-nav"
+                  onClick={() => onPageChange?.(page + 1)}
+                  disabled={page >= totalPages}
+                  aria-label={t.next}
+                >
+                  <span>{t.next}</span>
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            ) : null}
           </footer>
         ) : null}
       </div>

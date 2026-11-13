@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import {
@@ -16,7 +16,21 @@ import {
 } from "./notifications2026/accountNotifications2026Adapter.js";
 import { useTranslation } from "react-i18next";
 
-const PAGE_SIZE = 20;
+const FETCH_LIMIT = 100;
+const PAGE_SIZE = 10;
+
+const isIndonesianLanguage = (i18nInstance) => {
+  if (i18nInstance?.language?.toLowerCase().startsWith("id")) return true;
+  if (typeof window !== "undefined") {
+    const storeLang = (localStorage.getItem("store_language") || "").toLowerCase();
+    if (storeLang === "indonesia" || storeLang.startsWith("id")) return true;
+    const i18nLng = (localStorage.getItem("i18nextLng") || "").toLowerCase();
+    if (i18nLng.startsWith("id")) return true;
+    const appLang = (localStorage.getItem("app_lang") || "").toLowerCase();
+    if (appLang === "indonesia" || appLang.startsWith("id")) return true;
+  }
+  return false;
+};
 
 const invalidateNotifications = (queryClient) => {
   queryClient.invalidateQueries({ queryKey: ["account", "notifications"] });
@@ -29,20 +43,53 @@ export default function AccountNotificationsPage() {
   const { user } = useOutletContext() || {};
   const [activeFilter, setActiveFilter] = useState("all");
   const [unreadOnly, setUnreadOnly] = useState(false);
+  const [page, setPage] = useState(1);
+
   const { i18n } = useTranslation();
-  const isIndo = i18n.language === "id";
+  const [activeLang, setActiveLang] = useState(
+    typeof window !== "undefined"
+      ? (localStorage.getItem("store_language") === "Indonesia" ? "id" : i18n?.language || "en")
+      : "en"
+  );
+
+  useEffect(() => {
+    const handleSync = (lng) => setActiveLang(lng);
+    const handleCustomLang = (e) => {
+      if (e?.detail?.isoCode) setActiveLang(e.detail.isoCode);
+    };
+    const handleStorage = () => {
+      const stored = localStorage.getItem("store_language");
+      if (stored === "Indonesia") setActiveLang("id");
+      else if (stored === "English") setActiveLang("en");
+      else setActiveLang(i18n?.language || "en");
+    };
+
+    i18n?.on?.("languageChanged", handleSync);
+    window.addEventListener("store_language_changed", handleCustomLang);
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      i18n?.off?.("languageChanged", handleSync);
+      window.removeEventListener("store_language_changed", handleCustomLang);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [i18n]);
+
+  const isIndo = useMemo(
+    () => isIndonesianLanguage({ language: activeLang }),
+    [activeLang]
+  );
 
   const notificationsQuery = useQuery({
-    queryKey: ["account", "notifications", { limit: PAGE_SIZE, offset: 0 }],
-    queryFn: () => fetchUserNotifications({ limit: PAGE_SIZE, offset: 0 }),
-    staleTime: 20_000,
+    queryKey: ["account", "notifications", { limit: FETCH_LIMIT, offset: 0 }],
+    queryFn: () => fetchUserNotifications({ limit: FETCH_LIMIT, offset: 0 }),
+    staleTime: 15_000,
     retry: 1,
   });
 
   const unreadQuery = useQuery({
     queryKey: ["account", "notifications", "unread-count"],
     queryFn: fetchUserUnreadNotificationCount,
-    staleTime: 20_000,
+    staleTime: 15_000,
     retry: 1,
   });
 
@@ -70,6 +117,7 @@ export default function AccountNotificationsPage() {
     () => unwrapNotifications(notificationsQuery.data),
     [notificationsQuery.data]
   );
+
   const viewModel = useMemo(
     () =>
       buildNotificationsViewModel({
@@ -80,13 +128,23 @@ export default function AccountNotificationsPage() {
       }),
     [activeFilter, payload.items, payload.unreadCount, unreadQuery.data, isIndo]
   );
-  const visibleNotifications = useMemo(
+
+  const allVisibleNotifications = useMemo(
     () =>
       unreadOnly
         ? viewModel.notifications.filter((item) => item.isUnread)
         : viewModel.notifications,
     [unreadOnly, viewModel.notifications]
   );
+
+  const totalFilteredCount = allVisibleNotifications.length;
+  const totalPages = Math.max(1, Math.ceil(totalFilteredCount / PAGE_SIZE));
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+
+  const pagedNotifications = useMemo(() => {
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    return allVisibleNotifications.slice(startIndex, startIndex + PAGE_SIZE);
+  }, [allVisibleNotifications, currentPage]);
 
   const mutationError =
     markReadMutation.error ||
@@ -96,11 +154,23 @@ export default function AccountNotificationsPage() {
 
   const handleFilterChange = (filterKey) => {
     setActiveFilter(filterKey);
+    setPage(1);
   };
 
   const handleClearFilters = () => {
     setActiveFilter("all");
     setUnreadOnly(false);
+    setPage(1);
+  };
+
+  const handleToggleUnreadOnly = () => {
+    setUnreadOnly((current) => !current);
+    setPage(1);
+  };
+
+  const handlePageChange = (newPage) => {
+    const target = Math.min(Math.max(1, newPage), totalPages);
+    setPage(target);
   };
 
   const handleMarkAllRead = () => {
@@ -139,11 +209,17 @@ export default function AccountNotificationsPage() {
   return (
     <AccountNotifications2026View
       user={user}
-      notifications={visibleNotifications}
+      notifications={pagedNotifications}
+      allNotificationsCount={viewModel.allNotifications.length}
       unreadCount={viewModel.unreadCount}
       counts={viewModel.counts}
       activeFilter={viewModel.activeFilter}
       filtersActive={unreadOnly}
+      page={currentPage}
+      totalPages={totalPages}
+      totalFilteredCount={totalFilteredCount}
+      pageSize={PAGE_SIZE}
+      isIndo={isIndo}
       loading={notificationsQuery.isLoading}
       error={notificationsQuery.isError ? notificationsQuery.error : null}
       mutationError={mutationError}
@@ -154,12 +230,16 @@ export default function AccountNotificationsPage() {
       onFilterChange={handleFilterChange}
       onMarkAllRead={handleMarkAllRead}
       onClearFilters={handleClearFilters}
-      onOpenFilters={() => setUnreadOnly((current) => !current)}
+      onOpenFilters={handleToggleUnreadOnly}
+      onPageChange={handlePageChange}
       onOpenNotification={handleOpenNotification}
       onMarkNotificationRead={handleMarkNotificationRead}
       onDeleteNotification={handleDeleteNotification}
       onClearNotifications={handleClearNotifications}
-      onRefresh={() => notificationsQuery.refetch()}
+      onRefresh={() => {
+        notificationsQuery.refetch();
+        unreadQuery.refetch();
+      }}
     />
   );
 }

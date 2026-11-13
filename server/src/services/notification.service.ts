@@ -534,11 +534,11 @@ export const countUserUnreadNotifications = async (userId: number) => {
 
 export const listUserNotifications = async (userId: number, limit = 20, offset = 0) => {
   await ensureNotificationStorage();
-  const safeLimit = Math.max(1, Math.min(50, Number(limit) || 20));
+  const safeLimit = Math.max(1, Math.min(100, Number(limit) || 20));
   const safeOffset = Math.max(0, Math.floor(Number(offset) || 0));
   const safeUserId = toNumber(userId, 0);
   if (!safeUserId) {
-    return { unreadCount: 0, items: [] as ReturnType<typeof toNotificationPayload>[] };
+    return { unreadCount: 0, total: 0, items: [] as ReturnType<typeof toNotificationPayload>[] };
   }
 
   const [items, unreadItems] = await Promise.all([
@@ -551,15 +551,17 @@ export const listUserNotifications = async (userId: number, limit = 20, offset =
     }),
   ]);
 
-  const filteredItems = items
-    .filter((item) => isUserTargeted(item.meta) && toUserIdFromMeta(item.meta) === safeUserId)
-    .slice(safeOffset, safeOffset + safeLimit);
+  const userItems = items.filter(
+    (item) => isUserTargeted(item.meta) && toUserIdFromMeta(item.meta) === safeUserId
+  );
+  const filteredItems = userItems.slice(safeOffset, safeOffset + safeLimit);
   const unreadCount = unreadItems.filter(
     (item) => isUserTargeted(item.meta) && toUserIdFromMeta(item.meta) === safeUserId
   ).length;
 
   return {
     unreadCount,
+    total: userItems.length,
     items: filteredItems.map(toNotificationPayload),
   };
 };

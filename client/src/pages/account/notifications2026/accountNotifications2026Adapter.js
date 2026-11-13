@@ -1,8 +1,8 @@
 export const NOTIFICATION_FILTERS = [
-  { key: "all", label: "All" },
-  { key: "orders", label: "Orders" },
-  { key: "account", label: "Account" },
-  { key: "promotions", label: "Promotions" },
+  { key: "all", label: "All", idLabel: "Semua" },
+  { key: "orders", label: "Orders", idLabel: "Pesanan" },
+  { key: "account", label: "Account", idLabel: "Akun" },
+  { key: "promotions", label: "Promotions", idLabel: "Promo" },
 ];
 
 const EMPTY_TEXT = new Set(["", "undefined", "null", "nan"]);
@@ -154,7 +154,7 @@ const resolveUnread = (item, meta) => {
   return false;
 };
 
-export const formatNotificationTimestamp = (input) => {
+export const formatNotificationTimestamp = (input, isIndo = false) => {
   const date = new Date(input || "");
   if (Number.isNaN(date.getTime())) return "";
 
@@ -162,19 +162,19 @@ export const formatNotificationTimestamp = (input) => {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const day = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
   const diff = Math.round((today - day) / 86_400_000);
-  const time = new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
+
+  const time = new Intl.DateTimeFormat(isIndo ? "id-ID" : "en-US", {
+    hour: "2-digit",
     minute: "2-digit",
+    hour12: !isIndo,
   }).format(date);
 
   if (diff === 0) return time;
-  if (diff === 1) return "Yesterday";
-  return new Intl.DateTimeFormat("en-US", {
+  if (diff === 1) return isIndo ? "Kemarin" : "Yesterday";
+  return new Intl.DateTimeFormat(isIndo ? "id-ID" : "en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
   }).format(date);
 };
 
@@ -213,42 +213,42 @@ const getPresentation = (kind, item, meta, isIndo) => {
 
   const map = {
     order: {
-      chip: isIndo ? "Update Pesanan" : "Order Update",
+      chip: isIndo ? "Pesanan" : "Order",
       tone: "blue",
       iconTone: "blue",
       iconName: "truck",
       actionLabel: isIndo ? "Lihat pesanan" : "View order",
     },
     payment: {
-      chip: isIndo ? "Pembayaran Selesai" : "Payment Done",
+      chip: isIndo ? "Pembayaran" : "Payment",
       tone: "success",
       iconTone: "success",
       iconName: "card",
       actionLabel: isIndo ? "Lihat pesanan" : "View order",
     },
     invitation: {
-      chip: isIndo ? "Akun" : "Account",
+      chip: isIndo ? "Undangan" : "Invitation",
       tone: "purple",
       iconTone: "purple",
       iconName: "mail",
       actionLabel: isIndo ? "Buka" : "Open",
     },
     promotion: {
-      chip: isIndo ? "Promosi" : "Promotion",
+      chip: isIndo ? "Promo" : "Promotion",
       tone: "orange",
       iconTone: "orange",
       iconName: "tag",
       actionLabel: isIndo ? "Lihat promo" : "View deals",
     },
     account: {
-      chip: isIndo ? "Update Akun" : "Account Update",
+      chip: isIndo ? "Akun" : "Account",
       tone: "blue",
       iconTone: "blue",
       iconName: "user",
       actionLabel: isIndo ? "Buka" : "Open",
     },
     general: {
-      chip: "Update",
+      chip: isIndo ? "Pembaruan" : "Update",
       tone: "blue",
       iconTone: "blue",
       iconName: "bell",
@@ -264,7 +264,7 @@ const getStatusCopy = (kind, item, meta, isIndo) => {
   if (/\b(delivered|delivery complete)\b/.test(haystack)) {
     return {
       title: isIndo ? "Pesanan terkirim" : "Order delivered",
-      message: isIndo ? "Pesanan Anda telah terkirim." : "Your order has been delivered.",
+      message: isIndo ? "Pesanan Anda telah berhasil diantar." : "Your order has been delivered.",
     };
   }
   if (/\b(shipped|shipping|on the way|tracking)\b/.test(haystack)) {
@@ -276,7 +276,7 @@ const getStatusCopy = (kind, item, meta, isIndo) => {
   if (/\b(packed|ready to ship|ready_to_ship)\b/.test(haystack)) {
     return {
       title: isIndo ? "Pesanan dikemas" : "Order packed",
-      message: isIndo ? "Dikemas dan siap." : "Packed and ready.",
+      message: isIndo ? "Pesanan Anda telah dikemas dan siap dikirim." : "Packed and ready for pickup.",
     };
   }
   if (/\b(payment|paid|approved|confirmed|qris|proof)\b/.test(haystack) || kind === "payment") {
@@ -293,8 +293,8 @@ const getStatusCopy = (kind, item, meta, isIndo) => {
   }
   if (kind === "promotion") {
     return {
-      title: isIndo ? "Pembaruan promosi" : "Promotion update",
-      message: isIndo ? "Penawaran baru tersedia." : "A new offer is available.",
+      title: isIndo ? "Pembaruan promo" : "Promotion update",
+      message: isIndo ? "Penawaran promo baru tersedia." : "A new offer is available.",
     };
   }
   if (kind === "account") {
@@ -306,18 +306,70 @@ const getStatusCopy = (kind, item, meta, isIndo) => {
   if (kind === "order") {
     return {
       title: isIndo ? "Update pesanan" : "Order update",
-      message: isIndo ? "Status pesanan Anda berubah." : "Your order status changed.",
+      message: isIndo ? "Status pesanan Anda telah diperbarui." : "Your order status changed.",
     };
   }
   return {
-    title: isIndo ? "Update notifikasi" : "Notification update",
+    title: isIndo ? "Notifikasi baru" : "New notification",
     message: isIndo ? "Anda memiliki pembaruan baru." : "You have a new update.",
   };
 };
 
 const isGenericMessage = (value) => {
   const text = toText(value).toLowerCase();
-  return !text || text === "you have a new update." || text === "we have an update for you.";
+  return !text || text === "you have a new update." || text === "we have an update for you." || text === "anda memiliki pembaruan baru.";
+};
+
+const localizeTitle = (providedTitle, statusCopyTitle, isIndo, kind) => {
+  const clean = toText(providedTitle).toLowerCase();
+  if (!clean || ["order", "payment"].includes(kind)) {
+    return statusCopyTitle;
+  }
+  if (isIndo) {
+    if (clean === "order update" || clean === "order status changed" || clean === "order status update") return "Update pesanan";
+    if (clean === "order delivered") return "Pesanan terkirim";
+    if (clean === "order shipped") return "Pesanan dikirim";
+    if (clean === "payment confirmed" || clean === "payment received") return "Pembayaran dikonfirmasi";
+    if (clean === "store invitation received" || clean === "store invitation") return "Undangan toko diterima";
+    if (clean === "promotion update") return "Pembaruan promo";
+    if (clean === "account updated") return "Akun diperbarui";
+    if (clean === "notification update") return "Notifikasi baru";
+  } else {
+    if (clean === "update pesanan" || clean === "status pesanan berubah") return "Order update";
+    if (clean === "pesanan terkirim") return "Order delivered";
+    if (clean === "pesanan dikirim") return "Order shipped";
+    if (clean === "pembayaran dikonfirmasi" || clean === "pembayaran diterima") return "Payment confirmed";
+    if (clean === "undangan toko diterima") return "Store invitation received";
+    if (clean === "pembaruan promo") return "Promotion update";
+    if (clean === "akun diperbarui") return "Account updated";
+    if (clean === "notifikasi baru") return "Notification update";
+  }
+  return providedTitle;
+};
+
+const localizeMessage = (providedMessage, statusCopyMessage, isIndo) => {
+  const clean = toText(providedMessage).toLowerCase();
+  if (isGenericMessage(clean)) {
+    return statusCopyMessage;
+  }
+  if (isIndo) {
+    if (clean === "your order status changed." || clean === "your order status has changed.") return "Status pesanan Anda telah diperbarui.";
+    if (clean === "your order has been delivered.") return "Pesanan Anda telah berhasil diantar.";
+    if (clean === "your order is on the way.") return "Pesanan Anda sedang dalam perjalanan.";
+    if (clean === "we've received your payment." || clean === "we have received your payment.") return "Kami telah menerima pembayaran Anda.";
+    if (clean === "you have a new store invitation.") return "Anda memiliki undangan toko baru.";
+    if (clean === "a new offer is available.") return "Penawaran promo baru tersedia.";
+    if (clean === "your account information was updated.") return "Informasi akun Anda telah diperbarui.";
+  } else {
+    if (clean === "status pesanan anda telah diperbarui." || clean === "status pesanan anda berubah.") return "Your order status changed.";
+    if (clean === "pesanan anda telah berhasil diantar." || clean === "pesanan anda telah terkirim.") return "Your order has been delivered.";
+    if (clean === "pesanan anda sedang dalam perjalanan.") return "Your order is on the way.";
+    if (clean === "kami telah menerima pembayaran anda.") return "We've received your payment.";
+    if (clean === "anda memiliki undangan toko baru.") return "You have a new store invitation.";
+    if (clean === "penawaran promo baru tersedia.") return "A new offer is available.";
+    if (clean === "informasi akun anda telah diperbarui.") return "Your account information was updated.";
+  }
+  return providedMessage;
 };
 
 export const normalizeNotification = (notification, isIndo = false) => {
@@ -343,9 +395,8 @@ export const normalizeNotification = (notification, isIndo = false) => {
   const providedMessage = toText(
     item.message || item.description || item.body || meta.message || meta.description
   );
-  const title =
-    ["order", "payment"].includes(kind) || !providedTitle ? statusCopy.title : providedTitle;
-  const message = isGenericMessage(providedMessage) ? statusCopy.message : providedMessage;
+  const title = localizeTitle(providedTitle, statusCopy.title, isIndo, kind);
+  const message = localizeMessage(providedMessage, statusCopy.message, isIndo);
   const createdAt =
     item.createdAt ||
     item.created_at ||
@@ -364,8 +415,8 @@ export const normalizeNotification = (notification, isIndo = false) => {
     title,
     message,
     description: message,
-    chip: toText(item.label || item.chip || meta.label || meta.chip, presentation.chip),
-    label: toText(item.label || item.chip || meta.label || meta.chip, presentation.chip),
+    chip: toText(presentation.chip, presentation.chip),
+    label: toText(presentation.chip, presentation.chip),
     tone: presentation.tone,
     iconTone: presentation.iconTone,
     iconName: presentation.iconName,
@@ -373,7 +424,7 @@ export const normalizeNotification = (notification, isIndo = false) => {
     isUnread,
     isRead: !isUnread,
     createdAt,
-    timeLabel: formatNotificationTimestamp(createdAt),
+    timeLabel: formatNotificationTimestamp(createdAt, isIndo),
     route: resolveRoute(item, meta, kind, orderId),
     actionUrl: resolveRoute(item, meta, kind, orderId),
     orderId,
