@@ -55,17 +55,10 @@ export default function OrderDetail() {
     return false;
   })();
 
-  // Instant redirect for specific idempotency invoice
-  useEffect(() => {
-    if (invoiceNo === "STORE-IDEMP-869F9739D3B97DA1334BE33C") {
-      navigate("/seller/stores/kreasi-singkong/orders/153", { replace: true });
-    }
-  }, [invoiceNo, navigate]);
-
   const orderQuery = useQuery({
     queryKey: ["admin-order", invoiceNo],
     queryFn: () => fetchAdminOrderByInvoice(invoiceNo),
-    enabled: Boolean(invoiceNo && invoiceNo !== "STORE-IDEMP-869F9739D3B97DA1334BE33C"),
+    enabled: Boolean(invoiceNo),
   });
 
   const order =

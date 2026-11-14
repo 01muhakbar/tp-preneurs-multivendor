@@ -621,10 +621,6 @@ export default function App() {
                 }
               />
               <Route
-                path="orders/STORE-IDEMP-869F9739D3B97DA1334BE33C"
-                element={<Navigate to="/seller/stores/kreasi-singkong/orders/153" replace />}
-              />
-              <Route
                 path="orders/:invoiceNo"
                 element={
                   <RequirePerm perm="ORDERS_VIEW">
