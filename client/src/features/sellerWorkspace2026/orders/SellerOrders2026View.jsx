@@ -556,7 +556,7 @@ export default function SellerOrders2026View({
                             <strong
                               className="tpsow2026-order-code"
                               title={row.invoiceNo}
-                              onClick={() => handleViewInvoice(row.id)}
+                              onClick={() => handleViewInvoice(row.compactOrderNumber || row.orderNumber || row.id)}
                               style={{ cursor: "pointer" }}
                             >
                               {row.reference}
@@ -649,7 +649,7 @@ export default function SellerOrders2026View({
                         <button
                           type="button"
                           className="tpsow2026-btn-detail"
-                          onClick={() => handleViewInvoice(row.id)}
+                          onClick={() => handleViewInvoice(row.compactOrderNumber || row.orderNumber || row.id)}
                           title={t.viewDetail}
                         >
                           <FileText size={14} />
@@ -721,7 +721,7 @@ export default function SellerOrders2026View({
                     <button
                       type="button"
                       className="tpsow2026-btn-detail"
-                      onClick={() => handleViewInvoice(row.id)}
+                      onClick={() => handleViewInvoice(row.compactOrderNumber || row.orderNumber || row.id)}
                     >
                       <FileText size={14} />
                       <span>{t.viewDetail}</span>

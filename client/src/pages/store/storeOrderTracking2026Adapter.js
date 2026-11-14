@@ -7,6 +7,7 @@ import {
   getSplitOperationalStatusSummary,
 } from "../../utils/splitOperationalTruth.ts";
 import { normalizeShipmentList } from "../../utils/shipmentReadModel.ts";
+import { formatCompactOrderNumber } from "../account/accountOrderDetail2026Adapter.js";
 
 export const isIndonesianLanguage = (i18nInstance) => {
   if (typeof window !== "undefined") {
@@ -626,13 +627,20 @@ export const normalizeStoreOrderTrackingFor2026 = ({ tracking, isIndo = false, i
     return isIndo ? "Sedang Dikirim" : "In Transit";
   };
 
+  const rawInvoice = text(order.invoiceNo || order.ref, "Order");
+  const createdAt = order.createdAt || null;
+  const compactOrderNumber = formatCompactOrderNumber(rawInvoice, orderId, createdAt);
+  const effectiveRef = compactOrderNumber && compactOrderNumber !== "-" ? compactOrderNumber : rawInvoice;
+
   return {
     orderId,
-    orderDetailUrl: `/user/my-orders/${orderId}`,
-    reference: text(order.invoiceNo || order.ref, "Order"),
-    createdAt: order.createdAt || null,
-    createdAtLabel: dateTime(order.createdAt, isIndo),
-    createdDateLabel: dateOnly(order.createdAt, isIndo),
+    compactOrderNumber,
+    orderDetailUrl: `/user/my-orders/${effectiveRef}`,
+    reference: effectiveRef,
+    rawReference: rawInvoice,
+    createdAt: createdAt,
+    createdAtLabel: dateTime(createdAt, isIndo),
+    createdDateLabel: dateOnly(createdAt, isIndo),
     statusTitle: getStatusTitle(),
     statusHeadline,
     estimatedDeliveryLabel,

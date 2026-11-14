@@ -128,6 +128,15 @@ export default function Seller2026LiveSuborderDetailPage() {
     }
   }, [orderDetail2026?.internalNotes]);
 
+  // URL normalization: if accessed with numeric ID or raw ID, normalize URL to TP-YYMMDD-XXXX
+  useEffect(() => {
+    if (!orderDetail2026?.reference) return;
+    const targetRef = orderDetail2026.reference;
+    if (targetRef && targetRef !== "-" && suborderId !== targetRef) {
+      navigate(workspaceRoutes.orderDetail(targetRef), { replace: true });
+    }
+  }, [orderDetail2026?.reference, suborderId, workspaceRoutes, navigate]);
+
   useEffect(() => {
     if (!shippingLabel) return undefined;
     const clearPrintedLabel = () => {

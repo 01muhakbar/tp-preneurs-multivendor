@@ -9,6 +9,24 @@ import {
 import QueryState from "../../components/primitives/ui/QueryState.jsx";
 import AdminOrderDetail2026View from "../../components/admin/orders/AdminOrderDetail2026View.jsx";
 
+const formatCompactOrderNumber = (invoiceNo, orderId, createdAt) => {
+  const raw = String(invoiceNo || "").trim();
+  if (!raw && !orderId) return "-";
+  if (/^TP-\d{6}-\w+/i.test(raw)) return raw;
+
+  const d = createdAt ? new Date(createdAt) : null;
+  const dateStr =
+    d && !Number.isNaN(d.getTime())
+      ? `${String(d.getFullYear()).slice(-2)}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`
+      : "261104";
+
+  const numPart = orderId
+    ? String(orderId).padStart(4, "0")
+    : raw.replace(/[^A-Za-z0-9]/g, "").slice(-4) || "0001";
+
+  return `TP-${dateStr}-${numPart}`;
+};
+
 export default function OrderDetail() {
   const { invoiceNo } = useParams();
   const [searchParams] = useSearchParams();
@@ -93,6 +111,18 @@ export default function OrderDetail() {
       }, 3500);
     },
   });
+
+  // URL normalization: if accessed with raw ID/invoice (e.g. STORE-IDEMP-...), normalize to TP-YYMMDD-XXXX
+  useEffect(() => {
+    if (!order) return;
+    const orderId = order.id || order.orderId;
+    const rawInvoice = order.invoiceNo || order.invoice || invoiceNo;
+    const createdAt = order.createdAt || order.orderTime || null;
+    const compactNo = formatCompactOrderNumber(rawInvoice, orderId, createdAt);
+    if (compactNo && compactNo !== "-" && invoiceNo !== compactNo && !shouldAutoPrint) {
+      navigate(`/admin/orders/${compactNo}`, { replace: true });
+    }
+  }, [order, invoiceNo, shouldAutoPrint, navigate]);
 
   // Handle auto-print if ?print=1
   const shouldAutoPrint = searchParams.get("print") === "1";

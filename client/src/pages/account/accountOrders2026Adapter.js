@@ -322,9 +322,15 @@ const normalizeOrder = (value, options = {}) => {
     ...rawPayment,
     label: paymentLabel,
   };
-  const detailPath = id ? `/user/my-orders/${encodeURIComponent(String(id))}` : null;
-  const paymentAction = resolvePaymentAction({ id, contract, paymentEntry, order });
   const createdAt = order.createdAt || order.created_at || order.orderTime || null;
+  const compactOrderNo = formatCompactOrderNumber(
+    order.invoiceNo || reference,
+    id,
+    createdAt
+  );
+  const orderTarget = compactOrderNo && compactOrderNo !== "-" ? compactOrderNo : (id ? String(id) : "");
+  const detailPath = orderTarget ? `/user/my-orders/${encodeURIComponent(orderTarget)}` : null;
+  const paymentAction = resolvePaymentAction({ id: orderTarget || id, contract, paymentEntry, order });
   const shippingAmount = asNumber(
     order.shipping ?? order.shippingAmount ?? order.deliveryFee,
     0
@@ -366,12 +372,6 @@ const normalizeOrder = (value, options = {}) => {
     text(order.storePhone) ||
     text(asArray(order.stores).find((s) => asObject(s).phone)?.phone) ||
     "";
-
-  const compactOrderNo = formatCompactOrderNumber(
-    order.invoiceNo || reference,
-    id,
-    createdAt
-  );
 
   const sellerChatUrl = buildStoreWhatsAppUrl({
     whatsappNumber: rawStoreWhatsapp,

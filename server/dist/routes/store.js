@@ -1974,14 +1974,40 @@ router.get("/my/orders", protect, async (req, res, next) => {
         next(error);
     }
 });
+const resolveMyOrderId = async (idParam, userId) => {
+    const raw = String(idParam || "").trim();
+    if (!raw)
+        return null;
+    const num = Number(raw);
+    if (Number.isInteger(num) && num > 0)
+        return num;
+    const tpMatch = raw.match(/^TP-\d{6}-(\d+)(?:-S\d+)?$/i);
+    if (tpMatch) {
+        const parsed = Number(tpMatch[1]);
+        if (Number.isInteger(parsed) && parsed > 0)
+            return parsed;
+    }
+    try {
+        const order = await Order.findOne({
+            where: { invoiceNo: raw, userId },
+            attributes: ["id"],
+        });
+        if (order)
+            return Number(order.id || 0) || null;
+    }
+    catch {
+        // ignore
+    }
+    return null;
+};
 // GET /api/store/orders/my/:id (auth)
 router.get("/orders/my/:id", protect, async (req, res, next) => {
     try {
         const userId = getAuthUserId(req, res);
         if (!userId)
             return;
-        const orderId = Number(req.params.id);
-        if (!Number.isFinite(orderId)) {
+        const orderId = await resolveMyOrderId(req.params.id, userId);
+        if (!orderId) {
             return res.status(400).json({ message: "Invalid order id." });
         }
         // Auto-expire order if deadline (1h-24h) has passed and still unpaid
@@ -2333,8 +2359,8 @@ router.post("/orders/my/:id/cancel", protect, async (req, res, next) => {
         const userId = getAuthUserId(req, res);
         if (!userId)
             return;
-        const orderId = Number(req.params.id);
-        if (!Number.isFinite(orderId)) {
+        const orderId = await resolveMyOrderId(req.params.id, userId);
+        if (!orderId) {
             return res.status(400).json({ success: false, message: "Invalid order id." });
         }
         const order = await Order.findOne({
@@ -2386,8 +2412,8 @@ router.post("/orders/my/:id/pay", protect, async (req, res, next) => {
         const userId = getAuthUserId(req, res);
         if (!userId)
             return;
-        const orderId = Number(req.params.id);
-        if (!Number.isFinite(orderId)) {
+        const orderId = await resolveMyOrderId(req.params.id, userId);
+        if (!orderId) {
             return res.status(400).json({ success: false, message: "Invalid order id." });
         }
         // Check if order has expired
@@ -2680,7 +2706,16 @@ router.get("/orders/:ref", publicTrackingRateLimit, async (req, res, next) => {
                 message: "Order tracking requires a public invoice reference.",
             });
         }
-        const where = sequelize.where(sequelize.fn("UPPER", sequelize.col("invoice_no")), refParam);
+        const tpMatch = refParam.match(/^TP-\d{6}-(\d+)(?:-S\d+)?$/i);
+        const parsedId = tpMatch ? Number(tpMatch[1]) : null;
+        const where = parsedId && parsedId > 0
+            ? {
+                [Op.or]: [
+                    sequelize.where(sequelize.fn("UPPER", sequelize.col("invoice_no")), refParam),
+                    { id: parsedId },
+                ],
+            }
+            : sequelize.where(sequelize.fn("UPPER", sequelize.col("invoice_no")), refParam);
         const order = await Order.findOne({
             where,
             attributes: [

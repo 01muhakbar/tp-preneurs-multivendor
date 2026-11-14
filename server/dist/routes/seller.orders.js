@@ -1227,7 +1227,7 @@ const serializeListItem = (suborder, sellerAccess = null) => {
             : null,
     };
 };
-const buildSuborderLookupWhere = (storeId, suborderParam) => {
+const buildSuborderLookupWhere = async (storeId, suborderParam) => {
     const raw = String(suborderParam || "").trim();
     const num = Number(raw);
     const isNum = Number.isInteger(num) && num > 0;
@@ -1241,9 +1241,45 @@ const buildSuborderLookupWhere = (storeId, suborderParam) => {
         };
     }
     if (raw) {
+        const tpMatch = raw.match(/^TP-\d{6}-(\d+)(?:-S\d+)?$/i);
+        const parsedOrderId = tpMatch ? Number(tpMatch[1]) : null;
+        if (parsedOrderId && parsedOrderId > 0) {
+            return {
+                storeId,
+                [Op.or]: [
+                    { suborderNumber: raw },
+                    { suborderNumber: { [Op.like]: `${raw}%` } },
+                    { orderId: parsedOrderId },
+                ],
+            };
+        }
+        try {
+            const parentOrder = await Order.findOne({
+                where: { invoiceNo: raw },
+                attributes: ["id"],
+            });
+            if (parentOrder) {
+                const orderId = Number(getAttr(parentOrder, "id") || 0);
+                if (orderId > 0) {
+                    return {
+                        storeId,
+                        [Op.or]: [
+                            { suborderNumber: raw },
+                            { orderId },
+                        ],
+                    };
+                }
+            }
+        }
+        catch {
+            // ignore
+        }
         return {
             storeId,
-            suborderNumber: raw,
+            [Op.or]: [
+                { suborderNumber: raw },
+                { suborderNumber: { [Op.like]: `${raw}%` } },
+            ],
         };
     }
     return null;
@@ -1626,7 +1662,7 @@ router.get("/stores/:storeId/suborders", requireSellerStoreAccess(["ORDER_VIEW"]
 router.get("/stores/:storeId/suborders/:suborderId/shipping-label", requireSellerStoreAccess(["ORDER_VIEW"]), async (req, res) => {
     try {
         const storeId = Number(req.params.storeId);
-        const whereCondition = buildSuborderLookupWhere(storeId, req.params.suborderId);
+        const whereCondition = await buildSuborderLookupWhere(storeId, req.params.suborderId);
         if (!whereCondition) {
             return res.status(400).json({
                 success: false,
@@ -1677,7 +1713,7 @@ router.get("/stores/:storeId/suborders/:suborderId/shipping-label", requireSelle
 router.get("/stores/:storeId/suborders/:suborderId", requireSellerStoreAccess(["ORDER_VIEW"]), async (req, res) => {
     try {
         const storeId = Number(req.params.storeId);
-        const whereCondition = buildSuborderLookupWhere(storeId, req.params.suborderId);
+        const whereCondition = await buildSuborderLookupWhere(storeId, req.params.suborderId);
         if (!whereCondition) {
             return res.status(400).json({
                 success: false,
@@ -1806,7 +1842,7 @@ router.patch("/stores/:storeId/suborders/:suborderId/fulfillment", requireSeller
     let tx = null;
     try {
         const storeId = Number(req.params.storeId);
-        const whereCondition = buildSuborderLookupWhere(storeId, req.params.suborderId);
+        const whereCondition = await buildSuborderLookupWhere(storeId, req.params.suborderId);
         const actorUserId = Number(req.user?.id || 0) || null;
         const actionCode = toUpper(req.body?.action);
         const courierCode = String(req.body?.courierCode || "").trim() || null;
@@ -2143,7 +2179,7 @@ router.patch("/stores/:storeId/suborders/:suborderId/fulfillment", requireSeller
 const handleUpdateInternalNote = async (req, res) => {
     try {
         const storeId = Number(req.params.storeId);
-        const whereCondition = buildSuborderLookupWhere(storeId, req.params.suborderId);
+        const whereCondition = await buildSuborderLookupWhere(storeId, req.params.suborderId);
         const { note } = req.body;
         if (!sellerHasPermission(req.sellerAccess, ORDER_FULFILLMENT_PERMISSION)) {
             return res.status(403).json({

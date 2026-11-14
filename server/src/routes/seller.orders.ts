@@ -1449,7 +1449,7 @@ const serializeListItem = (suborder: any, sellerAccess: any = null) => {
   };
 };
 
-const buildSuborderLookupWhere = (storeId: number, suborderParam: unknown) => {
+const buildSuborderLookupWhere = async (storeId: number, suborderParam: unknown) => {
   const raw = String(suborderParam || "").trim();
   const num = Number(raw);
   const isNum = Number.isInteger(num) && num > 0;
@@ -1463,9 +1463,46 @@ const buildSuborderLookupWhere = (storeId: number, suborderParam: unknown) => {
     };
   }
   if (raw) {
+    const tpMatch = raw.match(/^TP-\d{6}-(\d+)(?:-S\d+)?$/i);
+    const parsedOrderId = tpMatch ? Number(tpMatch[1]) : null;
+    if (parsedOrderId && parsedOrderId > 0) {
+      return {
+        storeId,
+        [Op.or]: [
+          { suborderNumber: raw },
+          { suborderNumber: { [Op.like]: `${raw}%` } },
+          { orderId: parsedOrderId },
+        ],
+      };
+    }
+
+    try {
+      const parentOrder = await Order.findOne({
+        where: { invoiceNo: raw },
+        attributes: ["id"],
+      });
+      if (parentOrder) {
+        const orderId = Number(getAttr(parentOrder, "id") || 0);
+        if (orderId > 0) {
+          return {
+            storeId,
+            [Op.or]: [
+              { suborderNumber: raw },
+              { orderId },
+            ],
+          };
+        }
+      }
+    } catch {
+      // ignore
+    }
+
     return {
       storeId,
-      suborderNumber: raw,
+      [Op.or]: [
+        { suborderNumber: raw },
+        { suborderNumber: { [Op.like]: `${raw}%` } },
+      ],
     };
   }
   return null;
@@ -1881,7 +1918,7 @@ router.get(
   async (req: any, res) => {
     try {
       const storeId = Number(req.params.storeId);
-      const whereCondition = buildSuborderLookupWhere(storeId, req.params.suborderId);
+      const whereCondition = await buildSuborderLookupWhere(storeId, req.params.suborderId);
       if (!whereCondition) {
         return res.status(400).json({
           success: false,
@@ -1940,7 +1977,7 @@ router.get(
   async (req: any, res) => {
     try {
       const storeId = Number(req.params.storeId);
-      const whereCondition = buildSuborderLookupWhere(storeId, req.params.suborderId);
+      const whereCondition = await buildSuborderLookupWhere(storeId, req.params.suborderId);
       if (!whereCondition) {
         return res.status(400).json({
           success: false,
@@ -2097,7 +2134,7 @@ router.patch(
     let tx: any = null;
     try {
       const storeId = Number(req.params.storeId);
-      const whereCondition = buildSuborderLookupWhere(storeId, req.params.suborderId);
+      const whereCondition = await buildSuborderLookupWhere(storeId, req.params.suborderId);
       const actorUserId = Number(req.user?.id || 0) || null;
       const actionCode = toUpper(req.body?.action);
       const courierCode = String(req.body?.courierCode || "").trim() || null;
@@ -2494,7 +2531,7 @@ router.patch(
 const handleUpdateInternalNote = async (req: any, res: any) => {
   try {
     const storeId = Number(req.params.storeId);
-    const whereCondition = buildSuborderLookupWhere(storeId, req.params.suborderId);
+    const whereCondition = await buildSuborderLookupWhere(storeId, req.params.suborderId);
     const { note } = req.body;
 
     if (!sellerHasPermission(req.sellerAccess, ORDER_FULFILLMENT_PERMISSION)) {

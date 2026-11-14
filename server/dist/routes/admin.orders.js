@@ -711,6 +711,18 @@ const resolveOrderWhere = (idOrRef) => {
     if (isNumeric) {
         return { id: Number(trimmed) };
     }
+    const tpMatch = trimmed.match(/^TP-\d{6}-(\d+)(?:-S\d+)?$/i);
+    if (tpMatch) {
+        const parsedId = Number(tpMatch[1]);
+        if (Number.isFinite(parsedId) && parsedId > 0) {
+            return {
+                [Op.or]: [
+                    { id: parsedId },
+                    { invoiceNo: trimmed },
+                ],
+            };
+        }
+    }
     return { invoiceNo: trimmed };
 };
 const orderDetailInclude = [

@@ -166,6 +166,15 @@ export default function AccountOrderDetailPage() {
     }
   }
 
+  // URL normalization: if accessed with numeric ID (e.g. 147), normalize to compactOrderNo (e.g. TP-261111-0147)
+  useEffect(() => {
+    if (!orderDetail2026?.orderMeta?.orderNo) return;
+    const targetRef = orderDetail2026.orderMeta.orderNo;
+    if (targetRef && targetRef !== "-" && id !== targetRef) {
+      navigate(`/user/my-orders/${targetRef}`, { replace: true });
+    }
+  }, [orderDetail2026?.orderMeta?.orderNo, id, navigate]);
+
   const scrollToTimeline = () => {
     document
       .getElementById("aod-order-timeline")

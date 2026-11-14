@@ -1549,9 +1549,23 @@ const normalizeProofSummary = (proofs: any[]) => {
 
 const loadOrderWithSplitRelations = async (lookup: string | number, transaction?: any) => {
   const trimmed = String(lookup || "").trim();
-  const where = /^\d+$/.test(trimmed)
-    ? { id: Number(trimmed) }
-    : { invoiceNo: trimmed };
+  let where: any;
+  if (/^\d+$/.test(trimmed)) {
+    where = { id: Number(trimmed) };
+  } else {
+    const tpMatch = trimmed.match(/^TP-\d{6}-(\d+)(?:-S\d+)?$/i);
+    const parsedId = tpMatch ? Number(tpMatch[1]) : null;
+    if (parsedId && parsedId > 0) {
+      where = {
+        [Op.or]: [
+          { id: parsedId },
+          { invoiceNo: trimmed },
+        ],
+      };
+    } else {
+      where = { invoiceNo: trimmed };
+    }
+  }
 
   return Order.findOne({
     where,

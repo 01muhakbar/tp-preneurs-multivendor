@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { fetchStoreOrder } from "../../api/public/storeOrders.ts";
@@ -36,6 +36,8 @@ const safeFileName = (value) =>
 
 export default function StoreOrderTrackingPage() {
   const params = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
   const ref = getStoreTrackingSafeRef2026(params);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState("");
@@ -79,6 +81,17 @@ export default function StoreOrderTrackingPage() {
     () => normalizeStoreOrderTrackingFor2026({ tracking: rawTracking, isIndo }),
     [rawTracking, isIndo]
   );
+
+  // URL normalization: if accessed via /order/:ref or raw ID (e.g. STORE-IDEMP-...), normalize to /order/tracking/TP-YYMMDD-XXXX
+  useEffect(() => {
+    if (!tracking2026?.reference) return;
+    const canonicalRef = tracking2026.compactOrderNumber || tracking2026.reference;
+    if (!canonicalRef || canonicalRef === "-") return;
+    const targetPath = `/order/tracking/${canonicalRef}`;
+    if (location.pathname !== targetPath) {
+      navigate(targetPath, { replace: true });
+    }
+  }, [tracking2026?.reference, tracking2026?.compactOrderNumber, location.pathname, navigate]);
 
   const invalidReferenceError = !ref
     ? new Error(isIndo ? "Pelacakan pesanan membutuhkan nomor referensi invoice yang valid." : "Order tracking requires a valid public invoice reference.")

@@ -526,6 +526,17 @@ export default function AdminOrderDetail2026View({
               </button>
             )}
 
+            <a
+              href={`/order/tracking/${encodeURIComponent(compactOrderNo || invoiceNo)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="tpsodp2026-btn-outline"
+              title={isIndo ? "Lacak Pesanan Publik" : "Public Order Tracking"}
+            >
+              <Truck size={15} />
+              <span>{isIndo ? "Lacak Pesanan" : "Track Order"}</span>
+            </a>
+
             {whatsAppLink && (
               <a
                 href={whatsAppLink}
@@ -539,9 +550,9 @@ export default function AdminOrderDetail2026View({
               </a>
             )}
 
-            {storeSlug && suborderId && (
+            {storeSlug && (suborderId || compactOrderNo) && (
               <a
-                href={`/seller/stores/${storeSlug}/orders/${suborderId}`}
+                href={`/seller/stores/${storeSlug}/orders/${encodeURIComponent(compactOrderNo || suborderId)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="tpsodp2026-btn-primary"

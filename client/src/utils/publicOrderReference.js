@@ -23,5 +23,5 @@ export const isPublicOrderReference = (value) =>
 
 export const buildPublicOrderTrackingPath = (value) => {
   const reference = normalizePublicOrderReference(value);
-  return reference ? `/order/${encodeURIComponent(reference)}` : null;
+  return reference ? `/order/tracking/${encodeURIComponent(reference)}` : null;
 };

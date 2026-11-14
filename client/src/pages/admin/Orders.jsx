@@ -570,10 +570,14 @@ export default function Orders() {
 
   const onPrintInvoice = (order, view) => {
     const invoiceParam = getInvoiceParam(order, view);
-    if (!invoiceParam) {
+    const rowId = Number(view?.id || order?.id || 0);
+    const orderDateValue = getOrderDateValue(order, view);
+    const compactNo = formatCompactOrderNumber(invoiceParam, rowId, orderDateValue);
+    const targetRef = compactNo && compactNo !== "-" ? compactNo : invoiceParam;
+    if (!targetRef) {
       return toast.error(isId ? "Detail pesanan tidak tersedia." : "Order detail unavailable.");
     }
-    const printWindow = window.open(`/admin/orders/${encodeURIComponent(invoiceParam)}?print=1`, "_blank");
+    const printWindow = window.open(`/admin/orders/${encodeURIComponent(targetRef)}?print=1`, "_blank");
     if (!printWindow) {
       toast.error(isId ? "Pop-up diblokir. Izinkan pop-up untuk mencetak invoice." : "Pop-up blocked. Allow pop-ups to print invoice.");
     }
@@ -1059,6 +1063,8 @@ export default function Orders() {
                       const isSelected = selectedIds.has(rowId);
                       const customerName = view.customerName || "-";
                       const initials = getCustomerInitials(customerName);
+                      const compactOrderNo = formatCompactOrderNumber(invoiceParam, rowId, orderDateValue);
+                      const targetOrderRef = compactOrderNo && compactOrderNo !== "-" ? compactOrderNo : invoiceParam;
 
                       return (
                         <tr key={rowId || invoiceParam} className={isSelected ? "is-selected" : ""}>
@@ -1075,11 +1081,11 @@ export default function Orders() {
                               <div className="orders-inv-date-stack">
                                 <div className="orders-invoice-cell">
                                   <Link
-                                    to={`/admin/orders/${encodeURIComponent(invoiceParam)}`}
+                                    to={`/admin/orders/${encodeURIComponent(targetOrderRef)}`}
                                     className="orders-invoice-link"
                                     title={invoiceParam}
                                   >
-                                    {formatCompactOrderNumber(invoiceParam, rowId, orderDateValue)}
+                                    {compactOrderNo}
                                   </Link>
                                   <button
                                     type="button"
@@ -1158,7 +1164,7 @@ export default function Orders() {
                             <div className="orders-row-actions">
                               <button
                                 type="button"
-                                onClick={() => navigate(`/admin/orders/${encodeURIComponent(invoiceParam)}`)}
+                                onClick={() => navigate(`/admin/orders/${encodeURIComponent(targetOrderRef)}`)}
                                 className="orders-action-btn"
                                 title={isId ? "Lihat Detail" : "View Detail"}
                               >
@@ -1194,6 +1200,8 @@ export default function Orders() {
                   const isSelected = selectedIds.has(rowId);
                   const customerName = view.customerName || "-";
                   const initials = getCustomerInitials(customerName);
+                  const compactOrderNo = formatCompactOrderNumber(invoiceParam, rowId, orderDateValue);
+                  const targetOrderRef = compactOrderNo && compactOrderNo !== "-" ? compactOrderNo : invoiceParam;
 
                   return (
                     <div
@@ -1258,7 +1266,7 @@ export default function Orders() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => navigate(`/admin/orders/${encodeURIComponent(invoiceParam)}`)}
+                          onClick={() => navigate(`/admin/orders/${encodeURIComponent(targetOrderRef)}`)}
                           className="orders-btn orders-btn--primary orders-btn--sm"
                           title={isId ? "Lihat Detail" : "View Detail"}
                         >

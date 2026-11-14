@@ -909,7 +909,7 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false, is
   const reference = compactOrderNo;
   const publicTrackingPath =
     rawInvoiceNo && !/^#?\d+$/.test(rawInvoiceNo)
-      ? `/order/${encodeURIComponent(rawInvoiceNo)}`
+      ? `/order/tracking/${encodeURIComponent(compactOrderNo || rawInvoiceNo)}`
       : "";
   const invoiceUrl = text(
     source.invoiceUrl ||

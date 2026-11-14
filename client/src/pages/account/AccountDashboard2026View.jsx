@@ -19,6 +19,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { formatCurrency } from "../../utils/format.js";
 import { resolvePublicOrderReference } from "../../utils/publicOrderReference.js";
+import { formatCompactOrderNumber } from "./accountOrderDetail2026Adapter.js";
 import { readWishlistItems, WISHLIST_CHANGED_EVENT } from "../../utils/storefrontWishlist.js";
 import "./account-dashboard-2026.css";
 
@@ -465,10 +466,18 @@ function RecentOrders({ orders = [], loading, isId, title }) {
             <tbody>
               {orders.map(({ order = {}, truthStatus = {} }) => {
                 const orderId = order.id;
-                const reference = getPublicOrderRef(order) || (orderId ? `#${orderId}` : "Order");
+                const rawReference = getPublicOrderRef(order) || (orderId ? `#${orderId}` : "Order");
+                const orderDateVal = getOrderDateValue(order);
+                const compactOrderNo = formatCompactOrderNumber(
+                  order.invoiceNo || rawReference,
+                  orderId,
+                  orderDateVal
+                );
+                const reference = compactOrderNo && compactOrderNo !== "-" ? compactOrderNo : rawReference;
                 const shipping = order.shipping ?? order.shippingAmount ?? order.deliveryFee ?? null;
                 const total = order.totalAmount ?? order.total ?? 0;
-                const detailHref = orderId ? `/user/my-orders/${encodeURIComponent(orderId)}` : null;
+                const orderTarget = compactOrderNo && compactOrderNo !== "-" ? compactOrderNo : (orderId ? String(orderId) : null);
+                const detailHref = orderTarget ? `/user/my-orders/${encodeURIComponent(orderTarget)}` : null;
                 const statusLabel = localizeOrderStatus(truthStatus, isId);
 
                 return (

@@ -868,7 +868,7 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
       trackingNo: safeTracking,
       trackingLabel: safeTracking || (isIndo ? "Belum ada resi" : "No tracking yet"),
       estimate: text(shipping.estimate),
-      trackingUrl: `/order/${rawParentOrderNo || compactReference || parentOrderId}`,
+      trackingUrl: `/order/tracking/${compactReference || rawParentOrderNo || parentOrderId}`,
       shippingFee: number(totals.shippingFee ?? detail.totals?.shippingAmount, 0),
       shippingFeeLabel: formatMoney(totals.shippingFee ?? detail.totals?.shippingAmount),
       totalWeight,
