@@ -18,8 +18,8 @@ export default function VariantInput({
     () =>
       Array.isArray(value)
         ? value
-            .map((entry) => toText(entry))
-            .filter(Boolean)
+          .map((entry) => toText(entry))
+          .filter(Boolean)
         : [],
     [value]
   );

@@ -258,11 +258,10 @@ function CouponDiscountTypeBadge({ coupon }) {
   const isPercent = coupon?.discountType === "percent";
   return (
     <span
-      className={`inline-flex min-h-5 items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
-        isPercent
+      className={`inline-flex min-h-5 items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${isPercent
           ? "border-violet-200/80 bg-violet-50/80 text-violet-700"
           : "border-sky-200/80 bg-sky-50/80 text-sky-700"
-      }`}
+        }`}
     >
       {isPercent ? "Percent" : "Fixed"}
     </span>
@@ -332,7 +331,7 @@ export default function AdminCouponsPage() {
     onError: (error) => {
       showNotice(
         error?.response?.data?.message ||
-          (isId ? "Gagal membuat kupon." : t("coupons.Failed to create coupon.", "Failed to create coupon.")),
+        (isId ? "Gagal membuat kupon." : t("coupons.Failed to create coupon.", "Failed to create coupon.")),
         "error"
       );
     },
@@ -368,7 +367,7 @@ export default function AdminCouponsPage() {
     onError: (error) => {
       showNotice(
         error?.response?.data?.message ||
-          (isId ? "Gagal mengimpor kupon." : "Failed to import coupons."),
+        (isId ? "Gagal mengimpor kupon." : "Failed to import coupons."),
         "error"
       );
     },
@@ -390,7 +389,7 @@ export default function AdminCouponsPage() {
     onError: (error) => {
       showNotice(
         error?.response?.data?.message ||
-          (isId ? "Gagal menjalankan aksi massal kupon." : "Failed to run bulk coupon action."),
+        (isId ? "Gagal menjalankan aksi massal kupon." : "Failed to run bulk coupon action."),
         "error"
       );
     },
@@ -836,23 +835,22 @@ export default function AdminCouponsPage() {
   const deleteDescription =
     deleteMode === "bulk"
       ? deleteTargetSummary ||
-        (isId
-          ? "Kupon yang dipilih akan dihapus secara permanen."
-          : "Selected coupons will be permanently removed.")
+      (isId
+        ? "Kupon yang dipilih akan dihapus secara permanen."
+        : "Selected coupons will be permanently removed.")
       : deleteTargetSummary ||
-        (isId
-          ? "Kupon ini akan dihapus secara permanen."
-          : "This coupon will be permanently removed.");
+      (isId
+        ? "Kupon ini akan dihapus secara permanen."
+        : "This coupon will be permanently removed.");
 
   return (
     <>
       {notice.message ? (
         <div
-          className={`mb-4 rounded-2xl border px-4 py-3 text-sm ${
-            notice.type === "error"
+          className={`mb-4 rounded-2xl border px-4 py-3 text-sm ${notice.type === "error"
               ? "border-rose-200 bg-rose-50 text-rose-700"
               : "border-emerald-200 bg-emerald-50 text-emerald-700"
-          }`}
+            }`}
         >
           {notice.message}
         </div>

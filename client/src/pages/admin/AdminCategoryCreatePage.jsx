@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { ChevronRight, FolderTree, X } from "lucide-react";
+import { ChevronRight, X } from "lucide-react";
 import {
   createAdminCategory,
   fetchAdminCategories,
@@ -59,10 +59,6 @@ export default function AdminCategoryCreatePage() {
   });
 
   const parentOptions = parentOptionsQuery.data?.data || [];
-  const selectedParent = useMemo(
-    () => parentOptions.find((category) => String(category.id) === String(form.parent_id)),
-    [form.parent_id, parentOptions]
-  );
   const previewImageUrl = localPreviewUrl || (isImagePath(form.icon) ? form.icon : "");
 
   const uploadMutation = useMutation({
@@ -125,7 +121,6 @@ export default function AdminCategoryCreatePage() {
       <header className="apf26-header">
         <div>
           <h1>{t("categories.Add Category", "Add Category")}</h1>
-          <p>{t("categories.Kategori baru", "New category")}</p>
           <nav className="acf26-breadcrumb" aria-label="Breadcrumb">
             <span>{t("categories.Catalog", "Catalog")}</span>
             <ChevronRight size={14} />
@@ -138,46 +133,36 @@ export default function AdminCategoryCreatePage() {
           type="button"
           className="apf26-close"
           onClick={handleCancel}
-          aria-label={t("categories.Close add category page", "Close add category page")}
+          aria-label={t("categories.Close", "Close")}
           disabled={isSubmitting}
         >
-          <X size={22} />
+          <X size={20} />
         </button>
       </header>
 
       <main className="apf26-content acf26-content">
         <div className="acf26-layout">
-          <section className="acf26-form-card">
-            <div className="acf26-section-title">
-              <span>
-                <FolderTree size={18} />
-              </span>
-              <div>
-                <h2>{t("categories.Category Information", "Category Information")}</h2>
-                <p>{selectedParent ? selectedParent.name : t("categories.Top level", "Top level")}</p>
-              </div>
-            </div>
-            <CategoryFormPanel
-              formId="category-create-form"
-              editing={null}
-              form={form}
-              setForm={setForm}
-              parentOptions={parentOptions}
-              parentOptionsLoading={parentOptionsQuery.isLoading}
-              previewImageUrl={previewImageUrl}
-              imageFileName={imageFileName}
-              uploadPending={uploadMutation.isPending}
-              uploadError={uploadError}
-              onFileChange={handleFileChange}
-              onCancel={handleCancel}
-              onSubmit={handleSubmit}
-              isSubmitting={isSubmitting}
-              formError={formError}
-              nameRef={nameRef}
-              formClassName="acf26-form-body"
-              footerClassName="acf26-footer"
-            />
-          </section>
+          <CategoryFormPanel
+            formId="category-create-form"
+            layoutMode="page"
+            editing={null}
+            form={form}
+            setForm={setForm}
+            parentOptions={parentOptions}
+            parentOptionsLoading={parentOptionsQuery.isLoading}
+            previewImageUrl={previewImageUrl}
+            imageFileName={imageFileName}
+            uploadPending={uploadMutation.isPending}
+            uploadError={uploadError}
+            onFileChange={handleFileChange}
+            onCancel={handleCancel}
+            onSubmit={handleSubmit}
+            isSubmitting={isSubmitting}
+            formError={formError}
+            nameRef={nameRef}
+            formClassName="acf26-form-body"
+            footerClassName="acf26-footer"
+          />
         </div>
       </main>
     </div>

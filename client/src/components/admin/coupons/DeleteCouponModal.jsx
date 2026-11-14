@@ -24,8 +24,8 @@ export default function DeleteCouponModal({
   const displayDesc = description
     ? t(`coupons.${description}`, description)
     : (isId
-        ? "Kupon yang dihapus tidak dapat dipulihkan."
-        : t("coupons.Deleted coupons cannot be recovered.", "Deleted coupons cannot be recovered."));
+      ? "Kupon yang dihapus tidak dapat dipulihkan."
+      : t("coupons.Deleted coupons cannot be recovered.", "Deleted coupons cannot be recovered."));
 
   const displayConfirm = confirmLabel
     ? t(`coupons.${confirmLabel}`, confirmLabel)

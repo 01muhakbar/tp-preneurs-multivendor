@@ -417,9 +417,9 @@ export default function AdminCoupons2026View({
 
   const hasActiveFilters = Boolean(
     safeFilters.q ||
-      (safeFilters.discountType && safeFilters.discountType !== "all") ||
-      (safeFilters.scopeType && safeFilters.scopeType !== "all") ||
-      (safeFilters.status && safeFilters.status !== "all")
+    (safeFilters.discountType && safeFilters.discountType !== "all") ||
+    (safeFilters.scopeType && safeFilters.scopeType !== "all") ||
+    (safeFilters.status && safeFilters.status !== "all")
   );
 
   const startIdx = safeMeta.total === 0 ? 0 : (safeMeta.page - 1) * safeMeta.limit + 1;

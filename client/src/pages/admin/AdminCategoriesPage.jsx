@@ -174,8 +174,8 @@ function StatusBadge({ published }) {
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${published
-          ? "border-[#034C85] bg-[#034C85] text-white dark:border-[#034C85] dark:bg-[#034C85] dark:text-white"
-          : "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+        ? "border-[#034C85] bg-[#034C85] text-white dark:border-[#034C85] dark:bg-[#034C85] dark:text-white"
+        : "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
         }`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${published ? "bg-white" : "bg-slate-400"}`} />
@@ -196,7 +196,7 @@ function KpiCard({ icon: Icon, label, value, helper, loading, tone = "blue" }) {
             {asNumber(value).toLocaleString()}
           </strong>
         )}
-        <span>{helper}</span>
+        {helper ? <span>{helper}</span> : null}
       </div>
       <div className="ac26-kpi__icon">
         <Icon className="h-5 w-5" />
@@ -258,148 +258,219 @@ export function CategoryFormPanel({
   isSubmitting,
   formError,
   nameRef,
-  formClassName = "space-y-4",
+  layoutMode = "page",
+  formClassName = "",
   footerClassName = "pt-4",
-  footerInnerClassName = "flex justify-end gap-2",
+  footerInnerClassName = "flex justify-end gap-3",
 }) {
-  const { t } = useTranslation("admin");
+  const { t, i18n } = useTranslation("admin");
+  const isId = String(i18n.language || "").toLowerCase().startsWith("id");
   const fallbackNameRef = useRef(null);
   const activeNameRef = nameRef || fallbackNameRef;
+  const fileInputRef = useRef(null);
+  const isDrawer = layoutMode === "drawer";
 
   return (
-    <>
+    <div className="w-full">
       <form id={formId} onSubmit={onSubmit} className={formClassName}>
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{t("categories.General", "General")}</h3>
-          <div className="mt-4 grid gap-4">
-            <label className="grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
-              {t("categories.Name", "Name")}
-              <input
-                ref={activeNameRef}
-                id="admin-category-name"
-                name="name"
-                value={form.name}
-                onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-                className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-[#034c85]/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
-                placeholder={t("categories.Category name...", "Category name...")}
-                required
-              />
-            </label>
-            <label className="grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
-              {t("categories.Code / slug", "Code / slug")}
-              <input
-                id="admin-category-code"
-                name="code"
-                value={form.code}
-                onChange={(event) => {
-                  const value = event.target.value
-                    .toLowerCase()
-                    .replace(/[^a-z0-9-]/g, "-")
-                    .replace(/-+/g, "-");
-                  setForm((prev) => ({ ...prev, code: value }));
-                }}
-                className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-[#034c85]/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
-                placeholder={t("categories.category-code", "category-code")}
-              />
-            </label>
-            <label className="grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
-              {t("categories.Description", "Description")}
-              <textarea
-                id="admin-category-description"
-                name="description"
-                value={form.description}
-                maxLength={255}
-                rows={4}
-                onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-[#034c85]/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
-                placeholder={t("categories.Short description...", "Short description...")}
-              />
-            </label>
-          </div>
-        </section>
-
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{t("categories.Hierarchy", "Hierarchy")}</h3>
-          <label className="mt-4 grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
-            {t("categories.Parent Category", "Parent Category")}
-            <select
-              id="admin-category-parent"
-              name="parent_id"
-              value={form.parent_id}
-              onChange={(event) => setForm((prev) => ({ ...prev, parent_id: event.target.value }))}
-              className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-[#034c85]/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
-            >
-              <option value="">{t("categories.Top level", "Top level")}</option>
-              {parentOptionsLoading ? <option disabled>{t("categories.Loading parents...", "Loading parents...")}</option> : null}
-              {parentOptions
-                .filter((category) => !editing || Number(category.id) !== Number(editing.id))
-                .map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-            </select>
-          </label>
-        </section>
-
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{t("categories.Media", "Media")}</h3>
-          <label className="mt-4 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300">
-            <Upload className="h-5 w-5 text-[#034c85]" />
-            <span className="font-semibold">{t("categories.Upload category image", "Upload category image")}</span>
-            <span className="text-xs">{t("categories.PNG, JPG, WEBP, SVG (Max 2MB)", "PNG, JPG, WEBP, SVG (Max 2MB)")}</span>
-            <input id="admin-category-file" name="category_file" type="file" className="hidden" accept="image/*" onChange={onFileChange} />
-          </label>
-          {imageFileName ? <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{t("categories.Selected:", "Selected:")} {imageFileName}</p> : null}
-          {uploadPending ? <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{t("categories.Uploading image...", "Uploading image...")}</p> : null}
-          {uploadError ? <p className="mt-2 text-xs text-rose-600">{uploadError}</p> : null}
-          <input
-            id="admin-category-icon"
-            name="icon"
-            value={form.icon}
-            onChange={(event) => setForm((prev) => ({ ...prev, icon: event.target.value }))}
-            className="mt-3 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-[#034c85]/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-950"
-            placeholder={t("categories.Icon or image URL", "Icon or image URL")}
-          />
-          {previewImageUrl ? (
-            <img src={previewImageUrl} alt="Category preview" className="mt-3 max-h-44 w-full rounded-xl border border-slate-200 object-contain p-2 dark:border-slate-700" />
-          ) : null}
-        </section>
-
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{t("categories.Published", "Published")}</h3>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                {form.published ? t("categories.Visible in storefront", "Visible in storefront") : t("categories.Hidden", "Hidden")}
-              </p>
-            </div>
-            <PublishSwitch
-              checked={Boolean(form.published)}
-              label={t("categories.Toggle category published state", "Toggle category published state")}
-              onClick={() => setForm((prev) => ({ ...prev, published: !Boolean(prev.published) }))}
-            />
-          </div>
-        </section>
-
         {formError ? (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
+          <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200">
             {formError}
           </div>
         ) : null}
+
+        <div className={isDrawer ? "space-y-4" : "grid grid-cols-1 lg:grid-cols-3 gap-5"}>
+          {/* Main Content Column */}
+          <div className={isDrawer ? "space-y-4" : "lg:col-span-2 space-y-4"}>
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+              <div className="flex items-center gap-3 pb-3 mb-4 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#034c85]/10 text-[#034c85] dark:bg-sky-500/15 dark:text-sky-400">
+                  <FolderTree className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                    {t("categories.General", "General")}
+                  </h3>
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200 sm:col-span-2">
+                  <span className="flex items-center gap-1">
+                    {t("categories.Name", "Name")}
+                    <span className="text-[#fe6f05]">*</span>
+                  </span>
+                  <input
+                    ref={activeNameRef}
+                    id="admin-category-name"
+                    name="name"
+                    value={form.name}
+                    onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+                    className="h-11 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-[#034c85]/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-sky-950 transition"
+                    placeholder={isId ? "Contoh: Makanan & Minuman" : "e.g. Food & Beverages"}
+                    required
+                  />
+                </label>
+
+                <label className="grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                  <span>{t("categories.Code / slug", "Code / slug")}</span>
+                  <input
+                    id="admin-category-code"
+                    name="code"
+                    value={form.code}
+                    onChange={(event) => {
+                      const value = event.target.value
+                        .toLowerCase()
+                        .replace(/[^a-z0-9-]/g, "-")
+                        .replace(/-+/g, "-");
+                      setForm((prev) => ({ ...prev, code: value }));
+                    }}
+                    className="h-11 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-[#034c85]/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-sky-950 transition"
+                    placeholder={isId ? "makanan-minuman" : "food-beverages"}
+                  />
+                </label>
+
+                <label className="grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                  <span>{t("categories.Parent Category", "Parent Category")}</span>
+                  <select
+                    id="admin-category-parent"
+                    name="parent_id"
+                    value={form.parent_id}
+                    onChange={(event) => setForm((prev) => ({ ...prev, parent_id: event.target.value }))}
+                    className="h-11 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-[#034c85]/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-sky-950 transition"
+                  >
+                    <option value="">{t("categories.Top level", "Top level")}</option>
+                    {parentOptionsLoading ? <option disabled>{t("categories.Loading parents...", "Loading parents...")}</option> : null}
+                    {parentOptions
+                      .filter((category) => !editing || Number(category.id) !== Number(editing.id))
+                      .map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+
+                <label className="grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200 sm:col-span-2">
+                  <span>{t("categories.Description", "Description")}</span>
+                  <textarea
+                    id="admin-category-description"
+                    name="description"
+                    value={form.description}
+                    maxLength={255}
+                    rows={3}
+                    onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
+                    className="rounded-xl border border-slate-200 bg-white p-3.5 text-sm font-normal text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-[#034c85]/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-sky-950 transition resize-none"
+                    placeholder={isId ? "Deskripsi singkat kategori..." : "Brief category description..."}
+                  />
+                </label>
+              </div>
+            </section>
+          </div>
+
+          {/* Sidebar Column: Media & Visibility */}
+          <div className="space-y-4">
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-3">
+                {t("categories.Media", "Media")}
+              </h3>
+
+              {previewImageUrl ? (
+                <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-2.5 bg-slate-50 dark:bg-slate-800/60 flex flex-col items-center justify-center">
+                  <img src={previewImageUrl} alt="Category preview" className="max-h-36 w-full rounded-lg object-contain" />
+                  <div className="mt-3 flex w-full gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex-1 min-h-[36px] inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                    >
+                      <Upload className="h-3.5 w-3.5" />
+                      {isId ? "Ganti" : "Replace"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForm((prev) => ({ ...prev, icon: "" }));
+                      }}
+                      className="min-h-[36px] px-3 inline-flex items-center justify-center rounded-lg border border-rose-200 dark:border-rose-900/60 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
+                      aria-label={isId ? "Hapus gambar" : "Remove image"}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <label
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/80 px-4 py-6 text-center text-sm text-slate-500 hover:border-[#034c85] hover:bg-blue-50/20 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-400 dark:hover:border-sky-500 transition"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#034c85]/10 text-[#034c85] dark:bg-sky-500/15 dark:text-sky-400">
+                    <Upload className="h-5 w-5" />
+                  </div>
+                  <span className="font-semibold text-slate-700 dark:text-slate-200 text-xs">{t("categories.Upload category image", "Upload category image")}</span>
+                  <span className="text-[11px] text-slate-400">PNG, JPG, WEBP, SVG (Maks 2MB)</span>
+                </label>
+              )}
+              <input ref={fileInputRef} id="admin-category-file" name="category_file" type="file" className="hidden" accept="image/*" onChange={onFileChange} />
+              {imageFileName ? <p className="mt-2 text-xs text-slate-500 dark:text-slate-400 truncate">{t("categories.Selected:", "Selected:")} {imageFileName}</p> : null}
+              {uploadPending ? <p className="mt-2 text-xs font-medium text-[#034c85] dark:text-sky-400">{t("categories.Uploading image...", "Uploading image...")}</p> : null}
+              {uploadError ? <p className="mt-2 text-xs text-rose-600">{uploadError}</p> : null}
+
+              <div className="mt-3">
+                <label htmlFor="admin-category-icon" className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1">
+                  {t("categories.Icon or image URL", "Icon or image URL")}
+                </label>
+                <input
+                  id="admin-category-icon"
+                  name="icon"
+                  value={form.icon}
+                  onChange={(event) => setForm((prev) => ({ ...prev, icon: event.target.value }))}
+                  className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-900 outline-none focus:border-[#034c85] focus:ring-2 focus:ring-[#034c85]/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 transition"
+                  placeholder="https://..."
+                />
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{t("categories.Published", "Published")}</h3>
+                  <span className={`inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded-full ${form.published ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"}`}>
+                    {form.published ? (isId ? "Aktif" : "Active") : (isId ? "Draf" : "Draft")}
+                  </span>
+                </div>
+                <PublishSwitch
+                  checked={Boolean(form.published)}
+                  label={t("categories.Toggle category published state", "Toggle category published state")}
+                  onClick={() => setForm((prev) => ({ ...prev, published: !Boolean(prev.published) }))}
+                />
+              </div>
+            </section>
+          </div>
+        </div>
       </form>
 
       <div className={footerClassName}>
         <div className={footerInnerClassName}>
-          <button type="button" onClick={onCancel} disabled={isSubmitting} className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#034c85]/20 disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 transition-colors">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            className="inline-flex min-h-[44px] h-11 items-center justify-center rounded-xl border border-slate-200 bg-white dark:bg-slate-800 px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#034c85]/20 disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700 transition"
+          >
             {t("categories.Cancel", "Cancel")}
           </button>
-          <button type="submit" form={formId} disabled={isSubmitting} className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#fe6f05] px-5 text-sm font-semibold text-white shadow-sm hover:bg-[#e05f00] focus:outline-none focus:ring-2 focus:ring-[#fe6f05]/30 disabled:opacity-60 transition-colors">
+          <button
+            type="submit"
+            form={formId}
+            disabled={isSubmitting}
+            className="inline-flex min-h-[44px] h-11 items-center justify-center gap-2 rounded-xl bg-[#fe6f05] px-6 text-sm font-semibold text-white shadow-md shadow-[#fe6f05]/25 hover:bg-[#e05f00] focus:outline-none focus:ring-2 focus:ring-[#fe6f05]/30 disabled:opacity-60 transition"
+          >
             {isSubmitting ? t("categories.Saving...", "Saving...") : editing ? t("categories.Update Category", "Update Category") : t("categories.Add Category", "Add Category")}
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -417,7 +488,7 @@ function CategoryDetails({ category, onClose, onEdit, onDelete, onViewSubcategor
             <h2 className="mt-1 text-lg font-bold text-slate-950 dark:text-slate-50">{category.name}</h2>
           </div>
         </div>
-        <button type="button" onClick={onClose} aria-label={t("categories.Close details", "Close details")} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
+        <button type="button" onClick={onClose} aria-label={t("categories.Close", "Close")} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -538,6 +609,7 @@ function CategoryDrawer({
 
         <CategoryFormPanel
           formId="category-drawer-form"
+          layoutMode="drawer"
           editing={editing}
           form={form}
           setForm={setForm}
@@ -1031,10 +1103,10 @@ export default function AdminCategoriesPage() {
       </header>
 
       <section className="ac26-kpis">
-        <KpiCard icon={Folder} label={t("categories.Total Categories", "Total Categories")} value={statsTotal} helper={t("categories.Taxonomy records", "Taxonomy records")} loading={statsQuery.isLoading} />
-        <KpiCard icon={CheckCircle2} label={t("categories.Active", "Active")} value={statsActive} helper={t("categories.Visible in store", "Visible in store")} loading={statsQuery.isLoading} tone="green" />
-        <KpiCard icon={FolderTree} label={t("categories.Subcategories", "Subcategories")} value={statsSubcategories} helper={t("categories.Nested paths", "Nested paths")} loading={statsQuery.isLoading} tone="orange" />
-        <KpiCard icon={FileText} label={t("categories.Draft / Review", "Draft / Review")} value={statsDraft} helper={t("categories.Hidden or review", "Hidden or review")} loading={statsQuery.isLoading} tone="red" />
+        <KpiCard icon={Folder} label={t("categories.Total Categories", "Total Categories")} value={statsTotal} loading={statsQuery.isLoading} />
+        <KpiCard icon={CheckCircle2} label={t("categories.Active", "Active")} value={statsActive} loading={statsQuery.isLoading} tone="green" />
+        <KpiCard icon={FolderTree} label={t("categories.Subcategories", "Subcategories")} value={statsSubcategories} loading={statsQuery.isLoading} tone="orange" />
+        <KpiCard icon={FileText} label={t("categories.Draft / Review", "Draft / Review")} value={statsDraft} loading={statsQuery.isLoading} tone="red" />
       </section>
       {statsQuery.isError ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
@@ -1071,7 +1143,7 @@ export default function AdminCategoriesPage() {
             ))}
           </select>
         </label>
-        
+
         <label className="ac26-select shrink-0">
           <span>{t("categories.Status", "Status")}</span>
           <select
@@ -1340,7 +1412,13 @@ export default function AdminCategoriesPage() {
                             </div>
                           </div>
                         </td>
-                        <td data-label={t("categories.Parent Path", "Parent Path")}>{parentName}</td>
+                        <td data-label={t("categories.Parent Path", "Parent Path")}>
+                          {parentName === "-" ? (
+                            <span className="text-slate-400 dark:text-slate-500 font-mono text-xs">-</span>
+                          ) : (
+                            <span className="font-medium text-slate-700 dark:text-slate-200">{parentName}</span>
+                          )}
+                        </td>
                         <td data-label={t("categories.Products", "Products")} className="ac26-tabular">{asNumber(category.productCount).toLocaleString()}</td>
                         <td data-label={t("categories.Status", "Status")} className="ac26-cell-status">
                           <div className="ac26-status-cell">

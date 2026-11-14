@@ -78,9 +78,9 @@ export function useSeller2026Coupons(
       enabled || couponsQuery.data
         ? adaptSeller2026Coupons(couponsQuery.data, effectivePermissions)
         : {
-            ...emptySeller2026Coupons,
-            permissions: effectivePermissions,
-          };
+          ...emptySeller2026Coupons,
+          permissions: effectivePermissions,
+        };
     const search = String(query.search || "").trim().toLowerCase();
     const status = String(query.status || "all");
     const type = String(query.type || "all");

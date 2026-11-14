@@ -598,9 +598,9 @@ export default function AdminAttributes2026View({
               const typeStr = String(attribute.type || "dropdown").toLowerCase();
               const typeLabel =
                 typeStr === "dropdown" ? t("attributes.Dropdown", "Dropdown")
-                : typeStr === "radio" ? t("attributes.Radio", "Radio")
-                : typeStr === "checkbox" ? t("attributes.Checkbox", "Checkbox")
-                : String(attribute.type || "Dropdown").replace(/^[a-z]/, (c) => c.toUpperCase());
+                  : typeStr === "radio" ? t("attributes.Radio", "Radio")
+                    : typeStr === "checkbox" ? t("attributes.Checkbox", "Checkbox")
+                      : String(attribute.type || "Dropdown").replace(/^[a-z]/, (c) => c.toUpperCase());
               const isPublished = Boolean(attribute.published);
               const statusStr = isPublished ? "active" : "inactive";
               const statusLabel = isPublished ? t("attributes.Active", "Active") : t("attributes.Inactive", "Inactive");
@@ -706,9 +706,9 @@ export default function AdminAttributes2026View({
                   const typeStr = String(attribute.type || "dropdown").toLowerCase();
                   const typeLabel =
                     typeStr === "dropdown" ? t("attributes.Dropdown", "Dropdown")
-                    : typeStr === "radio" ? t("attributes.Radio", "Radio")
-                    : typeStr === "checkbox" ? t("attributes.Checkbox", "Checkbox")
-                    : String(attribute.type || "Dropdown").replace(/^[a-z]/, (c) => c.toUpperCase());
+                      : typeStr === "radio" ? t("attributes.Radio", "Radio")
+                        : typeStr === "checkbox" ? t("attributes.Checkbox", "Checkbox")
+                          : String(attribute.type || "Dropdown").replace(/^[a-z]/, (c) => c.toUpperCase());
 
                   const isPublished = Boolean(attribute.published);
                   const statusStr = isPublished ? "active" : "inactive";

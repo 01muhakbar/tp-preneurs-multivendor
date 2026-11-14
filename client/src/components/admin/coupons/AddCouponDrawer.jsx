@@ -64,7 +64,7 @@ function CouponDrawerSectionHeader({ eyebrow, title, description, meta, compact 
 }
 
 export function AddCouponFormPanel({
-  onCancel = () => {},
+  onCancel = () => { },
   onSubmit,
   isSubmitting,
   error,
@@ -147,8 +147,8 @@ export function AddCouponFormPanel({
     } catch (uploadError) {
       setBannerUploadError(
         uploadError?.response?.data?.message ||
-          uploadError?.message ||
-          "Failed to upload banner image."
+        uploadError?.message ||
+        "Failed to upload banner image."
       );
     } finally {
       setBannerUploading(false);
@@ -261,7 +261,7 @@ export function AddCouponFormPanel({
 
   return (
     <>
-        {showHeader ? (
+      {showHeader ? (
         <header className={headerClassName}>
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -286,310 +286,305 @@ export function AddCouponFormPanel({
                 </span>
               </div>
             </div>
-              <button
-                type="button"
+            <button
+              type="button"
               onClick={() => !isSubmitting && onCancel()}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700"
               aria-label={closeAriaLabel}
-                disabled={isSubmitting}
-              >
+              disabled={isSubmitting}
+            >
               <X className="h-4 w-4" />
             </button>
           </div>
         </header>
-        ) : null}
+      ) : null}
 
-        <form id={formId} onSubmit={handleSubmit} className={formClassName}>
-          <div className={bodyClassName}>
-            <section className={cardClass}>
-              <CouponDrawerSectionHeader
-                eyebrow={compact ? "" : "Basic Info"}
-                title={compact ? t("coupons.Campaign Identity", "Campaign Identity") : "Define campaign identity first"}
-                description={compact ? t("coupons.Define campaign code, name, and target scope.", "Define campaign code, name, and target scope.") : "Set the code, scope, and campaign label that admin will recognize during checkout reviews."}
-                meta={compact ? "" : (form.code ? `${form.scopeType} / ${form.code}` : `${form.scopeType} / Code pending`)}
-                compact={compact}
-              />
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                {showLanguageField ? (
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                      Language
-                    </label>
-                    <select
-                      value={form.language}
-                      onChange={(event) => setField({ language: event.target.value })}
-                      className={`h-11 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200 focus:outline-none${inputFocusClass}`}
-                    >
-                      <option value="en">English</option>
-                      <option value="id">Bahasa Indonesia</option>
-                    </select>
-                  </div>
-                ) : null}
-                <div className={showLanguageField ? "" : "sm:col-span-2"}>
-                  <label htmlFor="admin-coupon-scope" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    {t("coupons.Scope", "Scope")}
-                  </label>
-                  <select
-                    id="admin-coupon-scope"
-                    name="scopeType"
-                    value={form.scopeType}
-                    onChange={(event) =>
-                      setField({
-                        scopeType: event.target.value,
-                        storeId: event.target.value === "STORE" ? form.storeId : "",
-                      })
-                    }
-                    className={`h-11 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200 focus:outline-none${inputFocusClass}`}
-                    disabled={isSubmitting}
-                  >
-                    <option value="PLATFORM">{t("coupons.Platform / Global", "Platform / Global")}</option>
-                    <option value="STORE">{t("coupons.Store-scoped", "Store-scoped")}</option>
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="admin-coupon-code" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    {t("coupons.Campaign Code", "Campaign Code")}
-                  </label>
-                  <input
-                    id="admin-coupon-code"
-                    name="code"
-                    value={form.code}
-                    onChange={(event) =>
-                      setField({ code: event.target.value.toUpperCase().replace(/\s+/g, "") })
-                    }
-                    placeholder="WEEKEND25"
-                    className={`h-11 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm uppercase text-slate-700 dark:text-slate-200 focus:outline-none${inputFocusClass}`}
-                    disabled={isSubmitting}
-                    required
-                  />
-                </div>
-                {form.scopeType === "STORE" ? (
-                  <div className="sm:col-span-2">
-                    <label htmlFor="admin-coupon-store-id" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                      {t("coupons.Linked Store", "Linked Store")}
-                    </label>
-                    <select
-                      id="admin-coupon-store-id"
-                      name="storeId"
-                      value={form.storeId}
-                      onChange={(event) => setField({ storeId: event.target.value })}
-                      className={`h-11 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200 focus:outline-none${inputFocusClass}`}
-                      disabled={isSubmitting}
-                      required
-                    >
-                      <option value="">{t("coupons.Select store", "Select store")}</option>
-                      {storeOptions.map((store) => (
-                        <option key={store.id} value={store.id}>
-                          {store.name}
-                          {store.slug ? ` (${store.slug})` : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ) : null}
-                <div className="sm:col-span-2">
-                  <label htmlFor="admin-coupon-campaign-name" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    {t("coupons.Campaign Name", "Campaign Name")}
-                  </label>
-                  <input
-                    id="admin-coupon-campaign-name"
-                    name="campaignName"
-                    value={form.campaignName}
-                    onChange={(event) => setField({ campaignName: event.target.value })}
-                    placeholder="Weekend Grocery Sale"
-                    className={`h-11 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200 focus:outline-none${inputFocusClass}`}
-                    disabled={isSubmitting}
-                    required
-                  />
-                </div>
-              </div>
-            </section>
-
-            <section className={cardClass}>
-              <CouponDrawerSectionHeader
-                eyebrow={compact ? "" : "Discount Setup"}
-                title={compact ? t("coupons.Discount & Condition", "Discount & Condition") : "Group discount value with order threshold"}
-                description={compact ? t("coupons.Configure discount value and order requirements.", "Configure discount value and order requirements.") : "Keep discount type, amount, and minimum order together so the promotion rule stays easy to review."}
-                meta={compact ? "" : (form.discountType === "percent" ? "Percent mode" : "Fixed mode")}
-                compact={compact}
-              />
-              <div className="mt-4 space-y-4">
+      <form id={formId} onSubmit={handleSubmit} className={formClassName}>
+        <div className={bodyClassName}>
+          <section className={cardClass}>
+            <CouponDrawerSectionHeader
+              eyebrow={compact ? "" : "Basic Info"}
+              title={compact ? t("coupons.Campaign Identity", "Campaign Identity") : "Define campaign identity first"}
+              description={compact ? t("coupons.Define campaign code, name, and target scope.", "Define campaign code, name, and target scope.") : "Set the code, scope, and campaign label that admin will recognize during checkout reviews."}
+              meta={compact ? "" : (form.code ? `${form.scopeType} / ${form.code}` : `${form.scopeType} / Code pending`)}
+              compact={compact}
+            />
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              {showLanguageField ? (
                 <div>
                   <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    {t("coupons.Discount Type", "Discount Type")}
+                    Language
                   </label>
-                  <div className={compact ? "acf26-segmented" : "grid grid-cols-2 gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-1"}>
-                    <button
-                      type="button"
-                      onClick={() => setField({ discountType: "percent" })}
-                      className={compact ? `acf26-segment-btn ${form.discountType === "percent" ? "is-active" : ""}` : `h-10 rounded-lg text-sm font-semibold transition ${
-                        form.discountType === "percent"
-                          ? activeSegmentClass
-                          : inactiveSegmentClass
-                      }`}
-                      disabled={isSubmitting}
-                    >
-                      {t("coupons.Percent", "Percent")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setField({ discountType: "fixed" })}
-                      className={compact ? `acf26-segment-btn ${form.discountType === "fixed" ? "is-active" : ""}` : `h-10 rounded-lg text-sm font-semibold transition ${
-                        form.discountType === "fixed"
-                          ? activeSegmentClass
-                          : inactiveSegmentClass
-                      }`}
-                      disabled={isSubmitting}
-                    >
-                      {t("coupons.Fixed", "Fixed")}
-                    </button>
-                  </div>
+                  <select
+                    value={form.language}
+                    onChange={(event) => setField({ language: event.target.value })}
+                    className={`h-11 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200 focus:outline-none${inputFocusClass}`}
+                  >
+                    <option value="en">English</option>
+                    <option value="id">Bahasa Indonesia</option>
+                  </select>
                 </div>
+              ) : null}
+              <div className={showLanguageField ? "" : "sm:col-span-2"}>
+                <label htmlFor="admin-coupon-scope" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  {t("coupons.Scope", "Scope")}
+                </label>
+                <select
+                  id="admin-coupon-scope"
+                  name="scopeType"
+                  value={form.scopeType}
+                  onChange={(event) =>
+                    setField({
+                      scopeType: event.target.value,
+                      storeId: event.target.value === "STORE" ? form.storeId : "",
+                    })
+                  }
+                  className={`h-11 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200 focus:outline-none${inputFocusClass}`}
+                  disabled={isSubmitting}
+                >
+                  <option value="PLATFORM">{t("coupons.Platform / Global", "Platform / Global")}</option>
+                  <option value="STORE">{t("coupons.Store-scoped", "Store-scoped")}</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="admin-coupon-code" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  {t("coupons.Campaign Code", "Campaign Code")}
+                </label>
+                <input
+                  id="admin-coupon-code"
+                  name="code"
+                  value={form.code}
+                  onChange={(event) =>
+                    setField({ code: event.target.value.toUpperCase().replace(/\s+/g, "") })
+                  }
+                  placeholder="WEEKEND25"
+                  className={`h-11 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm uppercase text-slate-700 dark:text-slate-200 focus:outline-none${inputFocusClass}`}
+                  disabled={isSubmitting}
+                  required
+                />
+              </div>
+              {form.scopeType === "STORE" ? (
+                <div className="sm:col-span-2">
+                  <label htmlFor="admin-coupon-store-id" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    {t("coupons.Linked Store", "Linked Store")}
+                  </label>
+                  <select
+                    id="admin-coupon-store-id"
+                    name="storeId"
+                    value={form.storeId}
+                    onChange={(event) => setField({ storeId: event.target.value })}
+                    className={`h-11 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200 focus:outline-none${inputFocusClass}`}
+                    disabled={isSubmitting}
+                    required
+                  >
+                    <option value="">{t("coupons.Select store", "Select store")}</option>
+                    {storeOptions.map((store) => (
+                      <option key={store.id} value={store.id}>
+                        {store.name}
+                        {store.slug ? ` (${store.slug})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
+              <div className="sm:col-span-2">
+                <label htmlFor="admin-coupon-campaign-name" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  {t("coupons.Campaign Name", "Campaign Name")}
+                </label>
+                <input
+                  id="admin-coupon-campaign-name"
+                  name="campaignName"
+                  value={form.campaignName}
+                  onChange={(event) => setField({ campaignName: event.target.value })}
+                  placeholder="Weekend Grocery Sale"
+                  className={`h-11 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200 focus:outline-none${inputFocusClass}`}
+                  disabled={isSubmitting}
+                  required
+                />
+              </div>
+            </div>
+          </section>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label htmlFor="admin-coupon-amount" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                      {t("coupons.Discount", "Discount")}
-                    </label>
-                    <div className="relative">
-                      {discountInputAffix.prefix ? (
-                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500 dark:text-slate-400">
-                          {discountInputAffix.prefix}
-                        </span>
-                      ) : null}
-                      <input
-                        id="admin-coupon-amount"
-                        name="amount"
-                        type="number"
-                        min={0}
-                        max={form.discountType === "percent" ? 100 : undefined}
-                        step="1"
-                        value={form.amount}
-                        onChange={(event) => setField({ amount: event.target.value })}
-                        className={`h-11 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200 focus:outline-none${inputFocusClass} ${
-                          discountInputAffix.prefix ? "pl-10 pr-3" : "pl-3 pr-10"
-                        }`}
-                        disabled={isSubmitting}
-                        required
-                      />
-                      {discountInputAffix.suffix ? (
-                        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500 dark:text-slate-400">
-                          {discountInputAffix.suffix}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
+          <section className={cardClass}>
+            <CouponDrawerSectionHeader
+              eyebrow={compact ? "" : "Discount Setup"}
+              title={compact ? t("coupons.Discount & Condition", "Discount & Condition") : "Group discount value with order threshold"}
+              description={compact ? t("coupons.Configure discount value and order requirements.", "Configure discount value and order requirements.") : "Keep discount type, amount, and minimum order together so the promotion rule stays easy to review."}
+              meta={compact ? "" : (form.discountType === "percent" ? "Percent mode" : "Fixed mode")}
+              compact={compact}
+            />
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  {t("coupons.Discount Type", "Discount Type")}
+                </label>
+                <div className={compact ? "acf26-segmented" : "grid grid-cols-2 gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-1"}>
+                  <button
+                    type="button"
+                    onClick={() => setField({ discountType: "percent" })}
+                    className={compact ? `acf26-segment-btn ${form.discountType === "percent" ? "is-active" : ""}` : `h-10 rounded-lg text-sm font-semibold transition ${form.discountType === "percent"
+                        ? activeSegmentClass
+                        : inactiveSegmentClass
+                      }`}
+                    disabled={isSubmitting}
+                  >
+                    {t("coupons.Percent", "Percent")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setField({ discountType: "fixed" })}
+                    className={compact ? `acf26-segment-btn ${form.discountType === "fixed" ? "is-active" : ""}` : `h-10 rounded-lg text-sm font-semibold transition ${form.discountType === "fixed"
+                        ? activeSegmentClass
+                        : inactiveSegmentClass
+                      }`}
+                    disabled={isSubmitting}
+                  >
+                    {t("coupons.Fixed", "Fixed")}
+                  </button>
+                </div>
+              </div>
 
-                  <div>
-                    <label htmlFor="admin-coupon-min-spend" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                      {t("coupons.Minimum Amount", "Minimum Amount")}
-                    </label>
-                    <div className="relative">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="admin-coupon-amount" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    {t("coupons.Discount", "Discount")}
+                  </label>
+                  <div className="relative">
+                    {discountInputAffix.prefix ? (
                       <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500 dark:text-slate-400">
-                        Rp
+                        {discountInputAffix.prefix}
                       </span>
-                      <input
-                        id="admin-coupon-min-spend"
-                        name="minSpend"
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={form.minSpend}
-                        onChange={(event) => setField({ minSpend: event.target.value })}
-                        className={`h-11 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 pl-10 pr-3 text-sm text-slate-700 dark:text-slate-200 focus:outline-none${inputFocusClass}`}
-                        disabled={isSubmitting}
-                      />
-                    </div>
+                    ) : null}
+                    <input
+                      id="admin-coupon-amount"
+                      name="amount"
+                      type="number"
+                      min={0}
+                      max={form.discountType === "percent" ? 100 : undefined}
+                      step="1"
+                      value={form.amount}
+                      onChange={(event) => setField({ amount: event.target.value })}
+                      className={`h-11 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200 focus:outline-none${inputFocusClass} ${discountInputAffix.prefix ? "pl-10 pr-3" : "pl-3 pr-10"
+                        }`}
+                      disabled={isSubmitting}
+                      required
+                    />
+                    {discountInputAffix.suffix ? (
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500 dark:text-slate-400">
+                        {discountInputAffix.suffix}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
-                <div className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-slate-50/70 dark:bg-slate-900/40 px-3 py-2.5 text-xs text-slate-500 dark:text-slate-400">
-                  {t("coupons.Set a minimum order only when needed.", "Set a minimum order only when needed.")}
+
+                <div>
+                  <label htmlFor="admin-coupon-min-spend" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    {t("coupons.Minimum Amount", "Minimum Amount")}
+                  </label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500 dark:text-slate-400">
+                      Rp
+                    </span>
+                    <input
+                      id="admin-coupon-min-spend"
+                      name="minSpend"
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={form.minSpend}
+                      onChange={(event) => setField({ minSpend: event.target.value })}
+                      className={`h-11 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 pl-10 pr-3 text-sm text-slate-700 dark:text-slate-200 focus:outline-none${inputFocusClass}`}
+                      disabled={isSubmitting}
+                    />
+                  </div>
                 </div>
               </div>
-            </section>
-
-            <section className={cardClass}>
-              <CouponDrawerSectionHeader
-                eyebrow={compact ? "" : "Validity"}
-                title={compact ? t("coupons.Validity & Status", "Validity & Status") : "Confirm active window and storefront visibility"}
-                description={compact ? t("coupons.Set the active period and storefront visibility.", "Set the active period and storefront visibility.") : "Review the campaign schedule and decide whether checkout should see it immediately after save."}
-                meta={compact ? "" : (form.endDate ? `Ends ${form.endDate}` : "No expiry yet")}
-                compact={compact}
-              />
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="admin-coupon-start-date" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    {t("coupons.Start Date", "Start Date")}
-                  </label>
-                  <input
-                    id="admin-coupon-start-date"
-                    name="startDate"
-                    type="date"
-                    value={form.startDate}
-                    onChange={(event) => setField({ startDate: event.target.value })}
-                    className={`h-11 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200 focus:outline-none${inputFocusClass}`}
-                    disabled={isSubmitting}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="admin-coupon-end-date" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    {t("coupons.End Date", "End Date")}
-                  </label>
-                  <input
-                    id="admin-coupon-end-date"
-                    name="endDate"
-                    type="date"
-                    value={form.endDate}
-                    onChange={(event) => setField({ endDate: event.target.value })}
-                    className={`h-11 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200 focus:outline-none${inputFocusClass}`}
-                    disabled={isSubmitting}
-                  />
-                </div>
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-slate-50/70 dark:bg-slate-900/40 px-3 py-2.5 text-xs text-slate-500 dark:text-slate-400">
+                {t("coupons.Set a minimum order only when needed.", "Set a minimum order only when needed.")}
               </div>
+            </div>
+          </section>
 
-              {compact ? (
-                <div className="acf26-toggle-card mt-4">
+          <section className={cardClass}>
+            <CouponDrawerSectionHeader
+              eyebrow={compact ? "" : "Validity"}
+              title={compact ? t("coupons.Validity & Status", "Validity & Status") : "Confirm active window and storefront visibility"}
+              description={compact ? t("coupons.Set the active period and storefront visibility.", "Set the active period and storefront visibility.") : "Review the campaign schedule and decide whether checkout should see it immediately after save."}
+              meta={compact ? "" : (form.endDate ? `Ends ${form.endDate}` : "No expiry yet")}
+              compact={compact}
+            />
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="admin-coupon-start-date" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  {t("coupons.Start Date", "Start Date")}
+                </label>
+                <input
+                  id="admin-coupon-start-date"
+                  name="startDate"
+                  type="date"
+                  value={form.startDate}
+                  onChange={(event) => setField({ startDate: event.target.value })}
+                  className={`h-11 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200 focus:outline-none${inputFocusClass}`}
+                  disabled={isSubmitting}
+                />
+              </div>
+              <div>
+                <label htmlFor="admin-coupon-end-date" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  {t("coupons.End Date", "End Date")}
+                </label>
+                <input
+                  id="admin-coupon-end-date"
+                  name="endDate"
+                  type="date"
+                  value={form.endDate}
+                  onChange={(event) => setField({ endDate: event.target.value })}
+                  className={`h-11 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200 focus:outline-none${inputFocusClass}`}
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
+
+            {compact ? (
+              <div className="acf26-toggle-card mt-4">
+                <div>
+                  <p className="title">{t("coupons.Published", "Published")}</p>
+                  <p className="desc">{t("coupons.Enable coupon for checkout immediately", "Enable coupon for checkout immediately")}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setField({ active: !form.active })}
+                  disabled={isSubmitting}
+                  className={`acf26-switch ${form.active ? "is-active" : ""}`}
+                  aria-label={t("coupons.Published", "Published")}
+                >
+                  <span className="acf26-switch-thumb" />
+                </button>
+              </div>
+            ) : (
+              <div className="mt-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2.5">
+                <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="title">{t("coupons.Published", "Published")}</p>
-                    <p className="desc">{t("coupons.Enable coupon for checkout immediately", "Enable coupon for checkout immediately")}</p>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{t("coupons.Published", "Published")}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{t("coupons.Enable coupon for checkout immediately", "Enable coupon for checkout immediately")}</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setField({ active: !form.active })}
                     disabled={isSubmitting}
-                    className={`acf26-switch ${form.active ? "is-active" : ""}`}
-                    aria-label={t("coupons.Published", "Published")}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${form.active ? toggleActiveClass : "bg-slate-300 dark:bg-slate-700"
+                      } disabled:cursor-not-allowed disabled:opacity-60`}
+                    aria-label="Toggle published"
                   >
-                    <span className="acf26-switch-thumb" />
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${form.active ? "translate-x-5" : "translate-x-0.5"
+                        }`}
+                    />
                   </button>
                 </div>
-              ) : (
-                <div className="mt-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2.5">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{t("coupons.Published", "Published")}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{t("coupons.Enable coupon for checkout immediately", "Enable coupon for checkout immediately")}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setField({ active: !form.active })}
-                      disabled={isSubmitting}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
-                        form.active ? toggleActiveClass : "bg-slate-300 dark:bg-slate-700"
-                      } disabled:cursor-not-allowed disabled:opacity-60`}
-                      aria-label="Toggle published"
-                    >
-                      <span
-                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
-                          form.active ? "translate-x-5" : "translate-x-0.5"
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </div>
-              )}
+              </div>
+            )}
 
-              {!compact ? (
+            {!compact ? (
               <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-semibold text-slate-500">
                 <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1">
                   {form.startDate ? `Starts ${form.startDate}` : "Start date optional"}
@@ -604,141 +599,141 @@ export function AddCouponFormPanel({
                   {form.active ? "Visible after save" : "Hidden after save"}
                 </span>
               </div>
-              ) : null}
-            </section>
+            ) : null}
+          </section>
 
-            <section className={cardClass}>
-              <CouponDrawerSectionHeader
-                eyebrow={compact ? "" : "Media"}
-                title={compact ? t("coupons.Coupon Banner", "Coupon Banner") : "Banner"}
-                description={compact ? t("coupons.Upload a campaign banner image for promotions.", "Upload a campaign banner image for promotions.") : "Upload a campaign banner and save its shared media URL to this coupon."}
-                compact={compact}
-              />
-              <div className="mt-4">
-                <label className={compact ? "acf26-upload-zone" : `block cursor-pointer rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-4 transition hover:border-[#034c85]`}>
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    className="hidden"
-                    onChange={handleFileChange}
-                    disabled={isSubmitting || bannerUploading}
-                  />
-                  {bannerPreviewSrc ? (
-                    <div className="space-y-3">
-                      <div className={compact ? "acf26-upload-preview" : "relative w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100/80 aspect-[16/5] sm:aspect-[16/4]"}>
-                        <img
-                          src={bannerPreviewSrc}
-                          alt="Coupon banner preview"
-                          className={compact ? "" : "absolute inset-0 h-full w-full object-contain"}
-                        />
-                      </div>
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-left">
-                        <div className="min-w-0">
-                          <p className="truncate text-xs font-semibold text-slate-800 dark:text-slate-200">
-                            {bannerFileName || "Uploaded coupon banner"}
-                          </p>
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                            {bannerUploading
-                              ? t("coupons.Uploading banner image...", "Uploading banner image...")
-                              : form.bannerImageUrl
-                                ? t("coupons.Banner uploaded and ready to save.", "Banner uploaded and ready to save.")
-                                : t("coupons.Upload did not finish. Select the image again before saving.", "Upload did not finish. Select the image again before saving.")}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            handleRemoveBanner();
-                          }}
-                          className="inline-flex h-8 items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 px-3 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40"
-                          disabled={isSubmitting || bannerUploading}
-                        >
-                          {t("coupons.Remove", "Remove")}
-                        </button>
-                      </div>
+          <section className={cardClass}>
+            <CouponDrawerSectionHeader
+              eyebrow={compact ? "" : "Media"}
+              title={compact ? t("coupons.Coupon Banner", "Coupon Banner") : "Banner"}
+              description={compact ? t("coupons.Upload a campaign banner image for promotions.", "Upload a campaign banner image for promotions.") : "Upload a campaign banner and save its shared media URL to this coupon."}
+              compact={compact}
+            />
+            <div className="mt-4">
+              <label className={compact ? "acf26-upload-zone" : `block cursor-pointer rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-4 transition hover:border-[#034c85]`}>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={handleFileChange}
+                  disabled={isSubmitting || bannerUploading}
+                />
+                {bannerPreviewSrc ? (
+                  <div className="space-y-3">
+                    <div className={compact ? "acf26-upload-preview" : "relative w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100/80 aspect-[16/5] sm:aspect-[16/4]"}>
+                      <img
+                        src={bannerPreviewSrc}
+                        alt="Coupon banner preview"
+                        className={compact ? "" : "absolute inset-0 h-full w-full object-contain"}
+                      />
                     </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center gap-2 py-4 text-center">
-                      <span className={compact ? "acf26-upload-icon" : `inline-flex h-10 w-10 items-center justify-center rounded-full ${uploadAccentClass}`}>
-                        <ImagePlus className="h-5 w-5" />
-                      </span>
-                      <div>
-                        <p className="font-semibold text-sm text-slate-800 dark:text-slate-200">
-                          {bannerUploading ? t("coupons.Uploading banner image...", "Uploading banner image...") : t("coupons.Upload banner image", "Upload banner image")}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-left">
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-semibold text-slate-800 dark:text-slate-200">
+                          {bannerFileName || "Uploaded coupon banner"}
                         </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                          PNG, JPG, WebP (Max 5MB)
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                          {bannerUploading
+                            ? t("coupons.Uploading banner image...", "Uploading banner image...")
+                            : form.bannerImageUrl
+                              ? t("coupons.Banner uploaded and ready to save.", "Banner uploaded and ready to save.")
+                              : t("coupons.Upload did not finish. Select the image again before saving.", "Upload did not finish. Select the image again before saving.")}
                         </p>
                       </div>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          handleRemoveBanner();
+                        }}
+                        className="inline-flex h-8 items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 px-3 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                        disabled={isSubmitting || bannerUploading}
+                      >
+                        {t("coupons.Remove", "Remove")}
+                      </button>
                     </div>
-                  )}
-                </label>
-              </div>
-              {bannerUploadError ? (
-                <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
-                  {bannerUploadError}
-                </div>
-              ) : null}
-            </section>
-
-            {submitError ? (
-              <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-                {submitError || GENERIC_ERROR}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center gap-2 py-4 text-center">
+                    <span className={compact ? "acf26-upload-icon" : `inline-flex h-10 w-10 items-center justify-center rounded-full ${uploadAccentClass}`}>
+                      <ImagePlus className="h-5 w-5" />
+                    </span>
+                    <div>
+                      <p className="font-semibold text-sm text-slate-800 dark:text-slate-200">
+                        {bannerUploading ? t("coupons.Uploading banner image...", "Uploading banner image...") : t("coupons.Upload banner image", "Upload banner image")}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        PNG, JPG, WebP (Max 5MB)
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </label>
+            </div>
+            {bannerUploadError ? (
+              <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                {bannerUploadError}
               </div>
             ) : null}
-          </div>
+          </section>
 
-          <footer className={footerClassName}>
-            {compact ? (
-              <div className="acf26-footer-inner">
+          {submitError ? (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+              {submitError || GENERIC_ERROR}
+            </div>
+          ) : null}
+        </div>
+
+        <footer className={footerClassName}>
+          {compact ? (
+            <div className="acf26-footer-inner">
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={isSubmitting}
+                className="acf26-btn-cancel"
+              >
+                {t("coupons.Cancel", "Cancel")}
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="acf26-btn-submit"
+              >
+                {isSubmitting ? t("coupons.Adding...", "Adding...") : t("coupons.Create Coupon", "Create Coupon")}
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-1 text-xs text-slate-500">
+                <p>
+                  {form.code
+                    ? `${form.code} will be saved as a ${form.discountType === "percent" ? "percentage" : "fixed"} campaign.`
+                    : "Review campaign code, discount rule, and validity before saving this coupon."}
+                </p>
+              </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:min-w-[280px]">
                 <button
                   type="button"
                   onClick={onCancel}
                   disabled={isSubmitting}
-                  className="acf26-btn-cancel"
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-slate-300 px-4 text-sm font-semibold transition"
                 >
                   {t("coupons.Cancel", "Cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="acf26-btn-submit"
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#fe6f05] hover:bg-[#e05f00] px-4 text-sm font-semibold text-white transition shadow-sm shadow-[#fe6f05]/25 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {isSubmitting ? t("coupons.Adding...", "Adding...") : t("coupons.Create Coupon", "Create Coupon")}
+                  {isSubmitting ? t("coupons.Adding...", "Adding...") : t("coupons.Add Coupon", "Add Coupon")}
                 </button>
               </div>
-            ) : (
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="space-y-1 text-xs text-slate-500">
-                  <p>
-                    {form.code
-                      ? `${form.code} will be saved as a ${form.discountType === "percent" ? "percentage" : "fixed"} campaign.`
-                      : "Review campaign code, discount rule, and validity before saving this coupon."}
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:min-w-[280px]">
-                  <button
-                    type="button"
-                    onClick={onCancel}
-                    disabled={isSubmitting}
-                    className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-slate-300 px-4 text-sm font-semibold transition"
-                  >
-                    {t("coupons.Cancel", "Cancel")}
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#fe6f05] hover:bg-[#e05f00] px-4 text-sm font-semibold text-white transition shadow-sm shadow-[#fe6f05]/25 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {isSubmitting ? t("coupons.Adding...", "Adding...") : t("coupons.Add Coupon", "Add Coupon")}
-                  </button>
-                </div>
-              </div>
-            )}
-          </footer>
-        </form>
+            </div>
+          )}
+        </footer>
+      </form>
     </>
   );
 }

@@ -155,13 +155,13 @@
 
 .ac26-kpi {
   min-width: 0;
-  min-height: 120px;
+  min-height: 96px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
   border-left: 4px solid var(--kpi-color);
-  padding: 20px 22px;
+  padding: 16px 20px;
 }
 
 .ac26-kpi--blue { --kpi-color: var(--ac26-primary); }
@@ -194,9 +194,9 @@
 
 .ac26-kpi__body strong {
   display: block;
-  margin: 8px 0;
+  margin: 4px 0 0;
   color: var(--ac26-text);
-  font-size: 28px;
+  font-size: 26px;
   line-height: 1;
   letter-spacing: 0;
 }
@@ -542,19 +542,44 @@
 
 .ac26-actions-cell > div > button,
 .ac26-actions-cell > div > div > button.ac26-more-trigger {
-  width: 34px;
-  min-height: 34px;
+  width: 36px;
+  min-height: 36px;
   padding: 0;
-  background: #ffffff;
+  background: var(--ac26-surface);
+  border: 1px solid var(--ac26-border);
+  color: var(--ac26-muted);
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.admin-theme-dark .ac26-actions-cell > div > button,
+.admin-theme-dark .ac26-actions-cell > div > div > button.ac26-more-trigger,
+.dark .ac26-actions-cell > div > button,
+.dark .ac26-actions-cell > div > div > button.ac26-more-trigger {
+  background: var(--ac26-surface-soft, #13253a) !important;
+  border-color: var(--ac26-border, #263a51) !important;
+  color: var(--ac26-text, #e7f1ff) !important;
 }
 
 .ac26-actions-cell > div > button:hover:not(:disabled),
 .ac26-actions-cell > div > div > button.ac26-more-trigger:hover:not(:disabled),
 .ac26-actions-cell > div > button:focus-visible,
 .ac26-actions-cell > div > div > button.ac26-more-trigger:focus-visible {
-  border-color: color-mix(in srgb, var(--ac26-primary) 45%, var(--ac26-border));
+  border-color: #034c85;
   background: var(--ac26-primary-soft);
-  color: var(--ac26-primary);
+  color: #034c85;
+}
+
+.admin-theme-dark .ac26-actions-cell > div > button:hover:not(:disabled),
+.admin-theme-dark .ac26-actions-cell > div > div > button.ac26-more-trigger:hover:not(:disabled),
+.dark .ac26-actions-cell > div > button:hover:not(:disabled),
+.dark .ac26-actions-cell > div > div > button.ac26-more-trigger:hover:not(:disabled) {
+  border-color: #38bdf8 !important;
+  background: rgba(56, 189, 248, 0.16) !important;
+  color: #38bdf8 !important;
 }
 
 .ac26-actions-cell .ac26-action-menu {
@@ -1047,9 +1072,9 @@
 }
 
 .ac26-kpi {
-  min-height: 120px;
+  min-height: 96px;
   border-radius: 8px;
-  padding: 20px 22px;
+  padding: 16px 20px;
   box-shadow: 0 18px 44px -36px rgba(3, 76, 133, 0.34);
 }
 
@@ -1063,8 +1088,8 @@
 }
 
 .ac26-kpi__body strong {
-  margin: 8px 0;
-  font-size: 28px;
+  margin: 4px 0 0;
+  font-size: 26px;
 }
 
 .ac26-toolbar {
@@ -1285,8 +1310,8 @@
 
 .ac26-page.ac26-page--categories .ac26-table td.ac26-actions-cell > div > button,
 .ac26-page.ac26-page--categories .ac26-table td.ac26-actions-cell > div > div > button.ac26-more-trigger {
-  width: 34px;
-  min-width: 34px;
-  min-height: 34px;
+  width: 36px;
+  min-width: 36px;
+  min-height: 36px;
   padding: 0;
 }
