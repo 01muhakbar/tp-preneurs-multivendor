@@ -32,10 +32,12 @@ export default function AdminLayout() {
     false
   );
 
-  // If there's a stored admin theme, apply it on mount
+  // If there's a stored admin theme, apply it ONCE on mount
   useEffect(() => {
     const stored = initialAdminThemeRef.current;
-    if (stored && stored !== resolvedTheme) {
+    if (!stored) return;
+    initialAdminThemeRef.current = null;
+    if (stored !== resolvedTheme) {
       setGlobalTheme(stored);
     }
   }, [resolvedTheme, setGlobalTheme]);
@@ -43,18 +45,34 @@ export default function AdminLayout() {
   const isDark = resolvedTheme === "dark";
   const theme = resolvedTheme;
 
+  // Keep admin theme attribute, class names and localStorage in sync
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(ADMIN_THEME_KEY, theme);
+    }
     if (typeof document !== "undefined") {
       document.documentElement.setAttribute("data-admin-theme", theme);
+      document.documentElement.classList.toggle("admin-theme-dark", isDark);
+      document.documentElement.classList.toggle("admin-theme-light", !isDark);
+      document.documentElement.classList.toggle("dark", isDark);
     }
-  }, [theme]);
+  }, [theme, isDark]);
+
+  useEffect(() => {
+    return () => {
+      if (typeof document !== "undefined") {
+        document.documentElement.removeAttribute("data-admin-theme");
+        document.documentElement.classList.remove("admin-theme-dark", "admin-theme-light");
+      }
+    };
+  }, []);
 
   const handleToggleTheme = () => {
     const nextTheme = isDark ? "light" : "dark";
-    setGlobalTheme(nextTheme);
     if (typeof window !== "undefined") {
       window.localStorage.setItem(ADMIN_THEME_KEY, nextTheme);
     }
+    setGlobalTheme(nextTheme);
   };
 
   useEffect(() => {
