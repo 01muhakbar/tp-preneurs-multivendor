@@ -13,10 +13,14 @@ import {
   MessageCircle,
   Package,
   Printer,
+  Scale,
   ShieldCheck,
   Truck,
+  UserRound,
+  WalletCards,
   AlertTriangle,
   RotateCcw,
+  Sparkles,
 } from "lucide-react";
 import { resolveAssetUrl } from "../../../lib/assetUrl.js";
 import "../../../pages/seller/workspace/seller-suborder-detail-2026.css";
@@ -55,22 +59,21 @@ const I18N = {
     totalPayment: "Total Pembayaran",
     notes: "Catatan Pesanan",
     buyerNote: "Catatan Pembeli",
-    printLabel: "Cetak Label",
+    printLabel: "Cetak Label Pengiriman",
     messageBuyer: "Hubungi Pembeli",
     openSellerStore: "Buka di Seller Toko",
     adminActions: "Kelola Status Pesanan",
     updateStatus: "Perbarui Status",
     updating: "Memperbarui...",
     statusUpdated: "Status pesanan berhasil diperbarui.",
-    selectStatus: "-- Pilih Status Pesanan --",
     orderCancelled: "Pesanan Dibatalkan",
     orderCancelledDesc: "Pesanan dibatalkan atau waktu pembayaran telah kedaluwarsa.",
     orderUnpaid: "Menunggu Pembayaran",
     orderUnpaidDesc: "Menunggu konfirmasi pembayaran dari pembeli.",
-    orderProcessing: "Pesanan Diproses",
+    orderProcessing: "Pesanan Sedang Diproses",
     orderProcessingDesc: "Pembayaran telah diverifikasi, pesanan siap diproses.",
-    orderShipped: "Pesanan Dikirim",
-    orderShippedDesc: "Paket telah diserahkan ke pihak ekspedisi.",
+    orderShipped: "Pesanan Sedang Dikirim",
+    orderShippedDesc: "Paket telah diserahkan ke pihak ekspedisi untuk pengiriman.",
     orderCompleted: "Pesanan Selesai",
     orderCompletedDesc: "Pesanan telah diterima oleh pembeli.",
     steps: {
@@ -81,6 +84,16 @@ const I18N = {
       outForDelivery: "Menuju Alamat",
       orderArrived: "Pesanan Tiba",
       pending: "Menunggu",
+      done: "Selesai",
+    },
+    statusBadge: {
+      paid: "Lunas",
+      unpaid: "Belum Bayar",
+      processing: "Diproses",
+      shipped: "Dikirim",
+      delivered: "Selesai",
+      cancelled: "Dibatalkan",
+      expired: "Kedaluwarsa",
     },
   },
   en: {
@@ -115,14 +128,13 @@ const I18N = {
     totalPayment: "Total Payment",
     notes: "Order Notes",
     buyerNote: "Buyer Note",
-    printLabel: "Print Label",
+    printLabel: "Print Shipping Label",
     messageBuyer: "Message Buyer",
     openSellerStore: "Open in Store Workspace",
     adminActions: "Order Status Actions",
     updateStatus: "Update Status",
     updating: "Updating...",
     statusUpdated: "Order status updated successfully.",
-    selectStatus: "-- Select Order Status --",
     orderCancelled: "Order Cancelled",
     orderCancelledDesc: "Order was cancelled or payment expired.",
     orderUnpaid: "Waiting Payment",
@@ -141,6 +153,16 @@ const I18N = {
       outForDelivery: "Out for Delivery",
       orderArrived: "Order Arrived",
       pending: "Pending",
+      done: "Done",
+    },
+    statusBadge: {
+      paid: "Paid",
+      unpaid: "Unpaid",
+      processing: "Processing",
+      shipped: "Shipped",
+      delivered: "Delivered",
+      cancelled: "Cancelled",
+      expired: "Expired",
     },
   },
 };
@@ -162,12 +184,13 @@ const formatMoneyRp = (val) => {
   return `Rp ${num.toLocaleString("id-ID")}`;
 };
 
-function StatusPill({ label, tone = "slate" }) {
-  if (!label) return null;
+function StatusPill({ status }) {
+  if (!status) return null;
+  const tone = status.tone || "slate";
   return (
     <span className={`tpsodp2026-pill tpsodp2026-pill--${tone}`}>
       <span className="tpsodp2026-pill__dot" />
-      {label}
+      {status.label || "-"}
     </span>
   );
 }
@@ -239,8 +262,16 @@ export default function AdminOrderDetail2026View({
   const createdAt = order?.createdAt || order?.orderTime;
   const invoiceNo = order?.invoiceNo || order?.ref || "";
   const compactOrderNo = formatCompactOrderNumber(invoiceNo, orderId, createdAt);
-  const suborderNumber =
-    primaryGroup?.suborderNumber || `${compactOrderNo}-S01`;
+
+  // Clean suborder code: never display raw STORE-IDEMP in subtitle!
+  const cleanSuborderNo = useMemo(() => {
+    const raw = String(primaryGroup?.suborderNumber || "").trim();
+    if (!raw || raw.includes("STORE-IDEMP") || !raw.startsWith("TP-")) {
+      return `${compactOrderNo}-S01`;
+    }
+    return raw;
+  }, [primaryGroup?.suborderNumber, compactOrderNo]);
+
   const storeSlug = primaryGroup?.storeSlug || "";
   const suborderId = primaryGroup?.suborderId || null;
   const storeName = primaryGroup?.storeName || "";
@@ -263,7 +294,6 @@ export default function AdminOrderDetail2026View({
     }
   };
 
-  // Date formatters
   const formatDateFull = (iso) => {
     if (!iso) return "—";
     try {
@@ -296,7 +326,7 @@ export default function AdminOrderDetail2026View({
   };
 
   // Customer info & WhatsApp
-  const customerName = order?.customerName || order?.customer?.name || "Super Client";
+  const customerName = order?.customerName || order?.customer?.name || "Customer";
   const customerPhone = order?.customerPhone || order?.customer?.phone || "";
   const customerEmail = order?.customerEmail || order?.customer?.email || "";
   const customerAddress =
@@ -327,7 +357,7 @@ export default function AdminOrderDetail2026View({
     return `https://wa.me/${clean}?text=${msg}`;
   }, [customerPhone, customerName, compactOrderNo, isIndo]);
 
-  // Stepper lifecycle calculation
+  // Stepper calculations
   const isCancelled =
     rawStatus.includes("cancel") ||
     paymentStatus === "CANCELLED" ||
@@ -348,14 +378,14 @@ export default function AdminOrderDetail2026View({
     {
       code: "PAID",
       label: t.steps.paid,
-      dateLabel: isPaid ? (isIndo ? "Selesai" : "Paid") : t.steps.pending,
+      dateLabel: isPaid ? t.steps.done : t.steps.pending,
       complete: isPaid,
       active: !isPaid && !isCancelled,
     },
     {
       code: "PACKED",
       label: t.steps.packed,
-      dateLabel: isPacked ? (isIndo ? "Selesai" : "Done") : t.steps.pending,
+      dateLabel: isPacked ? t.steps.done : t.steps.pending,
       complete: isPacked,
       active: isPaid && !isPacked && !isCancelled,
     },
@@ -369,25 +399,26 @@ export default function AdminOrderDetail2026View({
     {
       code: "OUT_FOR_DELIVERY",
       label: t.steps.outForDelivery,
-      dateLabel: isShipped ? (isIndo ? "Dalam Perjalanan" : "In Route") : t.steps.pending,
+      dateLabel: isShipped ? (isIndo ? "Dalam Rute" : "In Route") : t.steps.pending,
       complete: isDelivered,
       active: isShipped && !isDelivered && !isCancelled,
     },
     {
       code: "DELIVERED",
       label: t.steps.orderArrived,
-      dateLabel: isDelivered ? (isIndo ? "Tiba" : "Delivered") : t.steps.pending,
+      dateLabel: isDelivered ? t.steps.done : t.steps.pending,
       complete: isDelivered,
       active: false,
     },
   ];
 
-  // Contextual Banner
+  // Contextual Guidance Banner
   const statusBanner = useMemo(() => {
     if (isCancelled) {
       return {
+        bucket: "cancelled",
         tone: "red",
-        badge: isIndo ? "Dibatalkan" : "Cancelled",
+        badge: t.statusBadge.cancelled,
         title: t.orderCancelled,
         desc: t.orderCancelledDesc,
         Icon: Clock3,
@@ -395,8 +426,9 @@ export default function AdminOrderDetail2026View({
     }
     if (!isPaid) {
       return {
+        bucket: "unpaid",
         tone: "amber",
-        badge: isIndo ? "Belum Bayar" : "Waiting Payment",
+        badge: t.statusBadge.unpaid,
         title: t.orderUnpaid,
         desc: t.orderUnpaidDesc,
         Icon: AlertTriangle,
@@ -404,8 +436,9 @@ export default function AdminOrderDetail2026View({
     }
     if (isDelivered) {
       return {
+        bucket: "completed",
         tone: "green",
-        badge: isIndo ? "Selesai" : "Completed",
+        badge: t.statusBadge.delivered,
         title: t.orderCompleted,
         desc: t.orderCompletedDesc,
         Icon: CheckCircle2,
@@ -413,23 +446,25 @@ export default function AdminOrderDetail2026View({
     }
     if (isShipped) {
       return {
+        bucket: "shipping",
         tone: "blue",
-        badge: isIndo ? "Dikirim" : "In Transit",
+        badge: t.statusBadge.shipped,
         title: t.orderShipped,
         desc: t.orderShippedDesc,
         Icon: Truck,
       };
     }
     return {
+      bucket: "to_pack",
       tone: "orange",
-      badge: isIndo ? "Diproses" : "Processing",
+      badge: t.statusBadge.processing,
       title: t.orderProcessing,
       desc: t.orderProcessingDesc,
       Icon: Package,
     };
-  }, [isCancelled, isPaid, isDelivered, isShipped, isIndo, t]);
+  }, [isCancelled, isPaid, isDelivered, isShipped, t]);
 
-  // Order Items
+  // Order items
   const items = useMemo(() => {
     if (Array.isArray(primaryGroup?.items) && primaryGroup.items.length > 0) {
       return primaryGroup.items;
@@ -441,11 +476,11 @@ export default function AdminOrderDetail2026View({
   }, [primaryGroup, order]);
 
   // Financial totals
-  const subtotal = Number(order?.subtotal || primaryGroup?.subtotalAmount || 10000);
+  const subtotal = Number(order?.subtotal || primaryGroup?.subtotalAmount || 0);
   const shippingFee = Number(order?.shipping || primaryGroup?.shippingAmount || 0);
   const serviceFee = Number(order?.tax || primaryGroup?.serviceFeeAmount || 0);
   const discount = Number(order?.discount || 0);
-  const totalAmount = Number(order?.totalAmount || primaryGroup?.totalAmount || 5000);
+  const totalAmount = Number(order?.totalAmount || primaryGroup?.totalAmount || 0);
   const paymentMethodLabel =
     order?.paymentMethodLabel ||
     order?.paymentMethod ||
@@ -460,22 +495,31 @@ export default function AdminOrderDetail2026View({
   const courierService = order?.shipping?.service || primaryGroup?.courierService || "-";
   const trackingNumber = order?.shipping?.trackingNumber || primaryGroup?.trackingNumber || "";
 
+  // Payment status pill
+  const paymentStatusPill = useMemo(() => {
+    if (paymentStatus === "EXPIRED") return { label: t.statusBadge.expired, tone: "red" };
+    if (paymentStatus === "PAID" || paymentStatus === "SETTLED") return { label: t.statusBadge.paid, tone: "green" };
+    if (paymentStatus === "CANCELLED") return { label: t.statusBadge.cancelled, tone: "red" };
+    return { label: t.statusBadge.unpaid, tone: "amber" };
+  }, [paymentStatus, t]);
+
   return (
     <div className="admin-order-detail-root">
       <div className="tpsodp2026-page">
-        {/* Topbar Navigation */}
+        {/* Top Header / Breadcrumb & Action Buttons */}
         <div className="tpsodp2026-topbar">
           <Link to="/admin/orders" className="tpsodp2026-btn-back">
             <ArrowLeft size={16} />
             <span>{t.back}</span>
           </Link>
 
-          <div className="tpsodp2026-actions">
+          <div className="tpsodp2026-topbar__actions">
             {onPrint && (
               <button
                 type="button"
-                className="tpsodp2026-btn tpsodp2026-btn--outline"
+                className="tpsodp2026-btn-outline"
                 onClick={onPrint}
+                title={t.printLabel}
               >
                 <Printer size={15} />
                 <span>{t.printLabel}</span>
@@ -487,7 +531,8 @@ export default function AdminOrderDetail2026View({
                 href={whatsAppLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="tpsodp2026-btn tpsodp2026-btn--outline"
+                className="tpsodp2026-btn-outline"
+                title={t.messageBuyer}
               >
                 <MessageCircle size={15} />
                 <span>{t.messageBuyer}</span>
@@ -499,8 +544,8 @@ export default function AdminOrderDetail2026View({
                 href={`/seller/stores/${storeSlug}/orders/${suborderId}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="tpsodp2026-btn--store-link"
-                title={storeName ? `Toko: ${storeName}` : "Seller Workspace"}
+                className="tpsodp2026-btn-primary"
+                title={storeName ? `Toko: ${storeName}` : t.openSellerStore}
               >
                 <span>{storeName ? `${t.openSellerStore}: ${storeName}` : t.openSellerStore}</span>
                 <ExternalLink size={14} />
@@ -516,139 +561,141 @@ export default function AdminOrderDetail2026View({
           </div>
         ) : null}
 
-        {/* Hero Card */}
-        <section className="tpsodp2026-hero">
-          <div className="tpsodp2026-hero__main">
-            <div className="tpsodp2026-hero__left">
-              <span className="tpsodp2026-hero__tag">
-                {t.title.toUpperCase()} #{orderId}
-              </span>
-
-              <div className="tpsodp2026-hero__number-wrap">
-                <h1 className="tpsodp2026-hero__number">{compactOrderNo}</h1>
-                <button
-                  type="button"
-                  className="tpsodp2026-btn-copy"
-                  onClick={() => handleCopy(compactOrderNo, "orderNo")}
-                  title={t.copy}
+        {/* Hero Header Card */}
+        <header className="tpsodp2026-hero-card">
+          <div className="tpsodp2026-hero-card__main">
+            <div className="tpsodp2026-hero-card__meta-row">
+              <span className="tpsodp2026-eyebrow">{t.title}</span>
+              {orderId ? (
+                <span
+                  className="tpsodp2026-order-id-badge"
+                  title={`Order #${orderId}`}
+                  onClick={() => handleCopy(String(orderId), "orderId")}
                 >
-                  <Copy size={14} />
-                  {copiedKey === "orderNo" && (
-                    <span className="tpsodp2026-btn-copy__tip">{t.copied}</span>
-                  )}
-                </button>
+                  #{orderId}
+                </span>
+              ) : null}
+              <div className="tpsodp2026-hero-card__chips">
+                <StatusPill status={paymentStatusPill} />
+                {rawStatus === "processing" && (
+                  <StatusPill status={{ label: t.statusBadge.processing, tone: "orange" }} />
+                )}
+                {isDelivered && (
+                  <StatusPill status={{ label: t.statusBadge.delivered, tone: "green" }} />
+                )}
               </div>
+            </div>
 
-              <div className="tpsodp2026-hero__meta">
-                <span className="tpsodp2026-hero__date">
-                  <CalendarDays size={14} />
-                  {formatDateFull(createdAt)}
-                </span>
-                <span className="tpsodp2026-hero__dot">•</span>
-                <span className="tpsodp2026-hero__suborder">
-                  {suborderNumber}
-                </span>
+            <div className="tpsodp2026-hero-card__title-row">
+              <h1>{compactOrderNo}</h1>
+              <button
+                type="button"
+                className="tpsodp2026-btn-icon-copy"
+                onClick={() => handleCopy(compactOrderNo, "orderNo")}
+                title={t.copy}
+                aria-label={t.copy}
+              >
+                <Copy size={16} />
+              </button>
+            </div>
+
+            <div className="tpsodp2026-hero-card__sub-row">
+              <span className="tpsodp2026-time-stamp">
+                <CalendarDays size={14} />
+                {formatDateFull(createdAt)}
+              </span>
+              <span className="tpsodp2026-divider">•</span>
+              <span className="tpsodp2026-suborder-no">
+                {cleanSuborderNo}
                 <button
                   type="button"
-                  className="tpsodp2026-btn-copy tpsodp2026-btn-copy--sm"
-                  onClick={() => handleCopy(suborderNumber, "suborderNo")}
+                  className="tpsodp2026-btn-mini-copy"
+                  onClick={() => handleCopy(cleanSuborderNo, "suborderNo")}
                   title={t.copy}
                 >
                   <Copy size={12} />
-                  {copiedKey === "suborderNo" && (
-                    <span className="tpsodp2026-btn-copy__tip">{t.copied}</span>
-                  )}
                 </button>
-              </div>
-            </div>
-
-            <div className="tpsodp2026-hero__right">
-              {paymentStatus === "EXPIRED" && (
-                <StatusPill label={isIndo ? "Kedaluwarsa" : "Expired"} tone="red" />
-              )}
-              {isCancelled && (
-                <StatusPill label={isIndo ? "Dibatalkan" : "Cancelled"} tone="red" />
-              )}
-              {isPaid && !isCancelled && (
-                <StatusPill label={isIndo ? "Lunas" : "Paid"} tone="green" />
-              )}
-              {!isPaid && !isCancelled && (
-                <StatusPill label={isIndo ? "Belum Bayar" : "Unpaid"} tone="amber" />
-              )}
+              </span>
             </div>
           </div>
-        </section>
+        </header>
 
-        {/* Progress Stepper */}
+        {/* 6-Step Visual Progress Rail */}
         <ProgressRail steps={timelineSteps} />
 
-        {/* Contextual Status Banner */}
+        {/* Prominent Next Step Guidance Card */}
         {statusBanner && (
-          <section className={`tpsodp2026-banner tpsodp2026-banner--${statusBanner.tone}`}>
-            <span className="tpsodp2026-banner__icon">
-              <statusBanner.Icon size={18} />
-            </span>
-            <div className="tpsodp2026-banner__body">
-              <div className="tpsodp2026-banner__headline">
-                <strong className="tpsodp2026-banner__title">{statusBanner.title}</strong>
-                <span className="tpsodp2026-banner__badge">{statusBanner.badge}</span>
+          <section className={`tpsodp2026-next-step-card tpsodp2026-next-step-card--${statusBanner.bucket}`}>
+            <div className="tpsodp2026-next-step-card__icon-wrap">
+              <statusBanner.Icon size={22} className={`tpsodp2026-icon-${statusBanner.tone === "green" ? "success" : statusBanner.tone === "orange" ? "accent" : statusBanner.tone === "blue" ? "primary" : "muted"}`} />
+            </div>
+            <div className="tpsodp2026-next-step-card__content">
+              <div className="tpsodp2026-next-step-card__title-row">
+                <h3>{statusBanner.title}</h3>
+                <span className={`tpsodp2026-pill tpsodp2026-pill--${statusBanner.tone}`}>
+                  <span className="tpsodp2026-pill__dot" />
+                  {statusBanner.badge}
+                </span>
               </div>
-              <p className="tpsodp2026-banner__text">{statusBanner.desc}</p>
+              <p className="tpsodp2026-next-step-card__desc">{statusBanner.desc}</p>
             </div>
           </section>
         )}
 
-        {/* 2-Column Responsive Grid */}
-        <div className="tpsodp2026-grid">
-          {/* Left Column: Items, Shipping, Notes */}
-          <div className="tpsodp2026-col tpsodp2026-col--main">
-            {/* Order Items */}
+        {/* 2-Column Responsive Dashboard Layout */}
+        <main className="tpsodp2026-grid">
+          {/* Left Column: Products, Shipping & Courier, Notes */}
+          <div className="tpsodp2026-col-main">
+            {/* Products Card */}
             <section className="tpsodp2026-card">
               <header className="tpsodp2026-card__header">
-                <div className="tpsodp2026-card__title-wrap">
-                  <Package size={17} className="tpsodp2026-card__icon" />
-                  <h2 className="tpsodp2026-card__title">{t.items}</h2>
+                <div className="tpsodp2026-card__header-title">
+                  <Package size={18} className="tpsodp2026-icon-primary" />
+                  <h2>{t.items}</h2>
                 </div>
-                <span className="tpsodp2026-card__count">{items.length}</span>
+                <span className="tpsodp2026-badge-count">{items.length}</span>
               </header>
 
               <div className="tpsodp2026-items-list">
                 {items.map((item, idx) => {
                   const img = resolveAssetUrl(
-                    item.image || item.imageSnapshot || "/uploads/products/singkong.jpg"
+                    item.image || item.imageSnapshot || "/uploads/products/default.jpg"
                   );
-                  const name = item.productName || item.name || item.product?.name || "Kreasi Singkong";
+                  const name = item.productName || item.name || item.product?.name || "Product";
                   const variant = item.variantLabel || item.variantKey || "Standard item";
                   const qty = Number(item.qty || item.quantity || 1);
-                  const price = Number(item.price || item.priceSnapshot || 10000);
+                  const price = Number(item.price || item.priceSnapshot || 0);
                   const lineTotal = Number(item.lineTotal || item.totalPrice || price * qty);
 
                   return (
-                    <article key={item.id || idx} className="tpsodp2026-item">
-                      <div className="tpsodp2026-item__media">
+                    <article key={item.id || idx} className="tpsodp2026-item-row">
+                      <div className="tpsodp2026-item-row__media">
                         <img
                           src={img}
                           alt={name}
-                          className="tpsodp2026-item__img"
                           onError={(e) => {
                             e.currentTarget.src =
-                              "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='1.5'><rect width='20' height='20' x='2' y='2' rx='5'/><circle cx='8.5' cy='8.5' r='1.5'/><polyline points='21 15 16 10 5 21'/></svg>";
+                              "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='1.5'><rect width='20' height='20' x='2' y='2' rx='5'/><circle cx='8.5' cy='8.5' r='1.5'/><polyline points='21 15 16 10 5 21'/></svg>";
                           }}
                         />
                       </div>
-                      <div className="tpsodp2026-item__body">
-                        <h3 className="tpsodp2026-item__name">{name}</h3>
-                        <div className="tpsodp2026-item__details">
-                          <span className="tpsodp2026-item__variant">{variant}</span>
-                          <span className="tpsodp2026-item__dot">•</span>
-                          <span className="tpsodp2026-item__weight">1 kg / unit</span>
+                      <div className="tpsodp2026-item-row__info">
+                        <h3 className="tpsodp2026-item-row__name">{name}</h3>
+                        <div className="tpsodp2026-item-row__submeta">
+                          <span className="tpsodp2026-item-row__variant">{variant}</span>
+                          <span className="tpsodp2026-item-row__weight">
+                            <Scale size={11} />
+                            1 kg / unit
+                          </span>
                         </div>
-                        <div className="tpsodp2026-item__price-calc">
-                          {formatMoneyRp(price)} × {qty}
+                        <div className="tpsodp2026-item-row__pricing">
+                          <span className="tpsodp2026-item-row__qty">
+                            {formatMoneyRp(price)} × {qty}
+                          </span>
                         </div>
                       </div>
-                      <div className="tpsodp2026-item__subtotal">
-                        {formatMoneyRp(lineTotal)}
+                      <div className="tpsodp2026-item-row__total">
+                        <strong>{formatMoneyRp(lineTotal)}</strong>
                       </div>
                     </article>
                   );
@@ -656,63 +703,60 @@ export default function AdminOrderDetail2026View({
               </div>
             </section>
 
-            {/* Shipping & Courier */}
+            {/* Shipping & Courier Card */}
             <section className="tpsodp2026-card">
               <header className="tpsodp2026-card__header">
-                <div className="tpsodp2026-card__title-wrap">
-                  <Truck size={17} className="tpsodp2026-card__icon" />
-                  <h2 className="tpsodp2026-card__title">{t.shipping}</h2>
+                <div className="tpsodp2026-card__header-title">
+                  <Truck size={18} className="tpsodp2026-icon-primary" />
+                  <h2>{t.shipping}</h2>
                 </div>
-                {isCancelled ? (
-                  <StatusPill label={isIndo ? "Dibatalkan" : "Cancelled"} tone="red" />
-                ) : null}
+                {isCancelled && (
+                  <StatusPill status={{ label: t.statusBadge.cancelled, tone: "red" }} />
+                )}
               </header>
 
-              <div className="tpsodp2026-shipping-form">
-                <div className="tpsodp2026-form-row">
-                  <div className="tpsodp2026-field">
-                    <label className="tpsodp2026-field__label">{t.courier.toUpperCase()}</label>
-                    <div className="tpsodp2026-readonly-val">{courierName}</div>
-                  </div>
-                  <div className="tpsodp2026-field">
-                    <label className="tpsodp2026-field__label">{t.service.toUpperCase()}</label>
-                    <div className="tpsodp2026-readonly-val">{courierService}</div>
-                  </div>
-                </div>
-
-                <div className="tpsodp2026-form-row">
-                  <div className="tpsodp2026-field">
-                    <label className="tpsodp2026-field__label">{t.shippingFee.toUpperCase()}</label>
-                    <div className="tpsodp2026-readonly-val">{formatMoneyRp(shippingFee)}</div>
-                  </div>
-                  <div className="tpsodp2026-field">
-                    <div className="tpsodp2026-field__label-wrap">
-                      <label className="tpsodp2026-field__label">{t.totalWeight.toUpperCase()}</label>
-                      <span className="tpsodp2026-pill-badge tpsodp2026-pill-badge--auto">
-                        {t.autoCalculated}
-                      </span>
-                    </div>
-                    <div className="tpsodp2026-readonly-val">1 kg</div>
-                  </div>
+              <div className="tpsodp2026-shipping-grid">
+                <div className="tpsodp2026-field">
+                  <label className="tpsodp2026-field__label">{t.courier}</label>
+                  <div className="tpsodp2026-field__value">{courierName}</div>
                 </div>
 
                 <div className="tpsodp2026-field">
-                  <label className="tpsodp2026-field__label">{t.trackingNo.toUpperCase()}</label>
-                  <div className="tpsodp2026-tracking-display">
-                    <span className="tpsodp2026-tracking-val">
-                      {trackingNumber || t.noTracking}
+                  <label className="tpsodp2026-field__label">{t.service}</label>
+                  <div className="tpsodp2026-field__value">{courierService}</div>
+                </div>
+
+                <div className="tpsodp2026-field">
+                  <label className="tpsodp2026-field__label">{t.shippingFee}</label>
+                  <div className="tpsodp2026-field__value">{formatMoneyRp(shippingFee)}</div>
+                </div>
+
+                <div className="tpsodp2026-field">
+                  <div className="tpsodp2026-field__label-row">
+                    <label className="tpsodp2026-field__label">{t.totalWeight}</label>
+                    <span className="tpsodp2026-badge-synced">
+                      <Sparkles size={11} />
+                      {t.autoCalculated}
                     </span>
+                  </div>
+                  <div className="tpsodp2026-weight-display">
+                    <Scale size={15} className="tpsodp2026-icon-weight" />
+                    <strong className="tpsodp2026-weight-val">1 kg</strong>
+                  </div>
+                </div>
+
+                <div className="tpsodp2026-field tpsodp2026-field--full">
+                  <label className="tpsodp2026-field__label">{t.trackingNo}</label>
+                  <div className="tpsodp2026-tracking-display">
+                    <span>{trackingNumber || t.noTracking}</span>
                     {trackingNumber ? (
                       <button
                         type="button"
-                        className="tpsodp2026-btn-copy"
+                        className="tpsodp2026-btn-mini-copy"
                         onClick={() => handleCopy(trackingNumber, "tracking")}
                         title={t.copy}
                       >
                         <Copy size={13} />
-                        {copiedKey === "tracking" && (
-                          <span className="tpsodp2026-btn-copy__tip">{t.copied}</span>
-                        )}
                       </button>
                     ) : null}
                   </div>
@@ -720,128 +764,123 @@ export default function AdminOrderDetail2026View({
               </div>
             </section>
 
-            {/* Notes Section (if note exists) */}
+            {/* Notes Section (if customer note exists) */}
             {order?.notes || order?.customerNote ? (
               <section className="tpsodp2026-card">
                 <header className="tpsodp2026-card__header">
-                  <h2 className="tpsodp2026-card__title">{t.notes}</h2>
+                  <h2>{t.notes}</h2>
                 </header>
-                <p className="tpsodp2026-note-text">
-                  {order?.notes || order?.customerNote}
-                </p>
+                <div className="tpsodp2026-buyer-note-box">
+                  <span className="tpsodp2026-note-tag">{t.buyerNote}</span>
+                  <p>{order?.notes || order?.customerNote}</p>
+                </div>
               </section>
             ) : null}
           </div>
 
           {/* Right Column: Customer, Payment Summary, Admin Actions */}
-          <div className="tpsodp2026-col tpsodp2026-col--side">
+          <div className="tpsodp2026-col-side">
             {/* Customer Card */}
             <section className="tpsodp2026-card">
               <header className="tpsodp2026-card__header">
-                <div className="tpsodp2026-card__title-wrap">
-                  <ShieldCheck size={17} className="tpsodp2026-card__icon" />
-                  <h2 className="tpsodp2026-card__title">{t.customer}</h2>
+                <div className="tpsodp2026-card__header-title">
+                  <UserRound size={18} className="tpsodp2026-icon-primary" />
+                  <h2>{t.customer}</h2>
                 </div>
               </header>
 
-              <div className="tpsodp2026-customer">
-                <div className="tpsodp2026-customer__top">
-                  <div className="tpsodp2026-customer__avatar">
-                    {avatarInitials}
-                  </div>
-                  <div className="tpsodp2026-customer__meta">
-                    <strong className="tpsodp2026-customer__name">{customerName}</strong>
-                    {customerEmail ? (
-                      <span className="tpsodp2026-customer__email">{customerEmail}</span>
-                    ) : null}
-                    <div className="tpsodp2026-customer__contact-row">
-                      <span className="tpsodp2026-customer__phone">
-                        {customerPhone || "—"}
-                      </span>
-                      {whatsAppLink && (
-                        <a
-                          href={whatsAppLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="tpsodp2026-btn-wa"
-                        >
-                          <MessageCircle size={13} />
-                          <span>{t.whatsapp}</span>
-                        </a>
-                      )}
-                    </div>
+              <div className="tpsodp2026-customer-box">
+                <div className="tpsodp2026-customer-box__avatar">
+                  {avatarInitials}
+                </div>
+                <div className="tpsodp2026-customer-box__details">
+                  <h3 className="tpsodp2026-customer-box__name">{customerName}</h3>
+                  {customerEmail ? (
+                    <span className="tpsodp2026-suborder-no">{customerEmail}</span>
+                  ) : null}
+                  <div className="tpsodp2026-customer-box__contact-row">
+                    <span className="tpsodp2026-customer-box__phone">
+                      {customerPhone || "—"}
+                    </span>
+                    {whatsAppLink && (
+                      <a
+                        href={whatsAppLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="tpsodp2026-badge-wa"
+                      >
+                        <MessageCircle size={13} />
+                        <span>{t.whatsapp}</span>
+                      </a>
+                    )}
                   </div>
                 </div>
+              </div>
 
-                <div className="tpsodp2026-customer__address-box">
-                  <MapPin size={15} className="tpsodp2026-customer__pin" />
-                  <p className="tpsodp2026-customer__address">{customerAddress}</p>
-                </div>
+              <div className="tpsodp2026-address-box">
+                <MapPin size={15} className="tpsodp2026-address-box__icon" />
+                <p className="tpsodp2026-address-box__text">{customerAddress}</p>
               </div>
             </section>
 
             {/* Payment Summary */}
             <section className="tpsodp2026-card">
               <header className="tpsodp2026-card__header">
-                <div className="tpsodp2026-card__title-wrap">
-                  <Clock3 size={17} className="tpsodp2026-card__icon" />
-                  <h2 className="tpsodp2026-card__title">{t.paymentSummary}</h2>
+                <div className="tpsodp2026-card__header-title">
+                  <WalletCards size={18} className="tpsodp2026-icon-primary" />
+                  <h2>{t.paymentSummary}</h2>
                 </div>
-                {paymentStatus === "EXPIRED" && (
-                  <StatusPill label={isIndo ? "Kedaluwarsa" : "Expired"} tone="red" />
-                )}
-                {paymentStatus === "PAID" && (
-                  <StatusPill label={isIndo ? "Lunas" : "Paid"} tone="green" />
-                )}
+                <StatusPill status={paymentStatusPill} />
               </header>
 
-              <div className="tpsodp2026-summary">
-                <div className="tpsodp2026-summary__method-box">
-                  <span className="tpsodp2026-summary__method-label">{t.method}</span>
-                  <strong className="tpsodp2026-summary__method-val">
-                    {paymentMethodLabel}
-                  </strong>
+              <div className="tpsodp2026-payment-info">
+                <div className="tpsodp2026-info-row">
+                  <span className="tpsodp2026-info-row__label">{t.method}</span>
+                  <span className="tpsodp2026-info-row__value">{paymentMethodLabel}</span>
                 </div>
+              </div>
 
-                <div className="tpsodp2026-summary__rows">
-                  <div className="tpsodp2026-summary__row">
-                    <span>{t.subtotal} ({items.length} {isIndo ? "Item" : "Items"})</span>
-                    <span>{formatMoneyRp(subtotal)}</span>
+              <div className="tpsodp2026-totals-list">
+                <div className="tpsodp2026-total-line">
+                  <span>{t.subtotal} ({items.length} {isIndo ? "Item" : "Items"})</span>
+                  <strong>{formatMoneyRp(subtotal)}</strong>
+                </div>
+                <div className="tpsodp2026-total-line">
+                  <span>{t.shippingFee}</span>
+                  <strong>{formatMoneyRp(shippingFee)}</strong>
+                </div>
+                <div className="tpsodp2026-total-line">
+                  <span>{t.serviceFee}</span>
+                  <strong>{formatMoneyRp(serviceFee)}</strong>
+                </div>
+                {discount > 0 && (
+                  <div className="tpsodp2026-total-line tpsodp2026-total-line--discount">
+                    <span>{t.discount}</span>
+                    <strong>-{formatMoneyRp(discount)}</strong>
                   </div>
-                  <div className="tpsodp2026-summary__row">
-                    <span>{t.shippingFee}</span>
-                    <span>{formatMoneyRp(shippingFee)}</span>
-                  </div>
-                  <div className="tpsodp2026-summary__row">
-                    <span>{t.serviceFee}</span>
-                    <span>{formatMoneyRp(serviceFee)}</span>
-                  </div>
-                  {discount > 0 && (
-                    <div className="tpsodp2026-summary__row tpsodp2026-summary__row--discount">
-                      <span>{t.discount}</span>
-                      <span>-{formatMoneyRp(discount)}</span>
-                    </div>
-                  )}
-                  <div className="tpsodp2026-summary__row tpsodp2026-summary__row--total">
-                    <span className="tpsodp2026-summary__total-label">{t.totalPayment}</span>
-                    <strong className="tpsodp2026-summary__total-val">
-                      {formatMoneyRp(totalAmount)}
-                    </strong>
-                  </div>
+                )}
+                <div className="tpsodp2026-total-line tpsodp2026-total-line--grand">
+                  <strong>{t.totalPayment}</strong>
+                  <strong className="tpsodp2026-grand-amount">
+                    {formatMoneyRp(totalAmount)}
+                  </strong>
                 </div>
               </div>
             </section>
 
-            {/* Admin Status Actions */}
+            {/* Admin Order Status Actions */}
             {onUpdateStatus && (
               <section className="tpsodp2026-card">
                 <header className="tpsodp2026-card__header">
-                  <h2 className="tpsodp2026-card__title">{t.adminActions}</h2>
+                  <div className="tpsodp2026-card__header-title">
+                    <RotateCcw size={18} className="tpsodp2026-icon-primary" />
+                    <h2>{t.adminActions}</h2>
+                  </div>
                 </header>
 
                 <div className="admin-status-control">
                   <select
-                    className="admin-status-select"
+                    className="tpsodp2026-select"
                     value={selectedStatus}
                     onChange={(e) => setSelectedStatus(e.target.value)}
                     disabled={isUpdating}
@@ -855,7 +894,7 @@ export default function AdminOrderDetail2026View({
 
                   <button
                     type="button"
-                    className="admin-status-btn"
+                    className="tpsodp2026-btn-accent"
                     onClick={() => onUpdateStatus(selectedStatus)}
                     disabled={isUpdating || selectedStatus === rawStatus}
                   >
@@ -865,7 +904,7 @@ export default function AdminOrderDetail2026View({
               </section>
             )}
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );
