@@ -799,10 +799,10 @@ export default function AdminCoupons2026View({
                   <th>{isId ? "PERIODE" : t("coupons.PERIOD", "PERIOD")}</th>
                   <th>{isId ? "PAKAI" : t("coupons.USAGE", "USAGE")}</th>
                   <th>{isId ? "STATUS" : t("coupons.STATUS", "STATUS")}</th>
-                  <th style={{ textAlign: "center" }}>
+                  <th className="ac26-col-published" style={{ textAlign: "center" }}>
                     {isId ? "TERBIT" : t("coupons.PUBLISHED", "PUBLISHED")}
                   </th>
-                  <th style={{ textAlign: "center" }}>
+                  <th className="ac26-col-actions" style={{ textAlign: "center" }}>
                     {isId ? "AKSI" : t("coupons.ACTIONS", "ACTIONS")}
                   </th>
                 </tr>
@@ -924,7 +924,7 @@ export default function AdminCoupons2026View({
                       </td>
 
                       {/* Published Toggle */}
-                      <td>
+                      <td className="ac26-cell-published">
                         <div className="ac26-published-cell">
                           <PublishToggle
                             checked={isActive}
@@ -945,7 +945,7 @@ export default function AdminCoupons2026View({
                       </td>
 
                       {/* Actions */}
-                      <td>
+                      <td className="ac26-cell-actions">
                         <div className="ac26-actions-cell">
                           <IconButton
                             label={`${isId ? "Lihat kupon" : "View coupon"} ${couponCode}`}

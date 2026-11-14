@@ -461,8 +461,8 @@
   text-align: center !important;
 }
 
-.ac26-col-actions,
-.ac26-actions-cell {
+.ac26-page.ac26-page--categories .ac26-col-actions,
+.ac26-page.ac26-page--categories td.ac26-actions-cell {
   width: 12%;
   text-align: center !important;
   overflow: visible !important;
@@ -1232,8 +1232,8 @@
     width: 4%;
   }
 
-  .ac26-col-actions,
-  .ac26-actions-cell {
+  .ac26-page.ac26-page--categories .ac26-col-actions,
+  .ac26-page.ac26-page--categories td.ac26-actions-cell {
     width: 12%;
   }
 
