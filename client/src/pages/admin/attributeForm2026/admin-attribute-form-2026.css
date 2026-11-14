@@ -3,7 +3,14 @@
 }
 
 .aaf26-header {
-  background: linear-gradient(90deg, #ffffff, color-mix(in srgb, var(--apf26-primary-soft) 58%, #ffffff), color-mix(in srgb, var(--apf26-accent-soft) 42%, #ffffff));
+  background: var(--apf26-surface);
+  border-bottom: 1px solid var(--apf26-border);
+}
+
+.admin-theme-dark .aaf26-header,
+.dark .aaf26-header {
+  background: var(--apf26-surface);
+  border-bottom: 1px solid var(--apf26-border);
 }
 
 .aaf26-header-actions {
@@ -14,7 +21,7 @@
 }
 
 .aaf26-breadcrumb {
-  margin-top: 12px;
+  margin-top: 6px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -26,14 +33,25 @@
   background: color-mix(in srgb, var(--apf26-surface-soft) 70%, transparent);
 }
 
-.aaf26-form-card {
+.aaf26-layout {
   width: min(920px, 100%);
   margin: 0 auto;
+}
+
+.aaf26-form-card {
+  width: 100%;
   overflow: hidden;
   border: 1px solid var(--apf26-border);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--apf26-surface);
-  box-shadow: 0 18px 42px -34px rgba(3, 76, 133, 0.45);
+  box-shadow: 0 18px 42px -34px rgba(3, 76, 133, 0.28);
+}
+
+.admin-theme-dark .aaf26-form-card,
+.dark .aaf26-form-card {
+  box-shadow: none;
+  background: var(--apf26-surface);
+  border-color: var(--apf26-border);
 }
 
 .aaf26-form-body {

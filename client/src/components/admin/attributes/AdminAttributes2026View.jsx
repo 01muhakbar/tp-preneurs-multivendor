@@ -68,7 +68,7 @@ function KpiCard({ label, value, helper, icon: Icon, tone }) {
       <div>
         <p>{label}</p>
         <strong>{value}</strong>
-        <span>{helper}</span>
+        {helper ? <span>{helper}</span> : null}
       </div>
       <span className="aa26-kpi__icon">
         <Icon size={22} />
@@ -456,28 +456,24 @@ export default function AdminAttributes2026View({
         <KpiCard
           label={t("attributes.Total Attributes", "Total Attributes")}
           value={stats.total}
-          helper={t("attributes.All attributes", "All attributes")}
           icon={Package}
           tone="blue"
         />
         <KpiCard
           label={t("attributes.Published", "Published")}
           value={stats.published}
-          helper={t("attributes.Loaded active attributes", "Loaded active attributes")}
           icon={CheckCircle2}
           tone="green"
         />
         <KpiCard
           label={t("attributes.Global Scope", "Global Scope")}
           value={stats.global}
-          helper={t("attributes.System-wide attributes", "System-wide attributes")}
           icon={SlidersHorizontal}
           tone="orange"
         />
         <KpiCard
           label={t("attributes.Store Scope", "Store Scope")}
           value={stats.store}
-          helper={t("attributes.Store-specific attributes", "Store-specific attributes")}
           icon={Boxes}
           tone="red"
         />
@@ -582,7 +578,7 @@ export default function AdminAttributes2026View({
       ) : attributes.length === 0 ? (
         <section className="aa26-state">
           <strong>{t("attributes.No attributes found.", "No attributes found.")}</strong>
-          <p>{t("attributes.Mulai dengan membuat atribut baru.", "Start by creating an attribute.")}</p>
+          <p>{t("attributes.Create your first attribute or adjust the current search and filters.", "Create your first attribute or adjust the current search and filters.")}</p>
           <button type="button" className="aa26-action aa26-action--primary" onClick={onAddAttribute}>
             {t("attributes.Add Attribute", "Add Attribute")}
           </button>
@@ -632,7 +628,9 @@ export default function AdminAttributes2026View({
                   </div>
                   <div className="aa26-grid-item__body">
                     <strong>{attribute.name}</strong>
-                    <span>{attribute.displayName || "-"}</span>
+                    {attribute.displayName && attribute.displayName !== attribute.name ? (
+                      <span>{attribute.displayName}</span>
+                    ) : null}
                     <div className="aa26-grid-item__badges">
                       <span className={`aa26-badge aa26-badge--${typeStr}`}>{typeLabel}</span>
                       <span className={`aa26-badge aa26-badge--${isStoreOwned ? "store" : "global"}`}>
@@ -729,7 +727,9 @@ export default function AdminAttributes2026View({
                         <div className="aa26-attribute-cell">
                           <div>
                             <strong>{attribute.name}</strong>
-                            <span>{attribute.displayName || "-"}</span>
+                            {attribute.displayName && attribute.displayName !== attribute.name ? (
+                              <span className="text-xs text-slate-400 dark:text-slate-500">{attribute.displayName}</span>
+                            ) : null}
                           </div>
                         </div>
                       </td>

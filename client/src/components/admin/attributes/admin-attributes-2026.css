@@ -143,7 +143,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 104px;
+  min-height: 96px;
   border: 1px solid var(--aa26-border);
   border-left: 4px solid var(--aa26-primary);
   border-radius: 12px;
@@ -177,8 +177,8 @@
 
 .aa26-kpi strong {
   display: block;
-  margin: 6px 0 3px;
-  font-size: 28px;
+  margin: 4px 0 0;
+  font-size: 26px;
   font-weight: 800;
   line-height: 1;
   color: var(--aa26-text);
@@ -1024,4 +1024,93 @@
     width: 32px;
     height: 32px;
   }
+}
+
+/* Dark Mode Overrides for 2026 Attributes */
+.admin-theme-dark .aa26-page,
+.dark .aa26-page,
+[data-theme="dark"] .aa26-page {
+  --aa26-bg: var(--admin-bg, #07111f);
+  --aa26-surface: var(--admin-surface, #0d1b2c);
+  --aa26-surface-soft: var(--admin-surface-soft, #13253a);
+  --aa26-border: var(--admin-border, #263a51);
+  --aa26-text: var(--admin-text, #e7f1ff);
+  --aa26-muted: var(--admin-muted, #9dafc6);
+}
+
+.admin-theme-dark .aa26-kpi,
+.dark .aa26-kpi,
+.admin-theme-dark .aa26-toolbar,
+.dark .aa26-toolbar,
+.admin-theme-dark .aa26-table-card,
+.dark .aa26-table-card,
+.admin-theme-dark .aa26-state,
+.dark .aa26-state {
+  box-shadow: none;
+}
+
+.admin-theme-dark .aa26-kpi--blue .aa26-kpi__icon,
+.dark .aa26-kpi--blue .aa26-kpi__icon {
+  background: rgba(3, 76, 133, 0.25);
+  color: #38bdf8;
+}
+
+.admin-theme-dark .aa26-kpi--green .aa26-kpi__icon,
+.dark .aa26-kpi--green .aa26-kpi__icon {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+}
+
+.admin-theme-dark .aa26-kpi--orange .aa26-kpi__icon,
+.dark .aa26-kpi--orange .aa26-kpi__icon {
+  background: rgba(249, 115, 22, 0.2);
+  color: #fb923c;
+}
+
+.admin-theme-dark .aa26-kpi--red .aa26-kpi__icon,
+.dark .aa26-kpi--red .aa26-kpi__icon {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.admin-theme-dark .aa26-icon-button,
+.dark .aa26-icon-button {
+  background: var(--aa26-surface-soft, #13253a);
+  border-color: var(--aa26-border, #263a51);
+  color: var(--aa26-text, #e7f1ff);
+}
+
+.admin-theme-dark .aa26-icon-button:hover:not(:disabled),
+.dark .aa26-icon-button:hover:not(:disabled) {
+  border-color: #38bdf8;
+  background: rgba(56, 189, 248, 0.16);
+  color: #38bdf8;
+}
+
+.admin-theme-dark .aa26-badge--dropdown,
+.dark .aa26-badge--dropdown {
+  background: rgba(3, 76, 133, 0.25);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.admin-theme-dark .aa26-badge--global,
+.dark .aa26-badge--global {
+  background: rgba(148, 163, 184, 0.15);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.admin-theme-dark .aa26-badge--store,
+.dark .aa26-badge--store {
+  background: rgba(249, 115, 22, 0.18);
+  color: #fb923c;
+  border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+.admin-theme-dark .aa26-values-pill,
+.dark .aa26-values-pill {
+  background: rgba(3, 76, 133, 0.2);
+  border: 1px solid rgba(3, 76, 133, 0.4);
+  color: #93c5fd;
 }

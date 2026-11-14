@@ -53,7 +53,6 @@ export default function AdminAttributeCreatePage() {
       <header className="apf26-header aaf26-header">
         <div className="min-w-0">
           <h1>{t("attributes.New Attribute", "New Attribute")}</h1>
-          <p>{t("attributes.Atribut produk baru", "New product attribute")}</p>
           <nav className="aaf26-breadcrumb" aria-label="Breadcrumb">
             <span>{t("attributes.Catalog", "Catalog")}</span>
             <ChevronRight size={14} />
@@ -68,17 +67,18 @@ export default function AdminAttributeCreatePage() {
             type="button"
             className="apf26-close"
             onClick={handleCancel}
-            aria-label={t("attributes.Close add attribute page", "Close add attribute page")}
+            aria-label={t("attributes.Close", "Close")}
             disabled={createMutation.isPending}
           >
-            <X size={22} />
+            <X size={20} />
           </button>
         </div>
       </header>
 
       <main className="apf26-content aaf26-content">
-        <section className="aaf26-form-card">
+        <div className="aaf26-layout">
           <AttributeFormPanel
+            layoutMode="page"
             mode="create"
             attribute={null}
             onSubmit={handleSubmit}
@@ -89,7 +89,7 @@ export default function AdminAttributeCreatePage() {
             bodyClassName="aaf26-form-body"
             footerClassName="aaf26-footer"
           />
-        </section>
+        </div>
       </main>
     </div>
   );
