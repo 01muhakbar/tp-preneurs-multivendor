@@ -31,6 +31,8 @@
 }
 
 [data-seller-theme="dark"] .tpsodp2026-page,
+[data-admin-theme="dark"] .tpsodp2026-page,
+.admin-theme-dark .tpsodp2026-page,
 .dark .tpsodp2026-page,
 [data-theme="dark"] .tpsodp2026-page {
   --s26-bg: #071322;

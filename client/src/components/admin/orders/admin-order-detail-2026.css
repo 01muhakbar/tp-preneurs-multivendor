@@ -1,0 +1,117 @@
+/* ==========================================================================
+   Admin Order Detail 2026 Modern Styles
+   Brand Theme: Primary #034c85 | Accent #fe6f05
+   Responsive Desktop & Mobile
+   ========================================================================== */
+
+/* Admin Specific Tweaks & Responsive Margins */
+.admin-order-detail-root {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 12px 16px 48px;
+  box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  .admin-order-detail-root {
+    padding: 16px 24px 60px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .admin-order-detail-root {
+    padding: 20px 32px 64px;
+  }
+}
+
+/* Store Workspace Pill Button */
+.tpsodp2026-btn--store-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--s26-primary);
+  color: #ffffff !important;
+  border: 1px solid var(--s26-primary-hover);
+  padding: 8px 16px;
+  border-radius: var(--s26-radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(3, 76, 133, 0.2);
+}
+
+.tpsodp2026-btn--store-link:hover {
+  background: var(--s26-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(3, 76, 133, 0.3);
+}
+
+/* Admin Action Select & Button */
+.admin-status-control {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.admin-status-select {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--s26-radius-md);
+  border: 1px solid var(--s26-border);
+  background: var(--s26-surface);
+  color: var(--s26-text-main);
+  font-size: 13.5px;
+  font-weight: 500;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-status-select:focus {
+  border-color: var(--s26-accent);
+  box-shadow: 0 0 0 3px rgba(254, 111, 5, 0.15);
+}
+
+.admin-status-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: var(--s26-radius-md);
+  background: var(--s26-accent);
+  color: #ffffff;
+  border: none;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-status-btn:hover:not(:disabled) {
+  background: var(--s26-accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(254, 111, 5, 0.25);
+}
+
+.admin-status-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Dark mode theme token mapping for admin */
+[data-admin-theme="dark"] .tpsodp2026-page,
+.admin-theme-dark .tpsodp2026-page {
+  --s26-bg: #071322;
+  --s26-surface: #0b1a2d;
+  --s26-surface-subtle: #0f233b;
+  --s26-border: #162c47;
+  --s26-border-subtle: #12243a;
+  --s26-text-main: #f8fafc;
+  --s26-text-muted: #94a3b8;
+  --s26-text-light: #64748b;
+  --s26-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
+}
