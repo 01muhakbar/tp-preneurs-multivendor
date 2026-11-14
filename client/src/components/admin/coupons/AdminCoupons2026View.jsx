@@ -74,7 +74,7 @@ function KpiCard({ label, value, helper, icon: Icon, tone }) {
       <div>
         <p>{label}</p>
         <strong>{value}</strong>
-        <span>{helper}</span>
+        {helper ? <span>{helper}</span> : null}
       </div>
       <span className="ac26-kpi__icon">
         <Icon size={22} />
@@ -475,28 +475,24 @@ export default function AdminCoupons2026View({
         <KpiCard
           label={isId ? "Total Kupon" : t("coupons.Total Coupons", "Total Coupons")}
           value={safeStats.total}
-          helper={isId ? "Semua promosi diskon" : t("coupons.All discount promotions", "All discount promotions")}
           icon={Ticket}
           tone="blue"
         />
         <KpiCard
           label={isId ? "Diterbitkan" : t("coupons.Published", "Published")}
           value={safeStats.published}
-          helper={isId ? "Kupon aktif di checkout" : t("coupons.Loaded active coupons", "Loaded active coupons")}
           icon={CheckCircle2}
           tone="green"
         />
         <KpiCard
           label={isId ? "Cakupan Platform" : t("coupons.Platform Scope", "Platform Scope")}
           value={safeStats.platform}
-          helper={isId ? "Kupon seluruh sistem" : t("coupons.System-wide coupons", "System-wide coupons")}
           icon={SlidersHorizontal}
           tone="orange"
         />
         <KpiCard
           label={isId ? "Cakupan Toko" : t("coupons.Store Scope", "Store Scope")}
           value={safeStats.store}
-          helper={isId ? "Kupon toko penjual" : t("coupons.Seller store coupons", "Seller store coupons")}
           icon={Store}
           tone="red"
         />

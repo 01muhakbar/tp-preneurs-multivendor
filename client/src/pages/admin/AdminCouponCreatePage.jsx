@@ -80,7 +80,7 @@ export default function AdminCouponCreatePage() {
       </header>
 
       <main className="acf26-content">
-        <section className="acf26-form-card">
+        <div className="acf26-layout">
           <AddCouponFormPanel
             onCancel={handleCancel}
             onSubmit={handleSubmit}
@@ -90,13 +90,12 @@ export default function AdminCouponCreatePage() {
             resetSignal="coupon-create-page"
             showHeader={false}
             formId="coupon-create-form"
-            formClassName="acf26-form"
-            bodyClassName="acf26-form-body"
-            footerClassName="acf26-footer"
-            compact
+            layoutMode="page"
+            compact={true}
             showLanguageField={false}
+            footerClassName="acf26-footer"
           />
-        </section>
+        </div>
       </main>
     </div>
   );

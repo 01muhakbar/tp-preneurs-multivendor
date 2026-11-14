@@ -1046,7 +1046,11 @@
     "coupon(s) activated": "kupon berhasil diaktifkan",
     "coupon(s) deactivated": "kupon berhasil dinonaktifkan",
     "coupon(s) deleted": "kupon berhasil dihapus",
-    "Coupon import complete.": "Impor kupon selesai."
+    "Coupon import complete.": "Impor kupon selesai.",
+    "Validity Period": "Periode Berlaku",
+    "Storefront Status": "Status Toko",
+    "Coupon banner": "Banner kupon",
+    "Failed to upload banner image.": "Gagal mengunggah banner gambar."
   },
   "customers": {
     "Customers": "Pelanggan",

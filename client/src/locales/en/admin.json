@@ -1046,7 +1046,11 @@
     "coupon(s) activated": "coupon(s) activated",
     "coupon(s) deactivated": "coupon(s) deactivated",
     "coupon(s) deleted": "coupon(s) deleted",
-    "Coupon import complete.": "Coupon import complete."
+    "Coupon import complete.": "Coupon import complete.",
+    "Validity Period": "Validity Period",
+    "Storefront Status": "Storefront Status",
+    "Coupon banner": "Coupon banner",
+    "Failed to upload banner image.": "Failed to upload banner image."
   },
   "customers": {
     "Customers": "Customers",

@@ -117,6 +117,8 @@ export const invalidateAdminCouponSurfaces = (queryClient) =>
     queryClient.invalidateQueries({ queryKey: ["store-coupons"] }),
     queryClient.invalidateQueries({ queryKey: ["seller2026", "coupons"] }),
     queryClient.invalidateQueries({ queryKey: ["seller", "coupons"] }),
+    queryClient.invalidateQueries({ queryKey: ["coupons"] }),
+    queryClient.invalidateQueries({ queryKey: ["checkout"] }),
   ]);
 
 const toText = (value) => String(value ?? "").trim();
