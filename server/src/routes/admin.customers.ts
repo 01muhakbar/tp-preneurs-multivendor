@@ -65,17 +65,27 @@ const formatZodFieldErrors = (error: z.ZodError) =>
 const toPlainCustomer = (customer: any) =>
   customer?.get ? customer.get({ plain: true }) : customer;
 
-const toCustomerSummary = (customer: any, orderCount = 0) => {
+const toCustomerSummary = (
+  customer: any,
+  stats: { orderCount?: number; totalSpent?: number } | number = 0
+) => {
   const plain = toPlainCustomer(customer) || {};
+  const orderCount =
+    typeof stats === "number" ? stats : Number(stats?.orderCount || 0);
+  const totalSpent =
+    typeof stats === "number" ? 0 : Number(stats?.totalSpent || 0);
+
   return {
     id: Number(plain.id || 0) || null,
     name: plain.name || "",
     email: plain.email || "",
     phone: plain.phoneNumber ?? plain.phone_number ?? null,
+    role: plain.role || "user",
     status: String(plain.status || "active").trim().toLowerCase(),
     createdAt: plain.createdAt ?? plain.created_at ?? null,
     updatedAt: plain.updatedAt ?? plain.updated_at ?? null,
     ordersCount: Number(orderCount || 0),
+    totalSpent: Number(totalSpent || 0),
   };
 };
 
@@ -111,7 +121,7 @@ const loadPrimaryAddressByUserId = async (userId: number) => {
   return formatPrimaryAddress(address);
 };
 
-const loadOrderCounts = async (userIds: number[]) => {
+const loadOrderStats = async (userIds: number[]) => {
   const normalizedIds = Array.from(
     new Set(
       userIds
@@ -120,22 +130,35 @@ const loadOrderCounts = async (userIds: number[]) => {
     )
   );
 
-  if (!normalizedIds.length) return new Map<number, number>();
+  if (!normalizedIds.length) {
+    return new Map<number, { orderCount: number; totalSpent: number }>();
+  }
 
   const rows = await Order.findAll({
     attributes: [
       "userId",
       [sequelize.fn("COUNT", sequelize.col("id")), "orderCount"],
+      [
+        sequelize.fn(
+          "COALESCE",
+          sequelize.fn("SUM", sequelize.col("total_amount")),
+          0
+        ),
+        "totalSpent",
+      ],
     ],
     where: { userId: { [Op.in]: normalizedIds } } as any,
     group: ["userId"],
     raw: true,
   });
 
-  return new Map<number, number>(
+  return new Map<number, { orderCount: number; totalSpent: number }>(
     rows.map((row: any) => [
       Number(row.userId || 0),
-      Number(row.orderCount || 0),
+      {
+        orderCount: Number(row.orderCount || 0),
+        totalSpent: Number(row.totalSpent || 0),
+      },
     ])
   );
 };
@@ -143,7 +166,12 @@ const loadOrderCounts = async (userIds: number[]) => {
 const buildCustomerWhere = (query: Record<string, unknown>) => {
   const q = String(asSingle(query.q) ?? "").trim();
   const statusRaw = String(asSingle(query.status) ?? "").trim().toLowerCase();
-  const where: any = { role: "customer" };
+  const roleRaw = String(asSingle(query.role) ?? "").trim().toLowerCase();
+  const where: any = {};
+
+  if (roleRaw && roleRaw !== "all") {
+    where.role = roleRaw;
+  }
 
   if (q) {
     where[Op.or] = [
@@ -161,7 +189,7 @@ const buildCustomerWhere = (query: Record<string, unknown>) => {
     where.status = statusRaw;
   }
 
-  return { where, q, status: statusRaw || null };
+  return { where, q, status: statusRaw || null, role: roleRaw || null };
 };
 
 const assertCustomerEmailAvailable = async (
@@ -172,7 +200,6 @@ const assertCustomerEmailAvailable = async (
   const existing = await User.findOne({
     where: {
       email,
-      role: "customer",
       id: { [Op.ne]: customerId },
     } as any,
     attributes: ["id"],
@@ -197,7 +224,6 @@ const assertCustomerPhoneAvailable = async (
   const existing = await User.findOne({
     where: {
       phoneNumber: normalizedPhone,
-      role: "customer",
       id: { [Op.ne]: customerId },
     } as any,
     attributes: ["id"],
@@ -243,35 +269,50 @@ router.get("/", requireStaffOrAdmin, async (req, res, next) => {
       String(req.query.order || "desc").toLowerCase() === "asc" ? "ASC" : "DESC";
     const { where } = buildCustomerWhere(req.query as Record<string, unknown>);
 
-    const { rows, count } = await User.findAndCountAll({
-      where,
-      attributes: [
-        "id",
-        "name",
-        "email",
-        "phoneNumber",
-        "status",
-        "created_at",
-        "updated_at",
-      ],
-      order: [[sortField, order]],
-      limit,
-      offset: (page - 1) * limit,
-    });
+    const [customersResult, totalCustomersCount, activeCustomersCount, totalOrdersPlacedCount, pendingOrDisabledCount] =
+      await Promise.all([
+        User.findAndCountAll({
+          where,
+          attributes: [
+            "id",
+            "name",
+            "email",
+            "phoneNumber",
+            "role",
+            "status",
+            "created_at",
+            "updated_at",
+          ],
+          order: [[sortField, order]],
+          limit,
+          offset: (page - 1) * limit,
+        }),
+        User.count(),
+        User.count({ where: { status: "active" } }),
+        Order.count(),
+        User.count({ where: { status: { [Op.ne]: "active" } } }),
+      ]);
 
-    const orderCounts = await loadOrderCounts(
+    const { rows, count } = customersResult;
+    const orderStats = await loadOrderStats(
       rows.map((row: any) => Number(row?.id || 0))
     );
 
     res.json({
       data: rows.map((row: any) =>
-        toCustomerSummary(row, orderCounts.get(Number(row?.id || 0)) || 0)
+        toCustomerSummary(row, orderStats.get(Number(row?.id || 0)))
       ),
       meta: {
         page,
         limit,
         total: count,
         totalPages: Math.max(1, Math.ceil(count / limit)),
+        kpis: {
+          totalCustomers: totalCustomersCount,
+          activeCustomers: activeCustomersCount,
+          totalOrdersPlaced: totalOrdersPlacedCount,
+          pendingOrDisabled: pendingOrDisabledCount,
+        },
       },
     });
   } catch (err) {
@@ -281,7 +322,9 @@ router.get("/", requireStaffOrAdmin, async (req, res, next) => {
 
 router.get("/export", requireStaffOrAdmin, async (req, res, next) => {
   try {
-    const { where, q, status } = buildCustomerWhere(req.query as Record<string, unknown>);
+    const { where, q, status, role } = buildCustomerWhere(
+      req.query as Record<string, unknown>
+    );
     const rows = await User.findAll({
       where,
       attributes: [
@@ -289,6 +332,7 @@ router.get("/export", requireStaffOrAdmin, async (req, res, next) => {
         "name",
         "email",
         "phoneNumber",
+        "role",
         "status",
         "created_at",
         "updated_at",
@@ -296,7 +340,7 @@ router.get("/export", requireStaffOrAdmin, async (req, res, next) => {
       order: [["created_at", "DESC"]],
     });
 
-    const orderCounts = await loadOrderCounts(
+    const orderStats = await loadOrderStats(
       rows.map((row: any) => Number(row?.id || 0))
     );
     const payload = {
@@ -306,9 +350,10 @@ router.get("/export", requireStaffOrAdmin, async (req, res, next) => {
       filters: {
         q: q || null,
         status: status || null,
+        role: role || null,
       },
       items: rows.map((row: any) =>
-        toCustomerSummary(row, orderCounts.get(Number(row?.id || 0)) || 0)
+        toCustomerSummary(row, orderStats.get(Number(row?.id || 0)))
       ),
     };
 
@@ -370,9 +415,9 @@ router.post(
         try {
           const row = importedCustomerRowSchema.parse(rawRow);
           const existing = row.id
-            ? await User.findOne({ where: { id: row.id, role: "customer" } as any })
+            ? await User.findOne({ where: { id: row.id } as any })
             : await User.findOne({
-                where: { email: row.email, role: "customer" } as any,
+                where: { email: row.email } as any,
               });
 
           if (!existing) {
@@ -443,12 +488,13 @@ router.get("/:id", requireStaffOrAdmin, async (req, res) => {
     return res.status(400).json({ success: false, message: "Invalid id" });
   }
   const c = await User.findOne({
-    where: { id: idNum, role: "customer" },
+    where: { id: idNum },
     attributes: [
       "id",
       "name",
       "email",
       "phoneNumber",
+      "role",
       "status",
       "created_at",
       "updated_at",
@@ -456,13 +502,13 @@ router.get("/:id", requireStaffOrAdmin, async (req, res) => {
   });
   if (!c) return res.status(404).json({ success: false, message: "Not found" });
 
-  const orderCounts = await loadOrderCounts([idNum]);
+  const orderStats = await loadOrderStats([idNum]);
+  const stats = orderStats.get(idNum) || { orderCount: 0, totalSpent: 0 };
   const address = await loadPrimaryAddressByUserId(idNum);
   res.json({
     data: {
-      ...toCustomerSummary(c, orderCounts.get(idNum) || 0),
+      ...toCustomerSummary(c, stats),
       address,
-      role: "customer",
     },
   });
 });
@@ -493,7 +539,7 @@ router.put("/:id", requireAdmin, async (req, res) => {
   }
 
   const c = await User.findOne({
-    where: { id: idNum, role: "customer" },
+    where: { id: idNum },
   });
   if (!c) return res.status(404).json({ message: "Customer not found" });
 
@@ -515,9 +561,9 @@ router.put("/:id", requireAdmin, async (req, res) => {
   const patch = buildCustomerPatch(body);
   await c.update(patch as any);
 
-  const orderCounts = await loadOrderCounts([idNum]);
+  const orderStats = await loadOrderStats([idNum]);
   res.json({
-    data: toCustomerSummary(c, orderCounts.get(idNum) || 0),
+    data: toCustomerSummary(c, orderStats.get(idNum) || { orderCount: 0, totalSpent: 0 }),
   });
 });
 
@@ -526,9 +572,16 @@ router.delete("/:id", requireAdmin, async (req, res) => {
   const idNum = parseId(String(asSingle(req.params.id) ?? ""));
   if (!idNum) return res.status(400).json({ message: "Invalid id" });
   const c = await User.findOne({
-    where: { id: idNum, role: "customer" },
+    where: { id: idNum },
   });
   if (!c) return res.status(404).json({ message: "Customer not found" });
+
+  if ((c as any).role === "super_admin") {
+    return res.status(403).json({
+      message: "Super admin accounts cannot be deleted from customer management.",
+    });
+  }
+
   const orderCount = await Order.count({ where: { userId: idNum } as any });
   if (orderCount > 0) {
     return res.status(409).json({

@@ -277,7 +277,7 @@ export default function AdminCustomerDetailPage() {
                     <td className={`${tableCell} text-slate-500`}>{formatDate(order.createdAt)}</td>
                     <td className={`${tableCell} text-right`}>
                       <Link
-                        to={`/admin/orders/${order.id}`}
+                        to={`/admin/orders/${encodeURIComponent(order.invoiceNo || order.invoice || order.id)}`}
                         className="inline-flex h-8 items-center rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50"
                       >
                         {t("customers.View", "View")}
@@ -371,7 +371,7 @@ export default function AdminCustomerDetailPage() {
                       <td className={`${tableCell} text-slate-500`}>{formatDate(order.createdAt)}</td>
                       <td className={`${tableCell} text-right`}>
                         <Link
-                          to={`/admin/orders/${order.id}`}
+                          to={`/admin/orders/${encodeURIComponent(order.invoiceNo || order.invoice || order.id)}`}
                           className="inline-flex h-8 items-center rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50"
                         >
                           {t("customers.View", "View")}

@@ -99,7 +99,8 @@ const normalizeCustomersMeta = (payload, params = {}) => {
   const rawTotalPages =
     meta.totalPages ?? (limit ? Math.ceil(total / limit) : 1);
   const totalPages = Math.max(1, Number(rawTotalPages || 1));
-  return { page, limit, total, totalPages };
+  const kpis = meta.kpis || payload?.kpis || null;
+  return { page, limit, total, totalPages, kpis };
 };
 
 const normalizeCustomersList = (payload, params = {}) => {
@@ -777,6 +778,7 @@ export const exportAdminCustomers = async (params = {}) => {
     Object.entries({
       q: params?.q || undefined,
       status: params?.status || undefined,
+      role: params?.role || undefined,
     }).filter(([, value]) => value !== undefined && value !== null && value !== "")
   ).toString();
   const endpoint = query

@@ -56,17 +56,21 @@ const formatZodFieldErrors = (error) => error.issues.reduce((acc, issue) => {
     return acc;
 }, {});
 const toPlainCustomer = (customer) => customer?.get ? customer.get({ plain: true }) : customer;
-const toCustomerSummary = (customer, orderCount = 0) => {
+const toCustomerSummary = (customer, stats = 0) => {
     const plain = toPlainCustomer(customer) || {};
+    const orderCount = typeof stats === "number" ? stats : Number(stats?.orderCount || 0);
+    const totalSpent = typeof stats === "number" ? 0 : Number(stats?.totalSpent || 0);
     return {
         id: Number(plain.id || 0) || null,
         name: plain.name || "",
         email: plain.email || "",
         phone: plain.phoneNumber ?? plain.phone_number ?? null,
+        role: plain.role || "user",
         status: String(plain.status || "active").trim().toLowerCase(),
         createdAt: plain.createdAt ?? plain.created_at ?? null,
         updatedAt: plain.updatedAt ?? plain.updated_at ?? null,
         ordersCount: Number(orderCount || 0),
+        totalSpent: Number(totalSpent || 0),
     };
 };
 const formatPrimaryAddress = (address) => {
@@ -102,16 +106,21 @@ const loadPrimaryAddressByUserId = async (userId) => {
     });
     return formatPrimaryAddress(address);
 };
-const loadOrderCounts = async (userIds) => {
+const loadOrderStats = async (userIds) => {
     const normalizedIds = Array.from(new Set(userIds
         .map((value) => Number(value))
         .filter((value) => Number.isInteger(value) && value > 0)));
-    if (!normalizedIds.length)
+    if (!normalizedIds.length) {
         return new Map();
+    }
     const rows = await Order.findAll({
         attributes: [
             "userId",
             [sequelize.fn("COUNT", sequelize.col("id")), "orderCount"],
+            [
+                sequelize.fn("COALESCE", sequelize.fn("SUM", sequelize.col("total_amount")), 0),
+                "totalSpent",
+            ],
         ],
         where: { userId: { [Op.in]: normalizedIds } },
         group: ["userId"],
@@ -119,13 +128,20 @@ const loadOrderCounts = async (userIds) => {
     });
     return new Map(rows.map((row) => [
         Number(row.userId || 0),
-        Number(row.orderCount || 0),
+        {
+            orderCount: Number(row.orderCount || 0),
+            totalSpent: Number(row.totalSpent || 0),
+        },
     ]));
 };
 const buildCustomerWhere = (query) => {
     const q = String(asSingle(query.q) ?? "").trim();
     const statusRaw = String(asSingle(query.status) ?? "").trim().toLowerCase();
-    const where = { role: "customer" };
+    const roleRaw = String(asSingle(query.role) ?? "").trim().toLowerCase();
+    const where = {};
+    if (roleRaw && roleRaw !== "all") {
+        where.role = roleRaw;
+    }
     if (q) {
         where[Op.or] = [
             { name: { [Op.like]: `%${q}%` } },
@@ -136,7 +152,7 @@ const buildCustomerWhere = (query) => {
     if (CUSTOMER_MUTATION_STATUSES.includes(statusRaw)) {
         where.status = statusRaw;
     }
-    return { where, q, status: statusRaw || null };
+    return { where, q, status: statusRaw || null, role: roleRaw || null };
 };
 const assertCustomerEmailAvailable = async (customerId, email) => {
     if (!email)
@@ -144,7 +160,6 @@ const assertCustomerEmailAvailable = async (customerId, email) => {
     const existing = await User.findOne({
         where: {
             email,
-            role: "customer",
             id: { [Op.ne]: customerId },
         },
         attributes: ["id"],
@@ -163,7 +178,6 @@ const assertCustomerPhoneAvailable = async (customerId, phone) => {
     const existing = await User.findOne({
         where: {
             phoneNumber: normalizedPhone,
-            role: "customer",
             id: { [Op.ne]: customerId },
         },
         attributes: ["id"],
@@ -203,29 +217,43 @@ router.get("/", requireStaffOrAdmin, async (req, res, next) => {
         const sortField = sortFieldMap[sortKey] || "created_at";
         const order = String(req.query.order || "desc").toLowerCase() === "asc" ? "ASC" : "DESC";
         const { where } = buildCustomerWhere(req.query);
-        const { rows, count } = await User.findAndCountAll({
-            where,
-            attributes: [
-                "id",
-                "name",
-                "email",
-                "phoneNumber",
-                "status",
-                "created_at",
-                "updated_at",
-            ],
-            order: [[sortField, order]],
-            limit,
-            offset: (page - 1) * limit,
-        });
-        const orderCounts = await loadOrderCounts(rows.map((row) => Number(row?.id || 0)));
+        const [customersResult, totalCustomersCount, activeCustomersCount, totalOrdersPlacedCount, pendingOrDisabledCount] = await Promise.all([
+            User.findAndCountAll({
+                where,
+                attributes: [
+                    "id",
+                    "name",
+                    "email",
+                    "phoneNumber",
+                    "role",
+                    "status",
+                    "created_at",
+                    "updated_at",
+                ],
+                order: [[sortField, order]],
+                limit,
+                offset: (page - 1) * limit,
+            }),
+            User.count(),
+            User.count({ where: { status: "active" } }),
+            Order.count(),
+            User.count({ where: { status: { [Op.ne]: "active" } } }),
+        ]);
+        const { rows, count } = customersResult;
+        const orderStats = await loadOrderStats(rows.map((row) => Number(row?.id || 0)));
         res.json({
-            data: rows.map((row) => toCustomerSummary(row, orderCounts.get(Number(row?.id || 0)) || 0)),
+            data: rows.map((row) => toCustomerSummary(row, orderStats.get(Number(row?.id || 0)))),
             meta: {
                 page,
                 limit,
                 total: count,
                 totalPages: Math.max(1, Math.ceil(count / limit)),
+                kpis: {
+                    totalCustomers: totalCustomersCount,
+                    activeCustomers: activeCustomersCount,
+                    totalOrdersPlaced: totalOrdersPlacedCount,
+                    pendingOrDisabled: pendingOrDisabledCount,
+                },
             },
         });
     }
@@ -235,7 +263,7 @@ router.get("/", requireStaffOrAdmin, async (req, res, next) => {
 });
 router.get("/export", requireStaffOrAdmin, async (req, res, next) => {
     try {
-        const { where, q, status } = buildCustomerWhere(req.query);
+        const { where, q, status, role } = buildCustomerWhere(req.query);
         const rows = await User.findAll({
             where,
             attributes: [
@@ -243,13 +271,14 @@ router.get("/export", requireStaffOrAdmin, async (req, res, next) => {
                 "name",
                 "email",
                 "phoneNumber",
+                "role",
                 "status",
                 "created_at",
                 "updated_at",
             ],
             order: [["created_at", "DESC"]],
         });
-        const orderCounts = await loadOrderCounts(rows.map((row) => Number(row?.id || 0)));
+        const orderStats = await loadOrderStats(rows.map((row) => Number(row?.id || 0)));
         const payload = {
             format: "admin-customers.v1",
             exportedAt: new Date().toISOString(),
@@ -257,8 +286,9 @@ router.get("/export", requireStaffOrAdmin, async (req, res, next) => {
             filters: {
                 q: q || null,
                 status: status || null,
+                role: role || null,
             },
-            items: rows.map((row) => toCustomerSummary(row, orderCounts.get(Number(row?.id || 0)) || 0)),
+            items: rows.map((row) => toCustomerSummary(row, orderStats.get(Number(row?.id || 0)))),
         };
         const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
         res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -307,9 +337,9 @@ router.post("/import", requireAdmin, upload.single("file"), async (req, res, nex
             try {
                 const row = importedCustomerRowSchema.parse(rawRow);
                 const existing = row.id
-                    ? await User.findOne({ where: { id: row.id, role: "customer" } })
+                    ? await User.findOne({ where: { id: row.id } })
                     : await User.findOne({
-                        where: { email: row.email, role: "customer" },
+                        where: { email: row.email },
                     });
                 if (!existing) {
                     throw new Error(row.id
@@ -367,12 +397,13 @@ router.get("/:id", requireStaffOrAdmin, async (req, res) => {
         return res.status(400).json({ success: false, message: "Invalid id" });
     }
     const c = await User.findOne({
-        where: { id: idNum, role: "customer" },
+        where: { id: idNum },
         attributes: [
             "id",
             "name",
             "email",
             "phoneNumber",
+            "role",
             "status",
             "created_at",
             "updated_at",
@@ -380,13 +411,13 @@ router.get("/:id", requireStaffOrAdmin, async (req, res) => {
     });
     if (!c)
         return res.status(404).json({ success: false, message: "Not found" });
-    const orderCounts = await loadOrderCounts([idNum]);
+    const orderStats = await loadOrderStats([idNum]);
+    const stats = orderStats.get(idNum) || { orderCount: 0, totalSpent: 0 };
     const address = await loadPrimaryAddressByUserId(idNum);
     res.json({
         data: {
-            ...toCustomerSummary(c, orderCounts.get(idNum) || 0),
+            ...toCustomerSummary(c, stats),
             address,
-            role: "customer",
         },
     });
 });
@@ -415,7 +446,7 @@ router.put("/:id", requireAdmin, async (req, res) => {
         throw error;
     }
     const c = await User.findOne({
-        where: { id: idNum, role: "customer" },
+        where: { id: idNum },
     });
     if (!c)
         return res.status(404).json({ message: "Customer not found" });
@@ -433,9 +464,9 @@ router.put("/:id", requireAdmin, async (req, res) => {
     }
     const patch = buildCustomerPatch(body);
     await c.update(patch);
-    const orderCounts = await loadOrderCounts([idNum]);
+    const orderStats = await loadOrderStats([idNum]);
     res.json({
-        data: toCustomerSummary(c, orderCounts.get(idNum) || 0),
+        data: toCustomerSummary(c, orderStats.get(idNum) || { orderCount: 0, totalSpent: 0 }),
     });
 });
 // DELETE
@@ -444,10 +475,15 @@ router.delete("/:id", requireAdmin, async (req, res) => {
     if (!idNum)
         return res.status(400).json({ message: "Invalid id" });
     const c = await User.findOne({
-        where: { id: idNum, role: "customer" },
+        where: { id: idNum },
     });
     if (!c)
         return res.status(404).json({ message: "Customer not found" });
+    if (c.role === "super_admin") {
+        return res.status(403).json({
+            message: "Super admin accounts cannot be deleted from customer management.",
+        });
+    }
     const orderCount = await Order.count({ where: { userId: idNum } });
     if (orderCount > 0) {
         return res.status(409).json({

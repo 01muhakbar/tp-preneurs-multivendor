@@ -18,6 +18,7 @@ export const getCustomers = async (req, res) => {
             : "DESC";
         const from = req.query.from; // ISO date
         const to = req.query.to;
+        const role = req.query.role?.trim();
         const sortMap = {
             created_at: "created_at",
             name: "name",
@@ -25,7 +26,7 @@ export const getCustomers = async (req, res) => {
         };
         const orderField = sortMap[sortBy] ?? "created_at";
         const where = {
-            role: "customer",
+            ...(role && role !== "all" ? { role } : {}),
             ...(q
                 ? {
                     [Op.or]: [
@@ -44,7 +45,7 @@ export const getCustomers = async (req, res) => {
                 : {}),
         };
         const { rows, count } = await User.findAndCountAll({
-            attributes: ["id", "name", "email", "created_at"],
+            attributes: ["id", "name", "email", "role", "status", "created_at"],
             where,
             limit,
             offset,
@@ -62,6 +63,8 @@ export const getCustomers = async (req, res) => {
                     name: u.name,
                     email: u.email,
                     phone: phoneNumber,
+                    role: u.role ?? "user",
+                    status: u.status ?? "active",
                     joiningDate: u.created_at,
                 };
             }),
@@ -83,8 +86,8 @@ export const getCustomers = async (req, res) => {
 export const getCustomerById = async (req, res) => {
     try {
         const customer = await User.findOne({
-            where: { id: req.params.id, role: "customer" },
-            attributes: ["id", "name", "email", "created_at"],
+            where: { id: req.params.id },
+            attributes: ["id", "name", "email", "role", "status", "created_at"],
         });
         if (!customer)
             return res.status(404).json({ message: "Customer not found" });
@@ -94,6 +97,8 @@ export const getCustomerById = async (req, res) => {
             name: customer.name,
             email: customer.email,
             phone: phoneNumber,
+            role: customer.role ?? "user",
+            status: customer.status ?? "active",
             joiningDate: customer.created_at,
         });
     }
@@ -112,8 +117,8 @@ export const getCustomerById = async (req, res) => {
  */
 export const updateCustomer = async (req, res) => {
     try {
-        const { name, email } = req.body;
-        const [count] = await User.update({ name, email }, { where: { id: req.params.id, role: "customer" } });
+        const { name, email, status } = req.body;
+        const [count] = await User.update({ name, email, ...(status ? { status } : {}) }, { where: { id: req.params.id } });
         if (!count)
             return res.status(404).json({ message: "Customer not found" });
         res.json({ message: "Customer updated successfully" });
@@ -134,7 +139,7 @@ export const updateCustomer = async (req, res) => {
 export const deleteCustomer = async (req, res) => {
     try {
         const count = await User.destroy({
-            where: { id: req.params.id, role: "customer" },
+            where: { id: req.params.id },
         });
         if (!count)
             return res.status(404).json({ message: "Customer not found" });
@@ -156,13 +161,12 @@ export const deleteCustomer = async (req, res) => {
 export const exportCustomersCsv = async (_, res) => {
     try {
         const rows = await User.findAll({
-            attributes: ["id", "name", "email", "created_at"],
-            where: { role: "customer" },
+            attributes: ["id", "name", "email", "role", "status", "created_at"],
             order: [["created_at", "DESC"]],
         });
-        const header = "id,joiningDate,name,email,phone\n";
+        const header = "id,joiningDate,name,email,role,status,phone\n";
         const body = rows
-            .map((r) => `${r.id},${r.created_at.toISOString()},${csv(r.name)},${csv(r.email)},${csv(r.phoneNumber ?? null)}`)
+            .map((r) => `${r.id},${r.created_at.toISOString()},${csv(r.name)},${csv(r.email)},${csv(r.role)},${csv(r.status)},${csv(r.phoneNumber ?? null)}`)
             .join("\n");
         res.setHeader("Content-Type", "text/csv");
         res.setHeader("Content-Disposition", 'attachment; filename="customers.csv"');
