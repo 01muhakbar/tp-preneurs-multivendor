@@ -35,8 +35,11 @@ export const buildSellerWorkspacePath = (storeSlug, suffix = "") => {
   return `/seller/stores/${encodedStoreSlug}${normalizedSuffix}`;
 };
 
+export const resolveSellerPaymentSetupRoute = ({ storeSlug } = {}) =>
+  buildSellerWorkspacePath(storeSlug, "/payment-setup");
+
 export const resolveSellerPaymentProfileRoute = ({ storeSlug } = {}) =>
-  buildSellerWorkspacePath(storeSlug, "/payment-profile");
+  resolveSellerPaymentSetupRoute({ storeSlug });
 
 export const resolveSellerPaymentReviewRoute = ({ storeSlug } = {}) =>
   buildSellerWorkspacePath(storeSlug, "/payment-review");
@@ -79,7 +82,8 @@ export const createSellerWorkspaceRoutes = (storeSlug) => ({
   paymentReview: () => resolveSellerPaymentReviewRoute({ storeSlug }),
   paymentCenter: () => buildSellerWorkspacePath(storeSlug, "/withdrawals"),
   withdrawals: () => buildSellerWorkspacePath(storeSlug, "/withdrawals"),
-  paymentProfile: () => resolveSellerPaymentProfileRoute({ storeSlug }),
+  paymentProfile: () => resolveSellerPaymentSetupRoute({ storeSlug }),
+  paymentSetup: () => resolveSellerPaymentSetupRoute({ storeSlug }),
   coupons: () => buildSellerWorkspacePath(storeSlug, "/catalog/coupons"),
   couponCreate: () => buildSellerWorkspacePath(storeSlug, "/catalog/coupons/new"),
   team: () => buildSellerWorkspacePath(storeSlug, "/team"),

@@ -540,7 +540,8 @@ export default function App() {
             <Route path="orders" element={<Seller2026LiveOrdersPage />} />
             <Route path="orders/:suborderId" element={<Seller2026LiveSuborderDetailPage />} />
             <Route path="payment-review" element={<Seller2026LivePaymentReviewPage />} />
-            <Route path="payment-profile" element={<Seller2026LivePaymentProfilePage />} />
+            <Route path="payment-setup" element={<Seller2026LivePaymentProfilePage />} />
+            <Route path="payment-profile" element={<Navigate to="../payment-setup" replace />} />
             <Route path="payment-center" element={<SellerPaymentCenterPage productionMode={true} />} />
             <Route path="withdrawals" element={<SellerPaymentCenterPage productionMode={true} />} />
             <Route path="coupons" element={<LegacySellerCouponsRedirect />} />

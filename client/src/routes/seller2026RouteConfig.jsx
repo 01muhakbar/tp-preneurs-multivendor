@@ -99,8 +99,12 @@ export const seller2026PreviewRoutes = (
         element={<RawSeller2026Workspace section="operations" operationsView="payment-review" />}
       />
       <Route
+        path="payment-setup"
+        element={<RawSeller2026Workspace section="operations" operationsView="payment-setup" />}
+      />
+      <Route
         path="payment-profile"
-        element={<RawSeller2026Workspace section="operations" operationsView="payment-profile" />}
+        element={<RawSeller2026Workspace section="operations" operationsView="payment-setup" />}
       />
       <Route path="team" element={<RawSeller2026Workspace section="team" teamView="members" />} />
       <Route

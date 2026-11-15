@@ -332,12 +332,12 @@ const getSellerPageMeta = (pathname, isId = false) => {
     };
   }
 
-  if (pathname.endsWith("/payment-profile")) {
+  if (pathname.endsWith("/payment-setup") || pathname.endsWith("/payment-profile")) {
     return {
       title: isId ? "Pengaturan Pembayaran" : "Payment Setup",
       subtitle: isId
-        ? "Pengaturan pembayaran, status peninjauan admin, dan kesiapan checkout untuk toko ini."
-        : "Payment setup, admin review status, and checkout readiness for this store.",
+        ? "Konfigurasi rekening pencairan dana toko dan kesiapan penarikan saldo."
+        : "Store payout disbursement account and withdrawal readiness.",
     };
   }
 

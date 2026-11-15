@@ -65,12 +65,9 @@ export const buildPaymentProfilePayload = (form: PaymentProfileDraft) => ({
 export const validatePaymentProfileDraft = (form: PaymentProfileDraft) => {
   const errors: Partial<Record<keyof PaymentProfileDraft, string>> = {};
   const required: Array<[keyof PaymentProfileDraft, string]> = [
-    ["accountName", "Account name"],
-    ["merchantName", "Merchant name"],
     ["bankName", "Payout bank"],
     ["accountNumber", "Payout account number"],
     ["accountHolderName", "Payout account holder"],
-    ["qrisImageUrl", "QRIS image"],
   ];
 
   required.forEach(([key, label]) => {

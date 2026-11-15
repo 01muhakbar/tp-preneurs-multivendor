@@ -205,7 +205,7 @@ export function SellerPaymentCenterPage() {
           </button>
 
           <Link
-            to={sellerContext?.store?.slug ? `/seller/stores/${sellerContext.store.slug}/payment-profile` : "#"}
+            to={sellerContext?.store?.slug ? `/seller/stores/${sellerContext.store.slug}/payment-setup` : "#"}
             className="sw-btn sw-btn--outline"
           >
             <Building2 size={15} />
