@@ -461,6 +461,53 @@ const normalizeAdminOrderDetail = (raw) => {
     subtotal: Number(raw.subtotal ?? raw.subtotalAmount ?? 0),
     discount: Number(raw.discount || 0),
     shipping: Number(raw.shipping ?? raw.shippingAmount ?? 0),
+    shippingDetails: {
+      courier:
+        raw.shippingDetails?.courier ||
+        raw.shippingDetails?.courierCode ||
+        raw.groups?.[0]?.courierName ||
+        raw.groups?.[0]?.courierCode ||
+        raw.courierCode ||
+        (Array.isArray(raw.shipments) && raw.shipments[0]?.courierCode) ||
+        null,
+      courierCode:
+        raw.shippingDetails?.courierCode ||
+        raw.groups?.[0]?.courierCode ||
+        raw.courierCode ||
+        (Array.isArray(raw.shipments) && raw.shipments[0]?.courierCode) ||
+        null,
+      service:
+        raw.shippingDetails?.service ||
+        raw.shippingDetails?.courierService ||
+        raw.groups?.[0]?.courierService ||
+        raw.courierService ||
+        (Array.isArray(raw.shipments) && raw.shipments[0]?.courierService) ||
+        null,
+      courierService:
+        raw.shippingDetails?.courierService ||
+        raw.groups?.[0]?.courierService ||
+        raw.courierService ||
+        (Array.isArray(raw.shipments) && raw.shipments[0]?.courierService) ||
+        null,
+      trackingNumber:
+        raw.shippingDetails?.trackingNumber ||
+        raw.shippingDetails?.trackingNo ||
+        raw.groups?.[0]?.trackingNumber ||
+        raw.groups?.[0]?.trackingNo ||
+        raw.trackingNumber ||
+        (Array.isArray(raw.shipments) && raw.shipments[0]?.trackingNumber) ||
+        null,
+      trackingNo:
+        raw.shippingDetails?.trackingNo ||
+        raw.shippingDetails?.trackingNumber ||
+        raw.groups?.[0]?.trackingNumber ||
+        raw.groups?.[0]?.trackingNo ||
+        raw.trackingNumber ||
+        (Array.isArray(raw.shipments) && raw.shipments[0]?.trackingNumber) ||
+        null,
+      fee: Number(raw.shipping ?? raw.shippingAmount ?? 0),
+      totalWeight: Number(raw.packageWeight ?? raw.totalWeight ?? 0) || null,
+    },
     serviceFeeAmount: Number(raw.serviceFeeAmount || 0),
     total: Number(raw.total || raw.totalAmount || 0),
     grandTotal: Number(raw.grandTotal || raw.total || raw.totalAmount || 0),
@@ -500,6 +547,31 @@ const normalizeAdminOrderDetail = (raw) => {
           shippingStatusMeta: group?.shippingStatusMeta || null,
           usedLegacyFallback: Boolean(group?.usedLegacyFallback),
           hasPersistedShipment: Boolean(group?.hasPersistedShipment),
+          courierCode:
+            group?.courierCode ||
+            (Array.isArray(group?.shipments) && group.shipments[0]?.courierCode) ||
+            null,
+          courierName:
+            group?.courierName ||
+            group?.courierCode ||
+            (Array.isArray(group?.shipments) && group.shipments[0]?.courierCode) ||
+            null,
+          courierService:
+            group?.courierService ||
+            (Array.isArray(group?.shipments) && group.shipments[0]?.courierService) ||
+            null,
+          trackingNumber:
+            group?.trackingNumber ||
+            (Array.isArray(group?.shipments) && group.shipments[0]?.trackingNumber) ||
+            null,
+          trackingNo:
+            group?.trackingNo ||
+            group?.trackingNumber ||
+            (Array.isArray(group?.shipments) && group.shipments[0]?.trackingNumber) ||
+            null,
+          shippingFee: Number(group?.shippingFee ?? group?.shippingAmount ?? 0),
+          packageWeight: Number(group?.packageWeight ?? group?.totalWeight ?? 0) || null,
+          shipments: normalizeShipmentList(group?.shipments),
           compatibilityMatchesStorage:
             typeof group?.compatibilityMatchesStorage === "boolean"
               ? group.compatibilityMatchesStorage

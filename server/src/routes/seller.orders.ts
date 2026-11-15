@@ -1621,7 +1621,48 @@ const serializeDetail = (suborder: any, sellerAccess: any = null) => {
       email: getAttr(buyer, "email") ? String(getAttr(buyer, "email")) : null,
       phone: getAttr(order, "customerPhone") ? String(getAttr(order, "customerPhone")) : null,
     },
-    shipping: buildShippingSummary(order),
+    shipping: {
+      ...buildShippingSummary(order),
+      courier:
+        shippingReadModel.courierCode ||
+        (Array.isArray(shippingReadModel.shipments) && shippingReadModel.shipments[0]?.courierCode) ||
+        null,
+      courierCode:
+        shippingReadModel.courierCode ||
+        (Array.isArray(shippingReadModel.shipments) && shippingReadModel.shipments[0]?.courierCode) ||
+        null,
+      courierService:
+        shippingReadModel.courierService ||
+        (Array.isArray(shippingReadModel.shipments) && shippingReadModel.shipments[0]?.courierService) ||
+        null,
+      trackingNumber:
+        shippingReadModel.trackingNumber ||
+        (Array.isArray(shippingReadModel.shipments) && shippingReadModel.shipments[0]?.trackingNumber) ||
+        null,
+      trackingNo:
+        shippingReadModel.trackingNumber ||
+        (Array.isArray(shippingReadModel.shipments) && shippingReadModel.shipments[0]?.trackingNumber) ||
+        null,
+      shippingFee: Number(
+        shippingReadModel.shippingFee ?? getAttr(suborder, "shippingAmount") ?? 0
+      ),
+      totalWeight: Number(shippingLabel.package?.weight ?? 0) || null,
+    },
+    courierCode:
+      shippingReadModel.courierCode ||
+      (Array.isArray(shippingReadModel.shipments) && shippingReadModel.shipments[0]?.courierCode) ||
+      null,
+    courierService:
+      shippingReadModel.courierService ||
+      (Array.isArray(shippingReadModel.shipments) && shippingReadModel.shipments[0]?.courierService) ||
+      null,
+    trackingNumber:
+      shippingReadModel.trackingNumber ||
+      (Array.isArray(shippingReadModel.shipments) && shippingReadModel.shipments[0]?.trackingNumber) ||
+      null,
+    shippingFee: Number(
+      shippingReadModel.shippingFee ?? getAttr(suborder, "shippingAmount") ?? 0
+    ),
     shippingSetup: storeShippingSetup.shippingSetup,
     shippingSetupStatus: storeShippingSetup.shippingSetupStatus,
     shippingSetupMeta: storeShippingSetup.shippingSetupMeta,
@@ -2323,6 +2364,42 @@ router.patch(
         actionDefinition.code === "MARK_PROCESSING" &&
         (currentFulfillmentStatus === "PROCESSING" || currentFulfillmentStatus === "PACKED")
       ) {
+        // Persist any updated shipping information provided by the seller
+        if (courierCode || courierService || trackingNumber || shippingFee !== null || packageWeight !== null) {
+          const shipmentSync = await applySellerShipmentFulfillment({
+            suborder,
+            actionCode: "UPDATE_TRACKING",
+            actorUserId,
+            transaction: tx,
+            payload: {
+              courierCode,
+              courierService,
+              trackingNumber,
+            },
+          });
+
+          if ((shippingFee !== null || packageWeight !== null) && shipmentSync.shipment) {
+            await syncSellerShipmentFinancials({
+              orderId: toNumber(getAttr(suborder, "orderId"), 0),
+              suborder,
+              shipment: shipmentSync.shipment,
+              shippingFee: shippingFee !== null ? shippingFee : toNumber(getAttr(shipmentSync.shipment, "shippingFee"), 0),
+              totalWeight: packageWeight,
+              transaction: tx,
+            });
+          }
+
+          await tx.commit();
+          tx = null;
+
+          return res.status(200).json({
+            success: true,
+            code: "FULFILLMENT_SHIPPING_INFO_UPDATED",
+            message: "Informasi pengiriman dan nomor resi berhasil disimpan.",
+            fulfillmentStatus: currentFulfillmentStatus,
+          });
+        }
+
         await tx.rollback();
         tx = null;
         return res.status(200).json({
@@ -2390,10 +2467,15 @@ router.patch(
         });
       }
 
+      const nextFulfillmentStatus =
+        actionDefinition.code === "UPDATE_TRACKING" &&
+        ["SHIPPED", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED"].includes(currentFulfillmentStatus)
+          ? currentFulfillmentStatus
+          : shipmentSync.compatibilityFulfillmentStatus || actionDefinition.nextStatus;
+
       await (suborder as any).update(
         {
-          fulfillmentStatus:
-            shipmentSync.compatibilityFulfillmentStatus || actionDefinition.nextStatus,
+          fulfillmentStatus: nextFulfillmentStatus,
         },
         { transaction: tx }
       );

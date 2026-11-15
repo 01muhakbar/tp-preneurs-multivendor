@@ -489,11 +489,47 @@ export default function AdminOrderDetail2026View({
 
   // Courier & Shipping details
   const courierName =
-    order?.shipping?.courier ||
+    order?.shippingDetails?.courier ||
+    order?.shippingDetails?.courierCode ||
     primaryGroup?.courierName ||
+    primaryGroup?.courierCode ||
+    (order?.shipments?.[0]?.courierCode) ||
+    (typeof order?.shipping === "object" ? order?.shipping?.courier : null) ||
     (isIndo ? "Belum ditentukan" : "Pending assignment");
-  const courierService = order?.shipping?.service || primaryGroup?.courierService || "-";
-  const trackingNumber = order?.shipping?.trackingNumber || primaryGroup?.trackingNumber || "";
+
+  const courierService =
+    order?.shippingDetails?.service ||
+    order?.shippingDetails?.courierService ||
+    primaryGroup?.courierService ||
+    (order?.shipments?.[0]?.courierService) ||
+    (typeof order?.shipping === "object" ? order?.shipping?.service : null) ||
+    "-";
+
+  const trackingNumber =
+    order?.shippingDetails?.trackingNumber ||
+    order?.shippingDetails?.trackingNo ||
+    primaryGroup?.trackingNumber ||
+    primaryGroup?.trackingNo ||
+    (order?.shipments?.[0]?.trackingNumber) ||
+    (typeof order?.shipping === "object" ? order?.shipping?.trackingNumber : "") ||
+    "";
+
+  const totalPackageWeight = useMemo(() => {
+    const fromShipment = Number(
+      order?.shippingDetails?.totalWeight ||
+      primaryGroup?.packageWeight ||
+      primaryGroup?.totalWeight ||
+      order?.packageWeight ||
+      0
+    );
+    if (fromShipment > 0) return fromShipment;
+    const calc = items.reduce((sum, it) => {
+      const w = Number(it.weight || it.weightKg || 0);
+      const q = Number(it.qty || it.quantity || 1);
+      return sum + (w > 0 ? w * q : 0);
+    }, 0);
+    return calc > 0 ? (calc % 1 === 0 ? String(calc) : calc.toFixed(2).replace(/\.?0+$/, "")) : "1";
+  }, [order, primaryGroup, items]);
 
   // Payment status pill
   const paymentStatusPill = useMemo(() => {
@@ -752,7 +788,7 @@ export default function AdminOrderDetail2026View({
                   </div>
                   <div className="tpsodp2026-weight-display">
                     <Scale size={15} className="tpsodp2026-icon-weight" />
-                    <strong className="tpsodp2026-weight-val">1 kg</strong>
+                    <strong className="tpsodp2026-weight-val">{totalPackageWeight} kg</strong>
                   </div>
                 </div>
 

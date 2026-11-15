@@ -659,9 +659,26 @@ export function adaptSeller2026SuborderDetail(value: unknown): Seller2026Suborde
       String(val || "").trim().toUpperCase()
     );
 
-  const rawMethod = text(activeShipment?.courierService ?? detail.shippingMethod ?? detail.deliveryMethod);
-  const rawCourier = text(activeShipment?.courierCode ?? activeShipment?.courierService ?? detail.courierCode);
-  const rawTrackingNo = text(activeShipment?.trackingNumber ?? detail.trackingNumber);
+  const rawMethod = text(
+    activeShipment?.courierService ??
+      shipping.courierService ??
+      detail.courierService ??
+      detail.shippingMethod ??
+      detail.deliveryMethod
+  );
+  const rawCourier = text(
+    activeShipment?.courierCode ??
+      activeShipment?.courierService ??
+      shipping.courier ??
+      shipping.courierCode ??
+      detail.courierCode
+  );
+  const rawTrackingNo = text(
+    activeShipment?.trackingNumber ??
+      shipping.trackingNo ??
+      shipping.trackingNumber ??
+      detail.trackingNumber
+  );
 
   const rawPaymentStatus = text(
     detailPaymentMeta.code ?? paymentState.code ?? detail.paymentStatus ?? paymentSummary.status,
@@ -709,8 +726,17 @@ export function adaptSeller2026SuborderDetail(value: unknown): Seller2026Suborde
       trackingNo: text(rawTrackingNo, ""),
       courier: isShippingStatusEnum(rawCourier) ? undefined : (rawCourier || undefined),
       estimate: text(activeShipment?.estimate) || undefined,
-      shippingFee: number(totals.shippingAmount ?? sellerScope.shippingAmount ?? activeShipment?.shippingFee, 0),
-      totalWeight,
+      shippingFee: number(
+        totals.shippingAmount ??
+          shipping.shippingFee ??
+          sellerScope.shippingAmount ??
+          activeShipment?.shippingFee,
+        0
+      ),
+      totalWeight: number(
+        shipping.totalWeight ?? totalWeight,
+        calculatedTotalWeight
+      ),
     },
     package: {
       weight: totalWeight,

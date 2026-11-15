@@ -664,7 +664,8 @@ export default function SellerSuborderDetail2026PageView({
   }, [matchedCourierObj, couriersList]);
 
   const handleCourierSelect = (val, opt) => {
-    onFulfillmentDraftChange?.("shippingProvider", val);
+    const courierCodeOrName = opt?.code || val;
+    onFulfillmentDraftChange?.("shippingProvider", courierCodeOrName);
     if (opt?.services?.length) {
       const currentService = String(fulfillmentDraft.courierService || "").trim().toLowerCase();
       const isAlreadyValid = opt.services.some(
@@ -1429,10 +1430,24 @@ export default function SellerSuborderDetail2026PageView({
                       <span>{t.btnMarkPacked}</span>
                     </button>
                   ) : order.actions?.isPacked ? (
-                    <div className="tpsodp2026-packed-status-tag" title={t.alreadyPackedDesc}>
-                      <CheckCircle2 size={15} />
-                      <span>{t.alreadyPacked}</span>
-                    </div>
+                    <>
+                      <div className="tpsodp2026-packed-status-tag" title={t.alreadyPackedDesc}>
+                        <CheckCircle2 size={15} />
+                        <span>{t.alreadyPacked}</span>
+                      </div>
+                      {canEditShipping && (
+                        <button
+                          type="button"
+                          className="tpsodp2026-btn-outline"
+                          onClick={() => handleActionClick("UPDATE_TRACKING")}
+                          disabled={isUpdating}
+                          title={t.saveShipping || (isIndo ? "Simpan Data Pengiriman" : "Save Shipping Info")}
+                        >
+                          <Truck size={15} />
+                          <span>{t.saveShipping || (isIndo ? "Simpan Pengiriman" : "Save Shipping")}</span>
+                        </button>
+                      )}
+                    </>
                   ) : null}
                 </>
               )}

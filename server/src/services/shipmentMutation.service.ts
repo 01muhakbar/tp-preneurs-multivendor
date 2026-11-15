@@ -122,7 +122,7 @@ const SELLER_ACTION_SHIPMENT_STATUS: Record<
   UPDATE_TRACKING: {
     shipmentStatus: "SHIPPED",
     compatibilityFulfillmentStatus: "SHIPPED",
-    allowedFrom: ["READY_TO_FULFILL", "PACKED", "SHIPPED", "IN_TRANSIT"],
+    allowedFrom: ["READY_TO_FULFILL", "PACKED", "SHIPPED", "IN_TRANSIT", "OUT_FOR_DELIVERY"],
     eventType: "TRACKING_UPDATED",
     eventLabel: "Tracking Updated",
     eventDescription: "Seller updated courier shipping information and tracking number.",
@@ -502,7 +502,11 @@ export const applySellerShipmentFulfillment = async (input: {
   }
 
   const updatePayload: Record<string, unknown> = {
-    status: action.shipmentStatus,
+    status:
+      isUpdateTracking &&
+      ["IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED"].includes(currentShipmentStatus)
+        ? currentShipmentStatus
+        : action.shipmentStatus,
   };
   if (courierCode) updatePayload.courierCode = courierCode;
   if (courierService) updatePayload.courierService = courierService;

@@ -278,7 +278,7 @@ const resolveExistingTableName = async (
       await qi.describeTable(name);
       tableCache.set(cacheKey, name);
       return name;
-    } catch {}
+    } catch { }
   }
   tableCache.set(cacheKey, fallback);
   return fallback;
@@ -298,8 +298,8 @@ const mapSuborderSnapshotItemsForBuyerDetail = (suborders: any[]) =>
       const lineTotalSnapshot = Number(getAttr(item, "totalPrice"));
       const name = String(
         getAttr(item, "productNameSnapshot") ||
-          getAttr(product, "name") ||
-          `Product #${productId || "-"}`
+        getAttr(product, "name") ||
+        `Product #${productId || "-"}`
       );
       const imageUrl = normalizeUploadsUrl(getAttr(item, "imageSnapshot") || null);
       const slug = String(getAttr(product, "slug") || "").trim() || null;
@@ -322,10 +322,10 @@ const mapSuborderSnapshotItemsForBuyerDetail = (suborders: any[]) =>
         productName: name,
         product: productId
           ? {
-              id: productId,
-              name,
-              slug,
-            }
+            id: productId,
+            name,
+            slug,
+          }
           : null,
         imageUrl,
         image: imageUrl,
@@ -353,13 +353,13 @@ const resolveOrderAmountSnapshot = (order: any, computedSubtotal = 0) => {
   );
   const shippingAmount = toNumber(
     getAttr(order, "shippingAmount") ??
-      order?.shippingAmount ??
-      order?.shipping_amount
+    order?.shippingAmount ??
+    order?.shipping_amount
   );
   const serviceFeeAmount = toNumber(
     getAttr(order, "serviceFeeAmount") ??
-      order?.serviceFeeAmount ??
-      order?.service_fee_amount
+    order?.serviceFeeAmount ??
+    order?.service_fee_amount
   );
   const discountAmount = toNumber(
     getAttr(order, "discountAmount") ?? order?.discountAmount ?? order?.discount_amount
@@ -422,20 +422,20 @@ const buildBuyerOrderContractPayload = (input: {
     ...contract,
     statusSummary:
       (input.statusSummaryOverride &&
-      typeof input.statusSummaryOverride === "object"
+        typeof input.statusSummaryOverride === "object"
         ? input.statusSummaryOverride
         : null) || contract.statusSummary,
     availableActions: contract.availableActions.map((action) =>
       action.code === "CONTINUE_PAYMENT" || action.code === "CONTINUE_STRIPE_PAYMENT"
         ? {
-            ...action,
-            targetPath:
-              input.paymentUrl ||
-              (input.orderId && action.enabled
-                ? `/user/my-orders/${input.orderId}/payment`
-                : null),
-            targetUrl: input.paymentUrl || null,
-          }
+          ...action,
+          targetPath:
+            input.paymentUrl ||
+            (input.orderId && action.enabled
+              ? `/user/my-orders/${input.orderId}/payment`
+              : null),
+          targetUrl: input.paymentUrl || null,
+        }
         : action
     ),
   };
@@ -571,11 +571,11 @@ const sanitizePublicShipment = (shipment: any) => {
     shippingFee: Number(shipment.shippingFee || 0),
     shipmentItems: Array.isArray(shipment.shipmentItems)
       ? shipment.shipmentItems.map((item: any) => ({
-          productName: String(item?.productName || "Item"),
-          qty: Number(item?.qty || 0),
-          price: Number(item?.price || 0),
-          lineTotal: Number(item?.lineTotal || 0),
-        }))
+        productName: String(item?.productName || "Item"),
+        qty: Number(item?.qty || 0),
+        price: Number(item?.price || 0),
+        lineTotal: Number(item?.lineTotal || 0),
+      }))
       : [],
     trackingEvents: Array.isArray(shipment.trackingEvents)
       ? shipment.trackingEvents.map(sanitizePublicTrackingEvent).filter(Boolean)
@@ -599,41 +599,41 @@ const sanitizePublicOperationalTruth = (truth: any) => {
   return {
     payment: payment
       ? {
-          status: String(payment.status || "").trim().toUpperCase() || null,
-          statusMeta:
-            payment.statusMeta && typeof payment.statusMeta === "object" ? payment.statusMeta : null,
-          isFinal: Boolean(payment.isFinal),
-          isFinalNegative: Boolean(payment.isFinalNegative),
-        }
+        status: String(payment.status || "").trim().toUpperCase() || null,
+        statusMeta:
+          payment.statusMeta && typeof payment.statusMeta === "object" ? payment.statusMeta : null,
+        isFinal: Boolean(payment.isFinal),
+        isFinalNegative: Boolean(payment.isFinalNegative),
+      }
       : null,
     shipment: shipment
       ? {
-          status: String(shipment.status || "").trim().toUpperCase() || null,
-          statusMeta:
-            shipment.statusMeta && typeof shipment.statusMeta === "object"
-              ? shipment.statusMeta
-              : null,
-          isFinal: Boolean(shipment.isFinal),
-          isFinalNegative: Boolean(shipment.isFinalNegative),
-          blockedReason: String(shipment.blockedReason || "").trim() || null,
-          usedLegacyFallback: Boolean(shipment.usedLegacyFallback),
-          hasPersistedShipment: Boolean(shipment.hasPersistedShipment),
-        }
+        status: String(shipment.status || "").trim().toUpperCase() || null,
+        statusMeta:
+          shipment.statusMeta && typeof shipment.statusMeta === "object"
+            ? shipment.statusMeta
+            : null,
+        isFinal: Boolean(shipment.isFinal),
+        isFinalNegative: Boolean(shipment.isFinalNegative),
+        blockedReason: String(shipment.blockedReason || "").trim() || null,
+        usedLegacyFallback: Boolean(shipment.usedLegacyFallback),
+        hasPersistedShipment: Boolean(shipment.hasPersistedShipment),
+      }
       : null,
     bridge: bridge
       ? {
-          paymentToShipment: String(bridge.paymentToShipment || "").trim().toUpperCase() || null,
-          currentLane: String(bridge.currentLane || "").trim().toUpperCase() || null,
-          shipmentBlocked: Boolean(bridge.shipmentBlocked),
-          shipmentBlockedReason: String(bridge.shipmentBlockedReason || "").trim() || null,
-        }
+        paymentToShipment: String(bridge.paymentToShipment || "").trim().toUpperCase() || null,
+        currentLane: String(bridge.currentLane || "").trim().toUpperCase() || null,
+        shipmentBlocked: Boolean(bridge.shipmentBlocked),
+        shipmentBlockedReason: String(bridge.shipmentBlockedReason || "").trim() || null,
+      }
       : null,
     statusSummary: summary,
     finality: finality
       ? {
-          isFinal: Boolean(finality.isFinal),
-          isFinalNegative: Boolean(finality.isFinalNegative),
-        }
+        isFinal: Boolean(finality.isFinal),
+        isFinalNegative: Boolean(finality.isFinalNegative),
+      }
       : null,
   };
 };
@@ -682,70 +682,70 @@ const sanitizePublicStoreSplit = (split: any) => {
     operationalTruth: sanitizePublicOperationalTruth(split.operationalTruth),
     items: Array.isArray(split.items)
       ? split.items.map((item: any) => ({
-          id: Number(item?.id || 0) || null,
-          productId: Number(item?.productId || 0) || null,
-          productName: String(item?.productName || `Product #${item?.productId || "-"}`),
-          slug: item?.slug ? String(item.slug) : "",
-          qty: Number(item?.qty || 0),
-          price: Number(item?.price || 0),
-          lineTotal: Number(item?.lineTotal || 0),
-          image: item?.image ? String(item.image) : null,
-          variantKey: item?.variantKey ? String(item.variantKey) : null,
-          variantLabel: item?.variantLabel ? String(item.variantLabel) : null,
-          variantSelections: Array.isArray(item?.variantSelections)
-            ? item.variantSelections
-            : [],
-          sku: item?.sku ? String(item.sku) : null,
-          barcode: item?.barcode ? String(item.barcode) : null,
-        }))
+        id: Number(item?.id || 0) || null,
+        productId: Number(item?.productId || 0) || null,
+        productName: String(item?.productName || `Product #${item?.productId || "-"}`),
+        slug: item?.slug ? String(item.slug) : "",
+        qty: Number(item?.qty || 0),
+        price: Number(item?.price || 0),
+        lineTotal: Number(item?.lineTotal || 0),
+        image: item?.image ? String(item.image) : null,
+        variantKey: item?.variantKey ? String(item.variantKey) : null,
+        variantLabel: item?.variantLabel ? String(item.variantLabel) : null,
+        variantSelections: Array.isArray(item?.variantSelections)
+          ? item.variantSelections
+          : [],
+        sku: item?.sku ? String(item.sku) : null,
+        barcode: item?.barcode ? String(item.barcode) : null,
+      }))
       : [],
     paymentReadModel: paymentReadModel
       ? {
-          status: paymentReadModel.status ? String(paymentReadModel.status) : null,
-          statusMeta:
-            paymentReadModel.statusMeta && typeof paymentReadModel.statusMeta === "object"
-              ? paymentReadModel.statusMeta
-              : null,
-          settlementStatus:
-            paymentReadModel.settlementStatus
-              ? String(paymentReadModel.settlementStatus)
-              : null,
-          settlementStatusMeta:
-            paymentReadModel.settlementStatusMeta &&
+        status: paymentReadModel.status ? String(paymentReadModel.status) : null,
+        statusMeta:
+          paymentReadModel.statusMeta && typeof paymentReadModel.statusMeta === "object"
+            ? paymentReadModel.statusMeta
+            : null,
+        settlementStatus:
+          paymentReadModel.settlementStatus
+            ? String(paymentReadModel.settlementStatus)
+            : null,
+        settlementStatusMeta:
+          paymentReadModel.settlementStatusMeta &&
             typeof paymentReadModel.settlementStatusMeta === "object"
-              ? paymentReadModel.settlementStatusMeta
-              : null,
-        }
+            ? paymentReadModel.settlementStatusMeta
+            : null,
+      }
       : null,
     payment: payment
       ? {
-          status: payment.status ? String(payment.status) : null,
-          statusMeta:
-            payment.statusMeta && typeof payment.statusMeta === "object"
-              ? payment.statusMeta
-              : null,
-          displayStatus: payment.displayStatus ? String(payment.displayStatus) : null,
-          displayStatusMeta:
-            payment.displayStatusMeta && typeof payment.displayStatusMeta === "object"
-              ? payment.displayStatusMeta
-              : null,
-          expiresAt: payment.expiresAt || null,
-          paidAt: payment.paidAt || null,
-        }
+        status: payment.status ? String(payment.status) : null,
+        statusMeta:
+          payment.statusMeta && typeof payment.statusMeta === "object"
+            ? payment.statusMeta
+            : null,
+        displayStatus: payment.displayStatus ? String(payment.displayStatus) : null,
+        displayStatusMeta:
+          payment.displayStatusMeta && typeof payment.displayStatusMeta === "object"
+            ? payment.displayStatusMeta
+            : null,
+        expiresAt: payment.expiresAt || null,
+        paidAt: payment.paidAt || null,
+      }
       : null,
     contract: contract
       ? {
-          orderStatus: contract.orderStatus ? String(contract.orderStatus) : null,
-          paymentStatus: contract.paymentStatus ? String(contract.paymentStatus) : null,
-          statusSummary:
-            contract.statusSummary && typeof contract.statusSummary === "object"
-              ? contract.statusSummary
-              : null,
-          paymentStatusMeta:
-            contract.paymentStatusMeta && typeof contract.paymentStatusMeta === "object"
-              ? contract.paymentStatusMeta
-              : null,
-        }
+        orderStatus: contract.orderStatus ? String(contract.orderStatus) : null,
+        paymentStatus: contract.paymentStatus ? String(contract.paymentStatus) : null,
+        statusSummary:
+          contract.statusSummary && typeof contract.statusSummary === "object"
+            ? contract.statusSummary
+            : null,
+        paymentStatusMeta:
+          contract.paymentStatusMeta && typeof contract.paymentStatusMeta === "object"
+            ? contract.paymentStatusMeta
+            : null,
+      }
       : null,
   };
 };
@@ -754,18 +754,18 @@ const sanitizePublicContract = (contract: any) => {
   if (!contract || typeof contract !== "object") return null;
   const actions = Array.isArray(contract.availableActions)
     ? contract.availableActions
-        .filter((action: any) =>
-          ["CONTINUE_PAYMENT", "CONTINUE_STRIPE_PAYMENT"].includes(
-            String(action?.code || "").trim().toUpperCase()
-          )
+      .filter((action: any) =>
+        ["CONTINUE_PAYMENT", "CONTINUE_STRIPE_PAYMENT"].includes(
+          String(action?.code || "").trim().toUpperCase()
         )
-        .map((action: any) => ({
-          code: String(action.code || "").trim().toUpperCase() || null,
-          label: String(action.label || "").trim() || null,
-          enabled: action.enabled !== false,
-          reason: String(action.reason || "").trim() || null,
-          targetPath: action.targetPath ? String(action.targetPath) : null,
-        }))
+      )
+      .map((action: any) => ({
+        code: String(action.code || "").trim().toUpperCase() || null,
+        label: String(action.label || "").trim() || null,
+        enabled: action.enabled !== false,
+        reason: String(action.reason || "").trim() || null,
+        targetPath: action.targetPath ? String(action.targetPath) : null,
+      }))
     : [];
 
   return {
@@ -984,7 +984,7 @@ const hasEligibleDeliveredOrderItem = async (userId: number, productId: number) 
         { replacements: { userId, productId } }
       );
       if (Array.isArray(rows) && rows.length > 0) return true;
-    } catch {}
+    } catch { }
 
     // 2. Check in legacy order items table (order_items / orderitems)
     for (const legacyTable of ["order_items", "OrderItems", "orderitems"]) {
@@ -1005,7 +1005,7 @@ const hasEligibleDeliveredOrderItem = async (userId: number, productId: number) 
           { replacements: { userId, productId } }
         );
         if (Array.isArray(rows) && rows.length > 0) return true;
-      } catch {}
+      } catch { }
     }
 
     return false;
@@ -1060,9 +1060,9 @@ const toReviewResponse = (review: any, product: any) => {
     updatedAt,
     user: userName
       ? {
-          id: Number.isFinite(Number(userId)) ? Number(userId) : null,
-          name: String(userName),
-        }
+        id: Number.isFinite(Number(userId)) ? Number(userId) : null,
+        name: String(userName),
+      }
       : null,
     product: product ? toProductPreview(product) : null,
     storeId,
@@ -1138,22 +1138,22 @@ const toProductListItem = (product: any) => {
   const unit = String(plain?.tags?.unit || "").trim() || null;
   const category = plain?.category
     ? {
-        id: plain.category.id,
-        name: plain.category.name,
-        slug: plain.category.code,
-      }
+      id: plain.category.id,
+      name: plain.category.name,
+      slug: plain.category.code,
+    }
     : null;
   const soldCount = Math.max(0, Math.round(toSafeNumber(plain?.soldCount ?? plain?.sold_count, 0)));
   const store = plain?.store
     ? {
-        id: plain.store.id ?? null,
-        name: plain.store.name ?? null,
-        slug: plain.store.slug ?? null,
-        status: plain.store.status ?? null,
-        city: plain.store.city ?? null,
-        logoUrl: plain.store.logoUrl ?? plain.store.logo_url ?? null,
-        bannerUrl: plain.store.bannerUrl ?? plain.store.banner_url ?? null,
-      }
+      id: plain.store.id ?? null,
+      name: plain.store.name ?? null,
+      slug: plain.store.slug ?? null,
+      status: plain.store.status ?? null,
+      city: plain.store.city ?? null,
+      logoUrl: plain.store.logoUrl ?? plain.store.logo_url ?? null,
+      bannerUrl: plain.store.bannerUrl ?? plain.store.banner_url ?? null,
+    }
     : null;
   const purchaseState = buildPublicPurchaseState(plain, plain?.store ?? null);
   const seoSource =
@@ -1163,8 +1163,8 @@ const toProductListItem = (product: any) => {
   const productTypeMetadata = getProductTypeMetadata(plain);
   const normalizedTags = Array.isArray(plain?.tags)
     ? plain.tags
-        .map((entry: unknown) => String(entry ?? "").trim())
-        .filter(Boolean)
+      .map((entry: unknown) => String(entry ?? "").trim())
+      .filter(Boolean)
     : [];
   const seo = {
     metaTitle: String(seoSource?.metaTitle ?? plain?.name ?? "").trim(),
@@ -1174,8 +1174,8 @@ const toProductListItem = (product: any) => {
     keywords:
       Array.isArray(seoSource?.keywords) && seoSource.keywords.length > 0
         ? seoSource.keywords
-            .map((entry: unknown) => String(entry ?? "").trim())
-            .filter(Boolean)
+          .map((entry: unknown) => String(entry ?? "").trim())
+          .filter(Boolean)
         : normalizedTags,
     ogImageUrl: String(seoSource?.ogImageUrl ?? imageUrl ?? "").trim(),
   };
@@ -1289,9 +1289,9 @@ router.get(
           ).trim();
           const name = String(
             getAttr(category, "name") ??
-              getAttr(category, "title") ??
-              getAttr(category, "label") ??
-              code
+            getAttr(category, "title") ??
+            getAttr(category, "label") ??
+            code
           ).trim();
           const parentId =
             getAttr(category, "parentId") ?? getAttr(category, "parent_id") ?? null;
@@ -1687,33 +1687,33 @@ router.get(
 
       const productStoreInclude = storeSlug
         ? buildPublicOperationalStoreInclude({
-            attributes: [
-              "id",
-              "name",
-              "slug",
-              "status",
-              "description",
-              "logoUrl",
-              "phone",
-              "email",
-              "whatsapp",
-              "createdAt",
-            ],
-          })
+          attributes: [
+            "id",
+            "name",
+            "slug",
+            "status",
+            "description",
+            "logoUrl",
+            "phone",
+            "email",
+            "whatsapp",
+            "createdAt",
+          ],
+        })
         : buildPublicOperationalStoreInclude({
-            attributes: [
-              "id",
-              "name",
-              "slug",
-              "status",
-              "description",
-              "logoUrl",
-              "phone",
-              "email",
-              "whatsapp",
-              "createdAt",
-            ],
-          });
+          attributes: [
+            "id",
+            "name",
+            "slug",
+            "status",
+            "description",
+            "logoUrl",
+            "phone",
+            "email",
+            "whatsapp",
+            "createdAt",
+          ],
+        });
 
       const product = await Product.findOne({
         where: buildPublicProductWhere(where),
@@ -1988,10 +1988,10 @@ router.get(
             paymentReadModel,
             shipmentReadModel: effectiveShipmentStatus
               ? {
-                  shippingStatus: effectiveShipmentStatus,
-                  hasPersistedShipment: Boolean(rawShipmentStatus),
-                  usedLegacyFallback: !rawShipmentStatus,
-                }
+                shippingStatus: effectiveShipmentStatus,
+                hasPersistedShipment: Boolean(rawShipmentStatus),
+                usedLegacyFallback: !rawShipmentStatus,
+              }
               : null,
           });
           const current = paymentGroupsByOrderId.get(orderId) ?? [];
@@ -2698,10 +2698,10 @@ router.get(
           updatedAt: (order as any).updatedAt || null,
           shippingDetails: normalizeShippingDetailsOutput(
             (order as any).shippingDetails ??
-              order.get?.("shippingDetails") ??
-              (order as any).shipping_details ??
-              order.get?.("shipping_details") ??
-              null
+            order.get?.("shippingDetails") ??
+            (order as any).shipping_details ??
+            order.get?.("shipping_details") ??
+            null
           ),
           customerName: order.customerName ?? null,
           customerPhone: order.customerPhone ?? null,
@@ -2877,7 +2877,7 @@ router.post(
           eventLabel: "Pesanan Diterima",
           eventDescription: "Pesanan telah dikonfirmasi diterima oleh pembeli.",
           occurredAt: new Date(),
-        }).catch(() => {});
+        }).catch(() => { });
       }
 
       return res.json({
@@ -3253,18 +3253,18 @@ router.get(
 
       const where: any = parsedId && parsedId > 0
         ? {
-            [Op.or]: [
-              sequelize.where(
-                sequelize.fn("UPPER", sequelize.col("invoice_no")),
-                refParam
-              ),
-              { id: parsedId },
-            ],
-          }
+          [Op.or]: [
+            sequelize.where(
+              sequelize.fn("UPPER", sequelize.col("invoice_no")),
+              refParam
+            ),
+            { id: parsedId },
+          ],
+        }
         : sequelize.where(
-            sequelize.fn("UPPER", sequelize.col("invoice_no")),
-            refParam
-          );
+          sequelize.fn("UPPER", sequelize.col("invoice_no")),
+          refParam
+        );
 
       const order = await Order.findOne({
         where,
@@ -3465,10 +3465,10 @@ router.get(
       const shippingDetails =
         normalizeShippingDetailsOutput(
           (order as any).shippingDetails ??
-            order.get?.("shippingDetails") ??
-            (order as any).shipping_details ??
-            order.get?.("shipping_details") ??
-            null
+          order.get?.("shippingDetails") ??
+          (order as any).shipping_details ??
+          order.get?.("shipping_details") ??
+          null
         );
       const createdAt =
         (order as any).createdAt ??
@@ -3505,10 +3505,10 @@ router.get(
             name: getAttr(product, "name") ?? `Product #${productId || "-"}`,
             product: product
               ? {
-                  id: Number(getAttr(product, "id") || 0) || null,
-                  name: String(getAttr(product, "name") || "").trim() || null,
-                  slug: String(getAttr(product, "slug") || "").trim() || null,
-                }
+                id: Number(getAttr(product, "id") || 0) || null,
+                name: String(getAttr(product, "name") || "").trim() || null,
+                slug: String(getAttr(product, "slug") || "").trim() || null,
+              }
               : null,
             imageUrl,
             image: imageUrl,
@@ -3528,130 +3528,135 @@ router.get(
       );
       const rawStoreSplits = Array.isArray((order as any).suborders)
         ? [...((order as any).suborders as any[])].map((suborder: any) => {
-            const store =
-              suborder?.store ??
-              suborder?.get?.("store") ??
-              null;
-            const payments = Array.isArray(suborder?.payments) ? suborder.payments : [];
-            const payment = payments[0] ?? null;
-            const paymentStatus =
-              String(getAttr(suborder, "paymentStatus") || "UNPAID").toUpperCase().trim() ||
-              "UNPAID";
-            const fulfillmentStatus =
-              String(getAttr(suborder, "fulfillmentStatus") || "UNFULFILLED")
-                .toUpperCase()
-                .trim() || "UNFULFILLED";
-            const paymentReadModel = buildGroupedPaymentReadModel({
-              paymentStatus: getAttr(payment, "status") || "CREATED",
-              suborderPaymentStatus: paymentStatus,
-              expiresAt: getAttr(payment, "expiresAt") || null,
-              hasPaymentRecord: Boolean(payment),
-            });
-            const displayStatus = paymentReadModel.status;
-            const shippingSummary =
-              shippingReadModel.suborders.get(Number(getAttr(suborder, "id") || 0)) ?? null;
-            const operationalTruth = buildSplitOperationalTruth({
-              paymentStatus,
-              paymentReadModel,
-              shipmentReadModel: shippingSummary,
-            });
-            const activeShipment =
-              (Array.isArray(shippingSummary?.shipments) ? shippingSummary.shipments[0] : null) || null;
-            return {
-              suborderId: Number(getAttr(suborder, "id") || 0),
-              suborderNumber: String(getAttr(suborder, "suborderNumber") || ""),
-              storeId: Number(getAttr(suborder, "storeId") || getAttr(store, "id") || 0) || null,
-              storeName: String(getAttr(store, "name") || `Store #${getAttr(suborder, "storeId")}`),
-              storeSlug: getAttr(store, "slug") ? String(getAttr(store, "slug")) : null,
-              storeLogoUrl: normalizeUploadsUrl(
-                String(getAttr(store, "logoUrl") || "").trim() || null
+          const store =
+            suborder?.store ??
+            suborder?.get?.("store") ??
+            null;
+          const payments = Array.isArray(suborder?.payments) ? suborder.payments : [];
+          const payment = payments[0] ?? null;
+          const paymentStatus =
+            String(getAttr(suborder, "paymentStatus") || "UNPAID").toUpperCase().trim() ||
+            "UNPAID";
+          const fulfillmentStatus =
+            String(getAttr(suborder, "fulfillmentStatus") || "UNFULFILLED")
+              .toUpperCase()
+              .trim() || "UNFULFILLED";
+          const paymentReadModel = buildGroupedPaymentReadModel({
+            paymentStatus: getAttr(payment, "status") || "CREATED",
+            suborderPaymentStatus: paymentStatus,
+            expiresAt: getAttr(payment, "expiresAt") || null,
+            hasPaymentRecord: Boolean(payment),
+          });
+          const displayStatus = paymentReadModel.status;
+          const shippingSummary =
+            shippingReadModel.suborders.get(Number(getAttr(suborder, "id") || 0)) ?? null;
+          const operationalTruth = buildSplitOperationalTruth({
+            paymentStatus,
+            paymentReadModel,
+            shipmentReadModel: shippingSummary,
+          });
+          const activeShipment =
+            (Array.isArray(shippingSummary?.shipments) ? shippingSummary.shipments[0] : null) || null;
+          return {
+            suborderId: Number(getAttr(suborder, "id") || 0),
+            suborderNumber: String(getAttr(suborder, "suborderNumber") || ""),
+            storeId: Number(getAttr(suborder, "storeId") || getAttr(store, "id") || 0) || null,
+            storeName: String(getAttr(store, "name") || `Store #${getAttr(suborder, "storeId")}`),
+            storeSlug: getAttr(store, "slug") ? String(getAttr(store, "slug")) : null,
+            storeLogoUrl: normalizeUploadsUrl(
+              String(getAttr(store, "logoUrl") || "").trim() || null
+            ),
+            courierCode: activeShipment?.courierCode ?? shippingSummary?.courierCode ?? null,
+            courierService: activeShipment?.courierService ?? shippingSummary?.courierService ?? null,
+            trackingNumber: activeShipment?.trackingNumber ?? shippingSummary?.trackingNumber ?? null,
+            shippingFee: Number(
+              activeShipment?.shippingFee ??
+              shippingSummary?.shippingFee ??
+              getAttr(suborder, "shippingAmount") ??
+              0
+            ),
+            totalAmount: Number(getAttr(suborder, "totalAmount") || 0),
+            paymentStatus,
+            paymentStatusMeta: buildPaymentStatusMeta(paymentStatus),
+            paymentReadModel,
+            fulfillmentStatus,
+            fulfillmentStatusMeta: buildFulfillmentStatusMeta(fulfillmentStatus),
+            shipmentCount: shippingSummary?.shipmentCount ?? 0,
+            shippingStatus:
+              shippingSummary?.shippingStatus ?? fulfillmentStatus,
+            shippingStatusMeta:
+              shippingSummary?.shippingStatusMeta ?? buildFulfillmentStatusMeta(fulfillmentStatus),
+            latestTrackingEvent: shippingSummary?.latestTrackingEvent ?? null,
+            hasActiveShipment: Boolean(shippingSummary?.hasActiveShipment),
+            hasTrackingNumber: Boolean(shippingSummary?.hasTrackingNumber),
+            usedLegacyFallback: Boolean(shippingSummary?.usedLegacyFallback),
+            hasPersistedShipment: Boolean(shippingSummary?.hasPersistedShipment),
+            compatibilityFulfillmentStatus:
+              shippingSummary?.compatibilityFulfillmentStatus ?? fulfillmentStatus,
+            compatibilityFulfillmentStatusMeta:
+              shippingSummary?.compatibilityFulfillmentStatusMeta ??
+              buildFulfillmentStatusMeta(fulfillmentStatus),
+            storedFulfillmentStatus:
+              shippingSummary?.storedFulfillmentStatus ?? fulfillmentStatus,
+            storedFulfillmentStatusMeta:
+              shippingSummary?.storedFulfillmentStatusMeta ??
+              buildFulfillmentStatusMeta(fulfillmentStatus),
+            compatibilityMatchesStorage:
+              typeof shippingSummary?.compatibilityMatchesStorage === "boolean"
+                ? shippingSummary.compatibilityMatchesStorage
+                : true,
+            trackingEventCount: Number(shippingSummary?.trackingEventCount || 0),
+            missingTrackingTimeline: Boolean(shippingSummary?.missingTrackingTimeline),
+            incompleteTrackingData: Boolean(shippingSummary?.incompleteTrackingData),
+            shipments: Array.isArray(shippingSummary?.shipments) ? shippingSummary.shipments : [],
+            operationalTruth,
+            items: (Array.isArray(suborder?.items) ? suborder.items : []).map((item: any) => ({
+              id: Number(getAttr(item, "id") || 0) || null,
+              productId: Number(getAttr(item, "productId") || 0) || null,
+              productName: String(
+                getAttr(item, "productNameSnapshot") ||
+                  getAttr(item?.product, "name") ||
+                  `Product #${getAttr(item, "productId")}`
               ),
-              courierCode: activeShipment?.courierCode ?? null,
-              courierService: activeShipment?.courierService ?? null,
-              trackingNumber: activeShipment?.trackingNumber ?? null,
-              shippingFee: Number(activeShipment?.shippingFee ?? getAttr(suborder, "shippingAmount") ?? 0),
-              totalAmount: Number(getAttr(suborder, "totalAmount") || 0),
+              slug: getAttr(item?.product, "slug") ? String(getAttr(item?.product, "slug")) : "",
+              qty: Number(getAttr(item, "qty") || 0),
+              price: Number(getAttr(item, "priceSnapshot") || 0),
+              lineTotal: Number(getAttr(item, "totalPrice") || 0),
+              image: normalizeUploadsUrl(getAttr(item, "imageSnapshot") || null),
+              variantKey: String(getAttr(item, "variantKey") || "").trim() || null,
+              variantLabel: String(getAttr(item, "variantLabel") || "").trim() || null,
+              variantSelections: normalizeOrderVariantSelectionsOutput(
+                getAttr(item, "variantSelections")
+              ),
+              sku: String(getAttr(item, "skuSnapshot") || "").trim() || null,
+              barcode: String(getAttr(item, "barcodeSnapshot") || "").trim() || null,
+            })),
+            payment: payment
+              ? {
+                  id: Number(getAttr(payment, "id") || 0) || null,
+                  status: String(getAttr(payment, "status") || "CREATED"),
+                  statusMeta: buildPaymentStatusMeta(getAttr(payment, "status") || "CREATED"),
+                  displayStatus,
+                  displayStatusMeta: buildPaymentStatusMeta(displayStatus),
+                  readModel: paymentReadModel,
+                  expiresAt: getAttr(payment, "expiresAt") || null,
+                  paidAt: getAttr(payment, "paidAt") || null,
+                }
+              : null,
+            contract: buildSellerSuborderContract({
+              orderStatus: fulfillmentStatus,
               paymentStatus,
-              paymentStatusMeta: buildPaymentStatusMeta(paymentStatus),
-              paymentReadModel,
-              fulfillmentStatus,
-              fulfillmentStatusMeta: buildFulfillmentStatusMeta(fulfillmentStatus),
-              shipmentCount: shippingSummary?.shipmentCount ?? 0,
-              shippingStatus:
-                shippingSummary?.shippingStatus ?? fulfillmentStatus,
-              shippingStatusMeta:
-                shippingSummary?.shippingStatusMeta ?? buildFulfillmentStatusMeta(fulfillmentStatus),
-              latestTrackingEvent: shippingSummary?.latestTrackingEvent ?? null,
-              hasActiveShipment: Boolean(shippingSummary?.hasActiveShipment),
-              hasTrackingNumber: Boolean(shippingSummary?.hasTrackingNumber),
-              usedLegacyFallback: Boolean(shippingSummary?.usedLegacyFallback),
-              hasPersistedShipment: Boolean(shippingSummary?.hasPersistedShipment),
-              compatibilityFulfillmentStatus:
-                shippingSummary?.compatibilityFulfillmentStatus ?? fulfillmentStatus,
-              compatibilityFulfillmentStatusMeta:
-                shippingSummary?.compatibilityFulfillmentStatusMeta ??
-                buildFulfillmentStatusMeta(fulfillmentStatus),
-              storedFulfillmentStatus:
-                shippingSummary?.storedFulfillmentStatus ?? fulfillmentStatus,
-              storedFulfillmentStatusMeta:
-                shippingSummary?.storedFulfillmentStatusMeta ??
-                buildFulfillmentStatusMeta(fulfillmentStatus),
-              compatibilityMatchesStorage:
-                typeof shippingSummary?.compatibilityMatchesStorage === "boolean"
-                  ? shippingSummary.compatibilityMatchesStorage
-                  : true,
-              trackingEventCount: Number(shippingSummary?.trackingEventCount || 0),
-              missingTrackingTimeline: Boolean(shippingSummary?.missingTrackingTimeline),
-              incompleteTrackingData: Boolean(shippingSummary?.incompleteTrackingData),
-              shipments: Array.isArray(shippingSummary?.shipments) ? shippingSummary.shipments : [],
-              operationalTruth,
-              items: (Array.isArray(suborder?.items) ? suborder.items : []).map((item: any) => ({
-                id: Number(getAttr(item, "id") || 0) || null,
-                productId: Number(getAttr(item, "productId") || 0) || null,
-                productName: String(
-                  getAttr(item, "productNameSnapshot") ||
-                    getAttr(item?.product, "name") ||
-                    `Product #${getAttr(item, "productId")}`
-                ),
-                slug: getAttr(item?.product, "slug") ? String(getAttr(item?.product, "slug")) : "",
-                qty: Number(getAttr(item, "qty") || 0),
-                price: Number(getAttr(item, "priceSnapshot") || 0),
-                lineTotal: Number(getAttr(item, "totalPrice") || 0),
-                image: normalizeUploadsUrl(getAttr(item, "imageSnapshot") || null),
-                variantKey: String(getAttr(item, "variantKey") || "").trim() || null,
-                variantLabel: String(getAttr(item, "variantLabel") || "").trim() || null,
-                variantSelections: normalizeOrderVariantSelectionsOutput(
-                  getAttr(item, "variantSelections")
-                ),
-                sku: String(getAttr(item, "skuSnapshot") || "").trim() || null,
-                barcode: String(getAttr(item, "barcodeSnapshot") || "").trim() || null,
-              })),
-              payment: payment
-                ? {
-                    id: Number(getAttr(payment, "id") || 0) || null,
-                    status: String(getAttr(payment, "status") || "CREATED"),
-                    statusMeta: buildPaymentStatusMeta(getAttr(payment, "status") || "CREATED"),
-                    displayStatus,
-                    displayStatusMeta: buildPaymentStatusMeta(displayStatus),
-                    readModel: paymentReadModel,
-                    expiresAt: getAttr(payment, "expiresAt") || null,
-                    paidAt: getAttr(payment, "paidAt") || null,
-                  }
-                : null,
-              contract: buildSellerSuborderContract({
-                orderStatus: fulfillmentStatus,
-                paymentStatus,
-                parentOrderStatus: status,
-                parentPaymentStatus:
-                  (order as any).paymentStatus ??
-                  order.get?.("paymentStatus") ??
-                  (order as any).payment_status ??
-                  order.get?.("payment_status") ??
-                  "UNPAID",
-                availableActions: [],
-              }),
-            };
-          })
+              parentOrderStatus: status,
+              parentPaymentStatus:
+                (order as any).paymentStatus ??
+                order.get?.("paymentStatus") ??
+                (order as any).payment_status ??
+                order.get?.("payment_status") ??
+                "UNPAID",
+              availableActions: [],
+            }),
+          };
+        })
         : [];
       const storeSplits = rawStoreSplits
         .map(sanitizePublicStoreSplit)
@@ -3671,13 +3676,13 @@ router.get(
         paymentStatus:
           String(
             (order as any).paymentStatus ??
-              order.get?.("paymentStatus") ??
-              (order as any).payment_status ??
-              order.get?.("payment_status") ??
-              "UNPAID"
-            )
-              .toUpperCase()
-              .trim() || "UNPAID",
+            order.get?.("paymentStatus") ??
+            (order as any).payment_status ??
+            order.get?.("payment_status") ??
+            "UNPAID"
+          )
+            .toUpperCase()
+            .trim() || "UNPAID",
         paymentMethod,
         displayStatuses: storeSplits.map(
           (split: any) => split?.payment?.displayStatus || split?.paymentStatus
@@ -3709,10 +3714,10 @@ router.get(
           checkoutMode:
             String(
               (order as any).checkoutMode ??
-                order.get?.("checkoutMode") ??
-                (order as any).checkout_mode ??
-                order.get?.("checkout_mode") ??
-                "LEGACY"
+              order.get?.("checkoutMode") ??
+              (order as any).checkout_mode ??
+              order.get?.("checkout_mode") ??
+              "LEGACY"
             )
               .toUpperCase()
               .trim() || "LEGACY",
@@ -3720,19 +3725,19 @@ router.get(
           paymentStatus:
             String(
               (order as any).paymentStatus ??
-                order.get?.("paymentStatus") ??
-                (order as any).payment_status ??
-                order.get?.("payment_status") ??
-                "UNPAID"
+              order.get?.("paymentStatus") ??
+              (order as any).payment_status ??
+              order.get?.("payment_status") ??
+              "UNPAID"
             )
               .toUpperCase()
               .trim() || "UNPAID",
           paymentStatusMeta: buildPaymentStatusMeta(
             (order as any).paymentStatus ??
-              order.get?.("paymentStatus") ??
-              (order as any).payment_status ??
-              order.get?.("payment_status") ??
-              "UNPAID"
+            order.get?.("paymentStatus") ??
+            (order as any).payment_status ??
+            order.get?.("payment_status") ??
+            "UNPAID"
           ),
           totalAmount: amounts.total,
           subtotal: amounts.subtotal,
@@ -3752,6 +3757,21 @@ router.get(
           hasActiveShipment: shippingReadModel.hasActiveShipment,
           hasTrackingNumber: shippingReadModel.hasTrackingNumber,
           usedLegacyFallback: shippingReadModel.usedLegacyFallback,
+          courierCode:
+            shippingReadModel.courierCode ||
+            storeSplits[0]?.courierCode ||
+            (Array.isArray(shippingReadModel.shipments) && shippingReadModel.shipments[0]?.courierCode) ||
+            null,
+          courierService:
+            shippingReadModel.courierService ||
+            storeSplits[0]?.courierService ||
+            (Array.isArray(shippingReadModel.shipments) && shippingReadModel.shipments[0]?.courierService) ||
+            null,
+          trackingNumber:
+            shippingReadModel.trackingNumber ||
+            storeSplits[0]?.trackingNumber ||
+            (Array.isArray(shippingReadModel.shipments) && shippingReadModel.shipments[0]?.trackingNumber) ||
+            null,
           shipments: publicShipments,
           paymentMethod,
           paymentEntry,
@@ -4275,123 +4295,123 @@ router.post(
   checkoutSubmitRateLimit,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const parsed = createOrderRequestSchema.safeParse(req.body);
-        if (!parsed.success) {
-          return res.status(400).json({
-            message: "Invalid payload",
-            errors: parsed.error.flatten(),
-          });
-        }
-        const userId = getAuthUserId(req, res);
-        if (!userId) return;
-        const { customer, items, paymentMethod, couponCode } = parsed.data;
-        const useDefaultShipping = req.body?.useDefaultShipping === true;
-        let shippingDetails = normalizeShippingDetails(req.body?.shippingDetails);
-
-        if (useDefaultShipping) {
-          const defaultAddress = await getDefaultAddressByUser(userId);
-          if (!defaultAddress) {
-            return res.status(400).json({
-              message: "Default shipping address not set",
-            });
-          }
-          shippingDetails = normalizeShippingDetails(defaultAddress);
-          const missingField = getMissingShippingField(shippingDetails);
-          if (missingField) {
-            return res.status(400).json({
-              message: `Invalid default shipping address: ${missingField}`,
-            });
-          }
-        } else if (shippingDetails) {
-          const missingField = getMissingShippingField(shippingDetails);
-          if (missingField) {
-            return res.status(400).json({
-              message: `Invalid shipping details: ${missingField}`,
-            });
-          }
-        }
-
-        if (!customer && !shippingDetails) {
-          return res.status(400).json({
-            message: "Customer or shipping details are required",
-          });
-        }
-
-        const resolvedCustomer = {
-          name: shippingDetails?.fullName || customer?.name || "",
-          phone: shippingDetails?.phoneNumber || customer?.phone || "",
-          address: shippingDetails
-            ? toShippingAddressLine(shippingDetails)
-            : String(customer?.address || "").trim(),
-          notes: customer?.notes ?? null,
-        };
-        if (
-          !resolvedCustomer.name.trim() ||
-          !resolvedCustomer.phone.trim() ||
-          !resolvedCustomer.address.trim()
-        ) {
-          return res.status(400).json({
-            message: "Customer shipping information is incomplete",
-          });
-        }
-
-        console.log("[store] POST /orders hit", new Date().toISOString());
-        console.log("[store/orders] payload", {
-          customer: resolvedCustomer,
-          paymentMethod,
-          itemsCount: items.length,
-          firstItem: items[0] ?? null,
-          useDefaultShipping,
-          hasShippingDetails: Boolean(shippingDetails),
+      const parsed = createOrderRequestSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          message: "Invalid payload",
+          errors: parsed.error.flatten(),
         });
-        const normalizedCouponCode = normalizeCouponCode(couponCode);
+      }
+      const userId = getAuthUserId(req, res);
+      if (!userId) return;
+      const { customer, items, paymentMethod, couponCode } = parsed.data;
+      const useDefaultShipping = req.body?.useDefaultShipping === true;
+      let shippingDetails = normalizeShippingDetails(req.body?.shippingDetails);
 
-        const normalizedItems = new Map<number, number>();
-        for (const item of items) {
-          normalizedItems.set(
-            item.productId,
-            (normalizedItems.get(item.productId) || 0) + item.qty
-          );
+      if (useDefaultShipping) {
+        const defaultAddress = await getDefaultAddressByUser(userId);
+        if (!defaultAddress) {
+          return res.status(400).json({
+            message: "Default shipping address not set",
+          });
         }
-        if (normalizedItems.size === 0) {
-          return res.status(400).json({ message: "Invalid cart items." });
+        shippingDetails = normalizeShippingDetails(defaultAddress);
+        const missingField = getMissingShippingField(shippingDetails);
+        if (missingField) {
+          return res.status(400).json({
+            message: `Invalid default shipping address: ${missingField}`,
+          });
         }
+      } else if (shippingDetails) {
+        const missingField = getMissingShippingField(shippingDetails);
+        if (missingField) {
+          return res.status(400).json({
+            message: `Invalid shipping details: ${missingField}`,
+          });
+        }
+      }
 
-        await ensureSettingsTable();
-        const storeSettings = await getPersistedStoreSettings();
-        const availablePaymentMethods = getAvailableCheckoutPaymentMethods(storeSettings);
-        const availablePaymentMethodCodes = new Set(
-          availablePaymentMethods.map((method) => String(method?.code || "").toUpperCase())
+      if (!customer && !shippingDetails) {
+        return res.status(400).json({
+          message: "Customer or shipping details are required",
+        });
+      }
+
+      const resolvedCustomer = {
+        name: shippingDetails?.fullName || customer?.name || "",
+        phone: shippingDetails?.phoneNumber || customer?.phone || "",
+        address: shippingDetails
+          ? toShippingAddressLine(shippingDetails)
+          : String(customer?.address || "").trim(),
+        notes: customer?.notes ?? null,
+      };
+      if (
+        !resolvedCustomer.name.trim() ||
+        !resolvedCustomer.phone.trim() ||
+        !resolvedCustomer.address.trim()
+      ) {
+        return res.status(400).json({
+          message: "Customer shipping information is incomplete",
+        });
+      }
+
+      console.log("[store] POST /orders hit", new Date().toISOString());
+      console.log("[store/orders] payload", {
+        customer: resolvedCustomer,
+        paymentMethod,
+        itemsCount: items.length,
+        firstItem: items[0] ?? null,
+        useDefaultShipping,
+        hasShippingDetails: Boolean(shippingDetails),
+      });
+      const normalizedCouponCode = normalizeCouponCode(couponCode);
+
+      const normalizedItems = new Map<number, number>();
+      for (const item of items) {
+        normalizedItems.set(
+          item.productId,
+          (normalizedItems.get(item.productId) || 0) + item.qty
         );
-        const normalizedPaymentMethod = String(paymentMethod || "").toUpperCase().trim();
-        const stripeRuntimeConfig = getStripeRuntimeConfig(storeSettings);
-        const shouldUseStripe = normalizedPaymentMethod === "STRIPE";
-        if (!availablePaymentMethodCodes.has(normalizedPaymentMethod)) {
-          return res.status(409).json({
-            code: "STORE_PAYMENT_METHOD_NOT_AVAILABLE",
-            message: "Selected payment method is not available for checkout.",
-            data: {
-              paymentMethod: normalizedPaymentMethod,
-              availableMethods: availablePaymentMethods,
-            },
-          });
-        }
-        if (shouldUseStripe && !stripeRuntimeConfig.enabled) {
-          return res.status(409).json({
-            code: "STORE_PAYMENT_METHOD_NOT_READY",
-            message: "Stripe checkout is not ready for this store yet.",
-          });
-        }
-        const checkoutBaseUrl = shouldUseStripe ? resolveRequestBaseUrl(req) : "";
-        if (shouldUseStripe && !checkoutBaseUrl) {
-          return res.status(500).json({
-            code: "STORE_PAYMENT_CHECKOUT_BASE_URL_MISSING",
-            message: "Stripe checkout cannot start because the public base URL is missing.",
-          });
-        }
-        const checkoutUser = shouldUseStripe
-          ? await User.findByPk(userId, { attributes: ["id", "name", "email"] })
-          : null;
+      }
+      if (normalizedItems.size === 0) {
+        return res.status(400).json({ message: "Invalid cart items." });
+      }
+
+      await ensureSettingsTable();
+      const storeSettings = await getPersistedStoreSettings();
+      const availablePaymentMethods = getAvailableCheckoutPaymentMethods(storeSettings);
+      const availablePaymentMethodCodes = new Set(
+        availablePaymentMethods.map((method) => String(method?.code || "").toUpperCase())
+      );
+      const normalizedPaymentMethod = String(paymentMethod || "").toUpperCase().trim();
+      const stripeRuntimeConfig = getStripeRuntimeConfig(storeSettings);
+      const shouldUseStripe = normalizedPaymentMethod === "STRIPE";
+      if (!availablePaymentMethodCodes.has(normalizedPaymentMethod)) {
+        return res.status(409).json({
+          code: "STORE_PAYMENT_METHOD_NOT_AVAILABLE",
+          message: "Selected payment method is not available for checkout.",
+          data: {
+            paymentMethod: normalizedPaymentMethod,
+            availableMethods: availablePaymentMethods,
+          },
+        });
+      }
+      if (shouldUseStripe && !stripeRuntimeConfig.enabled) {
+        return res.status(409).json({
+          code: "STORE_PAYMENT_METHOD_NOT_READY",
+          message: "Stripe checkout is not ready for this store yet.",
+        });
+      }
+      const checkoutBaseUrl = shouldUseStripe ? resolveRequestBaseUrl(req) : "";
+      if (shouldUseStripe && !checkoutBaseUrl) {
+        return res.status(500).json({
+          code: "STORE_PAYMENT_CHECKOUT_BASE_URL_MISSING",
+          message: "Stripe checkout cannot start because the public base URL is missing.",
+        });
+      }
+      const checkoutUser = shouldUseStripe
+        ? await User.findByPk(userId, { attributes: ["id", "name", "email"] })
+        : null;
 
       const tx = await sequelize.transaction();
       try {
@@ -4494,13 +4514,13 @@ router.post(
               item: { productId: item.productId, qty: item.qty },
               product: product
                 ? {
-                    id: product.get?.("id") ?? product.getDataValue?.("id") ?? product.id,
-                    name: product.get?.("name") ?? product.name,
-                    stock: product.get?.("stock") ?? product.stock,
-                    status: product.get?.("status") ?? product.status,
-                    isPublished: product.get?.("isPublished") ?? product.isPublished,
-                    published: product.get?.("published") ?? product.published,
-                  }
+                  id: product.get?.("id") ?? product.getDataValue?.("id") ?? product.id,
+                  name: product.get?.("name") ?? product.name,
+                  stock: product.get?.("stock") ?? product.stock,
+                  status: product.get?.("status") ?? product.status,
+                  isPublished: product.get?.("isPublished") ?? product.isPublished,
+                  published: product.get?.("published") ?? product.published,
+                }
                 : null,
             });
           }
@@ -4527,111 +4547,111 @@ router.post(
 
         let subtotal = 0;
         const orderStoreIds = new Set<number>();
-          const responseItems: Array<{
-            productId: number;
-            name: string;
-            quantity: number;
-            price: number;
-            lineTotal: number;
-          }> = [];
-          const orderItemsPayload = itemsNorm.map((item) => {
-            const product = byId.get(item.productId)!;
-            const storeId = Number(
-              product?.store?.id ??
-                product?.get?.("store")?.id ??
-                product?.dataValues?.store?.id ??
-                0
-            );
-            if (Number.isFinite(storeId) && storeId > 0) {
-              orderStoreIds.add(storeId);
-            }
-            const unitPrice = getUnitPrice(product);
-            subtotal += unitPrice * item.qty;
-            const pid = getProductId(product);
-            if (!Number.isFinite(pid)) {
-              throw new Error("Invalid product id for order item");
-            }
-            const name =
-              product?.getDataValue?.("name") ??
-              product?.get?.("name") ??
-              product?.name ??
-              `Product #${pid}`;
-            responseItems.push({
-              productId: pid,
-              name: String(name || `Product #${pid}`),
-              quantity: item.qty,
-              price: unitPrice,
-              lineTotal: unitPrice * item.qty,
-            });
-            return {
-              productId: pid,
-              product_id: pid,
-              quantity: item.qty,
-              price: unitPrice,
-            };
+        const responseItems: Array<{
+          productId: number;
+          name: string;
+          quantity: number;
+          price: number;
+          lineTotal: number;
+        }> = [];
+        const orderItemsPayload = itemsNorm.map((item) => {
+          const product = byId.get(item.productId)!;
+          const storeId = Number(
+            product?.store?.id ??
+            product?.get?.("store")?.id ??
+            product?.dataValues?.store?.id ??
+            0
+          );
+          if (Number.isFinite(storeId) && storeId > 0) {
+            orderStoreIds.add(storeId);
+          }
+          const unitPrice = getUnitPrice(product);
+          subtotal += unitPrice * item.qty;
+          const pid = getProductId(product);
+          if (!Number.isFinite(pid)) {
+            throw new Error("Invalid product id for order item");
+          }
+          const name =
+            product?.getDataValue?.("name") ??
+            product?.get?.("name") ??
+            product?.name ??
+            `Product #${pid}`;
+          responseItems.push({
+            productId: pid,
+            name: String(name || `Product #${pid}`),
+            quantity: item.qty,
+            price: unitPrice,
+            lineTotal: unitPrice * item.qty,
           });
-      if (process.env.NODE_ENV !== "production") {
-        console.log("[store/orders] orderItemsPayload sample", orderItemsPayload[0]);
-      }
+          return {
+            productId: pid,
+            product_id: pid,
+            quantity: item.qty,
+            price: unitPrice,
+          };
+        });
+        if (process.env.NODE_ENV !== "production") {
+          console.log("[store/orders] orderItemsPayload sample", orderItemsPayload[0]);
+        }
 
         let discountAmount = 0;
         let appliedCouponCode: string | null = null;
         let couponPolicyWarnings: Array<Record<string, unknown>> = [];
-          if (normalizedCouponCode) {
-            const result = await validateCoupon(normalizedCouponCode, subtotal, {
-              storeIds: Array.from(orderStoreIds),
-              policySurface: "LEGACY_ORDER",
-              itemCount: itemsNorm.reduce((sum, item) => sum + Number(item.qty || 0), 0),
+        if (normalizedCouponCode) {
+          const result = await validateCoupon(normalizedCouponCode, subtotal, {
+            storeIds: Array.from(orderStoreIds),
+            policySurface: "LEGACY_ORDER",
+            itemCount: itemsNorm.reduce((sum, item) => sum + Number(item.qty || 0), 0),
+          });
+          if (!result.valid) {
+            await tx.rollback();
+            return res.status(400).json({
+              message: result.message || "Coupon invalid/expired/min spend not met",
             });
-            if (!result.valid) {
-              await tx.rollback();
-              return res.status(400).json({
-                message: result.message || "Coupon invalid/expired/min spend not met",
-              });
-            }
-            discountAmount = result.discountAmount;
-            appliedCouponCode = result.code || normalizedCouponCode;
-            couponPolicyWarnings = Array.isArray(result.policyWarnings)
-              ? result.policyWarnings.filter(Boolean)
-              : [];
           }
+          discountAmount = result.discountAmount;
+          appliedCouponCode = result.code || normalizedCouponCode;
+          couponPolicyWarnings = Array.isArray(result.policyWarnings)
+            ? result.policyWarnings.filter(Boolean)
+            : [];
+        }
 
-      const tax = 0;
-      const shipping = 0;
-      const totalAmount = Math.max(0, subtotal - discountAmount + tax + shipping);
-      if (process.env.NODE_ENV !== "production") {
-        console.debug("create order totals", {
-          subtotal,
-          total: totalAmount,
-          totalAmount,
-        });
-      }
+        const tax = 0;
+        const shipping = 0;
+        const totalAmount = Math.max(0, subtotal - discountAmount + tax + shipping);
+        if (process.env.NODE_ENV !== "production") {
+          console.debug("create order totals", {
+            subtotal,
+            total: totalAmount,
+            totalAmount,
+          });
+        }
 
         const orderStatus = "pending";
         let stripeCheckout:
           | {
-              sessionId: string;
-              url: string | null;
-            }
+            sessionId: string;
+            url: string | null;
+          }
           | null = null;
         const order = await Order.create(
-            {
-              invoiceNo: `STORE-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-              userId,
-              shippingDetails: shippingDetails ?? null,
-              customerName: resolvedCustomer.name,
-              customerPhone: resolvedCustomer.phone,
-              customerAddress: resolvedCustomer.address,
-              customerNotes: resolvedCustomer.notes ?? null,
-              paymentMethod: normalizedPaymentMethod,
-              paymentStatus: "UNPAID",
-              totalAmount,
-              couponCode: appliedCouponCode,
-              discountAmount,
-              status: toCanonicalOrderStatus(orderStatus),
-            } as any,
-            { transaction: tx }
-          );
+          {
+            invoiceNo: `STORE-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            userId,
+            shippingDetails: shippingDetails ?? null,
+            customerName: resolvedCustomer.name,
+            customerPhone: resolvedCustomer.phone,
+            customerAddress: resolvedCustomer.address,
+            customerNotes: resolvedCustomer.notes ?? null,
+            paymentMethod: normalizedPaymentMethod,
+            paymentStatus: "UNPAID",
+            totalAmount,
+            couponCode: appliedCouponCode,
+            discountAmount,
+            status: toCanonicalOrderStatus(orderStatus),
+          } as any,
+          { transaction: tx }
+        );
 
         await OrderItem.bulkCreate(
           orderItemsPayload.map((item) => ({ ...item, orderId: order.id })),
@@ -4676,59 +4696,59 @@ router.post(
 
         await tx.commit();
 
-          const invoiceNo =
-            order?.getDataValue?.("invoiceNo") ??
-            order?.get?.("invoiceNo") ??
-            (order as any)?.dataValues?.invoiceNo ??
-            (order as any)?.invoiceNo ??
-            null;
-          const createdAt =
-            order?.getDataValue?.("createdAt") ??
-            order?.get?.("createdAt") ??
-            (order as any)?.createdAt ??
-            new Date().toISOString();
-          try {
-            await Promise.allSettled([
-              createNewOrderNotification({
-                customerName: resolvedCustomer.name ?? null,
-                amount: totalAmount,
-                orderId: Number(order?.id || 0),
-                invoiceNo: invoiceNo ? String(invoiceNo) : null,
-              }),
-              createUserOrderPlacedNotification({
-                userId,
-                orderId: Number(order?.id || 0),
-                invoiceNo: invoiceNo ? String(invoiceNo) : null,
-              }),
-            ]);
-          } catch (notifyError) {
-            console.warn("[store/orders] failed to create notification", notifyError);
-          }
-          return res.status(201).json({
-            success: true,
-            data: {
-              id: order.id,
-              ref: invoiceNo || String(order.id),
-              invoiceNo,
-              status: orderStatus,
-              totalAmount,
-              createdAt,
-              subtotal,
-              discount: discountAmount,
-              tax,
-              shipping,
-              total: totalAmount,
-              shippingDetails: shippingDetails ?? null,
-              useDefaultShipping,
-              paymentStatus: "UNPAID",
-              paymentMethod: normalizedPaymentMethod,
-              checkoutRedirectMode: stripeCheckout ? "HOSTED" : null,
-              checkoutRedirectUrl: stripeCheckout?.url || null,
-              checkoutSessionId: stripeCheckout?.sessionId || null,
-              couponPolicyWarnings,
-              items: responseItems,
-            },
-          });
+        const invoiceNo =
+          order?.getDataValue?.("invoiceNo") ??
+          order?.get?.("invoiceNo") ??
+          (order as any)?.dataValues?.invoiceNo ??
+          (order as any)?.invoiceNo ??
+          null;
+        const createdAt =
+          order?.getDataValue?.("createdAt") ??
+          order?.get?.("createdAt") ??
+          (order as any)?.createdAt ??
+          new Date().toISOString();
+        try {
+          await Promise.allSettled([
+            createNewOrderNotification({
+              customerName: resolvedCustomer.name ?? null,
+              amount: totalAmount,
+              orderId: Number(order?.id || 0),
+              invoiceNo: invoiceNo ? String(invoiceNo) : null,
+            }),
+            createUserOrderPlacedNotification({
+              userId,
+              orderId: Number(order?.id || 0),
+              invoiceNo: invoiceNo ? String(invoiceNo) : null,
+            }),
+          ]);
+        } catch (notifyError) {
+          console.warn("[store/orders] failed to create notification", notifyError);
+        }
+        return res.status(201).json({
+          success: true,
+          data: {
+            id: order.id,
+            ref: invoiceNo || String(order.id),
+            invoiceNo,
+            status: orderStatus,
+            totalAmount,
+            createdAt,
+            subtotal,
+            discount: discountAmount,
+            tax,
+            shipping,
+            total: totalAmount,
+            shippingDetails: shippingDetails ?? null,
+            useDefaultShipping,
+            paymentStatus: "UNPAID",
+            paymentMethod: normalizedPaymentMethod,
+            checkoutRedirectMode: stripeCheckout ? "HOSTED" : null,
+            checkoutRedirectUrl: stripeCheckout?.url || null,
+            checkoutSessionId: stripeCheckout?.sessionId || null,
+            couponPolicyWarnings,
+            items: responseItems,
+          },
+        });
       } catch (error) {
         await tx.rollback();
         console.error("[store/orders] error", error);

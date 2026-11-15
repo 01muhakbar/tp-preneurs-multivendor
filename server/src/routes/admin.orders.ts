@@ -1076,6 +1076,10 @@ const toOrderDetailPayload = (orderItem: any, paymentCode: string | null = null)
       shippingStatus: shippingSummary?.shippingStatus ?? fulfillmentStatus,
       shippingStatusMeta:
         shippingSummary?.shippingStatusMeta ?? buildFulfillmentStatusMeta(fulfillmentStatus),
+      courierName:
+        shippingSummary?.courierCode ||
+        (Array.isArray(shippingSummary?.shipments) && shippingSummary.shipments[0]?.courierCode) ||
+        null,
       courierCode:
         shippingSummary?.courierCode ||
         (Array.isArray(shippingSummary?.shipments) && shippingSummary.shipments[0]?.courierCode) ||
@@ -1085,6 +1089,10 @@ const toOrderDetailPayload = (orderItem: any, paymentCode: string | null = null)
         (Array.isArray(shippingSummary?.shipments) && shippingSummary.shipments[0]?.courierService) ||
         null,
       trackingNumber:
+        shippingSummary?.trackingNumber ||
+        (Array.isArray(shippingSummary?.shipments) && shippingSummary.shipments[0]?.trackingNumber) ||
+        null,
+      trackingNo:
         shippingSummary?.trackingNumber ||
         (Array.isArray(shippingSummary?.shipments) && shippingSummary.shipments[0]?.trackingNumber) ||
         null,
@@ -1204,6 +1212,41 @@ const toOrderDetailPayload = (orderItem: any, paymentCode: string | null = null)
     subtotalAmount: subtotal,
     discount,
     shipping,
+    shippingDetails: {
+      courier:
+        groups[0]?.courierName ||
+        groups[0]?.courierCode ||
+        shippingReadModel?.courierCode ||
+        (Array.isArray(shippingReadModel?.shipments) && shippingReadModel.shipments[0]?.courierCode) ||
+        null,
+      courierCode:
+        groups[0]?.courierCode ||
+        shippingReadModel?.courierCode ||
+        (Array.isArray(shippingReadModel?.shipments) && shippingReadModel.shipments[0]?.courierCode) ||
+        null,
+      service:
+        groups[0]?.courierService ||
+        shippingReadModel?.courierService ||
+        (Array.isArray(shippingReadModel?.shipments) && shippingReadModel.shipments[0]?.courierService) ||
+        null,
+      courierService:
+        groups[0]?.courierService ||
+        shippingReadModel?.courierService ||
+        (Array.isArray(shippingReadModel?.shipments) && shippingReadModel.shipments[0]?.courierService) ||
+        null,
+      trackingNumber:
+        groups[0]?.trackingNumber ||
+        shippingReadModel?.trackingNumber ||
+        (Array.isArray(shippingReadModel?.shipments) && shippingReadModel.shipments[0]?.trackingNumber) ||
+        null,
+      trackingNo:
+        groups[0]?.trackingNo ||
+        groups[0]?.trackingNumber ||
+        shippingReadModel?.trackingNumber ||
+        (Array.isArray(shippingReadModel?.shipments) && shippingReadModel.shipments[0]?.trackingNumber) ||
+        null,
+      shippingFee: shipping,
+    },
     serviceFeeAmount,
     total: totalAmount,
     grandTotal: totalAmount,
@@ -1886,6 +1929,53 @@ router.patch("/:id/status", requireStaffOrAdmin, async (req, res) => {
 
   if (updatedRows === 0) {
     return res.status(404).json({ message: "Pesanan tidak ditemukan." });
+  }
+
+  const orderTargetId = Number(getAttr(existingOrder, "id") || 0);
+  if (orderTargetId > 0) {
+    try {
+      if (normalizedStatus === "shipped") {
+        await Suborder.update(
+          { fulfillmentStatus: "SHIPPED", updatedAt: new Date() },
+          {
+            where: {
+              orderId: orderTargetId,
+              fulfillmentStatus: { [Op.in]: ["PROCESSING", "PACKED", "UNFULFILLED"] },
+            },
+          }
+        );
+        await Shipment.update(
+          { status: "SHIPPED", updatedAt: new Date() },
+          {
+            where: {
+              orderId: orderTargetId,
+              status: { [Op.in]: ["READY_TO_FULFILL", "PACKED"] },
+            },
+          }
+        );
+      } else if (normalizedStatus === "delivered") {
+        await Suborder.update(
+          { fulfillmentStatus: "DELIVERED", updatedAt: new Date() },
+          {
+            where: {
+              orderId: orderTargetId,
+              fulfillmentStatus: { [Op.in]: ["SHIPPED", "PROCESSING", "PACKED"] },
+            },
+          }
+        );
+        await Shipment.update(
+          { status: "DELIVERED", updatedAt: new Date() },
+          {
+            where: {
+              orderId: orderTargetId,
+              status: { [Op.in]: ["SHIPPED", "IN_TRANSIT", "OUT_FOR_DELIVERY"] },
+            },
+          }
+        );
+      }
+    } catch (syncErr) {
+      console.warn("[admin.orders] status sync to suborders/shipments warning", syncErr);
+    }
   }
 
   const updatedOrder = await Order.findOne({

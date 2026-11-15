@@ -232,22 +232,28 @@ const formatCourierDisplay = (code, service) => {
 const normalizeShipments = (tracking, storeSplits, isIndo = false) => {
   const persisted = normalizeShipmentList(tracking.shipments);
   if (persisted.length) {
-    return persisted.map((shipment, index) => ({
-      id: shipment.shipmentId ?? `${shipment.suborderNumber || "shipment"}-${index}`,
-      storeName: text(shipment.storeName, isIndo ? "Toko" : "Store"),
-      suborderNumber: text(shipment.suborderNumber, isIndo ? "Pengiriman Toko" : "Store shipment"),
-      status: {
-        code: shipment.shipmentStatus,
-        label: text(shipment.shipmentStatusMeta?.label, labelize(shipment.shipmentStatus)),
-        tone: normalizeTone(shipment.shipmentStatusMeta?.tone, shipment.shipmentStatus),
-      },
-      sourceLabel: isIndo ? "Pengiriman Toko" : "Store Shipment",
-      trackingNumber: text(shipment.trackingNumber),
-      courier: formatCourierDisplay(shipment.courierCode, shipment.courierService),
-      itemCount: shipment.shipmentItems.length,
-      estimatedDelivery: shipment.estimatedDelivery || null,
-      timeline: normalizeTimeline(shipment.trackingEvents, isIndo),
-    }));
+    return persisted.map((shipment, index) => {
+      const splitFallback = storeSplits[index] || storeSplits[0] || null;
+      const cCode = shipment.courierCode || splitFallback?.courierCode || tracking?.courierCode || null;
+      const cService = shipment.courierService || splitFallback?.courierService || tracking?.courierService || null;
+      const tNo = shipment.trackingNumber || splitFallback?.trackingNumber || tracking?.trackingNumber || "";
+      return {
+        id: shipment.shipmentId ?? `${shipment.suborderNumber || "shipment"}-${index}`,
+        storeName: text(shipment.storeName || splitFallback?.storeName, isIndo ? "Toko" : "Store"),
+        suborderNumber: text(shipment.suborderNumber || splitFallback?.suborderNumber, isIndo ? "Pengiriman Toko" : "Store shipment"),
+        status: {
+          code: shipment.shipmentStatus,
+          label: text(shipment.shipmentStatusMeta?.label, labelize(shipment.shipmentStatus)),
+          tone: normalizeTone(shipment.shipmentStatusMeta?.tone, shipment.shipmentStatus),
+        },
+        sourceLabel: isIndo ? "Pengiriman Toko" : "Store Shipment",
+        trackingNumber: text(tNo),
+        courier: formatCourierDisplay(cCode, cService),
+        itemCount: shipment.shipmentItems?.length || splitFallback?.items?.length || 0,
+        estimatedDelivery: shipment.estimatedDelivery || null,
+        timeline: normalizeTimeline(shipment.trackingEvents, isIndo),
+      };
+    });
   }
 
   return storeSplits.map((split, index) => {
@@ -310,7 +316,10 @@ export const normalizeStoreOrderTrackingFor2026 = ({ tracking, isIndo = false, i
   // Courier & tracking code from operational data
   const rawCourier = text(
     primaryShipment?.courier ||
+      order.courierCode ||
       order.courier ||
+      order.shippingDetails?.courier ||
+      order.shippingDetails?.courierCode ||
       order.shippingMethod,
     ""
   );
@@ -318,8 +327,10 @@ export const normalizeStoreOrderTrackingFor2026 = ({ tracking, isIndo = false, i
 
   const rawTrackingNumber = text(
     primaryShipment?.trackingNumber ||
-      order.latestTrackingEvent?.trackingNumber ||
-      order.trackingNumber,
+      order.trackingNumber ||
+      order.shippingDetails?.trackingNumber ||
+      order.shippingDetails?.trackingNo ||
+      order.latestTrackingEvent?.trackingNumber,
     ""
   );
   const hasRealTrackingNumber = Boolean(

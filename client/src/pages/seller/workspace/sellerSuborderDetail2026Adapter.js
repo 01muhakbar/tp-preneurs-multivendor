@@ -670,9 +670,27 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
   const createdAt = order.createdAt || order.orderDate || null;
   const paidAt = payment.paidAt || null;
 
-  const rawCourier = shipping.courier || "";
-  const rawMethod = shipping.method || "";
-  const rawTracking = text(shipping.trackingNo);
+  const rawCourier =
+    shipping.courier ||
+    shipping.courierCode ||
+    detail.courierCode ||
+    detail.shipping?.courier ||
+    detail.shipping?.courierCode ||
+    "";
+  const rawMethod =
+    shipping.method ||
+    shipping.courierService ||
+    detail.courierService ||
+    detail.shipping?.courierService ||
+    detail.shipping?.method ||
+    "";
+  const rawTracking = text(
+    shipping.trackingNo ||
+    shipping.trackingNumber ||
+    detail.trackingNumber ||
+    detail.shipping?.trackingNumber ||
+    detail.shipping?.trackingNo
+  );
   const safeTracking =
     rawTracking && !rawTracking.toLowerCase().includes("no tracking") ? rawTracking : "";
 

@@ -3076,10 +3076,13 @@ router.get("/orders/:ref", publicTrackingRateLimit, async (req, res, next) => {
                     storeName: String(getAttr(store, "name") || `Store #${getAttr(suborder, "storeId")}`),
                     storeSlug: getAttr(store, "slug") ? String(getAttr(store, "slug")) : null,
                     storeLogoUrl: normalizeUploadsUrl(String(getAttr(store, "logoUrl") || "").trim() || null),
-                    courierCode: activeShipment?.courierCode ?? null,
-                    courierService: activeShipment?.courierService ?? null,
-                    trackingNumber: activeShipment?.trackingNumber ?? null,
-                    shippingFee: Number(activeShipment?.shippingFee ?? getAttr(suborder, "shippingAmount") ?? 0),
+                    courierCode: activeShipment?.courierCode ?? shippingSummary?.courierCode ?? null,
+                    courierService: activeShipment?.courierService ?? shippingSummary?.courierService ?? null,
+                    trackingNumber: activeShipment?.trackingNumber ?? shippingSummary?.trackingNumber ?? null,
+                    shippingFee: Number(activeShipment?.shippingFee ??
+                        shippingSummary?.shippingFee ??
+                        getAttr(suborder, "shippingAmount") ??
+                        0),
                     totalAmount: Number(getAttr(suborder, "totalAmount") || 0),
                     paymentStatus,
                     paymentStatusMeta: buildPaymentStatusMeta(paymentStatus),
@@ -3226,6 +3229,18 @@ router.get("/orders/:ref", publicTrackingRateLimit, async (req, res, next) => {
                 hasActiveShipment: shippingReadModel.hasActiveShipment,
                 hasTrackingNumber: shippingReadModel.hasTrackingNumber,
                 usedLegacyFallback: shippingReadModel.usedLegacyFallback,
+                courierCode: shippingReadModel.courierCode ||
+                    storeSplits[0]?.courierCode ||
+                    (Array.isArray(shippingReadModel.shipments) && shippingReadModel.shipments[0]?.courierCode) ||
+                    null,
+                courierService: shippingReadModel.courierService ||
+                    storeSplits[0]?.courierService ||
+                    (Array.isArray(shippingReadModel.shipments) && shippingReadModel.shipments[0]?.courierService) ||
+                    null,
+                trackingNumber: shippingReadModel.trackingNumber ||
+                    storeSplits[0]?.trackingNumber ||
+                    (Array.isArray(shippingReadModel.shipments) && shippingReadModel.shipments[0]?.trackingNumber) ||
+                    null,
                 shipments: publicShipments,
                 paymentMethod,
                 paymentEntry,
