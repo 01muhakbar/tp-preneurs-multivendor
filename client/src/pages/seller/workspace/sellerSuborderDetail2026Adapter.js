@@ -589,7 +589,11 @@ export const buildSellerSuborderFulfillmentPayload2026 = (action, draft = {}) =>
   const actionCode = text(action).toUpperCase();
   const payload = { action: actionCode };
 
-  if (actionCode === "MARK_SHIPPED" || actionCode === "MARK_PROCESSING") {
+  if (
+    actionCode === "MARK_SHIPPED" ||
+    actionCode === "MARK_PROCESSING" ||
+    actionCode === "UPDATE_TRACKING"
+  ) {
     const trackingNumber = text(draft.trackingNumber);
     const courierCode = text(draft.shippingProvider ?? draft.courierCode);
     const courierService = text(draft.courierService);
@@ -747,6 +751,22 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
         };
       }
       case "shipping":
+        if (!safeTracking) {
+          return {
+            bucket: "shipping",
+            title: isIndo ? "Langkah Selanjutnya: Lengkapi Nomor Resi" : "Next Step: Enter Tracking Number",
+            description: isIndo
+              ? "Pesanan dalam status dikirim. Masukkan nomor resi ekspedisi pada formulir pengiriman di bawah agar pembeli dapat melacak paket."
+              : "Order is in transit. Enter courier tracking number below so customer can track the package.",
+            icon: "truck",
+            primaryAction: "UPDATE_TRACKING",
+            primaryLabel: isIndo ? "Simpan Resi" : "Save Tracking",
+            canUpdateTracking: true,
+            canDeliver: true,
+            badge: isIndo ? "Sedang Dikirim" : "Shipping",
+            badgeTone: "blue",
+          };
+        }
         return {
           bucket: "shipping",
           title: isIndo ? "Langkah Selanjutnya: Pantau Pengiriman" : "Next Step: Track Shipment",

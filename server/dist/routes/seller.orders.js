@@ -66,9 +66,19 @@ const FULFILLMENT_ACTIONS = {
         label: "Mark shipped",
         nextStatus: "SHIPPED",
         shipmentStatus: "SHIPPED",
-        allowedFrom: ["UNFULFILLED", "PROCESSING"],
+        allowedFrom: ["UNFULFILLED", "PROCESSING", "PACKED"],
         description: "Confirm the suborder has been dispatched from the store.",
         successMessage: "Suborder marked as shipped.",
+        auditAction: SELLER_FULFILLMENT_AUDIT_ACTIONS.MARK_SHIPPED,
+    },
+    UPDATE_TRACKING: {
+        code: "UPDATE_TRACKING",
+        label: "Update tracking",
+        nextStatus: "SHIPPED",
+        shipmentStatus: "SHIPPED",
+        allowedFrom: ["PROCESSING", "PACKED", "SHIPPED"],
+        description: "Update shipping courier details and tracking number for this suborder.",
+        successMessage: "Informasi pengiriman dan nomor resi berhasil diperbarui.",
         auditAction: SELLER_FULFILLMENT_AUDIT_ACTIONS.MARK_SHIPPED,
     },
     MARK_DELIVERED: {
@@ -1851,10 +1861,13 @@ router.patch("/stores/:storeId/suborders/:suborderId/fulfillment", requireSeller
         const rawShippingFee = req.body?.shippingFee;
         const rawPackageWeight = req.body?.packageWeight ?? req.body?.totalWeight;
         const actionDefinition = FULFILLMENT_ACTIONS[actionCode] ?? null;
-        const shippingFee = actionCode === "MARK_SHIPPED" || actionCode === "MARK_PROCESSING"
+        const isShippingAction = actionCode === "MARK_SHIPPED" ||
+            actionCode === "MARK_PROCESSING" ||
+            actionCode === "UPDATE_TRACKING";
+        const shippingFee = isShippingAction
             ? parseOptionalNonNegativeAmount(rawShippingFee)
             : null;
-        const packageWeight = actionCode === "MARK_SHIPPED" || actionCode === "MARK_PROCESSING"
+        const packageWeight = isShippingAction
             ? parseOptionalNonNegativeAmount(rawPackageWeight)
             : null;
         if (!whereCondition) {
@@ -1871,7 +1884,7 @@ router.patch("/stores/:storeId/suborders/:suborderId/fulfillment", requireSeller
                 message: "Invalid seller fulfillment action.",
             });
         }
-        if ((actionCode === "MARK_SHIPPED" || actionCode === "MARK_PROCESSING") &&
+        if (isShippingAction &&
             rawShippingFee !== undefined &&
             rawShippingFee !== null &&
             String(rawShippingFee).trim() !== "" &&
@@ -1988,7 +2001,21 @@ router.patch("/stores/:storeId/suborders/:suborderId/fulfillment", requireSeller
         }
         const isCanonicalShipmentTransition = Boolean(actionDefinition.shipmentStatus) &&
             actionDefinition.shipmentStatus !== actionDefinition.nextStatus;
-        if (currentFulfillmentStatus === actionDefinition.nextStatus && !isCanonicalShipmentTransition) {
+        // Gracefully handle idempotent MARK_PROCESSING if suborder is already packed/processing
+        if (actionDefinition.code === "MARK_PROCESSING" &&
+            (currentFulfillmentStatus === "PROCESSING" || currentFulfillmentStatus === "PACKED")) {
+            await tx.rollback();
+            tx = null;
+            return res.status(200).json({
+                success: true,
+                code: "FULFILLMENT_ALREADY_PACKED",
+                message: "Pesanan sudah dalam status dikemas (Packed). Silakan masukkan nomor resi pengiriman dan klik Kirim Pesanan.",
+                fulfillmentStatus: currentFulfillmentStatus,
+            });
+        }
+        if (actionDefinition.code !== "UPDATE_TRACKING" &&
+            currentFulfillmentStatus === actionDefinition.nextStatus &&
+            !isCanonicalShipmentTransition) {
             await tx.rollback();
             tx = null;
             return res.status(409).json({
@@ -2017,7 +2044,9 @@ router.patch("/stores/:storeId/suborders/:suborderId/fulfillment", requireSeller
                 trackingNumber,
             },
         });
-        if ((actionDefinition.code === "MARK_SHIPPED" || actionDefinition.code === "MARK_PROCESSING") &&
+        if ((actionDefinition.code === "MARK_SHIPPED" ||
+            actionDefinition.code === "MARK_PROCESSING" ||
+            actionDefinition.code === "UPDATE_TRACKING") &&
             (shippingFee !== null || packageWeight !== null) &&
             shipmentSync.shipment) {
             await syncSellerShipmentFinancials({

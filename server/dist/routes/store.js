@@ -433,6 +433,9 @@ const sanitizePublicTrackingEvent = (event) => {
         statusMeta,
         note: String(event.note || event.eventDescription || "").trim() || null,
         happenedAt: event.happenedAt || event.occurredAt || event.createdAt || null,
+        trackingNumber: event.trackingNumber ? String(event.trackingNumber) : null,
+        courierCode: event.courierCode ? String(event.courierCode) : null,
+        courierService: event.courierService ? String(event.courierService) : null,
     };
 };
 const sanitizePublicShipment = (shipment) => {
@@ -545,6 +548,11 @@ const sanitizePublicStoreSplit = (split) => {
         shippingStatusMeta: split.shippingStatusMeta && typeof split.shippingStatusMeta === "object"
             ? split.shippingStatusMeta
             : null,
+        courierCode: split.courierCode || (Array.isArray(split.shipments) && split.shipments[0]?.courierCode) || null,
+        courierService: split.courierService || (Array.isArray(split.shipments) && split.shipments[0]?.courierService) || null,
+        trackingNumber: split.trackingNumber || (Array.isArray(split.shipments) && split.shipments[0]?.trackingNumber) || null,
+        shippingFee: Number(split.shippingFee || (Array.isArray(split.shipments) && split.shipments[0]?.shippingFee) || 0),
+        shipments: Array.isArray(split.shipments) ? split.shipments.map(sanitizePublicShipment).filter(Boolean) : [],
         latestTrackingEvent: sanitizePublicTrackingEvent(split.latestTrackingEvent),
         hasActiveShipment: Boolean(split.hasActiveShipment),
         hasTrackingNumber: Boolean(split.hasTrackingNumber),
@@ -2979,6 +2987,7 @@ router.get("/orders/:ref", publicTrackingRateLimit, async (req, res, next) => {
                     paymentReadModel,
                     shipmentReadModel: shippingSummary,
                 });
+                const activeShipment = (Array.isArray(shippingSummary?.shipments) ? shippingSummary.shipments[0] : null) || null;
                 return {
                     suborderId: Number(getAttr(suborder, "id") || 0),
                     suborderNumber: String(getAttr(suborder, "suborderNumber") || ""),
@@ -2986,6 +2995,10 @@ router.get("/orders/:ref", publicTrackingRateLimit, async (req, res, next) => {
                     storeName: String(getAttr(store, "name") || `Store #${getAttr(suborder, "storeId")}`),
                     storeSlug: getAttr(store, "slug") ? String(getAttr(store, "slug")) : null,
                     storeLogoUrl: normalizeUploadsUrl(String(getAttr(store, "logoUrl") || "").trim() || null),
+                    courierCode: activeShipment?.courierCode ?? null,
+                    courierService: activeShipment?.courierService ?? null,
+                    trackingNumber: activeShipment?.trackingNumber ?? null,
+                    shippingFee: Number(activeShipment?.shippingFee ?? getAttr(suborder, "shippingAmount") ?? 0),
                     totalAmount: Number(getAttr(suborder, "totalAmount") || 0),
                     paymentStatus,
                     paymentStatusMeta: buildPaymentStatusMeta(paymentStatus),

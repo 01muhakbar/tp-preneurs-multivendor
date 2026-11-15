@@ -648,7 +648,10 @@ export function adaptSeller2026SuborderDetail(value: unknown): Seller2026Suborde
   const pkg = object(detail.package);
   const totalWeight = number(pkg.weight ?? pkg.totalWeight, calculatedTotalWeight);
   const shipments = array(detail.shipments).map(object);
-  const trackingEvents = shipments.flatMap((shipment) => array(shipment.trackingEvents ?? shipment.events));
+  const activeShipment = shipments[0] || object(detail.shipment);
+  const trackingEvents = shipments.length > 0
+    ? shipments.flatMap((shipment) => array(shipment.trackingEvents ?? shipment.events))
+    : array(activeShipment.trackingEvents ?? detail.trackingEvents);
   const printLabel = object(detail.printLabel);
 
   const isShippingStatusEnum = (val: string) =>
@@ -656,8 +659,9 @@ export function adaptSeller2026SuborderDetail(value: unknown): Seller2026Suborde
       String(val || "").trim().toUpperCase()
     );
 
-  const rawMethod = text(shipments[0]?.courierService ?? detail.shippingMethod ?? detail.deliveryMethod);
-  const rawCourier = text(shipments[0]?.courierCode ?? shipments[0]?.courierService ?? detail.courierCode);
+  const rawMethod = text(activeShipment?.courierService ?? detail.shippingMethod ?? detail.deliveryMethod);
+  const rawCourier = text(activeShipment?.courierCode ?? activeShipment?.courierService ?? detail.courierCode);
+  const rawTrackingNo = text(activeShipment?.trackingNumber ?? detail.trackingNumber);
 
   const rawPaymentStatus = text(
     detailPaymentMeta.code ?? paymentState.code ?? detail.paymentStatus ?? paymentSummary.status,
@@ -702,10 +706,10 @@ export function adaptSeller2026SuborderDetail(value: unknown): Seller2026Suborde
     },
     shipping: {
       method: isShippingStatusEnum(rawMethod) ? undefined : (rawMethod || undefined),
-      trackingNo: text(shipments[0]?.trackingNumber, "No tracking number yet."),
+      trackingNo: text(rawTrackingNo, ""),
       courier: isShippingStatusEnum(rawCourier) ? undefined : (rawCourier || undefined),
-      estimate: text(shipments[0]?.estimate) || undefined,
-      shippingFee: number(totals.shippingAmount ?? sellerScope.shippingAmount ?? shipments[0]?.shippingFee, 0),
+      estimate: text(activeShipment?.estimate) || undefined,
+      shippingFee: number(totals.shippingAmount ?? sellerScope.shippingAmount ?? activeShipment?.shippingFee, 0),
       totalWeight,
     },
     package: {

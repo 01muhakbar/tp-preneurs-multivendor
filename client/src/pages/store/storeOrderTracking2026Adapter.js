@@ -220,6 +220,15 @@ const normalizeTimeline = (events, isIndo = false) =>
     };
   });
 
+const formatCourierDisplay = (code, service) => {
+  const c = text(code);
+  const s = text(service);
+  if (c && s && c.toLowerCase() !== s.toLowerCase()) {
+    return `${c} (${s})`;
+  }
+  return c || s || "";
+};
+
 const normalizeShipments = (tracking, storeSplits, isIndo = false) => {
   const persisted = normalizeShipmentList(tracking.shipments);
   if (persisted.length) {
@@ -234,7 +243,7 @@ const normalizeShipments = (tracking, storeSplits, isIndo = false) => {
       },
       sourceLabel: isIndo ? "Pengiriman Toko" : "Store Shipment",
       trackingNumber: text(shipment.trackingNumber),
-      courier: text(shipment.courierService || shipment.courierCode),
+      courier: formatCourierDisplay(shipment.courierCode, shipment.courierService),
       itemCount: shipment.shipmentItems.length,
       estimatedDelivery: shipment.estimatedDelivery || null,
       timeline: normalizeTimeline(shipment.trackingEvents, isIndo),
@@ -244,6 +253,15 @@ const normalizeShipments = (tracking, storeSplits, isIndo = false) => {
   return storeSplits.map((split, index) => {
     const shipment = getSplitOperationalShipment(split);
     const summary = getSplitOperationalStatusSummary(split);
+    const splitCourier = formatCourierDisplay(
+      split.courierCode || split.shipments?.[0]?.courierCode,
+      split.courierService || split.shipments?.[0]?.courierService
+    );
+    const splitTracking = text(
+      split.trackingNumber ||
+      split.shipments?.[0]?.trackingNumber ||
+      split.latestTrackingEvent?.trackingNumber
+    );
     return {
       id: split.suborderId ?? index,
       storeName: text(split.storeName, isIndo ? "Toko" : "Store"),
@@ -254,8 +272,8 @@ const normalizeShipments = (tracking, storeSplits, isIndo = false) => {
         tone: normalizeTone(summary?.tone || shipment.statusMeta?.tone, shipment.status),
       },
       sourceLabel: isIndo ? "Pesanan Toko" : "Store Order",
-      trackingNumber: text(split.latestTrackingEvent?.trackingNumber || split.trackingNumber),
-      courier: text(split.courierCode || split.courierService),
+      trackingNumber: splitTracking,
+      courier: splitCourier,
       itemCount: array(split.items).length,
       estimatedDelivery: split.estimatedDelivery || null,
       timeline: split.latestTrackingEvent

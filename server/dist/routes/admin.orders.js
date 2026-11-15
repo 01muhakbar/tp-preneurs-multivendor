@@ -934,6 +934,17 @@ const toOrderDetailPayload = (orderItem, paymentCode = null) => {
             fulfillmentStatusMeta: buildFulfillmentStatusMeta(fulfillmentStatus),
             shippingStatus: shippingSummary?.shippingStatus ?? fulfillmentStatus,
             shippingStatusMeta: shippingSummary?.shippingStatusMeta ?? buildFulfillmentStatusMeta(fulfillmentStatus),
+            courierCode: shippingSummary?.courierCode ||
+                (Array.isArray(shippingSummary?.shipments) && shippingSummary.shipments[0]?.courierCode) ||
+                null,
+            courierService: shippingSummary?.courierService ||
+                (Array.isArray(shippingSummary?.shipments) && shippingSummary.shipments[0]?.courierService) ||
+                null,
+            trackingNumber: shippingSummary?.trackingNumber ||
+                (Array.isArray(shippingSummary?.shipments) && shippingSummary.shipments[0]?.trackingNumber) ||
+                null,
+            shippingFee: Number(shippingSummary?.shippingFee ?? getAttr(suborder, "shippingAmount") ?? 0),
+            shipments: Array.isArray(shippingSummary?.shipments) ? shippingSummary.shipments : [],
             usedLegacyFallback: Boolean(shippingSummary?.usedLegacyFallback),
             hasPersistedShipment: Boolean(shippingSummary?.hasPersistedShipment),
             compatibilityMatchesStorage: typeof shippingSummary?.compatibilityMatchesStorage === "boolean"

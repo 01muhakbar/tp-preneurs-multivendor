@@ -6,10 +6,9 @@ const normalizeBoolean = (value: unknown, fallback: boolean) => {
   return fallback;
 };
 
-const nonProductionDefault = process.env.NODE_ENV !== "production";
-
+// Multistore shipment MVP is standard for our multivendor architecture in both dev and production
 export const isMultistoreShipmentMvpEnabled = () =>
-  normalizeBoolean(process.env.ENABLE_MULTISTORE_SHIPMENT_MVP, nonProductionDefault);
+  normalizeBoolean(process.env.ENABLE_MULTISTORE_SHIPMENT_MVP, true);
 
 export const isMultistoreShipmentMutationEnabled = () =>
-  normalizeBoolean(process.env.ENABLE_MULTISTORE_SHIPMENT_MUTATION, nonProductionDefault);
+  normalizeBoolean(process.env.ENABLE_MULTISTORE_SHIPMENT_MUTATION, true);

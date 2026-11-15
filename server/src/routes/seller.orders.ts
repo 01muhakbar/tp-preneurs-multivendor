@@ -98,6 +98,16 @@ const FULFILLMENT_ACTIONS = {
     successMessage: "Suborder marked as shipped.",
     auditAction: SELLER_FULFILLMENT_AUDIT_ACTIONS.MARK_SHIPPED,
   },
+  UPDATE_TRACKING: {
+    code: "UPDATE_TRACKING",
+    label: "Update tracking",
+    nextStatus: "SHIPPED",
+    shipmentStatus: "SHIPPED",
+    allowedFrom: ["PROCESSING", "PACKED", "SHIPPED"],
+    description: "Update shipping courier details and tracking number for this suborder.",
+    successMessage: "Informasi pengiriman dan nomor resi berhasil diperbarui.",
+    auditAction: SELLER_FULFILLMENT_AUDIT_ACTIONS.MARK_SHIPPED,
+  },
   MARK_DELIVERED: {
     code: "MARK_DELIVERED",
     label: "Mark delivered",
@@ -2144,14 +2154,16 @@ router.patch(
       const rawPackageWeight = req.body?.packageWeight ?? req.body?.totalWeight;
       const actionDefinition =
         FULFILLMENT_ACTIONS[actionCode as keyof typeof FULFILLMENT_ACTIONS] ?? null;
-      const shippingFee =
-        actionCode === "MARK_SHIPPED" || actionCode === "MARK_PROCESSING"
-          ? parseOptionalNonNegativeAmount(rawShippingFee)
-          : null;
-      const packageWeight =
-        actionCode === "MARK_SHIPPED" || actionCode === "MARK_PROCESSING"
-          ? parseOptionalNonNegativeAmount(rawPackageWeight)
-          : null;
+      const isShippingAction =
+        actionCode === "MARK_SHIPPED" ||
+        actionCode === "MARK_PROCESSING" ||
+        actionCode === "UPDATE_TRACKING";
+      const shippingFee = isShippingAction
+        ? parseOptionalNonNegativeAmount(rawShippingFee)
+        : null;
+      const packageWeight = isShippingAction
+        ? parseOptionalNonNegativeAmount(rawPackageWeight)
+        : null;
 
       if (!whereCondition) {
         return res.status(400).json({
@@ -2170,7 +2182,7 @@ router.patch(
       }
 
       if (
-        (actionCode === "MARK_SHIPPED" || actionCode === "MARK_PROCESSING") &&
+        isShippingAction &&
         rawShippingFee !== undefined &&
         rawShippingFee !== null &&
         String(rawShippingFee).trim() !== "" &&
@@ -2321,7 +2333,11 @@ router.patch(
         });
       }
 
-      if (currentFulfillmentStatus === actionDefinition.nextStatus && !isCanonicalShipmentTransition) {
+      if (
+        actionDefinition.code !== "UPDATE_TRACKING" &&
+        currentFulfillmentStatus === actionDefinition.nextStatus &&
+        !isCanonicalShipmentTransition
+      ) {
         await tx.rollback();
         tx = null;
         return res.status(409).json({
@@ -2358,7 +2374,9 @@ router.patch(
       });
 
       if (
-        (actionDefinition.code === "MARK_SHIPPED" || actionDefinition.code === "MARK_PROCESSING") &&
+        (actionDefinition.code === "MARK_SHIPPED" ||
+          actionDefinition.code === "MARK_PROCESSING" ||
+          actionDefinition.code === "UPDATE_TRACKING") &&
         (shippingFee !== null || packageWeight !== null) &&
         shipmentSync.shipment
       ) {

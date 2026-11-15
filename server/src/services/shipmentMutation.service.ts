@@ -119,6 +119,14 @@ const SELLER_ACTION_SHIPMENT_STATUS: Record<
     eventLabel: "Shipped",
     eventDescription: "Seller dispatched the shipment and provided tracking details.",
   },
+  UPDATE_TRACKING: {
+    shipmentStatus: "SHIPPED",
+    compatibilityFulfillmentStatus: "SHIPPED",
+    allowedFrom: ["READY_TO_FULFILL", "PACKED", "SHIPPED", "IN_TRANSIT"],
+    eventType: "TRACKING_UPDATED",
+    eventLabel: "Tracking Updated",
+    eventDescription: "Seller updated courier shipping information and tracking number.",
+  },
   MARK_DELIVERED: {
     shipmentStatus: "DELIVERED",
     compatibilityFulfillmentStatus: "DELIVERED",
@@ -341,7 +349,29 @@ export const applySellerShipmentFulfillment = async (input: {
     };
   }
 
-  const shipment =
+  const storeScope =
+    input.suborder?.store ??
+    input.suborder?.get?.("store") ??
+    (await Store.findByPk(toNumber(getAttr(input.suborder, "storeId"), 0), {
+      attributes: [
+        "id",
+        "name",
+        "phone",
+        "whatsapp",
+        "addressLine1",
+        "addressLine2",
+        "city",
+        "province",
+        "postalCode",
+        "country",
+        "shippingSetup",
+        "ownerUserId",
+        "owner_user_id",
+      ],
+      transaction: input.transaction,
+    }));
+
+  let shipment =
     input.suborder?.shipment ??
     input.suborder?.get?.("shipment") ??
     (await Shipment.findOne({
@@ -358,6 +388,47 @@ export const applySellerShipmentFulfillment = async (input: {
       transaction: input.transaction,
       lock: input.transaction?.LOCK?.UPDATE ? input.transaction.LOCK.UPDATE : undefined,
     }));
+
+  if (!shipment) {
+    const suborderId = toNumber(getAttr(input.suborder, "id"), 0);
+    const orderId = toNumber(getAttr(input.suborder, "orderId"), 0);
+    const storeId = toNumber(getAttr(input.suborder, "storeId"), 0);
+    const order = input.suborder?.order ?? input.suborder?.get?.("order") ?? null;
+    const shippingDetails = getAttr(order, "shippingDetails") || null;
+    const sellerUserId =
+      toNumber(getAttr(storeScope, "ownerUserId"), 0) ||
+      toNumber(getAttr(storeScope, "owner_user_id"), 0) ||
+      null;
+
+    if (orderId > 0 && suborderId > 0 && storeId > 0) {
+      shipment = await Shipment.create(
+        {
+          orderId,
+          suborderId,
+          storeId,
+          sellerUserId,
+          status: "READY_TO_FULFILL",
+          courierCode: normalizeText(input.payload?.courierCode) || null,
+          courierService: normalizeText(input.payload?.courierService) || null,
+          trackingNumber: normalizeText(input.payload?.trackingNumber) || null,
+          shippingFee: Math.max(0, toNumber(getAttr(input.suborder, "shippingAmount"), 0)),
+          shippingAddressSnapshot: shippingDetails,
+        } as any,
+        { transaction: input.transaction }
+      );
+
+      await appendTrackingEvent({
+        shipmentId: shipment.id,
+        eventType: "ORDER_CREATED",
+        eventLabel: "Pesanan Dibuat",
+        eventDescription: "Pesanan berhasil dibuat oleh pembeli.",
+        source: "SYSTEM",
+        actorType: "SYSTEM",
+        actorId: null,
+        transaction: input.transaction,
+      });
+    }
+  }
 
   if (!shipment) {
     if (action.requiresPersistedShipment) {
@@ -380,25 +451,6 @@ export const applySellerShipmentFulfillment = async (input: {
     );
   }
 
-  const storeScope =
-    input.suborder?.store ??
-    input.suborder?.get?.("store") ??
-    (await Store.findByPk(toNumber(getAttr(input.suborder, "storeId"), 0), {
-      attributes: [
-        "id",
-        "name",
-        "phone",
-        "whatsapp",
-        "addressLine1",
-        "addressLine2",
-        "city",
-        "province",
-        "postalCode",
-        "country",
-        "shippingSetup",
-      ],
-      transaction: input.transaction,
-    }));
   const shippingSetupReadiness = buildStoreShippingSetupReadiness(storeScope);
   if (!shippingSetupReadiness.isShippingReady) {
     throw createShipmentMutationError(
@@ -415,7 +467,9 @@ export const applySellerShipmentFulfillment = async (input: {
   });
 
   const currentShipmentStatus = resolveEffectiveShipmentStatus(shipment, input.suborder);
-  if (currentShipmentStatus === action.shipmentStatus) {
+  const isUpdateTracking = input.actionCode === "UPDATE_TRACKING";
+
+  if (!isUpdateTracking && currentShipmentStatus === action.shipmentStatus) {
     throw createShipmentMutationError(
       "SHIPMENT_STATUS_ALREADY_SET",
       `Shipment is already ${action.eventLabel.toLowerCase()}.`
@@ -428,17 +482,18 @@ export const applySellerShipmentFulfillment = async (input: {
     );
   }
 
+  const courierCode = normalizeText(input.payload?.courierCode);
+  const courierService = normalizeText(input.payload?.courierService);
+  const trackingNumber = normalizeText(input.payload?.trackingNumber);
+
   if (action.shipmentStatus === "SHIPPED") {
-    const trackingNumber = normalizeText(input.payload?.trackingNumber);
-    const courierCode = normalizeText(input.payload?.courierCode);
-    const courierService = normalizeText(input.payload?.courierService);
-    if (!trackingNumber) {
+    if (!trackingNumber && !isUpdateTracking) {
       throw createShipmentMutationError(
         "TRACKING_NUMBER_REQUIRED",
         "Tracking number is required before the shipment can be marked as shipped."
       );
     }
-    if (!courierCode && !courierService) {
+    if (!courierCode && !courierService && !isUpdateTracking) {
       throw createShipmentMutationError(
         "COURIER_DETAILS_REQUIRED",
         "Courier code or courier service is required before the shipment can be marked as shipped."
@@ -449,37 +504,31 @@ export const applySellerShipmentFulfillment = async (input: {
   const updatePayload: Record<string, unknown> = {
     status: action.shipmentStatus,
   };
-  if (action.shipmentStatus === "SHIPPED") {
-    const courierCode = normalizeText(input.payload?.courierCode);
-    const courierService = normalizeText(input.payload?.courierService);
-    const trackingNumber = normalizeText(input.payload?.trackingNumber);
-    updatePayload.courierCode = courierCode || null;
-    updatePayload.courierService = courierService || null;
-    updatePayload.trackingNumber = trackingNumber || null;
-  }
+  if (courierCode) updatePayload.courierCode = courierCode;
+  if (courierService) updatePayload.courierService = courierService;
+  if (trackingNumber) updatePayload.trackingNumber = trackingNumber;
 
   await shipment.update(updatePayload as any, { transaction: input.transaction });
+
+  const effectiveDescription =
+    isUpdateTracking && (courierCode || courierService || trackingNumber)
+      ? `Informasi pengiriman diperbarui: ${[courierCode, courierService].filter(Boolean).join(" - ")}${trackingNumber ? ` (Resi: ${trackingNumber})` : ""}`
+      : action.eventDescription;
 
   await appendTrackingEvent({
     shipmentId: toNumber(getAttr(shipment, "id"), 0),
     eventType: action.eventType,
     eventLabel: action.eventLabel,
-    eventDescription: action.eventDescription,
+    eventDescription: effectiveDescription,
     source: "SELLER",
     actorType: "USER",
     actorId: input.actorUserId ?? null,
     metadata: {
       actionCode: input.actionCode,
       suborderId: toNumber(getAttr(input.suborder, "id"), 0) || null,
-      courierCode: action.shipmentStatus === "SHIPPED" ? normalizeText(input.payload?.courierCode) || null : null,
-      courierService:
-        action.shipmentStatus === "SHIPPED"
-          ? normalizeText(input.payload?.courierService) || null
-          : null,
-      trackingNumber:
-        action.shipmentStatus === "SHIPPED"
-          ? normalizeText(input.payload?.trackingNumber) || null
-          : null,
+      courierCode: courierCode || null,
+      courierService: courierService || null,
+      trackingNumber: trackingNumber || null,
     },
     transaction: input.transaction,
   });

@@ -383,6 +383,10 @@ const I18N = {
     tipShipOrder: "Tekan setelah paket diserahkan & nomor resi terisi",
     alreadyPacked: "Sudah Dikemas",
     alreadyPackedDesc: "Produk sudah selesai dikemas dan siap untuk dikirim.",
+    editShipping: "Ubah Resi / Kurir",
+    saveShipping: "Simpan Informasi Pengiriman",
+    cancelEditShipping: "Batal Ubah",
+    missingTrackingNotice: "Nomor resi belum tersimpan. Masukkan nomor resi ekspedisi pada formulir di bawah agar pembeli dapat melacak paket.",
     guidanceTitle: "Panduan Tombol Tindakan:",
     guidanceMarkPacked: "Tandai Siap Dikemas: Klik setelah barang selesai dipacking rapi ke dalam kardus/paket.",
     guidanceShipOrder: "Kirim Pesanan: Masukkan nomor resi ekspedisi di bawah sebelum mengklik tombol ini.",
@@ -487,6 +491,10 @@ const I18N = {
     tipShipOrder: "Click when dispatched & tracking number is entered",
     alreadyPacked: "Packed",
     alreadyPackedDesc: "Product packaging completed and ready to ship.",
+    editShipping: "Edit Courier / Tracking",
+    saveShipping: "Save Shipping Details",
+    cancelEditShipping: "Cancel",
+    missingTrackingNotice: "Tracking number not saved yet. Enter courier tracking details below so the customer can track the package.",
     guidanceTitle: "Action Buttons Guide:",
     guidanceMarkPacked: "Mark as Packed: Click once items are packaged and boxed.",
     guidanceShipOrder: "Ship Order: Enter courier tracking number below before clicking this button.",
@@ -708,8 +716,19 @@ export default function SellerSuborderDetail2026PageView({
   const isShipped = bucket === "shipping" || fulfillmentCode === "SHIPPED";
   const isDelivered = bucket === "completed" || fulfillmentCode === "DELIVERED";
 
-  // Editable shipping details whenever order is ready to fulfill / to pack
-  const canEditShipping = isToPack || (!isShipped && !isDelivered && isPaid);
+  const [isEditingShipping, setIsEditingShipping] = useState(false);
+  const rawTrackingNumber = String(order.shipping?.trackingNo || "").trim();
+  const hasRecordedTracking = Boolean(
+    rawTrackingNumber &&
+    !rawTrackingNumber.toLowerCase().includes("no tracking") &&
+    !rawTrackingNumber.toLowerCase().includes("belum ada")
+  );
+
+  // Editable shipping details whenever order is ready to fulfill / to pack, OR when shipped without tracking, OR when seller clicks edit
+  const canEditShipping =
+    isToPack ||
+    (!isShipped && !isDelivered && isPaid) ||
+    (isShipped && !isDelivered && (!hasRecordedTracking || isEditingShipping));
 
   const catalogCalculatedWeight = Number(order.package?.calculatedWeight ?? order.package?.weight ?? 0);
   const draftWeightRaw = fulfillmentDraft.packageWeight ?? fulfillmentDraft.totalWeight;
@@ -764,7 +783,7 @@ export default function SellerSuborderDetail2026PageView({
 
   const handleActionClick = (action) => {
     setValidationError("");
-    if (action === "MARK_SHIPPED" && !isDigitalOrder) {
+    if ((action === "MARK_SHIPPED" || action === "UPDATE_TRACKING") && !isDigitalOrder) {
       const tracking = String(fulfillmentDraft.trackingNumber || "").trim();
       if (!tracking) {
         setValidationError(t.fillTrackingAlert || t.shippingRequired);
@@ -780,6 +799,9 @@ export default function SellerSuborderDetail2026PageView({
     }
     if (onFulfillmentAction) {
       onFulfillmentAction(action, fulfillmentDraft);
+      if (action === "UPDATE_TRACKING") {
+        setIsEditingShipping(false);
+      }
     }
   };
 
@@ -1137,6 +1159,12 @@ export default function SellerSuborderDetail2026PageView({
               </div>
             ) : (
               <>
+                {isShipped && !hasRecordedTracking && (
+                  <div className="tpsodp2026-field-error" style={{ marginBottom: "1rem" }}>
+                    <AlertTriangle size={15} />
+                    <span>{t.missingTrackingNotice}</span>
+                  </div>
+                )}
                 <div className="tpsodp2026-shipping-grid">
               {/* Courier Selection */}
               <div className="tpsodp2026-field">
@@ -1410,16 +1438,52 @@ export default function SellerSuborderDetail2026PageView({
               )}
 
               {isShipped && (
-                <button
-                  type="button"
-                  className="tpsodp2026-btn-primary"
-                  onClick={() => handleActionClick("MARK_DELIVERED")}
-                  disabled={isUpdating}
-                  title={t.btnMarkDelivered}
-                >
-                  <CheckCircle2 size={16} />
-                  <span>{t.btnMarkDelivered}</span>
-                </button>
+                <>
+                  {canEditShipping && (
+                    <button
+                      type="button"
+                      className="tpsodp2026-btn-accent"
+                      onClick={() => handleActionClick("UPDATE_TRACKING")}
+                      disabled={isUpdating}
+                      title={t.saveShipping}
+                    >
+                      <Truck size={16} />
+                      <span>{t.saveShipping}</span>
+                    </button>
+                  )}
+                  {hasRecordedTracking && !isEditingShipping && (
+                    <button
+                      type="button"
+                      className="tpsodp2026-btn-outline"
+                      onClick={() => setIsEditingShipping(true)}
+                      disabled={isUpdating}
+                      title={t.editShipping}
+                    >
+                      <span>{t.editShipping}</span>
+                    </button>
+                  )}
+                  {isEditingShipping && (
+                    <button
+                      type="button"
+                      className="tpsodp2026-btn-outline"
+                      onClick={() => setIsEditingShipping(false)}
+                      disabled={isUpdating}
+                      title={t.cancelEditShipping}
+                    >
+                      <span>{t.cancelEditShipping}</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="tpsodp2026-btn-primary"
+                    onClick={() => handleActionClick("MARK_DELIVERED")}
+                    disabled={isUpdating}
+                    title={t.btnMarkDelivered}
+                  >
+                    <CheckCircle2 size={16} />
+                    <span>{t.btnMarkDelivered}</span>
+                  </button>
+                </>
               )}
             </div>
           </>
