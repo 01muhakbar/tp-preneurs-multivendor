@@ -1,532 +1,809 @@
-import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import React, { useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
+  AlertCircle,
   AlertTriangle,
+  ArrowDownToLine,
   BadgeCheck,
+  Building2,
   Check,
   CheckCircle2,
   Clock3,
   CreditCard,
   Download,
+  ExternalLink,
   Eye,
-  Grid2X2,
-  List,
-  MoreHorizontal,
+  FileText,
+  HelpCircle,
+  History,
+  Info,
+  Loader2,
+  PackageCheck,
   RefreshCw,
   Search,
   ShieldCheck,
+  Truck,
+  Wallet,
   X,
 } from "lucide-react";
 import { useSellerWorkspace2026PaymentCenter } from "../../../features/sellerWorkspace2026/hooks/useSellerWorkspace2026PaymentCenter.js";
-import WithdrawalStatusTimeline from "../../../components/withdrawals/WithdrawalStatusTimeline.jsx";
 import { resolveAssetUrl } from "../../../lib/assetUrl.js";
-import { getWithdrawalFinancials, getWithdrawalStatusMeta } from "../../../lib/withdrawalStatus.js";
+import {
+  getWithdrawalFinancials,
+  getWithdrawalStatusMeta,
+} from "../../../lib/withdrawalStatus.js";
 import { useSellerWorkspaceRoute } from "../../../utils/sellerWorkspaceRoute.js";
 import { getSeller2026PagePermissions } from "./seller2026PagePermissions.js";
-import "../../../features/sellerWorkspace2026/SellerWorkspace2026.css";
+import "./SellerWithdrawalsPage2026.css";
 
-const readNumber = (value, fallback) => {
-  const number = Number(value);
-  return Number.isInteger(number) && number > 0 ? number : fallback;
-};
+const formatMoney = (val) =>
+  `Rp ${Number(val || 0).toLocaleString("id-ID")}`;
 
-const currency = (value) =>
-  `Rp ${new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(Number(value || 0))}`;
-
-const dateLabel = (value) => {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("en-GB", {
+const formatDate = (val, isId = false) => {
+  if (!val) return "-";
+  const d = new Date(val);
+  if (Number.isNaN(d.getTime())) return "-";
+  return new Intl.DateTimeFormat(isId ? "id-ID" : "en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
-  }).format(date);
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(d);
 };
 
-const normalizeText = (value) => String(value || "").trim();
-const maskAccountNumber = (value) => {
-  const normalized = normalizeText(value).replace(/\s+/g, "");
-  if (!normalized) return "-";
-  if (normalized.length <= 4) return normalized;
-  return `${"*".repeat(Math.max(0, normalized.length - 4))}${normalized.slice(-4)}`;
+const maskAccountNumber = (val) => {
+  const s = String(val || "").replace(/\s+/g, "");
+  if (!s || s === "-") return "-";
+  if (s.length <= 4) return s;
+  return `${"*".repeat(Math.max(0, s.length - 4))}${s.slice(-4)}`;
 };
-
-const statusTone = (value) => {
-  const normalized = normalizeText(value).toLowerCase();
-  if (["verified", "completed", "active", "ready", "approved"].some((item) => normalized.includes(item))) {
-    return "success";
-  }
-  if (["pending", "review", "processing", "submitted"].some((item) => normalized.includes(item))) {
-    return "warning";
-  }
-  if (["rejected", "failed", "inactive", "missing"].some((item) => normalized.includes(item))) {
-    return "danger";
-  }
-  return "neutral";
-};
-
-function Pill({ children }) {
-  return <span className={`seller2026-pill seller2026-pill--${statusTone(children)}`}>{children || "-"}</span>;
-}
-
-function PaymentCenterSkeleton() {
-  return (
-    <div className="seller2026-dashboard seller2026-payment-center" aria-label="Loading payment center">
-      <div className="seller2026-skeleton" />
-      <div className="seller2026-skeleton seller2026-skeleton--hero" />
-    </div>
-  );
-}
 
 export function SellerPaymentCenterPage() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { sellerContext, workspaceStoreSlug, isId = false } = useSellerWorkspaceRoute();
   const { can } = getSeller2026PagePermissions(sellerContext);
-  const canView = can("PAYMENT_STATUS_VIEW") || can("PAYMENT_PROFILE_VIEW");
+  const canView = can("STORE_VIEW") || can("PAYMENT_PROFILE_VIEW") || can("PAYMENT_STATUS_VIEW");
+
   const {
     data,
     loading,
     error,
-    usingFallback,
-    selectedPaymentId,
-    setSelectedPaymentId,
     refetch,
     actions,
     actionState,
-    withdrawals,
+    withdrawals = [],
     withdrawalMeta,
   } = useSellerWorkspace2026PaymentCenter(workspaceStoreSlug);
-  const [reviewNote, setReviewNote] = useState("");
+
+  const [activeTab, setActiveTab] = useState("history"); // "history" | "breakdown"
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [view, setView] = useState("list");
+  const [proofModalUrl, setProofModalUrl] = useState(null);
 
-  const query = {
-    search: searchParams.get("q") || "",
-    status: searchParams.get("status") || "all",
-    method: searchParams.get("method") || "all",
-    page: readNumber(searchParams.get("page"), 1),
-    limit: readNumber(searchParams.get("limit"), 10),
-  };
-
-  const reviews = Array.isArray(data?.paymentReviews) ? data.paymentReviews : [];
-  const methods = useMemo(() => {
-    const unique = new Set(reviews.map((row) => normalizeText(row.method)).filter(Boolean));
-    return ["all", ...Array.from(unique)];
-  }, [reviews]);
-
-  const statuses = useMemo(() => {
-    const unique = new Set(reviews.map((row) => normalizeText(row.status)).filter(Boolean));
-    return ["all", ...Array.from(unique)];
-  }, [reviews]);
-
-  const filteredReviews = useMemo(() => {
-    const needle = normalizeText(query.search).toLowerCase();
-    return reviews.filter((row) => {
-      const searchable = [
-        row.invoiceNumber,
-        row.orderId,
-        row.buyerName,
-        row.buyerEmail,
-        row.buyerPhone,
-        row.method,
-        row.status,
-      ]
-        .map((item) => normalizeText(item).toLowerCase())
-        .join(" ");
-      const statusOk = query.status === "all" || normalizeText(row.status) === query.status;
-      const methodOk = query.method === "all" || normalizeText(row.method) === query.method;
-      return (!needle || searchable.includes(needle)) && statusOk && methodOk;
-    });
-  }, [query.method, query.search, query.status, reviews]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredReviews.length / query.limit));
-  const safePage = Math.min(query.page, totalPages);
-  const pagedReviews = filteredReviews.slice((safePage - 1) * query.limit, safePage * query.limit);
-  const selectedReview = reviews.find((row) => row.id === selectedPaymentId);
-  const payoutActive = data?.payoutProfile?.activationStatus === "Active";
-  const availableBalance =
-    withdrawalMeta?.balance?.availableBalance ??
+  // Available Balance calculation
+  const balanceObj = withdrawalMeta?.balance || {};
+  const availableBalance = Number(
+    balanceObj.availableBalance ??
     withdrawalMeta?.availableBalance ??
     data?.summary?.estimatedPayoutAmount ??
-    0;
+    0
+  );
+  const grossEligibleAmount = Number(
+    balanceObj.grossEligibleAmount ??
+    data?.summary?.estimatedPayoutAmount ??
+    0
+  );
+  const deliveredEligibleCount = Number(
+    balanceObj.deliveredEligibleCount ??
+    data?.summary?.withdrawalEligiblePayments ??
+    0
+  );
+  const waitingDeliveryCount = Number(
+    balanceObj.waitingDeliveryCount ??
+    data?.summary?.awaitingDeliveredPayments ??
+    0
+  );
+
+  // Payout Destination Profile
+  const payoutProfile = data?.payoutProfile || {};
+  const payoutDestination = payoutProfile.destination || null;
+  const payoutActive = payoutProfile.activationStatus === "Active";
+
+  // Withdrawal preview financials
   const withdrawalPreview = getWithdrawalFinancials(withdrawAmount || 0, {
-    adminFeeAmount: withdrawalMeta?.balance?.withdrawalAdminFeeAmount,
+    adminFeeAmount: balanceObj.withdrawalAdminFeeAmount || 6500,
   });
-  const payoutDestination = data?.payoutProfile?.destination || null;
-  const start = filteredReviews.length ? (safePage - 1) * query.limit + 1 : 0;
-  const end = Math.min(safePage * query.limit, filteredReviews.length);
 
-  const updateQuery = (updates) => {
-    const next = new URLSearchParams(searchParams);
-    Object.entries(updates).forEach(([key, value]) => {
-      const param = key === "search" ? "q" : key;
-      if (!value || value === "all" || (param === "page" && Number(value) === 1) || (param === "limit" && Number(value) === 10)) {
-        next.delete(param);
-      } else {
-        next.set(param, String(value));
-      }
+  // Filtered withdrawals list
+  const filteredWithdrawals = useMemo(() => {
+    return withdrawals.filter((item) => {
+      const statusMatch =
+        statusFilter === "ALL" ||
+        String(item.status || "").toUpperCase() === statusFilter;
+
+      const q = searchQuery.toLowerCase().trim();
+      if (!q) return statusMatch;
+
+      const searchable = [
+        String(item.id || ""),
+        String(item.bankName || ""),
+        String(item.accountNumber || ""),
+        String(item.accountName || ""),
+        String(item.amount || ""),
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return statusMatch && searchable.includes(q);
     });
-    setSearchParams(next);
-  };
+  }, [withdrawals, statusFilter, searchQuery]);
 
-  const resetFilters = () => {
-    setSearchParams({});
-    setSelectedPaymentId(null);
-  };
+  // Orders Breakdown from payment reviews / orders
+  const paidOrdersList = useMemo(() => {
+    const list = Array.isArray(data?.paymentReviews) ? data.paymentReviews : [];
+    return list;
+  }, [data?.paymentReviews]);
 
-  const openReview = (review) => {
-    setSelectedPaymentId(review.id);
-    setReviewNote("");
-  };
+  const handleSubmitWithdrawal = async () => {
+    const amountNum = Number(withdrawAmount);
+    if (!amountNum || amountNum < 50000 || amountNum > availableBalance) return;
 
-  const submitWithdrawal = async () => {
-    const result = await actions.requestWithdrawal(withdrawAmount);
-    if (result?.success) {
+    const res = await actions.requestWithdrawal(amountNum);
+    if (res?.success) {
       setIsWithdrawModalOpen(false);
       setWithdrawAmount("");
     }
   };
 
+  const handleQuickAmount = (amount) => {
+    setWithdrawAmount(Math.min(amount, availableBalance));
+  };
+
   if (!canView) {
     return (
-      <div className="seller2026-dashboard">
-        <div className="seller2026-error">
-          <ShieldCheck size={18} />
-          {isId ? "Anda tidak memiliki izin untuk melihat pusat pembayaran." : "You do not have permission to view Payment Center."}
+      <div className="seller-withdrawals-2026">
+        <div className="sw-info-banner" style={{ background: "rgba(239, 68, 68, 0.15)", borderColor: "#ef4444" }}>
+          <ShieldCheck size={20} className="sw-info-banner__icon" style={{ color: "#ef4444" }} />
+          <div>
+            <strong>{isId ? "Akses Dibatasi" : "Access Restricted"}</strong>
+            <p>{isId ? "Anda tidak memiliki izin untuk melihat modul penarikan dana." : "You do not have permission to view store withdrawals."}</p>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (loading && !reviews.length) return <PaymentCenterSkeleton />;
-
   return (
-    <div className="seller2026-dashboard seller2026-payment-center">
-      <header className="seller2026-products__header seller2026-payment-center__header">
-        <div>
-          <h1>{isId ? "Pusat Pembayaran" : "Payment Center"}</h1>
-          <p>{isId ? "Pantau tinjauan pembayaran, kesiapan payout, dan permintaan pencairan dana." : "Monitor payment reviews, payout readiness, and withdrawal requests."}</p>
+    <div className="seller-withdrawals-2026">
+      {/* Header */}
+      <header className="sw-header">
+        <div className="sw-header__titles">
+          <h1>
+            <Wallet size={26} style={{ color: "#fe6f05" }} />
+            <span>{isId ? "Penarikan Dana" : "Withdrawals"}</span>
+          </h1>
+          <p>
+            {isId
+              ? "Kelola saldo toko, pengajuan penarikan dana, dan riwayat transfer."
+              : "Manage store balance, withdrawal requests, and payout history."}
+          </p>
         </div>
-        <div className="seller2026-products__actions">
-          <button type="button" disabled title={isId ? "Ekspor akan mengikuti laporan settlement" : "Export will follow settlement reporting"}>
-            <Download size={16} /> {isId ? "Ekspor" : "Export"}
-          </button>
-          <button type="button" onClick={refetch} disabled={loading}>
-            <RefreshCw size={16} /> {loading ? (isId ? "Memuat..." : "Refreshing...") : (isId ? "Segarkan" : "Refresh")}
-          </button>
+
+        <div className="sw-header__actions">
           <button
             type="button"
-            className="is-primary"
-            disabled={!payoutActive || actionState.isUpdating}
+            className="sw-btn sw-btn--outline"
+            onClick={refetch}
+            disabled={loading}
+          >
+            <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
+            <span>{loading ? (isId ? "Memuat..." : "Refreshing...") : (isId ? "Segarkan" : "Refresh")}</span>
+          </button>
+
+          <Link
+            to={sellerContext?.store?.slug ? `/seller/stores/${sellerContext.store.slug}/payment-profile` : "#"}
+            className="sw-btn sw-btn--outline"
+          >
+            <Building2 size={15} />
+            <span>{isId ? "Pengaturan Rekening" : "Payment Setup"}</span>
+          </Link>
+
+          <button
+            type="button"
+            className="sw-btn sw-btn--primary"
+            style={{ backgroundColor: "#034c85" }}
+            disabled={!payoutActive || availableBalance < 50000 || actionState.isUpdating}
             title={
               !payoutActive
-                ? (isId ? "Profil pembayaran aktif diperlukan sebelum pencairan dana." : "Active payment profile is required for withdrawal.")
+                ? (isId ? "Pengaturan rekening bank aktif diperlukan sebelum penarikan." : "Active bank account setup is required for withdrawal.")
+                : availableBalance < 50000
+                ? (isId ? "Saldo tersedia minimal Rp 50.000 untuk penarikan." : "Minimum available balance is Rp 50,000 for withdrawal.")
                 : (isId ? "Ajukan pencairan dana" : "Request withdrawal")
             }
             onClick={() => setIsWithdrawModalOpen(true)}
           >
-            <CreditCard size={16} /> {isId ? "Ajukan Pencairan" : "Request Withdrawal"}
+            <CreditCard size={15} />
+            <span>{isId ? "Ajukan Penarikan" : "Request Withdrawal"}</span>
           </button>
         </div>
       </header>
 
-      {error || usingFallback || actionState.error || actionState.successMessage ? (
-        <div className={`seller2026-profile__notice seller2026-profile__notice--${actionState.successMessage ? "success" : "error"}`}>
-          {actionState.successMessage ? <Check size={16} /> : <AlertTriangle size={16} />}
-          {actionState.successMessage ||
-            actionState.error ||
-            data?.meta?.message ||
-            error?.message ||
-            (isId ? "Data live pembayaran belum tersedia." : "Live payment data is unavailable.")}
-        </div>
-      ) : null}
-
-      <section className="seller2026-product-kpis seller2026-payment-kpis">
-        {[
-          [isId ? "Tinjauan Tertunda" : "Pending Reviews", data?.summary?.pendingReviews ?? 0, isId ? "Menunggu validasi" : "Awaiting validation", Clock3, "amber"],
-          [
-            isId ? "Order Paid" : "Paid Orders",
-            data?.summary?.verifiedPayments ?? 0,
-            isId
-              ? `${data?.summary?.withdrawalEligiblePayments ?? 0} delivered, ${data?.summary?.awaitingDeliveredPayments ?? 0} menunggu delivered`
-              : `${data?.summary?.withdrawalEligiblePayments ?? 0} delivered, ${data?.summary?.awaitingDeliveredPayments ?? 0} waiting delivered`,
-            CheckCircle2,
-            "green",
-          ],
-          [isId ? "Saldo Tersedia" : "Available Balance", currency(availableBalance), isId ? "Net setelah pencairan aktif" : "Net after active requests", CreditCard, "blue"],
-          [isId ? "Kesiapan Profil" : "Profile Readiness", data?.summary?.payoutReadiness ?? "Unknown", data?.payoutProfile?.status || "Payment profile", BadgeCheck, payoutActive ? "green" : "amber"],
-        ].map(([label, value, note, Icon, color]) => (
-          <div className="seller2026-product-kpi" key={label}>
-            <span className={`is-${color}`}><Icon size={20} /></span>
-            <div><small>{label}</small><strong>{value}</strong><em>{note}</em></div>
-          </div>
-        ))}
-      </section>
-
-      <section className="seller2026-products__catalog seller2026-payment-surface">
-        <div className="seller2026-products-toolbar seller2026-payment-toolbar">
-          <label>
-            <Search size={17} />
-            <input
-              value={query.search}
-              onChange={(event) => updateQuery({ search: event.target.value, page: 1 })}
-              placeholder={isId ? "Cari invoice, pembeli, atau order..." : "Search invoice, buyer, or order..."}
-            />
-          </label>
-          <select value={query.status} onChange={(event) => updateQuery({ status: event.target.value, page: 1 })}>
-            {statuses.map((status) => <option value={status} key={status}>{status === "all" ? (isId ? "Semua Status" : "All Status") : status}</option>)}
-          </select>
-          <select value={query.method} onChange={(event) => updateQuery({ method: event.target.value, page: 1 })}>
-            {methods.map((method) => <option value={method} key={method}>{method === "all" ? (isId ? "Semua Metode" : "All Methods") : method}</option>)}
-          </select>
-          <button type="button" onClick={resetFilters}><RefreshCw size={16} /> Reset</button>
-          <div className="seller2026-products__view">
-            <button className={view === "list" ? "is-active" : ""} type="button" onClick={() => setView("list")} aria-label="List view"><List size={17} /></button>
-            <button className={view === "compact" ? "is-active" : ""} type="button" onClick={() => setView("compact")} aria-label="Compact view"><Grid2X2 size={17} /></button>
-          </div>
-        </div>
-
-        {pagedReviews.length ? (
-          <div className={`seller2026-payment-table seller2026-payment-table--${view}`}>
-            <div className="seller2026-payment-table__head">
-              {(isId
-                ? ["Invoice", "Pembeli", "Nominal", "Metode", "Status", "Diajukan", "Aksi"]
-                : ["Invoice", "Buyer", "Amount", "Method", "Status", "Submitted", "Actions"]
-              ).map((item) => <span key={item}>{item}</span>)}
-            </div>
-            {pagedReviews.map((review) => (
-              <article className="seller2026-payment-row" key={review.id}>
-                <div className="seller2026-payment-row__identity">
-                  <span><CreditCard size={18} /></span>
-                  <div>
-                    <strong>{review.invoiceNumber || "-"}</strong>
-                    <small>Order {review.orderId || "-"}</small>
-                  </div>
-                </div>
-                <span data-label={isId ? "Pembeli" : "Buyer"}>{review.buyerName || "-"}</span>
-                <span data-label={isId ? "Nominal" : "Amount"}>{currency(review.amount)}</span>
-                <span data-label={isId ? "Metode" : "Method"}>{review.method || "-"}</span>
-                <span data-label={isId ? "Status" : "Status"}><Pill>{review.status}</Pill></span>
-                <span data-label={isId ? "Diajukan" : "Submitted"}>{dateLabel(review.submittedAt)}</span>
-                <div className="seller2026-product-row__menu">
-                  <button type="button" aria-label="Payment actions"><MoreHorizontal size={18} /></button>
-                  <div>
-                    <button type="button" onClick={() => openReview(review)}><Eye size={14} /> {isId ? "Lihat Detail" : "View Details"}</button>
-                    <span>{isId ? "Settlement dibaca admin" : "Admin audit controls settlement"}</span>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="seller2026-products__empty">
-            <ShieldCheck size={38} />
-            <h2>{isId ? "Tidak ada tinjauan pembayaran" : "No payment reviews"}</h2>
-            <p>{isId ? "Data tinjauan pembayaran yang cocok belum tersedia." : "No payment review rows match the current filters."}</p>
-          </div>
-        )}
-
-        <footer className="seller2026-products__pagination">
-          <span>{isId ? `Menampilkan ${start} hingga ${end} dari ${filteredReviews.length} pembayaran` : `Showing ${start} to ${end} of ${filteredReviews.length} payments`}</span>
-          <div>
-            <button type="button" disabled={safePage <= 1} onClick={() => updateQuery({ page: safePage - 1 })}>Prev</button>
-            <strong>{safePage}</strong>
-            <span>{isId ? `dari ${totalPages}` : `of ${totalPages}`}</span>
-            <button type="button" disabled={safePage >= totalPages} onClick={() => updateQuery({ page: safePage + 1 })}>Next</button>
-          </div>
-          <select value={query.limit} onChange={(event) => updateQuery({ limit: event.target.value, page: 1 })}>
-            <option value="10">{isId ? "10 / halaman" : "10 / page"}</option>
-            <option value="20">{isId ? "20 / halaman" : "20 / page"}</option>
-            <option value="50">{isId ? "50 / halaman" : "50 / page"}</option>
-          </select>
-        </footer>
-      </section>
-
-      <section className="seller2026-payment-bottom">
-        <article className="seller2026-payment-panel">
-          <header>
-            <div>
-              <h2>{isId ? "Profil Pencairan" : "Payout Profile"}</h2>
-              <p>{isId ? "Ringkasan rekening/QRIS aktif untuk pencairan dana." : "Active payout and QRIS readiness summary."}</p>
-            </div>
-            <Pill>{data?.payoutProfile?.activationStatus || "Unknown"}</Pill>
-          </header>
-          <dl>
-            <div><dt>{isId ? "Bank Pencairan" : "Payout Bank"}</dt><dd>{payoutDestination?.bankName || "Not configured"}</dd></div>
-            <div><dt>{isId ? "Nomor Rekening" : "Account Number"}</dt><dd>{payoutDestination?.accountNumberMasked || "Not configured"}</dd></div>
-            <div><dt>{isId ? "Nama Pemilik" : "Account Holder"}</dt><dd>{payoutDestination?.accountHolderName || "Not configured"}</dd></div>
-            <div><dt>Status</dt><dd>{data?.payoutProfile?.status || "Unknown"}</dd></div>
-            <div><dt>{isId ? "Jadwal" : "Schedule"}</dt><dd>{data?.payoutProfile?.payoutSchedule || "Weekly"}</dd></div>
-            <div><dt>{isId ? "Minimum" : "Minimum"}</dt><dd>{currency(data?.payoutProfile?.minimumPayout || 50000)}</dd></div>
-          </dl>
-        </article>
-
-        <article className="seller2026-payment-panel">
-          <header>
-            <div>
-              <h2>{isId ? "Pencairan Terbaru" : "Recent Withdrawals"}</h2>
-              <p>{isId ? "Status permintaan pencairan seller." : "Latest seller payout request status."}</p>
-            </div>
-          </header>
-          {withdrawals?.length ? (
-            <div className="seller2026-withdrawal-list">
-              {withdrawals.slice(0, 5).map((withdrawal) => {
-                const meta = getWithdrawalStatusMeta(withdrawal.status, { isId });
-                const financials = getWithdrawalFinancials(withdrawal, {
-                  adminFeeAmount: withdrawalMeta?.balance?.withdrawalAdminFeeAmount,
-                });
-                return (
-                  <div className="seller2026-withdrawal-card" key={withdrawal.id}>
-                    <div className="seller2026-withdrawal-card__head">
-                      <span>
-                        <strong>{currency(financials.netTransferAmount)}</strong>
-                        <small>{dateLabel(withdrawal.requestedAt)}</small>
-                        <small>{isId ? `Request ${currency(financials.amount)} - biaya admin ${currency(financials.adminFeeAmount)}` : `Request ${currency(financials.amount)} - admin fee ${currency(financials.adminFeeAmount)}`}</small>
-                        <small>
-                          {withdrawal.bankName || "-"} - {maskAccountNumber(withdrawal.accountNumber)} a.n. {withdrawal.accountName || "-"}
-                        </small>
-                        {withdrawal.adminNote ? <small>{withdrawal.adminNote}</small> : null}
-                        {withdrawal.proofImageUrl ? (
-                          <small>
-                            <a href={resolveAssetUrl(withdrawal.proofImageUrl)} target="_blank" rel="noreferrer">
-                              {isId ? "Lihat bukti transfer" : "View transfer proof"}
-                            </a>
-                          </small>
-                        ) : null}
-                      </span>
-                      <span className={`seller2026-pill seller2026-pill--${meta.pillTone}`}>{meta.label}</span>
-                    </div>
-                    <WithdrawalStatusTimeline withdrawal={withdrawal} isId={isId} compact />
-                  </div>
-                );
-              })}
-            </div>
+      {/* Action / Error Notification */}
+      {(actionState.error || actionState.successMessage || error) && (
+        <div
+          className="sw-info-banner"
+          style={{
+            background: actionState.successMessage ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)",
+            borderColor: actionState.successMessage ? "#10b981" : "#ef4444",
+          }}
+        >
+          {actionState.successMessage ? (
+            <CheckCircle2 size={18} className="sw-info-banner__icon" style={{ color: "#10b981" }} />
           ) : (
-            <p className="seller2026-payment-empty-note">{isId ? "Belum ada permintaan pencairan dana." : "No withdrawal requests yet."}</p>
+            <AlertTriangle size={18} className="sw-info-banner__icon" style={{ color: "#ef4444" }} />
           )}
-        </article>
+          <div>
+            <span>
+              {actionState.successMessage || actionState.error || error?.message || (isId ? "Terjadi kesalahan." : "An error occurred.")}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* 4 Modern KPI Cards */}
+      <section className="sw-kpi-grid">
+        {/* Card 1: Saldo Tersedia (Hero) */}
+        <div className="sw-kpi-card sw-kpi-card--hero">
+          <div className="sw-kpi-card__top">
+            <span className="sw-kpi-card__label">{isId ? "Saldo Tersedia" : "Available Balance"}</span>
+            <span className="sw-kpi-card__icon sw-kpi-card__icon--accent">
+              <Wallet size={20} />
+            </span>
+          </div>
+          <div className="sw-kpi-card__value" style={{ color: "#fe6f05" }}>
+            {formatMoney(availableBalance)}
+          </div>
+          <div className="sw-kpi-card__hint">
+            <Check size={14} style={{ color: "#10b981" }} />
+            <span>{isId ? "Siap ditarik ke rekening bank" : "Ready for bank withdrawal"}</span>
+          </div>
+        </div>
+
+        {/* Card 2: Total Penjualan Selesai */}
+        <div className="sw-kpi-card">
+          <div className="sw-kpi-card__top">
+            <span className="sw-kpi-card__label">{isId ? "Penjualan Selesai" : "Completed Sales"}</span>
+            <span className="sw-kpi-card__icon sw-kpi-card__icon--emerald">
+              <PackageCheck size={20} />
+            </span>
+          </div>
+          <div className="sw-kpi-card__value">
+            {formatMoney(grossEligibleAmount)}
+          </div>
+          <div className="sw-kpi-card__hint">
+            <span>{deliveredEligibleCount} {isId ? "pesanan telah diterima pembeli" : "orders delivered to buyer"}</span>
+          </div>
+        </div>
+
+        {/* Card 3: Menunggu Diterima Pembeli */}
+        <div className="sw-kpi-card">
+          <div className="sw-kpi-card__top">
+            <span className="sw-kpi-card__label">{isId ? "Menunggu Diterima" : "Pending Delivery"}</span>
+            <span className="sw-kpi-card__icon sw-kpi-card__icon--primary">
+              <Truck size={20} />
+            </span>
+          </div>
+          <div className="sw-kpi-card__value">
+            {waitingDeliveryCount} <small style={{ fontSize: "0.85rem", fontWeight: 500, color: "var(--sw-text-muted)" }}>{isId ? "Pesanan" : "Orders"}</small>
+          </div>
+          <div className="sw-kpi-card__hint">
+            <Clock3 size={13} />
+            <span>{isId ? "Saldo bertambah saat barang diterima" : "Funds unlock upon delivery receipt"}</span>
+          </div>
+        </div>
+
+        {/* Card 4: Rekening Penarikan */}
+        <div className="sw-kpi-card">
+          <div className="sw-kpi-card__top">
+            <span className="sw-kpi-card__label">{isId ? "Rekening Bank" : "Payout Bank"}</span>
+            <span className={`sw-kpi-card__badge ${payoutActive ? "sw-kpi-card__badge--green" : "sw-kpi-card__badge--amber"}`}>
+              {payoutActive ? (isId ? "Aktif" : "Active") : (isId ? "Belum Diatur" : "Incomplete")}
+            </span>
+          </div>
+          <div className="sw-kpi-card__value" style={{ fontSize: "1.2rem", fontWeight: 600 }}>
+            {payoutDestination?.bankName || (isId ? "Belum Diatur" : "Not Set")}
+          </div>
+          <div className="sw-kpi-card__hint">
+            <span>
+              {payoutDestination?.accountNumberMasked || maskAccountNumber(payoutDestination?.accountNumber)}
+              {payoutDestination?.accountHolderName ? ` (${payoutDestination.accountHolderName})` : ""}
+            </span>
+          </div>
+        </div>
       </section>
 
-      {selectedReview ? (
-        <div className="seller2026-payment-drawer" role="dialog" aria-modal="true" aria-labelledby="payment-review-title">
-          <button type="button" className="seller2026-payment-drawer__backdrop" aria-label="Close details" onClick={() => setSelectedPaymentId(null)} />
-          <aside className="seller2026-payment-drawer__panel">
-            <header>
-              <div>
-                <small>{isId ? "Detail Tinjauan" : "Review Detail"}</small>
-                <h2 id="payment-review-title">{selectedReview.invoiceNumber || selectedReview.orderId || "Payment"}</h2>
-                <p>{selectedReview.buyerName || "Customer"} - {currency(selectedReview.amount)}</p>
-              </div>
-              <button type="button" onClick={() => setSelectedPaymentId(null)} aria-label="Close details"><X size={18} /></button>
-            </header>
-            <div className="seller2026-payment-drawer__body">
-              <section>
-                <h3>{isId ? "Bukti Pembayaran" : "Payment Proof"}</h3>
-                {selectedReview.proofThumbnails?.length ? (
-                  <div className="seller2026-payment-proof-grid">
-                    {selectedReview.proofThumbnails.map((url, index) => (
-                      <img src={url} alt="Payment proof" key={`${url}-${index}`} />
-                    ))}
-                  </div>
-                ) : (
-                  <p className="seller2026-payment-empty-note">{isId ? "Tidak ada bukti pembayaran." : "No proof image provided."}</p>
+      {/* Info Callout: Escrow Mechanism Explanation */}
+      <div className="sw-info-banner">
+        <Info size={18} className="sw-info-banner__icon" />
+        <div>
+          <strong>{isId ? "Prinsip Pelepasan Saldo Toko:" : "Store Fund Release Policy:"}</strong>{" "}
+          <span>
+            {isId
+              ? "Saldo hasil transaksi penjualan otomatis bertambah ke Saldo Tersedia setelah pesanan dinyatakan telah diterima oleh Pembeli (atau ditandai Selesai oleh Penjual/Admin). Penarikan dana diproses oleh Admin dengan biaya admin Rp 6.500 per transfer."
+              : "Sale proceeds automatically credit to Available Balance once the order is confirmed as Delivered by the Buyer (or marked Completed by Seller/Admin). Withdrawals are processed by Admin with a standard Rp 6,500 bank fee."}
+          </span>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <nav className="sw-tabs" aria-label="Withdrawal Views">
+        <button
+          type="button"
+          className={`sw-tab-btn ${activeTab === "history" ? "is-active" : ""}`}
+          onClick={() => setActiveTab("history")}
+        >
+          <History size={16} />
+          <span>{isId ? "Riwayat Penarikan" : "Withdrawal History"}</span>
+          <span className="sw-tab-badge">{withdrawals.length}</span>
+        </button>
+
+        <button
+          type="button"
+          className={`sw-tab-btn ${activeTab === "breakdown" ? "is-active" : ""}`}
+          onClick={() => setActiveTab("breakdown")}
+        >
+          <FileText size={16} />
+          <span>{isId ? "Rincian Saldo Pesanan" : "Order Balance Breakdown"}</span>
+          <span className="sw-tab-badge">{paidOrdersList.length}</span>
+        </button>
+      </nav>
+
+      {/* TAB 1: WITHDRAWALS HISTORY */}
+      {activeTab === "history" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          {/* Toolbar */}
+          <div className="sw-toolbar">
+            <div className="sw-toolbar__left">
+              <div className="sw-search-input">
+                <Search size={16} style={{ color: "var(--sw-text-dim)" }} />
+                <input
+                  type="text"
+                  placeholder={isId ? "Cari nomor ID, bank, rekening..." : "Search ID, bank, account..."}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button type="button" onClick={() => setSearchQuery("")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--sw-text-dim)" }}>
+                    <X size={14} />
+                  </button>
                 )}
-              </section>
-              <section>
-                <h3>{isId ? "Detail" : "Details"}</h3>
-                <dl>
-                  <div><dt>Order</dt><dd>{selectedReview.orderId || "-"}</dd></div>
-                  <div><dt>{isId ? "Metode" : "Method"}</dt><dd>{selectedReview.method || "-"}</dd></div>
-                  <div><dt>Status</dt><dd><Pill>{selectedReview.status}</Pill></dd></div>
-                  <div><dt>{isId ? "Diajukan" : "Submitted"}</dt><dd>{dateLabel(selectedReview.submittedAt)}</dd></div>
-                </dl>
-              </section>
-              {selectedReview.allowedActions?.length && !usingFallback ? (
-                <section>
-                  <h3>{isId ? "Catatan Review" : "Review Note"}</h3>
-                  <input value={reviewNote} onChange={(event) => setReviewNote(event.target.value)} placeholder={isId ? "Catatan opsional..." : "Optional review note..."} />
-                  <div className="seller2026-payment-drawer__actions">
-                    {selectedReview.allowedActions.includes("APPROVE") ? (
-                      <button type="button" className="is-primary" disabled={actionState.isUpdating} onClick={() => actions.approvePayment(selectedReview.paymentId, reviewNote)}>
-                        {isId ? "Setujui" : "Approve"}
-                      </button>
-                    ) : null}
-                    {selectedReview.allowedActions.includes("REJECT") ? (
-                      <button type="button" className="is-danger" disabled={actionState.isUpdating} onClick={() => actions.rejectPayment(selectedReview.paymentId, reviewNote)}>
-                        {isId ? "Tolak" : "Reject"}
-                      </button>
-                    ) : null}
-                  </div>
-                </section>
-              ) : (
-                <section className="seller2026-payment-governance">
-                  <ShieldCheck size={18} />
-                  <span>{isId ? "Audit admin adalah otoritas akhir settlement." : "Admin audit remains the final settlement authority."}</span>
-                </section>
+              </div>
+
+              <select
+                className="sw-select"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="ALL">{isId ? "Semua Status" : "All Status"}</option>
+                <option value="PENDING">{isId ? "Menunggu (Pending)" : "Pending"}</option>
+                <option value="PROCESSING">{isId ? "Diproses (Processing)" : "Processing"}</option>
+                <option value="COMPLETED">{isId ? "Selesai (Completed)" : "Completed"}</option>
+                <option value="REJECTED">{isId ? "Ditolak (Rejected)" : "Rejected"}</option>
+              </select>
+
+              {(searchQuery || statusFilter !== "ALL") && (
+                <button
+                  type="button"
+                  className="sw-btn sw-btn--outline"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setStatusFilter("ALL");
+                  }}
+                  style={{ padding: "0.5rem 0.75rem", fontSize: "0.78rem" }}
+                >
+                  <RefreshCw size={13} /> {isId ? "Reset Filter" : "Reset Filters"}
+                </button>
               )}
             </div>
-          </aside>
-        </div>
-      ) : null}
+          </div>
 
-      {isWithdrawModalOpen ? (
-        <div className="seller2026-payment-modal" role="dialog" aria-modal="true" aria-labelledby="withdrawal-title">
-          <button type="button" aria-label="Close withdrawal dialog" onClick={() => setIsWithdrawModalOpen(false)} />
-          <section>
-            <header>
-              <h2 id="withdrawal-title">{isId ? "Ajukan Pencairan Dana" : "Request Withdrawal"}</h2>
-              <p>{isId ? "Admin akan meninjau permintaan pencairan ini." : "Admin will review this payout request."}</p>
-            </header>
-            <div className="seller2026-payment-modal__balance">
-              <small>{isId ? "Saldo tersedia" : "Available balance"}</small>
-              <strong>{currency(availableBalance)}</strong>
-            </div>
-            <div className="seller2026-payment-modal__fees">
-              <div>
-                <span>{isId ? "Bank tujuan" : "Destination bank"}</span>
-                <strong>{payoutDestination?.bankName || "-"}</strong>
+          {/* Table */}
+          <div className="sw-table-card">
+            {filteredWithdrawals.length > 0 ? (
+              <div className="sw-table-wrap">
+                <table className="sw-table">
+                  <thead>
+                    <tr>
+                      <th>{isId ? "No. Pengajuan & Tanggal" : "Reference & Date"}</th>
+                      <th>{isId ? "Rekening Tujuan" : "Destination Account"}</th>
+                      <th>{isId ? "Nominal Pengajuan" : "Requested Amount"}</th>
+                      <th>{isId ? "Biaya Admin" : "Admin Fee"}</th>
+                      <th>{isId ? "Estimasi Diterima" : "Net Received"}</th>
+                      <th>Status</th>
+                      <th>{isId ? "Bukti / Catatan" : "Proof / Note"}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredWithdrawals.map((item) => {
+                      const meta = getWithdrawalStatusMeta(item.status, { isId });
+                      const financials = getWithdrawalFinancials(item, {
+                        adminFeeAmount: balanceObj.withdrawalAdminFeeAmount || 6500,
+                      });
+                      const isCompleted = String(item.status).toUpperCase() === "COMPLETED";
+                      const isRejected = String(item.status).toUpperCase() === "REJECTED";
+                      const isPending = String(item.status).toUpperCase() === "PENDING";
+
+                      return (
+                        <tr key={item.id}>
+                          <td>
+                            <strong>#WDR-{String(item.id).padStart(4, "0")}</strong>
+                            <div style={{ fontSize: "0.74rem", color: "var(--sw-text-dim)", marginTop: "2px" }}>
+                              {formatDate(item.requestedAt || item.createdAt, isId)}
+                            </div>
+                          </td>
+                          <td>
+                            <div style={{ fontWeight: 600 }}>{item.bankName || "-"}</div>
+                            <div style={{ fontSize: "0.74rem", color: "var(--sw-text-dim)" }}>
+                              {maskAccountNumber(item.accountNumber)} {item.accountName ? `a.n ${item.accountName}` : ""}
+                            </div>
+                          </td>
+                          <td>
+                            <strong style={{ color: "var(--sw-text)" }}>{formatMoney(financials.amount)}</strong>
+                          </td>
+                          <td style={{ color: "var(--sw-text-dim)" }}>
+                            -{formatMoney(financials.adminFeeAmount)}
+                          </td>
+                          <td>
+                            <strong style={{ color: "#10b981", fontSize: "0.9rem" }}>
+                              {formatMoney(financials.netTransferAmount)}
+                            </strong>
+                          </td>
+                          <td>
+                            <span className={`sw-status-pill sw-status-pill--${meta.pillTone}`}>
+                              {isCompleted && <CheckCircle2 size={12} />}
+                              {isPending && <Clock3 size={12} />}
+                              {isRejected && <AlertCircle size={12} />}
+                              <span>{meta.label}</span>
+                            </span>
+                          </td>
+                          <td>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+                              {item.proofImageUrl ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setProofModalUrl(resolveAssetUrl(item.proofImageUrl))}
+                                  className="sw-btn sw-btn--outline"
+                                  style={{ padding: "0.25rem 0.55rem", fontSize: "0.72rem", width: "fit-content" }}
+                                >
+                                  <Eye size={12} />
+                                  <span>{isId ? "Bukti Transfer" : "Transfer Proof"}</span>
+                                </button>
+                              ) : null}
+
+                              {item.adminNote ? (
+                                <span style={{ fontSize: "0.72rem", color: "var(--sw-text-dim)", fontStyle: "italic" }}>
+                                  "{item.adminNote}"
+                                </span>
+                              ) : null}
+
+                              {!item.proofImageUrl && !item.adminNote ? (
+                                <span style={{ color: "var(--sw-text-dim)" }}>-</span>
+                              ) : null}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-              <div>
-                <span>{isId ? "Nomor rekening" : "Account number"}</span>
-                <strong>{payoutDestination?.accountNumberMasked || "-"}</strong>
+            ) : (
+              <div className="sw-empty">
+                <div className="sw-empty__icon">
+                  <Wallet size={28} />
+                </div>
+                <h3>{isId ? "Belum Ada Riwayat Penarikan" : "No Withdrawal History"}</h3>
+                <p>
+                  {isId
+                    ? "Permintaan pencairan dana yang diajukan akan tercatat di sini dan diproses langsung oleh Admin."
+                    : "Submitted payout requests will appear here and are processed directly by the Admin."}
+                </p>
+                {availableBalance >= 50000 && payoutActive && (
+                  <button
+                    type="button"
+                    className="sw-btn sw-btn--primary"
+                    style={{ backgroundColor: "#034c85", marginTop: "0.5rem" }}
+                    onClick={() => setIsWithdrawModalOpen(true)}
+                  >
+                    <CreditCard size={15} />
+                    <span>{isId ? "Ajukan Penarikan Sekarang" : "Request Withdrawal Now"}</span>
+                  </button>
+                )}
               </div>
-              <div>
-                <span>{isId ? "Nama pemilik" : "Account holder"}</span>
-                <strong>{payoutDestination?.accountHolderName || "-"}</strong>
-              </div>
-            </div>
-            <label>
-              <span>{isId ? "Nominal Pencairan" : "Withdrawal Amount"}</span>
-              <input type="number" min="50000" placeholder="Min Rp 50.000" value={withdrawAmount} onChange={(event) => setWithdrawAmount(event.target.value)} />
-            </label>
-            <div className="seller2026-payment-modal__fees">
-              <div>
-                <span>{isId ? "Nominal request" : "Requested amount"}</span>
-                <strong>{currency(withdrawalPreview.amount)}</strong>
-              </div>
-              <div>
-                <span>{isId ? "Biaya admin" : "Admin fee"}</span>
-                <strong>{currency(withdrawalPreview.adminFeeAmount)}</strong>
-              </div>
-              <div>
-                <span>{isId ? "Estimasi diterima" : "Estimated received"}</span>
-                <strong>{currency(withdrawalPreview.netTransferAmount)}</strong>
-              </div>
-              <p>{isId ? "Biaya admin Rp 6.500 dipotong dari nominal pencairan saat transfer diproses." : "The Rp 6,500 admin fee is deducted from the requested withdrawal amount when the transfer is processed."}</p>
-            </div>
-            <footer>
-              <button type="button" onClick={() => setIsWithdrawModalOpen(false)} disabled={actionState.isUpdating}>{isId ? "Batal" : "Cancel"}</button>
-              <button type="button" className="is-primary" disabled={actionState.isUpdating || !withdrawAmount || Number(withdrawAmount) < 50000 || Number(withdrawAmount) > Number(availableBalance)} onClick={submitWithdrawal}>
-                {actionState.isUpdating ? (isId ? "Mengirim..." : "Submitting...") : (isId ? "Ajukan Pencairan" : "Submit Request")}
-              </button>
-            </footer>
-          </section>
+            )}
+          </div>
         </div>
-      ) : null}
+      )}
+
+      {/* TAB 2: ORDER BALANCE BREAKDOWN */}
+      {activeTab === "breakdown" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <div className="sw-table-card">
+            {paidOrdersList.length > 0 ? (
+              <div className="sw-table-wrap">
+                <table className="sw-table">
+                  <thead>
+                    <tr>
+                      <th>Invoice / Order</th>
+                      <th>{isId ? "Pembeli" : "Buyer"}</th>
+                      <th>{isId ? "Metode Pembayaran" : "Payment Method"}</th>
+                      <th>{isId ? "Total Transaksi" : "Amount"}</th>
+                      <th>{isId ? "Status Pengiriman & Saldo" : "Delivery & Balance Status"}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paidOrdersList.map((row) => {
+                      const isRowDelivered =
+                        String(row.fulfillmentStatus || "").toUpperCase() === "DELIVERED" ||
+                        String(row.status || "").toLowerCase().includes("delivered");
+
+                      return (
+                        <tr key={row.id}>
+                          <td>
+                            <strong>{row.invoiceNumber || row.orderId || "-"}</strong>
+                            <div style={{ fontSize: "0.74rem", color: "var(--sw-text-dim)" }}>
+                              {formatDate(row.submittedAt, isId)}
+                            </div>
+                          </td>
+                          <td>
+                            <div>{row.buyerName || "Pelanggan"}</div>
+                            <div style={{ fontSize: "0.74rem", color: "var(--sw-text-dim)" }}>
+                              {row.buyerPhone || row.buyerEmail || ""}
+                            </div>
+                          </td>
+                          <td>
+                            <span>{row.method || "Duitku"}</span>
+                          </td>
+                          <td>
+                            <strong style={{ color: "var(--sw-text)" }}>{formatMoney(row.amount)}</strong>
+                          </td>
+                          <td>
+                            {isRowDelivered ? (
+                              <span className="sw-status-pill sw-status-pill--completed">
+                                <CheckCircle2 size={12} />
+                                <span>{isId ? "Diterima (Saldo Aktif)" : "Delivered (Unlocked)"}</span>
+                              </span>
+                            ) : (
+                              <span className="sw-status-pill sw-status-pill--pending">
+                                <Clock3 size={12} />
+                                <span>{isId ? "Dalam Pengiriman (Menunggu Diterima)" : "In Transit (Locked)"}</span>
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="sw-empty">
+                <div className="sw-empty__icon">
+                  <PackageCheck size={28} />
+                </div>
+                <h3>{isId ? "Belum Ada Pesanan Terbayar" : "No Paid Orders Yet"}</h3>
+                <p>
+                  {isId
+                    ? "Pesanan yang sudah dibayar oleh pembeli akan muncul di sini untuk memantau pelepasan dana penarikan."
+                    : "Orders paid by customers will appear here to monitor fund release for withdrawal."}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* WITHDRAWAL REQUEST MODAL */}
+      {isWithdrawModalOpen && (
+        <div className="sw-modal-backdrop" onClick={() => setIsWithdrawModalOpen(false)}>
+          <div className="sw-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <div className="sw-modal__head">
+              <h2>
+                <CreditCard size={20} style={{ color: "#fe6f05" }} />
+                <span>{isId ? "Ajukan Penarikan Dana" : "Request Withdrawal"}</span>
+              </h2>
+              <button
+                type="button"
+                className="sw-modal__close"
+                onClick={() => setIsWithdrawModalOpen(false)}
+                aria-label="Tutup"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Current Balance */}
+            <div className="sw-modal__balance-card">
+              <div>
+                <div style={{ fontSize: "0.75rem", color: "var(--sw-text-muted)" }}>{isId ? "Saldo Tersedia" : "Available Balance"}</div>
+                <strong style={{ fontSize: "1.25rem", color: "#fe6f05" }}>{formatMoney(availableBalance)}</strong>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: "0.75rem", color: "var(--sw-text-muted)" }}>{isId ? "Bank Tujuan" : "Destination Bank"}</div>
+                <strong style={{ fontSize: "0.85rem", color: "var(--sw-text)" }}>
+                  {payoutDestination?.bankName || "-"}
+                </strong>
+                <div style={{ fontSize: "0.72rem", color: "var(--sw-text-dim)" }}>
+                  {payoutDestination?.accountNumberMasked || maskAccountNumber(payoutDestination?.accountNumber)}
+                </div>
+              </div>
+            </div>
+
+            {/* Input Nominal */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+              <label style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--sw-text)" }}>
+                {isId ? "Nominal Penarikan (Rp)" : "Withdrawal Amount (Rp)"}
+              </label>
+              <div className="sw-search-input" style={{ maxWidth: "none", borderColor: "var(--sw-primary)" }}>
+                <span style={{ fontWeight: 700, color: "var(--sw-text)" }}>Rp</span>
+                <input
+                  type="number"
+                  min="50000"
+                  max={availableBalance}
+                  step="10000"
+                  placeholder={isId ? "Minimal Rp 50.000" : "Minimum Rp 50,000"}
+                  value={withdrawAmount}
+                  onChange={(e) => setWithdrawAmount(e.target.value)}
+                  style={{ fontSize: "0.95rem", fontWeight: 600 }}
+                />
+              </div>
+            </div>
+
+            {/* Quick Amount Chips */}
+            <div className="sw-quick-chips">
+              <button type="button" className="sw-chip-btn" onClick={() => handleQuickAmount(50000)}>
+                Rp 50rb
+              </button>
+              <button type="button" className="sw-chip-btn" onClick={() => handleQuickAmount(100000)}>
+                Rp 100rb
+              </button>
+              <button type="button" className="sw-chip-btn" onClick={() => handleQuickAmount(250000)}>
+                Rp 250rb
+              </button>
+              <button type="button" className="sw-chip-btn" onClick={() => handleQuickAmount(availableBalance)}>
+                {isId ? "Semua" : "Max"}
+              </button>
+            </div>
+
+            {/* Realtime Breakdown */}
+            <div className="sw-breakdown-box">
+              <div className="sw-breakdown-row">
+                <span>{isId ? "Nominal Penarikan" : "Requested Amount"}</span>
+                <span>{formatMoney(withdrawalPreview.amount)}</span>
+              </div>
+              <div className="sw-breakdown-row">
+                <span>{isId ? "Biaya Admin Transfer" : "Bank Admin Fee"}</span>
+                <span>-{formatMoney(withdrawalPreview.adminFeeAmount)}</span>
+              </div>
+              <div className="sw-breakdown-row is-total">
+                <span>{isId ? "Estimasi Bersih Diterima" : "Estimated Received"}</span>
+                <span style={{ color: "#10b981", fontSize: "0.95rem" }}>
+                  {formatMoney(withdrawalPreview.netTransferAmount)}
+                </span>
+              </div>
+            </div>
+
+            <p style={{ fontSize: "0.72rem", color: "var(--sw-text-dim)", margin: 0, lineHeight: 1.4 }}>
+              {isId
+                ? "* Biaya transfer antarbank sebesar Rp 6.500 dipotong otomatis dari nominal pencairan saat transfer diproses oleh Admin."
+                : "* Standard Rp 6,500 bank fee is deducted from the payout amount when processed by Admin."}
+            </p>
+
+            {/* Modal Actions */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "0.6rem", marginTop: "0.5rem" }}>
+              <button
+                type="button"
+                className="sw-btn sw-btn--outline"
+                onClick={() => setIsWithdrawModalOpen(false)}
+                disabled={actionState.isUpdating}
+              >
+                {isId ? "Batal" : "Cancel"}
+              </button>
+
+              <button
+                type="button"
+                className="sw-btn sw-btn--primary"
+                style={{ backgroundColor: "#034c85" }}
+                disabled={
+                  actionState.isUpdating ||
+                  !withdrawAmount ||
+                  Number(withdrawAmount) < 50000 ||
+                  Number(withdrawAmount) > availableBalance
+                }
+                onClick={handleSubmitWithdrawal}
+              >
+                {actionState.isUpdating ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    <span>{isId ? "Mengirim..." : "Submitting..."}</span>
+                  </>
+                ) : (
+                  <>
+                    <ArrowDownToLine size={15} />
+                    <span>{isId ? "Kirim Pengajuan" : "Submit Request"}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TRANSFER PROOF PREVIEW MODAL */}
+      {proofModalUrl && (
+        <div className="sw-modal-backdrop" onClick={() => setProofModalUrl(null)}>
+          <div
+            className="sw-modal"
+            style={{ maxWidth: "560px" }}
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sw-modal__head">
+              <h2>
+                <CheckCircle2 size={20} style={{ color: "#10b981" }} />
+                <span>{isId ? "Bukti Transfer Pencairan" : "Transfer Proof Receipt"}</span>
+              </h2>
+              <button
+                type="button"
+                className="sw-modal__close"
+                onClick={() => setProofModalUrl(null)}
+                aria-label="Tutup"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ maxHeight: "450px", overflow: "auto", borderRadius: "0.75rem", background: "rgba(0,0,0,0.2)", display: "flex", justifyContent: "center", alignItems: "center" }}>
+              <img
+                src={proofModalUrl}
+                alt="Bukti Transfer"
+                style={{ maxWidth: "100%", maxHeight: "420px", objectFit: "contain", borderRadius: "0.5rem" }}
+              />
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <a
+                href={proofModalUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="sw-btn sw-btn--outline"
+                style={{ fontSize: "0.78rem" }}
+              >
+                <ExternalLink size={13} />
+                <span>{isId ? "Buka Gambar Penuh" : "Open Full Image"}</span>
+              </a>
+
+              <button
+                type="button"
+                className="sw-btn sw-btn--primary"
+                style={{ backgroundColor: "#034c85" }}
+                onClick={() => setProofModalUrl(null)}
+              >
+                {isId ? "Tutup" : "Close"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
+// Export aliases for backwards compatibility and clarity
+export const SellerWithdrawalsPage = SellerPaymentCenterPage;
 export default SellerPaymentCenterPage;

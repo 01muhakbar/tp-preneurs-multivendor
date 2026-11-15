@@ -296,6 +296,8 @@ export default function AccountOrderDetail2026View({
   onContactSupport,
   onCancelOrder,
   isCancelling = false,
+  onConfirmReceipt,
+  isConfirmingReceipt = false,
   onPayNow,
   isPaying = false,
   onCopy,
@@ -335,6 +337,7 @@ export default function AccountOrderDetail2026View({
   const [isAddressExpanded, setIsAddressExpanded] = useState(false);
   const [isBuyingAgain, setIsBuyingAgain] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showConfirmReceiptModal, setShowConfirmReceiptModal] = useState(false);
   const [showChangePaymentModal, setShowChangePaymentModal] = useState(false);
   const [selectedPaymentCode, setSelectedPaymentCode] = useState("SP");
 
@@ -440,6 +443,10 @@ export default function AccountOrderDetail2026View({
 
   const isDigitalOrder = Boolean(shopee?.isDigitalOrder || shippingInfo?.isDigital);
   const isOrderPaid = !banner.isUnpaid && !banner.isCancelled;
+  const isDelivered =
+    /delivered|complete|selesai/i.test(
+      String(orderDetail?.status || rawOrder?.status || banner?.title || "")
+    ) || Boolean(banner?.isDelivered);
 
   const shippingAddress = shopee?.shippingAddress || {
     name: orderDetail.account?.customerName || "Pelanggan",
@@ -1031,6 +1038,28 @@ export default function AccountOrderDetail2026View({
             );
           })()}
 
+          {isOrderPaid && !isDelivered && onConfirmReceipt && (
+            <button
+              type="button"
+              onClick={() => setShowConfirmReceiptModal(true)}
+              disabled={isConfirmingReceipt}
+              className="tp-shopee-detail__btn-orange"
+              style={{ backgroundColor: "#034c85", borderColor: "#034c85" }}
+            >
+              {isConfirmingReceipt ? (
+                <>
+                  <Loader2 size={14} className="tp-spin" />
+                  <span>{isIndo ? "Memproses..." : "Processing..."}</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={14} />
+                  <span>{isIndo ? "Pesanan Diterima" : "Order Received"}</span>
+                </>
+              )}
+            </button>
+          )}
+
           {banner.isUnpaid && orderDetail.actionability?.cancelOrder?.enabled && (
             <button
               type="button"
@@ -1192,6 +1221,62 @@ export default function AccountOrderDetail2026View({
                   </>
                 ) : (
                   <span>{t.cancelModalConfirm}</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showConfirmReceiptModal && (
+        <div
+          className="tp-cancel-modal-backdrop"
+          onClick={() => setShowConfirmReceiptModal(false)}
+        >
+          <div
+            className="tp-cancel-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="tp-confirm-receipt-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="tp-cancel-modal__icon">
+              <CheckCircle2 size={24} style={{ color: "#034c85" }} />
+            </div>
+            <h3 id="tp-confirm-receipt-title" className="tp-cancel-modal__title">
+              {isIndo ? "Konfirmasi Pesanan Diterima" : "Confirm Order Received"}
+            </h3>
+            <p className="tp-cancel-modal__desc">
+              {isIndo
+                ? "Apakah Anda yakin telah menerima semua produk pesanan ini dalam kondisi baik? Setelah dikonfirmasi, transaksi akan diselesaikan dan saldo akan diteruskan ke penjual."
+                : "Are you sure you have received all items in good condition? Once confirmed, the transaction is marked as completed and funds will be released to the seller."}
+            </p>
+            <div className="tp-cancel-modal__actions">
+              <button
+                type="button"
+                className="tp-cancel-modal__btn-back"
+                onClick={() => setShowConfirmReceiptModal(false)}
+                disabled={isConfirmingReceipt}
+              >
+                {isIndo ? "Batal" : "Cancel"}
+              </button>
+              <button
+                type="button"
+                className="tp-cancel-modal__btn-confirm"
+                style={{ backgroundColor: "#034c85", borderColor: "#034c85" }}
+                disabled={isConfirmingReceipt}
+                onClick={async () => {
+                  setShowConfirmReceiptModal(false);
+                  if (onConfirmReceipt) await onConfirmReceipt();
+                }}
+              >
+                {isConfirmingReceipt ? (
+                  <>
+                    <Loader2 size={16} className="tp-spin" />
+                    <span>{isIndo ? "Memproses..." : "Processing..."}</span>
+                  </>
+                ) : (
+                  <span>{isIndo ? "Ya, Pesanan Diterima" : "Yes, Order Received"}</span>
                 )}
               </button>
             </div>

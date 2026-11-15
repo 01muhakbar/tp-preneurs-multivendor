@@ -32,6 +32,7 @@ import {
   ShieldAlert,
   Lock,
   Star,
+  Wallet,
   X
 } from "lucide-react";
 import {
@@ -337,6 +338,15 @@ const getSellerPageMeta = (pathname, isId = false) => {
       subtitle: isId
         ? "Pengaturan pembayaran, status peninjauan admin, dan kesiapan checkout untuk toko ini."
         : "Payment setup, admin review status, and checkout readiness for this store.",
+    };
+  }
+
+  if (pathname.endsWith("/withdrawals") || pathname.endsWith("/payment-center")) {
+    return {
+      title: isId ? "Penarikan Dana" : "Withdrawals",
+      subtitle: isId
+        ? "Kelola saldo toko, pengajuan penarikan dana, dan riwayat transfer."
+        : "Manage store balance, withdrawal requests, and payout history.",
     };
   }
 
@@ -738,9 +748,9 @@ function SellerSidebar({
           implemented: true,
         },
         {
-          label: isId ? "Pusat Pembayaran" : "Payment Center",
-          to: sellerRoutes.paymentCenter(),
-          Icon: BadgeCheck,
+          label: isId ? "Penarikan Dana" : "Withdrawals",
+          to: sellerRoutes.withdrawals(),
+          Icon: Wallet,
           enabled: hasPermission("STORE_VIEW") && (hasPermission("PAYMENT_PROFILE_VIEW") || hasPermission("PAYMENT_STATUS_VIEW")),
           implemented: true,
         },

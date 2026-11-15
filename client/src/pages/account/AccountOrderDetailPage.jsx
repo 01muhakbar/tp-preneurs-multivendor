@@ -240,6 +240,29 @@ export default function AccountOrderDetailPage() {
 
   const [isCancelling, setIsCancelling] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
+  const [isConfirmingReceipt, setIsConfirmingReceipt] = useState(false);
+
+  const handleConfirmReceipt = async () => {
+    if (!id || isConfirmingReceipt) return;
+    setIsConfirmingReceipt(true);
+    try {
+      await api.post(`/store/orders/my/${id}/confirm-receipt`);
+      toast.success(
+        isIndo
+          ? "Pesanan berhasil dikonfirmasi diterima. Terima kasih!"
+          : "Order receipt successfully confirmed. Thank you!"
+      );
+      await Promise.all([orderQuery.refetch(), groupedQuery.refetch()]);
+    } catch (err) {
+      console.error("[AccountOrderDetailPage] confirm receipt error", err);
+      const msg =
+        err?.response?.data?.message ||
+        (isIndo ? "Gagal mengonfirmasi penerimaan pesanan." : "Failed to confirm order receipt.");
+      toast.error(msg);
+    } finally {
+      setIsConfirmingReceipt(false);
+    }
+  };
 
   const handleCancelOrder = async () => {
     if (!id || isCancelling) return;
@@ -311,6 +334,8 @@ export default function AccountOrderDetailPage() {
       onContactSupport={handleContactSupport}
       onCancelOrder={handleCancelOrder}
       isCancelling={isCancelling}
+      onConfirmReceipt={handleConfirmReceipt}
+      isConfirmingReceipt={isConfirmingReceipt}
       onPayNow={handlePayNow}
       isPaying={isPaying}
       onCopy={handleCopy}

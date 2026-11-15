@@ -2414,6 +2414,87 @@ router.post("/orders/my/:id/cancel", protect, async (req, res, next) => {
         });
     }
 });
+// POST /api/store/orders/my/:id/confirm-receipt (auth)
+router.post("/orders/my/:id/confirm-receipt", protect, async (req, res, next) => {
+    try {
+        const userId = getAuthUserId(req, res);
+        if (!userId)
+            return;
+        const orderId = await resolveMyOrderId(req.params.id, userId);
+        if (!orderId) {
+            return res.status(400).json({ success: false, message: "Invalid order id." });
+        }
+        const order = await Order.findOne({
+            where: { id: orderId, userId },
+        });
+        if (!order) {
+            return res.status(404).json({ success: false, message: "Pesanan tidak ditemukan." });
+        }
+        const currentStatus = String(order.status || "").toLowerCase().trim();
+        if (currentStatus === "delivered" || currentStatus === "completed" || currentStatus === "complete") {
+            return res.json({
+                success: true,
+                message: "Pesanan sudah berstatus diterima.",
+                data: { orderId, status: "delivered" },
+            });
+        }
+        if (currentStatus === "cancelled") {
+            return res.status(409).json({
+                success: false,
+                message: "Pesanan yang dibatalkan tidak dapat dikonfirmasi diterima.",
+            });
+        }
+        // 1. Update Order status to delivered
+        await order.update({
+            status: "delivered",
+        });
+        // 2. Update all active Suborders to DELIVERED
+        await Suborder.update({
+            fulfillmentStatus: "DELIVERED",
+        }, {
+            where: {
+                orderId,
+                fulfillmentStatus: { [Op.ne]: "CANCELLED" },
+            },
+        });
+        // 3. Update all active Shipments to DELIVERED
+        await Shipment.update({
+            status: "DELIVERED",
+        }, {
+            where: {
+                orderId,
+                status: { [Op.ne]: "CANCELLED" },
+            },
+        });
+        // 4. Record tracking event if shipment exists
+        const shipments = await Shipment.findAll({ where: { orderId } });
+        for (const sh of shipments) {
+            await TrackingEvent.create({
+                shipmentId: sh.id,
+                eventType: "DELIVERED",
+                eventLabel: "Pesanan Diterima",
+                eventDescription: "Pesanan telah dikonfirmasi diterima oleh pembeli.",
+                occurredAt: new Date(),
+            }).catch(() => { });
+        }
+        return res.json({
+            success: true,
+            message: "Konfirmasi penerimaan pesanan berhasil. Terima kasih!",
+            data: {
+                orderId,
+                status: "delivered",
+                fulfillmentStatus: "DELIVERED",
+            },
+        });
+    }
+    catch (error) {
+        console.error("[store/orders/my/:id/confirm-receipt] error", error);
+        return res.status(500).json({
+            success: false,
+            message: error?.message || "Gagal mengonfirmasi penerimaan pesanan.",
+        });
+    }
+});
 // POST /api/store/orders/my/:id/pay (auth)
 router.post("/orders/my/:id/pay", protect, async (req, res, next) => {
     try {

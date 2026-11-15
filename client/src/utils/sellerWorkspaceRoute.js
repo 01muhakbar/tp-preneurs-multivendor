@@ -77,7 +77,8 @@ export const createSellerWorkspaceRoutes = (storeSlug) => ({
   orderDetail: (suborderId) =>
     buildSellerWorkspacePath(storeSlug, `/orders/${encodeURIComponent(String(suborderId))}`),
   paymentReview: () => resolveSellerPaymentReviewRoute({ storeSlug }),
-  paymentCenter: () => buildSellerWorkspacePath(storeSlug, "/payment-center"),
+  paymentCenter: () => buildSellerWorkspacePath(storeSlug, "/withdrawals"),
+  withdrawals: () => buildSellerWorkspacePath(storeSlug, "/withdrawals"),
   paymentProfile: () => resolveSellerPaymentProfileRoute({ storeSlug }),
   coupons: () => buildSellerWorkspacePath(storeSlug, "/catalog/coupons"),
   couponCreate: () => buildSellerWorkspacePath(storeSlug, "/catalog/coupons/new"),

@@ -542,6 +542,7 @@ export default function App() {
             <Route path="payment-review" element={<Seller2026LivePaymentReviewPage />} />
             <Route path="payment-profile" element={<Seller2026LivePaymentProfilePage />} />
             <Route path="payment-center" element={<SellerPaymentCenterPage productionMode={true} />} />
+            <Route path="withdrawals" element={<SellerPaymentCenterPage productionMode={true} />} />
             <Route path="coupons" element={<LegacySellerCouponsRedirect />} />
             <Route path="coupons/new" element={<LegacySellerCouponsRedirect isCreate={true} />} />
             <Route path="catalog/coupons" element={<Seller2026LiveCouponsPage />} />

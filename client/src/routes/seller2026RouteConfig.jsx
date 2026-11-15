@@ -126,6 +126,7 @@ export const seller2026PreviewRoutes = (
       <Route path="catalog/products/:productId" element={<Seller2026ProductReviewDetailPreviewPage />} />
       <Route path="orders" element={<Seller2026OrdersPreviewPage />} />
       <Route path="payment-center" element={<SellerPaymentCenterPage />} />
+      <Route path="withdrawals" element={<SellerPaymentCenterPage />} />
       <Route path="coupons" element={<Seller2026CouponsPreviewPage />} />
       <Route path="team" element={<Seller2026TeamPreviewPage />} />
       <Route path="analytics-sync" element={<Seller2026AnalyticsSyncPreviewPage />} />
