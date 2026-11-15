@@ -2,50 +2,63 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import {
+  AlertCircle,
+  ArrowLeft,
+  Boxes,
+  CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
-  MoreHorizontal,
+  MoreVertical,
+  Package,
   Pencil,
   Plus,
+  RefreshCw,
   Search,
+  SlidersHorizontal,
+  Tag,
   Trash2,
   X,
 } from "lucide-react";
 import { UiErrorState, UiSkeleton } from "../../primitives/state/index.js";
 import {
   bulkDeleteAdminAttributeValues,
-  createAdminAttributeValue,
   deleteAdminAttributeValue,
   fetchAdminAttributes,
   fetchAdminAttributeValues,
   updateAdminAttributeValue,
 } from "../../../lib/adminApi.js";
+import "./admin-attributes-2026.css";
 
 const toText = (value) => String(value ?? "").trim();
 
-const btnBase =
-  "inline-flex h-10 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-4 text-sm font-semibold transition";
-const btnAmber = `${btnBase} bg-amber-300 text-white hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60`;
-const btnGhost = `${btnBase} bg-slate-100 text-slate-500 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60`;
-const btnGreen = `${btnBase} bg-teal-700 text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60`;
-const tableHeadCell =
-  "whitespace-nowrap px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500";
-const tableCell = "px-3 py-3 align-middle text-sm text-slate-700";
+const invalidateAttributeSurfaces = (queryClient, numericAttributeId) => {
+  queryClient.invalidateQueries({ queryKey: ["admin", "attribute-values", numericAttributeId] });
+  queryClient.invalidateQueries({ queryKey: ["admin", "attributes"] });
+  queryClient.invalidateQueries({ queryKey: ["admin-product-attributes"] });
+  queryClient.invalidateQueries({ queryKey: ["seller2026", "attributes"] });
+  queryClient.invalidateQueries({ queryKey: ["seller2026", "product-editor", "attributes"] });
+  queryClient.invalidateQueries({ queryKey: ["seller-attributes"] });
+  queryClient.invalidateQueries({ queryKey: ["attributes"] });
+  queryClient.invalidateQueries({ queryKey: ["product"] });
+  queryClient.invalidateQueries({ queryKey: ["storefront", "products"] });
+};
 
 function ValueStatusBadge({ published }) {
   const { t } = useTranslation("admin");
   return (
     <span
-      className={`inline-flex min-h-7 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold ${
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition ${
         published
-          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-          : "border-slate-200 bg-slate-100 text-slate-600"
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-400"
+          : "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
       }`}
     >
       <span
         className={`h-1.5 w-1.5 rounded-full ${
-          published ? "bg-emerald-500" : "bg-slate-400"
+          published ? "bg-emerald-500" : "bg-slate-400 dark:bg-slate-500"
         }`}
       />
       {published
@@ -55,243 +68,125 @@ function ValueStatusBadge({ published }) {
   );
 }
 
-function AttributeValueModal({
+function EditValueModal({
   open,
-  mode,
   parentAttribute,
-  initialValue,
+  valueItem,
   onClose,
   onSubmit,
-  isSubmitting = false,
-  error = "",
+  isSubmitting,
+  error,
 }) {
-  const { t } = useTranslation("admin");
-  const [value, setValue] = useState("");
+  const { t, i18n } = useTranslation("admin");
+  const isId = String(i18n.language || "").toLowerCase().startsWith("id");
+  const [val, setVal] = useState("");
+  const inputRef = useRef(null);
 
   useEffect(() => {
-    if (!open) return;
-    setValue(toText(initialValue?.value));
-  }, [initialValue, open]);
+    if (open && valueItem) {
+      setVal(toText(valueItem.value));
+      const timer = setTimeout(() => inputRef.current?.focus(), 60);
+      return () => clearTimeout(timer);
+    }
+  }, [open, valueItem]);
 
   if (!open) return null;
 
-  const isEditMode = mode === "edit";
   const handleSubmit = (event) => {
     event.preventDefault();
-    const trimmedValue = toText(value);
-    if (!trimmedValue || isSubmitting) return;
-    onSubmit?.(trimmedValue);
+    const trimmed = toText(val);
+    if (!trimmed || isSubmitting) return;
+    onSubmit?.(trimmed);
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/35">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
       <button
         type="button"
         onClick={() => {
-          if (isSubmitting) return;
-          onClose?.();
+          if (!isSubmitting) onClose?.();
         }}
-        className="absolute inset-0 cursor-default"
-        aria-label="Close attribute value drawer"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+        aria-label="Close edit value modal"
       />
 
-      <aside className="absolute right-0 top-0 z-10 flex h-full w-full max-w-[800px] flex-col border-l border-slate-200 bg-white shadow-2xl">
-        <div className="border-b border-slate-200 px-5 py-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-[22px] leading-none font-semibold tracking-tight text-slate-900">
-                {isEditMode
-                  ? t("attributes.Edit Attribute Value", "Edit Attribute Value")
-                  : t("attributes.Add Attribute Value", "Add Attribute Value")}
-              </h2>
-              <p className="mt-2 text-sm text-slate-500">
-                {t("attributes.Add your attribute values and necessary information from here", "Add your attribute values and necessary information from here")}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <select
-                defaultValue="en"
-                className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-teal-600 focus:outline-none"
-                aria-label="Language"
-              >
-                <option value="en">en</option>
-              </select>
-              <button
-                type="button"
-                onClick={() => {
-                  if (isSubmitting) return;
-                  onClose?.();
-                }}
-                disabled={isSubmitting}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-rose-50 text-rose-500 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
-                aria-label="Close attribute value drawer"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+      {/* Modal Dialog */}
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+              {t("attributes.Edit Attribute Value", "Edit Attribute Value")}
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              {parentAttribute?.displayName || parentAttribute?.name || ""}
+            </p>
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (!isSubmitting) onClose?.();
+            }}
+            disabled={isSubmitting}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition"
+            aria-label="Close"
+          >
+            <X size={18} />
+          </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
-          <div className="grid gap-0">
-            <div className="grid border-b border-slate-200 md:grid-cols-[220px_minmax(0,1fr)]">
-              <div className="px-5 py-4 text-sm font-medium text-slate-700">
-                {t("attributes.Attribute Title", "Attribute Title")}
-              </div>
-              <div className="px-5 py-4">
-                <input
-                  value={parentAttribute?.displayName || parentAttribute?.name || ""}
-                  readOnly
-                  className="h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-500"
-                />
-              </div>
+        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+          {error ? (
+            <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-400">
+              <AlertCircle size={15} className="shrink-0" />
+              <span>{error}</span>
             </div>
+          ) : null}
 
-            <div className="grid border-b border-slate-200 md:grid-cols-[220px_minmax(0,1fr)]">
-              <div className="px-5 py-4 text-sm font-medium text-slate-700">
-                {t("attributes.Display Name", "Display Name")}
-              </div>
-              <div className="px-5 py-4">
-                <input
-                  value={parentAttribute?.displayName || parentAttribute?.name || ""}
-                  readOnly
-                  className="h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-500"
-                />
-              </div>
-            </div>
-
-            <div className="grid border-b border-slate-200 md:grid-cols-[220px_minmax(0,1fr)]">
-              <div className="px-5 py-4 text-sm font-medium text-slate-700">
-                {t("attributes.Options", "Options")}
-              </div>
-              <div className="px-5 py-4">
-                <input
-                  value={toText(parentAttribute?.type || "dropdown")}
-                  readOnly
-                  className="h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm capitalize text-slate-500"
-                />
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-[220px_minmax(0,1fr)]">
-              <div className="px-5 py-4 text-sm font-medium text-slate-700">
-                {t("attributes.Variants", "Variants")}
-              </div>
-              <div className="px-5 py-4">
-                <input
-                  value={value}
-                  onChange={(event) => setValue(event.target.value)}
-                  disabled={isSubmitting}
-                  placeholder={t("attributes.Press enter to add variant", "Press enter to add variant")}
-                  className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-teal-600 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-50"
-                />
-                {error ? (
-                  <p className="mt-2 text-sm text-rose-600">{error}</p>
-                ) : null}
-              </div>
-            </div>
+          <div>
+            <label
+              htmlFor="edit-val-input"
+              className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5"
+            >
+              {t("attributes.Value", "Value")} <span className="text-rose-500">*</span>
+            </label>
+            <input
+              id="edit-val-input"
+              ref={inputRef}
+              type="text"
+              value={val}
+              onChange={(e) => setVal(e.target.value)}
+              disabled={isSubmitting}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-800 transition focus:border-[#034c85] focus:outline-none focus:ring-2 focus:ring-[#034c85]/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+            />
           </div>
-        </form>
 
-        <div className="border-t border-slate-200 bg-white px-5 py-4">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
             <button
               type="button"
-              onClick={() => {
-                if (isSubmitting) return;
-                onClose?.();
-              }}
+              onClick={onClose}
               disabled={isSubmitting}
-              className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
             >
               {t("attributes.Cancel", "Cancel")}
             </button>
             <button
               type="submit"
-              onClick={handleSubmit}
-              disabled={isSubmitting || !toText(value)}
-              className="inline-flex h-10 items-center justify-center rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isSubmitting || !toText(val)}
+              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-[#fe6f05] px-5 text-xs font-bold text-white shadow-md shadow-[#fe6f05]/20 transition hover:bg-[#e05f00] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isSubmitting
-                ? t("attributes.Saving...", "Saving...")
-                : isEditMode
-                  ? t("attributes.Update Value", "Update Value")
-                  : t("attributes.Add Value", "Add Value")}
+              {isSubmitting ? t("attributes.Saving...", "Saving...") : t("attributes.Update Value", "Update Value")}
             </button>
           </div>
-        </div>
-      </aside>
-    </div>
-  );
-}
-
-function ValueRowActions({ open, onOpen, onClose, onEdit, onDelete, disabled }) {
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={open ? onClose : onOpen}
-        disabled={disabled}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
-        aria-label="Open value row actions"
-      >
-        <MoreHorizontal className="h-4 w-4" />
-      </button>
-      {open ? (
-        <div className="absolute right-0 z-20 mt-2 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-          <button
-            type="button"
-            onClick={onEdit}
-            className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-          >
-            <Pencil className="h-4 w-4" />
-            Edit
-          </button>
-          <button
-            type="button"
-            onClick={onDelete}
-            className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-medium text-rose-600 transition hover:bg-rose-50"
-          >
-            <Trash2 className="h-4 w-4" />
-            Delete
-          </button>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function BulkActionMenu({ open, onOpen, onClose, onDelete, disabled }) {
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={open ? onClose : onOpen}
-        disabled={disabled}
-        className={btnAmber}
-      >
-        <Pencil className="h-4 w-4" />
-        Bulk Action
-      </button>
-      {open ? (
-        <div className="absolute right-0 z-20 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-          <button
-            type="button"
-            onClick={onDelete}
-            className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-medium text-rose-600 transition hover:bg-rose-50"
-          >
-            <Trash2 className="h-4 w-4" />
-            Delete Selected
-          </button>
-        </div>
-      ) : null}
+        </form>
+      </div>
     </div>
   );
 }
 
 export default function AttributeValuesPage() {
-  const { t } = useTranslation("admin");
+  const { t, i18n } = useTranslation("admin");
+  const isId = String(i18n.language || "").toLowerCase().startsWith("id");
   const { attributeId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -310,12 +205,8 @@ export default function AttributeValuesPage() {
   const [notice, setNotice] = useState(null);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [modalState, setModalState] = useState({
-    open: false,
-    mode: "create",
-    value: null,
-  });
-  const [submitError, setSubmitError] = useState("");
+  const [editingItem, setEditingItem] = useState(null);
+  const [editError, setEditError] = useState("");
   const [openMenuId, setOpenMenuId] = useState(null);
   const [bulkMenuOpen, setBulkMenuOpen] = useState(false);
 
@@ -387,48 +278,33 @@ export default function AttributeValuesPage() {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [bulkMenuOpen]);
 
-  const invalidateValues = () => {
-    queryClient.invalidateQueries({ queryKey: ["admin", "attribute-values", numericAttributeId] });
-    queryClient.invalidateQueries({ queryKey: ["admin", "attributes"] });
-  };
-
-  const createMutation = useMutation({
-    mutationFn: (value) => createAdminAttributeValue(numericAttributeId, { value }),
-    onSuccess: () => {
-      setModalState({ open: false, mode: "create", value: null });
-      setSubmitError("");
-      setNotice({ type: "success", message: "Value added successfully." });
-      invalidateValues();
-    },
-    onError: (error) => {
-      setSubmitError(error?.response?.data?.message || "Failed to add value.");
-    },
-  });
-
   const updateMutation = useMutation({
     mutationFn: ({ id, value }) => updateAdminAttributeValue(id, { value }),
     onSuccess: () => {
-      setModalState({ open: false, mode: "create", value: null });
-      setSubmitError("");
-      setNotice({ type: "success", message: "Value updated successfully." });
-      invalidateValues();
+      setEditingItem(null);
+      setEditError("");
+      toast.success(t("attributes.Value updated successfully.", "Value updated successfully."));
+      invalidateAttributeSurfaces(queryClient, numericAttributeId);
     },
     onError: (error) => {
-      setSubmitError(error?.response?.data?.message || "Failed to update value.");
+      setEditError(
+        error?.response?.data?.message ||
+        t("attributes.Failed to update value.", "Failed to update value.")
+      );
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => deleteAdminAttributeValue(id),
     onSuccess: () => {
-      setNotice({ type: "success", message: "Value deleted successfully." });
-      invalidateValues();
+      toast.success(t("attributes.Value deleted successfully.", "Value deleted successfully."));
+      invalidateAttributeSurfaces(queryClient, numericAttributeId);
     },
     onError: (error) => {
-      setNotice({
-        type: "error",
-        message: error?.response?.data?.message || "Failed to delete value.",
-      });
+      toast.error(
+        error?.response?.data?.message ||
+        t("attributes.Failed to delete value.", "Failed to delete value.")
+      );
     },
   });
 
@@ -437,326 +313,511 @@ export default function AttributeValuesPage() {
     onSuccess: (result, ids) => {
       setSelectedIds((prev) => prev.filter((id) => !ids.includes(id)));
       setBulkMenuOpen(false);
-      setNotice({
-        type: "success",
-        message: `${Number(result?.affected || ids.length || 0)} value(s) deleted successfully.`,
-      });
-      invalidateValues();
+      const count = Number(result?.affected || ids.length || 0);
+      toast.success(
+        isId
+          ? `${count} nilai berhasil dihapus.`
+          : `${count} values deleted successfully.`
+      );
+      invalidateAttributeSurfaces(queryClient, numericAttributeId);
     },
     onError: (error) => {
-      setNotice({
-        type: "error",
-        message: error?.response?.data?.message || "Failed to delete selected values.",
-      });
+      toast.error(
+        error?.response?.data?.message ||
+        t("attributes.Failed to delete selected values.", "Failed to delete selected values.")
+      );
     },
   });
 
   const handleDeleteValue = (valueRow) => {
     if (!valueRow?.id) return;
-    if (!window.confirm(`Delete value "${valueRow.value}"?`)) return;
+    const confirmMsg = isId
+      ? `Hapus nilai "${valueRow.value}"?`
+      : `${t("attributes.Are you sure you want to delete value", "Are you sure you want to delete value")} "${valueRow.value}"?`;
+    if (!window.confirm(confirmMsg)) return;
     deleteMutation.mutate(valueRow.id);
   };
 
   const handleDeleteSelected = () => {
     if (selectedIds.length === 0) return;
-    if (!window.confirm(`Delete ${selectedIds.length} selected value(s)?`)) return;
+    const confirmMsg = isId
+      ? `Hapus ${selectedIds.length} nilai yang dipilih?`
+      : `Delete ${selectedIds.length} selected value(s)?`;
+    if (!window.confirm(confirmMsg)) return;
     bulkDeleteMutation.mutate(selectedIds);
   };
 
-  const openCreateModal = () => {
-    setSubmitError("");
-    setModalState({ open: true, mode: "create", value: null });
-  };
-
-  const openEditModal = (valueRow) => {
-    setSubmitError("");
-    setModalState({ open: true, mode: "edit", value: valueRow });
-  };
-
-  const handleModalSubmit = (value) => {
-    if (modalState.mode === "edit" && modalState.value?.id) {
-      updateMutation.mutate({ id: modalState.value.id, value });
-      return;
-    }
-    createMutation.mutate(value);
+  const handleEditSubmit = (newVal) => {
+    if (!editingItem?.id) return;
+    updateMutation.mutate({ id: editingItem.id, value: newVal });
   };
 
   const allSelectedOnPage =
     paginatedValues.length > 0 &&
     paginatedValues.every((entry) => selectedIds.includes(Number(entry.id)));
 
-  const isSubmitting = createMutation.isPending || updateMutation.isPending;
+  const attributeDisplayName =
+    parentAttribute?.displayName || parentAttribute?.name || (numericAttributeId ? `#${numericAttributeId}` : "-");
+  const optionType = toText(parentAttribute?.type || "dropdown");
+  const isPublished = Boolean(parentAttribute?.published);
+  const scopeLabel = parentAttribute?.scope === "store" ? t("attributes.Store", "Store") : t("attributes.Global", "Global");
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-[22px] border border-slate-200 bg-white px-5 py-5 shadow-sm">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div className="space-y-1.5">
-            <h1 className="text-[38px] leading-none font-semibold tracking-tight text-slate-900">
-              {t("attributes.Attribute Values", "Attribute Values")}
-            </h1>
-            <p className="text-sm text-slate-500">{t("attributes.Manage attribute values", "Manage attribute values")}</p>
-            <div className="flex flex-wrap items-center gap-1.5 pt-1 text-sm">
-              <button
-                type="button"
-                onClick={() => navigate("/admin/catalog/attributes")}
-                className="font-semibold text-blue-600 transition hover:text-blue-700"
-              >
-                {t("attributes.Attributes", "Attributes")}
-              </button>
-              <ChevronRight className="h-4 w-4 text-slate-400" />
-              <span className="font-semibold text-slate-900">
-                {parentAttribute?.name || `#${numericAttributeId || "-"}`}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <div ref={bulkMenuOpen ? bulkMenuRef : null}>
-              <BulkActionMenu
-                open={bulkMenuOpen}
-                onOpen={() => setBulkMenuOpen(true)}
-                onClose={() => setBulkMenuOpen(false)}
-                onDelete={handleDeleteSelected}
-                disabled={selectedIds.length === 0 || bulkDeleteMutation.isPending}
-              />
-            </div>
+    <div className="aa26-page">
+      {/* Header */}
+      <header className="aa26-header">
+        <div className="min-w-0">
+          <h1>{t("attributes.Attribute Values", "Attribute Values")}</h1>
+          <nav aria-label="Breadcrumb">
             <button
               type="button"
-              onClick={handleDeleteSelected}
-              disabled={selectedIds.length === 0 || bulkDeleteMutation.isPending}
-              className={btnGhost}
+              onClick={() => navigate("/admin/catalog/attributes")}
+              className="text-[#034c85] dark:text-sky-400 hover:underline font-semibold transition"
             >
-              <Trash2 className="h-4 w-4" />
-              {bulkDeleteMutation.isPending ? t("attributes.Deleting...", "Deleting...") : t("attributes.Delete", "Delete")}
+              {t("attributes.Attributes", "Attributes")}
             </button>
-            <button type="button" onClick={openCreateModal} className={btnGreen}>
-              <Plus className="h-4 w-4" />
-              {t("attributes.Add Value", "Add Value")}
-            </button>
-          </div>
+            <ChevronRight size={14} className="text-slate-400" />
+            <span className="font-semibold text-slate-800 dark:text-slate-100">
+              {attributeDisplayName}
+            </span>
+          </nav>
         </div>
-      </div>
 
-      <div className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-col gap-4">
-          <div className="relative max-w-[360px]">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              type="search"
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
+        <div className="aa26-header__actions">
+          {/* Bulk Action Menu */}
+          <div className="relative" ref={bulkMenuRef}>
+            <button
+              type="button"
+              onClick={() => setBulkMenuOpen((prev) => !prev)}
+              disabled={selectedIds.length === 0 || bulkDeleteMutation.isPending}
+              className="aa26-action"
+            >
+              <Pencil size={15} />
+              <span>{t("attributes.Bulk Action", "Bulk Action")}</span>
+              <ChevronDown size={14} />
+            </button>
+
+            {bulkMenuOpen ? (
+              <div className="aa26-more-menu" style={{ right: 0, top: "calc(100% + 6px)", bottom: "auto" }}>
+                <button
+                  type="button"
+                  onClick={handleDeleteSelected}
+                  className="is-danger"
+                >
+                  <Trash2 size={15} />
+                  <span>{t("attributes.Delete Selected", "Delete Selected")} ({selectedIds.length})</span>
+                </button>
+              </div>
+            ) : null}
+          </div>
+
+          {/* Delete Selected Direct Button */}
+          <button
+            type="button"
+            onClick={handleDeleteSelected}
+            disabled={selectedIds.length === 0 || bulkDeleteMutation.isPending}
+            className="aa26-action aa26-action--danger"
+            title={t("attributes.Delete Selected", "Delete Selected")}
+          >
+            <Trash2 size={15} />
+            <span>
+              {bulkDeleteMutation.isPending
+                ? t("attributes.Deleting...", "Deleting...")
+                : t("attributes.Delete", "Delete")}
+            </span>
+          </button>
+
+          {/* + Add Value Button (Navigates to dedicated new page) */}
+          <button
+            type="button"
+            onClick={() => navigate(`/admin/catalog/attributes/${numericAttributeId}/values/new`)}
+            className="aa26-action aa26-action--primary"
+          >
+            <Plus size={16} />
+            <span>{t("attributes.Add Value", "Add Value")}</span>
+          </button>
+        </div>
+      </header>
+
+      {/* 4 KPI Cards */}
+      <section className="aa26-kpis" aria-label="Attribute Metrics">
+        {/* KPI 1: Total Values */}
+        <article className="aa26-kpi aa26-kpi--blue">
+          <div>
+            <p>{t("attributes.Total Values", "Total Values")}</p>
+            <strong>{values.length}</strong>
+            <span>{t("attributes.All variation values", "All variation values")}</span>
+          </div>
+          <span className="aa26-kpi__icon">
+            <Boxes size={22} />
+          </span>
+        </article>
+
+        {/* KPI 2: Status */}
+        <article className="aa26-kpi aa26-kpi--green">
+          <div>
+            <p>{t("attributes.Status", "Status")}</p>
+            <strong>
+              {isPublished ? t("attributes.Published", "Published") : t("attributes.Draft", "Draft")}
+            </strong>
+            <span>{t("attributes.Storefront visibility", "Storefront visibility")}</span>
+          </div>
+          <span className="aa26-kpi__icon">
+            <CheckCircle2 size={22} />
+          </span>
+        </article>
+
+        {/* KPI 3: Option Type */}
+        <article className="aa26-kpi aa26-kpi--orange">
+          <div>
+            <p>{t("attributes.Option Type", "Option Type")}</p>
+            <strong className="capitalize">{optionType}</strong>
+            <span>{t("attributes.Input option style", "Input option style")}</span>
+          </div>
+          <span className="aa26-kpi__icon">
+            <SlidersHorizontal size={22} />
+          </span>
+        </article>
+
+        {/* KPI 4: Scope */}
+        <article className="aa26-kpi aa26-kpi--blue">
+          <div>
+            <p>{t("attributes.Scope", "Scope")}</p>
+            <strong>{scopeLabel}</strong>
+            <span>
+              {parentAttribute?.scope === "store"
+                ? t("attributes.Store-specific", "Store-specific")
+                : t("attributes.System-wide", "System-wide")}
+            </span>
+          </div>
+          <span className="aa26-kpi__icon">
+            <Package size={22} />
+          </span>
+        </article>
+      </section>
+
+      {/* Search Toolbar */}
+      <div className="aa26-toolbar">
+        <div className="aa26-search">
+          <Search size={16} />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            placeholder={t("attributes.Search by name...", "Search by name...")}
+            aria-label={t("attributes.Search by name...", "Search by name...")}
+          />
+          {search ? (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch("");
                 setPage(1);
               }}
-              placeholder={t("attributes.Search by name...", "Search by name...")}
-              className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 focus:border-teal-600 focus:outline-none"
-            />
-          </div>
-
-          {warning ? (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-              Warning: {warning}
-            </div>
-          ) : null}
-
-          {notice ? (
-            <div
-              className={`rounded-2xl border px-4 py-3 text-sm ${
-                notice.type === "error"
-                  ? "border-rose-200 bg-rose-50 text-rose-700"
-                  : "border-emerald-200 bg-emerald-50 text-emerald-700"
-              }`}
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              aria-label="Clear search"
             >
-              {notice.message}
-            </div>
+              <X size={15} />
+            </button>
           ) : null}
+        </div>
 
-          {valuesQuery.isLoading || parentAttributeQuery.isLoading ? (
-            <UiSkeleton variant="table" rows={6} />
-          ) : null}
-
-          {valuesQuery.isError ? (
-            <UiErrorState
-              title={t("attributes.Failed to load attribute values", "Failed to load attribute values")}
-              message={t("attributes.Please retry to load the latest values truth from the backend.", "Please retry to load the latest values truth from the backend.")}
-              onRetry={valuesQuery.refetch}
-            />
-          ) : null}
-
-          {!valuesQuery.isLoading && !valuesQuery.isError ? (
-            <div className="overflow-hidden rounded-[18px] border border-slate-200 bg-white">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[860px] text-left text-sm">
-                  <thead className="bg-slate-50">
-                    <tr>
-                      <th className={`${tableHeadCell} w-[48px]`}>
-                        <input
-                          type="checkbox"
-                          checked={allSelectedOnPage}
-                          onChange={() =>
-                            setSelectedIds((prev) => {
-                              const currentPageIds = paginatedValues
-                                .map((entry) => Number(entry.id))
-                                .filter(Boolean);
-                              if (allSelectedOnPage) {
-                                return prev.filter((id) => !currentPageIds.includes(id));
-                              }
-                              return Array.from(new Set([...prev, ...currentPageIds]));
-                            })
-                          }
-                          className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                        />
-                      </th>
-                      <th className={`${tableHeadCell} w-[120px]`}>{t("attributes.ID", "ID")}</th>
-                      <th className={tableHeadCell}>{t("attributes.Name", "Name")}</th>
-                      <th className={tableHeadCell}>{t("attributes.Type", "Type")}</th>
-                      <th className={tableHeadCell}>{t("attributes.Status", "Status")}</th>
-                      <th className={`${tableHeadCell} text-right`}>{t("attributes.Actions", "Actions")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedValues.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="px-4 py-12 text-center text-sm text-slate-500">
-                          {t("attributes.No values found for this attribute.", "No values found for this attribute.")}
-                        </td>
-                      </tr>
-                    ) : (
-                      paginatedValues.map((valueRow) => {
-                        const rowId = Number(valueRow.id);
-                        const isDeleting =
-                          deleteMutation.isPending && deleteMutation.variables === rowId;
-                        return (
-                          <tr
-                            key={rowId}
-                            className="border-t border-slate-100 transition hover:bg-slate-50/80"
-                          >
-                            <td className={tableCell}>
-                              <input
-                                type="checkbox"
-                                checked={selectedIds.includes(rowId)}
-                                onChange={() =>
-                                  setSelectedIds((prev) =>
-                                    prev.includes(rowId)
-                                      ? prev.filter((id) => Number(id) !== rowId)
-                                      : [...prev, rowId]
-                                  )
-                                }
-                                className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                              />
-                            </td>
-                            <td className={tableCell}>
-                              <span className="font-semibold text-slate-900">C{rowId}</span>
-                            </td>
-                            <td className={tableCell}>
-                              <span className="font-semibold text-slate-900">
-                                {valueRow.value || "-"}
-                              </span>
-                            </td>
-                            <td className={tableCell}>
-                              <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-medium capitalize text-slate-600">
-                                {parentAttribute?.type || "dropdown"}
-                              </span>
-                            </td>
-                            <td className={tableCell}>
-                              <ValueStatusBadge published={Boolean(parentAttribute?.published)} />
-                            </td>
-                            <td className={`${tableCell} text-right`}>
-                              <div
-                                ref={openMenuId === rowId ? rowMenuRef : null}
-                                className="flex justify-end"
-                              >
-                                <ValueRowActions
-                                  open={openMenuId === rowId}
-                                  onOpen={() => setOpenMenuId(rowId)}
-                                  onClose={() => setOpenMenuId(null)}
-                                  onEdit={() => {
-                                    setOpenMenuId(null);
-                                    openEditModal(valueRow);
-                                  }}
-                                  onDelete={() => {
-                                    setOpenMenuId(null);
-                                    handleDeleteValue(valueRow);
-                                  }}
-                                  disabled={isDeleting}
-                                />
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="flex flex-col gap-3 border-t border-slate-100 bg-white px-4 py-3 text-sm text-slate-500 md:flex-row md:items-center md:justify-between">
-                <div>{selectedIds.length} of {filteredValues.length} row(s) selected.</div>
-
-                <div className="flex flex-wrap items-center gap-3">
-                  <label className="flex items-center gap-2 text-sm">
-                    <span>Rows per page</span>
-                    <select
-                      value={limit}
-                      onChange={(event) => {
-                        setLimit(Number(event.target.value));
-                        setPage(1);
-                      }}
-                      className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
-                    >
-                      {[10, 20, 50].map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <span className="min-w-[88px] text-center text-sm font-medium text-slate-700">
-                    Page {page} of {totalPages}
-                  </span>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setPage((current) => Math.max(1, current - 1))}
-                      disabled={page <= 1}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                      aria-label="Previous page"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-                      disabled={page >= totalPages}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                      aria-label="Next page"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : null}
+        <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 px-2">
+          <span>
+            {filteredValues.length} {t("attributes.values", "values")}
+          </span>
         </div>
       </div>
 
-      <AttributeValueModal
-        open={modalState.open}
-        mode={modalState.mode}
+      {warning ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs font-semibold text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300">
+          {warning}
+        </div>
+      ) : null}
+
+      {/* Loading & Error States */}
+      {valuesQuery.isLoading || parentAttributeQuery.isLoading ? (
+        <UiSkeleton variant="table" rows={6} />
+      ) : null}
+
+      {valuesQuery.isError ? (
+        <UiErrorState
+          title={t("attributes.Failed to load attribute values", "Failed to load attribute values")}
+          message={t(
+            "attributes.Please retry to load the latest values truth from the backend.",
+            "Please retry to load the latest values truth from the backend."
+          )}
+          onRetry={valuesQuery.refetch}
+        />
+      ) : null}
+
+      {/* Main Table Card */}
+      {!valuesQuery.isLoading && !valuesQuery.isError ? (
+        <div className="aa26-table-card">
+          {/* Desktop Table View */}
+          <div className="aa26-table-wrap hidden md:block">
+            <table className="aa26-table">
+              <thead>
+                <tr>
+                  <th className="w-12 text-center">
+                    <input
+                      type="checkbox"
+                      checked={allSelectedOnPage}
+                      onChange={() =>
+                        setSelectedIds((prev) => {
+                          const currentPageIds = paginatedValues
+                            .map((entry) => Number(entry.id))
+                            .filter(Boolean);
+                          if (allSelectedOnPage) {
+                            return prev.filter((id) => !currentPageIds.includes(id));
+                          }
+                          return Array.from(new Set([...prev, ...currentPageIds]));
+                        })
+                      }
+                      aria-label={t("attributes.Select all attributes", "Select all attributes")}
+                    />
+                  </th>
+                  <th style={{ width: "120px" }}>{t("attributes.ID", "ID")}</th>
+                  <th>{t("attributes.Name", "Name")}</th>
+                  <th style={{ width: "140px" }}>{t("attributes.Type", "Type")}</th>
+                  <th style={{ width: "200px" }}>{t("attributes.Status", "Status")}</th>
+                  <th style={{ width: "120px", textAlign: "right" }}>
+                    {t("attributes.Actions", "Actions")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedValues.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-12 text-center text-sm text-slate-500">
+                      {t(
+                        "attributes.No values found for this attribute.",
+                        "No values found for this attribute."
+                      )}
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedValues.map((valueRow) => {
+                    const rowId = Number(valueRow.id);
+                    const isDeleting =
+                      deleteMutation.isPending && deleteMutation.variables === rowId;
+                    const isSelected = selectedIds.includes(rowId);
+
+                    return (
+                      <tr key={rowId} className={isSelected ? "is-selected" : ""}>
+                        <td className="text-center">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() =>
+                              setSelectedIds((prev) =>
+                                prev.includes(rowId)
+                                  ? prev.filter((id) => Number(id) !== rowId)
+                                  : [...prev, rowId]
+                              )
+                            }
+                            aria-label={`Select ${valueRow.value}`}
+                          />
+                        </td>
+                        <td>
+                          <span className="inline-flex items-center rounded-md border border-[#034c85]/20 bg-[#034c85]/10 px-2 py-0.5 text-xs font-bold text-[#034c85] dark:border-sky-500/30 dark:bg-sky-950/40 dark:text-sky-300">
+                            C{rowId}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="font-bold text-slate-900 dark:text-slate-100">
+                            {valueRow.value || "-"}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold capitalize text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                            {optionType}
+                          </span>
+                        </td>
+                        <td>
+                          <ValueStatusBadge published={isPublished} />
+                        </td>
+                        <td>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditError("");
+                                setEditingItem(valueRow);
+                              }}
+                              className="aa26-icon-button"
+                              title={t("attributes.Edit Value", "Edit Value")}
+                              aria-label={`Edit ${valueRow.value}`}
+                            >
+                              <Pencil size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteValue(valueRow)}
+                              disabled={isDeleting}
+                              className="aa26-icon-button text-rose-600 hover:text-rose-700 hover:border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                              title={t("attributes.Delete", "Delete")}
+                              aria-label={`Delete ${valueRow.value}`}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card Feed View */}
+          <div className="block md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+            {paginatedValues.length === 0 ? (
+              <div className="p-8 text-center text-sm text-slate-500">
+                {t(
+                  "attributes.No values found for this attribute.",
+                  "No values found for this attribute."
+                )}
+              </div>
+            ) : (
+              paginatedValues.map((valueRow) => {
+                const rowId = Number(valueRow.id);
+                const isSelected = selectedIds.includes(rowId);
+                const isDeleting =
+                  deleteMutation.isPending && deleteMutation.variables === rowId;
+
+                return (
+                  <article key={rowId} className="p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() =>
+                            setSelectedIds((prev) =>
+                              prev.includes(rowId)
+                                ? prev.filter((id) => Number(id) !== rowId)
+                                : [...prev, rowId]
+                            )
+                          }
+                          aria-label={`Select ${valueRow.value}`}
+                          className="h-4 w-4"
+                        />
+                        <span className="inline-flex items-center rounded-md border border-[#034c85]/20 bg-[#034c85]/10 px-2 py-0.5 text-xs font-bold text-[#034c85] dark:border-sky-500/30 dark:bg-sky-950/40 dark:text-sky-300">
+                          C{rowId}
+                        </span>
+                        <strong className="text-base font-bold text-slate-900 dark:text-slate-100">
+                          {valueRow.value || "-"}
+                        </strong>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditError("");
+                            setEditingItem(valueRow);
+                          }}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                          aria-label={`Edit ${valueRow.value}`}
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteValue(valueRow)}
+                          disabled={isDeleting}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-600 dark:border-slate-700 dark:bg-slate-800 dark:text-rose-400"
+                          aria-label={`Delete ${valueRow.value}`}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold capitalize text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                        {optionType}
+                      </span>
+                      <ValueStatusBadge published={isPublished} />
+                    </div>
+                  </article>
+                );
+              })
+            )}
+          </div>
+
+          {/* Pagination Footer */}
+          <div className="aa26-pagination">
+            <div className="text-xs sm:text-sm font-medium">
+              {selectedIds.length} {t("attributes.of", "of")} {filteredValues.length}{" "}
+              {t("attributes.row(s) selected", "row(s) selected")}.
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="flex items-center gap-2 text-xs sm:text-sm">
+                <span>{t("attributes.Rows per page", "Rows per page")}</span>
+                <select
+                  value={limit}
+                  onChange={(e) => {
+                    setLimit(Number(e.target.value));
+                    setPage(1);
+                  }}
+                  className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 focus:outline-none"
+                >
+                  {[10, 20, 50].map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <span className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200">
+                {t("attributes.Page", "Page")} {page} {t("attributes.of", "of")} {totalPages}
+              </span>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  disabled={page <= 1}
+                  aria-label={t("attributes.Previous page", "Previous page")}
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                  disabled={page >= totalPages}
+                  aria-label={t("attributes.Next page", "Next page")}
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Edit Value Modal */}
+      <EditValueModal
+        open={Boolean(editingItem)}
         parentAttribute={parentAttribute}
-        initialValue={modalState.value}
+        valueItem={editingItem}
         onClose={() => {
-          if (isSubmitting) return;
-          setSubmitError("");
-          setModalState({ open: false, mode: "create", value: null });
+          if (!updateMutation.isPending) {
+            setEditingItem(null);
+            setEditError("");
+          }
         }}
-        onSubmit={handleModalSubmit}
-        isSubmitting={isSubmitting}
-        error={submitError}
+        onSubmit={handleEditSubmit}
+        isSubmitting={updateMutation.isPending}
+        error={editError}
       />
     </div>
   );

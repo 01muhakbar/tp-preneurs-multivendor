@@ -64,6 +64,9 @@ const AdminOrderDetail = lazy(() => import("./pages/admin/OrderDetail.jsx"));
 const AdminAttributesPage = lazy(() => import("./pages/admin/Attributes.jsx"));
 const AdminAttributeCreatePage = lazy(() => import("./pages/admin/AdminAttributeCreatePage.jsx"));
 const AdminAttributeValuesPage = lazy(() => import("./pages/admin/AttributeValues.jsx"));
+const AdminAttributeValueCreatePage = lazy(() =>
+  import("./pages/admin/AdminAttributeValueCreatePage.jsx")
+);
 const AdminCategoriesPage = lazy(() => import("./pages/admin/AdminCategoriesPage.jsx"));
 const AdminCategoryCreatePage = lazy(() => import("./pages/admin/AdminCategoryCreatePage.jsx"));
 const AdminSubCategoriesPage = lazy(() =>
@@ -795,6 +798,14 @@ export default function App() {
                 element={
                   <RequirePerm perm="ATTRIBUTES_CRUD">
                     <AdminAttributeValuesPage />
+                  </RequirePerm>
+                }
+              />
+              <Route
+                path="catalog/attributes/:attributeId/values/new"
+                element={
+                  <RequirePerm perm="ATTRIBUTES_CRUD">
+                    <AdminAttributeValueCreatePage />
                   </RequirePerm>
                 }
               />
