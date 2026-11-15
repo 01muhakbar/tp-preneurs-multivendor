@@ -173,6 +173,16 @@ const normalizeDetail = (payload, fallbackId, isId) => {
     application.riskSnapshot,
     application.complianceRisk
   );
+  const reviewSummary = firstObject(
+    application.reviewSummary,
+    workflow.reviewSummary,
+    {
+      revisionNote: application.revisionNote || workflow.revisionNote || null,
+      rejectReason: application.rejectReason || workflow.rejectReason || null,
+      internalAdminNote: application.internalAdminNote || workflow.internalAdminNote || null,
+      revisionSummary: application.revisionSummary || workflow.revisionSummary || null,
+    }
+  );
   const activation = firstObject(workflow.activation, application.activation);
   const identityMatch = firstObject(applicant.identityMatch, application.identityMatch);
   const matchFields = Array.isArray(identityMatch.fields) ? identityMatch.fields : [];
@@ -287,6 +297,28 @@ const normalizeDetail = (payload, fallbackId, isId) => {
       socialMedia: compliance.socialMediaUrl,
       supportEmail: compliance.supportEmail,
       supportPhone: compliance.supportPhone,
+    },
+    reviewSummary: {
+      revisionNote:
+        reviewSummary.revisionNote ||
+        application.revisionNote ||
+        workflow.revisionNote ||
+        null,
+      rejectReason:
+        reviewSummary.rejectReason ||
+        application.rejectReason ||
+        workflow.rejectReason ||
+        null,
+      internalAdminNote:
+        reviewSummary.internalAdminNote ||
+        application.internalAdminNote ||
+        workflow.internalAdminNote ||
+        null,
+      revisionSummary:
+        reviewSummary.revisionSummary ||
+        application.revisionSummary ||
+        workflow.revisionSummary ||
+        null,
     },
   };
 };
@@ -810,7 +842,7 @@ export default function AdminStoreApplicationDetailPage() {
                     <span style={{ fontSize: 13, color: "var(--asad-text-muted)" }}>{isId ? "Waktu Disetujui" : "Approved At"}</span>
                     <span style={{ fontSize: 13 }}>{formatDate(detail.reviewedAt, isId)}</span>
                   </div>
-                  {detail.reviewSummary.internalAdminNote ? (
+                  {detail?.reviewSummary?.internalAdminNote ? (
                     <div style={{ marginTop: "6px", padding: "10px 12px", borderRadius: "8px", background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.06)" }}>
                       <span style={{ fontSize: 11, fontWeight: 600, color: "var(--asad-text-muted)", display: "block" }}>{isId ? "Catatan Internal:" : "Internal Note:"}</span>
                       <span style={{ fontSize: 12, color: "var(--asad-text)" }}>{detail.reviewSummary.internalAdminNote}</span>
@@ -945,10 +977,16 @@ export default function AdminStoreApplicationDetailPage() {
                 </div>
               </div>
             </div>
-            {detail.reviewSummary.rejectReason && (
+            {detail?.reviewSummary?.rejectReason && (
               <div style={{ marginTop: "14px", padding: "14px", borderRadius: "10px", background: "rgba(239, 68, 68, 0.08)", border: "1px solid rgba(239, 68, 68, 0.25)" }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: "#ef4444", display: "block" }}>{isId ? "Alasan Penolakan:" : "Rejection Reason:"}</span>
-                <p style={{ margin: 0, marginTop: 4, fontSize: 13, color: "var(--asad-text)" }}>{detail.reviewSummary.rejectReason}</p>
+                <p style={{ margin: 0, marginTop: 4, fontSize: 13, color: "var(--asad-text)", lineHeight: 1.5 }}>{detail.reviewSummary.rejectReason}</p>
+              </div>
+            )}
+            {detail?.reviewSummary?.internalAdminNote && (
+              <div style={{ marginTop: "10px", padding: "12px 14px", borderRadius: "10px", background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "var(--asad-text-muted)", display: "block" }}>{isId ? "Catatan Internal Admin:" : "Internal Admin Note:"}</span>
+                <p style={{ margin: 0, marginTop: 4, fontSize: 12, color: "var(--asad-text)", lineHeight: 1.5 }}>{detail.reviewSummary.internalAdminNote}</p>
               </div>
             )}
           </div>
@@ -956,7 +994,7 @@ export default function AdminStoreApplicationDetailPage() {
           <div>
             <div className="asad-section__head">
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={{ width: 40, height: 40, borderRadius: "50%", backgroundColor: "rgba(245, 158, 11, 0.15)", color: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ width: 40, height: 40, borderRadius: "50%", backgroundColor: "rgba(254, 111, 5, 0.15)", color: "#fe6f05", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <AlertTriangle size={24} />
                 </div>
                 <div>
@@ -967,10 +1005,16 @@ export default function AdminStoreApplicationDetailPage() {
                 </div>
               </div>
             </div>
-            {detail.reviewSummary.revisionNote && (
-              <div style={{ marginTop: "14px", padding: "14px", borderRadius: "10px", background: "rgba(245, 158, 11, 0.08)", border: "1px solid rgba(245, 158, 11, 0.25)" }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "#f59e0b", display: "block" }}>{isId ? "Catatan Revisi untuk Penjual:" : "Revision Note for Seller:"}</span>
-                <p style={{ margin: 0, marginTop: 4, fontSize: 13, color: "var(--asad-text)" }}>{detail.reviewSummary.revisionNote}</p>
+            {detail?.reviewSummary?.revisionNote && (
+              <div style={{ marginTop: "14px", padding: "14px", borderRadius: "10px", background: "rgba(254, 111, 5, 0.08)", border: "1px solid rgba(254, 111, 5, 0.28)" }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#fe6f05", display: "block" }}>{isId ? "Catatan Revisi untuk Penjual:" : "Revision Note for Seller:"}</span>
+                <p style={{ margin: 0, marginTop: 4, fontSize: 13, color: "var(--asad-text)", lineHeight: 1.5 }}>{detail.reviewSummary.revisionNote}</p>
+              </div>
+            )}
+            {detail?.reviewSummary?.internalAdminNote && (
+              <div style={{ marginTop: "10px", padding: "12px 14px", borderRadius: "10px", background: "rgba(3, 76, 133, 0.12)", border: "1px solid rgba(3, 76, 133, 0.3)" }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#38bdf8", display: "block" }}>{isId ? "Catatan Internal Admin:" : "Internal Admin Note:"}</span>
+                <p style={{ margin: 0, marginTop: 4, fontSize: 12, color: "var(--asad-text)", lineHeight: 1.5 }}>{detail.reviewSummary.internalAdminNote}</p>
               </div>
             )}
           </div>

@@ -326,6 +326,12 @@ const serializeAdminStoreApplicationDetail = (application) => {
                 paymentProfileHandoffSource: toText(activation.paymentProfileHandoffSource),
             },
         },
+        reviewSummary: {
+            revisionNote: toText(getAttr(application, "revisionNote")),
+            rejectReason: toText(getAttr(application, "rejectReason")),
+            internalAdminNote: toText(adminReview.internalAdminNote),
+            revisionSummary: toText(adminReview.revisionSummary),
+        },
         contract: {
             sourceOfTruth: "store_application_admin_review",
             notes: [

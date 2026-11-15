@@ -230,6 +230,28 @@ const normalizeDetail = (value: any) => {
         ),
       },
     },
+    reviewSummary: {
+      revisionNote: textOrNull(
+        value?.reviewSummary?.revisionNote ??
+          value?.workflowSummary?.revisionNote ??
+          value?.revisionNote
+      ),
+      rejectReason: textOrNull(
+        value?.reviewSummary?.rejectReason ??
+          value?.workflowSummary?.rejectReason ??
+          value?.rejectReason
+      ),
+      internalAdminNote: textOrNull(
+        value?.reviewSummary?.internalAdminNote ??
+          value?.workflowSummary?.internalAdminNote ??
+          value?.internalAdminNote
+      ),
+      revisionSummary: textOrNull(
+        value?.reviewSummary?.revisionSummary ??
+          value?.workflowSummary?.revisionSummary ??
+          value?.revisionSummary
+      ),
+    },
     contract: {
       sourceOfTruth: textOrNull(value?.contract?.sourceOfTruth),
       notes: Array.isArray(value?.contract?.notes)
