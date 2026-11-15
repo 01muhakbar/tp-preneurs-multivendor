@@ -34,6 +34,7 @@ export default function OrderDetail() {
   const qc = useQueryClient();
   const { i18n } = useTranslation("admin");
 
+  const shouldAutoPrint = searchParams.get("print") === "1";
   const [noticeMessage, setNoticeMessage] = useState("");
   const noticeTimerRef = useRef(null);
   const autoPrintDoneRef = useRef(false);
@@ -125,7 +126,6 @@ export default function OrderDetail() {
   }, [order, invoiceNo, shouldAutoPrint, navigate]);
 
   // Handle auto-print if ?print=1
-  const shouldAutoPrint = searchParams.get("print") === "1";
   useEffect(() => {
     if (!shouldAutoPrint || autoPrintDoneRef.current) return;
     if (orderQuery.isLoading || orderQuery.isError || !order) return;

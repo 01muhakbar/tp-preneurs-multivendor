@@ -8,7 +8,20 @@ import {
 } from "../auth/authSessionNotice.js";
 
 const fetchMe = async () => {
-  const res = await fetch("/api/auth/admin/me");
+  let token = null;
+  try {
+    token = localStorage.getItem("adminAuthToken");
+  } catch (_) {
+    token = null;
+  }
+  const headers = { Accept: "application/json" };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch("/api/auth/admin/me", {
+    credentials: "include",
+    headers,
+  });
   if (!res.ok) {
     const error = new Error("Failed to fetch me");
     error.status = res.status;

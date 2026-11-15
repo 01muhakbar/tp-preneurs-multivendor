@@ -116,7 +116,7 @@ export default function AdminLayout() {
           onOpenSearchPalette={() => setSearchPaletteOpen(true)}
         />
         <main className="layout__page admin-page-shell">
-          <ErrorBoundary>
+          <ErrorBoundary key={pathname} resetKey={pathname}>
             <Outlet />
           </ErrorBoundary>
         </main>
