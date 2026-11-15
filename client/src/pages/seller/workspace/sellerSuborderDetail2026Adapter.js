@@ -202,7 +202,10 @@ export const fulfillmentStatusLabel = (status, isIndo = false) => {
   const norm = String(status || "").toUpperCase();
   if (norm === "DELIVERED" || norm === "COMPLETED") return isIndo ? "Selesai" : "Delivered";
   if (norm === "SHIPPED" || norm === "IN_TRANSIT") return isIndo ? "Sedang Dikirim" : "In Transit";
-  if (norm === "PROCESSING" || norm === "PACKED" || norm === "TO_PACK" || norm === "READY_TO_FULFILL") {
+  if (norm === "PROCESSING" || norm === "PACKED") {
+    return isIndo ? "Siap Dikirim" : "Packed";
+  }
+  if (norm === "TO_PACK" || norm === "READY_TO_FULFILL") {
     return isIndo ? "Perlu Dikemas" : "To Pack";
   }
   if (norm === "CANCELLED") return isIndo ? "Dibatalkan" : "Cancelled";
@@ -301,7 +304,7 @@ export const getSynchronizedOrderStatus = ({ fulfillmentStatus, paymentStatus, o
     };
   }
 
-  if (f === "PACKED") {
+  if (f === "PACKED" || f === "PROCESSING") {
     return {
       bucket: "to_pack",
       substage: "packed",
@@ -555,14 +558,14 @@ const buildProgressSteps = ({ syncStatus, isPaid, createdAt, paidAt, isIndo = fa
       code: "PACKED",
       label: isIndo ? "Dikemas" : "Packed",
       complete: isShipped || substage === "packed",
-      active: syncBucket === "to_pack",
+      active: syncBucket === "to_pack" && substage !== "packed",
       dateLabel: isShipped || substage === "packed" ? (isIndo ? "Siap" : "Ready") : (isIndo ? "Menunggu" : "Pending"),
     },
     {
       code: "IN_TRANSIT",
       label: isIndo ? "Sedang Dikirim" : "In Transit",
       complete: isDelivered || isOutForDelivery,
-      active: syncBucket === "shipping" && !isOutForDelivery,
+      active: (syncBucket === "shipping" && !isOutForDelivery) || (syncBucket === "to_pack" && substage === "packed"),
       dateLabel: isShipped ? (isIndo ? "Perjalanan" : "In transit") : (isIndo ? "Menunggu" : "Pending"),
     },
     {
@@ -697,13 +700,41 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
     }
 
     switch (syncStatus.bucket) {
-      case "to_pack":
+      case "to_pack": {
+        const isAlreadyPacked =
+          syncStatus.substage === "packed" ||
+          rawFulfillmentStatus === "PROCESSING" ||
+          rawFulfillmentStatus === "PACKED";
+
+        if (isAlreadyPacked) {
+          return {
+            bucket: "to_pack",
+            substage: "packed",
+            isAlreadyPacked: true,
+            title: isIndo ? "Langkah Selanjutnya: Kirim Pesanan ke Kurir" : "Next Step: Ship Order to Courier",
+            description: isIndo
+              ? "Produk telah selesai dikemas. Masukkan nomor resi ekspedisi pada form pengiriman di bawah, lalu klik 'Kirim Pesanan'."
+              : "Product packaging completed. Enter courier tracking number below, then click 'Ship Order'.",
+            icon: "truck",
+            primaryAction: "MARK_SHIPPED",
+            primaryLabel: isIndo ? "Kirim Pesanan" : "Ship Order",
+            secondaryAction: null,
+            secondaryLabel: null,
+            canShip: true,
+            canPack: false,
+            badge: isIndo ? "Siap Dikirim" : "Packed",
+            badgeTone: "orange",
+          };
+        }
+
         return {
           bucket: "to_pack",
+          substage: "to_pack",
+          isAlreadyPacked: false,
           title: isIndo ? "Langkah Selanjutnya: Kemas & Kirim Pesanan" : "Next Step: Pack & Ship Order",
           description: isIndo
-            ? "Pembayaran telah terverifikasi. Masukkan nomor resi pengiriman di bawah untuk mengirim pesanan."
-            : "Payment verified. Enter courier tracking number below to dispatch the order.",
+            ? "Pembayaran telah terverifikasi. Kemas produk fisik pesanan. Klik 'Tandai Siap Dikemas' setelah dibungkus, atau langsung isi resi dan klik 'Kirim Pesanan'."
+            : "Payment verified. Pack the order items. Click 'Mark as Packed' once boxed, or enter tracking and click 'Ship Order'.",
           icon: "package",
           primaryAction: "MARK_SHIPPED",
           primaryLabel: isIndo ? "Kirim Pesanan" : "Ship Order",
@@ -714,6 +745,7 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
           badge: isIndo ? "Perlu Dikemas" : "To Pack",
           badgeTone: "orange",
         };
+      }
       case "shipping":
         return {
           bucket: "shipping",
@@ -937,7 +969,18 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
     internalNotes: text(detail.internalNotes),
 
     actions: {
-      canMarkPacked: syncStatus.bucket === "to_pack" || isActionEnabled(markPackedAction),
+      canMarkPacked:
+        (syncStatus.bucket === "to_pack" &&
+          syncStatus.substage !== "packed" &&
+          rawFulfillmentStatus !== "PROCESSING" &&
+          rawFulfillmentStatus !== "PACKED") ||
+        (isActionEnabled(markPackedAction) &&
+          rawFulfillmentStatus !== "PROCESSING" &&
+          rawFulfillmentStatus !== "PACKED"),
+      isPacked:
+        syncStatus.substage === "packed" ||
+        rawFulfillmentStatus === "PROCESSING" ||
+        rawFulfillmentStatus === "PACKED",
       canMarkShipped: syncStatus.bucket === "to_pack" || isActionEnabled(markShippedAction),
       canMarkDelivered: syncStatus.bucket === "shipping" || isActionEnabled(markDeliveredAction),
       markPackedReason: text(

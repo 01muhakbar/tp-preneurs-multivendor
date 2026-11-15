@@ -381,6 +381,12 @@ const I18N = {
     btnReviewPayment: "Tinjau Bukti Bayar",
     tipMarkPacked: "Tekan jika selesai mengemas & menunggu kurir",
     tipShipOrder: "Tekan setelah paket diserahkan & nomor resi terisi",
+    alreadyPacked: "Sudah Dikemas",
+    alreadyPackedDesc: "Produk sudah selesai dikemas dan siap untuk dikirim.",
+    guidanceTitle: "Panduan Tombol Tindakan:",
+    guidanceMarkPacked: "Tandai Siap Dikemas: Klik setelah barang selesai dipacking rapi ke dalam kardus/paket.",
+    guidanceShipOrder: "Kirim Pesanan: Masukkan nomor resi ekspedisi di bawah sebelum mengklik tombol ini.",
+    fillTrackingAlert: "Harap masukkan nomor resi kurir di bawah terlebih dahulu sebelum menandai pesanan dikirim.",
     viewPublicTracking: "Lihat Live Tracking Pembeli",
     viewPublicTrackingSub: "Buka halaman pelacakan publik pelanggan",
     shippingRequired: "Harap masukkan Nomor Resi sebelum mengirim pesanan.",
@@ -479,6 +485,12 @@ const I18N = {
     btnReviewPayment: "Review Payment Proof",
     tipMarkPacked: "Click when package is packed & awaiting courier pickup",
     tipShipOrder: "Click when dispatched & tracking number is entered",
+    alreadyPacked: "Packed",
+    alreadyPackedDesc: "Product packaging completed and ready to ship.",
+    guidanceTitle: "Action Buttons Guide:",
+    guidanceMarkPacked: "Mark as Packed: Click once items are packaged and boxed.",
+    guidanceShipOrder: "Ship Order: Enter courier tracking number below before clicking this button.",
+    fillTrackingAlert: "Please enter the courier tracking number below before marking order as shipped.",
     viewPublicTracking: "View Buyer Live Tracking",
     viewPublicTrackingSub: "Open public buyer tracking page",
     shippingRequired: "Please enter tracking number before marking shipped.",
@@ -587,6 +599,7 @@ export default function SellerSuborderDetail2026PageView({
   const t = isIndo ? I18N.id : I18N.en;
   const Link = LinkComponent;
   const [validationError, setValidationError] = useState("");
+  const trackingInputRef = useRef(null);
   const couriersList = order?.shipping?.couriersList || INDONESIA_COURIERS;
 
   // Courier combobox options
@@ -754,7 +767,14 @@ export default function SellerSuborderDetail2026PageView({
     if (action === "MARK_SHIPPED" && !isDigitalOrder) {
       const tracking = String(fulfillmentDraft.trackingNumber || "").trim();
       if (!tracking) {
-        setValidationError(t.shippingRequired);
+        setValidationError(t.fillTrackingAlert || t.shippingRequired);
+        setTimeout(() => {
+          const el = trackingInputRef.current || document.getElementById("tpsodp2026-tracking-input");
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+            el.focus();
+          }
+        }, 50);
         return;
       }
     }
@@ -891,27 +911,63 @@ export default function SellerSuborderDetail2026PageView({
             <p className="tpsodp2026-next-step-card__desc">{nextStep.description}</p>
           </div>
           {isToPack && (
-            <div className="tpsodp2026-next-step-card__actions">
-              <button
-                type="button"
-                className="tpsodp2026-btn-accent"
-                onClick={() => handleActionClick("MARK_SHIPPED")}
-                disabled={isUpdating}
-                title={t.tipShipOrder}
-              >
-                <Truck size={15} />
-                <span>{nextStep.primaryLabel}</span>
-              </button>
-              <button
-                type="button"
-                className="tpsodp2026-btn-primary"
-                onClick={() => handleActionClick("MARK_PROCESSING")}
-                disabled={isUpdating}
-                title={t.tipMarkPacked}
-              >
-                <CheckCircle2 size={15} />
-                <span>{nextStep.secondaryLabel}</span>
-              </button>
+            <div className="tpsodp2026-next-step-card__action-group">
+              <div className="tpsodp2026-next-step-card__actions">
+                <button
+                  type="button"
+                  className="tpsodp2026-btn-accent"
+                  onClick={() => handleActionClick("MARK_SHIPPED")}
+                  disabled={isUpdating}
+                  title={t.tipShipOrder}
+                >
+                  <Truck size={15} />
+                  <span>{nextStep.primaryLabel}</span>
+                </button>
+                {order.actions?.canMarkPacked ? (
+                  <button
+                    type="button"
+                    className="tpsodp2026-btn-primary"
+                    onClick={() => handleActionClick("MARK_PROCESSING")}
+                    disabled={isUpdating}
+                    title={t.tipMarkPacked}
+                  >
+                    <CheckCircle2 size={15} />
+                    <span>{nextStep.secondaryLabel || t.btnMarkPacked}</span>
+                  </button>
+                ) : order.actions?.isPacked ? (
+                  <div className="tpsodp2026-packed-status-tag" title={t.alreadyPackedDesc}>
+                    <CheckCircle2 size={15} />
+                    <span>{t.alreadyPacked}</span>
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Action Buttons Guidance Microcopy */}
+              <div className="tpsodp2026-action-guide-box">
+                {order.actions?.canMarkPacked ? (
+                  <div className="tpsodp2026-action-guide-box__item">
+                    <span>📦</span>
+                    <div>
+                      <strong>{isIndo ? "Tandai Siap Dikemas:" : "Mark as Packed:"}</strong>{" "}
+                      <span>{t.guidanceMarkPacked.replace(/^[^:]+:\s*/, "")}</span>
+                    </div>
+                  </div>
+                ) : null}
+                <div className="tpsodp2026-action-guide-box__item">
+                  <span>🚚</span>
+                  <div>
+                    <strong>{isIndo ? "Kirim Pesanan:" : "Ship Order:"}</strong>{" "}
+                    <span>{t.guidanceShipOrder.replace(/^[^:]+:\s*/, "")}</span>
+                  </div>
+                </div>
+              </div>
+
+              {validationError && (
+                <div className="tpsodp2026-next-step-card__alert">
+                  <AlertTriangle size={14} />
+                  <span>{validationError}</span>
+                </div>
+              )}
             </div>
           )}
           {isShipped && (
@@ -1239,8 +1295,10 @@ export default function SellerSuborderDetail2026PageView({
 
                 {canEditShipping ? (
                   <input
+                    ref={trackingInputRef}
+                    id="tpsodp2026-tracking-input"
                     type="text"
-                    className="tpsodp2026-input tpsodp2026-input--highlight"
+                    className={`tpsodp2026-input tpsodp2026-input--highlight ${validationError ? "is-invalid" : ""}`}
                     value={fulfillmentDraft.trackingNumber || ""}
                     onChange={(e) => {
                       setValidationError("");
@@ -1331,16 +1389,23 @@ export default function SellerSuborderDetail2026PageView({
                     <span>{t.btnMarkShipped}</span>
                   </button>
 
-                  <button
-                    type="button"
-                    className="tpsodp2026-btn-primary"
-                    onClick={() => handleActionClick("MARK_PROCESSING")}
-                    disabled={isUpdating}
-                    title={t.btnMarkPacked}
-                  >
-                    <CheckCircle2 size={16} />
-                    <span>{t.btnMarkPacked}</span>
-                  </button>
+                  {order.actions?.canMarkPacked ? (
+                    <button
+                      type="button"
+                      className="tpsodp2026-btn-primary"
+                      onClick={() => handleActionClick("MARK_PROCESSING")}
+                      disabled={isUpdating}
+                      title={t.btnMarkPacked}
+                    >
+                      <CheckCircle2 size={16} />
+                      <span>{t.btnMarkPacked}</span>
+                    </button>
+                  ) : order.actions?.isPacked ? (
+                    <div className="tpsodp2026-packed-status-tag" title={t.alreadyPackedDesc}>
+                      <CheckCircle2 size={15} />
+                      <span>{t.alreadyPacked}</span>
+                    </div>
+                  ) : null}
                 </>
               )}
 

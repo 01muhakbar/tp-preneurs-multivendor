@@ -93,7 +93,7 @@ const FULFILLMENT_ACTIONS = {
     label: "Mark shipped",
     nextStatus: "SHIPPED",
     shipmentStatus: "SHIPPED",
-    allowedFrom: ["UNFULFILLED", "PROCESSING"],
+    allowedFrom: ["UNFULFILLED", "PROCESSING", "PACKED"],
     description: "Confirm the suborder has been dispatched from the store.",
     successMessage: "Suborder marked as shipped.",
     auditAction: SELLER_FULFILLMENT_AUDIT_ACTIONS.MARK_SHIPPED,
@@ -2305,6 +2305,21 @@ router.patch(
       const isCanonicalShipmentTransition =
         Boolean((actionDefinition as any).shipmentStatus) &&
         (actionDefinition as any).shipmentStatus !== actionDefinition.nextStatus;
+
+      // Gracefully handle idempotent MARK_PROCESSING if suborder is already packed/processing
+      if (
+        actionDefinition.code === "MARK_PROCESSING" &&
+        (currentFulfillmentStatus === "PROCESSING" || currentFulfillmentStatus === "PACKED")
+      ) {
+        await tx.rollback();
+        tx = null;
+        return res.status(200).json({
+          success: true,
+          code: "FULFILLMENT_ALREADY_PACKED",
+          message: "Pesanan sudah dalam status dikemas (Packed). Silakan masukkan nomor resi pengiriman dan klik Kirim Pesanan.",
+          fulfillmentStatus: currentFulfillmentStatus,
+        });
+      }
 
       if (currentFulfillmentStatus === actionDefinition.nextStatus && !isCanonicalShipmentTransition) {
         await tx.rollback();

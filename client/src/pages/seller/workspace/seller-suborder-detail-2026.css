@@ -1774,6 +1774,85 @@
   flex-shrink: 0;
 }
 
+.tpsodp2026-next-step-card__action-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+  max-width: 480px;
+}
+
+.tpsodp2026-packed-status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  background: rgba(3, 76, 133, 0.2);
+  color: #38bdf8;
+  border: 1px solid rgba(3, 76, 133, 0.45);
+}
+
+[data-seller-theme="dark"] .tpsodp2026-packed-status-tag,
+.dark .tpsodp2026-packed-status-tag,
+[data-theme="dark"] .tpsodp2026-packed-status-tag {
+  background: rgba(3, 76, 133, 0.3);
+  color: #60a5fa;
+  border-color: rgba(96, 165, 250, 0.35);
+}
+
+.tpsodp2026-action-guide-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(3, 76, 133, 0.08);
+  border: 1px solid rgba(3, 76, 133, 0.2);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+[data-seller-theme="dark"] .tpsodp2026-action-guide-box,
+.dark .tpsodp2026-action-guide-box,
+[data-theme="dark"] .tpsodp2026-action-guide-box {
+  background: rgba(15, 23, 42, 0.6);
+  border-color: rgba(3, 76, 133, 0.35);
+}
+
+.tpsodp2026-action-guide-box__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: var(--s26-text-muted);
+}
+
+.tpsodp2026-action-guide-box__item strong {
+  color: var(--s26-text-main);
+  white-space: nowrap;
+}
+
+.tpsodp2026-next-step-card__alert {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.tpsodp2026-input.is-invalid {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25) !important;
+}
+
 .tpsodp2026-pill--orange {
   background: var(--s26-accent-light);
   color: var(--s26-accent);
@@ -1796,13 +1875,19 @@
     gap: 12px;
   }
 
+  .tpsodp2026-next-step-card__action-group {
+    width: 100%;
+    max-width: 100%;
+  }
+
   .tpsodp2026-next-step-card__actions {
     width: 100%;
     flex-direction: column;
     gap: 8px;
   }
 
-  .tpsodp2026-next-step-card__actions button {
+  .tpsodp2026-next-step-card__actions button,
+  .tpsodp2026-packed-status-tag {
     width: 100%;
     justify-content: center;
   }

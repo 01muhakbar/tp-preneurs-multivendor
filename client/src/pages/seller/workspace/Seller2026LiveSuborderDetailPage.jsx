@@ -216,6 +216,7 @@ export default function Seller2026LiveSuborderDetailPage() {
 
     if (!orderDetail2026?.id || !canFulfill || detailQuery.updatingStatusId) return;
     try {
+      setNotice(null);
       const activeDraft = overrideDraft || fulfillmentDraft;
       const payload = buildSellerSuborderFulfillmentPayload2026(action, activeDraft);
       await detailQuery.updateFulfillmentStatus({ payload });
