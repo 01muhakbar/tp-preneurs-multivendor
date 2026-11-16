@@ -26,6 +26,11 @@ import { createStoreRegister2026ViewModel } from "./register2026/storeRegister20
 const PENDING_ADD_KEY = "pending_cart_add";
 const PENDING_ADD_CONSUMED_KEY = "pending_cart_add_consumed";
 const PENDING_REGISTRATION_KEY = "client_pending_registration";
+const ACCOUNT_DASHBOARD_PATH = "/user/dashboard";
+const LEGACY_ACCOUNT_PATH = "/account";
+
+const normalizePostAuthTarget = (value) =>
+  value === LEGACY_ACCOUNT_PATH ? ACCOUNT_DASHBOARD_PATH : value;
 
 const readPendingRegistration = () => {
   try {
@@ -429,7 +434,7 @@ export default function StoreRegisterPage() {
 
   useEffect(() => {
     if (isAccountSession) {
-      navigate("/account", { replace: true });
+      navigate(ACCOUNT_DASHBOARD_PATH, { replace: true });
     }
   }, [isAccountSession, navigate]);
 
@@ -599,10 +604,10 @@ export default function StoreRegisterPage() {
           : null;
     const target =
       pendingFrom && pendingFrom !== "/auth/register"
-        ? pendingFrom
+        ? normalizePostAuthTarget(pendingFrom)
         : resolvedFrom && resolvedFrom !== "/auth/register"
-          ? resolvedFrom
-          : "/account";
+          ? normalizePostAuthTarget(resolvedFrom)
+          : ACCOUNT_DASHBOARD_PATH;
     navigate(target, { replace: true });
   };
 
