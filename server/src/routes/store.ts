@@ -3616,8 +3616,8 @@ router.get(
               productId: Number(getAttr(item, "productId") || 0) || null,
               productName: String(
                 getAttr(item, "productNameSnapshot") ||
-                  getAttr(item?.product, "name") ||
-                  `Product #${getAttr(item, "productId")}`
+                getAttr(item?.product, "name") ||
+                `Product #${getAttr(item, "productId")}`
               ),
               slug: getAttr(item?.product, "slug") ? String(getAttr(item?.product, "slug")) : "",
               qty: Number(getAttr(item, "qty") || 0),
@@ -3634,15 +3634,15 @@ router.get(
             })),
             payment: payment
               ? {
-                  id: Number(getAttr(payment, "id") || 0) || null,
-                  status: String(getAttr(payment, "status") || "CREATED"),
-                  statusMeta: buildPaymentStatusMeta(getAttr(payment, "status") || "CREATED"),
-                  displayStatus,
-                  displayStatusMeta: buildPaymentStatusMeta(displayStatus),
-                  readModel: paymentReadModel,
-                  expiresAt: getAttr(payment, "expiresAt") || null,
-                  paidAt: getAttr(payment, "paidAt") || null,
-                }
+                id: Number(getAttr(payment, "id") || 0) || null,
+                status: String(getAttr(payment, "status") || "CREATED"),
+                statusMeta: buildPaymentStatusMeta(getAttr(payment, "status") || "CREATED"),
+                displayStatus,
+                displayStatusMeta: buildPaymentStatusMeta(displayStatus),
+                readModel: paymentReadModel,
+                expiresAt: getAttr(payment, "expiresAt") || null,
+                paidAt: getAttr(payment, "paidAt") || null,
+              }
               : null,
             contract: buildSellerSuborderContract({
               orderStatus: fulfillmentStatus,

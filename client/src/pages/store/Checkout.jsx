@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useOutletContext } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { WalletCards, CreditCard } from "lucide-react";
+import toast from "react-hot-toast";
 import { createOrderSchema } from "@ecommerce/schemas";
 import { useAuth } from "../../auth/useAuth.js";
 import { useCart } from "../../hooks/useCart.ts";
@@ -81,7 +82,7 @@ const DUITKU_PAYMENT_METHOD_OPTIONS = [
   { code: "GQ", label: "QRIS Gudang Voucher", category: "QRIS" },
 ];
 
-const DEFAULT_DUITKU_PAYMENT_METHOD = "SP";
+const DEFAULT_DUITKU_PAYMENT_METHOD = "";
 const checkoutCustomerSchema = createOrderSchema.shape.customer;
 const getDefaultCheckoutCopy = (isIndo = false) => ({
   personalDetails: {
@@ -1913,6 +1914,13 @@ export default function CheckoutPage() {
     paymentOptionId !== "duitku" ||
     DUITKU_PAYMENT_METHOD_OPTIONS.some((option) => option.code === duitkuPaymentMethod);
 
+  const handleSelectDuitkuPaymentMethod = (code) => {
+    setDuitkuPaymentMethod(code);
+    if (error && (error.includes("saluran pembayaran") || error.includes("payment channel"))) {
+      setError("");
+    }
+  };
+
   const checkoutPreviewDebugSnapshot = useMemo(
     () => ({
       previewLoading: checkoutPreviewQuery.isLoading || checkoutPreviewQuery.isFetching,
@@ -2730,7 +2738,15 @@ export default function CheckoutPage() {
     }
 
     if (!hasDuitkuChannelSelection) {
-      setError("Please choose a Duitku payment channel.");
+      const channelMsg = isIndo
+        ? "Silakan pilih salah satu saluran pembayaran terlebih dahulu."
+        : "Please choose a payment channel.";
+      setError(channelMsg);
+      toast.error(channelMsg);
+      const el = document.getElementById("checkout-payment-section");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
       return;
     }
 
@@ -2924,7 +2940,7 @@ export default function CheckoutPage() {
           setPaymentOptionId,
           paymentOptions,
           duitkuPaymentMethod,
-          setDuitkuPaymentMethod,
+          setDuitkuPaymentMethod: handleSelectDuitkuPaymentMethod,
           duitkuPaymentMethods: DUITKU_PAYMENT_METHOD_OPTIONS,
         }}
         options={{
@@ -2955,10 +2971,9 @@ export default function CheckoutPage() {
             couponStatus === "loading" ||
             hasGroupCouponLoading ||
             isPreviewBlockingSubmission ||
-            couponBlocksSubmission ||
-            !hasDuitkuChannelSelection,
+            couponBlocksSubmission,
           submitMessage: !hasDuitkuChannelSelection
-            ? "Choose a Duitku payment channel."
+            ? (isIndo ? "Pilih salah satu saluran pembayaran." : "Choose a payment channel.")
             : isPreviewBlockingSubmission
             ? (paymentOptionId !== "duitku" && previewHasPaymentBlocker)
               ? "Payment is unavailable for one or more stores."

@@ -656,7 +656,7 @@ export default function Checkout2026View({
         </section>
 
         {/* 4. Payment Method Section (Shopee Style - Images 3 & 5) */}
-        <section className="co26-shopee-card mt-3.5">
+        <section id="checkout-payment-section" className="co26-shopee-card mt-3.5">
           <div className="flex items-center justify-between pb-3 border-b border-slate-700/50">
             <div className="flex items-center gap-2">
               <CreditCard className="w-4 h-4 text-[#fe6f05]" />
@@ -664,6 +664,11 @@ export default function Checkout2026View({
                 {T.paymentMethod}
               </h2>
             </div>
+            {!form?.duitkuPaymentMethod && form?.paymentOptionId === "duitku" && (
+              <span className="text-[11px] font-semibold text-[#fe6f05] bg-[#fe6f05]/10 border border-[#fe6f05]/30 px-2.5 py-0.5 rounded-full">
+                {isIndo ? "Pilih saluran pembayaran" : "Choose channel"}
+              </span>
+            )}
           </div>
 
           <div className="space-y-2 mt-3">
@@ -693,10 +698,25 @@ export default function Checkout2026View({
 
             {/* If Duitku selected, display channel options */}
             {form?.paymentOptionId === "duitku" && Array.isArray(form?.duitkuPaymentMethods) && (
-              <div className="co26-shopee-channel-box mt-3 p-3 rounded-xl bg-slate-900/60 border border-slate-700/60">
-                <p className="text-xs font-bold text-slate-300 mb-2.5">
-                  {T.chooseChannel}:
-                </p>
+              <div
+                className={`co26-shopee-channel-box mt-3 p-3 rounded-xl bg-slate-900/60 border transition-all duration-200 ${
+                  !form?.duitkuPaymentMethod &&
+                  status?.error &&
+                  (status.error.includes("saluran pembayaran") || status.error.includes("payment channel"))
+                    ? "border-[#fe6f05] ring-2 ring-[#fe6f05]/40"
+                    : "border-slate-700/60"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2.5">
+                  <p className="text-xs font-bold text-slate-300">
+                    {T.chooseChannel}:
+                  </p>
+                  <span className="text-[11px] font-medium text-slate-400">
+                    {form?.duitkuPaymentMethod
+                      ? form.duitkuPaymentMethods.find((m) => m.code === form.duitkuPaymentMethod)?.label || ""
+                      : (isIndo ? "Belum ada yang dipilih" : "None selected")}
+                  </span>
+                </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {form.duitkuPaymentMethods.map((method) => {
                     const isMethodSelected = form?.duitkuPaymentMethod === method.code;
