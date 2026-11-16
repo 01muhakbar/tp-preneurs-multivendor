@@ -640,23 +640,150 @@
   gap: 16px;
 }
 
-.sr26-otp-info {
+.sr26-otp-timer-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 14px;
   border-radius: 12px;
-  background: rgba(3, 76, 133, 0.08);
-  border: 1px solid rgba(3, 76, 133, 0.18);
-  padding: 10px 14px;
+  background: rgba(3, 76, 133, 0.06);
+  border: 1px solid rgba(3, 76, 133, 0.16);
   font-size: 12px;
-  color: var(--sr26-primary);
-  text-align: center;
+  color: #034c85;
 }
 
-.sr26-otp-input {
-  text-align: center;
-  font-size: 22px;
+.sr26-otp-timer-left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.sr26-otp-timer-label {
+  font-weight: 600;
+  color: var(--sr26-text-body);
+}
+
+.sr26-otp-timer-clock {
+  font-family: monospace;
   font-weight: 800;
-  letter-spacing: 8px;
-  height: 52px;
-  padding: 0 14px;
+  color: #034c85;
+  letter-spacing: 0.5px;
+}
+
+.sr26-otp-expired-tag {
+  font-size: 11px;
+  font-weight: 800;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+/* 6-Digit Segmented PIN Display */
+.sr26-otp-slots-container {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+.sr26-otp-slots {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  width: 100%;
+  max-width: 360px;
+  cursor: pointer;
+  user-select: none;
+}
+
+@media (max-width: 480px) {
+  .sr26-otp-slots {
+    gap: 6px;
+  }
+}
+
+.sr26-otp-slot {
+  flex: 1;
+  max-width: 52px;
+  height: 58px;
+  border-radius: 12px;
+  border: 2px solid var(--sr26-input-border);
+  background: var(--sr26-input-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 800;
+  font-family: monospace;
+  color: var(--sr26-text-title);
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+@media (max-width: 480px) {
+  .sr26-otp-slot {
+    height: 50px;
+    font-size: 20px;
+    border-radius: 10px;
+  }
+}
+
+.sr26-otp-slot.is-focused {
+  border-color: #034c85;
+  box-shadow: 0 0 0 3px rgba(3, 76, 133, 0.2);
+  background: rgba(3, 76, 133, 0.04);
+}
+
+.sr26-otp-slot.is-filled {
+  border-color: rgba(3, 76, 133, 0.55);
+  background: rgba(3, 76, 133, 0.03);
+}
+
+.sr26-otp-slot.has-error {
+  border-color: #f43f5e !important;
+  box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.2);
+}
+
+.sr26-otp-char {
+  display: inline-block;
+  animation: sr26PopIn 0.15s ease-out;
+}
+
+.sr26-otp-cursor {
+  width: 2px;
+  height: 24px;
+  background: #fe6f05;
+  border-radius: 1px;
+  animation: sr26Blink 1s infinite;
+}
+
+.sr26-otp-dot {
+  color: var(--sr26-text-muted);
+  opacity: 0.35;
+  font-size: 18px;
+}
+
+.sr26-otp-hidden-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 10;
+}
+
+@keyframes sr26Blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes sr26PopIn {
+  0% { transform: scale(0.6); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 .sr26-secondary-btn {
@@ -670,16 +797,26 @@
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
-.sr26-secondary-btn:hover:not(:disabled) {
-  border-color: var(--sr26-primary);
-  color: var(--sr26-primary);
-  background: rgba(3, 76, 133, 0.05);
+.sr26-secondary-btn.is-ready {
+  border-color: rgba(3, 76, 133, 0.4);
+  color: #034c85;
 }
 
-.sr26-secondary-btn:disabled {
-  opacity: 0.55;
+.sr26-secondary-btn.is-ready:hover:not(:disabled) {
+  border-color: #034c85;
+  color: #034c85;
+  background: rgba(3, 76, 133, 0.08);
+}
+
+.sr26-secondary-btn:disabled,
+.sr26-secondary-btn.is-cooldown {
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
@@ -827,10 +964,25 @@
   background: var(--sr26-accent-hover);
 }
 
-.dark .sr26-otp-info {
-  background: rgba(3, 76, 133, 0.2);
-  border-color: rgba(3, 76, 133, 0.4);
+.dark .sr26-otp-timer-strip {
+  background: rgba(3, 76, 133, 0.22);
+  border-color: rgba(56, 189, 248, 0.25);
   color: #bae6fd;
+}
+
+.dark .sr26-otp-timer-clock {
+  color: #38bdf8;
+}
+
+.dark .sr26-otp-slot.is-focused {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+  background: rgba(3, 76, 133, 0.25);
+}
+
+.dark .sr26-otp-slot.is-filled {
+  border-color: rgba(56, 189, 248, 0.5);
+  background: rgba(15, 23, 42, 0.6);
 }
 
 .dark .sr26-secondary-btn {
@@ -838,10 +990,15 @@
   color: #f8fafc;
 }
 
-.dark .sr26-secondary-btn:hover:not(:disabled) {
-  border-color: var(--sr26-accent);
-  color: var(--sr26-accent);
-  background: rgba(254, 111, 5, 0.08);
+.dark .sr26-secondary-btn.is-ready {
+  border-color: rgba(56, 189, 248, 0.45);
+  color: #38bdf8;
+}
+
+.dark .sr26-secondary-btn.is-ready:hover:not(:disabled) {
+  border-color: #38bdf8;
+  color: #38bdf8;
+  background: rgba(3, 76, 133, 0.25);
 }
 
 .dark .sr26-back-btn:hover {

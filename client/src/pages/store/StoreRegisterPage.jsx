@@ -298,22 +298,24 @@ const resolveRegisterErrorPresentation = (error, isIndo = false) => {
 const resolveVerifyErrorPresentation = (error, isIndo = false) => {
   const pending = error?.response?.data?.data?.pending || null;
   const code = getErrorCode(error);
-  const message = getErrorMessage(
-    error,
-    isIndo
-      ? "Kode verifikasi tidak valid atau telah kedaluwarsa."
-      : "The verification code is invalid or expired."
-  );
+  const rawMessage = String(error?.response?.data?.message || "").toLowerCase();
 
-  if (code === "OTP_INVALID_OR_EXPIRED" || code === "OTP_ATTEMPTS_EXCEEDED") {
-    return {
-      pending,
-      fieldErrors: {
-        otpCode: [message],
-      },
-      statusMessage: "",
-      statusTone: "neutral",
-    };
+  let message = isIndo
+    ? "Kode verifikasi tidak valid atau telah kedaluwarsa."
+    : "The verification code is invalid or expired.";
+
+  if (code === "OTP_ATTEMPTS_EXCEEDED" || rawMessage.includes("attempts")) {
+    message = isIndo
+      ? "Batas percobaan kode tercapai. Silakan kirim ulang kode baru."
+      : "Verification attempts exceeded. Please resend a new code.";
+  } else if (code === "OTP_EXPIRED" || rawMessage.includes("expired")) {
+    message = isIndo
+      ? "Kode verifikasi telah kedaluwarsa. Silakan kirim ulang kode."
+      : "The verification code has expired. Please resend a new code.";
+  } else if (code === "OTP_INVALID" || rawMessage.includes("invalid") || rawMessage.includes("incorrect")) {
+    message = isIndo
+      ? "Kode verifikasi yang Anda masukkan tidak sesuai. Periksa kembali email Anda."
+      : "The verification code you entered is incorrect. Please check your email.";
   }
 
   return {
@@ -324,6 +326,28 @@ const resolveVerifyErrorPresentation = (error, isIndo = false) => {
     statusMessage: message,
     statusTone: "error",
   };
+};
+
+const localizeStatusNotice = (msg, isIndo) => {
+  if (!msg) return "";
+  const str = String(msg).trim();
+  const lower = str.toLowerCase();
+  if (lower.includes("verification code sent") || lower.includes("kode verifikasi")) {
+    return isIndo
+      ? "Kode verifikasi telah dikirim ke email Anda."
+      : "Verification code sent to your email.";
+  }
+  if (lower.includes("new verification code") || lower.includes("kode baru")) {
+    return isIndo
+      ? "Kode verifikasi baru berhasil dikirim ke email Anda."
+      : "A new verification code was sent to your email.";
+  }
+  if (lower.includes("invalid or expired") || lower.includes("tidak valid")) {
+    return isIndo
+      ? "Kode verifikasi tidak valid atau telah kedaluwarsa."
+      : "The verification code is invalid or expired.";
+  }
+  return str;
 };
 const getPhoneNumber = (phone) => {
   let digits = String(phone || "").replace(/\D/g, "");
@@ -356,7 +380,8 @@ export default function StoreRegisterPage() {
   const isIndo =
     i18n.language === "id" ||
     i18n.language === "id-ID" ||
-    (typeof i18n.language === "string" && i18n.language.startsWith("id"));
+    (typeof i18n.language === "string" && i18n.language.startsWith("id")) ||
+    (typeof window !== "undefined" && localStorage.getItem("store_language") === "Indonesia");
 
   const { refreshSession, isAccountSession } = useAccountAuth();
   const { refreshCart } = useCart();
@@ -394,6 +419,9 @@ export default function StoreRegisterPage() {
   const [countdown, setCountdown] = useState(
     Number(readPendingRegistration()?.verification?.resendAvailableInSeconds || 0)
   );
+  const [expiresCountdown, setExpiresCountdown] = useState(() =>
+    Number(readPendingRegistration()?.verification?.expiresInSeconds || 600)
+  );
   const currentStep = pendingRegistration ? "verify" : "register";
   const pendingVerification = pendingRegistration?.verification || null;
   const canSubmitOtp = pendingVerification?.canSubmitOtp !== false;
@@ -411,6 +439,9 @@ export default function StoreRegisterPage() {
       setPendingRegistration(locationPending);
       writePendingRegistration(locationPending);
       setCountdown(Number(locationPending?.verification?.resendAvailableInSeconds || 0));
+      if (locationPending?.verification?.expiresInSeconds) {
+        setExpiresCountdown(Number(locationPending.verification.expiresInSeconds));
+      }
       if (location.state?.pendingNotice) {
         setStatusMessage(String(location.state.pendingNotice));
         setStatusTone("warning");
@@ -421,6 +452,9 @@ export default function StoreRegisterPage() {
   useEffect(() => {
     writePendingRegistration(pendingRegistration);
     setCountdown(Number(pendingRegistration?.verification?.resendAvailableInSeconds || 0));
+    if (pendingRegistration?.verification?.expiresInSeconds) {
+      setExpiresCountdown(Number(pendingRegistration.verification.expiresInSeconds));
+    }
   }, [pendingRegistration]);
 
   useEffect(() => {
@@ -430,6 +464,14 @@ export default function StoreRegisterPage() {
     }, 1000);
     return () => window.clearTimeout(timer);
   }, [countdown]);
+
+  useEffect(() => {
+    if (expiresCountdown <= 0) return undefined;
+    const timer = window.setTimeout(() => {
+      setExpiresCountdown((value) => Math.max(0, value - 1));
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [expiresCountdown]);
 
   const scrollToErrorOrNotice = (preferredKey) => {
     window.setTimeout(() => {
@@ -704,7 +746,11 @@ export default function StoreRegisterPage() {
       if (pending) {
         setPendingRegistration(pending);
       }
-      setStatusMessage(result?.message || "A new verification code was sent.");
+      setStatusMessage(
+        isIndo
+          ? "Kode verifikasi baru berhasil dikirim ke email Anda."
+          : (result?.message || "A new verification code was sent to your email.")
+      );
       setStatusTone("success");
     } catch (error) {
       const pending = error?.response?.data?.data?.pending || null;
@@ -718,7 +764,7 @@ export default function StoreRegisterPage() {
       setStatusMessage(
         error?.response?.status === 429 && retryAfterSeconds > 0
           ? buildResendCooldownMessage(retryAfterSeconds)
-          : error?.response?.data?.message || "We could not send a new code right now."
+          : error?.response?.data?.message || (isIndo ? "Gagal mengirim kode baru saat ini." : "We could not send a new code right now.")
       );
       setStatusTone("error");
     } finally {
@@ -744,7 +790,7 @@ export default function StoreRegisterPage() {
       showPasswordConfirm,
     },
     status: {
-      message: statusMessage,
+      message: localizeStatusNotice(statusMessage, isIndo),
       tone: statusTone,
       isSubmitting,
       isVerifying,
@@ -782,7 +828,7 @@ export default function StoreRegisterPage() {
       code: verificationCode,
       destinationMasked: pendingVerification?.destinationMasked,
       channel: pendingVerification?.channel || "EMAIL",
-      expiresInSeconds: pendingVerification?.expiresInSeconds || 0,
+      expiresInSeconds: expiresCountdown,
     },
     isIndo,
   });

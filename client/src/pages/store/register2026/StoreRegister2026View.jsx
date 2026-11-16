@@ -1,9 +1,11 @@
+import { useRef } from "react";
 import {
   ArrowLeft,
   ArrowRight,
   BadgeCheck,
   CheckCircle2,
   CircleAlert,
+  Clock,
   Eye,
   EyeOff,
   LockKeyhole,
@@ -370,6 +372,13 @@ function RegisterForm({
   );
 }
 
+const formatCountdown = (totalSeconds) => {
+  const s = Math.max(0, Number(totalSeconds) || 0);
+  const mins = Math.floor(s / 60);
+  const secs = s % 60;
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+};
+
 function OtpForm({
   viewModel,
   fieldRefs,
@@ -383,12 +392,16 @@ function OtpForm({
   const { status, otp, errors } = viewModel;
   const destination = otp.destinationMasked || (isIndo ? "email Anda" : "your email");
   const { t } = useTranslation();
+  const hiddenInputRef = useRef(null);
+
+  const otpValue = String(otp.code || "");
+  const isComplete = otpValue.length === 6;
 
   return (
     <form className="sr26-form sr26-otp-form" onSubmit={onVerifyOtp}>
       <div className="sr26-card-head">
         <div className="sr26-avatar-box">
-          <Mail size={22} className="sr26-avatar-icon" />
+          <Mail size={22} className="sr26-avatar-icon text-[#fe6f05]" />
         </div>
         <div>
           <h2 className="sr26-card-title">
@@ -397,58 +410,108 @@ function OtpForm({
           <p className="sr26-card-sub">
             {t("register.enterCodeSent", { destination }) ||
               (isIndo
-                ? `Masukkan kode yang kami kirim ke ${destination}.`
-                : `Enter the code we sent to ${destination}.`)}
+                ? `Masukkan 6 digit kode yang kami kirim ke ${destination}.`
+                : `Enter the 6-digit code we sent to ${destination}.`)}
           </p>
         </div>
       </div>
 
       <StatusNotice status={status} statusRef={statusRef} />
 
-      <div className="sr26-otp-info">
-        {status.deliveryFailed ? (
-          <p className="sr26-otp-failed">
+      {/* Compact Countdown & Timer Strip */}
+      <div className="sr26-otp-timer-strip">
+        <div className="sr26-otp-timer-left">
+          <Clock size={14} className="text-[#034c85] dark:text-sky-400 shrink-0" />
+          <span className="sr26-otp-timer-label">
+            {isIndo ? "Kode kedaluwarsa dalam" : "Code expires in"}:
+          </span>
+          <span className="sr26-otp-timer-clock">
+            {formatCountdown(otp.expiresInSeconds || 0)}
+          </span>
+        </div>
+        {otp.expiresInSeconds <= 0 && (
+          <span className="sr26-otp-expired-tag">
+            {isIndo ? "Kedaluwarsa" : "Expired"}
+          </span>
+        )}
+      </div>
+
+      {status.deliveryFailed && (
+        <div className="sr26-status-banner sr26-status-banner--warning">
+          <CircleAlert size={15} className="shrink-0 text-amber-500" />
+          <span>
             {t("register.otpFailed") ||
               (isIndo
                 ? "Kami tidak dapat mengirimkan kode verifikasi. Minta kode baru ketika tombol kirim ulang aktif."
                 : "We could not deliver the latest verification code. Request a new code when resend is available.")}
-          </p>
-        ) : (
-          <p className="sr26-otp-expires">
-            {t("register.otpExpires", { seconds: otp.expiresInSeconds || 0 }) ||
-              (isIndo
-                ? `Kode Anda kedaluwarsa dalam ${otp.expiresInSeconds || 0} detik.`
-                : `Your code expires in ${otp.expiresInSeconds || 0} seconds.`)}
-          </p>
-        )}
-      </div>
+          </span>
+        </div>
+      )}
 
+      {/* 6-Digit Segmented PIN Input */}
       <div className="sr26-field">
         <label htmlFor="sr26-otp" className="sr26-label text-center block">
           {t("register.verificationCode") || (isIndo ? "Kode verifikasi" : "Verification code")}
         </label>
-        <input
-          id="sr26-otp"
-          className="sr26-input sr26-otp-input"
-          ref={assignRef(fieldRefs, "otpCode")}
-          type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          maxLength={6}
-          value={otp.code}
-          onChange={(event) => onOtpChange(event.target.value)}
-          placeholder="123456"
-          aria-invalid={Boolean(errors.otpCode)}
-          aria-describedby={errors.otpCode ? "sr26-otp-error" : undefined}
-          required
-        />
+
+        <div className="sr26-otp-slots-container">
+          <div
+            className="sr26-otp-slots"
+            onClick={() => hiddenInputRef.current?.focus()}
+            role="group"
+            aria-label="OTP 6 digits"
+          >
+            {[0, 1, 2, 3, 4, 5].map((index) => {
+              const char = otpValue[index] || "";
+              const isCurrent = otpValue.length === index;
+              const isFilled = Boolean(char);
+              return (
+                <div
+                  key={index}
+                  className={`sr26-otp-slot ${isFilled ? "is-filled" : ""} ${
+                    isCurrent ? "is-focused" : ""
+                  } ${errors.otpCode ? "has-error" : ""}`}
+                >
+                  {char ? (
+                    <span className="sr26-otp-char">{char}</span>
+                  ) : isCurrent ? (
+                    <span className="sr26-otp-cursor" />
+                  ) : (
+                    <span className="sr26-otp-dot">•</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <input
+            id="sr26-otp"
+            ref={(node) => {
+              hiddenInputRef.current = node;
+              assignRef(fieldRefs, "otpCode")(node);
+            }}
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            pattern="[0-9]*"
+            maxLength={6}
+            value={otpValue}
+            onChange={(event) => onOtpChange(event.target.value)}
+            className="sr26-otp-hidden-input"
+            aria-invalid={Boolean(errors.otpCode)}
+            aria-describedby={errors.otpCode ? "sr26-otp-error" : undefined}
+            autoFocus
+          />
+        </div>
+
         <FieldError id="sr26-otp-error" message={errors.otpCode} />
       </div>
 
+      {/* Submit Button */}
       <button
         className="sr26-submit-btn"
         type="submit"
-        disabled={status.isVerifying || !status.canSubmitOtp}
+        disabled={status.isVerifying || !status.canSubmitOtp || !isComplete}
       >
         {status.isVerifying ? (
           <span className="sr26-submit-inner">
@@ -463,15 +526,24 @@ function OtpForm({
         )}
       </button>
 
+      {/* Resend OTP Button */}
       <button
-        className="sr26-secondary-btn"
+        className={`sr26-secondary-btn ${status.countdown > 0 ? "is-cooldown" : "is-ready"}`}
         type="button"
         onClick={onResendOtp}
         disabled={status.isResending || status.countdown > 0}
       >
-        {status.resendLabel || (isIndo ? "Kirim ulang kode" : "Resend code")}
+        {status.isResending ? (
+          <span className="sr26-submit-inner">
+            <span className="sr26-spinner" />
+            <span>{isIndo ? "Mengirim kode baru..." : "Sending new code..."}</span>
+          </span>
+        ) : (
+          status.resendLabel || (isIndo ? "Kirim ulang kode" : "Resend code")
+        )}
       </button>
 
+      {/* Back Link */}
       <button className="sr26-back-btn" type="button" onClick={onBackToRegister}>
         <ArrowLeft size={16} aria-hidden="true" />
         <span>{t("register.backToRegister") || (isIndo ? "Kembali ke daftar" : "Back to register")}</span>
