@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   clientRegistrationSchema,
   clientRegistrationVerifySchema,
@@ -70,7 +71,7 @@ const hasFieldErrors = (fieldErrors) =>
       Object.values(fieldErrors).some((messages) => Array.isArray(messages) && messages.length > 0)
   );
 
-const resolveRegisterErrorPresentation = (error) => {
+const resolveRegisterErrorPresentation = (error, isIndo = false) => {
   const fieldErrors = toFieldErrors(error);
   const code = getErrorCode(error);
   const pending = error?.response?.data?.data?.pending || null;
@@ -90,7 +91,9 @@ const resolveRegisterErrorPresentation = (error) => {
       pending,
       statusMessage: getErrorMessage(
         error,
-        "Your account is pending verification, but we could not send the code right now."
+        isIndo
+          ? "Akun Anda menunggu verifikasi, namun kami belum dapat mengirimkan kode saat ini."
+          : "Your account is pending verification, but we could not send the code right now."
       ),
       statusTone: pending ? "warning" : "error",
     };
@@ -102,7 +105,9 @@ const resolveRegisterErrorPresentation = (error) => {
       pending,
       statusMessage: getErrorMessage(
         error,
-        "We could not process this registration request."
+        isIndo
+          ? "Permintaan pendaftaran tidak dapat diproses."
+          : "We could not process this registration request."
       ),
       statusTone: "error",
     };
@@ -111,15 +116,25 @@ const resolveRegisterErrorPresentation = (error) => {
   return {
     fieldErrors: {},
     pending,
-    statusMessage: getErrorMessage(error, "Registration failed. Please try again."),
+    statusMessage: getErrorMessage(
+      error,
+      isIndo
+        ? "Pendaftaran gagal. Periksa kembali data Anda dan coba lagi."
+        : "Registration failed. Please try again."
+    ),
     statusTone: pending ? "warning" : "error",
   };
 };
 
-const resolveVerifyErrorPresentation = (error) => {
+const resolveVerifyErrorPresentation = (error, isIndo = false) => {
   const pending = error?.response?.data?.data?.pending || null;
   const code = getErrorCode(error);
-  const message = getErrorMessage(error, "The verification code is invalid or expired.");
+  const message = getErrorMessage(
+    error,
+    isIndo
+      ? "Kode verifikasi tidak valid atau telah kedaluwarsa."
+      : "The verification code is invalid or expired."
+  );
 
   if (code === "OTP_INVALID_OR_EXPIRED" || code === "OTP_ATTEMPTS_EXCEEDED") {
     return {
@@ -154,6 +169,26 @@ const getPhoneNumber = (phone) => {
 export default function StoreRegisterPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t, i18n } = useTranslation();
+  const [, setLangSync] = useState(0);
+
+  useEffect(() => {
+    const handleSync = () => setLangSync((c) => c + 1);
+    i18n?.on?.("languageChanged", handleSync);
+    window.addEventListener("storage", handleSync);
+    window.addEventListener("store_language_changed", handleSync);
+    return () => {
+      i18n?.off?.("languageChanged", handleSync);
+      window.removeEventListener("storage", handleSync);
+      window.removeEventListener("store_language_changed", handleSync);
+    };
+  }, [i18n]);
+
+  const isIndo =
+    i18n.language === "id" ||
+    i18n.language === "id-ID" ||
+    (typeof i18n.language === "string" && i18n.language.startsWith("id"));
+
   const { refreshSession, isAccountSession } = useAccountAuth();
   const { refreshCart } = useCart();
   const startedAtRef = useRef(Date.now());
@@ -328,7 +363,13 @@ export default function StoreRegisterPage() {
 
     const cleanPhone = String(form.phoneNumber || "").trim().replace(/[- ]/g, "");
     if (!/^(?:\+62|62|0)?8[1-9][0-9]{6,11}$/.test(cleanPhone)) {
-      setFieldErrors({ phoneNumber: ["Enter a valid Indonesian phone number starting with +62 or 08."] });
+      setFieldErrors({
+        phoneNumber: [
+          isIndo
+            ? "Masukkan nomor telepon Indonesia yang valid diawali +62 atau 08."
+            : "Enter a valid Indonesian phone number starting with +62 or 08.",
+        ],
+      });
       return;
     }
 
@@ -352,10 +393,15 @@ export default function StoreRegisterPage() {
         setPendingRegistration(pending);
         setVerificationCode("");
       }
-      setStatusMessage(result?.message || "Verification code sent to your email.");
+      setStatusMessage(
+        result?.message ||
+          (isIndo
+            ? "Kode verifikasi telah dikirim ke email Anda."
+            : "Verification code sent to your email.")
+      );
       setStatusTone("success");
     } catch (error) {
-      const presentation = resolveRegisterErrorPresentation(error);
+      const presentation = resolveRegisterErrorPresentation(error, isIndo);
       setFieldErrors(presentation.fieldErrors);
       const pending = presentation.pending;
       if (pending) {
@@ -371,7 +417,11 @@ export default function StoreRegisterPage() {
   const handleVerifySubmit = async (event) => {
     event.preventDefault();
     if (!pendingVerification?.verificationId) {
-      setStatusMessage("Start your registration again to request a new code.");
+      setStatusMessage(
+        isIndo
+          ? "Mulai pendaftaran Anda kembali untuk meminta kode baru."
+          : "Start your registration again to request a new code."
+      );
       setStatusTone("error");
       return;
     }
@@ -395,11 +445,14 @@ export default function StoreRegisterPage() {
     setIsVerifying(true);
     try {
       const result = await verifyClientRegistrationOtp(parsed.data);
-      setStatusMessage(result?.message || "Your account is now active.");
+      setStatusMessage(
+        result?.message ||
+          (isIndo ? "Akun Anda kini telah aktif." : "Your account is now active.")
+      );
       setStatusTone("success");
       await completeAuthenticatedRegistration();
     } catch (error) {
-      const presentation = resolveVerifyErrorPresentation(error);
+      const presentation = resolveVerifyErrorPresentation(error, isIndo);
       const pending = presentation.pending;
       if (pending) {
         setPendingRegistration(pending);
@@ -470,15 +523,21 @@ export default function StoreRegisterPage() {
       countdown,
       canSubmitOtp,
       deliveryFailed,
-      submitLabel: isSubmitting ? "Creating account..." : "Create account",
+      submitLabel: isSubmitting
+        ? (isIndo ? "Membuat akun..." : "Creating account...")
+        : (isIndo ? "Buat akun" : "Create account"),
       verifyLabel: isVerifying
-        ? "Verifying..."
+        ? (isIndo ? "Memverifikasi..." : "Verifying...")
         : canSubmitOtp
-          ? "Verify email"
-          : "Wait for a new verification code",
+          ? (isIndo ? "Verifikasi email" : "Verify email")
+          : (isIndo ? "Tunggu kode verifikasi baru" : "Wait for a new verification code"),
       resendLabel: isResending
-        ? "Sending new code..."
-        : buildCooldownButtonLabel(countdown, "Resend code", "Resend code in"),
+        ? (isIndo ? "Mengirim kode baru..." : "Sending new code...")
+        : buildCooldownButtonLabel(
+            countdown,
+            isIndo ? "Kirim ulang kode" : "Resend code",
+            isIndo ? "Kirim ulang dalam" : "Resend code in"
+          ),
       passwordConfirmHelper: PASSWORD_CONFIRM_HELPER,
       errors: fieldErrors,
     },
@@ -489,6 +548,7 @@ export default function StoreRegisterPage() {
       channel: pendingVerification?.channel || "EMAIL",
       expiresInSeconds: pendingVerification?.expiresInSeconds || 0,
     },
+    isIndo,
   });
 
   const handleOtpChange = (value) => {
@@ -502,6 +562,7 @@ export default function StoreRegisterPage() {
   return (
     <StoreRegister2026View
       viewModel={viewModel}
+      isIndo={isIndo}
       fieldRefs={fieldRefs}
       statusRef={statusRef}
       onChange={setField}

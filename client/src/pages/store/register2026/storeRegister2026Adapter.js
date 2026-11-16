@@ -38,6 +38,7 @@ export const createStoreRegister2026ViewModel = ({
   status = {},
   mode = "register",
   otp = {},
+  isIndo = false,
 } = {}) => {
   const errors = status.errors || {};
   const phoneNumber = pickString(form.phoneNumber, form.phone, form.whatsapp);
@@ -47,6 +48,7 @@ export const createStoreRegister2026ViewModel = ({
 
   return {
     mode,
+    isIndo,
     form: {
       name,
       fullName: name,
