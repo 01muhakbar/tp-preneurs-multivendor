@@ -145,6 +145,57 @@ const localizeFieldErrors = (fieldErrors, isIndo, code) => {
   return localized;
 };
 
+const buildValidationSummary = (fieldErrors, isIndo) => {
+  if (!fieldErrors || typeof fieldErrors !== "object") {
+    return isIndo
+      ? "Mohon periksa dan lengkapi data pendaftaran Anda."
+      : "Please review and complete your registration details.";
+  }
+
+  // Priority check for specific user actions
+  if (fieldErrors.passwordConfirm || fieldErrors.confirm) {
+    return isIndo
+      ? "Konfirmasi kata sandi tidak cocok. Silakan masukkan kata sandi yang sama persis."
+      : "Password confirmation does not match. Please re-enter the identical password.";
+  }
+  if (fieldErrors.termsAccepted || fieldErrors.acceptTerms) {
+    return isIndo
+      ? "Harap centang persetujuan syarat & ketentuan serta kebijakan privasi."
+      : "Please accept the terms & conditions and privacy policy.";
+  }
+  if (fieldErrors.phoneNumber) {
+    const msg = Array.isArray(fieldErrors.phoneNumber) ? fieldErrors.phoneNumber[0] : fieldErrors.phoneNumber;
+    return msg || (isIndo ? "Nomor telepon tidak valid atau sudah terdaftar." : "Phone number is invalid or already registered.");
+  }
+  if (fieldErrors.email) {
+    const msg = Array.isArray(fieldErrors.email) ? fieldErrors.email[0] : fieldErrors.email;
+    return msg || (isIndo ? "Alamat email tidak valid atau sudah terdaftar." : "Email address is invalid or already registered.");
+  }
+  if (fieldErrors.password) {
+    const msg = Array.isArray(fieldErrors.password) ? fieldErrors.password[0] : fieldErrors.password;
+    return msg || (isIndo ? "Kata sandi minimal 8 karakter, termasuk kombinasi huruf dan angka." : "Password must be at least 8 characters with letters and numbers.");
+  }
+  if (fieldErrors.name || fieldErrors.fullName) {
+    const msg = Array.isArray(fieldErrors.name) ? fieldErrors.name[0] : fieldErrors.name;
+    return msg || (isIndo ? "Nama lengkap wajib diisi minimal 3 karakter." : "Full name is required (minimum 3 characters).");
+  }
+
+  // Check any other field message
+  for (const key of Object.keys(fieldErrors)) {
+    const val = fieldErrors[key];
+    if (Array.isArray(val) && val[0] && typeof val[0] === "string") {
+      return val[0];
+    }
+    if (typeof val === "string" && val.trim()) {
+      return val;
+    }
+  }
+
+  return isIndo
+    ? "Mohon periksa kolom formulir yang belum sesuai."
+    : "Please check the form fields that need attention.";
+};
+
 const resolveRegisterErrorPresentation = (error, isIndo = false) => {
   const rawFieldErrors = toFieldErrors(error);
   const code = getErrorCode(error);
@@ -226,9 +277,7 @@ const resolveRegisterErrorPresentation = (error, isIndo = false) => {
     return {
       fieldErrors,
       pending,
-      statusMessage: isIndo
-        ? "Mohon periksa dan lengkapi kolom yang ditandai merah."
-        : "Please review and complete the fields marked in red.",
+      statusMessage: buildValidationSummary(fieldErrors, isIndo),
       statusTone: "error",
       isExistingAccount: false,
     };
@@ -382,8 +431,18 @@ export default function StoreRegisterPage() {
     return () => window.clearTimeout(timer);
   }, [countdown]);
 
-  const scrollToErrorOrNotice = () => {
+  const scrollToErrorOrNotice = (preferredKey) => {
     window.setTimeout(() => {
+      const key =
+        preferredKey ||
+        Object.keys(fieldErrors || {}).find(
+          (k) => Array.isArray(fieldErrors?.[k]) && fieldErrors[k].length > 0
+        );
+      if (key && fieldRefs.current[key]) {
+        fieldRefs.current[key].scrollIntoView({ behavior: "smooth", block: "center" });
+        fieldRefs.current[key].focus?.();
+        return;
+      }
       if (statusRef.current) {
         statusRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
         statusRef.current.focus?.();
@@ -395,14 +454,12 @@ export default function StoreRegisterPage() {
     const firstErrorKey = Object.keys(fieldErrors || {}).find((key) =>
       Array.isArray(fieldErrors?.[key]) && fieldErrors[key].length > 0
     );
-    if (statusMessage && statusRef.current) {
-      statusRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-      statusRef.current.focus?.();
-      return;
-    }
     if (firstErrorKey && fieldRefs.current[firstErrorKey]) {
       fieldRefs.current[firstErrorKey].scrollIntoView({ behavior: "smooth", block: "center" });
       fieldRefs.current[firstErrorKey].focus?.();
+    } else if (statusMessage && statusRef.current) {
+      statusRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      statusRef.current.focus?.();
     }
   }, [fieldErrors, statusMessage]);
 
@@ -420,7 +477,17 @@ export default function StoreRegisterPage() {
     setIsExistingAccount(false);
     setFieldErrors((current) => {
       if (!current?.[key]) return current;
-      return { ...current, [key]: undefined };
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+    // Auto-clear stale validation error banner when user edits any field
+    setStatusTone((currentTone) => {
+      if (currentTone === "error") {
+        setStatusMessage("");
+        return "neutral";
+      }
+      return currentTone;
     });
   };
 
@@ -526,20 +593,20 @@ export default function StoreRegisterPage() {
     const payload = {
       ...form,
       phoneNumber: getPhoneNumber(form.phoneNumber),
-      startedAt: startedAtRef.current,
+      startedAt: startedAtRef.current || Date.now(),
     };
     const parsed = clientRegistrationSchema.safeParse(payload);
     if (!parsed.success) {
       const rawErrors = toFieldErrors(parsed.error);
       const nextFieldErrors = localizeFieldErrors(rawErrors, isIndo, "");
       setFieldErrors(nextFieldErrors);
-      setStatusMessage(
-        isIndo
-          ? "Mohon periksa dan lengkapi kolom yang ditandai merah."
-          : "Please review and complete the fields marked in red."
-      );
+      const summaryMsg = buildValidationSummary(nextFieldErrors, isIndo);
+      setStatusMessage(summaryMsg);
       setStatusTone("error");
-      scrollToErrorOrNotice();
+      const firstKey = Object.keys(nextFieldErrors).find(
+        (k) => Array.isArray(nextFieldErrors[k]) && nextFieldErrors[k].length > 0
+      );
+      scrollToErrorOrNotice(firstKey);
       return;
     }
 

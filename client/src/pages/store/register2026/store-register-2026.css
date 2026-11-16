@@ -334,12 +334,14 @@
 }
 
 .sr26-input.is-invalid {
-  border-color: #ef4444;
-  background: rgba(239, 68, 68, 0.04);
+  border: 2px solid #ef4444 !important;
+  background: rgba(239, 68, 68, 0.06) !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
 }
 
 .sr26-input.is-invalid:focus {
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.3) !important;
 }
 
 .sr26-input-wrapper:focus-within .sr26-input-icon {
@@ -478,15 +480,33 @@
 
 /* Field Error */
 .sr26-field-error {
-  margin: 3px 0 0;
-  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 5px 0 0;
+  font-size: 12px;
   font-weight: 600;
+  color: #ef4444;
+  line-height: 1.35;
+}
+
+.sr26-field-error-icon {
+  flex-shrink: 0;
   color: #ef4444;
 }
 
 /* Terms Checkbox */
 .sr26-terms-wrapper {
   margin-top: 4px;
+  transition: all 0.2s ease;
+}
+
+.sr26-terms-wrapper.is-invalid {
+  background: rgba(239, 68, 68, 0.05);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-top: 6px;
 }
 
 .sr26-terms {
@@ -508,6 +528,13 @@
   accent-color: var(--sr26-accent);
   cursor: pointer;
   flex-shrink: 0;
+  transition: outline 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sr26-checkbox.is-invalid {
+  outline: 2px solid #ef4444;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
 }
 
 .sr26-link {
@@ -764,6 +791,30 @@
   background: #311317;
   border-color: #69222c;
   color: #fca5a5;
+}
+
+.dark .sr26-input.is-invalid {
+  border: 2px solid #f87171 !important;
+  background: rgba(239, 68, 68, 0.12) !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.3) !important;
+}
+
+.dark .sr26-input.is-invalid:focus {
+  border-color: #f87171 !important;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.45) !important;
+}
+
+.dark .sr26-field-error {
+  color: #fca5a5;
+}
+
+.dark .sr26-field-error-icon {
+  color: #fca5a5;
+}
+
+.dark .sr26-terms-wrapper.is-invalid {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(248, 113, 113, 0.45);
 }
 
 .dark .sr26-status-action {

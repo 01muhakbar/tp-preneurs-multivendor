@@ -26,8 +26,9 @@ const assignRef = (fieldRefs, key) => (node) => {
 function FieldError({ id, message }) {
   if (!message) return null;
   return (
-    <p className="sr26-field-error" id={id}>
-      {message}
+    <p className="sr26-field-error" id={id} role="alert">
+      <CircleAlert size={13} className="sr26-field-error-icon" aria-hidden="true" />
+      <span>{message}</span>
     </p>
   );
 }
@@ -141,12 +142,13 @@ function RegisterForm({
       <StatusNotice status={status} statusRef={statusRef} />
 
       {/* Honeypot for spam bots */}
-      <div className="sr26-honeypot" aria-hidden="true">
+      <div className="sr26-honeypot" aria-hidden="true" style={{ display: "none" }}>
         <label htmlFor="sr26-company">{t("register.company") || "Company"}</label>
         <input
           id="sr26-company"
+          name="user_company_nobot"
           tabIndex={-1}
-          autoComplete="off"
+          autoComplete="new-password"
           value={form.honeypot}
           onChange={(event) => onChange("honeypot", event.target.value)}
         />
@@ -313,15 +315,15 @@ function RegisterForm({
       <PasswordStrength strength={passwordStrength} isIndo={isIndo} />
 
       {/* Terms & Conditions Checkbox */}
-      <div className="sr26-terms-wrapper">
-        <label className="sr26-terms">
+      <div className={`sr26-terms-wrapper ${errors.termsAccepted ? "is-invalid" : ""}`}>
+        <label className={`sr26-terms ${errors.termsAccepted ? "is-invalid" : ""}`}>
           <input
             ref={assignRef(fieldRefs, "termsAccepted")}
             type="checkbox"
             checked={form.termsAccepted}
             onChange={(event) => onChange("termsAccepted", event.target.checked)}
             aria-invalid={Boolean(errors.termsAccepted)}
-            className="sr26-checkbox"
+            className={`sr26-checkbox ${errors.termsAccepted ? "is-invalid" : ""}`}
             required
           />
           <span>
