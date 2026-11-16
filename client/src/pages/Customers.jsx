@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Check,
   Download,
   Eye,
   Filter,
@@ -10,11 +11,14 @@ import {
   Pencil,
   Phone,
   RotateCcw,
+  Save,
   Search,
   ShieldAlert,
+  ShieldCheck,
   ShoppingBag,
   Trash2,
   Upload,
+  User,
   UserCheck,
   Users,
   X,
@@ -40,7 +44,7 @@ const customerStatusOptions = [
   { value: "active", labelEn: "Active", labelId: "Aktif" },
   { value: "inactive", labelEn: "Disabled", labelId: "Nonaktif" },
   { value: "blocked", labelEn: "Blocked", labelId: "Diblokir" },
-  { value: "pending_verification", labelEn: "Pending", labelId: "Menunggu" },
+  { value: "pending_verification", labelEn: "Pending verification", labelId: "Menunggu Verifikasi" },
 ];
 
 const customerRoleOptions = [
@@ -228,6 +232,18 @@ export default function Customers() {
     return () => clearTimeout(timer);
   }, [notice]);
 
+  // Close drawer on Escape key press
+  useEffect(() => {
+    if (!isEditOpen) return undefined;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && !updateMutation.isPending) {
+        closeEdit();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isEditOpen]);
+
   const params = useMemo(
     () => ({
       page,
@@ -358,11 +374,29 @@ export default function Customers() {
     if (!editTarget?.id) return;
     setEditError("");
     setEditFieldErrors({});
+
+    const trimmedName = editForm.name.trim();
+    const trimmedEmail = editForm.email.trim();
+    const errors = {};
+    if (!trimmedName) {
+      errors.name = isId ? "Nama lengkap wajib diisi." : "Full name is required.";
+    }
+    if (!trimmedEmail) {
+      errors.email = isId ? "Alamat email wajib diisi." : "Email address is required.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      errors.email = isId ? "Format email tidak valid." : "Invalid email format.";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setEditFieldErrors(errors);
+      return;
+    }
+
     updateMutation.mutate({
       id: editTarget.id,
       payload: {
-        name: editForm.name.trim(),
-        email: editForm.email.trim(),
+        name: trimmedName,
+        email: trimmedEmail,
         phone: editForm.phone.trim() || null,
         status: editForm.status,
       },
@@ -1063,17 +1097,21 @@ export default function Customers() {
         </button>
       </div>
 
-      {/* Edit Customer Drawer */}
+      {/* Edit Customer Drawer (Modern UI/UX Redesign) */}
       {isEditOpen ? (
-        <div className="fixed inset-0 z-50">
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          {/* Backdrop */}
           <button
             type="button"
-            className="absolute inset-0 bg-slate-900/45 backdrop-blur-[1px]"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
             onClick={closeEdit}
             aria-label={isId ? "Tutup panel edit pelanggan" : "Close update customer drawer"}
           />
-          <aside className="absolute right-0 top-0 flex h-full w-full max-w-[560px] flex-col border-l border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
-            <header className="sticky top-0 z-10 border-b border-slate-200 bg-white px-6 py-4 dark:border-slate-800 dark:bg-slate-900">
+
+          {/* Drawer Panel */}
+          <aside className="fixed inset-y-0 right-0 flex h-full w-full max-w-full sm:max-w-[500px] flex-col border-l border-slate-200/90 bg-white shadow-2xl transition-all dark:border-slate-800 dark:bg-slate-900">
+            {/* Sticky Header */}
+            <header className="sticky top-0 z-10 border-b border-slate-200/90 bg-white/95 px-6 py-4 backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
@@ -1095,36 +1133,120 @@ export default function Customers() {
               </div>
             </header>
 
+            {/* Scrollable Form Body */}
             <form onSubmit={submitEdit} className="flex min-h-0 flex-1 flex-col">
               <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
-                {[
-                  [isId ? "Nama Lengkap" : "Name", "name"],
-                  [isId ? "Alamat Email" : "Email", "email"],
-                  [isId ? "No. Telepon" : "Phone", "phone"],
-                ].map(([label, key]) => (
-                  <div key={key} className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      {label}
-                    </label>
-                    <input
-                      type={key === "email" ? "email" : "text"}
-                      value={editForm[key]}
-                      onChange={(event) => {
-                        setEditForm((prev) => ({ ...prev, [key]: event.target.value }));
-                        setEditFieldErrors((prev) => ({ ...prev, [key]: "" }));
-                      }}
-                      className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 transition focus:border-[#034c85] focus:outline-none focus:ring-2 focus:ring-[#034c85]/15 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-[#034c85]"
-                      disabled={updateMutation.isPending}
-                    />
-                    {editFieldErrors[key] ? (
-                      <p className="text-xs font-medium text-rose-600">{editFieldErrors[key]}</p>
-                    ) : null}
+                {/* Identity Summary Card */}
+                {editTarget ? (
+                  <div className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-3.5 dark:border-slate-800 dark:bg-slate-800/40">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#034c85] to-[#022e53] text-sm font-bold text-white shadow-md shadow-[#034c85]/20">
+                      {getCustomerInitials(getCustomerName(editTarget))}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-bold text-slate-900 dark:text-white truncate">
+                          {getCustomerName(editTarget)}
+                        </span>
+                        <RoleBadge role={getCustomerRole(editTarget)} />
+                      </div>
+                      <div className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                        <span className="font-mono font-semibold text-[#034c85] dark:text-[#38bdf8]">
+                          #{getShortId(editTarget)}
+                        </span>
+                        <span>•</span>
+                        <span className="truncate">{getCustomerEmail(editTarget)}</span>
+                      </div>
+                    </div>
                   </div>
-                ))}
+                ) : null}
 
+                {/* Field 1: Nama Lengkap */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    {isId ? "Status Akun" : "Account Status"}
+                  <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <User className="h-3.5 w-3.5 text-slate-400" />
+                    <span>{isId ? "Nama Lengkap" : "Full Name"}</span>
+                    <span className="text-[#fe6f05]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.name}
+                    onChange={(event) => {
+                      setEditForm((prev) => ({ ...prev, name: event.target.value }));
+                      setEditFieldErrors((prev) => ({ ...prev, name: "" }));
+                    }}
+                    placeholder={isId ? "Masukkan nama lengkap pelanggan" : "Enter customer full name"}
+                    className={`h-11 w-full rounded-xl border bg-white px-3.5 text-sm text-slate-800 transition focus:outline-none focus:ring-2 dark:bg-slate-950 dark:text-slate-100 ${
+                      editFieldErrors.name
+                        ? "border-rose-300 focus:border-rose-500 focus:ring-rose-500/20 dark:border-rose-800"
+                        : "border-slate-200 focus:border-[#034c85] focus:ring-[#034c85]/15 dark:border-slate-700 dark:focus:border-[#034c85]"
+                    }`}
+                    disabled={updateMutation.isPending}
+                  />
+                  {editFieldErrors.name ? (
+                    <p className="text-xs font-medium text-rose-600 dark:text-rose-400">
+                      {editFieldErrors.name}
+                    </p>
+                  ) : null}
+                </div>
+
+                {/* Field 2: Alamat Email */}
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <Mail className="h-3.5 w-3.5 text-slate-400" />
+                    <span>{isId ? "Alamat Email" : "Email Address"}</span>
+                    <span className="text-[#fe6f05]">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={editForm.email}
+                    onChange={(event) => {
+                      setEditForm((prev) => ({ ...prev, email: event.target.value }));
+                      setEditFieldErrors((prev) => ({ ...prev, email: "" }));
+                    }}
+                    placeholder={isId ? "contoh@email.com" : "user@email.com"}
+                    className={`h-11 w-full rounded-xl border bg-white px-3.5 text-sm text-slate-800 transition focus:outline-none focus:ring-2 dark:bg-slate-950 dark:text-slate-100 ${
+                      editFieldErrors.email
+                        ? "border-rose-300 focus:border-rose-500 focus:ring-rose-500/20 dark:border-rose-800"
+                        : "border-slate-200 focus:border-[#034c85] focus:ring-[#034c85]/15 dark:border-slate-700 dark:focus:border-[#034c85]"
+                    }`}
+                    disabled={updateMutation.isPending}
+                  />
+                  {editFieldErrors.email ? (
+                    <p className="text-xs font-medium text-rose-600 dark:text-rose-400">
+                      {editFieldErrors.email}
+                    </p>
+                  ) : null}
+                </div>
+
+                {/* Field 3: Nomor Telepon */}
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <Phone className="h-3.5 w-3.5 text-slate-400" />
+                    <span>{isId ? "Nomor Telepon" : "Phone Number"}</span>
+                  </label>
+                  <input
+                    type="tel"
+                    value={editForm.phone}
+                    onChange={(event) => {
+                      setEditForm((prev) => ({ ...prev, phone: event.target.value }));
+                      setEditFieldErrors((prev) => ({ ...prev, phone: "" }));
+                    }}
+                    placeholder="+628..."
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 font-mono text-sm text-slate-800 transition focus:border-[#034c85] focus:outline-none focus:ring-2 focus:ring-[#034c85]/15 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-[#034c85]"
+                    disabled={updateMutation.isPending}
+                  />
+                  {editFieldErrors.phone ? (
+                    <p className="text-xs font-medium text-rose-600 dark:text-rose-400">
+                      {editFieldErrors.phone}
+                    </p>
+                  ) : null}
+                </div>
+
+                {/* Field 4: Status Akun */}
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <ShieldCheck className="h-3.5 w-3.5 text-slate-400" />
+                    <span>{isId ? "Status Akun" : "Account Status"}</span>
                   </label>
                   <select
                     value={editForm.status}
@@ -1132,7 +1254,7 @@ export default function Customers() {
                       setEditForm((prev) => ({ ...prev, status: event.target.value }));
                       setEditFieldErrors((prev) => ({ ...prev, status: "" }));
                     }}
-                    className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 transition focus:border-[#034c85] focus:outline-none focus:ring-2 focus:ring-[#034c85]/15 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-[#034c85]"
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-800 transition focus:border-[#034c85] focus:outline-none focus:ring-2 focus:ring-[#034c85]/15 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-[#034c85]"
                     disabled={updateMutation.isPending}
                   >
                     {customerStatusOptions.map((option) => (
@@ -1141,11 +1263,14 @@ export default function Customers() {
                       </option>
                     ))}
                   </select>
-                  {editFieldErrors.status ? (
-                    <p className="text-xs font-medium text-rose-600">{editFieldErrors.status}</p>
-                  ) : null}
+                  <p className="text-[11px] text-slate-400">
+                    {isId
+                      ? "Menentukan hak akses masuk dan transaksi pelanggan di marketplace."
+                      : "Determines sign in and shopping access permissions for this customer."}
+                  </p>
                 </div>
 
+                {/* Error Banner */}
                 {editError && !Object.keys(editFieldErrors).length ? (
                   <div className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-semibold text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300">
                     {editError}
@@ -1153,28 +1278,33 @@ export default function Customers() {
                 ) : null}
               </div>
 
-              <footer className="sticky bottom-0 border-t border-slate-200 bg-white/95 px-6 py-4 dark:border-slate-800 dark:bg-slate-900/95">
+              {/* Sticky High-Contrast Footer */}
+              <footer className="sticky bottom-0 border-t border-slate-200/90 bg-white/95 px-6 py-4 backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={closeEdit}
-                    className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-4 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                    className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-slate-100 px-4 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                     disabled={updateMutation.isPending}
                   >
                     {isId ? "Batal" : "Cancel"}
                   </button>
                   <button
                     type="submit"
-                    className="inline-flex h-10 items-center justify-center rounded-xl bg-[#034c85] px-5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#023b68] disabled:opacity-70"
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#034c85] to-[#023b68] px-5 text-xs font-semibold text-white shadow-md shadow-[#034c85]/20 transition hover:from-[#023b68] hover:to-[#012847] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                     disabled={updateMutation.isPending}
                   >
-                    {updateMutation.isPending
-                      ? isId
-                        ? "Menyimpan..."
-                        : "Saving..."
-                      : isId
-                        ? "Simpan Perubahan"
-                        : "Save Changes"}
+                    {updateMutation.isPending ? (
+                      <>
+                        <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        <span>{isId ? "Menyimpan..." : "Saving..."}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4" />
+                        <span>{isId ? "Simpan Perubahan" : "Save Changes"}</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </footer>
