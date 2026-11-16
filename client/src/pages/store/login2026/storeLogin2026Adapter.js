@@ -1,4 +1,4 @@
-const resolveRedirectNotice = (redirectState) => {
+const resolveRedirectNotice = (redirectState, isIndo = false) => {
   const fromState = redirectState?.from;
   const fromPath =
     typeof fromState === "string"
@@ -9,12 +9,18 @@ const resolveRedirectNotice = (redirectState) => {
 
   if (fromPath && fromPath !== "/auth/login") {
     if (fromPath.startsWith("/checkout")) {
-      return "Sign in to continue your checkout securely.";
+      return isIndo
+        ? "Masuk untuk melanjutkan proses checkout dengan aman."
+        : "Sign in to continue your checkout securely.";
     }
     if (fromPath.startsWith("/user") || fromPath.startsWith("/account")) {
-      return "Sign in to open your account dashboard.";
+      return isIndo
+        ? "Masuk untuk membuka dashboard akun Anda."
+        : "Sign in to open your account dashboard.";
     }
-    return "Sign in to continue where you left off.";
+    return isIndo
+      ? "Masuk untuk melanjutkan aktivitas belanja Anda."
+      : "Sign in to continue where you left off.";
   }
 
   return "";
@@ -25,6 +31,7 @@ export function createStoreLogin2026ViewModel({
   status = {},
   submitting = false,
   redirectState = {},
+  isIndo = false,
 } = {}) {
   return {
     form: {
@@ -37,12 +44,13 @@ export function createStoreLogin2026ViewModel({
       errorMessage: String(status.errorMessage || "").trim(),
       noticeMessage: String(status.noticeMessage || "").trim(),
       successMessage: String(status.successMessage || "").trim(),
-      redirectNotice: resolveRedirectNotice(redirectState),
-      helperMessage: String(status.helperMessage || "").trim(),
+      redirectNotice: resolveRedirectNotice(redirectState, isIndo),
+      helperMessage: "",
       cooldownSeconds: Math.max(0, Number(status.cooldownSeconds) || 0),
-      submitLabel: status.submitLabel || "Sign in",
+      submitLabel: status.submitLabel || (isIndo ? "Masuk" : "Sign in"),
     },
     submitting: Boolean(submitting),
     disabled: Boolean(submitting) || Math.max(0, Number(status.cooldownSeconds) || 0) > 0,
+    isIndo,
   };
 }

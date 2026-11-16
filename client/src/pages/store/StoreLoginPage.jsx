@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAccountAuth } from "../../auth/authDomainHooks.js";
 import { api } from "../../api/axios.ts";
 import { useCart } from "../../hooks/useCart.ts";
@@ -29,6 +30,26 @@ const normalizePostLoginTarget = (value) =>
 export default function StoreLoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { i18n } = useTranslation();
+  const [, setLangSync] = useState(0);
+
+  useEffect(() => {
+    const handleSync = () => setLangSync((c) => c + 1);
+    i18n?.on?.("languageChanged", handleSync);
+    window.addEventListener("storage", handleSync);
+    window.addEventListener("store_language_changed", handleSync);
+    return () => {
+      i18n?.off?.("languageChanged", handleSync);
+      window.removeEventListener("storage", handleSync);
+      window.removeEventListener("store_language_changed", handleSync);
+    };
+  }, [i18n]);
+
+  const isIndo =
+    i18n.language === "id" ||
+    i18n.language === "id-ID" ||
+    (typeof i18n.language === "string" && i18n.language.startsWith("id"));
+
   const { refreshSession, isAccountSession } = useAccountAuth();
   const { refreshCart } = useCart();
   const [email, setEmail] = useState("");
@@ -210,11 +231,13 @@ export default function StoreLoginPage() {
         });
         return;
       }
+      const defaultError = isIndo
+        ? "Gagal masuk. Periksa kembali email dan kata sandi Anda."
+        : "We couldn't sign you in. Check your email and password and try again.";
       setError(
         err?.response?.status === 429 && getRetryAfterSeconds(err) > 0
           ? buildRetryAfterMessage(getRetryAfterSeconds(err))
-          : err?.response?.data?.message ||
-              "We couldn't sign you in. Check your email and password and try again."
+          : err?.response?.data?.message || defaultError
       );
       const retryAfterSeconds = getRetryAfterSeconds(err);
       if (retryAfterSeconds > 0) {
@@ -225,6 +248,7 @@ export default function StoreLoginPage() {
     }
   };
 
+  const buttonBaseLabel = isIndo ? "Masuk" : "Sign in";
   const viewModel = createStoreLogin2026ViewModel({
     form: {
       email,
@@ -236,17 +260,19 @@ export default function StoreLoginPage() {
       errorMessage: error,
       noticeMessage,
       successMessage,
-      helperMessage: PASSWORD_HIDDEN_HELPER,
+      helperMessage: "",
       cooldownSeconds,
-      submitLabel: buildCooldownButtonLabel(cooldownSeconds, "Sign in"),
+      submitLabel: buildCooldownButtonLabel(cooldownSeconds, buttonBaseLabel),
     },
     submitting: isSubmitting,
     redirectState: location.state,
+    isIndo,
   });
 
   return (
     <StoreLogin2026View
       viewModel={viewModel}
+      isIndo={isIndo}
       fieldRefs={{ emailRef, passwordRef }}
       messageRefs={{ statusRef, errorRef }}
       onSubmit={handleSubmit}

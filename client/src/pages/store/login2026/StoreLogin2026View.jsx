@@ -1,61 +1,17 @@
 import {
-  ArrowRight,
   BadgeCheck,
   CircleAlert,
   Eye,
   EyeOff,
-  Gift,
   LockKeyhole,
-  Rocket,
+  Mail,
   ShieldCheck,
   ShoppingBag,
   Sparkles,
-  Target,
   UserRound,
-  Zap,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import "./store-login-2026.css";
-
-const benefits = [
-  {
-    icon: ShieldCheck,
-    titleKey: "login.benefitSecure",
-    textKey: "login.benefitSecureDesc",
-  },
-  {
-    icon: Zap,
-    titleKey: "login.benefitFast",
-    textKey: "login.benefitFastDesc",
-  },
-  {
-    icon: Gift,
-    titleKey: "login.benefitExclusive",
-    textKey: "login.benefitExclusiveDesc",
-  },
-];
-
-function BenefitList({ compact = false }) {
-  const { t } = useTranslation();
-  return (
-    <div className={compact ? "sl26-mobile-benefits" : "sl26-benefits"}>
-      {benefits.map((item) => {
-        const Icon = item.icon;
-        return (
-          <div className="sl26-benefit" key={item.titleKey}>
-            <span>
-              <Icon aria-hidden="true" />
-            </span>
-            <div>
-              <strong>{t(item.titleKey)}</strong>
-              <p>{t(item.textKey)}</p>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 function StatusMessage({ id, tone, children, focusRef }) {
   if (!children) return null;
@@ -70,7 +26,7 @@ function StatusMessage({ id, tone, children, focusRef }) {
       tabIndex={-1}
       className={`sl26-message sl26-message--${tone}`}
     >
-      <Icon aria-hidden="true" />
+      <Icon className="sl26-message-icon" aria-hidden="true" />
       <span>{children}</span>
     </div>
   );
@@ -78,6 +34,7 @@ function StatusMessage({ id, tone, children, focusRef }) {
 
 export default function StoreLogin2026View({
   viewModel,
+  isIndo: isIndoProp,
   fieldRefs = {},
   messageRefs = {},
   onSubmit,
@@ -90,61 +47,114 @@ export default function StoreLogin2026View({
 }) {
   const { form, status, submitting, disabled } = viewModel;
   const passwordInputType = form.showPassword ? "text" : "password";
-  const { t } = useTranslation();
-  const passwordToggleLabel = form.showPassword ? t("login.hidePassword") : t("login.showPassword");
+  const { t, i18n } = useTranslation();
+
+  const isIndo =
+    typeof isIndoProp === "boolean"
+      ? isIndoProp
+      : i18n?.language === "id" ||
+        i18n?.language === "id-ID" ||
+        (typeof i18n?.language === "string" && i18n.language.startsWith("id"));
+
+  const passwordToggleLabel = form.showPassword
+    ? t("login.hidePassword") || (isIndo ? "Sembunyikan sandi" : "Hide password")
+    : t("login.showPassword") || (isIndo ? "Tampilkan sandi" : "Show password");
 
   return (
     <main className="sl26-page">
       <div className="sl26-shell">
-        <section className="sl26-copy" aria-labelledby="store-login-title">
-          <span className="sl26-chip">{t("login.welcomeBack")}</span>
-          <h1 id="store-login-title">
-            {t("login.signInTo")} <span>{t("login.yourAccount")}</span>
+        {/* Left Side: Brand Showcase & Value Prop */}
+        <section className="sl26-hero" aria-labelledby="store-login-title">
+          <div className="sl26-badge">
+            <Sparkles className="sl26-badge-icon" size={14} />
+            <span>{t("login.badgeMarketplace") || (isIndo ? "Marketplace Resmi" : "Official Marketplace")}</span>
+          </div>
+
+          <h1 id="store-login-title" className="sl26-hero-title">
+            {t("login.signInTo") || (isIndo ? "Masuk ke" : "Sign in to")}{" "}
+            <span className="sl26-hero-highlight">
+              {t("login.yourAccount") || (isIndo ? "akun Anda" : "your account")}
+            </span>
           </h1>
-          <p>{t("login.subtitle")}</p>
-          <BenefitList />
-          <div className="sl26-flight" aria-hidden="true">
-            <span />
-            <ArrowRight />
+
+          <p className="sl26-hero-desc">
+            {t("login.subtitle") ||
+              (isIndo
+                ? "Akses pesanan Anda, barang tersimpan, dan penawaran personal."
+                : "Access your orders, saved items, and personalized offers.")}
+          </p>
+
+          <div className="sl26-trust-card">
+            <div className="sl26-trust-icon-box">
+              <ShieldCheck size={22} className="sl26-trust-icon" />
+            </div>
+            <div className="sl26-trust-content">
+              <strong className="sl26-trust-title">
+                {t("login.trustSecureTitle") ||
+                  (isIndo ? "Transaksi Aman & Terlindungi" : "Safe & Secure Transactions")}
+              </strong>
+              <p className="sl26-trust-desc">
+                {t("login.trustSecureDesc") ||
+                  (isIndo
+                    ? "Belanja nyaman dengan sistem verifikasi pembayaran terpusat."
+                    : "Protected shopping with centralized payment verification.")}
+              </p>
+            </div>
           </div>
         </section>
 
+        {/* Right Side: Member Login Card */}
         <section className="sl26-card" aria-label="Member Login">
           <div className="sl26-card-head">
-            <span>
-              <UserRound aria-hidden="true" />
-            </span>
+            <div className="sl26-avatar-box">
+              <UserRound size={20} className="sl26-avatar-icon" />
+            </div>
             <div>
-              <h2>{t("login.memberLogin")}</h2>
-              <p>{t("login.continueTo")}</p>
+              <h2 className="sl26-card-title">
+                {t("login.memberLogin") || (isIndo ? "Login Anggota" : "Member Login")}
+              </h2>
+              <p className="sl26-card-sub">
+                {t("login.continueTo") || (isIndo ? "Lanjutkan ke TP Preneurs." : "Continue to TP Preneurs.")}
+              </p>
             </div>
           </div>
 
           {status.redirectNotice ? (
             <div className="sl26-redirect" role="status">
-              <ShoppingBag aria-hidden="true" />
+              <ShoppingBag size={16} className="sl26-redirect-icon shrink-0" />
               <span>{status.redirectNotice}</span>
             </div>
           ) : null}
 
           <form className="sl26-form" onSubmit={onSubmit}>
+            {/* Email Field */}
             <div className="sl26-field">
-              <label htmlFor="store-login-email">{t("login.email")}</label>
-              <input
-                id="store-login-email"
-                ref={fieldRefs.emailRef}
-                type="email"
-                value={form.email}
-                onChange={(event) => onEmailChange(event.target.value)}
-                placeholder={t("login.emailPlaceholder")}
-                autoComplete="email"
-                required
-              />
+              <label htmlFor="store-login-email" className="sl26-label">
+                {t("login.email") || "Email"}
+              </label>
+              <div className="sl26-input-wrapper">
+                <Mail size={16} className="sl26-input-icon" />
+                <input
+                  id="store-login-email"
+                  ref={fieldRefs.emailRef}
+                  type="email"
+                  value={form.email}
+                  onChange={(event) => onEmailChange(event.target.value)}
+                  placeholder={t("login.emailPlaceholder") || (isIndo ? "anda@email.com" : "you@email.com")}
+                  autoComplete="email"
+                  className="sl26-input"
+                  required
+                />
+              </div>
             </div>
 
+            {/* Password Field */}
             <div className="sl26-field">
-              <label htmlFor="store-login-password">{t("login.password")}</label>
-              <div className="sl26-password">
+              <label htmlFor="store-login-password" className="sl26-label">
+                {t("login.password") || (isIndo ? "Kata Sandi" : "Password")}
+              </label>
+              <div className="sl26-input-wrapper">
+                <LockKeyhole size={16} className="sl26-input-icon" />
                 <input
                   id="store-login-password"
                   ref={fieldRefs.passwordRef}
@@ -153,33 +163,42 @@ export default function StoreLogin2026View({
                   onChange={(event) => onPasswordChange(event.target.value)}
                   placeholder="••••••••••••"
                   autoComplete="current-password"
-                  aria-describedby="store-login-password-helper"
+                  className="sl26-input sl26-input--password"
                   required
                 />
-                <button type="button" onClick={onTogglePassword} aria-label={passwordToggleLabel}>
-                  {form.showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                <button
+                  type="button"
+                  onClick={onTogglePassword}
+                  className="sl26-eye-btn"
+                  title={passwordToggleLabel}
+                  aria-label={passwordToggleLabel}
+                >
+                  {form.showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
+            {/* Options Row: Remember Me & Forgot Password */}
             <div className="sl26-options">
               <label className="sl26-remember">
                 <input
                   type="checkbox"
                   checked={form.remember}
                   onChange={(event) => onRememberChange(event.target.checked)}
+                  className="sl26-checkbox"
                 />
-                <span>{t("login.rememberMe")}</span>
+                <span>{t("login.rememberMe") || (isIndo ? "Ingat saya" : "Remember me")}</span>
               </label>
-              <button type="button" onClick={onForgotPassword}>
-                {t("login.forgotPassword")}
+              <button
+                type="button"
+                onClick={onForgotPassword}
+                className="sl26-forgot-btn"
+              >
+                {t("login.forgotPassword") || (isIndo ? "Lupa sandi?" : "Forgot password?")}
               </button>
             </div>
 
-            <p id="store-login-password-helper" className="sl26-helper">
-              {status.helperMessage}
-            </p>
-
+            {/* Status & Error Alerts */}
             <StatusMessage
               id="store-login-status"
               tone={status.noticeMessage ? "warning" : "success"}
@@ -191,46 +210,35 @@ export default function StoreLogin2026View({
               {status.errorMessage}
             </StatusMessage>
 
-            <button className="sl26-submit" type="submit" disabled={disabled}>
-              {submitting ? t("login.signingIn") : status.submitLabel}
+            {/* Submit Button */}
+            <button
+              className="sl26-submit-btn"
+              type="submit"
+              disabled={disabled}
+            >
+              {submitting ? (
+                <span className="sl26-submit-inner">
+                  <span className="sl26-spinner" />
+                  <span>{t("login.signingIn") || (isIndo ? "Masuk..." : "Signing in...")}</span>
+                </span>
+              ) : (
+                <span>{status.submitLabel || (isIndo ? "Masuk" : "Sign in")}</span>
+              )}
             </button>
           </form>
 
-          <p className="sl26-register">
-            {t("login.newHere")}{" "}
-            <button type="button" onClick={onCreateAccount}>
-              {t("login.createAccount")}
+          {/* Registration Footer */}
+          <div className="sl26-footer">
+            <span>{t("login.newHere") || (isIndo ? "Pengguna baru?" : "New here?")}</span>{" "}
+            <button
+              type="button"
+              onClick={onCreateAccount}
+              className="sl26-register-link"
+            >
+              {t("login.createAccount") || (isIndo ? "Buat akun" : "Create an account")}
             </button>
-          </p>
+          </div>
         </section>
-
-        <aside className="sl26-visual" aria-label="Login security highlights">
-          <div className="sl26-orb">
-            <span className="sl26-shield">
-              <ShieldCheck aria-hidden="true" />
-              <LockKeyhole aria-hidden="true" />
-            </span>
-            <i />
-            <b />
-          </div>
-          <div className="sl26-mini sl26-mini--top">
-            <Rocket aria-hidden="true" />
-            <div>
-              <strong>{t("login.shopFaster")}</strong>
-              <p>{t("login.shopFasterDesc")}</p>
-            </div>
-          </div>
-          <div className="sl26-mini sl26-mini--bottom">
-            <Target aria-hidden="true" />
-            <div>
-              <strong>{t("login.personalizedDeals")}</strong>
-              <p>{t("login.personalizedDealsDesc")}</p>
-            </div>
-          </div>
-          <Sparkles className="sl26-spark" aria-hidden="true" />
-        </aside>
-
-        <BenefitList compact />
       </div>
     </main>
   );
