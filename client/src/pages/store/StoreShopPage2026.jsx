@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, SearchX, SlidersHorizontal, X } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
@@ -14,7 +14,6 @@ import ShopFilters2026 from "./shop2026/ShopFilters2026.jsx";
 import ShopHero2026 from "./shop2026/ShopHero2026.jsx";
 import ShopProductCard2026 from "./shop2026/ShopProductCard2026.jsx";
 import ShopProductListItem2026 from "./shop2026/ShopProductListItem2026.jsx";
-import ShopStoreSpotlight2026 from "./shop2026/ShopStoreSpotlight2026.jsx";
 import ShopQuickViewModal2026 from "./shop2026/ShopQuickViewModal2026.jsx";
 import ShopToolbar2026, { SHOP_SORT_OPTIONS } from "./shop2026/ShopToolbar2026.jsx";
 import {
@@ -27,6 +26,19 @@ import {
 import "./shop2026/shop-2026-redesign.css";
 
 const DEFAULT_LIMIT = 12;
+
+const CATEGORY_TRANSLATIONS = {
+  "makanan dan minuman": "Food & Beverage",
+  "makanan & minuman": "Food & Beverage",
+  "kerajinan dan kreatif": "Crafts & Creative",
+  "kerajinan & kreatif": "Crafts & Creative",
+  "jasa": "Services",
+  "buku": "Books",
+  "produk pembelajaran": "Learning Media",
+  "elektronik & gadget": "Electronics",
+  "fashion & pakaian": "Fashion & Apparel",
+  "tanaman & pertanian": "Agriculture",
+};
 
 const toNonNegativeNumber = (value) => {
   if (value === null || value === undefined || String(value).trim() === "") return null;
@@ -117,7 +129,56 @@ function Pagination({ page, total, limit, onChange }) {
 export default function StoreShopPage2026() {
   const navigate = useNavigate();
   const { i18n } = useTranslation();
-  const isIndo = i18n.language === "id" || i18n.language === "id-ID";
+
+  // Reactive language detection
+  const [activeLang, setActiveLang] = useState(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("store_language");
+      if (stored === "Indonesia" || stored === "id") return "id";
+      if (stored === "English" || stored === "en") return "en";
+      const i18nLng = localStorage.getItem("i18nextLng");
+      if (i18nLng?.startsWith("id")) return "id";
+    }
+    return i18n.language || "en";
+  });
+
+  useEffect(() => {
+    const handleLanguageChanged = (lng) => setActiveLang(lng);
+    const handleCustomLang = (e) => {
+      if (e?.detail?.isoCode) setActiveLang(e.detail.isoCode);
+      else if (e?.detail?.name === "Indonesia") setActiveLang("id");
+      else if (e?.detail?.name === "English") setActiveLang("en");
+    };
+    const handleStorage = () => {
+      const stored = localStorage.getItem("store_language");
+      if (stored === "Indonesia" || stored === "id") setActiveLang("id");
+      else if (stored === "English" || stored === "en") setActiveLang("en");
+      else setActiveLang(i18n.language || "en");
+    };
+
+    i18n.on("languageChanged", handleLanguageChanged);
+    window.addEventListener("store_language_changed", handleCustomLang);
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      i18n.off("languageChanged", handleLanguageChanged);
+      window.removeEventListener("store_language_changed", handleCustomLang);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [i18n]);
+
+  const isIndo = useMemo(() => {
+    if (activeLang?.startsWith("id")) return true;
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("store_language");
+      if (stored === "Indonesia" || stored === "id") return true;
+      if (stored === "English" || stored === "en") return false;
+      const i18nLng = localStorage.getItem("i18nextLng");
+      if (i18nLng?.startsWith("id")) return true;
+    }
+    return false;
+  }, [activeLang]);
+
   const [searchParams, setSearchParams] = useSearchParams();
   const [viewMode, setViewMode] = useState("grid");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -198,27 +259,13 @@ export default function StoreShopPage2026() {
   const displayStart = total ? (page - 1) * limit + 1 : 0;
   const displayEnd = total ? Math.min(total, displayStart + cards.length - 1) : 0;
   const initialLoading = productsQuery.isLoading && !productsQuery.data;
-  const activeCategoryName = categories.find((item) => getShopCategoryValue(item) === category)?.name || category;
 
-  // Real store spotlight
-  const spotlightStore = useMemo(() => {
-    const productWithStore = cards.find(
-      (c) => c.storeName && c.storeName !== "Local store" && c.storeSlug
-    );
-    if (!productWithStore) return null;
-    const storeProducts = cards.filter(
-      (c) => c.storeSlug === productWithStore.storeSlug
-    );
-    return {
-      store: {
-        name: productWithStore.storeName,
-        slug: productWithStore.storeSlug,
-        city: productWithStore.storeCity,
-        logoUrl: productWithStore.storeLogo,
-      },
-      products: storeProducts,
-    };
-  }, [cards]);
+  const rawCategoryName = categories.find((item) => getShopCategoryValue(item) === category)?.name || category;
+  const activeCategoryName = useMemo(() => {
+    if (!rawCategoryName) return "";
+    const key = rawCategoryName.toLowerCase().trim();
+    return !isIndo && CATEGORY_TRANSLATIONS[key] ? CATEGORY_TRANSLATIONS[key] : rawCategoryName;
+  }, [rawCategoryName, isIndo]);
 
   const activeFilters = [
     query ? { key: "q", label: isIndo ? `Cari: ${query}` : `Search: ${query}` } : null,
@@ -342,14 +389,6 @@ export default function StoreShopPage2026() {
               onClear={clearAll}
               onOpenFilters={() => setFiltersOpen(true)}
             />
-
-            {/* Official Store Spotlight (Matching Reference Image) */}
-            {spotlightStore && !initialLoading && !category && (
-              <ShopStoreSpotlight2026
-                store={spotlightStore.store}
-                products={spotlightStore.products}
-              />
-            )}
 
             {/* Loading skeletons */}
             {initialLoading && (

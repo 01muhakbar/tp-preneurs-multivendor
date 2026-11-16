@@ -1,12 +1,64 @@
 import { Image, Loader2, ShoppingCart, Star, X, Zap } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { useProduct } from "../../../storefront.jsx";
 import { formatCurrency } from "../../../utils/format.js";
 import { mapProductToShopCard } from "./shopProductAdapter.js";
 
 export default function ShopQuickViewModal2026({ card, onClose, onAdd, onBuyNow }) {
+  const { i18n } = useTranslation();
+
+  // Reactive language detection
+  const [activeLang, setActiveLang] = useState(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("store_language");
+      if (stored === "Indonesia" || stored === "id") return "id";
+      if (stored === "English" || stored === "en") return "en";
+      const i18nLng = localStorage.getItem("i18nextLng");
+      if (i18nLng?.startsWith("id")) return "id";
+    }
+    return i18n.language || "en";
+  });
+
+  useEffect(() => {
+    const handleLanguageChanged = (lng) => setActiveLang(lng);
+    const handleCustomLang = (e) => {
+      if (e?.detail?.isoCode) setActiveLang(e.detail.isoCode);
+      else if (e?.detail?.name === "Indonesia") setActiveLang("id");
+      else if (e?.detail?.name === "English") setActiveLang("en");
+    };
+    const handleStorage = () => {
+      const stored = localStorage.getItem("store_language");
+      if (stored === "Indonesia" || stored === "id") setActiveLang("id");
+      else if (stored === "English" || stored === "en") setActiveLang("en");
+      else setActiveLang(i18n.language || "en");
+    };
+
+    i18n.on("languageChanged", handleLanguageChanged);
+    window.addEventListener("store_language_changed", handleCustomLang);
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      i18n.off("languageChanged", handleLanguageChanged);
+      window.removeEventListener("store_language_changed", handleCustomLang);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [i18n]);
+
+  const isIndo = useMemo(() => {
+    if (activeLang?.startsWith("id")) return true;
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("store_language");
+      if (stored === "Indonesia" || stored === "id") return true;
+      if (stored === "English" || stored === "en") return false;
+      const i18nLng = localStorage.getItem("i18nextLng");
+      if (i18nLng?.startsWith("id")) return true;
+    }
+    return false;
+  }, [activeLang]);
+
   const { data, isLoading, isError } = useProduct(card?.slug || "");
   const [imageIndex, setImageIndex] = useState(0);
   const [imageFailed, setImageFailed] = useState(false);
@@ -51,48 +103,55 @@ export default function ShopQuickViewModal2026({ card, onClose, onAdd, onBuyNow 
     <div className="tp-shop-modal" role="dialog" aria-modal="true" aria-labelledby="tp-quick-view-title">
       <button type="button" className="tp-shop-modal__backdrop" onClick={onClose} aria-label="Close quick view" />
       <div className="tp-shop-modal__panel">
-        <button type="button" className="tp-shop-modal__close" onClick={onClose} aria-label="Close quick view">
-          <X />
+        <button type="button" className="tp-shop-modal__close" onClick={onClose} aria-label={isIndo ? "Tutup" : "Close"}>
+          <X className="w-4 h-4" />
         </button>
         {isLoading ? (
-          <div className="tp-shop-modal__loading"><Loader2 className="is-spinning" /> Loading product details...</div>
+          <div className="tp-shop-modal__loading">
+            <Loader2 className="w-5 h-5 animate-spin text-[#fe6f05]" />
+            <span>{isIndo ? "Memuat detail produk..." : "Loading product details..."}</span>
+          </div>
         ) : (
           <>
             <div className="tp-shop-modal__media">
               {activeImage && !imageFailed ? (
                 <img src={activeImage} alt={detail.name} onError={handleImageError} />
               ) : (
-                <Image />
+                <Image className="w-12 h-12 text-slate-400" />
               )}
               {detail.discount > 0 ? <span className="tp-product-card__discount">-{detail.discount}%</span> : null}
             </div>
             <div className="tp-shop-modal__content">
-              <p>{detail.category}</p>
-              <h2 id="tp-quick-view-title">{detail.name}</h2>
+              <p className="text-xs text-[#fe6f05] font-semibold">{detail.category}</p>
+              <h2 id="tp-quick-view-title" className="text-lg font-bold text-white">{detail.name}</h2>
               <div className="tp-product-card__rating">
                 <span className="tp-shop-stars">
                   {Array.from({ length: 5 }, (_, index) => <Star key={index} className={index < Math.round(detail.rating) ? "is-filled" : ""} />)}
                 </span>
                 <strong>{detail.rating.toFixed(1)}</strong>
-                <span>({detail.reviewCount} reviews)</span>
+                <span>({detail.reviewCount} {isIndo ? "ulasan" : "reviews"})</span>
               </div>
               <div className="tp-product-card__price">
                 <strong>{formatCurrency(detail.price)}</strong>
                 {detail.originalPrice > detail.price ? <del>{formatCurrency(detail.originalPrice)}</del> : null}
               </div>
               <p className="tp-shop-modal__description">
-                {detail.description || "A quality everyday essential selected from a trusted local seller."}
+                {detail.description || (isIndo ? "Produk berkualitas pilihan dari penjual kampus terverifikasi." : "Quality curated product from verified campus sellers.")}
               </p>
-              {isError ? <small>Some extended product details are currently unavailable.</small> : null}
+              {isError ? <small className="text-amber-400">{isIndo ? "Detail produk sedang tidak tersedia." : "Product details are currently unavailable."}</small> : null}
               <div className="tp-shop-modal__actions">
                 <button type="button" className="tp-shop-btn tp-shop-btn--outline" disabled={!detail.isPurchasable} onClick={() => onAdd(detail)}>
-                  <ShoppingCart /> Add to Cart
+                  <ShoppingCart className="w-4 h-4" />
+                  <span>{isIndo ? "Tambah ke Keranjang" : "Add to Cart"}</span>
                 </button>
                 <button type="button" className="tp-shop-btn tp-shop-btn--primary" disabled={!detail.isPurchasable} onClick={() => onBuyNow(detail)}>
-                  <Zap /> Buy Now
+                  <Zap className="w-4 h-4" />
+                  <span>{isIndo ? "Beli Sekarang" : "Buy Now"}</span>
                 </button>
               </div>
-              <Link to={detail.href} className="tp-shop-modal__detail-link">View full product details</Link>
+              <Link to={detail.href} className="tp-shop-modal__detail-link">
+                {isIndo ? "Lihat Halaman Produk Lengkap" : "View Full Product Page"}
+              </Link>
             </div>
           </>
         )}

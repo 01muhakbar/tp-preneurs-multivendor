@@ -748,11 +748,11 @@ const DEFAULT_CUSTOMIZATION = {
   shop: {
     header: {
       enabled: true,
-      eyebrow: "KATALOG EDUPRENEUR KAMPUS",
-      title: "Katalog Produk & Karya Inovasi,",
-      titleAccent: "Edupreneur Kampus",
-      description: "Temukan media belajar digital, buku, dan produk kreatif unggulan mahasiswa.",
-      searchPlaceholder: "Cari produk, kategori, atau karya mahasiswa...",
+      eyebrow: "CAMPUS EDUPRENEUR CATALOG",
+      title: "Products & Innovation Catalog,",
+      titleAccent: "Campus Edupreneur",
+      description: "Discover digital learning media, books, and creative student products.",
+      searchPlaceholder: "Search digital products, innovation works & books...",
       popularSearches: "",
       imageDataUrl: "",
     },
@@ -787,6 +787,13 @@ export const cloneStoreCustomizationDefaults = (lang?: string) => {
     if (cloned.termsAndConditions) {
       cloned.termsAndConditions.pageTitle = "Syarat & Ketentuan";
       cloned.termsAndConditions.pageTextHtml = DEFAULT_TERMS_AND_CONDITIONS_HTML_ID;
+    }
+    if (cloned.shop?.header) {
+      cloned.shop.header.eyebrow = "KATALOG EDUPRENEUR KAMPUS";
+      cloned.shop.header.title = "Katalog Produk & Karya Inovasi,";
+      cloned.shop.header.titleAccent = "Edupreneur Kampus";
+      cloned.shop.header.description = "Temukan media belajar digital, buku, dan produk kreatif unggulan mahasiswa.";
+      cloned.shop.header.searchPlaceholder = "Cari produk, kategori, atau karya mahasiswa...";
     }
   }
   return cloned;

@@ -8,6 +8,7 @@ import {
   Loader2,
   X,
 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 export const SHOP_SORT_OPTIONS = [
@@ -34,7 +35,55 @@ export default function ShopToolbar2026({
   onOpenFilters,
 }) {
   const { i18n } = useTranslation();
-  const isIndo = i18n.language === "id" || i18n.language === "id-ID";
+
+  // Reactive language detection
+  const [activeLang, setActiveLang] = useState(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("store_language");
+      if (stored === "Indonesia" || stored === "id") return "id";
+      if (stored === "English" || stored === "en") return "en";
+      const i18nLng = localStorage.getItem("i18nextLng");
+      if (i18nLng?.startsWith("id")) return "id";
+    }
+    return i18n.language || "en";
+  });
+
+  useEffect(() => {
+    const handleLanguageChanged = (lng) => setActiveLang(lng);
+    const handleCustomLang = (e) => {
+      if (e?.detail?.isoCode) setActiveLang(e.detail.isoCode);
+      else if (e?.detail?.name === "Indonesia") setActiveLang("id");
+      else if (e?.detail?.name === "English") setActiveLang("en");
+    };
+    const handleStorage = () => {
+      const stored = localStorage.getItem("store_language");
+      if (stored === "Indonesia" || stored === "id") setActiveLang("id");
+      else if (stored === "English" || stored === "en") setActiveLang("en");
+      else setActiveLang(i18n.language || "en");
+    };
+
+    i18n.on("languageChanged", handleLanguageChanged);
+    window.addEventListener("store_language_changed", handleCustomLang);
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      i18n.off("languageChanged", handleLanguageChanged);
+      window.removeEventListener("store_language_changed", handleCustomLang);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [i18n]);
+
+  const isIndo = useMemo(() => {
+    if (activeLang?.startsWith("id")) return true;
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("store_language");
+      if (stored === "Indonesia" || stored === "id") return true;
+      if (stored === "English" || stored === "en") return false;
+      const i18nLng = localStorage.getItem("i18nextLng");
+      if (i18nLng?.startsWith("id")) return true;
+    }
+    return false;
+  }, [activeLang]);
 
   const isPriceSort = sort === "price_asc" || sort === "price_desc";
 
@@ -47,17 +96,17 @@ export default function ShopToolbar2026({
   };
 
   return (
-    <div className="tp-shopee-toolbar">
-      {/* Shopee-style horizontal tabs */}
-      <div className="tp-shopee-sort-row">
-        <span className="tp-shopee-sort-label">
+    <div className="tp-shop-sort-toolbar">
+      {/* Horizontal Sort Tabs */}
+      <div className="tp-shop-sort-row">
+        <span className="tp-shop-sort-label">
           {isIndo ? "Urutkan:" : "Sort:"}
         </span>
 
-        <div className="tp-shopee-tabs">
+        <div className="tp-shop-sort-tabs">
           <button
             type="button"
-            className={`tp-shopee-tab ${sort === "featured" ? "is-active" : ""}`}
+            className={`tp-shop-sort-tab ${sort === "featured" ? "is-active" : ""}`}
             onClick={() => onSortChange("featured")}
           >
             {isIndo ? "Terkait" : "Featured"}
@@ -65,7 +114,7 @@ export default function ShopToolbar2026({
 
           <button
             type="button"
-            className={`tp-shopee-tab ${sort === "newest" ? "is-active" : ""}`}
+            className={`tp-shop-sort-tab ${sort === "newest" ? "is-active" : ""}`}
             onClick={() => onSortChange("newest")}
           >
             {isIndo ? "Terbaru" : "Newest"}
@@ -73,7 +122,7 @@ export default function ShopToolbar2026({
 
           <button
             type="button"
-            className={`tp-shopee-tab ${sort === "top_sales" ? "is-active" : ""}`}
+            className={`tp-shop-sort-tab ${sort === "top_sales" ? "is-active" : ""}`}
             onClick={() => onSortChange("top_sales")}
           >
             {isIndo ? "Terlaris" : "Top Sales"}
@@ -82,7 +131,7 @@ export default function ShopToolbar2026({
           {/* Toggleable Price Tab */}
           <button
             type="button"
-            className={`tp-shopee-tab tp-shopee-tab--price ${isPriceSort ? "is-active" : ""}`}
+            className={`tp-shop-sort-tab tp-shop-sort-tab--price ${isPriceSort ? "is-active" : ""}`}
             onClick={handlePriceClick}
           >
             <span>{isIndo ? "Harga" : "Price"}</span>
@@ -97,16 +146,16 @@ export default function ShopToolbar2026({
         </div>
 
         {/* Right side controls: Filter button & View Mode */}
-        <div className="tp-shopee-toolbar-actions">
+        <div className="tp-shop-sort-actions">
           <button
             type="button"
-            className={`tp-shopee-filter-btn ${activeFilters.length > 0 ? "has-filters" : ""}`}
+            className={`tp-shop-sort-filter-btn ${activeFilters.length > 0 ? "has-filters" : ""}`}
             onClick={onOpenFilters}
           >
             <Filter className="w-4 h-4" />
             <span>{isIndo ? "Filter" : "Filters"}</span>
             {activeFilters.length > 0 && (
-              <span className="tp-shopee-filter-count">{activeFilters.length}</span>
+              <span className="tp-shop-sort-filter-count">{activeFilters.length}</span>
             )}
           </button>
 
@@ -132,8 +181,8 @@ export default function ShopToolbar2026({
       </div>
 
       {/* Info & Active filters tags */}
-      <div className="tp-shopee-status-row">
-        <p className="tp-shopee-count">
+      <div className="tp-shop-sort-status-row">
+        <p className="tp-shop-sort-count">
           {total > 0 ? (
             <>
               {isIndo ? "Menampilkan " : "Showing "}
@@ -148,19 +197,19 @@ export default function ShopToolbar2026({
         </p>
 
         {isFetching && (
-          <span className="tp-shopee-updating">
+          <span className="tp-shop-sort-updating">
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
             <span>{isIndo ? "Memperbarui..." : "Updating..."}</span>
           </span>
         )}
 
         {activeFilters.length > 0 && (
-          <div className="tp-shopee-active-tags">
+          <div className="tp-shop-sort-active-tags">
             {activeFilters.map((filter) => (
               <button
                 key={filter.key}
                 type="button"
-                className="tp-shopee-tag"
+                className="tp-shop-sort-tag"
                 onClick={() => onRemoveFilter(filter.key)}
               >
                 <span>{filter.label}</span>
@@ -169,7 +218,7 @@ export default function ShopToolbar2026({
             ))}
             <button
               type="button"
-              className="tp-shopee-clear-all"
+              className="tp-shop-sort-clear-all"
               onClick={onClear}
             >
               {isIndo ? "Hapus Semua" : "Clear All"}

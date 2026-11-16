@@ -5,7 +5,7 @@ import {
   ShoppingCart,
   Star,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { formatCurrency } from "../../../utils/format.js";
@@ -18,7 +18,56 @@ export default function ShopProductCard2026({
   onAdd,
 }) {
   const { i18n } = useTranslation();
-  const isIndo = i18n.language === "id" || i18n.language === "id-ID";
+
+  // Reactive language detection
+  const [activeLang, setActiveLang] = useState(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("store_language");
+      if (stored === "Indonesia" || stored === "id") return "id";
+      if (stored === "English" || stored === "en") return "en";
+      const i18nLng = localStorage.getItem("i18nextLng");
+      if (i18nLng?.startsWith("id")) return "id";
+    }
+    return i18n.language || "en";
+  });
+
+  useEffect(() => {
+    const handleLanguageChanged = (lng) => setActiveLang(lng);
+    const handleCustomLang = (e) => {
+      if (e?.detail?.isoCode) setActiveLang(e.detail.isoCode);
+      else if (e?.detail?.name === "Indonesia") setActiveLang("id");
+      else if (e?.detail?.name === "English") setActiveLang("en");
+    };
+    const handleStorage = () => {
+      const stored = localStorage.getItem("store_language");
+      if (stored === "Indonesia" || stored === "id") setActiveLang("id");
+      else if (stored === "English" || stored === "en") setActiveLang("en");
+      else setActiveLang(i18n.language || "en");
+    };
+
+    i18n.on("languageChanged", handleLanguageChanged);
+    window.addEventListener("store_language_changed", handleCustomLang);
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      i18n.off("languageChanged", handleLanguageChanged);
+      window.removeEventListener("store_language_changed", handleCustomLang);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [i18n]);
+
+  const isIndo = useMemo(() => {
+    if (activeLang?.startsWith("id")) return true;
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("store_language");
+      if (stored === "Indonesia" || stored === "id") return true;
+      if (stored === "English" || stored === "en") return false;
+      const i18nLng = localStorage.getItem("i18nextLng");
+      if (i18nLng?.startsWith("id")) return true;
+    }
+    return false;
+  }, [activeLang]);
+
   const [imageIndex, setImageIndex] = useState(0);
   const [imageFailed, setImageFailed] = useState(false);
   const [isAdding, setIsAdding] = useState(false);

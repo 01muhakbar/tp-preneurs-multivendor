@@ -1,9 +1,22 @@
 import { ChevronDown, RotateCcw, Star } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getShopCategoryValue, readShopText } from "./shopProductAdapter.js";
 
 const RATINGS = [5, 4, 3, 2, 1];
+
+const CATEGORY_TRANSLATIONS = {
+  "makanan dan minuman": "Food & Beverage",
+  "makanan & minuman": "Food & Beverage",
+  "kerajinan dan kreatif": "Crafts & Creative",
+  "kerajinan & kreatif": "Crafts & Creative",
+  "jasa": "Services",
+  "buku": "Books",
+  "produk pembelajaran": "Learning Media",
+  "elektronik & gadget": "Electronics",
+  "fashion & pakaian": "Fashion & Apparel",
+  "tanaman & pertanian": "Agriculture",
+};
 
 const toNumberOrEmpty = (value) => {
   if (value === "" || value === null || value === undefined) return "";
@@ -24,7 +37,56 @@ export default function ShopFilters2026({
   onApply,
 }) {
   const { i18n } = useTranslation();
-  const isIndo = i18n.language === "id" || i18n.language === "id-ID";
+
+  // Reactive language detection
+  const [activeLang, setActiveLang] = useState(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("store_language");
+      if (stored === "Indonesia" || stored === "id") return "id";
+      if (stored === "English" || stored === "en") return "en";
+      const i18nLng = localStorage.getItem("i18nextLng");
+      if (i18nLng?.startsWith("id")) return "id";
+    }
+    return i18n.language || "en";
+  });
+
+  useEffect(() => {
+    const handleLanguageChanged = (lng) => setActiveLang(lng);
+    const handleCustomLang = (e) => {
+      if (e?.detail?.isoCode) setActiveLang(e.detail.isoCode);
+      else if (e?.detail?.name === "Indonesia") setActiveLang("id");
+      else if (e?.detail?.name === "English") setActiveLang("en");
+    };
+    const handleStorage = () => {
+      const stored = localStorage.getItem("store_language");
+      if (stored === "Indonesia" || stored === "id") setActiveLang("id");
+      else if (stored === "English" || stored === "en") setActiveLang("en");
+      else setActiveLang(i18n.language || "en");
+    };
+
+    i18n.on("languageChanged", handleLanguageChanged);
+    window.addEventListener("store_language_changed", handleCustomLang);
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      i18n.off("languageChanged", handleLanguageChanged);
+      window.removeEventListener("store_language_changed", handleCustomLang);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [i18n]);
+
+  const isIndo = useMemo(() => {
+    if (activeLang?.startsWith("id")) return true;
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("store_language");
+      if (stored === "Indonesia" || stored === "id") return true;
+      if (stored === "English" || stored === "en") return false;
+      const i18nLng = localStorage.getItem("i18nextLng");
+      if (i18nLng?.startsWith("id")) return true;
+    }
+    return false;
+  }, [activeLang]);
+
   const [minimum, setMinimum] = useState(minPrice ?? "");
   const [maximum, setMaximum] = useState(maxPrice ?? "");
 
@@ -81,7 +143,11 @@ export default function ShopFilters2026({
             </button>
             {categories.slice(0, 12).map((cat) => {
               const value = getShopCategoryValue(cat);
-              const label = readShopText(cat?.name, cat?.title, value);
+              const rawLabel = readShopText(cat?.name, cat?.title, value);
+              const normalizedKey = rawLabel.toLowerCase().trim();
+              const label = !isIndo && CATEGORY_TRANSLATIONS[normalizedKey]
+                ? CATEGORY_TRANSLATIONS[normalizedKey]
+                : rawLabel;
               const isSelected = activeCategory === value;
               return (
                 <button
@@ -140,21 +206,21 @@ export default function ShopFilters2026({
               className={`tp-shopee-preset-chip ${maximum === 50000 && !minimum ? "is-selected" : ""}`}
               onClick={() => handlePresetPrice("", 50000)}
             >
-              &lt; 50RB
+              {isIndo ? "< 50RB" : "< 50K"}
             </button>
             <button
               type="button"
               className={`tp-shopee-preset-chip ${minimum === 50000 && maximum === 150000 ? "is-selected" : ""}`}
               onClick={() => handlePresetPrice(50000, 150000)}
             >
-              50RB - 150RB
+              {isIndo ? "50RB - 150RB" : "50K - 150K"}
             </button>
             <button
               type="button"
               className={`tp-shopee-preset-chip ${minimum === 150000 && !maximum ? "is-selected" : ""}`}
               onClick={() => handlePresetPrice(150000, "")}
             >
-              &gt; 150RB
+              {isIndo ? "> 150RB" : "> 150K"}
             </button>
           </div>
         </section>
