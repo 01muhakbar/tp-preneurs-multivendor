@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { ImagePlus, LockKeyhole, ShieldCheck, UploadCloud, X } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { ExternalLink, ImagePlus, LockKeyhole, ShieldCheck, UploadCloud, X } from "lucide-react";
 import PasswordStrengthIndicator from "../../auth/PasswordStrengthIndicator.jsx";
 import PasswordVisibilityButton from "../../auth/PasswordVisibilityButton.jsx";
 import { GENERIC_ERROR } from "../../../constants/uiMessages.js";
@@ -17,28 +19,35 @@ import {
 } from "./staffAccessConfig.js";
 
 const fallbackRoleOptions = [
-  { value: "staff", label: "Staff" },
-  { value: "admin", label: "Admin" },
-  { value: "super_admin", label: "Super Admin" },
-  { value: "seller", label: "Seller" },
+  { value: "staff", label: "Staff", labelId: "Staf" },
+  { value: "admin", label: "Admin", labelId: "Admin" },
+  { value: "super_admin", label: "Super Admin", labelId: "Super Admin" },
+  { value: "seller", label: "Seller", labelId: "Penjual" },
 ];
 
-const sectionCardClass = "rounded-2xl border border-slate-200 bg-white p-4 shadow-sm";
+const sectionCardClass =
+  "rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm";
 const fieldClass =
-  "h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none";
+  "h-11 w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-800 dark:text-slate-100 focus:border-[#034c85] dark:focus:border-[#fe6f05] focus:outline-none transition-colors";
 
 const toText = (value) => String(value ?? "").trim();
 const toRoleValue = (value) => toText(value).toLowerCase().replace(/\s+/g, "_");
 
-const formatRoleLabel = (value) => {
-  const text = toText(value);
-  if (!text) return "-";
-  return text
-    .replace(/[_-]+/g, " ")
-    .split(" ")
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
+const formatRoleLabel = (value, isId = false) => {
+  const norm = toRoleValue(value);
+  if (norm === "super_admin" || norm === "superadmin") return "Super Admin";
+  if (norm === "admin") return "Admin";
+  if (norm === "staff") return isId ? "Staf" : "Staff";
+  if (norm === "seller") return isId ? "Penjual" : "Seller";
+
+  return value
+    ? String(value)
+        .replace(/[_-]+/g, " ")
+        .split(" ")
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ")
+    : "-";
 };
 
 const truncateFileName = (value, maxLength = 36) => {
@@ -50,7 +59,6 @@ const truncateFileName = (value, maxLength = 36) => {
 const defaultSellerPreset = getSellerPreset(SELLER_ROLE_PRESETS[0]?.value);
 
 const initialForm = {
-  language: "en",
   name: "",
   email: "",
   password: "",
@@ -77,6 +85,9 @@ export default function EditStaffDrawer({
   canManageRoles = true,
   currentUser = null,
 }) {
+  const { i18n } = useTranslation("admin");
+  const isId = String(i18n.language || "").toLowerCase().startsWith("id");
+
   const [form, setForm] = useState(initialForm);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
@@ -89,14 +100,13 @@ export default function EditStaffDrawer({
     const normalizedRole = toRoleValue(staff.role) || "staff";
     const preset = getSellerPreset(staff?.sellerRoleCode || defaultSellerPreset?.value);
     setForm({
-      language: "en",
       name: toText(staff.name),
       email: toText(staff.email),
       password: "",
       passwordConfirm: "",
       phoneNumber: toText(staff.phoneNumber ?? staff.phone),
       role: normalizedRole,
-      isActive: staff.isActive !== false,
+      isActive: staff.isActive !== false && staff.isPublished !== false,
       sellerRoleCode: preset?.value || defaultSellerPreset?.value || "CATALOG_MANAGER",
       permissionKeys:
         normalizedRole === "seller"
@@ -131,16 +141,18 @@ export default function EditStaffDrawer({
     toRoleValue(currentUser?.role) === "super_admin" &&
     toRoleValue(staff?.role) === "super_admin";
   const submitError = validationError || error || "";
+
   const normalizedRoleOptions =
     rolesOptions.length > 0
-      ? rolesOptions.map((role) => ({ value: toRoleValue(role), label: formatRoleLabel(role) }))
-      : fallbackRoleOptions;
-  const currentRoleOption =
-    normalizedRoleOptions.find((role) => toRoleValue(role.value) === toRoleValue(form.role)) ||
-    fallbackRoleOptions.find((role) => toRoleValue(role.value) === toRoleValue(form.role)) || {
-      value: form.role,
-      label: formatRoleLabel(form.role),
-    };
+      ? rolesOptions.map((role) => ({
+          value: toRoleValue(role),
+          label: formatRoleLabel(role, isId),
+        }))
+      : fallbackRoleOptions.map((role) => ({
+          value: role.value,
+          label: isId ? role.labelId : role.label,
+        }));
+
   const roleSelectDisabled = isSubmitting || !canManageRoles || isOwnSuperAdminAccount;
 
   const setField = (patch) => {
@@ -159,6 +171,10 @@ export default function EditStaffDrawer({
   const handleFileChange = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      setValidationError(isId ? "Ukuran gambar maksimal 2 MB." : "Image file size exceeds 2 MB.");
+      return;
+    }
     if (imagePreview) URL.revokeObjectURL(imagePreview);
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
@@ -187,23 +203,27 @@ export default function EditStaffDrawer({
     const passwordConfirm = form.passwordConfirm.trim();
 
     if (!name || !email) {
-      setValidationError("Name and email are required.");
+      setValidationError(isId ? "Nama dan email wajib diisi." : "Name and email are required.");
       return;
     }
     if (!/^\S+@\S+\.\S+$/.test(email)) {
-      setValidationError("Please enter a valid email.");
+      setValidationError(isId ? "Format email tidak valid." : "Please enter a valid email.");
       return;
     }
     if (password && !isStrongPassword(password)) {
-      setValidationError(PASSWORD_RULES_HELPER);
+      setValidationError(
+        isId
+          ? "Kata sandi minimal 8 karakter dan mengandung huruf & angka."
+          : PASSWORD_RULES_HELPER
+      );
       return;
     }
     if (password && password !== passwordConfirm) {
-      setValidationError("Password confirmation does not match.");
+      setValidationError(isId ? "Konfirmasi kata sandi tidak cocok." : "Password confirmation does not match.");
       return;
     }
     if (isSellerRole && form.permissionKeys.length === 0) {
-      setValidationError("Select at least one seller permission.");
+      setValidationError(isId ? "Pilih minimal satu hak akses penjual." : "Select at least one seller permission.");
       return;
     }
 
@@ -213,6 +233,7 @@ export default function EditStaffDrawer({
       phoneNumber: form.phoneNumber.trim() || null,
       role: form.role,
       isActive: Boolean(form.isActive),
+      isPublished: Boolean(form.isActive),
       image: imageFile,
       sellerRoleCode: isSellerRole ? form.sellerRoleCode : null,
       permissionKeys: isSellerRole ? normalizePermissionKeys(form.permissionKeys) : [],
@@ -226,39 +247,44 @@ export default function EditStaffDrawer({
     <div className="fixed inset-0 z-50">
       <button
         type="button"
-        className="absolute inset-0 bg-slate-900/45"
+        className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
         onClick={() => !isSubmitting && onClose()}
-        aria-label="Close update account drawer"
+        aria-label={isId ? "Tutup laci edit akun" : "Close update account drawer"}
       />
 
-      <aside className="absolute right-0 top-0 flex h-full w-full max-w-[680px] flex-col border-l border-slate-200 bg-white shadow-2xl">
-        <header className="sticky top-0 z-10 border-b border-slate-200 bg-white px-6 py-5">
+      <aside className="absolute right-0 top-0 flex h-full w-full max-w-[640px] flex-col border-l border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 shadow-2xl">
+        {/* HEADER */}
+        <header className="sticky top-0 z-10 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 py-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-                Admin / Accounts / Edit
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-[#034c85] dark:text-[#fe6f05]">
+                {isId ? "Admin / Akun / Edit" : "Admin / Accounts / Edit"}
               </p>
-              <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
-                Update Account
+              <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+                {isId ? "Perbarui Akun Pengguna" : "Update Account"}
               </h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Update profile image, contact data, role, access status, and password for this workspace account.
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                {isId
+                  ? "Perbarui foto, kontak, peran, hak akses, dan kata sandi akun."
+                  : "Update profile, role, access permissions, and password."}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <select
-                value={form.language}
-                onChange={(event) => setField({ language: event.target.value })}
-                className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-600"
-                disabled={isSubmitting}
-              >
-                <option value="en">English</option>
-                <option value="id">Bahasa Indonesia</option>
-              </select>
+              {staff?.id && (
+                <Link
+                  to={`/admin/all-accounts/${staff.id}/edit`}
+                  onClick={onClose}
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-[#034c85] dark:hover:text-[#fe6f05] transition"
+                  title={isId ? "Buka halaman penuh" : "Open full page"}
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  <span>{isId ? "Halaman Penuh" : "Full Page"}</span>
+                </Link>
+              )}
               <button
                 type="button"
                 onClick={() => !isSubmitting && onClose()}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition"
                 aria-label="Close drawer"
                 disabled={isSubmitting}
               >
@@ -268,22 +294,23 @@ export default function EditStaffDrawer({
           </div>
         </header>
 
+        {/* FORM BODY */}
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
           <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
+            {/* PROFILE IMAGE */}
             <section className={sectionCardClass}>
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-base font-semibold text-slate-900">Profile Image</h3>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Formats {STAFF_IMAGE_UPLOAD_GUIDANCE.formats}. Recommended{" "}
-                    {STAFF_IMAGE_UPLOAD_GUIDANCE.recommendedSize}, minimum{" "}
-                    {STAFF_IMAGE_UPLOAD_GUIDANCE.minimumSize}, {STAFF_IMAGE_UPLOAD_GUIDANCE.aspectRatio},
-                    max {STAFF_IMAGE_UPLOAD_GUIDANCE.maxSize}.
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    {isId ? "Foto Profil" : "Profile Image"}
+                  </h3>
+                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                    {isId ? "Format: JPG, PNG, WEBP (maks. 2 MB)." : "JPG, PNG, or WEBP (max 2 MB)."}
                   </p>
                 </div>
-                <label className="inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50">
-                  <UploadCloud className="h-4 w-4" />
-                  Replace
+                <label className="inline-flex h-9 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 px-3 text-xs font-semibold text-[#034c85] dark:text-[#fe6f05] transition hover:bg-slate-200 dark:hover:bg-slate-700">
+                  <UploadCloud className="h-3.5 w-3.5" />
+                  <span>{isId ? "Ganti Foto" : "Replace"}</span>
                   <input
                     type="file"
                     accept="image/png,image/jpeg,image/webp"
@@ -294,60 +321,50 @@ export default function EditStaffDrawer({
                 </label>
               </div>
 
-              <div className="mt-4 grid gap-4 sm:grid-cols-[220px,1fr]">
-                <div className="overflow-hidden rounded-2xl border border-dashed border-slate-300 bg-slate-50">
-                  <div className="aspect-square w-full">
-                    {imagePreview || form.avatarUrl ? (
-                      <img
-                        src={imagePreview || form.avatarUrl}
-                        alt="Staff preview"
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-slate-400">
-                        <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-500">
-                          <ImagePlus className="h-5 w-5" />
-                        </span>
-                        <p className="text-xs font-medium text-slate-500">No image selected</p>
-                      </div>
-                    )}
-                  </div>
+              <div className="mt-3 flex items-center gap-4">
+                <div className="h-16 w-16 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 flex-shrink-0">
+                  {imagePreview || form.avatarUrl ? (
+                    <img
+                      src={imagePreview || form.avatarUrl}
+                      alt="Staff preview"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-slate-400 font-bold text-lg">
+                      {form.name ? form.name.charAt(0).toUpperCase() : "U"}
+                    </div>
+                  )}
                 </div>
-                <div className="flex min-h-[180px] flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-                      Preview
-                    </p>
-                    <p className="text-sm font-medium text-slate-800">
-                      {imageFile
-                        ? truncateFileName(imageFile.name)
-                        : form.avatarUrl
-                          ? "Current saved image"
-                          : "Square avatar preview will appear here."}
-                    </p>
-                    <p className="text-xs leading-5 text-slate-500">
-                      The saved image returns in the staff list and edit form after update.
-                    </p>
-                  </div>
-                  <p className="text-xs text-slate-400">
-                    Keep the main subject centered so the row avatar stays clear in compact tables.
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="font-medium text-slate-700 dark:text-slate-300">
+                    {imageFile
+                      ? truncateFileName(imageFile.name)
+                      : form.avatarUrl
+                      ? (isId ? "Foto profil aktif" : "Active profile photo")
+                      : (isId ? "Belum ada foto yang diunggah" : "No photo uploaded")}
+                  </p>
+                  <p className="mt-0.5">
+                    {isId ? "Pratinjau foto akan tampil di daftar akun admin." : "Avatar appears in tables and profile cards."}
                   </p>
                 </div>
               </div>
             </section>
 
+            {/* BASIC INFO */}
             <section className={sectionCardClass}>
-              <h3 className="text-base font-semibold text-slate-900">Basic Info</h3>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {isId ? "Informasi Kontak & Identitas" : "Basic Information"}
+              </h3>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Name
+                  <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
+                    {isId ? "Nama Lengkap" : "Full Name"} *
                   </label>
                   <input
                     id="admin-edit-staff-name"
                     value={form.name}
                     onChange={(event) => setField({ name: event.target.value })}
-                    placeholder="Staff name"
+                    placeholder={isId ? "Nama lengkap" : "Full name"}
                     className={fieldClass}
                     disabled={isSubmitting}
                     required
@@ -355,15 +372,15 @@ export default function EditStaffDrawer({
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Email
+                  <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
+                    {isId ? "Alamat Email" : "Email Address"} *
                   </label>
                   <input
                     id="admin-edit-staff-email"
                     type="email"
                     value={form.email}
                     onChange={(event) => setField({ email: event.target.value })}
-                    placeholder="staff@example.com"
+                    placeholder="name@example.com"
                     className={fieldClass}
                     disabled={isSubmitting}
                     required
@@ -371,14 +388,14 @@ export default function EditStaffDrawer({
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Contact Number
+                  <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
+                    {isId ? "Nomor Telepon / WhatsApp" : "Phone / WhatsApp Number"}
                   </label>
                   <input
                     id="admin-edit-staff-phone"
                     value={form.phoneNumber}
                     onChange={(event) => setField({ phoneNumber: event.target.value })}
-                    placeholder="+62..."
+                    placeholder="+62 812 3456 7890"
                     className={fieldClass}
                     disabled={isSubmitting}
                   />
@@ -386,113 +403,80 @@ export default function EditStaffDrawer({
               </div>
             </section>
 
+            {/* ROLE & ACCESS */}
             <section className={sectionCardClass}>
-              <h3 className="text-base font-semibold text-slate-900">Role & Access</h3>
-              <div className="mt-4 space-y-4">
-                <div className="rounded-2xl border border-sky-200 bg-sky-50/80 p-4">
-                  <div className="flex items-start gap-3">
-                    <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-sky-700 shadow-sm">
-                      <ShieldCheck className="h-5 w-5" />
-                    </span>
-                    <div className="min-w-0 flex-1 space-y-3">
-                      <div>
-                        <label
-                          htmlFor="admin-edit-account-role"
-                          className="text-xs font-semibold uppercase tracking-[0.14em] text-sky-700"
-                        >
-                          Account Role
-                        </label>
-                        <select
-                          id="admin-edit-account-role"
-                          value={form.role}
-                          onChange={(event) => {
-                            const nextRole = toRoleValue(event.target.value) || "staff";
-                            const nextPreset = getSellerPreset(defaultSellerPreset?.value);
-                            setField({
-                              role: nextRole,
-                              sellerRoleCode: nextRole === "seller"
-                                ? nextPreset?.value || "CATALOG_MANAGER"
-                                : nextPreset?.value || "CATALOG_MANAGER",
-                              permissionKeys:
-                                nextRole === "seller"
-                                  ? [...(nextPreset?.permissionKeys || [])]
-                                  : [],
-                            });
-                          }}
-                          className={`${fieldClass} mt-2`}
-                          disabled={roleSelectDisabled}
-                        >
-                          {normalizedRoleOptions.map((role) => (
-                            <option key={role.value} value={role.value}>
-                              {role.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <p className="text-xs leading-5 text-sky-800">
-                        {isOwnSuperAdminAccount
-                          ? "Your own Super Admin account cannot be lowered from this flow. Use another Super Admin account if a role transfer is intentionally required."
-                          : form.role === "seller"
-                          ? "Seller accounts stay outside /admin/login and use seller workspace access presets below."
-                          : `This account currently uses the ${currentRoleOption.label} workspace role. Feature-level menu permissions are not part of this flow.`}
-                      </p>
-                    </div>
-                  </div>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {isId ? "Peran & Hak Akses" : "Role & Access"}
+              </h3>
+              <div className="mt-3 space-y-3">
+                <div>
+                  <label
+                    htmlFor="admin-edit-account-role"
+                    className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400"
+                  >
+                    {isId ? "Tingkat Peran Akun" : "Account Role"}
+                  </label>
+                  <select
+                    id="admin-edit-account-role"
+                    value={form.role}
+                    onChange={(event) => {
+                      const nextRole = toRoleValue(event.target.value) || "staff";
+                      const nextPreset = getSellerPreset(defaultSellerPreset?.value);
+                      setField({
+                        role: nextRole,
+                        sellerRoleCode: nextRole === "seller"
+                          ? nextPreset?.value || "CATALOG_MANAGER"
+                          : nextPreset?.value || "CATALOG_MANAGER",
+                        permissionKeys:
+                          nextRole === "seller"
+                            ? [...(nextPreset?.permissionKeys || [])]
+                            : [],
+                      });
+                    }}
+                    className={fieldClass}
+                    disabled={roleSelectDisabled}
+                  >
+                    {normalizedRoleOptions.map((role) => (
+                      <option key={role.value} value={role.value}>
+                        {role.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
-                <label className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                  <span>Status Active</span>
+                <label className="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3 py-2.5 text-xs font-medium text-slate-700 dark:text-slate-300">
+                  <span>{isId ? "Status Akun Aktif" : "Active Status"}</span>
                   <input
                     type="checkbox"
                     checked={form.isActive}
                     onChange={(event) => setField({ isActive: event.target.checked })}
                     disabled={isSubmitting || isPendingApproval || isOwnManagedAccount}
+                    className="h-4 w-4 accent-[#034c85] rounded cursor-pointer"
                   />
                 </label>
-                {isPendingApproval ? (
-                  <p className="text-xs text-amber-700">
-                    This staff account is waiting for approval. Use the approve action from All Accounts to activate sign-in access.
-                  </p>
-                ) : null}
-                {isOwnManagedAccount ? (
-                  <p className="text-xs text-amber-700">
-                    Your own account cannot be deactivated from this flow because it would immediately remove your workspace access.
-                  </p>
-                ) : null}
 
-                {isSellerRole ? (
-                  <div className="space-y-4 rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
-                    <div className="space-y-1">
-                      <p className="text-sm font-semibold text-amber-900">Seller workspace access</p>
-                      <p className="text-xs leading-5 text-amber-800">
-                        Seller accounts stay limited to seller workspace lanes. Admin review, publish,
-                        categories, staff, and global settings remain outside seller authority, and
-                        seller accounts still cannot sign in at /admin/login.
-                      </p>
-                    </div>
-
-                    {staff?.store ? (
-                      <div className="rounded-xl border border-amber-300 bg-white p-3">
-                        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-900">Connected Store Workspace</p>
-                        <div className="mt-1 flex items-center justify-between">
-                          <p className="text-sm font-semibold text-slate-900">{staff.store.name}</p>
-                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+                {/* SELLER SPECIFIC CONFIGURATION */}
+                {isSellerRole && (
+                  <div className="space-y-3 rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/60 dark:bg-amber-950/20 p-3.5">
+                    {staff?.store && (
+                      <div className="rounded-lg border border-amber-300 dark:border-amber-800 bg-white dark:bg-slate-900 p-2.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400">
+                          {isId ? "Toko Terhubung" : "Connected Store"}
+                        </p>
+                        <div className="mt-0.5 flex items-center justify-between">
+                          <p className="text-xs font-bold text-slate-900 dark:text-slate-100">{staff.store.name}</p>
+                          <span className="rounded-full bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:text-emerald-400">
                             {staff.store.status}
                           </span>
                         </div>
-                        <p className="mt-0.5 text-xs text-slate-500">Store URL slug: /{staff.store.slug}</p>
-                      </div>
-                    ) : (
-                      <div className="rounded-xl border border-amber-200 bg-amber-100/60 p-2.5 text-xs text-amber-900">
-                        Toko penjual akan otomatis dihubungkan saat akun disimpan atau saat pertama kali seller login di /seller/login.
+                        <p className="text-[11px] text-slate-500">@{staff.store.slug}</p>
                       </div>
                     )}
 
                     <div>
-                      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Seller Preset
+                      <label className="mb-1 block text-xs font-medium text-amber-900 dark:text-amber-300">
+                        {isId ? "Preset Peran Penjual" : "Seller Role Preset"}
                       </label>
-
                       <select
                         value={form.sellerRoleCode}
                         onChange={(event) => applySellerPreset(event.target.value)}
@@ -505,62 +489,59 @@ export default function EditStaffDrawer({
                           </option>
                         ))}
                       </select>
-                      <p className="mt-2 text-xs text-slate-500">
-                        {getSellerPreset(form.sellerRoleCode)?.description}
-                      </p>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-amber-900 dark:text-amber-300">
+                        {isId ? "Hak Akses Penjual" : "Seller Permissions"}
+                      </p>
                       {SELLER_PERMISSION_GROUPS.map((group) => (
-                        <div key={group.id} className="rounded-2xl border border-white/70 bg-white/80 p-3">
-                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                        <div key={group.id} className="space-y-1">
+                          <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                             {group.title}
                           </p>
-                          <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                            {group.permissions.map((permission) => (
-                              <label
-                                key={permission.value}
-                                className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={form.permissionKeys.includes(permission.value)}
-                                  onChange={() => togglePermission(permission.value)}
-                                  disabled={isSubmitting}
-                                />
-                                <span>{permission.label}</span>
-                              </label>
-                            ))}
+                          <div className="flex flex-wrap gap-1.5">
+                            {group.permissions.map((perm) => {
+                              const checked = form.permissionKeys.includes(perm.value);
+                              return (
+                                <button
+                                  key={perm.value}
+                                  type="button"
+                                  onClick={() => togglePermission(perm.value)}
+                                  className={`rounded-lg px-2.5 py-1 text-xs font-medium border transition-colors ${
+                                    checked
+                                      ? "border-[#fe6f05] bg-[#fe6f05] text-white"
+                                      : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400"
+                                  }`}
+                                >
+                                  {perm.label}
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
                       ))}
                     </div>
                   </div>
-                ) : (
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-500">
-                    Access rules follow the selected backend role. Seller-only presets appear only when
-                    the account role is set to Seller.
-                  </div>
                 )}
               </div>
             </section>
 
+            {/* SECURITY */}
             <section className={sectionCardClass}>
-              <h3 className="text-base font-semibold text-slate-900">Security</h3>
-              <div className="mt-4 space-y-4">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-600">
-                  <div className="flex items-start gap-2">
-                    <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
-                    <p>
-                      Leave the password fields blank to keep the current password. If you set a new
-                      password here, the account must follow the same minimum rule as the create flow.
-                    </p>
-                  </div>
-                </div>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {isId ? "Keamanan & Kata Sandi" : "Security & Password"}
+              </h3>
+              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                {isId
+                  ? "Kosongkan jika tidak ingin mengubah kata sandi saat ini."
+                  : "Leave password fields empty to keep existing password."}
+              </p>
 
+              <div className="mt-3 space-y-3">
                 <div>
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    New Password (optional)
+                  <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
+                    {isId ? "Kata Sandi Baru (Opsional)" : "New Password (Optional)"}
                   </label>
                   <div className="relative">
                     <input
@@ -568,7 +549,7 @@ export default function EditStaffDrawer({
                       type={passwordVisible ? "text" : "password"}
                       value={form.password}
                       onChange={(event) => setField({ password: event.target.value })}
-                      placeholder="Leave blank to keep current password"
+                      placeholder={isId ? "Kosongkan jika tetap sama" : "Leave blank to keep unchanged"}
                       className={`${fieldClass} pr-11`}
                       disabled={isSubmitting}
                     />
@@ -577,13 +558,16 @@ export default function EditStaffDrawer({
                       onToggle={() => setPasswordVisible((prev) => !prev)}
                     />
                   </div>
-                  <p className="mt-2 text-xs text-slate-500">{PASSWORD_RULES_HELPER}</p>
-                  <PasswordStrengthIndicator password={form.password} />
+                  {form.password && (
+                    <div className="mt-2">
+                      <PasswordStrengthIndicator password={form.password} />
+                    </div>
+                  )}
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Confirm New Password
+                  <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
+                    {isId ? "Konfirmasi Kata Sandi Baru" : "Confirm New Password"}
                   </label>
                   <div className="relative">
                     <input
@@ -591,18 +575,15 @@ export default function EditStaffDrawer({
                       type={passwordConfirmVisible ? "text" : "password"}
                       value={form.passwordConfirm}
                       onChange={(event) => setField({ passwordConfirm: event.target.value })}
-                      placeholder="Repeat the new password"
+                      placeholder={isId ? "Ulangi kata sandi baru" : "Repeat new password"}
                       className={`${fieldClass} pr-11`}
                       disabled={isSubmitting}
                     />
                     <PasswordVisibilityButton
                       visible={passwordConfirmVisible}
                       onToggle={() => setPasswordConfirmVisible((prev) => !prev)}
-                      labelShow="Show password confirmation"
-                      labelHide="Hide password confirmation"
                     />
                   </div>
-                  <p className="mt-2 text-xs text-slate-500">{PASSWORD_CONFIRM_HELPER}</p>
                 </div>
               </div>
             </section>
@@ -610,29 +591,36 @@ export default function EditStaffDrawer({
             {submitError ? (
               <div
                 id="admin-edit-staff-error"
-                className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-600"
+                className="rounded-xl border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/40 px-3 py-2 text-xs font-medium text-rose-600 dark:text-rose-400"
               >
                 {submitError || GENERIC_ERROR}
               </div>
             ) : null}
           </div>
 
-          <footer className="sticky bottom-0 border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur">
+          {/* FOOTER */}
+          <footer className="sticky bottom-0 border-t border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 px-6 py-4 backdrop-blur">
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <button
                 type="button"
                 onClick={() => !isSubmitting && onClose()}
-                className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:border-slate-300"
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 px-4 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
                 disabled={isSubmitting}
               >
-                Cancel
+                {isId ? "Batal" : "Cancel"}
               </button>
               <button
                 type="submit"
-                className="inline-flex h-11 items-center justify-center rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-70"
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-[#034c85] hover:bg-[#023864] text-xs font-semibold text-white transition disabled:opacity-70 shadow-sm"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Updating..." : "Save Account Changes"}
+                {isSubmitting
+                  ? isId
+                    ? "Menyimpan..."
+                    : "Updating..."
+                  : isId
+                  ? "Simpan Perubahan Akun"
+                  : "Save Account Changes"}
               </button>
             </div>
           </footer>

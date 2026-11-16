@@ -856,14 +856,13 @@ export default function AdminStaffPage() {
                             <Eye size={14} />
                           </Link>
 
-                          <button
-                            type="button"
-                            onClick={() => openEditModal(staff)}
+                          <Link
+                            to={`/admin/all-accounts/${staff.id}/edit`}
                             className="staff-action-icon-btn"
                             title={isId ? "Edit Akun" : "Edit Account"}
                           >
                             <Pencil size={14} />
-                          </button>
+                          </Link>
 
                           <button
                             type="button"
@@ -991,13 +990,13 @@ export default function AdminStaffPage() {
                         <Eye size={14} />
                       </Link>
 
-                      <button
-                        type="button"
-                        onClick={() => openEditModal(staff)}
+                      <Link
+                        to={`/admin/all-accounts/${staff.id}/edit`}
                         className="staff-action-icon-btn"
+                        title={isId ? "Edit Akun" : "Edit Account"}
                       >
                         <Pencil size={14} />
-                      </button>
+                      </Link>
 
                       <button
                         type="button"

@@ -557,14 +557,13 @@ export default function AdminAccountDetailPage() {
             </span>
           </button>
 
-          <button
-            type="button"
-            onClick={handleOpenEdit}
+          <Link
+            to={`/admin/all-accounts/${id}/edit`}
             className="acc-detail-btn acc-detail-btn--primary"
           >
             <Pencil size={15} />
             <span>{isId ? "Edit Akun" : "Edit Account"}</span>
-          </button>
+          </Link>
 
           <button
             type="button"
