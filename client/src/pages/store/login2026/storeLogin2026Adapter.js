@@ -41,7 +41,9 @@ export function createStoreLogin2026ViewModel({
       showPassword: Boolean(form.showPassword),
     },
     status: {
+      errorInfo: status.errorInfo || null,
       errorMessage: String(status.errorMessage || "").trim(),
+      isInvalidCredentials: Boolean(status.isInvalidCredentials),
       noticeMessage: String(status.noticeMessage || "").trim(),
       successMessage: String(status.successMessage || "").trim(),
       redirectNotice: resolveRedirectNotice(redirectState, isIndo),

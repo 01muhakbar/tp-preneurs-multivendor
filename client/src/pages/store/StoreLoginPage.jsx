@@ -27,6 +27,86 @@ const normalizeRole = (value) => String(value || "").trim().toLowerCase();
 const normalizePostLoginTarget = (value) =>
   value === LEGACY_ACCOUNT_PATH ? ACCOUNT_DASHBOARD_PATH : value;
 
+const resolveLoginErrorPresentation = (err, isIndo = false, cooldown = 0) => {
+  const status = err?.status ?? err?.response?.status;
+  const code = String(err?.code || err?.response?.data?.code || "").trim();
+  const rawMessage = String(
+    err?.message || err?.response?.data?.message || ""
+  ).trim();
+
+  // 1. Invalid credentials
+  if (
+    status === 401 ||
+    code === "INVALID_CREDENTIALS" ||
+    /invalid credentials|password salah|email.*password/i.test(rawMessage)
+  ) {
+    return {
+      title: isIndo ? "Email atau kata sandi salah" : "Incorrect email or password",
+      message: isIndo
+        ? "Email atau kata sandi yang Anda masukkan tidak sesuai. Silakan periksa kembali huruf besar/kecil atau reset kata sandi Anda jika lupa."
+        : "The email or password you entered is incorrect. Please check your spelling or reset your password.",
+      isInvalidCredentials: true,
+      action: {
+        label: isIndo ? "Lupa kata sandi? Reset di sini" : "Forgot password? Reset here",
+        actionType: "forgot_password",
+      },
+    };
+  }
+
+  // 2. Admin Workspace login required (403)
+  if (code === "ADMIN_WORKSPACE_LOGIN_REQUIRED" || /admin workspace/i.test(rawMessage)) {
+    return {
+      title: isIndo ? "Akses Khusus Admin" : "Admin Workspace Login",
+      message: isIndo
+        ? "Akun ini memiliki hak akses Admin. Silakan masuk melalui portal Login Admin."
+        : "This account has administrator privileges. Please sign in through the Admin Portal.",
+      isInvalidCredentials: false,
+      action: {
+        label: isIndo ? "Ke Halaman Login Admin" : "Go to Admin Login",
+        actionType: "admin_login",
+      },
+    };
+  }
+
+  // 3. Account not active / inactive (403)
+  if (code === "ACCOUNT_NOT_ACTIVE" || /account.*not active|inactive/i.test(rawMessage)) {
+    return {
+      title: isIndo ? "Akun Belum Aktif" : "Account Inactive",
+      message: isIndo
+        ? "Akun Anda saat ini belum aktif atau ditangguhkan. Silakan hubungi tim bantuan TP Preneurs."
+        : "Your account is currently inactive or suspended. Please contact customer support for assistance.",
+      isInvalidCredentials: false,
+      action: {
+        label: isIndo ? "Hubungi Bantuan" : "Contact Support",
+        actionType: "contact_support",
+      },
+    };
+  }
+
+  // 4. Rate limited (429)
+  if (status === 429 || code === "RATE_LIMIT_EXCEEDED" || code === "TOO_MANY_REQUESTS") {
+    const seconds = cooldown || getRetryAfterSeconds(err) || 60;
+    return {
+      title: isIndo ? "Terlalu Banyak Percobaan" : "Too Many Attempts",
+      message: isIndo
+        ? `Terlalu banyak percobaan masuk gagal. Mohon tunggu ${seconds} detik sebelum mencoba kembali.`
+        : `Too many failed sign in attempts. Please wait ${seconds} seconds before trying again.`,
+      isInvalidCredentials: false,
+      action: null,
+    };
+  }
+
+  // 5. Generic Fallback
+  return {
+    title: isIndo ? "Gagal Masuk" : "Sign In Failed",
+    message: isIndo
+      ? "Gagal masuk ke akun Anda. Periksa kembali email dan kata sandi Anda."
+      : "We couldn't sign you in. Check your email and password and try again.",
+    isInvalidCredentials: false,
+    action: null,
+  };
+};
+
 export default function StoreLoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -55,7 +135,7 @@ export default function StoreLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
-  const [error, setError] = useState("");
+  const [authError, setAuthError] = useState(null);
   const [noticeMessage, setNoticeMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -99,10 +179,10 @@ export default function StoreLoginPage() {
   }, [cooldownSeconds]);
 
   useEffect(() => {
-    if (error && errorRef.current) {
-      errorRef.current.focus();
+    if (authError && errorRef.current) {
+      errorRef.current.focus?.();
     }
-  }, [error]);
+  }, [authError]);
 
   useEffect(() => {
     if ((noticeMessage || successMessage) && statusRef.current) {
@@ -110,9 +190,19 @@ export default function StoreLoginPage() {
     }
   }, [noticeMessage, successMessage]);
 
+  const handleEmailChange = (val) => {
+    setEmail(val);
+    if (authError) setAuthError(null);
+  };
+
+  const handlePasswordChange = (val) => {
+    setPassword(val);
+    if (authError) setAuthError(null);
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setError("");
+    setAuthError(null);
     setNoticeMessage("");
     setSuccessMessage("");
     setIsSubmitting(true);
@@ -231,22 +321,40 @@ export default function StoreLoginPage() {
         });
         return;
       }
-      const defaultError = isIndo
-        ? "Gagal masuk. Periksa kembali email dan kata sandi Anda."
-        : "We couldn't sign you in. Check your email and password and try again.";
-      setError(
-        err?.response?.status === 429 && getRetryAfterSeconds(err) > 0
-          ? buildRetryAfterMessage(getRetryAfterSeconds(err))
-          : err?.response?.data?.message || defaultError
-      );
       const retryAfterSeconds = getRetryAfterSeconds(err);
       if (retryAfterSeconds > 0) {
         setCooldownSeconds(retryAfterSeconds);
       }
+      setAuthError({
+        status: err?.response?.status,
+        code: err?.response?.data?.code,
+        message: err?.response?.data?.message || err?.message || "",
+        retryAfterSeconds,
+      });
+      window.setTimeout(() => {
+        if (errorRef.current) {
+          errorRef.current.scrollIntoView?.({ behavior: "smooth", block: "center" });
+          errorRef.current.focus?.();
+        }
+      }, 60);
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const handleAction = (actionType) => {
+    if (actionType === "forgot_password") {
+      navigate("/auth/forgot-password", { state: { email } });
+    } else if (actionType === "admin_login") {
+      navigate("/admin/login");
+    } else if (actionType === "contact_support") {
+      navigate("/contact-us");
+    }
+  };
+
+  const errorInfo = authError
+    ? resolveLoginErrorPresentation(authError, isIndo, cooldownSeconds)
+    : null;
 
   const buttonBaseLabel = isIndo ? "Masuk" : "Sign in";
   const viewModel = createStoreLogin2026ViewModel({
@@ -257,7 +365,9 @@ export default function StoreLoginPage() {
       showPassword,
     },
     status: {
-      errorMessage: error,
+      errorInfo,
+      errorMessage: errorInfo?.message || "",
+      isInvalidCredentials: Boolean(errorInfo?.isInvalidCredentials),
       noticeMessage,
       successMessage,
       helperMessage: "",
@@ -276,12 +386,13 @@ export default function StoreLoginPage() {
       fieldRefs={{ emailRef, passwordRef }}
       messageRefs={{ statusRef, errorRef }}
       onSubmit={handleSubmit}
-      onEmailChange={setEmail}
-      onPasswordChange={setPassword}
+      onEmailChange={handleEmailChange}
+      onPasswordChange={handlePasswordChange}
       onRememberChange={setRemember}
       onTogglePassword={() => setShowPassword((value) => !value)}
-      onForgotPassword={() => navigate("/auth/forgot-password")}
+      onForgotPassword={() => navigate("/auth/forgot-password", { state: { email } })}
       onCreateAccount={() => navigate("/auth/register")}
+      onAction={handleAction}
     />
   );
 }

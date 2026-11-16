@@ -1,4 +1,5 @@
 import {
+  ArrowRight,
   BadgeCheck,
   CircleAlert,
   Eye,
@@ -15,19 +16,51 @@ import "./store-login-2026.css";
 
 function StatusMessage({ id, tone, children, focusRef }) {
   if (!children) return null;
-  const Icon =
-    tone === "error" ? LockKeyhole : tone === "warning" ? CircleAlert : BadgeCheck;
+  const Icon = tone === "warning" ? CircleAlert : BadgeCheck;
   return (
     <div
       id={id}
       ref={focusRef}
-      role={tone === "error" || tone === "warning" ? "alert" : "status"}
-      aria-live={tone === "error" || tone === "warning" ? "assertive" : "polite"}
+      role={tone === "warning" ? "alert" : "status"}
+      aria-live={tone === "warning" ? "assertive" : "polite"}
       tabIndex={-1}
       className={`sl26-message sl26-message--${tone}`}
     >
       <Icon className="sl26-message-icon" aria-hidden="true" />
       <span>{children}</span>
+    </div>
+  );
+}
+
+function ErrorAlert({ errorInfo, fallbackMessage, onAction, focusRef }) {
+  const title = errorInfo?.title || "";
+  const message = errorInfo?.message || fallbackMessage || "";
+  if (!title && !message) return null;
+
+  return (
+    <div
+      id="store-login-error"
+      ref={focusRef}
+      role="alert"
+      aria-live="assertive"
+      tabIndex={-1}
+      className="sl26-message sl26-message--error"
+    >
+      <LockKeyhole className="sl26-message-icon" size={17} aria-hidden="true" />
+      <div className="sl26-message-body">
+        {title && <strong className="sl26-message-title">{title}</strong>}
+        {message && <p className="sl26-message-text">{message}</p>}
+        {errorInfo?.action && (
+          <button
+            type="button"
+            className="sl26-message-action"
+            onClick={() => onAction?.(errorInfo.action.actionType)}
+          >
+            <span>{errorInfo.action.label}</span>
+            <ArrowRight size={13} aria-hidden="true" />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -44,6 +77,7 @@ export default function StoreLogin2026View({
   onTogglePassword,
   onForgotPassword,
   onCreateAccount,
+  onAction,
 }) {
   const { form, status, submitting, disabled } = viewModel;
   const passwordInputType = form.showPassword ? "text" : "password";
@@ -142,7 +176,7 @@ export default function StoreLogin2026View({
                   onChange={(event) => onEmailChange(event.target.value)}
                   placeholder={t("login.emailPlaceholder") || (isIndo ? "anda@email.com" : "you@email.com")}
                   autoComplete="email"
-                  className="sl26-input"
+                  className={`sl26-input ${status.isInvalidCredentials ? "is-invalid" : ""}`}
                   required
                 />
               </div>
@@ -163,7 +197,7 @@ export default function StoreLogin2026View({
                   onChange={(event) => onPasswordChange(event.target.value)}
                   placeholder="••••••••••••"
                   autoComplete="current-password"
-                  className="sl26-input sl26-input--password"
+                  className={`sl26-input sl26-input--password ${status.isInvalidCredentials ? "is-invalid" : ""}`}
                   required
                 />
                 <button
@@ -206,9 +240,12 @@ export default function StoreLogin2026View({
             >
               {status.noticeMessage || status.successMessage}
             </StatusMessage>
-            <StatusMessage id="store-login-error" tone="error" focusRef={messageRefs.errorRef}>
-              {status.errorMessage}
-            </StatusMessage>
+            <ErrorAlert
+              errorInfo={status.errorInfo}
+              fallbackMessage={status.errorMessage}
+              onAction={onAction || onForgotPassword}
+              focusRef={messageRefs.errorRef}
+            />
 
             {/* Submit Button */}
             <button
