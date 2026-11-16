@@ -13,6 +13,7 @@ export const createStoreForgotPassword2026ViewModel = ({
   form = {},
   status = {},
   locationState = {},
+  isIndo = false,
 } = {}) => {
   const tone = status.tone || "neutral";
   const success =
@@ -37,20 +38,35 @@ export const createStoreForgotPassword2026ViewModel = ({
       successMessage: pickString(
         status.successMessage,
         success ? notice : "",
-        "We'll email you if the address is registered."
+        isIndo
+          ? "Jika email terdaftar, kami telah mengirimkan tautan untuk mengatur ulang kata sandi."
+          : "We'll email you if the address is registered."
       ),
-      privacySuccessMessage: "For privacy and security, we always return a generic response.",
-      privacyNote: "Your privacy is important to us. We'll never share your email.",
+      privacySuccessMessage: isIndo
+        ? "Tautan pemulihan dikirimkan dengan aman ke email Anda."
+        : "A recovery link has been safely sent to your email address.",
+      privacyNote: isIndo
+        ? "Data Anda terlindungi. Tautan pemulihan dikirim secara aman."
+        : "Your data is protected. Reset links are sent safely.",
       isSubmitting: Boolean(status.isSubmitting),
       hasSubmitted: success,
       sent: success,
       success,
       cooldownSeconds: Number(status.cooldownSeconds || 0),
-      submitLabel: status.submitLabel || (status.isSubmitting ? "Sending..." : "Send reset link"),
+      submitLabel:
+        status.submitLabel ||
+        (status.isSubmitting
+          ? isIndo
+            ? "Mengirim tautan..."
+            : "Sending..."
+          : isIndo
+            ? "Kirim tautan pemulihan"
+            : "Send reset link"),
       canSubmit: status.canSubmit !== false && !status.isSubmitting,
     },
     errors: {
       email: emailError,
     },
+    isIndo,
   };
 };

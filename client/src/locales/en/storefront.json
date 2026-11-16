@@ -214,6 +214,28 @@
     "strengthGood": "Good",
     "strengthStrong": "Strong"
   },
+  "forgotPassword": {
+    "badge": "Account Recovery",
+    "badgeMarketplace": "Official Marketplace",
+    "heroTitle": "Reset your password",
+    "heroDesc": "Enter your registered email address and we'll send you a secure link to reset your password.",
+    "trustSecureTitle": "Encrypted & Secure",
+    "trustSecureDesc": "Reset links are securely encrypted and expire automatically for your safety.",
+    "cardTitle": "Reset your password",
+    "cardSubtitle": "Enter the email associated with your account.",
+    "email": "Email address",
+    "emailPlaceholder": "you@email.com",
+    "sendResetLink": "Send reset link",
+    "sending": "Sending link...",
+    "cooldownLabel": "Resend in {{seconds}}s",
+    "tryAgainIn": "Try again in {{seconds}}s",
+    "successMessage": "If the email is registered, we have sent a password reset link.",
+    "errorMessage": "We couldn't process that request right now.",
+    "rateLimitMessage": "Too many attempts. Try again in {{time}}.",
+    "privacyNote": "Your data is protected. Reset links are sent safely.",
+    "rememberPassword": "Remembered your password?",
+    "backToSignIn": "Back to sign in"
+  },
   "dashboard": {
     "overview": "Account Overview",
     "title": "Dashboard",

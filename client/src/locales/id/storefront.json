@@ -214,6 +214,28 @@
     "strengthGood": "Baik",
     "strengthStrong": "Kuat"
   },
+  "forgotPassword": {
+    "badge": "Pemulihan Akun",
+    "badgeMarketplace": "Marketplace Resmi",
+    "heroTitle": "Atur ulang kata sandi Anda",
+    "heroDesc": "Masukkan alamat email yang terdaftar dan kami akan mengirimkan tautan aman untuk mengatur ulang kata sandi Anda.",
+    "trustSecureTitle": "Aman & Terenkripsi",
+    "trustSecureDesc": "Tautan pemulihan dienkripsi dengan aman dan kedaluwarsa secara otomatis demi keamanan Anda.",
+    "cardTitle": "Atur ulang kata sandi",
+    "cardSubtitle": "Masukkan email yang terdaftar pada akun Anda.",
+    "email": "Alamat email",
+    "emailPlaceholder": "anda@email.com",
+    "sendResetLink": "Kirim tautan pemulihan",
+    "sending": "Mengirim tautan...",
+    "cooldownLabel": "Kirim ulang dalam {{seconds}} dtk",
+    "tryAgainIn": "Coba lagi dalam {{seconds}} dtk",
+    "successMessage": "Jika email terdaftar, kami telah mengirimkan tautan untuk mengatur ulang kata sandi.",
+    "errorMessage": "Tidak dapat memproses permintaan saat ini. Silakan coba lagi nanti.",
+    "rateLimitMessage": "Terlalu banyak percobaan. Coba lagi dalam {{time}}.",
+    "privacyNote": "Data Anda terlindungi. Tautan pemulihan dikirim secara aman.",
+    "rememberPassword": "Ingat kata sandi Anda?",
+    "backToSignIn": "Kembali untuk masuk"
+  },
   "dashboard": {
     "overview": "Ringkasan Akun",
     "title": "Dasbor",

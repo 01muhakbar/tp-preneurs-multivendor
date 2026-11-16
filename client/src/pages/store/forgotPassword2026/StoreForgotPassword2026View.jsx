@@ -1,41 +1,38 @@
 import {
   ArrowRight,
   CheckCircle2,
-  LockKeyhole,
+  CircleAlert,
+  KeyRound,
   Mail,
   Send,
   ShieldCheck,
   Sparkles,
-  UserRound,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import "./store-forgot-password-2026.css";
 
-function StatusMessage({ viewModel, statusRef }) {
-  const { status } = viewModel;
-  if (!status.message) return null;
-
+function StatusNotice({ status, statusRef }) {
+  if (!status?.message) return null;
   const isError = status.tone === "error";
   const isSuccess = status.tone === "success";
-  const Icon = isError ? LockKeyhole : CheckCircle2;
+  const Icon = isError ? CircleAlert : isSuccess ? CheckCircle2 : Sparkles;
 
   return (
     <div
       ref={statusRef}
-      className={`fp26-status fp26-status-${isError ? "error" : isSuccess ? "success" : "neutral"}`}
+      className={`fp26-status fp26-status--${status.tone || "neutral"}`}
       role={isError ? "alert" : "status"}
       tabIndex={-1}
     >
-      <Icon aria-hidden="true" size={18} />
-      <div>
-        <p>{isError ? status.errorMessage : status.successMessage}</p>
-        {!isError && status.hasSubmitted ? <span>{status.privacySuccessMessage}</span> : null}
-      </div>
+      <Icon className="fp26-status-icon" size={17} aria-hidden="true" />
+      <span className="fp26-status-text">{status.message}</span>
     </div>
   );
 }
 
 export default function StoreForgotPassword2026View({
   viewModel,
+  isIndo: isIndoProp,
   emailRef,
   statusRef,
   onEmailChange,
@@ -44,118 +41,157 @@ export default function StoreForgotPassword2026View({
   onBackToSignIn,
 }) {
   const { form, status, errors } = viewModel;
+  const { t, i18n } = useTranslation();
+
+  const isIndo =
+    typeof isIndoProp === "boolean"
+      ? isIndoProp
+      : typeof viewModel?.isIndo === "boolean"
+        ? viewModel.isIndo
+        : i18n?.language === "id" ||
+          i18n?.language === "id-ID" ||
+          (typeof i18n?.language === "string" && i18n.language.startsWith("id"));
 
   return (
     <main className="fp26-page">
-      <div className="fp26-wave fp26-wave-one" aria-hidden="true" />
-      <div className="fp26-wave fp26-wave-two" aria-hidden="true" />
-
-      <section className="fp26-shell" aria-label="Reset password">
-        <form className="fp26-card" onSubmit={onSubmit} noValidate>
-          <div className="fp26-kicker">
-            <ShieldCheck aria-hidden="true" size={16} />
-            <span>Account recovery</span>
+      <div className="fp26-shell">
+        {/* Left Side: Brand Hero Showcase */}
+        <section className="fp26-hero" aria-labelledby="store-forgot-title">
+          <div className="fp26-badge">
+            <Sparkles className="fp26-badge-icon" size={14} />
+            <span>{t("forgotPassword.badge") || (isIndo ? "Pemulihan Akun" : "Account Recovery")}</span>
           </div>
 
-          <h1>Reset your password</h1>
-          <p className="fp26-subtitle">
-            Enter the email linked to your TP Preneurs account. We'll send a secure link to reset
-            your password.
+          <h1 id="store-forgot-title" className="fp26-hero-title">
+            {t("forgotPassword.heroTitle") || (isIndo ? "Atur ulang kata sandi Anda" : "Reset your password")}
+          </h1>
+
+          <p className="fp26-hero-desc">
+            {t("forgotPassword.heroDesc") ||
+              (isIndo
+                ? "Masukkan alamat email yang terdaftar dan kami akan mengirimkan tautan aman untuk mengatur ulang kata sandi Anda."
+                : "Enter your registered email address and we'll send you a secure link to reset your password.")}
           </p>
 
-          <StatusMessage viewModel={viewModel} statusRef={statusRef} />
-
-          <div className="fp26-honeypot" aria-hidden="true">
-            <label htmlFor="fp26-company">Company</label>
-            <input
-              id="fp26-company"
-              type="text"
-              tabIndex={-1}
-              autoComplete="off"
-              value={form.honeypot}
-              onChange={(event) => onHoneypotChange?.(event.target.value)}
-            />
+          <div className="fp26-trust-card">
+            <div className="fp26-trust-icon-box">
+              <ShieldCheck size={22} className="fp26-trust-icon" />
+            </div>
+            <div className="fp26-trust-content">
+              <strong className="fp26-trust-title">
+                {t("forgotPassword.trustSecureTitle") ||
+                  (isIndo ? "Aman & Terenkripsi" : "Encrypted & Secure")}
+              </strong>
+              <p className="fp26-trust-desc">
+                {t("forgotPassword.trustSecureDesc") ||
+                  (isIndo
+                    ? "Tautan pemulihan dienkripsi dengan aman dan kedaluwarsa secara otomatis demi keamanan akun Anda."
+                    : "Reset links are securely encrypted and expire automatically for your safety.")}
+              </p>
+            </div>
           </div>
+        </section>
 
-          <div className="fp26-field">
-            <label htmlFor="fp26-email">Email address</label>
-            <div className="fp26-input-wrap">
-              <Mail aria-hidden="true" size={20} />
+        {/* Right Side: Recovery Form Card */}
+        <section className="fp26-card" aria-label="Reset Password">
+          <form className="fp26-form" onSubmit={onSubmit} noValidate>
+            <div className="fp26-card-head">
+              <div className="fp26-avatar-box">
+                <KeyRound size={22} className="fp26-avatar-icon" />
+              </div>
+              <div>
+                <h2 className="fp26-card-title">
+                  {t("forgotPassword.cardTitle") || (isIndo ? "Atur ulang kata sandi" : "Reset your password")}
+                </h2>
+                <p className="fp26-card-sub">
+                  {t("forgotPassword.cardSubtitle") ||
+                    (isIndo
+                      ? "Masukkan email yang terdaftar pada akun Anda."
+                      : "Enter the email associated with your account.")}
+                </p>
+              </div>
+            </div>
+
+            <StatusNotice status={status} statusRef={statusRef} />
+
+            {/* Honeypot for spam bots */}
+            <div className="fp26-honeypot" aria-hidden="true">
+              <label htmlFor="fp26-company">Company</label>
               <input
-                id="fp26-email"
-                ref={emailRef}
-                type="email"
-                value={form.email}
-                onChange={(event) => onEmailChange(event.target.value)}
-                placeholder="you@email.com"
-                autoComplete="email"
-                aria-invalid={Boolean(errors.email)}
-                aria-describedby={errors.email ? "fp26-email-error" : "fp26-email-helper"}
-                required
+                id="fp26-company"
+                type="text"
+                tabIndex={-1}
+                autoComplete="off"
+                value={form.honeypot}
+                onChange={(event) => onHoneypotChange?.(event.target.value)}
               />
             </div>
-            {errors.email ? (
-              <p className="fp26-field-error" id="fp26-email-error">
-                {errors.email}
-              </p>
-            ) : (
-              <p className="fp26-field-helper" id="fp26-email-helper">
-                We always return a generic response to protect account privacy.
-              </p>
-            )}
-          </div>
 
-          <button
-            className="fp26-primary-btn"
-            type="submit"
-            disabled={status.isSubmitting || status.cooldownSeconds > 0 || !status.canSubmit}
-          >
-            <Send aria-hidden="true" size={18} />
-            <span>{status.submitLabel}</span>
-          </button>
-
-          <div className="fp26-trust-note">
-            <LockKeyhole aria-hidden="true" size={17} />
-            <span>{status.privacyNote}</span>
-          </div>
-        </form>
-
-        <aside className="fp26-visual" aria-hidden="true">
-          <div className="fp26-visual-card">
-            <div className="fp26-plane">
-              <Send size={36} />
-            </div>
-            <div className="fp26-envelope">
-              <div className="fp26-envelope-flap" />
-              <div className="fp26-letter">
-                <LockKeyhole size={32} />
+            {/* Field: Email */}
+            <div className="fp26-field">
+              <label htmlFor="fp26-email" className="fp26-label">
+                {t("forgotPassword.email") || (isIndo ? "Alamat email" : "Email address")}
+              </label>
+              <div className="fp26-input-wrapper">
+                <Mail size={16} className="fp26-input-icon" />
+                <input
+                  id="fp26-email"
+                  ref={emailRef}
+                  type="email"
+                  value={form.email}
+                  onChange={(event) => onEmailChange?.(event.target.value)}
+                  placeholder={
+                    t("forgotPassword.emailPlaceholder") || (isIndo ? "anda@email.com" : "you@email.com")
+                  }
+                  autoComplete="email"
+                  aria-invalid={Boolean(errors.email)}
+                  aria-describedby={errors.email ? "fp26-email-error" : undefined}
+                  className={`fp26-input ${errors.email ? "is-invalid" : ""}`}
+                  required
+                />
               </div>
-              <div className="fp26-envelope-front" />
+              {errors.email ? (
+                <p className="fp26-field-error" id="fp26-email-error">
+                  {errors.email}
+                </p>
+              ) : null}
             </div>
-            <div className="fp26-shield">
-              <ShieldCheck size={46} />
-            </div>
-            <div className="fp26-user-bubble">
-              <UserRound size={26} />
-            </div>
-            <div className="fp26-spark fp26-spark-one">
-              <Sparkles size={18} />
-            </div>
-            <div className="fp26-spark fp26-spark-two">
-              <Sparkles size={16} />
-            </div>
-          </div>
-          <div className="fp26-trust-chip">
-            Secure. Private. <strong>Trusted.</strong>
-          </div>
-        </aside>
-      </section>
 
-      <button className="fp26-back-link" type="button" onClick={onBackToSignIn}>
-        <span>Remembered your password?</span>
-        <strong>Back to sign in</strong>
-        <ArrowRight aria-hidden="true" size={18} />
-      </button>
+            {/* Primary Action Button */}
+            <button
+              className="fp26-submit-btn"
+              type="submit"
+              disabled={status.isSubmitting || status.cooldownSeconds > 0 || !status.canSubmit}
+            >
+              {status.isSubmitting ? (
+                <span className="fp26-submit-inner">
+                  <span className="fp26-spinner" />
+                  <span>{t("forgotPassword.sending") || (isIndo ? "Mengirim tautan..." : "Sending link...")}</span>
+                </span>
+              ) : (
+                <span className="fp26-submit-inner">
+                  <span>
+                    {status.submitLabel || (isIndo ? "Kirim tautan pemulihan" : "Send reset link")}
+                  </span>
+                  <Send size={16} aria-hidden="true" />
+                </span>
+              )}
+            </button>
+
+            {/* Footer / Back to Sign In */}
+            <div className="fp26-footer">
+              <span>
+                {t("forgotPassword.rememberPassword") ||
+                  (isIndo ? "Ingat kata sandi Anda?" : "Remembered your password?")}
+              </span>{" "}
+              <button type="button" onClick={onBackToSignIn} className="fp26-signin-link">
+                {t("forgotPassword.backToSignIn") || (isIndo ? "Kembali untuk masuk" : "Back to sign in")}
+                <ArrowRight size={14} className="fp26-signin-icon" aria-hidden="true" />
+              </button>
+            </div>
+          </form>
+        </section>
+      </div>
     </main>
   );
 }
