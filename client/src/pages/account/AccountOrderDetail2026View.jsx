@@ -30,7 +30,7 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { fetchStoreProducts } from "../../api/storeProducts.ts";
 import { getStorePublicIdentityBySlug } from "../../api/storePublicIdentity.ts";
@@ -289,6 +289,7 @@ export default function AccountOrderDetail2026View({
   isLoading,
   error,
   LinkComponent = Link,
+  fromTab: fromTabProp,
   onPrint,
   onInvoice,
   onTrack,
@@ -314,8 +315,42 @@ export default function AccountOrderDetail2026View({
   isPaymentSuccessReturn = false,
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { i18n } = useTranslation();
   const [, setLangSync] = useState(0);
+
+  const VALID_TABS = useMemo(
+    () => ["all", "unpaid", "to_pack", "shipping", "completed", "returns", "cancelled"],
+    []
+  );
+
+  const fromTab = useMemo(() => {
+    const raw =
+      fromTabProp ||
+      location.state?.fromTab ||
+      location.state?.tab ||
+      new URLSearchParams(location.search).get("fromTab");
+    if (raw && VALID_TABS.includes(raw.toLowerCase())) return raw.toLowerCase();
+    try {
+      const stored = sessionStorage.getItem("tp_my_orders_last_tab");
+      if (stored && VALID_TABS.includes(stored.toLowerCase())) return stored.toLowerCase();
+    } catch (_) {}
+    return "all";
+  }, [fromTabProp, location.state, location.search, VALID_TABS]);
+
+  const backTargetUrl = useMemo(() => {
+    return fromTab && fromTab !== "all"
+      ? `/user/my-orders?tab=${encodeURIComponent(fromTab)}`
+      : "/user/my-orders";
+  }, [fromTab]);
+
+  const handleGoBack = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    try {
+      sessionStorage.setItem("tp_my_orders_last_tab", fromTab);
+    } catch (_) {}
+    navigate(backTargetUrl, { state: { fromTab, tab: fromTab } });
+  };
 
   useEffect(() => {
     const handleSync = () => setLangSync((prev) => prev + 1);
@@ -418,7 +453,12 @@ export default function AccountOrderDetail2026View({
               {t.tryAgain}
             </button>
           )}
-          <LinkComponent to="/user/my-orders" className="tp-btn-primary">
+          <LinkComponent
+            to={backTargetUrl}
+            state={{ fromTab, tab: fromTab }}
+            className="tp-btn-primary"
+            onClick={handleGoBack}
+          >
             {t.backToOrders}
           </LinkComponent>
         </div>
@@ -534,7 +574,13 @@ export default function AccountOrderDetail2026View({
       <div className="tp-shopee-detail">
         {/* Top Header Bar */}
         <header className="tp-shopee-detail__header">
-          <LinkComponent to="/user/my-orders" className="tp-shopee-detail__back-btn" title={t.backToOrders}>
+          <LinkComponent
+            to={backTargetUrl}
+            state={{ fromTab, tab: fromTab }}
+            className="tp-shopee-detail__back-btn"
+            title={t.backToOrders}
+            onClick={handleGoBack}
+          >
             <ArrowLeft size={20} />
           </LinkComponent>
           <h1 className="tp-shopee-detail__header-title">{t.title}</h1>

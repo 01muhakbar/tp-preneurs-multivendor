@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
-import { Link, useNavigate, useParams, useOutletContext, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams, useOutletContext, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { api } from "../../api/axios.ts";
 import { fetchOrderCheckoutPayment } from "../../api/orderPayments.ts";
@@ -45,6 +45,7 @@ const shouldPollOrderDetail = (order) => {
 export default function AccountOrderDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const auth = useAuth();
   const user = auth?.user || null;
@@ -53,6 +54,21 @@ export default function AccountOrderDetailPage() {
   const [, setLangSync] = useState(0);
 
   const isIndo = isIndonesianLanguage(i18n);
+
+  const VALID_TABS = ["all", "unpaid", "to_pack", "shipping", "completed", "returns", "cancelled"];
+  const rawFromTab =
+    location.state?.fromTab ||
+    location.state?.tab ||
+    searchParams.get("fromTab");
+  let storedSessionTab = null;
+  try {
+    storedSessionTab = sessionStorage.getItem("tp_my_orders_last_tab");
+  } catch (_) {}
+  const fromTab = VALID_TABS.includes(rawFromTab)
+    ? rawFromTab
+    : VALID_TABS.includes(storedSessionTab)
+      ? storedSessionTab
+      : "all";
 
   const duitkuReturn = searchParams.get("duitkuReturn") === "1";
   const resultCode = searchParams.get("resultCode") || searchParams.get("responseCode");
@@ -327,6 +343,7 @@ export default function AccountOrderDetailPage() {
       isLoading={orderQuery.isLoading}
       error={invalidIdError || (orderQuery.isError ? orderQuery.error : null) || missingOrderError || adapterError}
       LinkComponent={Link}
+      fromTab={fromTab}
       onPrint={handlePrint}
       onInvoice={handleInvoice}
       onTrack={handleTrack}

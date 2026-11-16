@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ChevronRight,
@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { fetchStoreProducts } from "../../api/storeProducts.ts";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
 import { formatCurrency } from "../../utils/format.js";
@@ -207,10 +207,27 @@ function ProductRecommendationGrid({ t }) {
   );
 }
 
-function ShopeeOrderCard({ order, LinkComponent, t }) {
+function ShopeeOrderCard({ order, LinkComponent, t, activeTab = "all" }) {
   const navigate = useNavigate();
   const { add: addToCart } = useCart();
   const [isBuyingAgain, setIsBuyingAgain] = useState(false);
+
+  const buildDetailHref = (baseHref = order.href) => {
+    if (!baseHref || baseHref === "#") return "#";
+    const separator = baseHref.includes("?") ? "&" : "?";
+    return activeTab && activeTab !== "all"
+      ? `${baseHref}${separator}fromTab=${encodeURIComponent(activeTab)}`
+      : baseHref;
+  };
+
+  const detailHref = buildDetailHref();
+  const navigationState = { fromTab: activeTab, tab: activeTab };
+
+  const handleSaveTab = () => {
+    try {
+      sessionStorage.setItem("tp_my_orders_last_tab", activeTab);
+    } catch (_) {}
+  };
 
   const items = Array.isArray(order.items) && order.items.length > 0
     ? order.items
@@ -284,7 +301,9 @@ function ShopeeOrderCard({ order, LinkComponent, t }) {
           return (
             <Link
               key={item.id || idx}
-              to={order.href || "#"}
+              to={detailHref}
+              state={navigationState}
+              onClick={handleSaveTab}
               className="tp-shopee-card__item-link"
             >
               <div className="tp-shopee-card__item">
@@ -373,7 +392,9 @@ function ShopeeOrderCard({ order, LinkComponent, t }) {
         {bucket === "unpaid" && (
           <>
             <LinkComponent
-              to={order.href || "#"}
+              to={detailHref}
+              state={navigationState}
+              onClick={handleSaveTab}
               className="tp-shopee-btn tp-shopee-btn--secondary"
             >
               {t.viewDetails}
@@ -387,7 +408,9 @@ function ShopeeOrderCard({ order, LinkComponent, t }) {
               </a>
             ) : (
               <LinkComponent
-                to={order.paymentAction?.path || order.href || "#"}
+                to={order.paymentAction?.path || detailHref}
+                state={navigationState}
+                onClick={handleSaveTab}
                 className="tp-shopee-btn tp-shopee-btn--primary"
               >
                 {t.payNow}
@@ -408,7 +431,9 @@ function ShopeeOrderCard({ order, LinkComponent, t }) {
               {t.contactSeller}
             </a>
             <LinkComponent
-              to={order.href || "#"}
+              to={detailHref}
+              state={navigationState}
+              onClick={handleSaveTab}
               className="tp-shopee-btn tp-shopee-btn--accent"
             >
               {t.viewDetails}
@@ -419,13 +444,17 @@ function ShopeeOrderCard({ order, LinkComponent, t }) {
         {bucket === "shipping" && (
           <>
             <LinkComponent
-              to={order.href || "#"}
+              to={detailHref}
+              state={navigationState}
+              onClick={handleSaveTab}
               className="tp-shopee-btn tp-shopee-btn--secondary"
             >
               {t.track}
             </LinkComponent>
             <LinkComponent
-              to={order.href || "#"}
+              to={detailHref}
+              state={navigationState}
+              onClick={handleSaveTab}
               className="tp-shopee-btn tp-shopee-btn--accent"
             >
               {t.viewDetails}
@@ -435,7 +464,9 @@ function ShopeeOrderCard({ order, LinkComponent, t }) {
 
         {bucket === "returns" && (
           <LinkComponent
-            to={order.href || "#"}
+            to={detailHref}
+            state={navigationState}
+            onClick={handleSaveTab}
             className="tp-shopee-btn tp-shopee-btn--accent"
           >
             {t.returnDetails}
@@ -444,7 +475,9 @@ function ShopeeOrderCard({ order, LinkComponent, t }) {
 
         {bucket === "cancelled" && (
           <LinkComponent
-            to={order.href || "#"}
+            to={detailHref}
+            state={navigationState}
+            onClick={handleSaveTab}
             className="tp-shopee-btn tp-shopee-btn--secondary"
           >
             {t.viewDetails}
@@ -467,10 +500,14 @@ export default function AccountOrders2026View({
   error,
   onPageChange,
   isIndo: isIndoProp,
+  activeTab: activeTabProp,
+  onTabChange,
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { i18n } = useTranslation();
   const [, setLangSync] = useState(0);
+  const tabsScrollRef = useRef(null);
 
   useEffect(() => {
     const handleSync = () => setLangSync((prev) => prev + 1);
@@ -487,6 +524,11 @@ export default function AccountOrders2026View({
   const isIndo = typeof isIndoProp === "boolean" ? isIndoProp : isIndonesianLanguage(i18n);
   const t = isIndo ? MY_ORDERS_I18N.id : MY_ORDERS_I18N.en;
 
+  const VALID_TABS = useMemo(
+    () => ["all", "unpaid", "to_pack", "shipping", "completed", "returns", "cancelled"],
+    []
+  );
+
   // 7 Status Tabs as required by user
   const TABS = useMemo(
     () => [
@@ -501,7 +543,56 @@ export default function AccountOrders2026View({
     [t]
   );
 
-  const [activeTab, setActiveTab] = useState("all");
+  const [internalTab, setInternalTab] = useState(() => {
+    if (activeTabProp && VALID_TABS.includes(activeTabProp)) return activeTabProp;
+    const urlTab = new URLSearchParams(window.location.search).get("tab")?.toLowerCase();
+    if (urlTab && VALID_TABS.includes(urlTab)) return urlTab;
+    try {
+      const stored = sessionStorage.getItem("tp_my_orders_last_tab");
+      if (stored && VALID_TABS.includes(stored)) return stored;
+    } catch (_) {}
+    return "all";
+  });
+
+  const activeTab = activeTabProp && VALID_TABS.includes(activeTabProp) ? activeTabProp : internalTab;
+
+  useEffect(() => {
+    if (activeTabProp && VALID_TABS.includes(activeTabProp)) {
+      setInternalTab(activeTabProp);
+      try {
+        sessionStorage.setItem("tp_my_orders_last_tab", activeTabProp);
+      } catch (_) {}
+    }
+  }, [activeTabProp, VALID_TABS]);
+
+  // Smooth scroll active tab into view horizontally on mobile
+  useEffect(() => {
+    if (!tabsScrollRef.current) return;
+    const activeEl = tabsScrollRef.current.querySelector(".tp-shopee-tab.is-active");
+    if (activeEl?.scrollIntoView) {
+      activeEl.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    }
+  }, [activeTab]);
+
+  const handleSelectTab = (tabCode) => {
+    const nextTab = VALID_TABS.includes(tabCode) ? tabCode : "all";
+    setInternalTab(nextTab);
+    try {
+      sessionStorage.setItem("tp_my_orders_last_tab", nextTab);
+    } catch (_) {}
+    if (onTabChange) {
+      onTabChange(nextTab);
+    } else {
+      const params = new URLSearchParams(location.search);
+      if (nextTab && nextTab !== "all") {
+        params.set("tab", nextTab);
+      } else {
+        params.delete("tab");
+      }
+      navigate({ search: params.toString() }, { replace: true });
+    }
+  };
+
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
@@ -579,7 +670,7 @@ export default function AccountOrders2026View({
 
       {/* 2. 7 Status Tabs Bar (Horizontal Scrollable) */}
       <nav className="tp-shopee-tabs" aria-label="Status Pesanan">
-        <div className="tp-shopee-tabs__scroll">
+        <div className="tp-shopee-tabs__scroll" ref={tabsScrollRef}>
           {TABS.map((tab) => {
             const isActive = activeTab === tab.code;
             const count = counts?.[tab.code] || 0;
@@ -588,7 +679,7 @@ export default function AccountOrders2026View({
                 type="button"
                 key={tab.code}
                 className={`tp-shopee-tab${isActive ? " is-active" : ""}`}
-                onClick={() => setActiveTab(tab.code)}
+                onClick={() => handleSelectTab(tab.code)}
               >
                 <span>{tab.label}</span>
                 {count > 0 && activeTab !== tab.code ? (
@@ -616,6 +707,7 @@ export default function AccountOrders2026View({
                 order={order}
                 LinkComponent={LinkComponent}
                 t={t}
+                activeTab={activeTab}
               />
             ))}
           </div>
