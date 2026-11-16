@@ -71,58 +71,178 @@ const hasFieldErrors = (fieldErrors) =>
       Object.values(fieldErrors).some((messages) => Array.isArray(messages) && messages.length > 0)
   );
 
-const resolveRegisterErrorPresentation = (error, isIndo = false) => {
-  const fieldErrors = toFieldErrors(error);
-  const code = getErrorCode(error);
-  const pending = error?.response?.data?.data?.pending || null;
+const localizeFieldErrors = (fieldErrors, isIndo, code) => {
+  if (!fieldErrors || typeof fieldErrors !== "object") return {};
+  const localized = { ...fieldErrors };
 
-  if (hasFieldErrors(fieldErrors)) {
+  if (localized.phoneNumber) {
+    const rawMsg = Array.isArray(localized.phoneNumber) ? localized.phoneNumber[0] : localized.phoneNumber;
+    if (code === "CONTACT_UNAVAILABLE" || /unavailable|already registered|in use/i.test(String(rawMsg || ""))) {
+      localized.phoneNumber = [
+        isIndo
+          ? "Nomor telepon ini sudah terdaftar pada akun lain."
+          : "This phone number is already registered to another account.",
+      ];
+    } else {
+      localized.phoneNumber = [
+        isIndo
+          ? "Masukkan nomor telepon yang valid (contoh: 08123456789)."
+          : "Enter a valid phone number (e.g. 08123456789).",
+      ];
+    }
+  }
+
+  if (localized.email) {
+    const rawMsg = Array.isArray(localized.email) ? localized.email[0] : localized.email;
+    if (code === "CONTACT_UNAVAILABLE" || /unavailable|already in use|registered/i.test(String(rawMsg || ""))) {
+      localized.email = [
+        isIndo
+          ? "Alamat email ini sudah terdaftar pada akun lain."
+          : "This email address is already in use by another account.",
+      ];
+    } else {
+      localized.email = [
+        isIndo
+          ? "Masukkan format alamat email yang valid."
+          : "Enter a valid email address.",
+      ];
+    }
+  }
+
+  if (localized.name || localized.fullName) {
+    const key = localized.name ? "name" : "fullName";
+    localized[key] = [
+      isIndo ? "Nama lengkap wajib diisi (minimal 3 karakter)." : "Full name is required (at least 3 characters).",
+    ];
+  }
+
+  if (localized.password) {
+    localized.password = [
+      isIndo
+        ? "Kata sandi minimal 8 karakter, termasuk huruf dan angka."
+        : "Password must be at least 8 characters with letters and numbers.",
+    ];
+  }
+
+  if (localized.passwordConfirm || localized.confirm) {
+    const key = localized.passwordConfirm ? "passwordConfirm" : "confirm";
+    localized[key] = [
+      isIndo
+        ? "Konfirmasi kata sandi tidak cocok."
+        : "Password confirmation does not match.",
+    ];
+  }
+
+  if (localized.termsAccepted || localized.acceptTerms) {
+    const key = localized.termsAccepted ? "termsAccepted" : "acceptTerms";
+    localized[key] = [
+      isIndo
+        ? "Anda harus menyetujui syarat & ketentuan serta kebijakan privasi."
+        : "You must accept the terms & conditions and privacy policy.",
+    ];
+  }
+
+  return localized;
+};
+
+const resolveRegisterErrorPresentation = (error, isIndo = false) => {
+  const rawFieldErrors = toFieldErrors(error);
+  const code = getErrorCode(error);
+  const status = error?.response?.status;
+  const pending = error?.response?.data?.data?.pending || null;
+  const rawMessage = getErrorMessage(error, "");
+  const fieldErrors = localizeFieldErrors(rawFieldErrors, isIndo, code);
+
+  // 1. Account conflict: phone or email already registered (409 Conflict)
+  if (code === "CONTACT_UNAVAILABLE" || status === 409) {
+    const isPhoneConflict = Boolean(fieldErrors.phoneNumber);
+    const isEmailConflict = Boolean(fieldErrors.email);
+    let message = isIndo
+      ? "Nomor telepon atau email ini sudah terdaftar. Silakan masuk ke akun Anda atau gunakan data lain."
+      : "This phone number or email is already registered. Please sign in or use different details.";
+
+    if (isPhoneConflict && !isEmailConflict) {
+      message = isIndo
+        ? "Nomor telepon ini sudah terdaftar pada akun lain. Silakan masuk ke akun Anda atau gunakan nomor lain."
+        : "This phone number is already registered to another account. Please sign in or use another number.";
+    } else if (isEmailConflict && !isPhoneConflict) {
+      message = isIndo
+        ? "Alamat email ini sudah terdaftar pada akun lain. Silakan masuk ke akun Anda atau gunakan email lain."
+        : "This email address is already registered to another account. Please sign in or use another email.";
+    }
+
     return {
       fieldErrors,
       pending,
-      statusMessage: "",
-      statusTone: "neutral",
+      statusMessage: message,
+      statusTone: "error",
+      isExistingAccount: true,
     };
   }
 
+  // 2. OTP Delivery failed
   if (code === "OTP_DELIVERY_FAILED") {
     return {
       fieldErrors: {},
       pending,
-      statusMessage: getErrorMessage(
-        error,
-        isIndo
-          ? "Akun Anda menunggu verifikasi, namun kami belum dapat mengirimkan kode saat ini."
-          : "Your account is pending verification, but we could not send the code right now."
-      ),
+      statusMessage: isIndo
+        ? "Akun Anda menunggu verifikasi, namun pengiriman kode OTP melalui email gagal. Silakan coba lagi."
+        : "Your account is pending verification, but we could not send the verification code. Please try again.",
       statusTone: pending ? "warning" : "error",
+      isExistingAccount: false,
     };
   }
 
-  if (code === "REQUEST_REJECTED") {
+  // 3. Request rejected (rate limit, anti-bot, or fast submission)
+  if (code === "REQUEST_REJECTED" || (status === 400 && /could not process/i.test(rawMessage))) {
     return {
-      fieldErrors: {},
+      fieldErrors,
       pending,
-      statusMessage: getErrorMessage(
-        error,
-        isIndo
-          ? "Permintaan pendaftaran tidak dapat diproses."
-          : "We could not process this registration request."
-      ),
+      statusMessage: isIndo
+        ? "Permintaan pendaftaran tidak dapat diproses saat ini. Mohon tunggu beberapa detik lalu coba kembali."
+        : "We could not process this registration request right now. Please wait a few seconds and try again.",
       statusTone: "error",
+      isExistingAccount: false,
     };
   }
 
+  // 4. Rate limited (429)
+  if (status === 429 || code === "RATE_LIMIT_EXCEEDED" || code === "TOO_MANY_REQUESTS") {
+    const retryAfter = getRetryAfterSeconds(error);
+    const waitMsg = retryAfter > 0 ? ` (${retryAfter} detik)` : "";
+    return {
+      fieldErrors,
+      pending,
+      statusMessage: isIndo
+        ? `Terlalu banyak percobaan pendaftaran. Silakan tunggu beberapa saat${waitMsg} sebelum mencoba kembali.`
+        : `Too many registration attempts. Please wait a moment${waitMsg} before trying again.`,
+      statusTone: "error",
+      isExistingAccount: false,
+    };
+  }
+
+  // 5. If specific field validation errors exist
+  if (hasFieldErrors(fieldErrors)) {
+    return {
+      fieldErrors,
+      pending,
+      statusMessage: isIndo
+        ? "Mohon periksa dan lengkapi kolom yang ditandai merah."
+        : "Please review and complete the fields marked in red.",
+      statusTone: "error",
+      isExistingAccount: false,
+    };
+  }
+
+  // 6. Generic fallback
   return {
     fieldErrors: {},
     pending,
-    statusMessage: getErrorMessage(
-      error,
-      isIndo
-        ? "Pendaftaran gagal. Periksa kembali data Anda dan coba lagi."
-        : "Registration failed. Please try again."
-    ),
+    statusMessage: rawMessage || (isIndo
+      ? "Pendaftaran gagal. Periksa kembali koneksi internet dan data Anda, lalu coba lagi."
+      : "Registration failed. Please check your connection and details, then try again."),
     statusTone: pending ? "warning" : "error",
+    isExistingAccount: false,
   };
 };
 
@@ -215,6 +335,7 @@ export default function StoreRegisterPage() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [statusMessage, setStatusMessage] = useState("");
   const [statusTone, setStatusTone] = useState("neutral");
+  const [isExistingAccount, setIsExistingAccount] = useState(false);
   const [pendingRegistration, setPendingRegistration] = useState(() => readPendingRegistration());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -261,21 +382,42 @@ export default function StoreRegisterPage() {
     return () => window.clearTimeout(timer);
   }, [countdown]);
 
+  const scrollToErrorOrNotice = () => {
+    window.setTimeout(() => {
+      if (statusRef.current) {
+        statusRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        statusRef.current.focus?.();
+      }
+    }, 60);
+  };
+
   useEffect(() => {
     const firstErrorKey = Object.keys(fieldErrors || {}).find((key) =>
       Array.isArray(fieldErrors?.[key]) && fieldErrors[key].length > 0
     );
-    if (firstErrorKey && fieldRefs.current[firstErrorKey]) {
-      fieldRefs.current[firstErrorKey].focus();
+    if (statusMessage && statusRef.current) {
+      statusRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      statusRef.current.focus?.();
       return;
     }
-    if (statusMessage && statusRef.current) {
-      statusRef.current.focus();
+    if (firstErrorKey && fieldRefs.current[firstErrorKey]) {
+      fieldRefs.current[firstErrorKey].scrollIntoView({ behavior: "smooth", block: "center" });
+      fieldRefs.current[firstErrorKey].focus?.();
     }
   }, [fieldErrors, statusMessage]);
 
   const setField = (key, value) => {
-    setForm((current) => ({ ...current, [key]: value }));
+    let sanitizedValue = value;
+    if (key === "phoneNumber") {
+      sanitizedValue = String(value || "").replace(/\s+/g, "");
+      if (sanitizedValue.startsWith("+62")) {
+        sanitizedValue = sanitizedValue.slice(3);
+      } else if (sanitizedValue.startsWith("62") && sanitizedValue.length > 3) {
+        sanitizedValue = sanitizedValue.slice(2);
+      }
+    }
+    setForm((current) => ({ ...current, [key]: sanitizedValue }));
+    setIsExistingAccount(false);
     setFieldErrors((current) => {
       if (!current?.[key]) return current;
       return { ...current, [key]: undefined };
@@ -360,16 +502,24 @@ export default function StoreRegisterPage() {
     setStatusMessage("");
     setStatusTone("neutral");
     setFieldErrors({});
+    setIsExistingAccount(false);
 
     const cleanPhone = String(form.phoneNumber || "").trim().replace(/[- ]/g, "");
     if (!/^(?:\+62|62|0)?8[1-9][0-9]{6,11}$/.test(cleanPhone)) {
       setFieldErrors({
         phoneNumber: [
           isIndo
-            ? "Masukkan nomor telepon Indonesia yang valid diawali +62 atau 08."
+            ? "Masukkan nomor telepon Indonesia yang valid (contoh: 08123456789 atau 8123456789)."
             : "Enter a valid Indonesian phone number starting with +62 or 08.",
         ],
       });
+      setStatusMessage(
+        isIndo
+          ? "Format nomor telepon tidak sesuai. Silakan periksa kembali."
+          : "Invalid phone number format. Please check and try again."
+      );
+      setStatusTone("error");
+      scrollToErrorOrNotice();
       return;
     }
 
@@ -380,8 +530,16 @@ export default function StoreRegisterPage() {
     };
     const parsed = clientRegistrationSchema.safeParse(payload);
     if (!parsed.success) {
-      const nextFieldErrors = toFieldErrors(parsed.error);
+      const rawErrors = toFieldErrors(parsed.error);
+      const nextFieldErrors = localizeFieldErrors(rawErrors, isIndo, "");
       setFieldErrors(nextFieldErrors);
+      setStatusMessage(
+        isIndo
+          ? "Mohon periksa dan lengkapi kolom yang ditandai merah."
+          : "Please review and complete the fields marked in red."
+      );
+      setStatusTone("error");
+      scrollToErrorOrNotice();
       return;
     }
 
@@ -400,6 +558,7 @@ export default function StoreRegisterPage() {
             : "Verification code sent to your email.")
       );
       setStatusTone("success");
+      setIsExistingAccount(false);
     } catch (error) {
       const presentation = resolveRegisterErrorPresentation(error, isIndo);
       setFieldErrors(presentation.fieldErrors);
@@ -409,6 +568,8 @@ export default function StoreRegisterPage() {
       }
       setStatusMessage(presentation.statusMessage);
       setStatusTone(presentation.statusTone);
+      setIsExistingAccount(Boolean(presentation.isExistingAccount));
+      scrollToErrorOrNotice();
     } finally {
       setIsSubmitting(false);
     }
@@ -505,6 +666,7 @@ export default function StoreRegisterPage() {
     setFieldErrors({});
     setStatusMessage("");
     setStatusTone("neutral");
+    setIsExistingAccount(false);
     startedAtRef.current = Date.now();
   };
 
@@ -523,6 +685,13 @@ export default function StoreRegisterPage() {
       countdown,
       canSubmitOtp,
       deliveryFailed,
+      isExistingAccount,
+      action: isExistingAccount
+        ? {
+            label: isIndo ? "Masuk ke Akun Sekarang" : "Sign in to your account",
+            onClick: () => navigate("/auth/login"),
+          }
+        : null,
       submitLabel: isSubmitting
         ? (isIndo ? "Membuat akun..." : "Creating account...")
         : (isIndo ? "Buat akun" : "Create account"),

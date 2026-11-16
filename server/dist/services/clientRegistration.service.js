@@ -17,7 +17,7 @@ const OTP_EXPIRY_MS = Number(process.env.CLIENT_REGISTRATION_OTP_EXPIRY_MS || 10
 const OTP_RESEND_COOLDOWN_MS = Number(process.env.CLIENT_REGISTRATION_OTP_RESEND_COOLDOWN_MS || 60 * 1000);
 const OTP_MAX_ATTEMPTS = Number(process.env.CLIENT_REGISTRATION_OTP_MAX_ATTEMPTS || 5);
 const OTP_MAX_RESENDS = Number(process.env.CLIENT_REGISTRATION_OTP_MAX_RESENDS || 5);
-const MIN_SUBMIT_DELAY_MS = Number(process.env.CLIENT_REGISTRATION_MIN_SUBMIT_DELAY_MS || 4000);
+const MIN_SUBMIT_DELAY_MS = Number(process.env.CLIENT_REGISTRATION_MIN_SUBMIT_DELAY_MS || 1500);
 export class ClientRegistrationError extends Error {
     constructor(input) {
         super(input.message);
@@ -337,7 +337,8 @@ async function rejectIfSuspicious(input, context) {
         });
     }
     const elapsedMs = Date.now() - Number(input.startedAt);
-    if (elapsedMs < MIN_SUBMIT_DELAY_MS) {
+    // Allow slight clock skew (client time up to 15s ahead) and human completion >= MIN_SUBMIT_DELAY_MS
+    if (elapsedMs < -15000 || (elapsedMs >= 0 && elapsedMs < MIN_SUBMIT_DELAY_MS)) {
         throw new ClientRegistrationError({
             status: 400,
             code: "REQUEST_REJECTED",

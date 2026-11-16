@@ -21,7 +21,7 @@ const OTP_RESEND_COOLDOWN_MS = Number(
 );
 const OTP_MAX_ATTEMPTS = Number(process.env.CLIENT_REGISTRATION_OTP_MAX_ATTEMPTS || 5);
 const OTP_MAX_RESENDS = Number(process.env.CLIENT_REGISTRATION_OTP_MAX_RESENDS || 5);
-const MIN_SUBMIT_DELAY_MS = Number(process.env.CLIENT_REGISTRATION_MIN_SUBMIT_DELAY_MS || 4000);
+const MIN_SUBMIT_DELAY_MS = Number(process.env.CLIENT_REGISTRATION_MIN_SUBMIT_DELAY_MS || 1500);
 
 type RegisterInput = {
   name: string;
@@ -461,7 +461,8 @@ async function rejectIfSuspicious(input: RegisterInput, context: RegistrationCon
   }
 
   const elapsedMs = Date.now() - Number(input.startedAt);
-  if (elapsedMs < MIN_SUBMIT_DELAY_MS) {
+  // Allow slight clock skew (client time up to 15s ahead) and human completion >= MIN_SUBMIT_DELAY_MS
+  if (elapsedMs < -15000 || (elapsedMs >= 0 && elapsedMs < MIN_SUBMIT_DELAY_MS)) {
     throw new ClientRegistrationError({
       status: 400,
       code: "REQUEST_REJECTED",

@@ -79,6 +79,8 @@ export const createStoreRegister2026ViewModel = ({
       resendLabel: status.resendLabel || "Resend code",
       passwordConfirmHelper:
         status.passwordConfirmHelper || "Repeat the same password to continue.",
+      action: status.action || null,
+      isExistingAccount: Boolean(status.isExistingAccount),
     },
     otp: {
       code: String(otp.code || otp.otp || ""),

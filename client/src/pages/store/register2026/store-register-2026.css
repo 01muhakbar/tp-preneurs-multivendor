@@ -189,16 +189,53 @@
   align-items: flex-start;
   gap: 10px;
   border-radius: 12px;
-  padding: 10px 14px;
-  font-size: 12px;
+  padding: 11px 14px;
+  font-size: 12.5px;
   line-height: 1.45;
   margin-bottom: 16px;
   box-sizing: border-box;
+  animation: sr26-fade-in 0.2s ease-out;
+}
+
+.sr26-status-body {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  flex: 1;
+}
+
+.sr26-status-msg {
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.sr26-status-action {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--sr26-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(3, 76, 133, 0.25);
+  margin-top: 2px;
+}
+
+.sr26-status-action:hover {
+  background: var(--sr26-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(3, 76, 133, 0.35);
 }
 
 .sr26-status-icon {
   flex-shrink: 0;
-  margin-top: 1px;
+  margin-top: 2px;
 }
 
 .sr26-status--success {
@@ -727,6 +764,16 @@
   background: #311317;
   border-color: #69222c;
   color: #fca5a5;
+}
+
+.dark .sr26-status-action {
+  background: var(--sr26-accent);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(254, 111, 5, 0.3);
+}
+
+.dark .sr26-status-action:hover {
+  background: var(--sr26-accent-hover);
 }
 
 .dark .sr26-otp-info {

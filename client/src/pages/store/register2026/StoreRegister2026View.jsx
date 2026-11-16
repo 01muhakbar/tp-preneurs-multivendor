@@ -42,8 +42,20 @@ function StatusNotice({ status, statusRef }) {
       role={status.tone === "error" ? "alert" : "status"}
       tabIndex={-1}
     >
-      <Icon className="sr26-status-icon" size={17} aria-hidden="true" />
-      <span>{status.message}</span>
+      <Icon className="sr26-status-icon" size={18} aria-hidden="true" />
+      <div className="sr26-status-body">
+        <span className="sr26-status-msg">{status.message}</span>
+        {status.action ? (
+          <button
+            type="button"
+            className="sr26-status-action"
+            onClick={status.action.onClick}
+          >
+            <span>{status.action.label}</span>
+            <ArrowRight size={13} aria-hidden="true" />
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }
