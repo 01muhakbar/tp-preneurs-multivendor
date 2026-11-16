@@ -1,5 +1,5 @@
 import { Op } from "sequelize";
-import { sequelize, StoreAuditLog, StorePaymentProfile, StoreWithdrawal, Suborder, } from "../../models/index.js";
+import { Order, sequelize, Shipment, StoreAuditLog, StorePaymentProfile, StoreWithdrawal, Suborder, } from "../../models/index.js";
 import { buildWithdrawalEligibilityMeta } from "./withdrawalEligibility.service.js";
 export const WITHDRAWAL_ADMIN_FEE_AMOUNT = 6500;
 const NON_REJECTED_STATUSES = ["PENDING", "PROCESSING", "COMPLETED"];
@@ -73,22 +73,51 @@ export const calculateWithdrawalBalance = async (storeIdInput, options = {}) => 
             paymentStatus: "PAID",
             fulfillmentStatus: { [Op.ne]: "CANCELLED" },
         },
-        attributes: ["id", "totalAmount", "serviceFeeAmount", "paymentStatus", "fulfillmentStatus"],
+        attributes: [
+            "id",
+            "orderId",
+            "totalAmount",
+            "serviceFeeAmount",
+            "paymentStatus",
+            "fulfillmentStatus",
+            "updatedAt",
+            "createdAt",
+        ],
+        include: [
+            {
+                model: Order,
+                as: "order",
+                attributes: ["id", "status", "updatedAt", "createdAt"],
+                required: false,
+            },
+            {
+                model: Shipment,
+                as: "shipment",
+                attributes: ["id", "status", "updatedAt", "createdAt"],
+                required: false,
+            },
+        ],
         transaction: options.transaction,
         lock: options.lock,
     });
-    const eligibilityRows = paidSuborders.map((suborder) => buildWithdrawalEligibilityMeta({
-        paymentStatus: getAttr(suborder, "paymentStatus"),
-        fulfillmentStatus: getAttr(suborder, "fulfillmentStatus"),
-        totalAmount: getAttr(suborder, "totalAmount"),
-        serviceFeeAmount: getAttr(suborder, "serviceFeeAmount"),
-    }));
-    const deliveredSuborders = paidSuborders.filter((suborder) => buildWithdrawalEligibilityMeta({
-        paymentStatus: getAttr(suborder, "paymentStatus"),
-        fulfillmentStatus: getAttr(suborder, "fulfillmentStatus"),
-        totalAmount: getAttr(suborder, "totalAmount"),
-        serviceFeeAmount: getAttr(suborder, "serviceFeeAmount"),
-    }).code === "ELIGIBLE");
+    const eligibilityRows = paidSuborders.map((suborder) => {
+        const parentOrder = suborder.order ?? suborder.get?.("order") ?? null;
+        const shipment = suborder.shipment ?? suborder.get?.("shipment") ?? null;
+        const deliveredAt = getAttr(shipment, "updatedAt") ||
+            getAttr(suborder, "updatedAt") ||
+            getAttr(parentOrder, "updatedAt") ||
+            getAttr(suborder, "createdAt");
+        return buildWithdrawalEligibilityMeta({
+            paymentStatus: getAttr(suborder, "paymentStatus"),
+            fulfillmentStatus: getAttr(suborder, "fulfillmentStatus"),
+            orderStatus: getAttr(parentOrder, "status"),
+            totalAmount: getAttr(suborder, "totalAmount"),
+            serviceFeeAmount: getAttr(suborder, "serviceFeeAmount"),
+            deliveredAt,
+            customerConfirmed: String(getAttr(parentOrder, "status") || "").toLowerCase() === "completed",
+        });
+    });
+    const deliveredSuborders = paidSuborders.filter((suborder, idx) => eligibilityRows[idx]?.code === "ELIGIBLE");
     const grossEligibleAmount = deliveredSuborders.reduce((sum, suborder) => sum + toNumber(getAttr(suborder, "totalAmount")), 0);
     const serviceFeeAmount = deliveredSuborders.reduce((sum, suborder) => sum + toNumber(getAttr(suborder, "serviceFeeAmount")), 0);
     const netEligibleAmount = Math.max(0, grossEligibleAmount - serviceFeeAmount);

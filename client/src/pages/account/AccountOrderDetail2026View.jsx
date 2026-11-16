@@ -338,6 +338,9 @@ export default function AccountOrderDetail2026View({
   const [isBuyingAgain, setIsBuyingAgain] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showConfirmReceiptModal, setShowConfirmReceiptModal] = useState(false);
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [returnReason, setReturnReason] = useState("DAMAGED");
+  const [returnNotes, setReturnNotes] = useState("");
   const [showChangePaymentModal, setShowChangePaymentModal] = useState(false);
   const [selectedPaymentCode, setSelectedPaymentCode] = useState("SP");
 
@@ -443,10 +446,22 @@ export default function AccountOrderDetail2026View({
 
   const isDigitalOrder = Boolean(shopee?.isDigitalOrder || shippingInfo?.isDigital);
   const isOrderPaid = !banner.isUnpaid && !banner.isCancelled;
+  const isCompleted =
+    Boolean(banner?.isCompleted) ||
+    /complete|selesai/i.test(
+      String(orderDetail?.status?.code || rawOrder?.status || banner?.title || "")
+    );
   const isDelivered =
-    /delivered|complete|selesai/i.test(
-      String(orderDetail?.status || rawOrder?.status || banner?.title || "")
-    ) || Boolean(banner?.isDelivered);
+    Boolean(banner?.isDelivered) ||
+    isCompleted ||
+    /delivered|tiba/i.test(
+      String(orderDetail?.status?.code || rawOrder?.status || banner?.title || "")
+    );
+
+  const returnPolicy = shopee?.returnPolicy || null;
+  const isReturnExpired = Boolean(returnPolicy?.isReturnExpired);
+  const canConfirmReceipt = isOrderPaid && isDelivered && !isCompleted;
+  const canRequestReturn = isOrderPaid && (isDelivered || isCompleted) && !isReturnExpired;
 
   const shippingAddress = shopee?.shippingAddress || {
     name: orderDetail.account?.customerName || "Pelanggan",
@@ -834,6 +849,90 @@ export default function AccountOrderDetail2026View({
           </div>
         </section>
 
+        {/* Jaminan & Kebijakan Pengembalian */}
+        {isOrderPaid && (isDelivered || isCompleted) && (
+          <section
+            className="tp-shopee-detail__card"
+            style={{
+              borderLeft: "4px solid #034c85",
+              background: "linear-gradient(135deg, rgba(3, 76, 133, 0.03) 0%, rgba(254, 111, 5, 0.03) 100%)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: "10px",
+                flexWrap: "wrap",
+                gap: "8px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <ShieldCheck size={18} style={{ color: "#034c85" }} />
+                <h3 style={{ margin: 0, fontSize: "0.92rem", fontWeight: 700, color: "#034c85" }}>
+                  {isIndo ? "Jaminan & Kebijakan Pengembalian" : "Return & Guarantee Policy"}
+                </h3>
+              </div>
+              <span
+                style={{
+                  fontSize: "0.72rem",
+                  fontWeight: 600,
+                  padding: "2px 8px",
+                  borderRadius: "999px",
+                  backgroundColor: isReturnExpired ? "#fee2e2" : "#e0f2fe",
+                  color: isReturnExpired ? "#b91c1c" : "#034c85",
+                }}
+              >
+                {isReturnExpired
+                  ? (isIndo ? "Batas Retur Berakhir" : "Return Window Expired")
+                  : (isIndo ? "Maksimal 7 Hari" : "Max 7 Days")}
+              </span>
+            </div>
+
+            <div style={{ fontSize: "0.82rem", color: "#334155", lineHeight: 1.55, display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                <Clock size={14} style={{ color: "#fe6f05", marginTop: "3px", flexShrink: 0 }} />
+                <span>
+                  {isIndo
+                    ? "Batas pengajuan pengembalian barang dan dana maksimal 7 hari (dan 2 hari untuk penjual tertentu) setelah pesanan tiba di aplikasi TP Preneurs."
+                    : "Return and refund requests are allowed within 7 days (or 2 days for specific sellers) after delivery."}
+                </span>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "8px",
+                  padding: "8px 10px",
+                  borderRadius: "6px",
+                  backgroundColor: "#fff7ed",
+                  border: "1px solid #fed7aa",
+                  color: "#9a3412",
+                  fontWeight: 500,
+                }}
+              >
+                <AlertTriangle size={14} style={{ color: "#fe6f05", marginTop: "2px", flexShrink: 0 }} />
+                <span>
+                  {isIndo
+                    ? "Pengembalian barang dan dana tidak bisa diajukan jika melewati batas waktu yang telah ditentukan."
+                    : "Return and refund requests cannot be submitted after the specified deadline has passed."}
+                </span>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: "0.78rem", color: "#64748b" }}>
+                <CheckCircle2 size={13} style={{ color: "#034c85", marginTop: "2px", flexShrink: 0 }} />
+                <span>
+                  {isIndo
+                    ? "Jika Anda tidak mengajukan pengembalian dalam 7 hari atau klik 'Pesanan Diterima', sistem otomatis menyelesaikan pesanan dan meneruskan dana ke Saldo Tersedia penjual."
+                    : "If you do not request a return within 7 days or confirm receipt, the system automatically completes the order and releases funds to the seller's available balance."}
+                </span>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* 5. Butuh Bantuan? */}
         <section className="tp-shopee-detail__card tp-shopee-detail__card--help">
           <h3 className="tp-shopee-detail__card-title tp-shopee-detail__card-title--pad">
@@ -841,16 +940,18 @@ export default function AccountOrderDetail2026View({
           </h3>
           <div className="tp-shopee-detail__help-list">
             {!isDigitalOrder && (
-              <Link
-                to={`/contact-us?topic=return&ref=${encodeURIComponent(orderMeta.orderNo)}`}
+              <button
+                type="button"
+                onClick={() => setShowReturnModal(true)}
                 className="tp-shopee-detail__help-item"
+                style={{ width: "100%", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
               >
                 <div className="tp-shopee-detail__help-left">
-                  <RotateCcw size={17} className="tp-shopee-detail__help-icon" />
+                  <RotateCcw size={17} className="tp-shopee-detail__help-icon" style={{ color: "#fe6f05" }} />
                   <span>{t.requestReturn}</span>
                 </div>
                 <ChevronRight size={16} className="tp-shopee-detail__chevron" />
-              </Link>
+              </button>
             )}
 
             <a
@@ -1038,7 +1139,8 @@ export default function AccountOrderDetail2026View({
             );
           })()}
 
-          {isOrderPaid && !isDelivered && onConfirmReceipt && (
+          {/* Action: Pesanan Diterima (Confirmation) */}
+          {canConfirmReceipt && onConfirmReceipt && (
             <button
               type="button"
               onClick={() => setShowConfirmReceiptModal(true)}
@@ -1057,6 +1159,19 @@ export default function AccountOrderDetail2026View({
                   <span>{isIndo ? "Pesanan Diterima" : "Order Received"}</span>
                 </>
               )}
+            </button>
+          )}
+
+          {/* Action: Ajukan Pengembalian (Return Request) */}
+          {canRequestReturn && (
+            <button
+              type="button"
+              onClick={() => setShowReturnModal(true)}
+              className="tp-shopee-detail__btn-outline"
+              style={{ borderColor: "#fe6f05", color: "#fe6f05", fontWeight: 600 }}
+            >
+              <RotateCcw size={14} />
+              <span>{isIndo ? "Ajukan Pengembalian" : "Request Return"}</span>
             </button>
           )}
 
@@ -1248,8 +1363,8 @@ export default function AccountOrderDetail2026View({
             </h3>
             <p className="tp-cancel-modal__desc">
               {isIndo
-                ? "Apakah Anda yakin telah menerima semua produk pesanan ini dalam kondisi baik? Setelah dikonfirmasi, transaksi akan diselesaikan dan saldo akan diteruskan ke penjual."
-                : "Are you sure you have received all items in good condition? Once confirmed, the transaction is marked as completed and funds will be released to the seller."}
+                ? "Apakah Anda yakin telah menerima semua produk pesanan ini dalam kondisi baik? Setelah dikonfirmasi, status pesanan akan selesai dan dana penjualan akan diteruskan ke Saldo Tersedia penjual."
+                : "Are you sure you have received all items in good condition? Once confirmed, the order is marked as completed and funds will be released to the seller's available balance."}
             </p>
             <div className="tp-cancel-modal__actions">
               <button
@@ -1278,6 +1393,190 @@ export default function AccountOrderDetail2026View({
                 ) : (
                   <span>{isIndo ? "Ya, Pesanan Diterima" : "Yes, Order Received"}</span>
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showReturnModal && (
+        <div
+          className="tp-cancel-modal-backdrop"
+          onClick={() => setShowReturnModal(false)}
+        >
+          <div
+            className="tp-cancel-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="tp-return-modal-title"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "480px" }}
+          >
+            <div className="tp-cancel-modal__header">
+              <div
+                className="tp-cancel-modal__icon-badge"
+                style={{ backgroundColor: "#fff7ed", borderColor: "#fed7aa", color: "#fe6f05" }}
+              >
+                <RotateCcw size={22} />
+              </div>
+              <button
+                type="button"
+                className="tp-cancel-modal__close-btn"
+                onClick={() => setShowReturnModal(false)}
+                aria-label="Tutup modal"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="tp-cancel-modal__content">
+              <h3 id="tp-return-modal-title" className="tp-cancel-modal__title">
+                {isIndo ? "Ajukan Pengembalian Barang & Dana" : "Request Return & Refund"}
+              </h3>
+              <div className="tp-cancel-modal__order-badge">
+                <span className="tp-cancel-modal__order-label">{t.orderNo}:</span>
+                <span className="tp-cancel-modal__order-code">{orderMeta.orderNo}</span>
+              </div>
+
+              <div
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: "8px",
+                  backgroundColor: "#fff7ed",
+                  border: "1px solid #fed7aa",
+                  color: "#9a3412",
+                  fontSize: "0.82rem",
+                  lineHeight: 1.5,
+                  marginBottom: "14px",
+                }}
+              >
+                <strong>{isIndo ? "Perhatian Penting: " : "Important Note: "}</strong>
+                {isIndo
+                  ? "Batas pengajuan pengembalian barang dan dana maksimal 7 hari (dan 2 hari untuk penjual tertentu) setelah pesanan tiba di aplikasi TP Preneurs. Pengembalian barang dan dana tidak bisa diajukan jika melewati batas waktu yang telah ditentukan."
+                  : "Return and refund requests are allowed within 7 days (or 2 days for specific sellers) after delivery. Returns cannot be submitted once the deadline has expired."}
+              </div>
+
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "0.82rem",
+                  fontWeight: 600,
+                  marginBottom: "6px",
+                  color: "#334155",
+                }}
+              >
+                {isIndo ? "Alasan Pengembalian:" : "Reason for Return:"}
+              </label>
+              <select
+                value={returnReason}
+                onChange={(e) => setReturnReason(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "9px 12px",
+                  borderRadius: "8px",
+                  border: "1px solid #cbd5e1",
+                  fontSize: "0.85rem",
+                  marginBottom: "12px",
+                  backgroundColor: "#ffffff",
+                  color: "#0f172a",
+                }}
+              >
+                <option value="DAMAGED">
+                  {isIndo ? "Barang rusak atau cacat saat diterima" : "Item damaged or defective upon arrival"}
+                </option>
+                <option value="NOT_MATCH">
+                  {isIndo ? "Produk tidak sesuai foto / deskripsi" : "Product doesn't match description or photo"}
+                </option>
+                <option value="INCOMPLETE">
+                  {isIndo ? "Jumlah barang kurang / paket tidak lengkap" : "Incomplete package / missing items"}
+                </option>
+                <option value="WRONG_ITEM">
+                  {isIndo ? "Salah kirim barang atau beda varian" : "Wrong item or different variant received"}
+                </option>
+                <option value="OTHER">
+                  {isIndo ? "Kendala pengiriman lainnya" : "Other shipping issue"}
+                </option>
+              </select>
+
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "0.82rem",
+                  fontWeight: 600,
+                  marginBottom: "6px",
+                  color: "#334155",
+                }}
+              >
+                {isIndo ? "Rincian / Catatan Tambahan (Opsional):" : "Additional Notes (Optional):"}
+              </label>
+              <textarea
+                value={returnNotes}
+                onChange={(e) => setReturnNotes(e.target.value)}
+                rows={3}
+                placeholder={
+                  isIndo
+                    ? "Jelaskan kendala produk yang Anda temukan secara singkat..."
+                    : "Briefly describe the issue encountered with the product..."
+                }
+                style={{
+                  width: "100%",
+                  padding: "9px 12px",
+                  borderRadius: "8px",
+                  border: "1px solid #cbd5e1",
+                  fontSize: "0.85rem",
+                  marginBottom: "16px",
+                  resize: "vertical",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+
+            <div
+              className="tp-cancel-modal__actions"
+              style={{ display: "flex", gap: "8px", justifyContent: "flex-end", flexWrap: "wrap" }}
+            >
+              <button
+                type="button"
+                className="tp-cancel-modal__btn-back"
+                onClick={() => setShowReturnModal(false)}
+              >
+                {isIndo ? "Batal" : "Cancel"}
+              </button>
+              <a
+                href={
+                  buildStoreWhatsAppUrl({
+                    whatsappNumber: storeProducts.storeWhatsapp,
+                    orderRef: orderMeta.orderNo,
+                    storeName: storeProducts.storeName,
+                    orderDate: orderDetail?.order?.placedAt,
+                    paymentMethod: orderMeta.paymentMethod,
+                    totalAmount: storeProducts.summary?.total,
+                    items: storeProducts.items,
+                    isIndo,
+                  }) +
+                  `%0A%0A*Pengajuan%20Pengembalian*%3A%20${encodeURIComponent(returnReason)}%0A*Catatan*%3A%20${encodeURIComponent(returnNotes || "-")}`
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="tp-cancel-modal__btn-confirm"
+                style={{ backgroundColor: "#25D366", borderColor: "#25D366" }}
+                onClick={() => setShowReturnModal(false)}
+              >
+                <MessageCircle size={15} />
+                <span>{isIndo ? "Hubungi Penjual (WA)" : "Contact Seller (WA)"}</span>
+              </a>
+              <button
+                type="button"
+                className="tp-cancel-modal__btn-confirm"
+                style={{ backgroundColor: "#fe6f05", borderColor: "#fe6f05" }}
+                onClick={() => {
+                  setShowReturnModal(false);
+                  navigate(
+                    `/contact-us?topic=return&ref=${encodeURIComponent(orderMeta.orderNo)}&reason=${encodeURIComponent(returnReason)}&notes=${encodeURIComponent(returnNotes)}`
+                  );
+                }}
+              >
+                <span>{isIndo ? "Kirim ke CS Prioritas" : "Submit to CS Support"}</span>
               </button>
             </div>
           </div>

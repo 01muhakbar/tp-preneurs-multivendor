@@ -2822,11 +2822,11 @@ router.post(
       }
 
       const currentStatus = String((order as any).status || "").toLowerCase().trim();
-      if (currentStatus === "delivered" || currentStatus === "completed" || currentStatus === "complete") {
+      if (currentStatus === "completed" || currentStatus === "complete") {
         return res.json({
           success: true,
-          message: "Pesanan sudah berstatus diterima.",
-          data: { orderId, status: "delivered" },
+          message: "Pesanan sudah berstatus selesai dikonfirmasi.",
+          data: { orderId, status: "completed" },
         });
       }
 
@@ -2837,9 +2837,9 @@ router.post(
         });
       }
 
-      // 1. Update Order status to delivered
+      // 1. Update Order status to completed
       await order.update({
-        status: "delivered",
+        status: "completed",
       });
 
       // 2. Update all active Suborders to DELIVERED
@@ -2874,18 +2874,19 @@ router.post(
         await TrackingEvent.create({
           shipmentId: sh.id,
           eventType: "DELIVERED",
-          eventLabel: "Pesanan Diterima",
-          eventDescription: "Pesanan telah dikonfirmasi diterima oleh pembeli.",
+          eventLabel: "Pesanan Diterima oleh Pembeli",
+          eventDescription: "Pembeli telah mengonfirmasi bahwa pesanan telah diterima dengan baik. Transaksi selesai dan dana penjualan diteruskan ke Saldo Toko penjual.",
+          source: "CLIENT",
           occurredAt: new Date(),
         }).catch(() => { });
       }
 
       return res.json({
         success: true,
-        message: "Konfirmasi penerimaan pesanan berhasil. Terima kasih!",
+        message: "Konfirmasi penerimaan pesanan berhasil. Terima kasih! Dana penjualan telah diteruskan ke toko penjual.",
         data: {
           orderId,
-          status: "delivered",
+          status: "completed",
           fulfillmentStatus: "DELIVERED",
         },
       });

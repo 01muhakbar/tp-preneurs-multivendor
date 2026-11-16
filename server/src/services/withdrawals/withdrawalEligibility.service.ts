@@ -11,6 +11,8 @@ type BuildWithdrawalEligibilityInput = {
   orderStatus?: unknown;
   totalAmount?: unknown;
   serviceFeeAmount?: unknown;
+  deliveredAt?: unknown;
+  customerConfirmed?: boolean;
 };
 
 const toUpper = (value: unknown, fallback = "") =>
@@ -81,21 +83,58 @@ export const buildWithdrawalEligibilityMeta = (input: BuildWithdrawalEligibility
     );
   }
 
-  if (fulfillmentStatus !== "DELIVERED") {
+  const isDelivered =
+    fulfillmentStatus === "DELIVERED" ||
+    orderStatus === "delivered" ||
+    orderStatus === "completed";
+
+  if (!isDelivered) {
     return buildMeta(
       "WAITING_DELIVERY",
       "Paid, waiting delivery",
-      "Payment is paid, but seller available balance increases only after Order Status is Delivered.",
+      "Payment is paid, but seller available balance increases only after Order is Delivered and confirmed.",
       "amber",
       input
     );
   }
 
+  // 1. If buyer explicitly confirmed receipt or order is marked completed
+  const isCustomerConfirmed = Boolean(input.customerConfirmed || orderStatus === "completed");
+  if (isCustomerConfirmed) {
+    return buildMeta(
+      "ELIGIBLE",
+      "Pesanan selesai & dikonfirmasi",
+      "Pesanan telah dikonfirmasi diterima oleh pembeli. Saldo tersedia untuk ditarik.",
+      "green",
+      input
+    );
+  }
+
+  // 2. If delivered, check if 7-day auto-release window has elapsed
+  const deliveredDate = input.deliveredAt ? new Date(input.deliveredAt as any) : null;
+  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+  const isAutoReleaseEligible = Boolean(
+    deliveredDate &&
+      !Number.isNaN(deliveredDate.getTime()) &&
+      Date.now() - deliveredDate.getTime() >= SEVEN_DAYS_MS
+  );
+
+  if (isAutoReleaseEligible) {
+    return buildMeta(
+      "ELIGIBLE",
+      "Penyelesaian otomatis 7 hari",
+      "Pesanan telah melewati batas waktu 7 hari sejak tiba tanpa pengajuan retur. Saldo otomatis tersedia untuk ditarik.",
+      "green",
+      input
+    );
+  }
+
+  // 3. Otherwise, order arrived but awaiting customer confirmation or 7 days timeout
   return buildMeta(
-    "ELIGIBLE",
-    "Delivered, available for withdrawal",
-    "This paid and delivered order can increase seller available balance.",
-    "green",
+    "WAITING_DELIVERY",
+    "Menunggu konfirmasi pembeli",
+    "Pesanan telah tiba di tujuan. Saldo akan otomatis bertambah ke Saldo Tersedia setelah pembeli mengklik 'Pesanan Diterima' atau otomatis setelah 7 hari.",
+    "amber",
     input
   );
 };

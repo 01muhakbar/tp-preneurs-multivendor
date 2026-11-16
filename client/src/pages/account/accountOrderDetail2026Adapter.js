@@ -941,25 +941,37 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false, is
   );
   const availableActions = normalizeAvailableActions(contract);
 
-  const isDelivered =
+  const isCompleted =
     orderStatus.code === "COMPLETED" ||
+    orderStatus.raw === "completed" ||
+    source.status === "completed" ||
+    grouped.status === "completed";
+
+  const isDelivered =
+    isCompleted ||
     orderStatus.code === "DELIVERED" ||
+    orderStatus.raw === "delivered" ||
+    source.status === "delivered" ||
     shipmentStatus.code === "DELIVERED" ||
     truthStatus.isDelivered;
 
   const isShipping =
-    orderStatus.code === "SHIPPED" ||
-    orderStatus.code === "IN_DELIVERY" ||
-    shipmentStatus.code === "SHIPPED" ||
-    shipmentStatus.code === "IN_DELIVERY";
+    !isDelivered && (
+      orderStatus.code === "SHIPPED" ||
+      orderStatus.code === "IN_DELIVERY" ||
+      shipmentStatus.code === "SHIPPED" ||
+      shipmentStatus.code === "IN_DELIVERY"
+    );
 
   const isPacking = isPaymentSuccessReturn
     ? (!isDelivered && !isShipping)
     : (
-        orderStatus.code === "PROCESSING" ||
-        orderStatus.code === "READY_TO_FULFILL" ||
-        orderStatus.code === "TO_PACK" ||
-        shipmentStatus.code === "READY_TO_FULFILL"
+        !isDelivered &&
+        !isShipping &&
+        (orderStatus.code === "PROCESSING" ||
+          orderStatus.code === "READY_TO_FULFILL" ||
+          orderStatus.code === "TO_PACK" ||
+          shipmentStatus.code === "READY_TO_FULFILL")
       );
 
   const isUnpaid = isPaymentSuccessReturn
@@ -991,7 +1003,7 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false, is
         orderStatus.code === "DELIVERED" ||
         orderStatus.code === "COMPLETED"));
 
-  const bannerTone = isDelivered
+  const bannerTone = (isCompleted || isDelivered)
     ? "success"
     : isShipping || isPacking
       ? "blue"
@@ -1003,33 +1015,41 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false, is
             ? "danger"
             : "neutral";
 
-  const bannerTitle = isDelivered
+  const bannerTitle = isCompleted
     ? isIndo ? "Pesanan Selesai" : "Order Completed"
-    : isShipping
-      ? isIndo ? "Pesanan Sedang Dikirim" : "Order in Transit"
-      : isPacking
-        ? isIndo ? "Pesanan Sedang Dikemas" : "Order is Being Packed"
-        : isPaymentSuccessReturn
-          ? isIndo ? "Pembayaran Terverifikasi" : "Payment Verified"
-          : isUnpaid
-            ? isIndo ? "Menunggu Pembayaran" : "Awaiting Payment"
-            : isCancelled
-              ? isIndo ? "Pesanan Dibatalkan" : "Order Cancelled"
-              : orderStatus.label;
+    : isDelivered
+      ? isIndo ? "Pesanan Telah Tiba di Tujuan" : "Order Arrived at Destination"
+      : isShipping
+        ? isIndo ? "Pesanan Sedang Dikirim" : "Order in Transit"
+        : isPacking
+          ? isIndo ? "Pesanan Sedang Dikemas" : "Order is Being Packed"
+          : isPaymentSuccessReturn
+            ? isIndo ? "Pembayaran Terverifikasi" : "Payment Verified"
+            : isUnpaid
+              ? isIndo ? "Menunggu Pembayaran" : "Awaiting Payment"
+              : isCancelled
+                ? isIndo ? "Pesanan Dibatalkan" : "Order Cancelled"
+                : orderStatus.label;
 
-  const bannerSubnote = isDelivered
-    ? isIndo ? "Pesanan telah diterima dengan baik di alamat tujuan." : "Order has safely arrived at destination address."
-    : isShipping
-      ? isIndo ? "Paket sedang dalam perjalanan bersama kurir pengiriman." : "Package is in transit with the delivery courier."
-      : isPacking
-        ? isIndo ? "Penjual sedang menyiapkan barang pesanan Anda." : "Seller is packing and preparing your order."
-        : isPaymentSuccessReturn
-          ? isIndo ? "Pembayaran telah berhasil diterima. Penjual segera mengemas pesanan Anda." : "Payment confirmed. Seller is preparing your order."
-          : isUnpaid
-            ? isIndo ? "Silakan selesaikan pembayaran sebelum batas waktu berakhir." : "Please complete payment before timeout."
-            : isCancelled
-              ? isIndo ? "Pesanan ini telah dibatalkan." : "This order has been cancelled."
-              : "";
+  const bannerSubnote = isCompleted
+    ? isIndo
+      ? "Pesanan telah selesai dan diterima dengan baik oleh pembeli. Terima kasih telah berbelanja di TP Preneurs!"
+      : "Order completed and confirmed received by buyer. Thank you for shopping with TP Preneurs!"
+    : isDelivered
+      ? isIndo
+        ? "Paket pesanan telah tiba di alamat tujuan. Silakan periksa barang Anda dan klik 'Pesanan Diterima' jika pesanan sesuai, atau ajukan pengembalian sebelum batas waktu berakhir."
+        : "Package has arrived at destination address. Please check your items and click 'Order Received' if satisfied, or request return/refund before deadline."
+      : isShipping
+        ? isIndo ? "Paket sedang dalam perjalanan bersama kurir pengiriman." : "Package is in transit with the delivery courier."
+        : isPacking
+          ? isIndo ? "Penjual sedang menyiapkan barang pesanan Anda." : "Seller is packing and preparing your order."
+          : isPaymentSuccessReturn
+            ? isIndo ? "Pembayaran telah berhasil diterima. Penjual segera mengemas pesanan Anda." : "Payment confirmed. Seller is preparing your order."
+            : isUnpaid
+              ? isIndo ? "Silakan selesaikan pembayaran sebelum batas waktu berakhir." : "Please complete payment before timeout."
+              : isCancelled
+                ? isIndo ? "Pesanan ini telah dibatalkan." : "This order has been cancelled."
+                : "";
 
   // Synchronize 100% with public tracking page (/order/:ref)
   let tracking2026 = null;
@@ -1233,6 +1253,23 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false, is
     ? (isPaid ? (isIndo ? "Tautan unduhan dan instruksi akses telah tersedia di akun Anda." : "Download link and access instructions are available in your account.") : (isIndo ? "Selesaikan pembayaran untuk membuka akses unduhan file digital Anda." : "Complete payment to unlock your digital files."))
     : shippingStatusDesc;
 
+  // Return window policy: max 7 days after delivery (or 2 days for specific store settings)
+  const returnWindowDays = 7;
+  const storeReturnDays = Number(source.store?.returnWindowDays || source.returnWindowDays || 2);
+  const deliveryTimestamp = realDeliveredAt ? new Date(realDeliveredAt).getTime() : Date.now();
+  const returnDeadlineTime = deliveryTimestamp + returnWindowDays * 24 * 60 * 60 * 1000;
+  const isReturnExpired = Date.now() > returnDeadlineTime;
+  const returnDeadlineDisplay = formatDateTime(new Date(returnDeadlineTime), isIndo);
+
+  const returnPolicy = {
+    returnWindowDays,
+    storeReturnDays,
+    isReturnExpired,
+    returnDeadlineDisplay,
+    deliveryDateDisplay: realDeliveredAt ? formatDateTime(realDeliveredAt, isIndo) : "-",
+    canRequestReturn: isPaid && isDelivered && !isReturnExpired,
+  };
+
   const shopeeDetail = {
     isDigitalOrder,
     hasDigitalItems,
@@ -1241,11 +1278,14 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false, is
       tone: isDigitalOrder && isPaid ? "green" : bannerTone,
       subnote: resolvedBannerSubnote,
       isDelivered: isDigitalOrder ? isPaid : isDelivered,
+      isCompleted: isDigitalOrder ? isPaid : isCompleted,
+      canConfirmReceipt: isPaid && isDelivered && !isCompleted,
       isShipping: isDigitalOrder ? false : isShipping,
       isPacking: isDigitalOrder ? false : isPacking,
       isUnpaid,
       isCancelled,
     },
+    returnPolicy,
     shippingInfo: {
       courier: resolvedCourier,
       trackingNumber: resolvedTrackingNumber,

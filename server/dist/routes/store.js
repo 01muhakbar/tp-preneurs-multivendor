@@ -2431,11 +2431,11 @@ router.post("/orders/my/:id/confirm-receipt", protect, async (req, res, next) =>
             return res.status(404).json({ success: false, message: "Pesanan tidak ditemukan." });
         }
         const currentStatus = String(order.status || "").toLowerCase().trim();
-        if (currentStatus === "delivered" || currentStatus === "completed" || currentStatus === "complete") {
+        if (currentStatus === "completed" || currentStatus === "complete") {
             return res.json({
                 success: true,
-                message: "Pesanan sudah berstatus diterima.",
-                data: { orderId, status: "delivered" },
+                message: "Pesanan sudah berstatus selesai dikonfirmasi.",
+                data: { orderId, status: "completed" },
             });
         }
         if (currentStatus === "cancelled") {
@@ -2444,9 +2444,9 @@ router.post("/orders/my/:id/confirm-receipt", protect, async (req, res, next) =>
                 message: "Pesanan yang dibatalkan tidak dapat dikonfirmasi diterima.",
             });
         }
-        // 1. Update Order status to delivered
+        // 1. Update Order status to completed
         await order.update({
-            status: "delivered",
+            status: "completed",
         });
         // 2. Update all active Suborders to DELIVERED
         await Suborder.update({
@@ -2472,17 +2472,18 @@ router.post("/orders/my/:id/confirm-receipt", protect, async (req, res, next) =>
             await TrackingEvent.create({
                 shipmentId: sh.id,
                 eventType: "DELIVERED",
-                eventLabel: "Pesanan Diterima",
-                eventDescription: "Pesanan telah dikonfirmasi diterima oleh pembeli.",
+                eventLabel: "Pesanan Diterima oleh Pembeli",
+                eventDescription: "Pembeli telah mengonfirmasi bahwa pesanan telah diterima dengan baik. Transaksi selesai dan dana penjualan diteruskan ke Saldo Toko penjual.",
+                source: "CLIENT",
                 occurredAt: new Date(),
             }).catch(() => { });
         }
         return res.json({
             success: true,
-            message: "Konfirmasi penerimaan pesanan berhasil. Terima kasih!",
+            message: "Konfirmasi penerimaan pesanan berhasil. Terima kasih! Dana penjualan telah diteruskan ke toko penjual.",
             data: {
                 orderId,
-                status: "delivered",
+                status: "completed",
                 fulfillmentStatus: "DELIVERED",
             },
         });

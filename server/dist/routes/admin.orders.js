@@ -12,6 +12,7 @@ import { Suborder } from "../models/Suborder.js";
 import { SuborderItem } from "../models/SuborderItem.js";
 import { TrackingEvent } from "../models/TrackingEvent.js";
 import { createUserOrderStatusUpdatedNotification } from "../services/notification.service.js";
+import { sendOrderDeliveredEmail } from "../services/orderNotificationEmail.service.js";
 import { inspectParentOrderFinalizationEligibility, recalculateParentOrderFulfillmentStatus, resolveParentOrderFulfillmentStatus, resolveParentPaymentStatus, } from "../services/orderPaymentAggregation.service.js";
 import { resolveBuyerFacingPaymentStatus } from "../services/paymentCheckoutView.service.js";
 import { buildAction, buildAdminOrderContract, buildFulfillmentStatusMeta, buildPaymentStatusMeta, } from "../services/orderLifecycleContract.service.js";
@@ -1698,6 +1699,28 @@ router.patch("/:id/status", requireStaffOrAdmin, async (req, res) => {
                         status: { [Op.in]: ["SHIPPED", "IN_TRANSIT", "OUT_FOR_DELIVERY"] },
                     },
                 });
+                try {
+                    const customerUser = await User.findByPk(Number(getAttr(existingOrder, "userId")), {
+                        attributes: ["id", "name", "email"],
+                    });
+                    const recipientEmail = String(getAttr(customerUser, "email") || "").trim();
+                    if (recipientEmail) {
+                        void sendOrderDeliveredEmail({
+                            recipientEmail,
+                            recipientName: String(getAttr(customerUser, "name") || getAttr(existingOrder, "customerName") || "Pelanggan").trim(),
+                            orderNumber: String(getAttr(existingOrder, "invoiceNo") || "").trim(),
+                            totalAmount: Number(getAttr(existingOrder, "totalAmount") || 0),
+                            deliveryDate: new Date(),
+                            courierName: "Kurir Pengiriman",
+                            trackingNumber: "-",
+                            returnWindowDays: 7,
+                            storeReturnDays: 2,
+                        });
+                    }
+                }
+                catch (emailErr) {
+                    console.warn("[admin.orders] delivery email dispatch warning", emailErr);
+                }
             }
         }
         catch (syncErr) {

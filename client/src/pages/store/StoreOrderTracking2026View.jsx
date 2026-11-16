@@ -357,6 +357,56 @@ export default function StoreOrderTracking2026View({
           </div>
         </section>
 
+        {/* Next Step / Action Card for Delivered Orders */}
+        {(tracking.activeStepIndex === 2 || tracking.isDelivered) && (
+          <section
+            className="tp-track-card"
+            style={{
+              padding: "16px 20px",
+              borderLeft: "4px solid #034c85",
+              background: "linear-gradient(135deg, rgba(3, 76, 133, 0.05) 0%, rgba(254, 111, 5, 0.05) 100%)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: "14px",
+            }}
+          >
+            <div style={{ flex: "1 1 260px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                <CheckCircle2 size={18} style={{ color: "#034c85" }} />
+                <strong style={{ fontSize: "0.95rem", color: "#034c85" }}>
+                  {isIndo ? "Paket Telah Tiba di Alamat Tujuan" : "Package Arrived at Destination"}
+                </strong>
+              </div>
+              <p style={{ margin: 0, fontSize: "0.82rem", color: "#475569", lineHeight: 1.5 }}>
+                {isIndo
+                  ? "Silakan periksa produk Anda. Buka Halaman Rincian Pesanan untuk mengonfirmasi 'Pesanan Diterima' atau 'Ajukan Pengembalian' (maks. 7 hari setelah tiba)."
+                  : "Please inspect your items. Open Order Details to confirm 'Order Received' or 'Request Return' (max 7 days after delivery)."}
+              </p>
+            </div>
+            <LinkComponent
+              to={tracking.orderDetailUrl || "/user/my-orders"}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "8px 16px",
+                borderRadius: "10px",
+                backgroundColor: "#034c85",
+                color: "#ffffff",
+                fontSize: "0.85rem",
+                fontWeight: 600,
+                textDecoration: "none",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <span>{isIndo ? "Konfirmasi di Rincian Pesanan" : "Confirm in Order Details"}</span>
+              <ChevronRight size={15} />
+            </LinkComponent>
+          </section>
+        )}
+
         {/* 4. Linimasa Pengiriman (Vertical Tracking Timeline) */}
         <section className="tp-track-card tp-track-timeline-card">
           <div className="tp-track-timeline">

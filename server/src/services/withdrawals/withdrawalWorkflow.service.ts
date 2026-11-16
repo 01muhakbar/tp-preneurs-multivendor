@@ -1,6 +1,8 @@
 import { Op, Transaction } from "sequelize";
 import {
+  Order,
   sequelize,
+  Shipment,
   StoreAuditLog,
   StorePaymentProfile,
   StoreWithdrawal,
@@ -135,26 +137,56 @@ export const calculateWithdrawalBalance = async (storeIdInput: number, options: 
       paymentStatus: "PAID",
       fulfillmentStatus: { [Op.ne]: "CANCELLED" },
     } as any,
-    attributes: ["id", "totalAmount", "serviceFeeAmount", "paymentStatus", "fulfillmentStatus"],
+    attributes: [
+      "id",
+      "orderId",
+      "totalAmount",
+      "serviceFeeAmount",
+      "paymentStatus",
+      "fulfillmentStatus",
+      "updatedAt",
+      "createdAt",
+    ],
+    include: [
+      {
+        model: Order,
+        as: "order",
+        attributes: ["id", "status", "updatedAt", "createdAt"],
+        required: false,
+      },
+      {
+        model: Shipment,
+        as: "shipment",
+        attributes: ["id", "status", "updatedAt", "createdAt"],
+        required: false,
+      },
+    ],
     transaction: options.transaction,
     lock: options.lock,
   } as any);
 
-  const eligibilityRows = paidSuborders.map((suborder) =>
-    buildWithdrawalEligibilityMeta({
+  const eligibilityRows = paidSuborders.map((suborder: any) => {
+    const parentOrder = suborder.order ?? suborder.get?.("order") ?? null;
+    const shipment = suborder.shipment ?? suborder.get?.("shipment") ?? null;
+    const deliveredAt =
+      getAttr(shipment, "updatedAt") ||
+      getAttr(suborder, "updatedAt") ||
+      getAttr(parentOrder, "updatedAt") ||
+      getAttr(suborder, "createdAt");
+
+    return buildWithdrawalEligibilityMeta({
       paymentStatus: getAttr(suborder, "paymentStatus"),
       fulfillmentStatus: getAttr(suborder, "fulfillmentStatus"),
+      orderStatus: getAttr(parentOrder, "status"),
       totalAmount: getAttr(suborder, "totalAmount"),
       serviceFeeAmount: getAttr(suborder, "serviceFeeAmount"),
-    })
-  );
+      deliveredAt,
+      customerConfirmed: String(getAttr(parentOrder, "status") || "").toLowerCase() === "completed",
+    });
+  });
+
   const deliveredSuborders = paidSuborders.filter(
-    (suborder) => buildWithdrawalEligibilityMeta({
-      paymentStatus: getAttr(suborder, "paymentStatus"),
-      fulfillmentStatus: getAttr(suborder, "fulfillmentStatus"),
-      totalAmount: getAttr(suborder, "totalAmount"),
-      serviceFeeAmount: getAttr(suborder, "serviceFeeAmount"),
-    }).code === "ELIGIBLE"
+    (suborder: any, idx: number) => eligibilityRows[idx]?.code === "ELIGIBLE"
   );
 
   const grossEligibleAmount = deliveredSuborders.reduce(

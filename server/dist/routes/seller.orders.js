@@ -3,6 +3,7 @@ import { Router } from "express";
 import requireSellerStoreAccess from "../middleware/requireSellerStoreAccess.js";
 import { sellerHasPermission } from "../services/seller/resolveSellerAccess.js";
 import { createUserOrderStatusUpdatedNotification } from "../services/notification.service.js";
+import { sendOrderDeliveredEmail } from "../services/orderNotificationEmail.service.js";
 import { recalculateParentOrderFulfillmentStatus } from "../services/orderPaymentAggregation.service.js";
 import { expireOverduePaymentsForOrder } from "../services/paymentExpiry.service.js";
 import { buildGroupedPaymentReadModel } from "../services/groupedPaymentReadModel.service.js";
@@ -2213,6 +2214,37 @@ router.patch("/stores/:storeId/suborders/:suborderId/fulfillment", requireSeller
             }
             catch (notifyError) {
                 console.warn("[seller/orders:fulfillment] failed to create user status notification", notifyError);
+            }
+        }
+        if (actionDefinition.code === "MARK_DELIVERED") {
+            try {
+                const buyer = refreshedOrder?.customer ?? refreshedOrder?.get?.("customer") ?? null;
+                const buyerEmail = String(getAttr(buyer, "email") || "").trim();
+                const buyerName = String(getAttr(buyer, "name") || getAttr(refreshedOrder, "customerName") || "Pelanggan").trim();
+                const invoiceNo = String(getAttr(refreshedOrder, "invoiceNo") || "").trim() ||
+                    String(getAttr(refreshed, "suborderNumber") || "").trim();
+                const storeRecord = req.sellerAccess?.store ?? (await Store.findByPk(storeId, { attributes: ["name"] }));
+                const storeName = String(getAttr(storeRecord, "name") || "TP Preneurs Store").trim();
+                const courierCode = String(getAttr(shipmentSync?.shipment, "courierCode") || "").trim();
+                const courierService = String(getAttr(shipmentSync?.shipment, "courierService") || "").trim();
+                const trackingNumber = String(getAttr(shipmentSync?.shipment, "trackingNumber") || "").trim();
+                if (buyerEmail) {
+                    void sendOrderDeliveredEmail({
+                        recipientEmail: buyerEmail,
+                        recipientName: buyerName,
+                        orderNumber: invoiceNo,
+                        storeName,
+                        totalAmount: toNumber(getAttr(refreshed, "totalAmount"), 0),
+                        deliveryDate: new Date(),
+                        courierName: [courierCode, courierService].filter(Boolean).join(" - ") || "Kurir Pengiriman",
+                        trackingNumber: trackingNumber || "-",
+                        returnWindowDays: 7,
+                        storeReturnDays: 2,
+                    });
+                }
+            }
+            catch (emailError) {
+                console.warn("[seller/orders:fulfillment] failed to send delivery email", emailError);
             }
         }
         const successMessage = parentOrderSync?.changed
