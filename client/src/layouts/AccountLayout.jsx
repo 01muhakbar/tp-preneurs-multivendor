@@ -397,16 +397,16 @@ export default function AccountLayout() {
     () => [
       {
         to: "/user/dashboard",
-        label:
-          String(dashboardSettingCopy?.dashboard?.dashboardLabel || "").trim() ||
-          (isId ? "Dasbor" : "Dashboard"),
+        label: isId
+          ? "Dasbor"
+          : (String(dashboardSettingCopy?.dashboard?.dashboardLabel || "").trim() || "Dashboard"),
         Icon: LayoutDashboard,
       },
       {
         to: "/user/my-orders",
-        label:
-          String(dashboardSettingCopy?.dashboard?.myOrderValue || "").trim() ||
-          (isId ? "Pesanan Saya" : "My Orders"),
+        label: isId
+          ? "Pesanan Saya"
+          : (String(dashboardSettingCopy?.dashboard?.myOrderValue || "").trim() || "My Orders"),
         Icon: ClipboardList,
       },
       {
@@ -432,9 +432,9 @@ export default function AccountLayout() {
       },
       {
         to: "/user/update-profile",
-        label:
-          String(dashboardSettingCopy?.updateProfile?.sectionTitleValue || "").trim() ||
-          (isId ? "Perbarui Profil" : "Update Profile"),
+        label: isId
+          ? "Perbarui Profil"
+          : (String(dashboardSettingCopy?.updateProfile?.sectionTitleValue || "").trim() || "Update Profile"),
         Icon: User,
       },
       {
@@ -444,9 +444,9 @@ export default function AccountLayout() {
       },
       {
         to: "/user/change-password",
-        label:
-          String(dashboardSettingCopy?.updateProfile?.changePasswordLabel || "").trim() ||
-          (isId ? "Ubah Kata Sandi" : "Change Password"),
+        label: isId
+          ? "Ubah Kata Sandi"
+          : (String(dashboardSettingCopy?.updateProfile?.changePasswordLabel || "").trim() || "Change Password"),
         Icon: KeyRound,
       },
     ],

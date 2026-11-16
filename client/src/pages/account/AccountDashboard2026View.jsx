@@ -56,7 +56,7 @@ const DASHBOARD_I18N = {
   en: {
     overviewTag: "ACCOUNT OVERVIEW",
     dashboardTitle: "Dashboard",
-    welcome: "Welcome back, {{name}}. Here's what's happening with your account.",
+    welcome: "Welcome back, {{name}}.",
     totalOrders: "Total Orders",
     allOrders: "All orders",
     pendingOrders: "Pending Orders",
@@ -67,7 +67,7 @@ const DASHBOARD_I18N = {
     done: "Done",
 
     startSelling: "Start Selling",
-    startSellingDesc: "Complete your store details and submit them for review.",
+    startSellingDesc: "Complete store details and submit for review.",
     readyWhenYouAre: "Ready when you are",
     fieldsCompleted: "{{completed}} of {{total}} fields completed",
     openWorkspace: "Open Workspace",
@@ -98,10 +98,9 @@ const DASHBOARD_I18N = {
     startShopping: "Start shopping",
 
     tableOrderId: "ORDER ID",
-    tableDateTime: "DATE & TIME",
+    tableDateTime: "DATE",
     tableMethod: "METHOD",
     tableStatus: "STATUS",
-    tableShipping: "SHIPPING",
     tableTotal: "TOTAL",
     tableAction: "ACTION",
 
@@ -128,15 +127,11 @@ const DASHBOARD_I18N = {
     descCancelled: "This application was cancelled.",
     descReady: "Your seller access is ready. Open workspace to manage your store.",
     descDefault: "Complete the required details before you submit.",
-
-    needHelp: "Need Help?",
-    helpSubtitle: "Customer Support & Hub: +62821-8866-824 (24/7 Available)",
-    contactSupport: "Contact Support",
   },
   id: {
     overviewTag: "RINGKASAN AKUN",
     dashboardTitle: "Dashboard",
-    welcome: "Selamat datang kembali, {{name}}. Berikut ringkasan aktivitas akun Anda.",
+    welcome: "Selamat datang kembali, {{name}}.",
     totalOrders: "Total Pesanan",
     allOrders: "Semua pesanan",
     pendingOrders: "Menunggu Diproses",
@@ -178,10 +173,9 @@ const DASHBOARD_I18N = {
     startShopping: "Mulai belanja",
 
     tableOrderId: "ID PESANAN",
-    tableDateTime: "TANGGAL & WAKTU",
+    tableDateTime: "TANGGAL",
     tableMethod: "METODE",
     tableStatus: "STATUS",
-    tableShipping: "ONGKIR",
     tableTotal: "TOTAL",
     tableAction: "AKSI",
 
@@ -208,10 +202,6 @@ const DASHBOARD_I18N = {
     descCancelled: "Pendaftaran toko ini telah dibatalkan.",
     descReady: "Akses penjual Anda telah siap. Buka workspace untuk mengelola toko.",
     descDefault: "Lengkapi informasi yang diperlukan sebelum mengirimkan.",
-
-    needHelp: "Butuh Bantuan?",
-    helpSubtitle: "Layanan Pelanggan & Hub: +62821-8866-824 (Tersedia 24/7)",
-    contactSupport: "Hubungi Bantuan",
   },
 };
 
@@ -454,13 +444,12 @@ function RecentOrders({ orders = [], loading, isId, title }) {
           <table>
             <thead>
               <tr>
-                <th>{dict.tableOrderId}</th>
-                <th>{dict.tableDateTime}</th>
-                <th>{dict.tableMethod}</th>
-                <th>{dict.tableStatus}</th>
-                <th>{dict.tableShipping}</th>
-                <th>{dict.tableTotal}</th>
-                <th>{dict.tableAction}</th>
+                <th className="tp-th-order">{dict.tableOrderId}</th>
+                <th className="tp-th-date">{dict.tableDateTime}</th>
+                <th className="tp-th-method">{dict.tableMethod}</th>
+                <th className="tp-th-total">{dict.tableTotal}</th>
+                <th className="tp-th-status">{dict.tableStatus}</th>
+                <th className="tp-th-action">{dict.tableAction}</th>
               </tr>
             </thead>
             <tbody>
@@ -474,7 +463,6 @@ function RecentOrders({ orders = [], loading, isId, title }) {
                   orderDateVal
                 );
                 const reference = compactOrderNo && compactOrderNo !== "-" ? compactOrderNo : rawReference;
-                const shipping = order.shipping ?? order.shippingAmount ?? order.deliveryFee ?? null;
                 const total = order.totalAmount ?? order.total ?? 0;
                 const orderTarget = compactOrderNo && compactOrderNo !== "-" ? compactOrderNo : (orderId ? String(orderId) : null);
                 const detailHref = orderTarget ? `/user/my-orders/${encodeURIComponent(orderTarget)}` : null;
@@ -482,17 +470,16 @@ function RecentOrders({ orders = [], loading, isId, title }) {
 
                 return (
                   <tr key={orderId || reference}>
-                    <td data-label="Order ID" className="tp-order-ref-cell">{reference}</td>
-                    <td data-label="Date & Time">{formatDateTime(getOrderDateValue(order), isId)}</td>
-                    <td data-label="Method">{order.paymentMethod || order.method || "–"}</td>
-                    <td data-label="Status">
+                    <td data-label={dict.tableOrderId} className="tp-order-ref-cell">{reference}</td>
+                    <td data-label={dict.tableDateTime} className="tp-order-date-cell">{formatDateTime(getOrderDateValue(order), isId)}</td>
+                    <td data-label={dict.tableMethod} className="tp-order-method-cell">{order.paymentMethod || order.method || "–"}</td>
+                    <td data-label={dict.tableTotal} className="tp-order-total-cell">{money(total)}</td>
+                    <td data-label={dict.tableStatus} className="tp-order-status-cell">
                       <StatusPill label={statusLabel} tone={getOrderTone(truthStatus)} />
                     </td>
-                    <td data-label="Shipping">{shipping == null || shipping === "" ? "–" : money(shipping)}</td>
-                    <td data-label="Total" className="tp-order-total-cell">{money(total)}</td>
-                    <td data-label="Action">
+                    <td data-label={dict.tableAction} className="tp-order-action-cell">
                       {detailHref ? (
-                        <Link className="tp-recent-orders__view" to={detailHref} aria-label={`View order ${reference}`}>
+                        <Link className="tp-recent-orders__view" to={detailHref} aria-label={`${dict.view} ${reference}`}>
                           <Eye aria-hidden="true" />
                         </Link>
                       ) : (
@@ -588,18 +575,24 @@ export default function AccountDashboard2026View({
   const dict = isId ? DASHBOARD_I18N.id : DASHBOARD_I18N.en;
   const name = user?.name || user?.fullName || user?.email?.split("@")[0] || "User";
 
-  const totalOrdersLabel =
-    String(dashboardSettingCopy?.dashboard?.totalOrdersLabel || "").trim() || dict.totalOrders;
-  const pendingOrdersLabel =
-    String(dashboardSettingCopy?.dashboard?.pendingOrderValue || "").trim() || dict.pendingOrders;
-  const processingOrdersLabel =
-    String(dashboardSettingCopy?.dashboard?.processingOrderValue || "").trim() || dict.processingOrders;
-  const completedOrdersLabel =
-    String(dashboardSettingCopy?.dashboard?.completeOrderValue || "").trim() || dict.completedOrders;
-  const recentOrdersTitle =
-    String(dashboardSettingCopy?.dashboard?.recentOrderValue || "").trim() || dict.recentOrders;
-  const dashboardTitle =
-    String(dashboardSettingCopy?.dashboard?.sectionTitle || "").trim() || dict.dashboardTitle;
+  const totalOrdersLabel = isId
+    ? dict.totalOrders
+    : (String(dashboardSettingCopy?.dashboard?.totalOrdersLabel || "").trim() || dict.totalOrders);
+  const pendingOrdersLabel = isId
+    ? dict.pendingOrders
+    : (String(dashboardSettingCopy?.dashboard?.pendingOrderValue || "").trim() || dict.pendingOrders);
+  const processingOrdersLabel = isId
+    ? dict.processingOrders
+    : (String(dashboardSettingCopy?.dashboard?.processingOrderValue || "").trim() || dict.processingOrders);
+  const completedOrdersLabel = isId
+    ? dict.completedOrders
+    : (String(dashboardSettingCopy?.dashboard?.completeOrderValue || "").trim() || dict.completedOrders);
+  const recentOrdersTitle = isId
+    ? dict.recentOrders
+    : (String(dashboardSettingCopy?.dashboard?.recentOrderValue || "").trim() || dict.recentOrders);
+  const dashboardTitle = isId
+    ? dict.dashboardTitle
+    : (String(dashboardSettingCopy?.dashboard?.sectionTitle || "").trim() || dict.dashboardTitle);
 
   const statCards = [
     [totalOrdersLabel, stats.total, dict.allOrders, ShoppingBag, "navy"],
@@ -698,20 +691,6 @@ export default function AccountDashboard2026View({
         isId={isId}
         title={recentOrdersTitle}
       />
-
-      {/* 24/7 Help & Support Banner */}
-      <aside className="tp-account-dashboard-2026__help">
-        <div className="tp-account-dashboard-2026__help-icon">
-          <Headphones aria-hidden="true" />
-        </div>
-        <div className="tp-account-dashboard-2026__help-content">
-          <strong>{dict.needHelp}</strong>
-          <span>{dict.helpSubtitle}</span>
-        </div>
-        <Link to="/contact-us?topic=account" className="tp-dashboard-button tp-dashboard-button--help">
-          {dict.contactSupport} <ArrowRight aria-hidden="true" />
-        </Link>
-      </aside>
     </div>
   );
 }
