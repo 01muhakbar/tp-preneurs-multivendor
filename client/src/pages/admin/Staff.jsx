@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import {
+  ArrowRight,
   CheckCheck,
   CheckCircle2,
   ClipboardCheck,
@@ -754,9 +755,13 @@ export default function AdminStaffPage() {
                             )}
                           </div>
                           <div className="staff-user-info">
-                            <span className="staff-user-name" title={staffName}>
+                            <Link
+                              to={`/admin/all-accounts/${staff.id}`}
+                              className="staff-user-name"
+                              title={staffName}
+                            >
                               {staffName}
-                            </span>
+                            </Link>
                             <div className="staff-user-sub">
                               <span title={staffEmail}>{staffEmail}</span>
                               {staffPhone !== "-" && (
@@ -843,14 +848,13 @@ export default function AdminStaffPage() {
                             </Link>
                           )}
 
-                          <button
-                            type="button"
-                            onClick={() => openViewModal(staff)}
+                          <Link
+                            to={`/admin/all-accounts/${staff.id}`}
                             className="staff-action-icon-btn"
-                            title={isId ? "Lihat Detail" : "View Detail"}
+                            title={isId ? "Lihat Detail Akun" : "View Account Detail"}
                           >
                             <Eye size={14} />
-                          </button>
+                          </Link>
 
                           <button
                             type="button"
@@ -903,7 +907,12 @@ export default function AdminStaffPage() {
                         )}
                       </div>
                       <div className="staff-user-info">
-                        <span className="staff-user-name">{staffName}</span>
+                        <Link
+                          to={`/admin/all-accounts/${staff.id}`}
+                          className="staff-user-name"
+                        >
+                          {staffName}
+                        </Link>
                         <span className="staff-user-sub">{staffEmail}</span>
                       </div>
                     </div>
@@ -974,13 +983,13 @@ export default function AdminStaffPage() {
                         </Link>
                       )}
 
-                      <button
-                        type="button"
-                        onClick={() => openViewModal(staff)}
+                      <Link
+                        to={`/admin/all-accounts/${staff.id}`}
                         className="staff-action-icon-btn"
+                        title={isId ? "Lihat Detail Akun" : "View Account Detail"}
                       >
                         <Eye size={14} />
-                      </button>
+                      </Link>
 
                       <button
                         type="button"
@@ -1183,6 +1192,54 @@ export default function AdminStaffPage() {
                   </p>
                 </div>
               )}
+            </div>
+
+            {/* MODAL FOOTER */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 10,
+                padding: "12px 20px",
+                borderTop: "1px solid var(--staff-border-subtle)",
+                background: "var(--staff-surface-soft)",
+              }}
+            >
+              <button
+                type="button"
+                onClick={closeViewModal}
+                style={{
+                  background: "transparent",
+                  border: "1px solid var(--staff-border)",
+                  borderRadius: "var(--staff-radius-sm)",
+                  padding: "7px 14px",
+                  fontSize: "0.8rem",
+                  color: "var(--staff-muted)",
+                  cursor: "pointer",
+                }}
+              >
+                {isId ? "Tutup" : "Close"}
+              </button>
+              <Link
+                to={`/admin/all-accounts/${viewTarget.id}`}
+                onClick={closeViewModal}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  background: "var(--staff-primary)",
+                  color: "#ffffff",
+                  textDecoration: "none",
+                  borderRadius: "var(--staff-radius-sm)",
+                  padding: "7px 14px",
+                  fontSize: "0.8rem",
+                  fontWeight: 600,
+                }}
+              >
+                <span>{isId ? "Buka Halaman Lengkap" : "View Full Page"}</span>
+                <ArrowRight size={13} />
+              </Link>
             </div>
           </div>
         </div>

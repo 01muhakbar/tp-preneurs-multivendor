@@ -497,6 +497,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 0.825rem;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+a.staff-user-name:hover {
+  color: var(--staff-primary);
+  text-decoration: underline;
 }
 
 .staff-user-sub {

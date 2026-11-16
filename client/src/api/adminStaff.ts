@@ -113,6 +113,11 @@ export async function fetchStaff(params: StaffQuery = {}): Promise<StaffListResp
   return data;
 }
 
+export async function fetchStaffById(id: string | number): Promise<StaffItem> {
+  const { data } = await api.get(`/admin/staff/${id}`);
+  return data as StaffItem;
+}
+
 export async function createStaff(payload: CreateStaffPayload): Promise<StaffItem> {
   const { data } = await api.post("/admin/staff", buildStaffFormData(payload), {
     headers: { "Content-Type": "multipart/form-data" },

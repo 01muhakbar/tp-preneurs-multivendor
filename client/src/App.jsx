@@ -101,6 +101,9 @@ const AdminStaffPage = lazy(() => import("./pages/admin/Staff.jsx"));
 const AdminCreateStaffPage = lazy(() =>
   import("./pages/admin/AdminCreateStaffPage.jsx")
 );
+const AdminAccountDetailPage = lazy(() =>
+  import("./pages/admin/AdminAccountDetailPage.jsx")
+);
 const AdminForbiddenPage = lazy(() => import("./pages/admin/Forbidden.jsx"));
 const AccountLayout = lazy(() => import("./layouts/AccountLayout.jsx"));
 const AccountDashboardPage = lazy(() => import("./pages/account/AccountDashboardPage.jsx"));
@@ -219,6 +222,12 @@ const AdminStorePaymentProfilesPage = lazy(() =>
 function LegacyAccountOrderDetailRedirect() {
   const { id } = useParams();
   const target = id ? `/user/my-orders/${id}` : "/user/my-orders";
+  return <Navigate to={target} replace />;
+}
+
+function LegacyAdminAccountDetailRedirect() {
+  const { id } = useParams();
+  const target = id ? `/admin/all-accounts/${id}` : "/admin/all-accounts";
   return <Navigate to={target} replace />;
 }
 
@@ -816,6 +825,22 @@ export default function App() {
                 element={
                   <RequirePerm perm="STAFF_MANAGE">
                     <AdminStaffPage />
+                  </RequirePerm>
+                }
+              />
+              <Route
+                path="all-accounts/:id"
+                element={
+                  <RequirePerm perm="STAFF_MANAGE">
+                    <AdminAccountDetailPage />
+                  </RequirePerm>
+                }
+              />
+              <Route
+                path="accounts/:id"
+                element={
+                  <RequirePerm perm="STAFF_MANAGE">
+                    <LegacyAdminAccountDetailRedirect />
                   </RequirePerm>
                 }
               />
