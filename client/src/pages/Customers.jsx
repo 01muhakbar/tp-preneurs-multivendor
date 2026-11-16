@@ -99,19 +99,19 @@ const getCustomerInitials = (name) => {
 function CustomerStatusBadge({ status, isId = false }) {
   const styles = {
     active:
-      "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
+      "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/80 dark:bg-emerald-950/40 dark:text-emerald-300",
     inactive:
       "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400",
     blocked:
-      "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300",
+      "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800/80 dark:bg-rose-950/40 dark:text-rose-300",
     pending_verification:
-      "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300",
+      "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800/80 dark:bg-amber-950/40 dark:text-amber-300",
   };
   const dots = {
     active: "bg-emerald-500",
     inactive: "bg-slate-400",
     blocked: "bg-rose-500",
-    pending_verification: "bg-amber-500",
+    pending_verification: "bg-amber-500 animate-pulse",
   };
   const labels = {
     active: isId ? "Aktif" : "Active",
@@ -494,10 +494,10 @@ export default function Customers() {
         </div>
       </div>
 
-      {/* 4 KPI Summary Cards */}
+      {/* 4 KPI Summary Cards (Refined with Top Accent Borders) */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {/* Card 1: Total Customers */}
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/90 border-t-2 border-t-[#034c85] bg-white p-4 shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:border-t-[#034c85] dark:bg-slate-900">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               {isId ? "Total Pelanggan" : "Total Customers"}
@@ -516,7 +516,7 @@ export default function Customers() {
         </div>
 
         {/* Card 2: Active Customers */}
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/90 border-t-2 border-t-emerald-500 bg-white p-4 shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:border-t-emerald-500 dark:bg-slate-900">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               {isId ? "Pelanggan Aktif" : "Active Customers"}
@@ -535,7 +535,7 @@ export default function Customers() {
         </div>
 
         {/* Card 3: Total Orders Placed */}
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/90 border-t-2 border-t-[#fe6f05] bg-white p-4 shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:border-t-[#fe6f05] dark:bg-slate-900">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               {isId ? "Total Pesanan" : "Total Orders"}
@@ -554,12 +554,12 @@ export default function Customers() {
         </div>
 
         {/* Card 4: Pending / Disabled */}
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/90 border-t-2 border-t-amber-500 bg-white p-4 shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:border-t-amber-500 dark:bg-slate-900">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               {isId ? "Menunggu / Nonaktif" : "Pending / Disabled"}
             </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-500/10 text-slate-600 dark:bg-slate-500/20 dark:text-slate-400">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
               <ShieldAlert className="h-5 w-5" />
             </div>
           </div>
@@ -820,10 +820,10 @@ export default function Customers() {
                       key={id || `${name}-${getCustomerEmail(customer)}`}
                       className="transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/50"
                     >
-                      {/* Column 1: Customer (Avatar, Name, Role badge, #ID, Joined Date) */}
+                      {/* Column 1: Customer (Luminous Avatar, Name, Role badge, #ID, Joined Date) */}
                       <td className={tableCell}>
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#034c85] to-[#022e53] text-xs font-bold text-white shadow-sm shadow-[#034c85]/20">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#034c85]/40 bg-gradient-to-br from-[#034c85] to-[#0a4d80] text-xs font-bold text-white shadow-sm shadow-[#034c85]/25 ring-1 ring-white/10 dark:from-[#034c85] dark:to-[#023b68]">
                             {getCustomerInitials(name)}
                           </div>
                           <div className="min-w-0 flex-1">
@@ -844,7 +844,7 @@ export default function Customers() {
                               <RoleBadge role={role} />
                             </div>
                             <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
-                              <span className="rounded bg-[#034c85]/10 px-1.5 py-0.2 font-mono font-bold text-[#034c85] dark:bg-[#034c85]/20 dark:text-[#38bdf8]">
+                              <span className="rounded bg-[#034c85]/10 px-1.5 py-0.2 font-mono font-bold text-[#034c85] dark:bg-[#034c85]/25 dark:text-[#38bdf8]">
                                 #{getShortId(customer)}
                               </span>
                               <span>•</span>
@@ -854,16 +854,30 @@ export default function Customers() {
                         </div>
                       </td>
 
-                      {/* Column 2: Contact (Email & Phone) */}
+                      {/* Column 2: Contact (Email & Phone with Clickable Links) */}
                       <td className={tableCell}>
                         <div className="min-w-0 space-y-0.5">
                           <div className="flex items-center gap-1.5 text-xs font-medium text-slate-800 dark:text-slate-200" title={getCustomerEmail(customer)}>
                             <Mail className="h-3 w-3 shrink-0 text-slate-400" />
-                            <span className="truncate">{getCustomerEmail(customer)}</span>
+                            <a
+                              href={`mailto:${getCustomerEmail(customer)}`}
+                              className="truncate hover:text-[#034c85] dark:hover:text-[#38bdf8] transition-colors"
+                            >
+                              {getCustomerEmail(customer)}
+                            </a>
                           </div>
                           <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-mono">
                             <Phone className="h-3 w-3 shrink-0 text-slate-400" />
-                            <span className="truncate">{getCustomerPhone(customer)}</span>
+                            {getCustomerPhone(customer) !== "-" ? (
+                              <a
+                                href={`tel:${getCustomerPhone(customer)}`}
+                                className="truncate hover:text-[#034c85] dark:hover:text-[#38bdf8] transition-colors"
+                              >
+                                {getCustomerPhone(customer)}
+                              </a>
+                            ) : (
+                              <span className="truncate">-</span>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -876,7 +890,7 @@ export default function Customers() {
                             className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-bold transition hover:scale-[1.02] ${
                               orderCount > 0
                                 ? "border-[#fe6f05]/30 bg-[#fe6f05]/10 text-[#fe6f05] hover:bg-[#fe6f05]/20"
-                                : "border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
+                                : "border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
                             }`}
                             title={isId ? `Lihat ${orderCount} pesanan` : `View ${orderCount} orders`}
                           >
@@ -908,11 +922,11 @@ export default function Customers() {
                             }
                           />
 
-                          {/* View Customer Details */}
+                          {/* View Customer Details (Themed Deep Navy #034c85) */}
                           {id ? (
                             <Link
                               to={`/admin/customers/${id}`}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-[#034c85] hover:bg-[#034c85]/10 hover:text-[#034c85] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-[#034c85] dark:hover:text-[#38bdf8]"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-[#034c85] hover:bg-[#034c85]/10 hover:text-[#034c85] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-[#034c85] dark:hover:bg-[#034c85]/20 dark:hover:text-[#38bdf8]"
                               title={isId ? "Lihat profil pelanggan" : "View customer details"}
                               aria-label={isId ? "Lihat profil" : "View details"}
                             >
@@ -920,19 +934,19 @@ export default function Customers() {
                             </Link>
                           ) : null}
 
-                          {/* Edit Customer */}
+                          {/* Edit Customer (Themed Vibrant Orange #fe6f05) */}
                           <button
                             type="button"
                             onClick={() => openEdit(customer)}
                             disabled={!canMutateCustomers || !id}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-[#034c85] hover:bg-[#034c85]/10 hover:text-[#034c85] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-[#034c85] dark:hover:text-[#38bdf8]"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-[#fe6f05] hover:bg-[#fe6f05]/10 hover:text-[#fe6f05] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-[#fe6f05] dark:hover:bg-[#fe6f05]/20 dark:hover:text-[#fe6f05]"
                             title={isId ? "Edit data pelanggan" : "Edit customer"}
                             aria-label={isId ? "Edit data pelanggan" : "Edit customer"}
                           >
                             <Pencil className="h-4 w-4" />
                           </button>
 
-                          {/* Delete Customer */}
+                          {/* Delete Customer (Themed Rose Red) */}
                           <button
                             type="button"
                             onClick={() => {
@@ -940,7 +954,7 @@ export default function Customers() {
                               setDeleteModalError("");
                             }}
                             disabled={!canMutateCustomers || !id}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-rose-400 dark:hover:bg-rose-950/30"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-rose-400 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-rose-500/50 dark:hover:bg-rose-950/40 dark:hover:text-rose-400"
                             title={isId ? "Hapus pelanggan" : "Delete customer"}
                             aria-label={isId ? "Hapus pelanggan" : "Delete customer"}
                           >
@@ -969,7 +983,7 @@ export default function Customers() {
                 <div key={id || `${name}-${getCustomerEmail(customer)}`} className="p-4 space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#034c85] to-[#022e53] text-xs font-bold text-white shadow-sm shadow-[#034c85]/20">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#034c85]/40 bg-gradient-to-br from-[#034c85] to-[#0a4d80] text-xs font-bold text-white shadow-sm shadow-[#034c85]/20 ring-1 ring-white/10 dark:from-[#034c85] dark:to-[#023b68]">
                         {getCustomerInitials(name)}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -1030,7 +1044,7 @@ export default function Customers() {
                       {id ? (
                         <Link
                           to={`/admin/customers/${id}`}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-[#034c85] hover:text-[#034c85] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-[#034c85] dark:hover:text-[#38bdf8]"
                           title={isId ? "Lihat profil" : "View profile"}
                         >
                           <Eye className="h-3.5 w-3.5" />
@@ -1039,7 +1053,7 @@ export default function Customers() {
                       <button
                         type="button"
                         onClick={() => openEdit(customer)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-[#fe6f05] hover:text-[#fe6f05] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-[#fe6f05] dark:hover:text-[#fe6f05]"
                         title={isId ? "Edit" : "Edit"}
                       >
                         <Pencil className="h-3.5 w-3.5" />
@@ -1050,7 +1064,7 @@ export default function Customers() {
                           setDeleteTarget(customer);
                           setDeleteModalError("");
                         }}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 dark:border-slate-700 dark:bg-slate-800 dark:text-rose-400"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 hover:border-rose-400 dark:border-slate-700 dark:bg-slate-800 dark:text-rose-400"
                         title={isId ? "Hapus" : "Delete"}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -1139,7 +1153,7 @@ export default function Customers() {
                 {/* Identity Summary Card */}
                 {editTarget ? (
                   <div className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-3.5 dark:border-slate-800 dark:bg-slate-800/40">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#034c85] to-[#022e53] text-sm font-bold text-white shadow-md shadow-[#034c85]/20">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#034c85]/40 bg-gradient-to-br from-[#034c85] to-[#0a4d80] text-sm font-bold text-white shadow-md shadow-[#034c85]/20 ring-1 ring-white/10 dark:from-[#034c85] dark:to-[#023b68]">
                       {getCustomerInitials(getCustomerName(editTarget))}
                     </div>
                     <div className="min-w-0 flex-1">
