@@ -607,6 +607,7 @@ export default function SellerSuborderDetail2026PageView({
   const t = isIndo ? I18N.id : I18N.en;
   const Link = LinkComponent;
   const [validationError, setValidationError] = useState("");
+  const [isEditingShipping, setIsEditingShipping] = useState(false);
   const trackingInputRef = useRef(null);
   const couriersList = order?.shipping?.couriersList || INDONESIA_COURIERS;
 
@@ -717,7 +718,6 @@ export default function SellerSuborderDetail2026PageView({
   const isShipped = bucket === "shipping" || fulfillmentCode === "SHIPPED";
   const isDelivered = bucket === "completed" || fulfillmentCode === "DELIVERED";
 
-  const [isEditingShipping, setIsEditingShipping] = useState(false);
   const rawTrackingNumber = String(order.shipping?.trackingNo || "").trim();
   const hasRecordedTracking = Boolean(
     rawTrackingNumber &&
