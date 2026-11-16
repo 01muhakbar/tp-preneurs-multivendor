@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   Clock,
   Copy,
-  ExternalLink,
   Eye,
   PackageSearch,
   RotateCcw,
@@ -22,11 +21,17 @@ import {
   fetchAdminCustomer,
   fetchAdminCustomerOrders,
 } from "../../lib/adminApi.js";
-import { ORDER_STATUS_OPTIONS } from "../../constants/orderStatus.js";
 import { formatCurrency } from "../../utils/format.js";
 import { getOrderTruthStatus } from "../../utils/orderTruth.js";
 
-const STATUS_OPTIONS = ORDER_STATUS_OPTIONS;
+const STATUS_FILTER_ITEMS = [
+  { value: "", labelEn: "All Status", labelId: "Semua Status" },
+  { value: "pending", labelEn: "Pending", labelId: "Menunggu" },
+  { value: "processing", labelEn: "Processing", labelId: "Diproses" },
+  { value: "shipping", labelEn: "In Transit", labelId: "Dalam Pengiriman" },
+  { value: "complete", labelEn: "Delivered", labelId: "Selesai" },
+  { value: "cancelled", labelEn: "Cancelled", labelId: "Dibatalkan" },
+];
 
 const STATUS_STYLES = {
   pending: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300",
@@ -35,14 +40,13 @@ const STATUS_STYLES = {
   cancelled: "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300",
   refunded: "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-300",
   delivered: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
-  shipped: "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-300",
-  complete: "border-[#034c85]/20 bg-[#034c85]/10 text-[#034c85] dark:border-[#034c85]/40 dark:bg-[#034c85]/20 dark:text-[#38bdf8]",
+  complete: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
   shipping: "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-300",
 };
 
 const tableHeadCell =
-  "whitespace-nowrap px-4 py-3.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400";
-const tableCell = "px-4 py-3.5 align-middle text-sm text-slate-700 dark:text-slate-200";
+  "px-3.5 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 select-none";
+const tableCell = "px-3.5 py-3 align-middle text-sm text-slate-700 dark:text-slate-200";
 
 const normalizeOrdersResponse = (res) => {
   const root = res?.data ?? res;
@@ -62,20 +66,36 @@ const normalizeOrdersResponse = (res) => {
 const orderInvoice = (order) =>
   order?.invoiceNo || order?.invoice || order?.ref || `#${order?.id}`;
 
-const formatDate = (value, isId = false) => {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat(isId ? "id-ID" : "en-US", {
-    day: "2-digit",
+const formatDateParts = (value, isId = false) => {
+  if (!value) return { dateStr: "-", timeStr: "" };
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return { dateStr: "-", timeStr: "" };
+
+  const dateStr = new Intl.DateTimeFormat(isId ? "id-ID" : "en-US", {
+    day: "numeric",
     month: "short",
     year: "numeric",
+  }).format(d);
+
+  const timeStr = new Intl.DateTimeFormat(isId ? "id-ID" : "en-US", {
     hour: "2-digit",
     minute: "2-digit",
-  }).format(date);
+    hour12: !isId,
+  }).format(d);
+
+  return { dateStr, timeStr };
 };
 
-const toText = (value) => String(value ?? "").trim();
+const formatPaymentMethod = (method) => {
+  const m = String(method || "").trim().toLowerCase();
+  if (!m) return null;
+  if (m.includes("duitku")) return "Duitku POP";
+  if (m === "cod") return "COD";
+  if (m === "stripe") return "Stripe";
+  if (m.includes("qris")) return "QRIS";
+  if (m.includes("va") || m.includes("virtual")) return "Virtual Account";
+  return method;
+};
 
 const getCustomerInitials = (name) => {
   const clean = String(name || "").trim();
@@ -87,17 +107,74 @@ const getCustomerInitials = (name) => {
   return clean.slice(0, 2).toUpperCase();
 };
 
-function OrderStatusBadge({ order, isId = false }) {
+const getLocalizedTruthStatus = (order, isId) => {
   const status = getOrderTruthStatus(order);
-  const key = status.bucket;
+  const bucket = status.bucket || "pending";
+  let label = status.label;
+
+  if (isId) {
+    switch (bucket) {
+      case "pending":
+        label = "Menunggu";
+        break;
+      case "processing":
+        label = "Diproses";
+        break;
+      case "shipping":
+        label = "Dalam Pengiriman";
+        break;
+      case "complete":
+      case "delivered":
+        label = "Selesai";
+        break;
+      case "cancelled":
+        label = "Dibatalkan";
+        break;
+      case "refunded":
+        label = "Dikembalikan";
+        break;
+      default:
+        label = status.label || "Diproses";
+    }
+  } else {
+    switch (bucket) {
+      case "pending":
+        label = "Pending";
+        break;
+      case "processing":
+        label = "Processing";
+        break;
+      case "shipping":
+        label = "In Transit";
+        break;
+      case "complete":
+      case "delivered":
+        label = "Delivered";
+        break;
+      case "cancelled":
+        label = "Cancelled";
+        break;
+      case "refunded":
+        label = "Refunded";
+        break;
+      default:
+        label = status.label || "Processing";
+    }
+  }
+
+  return { bucket, label };
+};
+
+function OrderStatusBadge({ order, isId = false }) {
+  const { bucket, label } = getLocalizedTruthStatus(order, isId);
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold tracking-wide ${
-        STATUS_STYLES[key] || STATUS_STYLES.pending
+        STATUS_STYLES[bucket] || STATUS_STYLES.pending
       }`}
     >
       <span className="h-1.5 w-1.5 rounded-full bg-current" />
-      {status.label}
+      <span>{label}</span>
     </span>
   );
 }
@@ -108,14 +185,14 @@ function PaymentStatusBadge({ paymentStatus, isId = false }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold tracking-wide ${
         isPaid
           ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
           : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
       }`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${isPaid ? "bg-emerald-500" : "bg-amber-500"}`} />
-      {isPaid ? (isId ? "Sudah Dibayar" : "Paid") : (isId ? "Belum Dibayar" : "Unpaid")}
+      <span>{isPaid ? (isId ? "Lunas" : "Paid") : (isId ? "Belum Bayar" : "Unpaid")}</span>
     </span>
   );
 }
@@ -123,7 +200,24 @@ function PaymentStatusBadge({ paymentStatus, isId = false }) {
 export default function AdminCustomerOrdersPage() {
   const { id } = useParams();
   const { i18n } = useTranslation("admin");
-  const isId = String(i18n.language || "").toLowerCase().startsWith("id");
+  const [, setLangSync] = useState(0);
+
+  useEffect(() => {
+    const handleSync = () => setLangSync((v) => v + 1);
+    i18n?.on?.("languageChanged", handleSync);
+    window.addEventListener("storage", handleSync);
+    window.addEventListener("store_language_changed", handleSync);
+    return () => {
+      i18n?.off?.("languageChanged", handleSync);
+      window.removeEventListener("storage", handleSync);
+      window.removeEventListener("store_language_changed", handleSync);
+    };
+  }, [i18n]);
+
+  const isId =
+    String(i18n.language || "").toLowerCase().startsWith("id") ||
+    String(localStorage.getItem("admin_locale_lang") || "").toLowerCase().startsWith("id") ||
+    String(localStorage.getItem("store_language") || "").toLowerCase().startsWith("id");
 
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -246,16 +340,16 @@ export default function AdminCustomerOrdersPage() {
       <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-start gap-3.5">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#034c85] to-[#022e53] text-sm font-bold text-white shadow-md shadow-[#034c85]/20 sm:h-14 sm:w-14 sm:text-base">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#034c85] via-[#02365e] to-[#fe6f05] text-sm font-bold text-white shadow-md shadow-[#034c85]/20 sm:h-14 sm:w-14 sm:text-base border border-white/20">
               {getCustomerInitials(customer.name)}
             </div>
             <div className="min-w-0 space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                  Admin / {isId ? "Pelanggan" : "Customers"} / {isId ? "Pesanan" : "Orders"}
+                  ADMIN / {isId ? "PELANGGAN" : "CUSTOMERS"} / {isId ? "PESANAN" : "ORDERS"}
                 </span>
               </div>
-              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-2xl">
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-2xl truncate">
                 {customer.name || (isId ? "Pelanggan" : "Customer")}
               </h1>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
@@ -278,7 +372,7 @@ export default function AdminCustomerOrdersPage() {
           <div className="flex flex-wrap items-center gap-2">
             <Link
               to="/admin/customers"
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 transition hover:border-[#034c85] hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               <span>{isId ? "Kembali ke Pelanggan" : "Back to Customers"}</span>
@@ -288,7 +382,7 @@ export default function AdminCustomerOrdersPage() {
               className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[#034c85]/20 bg-[#034c85]/5 px-3.5 text-xs font-semibold text-[#034c85] transition hover:bg-[#034c85]/10 dark:border-[#034c85]/40 dark:bg-[#034c85]/20 dark:text-[#38bdf8]"
             >
               <User className="h-3.5 w-3.5" />
-              <span>{isId ? "Lihat Detail Profil" : "View Customer Detail"}</span>
+              <span>{isId ? "Detail Pelanggan" : "Customer Detail"}</span>
             </Link>
           </div>
         </div>
@@ -311,7 +405,7 @@ export default function AdminCustomerOrdersPage() {
           </div>
           <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
             <span className="h-1.5 w-1.5 rounded-full bg-[#034c85]" />
-            <span>{isId ? "Seluruh transaksi akun" : "All account transactions"}</span>
+            <span>{isId ? "Semua pesanan" : "All orders"}</span>
           </div>
         </div>
 
@@ -330,7 +424,7 @@ export default function AdminCustomerOrdersPage() {
           </div>
           <div className="mt-1 flex items-center gap-1.5 text-xs text-[#fe6f05]">
             <span className="h-1.5 w-1.5 rounded-full bg-[#fe6f05]" />
-            <span>{isId ? "Akumulasi nilai pesanan" : "Lifetime order value"}</span>
+            <span>{isId ? "Total transaksi" : "Lifetime spent"}</span>
           </div>
         </div>
 
@@ -349,7 +443,7 @@ export default function AdminCustomerOrdersPage() {
           </div>
           <div className="mt-1 flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            <span>{isId ? "Transaksi sukses terkirim" : "Successfully delivered"}</span>
+            <span>{isId ? "Berhasil terkirim" : "Delivered"}</span>
           </div>
         </div>
 
@@ -368,7 +462,7 @@ export default function AdminCustomerOrdersPage() {
           </div>
           <div className="mt-1 flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
             <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-            <span>{isId ? "Sedang berjalan/diproses" : "Active / awaiting fulfillment"}</span>
+            <span>{isId ? "Dalam proses" : "In progress"}</span>
           </div>
         </div>
       </div>
@@ -415,10 +509,9 @@ export default function AdminCustomerOrdersPage() {
                 onChange={(event) => setStatus(event.target.value)}
                 className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 transition focus:border-[#034c85] focus:outline-none focus:ring-2 focus:ring-[#034c85]/15 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
               >
-                <option value="">{isId ? "Semua Status" : "All Status"}</option>
-                {STATUS_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option.charAt(0).toUpperCase() + option.slice(1)}
+                {STATUS_FILTER_ITEMS.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {isId ? item.labelId : item.labelEn}
                   </option>
                 ))}
               </select>
@@ -461,7 +554,7 @@ export default function AdminCustomerOrdersPage() {
           <span className="font-semibold text-slate-800 dark:text-slate-200">{orders.length}</span>{" "}
           {isId ? "dari" : "of"}{" "}
           <span className="font-semibold text-slate-800 dark:text-slate-200">{total}</span>{" "}
-          {isId ? "data pesanan" : "order records"}
+          {isId ? "pesanan" : "orders"}
         </div>
 
         {/* Loading / Error / Empty / Table States */}
@@ -494,27 +587,27 @@ export default function AdminCustomerOrdersPage() {
           </div>
         ) : (
           <>
-            {/* Desktop Table View */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full min-w-[920px] text-left text-sm">
+            {/* Desktop Table View - Compact 100% width, NO horizontal scrollbar */}
+            <div className="hidden md:block overflow-hidden">
+              <table className="w-full text-left text-sm table-fixed">
                 <thead className="border-b border-slate-200 bg-slate-50/90 dark:border-slate-800 dark:bg-slate-800/60">
                   <tr>
-                    <th className={`${tableHeadCell} w-[24%]`}>
+                    <th className={`${tableHeadCell} w-[26%]`}>
                       {isId ? "Nomor Faktur" : "Invoice"}
                     </th>
-                    <th className={`${tableHeadCell} w-[18%]`}>
+                    <th className={`${tableHeadCell} w-[16%]`}>
                       {isId ? "Tanggal" : "Date"}
                     </th>
                     <th className={`${tableHeadCell} w-[20%]`}>
                       {isId ? "Total & Metode" : "Total & Method"}
                     </th>
-                    <th className={`${tableHeadCell} w-[14%]`}>
+                    <th className={`${tableHeadCell} w-[15%]`}>
                       {isId ? "Pembayaran" : "Payment"}
                     </th>
-                    <th className={`${tableHeadCell} w-[14%]`}>
+                    <th className={`${tableHeadCell} w-[15%]`}>
                       {isId ? "Status Pesanan" : "Order Status"}
                     </th>
-                    <th className={`${tableHeadCell} w-[10%] text-right`}>
+                    <th className={`${tableHeadCell} w-[8%] text-right`}>
                       {isId ? "Aksi" : "Action"}
                     </th>
                   </tr>
@@ -523,6 +616,8 @@ export default function AdminCustomerOrdersPage() {
                   {orders.map((order) => {
                     const invoice = orderInvoice(order);
                     const invoiceUrl = `/admin/orders/${encodeURIComponent(order.invoiceNo || order.invoice || order.id)}`;
+                    const { dateStr, timeStr } = formatDateParts(order.createdAt, isId);
+                    const method = formatPaymentMethod(order.paymentMethod);
 
                     return (
                       <tr
@@ -531,39 +626,43 @@ export default function AdminCustomerOrdersPage() {
                       >
                         {/* Invoice & Copy */}
                         <td className={tableCell}>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 min-w-0">
                             <Link
                               to={invoiceUrl}
-                              className="font-mono text-xs font-bold text-[#034c85] hover:underline dark:text-[#38bdf8]"
+                              className="font-mono text-xs font-bold text-[#034c85] hover:underline dark:text-[#38bdf8] truncate block"
+                              title={invoice}
                             >
                               {invoice}
                             </Link>
                             <button
                               type="button"
-                              onClick={() => copyToClipboard(invoice, "Invoice")}
-                              className="rounded p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                              onClick={() => copyToClipboard(invoice, isId ? "Faktur" : "Invoice")}
+                              className="shrink-0 rounded p-1 text-slate-400 hover:text-[#034c85] hover:bg-[#034c85]/10 dark:hover:text-[#38bdf8] transition-colors"
                               title={isId ? "Salin nomor faktur" : "Copy invoice"}
                             >
-                              <Copy className="h-3 w-3" />
+                              <Copy className="h-3.5 w-3.5" />
                             </button>
                           </div>
                         </td>
 
                         {/* Date */}
-                        <td className={`${tableCell} whitespace-nowrap text-xs text-slate-600 dark:text-slate-400`}>
-                          {formatDate(order.createdAt, isId)}
+                        <td className={tableCell}>
+                          <div className="space-y-0.5 text-xs text-slate-600 dark:text-slate-400">
+                            <p className="font-medium text-slate-800 dark:text-slate-200">{dateStr}</p>
+                            <p className="text-[11px] text-slate-400 dark:text-slate-500">{timeStr}</p>
+                          </div>
                         </td>
 
                         {/* Total & Method */}
                         <td className={tableCell}>
                           <div className="space-y-0.5">
-                            <span className="font-semibold tabular-nums text-slate-900 dark:text-slate-100">
+                            <span className="font-semibold tabular-nums text-slate-900 dark:text-slate-100 block">
                               {formatCurrency(order.totalAmount || order.total || 0)}
                             </span>
-                            {order.paymentMethod ? (
-                              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                                {order.paymentMethod}
-                              </p>
+                            {method ? (
+                              <span className="inline-block text-[10px] font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 dark:text-slate-400 px-1.5 py-0.5 rounded">
+                                {method}
+                              </span>
                             ) : null}
                           </div>
                         </td>
@@ -582,7 +681,7 @@ export default function AdminCustomerOrdersPage() {
                         <td className={`${tableCell} text-right`}>
                           <Link
                             to={invoiceUrl}
-                            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-[#034c85] hover:bg-[#034c85]/10 hover:text-[#034c85] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-[#034c85] dark:hover:text-[#38bdf8]"
+                            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 transition hover:border-[#034c85] hover:bg-[#034c85]/10 hover:text-[#034c85] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-[#034c85] dark:hover:text-[#38bdf8]"
                           >
                             <Eye className="h-3.5 w-3.5" />
                             <span>{isId ? "Lihat" : "View"}</span>
@@ -600,47 +699,49 @@ export default function AdminCustomerOrdersPage() {
               {orders.map((order) => {
                 const invoice = orderInvoice(order);
                 const invoiceUrl = `/admin/orders/${encodeURIComponent(order.invoiceNo || order.invoice || order.id)}`;
+                const { dateStr, timeStr } = formatDateParts(order.createdAt, isId);
+                const method = formatPaymentMethod(order.paymentMethod);
 
                 return (
-                  <div key={order.id} className="p-4 space-y-3">
+                  <div key={order.id} className="p-4 space-y-2.5">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 min-w-0">
                         <Link
                           to={invoiceUrl}
-                          className="font-mono text-xs font-bold text-[#034c85] dark:text-[#38bdf8] hover:underline"
+                          className="font-mono text-xs font-bold text-[#034c85] dark:text-[#38bdf8] hover:underline truncate"
                         >
                           {invoice}
                         </Link>
                         <button
                           type="button"
-                          onClick={() => copyToClipboard(invoice, "Invoice")}
-                          className="p-1 text-slate-400 hover:text-slate-600"
+                          onClick={() => copyToClipboard(invoice, isId ? "Faktur" : "Invoice")}
+                          className="shrink-0 p-1 text-slate-400 hover:text-[#034c85] dark:hover:text-[#38bdf8]"
                         >
                           <Copy className="h-3 w-3" />
                         </button>
                       </div>
-                      <span className="font-bold text-sm text-slate-900 dark:text-white">
+                      <span className="font-bold text-sm tabular-nums text-slate-900 dark:text-white shrink-0">
                         {formatCurrency(order.totalAmount || order.total || 0)}
                       </span>
                     </div>
 
                     <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
-                      <span>{formatDate(order.createdAt, isId)}</span>
-                      {order.paymentMethod ? (
-                        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] dark:bg-slate-800">
-                          {order.paymentMethod}
+                      <span>{dateStr} • {timeStr}</span>
+                      {method ? (
+                        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                          {method}
                         </span>
                       ) : null}
                     </div>
 
                     <div className="flex items-center justify-between border-t border-slate-100 pt-2.5 dark:border-slate-800">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex flex-wrap items-center gap-1.5">
                         <PaymentStatusBadge paymentStatus={order.paymentStatus} isId={isId} />
                         <OrderStatusBadge order={order} isId={isId} />
                       </div>
                       <Link
                         to={invoiceUrl}
-                        className="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                        className="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-[#034c85] hover:text-[#034c85] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-[#034c85] dark:hover:text-[#38bdf8]"
                       >
                         <Eye className="h-3.5 w-3.5" />
                         <span>{isId ? "Lihat" : "View"}</span>
