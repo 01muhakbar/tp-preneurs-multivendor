@@ -6,7 +6,9 @@ import {
   Download,
   Eye,
   Filter,
+  Mail,
   Pencil,
+  Phone,
   RotateCcw,
   Search,
   ShieldAlert,
@@ -31,20 +33,20 @@ import { UiErrorState, UiSkeleton } from "../components/primitives/state/index.j
 import { GENERIC_ERROR } from "../constants/uiMessages.js";
 
 const tableHeadCell =
-  "whitespace-nowrap px-4 py-3.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400";
+  "px-4 py-3.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 select-none";
 const tableCell = "px-4 py-3.5 align-middle text-sm text-slate-700 dark:text-slate-200";
 
 const customerStatusOptions = [
   { value: "active", labelEn: "Active", labelId: "Aktif" },
   { value: "inactive", labelEn: "Disabled", labelId: "Nonaktif" },
   { value: "blocked", labelEn: "Blocked", labelId: "Diblokir" },
-  { value: "pending_verification", labelEn: "Pending verification", labelId: "Menunggu Verifikasi" },
+  { value: "pending_verification", labelEn: "Pending", labelId: "Menunggu" },
 ];
 
 const customerRoleOptions = [
   { value: "", labelEn: "All Roles", labelId: "Semua Peran" },
   { value: "customer", labelEn: "Customer", labelId: "Pelanggan" },
-  { value: "user", labelEn: "Buyer / User", labelId: "Pembeli / Pengguna" },
+  { value: "user", labelEn: "Buyer", labelId: "Pembeli" },
   { value: "seller", labelEn: "Seller", labelId: "Penjual" },
   { value: "staff", labelEn: "Staff", labelId: "Staf" },
   { value: "admin", labelEn: "Admin", labelId: "Admin" },
@@ -111,7 +113,7 @@ function CustomerStatusBadge({ status, isId = false }) {
     active: isId ? "Aktif" : "Active",
     inactive: isId ? "Nonaktif" : "Disabled",
     blocked: isId ? "Diblokir" : "Blocked",
-    pending_verification: isId ? "Menunggu Verifikasi" : "Pending verification",
+    pending_verification: isId ? "Menunggu" : "Pending",
   };
 
   return (
@@ -177,7 +179,25 @@ const emptyEditForm = { name: "", email: "", phone: "", status: "active" };
 
 export default function Customers() {
   const { i18n } = useTranslation("admin");
-  const isId = String(i18n.language || "").toLowerCase().startsWith("id");
+  const [, setLangSync] = useState(0);
+
+  useEffect(() => {
+    const handleSync = () => setLangSync((v) => v + 1);
+    i18n?.on?.("languageChanged", handleSync);
+    window.addEventListener("storage", handleSync);
+    window.addEventListener("store_language_changed", handleSync);
+    return () => {
+      i18n?.off?.("languageChanged", handleSync);
+      window.removeEventListener("storage", handleSync);
+      window.removeEventListener("store_language_changed", handleSync);
+    };
+  }, [i18n]);
+
+  const isId =
+    String(i18n.language || "").toLowerCase().startsWith("id") ||
+    String(localStorage.getItem("admin_locale_lang") || "").toLowerCase().startsWith("id") ||
+    String(localStorage.getItem("store_language") || "").toLowerCase().startsWith("id");
+
   const qc = useQueryClient();
   const { user } = useAuth() || {};
   const canMutateCustomers = can(user, "CUSTOMERS_UPDATE");
@@ -286,8 +306,8 @@ export default function Customers() {
       const failed = Number(data.failed || 0);
       setNotice(
         isId
-          ? `Impor pelanggan selesai: ${updated} diperbarui, ${skipped} dilewati, ${failed} gagal.`
-          : `Customer import finished: ${updated} updated, ${skipped} skipped, ${failed} failed.`
+          ? `Impor selesai: ${updated} diperbarui, ${skipped} dilewati, ${failed} gagal.`
+          : `Import finished: ${updated} updated, ${skipped} skipped, ${failed} failed.`
       );
       setRowError(Array.isArray(data.errors) ? data.errors[0]?.message || "" : "");
       qc.invalidateQueries({ queryKey: ["admin-customers"] });
@@ -427,8 +447,8 @@ export default function Customers() {
           </h1>
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 sm:text-sm">
             {isId
-              ? "Kelola akun pelanggan, sinkronisasi pesanan, dan hak akses."
-              : "Manage customer accounts, synchronize orders, and access."}
+              ? "Kelola akun pelanggan, riwayat transaksi, dan status akses."
+              : "Manage customer accounts, order history, and access status."}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -457,7 +477,7 @@ export default function Customers() {
           </div>
           <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
             <span className="h-1.5 w-1.5 rounded-full bg-[#034c85]" />
-            <span>{isId ? "Semua akun terdaftar" : "All registered accounts"}</span>
+            <span>{isId ? "Akun terdaftar" : "Registered accounts"}</span>
           </div>
         </div>
 
@@ -476,7 +496,7 @@ export default function Customers() {
           </div>
           <div className="mt-1 flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            <span>{isId ? "Status akun aktif" : "Active account status"}</span>
+            <span>{isId ? "Status aktif" : "Active status"}</span>
           </div>
         </div>
 
@@ -484,7 +504,7 @@ export default function Customers() {
         <div className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              {isId ? "Total Pesanan Dibuat" : "Total Orders Placed"}
+              {isId ? "Total Pesanan" : "Total Orders"}
             </span>
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#fe6f05]/10 text-[#fe6f05] dark:bg-[#fe6f05]/20 dark:text-[#fe6f05]">
               <ShoppingBag className="h-5 w-5" />
@@ -495,7 +515,7 @@ export default function Customers() {
           </div>
           <div className="mt-1 flex items-center gap-1.5 text-xs text-[#fe6f05]">
             <span className="h-1.5 w-1.5 rounded-full bg-[#fe6f05]" />
-            <span>{isId ? "Akumulasi seluruh order" : "Cumulative all orders"}</span>
+            <span>{isId ? "Seluruh transaksi" : "All transactions"}</span>
           </div>
         </div>
 
@@ -514,7 +534,7 @@ export default function Customers() {
           </div>
           <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
             <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
-            <span>{isId ? "Perlu verifikasi/ditinjau" : "Needs review / verification"}</span>
+            <span>{isId ? "Perlu tinjauan" : "Needs review"}</span>
           </div>
         </div>
       </div>
@@ -708,7 +728,7 @@ export default function Customers() {
         </div>
       ) : null}
 
-      {/* Data Container: Desktop Table + Mobile Cards */}
+      {/* Data Container: Desktop Table (No Horizontal Scroll) + Mobile Cards */}
       {!customersQuery.isLoading && !customersQuery.isError && items.length > 0 ? (
         <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
           {/* Header Info Bar */}
@@ -732,26 +752,21 @@ export default function Customers() {
             </div>
           </div>
 
-          {/* Desktop Table View */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full min-w-[1020px] text-left text-sm">
+          {/* Desktop Consolidated 5-Column Table (Guaranteed 100% Fit, Zero Horizontal Scroll) */}
+          <div className="hidden md:block w-full">
+            <table className="w-full table-fixed text-left text-sm">
               <thead className="border-b border-slate-200 bg-slate-50/90 dark:border-slate-800 dark:bg-slate-800/60">
                 <tr>
-                  <th className={`${tableHeadCell} w-[8%]`}>ID</th>
-                  <th className={`${tableHeadCell} w-[13%]`}>
-                    {isId ? "Tanggal Bergabung" : "Joining Date"}
-                  </th>
-                  <th className={`${tableHeadCell} w-[22%]`}>
+                  <th className={`${tableHeadCell} w-[32%]`}>
                     {isId ? "Pelanggan" : "Customer"}
                   </th>
-                  <th className={`${tableHeadCell} w-[20%]`}>Email</th>
-                  <th className={`${tableHeadCell} w-[13%]`}>
-                    {isId ? "No. Telepon" : "Phone"}
+                  <th className={`${tableHeadCell} w-[26%]`}>
+                    {isId ? "Kontak" : "Contact"}
                   </th>
-                  <th className={`${tableHeadCell} w-[10%]`}>
+                  <th className={`${tableHeadCell} w-[14%]`}>
                     {isId ? "Pesanan" : "Orders"}
                   </th>
-                  <th className={`${tableHeadCell} w-[10%]`}>Status</th>
+                  <th className={`${tableHeadCell} w-[14%]`}>Status</th>
                   <th className={`${tableHeadCell} w-[14%] text-right`}>
                     {isId ? "Aksi" : "Actions"}
                   </th>
@@ -771,25 +786,19 @@ export default function Customers() {
                       key={id || `${name}-${getCustomerEmail(customer)}`}
                       className="transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/50"
                     >
+                      {/* Column 1: Customer (Avatar, Name, Role badge, #ID, Joined Date) */}
                       <td className={tableCell}>
-                        <span className="rounded-md border border-[#034c85]/20 bg-[#034c85]/5 px-2 py-0.5 font-mono text-xs font-bold text-[#034c85] dark:border-[#034c85]/40 dark:bg-[#034c85]/20 dark:text-[#38bdf8]">
-                          #{getShortId(customer)}
-                        </span>
-                      </td>
-                      <td className={`${tableCell} whitespace-nowrap text-xs text-slate-600 dark:text-slate-400`}>
-                        {formatJoinDate(customer?.createdAt, isId)}
-                      </td>
-                      <td className={tableCell}>
-                        <div className="flex items-center gap-2.5">
+                        <div className="flex items-center gap-2.5 min-w-0">
                           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#034c85] to-[#022e53] text-xs font-bold text-white shadow-sm shadow-[#034c85]/20">
                             {getCustomerInitials(name)}
                           </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                               {id ? (
                                 <Link
                                   to={`/admin/customers/${id}`}
                                   className="truncate font-semibold text-slate-900 transition-colors hover:text-[#034c85] dark:text-slate-100 dark:hover:text-[#fe6f05]"
+                                  title={name}
                                 >
                                   {name}
                                 </Link>
@@ -800,49 +809,70 @@ export default function Customers() {
                               )}
                               <RoleBadge role={role} />
                             </div>
+                            <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+                              <span className="rounded bg-[#034c85]/10 px-1.5 py-0.2 font-mono font-bold text-[#034c85] dark:bg-[#034c85]/20 dark:text-[#38bdf8]">
+                                #{getShortId(customer)}
+                              </span>
+                              <span>•</span>
+                              <span>{formatJoinDate(customer?.createdAt, isId)}</span>
+                            </div>
                           </div>
                         </div>
                       </td>
-                      <td className={`${tableCell} text-xs text-slate-600 dark:text-slate-400`}>
-                        {getCustomerEmail(customer)}
+
+                      {/* Column 2: Contact (Email & Phone) */}
+                      <td className={tableCell}>
+                        <div className="min-w-0 space-y-0.5">
+                          <div className="flex items-center gap-1.5 text-xs font-medium text-slate-800 dark:text-slate-200" title={getCustomerEmail(customer)}>
+                            <Mail className="h-3 w-3 shrink-0 text-slate-400" />
+                            <span className="truncate">{getCustomerEmail(customer)}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                            <Phone className="h-3 w-3 shrink-0 text-slate-400" />
+                            <span className="truncate">{getCustomerPhone(customer)}</span>
+                          </div>
+                        </div>
                       </td>
-                      <td className={`${tableCell} whitespace-nowrap text-xs text-slate-600 dark:text-slate-400`}>
-                        {getCustomerPhone(customer)}
-                      </td>
+
+                      {/* Column 3: Orders (Clickable pill linking to customer orders) */}
                       <td className={tableCell}>
                         {id ? (
                           <Link
                             to={`/admin/customer-orders/${id}`}
-                            className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-bold transition hover:scale-[1.03] ${
+                            className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-bold transition hover:scale-[1.02] ${
                               orderCount > 0
                                 ? "border-[#fe6f05]/30 bg-[#fe6f05]/10 text-[#fe6f05] hover:bg-[#fe6f05]/20"
-                                : "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
+                                : "border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
                             }`}
                             title={isId ? `Lihat ${orderCount} pesanan` : `View ${orderCount} orders`}
                           >
-                            <ShoppingBag className="h-3.5 w-3.5" />
+                            <ShoppingBag className="h-3.5 w-3.5 shrink-0" />
                             <span>{orderCount} {isId ? "pesanan" : "orders"}</span>
                           </Link>
                         ) : (
                           <span className="text-xs text-slate-400">0</span>
                         )}
                       </td>
+
+                      {/* Column 4: Status Badge */}
                       <td className={tableCell}>
                         <CustomerStatusBadge status={status} isId={isId} />
                       </td>
+
+                      {/* Column 5: Actions (Switch + View Details + Edit + Delete) */}
                       <td className={`${tableCell} text-right`}>
                         <div className="flex items-center justify-end gap-1.5">
-                          {/* View Orders Action */}
-                          {id ? (
-                            <Link
-                              to={`/admin/customer-orders/${id}`}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-[#fe6f05] hover:bg-[#fe6f05]/10 hover:text-[#fe6f05] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-[#fe6f05] dark:hover:text-[#fe6f05]"
-                              title={isId ? "Lihat riwayat pesanan" : "View customer orders"}
-                              aria-label={isId ? "Lihat pesanan" : "View orders"}
-                            >
-                              <ShoppingBag className="h-4 w-4" />
-                            </Link>
-                          ) : null}
+                          {/* Status Toggle Switch */}
+                          <StatusSwitch
+                            checked={status === "active"}
+                            disabled={!canToggle || pendingStatusId === id}
+                            onClick={() => toggleStatus(customer)}
+                            title={
+                              canToggle
+                                ? `${status === "active" ? (isId ? "Nonaktifkan" : "Disable") : (isId ? "Aktifkan" : "Activate")} ${name}`
+                                : `${isId ? "Pergantian status tidak tersedia untuk" : "Status toggle unavailable for"} ${status.replace(/_/g, " ")}`
+                            }
+                          />
 
                           {/* View Customer Details */}
                           {id ? (
@@ -882,18 +912,6 @@ export default function Customers() {
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
-
-                          {/* Status Toggle Switch */}
-                          <StatusSwitch
-                            checked={status === "active"}
-                            disabled={!canToggle || pendingStatusId === id}
-                            onClick={() => toggleStatus(customer)}
-                            title={
-                              canToggle
-                                ? `${status === "active" ? (isId ? "Nonaktifkan" : "Disable") : (isId ? "Aktifkan" : "Activate")} ${name}`
-                                : `${isId ? "Pergantian status tidak tersedia untuk" : "Status toggle unavailable for"} ${status.replace(/_/g, " ")}`
-                            }
-                          />
                         </div>
                       </td>
                     </tr>
@@ -916,21 +934,21 @@ export default function Customers() {
               return (
                 <div key={id || `${name}-${getCustomerEmail(customer)}`} className="p-4 space-y-3">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-2.5 min-w-0">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#034c85] to-[#022e53] text-xs font-bold text-white shadow-sm shadow-[#034c85]/20">
                         {getCustomerInitials(name)}
                       </div>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {id ? (
                             <Link
                               to={`/admin/customers/${id}`}
-                              className="font-bold text-slate-900 dark:text-white hover:text-[#034c85]"
+                              className="font-bold text-slate-900 dark:text-white hover:text-[#034c85] truncate"
                             >
                               {name}
                             </Link>
                           ) : (
-                            <span className="font-bold text-slate-900 dark:text-white">{name}</span>
+                            <span className="font-bold text-slate-900 dark:text-white truncate">{name}</span>
                           )}
                           <RoleBadge role={role} />
                         </div>
@@ -939,7 +957,7 @@ export default function Customers() {
                         </p>
                       </div>
                     </div>
-                    <span className="rounded-md border border-[#034c85]/20 bg-[#034c85]/5 px-2 py-0.5 font-mono text-[11px] font-bold text-[#034c85] dark:border-[#034c85]/40 dark:bg-[#034c85]/20 dark:text-[#38bdf8]">
+                    <span className="shrink-0 rounded-md border border-[#034c85]/20 bg-[#034c85]/5 px-2 py-0.5 font-mono text-[11px] font-bold text-[#034c85] dark:border-[#034c85]/40 dark:bg-[#034c85]/20 dark:text-[#38bdf8]">
                       #{getShortId(customer)}
                     </span>
                   </div>
@@ -955,7 +973,7 @@ export default function Customers() {
                       <span className="text-[10px] uppercase font-bold text-slate-400 block">
                         {isId ? "Telepon" : "Phone"}
                       </span>
-                      <span>{getCustomerPhone(customer)}</span>
+                      <span className="truncate block font-mono">{getCustomerPhone(customer)}</span>
                     </div>
                   </div>
 
@@ -966,6 +984,7 @@ export default function Customers() {
                         <Link
                           to={`/admin/customer-orders/${id}`}
                           className="inline-flex items-center gap-1 rounded-md border border-[#fe6f05]/30 bg-[#fe6f05]/10 px-2 py-0.5 text-[11px] font-bold text-[#fe6f05]"
+                          title={isId ? `${orderCount} pesanan` : `${orderCount} orders`}
                         >
                           <ShoppingBag className="h-3 w-3" />
                           <span>{orderCount}</span>
@@ -976,16 +995,9 @@ export default function Customers() {
                     <div className="flex items-center gap-1.5">
                       {id ? (
                         <Link
-                          to={`/admin/customer-orders/${id}`}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                        >
-                          <ShoppingBag className="h-3.5 w-3.5" />
-                        </Link>
-                      ) : null}
-                      {id ? (
-                        <Link
                           to={`/admin/customers/${id}`}
                           className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                          title={isId ? "Lihat profil" : "View profile"}
                         >
                           <Eye className="h-3.5 w-3.5" />
                         </Link>
@@ -994,6 +1006,7 @@ export default function Customers() {
                         type="button"
                         onClick={() => openEdit(customer)}
                         className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                        title={isId ? "Edit" : "Edit"}
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
@@ -1004,6 +1017,7 @@ export default function Customers() {
                           setDeleteModalError("");
                         }}
                         className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 dark:border-slate-700 dark:bg-slate-800 dark:text-rose-400"
+                        title={isId ? "Hapus" : "Delete"}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
