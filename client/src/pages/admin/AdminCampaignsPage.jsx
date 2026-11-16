@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import {
   AlertCircle,
+  Calendar,
   Check,
   CheckCircle2,
   ChevronRight,
@@ -13,11 +14,13 @@ import {
   Eye,
   Globe,
   Image as ImageIcon,
+  Layers,
   Loader2,
-  Package,
   Percent,
   RefreshCw,
+  RotateCcw,
   Save,
+  Search,
   Sparkles,
   Tag,
   Ticket,
@@ -39,7 +42,7 @@ const DEFAULT_OFFERS_ID = {
     eyebrow: "PROMO & PENAWARAN SPESIAL",
     pageTitle: "Mega Offer Eksklusif",
     description:
-      "Dapatkan penawaran harga terbaik untuk produk kreatif dan karya inovasi mahasiswa.",
+      "Nikmati penawaran harga terbaik untuk produk kreatif dan karya inovasi mahasiswa.",
     backgroundImageDataUrl: "",
   },
   superDiscount: {
@@ -69,7 +72,8 @@ const DEFAULT_OFFERS_EN = {
   dealsSection: {
     enabled: true,
     title: "Featured Promotional Deals",
-    description: "Student innovation works and edupreneur products with exclusive discounts.",
+    description:
+      "Student innovation works and edupreneur products with exclusive discounts.",
   },
 };
 
@@ -99,12 +103,29 @@ export default function AdminCampaignsPage() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef(null);
 
-  // Active language derived strictly from i18n
-  const currentLang = String(i18n.language || "en").toLowerCase().startsWith("id")
-    ? "id"
-    : "en";
+  // Reactive language listener
+  const [, setLangTick] = useState(0);
+  useEffect(() => {
+    const handleSync = () => setLangTick((v) => v + 1);
+    i18n?.on?.("languageChanged", handleSync);
+    window.addEventListener("adminLanguageChange", handleSync);
+    window.addEventListener("store_language_changed", handleSync);
+    return () => {
+      i18n?.off?.("languageChanged", handleSync);
+      window.removeEventListener("adminLanguageChange", handleSync);
+      window.removeEventListener("store_language_changed", handleSync);
+    };
+  }, [i18n]);
+
+  const currentLang =
+    String(i18n.language || "").toLowerCase().startsWith("id") ||
+    String(localStorage.getItem("adminLanguage") || "").toLowerCase().includes('"id"')
+      ? "id"
+      : "en";
   const isId = currentLang === "id";
 
+  const [activeTab, setActiveTab] = useState("setup"); // "setup" | "coupons"
+  const [couponSearch, setCouponSearch] = useState("");
   const [copiedPreviewCode, setCopiedPreviewCode] = useState(false);
   const [uploadError, setUploadError] = useState("");
 
@@ -118,7 +139,7 @@ export default function AdminCampaignsPage() {
     staleTime: 30_000,
   });
 
-  // Fetch platform coupons for selector
+  // Fetch platform coupons for selector and table
   const couponsQuery = useQuery({
     queryKey: ["admin-coupons-for-campaigns"],
     queryFn: () => fetchAdminCoupons({ page: 1, limit: 100 }),
@@ -134,6 +155,16 @@ export default function AdminCampaignsPage() {
     if (!Array.isArray(raw)) return [];
     return raw.filter((c) => c && c.code);
   }, [couponsQuery.data]);
+
+  const filteredCoupons = useMemo(() => {
+    if (!couponSearch.trim()) return availableCoupons;
+    const q = couponSearch.toLowerCase().trim();
+    return availableCoupons.filter(
+      (c) =>
+        c.code?.toLowerCase().includes(q) ||
+        c.campaignName?.toLowerCase().includes(q)
+    );
+  }, [availableCoupons, couponSearch]);
 
   // Sync form when customization data loads or currentLang changes
   useEffect(() => {
@@ -185,7 +216,7 @@ export default function AdminCampaignsPage() {
     }
   }, [customizationQuery.data, customizationQuery.isLoading, currentLang]);
 
-  // Selected coupon details for live preview
+  // Selected coupon details
   const selectedCoupon = useMemo(() => {
     if (
       !form.superDiscount.activeCouponCode ||
@@ -198,6 +229,38 @@ export default function AdminCampaignsPage() {
         c.code.toUpperCase() === form.superDiscount.activeCouponCode.toUpperCase()
     );
   }, [form.superDiscount.activeCouponCode, availableCoupons]);
+
+  // Language switch handler with full cross-app synchronization
+  const handleSwitchLanguage = (lang) => {
+    const nextLang = lang === "id" ? "id" : "en";
+    i18n.changeLanguage(nextLang);
+    const storedObj = {
+      isoCode: nextLang,
+      name: nextLang === "id" ? "Bahasa Indonesia" : "English",
+      flag: nextLang === "id" ? "🇮🇩" : "🇺🇸",
+    };
+    try {
+      localStorage.setItem("adminLanguage", JSON.stringify(storedObj));
+      window.dispatchEvent(
+        new CustomEvent("adminLanguageChange", { detail: storedObj })
+      );
+    } catch {}
+  };
+
+  // Restore official preset
+  const handleRestoreDefaults = () => {
+    const confirmed = window.confirm(
+      t(
+        "campaigns.Restore official TP Preneurs preset?",
+        "Restore official TP Preneurs preset?"
+      )
+    );
+    if (!confirmed) return;
+    setForm(defaultForm);
+    toast.success(
+      t("campaigns.Preset restored", "Official preset restored.")
+    );
+  };
 
   // Save mutation
   const saveMutation = useMutation({
@@ -247,7 +310,10 @@ export default function AdminCampaignsPage() {
     },
     onSuccess: () => {
       toast.success(
-        t("campaigns.Settings saved successfully.", "Settings saved successfully.")
+        t(
+          "campaigns.Settings saved successfully.",
+          "Settings saved successfully."
+        )
       );
       queryClient.invalidateQueries({ queryKey: ["admin-store-customization"] });
       queryClient.invalidateQueries({ queryKey: ["store-customization"] });
@@ -330,7 +396,7 @@ export default function AdminCampaignsPage() {
           </nav>
 
           <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2.5 sm:text-3xl">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#fe6f05]/10 text-[#fe6f05]">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#034c85]/20 bg-[#034c85]/10 text-[#034c85] dark:border-sky-500/30 dark:bg-sky-950/50 dark:text-sky-300">
               <Sparkles className="h-5 w-5" />
             </span>
             {t("campaigns.Campaigns & Mega Offer", "Campaigns & Mega Offer")}
@@ -343,23 +409,38 @@ export default function AdminCampaignsPage() {
           </p>
         </div>
 
+        {/* Action Controls */}
         <div className="flex flex-wrap items-center gap-2.5">
           {/* External View Link */}
           <Link
             to="/offers"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:text-[#034c85] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-[#034c85] hover:bg-slate-50 hover:text-[#034c85] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-[#034c85] dark:hover:text-[#38bdf8]"
+            title={t("campaigns.View Live Offers", "View Live Offers")}
           >
             <ExternalLink className="h-3.5 w-3.5 text-[#034c85] dark:text-sky-400" />
             <span>{t("campaigns.View Live Offers", "View Live Offers")}</span>
           </Link>
 
+          {/* Restore Preset Button */}
+          <button
+            type="button"
+            onClick={handleRestoreDefaults}
+            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-600 shadow-sm transition hover:border-amber-400 hover:bg-amber-50/50 hover:text-amber-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-amber-500/50 dark:hover:text-amber-400"
+            title={t("campaigns.Restore Defaults", "Restore Defaults")}
+          >
+            <RotateCcw className="h-3.5 w-3.5 text-amber-500" />
+            <span className="hidden sm:inline">
+              {t("campaigns.Restore Defaults", "Restore Defaults")}
+            </span>
+          </button>
+
           {/* Synchronized Language Switcher */}
           <div className="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-700 dark:bg-slate-800">
             <button
               type="button"
-              onClick={() => i18n.changeLanguage("id")}
+              onClick={() => handleSwitchLanguage("id")}
               className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold transition ${
                 isId
                   ? "bg-[#034c85] text-white shadow-sm"
@@ -371,7 +452,7 @@ export default function AdminCampaignsPage() {
             </button>
             <button
               type="button"
-              onClick={() => i18n.changeLanguage("en")}
+              onClick={() => handleSwitchLanguage("en")}
               className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold transition ${
                 !isId
                   ? "bg-[#034c85] text-white shadow-sm"
@@ -404,87 +485,151 @@ export default function AdminCampaignsPage() {
         </div>
       </div>
 
-      {/* 4 KPI Summary Cards */}
-      <section className="grid grid-cols-2 gap-3.5 sm:grid-cols-4 sm:gap-4" aria-label="Campaign Overview">
+      {/* 4 KPI Summary Cards with Elegant Top Border Accents */}
+      <section
+        className="grid grid-cols-2 gap-3 lg:grid-cols-4"
+        aria-label="Campaign Overview"
+      >
         {/* KPI 1: Campaign Status */}
-        <article className="relative flex items-center justify-between gap-3 rounded-2xl border border-slate-200 border-l-4 border-l-[#034c85] bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+        <article className="relative overflow-hidden rounded-2xl border border-slate-200 border-t-2 border-t-[#034c85] bg-white p-4 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:border-t-[#034c85] dark:bg-slate-900">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               {t("campaigns.Campaign Status", "Campaign Status")}
-            </p>
-            <strong className="block text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 mt-0.5 truncate">
+            </span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#034c85]/10 text-[#034c85] dark:bg-sky-950/50 dark:text-sky-300">
+              <Sparkles className="h-4 w-4" />
+            </span>
+          </div>
+          <div className="mt-2.5 flex items-center gap-2">
+            <span
+              className={`h-2.5 w-2.5 rounded-full ${
+                isCampaignActive ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+              }`}
+            />
+            <strong className="text-base font-bold text-slate-900 dark:text-slate-100">
               {isCampaignActive
                 ? t("campaigns.Active in Store", "Active in Store")
                 : t("campaigns.Draft Mode", "Draft Mode")}
             </strong>
           </div>
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#034c85]/10 text-[#034c85] dark:bg-sky-950/50 dark:text-sky-300">
-            <Sparkles className="h-5 w-5" />
-          </span>
         </article>
 
         {/* KPI 2: Hero Banner */}
-        <article className="relative flex items-center justify-between gap-3 rounded-2xl border border-slate-200 border-l-4 border-l-[#034c85] bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+        <article className="relative overflow-hidden rounded-2xl border border-slate-200 border-t-2 border-t-[#034c85] bg-white p-4 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:border-t-[#034c85] dark:bg-slate-900">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               {t("campaigns.Hero Banner", "Hero Banner")}
-            </p>
-            <strong className="block text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 mt-0.5 truncate">
+            </span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-[#034c85] dark:bg-blue-950/50 dark:text-sky-300">
+              <ImageIcon className="h-4 w-4" />
+            </span>
+          </div>
+          <div className="mt-2.5 flex items-center gap-2">
+            <span
+              className={`h-2.5 w-2.5 rounded-full ${
+                form.pageHeader.enabled ? "bg-emerald-500" : "bg-slate-400"
+              }`}
+            />
+            <strong className="text-base font-bold text-slate-900 dark:text-slate-100">
               {form.pageHeader.enabled
                 ? t("campaigns.Active", "Active")
                 : t("campaigns.Disabled", "Disabled")}
             </strong>
           </div>
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-300">
-            <ImageIcon className="h-5 w-5" />
-          </span>
         </article>
 
         {/* KPI 3: Featured Voucher */}
-        <article className="relative flex items-center justify-between gap-3 rounded-2xl border border-slate-200 border-l-4 border-l-[#fe6f05] bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+        <article className="relative overflow-hidden rounded-2xl border border-slate-200 border-t-2 border-t-[#fe6f05] bg-white p-4 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:border-t-[#fe6f05] dark:bg-slate-900">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               {t("campaigns.Featured Voucher", "Featured Voucher")}
-            </p>
-            <strong className="block text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 mt-0.5 truncate font-mono">
+            </span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#fe6f05]/10 text-[#fe6f05] dark:bg-orange-950/40">
+              <Ticket className="h-4 w-4" />
+            </span>
+          </div>
+          <div className="mt-2.5 flex items-center gap-2 min-w-0">
+            <strong className="text-base font-bold text-slate-900 dark:text-slate-100 truncate font-mono">
               {!form.superDiscount.enabled
                 ? t("campaigns.Disabled", "Disabled")
                 : form.superDiscount.activeCouponCode === "ALL"
-                  ? "ALL"
+                  ? isId
+                    ? "Semua Kupon (ALL)"
+                    : "All Coupons (ALL)"
                   : selectedCoupon?.code || form.superDiscount.activeCouponCode}
             </strong>
           </div>
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#fe6f05]/10 text-[#fe6f05] dark:bg-orange-950/40">
-            <Ticket className="h-5 w-5" />
-          </span>
         </article>
 
         {/* KPI 4: Deals Showcase */}
-        <article className="relative flex items-center justify-between gap-3 rounded-2xl border border-slate-200 border-l-4 border-l-emerald-500 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+        <article className="relative overflow-hidden rounded-2xl border border-slate-200 border-t-2 border-t-emerald-500 bg-white p-4 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:border-t-emerald-500 dark:bg-slate-900">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               {t("campaigns.Deals Showcase", "Deals Showcase")}
-            </p>
-            <strong className="block text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 mt-0.5 truncate">
+            </span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
+              <Percent className="h-4 w-4" />
+            </span>
+          </div>
+          <div className="mt-2.5 flex items-center gap-2">
+            <span
+              className={`h-2.5 w-2.5 rounded-full ${
+                form.dealsSection.enabled ? "bg-emerald-500" : "bg-slate-400"
+              }`}
+            />
+            <strong className="text-base font-bold text-slate-900 dark:text-slate-100">
               {form.dealsSection.enabled
                 ? t("campaigns.Active", "Active")
                 : t("campaigns.Disabled", "Disabled")}
             </strong>
           </div>
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
-            <Percent className="h-5 w-5" />
-          </span>
         </article>
       </section>
+
+      {/* Sub-navigation Tabs */}
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveTab("setup")}
+            className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-xs sm:text-sm font-bold transition ${
+              activeTab === "setup"
+                ? "border-[#034c85] text-[#034c85] dark:border-sky-400 dark:text-sky-300"
+                : "border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+            }`}
+          >
+            <Sparkles className="h-4 w-4" />
+            <span>{t("campaigns.Campaign Setup", "Campaign Setup")}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("coupons")}
+            className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-xs sm:text-sm font-bold transition ${
+              activeTab === "coupons"
+                ? "border-[#034c85] text-[#034c85] dark:border-sky-400 dark:text-sky-300"
+                : "border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+            }`}
+          >
+            <Ticket className="h-4 w-4" />
+            <span>{t("campaigns.Active Promo Coupons", "Active Promo Coupons")}</span>
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+              {availableCoupons.length}
+            </span>
+          </button>
+        </div>
+      </div>
 
       {customizationQuery.isLoading ? (
         <div className="flex h-64 items-center justify-center rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-center gap-3 text-sm font-semibold text-slate-500">
             <Loader2 className="h-5 w-5 animate-spin text-[#034c85]" />
-            <span>{t("campaigns.Loading campaign data...", "Loading campaign data...")}</span>
+            <span>
+              {t("campaigns.Loading campaign data...", "Loading campaign data...")}
+            </span>
           </div>
         </div>
-      ) : (
+      ) : activeTab === "setup" ? (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           {/* Main Configuration Form (Left - 7 cols) */}
           <div className="space-y-6 lg:col-span-7">
@@ -497,7 +642,10 @@ export default function AdminCampaignsPage() {
                   </div>
                   <div>
                     <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                      {t("campaigns.Mega Offer Banner (Hero)", "Mega Offer Banner (Hero)")}
+                      {t(
+                        "campaigns.Mega Offer Banner (Hero)",
+                        "Mega Offer Banner (Hero)"
+                      )}
                     </h2>
                   </div>
                 </div>
@@ -526,7 +674,10 @@ export default function AdminCampaignsPage() {
                     onChange={(e) =>
                       setForm((prev) => ({
                         ...prev,
-                        pageHeader: { ...prev.pageHeader, eyebrow: e.target.value },
+                        pageHeader: {
+                          ...prev.pageHeader,
+                          eyebrow: e.target.value,
+                        },
                       }))
                     }
                     placeholder="e.g. PROMO & PENAWARAN SPESIAL"
@@ -545,7 +696,10 @@ export default function AdminCampaignsPage() {
                     onChange={(e) =>
                       setForm((prev) => ({
                         ...prev,
-                        pageHeader: { ...prev.pageHeader, pageTitle: e.target.value },
+                        pageHeader: {
+                          ...prev.pageHeader,
+                          pageTitle: e.target.value,
+                        },
                       }))
                     }
                     placeholder="e.g. Mega Offer Eksklusif"
@@ -564,7 +718,10 @@ export default function AdminCampaignsPage() {
                     onChange={(e) =>
                       setForm((prev) => ({
                         ...prev,
-                        pageHeader: { ...prev.pageHeader, description: e.target.value },
+                        pageHeader: {
+                          ...prev.pageHeader,
+                          description: e.target.value,
+                        },
                       }))
                     }
                     placeholder="e.g. Dapatkan penawaran harga terbaik..."
@@ -572,16 +729,55 @@ export default function AdminCampaignsPage() {
                   />
                 </div>
 
-                {/* Background Image Upload & Direct URL */}
+                {/* Background Image Upload & Thumbnail Preview */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                      {t("campaigns.Banner Background Image", "Banner Background Image")}
+                      {t(
+                        "campaigns.Banner Background Image",
+                        "Banner Background Image"
+                      )}
                     </label>
                     <span className="text-[11px] font-medium text-slate-400">
                       1920×600 px • Max 2MB
                     </span>
                   </div>
+
+                  {/* Thumbnail Preview if exists */}
+                  {form.pageHeader.backgroundImageDataUrl ? (
+                    <div className="relative mb-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950/50">
+                      <div className="relative h-28 w-full overflow-hidden">
+                        <img
+                          src={form.pageHeader.backgroundImageDataUrl}
+                          alt="Banner Preview"
+                          className="h-full w-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                        <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between text-xs text-white">
+                          <span className="font-semibold flex items-center gap-1.5">
+                            <ImageIcon className="h-3.5 w-3.5 text-sky-400" />
+                            {t("campaigns.Image Preview", "Image Preview")}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setForm((prev) => ({
+                                ...prev,
+                                pageHeader: {
+                                  ...prev.pageHeader,
+                                  backgroundImageDataUrl: "",
+                                },
+                              }))
+                            }
+                            className="inline-flex items-center gap-1 rounded-lg bg-rose-600/90 px-2.5 py-1 text-[11px] font-bold text-white transition hover:bg-rose-700"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            <span>{t("campaigns.Remove Image", "Remove Image")}</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
 
                   <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
                     <input
@@ -595,30 +791,11 @@ export default function AdminCampaignsPage() {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:text-[#034c85] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                      className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-[#034c85] hover:bg-slate-50 hover:text-[#034c85] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-[#034c85] dark:hover:bg-slate-700"
                     >
                       <Upload className="h-3.5 w-3.5 text-[#fe6f05]" />
                       <span>{t("campaigns.Upload Image", "Upload Image")}</span>
                     </button>
-
-                    {form.pageHeader.backgroundImageDataUrl ? (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setForm((prev) => ({
-                            ...prev,
-                            pageHeader: {
-                              ...prev.pageHeader,
-                              backgroundImageDataUrl: "",
-                            },
-                          }))
-                        }
-                        className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-4 text-xs font-semibold text-rose-600 transition hover:bg-rose-100 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-400"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        <span>{t("campaigns.Remove Image", "Remove Image")}</span>
-                      </button>
-                    ) : null}
                   </div>
 
                   {uploadError ? (
@@ -684,7 +861,10 @@ export default function AdminCampaignsPage() {
               <div className="mt-5 space-y-4">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    {t("campaigns.Select Featured Coupon", "Select Featured Coupon")}
+                    {t(
+                      "campaigns.Select Featured Coupon",
+                      "Select Featured Coupon"
+                    )}
                   </label>
                   <select
                     value={form.superDiscount.activeCouponCode}
@@ -710,16 +890,45 @@ export default function AdminCampaignsPage() {
                         {coupon.code} -{" "}
                         {coupon.discountType === "percent"
                           ? `${coupon.amount}% ${t("campaigns.Off", "Off")}`
-                          : `${formatCurrency(coupon.amount)} ${t("campaigns.Off", "Off")}`}{" "}
+                          : `${formatCurrency(coupon.amount)} ${t(
+                              "campaigns.Off",
+                              "Off"
+                            )}`}{" "}
                         {coupon.campaignName ? `(${coupon.campaignName})` : ""}
                       </option>
                     ))}
                   </select>
                 </div>
+
+                {/* Instant Coupon Detail Card */}
+                {selectedCoupon ? (
+                  <div className="flex items-center justify-between rounded-xl border border-amber-200/80 bg-amber-50/60 p-3.5 dark:border-amber-900/40 dark:bg-amber-950/20">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#fe6f05] text-white">
+                        <Tag className="h-4 w-4" />
+                      </span>
+                      <div>
+                        <div className="font-mono text-xs font-black text-slate-900 dark:text-slate-100">
+                          {selectedCoupon.code}
+                        </div>
+                        <div className="text-[11px] text-slate-600 dark:text-slate-400">
+                          {selectedCoupon.discountType === "percent"
+                            ? `${selectedCoupon.amount}% ${t("campaigns.Off", "Off")}`
+                            : `${formatCurrency(selectedCoupon.amount)} ${t("campaigns.Off", "Off")}`}{" "}
+                          • {t("campaigns.Min. spend", "Min. spend")}{" "}
+                          {formatCurrency(selectedCoupon.minSpend || 0)}
+                        </div>
+                      </div>
+                    </div>
+                    <span className="rounded-md border border-emerald-300 bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                      {isId ? "Aktif" : "Active"}
+                    </span>
+                  </div>
+                ) : null}
               </div>
             </div>
 
-            {/* Card 3: Deals Section */}
+            {/* Card 3: Deals Catalog Section */}
             <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
                 <div className="flex items-center gap-3">
@@ -728,7 +937,10 @@ export default function AdminCampaignsPage() {
                   </div>
                   <div>
                     <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                      {t("campaigns.Deals Catalog Section", "Deals Catalog Section")}
+                      {t(
+                        "campaigns.Deals Catalog Section",
+                        "Deals Catalog Section"
+                      )}
                     </h2>
                   </div>
                 </div>
@@ -756,7 +968,10 @@ export default function AdminCampaignsPage() {
                     onChange={(e) =>
                       setForm((prev) => ({
                         ...prev,
-                        dealsSection: { ...prev.dealsSection, title: e.target.value },
+                        dealsSection: {
+                          ...prev.dealsSection,
+                          title: e.target.value,
+                        },
                       }))
                     }
                     placeholder="e.g. Produk Promo Pilihan"
@@ -839,7 +1054,10 @@ export default function AdminCampaignsPage() {
               {form.superDiscount.enabled ? (
                 <div className="mt-5">
                   <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
-                    {t("campaigns.Active Featured Coupon", "Active Featured Coupon")}
+                    {t(
+                      "campaigns.Active Featured Coupon",
+                      "Active Featured Coupon"
+                    )}
                   </div>
 
                   <div className="relative overflow-hidden rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-4 shadow-sm dark:border-amber-900/40 dark:from-slate-900 dark:to-slate-850">
@@ -849,14 +1067,19 @@ export default function AdminCampaignsPage() {
                           <Ticket className="h-4 w-4 shrink-0" />
                           <span className="truncate">
                             {form.superDiscount.activeCouponCode === "ALL"
-                              ? t("campaigns.All Selected Items (ALL)", "All Selected Items (ALL)")
-                              : selectedCoupon?.campaignName || "Special Discount"}
+                              ? t(
+                                  "campaigns.All Selected Items (ALL)",
+                                  "All Selected Items (ALL)"
+                                )
+                              : selectedCoupon?.campaignName ||
+                                "Special Discount"}
                           </span>
                         </div>
                         <div className="mt-1 font-mono text-sm font-black tracking-wider text-slate-900 dark:text-slate-100">
                           {form.superDiscount.activeCouponCode === "ALL"
                             ? "ALL ITEMS"
-                            : selectedCoupon?.code || form.superDiscount.activeCouponCode}
+                            : selectedCoupon?.code ||
+                              form.superDiscount.activeCouponCode}
                         </div>
                         {selectedCoupon ? (
                           <div className="mt-1 text-[11px] font-medium text-slate-600 dark:text-slate-400">
@@ -865,7 +1088,9 @@ export default function AdminCampaignsPage() {
                               ? `${selectedCoupon.amount}%`
                               : formatCurrency(selectedCoupon.amount)}{" "}
                             {selectedCoupon.minSpend
-                              ? `• ${t("campaigns.Min. spend", "Min. spend")} ${formatCurrency(selectedCoupon.minSpend)}`
+                              ? `• ${t("campaigns.Min. spend", "Min. spend")} ${formatCurrency(
+                                  selectedCoupon.minSpend
+                                )}`
                               : ""}
                           </div>
                         ) : null}
@@ -897,17 +1122,336 @@ export default function AdminCampaignsPage() {
               {form.dealsSection.enabled ? (
                 <div className="mt-5 border-t border-slate-100 pt-4 dark:border-slate-800">
                   <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
-                    {t("campaigns.Deals Section Preview", "Deals Section Preview")}
+                    {t(
+                      "campaigns.Deals Section Preview",
+                      "Deals Section Preview"
+                    )}
                   </div>
                   <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                     {form.dealsSection.title || "Koleksi Produk Diskon"}
                   </h4>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    {form.dealsSection.description || "Jelajahi produk potongan harga."}
+                    {form.dealsSection.description ||
+                      "Jelajahi produk potongan harga."}
                   </p>
                 </div>
               ) : null}
             </div>
+          </div>
+        </div>
+      ) : (
+        /* Tab 2: Compact Promotional Coupons Table (Zero Horizontal Scrollbar) */
+        <div className="space-y-4">
+          {/* Table Search & Filter Toolbar */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                value={couponSearch}
+                onChange={(e) => setCouponSearch(e.target.value)}
+                placeholder={
+                  isId
+                    ? "Cari kode kupon atau nama promo..."
+                    : "Search coupon code or campaign..."
+                }
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3.5 py-2 text-xs sm:text-sm text-slate-900 outline-none transition focus:border-[#034c85] focus:bg-white focus:ring-2 focus:ring-[#034c85]/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setForm((prev) => ({
+                    ...prev,
+                    superDiscount: {
+                      ...prev.superDiscount,
+                      enabled: true,
+                      activeCouponCode: "ALL",
+                    },
+                  }));
+                  setActiveTab("setup");
+                  toast.success(
+                    isId
+                      ? "Mega Offer diset untuk menampilkan semua kupon aktif."
+                      : "Mega Offer set to display all active coupons."
+                  );
+                }}
+                className={`inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-xs font-bold transition ${
+                  form.superDiscount.activeCouponCode === "ALL"
+                    ? "border-[#fe6f05] bg-[#fe6f05]/10 text-[#fe6f05]"
+                    : "border-slate-200 bg-white text-slate-700 hover:border-[#034c85] hover:text-[#034c85] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                }`}
+              >
+                <Ticket className="h-3.5 w-3.5" />
+                <span>
+                  {isId ? "Tampilkan Semua (ALL)" : "Show All Coupons (ALL)"}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* Desktop Table: table-fixed w-full without horizontal scrollbar */}
+          <div className="hidden md:block overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <table className="w-full table-fixed text-left text-xs">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/75 dark:border-slate-800 dark:bg-slate-800/40">
+                  <th className="w-4/12 px-4 py-3 font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                    {t("campaigns.Coupon & Campaign", "Coupon & Campaign")}
+                  </th>
+                  <th className="w-2/12 px-4 py-3 font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                    {t("campaigns.Discount", "Discount")}
+                  </th>
+                  <th className="w-2/12 px-4 py-3 font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                    {t("campaigns.Min. Spend", "Min. Spend")}
+                  </th>
+                  <th className="w-2/12 px-4 py-3 font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                    {t("campaigns.Validity", "Validity")}
+                  </th>
+                  <th className="w-2/12 px-4 py-3 text-right font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                    {t("campaigns.Action", "Action")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {filteredCoupons.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="px-4 py-8 text-center text-xs text-slate-400"
+                    >
+                      {t(
+                        "campaigns.No active promotional coupons found.",
+                        "No active promotional coupons found."
+                      )}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredCoupons.map((coupon) => {
+                    const isCurrent =
+                      form.superDiscount.activeCouponCode?.toUpperCase() ===
+                      coupon.code?.toUpperCase();
+
+                    return (
+                      <tr
+                        key={coupon.id || coupon.code}
+                        className={`transition hover:bg-slate-50/70 dark:hover:bg-slate-800/50 ${
+                          isCurrent
+                            ? "bg-[#034c85]/5 dark:bg-[#034c85]/15"
+                            : ""
+                        }`}
+                      >
+                        <td className="px-4 py-3 truncate">
+                          <div className="flex items-center gap-2">
+                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[#034c85]/20 bg-[#034c85]/10 text-[#034c85] dark:border-sky-500/30 dark:bg-sky-950/50 dark:text-sky-300">
+                              <Ticket className="h-3.5 w-3.5" />
+                            </span>
+                            <div className="min-w-0">
+                              <div className="font-mono text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                                {coupon.code}
+                              </div>
+                              <div className="text-[11px] text-slate-400 truncate">
+                                {coupon.campaignName ||
+                                  (isId ? "Kupon Platform" : "Platform Voucher")}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3">
+                          <span className="inline-flex items-center rounded-lg border border-[#fe6f05]/30 bg-[#fe6f05]/10 px-2 py-0.5 text-xs font-bold text-[#fe6f05]">
+                            {coupon.discountType === "percent"
+                              ? `${coupon.amount}% ${t("campaigns.Off", "Off")}`
+                              : `${formatCurrency(coupon.amount)} ${t(
+                                  "campaigns.Off",
+                                  "Off"
+                                )}`}
+                          </span>
+                        </td>
+
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">
+                          {coupon.minSpend
+                            ? formatCurrency(coupon.minSpend)
+                            : isId
+                              ? "Tanpa Min."
+                              : "No Min."}
+                        </td>
+
+                        <td className="px-4 py-3 text-slate-500 dark:text-slate-400 text-[11px]">
+                          {coupon.expiresAt
+                            ? new Date(coupon.expiresAt).toLocaleDateString(
+                                isId ? "id-ID" : "en-US",
+                                { day: "numeric", month: "short", year: "numeric" }
+                              )
+                            : t("campaigns.Never Expires", "Never Expires")}
+                        </td>
+
+                        <td className="px-4 py-3 text-right">
+                          {isCurrent ? (
+                            <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              <span>
+                                {t(
+                                  "campaigns.Currently Featured",
+                                  "Currently Featured"
+                                )}
+                              </span>
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setForm((prev) => ({
+                                  ...prev,
+                                  superDiscount: {
+                                    ...prev.superDiscount,
+                                    enabled: true,
+                                    activeCouponCode: coupon.code,
+                                  },
+                                }));
+                                setActiveTab("setup");
+                                toast.success(
+                                  isId
+                                    ? `Kupon ${coupon.code} dipilih untuk Mega Offer!`
+                                    : `Coupon ${coupon.code} selected for Mega Offer!`
+                                );
+                              }}
+                              className="inline-flex items-center gap-1 rounded-lg border border-[#034c85] bg-white px-2.5 py-1 text-[11px] font-bold text-[#034c85] transition hover:bg-[#034c85] hover:text-white dark:border-[#034c85] dark:bg-slate-800 dark:text-sky-300 dark:hover:bg-[#034c85]"
+                            >
+                              <Sparkles className="h-3 w-3" />
+                              <span>
+                                {t(
+                                  "campaigns.Set as Featured",
+                                  "Set as Featured"
+                                )}
+                              </span>
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card List (< 768px) */}
+          <div className="md:hidden space-y-3">
+            {filteredCoupons.length === 0 ? (
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-xs text-slate-400 dark:border-slate-800 dark:bg-slate-900">
+                {t(
+                  "campaigns.No active promotional coupons found.",
+                  "No active promotional coupons found."
+                )}
+              </div>
+            ) : (
+              filteredCoupons.map((coupon) => {
+                const isCurrent =
+                  form.superDiscount.activeCouponCode?.toUpperCase() ===
+                  coupon.code?.toUpperCase();
+
+                return (
+                  <div
+                    key={coupon.id || coupon.code}
+                    className={`rounded-2xl border p-4 shadow-sm space-y-3 transition ${
+                      isCurrent
+                        ? "border-[#034c85] bg-[#034c85]/5 dark:border-sky-500/40 dark:bg-[#034c85]/15"
+                        : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#034c85]/10 text-[#034c85] dark:bg-sky-950/50 dark:text-sky-300">
+                          <Ticket className="h-4 w-4" />
+                        </span>
+                        <div>
+                          <div className="font-mono text-sm font-bold text-slate-900 dark:text-slate-100">
+                            {coupon.code}
+                          </div>
+                          <div className="text-[11px] text-slate-400">
+                            {coupon.campaignName ||
+                              (isId ? "Kupon Platform" : "Platform Voucher")}
+                          </div>
+                        </div>
+                      </div>
+
+                      <span className="inline-flex items-center rounded-lg border border-[#fe6f05]/30 bg-[#fe6f05]/10 px-2 py-0.5 text-xs font-bold text-[#fe6f05]">
+                        {coupon.discountType === "percent"
+                          ? `${coupon.amount}% ${t("campaigns.Off", "Off")}`
+                          : `${formatCurrency(coupon.amount)} ${t(
+                              "campaigns.Off",
+                              "Off"
+                            )}`}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <span>
+                        Min.{" "}
+                        {coupon.minSpend
+                          ? formatCurrency(coupon.minSpend)
+                          : isId
+                            ? "Tanpa Min."
+                            : "No Min."}
+                      </span>
+                      <span>
+                        {coupon.expiresAt
+                          ? new Date(coupon.expiresAt).toLocaleDateString(
+                              isId ? "id-ID" : "en-US",
+                              { day: "numeric", month: "short", year: "numeric" }
+                            )
+                          : t("campaigns.Never Expires", "Never Expires")}
+                      </span>
+                    </div>
+
+                    <div className="pt-1">
+                      {isCurrent ? (
+                        <div className="flex items-center justify-center gap-1.5 w-full rounded-xl border border-emerald-300 bg-emerald-50 py-2 text-xs font-bold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          <span>
+                            {t(
+                              "campaigns.Currently Featured",
+                              "Currently Featured"
+                            )}
+                          </span>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setForm((prev) => ({
+                              ...prev,
+                              superDiscount: {
+                                ...prev.superDiscount,
+                                enabled: true,
+                                activeCouponCode: coupon.code,
+                              },
+                            }));
+                            setActiveTab("setup");
+                            toast.success(
+                              isId
+                                ? `Kupon ${coupon.code} dipilih untuk Mega Offer!`
+                                : `Coupon ${coupon.code} selected for Mega Offer!`
+                            );
+                          }}
+                          className="flex items-center justify-center gap-1.5 w-full rounded-xl bg-[#034c85] py-2 text-xs font-bold text-white transition hover:bg-[#02335a]"
+                        >
+                          <Sparkles className="h-3.5 w-3.5" />
+                          <span>
+                            {t(
+                              "campaigns.Set as Featured",
+                              "Set as Featured"
+                            )}
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       )}

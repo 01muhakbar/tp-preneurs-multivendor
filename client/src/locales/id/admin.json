@@ -1404,7 +1404,7 @@
     }
   },
   "campaigns": {
-    "Campaigns & Mega Offer": "Campaigns & Mega Offer",
+    "Campaigns & Mega Offer": "Promosi & Mega Offer",
     "Catalog": "Katalog",
     "Manage Mega Offer promotional banner, featured vouchers, and discounted deals in storefront.": "Kelola banner promosi Mega Offer, voucher unggulan, dan etalase diskon di etalase toko.",
     "View Live Offers": "Lihat Halaman Live",
@@ -1449,6 +1449,25 @@
     "Loading campaign data...": "Memuat data kampanye...",
     "Only JPG, PNG, or WebP files are allowed.": "Hanya format JPG, PNG, atau WebP yang diperbolehkan.",
     "Maximum image size is 2MB.": "Ukuran file maksimal 2 MB.",
-    "Failed to load image file.": "Gagal membaca file gambar."
+    "Failed to load image file.": "Gagal membaca file gambar.",
+    "Campaign Setup": "Pengaturan Banner & Etalase",
+    "Active Promo Coupons": "Ringkasan Kupon Promo",
+    "Restore Defaults": "Pulihkan Bawaan",
+    "Restore official TP Preneurs preset?": "Pulihkan draf resmi TP Preneurs?",
+    "Preset restored": "Draf resmi berhasil dipulihkan.",
+    "Coupon & Campaign": "Kupon & Kampanye",
+    "Discount": "Diskon",
+    "Min. Spend": "Min. Belanja",
+    "Validity": "Masa Berlaku",
+    "Status": "Status",
+    "Action": "Aksi",
+    "Set as Featured": "Gunakan untuk Mega Offer",
+    "Currently Featured": "Sedang Digunakan",
+    "No active promotional coupons found.": "Tidak ada kupon promosi aktif ditemukan.",
+    "All Products": "Semua Produk",
+    "Never Expires": "Tanpa Batas Waktu",
+    "Expires": "Berakhir",
+    "Image Preview": "Pratinjau Gambar",
+    "Selected Coupon": "Kupon Terpilih"
   }
 }

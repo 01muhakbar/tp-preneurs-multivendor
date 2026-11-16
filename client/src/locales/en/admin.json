@@ -1449,6 +1449,25 @@
     "Loading campaign data...": "Loading campaign data...",
     "Only JPG, PNG, or WebP files are allowed.": "Only JPG, PNG, or WebP files are allowed.",
     "Maximum image size is 2MB.": "Maximum image size is 2MB.",
-    "Failed to load image file.": "Failed to load image file."
+    "Failed to load image file.": "Failed to load image file.",
+    "Campaign Setup": "Campaign Setup",
+    "Active Promo Coupons": "Active Promo Coupons",
+    "Restore Defaults": "Restore Defaults",
+    "Restore official TP Preneurs preset?": "Restore official TP Preneurs preset?",
+    "Preset restored": "Official preset restored.",
+    "Coupon & Campaign": "Coupon & Campaign",
+    "Discount": "Discount",
+    "Min. Spend": "Min. Spend",
+    "Validity": "Validity",
+    "Status": "Status",
+    "Action": "Action",
+    "Set as Featured": "Set as Featured",
+    "Currently Featured": "Currently Featured",
+    "No active promotional coupons found.": "No active promotional coupons found.",
+    "All Products": "All Products",
+    "Never Expires": "Never Expires",
+    "Expires": "Expires",
+    "Image Preview": "Image Preview",
+    "Selected Coupon": "Selected Coupon"
   }
 }
