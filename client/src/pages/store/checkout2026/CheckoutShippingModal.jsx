@@ -400,9 +400,9 @@ export default function CheckoutShippingModal({
   formatMoney = (n) => `Rp ${Number(n || 0).toLocaleString("id-ID")}`,
 }) {
   const origin = useMemo(() => ({
-    city: store?.city || store?.address?.city || "Kabupaten Gowa",
+    city: store?.city || store?.address?.city || "Kota Makassar",
     province: store?.province || store?.address?.province || "Sulawesi Selatan",
-    district: store?.district || store?.address?.district || "Somba Opu",
+    district: store?.district || store?.address?.district || "Rappocini",
     lat: store?.lat ?? store?.latitude ?? store?.address?.lat ?? store?.address?.latitude,
     lng: store?.lng ?? store?.longitude ?? store?.address?.lng ?? store?.address?.longitude,
   }), [store?.city, store?.province, store?.district, store?.address, store?.lat, store?.latitude, store?.lng, store?.longitude]);

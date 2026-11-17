@@ -1641,9 +1641,9 @@ const serializePreviewGroup = (group: any) => ({
   storeId: group.storeId,
   storeName: group.storeName,
   storeSlug: group.storeSlug,
-  city: group.store?.city || "Kabupaten Gowa",
+  city: group.store?.city || "Kota Makassar",
   province: group.store?.province || "Sulawesi Selatan",
-  district: (group.store as any)?.district || "Somba Opu",
+  district: (group.store as any)?.district || "Rappocini",
   subtotalAmount: group.subtotalAmount,
   shippingAmount: group.shippingAmount,
   totalAmount: group.totalAmount,
@@ -1920,9 +1920,9 @@ const prepareCartGroups = (
     const totalPackageWeightKg = isStoreDigital ? 0 : weightCalc.billedWeightKg;
 
     const storeOrigin = {
-      city: group.store?.city || "Kabupaten Gowa",
+      city: group.store?.city || "Kota Makassar",
       province: group.store?.province || "Sulawesi Selatan",
-      district: (group.store as any)?.district || "Somba Opu",
+      district: (group.store as any)?.district || "Rappocini",
       lat: (group.store as any)?.lat ?? (group.store as any)?.latitude ?? null,
       lng: (group.store as any)?.lng ?? (group.store as any)?.longitude ?? null,
     };
