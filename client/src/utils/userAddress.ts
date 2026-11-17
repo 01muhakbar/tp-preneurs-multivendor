@@ -45,6 +45,8 @@ export const createEmptyUserAddressForm = (
   isPrimary: false,
   isStore: false,
   isReturn: false,
+  latitude: null,
+  longitude: null,
 });
 
 export const EMPTY_USER_ADDRESS_FORM = createEmptyUserAddressForm();
@@ -129,6 +131,14 @@ export const toUserAddressForm = (
     isPrimary: Boolean(address?.isPrimary),
     isStore: Boolean(address?.isStore),
     isReturn: Boolean(address?.isReturn),
+    latitude:
+      (address as any)?.latitude != null && !isNaN(Number((address as any).latitude))
+        ? Number((address as any).latitude)
+        : null,
+    longitude:
+      (address as any)?.longitude != null && !isNaN(Number((address as any).longitude))
+        ? Number((address as any).longitude)
+        : null,
   };
 };
 
@@ -140,6 +150,8 @@ export const toUserAddressPayload = (
       emailAddress?: string;
       name?: string;
       phone?: string;
+      latitude?: number | null;
+      longitude?: number | null;
     }
   >
 ): UserAddressPayload => ({
@@ -165,4 +177,12 @@ export const toUserAddressPayload = (
   isPrimary: Boolean(form.isPrimary),
   isStore: Boolean(form.isStore),
   isReturn: Boolean(form.isReturn),
+  latitude:
+    form.latitude != null && !isNaN(Number(form.latitude))
+      ? Number(form.latitude)
+      : null,
+  longitude:
+    form.longitude != null && !isNaN(Number(form.longitude))
+      ? Number(form.longitude)
+      : null,
 });

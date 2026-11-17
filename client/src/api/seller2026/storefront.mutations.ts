@@ -29,6 +29,8 @@ export type Seller2026StoreProfileUpdatePayload = {
     originPostalCode?: string | null;
     originCountry?: string | null;
     pickupNotes?: string | null;
+    originLatitude?: number | null;
+    originLongitude?: number | null;
   };
 };
 

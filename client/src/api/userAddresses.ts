@@ -17,6 +17,8 @@ export type UserAddressPayload = {
   isPrimary: boolean;
   isStore: boolean;
   isReturn: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export type UserAddress = UserAddressPayload & {

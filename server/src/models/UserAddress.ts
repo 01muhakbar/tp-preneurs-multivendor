@@ -19,6 +19,8 @@ export interface UserAddressAttributes {
   isPrimary: boolean;
   isStore: boolean;
   isReturn: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -32,6 +34,8 @@ type UserAddressCreationAttributes = Optional<
   | "isPrimary"
   | "isStore"
   | "isReturn"
+  | "latitude"
+  | "longitude"
 >;
 
 export class UserAddress
@@ -54,6 +58,8 @@ export class UserAddress
   declare isPrimary: boolean;
   declare isStore: boolean;
   declare isReturn: boolean;
+  declare latitude?: number | null;
+  declare longitude?: number | null;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
 
@@ -159,6 +165,14 @@ export class UserAddress
           allowNull: false,
           defaultValue: false,
           field: "is_return",
+        },
+        latitude: {
+          type: DataTypes.DECIMAL(10, 8),
+          allowNull: true,
+        },
+        longitude: {
+          type: DataTypes.DECIMAL(11, 8),
+          allowNull: true,
         },
       },
       {

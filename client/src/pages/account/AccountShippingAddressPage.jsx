@@ -250,6 +250,39 @@ export default function AccountShippingAddressPage() {
     });
   };
 
+  const handleLocationDetected = ({ latitude, longitude, accuracy, nearestMatch }) => {
+    setStatus(null);
+    setFormState((prev) => {
+      const next = {
+        ...prev,
+        latitude,
+        longitude,
+        accuracy,
+      };
+      if (nearestMatch) {
+        next.province = nearestMatch.province;
+        next.city = nearestMatch.city;
+        next.district = nearestMatch.district;
+      }
+      return next;
+    });
+    setFieldErrors((prev) => ({
+      ...prev,
+      province: "",
+      city: "",
+      district: "",
+    }));
+  };
+
+  const handleClearLocation = () => {
+    setFormState((prev) => ({
+      ...prev,
+      latitude: null,
+      longitude: null,
+      accuracy: null,
+    }));
+  };
+
   const handleFocusForm = () => {
     setActiveTab("form");
   };
@@ -410,6 +443,8 @@ export default function AccountShippingAddressPage() {
       onFocusForm={handleFocusForm}
       onResetForm={resetForm}
       onFormChange={handleFormChange}
+      onLocationDetected={handleLocationDetected}
+      onClearLocation={handleClearLocation}
       onSubmit={handleSubmit}
       onEditAddress={handleEditAddress}
       onDeleteAddress={handleDeleteAddress}

@@ -17,6 +17,8 @@ const toAddressData = (item) => ({
     isPrimary: Boolean(item?.isPrimary),
     isStore: Boolean(item?.isStore),
     isReturn: Boolean(item?.isReturn),
+    latitude: item?.latitude != null && !isNaN(Number(item.latitude)) ? Number(item.latitude) : null,
+    longitude: item?.longitude != null && !isNaN(Number(item.longitude)) ? Number(item.longitude) : null,
     createdAt: item?.createdAt ?? null,
     updatedAt: item?.updatedAt ?? null,
 });
@@ -42,6 +44,12 @@ const normalizePayload = (payload) => ({
     isPrimary: Boolean(payload.isPrimary),
     isStore: Boolean(payload.isStore),
     isReturn: Boolean(payload.isReturn),
+    latitude: payload.latitude != null && !isNaN(Number(payload.latitude))
+        ? Number(payload.latitude)
+        : null,
+    longitude: payload.longitude != null && !isNaN(Number(payload.longitude))
+        ? Number(payload.longitude)
+        : null,
 });
 const applyUniqueFlags = async (userId, flags, excludeId, transaction) => {
     const whereClause = excludeId

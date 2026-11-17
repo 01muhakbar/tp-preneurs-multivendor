@@ -36,6 +36,9 @@ export const getEmptyShippingAddress2026 = (fallbackEmailAddress = "") => ({
   isPrimary: false,
   isStore: false,
   isReturn: false,
+  latitude: null,
+  longitude: null,
+  accuracy: null,
 });
 
 export const getShippingAddress2026FormFromAddress = (
@@ -45,6 +48,14 @@ export const getShippingAddress2026FormFromAddress = (
   ...getEmptyShippingAddress2026(fallbackEmailAddress),
   ...toUserAddressForm(address, fallbackEmailAddress),
   id: Number(address?.id || 0) || null,
+  latitude:
+    address?.latitude != null && !isNaN(Number(address.latitude))
+      ? Number(address.latitude)
+      : null,
+  longitude:
+    address?.longitude != null && !isNaN(Number(address.longitude))
+      ? Number(address.longitude)
+      : null,
 });
 
 export const buildShippingAddressPayloadFrom2026Form = (form) =>

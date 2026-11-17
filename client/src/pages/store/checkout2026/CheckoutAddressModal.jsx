@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Check, ChevronDown, ChevronLeft, Loader2, MapPin, Plus, X } from "lucide-react";
 import toast from "react-hot-toast";
+import OneClickGpsButton from "../../../components/common/OneClickGpsButton.jsx";
 import {
   getCityOptions,
   getDistrictOptions,
@@ -236,6 +237,9 @@ export default function CheckoutAddressModal({
   const [otherDetails, setOtherDetails] = useState("");
   const [markAs, setMarkAs] = useState("HOME");
   const [isPrimary, setIsPrimary] = useState(false);
+  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState(null);
+  const [accuracy, setAccuracy] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
 
   const provinceOptions = useMemo(
@@ -282,6 +286,9 @@ export default function CheckoutAddressModal({
     setOtherDetails("");
     setMarkAs("HOME");
     setIsPrimary(addresses.length === 0);
+    setLatitude(null);
+    setLongitude(null);
+    setAccuracy(null);
     setErrorMessage("");
   };
 
@@ -300,7 +307,27 @@ export default function CheckoutAddressModal({
     setOtherDetails(addr.otherDetails || "");
     setMarkAs(addr.markAs || "HOME");
     setIsPrimary(Boolean(addr.isPrimary));
+    setLatitude(addr.latitude != null && !isNaN(Number(addr.latitude)) ? Number(addr.latitude) : null);
+    setLongitude(addr.longitude != null && !isNaN(Number(addr.longitude)) ? Number(addr.longitude) : null);
+    setAccuracy(null);
     setErrorMessage("");
+  };
+
+  const handleLocationDetected = ({ latitude: lat, longitude: lng, accuracy: acc, nearestMatch }) => {
+    setLatitude(lat);
+    setLongitude(lng);
+    setAccuracy(acc);
+    if (nearestMatch) {
+      setProvince(nearestMatch.province);
+      setCity(nearestMatch.city);
+      setDistrict(nearestMatch.district);
+    }
+  };
+
+  const handleClearLocation = () => {
+    setLatitude(null);
+    setLongitude(null);
+    setAccuracy(null);
   };
 
   const handleCloseForm = () => {
@@ -348,6 +375,8 @@ export default function CheckoutAddressModal({
       isPrimary: Boolean(isPrimary),
       isStore: false,
       isReturn: false,
+      latitude: latitude != null && !isNaN(Number(latitude)) ? Number(latitude) : null,
+      longitude: longitude != null && !isNaN(Number(longitude)) ? Number(longitude) : null,
     };
 
     try {
@@ -528,6 +557,15 @@ export default function CheckoutAddressModal({
               {errorMessage && (
                 <div className="co26-modal-error">{errorMessage}</div>
               )}
+
+              <OneClickGpsButton
+                latitude={latitude}
+                longitude={longitude}
+                accuracy={accuracy}
+                onLocationDetected={handleLocationDetected}
+                onClearLocation={handleClearLocation}
+                isIndo={isIndo}
+              />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>

@@ -100,6 +100,14 @@ export class UserAddress extends Model {
                 defaultValue: false,
                 field: "is_return",
             },
+            latitude: {
+                type: DataTypes.DECIMAL(10, 8),
+                allowNull: true,
+            },
+            longitude: {
+                type: DataTypes.DECIMAL(11, 8),
+                allowNull: true,
+            },
         }, {
             sequelize,
             modelName: "UserAddress",

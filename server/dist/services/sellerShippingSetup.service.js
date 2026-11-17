@@ -60,6 +60,8 @@ export const sellerShippingSetupPatchSchema = z
     originPostalCode: nullablePostalCodeField(),
     originCountry: nullableStringField(120),
     pickupNotes: nullableStringField(500),
+    originLatitude: z.number().nullable().optional(),
+    originLongitude: z.number().nullable().optional(),
 })
     .strict();
 const normalizeStoredShippingSetup = (value) => {
@@ -110,6 +112,12 @@ const normalizeStoredShippingSetup = (value) => {
             : null,
         pickupNotes: typeof normalizeNullableText(source.pickupNotes) === "string"
             ? String(normalizeNullableText(source.pickupNotes))
+            : null,
+        originLatitude: source.originLatitude != null && !isNaN(Number(source.originLatitude))
+            ? Number(source.originLatitude)
+            : null,
+        originLongitude: source.originLongitude != null && !isNaN(Number(source.originLongitude))
+            ? Number(source.originLongitude)
             : null,
     };
 };

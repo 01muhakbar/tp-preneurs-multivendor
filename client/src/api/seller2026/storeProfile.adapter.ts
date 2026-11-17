@@ -105,6 +105,14 @@ export function createSeller2026StoreProfileForm(profile: any) {
     originPostalCode: asText(shipping.originPostalCode),
     originCountry: asText(shipping.originCountry, "Indonesia"),
     pickupNotes: asText(shipping.pickupNotes),
+    originLatitude:
+      shipping.originLatitude != null && !isNaN(Number(shipping.originLatitude))
+        ? Number(shipping.originLatitude)
+        : null,
+    originLongitude:
+      shipping.originLongitude != null && !isNaN(Number(shipping.originLongitude))
+        ? Number(shipping.originLongitude)
+        : null,
   };
 }
 

@@ -30,6 +30,7 @@ import { resolveAssetUrl } from "../../../lib/assetUrl.js";
 import { useSeller2026StoreProfile } from "../../../hooks/seller2026/useSeller2026StoreProfile.ts";
 import { useSellerWorkspaceRoute } from "../../../utils/sellerWorkspaceRoute.js";
 import { getCityOptions, getDistrictOptions, getProvinceOptions } from "../../../utils/idRegions.ts";
+import OneClickGpsButton from "../../../components/common/OneClickGpsButton.jsx";
 import { getSeller2026PagePermissions } from "./seller2026PagePermissions.js";
 import "../../../features/sellerWorkspace2026/SellerWorkspace2026.css";
 
@@ -400,6 +401,14 @@ export default function Seller2026LiveStorefrontPage() {
           originPostalCode: emptyToNull(form.originPostalCode),
           originCountry: emptyToNull(form.originCountry) || "Indonesia",
           pickupNotes: emptyToNull(form.pickupNotes),
+          originLatitude:
+            form.originLatitude != null && !isNaN(Number(form.originLatitude))
+              ? Number(form.originLatitude)
+              : null,
+          originLongitude:
+            form.originLongitude != null && !isNaN(Number(form.originLongitude))
+              ? Number(form.originLongitude)
+              : null,
         },
       });
       await refetchSellerContext?.();
@@ -737,6 +746,40 @@ export default function Seller2026LiveStorefrontPage() {
 
           <section className="seller2026-card seller2026-profile__form-card seller2026-profile__form-card--full" id="shipping">
             <h2>{isId ? "Asal Pengiriman" : "Shipping Origin"}</h2>
+
+            <div className="mb-4">
+              <OneClickGpsButton
+                latitude={form.originLatitude}
+                longitude={form.originLongitude}
+                accuracy={form.originAccuracy}
+                isIndo={isId}
+                helperText={isId ? "Kunci titik GPS toko Anda agar kurir GrabExpress menjemput tepat di lokasi toko." : "Lock your store GPS coordinates for accurate courier pickup."}
+                onLocationDetected={({ latitude, longitude, accuracy, nearestMatch }) => {
+                  setForm((current) => ({
+                    ...current,
+                    originLatitude: latitude,
+                    originLongitude: longitude,
+                    originAccuracy: accuracy,
+                    ...(nearestMatch
+                      ? {
+                          originProvince: nearestMatch.province,
+                          originCity: nearestMatch.city,
+                          originDistrict: nearestMatch.district,
+                        }
+                      : {}),
+                  }));
+                }}
+                onClearLocation={() => {
+                  setForm((current) => ({
+                    ...current,
+                    originLatitude: null,
+                    originLongitude: null,
+                    originAccuracy: null,
+                  }));
+                }}
+              />
+            </div>
+
             <div className="seller2026-profile__fields-two">
               <Field label={isId ? "Mode Pengiriman" : "Shipping Mode"}>
                 <select value={form.shippingEnabled ? "enabled" : "disabled"} onChange={(event) => setForm((current) => ({ ...current, shippingEnabled: event.target.value === "enabled" }))}>
@@ -832,6 +875,14 @@ export default function Seller2026LiveStorefrontPage() {
                   <div><dt>{isId ? "Kontak Penjemputan" : "Pickup Contact"}</dt><dd>{display(data.shipping.originContactName, null, isId)}</dd></div>
                   <div><dt>{isId ? "Telepon" : "Phone"}</dt><dd>{display(data.shipping.originPhone, null, isId)}</dd></div>
                   <div><dt>{isId ? "Alamat Penjemputan" : "Pickup Address"}</dt><dd>{display(data.shipping.address, null, isId)}</dd></div>
+                  {data.shipping.originLatitude != null && (
+                    <div>
+                      <dt>{isId ? "Titik Koordinat GPS" : "GPS Coordinates"}</dt>
+                      <dd className="text-emerald-400 font-mono text-xs">
+                        📍 {Number(data.shipping.originLatitude).toFixed(4)}, {Number(data.shipping.originLongitude).toFixed(4)}
+                      </dd>
+                    </div>
+                  )}
                 </dl>
                 <Link to={workspaceRoutes.shippingSetup()}>{isId ? "Lihat detail pengiriman" : "View shipping details"} <ChevronRight size={16} /></Link>
               </section>

@@ -11,6 +11,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import OneClickGpsButton from "../../components/common/OneClickGpsButton.jsx";
 import "./account-shipping-address-2026.css";
 
 function LoadingState({ isIndo }) {
@@ -185,6 +186,8 @@ export default function AccountShippingAddress2026View({
   onTabChange,
   onFocusForm,
   onFormChange,
+  onLocationDetected,
+  onClearLocation,
   onSubmit,
   onEditAddress,
   onDeleteAddress,
@@ -320,6 +323,17 @@ export default function AccountShippingAddress2026View({
                       : "Add New Shipping Address"}
                 </h2>
               </div>
+            </div>
+
+            <div className="tpship2026-gps-container mb-4">
+              <OneClickGpsButton
+                latitude={form?.latitude}
+                longitude={form?.longitude}
+                accuracy={form?.accuracy}
+                onLocationDetected={onLocationDetected}
+                onClearLocation={onClearLocation}
+                isIndo={isIndo}
+              />
             </div>
 
             <div className="tpship2026-form-grid">
