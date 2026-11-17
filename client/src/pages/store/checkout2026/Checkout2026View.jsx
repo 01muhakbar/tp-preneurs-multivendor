@@ -999,9 +999,11 @@ export default function Checkout2026View({
           onClose={() => setShippingModalStore(null)}
           store={shippingModalStore}
           destination={{
-            city: form?.shipping?.city,
-            province: form?.shipping?.province,
-            district: form?.shipping?.district,
+            city: activeAddress?.city || form?.shipping?.city,
+            province: activeAddress?.province || form?.shipping?.province,
+            district: activeAddress?.district || form?.shipping?.district,
+            lat: activeAddress?.lat ?? activeAddress?.latitude ?? form?.shipping?.lat ?? form?.shipping?.latitude,
+            lng: activeAddress?.lng ?? activeAddress?.longitude ?? form?.shipping?.lng ?? form?.shipping?.longitude,
           }}
           selectedShippingOption={
             selectedStoreShipping?.[String(shippingModalStore?.storeId)] ||

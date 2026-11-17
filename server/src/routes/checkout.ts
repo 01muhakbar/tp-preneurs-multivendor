@@ -113,10 +113,16 @@ const previewRequestSchema = z.object({
   shippingAddressId: z.number().int().positive().optional(),
   city: z.string().optional(),
   province: z.string().optional(),
+  district: z.string().optional(),
   destination: z
     .object({
       city: z.string().nullable().optional(),
       province: z.string().nullable().optional(),
+      district: z.string().nullable().optional(),
+      lat: z.number().nullable().optional(),
+      lng: z.number().nullable().optional(),
+      latitude: z.number().nullable().optional(),
+      longitude: z.number().nullable().optional(),
     })
     .optional(),
 });
@@ -1708,7 +1714,15 @@ const prepareCartGroups = (
   cartItems: any[],
   options: {
     isDuitkuEnabled?: boolean;
-    destination?: { city?: string | null; province?: string | null };
+    destination?: {
+      city?: string | null;
+      province?: string | null;
+      district?: string | null;
+      lat?: number | null;
+      lng?: number | null;
+      latitude?: number | null;
+      longitude?: number | null;
+    };
   } = {}
 ) => {
   const groupsMap = new Map<number, any>();
@@ -1892,6 +1906,7 @@ const prepareCartGroups = (
     const storeOrigin = {
       city: group.store?.city || null,
       province: group.store?.province || null,
+      district: (group.store as any)?.district || null,
     };
     const zoneInfo = determineShippingZone(storeOrigin, options.destination);
     const availableShippingRates = calculateStandaloneShippingRates({
@@ -1900,6 +1915,8 @@ const prepareCartGroups = (
       zoneMultiplier: zoneInfo.multiplier,
       cargoMultiplier: zoneInfo.cargoMultiplier,
       isDigital: isStoreDigital,
+      origin: storeOrigin,
+      destination: options.destination,
     });
     const defaultShippingOption = availableShippingRates[0] || null;
     const courierCode = defaultShippingOption?.courierCode || "JNE";
@@ -2818,6 +2835,7 @@ router.post("/preview", checkoutPreviewRateLimit, async (req, res) => {
     const destination = parsed.data.destination || {
       city: parsed.data.city || null,
       province: parsed.data.province || null,
+      district: parsed.data.district || null,
     };
     const prepared = prepareCartGroups(
       await attachStoreSnapshotsToProducts(cartItems),
@@ -3048,6 +3066,7 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
           destination: {
             city: shippingDetails?.city || null,
             province: shippingDetails?.province || null,
+            district: shippingDetails?.district || null,
           },
         }
       );

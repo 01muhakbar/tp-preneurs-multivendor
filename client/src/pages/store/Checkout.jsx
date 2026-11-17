@@ -1593,18 +1593,21 @@ export default function CheckoutPage() {
         ...summaryItems.map((item) => `${item.lineId}:${item.qty}`),
         shippingForm?.city || "",
         shippingForm?.province || "",
+        shippingForm?.district || "",
       ]
         .sort()
         .join("|"),
-    [summaryItems, shippingForm?.city, shippingForm?.province]
+    [summaryItems, shippingForm?.city, shippingForm?.province, shippingForm?.district]
   );
   const checkoutPreviewRequestPayload = useMemo(
     () => ({
       city: shippingForm?.city || "",
       province: shippingForm?.province || "",
       district: shippingForm?.district || "",
+      lat: shippingForm?.lat ?? shippingForm?.latitude ?? null,
+      lng: shippingForm?.lng ?? shippingForm?.longitude ?? null,
     }),
-    [shippingForm?.city, shippingForm?.province, shippingForm?.district]
+    [shippingForm?.city, shippingForm?.province, shippingForm?.district, shippingForm?.lat, shippingForm?.latitude, shippingForm?.lng, shippingForm?.longitude]
   );
   const checkoutPreviewQuery = useQuery({
     queryKey: ["checkout-preview-by-store", checkoutPreviewSignature],

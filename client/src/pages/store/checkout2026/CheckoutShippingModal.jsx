@@ -403,7 +403,9 @@ export default function CheckoutShippingModal({
     city: store?.city || store?.address?.city || "Kota Makassar",
     province: store?.province || store?.address?.province || "Sulawesi Selatan",
     district: store?.district || store?.address?.district || "Somba Opu",
-  }), [store?.city, store?.province, store?.district, store?.address]);
+    lat: store?.lat ?? store?.latitude ?? store?.address?.lat ?? store?.address?.latitude,
+    lng: store?.lng ?? store?.longitude ?? store?.address?.lng ?? store?.address?.longitude,
+  }), [store?.city, store?.province, store?.district, store?.address, store?.lat, store?.latitude, store?.lng, store?.longitude]);
 
   const zone = useMemo(() => {
     return determineShippingZone(origin, destination);
@@ -473,6 +475,7 @@ export default function CheckoutShippingModal({
 
   const categories = [
     { key: "all", label: isIndo ? "Semua" : "All" },
+    { key: "instant", label: isIndo ? "Instan / Same Day" : "Instant / Same Day" },
     { key: "regular", label: isIndo ? "Reguler" : "Standard" },
     { key: "express", label: isIndo ? "Kilat" : "Express" },
     { key: "economy", label: isIndo ? "Ekonomi" : "Economy" },
@@ -494,6 +497,8 @@ export default function CheckoutShippingModal({
 
   const getCategoryBadgeClass = (category) => {
     switch (category) {
+      case "instant":
+        return "bg-[#fe6f05]/20 text-[#fe6f05] border-[#fe6f05]/40 font-semibold";
       case "express":
         return "bg-amber-500/15 text-amber-300 border-amber-500/40";
       case "economy":
@@ -674,6 +679,16 @@ export default function CheckoutShippingModal({
                         <strong className="text-xs sm:text-sm text-slate-100 font-semibold truncate">
                           {opt.serviceName || opt.serviceCode}
                         </strong>
+                        {opt.distanceKm ? (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/40">
+                            ~{opt.distanceKm} km
+                          </span>
+                        ) : null}
+                        {opt.vehicleType ? (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                            {opt.vehicleType === "car" ? (isIndo ? "Mobil" : "Car") : (isIndo ? "Motor" : "Bike")}
+                          </span>
+                        ) : null}
                       </div>
 
                       <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400 flex-wrap">
@@ -686,9 +701,15 @@ export default function CheckoutShippingModal({
                           </span>
                         </span>
                         <span>•</span>
-                        <span className="text-slate-400">
-                          {formatMoney(opt.ratePerKg || 10000)} / kg
-                        </span>
+                        {opt.category === "instant" ? (
+                          <span className="text-[#fe6f05] font-semibold">
+                            {isIndo ? "Tarif Tetap Jarak" : "Fixed Distance Rate"}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">
+                            {formatMoney(opt.ratePerKg || 10000)} / kg
+                          </span>
+                        )}
                         {isCargo && opt.minWeight ? (
                           <>
                             <span>•</span>
@@ -709,7 +730,9 @@ export default function CheckoutShippingModal({
                       {formatMoney(rateFee)}
                     </strong>
                     <span className="text-[10px] text-slate-400 block">
-                      ({chargedWeight} kg{isCargo && effectiveWeight < opt.minWeight ? " min" : ""})
+                      {opt.category === "instant"
+                        ? opt.distanceKm ? `Jarak ~${opt.distanceKm} km` : (isIndo ? "Instan" : "Instant")
+                        : `(${chargedWeight} kg${isCargo && effectiveWeight < opt.minWeight ? " min" : ""})`}
                     </span>
                   </div>
                 </div>
