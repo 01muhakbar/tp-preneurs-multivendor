@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { resolveAssetUrl } from "../../../lib/assetUrl.js";
 import { INDONESIA_COURIERS } from "./sellerSuborderDetail2026Adapter.js";
+import { buildOfficialCourierTrackingUrl } from "../../../utils/standaloneShippingEngine.js";
 import "./seller-suborder-detail-2026.css";
 
 function SearchableCombobox({
@@ -777,6 +778,19 @@ export default function SellerSuborderDetail2026PageView({
   const isTrackingUrl = (val) => /^https?:\/\//i.test(String(val || "").trim());
   const isCurrentDraftUrl = isTrackingUrl(currentTrackingVal);
 
+  const officialDirectTrackingUrl = useMemo(() => {
+    const rawNo = order?.shipping?.trackingNo;
+    const courier = order?.shipping?.courier || order?.shipping?.courierService || fulfillmentDraft.shippingProvider;
+    if (rawNo && !isTrackingUrl(rawNo)) {
+      const generated = buildOfficialCourierTrackingUrl(courier, rawNo);
+      if (generated) return generated;
+    }
+    if (order?.shipping?.trackingUrl && isTrackingUrl(order.shipping.trackingUrl)) {
+      return order.shipping.trackingUrl;
+    }
+    return null;
+  }, [order?.shipping?.trackingNo, order?.shipping?.courier, order?.shipping?.courierService, order?.shipping?.trackingUrl, fulfillmentDraft.shippingProvider]);
+
   const isDigitalOrder = Boolean(order.isDigitalOrder);
   const digitalAssetUrl =
     order.digitalAssetUrl ||
@@ -1360,7 +1374,33 @@ export default function SellerSuborderDetail2026PageView({
                         </a>
                       </div>
                     ) : (
-                      <strong>{order.shipping?.trackingNo || t.noTracking}</strong>
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                        <strong>{order.shipping?.trackingNo || t.noTracking}</strong>
+                        {officialDirectTrackingUrl && (
+                          <a
+                            href={officialDirectTrackingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              padding: "2px 8px",
+                              borderRadius: "6px",
+                              fontSize: "11px",
+                              fontWeight: 600,
+                              background: "rgba(254, 111, 5, 0.15)",
+                              color: "#fe6f05",
+                              border: "1px solid rgba(254, 111, 5, 0.35)",
+                              textDecoration: "none",
+                            }}
+                            title={isIndo ? "Lacak di Web Resmi Kurir" : "Track on Official Courier Website"}
+                          >
+                            <ExternalLink size={11} />
+                            <span>{isIndo ? `Lacak di Web Resmi ${order.shipping?.courier || "Kurir"}` : `Track on ${order.shipping?.courier || "Courier"} Site`}</span>
+                          </a>
+                        )}
+                      </div>
                     )}
                     {order.shipping?.trackingNo && (
                       <button
@@ -1640,9 +1680,9 @@ export default function SellerSuborderDetail2026PageView({
             </header>
 
             <div className="tpsodp2026-actions-list">
-              {order.shipping?.trackingUrl && (
+              {(officialDirectTrackingUrl || order.shipping?.trackingUrl) && (
                 <a
-                  href={order.shipping.trackingUrl}
+                  href={officialDirectTrackingUrl || order.shipping.trackingUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="tpsodp2026-action-tile"
@@ -1652,8 +1692,8 @@ export default function SellerSuborderDetail2026PageView({
                     <ExternalLink size={16} />
                   </div>
                   <div className="tpsodp2026-action-tile__text">
-                    <strong>{t.viewPublicTracking}</strong>
-                    <span>{t.viewPublicTrackingSub}</span>
+                    <strong>{isIndo ? `Lacak di Web Resmi (${order.shipping?.courier || "Kurir"})` : t.viewPublicTracking}</strong>
+                    <span>{isIndo ? "Buka portal pelacakan resmi kurir" : t.viewPublicTrackingSub}</span>
                   </div>
                 </a>
               )}

@@ -1589,13 +1589,23 @@ export default function CheckoutPage() {
   );
   const checkoutPreviewSignature = useMemo(
     () =>
-      summaryItems
-        .map((item) => `${item.lineId}:${item.qty}`)
+      [
+        ...summaryItems.map((item) => `${item.lineId}:${item.qty}`),
+        shippingForm?.city || "",
+        shippingForm?.province || "",
+      ]
         .sort()
         .join("|"),
-    [summaryItems]
+    [summaryItems, shippingForm?.city, shippingForm?.province]
   );
-  const checkoutPreviewRequestPayload = useMemo(() => ({}), []);
+  const checkoutPreviewRequestPayload = useMemo(
+    () => ({
+      city: shippingForm?.city || "",
+      province: shippingForm?.province || "",
+      district: shippingForm?.district || "",
+    }),
+    [shippingForm?.city, shippingForm?.province, shippingForm?.district]
+  );
   const checkoutPreviewQuery = useQuery({
     queryKey: ["checkout-preview-by-store", checkoutPreviewSignature],
     queryFn: () => previewCheckoutByStore(checkoutPreviewRequestPayload),

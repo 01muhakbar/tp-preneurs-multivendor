@@ -667,7 +667,35 @@ export default function AccountOrderDetail2026View({
                 <span>{isIndo ? "Lacak Live Driver (Peta)" : "Live Driver Map"}</span>
               </a>
             ) : (
-              <strong className="tp-shopee-detail__tracking-code">{shippingInfo.trackingNumber}</strong>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                <strong className="tp-shopee-detail__tracking-code">{shippingInfo.trackingNumber}</strong>
+                {shippingInfo.officialTrackingUrl && (
+                  <a
+                    href={shippingInfo.officialTrackingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="tp-shopee-detail__live-tracking-link"
+                    onClick={(e) => e.stopPropagation()}
+                    title={isIndo ? "Lacak di Website Resmi Kurir" : "Track on Official Courier Website"}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      padding: "2px 8px",
+                      borderRadius: "10px",
+                      background: "rgba(254, 111, 5, 0.15)",
+                      color: "#fe6f05",
+                      border: "1px solid rgba(254, 111, 5, 0.35)",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      textDecoration: "none",
+                    }}
+                  >
+                    <ExternalLink size={11} />
+                    <span>{isIndo ? `Lacak di Web Resmi ${shippingInfo.courierName || shippingInfo.courier || "Kurir"}` : `Track via ${shippingInfo.courierName || shippingInfo.courier || "Courier"}`}</span>
+                  </a>
+                )}
+              </span>
             )}
           </div>
 

@@ -200,12 +200,13 @@ export default function Checkout2026View({
 
   // Active address resolution
   const activeAddress =
-    safeSavedAddresses.find(
-      (a) => a && selectedAddressId && Number(a.id) === Number(selectedAddressId)
-    ) ||
-    (selectedAddressId && safeSavedAddresses.length > 0
-      ? safeSavedAddresses.find((a) => Boolean(a?.isPrimary)) || safeSavedAddresses[0]
+    (selectedAddressId
+      ? safeSavedAddresses.find(
+          (a) => a && Number(a.id) === Number(selectedAddressId)
+        )
       : null) ||
+    safeSavedAddresses.find((a) => Boolean(a?.isPrimary)) ||
+    (safeSavedAddresses.length > 0 ? safeSavedAddresses[0] : null) ||
     (form?.shipping?.streetName
       ? {
           fullName: `${form?.firstName || ""} ${form?.lastName || ""}`.trim() || "Penerima",
@@ -216,8 +217,16 @@ export default function Checkout2026View({
           city: form.shipping.city,
           province: form.shipping.province,
           postalCode: form.shipping.postalCode,
+          isPrimary: true,
         }
       : null);
+
+  // Auto-synchronize resolved primary/saved address to checkout form if not yet selected
+  useEffect(() => {
+    if (!selectedAddressId && activeAddress?.id && onSelectAddress) {
+      onSelectAddress(activeAddress);
+    }
+  }, [selectedAddressId, activeAddress, onSelectAddress]);
 
   const formattedAddressText = activeAddress
     ? [
@@ -989,6 +998,11 @@ export default function Checkout2026View({
           isOpen={Boolean(shippingModalStore)}
           onClose={() => setShippingModalStore(null)}
           store={shippingModalStore}
+          destination={{
+            city: form?.shipping?.city,
+            province: form?.shipping?.province,
+            district: form?.shipping?.district,
+          }}
           selectedShippingOption={
             selectedStoreShipping?.[String(shippingModalStore?.storeId)] ||
             shippingModalStore?.defaultShippingOption

@@ -1,6 +1,7 @@
 import { buildFulfillmentStatusMeta } from "./orderLifecycleContract.service.js";
 import { isMultistoreShipmentMvpEnabled, isMultistoreShipmentMutationEnabled, } from "./featureFlags.service.js";
 import { buildStoreShippingSetupReadiness } from "./sellerShippingSetup.service.js";
+import { buildOfficialCourierTrackingUrl } from "./standaloneShippingEngine.js";
 const getAttr = (row, key) => row?.getDataValue?.(key) ?? row?.get?.(key) ?? row?.dataValues?.[key];
 const toNumber = (value, fallback = 0) => {
     const parsed = Number(value);
@@ -573,6 +574,7 @@ const buildShipmentReadModelFromPersistedRecord = (shipment, suborder, options) 
         courierCode: String(getAttr(shipment, "courierCode") || "").trim() || null,
         courierService: String(getAttr(shipment, "courierService") || "").trim() || null,
         trackingNumber: String(getAttr(shipment, "trackingNumber") || "").trim() || null,
+        trackingUrl: buildOfficialCourierTrackingUrl(String(getAttr(shipment, "courierCode") || getAttr(shipment, "courierService") || ""), String(getAttr(shipment, "trackingNumber") || "")),
         estimatedDelivery: getAttr(shipment, "estimatedDelivery") || null,
         shippingFee: toNumber(getAttr(shipment, "shippingFee") ?? getAttr(suborder, "shippingAmount"), 0),
         shipmentItems: items,

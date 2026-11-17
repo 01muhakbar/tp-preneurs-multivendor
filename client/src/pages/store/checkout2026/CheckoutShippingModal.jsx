@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Check, Package, Scale, Truck, X, Zap, Clock, ShieldCheck, Box } from "lucide-react";
+import {
+  calculateBilledWeight,
+  determineShippingZone,
+  calculateStandaloneShippingRates,
+} from "../../../utils/standaloneShippingEngine.js";
 
 export const DEFAULT_COURIER_OPTIONS = [
   // 1. JNE Express
@@ -385,6 +390,7 @@ export default function CheckoutShippingModal({
   isOpen,
   onClose,
   store,
+  destination,
   selectedShippingOption,
   availableShippingRates = [],
   packageWeightKg = 1,
@@ -393,12 +399,36 @@ export default function CheckoutShippingModal({
   isIndo = true,
   formatMoney = (n) => `Rp ${Number(n || 0).toLocaleString("id-ID")}`,
 }) {
-  const effectiveWeight = Math.max(1, Math.ceil(Number(packageWeightKg) || 1));
+  const origin = useMemo(() => ({
+    city: store?.city || store?.address?.city || "Kota Makassar",
+    province: store?.province || store?.address?.province || "Sulawesi Selatan",
+    district: store?.district || store?.address?.district || "Somba Opu",
+  }), [store?.city, store?.province, store?.district, store?.address]);
+
+  const zone = useMemo(() => {
+    return determineShippingZone(origin, destination);
+  }, [origin, destination]);
+
+  const billedWeightInfo = useMemo(() => {
+    const pWeight = Number(totalWeightGrams) > 0 ? Number(totalWeightGrams) / 1000 : Number(packageWeightKg) || 1;
+    return calculateBilledWeight(pWeight, 0, 0.25);
+  }, [totalWeightGrams, packageWeightKg]);
+
+  const effectiveWeight = billedWeightInfo.billedWeightKg;
   const [activeCategory, setActiveCategory] = useState("all");
 
   const rates = useMemo(() => {
     if (Array.isArray(availableShippingRates) && availableShippingRates.length > 0) {
       return availableShippingRates;
+    }
+    const engineRates = calculateStandaloneShippingRates({
+      origin,
+      destination,
+      totalWeightGrams,
+      items: store?.items || [],
+    });
+    if (Array.isArray(engineRates) && engineRates.length > 0) {
+      return engineRates;
     }
     return DEFAULT_COURIER_OPTIONS.map((opt) => {
       const isCargo = opt.category === "cargo";
@@ -415,7 +445,7 @@ export default function CheckoutShippingModal({
         minWeight,
       };
     });
-  }, [availableShippingRates, effectiveWeight]);
+  }, [availableShippingRates, origin, destination, totalWeightGrams, effectiveWeight, store?.items]);
 
   const [tempSelectedKey, setTempSelectedKey] = useState("");
 
@@ -510,25 +540,49 @@ export default function CheckoutShippingModal({
         </div>
 
         {/* Package Weight & Info Banner */}
-        <div className="px-4 py-2.5 bg-[#034c85]/10 border-b border-[#034c85]/30 flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-2 text-xs text-slate-300">
+        <div className="px-4 py-2.5 bg-[#034c85]/10 border-b border-[#034c85]/30 flex items-center justify-between gap-2.5 flex-wrap">
+          <div className="flex items-center gap-2 text-xs text-slate-300 flex-wrap">
             <Scale size={16} className="text-[#fe6f05] shrink-0" />
             <div>
               <span className="font-semibold text-slate-200">
-                {isIndo ? "Total Berat Paket:" : "Total Package Weight:"}
+                {isIndo ? "Berat Tagihan:" : "Billed Weight:"}
               </span>{" "}
               <strong className="text-[#fe6f05] font-bold">
                 {effectiveWeight} kg
               </strong>
               {totalWeightGrams ? (
                 <span className="text-slate-400 text-[11px] ml-1">
-                  ({totalWeightGrams} g)
+                  (Fisik: {totalWeightGrams} g)
                 </span>
               ) : null}
             </div>
+
+            {/* Tolerance badge */}
+            <span
+              className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
+                billedWeightInfo.isWithinTolerance
+                  ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                  : "bg-amber-500/15 text-amber-300 border-amber-500/30"
+              }`}
+            >
+              {isIndo
+                ? billedWeightInfo.isWithinTolerance
+                  ? "Toleransi: ≤250g (Hemat)"
+                  : "Toleransi: >250g (Bulat +1kg)"
+                : billedWeightInfo.isWithinTolerance
+                ? "Tolerance: ≤250g applied"
+                : "Excess >250g rounded up"}
+            </span>
+
+            {/* Zone badge */}
+            {zone && (
+              <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-[#034c85]/25 text-blue-200 border border-[#034c85]/40">
+                {isIndo ? zone.zoneNameId : zone.zoneName}
+              </span>
+            )}
           </div>
           <span className="text-[11px] text-slate-400 text-right shrink-0">
-            {isIndo ? "Tarif dihitung otomatis sesuai berat" : "Auto calculated based on weight"}
+            {isIndo ? "Tarif mandiri otomatis" : "Auto calculated"}
           </span>
         </div>
 

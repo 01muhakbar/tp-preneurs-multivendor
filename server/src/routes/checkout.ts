@@ -94,6 +94,14 @@ import {
 } from "../services/operationalAudit.service.js";
 import { applyRuntimeVariationSanitizerToProduct } from "../services/attributeVariationRuntimeValidation.js";
 import {
+  calculateBilledWeight,
+  calculateVolumetricWeight,
+  determineShippingZone,
+  calculateStandaloneShippingRates,
+  buildOfficialCourierTrackingUrl,
+  ShippingZoneCode,
+} from "../services/standaloneShippingEngine.js";
+import {
   checkoutPreviewRateLimit,
   checkoutSubmitRateLimit,
 } from "../middleware/rateLimit.js";
@@ -103,6 +111,14 @@ const router = Router();
 const previewRequestSchema = z.object({
   cartId: z.number().int().positive().optional(),
   shippingAddressId: z.number().int().positive().optional(),
+  city: z.string().optional(),
+  province: z.string().optional(),
+  destination: z
+    .object({
+      city: z.string().nullable().optional(),
+      province: z.string().nullable().optional(),
+    })
+    .optional(),
 });
 
 const shippingDetailsSchema = z.object({
@@ -587,50 +603,19 @@ export const DEFAULT_SHIPPING_TARIFFS = [
   },
 ];
 
-export const calculateShippingRatesForWeight = (weightKg: number, isDigital = false) => {
-  if (isDigital) {
-    return [
-      {
-        courierCode: "DIGITAL",
-        courierName: "Pengiriman Digital",
-        serviceCode: "INSTANT",
-        serviceName: "Akses Instan Otomatis",
-        category: "regular",
-        categoryLabel: "Instan",
-        categoryLabelEn: "Instant",
-        shippingFee: 0,
-        ratePerKg: 0,
-        weightKg: 0,
-        chargedWeight: 0,
-        estimate: "Langsung Aktif",
-        estimateEn: "Instant Access",
-      },
-    ];
-  }
-  const effectiveWeight = Math.max(1, Math.ceil(weightKg));
-  return DEFAULT_SHIPPING_TARIFFS.map((t) => {
-    const isCargo = t.category === "cargo";
-    const minWeight = t.minWeight || (isCargo ? 10 : 1);
-    const chargedWeight = Math.max(minWeight, effectiveWeight);
-    const calculatedFee = t.ratePerKg * chargedWeight;
-    const shippingFee = Math.max(t.minFee || 0, calculatedFee);
-
-    return {
-      courierCode: t.courierCode,
-      courierName: t.courierName,
-      serviceCode: t.serviceCode,
-      serviceName: t.serviceName,
-      category: t.category,
-      categoryLabel: t.categoryLabel,
-      categoryLabelEn: t.categoryLabelEn,
-      shippingFee,
-      ratePerKg: t.ratePerKg,
-      weightKg: effectiveWeight,
-      chargedWeight,
-      minWeight,
-      estimate: t.estimate,
-      estimateEn: t.estimateEn,
-    };
+export const calculateShippingRatesForWeight = (
+  weightKg: number,
+  isDigital = false,
+  zone: ShippingZoneCode = "ZONA_1",
+  zoneMultiplier = 1.0,
+  cargoMultiplier = 1.0
+) => {
+  return calculateStandaloneShippingRates({
+    billedWeightKg: weightKg,
+    zone,
+    zoneMultiplier,
+    cargoMultiplier,
+    isDigital,
   });
 };
 
@@ -1721,7 +1706,10 @@ const buildInvalidCheckoutItem = (
 
 const prepareCartGroups = (
   cartItems: any[],
-  options: { isDuitkuEnabled?: boolean } = {}
+  options: {
+    isDuitkuEnabled?: boolean;
+    destination?: { city?: string | null; province?: string | null };
+  } = {}
 ) => {
   const groupsMap = new Map<number, any>();
   const invalidItems: any[] = [];
@@ -1886,17 +1874,33 @@ const prepareCartGroups = (
   const groups = Array.from(groupsMap.values()).map((group) => {
     const isStoreDigital =
       group.items.length > 0 && group.items.every((it: any) => it.productType === "digital");
-    const totalWeightGrams = group.items.reduce(
+    const totalPhysicalWeightGrams = group.items.reduce(
       (sum: number, it: any) => sum + toNumber(it.lineWeight, 0),
       0
     );
-    const totalPackageWeightKg = isStoreDigital
-      ? 0
-      : Math.max(1, Math.ceil(totalWeightGrams / 1000));
-    const availableShippingRates = calculateShippingRatesForWeight(
-      totalPackageWeightKg,
-      isStoreDigital
-    );
+    const totalVolumetricWeightKg = group.items.reduce((sum: number, it: any) => {
+      const p = it.product;
+      const l = toNumber(p?.length ?? p?.get?.("length"), 0);
+      const w = toNumber(p?.width ?? p?.get?.("width"), 0);
+      const h = toNumber(p?.height ?? p?.get?.("height"), 0);
+      return sum + calculateVolumetricWeight(l, w, h, false) * (it.qty || 1);
+    }, 0);
+
+    const weightCalc = calculateBilledWeight(totalPhysicalWeightGrams, totalVolumetricWeightKg);
+    const totalPackageWeightKg = isStoreDigital ? 0 : weightCalc.billedWeightKg;
+
+    const storeOrigin = {
+      city: group.store?.city || null,
+      province: group.store?.province || null,
+    };
+    const zoneInfo = determineShippingZone(storeOrigin, options.destination);
+    const availableShippingRates = calculateStandaloneShippingRates({
+      billedWeightKg: totalPackageWeightKg,
+      zone: zoneInfo.zone,
+      zoneMultiplier: zoneInfo.multiplier,
+      cargoMultiplier: zoneInfo.cargoMultiplier,
+      isDigital: isStoreDigital,
+    });
     const defaultShippingOption = availableShippingRates[0] || null;
     const courierCode = defaultShippingOption?.courierCode || "JNE";
     const courierService = defaultShippingOption?.serviceCode || "REG";
@@ -1904,8 +1908,10 @@ const prepareCartGroups = (
 
     return {
       ...group,
-      totalPackageWeightGrams: totalWeightGrams,
+      totalPackageWeightGrams: totalPhysicalWeightGrams,
       totalPackageWeightKg,
+      weightCalculation: weightCalc,
+      shippingZone: zoneInfo,
       availableShippingRates,
       defaultShippingOption,
       courierCode,
@@ -2809,9 +2815,13 @@ router.post("/preview", checkoutPreviewRateLimit, async (req, res) => {
 
     const dbSettings = await getPersistedStoreSettings();
     const isDuitkuEnabled = Boolean(dbSettings?.payments?.duitkuEnabled);
+    const destination = parsed.data.destination || {
+      city: parsed.data.city || null,
+      province: parsed.data.province || null,
+    };
     const prepared = prepareCartGroups(
       await attachStoreSnapshotsToProducts(cartItems),
-      { isDuitkuEnabled }
+      { isDuitkuEnabled, destination }
     );
     return res.json({
       success: true,
@@ -3033,7 +3043,13 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
 
       const prepared = prepareCartGroups(
         await attachStoreSnapshotsToProducts(lockedCartItems, tx),
-        { isDuitkuEnabled: isDuitkuRequested || Boolean(duitkuConfig?.enabled) }
+        {
+          isDuitkuEnabled: isDuitkuRequested || Boolean(duitkuConfig?.enabled),
+          destination: {
+            city: shippingDetails?.city || null,
+            province: shippingDetails?.province || null,
+          },
+        }
       );
       if (missingLockedItems.length > 0) {
         prepared.invalidItems.unshift(...missingLockedItems);

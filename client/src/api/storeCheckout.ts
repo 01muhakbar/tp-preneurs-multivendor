@@ -32,6 +32,14 @@ export const createMultiStoreCheckoutOrder = async (payload?: {
 export const previewCheckoutByStore = async (payload?: {
   cartId?: number;
   shippingAddressId?: number;
+  city?: string;
+  province?: string;
+  district?: string;
+  destination?: {
+    city?: string;
+    province?: string;
+    district?: string;
+  };
 }) => {
   const response = await api.post<StoreCheckoutPreviewResponse>(
     "/checkout/preview",

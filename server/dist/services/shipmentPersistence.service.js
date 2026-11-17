@@ -13,6 +13,8 @@ const buildShippingRateSnapshot = (group) => ({
     totalWeight: group.totalPackageWeightKg || 1,
     weight: group.totalPackageWeightKg || 1,
     weightUnit: "kg",
+    weightCalculation: group.weightCalculation || null,
+    shippingZone: group.shippingZone || null,
     storeId: toNumber(group.storeId, 0) || null,
     storeName: String(group.storeName || "").trim() || null,
     storeSlug: String(group.storeSlug || "").trim() || null,

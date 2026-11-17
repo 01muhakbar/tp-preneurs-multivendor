@@ -10,6 +10,7 @@ import { getOrderItemVariantLines } from "../../utils/orderVariantPresentation.j
 import { resolvePublicOrderReference } from "../../utils/publicOrderReference.js";
 import { normalizeShipmentList } from "../../utils/shipmentReadModel.ts";
 import { normalizeStoreOrderTrackingFor2026 } from "../store/storeOrderTracking2026Adapter.js";
+import { buildOfficialCourierTrackingUrl } from "../../utils/standaloneShippingEngine.js";
 import {
   getSplitOperationalBuyerAction,
   getSplitOperationalPayment,
@@ -918,8 +919,13 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false, is
       grouped.invoiceDownloadUrl ||
       paymentEntry.invoiceUrl
   );
+  const courierForLink = primaryShipment?.courier || source.courier || grouped.courier || "";
+  const rawTrackingNoForLink = primaryShipment?.trackingNumber || source.trackingNumber || grouped.trackingNumber || "";
+  const officialDeepLink = buildOfficialCourierTrackingUrl(courierForLink, rawTrackingNoForLink);
+
   const trackingUrl = text(
-    primaryShipment?.trackingUrl ||
+    officialDeepLink ||
+      primaryShipment?.trackingUrl ||
       source.trackingUrl ||
       grouped.trackingUrl ||
       source.publicTrackingUrl ||
@@ -1288,7 +1294,9 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false, is
     returnPolicy,
     shippingInfo: {
       courier: resolvedCourier,
+      courierName: tracking2026?.courierName || resolvedCourier,
       trackingNumber: resolvedTrackingNumber,
+      officialTrackingUrl: buildOfficialCourierTrackingUrl(resolvedCourier, resolvedTrackingNumber) || (trackingUrl?.startsWith?.("http") ? trackingUrl : null),
       statusText: resolvedShippingStatusText,
       description: resolvedShippingStatusDesc,
       timestamp: shippingTimestamp,
