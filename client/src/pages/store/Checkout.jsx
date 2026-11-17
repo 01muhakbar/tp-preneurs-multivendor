@@ -1481,11 +1481,13 @@ export default function CheckoutPage() {
   const resolveHasAuthHint = () => {
     try {
       return (
+        Boolean(user) ||
         Boolean(localStorage.getItem("authToken")) ||
+        localStorage.getItem("accountSessionHint") === "true" ||
         localStorage.getItem("authSessionHint") === "true"
       );
     } catch {
-      return false;
+      return Boolean(user);
     }
   };
   const hasCheckoutAuthHint = resolveHasAuthHint();
@@ -2472,22 +2474,60 @@ export default function CheckoutPage() {
   }, [checkoutPreviewGroups]);
 
   const addressesQuery = useQuery({
-    queryKey: ["user-addresses"],
+    queryKey: ["user", "addresses"],
     queryFn: () => listAddresses(),
-    enabled: Boolean(user?.id || hasCheckoutAuthHint),
-    staleTime: 60_000,
+    enabled: Boolean(user?.id || user || hasCheckoutAuthHint),
+    staleTime: 15_000,
   });
-  const savedAddresses = Array.isArray(addressesQuery.data) ? addressesQuery.data : [];
+
+  const defaultAddressQuery = useQuery({
+    queryKey: ["user", "addresses", "default"],
+    queryFn: () => getDefaultAddress().catch(() => null),
+    enabled: Boolean(user?.id || user || hasCheckoutAuthHint),
+    staleTime: 15_000,
+  });
+
+  const savedAddresses = useMemo(() => {
+    const raw = addressesQuery.data;
+    if (Array.isArray(raw)) return raw;
+    if (Array.isArray(raw?.items)) return raw.items;
+    return [];
+  }, [addressesQuery.data]);
+
+  const defaultAddress = useMemo(() => {
+    return (
+      defaultAddressQuery.data ||
+      savedAddresses.find((a) => Boolean(a?.isPrimary)) ||
+      (savedAddresses.length > 0 ? savedAddresses[0] : null)
+    );
+  }, [defaultAddressQuery.data, savedAddresses]);
 
   useEffect(() => {
-    if (savedAddresses.length > 0 && !selectedAddressId) {
-      const defaultAddr = savedAddresses.find((a) => a.isPrimary) || savedAddresses[0];
-      if (defaultAddr) {
-        setSelectedAddressId(defaultAddr.id);
-        applyAddressToCheckoutForm(defaultAddr);
+    if (!selectedAddressId) {
+      const targetAddr =
+        defaultAddress ||
+        (savedAddresses.length > 0
+          ? savedAddresses.find((a) => Boolean(a?.isPrimary)) || savedAddresses[0]
+          : null);
+      if (targetAddr?.id) {
+        setSelectedAddressId(targetAddr.id);
+        applyAddressToCheckoutForm(targetAddr);
+      }
+    } else {
+      const current = savedAddresses.find(
+        (a) => Number(a.id) === Number(selectedAddressId)
+      );
+      if (current && (!shippingForm?.province || !shippingForm?.streetName)) {
+        applyAddressToCheckoutForm(current);
       }
     }
-  }, [savedAddresses, selectedAddressId]);
+  }, [
+    defaultAddress,
+    savedAddresses,
+    selectedAddressId,
+    shippingForm?.province,
+    shippingForm?.streetName,
+  ]);
 
   const handleSelectAddress = (addr) => {
     if (!addr) return;
@@ -2497,7 +2537,11 @@ export default function CheckoutPage() {
 
   const handleSaveNewAddress = async (payload) => {
     const newAddr = await createAddress(payload);
-    await queryClient.invalidateQueries({ queryKey: ["user-addresses"] });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["user", "addresses"] }),
+      queryClient.invalidateQueries({ queryKey: ["user", "addresses", "default"] }),
+      queryClient.invalidateQueries({ queryKey: ["user-addresses"] }),
+    ]);
     if (newAddr?.id) {
       setSelectedAddressId(newAddr.id);
       applyAddressToCheckoutForm(newAddr);
@@ -2507,7 +2551,11 @@ export default function CheckoutPage() {
 
   const handleUpdateAddress = async (id, payload) => {
     const updated = await updateAddress(id, payload);
-    await queryClient.invalidateQueries({ queryKey: ["user-addresses"] });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["user", "addresses"] }),
+      queryClient.invalidateQueries({ queryKey: ["user", "addresses", "default"] }),
+      queryClient.invalidateQueries({ queryKey: ["user-addresses"] }),
+    ]);
     if (selectedAddressId && Number(selectedAddressId) === Number(id)) {
       applyAddressToCheckoutForm(updated || payload);
     }

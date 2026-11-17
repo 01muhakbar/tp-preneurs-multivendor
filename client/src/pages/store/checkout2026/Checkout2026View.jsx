@@ -203,6 +203,9 @@ export default function Checkout2026View({
     safeSavedAddresses.find(
       (a) => a && selectedAddressId && Number(a.id) === Number(selectedAddressId)
     ) ||
+    (selectedAddressId && safeSavedAddresses.length > 0
+      ? safeSavedAddresses.find((a) => Boolean(a?.isPrimary)) || safeSavedAddresses[0]
+      : null) ||
     (form?.shipping?.streetName
       ? {
           fullName: `${form?.firstName || ""} ${form?.lastName || ""}`.trim() || "Penerima",
@@ -404,10 +407,30 @@ export default function Checkout2026View({
                 {activeAddress ? (
                   <div className="mt-1">
                     <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-100 flex-wrap">
-                      <span>{activeAddress.fullName}</span>
-                      {activeAddress.phoneNumber && (
+                      <span>
+                        {activeAddress.fullName ||
+                          `${form?.firstName || ""} ${form?.lastName || ""}`.trim() ||
+                          "Penerima"}
+                      </span>
+                      {(activeAddress.phoneNumber || form?.phone) && (
                         <span className="text-slate-400 font-normal">
-                          ({activeAddress.phoneNumber})
+                          ({activeAddress.phoneNumber || form?.phone})
+                        </span>
+                      )}
+                      {activeAddress.isPrimary && (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#fe6f05]/15 text-[#fe6f05] border border-[#fe6f05]/30">
+                          {isIndo ? "Utama" : "Primary"}
+                        </span>
+                      )}
+                      {activeAddress.markAs && (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-800 text-slate-300 border border-slate-700">
+                          {activeAddress.markAs === "OFFICE"
+                            ? isIndo
+                              ? "Kantor"
+                              : "Office"
+                            : isIndo
+                              ? "Rumah"
+                              : "Home"}
                         </span>
                       )}
                     </div>

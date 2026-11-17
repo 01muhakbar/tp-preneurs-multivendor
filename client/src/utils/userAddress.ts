@@ -138,12 +138,18 @@ export const toUserAddressPayload = (
       firstName?: string;
       lastName?: string;
       emailAddress?: string;
+      name?: string;
+      phone?: string;
     }
   >
 ): UserAddressPayload => ({
   fullName:
-    normalizeText(form.fullName) || buildFullName(form.firstName, form.lastName),
-  phoneNumber: normalizeText(form.phoneNumber),
+    normalizeText(form.fullName) ||
+    normalizeText((form as any)?.name) ||
+    buildFullName(form.firstName, form.lastName),
+  phoneNumber:
+    normalizeText(form.phoneNumber) ||
+    normalizeText((form as any)?.phone),
   province: normalizeText(form.province),
   city: normalizeText(form.city),
   district: normalizeText(form.district),

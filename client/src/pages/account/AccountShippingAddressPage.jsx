@@ -169,6 +169,7 @@ export default function AccountShippingAddressPage() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["user", "addresses"] }),
       queryClient.invalidateQueries({ queryKey: ["user", "addresses", "default"] }),
+      queryClient.invalidateQueries({ queryKey: ["user-addresses"] }),
       queryClient.invalidateQueries({ queryKey: ["account", "addresses", "default"] }),
       queryClient.invalidateQueries({ queryKey: ["account", "addresses"] }),
       queryClient.invalidateQueries({ queryKey: ["account"] }),
