@@ -72,6 +72,7 @@ import {
   getDuitkuPaymentMethodLabel,
 } from "../services/duitku/duitkuPaymentMethodDisplay.service.js";
 import { normalizeDuitkuPaymentMethodCode } from "../services/duitku/duitkuPaymentMethods.service.js";
+import { formatCompactOrderNumber } from "./checkout.js";
 import {
   buildBuyerOrderContract,
   buildFulfillmentStatusMeta,
@@ -2616,14 +2617,18 @@ router.get(
         })
       );
       let paymentUrl: string | null = null;
+      let latestMerchantOrderId: string | null = null;
       try {
         const latestAttempt = await OrderPaymentAttempt.findOne({
           where: { orderId },
           order: [["id", "DESC"]],
-          attributes: ["id", "status", "paymentUrl", "expiresAt"],
+          attributes: ["id", "status", "paymentUrl", "expiresAt", "merchantOrderId"],
         });
-        if (latestAttempt && ["CREATED", "PENDING"].includes(String((latestAttempt as any).status || "").toUpperCase())) {
-          paymentUrl = (latestAttempt as any).paymentUrl || null;
+        if (latestAttempt) {
+          latestMerchantOrderId = (latestAttempt as any).merchantOrderId || null;
+          if (["CREATED", "PENDING"].includes(String((latestAttempt as any).status || "").toUpperCase())) {
+            paymentUrl = (latestAttempt as any).paymentUrl || null;
+          }
         }
       } catch (err) {
         console.warn("[store.orders.my/:id] failed to query OrderPaymentAttempt", err);
@@ -2655,6 +2660,9 @@ router.get(
           id: order.id,
           ref: order.invoiceNo || String(order.id),
           invoiceNo: order.invoiceNo,
+          compactOrderNo: formatCompactOrderNumber(order.invoiceNo, order.id, (order as any).createdAt),
+          merchantOrderId: latestMerchantOrderId || order.invoiceNo,
+          gatewayOrderId: latestMerchantOrderId || order.invoiceNo,
           paymentUrl,
           duitkuPaymentUrl: paymentUrl,
           checkoutMode:
@@ -2822,82 +2830,91 @@ router.post(
       }
 
       const currentStatus = String((order as any).status || "").toLowerCase().trim();
-      if (currentStatus === "completed" || currentStatus === "complete") {
+      if (currentStatus === "delivered" || currentStatus === "completed" || currentStatus === "complete") {
+        if (currentStatus === "completed" || currentStatus === "complete") {
+          return res.json({
+            success: true,
+            message: "Pesanan sudah berstatus diterima.",
+            data: { orderId, status: "delivered" },
+            message: "Pesanan sudah berstatus selesai dikonfirmasi.",
+            data: { orderId, status: "completed" },
+          });
+        }
+
+        if (currentStatus === "cancelled") {
+          return res.status(409).json({
+            success: false,
+            message: "Pesanan yang dibatalkan tidak dapat dikonfirmasi diterima.",
+          });
+        }
+
+        // 1. Update Order status to delivered
+        // 1. Update Order status to completed
+        await order.update({
+          status: "delivered",
+          status: "completed",
+        });
+
+        // 2. Update all active Suborders to DELIVERED
+        await Suborder.update(
+          {
+            fulfillmentStatus: "DELIVERED",
+          },
+          {
+            where: {
+              orderId,
+              fulfillmentStatus: { [Op.ne]: "CANCELLED" },
+            },
+          }
+        );
+
+        // 3. Update all active Shipments to DELIVERED
+        await Shipment.update(
+          {
+            status: "DELIVERED",
+          },
+          {
+            where: {
+              orderId,
+              status: { [Op.ne]: "CANCELLED" },
+            },
+          }
+        );
+
+        // 4. Record tracking event if shipment exists
+        const shipments = await Shipment.findAll({ where: { orderId } });
+        for (const sh of shipments) {
+          await TrackingEvent.create({
+            shipmentId: sh.id,
+            eventType: "DELIVERED",
+            eventLabel: "Pesanan Diterima",
+            eventDescription: "Pesanan telah dikonfirmasi diterima oleh pembeli.",
+            eventLabel: "Pesanan Diterima oleh Pembeli",
+            eventDescription: "Pembeli telah mengonfirmasi bahwa pesanan telah diterima dengan baik. Transaksi selesai dan dana penjualan diteruskan ke Saldo Toko penjual.",
+            source: "CLIENT",
+            occurredAt: new Date(),
+          }).catch(() => { });
+        }
+
         return res.json({
           success: true,
-          message: "Pesanan sudah berstatus selesai dikonfirmasi.",
-          data: { orderId, status: "completed" },
+          message: "Konfirmasi penerimaan pesanan berhasil. Terima kasih!",
+          message: "Konfirmasi penerimaan pesanan berhasil. Terima kasih! Dana penjualan telah diteruskan ke toko penjual.",
+          data: {
+            orderId,
+            status: "delivered",
+            status: "completed",
+            fulfillmentStatus: "DELIVERED",
+          },
         });
-      }
-
-      if (currentStatus === "cancelled") {
-        return res.status(409).json({
+      } catch (error: any) {
+        console.error("[store/orders/my/:id/confirm-receipt] error", error);
+        return res.status(500).json({
           success: false,
-          message: "Pesanan yang dibatalkan tidak dapat dikonfirmasi diterima.",
+          message: error?.message || "Gagal mengonfirmasi penerimaan pesanan.",
         });
       }
-
-      // 1. Update Order status to completed
-      await order.update({
-        status: "completed",
-      });
-
-      // 2. Update all active Suborders to DELIVERED
-      await Suborder.update(
-        {
-          fulfillmentStatus: "DELIVERED",
-        },
-        {
-          where: {
-            orderId,
-            fulfillmentStatus: { [Op.ne]: "CANCELLED" },
-          },
-        }
-      );
-
-      // 3. Update all active Shipments to DELIVERED
-      await Shipment.update(
-        {
-          status: "DELIVERED",
-        },
-        {
-          where: {
-            orderId,
-            status: { [Op.ne]: "CANCELLED" },
-          },
-        }
-      );
-
-      // 4. Record tracking event if shipment exists
-      const shipments = await Shipment.findAll({ where: { orderId } });
-      for (const sh of shipments) {
-        await TrackingEvent.create({
-          shipmentId: sh.id,
-          eventType: "DELIVERED",
-          eventLabel: "Pesanan Diterima oleh Pembeli",
-          eventDescription: "Pembeli telah mengonfirmasi bahwa pesanan telah diterima dengan baik. Transaksi selesai dan dana penjualan diteruskan ke Saldo Toko penjual.",
-          source: "CLIENT",
-          occurredAt: new Date(),
-        }).catch(() => { });
-      }
-
-      return res.json({
-        success: true,
-        message: "Konfirmasi penerimaan pesanan berhasil. Terima kasih! Dana penjualan telah diteruskan ke toko penjual.",
-        data: {
-          orderId,
-          status: "completed",
-          fulfillmentStatus: "DELIVERED",
-        },
-      });
-    } catch (error: any) {
-      console.error("[store/orders/my/:id/confirm-receipt] error", error);
-      return res.status(500).json({
-        success: false,
-        message: error?.message || "Gagal mengonfirmasi penerimaan pesanan.",
-      });
     }
-  }
 );
 
 // POST /api/store/orders/my/:id/pay (auth)
@@ -3041,11 +3058,16 @@ router.post(
       }
 
       // Unique merchantOrderId for this payment session attempt (max 50 chars)
+      const compactOrderRef = formatCompactOrderNumber(
+        baseInvoiceNo,
+        Number(orderId),
+        (order as any).createdAt
+      );
       const attemptSuffix = `-${effectivePaymentCode}-${Date.now().toString().slice(-4)}`;
       const attemptMerchantOrderId =
-        baseInvoiceNo.length + attemptSuffix.length > 50
-          ? `${baseInvoiceNo.slice(0, 50 - attemptSuffix.length)}${attemptSuffix}`
-          : `${baseInvoiceNo}${attemptSuffix}`;
+        compactOrderRef.length + attemptSuffix.length > 50
+          ? `${compactOrderRef.slice(0, 50 - attemptSuffix.length)}${attemptSuffix}`
+          : `${compactOrderRef}${attemptSuffix}`;
 
       const returnUrlWithOrderId = (() => {
         try {
@@ -3063,7 +3085,7 @@ router.post(
         {
           paymentAmount: Math.floor(Number((order as any).totalAmount || 0)),
           merchantOrderId: attemptMerchantOrderId,
-          productDetails: `Payment for Order ${baseInvoiceNo}`,
+          productDetails: `Pesanan ${compactOrderRef} (TP Preneurs)`.slice(0, 50),
           email: customerEmail,
           customerVaName: String((order as any).customerName || (user as any)?.name || "Customer").slice(0, 20),
           phoneNumber:

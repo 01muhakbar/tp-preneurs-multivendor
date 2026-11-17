@@ -1326,6 +1326,15 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false, is
     orderMeta: {
       orderNo: compactOrderNo,
       rawOrderNo: rawInvoiceNo,
+      gatewayOrderId:
+        text(
+          source.gatewayOrderId ||
+          source.merchantOrderId ||
+          grouped.gatewayOrderId ||
+          grouped.merchantOrderId ||
+          paymentEntry.merchantOrderId ||
+          (rawInvoiceNo && rawInvoiceNo !== compactOrderNo ? rawInvoiceNo : "")
+        ) || "",
       paymentMethod: paymentMethodDisplay,
       sellerNote: customerNotes,
       invoiceUrl,

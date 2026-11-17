@@ -624,6 +624,80 @@
   letter-spacing: 0.3px;
 }
 
+.tp-shopee-detail__meta-row--sub {
+  background: rgba(3, 76, 133, 0.04);
+  padding: 9px 12px;
+  border-radius: 8px;
+  margin: 4px 0;
+  border-bottom: none !important;
+}
+
+.dark .tp-shopee-detail__meta-row--sub {
+  background: rgba(3, 76, 133, 0.18);
+}
+
+.tp-shopee-detail__meta-label-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.tp-shopee-detail__meta-hint {
+  font-size: 0.72rem;
+  color: var(--tp-text-muted);
+  font-weight: 400;
+}
+
+.tp-shopee-detail__gateway-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem;
+  color: var(--tp-navy);
+  font-weight: 600;
+  background: var(--tp-navy-light);
+  padding: 2px 6px;
+  border-radius: 4px;
+  word-break: break-all;
+}
+
+.dark .tp-shopee-detail__gateway-id {
+  color: #7dd3fc;
+  background: rgba(3, 76, 133, 0.35);
+}
+
+.tp-change-payment-modal__order-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  margin: 12px 18px 0;
+  background: var(--tp-navy-light);
+  border: 1px solid rgba(3, 76, 133, 0.15);
+  border-radius: 8px;
+}
+
+.dark .tp-change-payment-modal__order-banner {
+  background: rgba(3, 76, 133, 0.2);
+  border-color: rgba(3, 76, 133, 0.3);
+}
+
+.tp-change-payment-modal__order-label {
+  font-size: 0.78rem;
+  color: var(--tp-text-muted);
+  font-weight: 500;
+}
+
+.tp-change-payment-modal__order-value {
+  font-size: 0.82rem;
+  color: var(--tp-navy);
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.dark .tp-change-payment-modal__order-value {
+  color: #38bdf8;
+}
+
 .tp-shopee-detail__copy-pill {
   background-color: var(--tp-navy-light);
   color: var(--tp-navy);

@@ -806,6 +806,26 @@ const buildIdempotentInvoiceNo = (userId: number, requestKey: string) => {
   return `STORE-IDEMP-${digest}`;
 };
 
+const formatCompactOrderNumber = (
+  invoiceNo?: string | null,
+  orderId?: number | null,
+  createdAt?: Date | string | null
+): string => {
+  const raw = String(invoiceNo || "").trim();
+  if (/^TP-\d{6}-\w+/i.test(raw)) return raw;
+
+  const d = createdAt ? new Date(createdAt) : new Date();
+  const dateStr = !Number.isNaN(d.getTime())
+    ? `${String(d.getFullYear()).slice(-2)}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`
+    : "261104";
+
+  const numPart = orderId
+    ? String(orderId).padStart(4, "0")
+    : raw.replace(/[^A-Za-z0-9]/g, "").slice(-4) || "0001";
+
+  return `TP-${dateStr}-${numPart}`;
+};
+
 const buildSuborderNumber = (invoiceNo: string, index: number) =>
   `${invoiceNo}-S${String(index + 1).padStart(2, "0")}`;
 
@@ -2942,15 +2962,21 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
       if (isDuitkuRequested && duitkuConfig) {
         try {
           const orderExpiryMinutes = resolveOrderExpiryMinutes();
+          const compactOrderRef = formatCompactOrderNumber(
+            invoiceNo,
+            Number(parentOrder.id),
+            (parentOrder as any).createdAt
+          );
+          const duitkuMerchantOrderId = compactOrderRef;
           const returnUrlWithOrderId = (() => {
             try {
               const u = new URL(duitkuConfig.returnUrl);
               u.searchParams.set("orderId", String(parentOrder.id));
-              u.searchParams.set("merchantOrderId", invoiceNo);
+              u.searchParams.set("merchantOrderId", duitkuMerchantOrderId);
               return u.toString();
             } catch {
               const sep = duitkuConfig.returnUrl.includes("?") ? "&" : "?";
-              return `${duitkuConfig.returnUrl}${sep}orderId=${parentOrder.id}&merchantOrderId=${encodeURIComponent(invoiceNo)}`;
+              return `${duitkuConfig.returnUrl}${sep}orderId=${parentOrder.id}&merchantOrderId=${encodeURIComponent(duitkuMerchantOrderId)}`;
             }
           })();
 
@@ -2961,7 +2987,7 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
 
           const itemDetailsPayload = hasDiscountOrAdjustment
             ? [{
-                name: `Pesanan ${invoiceNo}`.slice(0, 50),
+                name: `Pesanan ${compactOrderRef}`.slice(0, 50),
                 price: finalPayAmount,
                 quantity: 1,
               }]
@@ -2973,8 +2999,8 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
 
           const requestBody = buildDuitkuCreateInvoiceRequest({
             paymentAmount: finalPayAmount,
-            merchantOrderId: invoiceNo,
-            productDetails: `Payment for Order ${invoiceNo}`,
+            merchantOrderId: duitkuMerchantOrderId,
+            productDetails: `Pesanan ${compactOrderRef} (TP Preneurs)`.slice(0, 50),
             email: authUserEmail, // Fix #3: email asli user, bukan hardcoded
             customerVaName: String(resolvedCustomer.name || "Customer").slice(0, 20),
             phoneNumber: resolvedCustomer.phone || undefined,
@@ -3207,6 +3233,11 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
   }
 });
 
-export { loadOrderWithSplitRelations, serializeSplitOrder, deriveLegacyPaymentStatus };
+export {
+  loadOrderWithSplitRelations,
+  serializeSplitOrder,
+  deriveLegacyPaymentStatus,
+  formatCompactOrderNumber,
+};
 
 export default router;

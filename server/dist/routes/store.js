@@ -20,6 +20,7 @@ import { buildBuyerOrderPaymentEntry, resolveBuyerFacingPaymentStatus, } from ".
 import { buildGroupedPaymentReadModel } from "../services/groupedPaymentReadModel.service.js";
 import { resolveDuitkuPaymentMethodDisplay, getDuitkuPaymentMethodLabel, } from "../services/duitku/duitkuPaymentMethodDisplay.service.js";
 import { normalizeDuitkuPaymentMethodCode } from "../services/duitku/duitkuPaymentMethods.service.js";
+import { formatCompactOrderNumber } from "./checkout.js";
 import { buildBuyerOrderContract, buildFulfillmentStatusMeta, buildPaymentStatusMeta, buildSellerSuborderContract, } from "../services/orderLifecycleContract.service.js";
 import { buildOrderShippingReadModel } from "../services/orderShippingReadModel.service.js";
 import { buildBuyerAggregateStatusSummary, buildSplitOperationalTruth, } from "../services/splitOperationalTruth.service.js";
@@ -2259,14 +2260,18 @@ router.get("/orders/my/:id", protect, async (req, res, next) => {
             };
         }));
         let paymentUrl = null;
+        let latestMerchantOrderId = null;
         try {
             const latestAttempt = await OrderPaymentAttempt.findOne({
                 where: { orderId },
                 order: [["id", "DESC"]],
-                attributes: ["id", "status", "paymentUrl", "expiresAt"],
+                attributes: ["id", "status", "paymentUrl", "expiresAt", "merchantOrderId"],
             });
-            if (latestAttempt && ["CREATED", "PENDING"].includes(String(latestAttempt.status || "").toUpperCase())) {
-                paymentUrl = latestAttempt.paymentUrl || null;
+            if (latestAttempt) {
+                latestMerchantOrderId = latestAttempt.merchantOrderId || null;
+                if (["CREATED", "PENDING"].includes(String(latestAttempt.status || "").toUpperCase())) {
+                    paymentUrl = latestAttempt.paymentUrl || null;
+                }
             }
         }
         catch (err) {
@@ -2293,6 +2298,9 @@ router.get("/orders/my/:id", protect, async (req, res, next) => {
                 id: order.id,
                 ref: order.invoiceNo || String(order.id),
                 invoiceNo: order.invoiceNo,
+                compactOrderNo: formatCompactOrderNumber(order.invoiceNo, order.id, order.createdAt),
+                merchantOrderId: latestMerchantOrderId || order.invoiceNo,
+                gatewayOrderId: latestMerchantOrderId || order.invoiceNo,
                 paymentUrl,
                 duitkuPaymentUrl: paymentUrl,
                 checkoutMode: String(order.checkoutMode || order.get?.("checkoutMode") || "LEGACY")
@@ -2619,10 +2627,11 @@ router.post("/orders/my/:id/pay", protect, async (req, res, next) => {
             }
         }
         // Unique merchantOrderId for this payment session attempt (max 50 chars)
+        const compactOrderRef = formatCompactOrderNumber(baseInvoiceNo, Number(orderId), order.createdAt);
         const attemptSuffix = `-${effectivePaymentCode}-${Date.now().toString().slice(-4)}`;
-        const attemptMerchantOrderId = baseInvoiceNo.length + attemptSuffix.length > 50
-            ? `${baseInvoiceNo.slice(0, 50 - attemptSuffix.length)}${attemptSuffix}`
-            : `${baseInvoiceNo}${attemptSuffix}`;
+        const attemptMerchantOrderId = compactOrderRef.length + attemptSuffix.length > 50
+            ? `${compactOrderRef.slice(0, 50 - attemptSuffix.length)}${attemptSuffix}`
+            : `${compactOrderRef}${attemptSuffix}`;
         const returnUrlWithOrderId = (() => {
             try {
                 const u = new URL(duitkuConfig.returnUrl);
@@ -2638,7 +2647,7 @@ router.post("/orders/my/:id/pay", protect, async (req, res, next) => {
         const requestBody = buildDuitkuCreateInvoiceRequest({
             paymentAmount: Math.floor(Number(order.totalAmount || 0)),
             merchantOrderId: attemptMerchantOrderId,
-            productDetails: `Payment for Order ${baseInvoiceNo}`,
+            productDetails: `Pesanan ${compactOrderRef} (TP Preneurs)`.slice(0, 50),
             email: customerEmail,
             customerVaName: String(order.customerName || user?.name || "Customer").slice(0, 20),
             phoneNumber: String(order.customerPhone ||

@@ -1,4 +1,5 @@
 import { formatCurrency } from "../../utils/format.js";
+import { formatCompactOrderNumber } from "./accountOrderDetail2026Adapter.js";
 import { getGroupedPaymentReadModel } from "../../utils/groupedPaymentReadModel.ts";
 import {
   getSplitOperationalBridge,
@@ -335,10 +336,14 @@ export const normalizeOrderPaymentFor2026 = ({
   selectedPaymentId,
 }) => {
   const source = asObject(readModel || payment || order);
-  const reference = text(
+  const rawReference = text(
     source.invoiceNo || source.ref || order?.invoiceNo || order?.ref,
     "Order"
   );
+  const resolvedOrderId = source.orderId || order?.id || order?.orderId || null;
+  const resolvedCreatedAt = source.createdAt || order?.createdAt || null;
+  const compactReference = formatCompactOrderNumber(rawReference, resolvedOrderId, resolvedCreatedAt);
+  const reference = compactReference || rawReference;
   const groups = asArray(source.groups).map((group, index) =>
     normalizeGroup(group, index, reference, payment)
   );
@@ -359,7 +364,7 @@ export const normalizeOrderPaymentFor2026 = ({
     source.paymentStatusMeta,
     "Awaiting Payment"
   );
-  const paymentReference = text(primary?.paymentReference || reference, reference);
+  const paymentReference = text(primary?.paymentReference || rawReference, reference);
   const collection = normalizeCollection(source.collection, primary?.collection, {
     collectionRail: source.collectionRail,
     claimState: source.claimState,

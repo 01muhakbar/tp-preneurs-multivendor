@@ -74,6 +74,9 @@ const DETAIL_I18N = {
     orderNo: "Order No.",
     copy: "Copy",
     copied: "Order number copied.",
+    gatewayOrderId: "Gateway Order ID (Duitku)",
+    gatewayOrderHint: "Matches reference in your Duitku email & transfer receipt",
+    gatewayOrderCopied: "Gateway Order ID copied.",
     paymentMethod: "Payment Method",
     sellerNote: "Note to Seller",
     invoice: "Order Invoice / Receipt",
@@ -148,6 +151,9 @@ const DETAIL_I18N = {
     orderNo: "No. Pesanan",
     copy: "Salin",
     copied: "Nomor pesanan disalin.",
+    gatewayOrderId: "ID Pembayaran Gateway (Duitku)",
+    gatewayOrderHint: "Sesuai nomor referensi pada email & struk transfer Duitku",
+    gatewayOrderCopied: "ID Pembayaran Gateway disalin.",
     paymentMethod: "Metode Pembayaran",
     sellerNote: "Catatan untuk Penjual",
     invoice: "Nota Pesanan / Faktur",
@@ -417,17 +423,18 @@ export default function AccountOrderDetail2026View({
     return "-";
   }, [orderDetail, rawOrder, shopee]);
 
-  const handleCopyOrderNo = async (val) => {
+  const handleCopyOrderNo = async (val, customMsg) => {
     if (!val) return;
+    const msg = customMsg || t.copied;
     if (onCopy) {
-      onCopy(val, t.copied);
+      onCopy(val, msg);
       return;
     }
     try {
       await navigator.clipboard.writeText(val);
-      toast.success(t.copied);
+      toast.success(msg);
     } catch {
-      toast.error("Copy failed.");
+      toast.error(isIndo ? "Gagal menyalin teks." : "Copy failed.");
     }
   };
 
@@ -1048,6 +1055,37 @@ export default function AccountOrderDetail2026View({
               </button>
             </div>
           </div>
+
+          {/* Synchronized Gateway Order ID / Reference (Duitku) */}
+          {Boolean(
+            (orderMeta.gatewayOrderId && orderMeta.gatewayOrderId !== orderMeta.orderNo) ||
+            (orderMeta.rawOrderNo && orderMeta.rawOrderNo !== orderMeta.orderNo)
+          ) && (
+            <div className="tp-shopee-detail__meta-row tp-shopee-detail__meta-row--sub">
+              <div className="tp-shopee-detail__meta-label-group">
+                <span className="tp-shopee-detail__meta-label">{t.gatewayOrderId}</span>
+                <span className="tp-shopee-detail__meta-hint">{t.gatewayOrderHint}</span>
+              </div>
+              <div className="tp-shopee-detail__meta-val-copy">
+                <span className="tp-shopee-detail__gateway-id">
+                  {orderMeta.gatewayOrderId || orderMeta.rawOrderNo}
+                </span>
+                <button
+                  type="button"
+                  className="tp-shopee-detail__copy-pill"
+                  title={t.copy}
+                  onClick={() =>
+                    handleCopyOrderNo(
+                      orderMeta.gatewayOrderId || orderMeta.rawOrderNo,
+                      t.gatewayOrderCopied
+                    )
+                  }
+                >
+                  {t.copy}
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="tp-shopee-detail__meta-row">
             <span className="tp-shopee-detail__meta-label">{t.paymentMethod}</span>
@@ -1832,6 +1870,12 @@ export default function AccountOrderDetail2026View({
             <div className="tp-change-payment-modal__current-notice">
               <span className="tp-change-payment-modal__current-label">{t.currentPaymentMethod}</span>
               <strong className="tp-change-payment-modal__current-val">{orderMeta.paymentMethod}</strong>
+            </div>
+
+            {/* Order No confirmation banner */}
+            <div className="tp-change-payment-modal__order-banner">
+              <span className="tp-change-payment-modal__order-label">{t.orderNo}</span>
+              <strong className="tp-change-payment-modal__order-value">{orderMeta.orderNo}</strong>
             </div>
 
             {/* Body: Channels grouped by Category */}
