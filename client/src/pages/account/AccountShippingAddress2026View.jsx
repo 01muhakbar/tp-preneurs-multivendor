@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import OneClickGpsButton from "../../components/common/OneClickGpsButton.jsx";
+import AddressAutocompleteSearch from "../../components/common/AddressAutocompleteSearch.jsx";
 import "./account-shipping-address-2026.css";
 
 function LoadingState({ isIndo }) {
@@ -188,6 +189,7 @@ export default function AccountShippingAddress2026View({
   onFormChange,
   onLocationDetected,
   onClearLocation,
+  onSelectAddressFromSearch,
   onSubmit,
   onEditAddress,
   onDeleteAddress,
@@ -332,6 +334,13 @@ export default function AccountShippingAddress2026View({
                 accuracy={form?.accuracy}
                 onLocationDetected={onLocationDetected}
                 onClearLocation={onClearLocation}
+                isIndo={isIndo}
+              />
+            </div>
+
+            <div className="mb-4">
+              <AddressAutocompleteSearch
+                onSelectAddress={onSelectAddressFromSearch}
                 isIndo={isIndo}
               />
             </div>

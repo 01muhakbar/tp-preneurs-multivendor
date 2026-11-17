@@ -31,6 +31,7 @@ import { useSeller2026StoreProfile } from "../../../hooks/seller2026/useSeller20
 import { useSellerWorkspaceRoute } from "../../../utils/sellerWorkspaceRoute.js";
 import { getCityOptions, getDistrictOptions, getProvinceOptions } from "../../../utils/idRegions.ts";
 import OneClickGpsButton from "../../../components/common/OneClickGpsButton.jsx";
+import AddressAutocompleteSearch from "../../../components/common/AddressAutocompleteSearch.jsx";
 import { getSeller2026PagePermissions } from "./seller2026PagePermissions.js";
 import "../../../features/sellerWorkspace2026/SellerWorkspace2026.css";
 
@@ -775,6 +776,27 @@ export default function Seller2026LiveStorefrontPage() {
                     originLatitude: null,
                     originLongitude: null,
                     originAccuracy: null,
+                  }));
+                }}
+              />
+            </div>
+
+            <div className="mb-4">
+              <AddressAutocompleteSearch
+                isIndo={isId}
+                placeholder={isId ? "Cari ruko, jalan toko, atau pasar... (Cth: Jl. Somba Opu, Pasar Sentral)" : "Search shop street, market, building..."}
+                onSelectAddress={(item) => {
+                  if (!item) return;
+                  setForm((current) => ({
+                    ...current,
+                    originAddressLine1: item.streetName || item.title || current.originAddressLine1,
+                    originProvince: item.province || current.originProvince,
+                    originCity: item.city || current.originCity,
+                    originDistrict: item.district || current.originDistrict,
+                    originPostalCode: item.postalCode || current.originPostalCode,
+                    originLatitude: item.latitude != null ? item.latitude : current.originLatitude,
+                    originLongitude: item.longitude != null ? item.longitude : current.originLongitude,
+                    originAccuracy: item.distanceKm ? Math.round(item.distanceKm * 100) : 15,
                   }));
                 }}
               />

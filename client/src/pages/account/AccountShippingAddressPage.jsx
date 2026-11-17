@@ -283,6 +283,32 @@ export default function AccountShippingAddressPage() {
     }));
   };
 
+  const handleSelectAddressFromSearch = (item) => {
+    if (!item) return;
+    setStatus(null);
+    setFormState((prev) => ({
+      ...prev,
+      streetName: item.streetName || prev.streetName,
+      province: item.province || prev.province,
+      city: item.city || prev.city,
+      district: item.district || prev.district,
+      postalCode: item.postalCode || prev.postalCode,
+      houseNumber: item.houseNumber || prev.houseNumber,
+      latitude: item.latitude != null ? item.latitude : prev.latitude,
+      longitude: item.longitude != null ? item.longitude : prev.longitude,
+      accuracy: item.distanceKm ? Math.round(item.distanceKm * 100) : 15,
+    }));
+    setFieldErrors((prev) => ({
+      ...prev,
+      streetName: "",
+      province: "",
+      city: "",
+      district: "",
+      postalCode: "",
+      houseNumber: "",
+    }));
+  };
+
   const handleFocusForm = () => {
     setActiveTab("form");
   };
@@ -445,6 +471,7 @@ export default function AccountShippingAddressPage() {
       onFormChange={handleFormChange}
       onLocationDetected={handleLocationDetected}
       onClearLocation={handleClearLocation}
+      onSelectAddressFromSearch={handleSelectAddressFromSearch}
       onSubmit={handleSubmit}
       onEditAddress={handleEditAddress}
       onDeleteAddress={handleDeleteAddress}

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Check, ChevronDown, ChevronLeft, Loader2, MapPin, Plus, X } from "lucide-react";
 import toast from "react-hot-toast";
 import OneClickGpsButton from "../../../components/common/OneClickGpsButton.jsx";
+import AddressAutocompleteSearch from "../../../components/common/AddressAutocompleteSearch.jsx";
 import {
   getCityOptions,
   getDistrictOptions,
@@ -330,6 +331,26 @@ export default function CheckoutAddressModal({
     setAccuracy(null);
   };
 
+  const handleSelectAddressFromSearch = (item) => {
+    if (!item) return;
+    if (item.streetName) setStreetName(item.streetName);
+    if (item.province) setProvince(item.province);
+    if (item.city) setCity(item.city);
+    if (item.district) setDistrict(item.district);
+    if (item.postalCode) setPostalCode(item.postalCode);
+    if (item.houseNumber) setHouseNumber(item.houseNumber);
+    if (item.latitude != null && item.longitude != null) {
+      setLatitude(item.latitude);
+      setLongitude(item.longitude);
+      setAccuracy(item.distanceKm ? Math.round(item.distanceKm * 100) : 15);
+    }
+    toast.success(
+      isIndo
+        ? `Alamat dipilih: ${item.title}`
+        : `Address selected: ${item.title}`
+    );
+  };
+
   const handleCloseForm = () => {
     setIsAddingNew(false);
     setEditingAddress(null);
@@ -565,6 +586,12 @@ export default function CheckoutAddressModal({
                 onLocationDetected={handleLocationDetected}
                 onClearLocation={handleClearLocation}
                 isIndo={isIndo}
+              />
+
+              <AddressAutocompleteSearch
+                onSelectAddress={handleSelectAddressFromSearch}
+                isIndo={isIndo}
+                className="mb-1"
               />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
