@@ -26,6 +26,11 @@ const toDateInput = (value) => {
   return date.toISOString().slice(0, 10);
 };
 
+const getTodayDateInput = () => {
+  const date = new Date();
+  return date.toISOString().slice(0, 10);
+};
+
 const createForm = (coupon, canManageStatus) => coupon ? {
   ...emptyForm,
   campaignName: coupon.title || coupon.name || coupon.code || "",
@@ -40,6 +45,7 @@ const createForm = (coupon, canManageStatus) => coupon ? {
   bannerImageUrl: coupon.bannerImageUrl || "",
 } : {
   ...emptyForm,
+  startsAt: getTodayDateInput(),
   active: Boolean(canManageStatus),
 };
 
@@ -229,9 +235,95 @@ export default function Seller2026CouponDrawer({
 
             <fieldset className="s26-coupon-validity">
               <legend>{isId ? "Periode Kupon" : "Coupon Validity"}</legend>
-              <label><span>{isId ? "Tanggal Mulai" : "Start Date"}</span><input id="seller-coupon-starts-at" name="startsAt" type="date" value={form.startsAt} disabled={blocked} onChange={(event) => updateField("startsAt", event.target.value)} /></label>
-              <label className={errors.expiresAt ? "has-error" : ""}><span>{isId ? "Tanggal Berakhir" : "End Date"}</span><input id="seller-coupon-expires-at" name="expiresAt" type="date" value={form.expiresAt} disabled={blocked} onChange={(event) => updateField("expiresAt", event.target.value)} />{errors.expiresAt ? <em>{errors.expiresAt}</em> : null}</label>
+              <label>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                  <span>{isId ? "Tanggal Mulai" : "Start Date"}</span>
+                  <button
+                    type="button"
+                    style={{ background: "none", border: "none", color: "#fe6f05", fontSize: "11px", fontWeight: "700", cursor: "pointer", padding: 0 }}
+                    onClick={() => updateField("startsAt", getTodayDateInput())}
+                  >
+                    {isId ? "Mulai Hari Ini" : "Start Today"}
+                  </button>
+                </div>
+                <input id="seller-coupon-starts-at" name="startsAt" type="date" value={form.startsAt} disabled={blocked} onChange={(event) => updateField("startsAt", event.target.value)} />
+              </label>
+              <label className={errors.expiresAt ? "has-error" : ""}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                  <span>{isId ? "Tanggal Berakhir" : "End Date"}</span>
+                </div>
+                <input id="seller-coupon-expires-at" name="expiresAt" type="date" value={form.expiresAt} disabled={blocked} onChange={(event) => updateField("expiresAt", event.target.value)} />
+                {errors.expiresAt ? <em>{errors.expiresAt}</em> : null}
+              </label>
             </fieldset>
+
+            {/* Live Operational Status Indicator */}
+            <div style={{
+              borderRadius: "10px",
+              padding: "10px 12px",
+              fontSize: "12px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "4px",
+              border: form.active && form.startsAt && form.startsAt > getTodayDateInput()
+                ? "1px solid rgba(59, 130, 246, 0.4)"
+                : form.expiresAt && form.expiresAt < getTodayDateInput()
+                  ? "1px solid rgba(244, 63, 94, 0.4)"
+                  : form.active
+                    ? "1px solid rgba(16, 185, 129, 0.4)"
+                    : "1px solid rgba(148, 163, 184, 0.2)",
+              background: form.active && form.startsAt && form.startsAt > getTodayDateInput()
+                ? "rgba(59, 130, 246, 0.1)"
+                : form.expiresAt && form.expiresAt < getTodayDateInput()
+                  ? "rgba(244, 63, 94, 0.1)"
+                  : form.active
+                    ? "rgba(16, 185, 129, 0.1)"
+                    : "rgba(15, 23, 42, 0.4)",
+              color: form.active && form.startsAt && form.startsAt > getTodayDateInput()
+                ? "#93c5fd"
+                : form.expiresAt && form.expiresAt < getTodayDateInput()
+                  ? "#fda4af"
+                  : form.active
+                    ? "#6ee7b7"
+                    : "#94a3b8",
+            }}>
+              <strong style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <span style={{
+                  width: "8px",
+                  height: "8px",
+                  borderRadius: "50%",
+                  backgroundColor: form.active && form.startsAt && form.startsAt > getTodayDateInput()
+                    ? "#60a5fa"
+                    : form.expiresAt && form.expiresAt < getTodayDateInput()
+                      ? "#f43f5e"
+                      : form.active
+                        ? "#10b981"
+                        : "#64748b",
+                }} />
+                {form.active && form.startsAt && form.startsAt > getTodayDateInput()
+                  ? (isId ? "Status: Terjadwal (Scheduled)" : "Status: Scheduled")
+                  : form.expiresAt && form.expiresAt < getTodayDateInput()
+                    ? (isId ? "Status: Kedaluwarsa (Expired)" : "Status: Expired")
+                    : form.active
+                      ? (isId ? "Status: Langsung Aktif (Active)" : "Status: Active Immediately")
+                      : (isId ? "Status: Nonaktif (Draft)" : "Status: Draft (Inactive)")}
+              </strong>
+              <span style={{ opacity: 0.9, lineHeight: 1.4 }}>
+                {form.active && form.startsAt && form.startsAt > getTodayDateInput()
+                  ? (isId
+                      ? `⚠️ Kupon dijadwalkan di masa depan. Kupon baru akan aktif dan dapat digunakan pembeli di checkout mulai tanggal ${form.startsAt}.`
+                      : `⚠️ Coupon is scheduled for future. It will become active for checkout on ${form.startsAt}.`)
+                  : form.expiresAt && form.expiresAt < getTodayDateInput()
+                    ? (isId ? "⚠️ Tanggal akhir kupon sudah terlewati." : "⚠️ Expiration date has already passed.")
+                    : form.active
+                      ? (isId
+                          ? "✅ Kupon langsung aktif dan dapat digunakan pembeli di checkout hari ini."
+                          : "✅ Coupon is active and can be used by buyers at checkout today.")
+                      : (isId
+                          ? "Kupon tersimpan sebagai draf dan tidak dapat digunakan pembeli."
+                          : "Coupon is saved as draft and not usable by buyers.")}
+              </span>
+            </div>
 
             <div className="s26-coupon-form-field">
               <span>{isId ? "Tipe Diskon" : "Discount Type"}</span>

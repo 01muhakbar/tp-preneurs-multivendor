@@ -122,6 +122,13 @@ function CouponActions({
         type="button"
         className={`s26-coupon-switch${coupon.active ? " is-on" : ""}`}
         aria-label={coupon.active ? (isId ? "Nonaktifkan kupon" : "Deactivate coupon") : (isId ? "Aktifkan kupon" : "Activate coupon")}
+        title={
+          coupon.status === "scheduled"
+            ? (isId ? "Kupon diterbitkan, tetapi belum aktif (terjadwal)" : "Coupon published, but not active yet (scheduled)")
+            : coupon.active
+              ? (isId ? "Kupon aktif" : "Coupon active")
+              : (isId ? "Kupon nonaktif" : "Coupon inactive")
+        }
         aria-pressed={coupon.active}
         disabled={!canManageStatus || !coupon.canManageStatus || busy}
         onClick={() => onToggle(coupon)}
@@ -606,7 +613,14 @@ export default function Seller2026LiveCouponsPage({ initialCreateOpen = false })
                         <small>{coupon.usageLimit ? `${usagePercent}% ${isId ? "terpakai" : "used"}` : (isId ? "Tanpa batas" : "Unlimited usage")}</small>
                         <i className="s26-coupon-usage"><b style={{ width: `${usagePercent}%` }} /></i>
                       </td>
-                      <td><StatusBadge status={coupon.status} isId={isId} /></td>
+                      <td>
+                        <StatusBadge status={coupon.status} isId={isId} />
+                        {coupon.status === "scheduled" && coupon.startsAt ? (
+                          <small style={{ display: "block", fontSize: "10px", color: "#60a5fa", marginTop: "2px", fontWeight: "600" }}>
+                            {isId ? `Mulai ${formatDate(coupon.startsAt, true)}` : `Starts ${formatDate(coupon.startsAt, false)}`}
+                          </small>
+                        ) : null}
+                      </td>
                       <td>
                         <CouponActions
                           coupon={coupon}

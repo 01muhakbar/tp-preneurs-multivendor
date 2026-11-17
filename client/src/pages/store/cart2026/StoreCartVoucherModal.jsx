@@ -71,15 +71,27 @@ export default function StoreCartVoucherModal({
       });
 
       if (!result.valid) {
-        const msg =
-          result.message ||
-          (result.reason === "minSpend"
-            ? isIndo
+        let msg = result.message;
+        if (!msg) {
+          if (result.reason === "minSpend") {
+            msg = isIndo
               ? `Belanja minimum ${formatMoney(result.minSpend || 0)} belum terpenuhi.`
-              : `Minimum spend of ${formatMoney(result.minSpend || 0)} required.`
-            : isIndo
-              ? "Kode voucher tidak valid atau sudah kedaluwarsa."
-              : "Voucher code is invalid or expired.");
+              : `Minimum spend of ${formatMoney(result.minSpend || 0)} required.`;
+          } else if (result.reason === "not_started") {
+            const startFormatted = result.startsAt ? formatDate(result.startsAt) : "";
+            msg = isIndo
+              ? `Kupon ${code} belum mulai berlaku${startFormatted ? ` (baru aktif pada ${startFormatted})` : ""}.`
+              : `Coupon ${code} has not started yet${startFormatted ? ` (starts on ${startFormatted})` : ""}.`;
+          } else if (result.reason === "expired") {
+            msg = isIndo
+              ? `Kupon ${code} sudah kedaluwarsa.`
+              : `Coupon ${code} has expired.`;
+          } else {
+            msg = isIndo
+              ? "Kode voucher tidak valid atau tidak ditemukan."
+              : "Voucher code is invalid or not found.";
+          }
+        }
         setErrorMessage(msg);
         return;
       }

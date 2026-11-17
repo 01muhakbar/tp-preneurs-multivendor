@@ -482,7 +482,9 @@ export const validateCoupon = async (
         case "inactive":
           return "Kupon sedang nonaktif.";
         case "not_started":
-          return "Kupon belum aktif.";
+          return quoted.startsAt
+            ? `Kupon belum mulai berlaku (baru aktif pada ${new Date(quoted.startsAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}).`
+            : "Kupon belum mulai berlaku.";
         case "expired":
           return "Kupon sudah kedaluwarsa.";
         case "minSpend":
@@ -501,9 +503,11 @@ export const validateCoupon = async (
       code: quoted.code,
       discountAmount: 0,
       reason: quoted.reason,
-      message: quoted.message || defaultMessage,
+      message: defaultMessage || quoted.message,
       scopeType: quoted.scopeType,
       storeId: quoted.storeId,
+      startsAt: quoted.startsAt,
+      expiresAt: quoted.expiresAt,
       policyWarnings: quoted.policyWarnings || [],
     };
   }
